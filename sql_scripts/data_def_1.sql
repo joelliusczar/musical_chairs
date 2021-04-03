@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS [SongsTags] (
 
 CREATE TABLE IF NOT EXISTS [Stations] (
     [StationPK] INTEGER PRIMARY KEY ASC,
-    [Name] TEXT NULL
+    [Name] TEXT NULL,
+    [ProcId] INTEGER NULL
 );
 
 CREATE TABLE IF NOT EXISTS [StationsTags] (

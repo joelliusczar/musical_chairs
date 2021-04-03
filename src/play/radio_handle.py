@@ -24,7 +24,7 @@ def ices_init ():
 
 	with open(configPath,'r') as stream:
 		config =  yaml.safe_load(stream)
-
+	print('Process Id: %d' % os.getpid())
 	print('Executing initialize() function..')
 	return 1
 
@@ -54,6 +54,13 @@ def ices_get_next ():
 def ices_get_metadata ():
 	global songFullPath
 	tag = TinyTag.get(songFullPath)
+	metadataStr = None
+	if not tag.artist and not tag.album:
+		return tag.title
+	if not tag.album:
+		metadataStr = '%s - %s' % (tag.title, tag.artist)
+	if not tag.artist:
+		metadataStr = '%s - %s' % (tag.title, tag.artist)
 	metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
 	return metadataStr
 

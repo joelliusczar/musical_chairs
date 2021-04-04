@@ -10,6 +10,6 @@ fi
 
 cp -rv ./src/common/* "$lib_path/"
 
-sudo find /etc/ices/ -type f \( -name '*.pyc' -o -name '*.py' \) -exec rm {} \;
+sudo find ~ -type f \( -name '*.pyc' -o -name '*.py' \) -exec rm {} \;
 
-sudo cp -rv ./src/play/* /etc/ices/
+sudo cp -rv ./src/play/* ~/

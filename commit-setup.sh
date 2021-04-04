@@ -10,10 +10,10 @@ fi
 
 cp -rv ./src/common/* "$lib_path/"
 
-if [ -e /etc/ices/module ]; then
-    sudo rm -rf /etc/ices/modules/*
+if [ -e /usr/local/etc/modules ]; then
+    sudo rm -rf /usr/local/etc/modules*
 else
-    sudo mkdir -pv /etc/ices/modules
+    sudo mkdir -pv /usr/local/etc/modules
 fi
 
-sudo cp -rv ./src/play/* /etc/ices/modules
+sudo cp -rv ./src/play/* /usr/local/etc/modules

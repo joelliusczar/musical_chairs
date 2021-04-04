@@ -12,4 +12,4 @@ cp -rv ./src/common/* "$lib_path/"
 
 sudo find /etc/ices/ -type f \( -name '*.pyc' -o -name '*.py' \) -exec {} \;
 
-cp -rv ./src/play/* /etc/ices/
+sudo cp -rv ./src/play/* /etc/ices/

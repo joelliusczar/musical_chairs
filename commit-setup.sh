@@ -8,5 +8,5 @@ else
     mkdir -pv "$lib_path" 
 fi
 
-cp -rv "./src/common/*" "$lib_path/"
+cp -rv ./src/common/* "$lib_path/"
 

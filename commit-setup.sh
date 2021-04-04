@@ -10,6 +10,6 @@ fi
 
 cp -rv ./src/common/* "$lib_path/"
 
-rm *.{py, pyc} /etc/ices/
+rm /etc/ices/**/*.{py, pyc}
 
 cp -rv ./src/play/* /etc/ices/

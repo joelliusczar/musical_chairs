@@ -7,6 +7,6 @@ if [ -e "lib_path"]; then
 else
     mkdir -pv "$lib_path" 
 fi
-
-cp -v ./common/ "$lib_path/"
+ls
+cp -v ./src/common/ "$lib_path/"
 

@@ -3,7 +3,8 @@ import yaml
 import os
 import sqlite3
 from tinytag import TinyTag
-from queue_manager import get_next_queued
+from musical_chairs_libs.queue_manager import get_next_queued
+from musical_chairs_libs.config_loader import get_config
 
 # This is just a skeleton, something for you to start with.
 
@@ -16,14 +17,7 @@ stationName = 'vg'
 # Should return 1 if ok, and 0 if something went wrong.
 def ices_init ():
 	global config
-	configPath = ''
-	if 'radio_config' in os.environ:
-		configPath = os.environ['radio_config']
-	else:
-		configPath = 'src/configs/config.yml'
-
-	with open(configPath,'r') as stream:
-		config =  yaml.safe_load(stream)
+	config = get_config()
 	print('Process Id: %d' % os.getpid())
 	print('Executing initialize() function..')
 	return 1

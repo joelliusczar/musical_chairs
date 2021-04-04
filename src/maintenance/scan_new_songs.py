@@ -3,7 +3,7 @@ import os
 import re
 import sqlite3
 from folder_sets import movieSet, gamesSet
-
+from musical_chairs_libs.config_loader import get_config
 
 def getFilter(endings):
     def _filter(str):
@@ -14,16 +14,7 @@ def getFilter(endings):
     return _filter
 
 
-configPath = ''
-if 'radio_config' in os.environ:
-    configPath = os.environ['radio_config']
-else:
-    configPath = 'src/configs/config.yml'
-
-config = None
-
-with open(configPath,'r') as stream:
-    config =  yaml.safe_load(stream)
+config = get_config()
 
 def find_folder_pk(conn, path, folders):
     for folder in folders:

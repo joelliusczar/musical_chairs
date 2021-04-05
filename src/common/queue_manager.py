@@ -32,12 +32,13 @@ def get_all_station_possibilities(conn, stationPk):
 
 def get_random_songPks(conn, stationPk, deficit):
     rows = get_all_station_possibilities(conn, stationPk)
+    sampleSize = deficit if deficit < len(rows) else len(rows)
     aSize = len(rows)
     pSize = len(rows) + 1
     songPks = map(lambda r: r[0], rows)
     weights = [2 * (float(n) / (pSize * aSize)) for n in xrange(1, pSize)]
     print(sum(weights))
-    selection = choice(songPks, deficit, p=weights, replace=False)
+    selection = choice(songPks, sampleSize, p=weights, replace=False)
     return selection
 
 def fil_up_queue(conn, stationPk, queueSize):
@@ -114,7 +115,6 @@ def get_queue_for_station(conn, searchBase, stationName):
             "WHERE Q.[StationFK] = ?"
             "ORDER BY [AddedTimestamp] ASC ", params)
     rows = cursor.fetchall()
-    print(cursor.description)
     cursor.close()
     for idx, row in enumerate(rows):
         songFullPath = (searchBase + "/" + row[1]).encode('utf-8')

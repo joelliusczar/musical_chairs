@@ -20,6 +20,7 @@ class RadioHandle:
         dbName = self.config['dbName']
         conn = sqlite3.connect(dbName)
         set_station_proc(conn, self.stationName)
+        conn.commit()
         conn.close()
         print('Executing initialize() function..')
         return 1
@@ -30,6 +31,7 @@ class RadioHandle:
         dbName = self.config['dbName']
         conn = sqlite3.connect(dbName)
         remove_station_proc(conn, self.stationName)
+        conn.commit()
         conn.close()
         print('Executing shutdown() function...')
         return 1
@@ -57,8 +59,9 @@ class RadioHandle:
         if not tag.album:
             metadataStr = '%s - %s' % (tag.title, tag.artist)
         if not tag.artist:
-            metadataStr = '%s - %s' % (tag.title, tag.artist)
-        metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
+            metadataStr = '%s - %s' % (tag.title, tag.album)
+        else:
+            metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
         return metadataStr
 
     # Function used to put the current line number of

@@ -64,6 +64,7 @@ class RadioHandle:
         else:
             metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
         print(metadataStr)
+        metadataStr = '%s - %s' % (tag.title, tag.album)
         return metadataStr
 
     # Function used to put the current line number of

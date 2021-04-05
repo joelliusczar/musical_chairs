@@ -117,7 +117,6 @@ def get_queue_for_station(conn, searchBase, stationName):
     print(cursor.description)
     cursor.close()
     for idx, row in enumerate(rows):
-        print(row)
         songFullPath = (searchBase + "/" + row[1]).encode('utf-8')
         tag = TinyTag.get(songFullPath)
         yield '%d: %s' % (idx, tag.title)

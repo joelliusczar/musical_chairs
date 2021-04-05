@@ -17,4 +17,5 @@ else
     mkdir -pv "/home/ubuntu/process" 
 fi
 
+cp -rv ./src/maintenance/* "/home/ubuntu/process/"
 cp -rv ./src/processes/* "/home/ubuntu/process/"

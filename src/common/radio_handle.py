@@ -54,14 +54,17 @@ class RadioHandle:
         tag = TinyTag.get(self.songFullPath)
         metadataStr = None
         print(tag)
-        if not tag.artist and not tag.album:
+        if not tag.artist and not tag.album and tag.title:
             return tag.title
         if not tag.album:
+            print('artist route')
             metadataStr = '%s - %s' % (tag.title, tag.artist)
         if not tag.artist:
             metadataStr = '%s - %s' % (tag.title, tag.album)
         else:
+            print('else')
             metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
+        print(metadataStr)
         return metadataStr
 
     # Function used to put the current line number of

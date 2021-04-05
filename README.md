@@ -1,1 +1,1 @@
-nterfaces to queue song paths for Moonbase59's implementation of ices0
+Interfaces to queue song paths for Moonbase59's implementation of ices0

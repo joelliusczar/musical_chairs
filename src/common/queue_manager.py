@@ -10,6 +10,14 @@ def get_station_pk(conn, stationName):
     cursor.close()
     return pk
 
+def get_tag_pk(conn, tagName):
+    cursor = conn.cursor()
+    n = (tagName, )
+    cursor.execute("SELECT [TagPK] FROM [Tags] WHERE Name = ?", n)
+    pk = cursor.fetchone()[0]
+    cursor.close()
+    return pk
+
 def get_all_station_possibilities(conn, stationPk):
 
     cursor = conn.cursor()
@@ -130,7 +138,8 @@ def get_history_for_station(conn, searchBase, stationName):
         "FROM [StationHistory] H "
         "JOIN [Songs] S ON H.[SongFK] = S.[SongPK] "
         "WHERE H.[StationFK] = ?"
-        "ORDER BY [LastPlayedTimestamp] DESC ", params)
+        "ORDER BY [LastPlayedTimestamp] DESC "
+        "LIMIT 50 ", params)
     rows = cursor.fetchall()
     cursor.close()
     for idx, row in enumerate(rows):

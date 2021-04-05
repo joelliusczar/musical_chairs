@@ -22,7 +22,7 @@ class RadioHandle:
         set_station_proc(conn, self.stationName)
         conn.close()
         print('Executing initialize() function..')
-	    return 1
+        return 1
 
     # Function called to shutdown your python enviroment.
     # Return 1 if ok, 0 if something went wrong.

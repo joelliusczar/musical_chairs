@@ -112,7 +112,7 @@ def get_queue_for_station(conn, stationName):
             "FROM [StationQueue] Q "
             "JOIN [Songs] S ON Q.[SongFK] = S.[SongPK] "
             "WHERE Q.[StationFK] = ?"
-            "ORDER BY [AddedTimestamp] ASC ", params):
+            "ORDER BY [AddedTimestamp] ASC ", params)
     rows = cursor.fetchall()
     cursor.close()
     for idx, row in enumerate(rows):

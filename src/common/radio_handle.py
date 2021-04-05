@@ -63,7 +63,6 @@ class RadioHandle:
             metadataStr = '%s - %s' % (tag.title, tag.album)
         else:
             metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
-        metadataStr = '%s - %s' % (tag.title, tag.album)
         return metadataStr.encode('utf-8')
 
     # Function used to put the current line number of

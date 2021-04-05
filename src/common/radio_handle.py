@@ -51,22 +51,20 @@ class RadioHandle:
     # as metadata (ie for title streaming) for the current song. You may
     # return null to indicate that the file comment should be used.
     def ices_get_metadata(self):
-        # tag = TinyTag.get(self.songFullPath)
-        # metadataStr = None
-        # print(tag)
-        # if not tag.artist and not tag.album and tag.title:
-        #     return tag.title
-        # if not tag.album:
-        #     print('artist route')
-        #     metadataStr = '%s - %s' % (tag.title, tag.artist)
-        # if not tag.artist:
-        #     metadataStr = '%s - %s' % (tag.title, tag.album)
-        # else:
-        #     print('else')
-        #     metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
-        # print(metadataStr)
-        # return metadataStr
-        return 'bullshit'
+        tag = TinyTag.get(self.songFullPath)
+        metadataStr = None
+        if not tag.title:
+            return None
+        if not tag.artist and not tag.album and tag.title:
+            return tag.title
+        if tag.artist and not tag.album:
+            metadataStr = '%s - %s' % (tag.title, tag.artist)
+        if tag.album and not tag.artist:
+            metadataStr = '%s - %s' % (tag.title, tag.album)
+        else:
+            metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
+        print(metadataStr)
+        return metadataStr
 
     # Function used to put the current line number of
     # the playlist in the cue file. If you don't care about this number

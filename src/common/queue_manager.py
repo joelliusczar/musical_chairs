@@ -129,7 +129,7 @@ def get_history_for_station(conn, searchBase, stationName):
     cursor.execute("SELECT S.[SongPK], S.[Path], H.[LastPlayedTimestamp] "
         "FROM [StationHistory] H "
         "JOIN [Songs] S ON H.[SongFK] = S.[SongPK] "
-        "WHERE Q.[StationFK] = ?"
+        "WHERE H.[StationFK] = ?"
         "ORDER BY [LastPlayedTimestamp] DESC ", params)
     rows = cursor.fetchall()
     cursor.close()

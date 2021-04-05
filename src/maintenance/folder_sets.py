@@ -206,6 +206,7 @@ popSet = set([
 "Rolling_Stones",
 "The_Police",
 "prince",
+"1994_-_Superunknown",
 "Simon_and_Garfunkel",
 "Sixpence_none_the_Richer",
 "Stevie_Wonder",

@@ -11,10 +11,10 @@ fi
 cp -rv ./src/common/* "$lib_path/"
 
 if [ -e /usr/local/etc/modules ]; then
-    sudo rm -rf /usr/local/etc/modules*
+    sudo rm -rf /usr/local/etc/modules/*
 else
     sudo mkdir -pv /usr/local/etc/modules
 fi
 
-sudo cp -rv ./src/play/* /usr/local/etc/modules
+sudo cp -rv ./src/play/* /usr/local/etc/modules/
 

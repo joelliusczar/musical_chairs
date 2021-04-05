@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS [Folders] (
     [Name] TEXT NULL
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_folderName ON [Folders] ([Name]);
+
 CREATE TABLE IF NOT EXISTS [Songs] (
     [SongPK] INTEGER PRIMARY KEY ASC,
     [Path] TEXT NULL,
@@ -25,11 +27,15 @@ CREATE TABLE IF NOT EXISTS [SongsTags] (
     FOREIGN KEY([TagFK]) REFERENCES [Tags]([TagPK])
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_songsTags ON [SongsTags]([SongFK], [TagFK]);
+
 CREATE TABLE IF NOT EXISTS [Stations] (
     [StationPK] INTEGER PRIMARY KEY ASC,
     [Name] TEXT NULL,
     [ProcId] INTEGER NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stations ON [Stations] ([Name]);
 
 CREATE TABLE IF NOT EXISTS [StationsTags] (
     [StationFK] INTEGER,
@@ -37,6 +43,8 @@ CREATE TABLE IF NOT EXISTS [StationsTags] (
     FOREIGN KEY([StationFK]) REFERENCES [Station]([StationPK]),
     FOREIGN KEY([TagFK]) REFERENCES [Tags]([TagPK])
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stationsTags ON [StationsTags]([StationFK], [TagFK]);
 
 CREATE TABLE IF NOT EXISTS [StationHistory] (
     [StationFK] INTEGER,

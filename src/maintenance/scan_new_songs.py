@@ -2,7 +2,7 @@ import yaml
 import os
 import re
 import sqlite3
-from folder_sets import movieSet, gamesSet
+from folder_sets import movieSet, gamesSet, popSet, miscSet
 from musical_chairs_libs.config_loader import get_config
 
 def getFilter(endings):
@@ -25,18 +25,19 @@ def find_folder_pk(conn, path, folders):
             pk = cursor.fetchone()[0]
             cursor.close()
             return pk
-    return None
+    raise KeyError("there is no folder for that path")
 
 def save_folders(folders ,dbName):
     conn = sqlite3.connect(dbName)
 
-    cursor = conn.cursor()
-
     for folder in folders:
         params = ( folder, )
+        cursor = conn.cursor()
         try:
             cursor.execute("INSERT INTO [Folders] ([Name]) VALUES(?)",params)
         except: pass
+        finally:
+            cursor.close()
 
     conn.commit()
     conn.close()
@@ -54,14 +55,17 @@ def scan_files(searchBase):
 def save_paths(allFiles, dbName):
     print(len(allFiles))
     conn = sqlite3.connect(dbName)
-    cursor = conn.cursor()
+    
     allFolders = gamesSet | movieSet
     for path in allFiles:
         folderPk = find_folder_pk(conn, path, allFolders)
         params = ( path, folderPk, )
+        cursor = conn.cursor()
         try:
             cursor.execute("INSERT INTO [Songs] ([Path], [FolderFK]) VALUES(?, ?)",params)
         except: pass
+        finally:
+            cursor.close()
 
     conn.commit()
     conn.close()
@@ -89,16 +93,15 @@ def _sort_to_tags(conn, folderName, tagName):
     for row in cursor.execute("SELECT [SongPK] FROM [Songs] S "
         "JOIN [Folders] F ON S.[FolderFK] = F.[FolderPK] "
         "WHERE F.[Name] = ? ", pathParams):
-        songTagCursor = conn.cursor()
         params = (row[0], tagPk, )
-        songTagCursor.execute("SELECT COUNT(1) FROM [SongsTags] "
-            "WHERE [SongFK] = ? and [TagFK] = ? ", params)
-        if not songTagCursor.fetchone()[0]:
-            writeCursor = conn.cursor()
+        writeCursor = conn.cursor()
+        try:
             writeCursor.execute("INSERT INTO [SongsTags] ([SongFK], [TagFK]) "
                 "VALUES(?, ?)", params)
+        except: pass
+        finally:
             writeCursor.close()
-        songTagCursor.close()
+
 
     
 
@@ -111,6 +114,8 @@ def sort_to_tags(dbName):
     for folder in movieSet:
         _sort_to_tags(conn, folder, 'movies')
         _sort_to_tags(conn, folder, 'soundtrack')
+    for folder in popSet:
+        _sort_to_tags(conn, folder, 'pop')
     conn.commit()
     conn.close()
 
@@ -120,16 +125,21 @@ def insert_station_and_tag(conn, stationName, tagName):
 
     cursor = conn.cursor()
     params = (stationPk, tagPk, )
-    cursor.execute("INSERT INTO [StationsTags]([StationFK],[TagFK]) VALUES(?, ?)", params)
-
-    cursor.close()
+    try:
+        cursor.execute("INSERT INTO [StationsTags]([StationFK],[TagFK]) VALUES(?, ?)", params)
+    except: pass
+    finally:
+        cursor.close()
 
 def insert_stations(dbName):
     conn = sqlite3.connect(dbName)
     stationCursor = conn.cursor()
-    stationNameParams = [('all', ), ('vg', ), ('thinking', ), ('trip', ), ('pop', ), ('movies', )]
-    stationCursor.executemany("INSERT INTO [Stations] ([Name]) VALUES(?)", stationNameParams)
-    stationCursor.close()
+    try:
+        stationNameParams = [('all', ), ('vg', ), ('thinking', ), ('trip', ), ('pop', ), ('movies', )]
+        stationCursor.executemany("INSERT INTO [Stations] ([Name]) VALUES(?)", stationNameParams)
+    except: pass
+    finally:
+        stationCursor.close()
     allPk = get_station_pk(conn, 'all')
 
     tagsCursor = conn.cursor()
@@ -138,15 +148,17 @@ def insert_stations(dbName):
     tagsCursor.close()
     
     tagsStationCursor = conn.cursor()
-    tagsStationCursor.executemany("INSERT INTO [StationsTags]([StationFK],[TagFK]) "
-        "VALUES(?, ?) ", stationTagsParams)
-    tagsStationCursor.close()
+    try:
+        tagsStationCursor.executemany("INSERT INTO [StationsTags]([StationFK],[TagFK]) "
+            "VALUES(?, ?) ", stationTagsParams)
+    except: pass
+    finally:
+        tagsStationCursor.close()
 
     insert_station_and_tag(conn, 'vg', 'vg')
     insert_station_and_tag(conn, 'thinking', 'thinking')
     insert_station_and_tag(conn, 'pop', 'pop')
     insert_station_and_tag(conn, 'trip', 'trippy')
-
 
     conn.commit()
     conn.close()
@@ -157,6 +169,10 @@ def fresh_start(searchBase, dbName):
     print('saving game folders done')
     save_folders(movieSet, dbName)
     print('saving movie folders done')
+    save_folders(popSet, dbName)
+    print('saving pop folders done')
+    save_folders(miscSet, dbName)
+    print('saving misc folders done')
     allFiles = scan_files(searchBase)
     print('scanning paths')
     save_paths(allFiles, dbName)
@@ -168,4 +184,4 @@ def fresh_start(searchBase, dbName):
 if __name__ == '__main__':
     searchBase = config['searchBase']
     dbName = config['dbName']
-    #fresh_start(searchBase, dbName)
+    fresh_start(searchBase, dbName)

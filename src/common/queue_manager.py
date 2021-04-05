@@ -23,15 +23,16 @@ def get_all_station_possibilities(conn, stationPk):
     cursor = conn.cursor()
     params = (stationPk, )
 
-    cursor.execute("SELECT SG.[SongPK]"
+    cursor.execute("SELECT SG.[SongPK], SG.[Path], SH.[LastPlayedTimestamp] "
         "FROM [Stations] S "
         "JOIN [StationsTags] ST ON S.[StationPK] = ST.[StationFK] "
         "JOIN [SongsTags] SGT ON SGT.[TagFK] = ST.[TagFK] "
         "JOIN [Songs] SG ON SG.[SongPK] = SGT.[SongFK] "
         "LEFT JOIN [StationHistory] SH ON SH.[StationFK] = S.[StationPK] "
-        "   AND SH.[SongFK] = SG.[SongPK]"
+        "   AND SH.[SongFK] = SG.[SongPK] "
         "WHERE S.[StationPK] = ? AND (SGT.[Skip] IS NULL OR SGT.[Skip] = 0) "
-        "ORDER BY SH.[LastPlayedTimestamp] ASC"
+        "GROUP BY SG.[SongPK], SG.[Path] "
+        "ORDER BY SH.[LastPlayedTimestamp] DESC "
         , params)
     
     rows = cursor.fetchall()

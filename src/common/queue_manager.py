@@ -121,7 +121,22 @@ def get_queue_for_station(conn, searchBase, stationName):
         tag = TinyTag.get(songFullPath)
         yield '%d: %s' % (idx, tag.title)
 
-
+def get_history_for_station(conn, searchBase, stationName):
+    stationPk = get_station_pk(conn, stationName)
+    cursor = conn.cursor()
+    params = (stationPk, )
+    results = []
+    cursor.execute("SELECT S.[SongPK], S.[Path], H.[LastPlayedTimestamp] "
+        "FROM [StationHistory] H "
+        "JOIN [Songs] S ON H.[SongFK] = S.[SongPK] "
+        "WHERE Q.[StationFK] = ?"
+        "ORDER BY [LastPlayedTimestamp] DESC ", params)
+    rows = cursor.fetchall()
+    cursor.close()
+    for idx, row in enumerate(rows):
+        songFullPath = (searchBase + "/" + row[1]).encode('utf-8')
+        tag = TinyTag.get(songFullPath)
+        yield '%d: %d - %s' % (idx, row[0], tag.title)
 
     
 

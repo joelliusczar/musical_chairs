@@ -102,7 +102,7 @@ def get_next_queued(conn, stationName):
     conn.commit()
     return path
 
-def get_queue_for_station(conn, stationName):
+def get_queue_for_station(conn, searchBase, stationName):
     stationPk = get_station_pk(conn, stationName)
     cursor = conn.cursor()
     params = (stationPk, )
@@ -118,7 +118,8 @@ def get_queue_for_station(conn, stationName):
     cursor.close()
     for idx, row in enumerate(rows):
         print(row)
-        tag = TinyTag.get(row[1].encode('utf-8'))
+        songFullPath = (searchBase + "/" + row[1]).encode('utf-8')
+        tag = TinyTag.get(songFullPath)
         yield '%d: %s' % (idx, tag.title)
 
 

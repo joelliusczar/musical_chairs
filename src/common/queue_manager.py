@@ -1,5 +1,6 @@
 from numpy.random import choice
 import time
+from tinytag import TinyTag
 
 def get_station_pk(conn, stationName):
     cursor = conn.cursor()
@@ -101,7 +102,20 @@ def get_next_queued(conn, stationName):
     conn.commit()
     return path
 
-    
+def get_queue_for_station(conn, stationName):
+    stationPk = get_station_pk(conn, stationName)
+    cursor = conn.cursor()
+    params = (stationPk, )
+    results = []
+    for row, idx in cursor.execute("SELECT S.[SongPK], S.[Path], "
+        "Q.[AddedTimestamp], Q.[RequestedTimestamp] "
+            "FROM [StationQueue] Q "
+            "JOIN [Songs] S ON Q.[SongFK] = S.[SongPK] "
+            "WHERE Q.[StationFK] = ?"
+            "ORDER BY [AddedTimestamp] ASC ", params):
+        tag = TinyTag.get(row['Path'])
+        yield '%d: %s' % (idx, tag.title)
+    cursor.close()
 
 
 

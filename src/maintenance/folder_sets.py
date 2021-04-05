@@ -228,4 +228,5 @@ miscSet = set([
 "Mokhov",
 "Philip_Glass",
 "The_Field"
+"misc",
 ])

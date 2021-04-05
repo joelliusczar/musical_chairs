@@ -56,7 +56,7 @@ def save_paths(allFiles, dbName):
     print(len(allFiles))
     conn = sqlite3.connect(dbName)
     
-    allFolders = gamesSet | movieSet
+    allFolders = gamesSet | movieSet | popSet | miscSet
     for path in allFiles:
         folderPk = find_folder_pk(conn, path, allFolders)
         params = ( path, folderPk, )

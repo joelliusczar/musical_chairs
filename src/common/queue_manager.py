@@ -118,7 +118,7 @@ def get_queue_for_station(conn, stationName):
     cursor.close()
     for idx, row in enumerate(rows):
         print(row)
-        tag = TinyTag.get(row[2].encode('utf-8'))
+        tag = TinyTag.get(row[1].encode('utf-8'))
         yield '%d: %s' % (idx, tag.title)
 
 

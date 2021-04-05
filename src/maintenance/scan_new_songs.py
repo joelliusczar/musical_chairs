@@ -25,7 +25,7 @@ def find_folder_pk(conn, path, folders):
             pk = cursor.fetchone()[0]
             cursor.close()
             return pk
-    raise KeyError("there is no folder for that path")
+    raise KeyError("there is no folder for path: %s" % path)
 
 def save_folders(folders ,dbName):
     conn = sqlite3.connect(dbName)

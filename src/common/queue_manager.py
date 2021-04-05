@@ -114,9 +114,11 @@ def get_queue_for_station(conn, stationName):
             "WHERE Q.[StationFK] = ?"
             "ORDER BY [AddedTimestamp] ASC ", params)
     rows = cursor.fetchall()
+    print(cursor.description)
     cursor.close()
     for idx, row in enumerate(rows):
-        tag = TinyTag.get(row['Path'])
+        print(row)
+        tag = TinyTag.get(row[2])
         yield '%d: %s' % (idx, tag.title)
 
 

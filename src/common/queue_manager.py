@@ -127,7 +127,7 @@ def get_queue_for_station(conn, searchBase, stationName):
     for idx, row in enumerate(rows):
         songFullPath = (searchBase + "/" + row[1]).encode('utf-8')
         tag = TinyTag.get(songFullPath)
-        yield '%d: %s' % (idx, tag.title)
+        yield '%d: %s - %s' % (idx, tag.title, tag.album)
 
 def get_history_for_station(conn, searchBase, stationName):
     stationPk = get_station_pk(conn, stationName)
@@ -145,7 +145,7 @@ def get_history_for_station(conn, searchBase, stationName):
     for idx, row in enumerate(rows):
         songFullPath = (searchBase + "/" + row[1]).encode('utf-8')
         tag = TinyTag.get(songFullPath)
-        yield '%d: %d - %s' % (idx, row[0], tag.title)
+        yield '%d: %d - %s - %s' % (idx, row[0], tag.title, tag.album)
 
     
 

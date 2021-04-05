@@ -1,6 +1,7 @@
 import sys
 from musical_chairs_libs.config_loader import get_config
 from musical_chairs_libs.queue_manager import get_queue_for_station
+import sqlite3
 
 
 if __name__ == '__main__':

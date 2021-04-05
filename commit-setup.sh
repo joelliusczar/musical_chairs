@@ -11,4 +11,10 @@ fi
 cp -rv ./src/common/* "$lib_path/"
 
 
+if [ -e "/home/ubuntu/process" ]; then 
+    rm -rf "/home/ubuntu/process/"*
+else
+    mkdir -pv "/home/ubuntu/process" 
+fi
 
+cp -rv ./src/processes/* "/home/ubuntu/process/"

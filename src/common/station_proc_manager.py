@@ -28,4 +28,8 @@ def end_all_stations(conn):
             os.kill(pid, Signal.SIGTERM)
         except: pass
     cursor.close()
+    updateCursor = conn.cursor()
+    updateCursor.execute("UPDATE [Stations] "
+        "SET [ProcId] = NULL ")
+    updateCursor.close()
 

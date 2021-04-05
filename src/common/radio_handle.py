@@ -65,7 +65,8 @@ class RadioHandle:
             metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
         print(metadataStr)
         metadataStr = '%s - %s' % (tag.title, tag.album)
-        return metadataStr
+        print(tag.album)
+        return tag.album
 
     # Function used to put the current line number of
     # the playlist in the cue file. If you don't care about this number

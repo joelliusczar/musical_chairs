@@ -31,7 +31,7 @@ def get_all_station_possibilities(conn, stationPk):
         "LEFT JOIN [StationHistory] SH ON SH.[StationFK] = S.[StationPK] "
         "   AND SH.[SongFK] = SG.[SongPK]"
         "WHERE S.[StationPK] = ? AND (SGT.[Skip] IS NULL OR SGT.[Skip] = 0) "
-        "ORDER BY SH.[LastPlayedTimestamp] DESC"
+        "ORDER BY SH.[LastPlayedTimestamp] ASC"
         , params)
     
     rows = cursor.fetchall()
@@ -129,17 +129,17 @@ def get_queue_for_station(conn, searchBase, stationName):
         tag = TinyTag.get(songFullPath)
         yield '%d: %s - %s' % (idx, tag.title, tag.album)
 
-def get_history_for_station(conn, searchBase, stationName):
+def get_history_for_station(conn, searchBase, stationName, limit = 50):
     stationPk = get_station_pk(conn, stationName)
     cursor = conn.cursor()
-    params = (stationPk, )
+    params = (stationPk, limit, )
     results = []
     cursor.execute("SELECT S.[SongPK], S.[Path], H.[LastPlayedTimestamp] "
         "FROM [StationHistory] H "
         "JOIN [Songs] S ON H.[SongFK] = S.[SongPK] "
         "WHERE H.[StationFK] = ?"
         "ORDER BY [LastPlayedTimestamp] DESC "
-        "LIMIT 50 ", params)
+        "LIMIT ? ", params)
     rows = cursor.fetchall()
     cursor.close()
     for idx, row in enumerate(rows):

@@ -24,9 +24,9 @@ def end_all_stations(conn):
     for row in cursor.execute("SELECT [ProcId] FROM [Stations] "
         "WHERE [ProcId] IS NOT NULL"):
         pid = row[0]
-        #try:
-        os.kill(pid, 2)
-        #except: pass
+        try:
+            os.kill(pid, 2)
+        except: pass
     cursor.close()
     updateCursor = conn.cursor()
     updateCursor.execute("UPDATE [Stations] "

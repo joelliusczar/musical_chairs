@@ -1,5 +1,6 @@
 import sys
 import sqlite3
+from musical_chairs_libs.config_loader import get_config
 from musical_chairs_libs.queue_manager import get_station_pk
 import time
 
@@ -8,8 +9,8 @@ def enqueu_song(conn, songPk, stationName):
     cursor = conn.cursor()
     timestamp = time.time()
     params = (songPk, tagPk, timestamp, timestamp, )
-    cursor.except("INSERT INTO [StationQueue] ([StationFK], [SongFK], "
-    "[AddedTimestamp], [RequestedTimestamp]) VALUES(?, ?, ?, ?)", params)
+    cursor.execute("INSERT INTO [StationQueue] ([StationFK], [SongFK], "
+        "[AddedTimestamp], [RequestedTimestamp]) VALUES(?, ?, ?, ?)", params)
     cursor.close()
 
 if __name__ == '__main__':

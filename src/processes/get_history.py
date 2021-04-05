@@ -9,6 +9,7 @@ if __name__ == '__main__':
     dbName = config['dbName']
     searchBase = config['searchBase']
     conn = sqlite3.connect(dbName)
-    for item in get_history_for_station(conn, searchBase, sys.argv[1]):
+    arg2 = sys.argv[2] if len(sys.argv) > 2 else 50
+    for item in get_history_for_station(conn, searchBase, sys.argv[1], arg2):
         print(item)
     conn.close()

@@ -107,15 +107,17 @@ def get_queue_for_station(conn, stationName):
     cursor = conn.cursor()
     params = (stationPk, )
     results = []
-    for row, idx in cursor.execute("SELECT S.[SongPK], S.[Path], "
+    cursor.execute("SELECT S.[SongPK], S.[Path], "
         "Q.[AddedTimestamp], Q.[RequestedTimestamp] "
             "FROM [StationQueue] Q "
             "JOIN [Songs] S ON Q.[SongFK] = S.[SongPK] "
             "WHERE Q.[StationFK] = ?"
             "ORDER BY [AddedTimestamp] ASC ", params):
+    rows = cursor.fetchall()
+    cursor.close()
+    for idx, row in enumerate(rows):
         tag = TinyTag.get(row['Path'])
         yield '%d: %s' % (idx, tag.title)
-    cursor.close()
 
 
 

@@ -32,7 +32,7 @@ def get_all_station_possibilities(conn, stationPk):
         "   AND SH.[SongFK] = SG.[SongPK] "
         "WHERE S.[StationPK] = ? AND (SGT.[Skip] IS NULL OR SGT.[Skip] = 0) "
         "GROUP BY SG.[SongPK], SG.[Path] "
-        "ORDER BY SH.[LastPlayedTimestamp] DESC "
+        "ORDER BY SH.[LastPlayedTimestamp] ASC "
         , params)
     
     rows = cursor.fetchall()

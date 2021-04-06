@@ -38,7 +38,7 @@ if __name__ == '__main__':
         "   AND SH.[SongFK] = SG.[SongPK] "
         "WHERE S.[StationPK] = ? AND (SGT.[Skip] IS NULL OR SGT.[Skip] = 0) "
         "GROUP BY SG.[SongPK], SG.[Path] "
-        "ORDER BY SH.[LastPlayedTimestamp] DESC "
+        "ORDER BY SH.[LastPlayedTimestamp] ASC "
         , params)
     # cursor.execute("SELECT SG.[SongPK], SG.[Path], SH.[LastPlayedTimestamp] "
     #     "FROM [Stations] S "

@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS [StationHistory] (
     [StationFK] INTEGER,
     [SongFK] INTEGER,
     [LastPlayedTimestamp] REAL,
+    [LastQueuedTimestamp] REAL,
     [LastRequestedTimestamp] REAL,
     FOREIGN KEY([SongFK]) REFERENCES [Songs]([SongPK]),
     FOREIGN KEY([StationFK]) REFERENCES [Station]([StationPK])

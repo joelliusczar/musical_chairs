@@ -23,7 +23,7 @@ def get_all_station_possibilities(conn, stationPk):
     cursor = conn.cursor()
     params = (stationPk, )
 
-    cursor.execute("SELECT SG.[SongPK], SG.[Path], SH.[LastPlayedTimestamp] "
+    cursor.execute("SELECT SG.[SongPK], SG.[Path]"
         "FROM [Stations] S "
         "JOIN [StationsTags] ST ON S.[StationPK] = ST.[StationFK] "
         "JOIN [SongsTags] SGT ON SGT.[TagFK] = ST.[TagFK] "
@@ -31,8 +31,8 @@ def get_all_station_possibilities(conn, stationPk):
         "LEFT JOIN [StationHistory] SH ON SH.[StationFK] = S.[StationPK] "
         "   AND SH.[SongFK] = SG.[SongPK] "
         "WHERE S.[StationPK] = ? AND (SGT.[Skip] IS NULL OR SGT.[Skip] = 0) "
-        "GROUP BY SG.[SongPK], SG.[Path] "
-        "ORDER BY SH.[LastPlayedTimestamp] DESC "
+        "GROUP BY SG.[SongPK]"
+        "ORDER BY SH.[LastQueuedTimestamp] DESC, SH.[LastPlayedTimestamp] DESC "
         , params)
     
     rows = cursor.fetchall()
@@ -46,7 +46,6 @@ def get_random_songPks(conn, stationPk, deficit):
     pSize = len(rows) + 1
     songPks = map(lambda r: r[0], rows)
     weights = [2 * (float(n) / (pSize * aSize)) for n in xrange(1, pSize)]
-    print(sum(weights))
     selection = choice(songPks, sampleSize, p=weights, replace=False)
     return selection
 
@@ -66,6 +65,11 @@ def fil_up_queue(conn, stationPk, queueSize):
     cursor = conn.cursor()
     cursor.executemany("INSERT INTO [StationQueue] "
         "([StationFK], [SongFK], [AddedTimestamp]) VALUES(?, ?, ?)", params)
+    cursor.close()
+    cursor = conn.cursor()
+    cursor.executemany("INSERT INTO [StationHistory] "
+        "([StationFK], [SongFK], [LastQueuedTimestamp]) VALUES(?, ?, ?)", params)
+    cursor.close()
 
 def move_from_queue_to_history(conn, stationPk, songPk, queueTimestamp, requestedTimestamp):
     cursor = conn.cursor()
@@ -76,11 +80,37 @@ def move_from_queue_to_history(conn, stationPk, songPk, queueTimestamp, requeste
         "[AddedTimestamp] = ? ", params)
     cursor.close()
     cursor = conn.cursor()
-    params = (stationPk, songPk, time.time(), requestedTimestamp, )
-    cursor.execute("INSERT INTO [StationHistory] "
-        "([StationFK], [SongFK], [LastPlayedTimestamp], [LastRequestedTimestamp])"
-        "VALUES(?, ?, ?, ?)", params)
+    params = { 'station': stationPk, 
+        'song': songPk, 
+        'currentTime': time.time(), 
+        'requestTime': requestedTimestamp }
+    prevChangsCount = conn.total_changes
+    cursor.execute("DROP TABLE IF EXISTS temp.[lastHistory]; ")
+    cursor.execute("CREATE TEMP TABLE [lastHistory] AS "
+        "SELECT [SongFK], MAX([LastQueuedTimestamp]) [LastQueued] "
+        "FROM [StationHistory] "
+        "WHERE [StationFK] = :station "
+        "GROUP BY [SongFK] "
+        "HAVING [LastQueued] IS NOT NULL; ", params)
+
+    cursor.execute("UPDATE [StationHistory] "
+        "SET [LastPlayedTimestamp] = :currentTime "
+        "WHERE [StationFK] = :station "
+        "AND [SongFK] = :song "
+        "AND [SongFK] IN "
+        "(SELECT [SongFK] "
+        "       FROM temp.[lastHistory]) "
+        "AND [LastQueuedTimestamp] IN "
+        "(SELECT [LastQueued] "
+        "   FROM temp.[lastHistory]); ", params)
+    cursor.execute("DROP TABLE IF EXISTS temp.[lastHistory]; ", params)
     cursor.close()
+    if conn.total_changes == prevChangsCount:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO [StationHistory] "
+            "([StationFK], [SongFK], [LastPlayedTimestamp], [LastRequestedTimestamp])"
+            "VALUES(:station, :song, :currentTime, :requestTime)", params)
+        cursor.close()
 
 def is_queue_empty(conn, stationPk):
     cursor = conn.cursor()

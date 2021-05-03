@@ -2,14 +2,27 @@ import yaml
 import os
 
 def get_config():
-    configPath = ''
+    config_path = ''
     if 'radio_config' in os.environ:
-        configPath = os.environ['radio_config']
+        config_path = os.environ['radio_config']
     else:
-        configPath = 'src/configs/config.yml'
+        config_path = 'src/configs/config.yml'
 
     config = None
 
-    with open(configPath,'r') as stream:
+    with open(config_path,'r') as stream:
+        config =  yaml.safe_load(stream)
+    return config
+
+def get_http_config():
+    config_path = ''
+    if 'http_config' in os.environ:
+        config_path = os.environ['http_config']
+    else:
+        config_path = 'src/configs/web_config.yml'
+
+    config = None
+
+    with open(config_path,'r') as stream:
         config =  yaml.safe_load(stream)
     return config

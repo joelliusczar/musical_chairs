@@ -2,40 +2,32 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import webClient from "../../api";
 import { CallStatus } from "../../constants";
 
-export const fetchQueue = createAsyncThunk(
-  "queue/fetch",
+export const fetchHistory = createAsyncThunk(
+  "history/fetch",
   async ({ station }) => {
-    const response = await webClient.get(`/queue/${station}`);
+    const response = await webClient.get(`/history/${station}`);
     return response.data;
   }
 );
 
 const initialState = {
   status: "",
-  values: {
-    queue: [],
-  },
+  values: [],
   error: null,
-  signal: null,
 };
 
 const slice = createSlice({
-  name: "queue",
+  name: "history",
   initialState,
-  reducers: {
-    sendRefreshSignal: (state) => {
-      state.signal = {};
-    },
-  },
   extraReducers: {
-    [fetchQueue.pending]: (state) => {
+    [fetchHistory.pending]: (state) => {
       state.status = CallStatus.loading;
     },
-    [fetchQueue.fulfilled]: (state, action) => {
+    [fetchHistory.fulfilled]: (state, action) => {
       state.status = CallStatus.done;
       state.values = action.payload;
     },
-    [fetchQueue.rejected]: (state, action) => {
+    [fetchHistory.rejected]: (state, action) => {
       state.status = CallStatus.failed;
       state.error = action.error;
     },

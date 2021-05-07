@@ -23,27 +23,12 @@ export function NavMenu() {
 export function AppRoutes() {
   return (
     <Switch>
-      <Route
-        path="/home"
-        render={() => {
-          document.title = "Musical Chairs - Home";
-          return null;
-        }}
-      />
-      <Route
-        path="/queue/:station?"
-        render={(props) => {
-          document.title = "Musical Chairs - Queue";
-          return <Queue {...props} />;
-        }}
-      />
-      <Route
-        path="/history/:station?"
-        render={(props) => {
-          document.title = "Musical Chairs - History";
-          return <History {...props}/>;
-        }}
-      />
+      <Route path="/queue/:station?">
+        <Queue />
+      </Route>
+      <Route path="/history/:station?">
+        <History />
+      </Route>
     </Switch>
   );
 }

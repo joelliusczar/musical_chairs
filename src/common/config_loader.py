@@ -1,5 +1,6 @@
 import yaml
 import os
+import configparser
 
 def get_config():
     config_path = ''
@@ -21,7 +22,7 @@ def get_http_config():
     else:
         config_path = 'src/configs/web_config.yml'
 
-    config = None
+    config = configparser.ConfigParser()
 
     with open(config_path,'r') as stream:
         config =  yaml.safe_load(stream)

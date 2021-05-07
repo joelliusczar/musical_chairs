@@ -6,7 +6,8 @@ def get_station_pk(conn, stationName):
     cursor = conn.cursor()
     n = (stationName, )
     cursor.execute("SELECT [StationPK] FROM [Stations] WHERE Name = ?", n)
-    pk = cursor.fetchone()[0]
+    row = cursor.fetchone()
+    pk = row[0] if row else None
     cursor.close()
     return pk
 
@@ -14,7 +15,8 @@ def get_tag_pk(conn, tagName):
     cursor = conn.cursor()
     n = (tagName, )
     cursor.execute("SELECT [TagPK] FROM [Tags] WHERE Name = ?", n)
-    pk = cursor.fetchone()[0]
+    row = cursor.fetchone()
+    pk = row[0] if row else None
     cursor.close()
     return pk
 
@@ -142,77 +144,7 @@ def get_next_queued(conn, stationName):
     conn.commit()
     return path
 
-def get_queue_for_station(conn, searchBase, stationName):
-    stationPk = get_station_pk(conn, stationName)
-    cursor = conn.cursor()
-    params = (stationPk, )
-    cursor.execute("SELECT S.[SongPK], S.[Path], "
-        "Q.[AddedTimestamp], Q.[RequestedTimestamp] "
-            "FROM [StationQueue] Q "
-            "JOIN [Songs] S ON Q.[SongFK] = S.[SongPK] "
-            "WHERE Q.[StationFK] = ?"
-            "ORDER BY [AddedTimestamp] ASC ", params)
-    rows = cursor.fetchall()
-    cursor.close()
-    for idx, row in enumerate(rows):
-        songFullPath = (searchBase + "/" + row[1]).encode('utf-8')
-        try:
-            tag = TinyTag.get(songFullPath)
-            yield { 
-                'songPK': row[0],
-                'song': tag.title, 
-                'album': tag.album,
-                'artist': tag.artist,
-                'AddedTimestamp': row[2],
-                'RequestedTimestamp': row[3]
-            }
-        except:
-            yield { 
-                'songPK': row[0],
-                'AddedTimestamp': row[2],
-                'RequestedTimestamp': row[3]
-            }
 
-def get_station_list(conn):
-    cursor = conn.cursor()
-    cursor.execute("SELECT [StationPK], [Name]"
-        "FROM [Stations]")
-    rows = cursor.fetchall()
-    cursor.close()
-    for row in rows:
-        yield { StationPK: row[0], Name: row[1]}
-
-
-def get_history_for_station(conn, searchBase, stationName, limit = 50):
-    stationPk = get_station_pk(conn, stationName)
-    cursor = conn.cursor()
-    params = (stationPk, limit, )
-    cursor.execute("SELECT S.[SongPK], S.[Path], H.[LastPlayedTimestamp] "
-        "FROM [StationHistory] H "
-        "JOIN [Songs] S ON H.[SongFK] = S.[SongPK] "
-        "WHERE H.[StationFK] = ?"
-        "ORDER BY [LastPlayedTimestamp] DESC "
-        "LIMIT ? ", params)
-    rows = cursor.fetchall()
-    cursor.close()
-    for idx, row in enumerate(rows):
-        songFullPath = (searchBase + "/" + row[1]).encode('utf-8')
-        try:
-            tag = TinyTag.get(songFullPath)
-            yield { 
-                'songPK': row[0],
-                'song': tag.title, 
-                'album': tag.album,
-                'artist': tag.artist,
-                'LastPlayedTimestamp': row[2]
-            }
-        except:
-            yield {
-                'songPK': row[0],
-                'LastPlayedTimestamp': row[2]
-            }
-
-    
 
 
     

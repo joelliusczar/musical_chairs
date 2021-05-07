@@ -1,3 +1,4 @@
+import React from "react";
 import "./App.css";
 import { AppBar, Drawer, ThemeProvider, Typography } from "@material-ui/core";
 import { AppRoutes, NavMenu } from "./Components/Navigation/AppRoutes";
@@ -13,7 +14,7 @@ function App() {
   return (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
-        <BrowserRouter basename="/radio">
+        <BrowserRouter basename="/">
           <div className={classes.root}>
             <AppBar color="primary" position="fixed" className={classes.appBar}>
               <Typography variant="h1">Musical Chairs</Typography>

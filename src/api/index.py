@@ -1,10 +1,11 @@
 from musical_chairs_libs.config_loader import get_http_config, get_config
-from musical_chairs_libs.queue_manager import \
-get_queue_for_station, \
-get_history_for_station, \
-get_station_list
+from sqlalchemy import create_engine
+from services.station_service import get_station_list
+from services.history_service import get_history_for_station
+from services.queue_service import get_now_playing_and_queue
 import cherrypy
-import sqlite3
+
+
 
 class MusicalChairsApi:
 
@@ -15,42 +16,49 @@ class MusicalChairsApi:
     def index(self):
         return 'Hello World'
 
+    def provide_db_conn(func):
+        def wrap(*args, **kwargs):
+            self = args[0]
+            dbName = self.config['dbName']
+            engine = create_engine(f"sqlite+pysqlite:///{self.config['dbName']}")
+            conn = engine.connect()
+            nargs = (args[0], conn, *args[1:])
+            result = func(*nargs, **kwargs)
+            conn.close()
+            return result
+        return wrap
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def queue(self, stationName, limit = 50, pageNumber = 1):
+    @provide_db_conn
+    def queue(self, conn, stationName = "", limit = 50, pageNumber = 1):
         if not stationName:
             return []
-        dbName = self.config['dbName']
-        conn = sqlite3.connect(dbName)
         searchBase = self.config['searchBase']
-        queue = list(get_queue_for_station(conn, searchBase, stationName))
-        conn.close()
+        queue = get_now_playing_and_queue(conn, searchBase, stationName)
         return queue
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def history(self, stationName, limit = 50, pageNumber = 1):
+    @provide_db_conn
+    def history(self, conn, stationName = "", limit = 50, pageNumber = 1):
         if not stationName:
             return []
-        dbName = self.config['dbName']
-        conn = sqlite3.connect(dbName)
         searchBase = self.config['searchBase']
         history = list(get_history_for_station(conn, searchBase, 
                         stationName))
-        conn.close()
         return history
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def stations(self):
-        dbName = self.config['dbName']
-        conn = sqlite3.connect(dbName)
-        stations = list(get_station_list)
-        conn.close()
+    @provide_db_conn
+    def stations(self, conn):
+        stations = list(get_station_list(conn))
         return stations
 
 if __name__ == '__main__':
     config = get_http_config()
-    print(config)
+    config['global']['tools.response_headers.on'] = True
+    config['global']['tools.response_headers.headers'] = [('Access-Control-Allow-Origin','*')]
     app = MusicalChairsApi()
     cherrypy.quickstart(app, config=config)

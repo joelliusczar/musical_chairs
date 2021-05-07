@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
-import { fetchStations } from "../../shared_api/stations_state";
-import { fetchQueue } from "./queue_state";
+import { fetchStations } from "../Stations/stations_slice";
+import { fetchQueue } from "./queue_slice";
 import { useDispatch, useSelector } from "react-redux";
 import { makeStyles, 
   MenuItem, 
@@ -12,9 +12,10 @@ import { makeStyles,
   TableCell, 
   TableHead, 
   TableRow, 
-  Typography 
+  Typography,
 } from "@material-ui/core";
 import Loader from "../Shared/Loader";
+import { CallStatus, DomRoutes } from "../../constants";
 
 const useStyles = makeStyles(() => ({
   select: {
@@ -52,20 +53,23 @@ export default function Queue() {
   const dispatch = useDispatch();
   const classes = useStyles();
   const stations = useSelector((appState) => appState.stations.values);
+  const stationsStatus =  useSelector((appState) => appState.stations.status);
   const queueItems = useSelector((appState) => appState.queue.values);
   const queueItemsStatus =  useSelector((appState) => appState.queue.status);
   const queueItemsError =  useSelector((appState) => appState.queue.error);
 
   useEffect(() => {
-    dispatch(fetchStations());
-  }, [dispatch]);
+    if(!stationsStatus || stationsStatus === CallStatus.idle) { 
+      dispatch(fetchStations());
+    }
+  }, [dispatch, stationsStatus]);
 
   useEffect(() => {
     document.title = "Musical Chairs - Queue";
   });
 
   useEffect(() => {
-    history.replace(`/queue/${selectedStation}`);
+    history.replace(`${DomRoutes.queue}${selectedStation}`);
   }, [history, selectedStation]);
 
   useEffect(() => {
@@ -128,7 +132,6 @@ export default function Queue() {
             </TableBody>
           </Table>
         </TableContainer>
-        {JSON.stringify(queueItems) }
       </Loader>
     </>
   );

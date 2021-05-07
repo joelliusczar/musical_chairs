@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import webClient from "../api";
-import { CallStatus } from "../constants";
+import webClient from "../../api";
+import { CallStatus } from "../../constants";
 
 export const fetchStations = createAsyncThunk("stations/fetch", async () => {
   const response = await webClient.get("/stations");

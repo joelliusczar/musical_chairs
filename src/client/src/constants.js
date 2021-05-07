@@ -6,3 +6,10 @@ export const CallStatus = {
   failed: "failed",
   idle: "idle",
 };
+
+export const DomRoutes = {
+  queue: "/queue/",
+  history: "/history/",
+  stations: "/stations/",
+  songCatalogue: "/song-catalogue/",
+};

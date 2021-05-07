@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
-import { fetchStations } from "../../shared_api/stations_state";
-import { fetchHistory } from "./history_state";
+import { fetchStations } from "../Stations/stations_slice";
+import { fetchHistory } from "./history_slice";
 import { useDispatch, useSelector } from "react-redux";
 import { makeStyles, 
   MenuItem, 
@@ -11,30 +11,16 @@ import { makeStyles,
   TableContainer, 
   TableCell, 
   TableHead, 
-  TableRow
+  TableRow,
 } from "@material-ui/core";
 import Loader from "../Shared/Loader";
+import { CallStatus } from "../../constants";
 
 const useStyles = makeStyles(() => ({
   select: {
     width: 150,
   },
 }));
-
-/*
-            yield { 
-                'id': row[0],
-                'song': tag.title, 
-                'album': tag.album,
-                'artist': tag.artist,
-                'lastPlayedTimestamp': row[2]
-            }
-        except:
-            yield {
-                'id': row[0],
-                'lastPlayedTimestamp': row[2]
-            }
-*/
 
 export default function History() {
   const [selectedStation, setSelectedStation] = useState("");
@@ -43,14 +29,17 @@ export default function History() {
   const dispatch = useDispatch();
   const classes = useStyles();
   const stations = useSelector((appState) => appState.stations.values);
+  const stationsStatus =  useSelector((appState) => appState.stations.status);
   const songHistory= useSelector((appState) => appState.history.values);
   const songHistoryStatus =  useSelector((appState) => appState.history.status);
   const songHistoryError =  useSelector((appState) => appState.history.error);
   
 
   useEffect(() => {
-    dispatch(fetchStations());
-  }, [dispatch]);
+    if(!stationsStatus || stationsStatus === CallStatus.idle) { 
+      dispatch(fetchStations());
+    }
+  }, [dispatch, stationsStatus]);
 
   useEffect(() => {
     document.title = "Musical Chairs - History";
@@ -116,7 +105,6 @@ export default function History() {
             </TableBody>
           </Table>
         </TableContainer>
-        {JSON.stringify(songHistory) }
       </Loader>
     </>
   );

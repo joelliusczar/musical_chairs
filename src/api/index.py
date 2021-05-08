@@ -1,6 +1,7 @@
 from musical_chairs_libs.config_loader import get_http_config, get_config
 from controllers.stations_controller import StationController
 import cherrypy
+import os
 
 
 
@@ -11,7 +12,8 @@ class MusicalChairsApi:
 
   @cherrypy.expose
   def index(self):
-    return 'Hello World'
+    print(os.getcwd())
+    return open("src/client/build/index.html")
 
 
 if __name__ == '__main__':
@@ -22,7 +24,7 @@ if __name__ == '__main__':
   webConfig["global"]["tools.sessions.on"] = True
   appConfig = get_config()
   app = MusicalChairsApi(appConfig)
-
+  print(webConfig)
   stations = StationController(appConfig)
   cherrypy.tree.mount(stations, "/stations",webConfig)
   cherrypy.quickstart(app, "/", webConfig)

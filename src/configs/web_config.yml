@@ -1,3 +1,6 @@
-global:
+"global":
   server.socket_host: "127.0.0.1"
   server.socket_port: 8080
+"/":
+  tools.staticdir.on: true
+  tools.staticdir.dir: "/Users/joelpridgen/Documents/Code/radio/src/client/build"

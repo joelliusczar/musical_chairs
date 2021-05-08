@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from services.station_service import get_station_list
 from services.history_service import get_history_for_station
 from services.queue_service import get_now_playing_and_queue
+from services.sql_functions import song_name, album_name, artist_name
 import cherrypy
 
 
@@ -22,6 +23,15 @@ class MusicalChairsApi:
             dbName = self.config['dbName']
             engine = create_engine(f"sqlite+pysqlite:///{self.config['dbName']}")
             conn = engine.connect()
+            conn.connection.connection \
+                .create_function("song_name", 2, song_name, \
+                    deterministic=True)
+            conn.connection.connection \
+                .create_function("artist_name", 2, artist_name, \
+                    deterministic=True)
+            conn.connection.connection \
+                .create_function("album_name", 2, album_name, \
+                    deterministic=True)
             nargs = (args[0], conn, *args[1:])
             result = func(*nargs, **kwargs)
             conn.close()

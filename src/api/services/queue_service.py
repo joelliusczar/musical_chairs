@@ -1,39 +1,31 @@
-from sqlalchemy import create_engine, select
-from .tables import songs, station_queue
-from musical_chairs_libs.queue_manager import get_station_pk
+from sqlalchemy import create_engine, select, func
+from .tables import songs, station_queue, stations
 from .history_service import get_history_for_station
-from tinytag import TinyTag
+from .sql_functions import song_name, album_name, artist_name
 
 def get_queue_for_station(conn, searchBase, stationName):
-  station_pk = get_station_pk(conn.connection.connection, stationName)
-  if not station_pk:
-    return
   q = station_queue.c
   s = songs.c
-  query = select(s.songPK, s.path, q.addedTimestamp, q.requestedTimestamp) \
+  st = stations.c
+  query = select(s.songPK, s.path, q.addedTimestamp, q.requestedTimestamp, \
+    func.song_name(s.path, searchBase).label("songName"),\
+    func.album_name(s.path, searchBase).label("albumName"),\
+    func.artist_name(s.path, searchBase).label("artistName")) \
     .select_from(station_queue) \
     .join(songs, q.songFK == s.songPK) \
-    .where(q.stationFK == station_pk) \
+    .join(stations, st.stationPK == q.stationFK) \
+    .where(st.name == stationName) \
     .order_by(q.addedTimestamp)
   records = conn.execute(query)
-  for idx, row in enumerate(records):
-    songFullPath = (searchBase + "/" + row[1]).encode('utf-8')
-    try:
-        tag = TinyTag.get(songFullPath)
-        yield { 
-            'id': row["songPK"],
-            'song': tag.title, 
-            'album': tag.album,
-            'artist': tag.artist,
-            'addedTimestamp': row["addedTimestamp"],
-            'requestedTimestamp': row["requestedTimestamp"],
-        }
-    except:
-        yield { 
-            'id': row["songPK"],
-            'addedTimestamp': row["addedTimestamp"],
-            'requestedTimestamp': row["requestedTimestamp"],
-        }
+  for row in records:
+    yield { 
+      'id': row["songPK"],
+      'song': row["songName"], 
+      'album': row["artistName"],
+      'artist': row["songPK"],
+      'addedTimestamp': row["addedTimestamp"],
+      'requestedTimestamp': row["requestedTimestamp"],
+    }
 
 def get_now_playing_and_queue(conn, searchBase, stationName):
     queue = list(get_queue_for_station(conn, searchBase, stationName))

@@ -1,0 +1,16 @@
+cheroot==8.5.2
+CherryPy==18.6.0
+greenlet==1.1.0
+jaraco.classes==3.2.1
+jaraco.collections==3.3.0
+jaraco.functools==3.3.0
+jaraco.text==3.5.0
+more-itertools==8.7.0
+portend==2.7.1
+pytz==2021.1
+PyYAML==5.4.1
+six==1.16.0
+SQLAlchemy==1.4.14
+tempora==4.0.2
+tinytag==1.5.0
+zc.lockfile==2.0

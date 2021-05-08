@@ -14,7 +14,8 @@ import { makeStyles,
   TableRow,
 } from "@material-ui/core";
 import Loader from "../Shared/Loader";
-import { CallStatus } from "../../constants";
+import { CallStatus, DomRoutes } from "../../constants";
+
 
 const useStyles = makeStyles(() => ({
   select: {
@@ -24,6 +25,7 @@ const useStyles = makeStyles(() => ({
 
 export default function History() {
   const [selectedStation, setSelectedStation] = useState("");
+  const [selectTouched, setSelectTouched] = useState();
   const { station: stationParam } = useParams();
   const history = useHistory();
   const dispatch = useDispatch();
@@ -46,14 +48,19 @@ export default function History() {
   });
 
   useEffect(() => {
-    history.replace(`/history/${selectedStation}`);
-  }, [history, selectedStation]);
+    if(!selectTouched) return;
+    history.replace(`${DomRoutes.history}${selectedStation}`);
+  }, [history, selectedStation, selectTouched]);
 
   useEffect(() => {
-    if (stationParam) {
+    if (!stationParam) return;
+    const station = stationParam.toLowerCase();
+    if(stations.some(s => s.name.toLowerCase() === station)) {
+      setSelectedStation(stationParam);
+      setSelectTouched(false);
       dispatch(fetchHistory({ station: stationParam }));
     }
-  }, [stationParam, dispatch]);
+  }, [stationParam, dispatch, setSelectedStation, setSelectTouched, stations]);
 
   return (
     <>
@@ -63,7 +70,10 @@ export default function History() {
           className={classes.select}
           displayEmpty
           label="Stations"
-          onChange={(e) => setSelectedStation(e.target.value)}
+          onChange={(e) => {
+            setSelectTouched(true);
+            setSelectedStation(e.target.value);
+          }}
           renderValue={(v) => v || "Select Station"}
           value={selectedStation}
         >

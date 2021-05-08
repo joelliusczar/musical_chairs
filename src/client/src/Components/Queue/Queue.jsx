@@ -48,6 +48,7 @@ const formatNowPlaying = (nowPlaying) => {
 
 export default function Queue() {
   const [selectedStation, setSelectedStation] = useState("");
+  const [selectTouched, setSelectTouched] = useState();
   const { station: stationParam } = useParams();
   const history = useHistory();
   const dispatch = useDispatch();
@@ -69,24 +70,33 @@ export default function Queue() {
   });
 
   useEffect(() => {
+    if(!selectTouched) return;
     history.replace(`${DomRoutes.queue}${selectedStation}`);
-  }, [history, selectedStation]);
+  }, [history, selectedStation, selectTouched]);
 
   useEffect(() => {
-    if (stationParam) {
+    if (!stationParam) return;
+    const station = stationParam.toLowerCase();
+    if(stations.some(s => s.name.toLowerCase() === station)) {
+      setSelectedStation(stationParam);
+      setSelectTouched(false);
       dispatch(fetchQueue({ station: stationParam }));
     }
-  }, [stationParam, dispatch]);
+  }, [stationParam, dispatch,setSelectedStation, setSelectTouched, stations]);
 
   return (
     <>
       <h1>Queue: {stationParam}</h1>
       {stations && (
         <Select
+          name="station-select"
           className={classes.select}
           displayEmpty
           label="Stations"
-          onChange={(e) => setSelectedStation(e.target.value)}
+          onChange={(e) => {
+            setSelectTouched(true);
+            setSelectedStation(e.target.value);
+          }}
           renderValue={(v) => v || "Select Station"}
           value={selectedStation}
         >

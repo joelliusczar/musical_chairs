@@ -1,35 +1,32 @@
-from sqlalchemy import select, desc
-from musical_chairs_libs.queue_manager import get_station_pk
-from .tables import stations_history, songs
-from tinytag import TinyTag
+from sqlalchemy import select, desc, func
+from .tables import stations_history, songs, stations
+from .sql_functions import song_name, album_name, artist_name
 
 
-def get_history_for_station(conn, searchBase, stationName, limit = 50):
-  station_pk = get_station_pk(conn.connection.connection, stationName)
-  if not station_pk:
-    return
+def get_history_for_station(conn, 
+searchBase, 
+stationName, 
+limit=50, 
+offset=0):
   h = stations_history.c
+  st = stations.c
   s = songs.c
-  query = select(s.songPK, s.path, h.lastPlayedTimestamp) \
+  query = select(s.songPK, s.path, h.lastPlayedTimestamp, \
+    func.song_name(s.path, searchBase).label("songName"),\
+    func.album_name(s.path, searchBase).label("albumName"),\
+    func.artist_name(s.path, searchBase).label("artistName")) \
     .select_from(stations_history) \
     .join(songs, h.songFK == s.songPK) \
-    .where(h.stationFK == station_pk) \
+    .join(stations, st.stationPK == h.stationFK) \
+    .where(st.name == stationName) \
     .order_by(desc(h.lastPlayedTimestamp)) \
     .limit(limit)
   records = conn.execute(query)
-  for idx, row in enumerate(records):
-    song_full_path = (searchBase + "/" + row["path"]).encode('utf-8')
-    try:
-        tag = TinyTag.get(song_full_path)
-        yield { 
-            'id': row["songPK"],
-            'song': tag.title, 
-            'album': tag.album,
-            'artist': tag.artist,
-            'lastPlayedTimestamp': row["lastPlayedTimestamp"],
-        }
-    except:
-        yield {
-            'id': row["songPK"],
-            'lastPlayedTimestamp': row["lastPlayedTimestamp"],
-        }
+  for row in records:
+    yield { 
+        'id': row["songPK"],
+        'song': row["songName"], 
+        'album': row["artistName"],
+        'artist': row["songPK"],
+        'lastPlayedTimestamp': row["lastPlayedTimestamp"],
+    }

@@ -2,10 +2,11 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import webClient from "../../api";
 import { CallStatus, ApiRoutes, CallType } from "../../constants";
 
-export const fetchQueue = createAsyncThunk(
-  "queue/fetch",
+export const fetchSongCatalogue = createAsyncThunk(
+  "song_catalogue/fetch",
   async ({ station }) => {
-    const response = await webClient.get(ApiRoutes.queue(station));
+    const response = await webClient
+      .get(ApiRoutes.songCatalogue(station));
     return response.data;
   }
 );
@@ -20,26 +21,20 @@ const initialState = {
     },
   },
   error: {},
-  refreshSignal: null,
 };
 
 const slice = createSlice({
-  name: "queue",
+  name: "song_catalogue",
   initialState,
-  reducers: {
-    sendRefreshSignal: (state) => {
-      state.refreshSignal = {};
-    },
-  },
   extraReducers: {
-    [fetchQueue.pending]: (state) => {
+    [fetchSongCatalogue.pending]: (state) => {
       state.status[CallType.fetch] = CallStatus.loading;
     },
-    [fetchQueue.fulfilled]: (state, action) => {
+    [fetchSongCatalogue.fulfilled]: (state, action) => {
       state.status[CallType.fetch] = CallStatus.done;
       state.values[CallType.fetch] = action.payload;
     },
-    [fetchQueue.rejected]: (state, action) => {
+    [fetchSongCatalogue.rejected]: (state, action) => {
       state.status[CallType.fetch] = CallStatus.failed;
       state.error[CallType.fetch] = action.error;
     },

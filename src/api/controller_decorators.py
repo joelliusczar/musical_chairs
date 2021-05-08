@@ -1,6 +1,8 @@
 
 from sqlalchemy import create_engine
 from services.sql_functions import song_name, album_name, artist_name
+import time
+import cherrypy
 
 def provide_db_conn(func):
     def wrap(*args, **kwargs):
@@ -22,3 +24,13 @@ def provide_db_conn(func):
         conn.close()
         return result
     return wrap
+
+def check_access(func):
+  def wrap(*args, **kwargs):
+    print(cherrypy.request.headers["origin"])
+    if "lastVisited" in cherrypy.session:
+      print(cherrypy.session["lastVisited"])
+    cherrypy.session["lastVisited"] = time.time()
+    result = func(*args, **kwargs)
+    return result
+  return wrap

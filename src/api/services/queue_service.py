@@ -21,8 +21,8 @@ def get_queue_for_station(conn, searchBase, stationName):
     yield { 
       'id': row["songPK"],
       'song': row["songName"], 
-      'album': row["artistName"],
-      'artist': row["songPK"],
+      'album': row["albumName"],
+      'artist': row["artistName"],
       'addedTimestamp': row["addedTimestamp"],
       'requestedTimestamp': row["requestedTimestamp"],
     }
@@ -31,7 +31,7 @@ def get_now_playing_and_queue(conn, searchBase, stationName):
     queue = list(get_queue_for_station(conn, searchBase, stationName))
     try:
         playing = next(get_history_for_station(conn, searchBase, stationName, 1))
-        return {'nowPlaying':playing, 'queue': queue}
+        return {'nowPlaying':playing, 'items': queue}
     except:
-        return {'nowPlaying':'', 'queue': queue}
+        return {'nowPlaying':'', 'items': queue}
 

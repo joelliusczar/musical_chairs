@@ -1,16 +1,22 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import webClient from "../../api";
-import { CallStatus } from "../../constants";
+import { CallStatus, ApiRoutes, CallType } from "../../constants";
 
 export const fetchStations = createAsyncThunk("stations/fetch", async () => {
-  const response = await webClient.get("/stations");
+  const response = await webClient.get(ApiRoutes.stations());
   return response.data;
 });
 
 const initialState = {
-  status: "",
-  values: [],
-  error: null,
+  status: {
+    [CallType.fetch]: "",
+  },
+  values: { 
+    [CallType.fetch]:{
+      items: [],
+    },
+  },
+  error: {},
 };
 
 const slice = createSlice({
@@ -18,15 +24,15 @@ const slice = createSlice({
   initialState,
   extraReducers: {
     [fetchStations.pending]: (state) => {
-      state.status = CallStatus.loading;
+      state.status[CallType.fetch] = CallStatus.loading;
     },
     [fetchStations.fulfilled]: (state, action) => {
-      state.status = CallStatus.done;
-      state.values = action.payload;
+      state.status[CallType.fetch] = CallStatus.done;
+      state.values[CallType.fetch] = action.payload;
     },
     [fetchStations.rejected]: (state, action) => {
-      state.status = CallStatus.failed;
-      state.error = action.error;
+      state.status[CallType.fetch] = CallStatus.failed;
+      state.error[CallType.fetch] = action.error;
     },
   },
 });

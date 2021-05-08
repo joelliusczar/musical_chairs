@@ -7,9 +7,23 @@ export const CallStatus = {
   idle: "idle",
 };
 
+export const CallType = {
+  fetch: "fetch",
+  post: "post",
+};
+
 export const DomRoutes = {
   queue: "/queue/",
   history: "/history/",
   stations: "/stations/",
   songCatalogue: "/song-catalogue/",
+};
+
+export const ApiRoutes = {
+  queue: (stationName) => `/stations/${stationName}/queue/`,
+  history: (stationName) => `/stations/${stationName}/history/`,
+  stations: () => "/stations/",
+  songRequest: (stationName, songId) => 
+    `/stations/${stationName}/request/${songId}`,
+  songCatalogue: (stationName) => `/stations/${stationName}/song-catalogue/`,
 };

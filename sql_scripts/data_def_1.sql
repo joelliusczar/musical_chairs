@@ -32,6 +32,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_songsTags ON [SongsTags]([SongFK], [TagFK]
 CREATE TABLE IF NOT EXISTS [Stations] (
     [StationPK] INTEGER PRIMARY KEY ASC,
     [Name] TEXT NULL,
+    [DisplayName] TEXT NULL,
     [ProcId] INTEGER NULL
 );
 

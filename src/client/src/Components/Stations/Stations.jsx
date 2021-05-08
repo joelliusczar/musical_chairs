@@ -14,8 +14,8 @@ import Loader from "../Shared/Loader";
 import { fetchStations } from "./stations_slice";
 import { useDispatch, useSelector } from "react-redux";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
-import { CallStatus, DomRoutes } from "../../constants";
-import { Link } from "react-router-dom";
+import { CallStatus, DomRoutes, CallType } from "../../constants";
+import { Link, useLocation } from "react-router-dom";
 
 const useStyles = makeStyles(() => ({
   buttons: {
@@ -25,11 +25,20 @@ const useStyles = makeStyles(() => ({
 
 export default function Stations(){
 
-  const stationsStatus =  useSelector((appState) => appState.stations.status);
-  const stationsError =  useSelector((appState) => appState.stations.error);
-  const stations = useSelector((appState) => appState.stations.values);
+  const location = useLocation();
+
+  const stationsStatus =  useSelector((appState) => 
+    appState.stations.status)[CallType.fetch];
+  const stationsError =  useSelector((appState) => 
+    appState.stations.error[CallType.fetch]);
+  const stationsObj = useSelector((appState) => 
+    appState.stations.values[CallType.fetch]);
   const dispatch = useDispatch();
   const classes = useStyles();
+
+  useEffect(() => {
+    document.title = "Musical Chairs - Stations";
+  },[location]);
 
   useEffect(() => {
     if(!stationsStatus || stationsStatus === CallStatus.idle) { 
@@ -44,7 +53,7 @@ export default function Stations(){
       error={stationsError}
       isReady
     >
-      {stations.map((s, idx) => {
+      {stationsObj.items.map((s, idx) => {
         return (<Accordion 
           key={`station_${idx}`}
           defaultExpanded={false}
@@ -60,39 +69,42 @@ export default function Stations(){
               <Grid container>
                 <Grid item>
                   <Tooltip title={`${DomRoutes.songCatalogue}${s.name}`}>
-                    <Link to={`${DomRoutes.songCatalogue}${s.name}`} 
-                      component={Button}
+                    <Button
+                      component={Link}
                       color="primary"
                       variant="contained"
                       className={classes.buttons}
+                      to={`${DomRoutes.songCatalogue}${s.name}`}
                     >
-                      Song Catalogue
-                    </Link>
+                        Song Catalogue
+                    </Button>
                   </Tooltip>
                 </Grid>
                 <Grid item>
+                  
                   <Tooltip title={`${DomRoutes.history}${s.name}`}>
-                    <Link to={`${DomRoutes.history}${s.name}`} 
-                      component={Button}
+                    <Button
+                      component={Link}
                       color="primary"
                       variant="contained"
                       className={classes.buttons}
+                      to={`${DomRoutes.history}${s.name}`} 
                     >
-                      Song History
-                    </Link>
+                        Song History
+                    </Button>
                   </Tooltip>
                 </Grid>
                 <Grid item>
                   <Tooltip title={`${DomRoutes.queue}${s.name}`}>
-                    <Link 
-                      to={`${DomRoutes.queue}${s.name}`} 
-                      component={Button}
+                    <Button
+                      component={Link}
                       color="primary"
                       variant="contained"
                       className={classes.buttons}
+                      to={`${DomRoutes.queue}${s.name}`} 
                     >
-                      Song Queue
-                    </Link>
+                        Song Queue
+                    </Button>
                   </Tooltip>
                 </Grid>
               </Grid>

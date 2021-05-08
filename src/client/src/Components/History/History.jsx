@@ -14,7 +14,7 @@ import { makeStyles,
   TableRow,
 } from "@material-ui/core";
 import Loader from "../Shared/Loader";
-import { CallStatus, DomRoutes } from "../../constants";
+import { CallStatus, DomRoutes, CallType } from "../../constants";
 
 
 const useStyles = makeStyles(() => ({
@@ -27,14 +27,19 @@ export default function History() {
   const [selectedStation, setSelectedStation] = useState("");
   const [selectTouched, setSelectTouched] = useState();
   const { station: stationParam } = useParams();
-  const history = useHistory();
+  const urlHistory = useHistory();
   const dispatch = useDispatch();
   const classes = useStyles();
-  const stations = useSelector((appState) => appState.stations.values);
-  const stationsStatus =  useSelector((appState) => appState.stations.status);
-  const songHistory= useSelector((appState) => appState.history.values);
-  const songHistoryStatus =  useSelector((appState) => appState.history.status);
-  const songHistoryError =  useSelector((appState) => appState.history.error);
+  const stations = useSelector((appState) => 
+    appState.stations.values[CallType.fetch]);
+  const stationsStatus =  useSelector((appState) => 
+    appState.stations.status[CallType.fetch]);
+  const songHistoryObj = useSelector((appState) => 
+    appState.history.values[CallType.fetch]);
+  const songHistoryStatus =  useSelector((appState) => 
+    appState.history.status[CallType.fetch]);
+  const songHistoryError =  useSelector((appState) => 
+    appState.history.error[CallType.fetch]);
   
 
   useEffect(() => {
@@ -44,18 +49,18 @@ export default function History() {
   }, [dispatch, stationsStatus]);
 
   useEffect(() => {
-    document.title = "Musical Chairs - History";
-  });
+    document.title = `Musical Chairs - History${`- ${stationParam || ""}`}`;
+  },[stationParam]);
 
   useEffect(() => {
     if(!selectTouched) return;
-    history.replace(`${DomRoutes.history}${selectedStation}`);
-  }, [history, selectedStation, selectTouched]);
+    urlHistory.replace(`${DomRoutes.history}${selectedStation}`);
+  }, [urlHistory, selectedStation, selectTouched]);
 
   useEffect(() => {
     if (!stationParam) return;
     const station = stationParam.toLowerCase();
-    if(stations.some(s => s.name.toLowerCase() === station)) {
+    if(stations.items.some(s => s.name.toLowerCase() === station)) {
       setSelectedStation(stationParam);
       setSelectTouched(false);
       dispatch(fetchHistory({ station: stationParam }));
@@ -77,7 +82,7 @@ export default function History() {
           renderValue={(v) => v || "Select Station"}
           value={selectedStation}
         >
-          {stations.map((s) => {
+          {stations.items.map((s) => {
             return (
               <MenuItem key={s.name} value={s.name}>
                 {s.name}
@@ -102,7 +107,7 @@ export default function History() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {songHistory.map((item, idx) => {
+              {songHistoryObj.items.map((item, idx) => {
                 return (
                   <TableRow key={`song_${idx}`}>
                     <TableCell>{item.song || "{No song name}"}</TableCell>

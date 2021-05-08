@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
 import { fetchStations } from "../Stations/stations_slice";
-import { fetchQueue } from "./queue_slice";
+import { fetchSongCatalogue } from "./song_catalogue_slice";
 import { useDispatch, useSelector } from "react-redux";
 import { makeStyles, 
   MenuItem, 
-  Select, 
+  Select,
   Table, 
   TableBody, 
   TableContainer, 
   TableCell, 
   TableHead, 
-  TableRow, 
-  Typography,
+  TableRow,
+  Button,
 } from "@material-ui/core";
 import Loader from "../Shared/Loader";
 import { CallStatus, DomRoutes, CallType } from "../../constants";
+import { requestSong } from "../Stations/song_request_slice";
+
 
 const useStyles = makeStyles(() => ({
   select: {
@@ -23,46 +25,27 @@ const useStyles = makeStyles(() => ({
   },
 }));
 
-/*
-            yield { 
-                'id': row[0],
-                'song': tag.title, 
-                'album': tag.album,
-                'artist': tag.artist,
-                'lastPlayedTimestamp': row[2]
-            }
-        except:
-            yield {
-                'id': row[0],
-                'lastPlayedTimestamp': row[2]
-            }
-*/
-const formatNowPlaying = (nowPlaying) => {
-  if(!nowPlaying) return "No song info available";
-  const song = nowPlaying.song || "{No song name}";
-  const album = nowPlaying.album || "{No album name}";
-  const artist = nowPlaying.artist || "{No artist name}";
-  const str = `Song: ${song} - ${album} - ${artist}`;
-  return str;
-};
-
-export default function Queue() {
+export default function SongCatalogue() {
   const [selectedStation, setSelectedStation] = useState("");
   const [selectTouched, setSelectTouched] = useState();
   const { station: stationParam } = useParams();
-  const history = useHistory();
+  const urlHistory = useHistory();
   const dispatch = useDispatch();
   const classes = useStyles();
-  const stations = useSelector((appState) => 
+  const stations = useSelector((appState) =>
     appState.stations.values[CallType.fetch]);
-  const stationsStatus =  useSelector((appState) => 
+  const stationsStatus =  useSelector((appState) =>
     appState.stations.status[CallType.fetch]);
-  const queueItems = useSelector((appState) => 
-    appState.queue.values[CallType.fetch]);
-  const queueItemsStatus =  useSelector((appState) => 
-    appState.queue.status[CallType.fetch]);
-  const queueItemsError =  useSelector((appState) => 
-    appState.queue.error[CallType.fetch]);
+  const songCatalogueObj = useSelector((appState) => 
+    appState.songCatalogue.values[CallType.fetch]);
+  const songCatalogueStatus =  useSelector((appState) => 
+    appState.songCatalogue.status[CallType.fetch]);
+  const songCatalogueError =  useSelector((appState) => 
+    appState.songCatalogue.error[CallType.fetch]);
+  
+  const dispatchSongRequest = (songId) => {
+    dispatch(requestSong({station: stationParam, songId }));
+  };
 
   useEffect(() => {
     if(!stationsStatus || stationsStatus === CallStatus.idle) { 
@@ -71,13 +54,14 @@ export default function Queue() {
   }, [dispatch, stationsStatus]);
 
   useEffect(() => {
-    document.title = `Musical Chairs - Queue${`- ${stationParam || ""}`}`;
+    document.title = 
+      `Musical Chairs - Song Catalogue${`- ${stationParam || ""}`}`;
   },[stationParam]);
 
   useEffect(() => {
     if(!selectTouched) return;
-    history.replace(`${DomRoutes.queue}${selectedStation}`);
-  }, [history, selectedStation, selectTouched]);
+    urlHistory.replace(`${DomRoutes.songCatalogue}${selectedStation}`);
+  }, [urlHistory, selectedStation, selectTouched]);
 
   useEffect(() => {
     if (!stationParam) return;
@@ -85,16 +69,15 @@ export default function Queue() {
     if(stations.items.some(s => s.name.toLowerCase() === station)) {
       setSelectedStation(stationParam);
       setSelectTouched(false);
-      dispatch(fetchQueue({ station: stationParam }));
+      dispatch(fetchSongCatalogue({ station: stationParam }));
     }
-  }, [stationParam, dispatch,setSelectedStation, setSelectTouched, stations]);
+  }, [stationParam, dispatch, setSelectedStation, setSelectTouched, stations]);
 
   return (
     <>
-      <h1>Queue: {stationParam}</h1>
+      <h1>SongCatalogue: {stationParam}</h1>
       {stations && (
         <Select
-          name="station-select"
           className={classes.select}
           displayEmpty
           label="Stations"
@@ -115,12 +98,10 @@ export default function Queue() {
         </Select>
       )}
       <Loader 
-        status={queueItemsStatus} 
-        error={queueItemsError} 
+        status={songCatalogueStatus} 
+        error={songCatalogueError} 
         isReady={!!stationParam}
       >
-        <Typography>Now Playing</Typography>
-        <Typography>{formatNowPlaying(queueItems.nowPlaying)}</Typography>
         <TableContainer>
           <Table size="small">
             <TableHead>
@@ -128,19 +109,25 @@ export default function Queue() {
                 <TableCell>Song</TableCell>
                 <TableCell>Album</TableCell>
                 <TableCell>Artist</TableCell>
-                <TableCell>Added</TableCell>
-                <TableCell>Requested</TableCell>
+                <TableCell>Request</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {queueItems.items.map((item, idx) => {
+              {songCatalogueObj.items.map((item, idx) => {
                 return (
                   <TableRow key={`song_${idx}`}>
                     <TableCell>{item.song || "{No song name}"}</TableCell>
                     <TableCell>{item.album || "{No album name}"}</TableCell>
                     <TableCell>{item.artist || "{No artist name}"}</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
+                    <TableCell>
+                      <Button 
+                        color="primary"
+                        variant="contained"
+                        onClick={() => dispatchSongRequest(item.id)}
+                      >
+                        Request
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}

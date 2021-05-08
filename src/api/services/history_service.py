@@ -26,7 +26,7 @@ offset=0):
     yield { 
         'id': row["songPK"],
         'song': row["songName"], 
-        'album': row["artistName"],
-        'artist': row["songPK"],
+        'album': row["albumName"],
+        'artist': row["artistName"],
         'lastPlayedTimestamp': row["lastPlayedTimestamp"],
     }

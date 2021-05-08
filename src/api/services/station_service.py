@@ -1,4 +1,4 @@
-from sqlalchemy import select, func, insert, literal
+from sqlalchemy import select, func, insert, literal, distinct
 from .tables import stations, \
   stations_tags, \
   songs_tags, \
@@ -64,6 +64,15 @@ def add_song_to_queue(conn, stationName, songPK):
   timestamp = time.time()
   sq = station_queue.c
   st = stations.c
+  sttg = stations_tags.c
+  sgtg = songs_tags.c
+
+  subquery = select(st.stationPK) \
+    .select_from(stations) \
+    .join(stations_tags, sttg.stationFK == st.stationPK) \
+    .join(songs_tags, sgtg.tagFK == sttg.tagFK) \
+    .where(sgtg.songFK == songPK)
+
   stmt = insert(station_queue).from_select([sq.stationFK, \
     sq.songFK, \
     sq.addedTimestamp, \
@@ -73,6 +82,8 @@ def add_song_to_queue(conn, stationName, songPK):
       literal(songPK), \
       literal(timestamp), \
       literal(timestamp)) \
-        .where(st.name == stationName))
+        .where(st.name == stationName) \
+        .where(st.stationPK.in_(subquery)))
+
   rc = conn.execute(stmt)
   return rc.rowcount

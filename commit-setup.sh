@@ -52,10 +52,11 @@ cd ./src/api
 virtualenv env &&
 ./env/bin/pip3 install -r ./requirements.txt &&
 cd - &&
-cp -r ./src/common/* ./env/lib/python3.8/site-packages/ &&
+cp -r ./src/common/* .src/api/env/lib/python3.8/site-packages/ &&
 cp -rv ./src/api "$app_path/"
 
 #set up react then copy
+npm --prefix ./src/client i &&
 npm run --prefix ./src/client build &&
 mkdir -pv "$app_path"/client &&
 cp -rv ./src/client/build "$app_path"/client/

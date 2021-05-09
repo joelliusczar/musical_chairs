@@ -6,6 +6,7 @@ from services.station_service import get_station_list, \
 from tinytag import TinyTag
 from services.tables import songs
 from services.sql_functions import song_name, album_name, artist_name
+import os
 
 # def song_name(path, searchBase):
 #   songFullPath = path
@@ -47,5 +48,9 @@ deterministic=True)
 # for row in r:
 #   print(row)
 
-res = add_song_to_queue(conn,"thinking",7)
-print(res)
+# res = add_song_to_queue(conn,"thinking",7)
+# print(res)
+
+print(os.getcwd())
+print(__file__)
+print(os.path.realpath(__file__))

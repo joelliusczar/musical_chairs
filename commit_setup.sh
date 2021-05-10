@@ -1,10 +1,10 @@
 #!/bin/bash
 
-shome="$HOME"
+
 lib_name='musical_chairs_libs'
 app_name='musical_chairs_app'
-lib_path="$shome"/.local/lib/python2.7/site-packages/"$lib_name"
-lib_path_py3="$shome"/.local/lib/python3.8/site-packages/"$lib_name"
+lib_path="$HOME"/.local/lib/python2.7/site-packages/"$lib_name"
+lib_path_py3="$HOME"/.local/lib/python3.8/site-packages/"$lib_name"
 app_path=/var/www/"$app_name"
 
 #check if python2 musical_chairs_libs already exists. cleans it out if it does
@@ -29,14 +29,14 @@ cp -rv ./src/common/* "$lib_path_py3/"
 
 #check if personal scripts folder exists, clear out if it does,
 #delete otherwise
-if [ -e "$shome"/process ]; then 
-    rm -rf "$shome"/process/*
+if [ -e "$HOME"/process ]; then 
+    rm -rf "$HOME"/process/*
 else
-    mkdir -pv "$shome"/process
+    mkdir -pv "$HOME"/process
 fi
 
 #copy personal scripts to the now empty directory
-cp -rv ./src/maintenance/* "$shome"/process/
+cp -rv ./src/maintenance/* "$HOME"/process/
 
 
 #check if web application folder exists, clear out if it does,

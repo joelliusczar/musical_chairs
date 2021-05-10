@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: light_setup
 
 # Controls when the action will run. 
 on:
@@ -22,6 +22,6 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Run script
-        run: bash commit_setup.sh
+        run: bash light_setup.sh
 
 

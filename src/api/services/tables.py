@@ -3,18 +3,26 @@ from sqlalchemy import Table, MetaData, Column, Integer, String, ForeignKey
 metadata = MetaData()
 
 folders = Table("Folders", metadata, 
-  Column("folderPK"),
+  Column("pk"),
   Column("name"),
 )
 
 songs = Table("Songs", metadata, 
-  Column("songPK"),
+  Column("pk"),
   Column("path"),
   Column("folderFK"),
+  Column("title"),
+  Column("artist"),
+  Column("albumArtist"),
+  Column("album"),
+  Column("trackNum"),
+  Column("discNum"),
+  Column("genre"),
+  Column("songCoverFK"),
 )
 
 tags = Table("Tags", metadata, 
-  Column("tagPK"),
+  Column("pk"),
   Column("name"),
 )
 
@@ -25,8 +33,9 @@ songs_tags = Table("SongsTags", metadata,
 )
 
 stations = Table("Stations", metadata, 
-  Column("stationPK"),
+  Column("pk"),
   Column("name"),
+  Column("displayName"),
   Column("procId"),
 )
 

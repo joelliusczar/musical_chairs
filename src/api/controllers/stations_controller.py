@@ -33,9 +33,7 @@ class StationController:
   def history(self, conn, stationName = "", limit = 50, pageNumber = 0):
     if not stationName:
       return []
-    searchBase = self.config['searchBase']
-    history = list(get_history_for_station(conn, searchBase, 
-      stationName))
+    history = list(get_history_for_station(conn, stationName))
     return {"items": history }
 
   @cherrypy.expose
@@ -44,8 +42,7 @@ class StationController:
   def queue(self, conn, stationName = "", limit = 50, pageNumber = 1):
     if not stationName:
       return []
-    searchBase = self.config['searchBase']
-    queue = get_now_playing_and_queue(conn, searchBase, stationName)
+    queue = get_now_playing_and_queue(conn, stationName)
     return queue
 
   @cherrypy.expose
@@ -54,8 +51,7 @@ class StationController:
   def song_catalogue(self, conn, stationName):
     if not stationName:
       return []
-    searchBase = self.config['searchBase']
-    songs = list(get_station_song_catalogue(conn, searchBase, stationName))
+    songs = list(get_station_song_catalogue(conn, stationName))
     return { "items": songs}
 
   @cherrypy.expose

@@ -2,6 +2,7 @@ import yaml
 import os
 import re
 import sqlite3
+from tinytag import TinyTag
 from folder_sets import movieSet, gamesSet, popSet, miscSet
 from musical_chairs_libs.config_loader import get_config
 
@@ -21,7 +22,7 @@ def find_folder_pk(conn, path, folders):
         if folder in path:
             cursor = conn.cursor()
             n = (folder, )
-            cursor.execute("SELECT [FolderPK] FROM [Folders] WHERE Name = ?", n)
+            cursor.execute("SELECT [PK] FROM [Folders] WHERE Name = ?", n)
             pk = cursor.fetchone()[0]
             cursor.close()
             return pk
@@ -52,17 +53,24 @@ def scan_files(searchBase):
             allFiles.extend(map(lambda m: unicode(subRoot + "/" + m, 'utf-8'), matches))
     return allFiles
 
-def save_paths(allFiles, dbName):
+def save_paths(allFiles, dbName, searchBase):
     print(len(allFiles))
     conn = sqlite3.connect(dbName)
     
     allFolders = gamesSet | movieSet | popSet | miscSet
+    
     for path in allFiles:
         folderPk = find_folder_pk(conn, path, allFolders)
-        params = ( path, folderPk, )
+        songFullPath = (searchBase + "/" + path)
+        tag = TinyTag.get(songFullPath)
+        params = ( path, folderPk, tag.title, tag.artist, tag.albumartist, \
+             tag.album, tag.track, tag.disc, tag.genre)
         cursor = conn.cursor()
         try:
-            cursor.execute("INSERT INTO [Songs] ([Path], [FolderFK]) VALUES(?, ?)",params)
+            cursor.execute("INSERT INTO [Songs] ([Path], [FolderFK], "
+            "[Title], [Artist], [AlbumArtist], [Album], [TrackNum], "
+            "[DiscNum], [Genre]) "
+            "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", params)
         except: pass
         finally:
             cursor.close()
@@ -73,7 +81,7 @@ def save_paths(allFiles, dbName):
 def get_tag_pk(conn, tagName):
     cursor = conn.cursor()
     n = (tagName, )
-    cursor.execute("SELECT [TagPK] FROM [Tags] WHERE Name = ?", n)
+    cursor.execute("SELECT [PK] FROM [Tags] WHERE Name = ?", n)
     pk = cursor.fetchone()[0]
     cursor.close()
     return pk
@@ -81,7 +89,7 @@ def get_tag_pk(conn, tagName):
 def get_station_pk(conn, stationName):
     cursor = conn.cursor()
     n = (stationName, )
-    cursor.execute("SELECT [StationPK] FROM [Stations] WHERE Name = ?", n)
+    cursor.execute("SELECT [PK] FROM [Stations] WHERE Name = ?", n)
     pk = cursor.fetchone()[0]
     cursor.close()
     return pk
@@ -90,8 +98,8 @@ def _sort_to_tags(conn, folderName, tagName):
     cursor = conn.cursor()
     tagPk = get_tag_pk(conn, tagName)
     pathParams = ( folderName, )
-    for row in cursor.execute("SELECT [SongPK] FROM [Songs] S "
-        "JOIN [Folders] F ON S.[FolderFK] = F.[FolderPK] "
+    for row in cursor.execute("SELECT [PK] FROM [Songs] S "
+        "JOIN [Folders] F ON S.[FolderFK] = F.[PK] "
         "WHERE F.[Name] = ? ", pathParams):
         params = (row[0], tagPk, )
         writeCursor = conn.cursor()
@@ -143,7 +151,7 @@ def insert_stations(dbName):
     allPk = get_station_pk(conn, 'all')
 
     tagsCursor = conn.cursor()
-    tagsCursor.execute("SELECT [TagPK] FROM [Tags]")
+    tagsCursor.execute("SELECT [PK] FROM [Tags]")
     stationTagsParams = map(lambda r: (allPk, r[0], ), tagsCursor.fetchall())
     tagsCursor.close()
     
@@ -175,7 +183,7 @@ def fresh_start(searchBase, dbName):
     print('saving misc folders done')
     allFiles = scan_files(searchBase)
     print('scanning paths')
-    save_paths(allFiles, dbName)
+    save_paths(allFiles, dbName, searchBase)
     print('saving paths done')
     sort_to_tags(dbName)
     print('adding tags done')

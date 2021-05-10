@@ -1,7 +1,6 @@
 import sys
 import yaml
 import sqlite3
-from tinytag import TinyTag
 from musical_chairs_libs.queue_manager import get_next_queued
 from musical_chairs_libs.config_loader import get_config
 from musical_chairs_libs.station_proc_manager import set_station_proc, remove_station_proc
@@ -12,7 +11,8 @@ class RadioHandle:
 
     def __init__(self, stationName):
         self.songnumber = -1
-        self.songFullPath = ''
+        self.songFullPath = ""
+        self.display = ""
         self.config = get_config()
         self.stationName = stationName
 
@@ -42,8 +42,10 @@ class RadioHandle:
         searchBase = self.config['searchBase']
         dbName = self.config['dbName']
         conn = sqlite3.connect(dbName)
-        currentsong = get_next_queued(conn, self.stationName)
+        (currentsong, title, album, artist) = \
+            get_next_queued(conn, self.stationName)
         conn.close()
+        self.display = "%s - %s - %s" % (title, artist, album)
         self.songFullPath = (searchBase + "/" + currentsong).encode('utf-8')
         return self.songFullPath
 
@@ -51,19 +53,7 @@ class RadioHandle:
     # as metadata (ie for title streaming) for the current song. You may
     # return null to indicate that the file comment should be used.
     def ices_get_metadata(self):
-        tag = TinyTag.get(self.songFullPath)
-        metadataStr = None
-        if not tag.title:
-            return None
-        if not tag.artist and not tag.album and tag.title:
-            return tag.title
-        if tag.artist and not tag.album:
-            metadataStr = '%s - %s' % (tag.title, tag.artist)
-        if tag.album and not tag.artist:
-            metadataStr = '%s - %s' % (tag.title, tag.album)
-        else:
-            metadataStr = '%s - %s - %s' % (tag.title, tag.artist, tag.album)
-        return metadataStr.encode('utf-8')
+        return self.display.encode('utf-8')
 
     # Function used to put the current line number of
     # the playlist in the cue file. If you don't care about this number

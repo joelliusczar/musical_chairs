@@ -5,7 +5,7 @@ from tinytag import TinyTag
 def get_station_pk(conn, stationName):
     cursor = conn.cursor()
     n = (stationName, )
-    cursor.execute("SELECT [StationPK] FROM [Stations] WHERE Name = ?", n)
+    cursor.execute("SELECT [PK] FROM [Stations] WHERE Name = ?", n)
     row = cursor.fetchone()
     pk = row[0] if row else None
     cursor.close()
@@ -14,7 +14,7 @@ def get_station_pk(conn, stationName):
 def get_tag_pk(conn, tagName):
     cursor = conn.cursor()
     n = (tagName, )
-    cursor.execute("SELECT [TagPK] FROM [Tags] WHERE Name = ?", n)
+    cursor.execute("SELECT [PK] FROM [Tags] WHERE Name = ?", n)
     row = cursor.fetchone()
     pk = row[0] if row else None
     cursor.close()
@@ -25,15 +25,15 @@ def get_all_station_possibilities(conn, stationPk):
     cursor = conn.cursor()
     params = (stationPk, )
 
-    cursor.execute("SELECT SG.[SongPK], SG.[Path]"
+    cursor.execute("SELECT SG.[PK], SG.[Path]"
         "FROM [Stations] S "
-        "JOIN [StationsTags] ST ON S.[StationPK] = ST.[StationFK] "
+        "JOIN [StationsTags] ST ON S.[PK] = ST.[StationFK] "
         "JOIN [SongsTags] SGT ON SGT.[TagFK] = ST.[TagFK] "
-        "JOIN [Songs] SG ON SG.[SongPK] = SGT.[SongFK] "
-        "LEFT JOIN [StationHistory] SH ON SH.[StationFK] = S.[StationPK] "
-        "   AND SH.[SongFK] = SG.[SongPK] "
-        "WHERE S.[StationPK] = ? AND (SGT.[Skip] IS NULL OR SGT.[Skip] = 0) "
-        "GROUP BY SG.[SongPK]"
+        "JOIN [Songs] SG ON SG.[PK] = SGT.[SongFK] "
+        "LEFT JOIN [StationHistory] SH ON SH.[StationFK] = S.[PK] "
+        "   AND SH.[SongFK] = SG.[PK] "
+        "WHERE S.[PK] = ? AND (SGT.[Skip] IS NULL OR SGT.[Skip] = 0) "
+        "GROUP BY SG.[PK]"
         "ORDER BY SH.[LastQueuedTimestamp] DESC, SH.[LastPlayedTimestamp] DESC "
         , params)
     
@@ -110,7 +110,8 @@ def move_from_queue_to_history(conn, stationPk, songPk, queueTimestamp, requeste
     if conn.total_changes == prevChangsCount:
         cursor = conn.cursor()
         cursor.execute("INSERT INTO [StationHistory] "
-            "([StationFK], [SongFK], [LastPlayedTimestamp], [LastRequestedTimestamp])"
+            "([StationFK], [SongFK], [LastPlayedTimestamp], "
+            "[LastRequestedTimestamp]) "
             "VALUES(:station, :song, :currentTime, :requestTime)", params)
         cursor.close()
 
@@ -131,18 +132,20 @@ def get_next_queued(conn, stationName):
         fil_up_queue(conn, stationPk, queueSize + 1)
     cursor = conn.cursor()
     params = (stationPk, )
-    cursor.execute("SELECT S.[SongPK], S.[Path], Q.[AddedTimestamp], Q.[RequestedTimestamp] "
+    cursor.execute("SELECT S.[PK], S.[Path], S.[Title], S.[Album], "
+        "S.[Artist], Q.[AddedTimestamp], Q.[RequestedTimestamp] "
         "FROM [StationQueue] Q "
-        "JOIN [Songs] S ON Q.[SongFK] = S.[SongPK] "
+        "JOIN [Songs] S ON Q.[SongFK] = S.[PK] "
         "WHERE Q.[StationFK] = ?"
         "ORDER BY [AddedTimestamp] ASC "
         "LIMIT 1", params)
-    (songPk, path, queueTimestamp, requestedTimestamp) = cursor.fetchone()
+    (songPk, path, title, album, artist, \
+        queueTimestamp, requestedTimestamp) = cursor.fetchone()
     cursor.close()
     move_from_queue_to_history(conn, stationPk, songPk, queueTimestamp, requestedTimestamp)
     fil_up_queue(conn, stationPk, queueSize)
     conn.commit()
-    return path
+    return (path, title, album, artist)
 
 
 

@@ -10,29 +10,32 @@ import itertools
 import time
 
 def get_station_list(conn):
-  query = select(stations.c.stationPK, stations.c.name, \
-    tags.c.name, tags.c.tagPK) \
+  st = stations.c
+  sgtg = songs_tags.c
+  sttg = stations_tags.c
+  tg = tags.c
+  query = select(st.pk, st.name, tg.name, tg.pk, \
+    func.min(st.displayName)) \
     .select_from(stations) \
-    .join(stations_tags, stations.c.stationPK == stations_tags.c.stationFK) \
-    .join(songs_tags, songs_tags.c.tagFK == stations_tags.c.tagFK) \
-    .join(tags, stations_tags.c.tagFK == tags.c.tagPK) \
-    .group_by(stations.c.stationPK, stations.c.name, tags.c.name, tags.c.tagPK) \
-    .having(func.count(songs_tags.c.tagFK) > 0)
+    .join(stations_tags, st.pk == sttg.stationFK) \
+    .join(songs_tags, sgtg.c.tagFK == sttg.tagFK) \
+    .join(tags, sttg.tagFK == tg.pk) \
+    .group_by(st.pk, st.name, tg.name, tg.pk) \
+    .having(func.count(sgtg.tagFK) > 0)
   records = conn.execute(query)
-  partition = lambda r: (r[stations.c.stationPK], r[stations.c.name])
+  partition = lambda r: (r[st.pk], r[st.name])
   for key, group in itertools.groupby(records, partition):
     yield { 
       "id": key[0],
       "name": key[1], 
       "tags": list(map(lambda r: { 
-        "name": r[tags.c.name],
-        "id": r[tags.c.tagPK],
+        "name": r[tg.name],
+        "id": r[tg.tagPK],
       }, group))
     }
 
 def get_station_song_catalogue(
 conn, 
-searchBase, 
 stationName, 
 limit=50, 
 offset=0):
@@ -40,14 +43,11 @@ offset=0):
   st = stations.c
   sttg = stations_tags.c
   sgtg = songs_tags.c
-  query = select(s.songPK, \
-    func.song_name(s.path, searchBase).label("songName"),\
-    func.album_name(s.path, searchBase).label("albumName"),\
-    func.artist_name(s.path, searchBase).label("artistName")) \
+  query = select(s.pk, s.title, s.album, s.artist) \
     .select_from(stations) \
-    .join(stations_tags, st.stationPK == sttg.stationFK) \
+    .join(stations_tags, st.pk == sttg.stationFK) \
     .join(songs_tags, sgtg.tagFK == sttg.tagFK) \
-    .join(songs, s.songPK == sgtg.songFK) \
+    .join(songs, s.pk == sgtg.songFK) \
     .where(st.name == stationName) \
     .limit(limit) \
     .offset(offset)
@@ -55,9 +55,9 @@ offset=0):
   for row in records:
     yield {
         "id": row[s.songPK],
-        "song": row["songName"],
-        "album": row["albumName"],
-        "artist": row["artistName"],
+        "song": row[s.title],
+        "album": row[s.album],
+        "artist": row[s.artist],
     }
 
 def add_song_to_queue(conn, stationName, songPK):
@@ -67,9 +67,9 @@ def add_song_to_queue(conn, stationName, songPK):
   sttg = stations_tags.c
   sgtg = songs_tags.c
 
-  subquery = select(st.stationPK) \
+  subquery = select(st.pk) \
     .select_from(stations) \
-    .join(stations_tags, sttg.stationFK == st.stationPK) \
+    .join(stations_tags, sttg.stationFK == st.pk) \
     .join(songs_tags, sgtg.tagFK == sttg.tagFK) \
     .where(sgtg.songFK == songPK)
 
@@ -83,7 +83,7 @@ def add_song_to_queue(conn, stationName, songPK):
       literal(timestamp), \
       literal(timestamp)) \
         .where(st.name == stationName) \
-        .where(st.stationPK.in_(subquery)))
+        .where(st.pk.in_(subquery)))
 
   rc = conn.execute(stmt)
   return rc.rowcount

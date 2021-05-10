@@ -52,7 +52,7 @@ cd ./src/api
 virtualenv env &&
 ./env/bin/pip3 install -r ./requirements.txt &&
 cd - &&
-cp -rv ./src/common/* ./src/api/env/lib/python3.8/site-packages/ &&
+cp -rv ./src/common/* ./src/api/env/lib/python3.8/site-packages/"$lib_name" &&
 cp -rv ./src/api "$app_path/"
 
 #set up react then copy

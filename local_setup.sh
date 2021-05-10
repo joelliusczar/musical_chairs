@@ -44,3 +44,5 @@ cp -r ./src/common/* "$usePath_py3"/
 cp -r ./src/common/* "$usePath_proj"/
 
 "$api_env_path"/bin/pip3 install -r "$web_app_path"/requirements.txt
+
+sh ./light_setup.sh

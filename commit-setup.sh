@@ -62,4 +62,3 @@ mkdir -pv "$app_path"/client &&
 cp -rv ./src/client/build "$app_path"/client/
 
 
-cp -v ./start_up.sh "$HOME"/start_up.sh

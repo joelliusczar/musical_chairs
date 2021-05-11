@@ -70,7 +70,7 @@ def save_paths(allFiles, dbName, searchBase):
   allFolders = gamesSet | movieSet | popSet | miscSet
   
   for idx, path in enumerate(allFiles):
-    print(f"{idx}".rjust(len(allFiles), " "),end="\r")
+    print(f"{idx}".rjust(len(str(idx)), " "),end="\r")
     folderPk = find_folder_pk(conn, path, allFolders)
     songFullPath = (searchBase + "/" + path)
     tagTuple = getTags(songFullPath)

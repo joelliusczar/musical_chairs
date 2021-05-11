@@ -45,7 +45,7 @@ setup_py3_env() (
     ./env/bin/pip3 install -r ./requirements.txt &&
     cd - &&
     mkdir "$codePath""$packagePath""$lib_name"/ &&
-    cp -rv ./src/common/* "$codePath""$packagePath""$lib_name"/ &&
+    cp -rv ./src/common/* "$codePath""$packagePath""$lib_name"/ 
 )
 
 setup_py3_env './src/api' &&

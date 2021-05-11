@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS [Songs] (
 CREATE TABLE IF NOT EXISTS [SongCovers] (
     [PK] INTEGER PRIMARY KEY ASC,
     [SongFK] INTEGER,
-    FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),
+    FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK])
 );
 
 --don't want to insert duplicate songs

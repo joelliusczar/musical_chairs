@@ -50,7 +50,7 @@ def scan_files(searchBase):
         matches = filter(getFilter(['.flac', '.mp3','.ogg']), files)
         if matches:
             subRoot = re.sub(searchBaseRgx, '', root)
-            allFiles.extend(map(lambda m: unicode(subRoot + "/" + m, 'utf-8'), matches))
+            allFiles.extend(map(lambda m: subRoot + "/" + m, matches))
     return allFiles
 
 def save_paths(allFiles, dbName, searchBase):

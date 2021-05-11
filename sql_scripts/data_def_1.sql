@@ -5,11 +5,6 @@ CREATE TABLE IF NOT EXISTS [Folders] (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_folderName ON [Folders] ([Name]);
 
-CREATE TABLE IF NOT EXISTS [SongCovers] (
-    [PK] INTEGER PRIMARY KEY ASC,
-    [SongFK] INTEGER,
-    FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),
-);
 
 CREATE TABLE IF NOT EXISTS [Songs] (
     [PK] INTEGER PRIMARY KEY ASC,
@@ -22,9 +17,14 @@ CREATE TABLE IF NOT EXISTS [Songs] (
     [TrackNum] INTEGER NULL,
     [DiscNum] INTEGER NULL,
     [Genre] TEXT,
-    [SongCoverFK] INTEGER,
-    FOREIGN KEY([SongCoversFK]) REFERENCES [SongCovers]([PK]),
+    [SongCoverFK] INTEGER NULL,
     FOREIGN KEY([FolderFK]) REFERENCES [Folders]([PK])
+);
+
+CREATE TABLE IF NOT EXISTS [SongCovers] (
+    [PK] INTEGER PRIMARY KEY ASC,
+    [SongFK] INTEGER,
+    FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),
 );
 
 --don't want to insert duplicate songs

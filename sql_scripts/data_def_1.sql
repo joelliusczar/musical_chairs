@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS [Tags] (
     [Name] TEXT NULL
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tags ON [Tags] ([Name]);
+
 CREATE TABLE IF NOT EXISTS [SongsTags] (
     [SongFK] INTEGER,
     [TagFK] INTEGER,

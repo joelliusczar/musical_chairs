@@ -1,48 +1,33 @@
 #!/bin/bash
+lib_name='musical_chairs_libs'
+web_app_path='src/api/'
+maintenance_path='src/maintenance/'
+base_path="$(dirname "$0")/"
+sys_path_2_7="$HOME"/Library/Python/2.7/lib/python/site-packages/"$lib_name"
 
-web_app_path='src/api'
-api_env_path="$web_app_path/env"
-libName='musical_chairs_libs'
-default_py_path="$HOME"/Library/Python/2.7/lib/python/site-packages
-default_py3_path="$HOME"/Library/Python/3.8/lib/python/site-packages
 
-if [ -n  "$LOCAL_TEST_PATH" ]; then
-    usePath="$LOCAL_TEST_PATH"
+if [ -e "$sys_path_2_7" ]; then 
+    rm -rf "$sys_path_2_7"/*
 else
-    usePath="$default_py_path"/"$libName"
+    mkdir -pv "$sys_path_2_7" 
 fi
 
-if [ -n "$LOCAL_TEST_PATH_PY_3" ]; then
-    usePath_py3="$LOCAL_TEST_PATH_PY_3"
-else
-    usePath_py3="$default_py3_path"/"$libName"
-fi
+#set up the python environment, then copy 
+setup_py3_env() (
+    codePath="$1"
+    packagePath='env/lib/python3.8/site-packages/'
+    cd "$codePath"
+    virtualenv env &&
+    ./env/bin/pip3 install -r ./requirements.txt &&
+    cd - &&
+    mkdir "$codePath""$packagePath""$lib_name"/ &&
+    cp -rv "$base_path"/src/common/* "$codePath""$packagePath""$lib_name"/ 
+)
 
-if [ -e "$usePath" ]; then 
-    rm -rf "$usePath"/*
-else
-    mkdir -pv "$usePath" 
-fi
+setup_py3_env "$base_path""$web_app_path" 
 
-if [ -e "$usePath_py3" ]; then 
-    rm -rf "$usePath_py3"/*
-else
-    mkdir -pv "$usePath_py3" 
-fi
+setup_py3_env "$base_path""$maintenance_path"
 
-proj_env_py3="$(dirname "$0")""$api_env_path"/lib/python3.8/site-packages
-usePath_proj="$proj_env_py3"/"$libName"
+cp -r ./src/common/* "$sys_path_2_7"/
 
-if [ -e "$usePath_proj" ]; then 
-    rm -rf "$usePath_proj"/*
-else
-    mkdir -pv "$usePath_proj" 
-fi
 
-cp -r ./src/common/* "$usePath"/
-cp -r ./src/common/* "$usePath_py3"/
-cp -r ./src/common/* "$usePath_proj"/
-
-"$api_env_path"/bin/pip3 install -r "$web_app_path"/requirements.txt
-
-sh ./light_setup.sh

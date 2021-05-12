@@ -39,7 +39,7 @@ fi
 #set up the python environment, then copy 
 setup_py3_env() (
     codePath="$1"
-    packagePath='/env/lib/python3.8/site-packages/'
+    packagePath='env/lib/python3.8/site-packages/'
     cd "$codePath"
     virtualenv env &&
     ./env/bin/pip3 install -r ./requirements.txt &&
@@ -48,10 +48,10 @@ setup_py3_env() (
     cp -rv ./src/common/* "$codePath""$packagePath""$lib_name"/ 
 )
 
-setup_py3_env './src/api' &&
+setup_py3_env './src/api/' &&
 cp -rv ./src/api "$app_path/" 
 
-setup_py3_env './src/maintenance' &&
+setup_py3_env './src/maintenance/' &&
 cp -rv ./src/maintenance "$HOME"/process
 
 echo "$?"
@@ -63,3 +63,4 @@ mkdir -pv "$app_path"/client &&
 cp -rv ./src/client/build "$app_path"/client/
 
 
+sh ./light_setup.sh

@@ -18,7 +18,7 @@ def get_station_list(conn):
     func.min(st.displayName)) \
     .select_from(stations) \
     .join(stations_tags, st.pk == sttg.stationFK) \
-    .join(songs_tags, sgtg.c.tagFK == sttg.tagFK) \
+    .join(songs_tags, sgtg.tagFK == sttg.tagFK) \
     .join(tags, sttg.tagFK == tg.pk) \
     .group_by(st.pk, st.name, tg.name, tg.pk) \
     .having(func.count(sgtg.tagFK) > 0)

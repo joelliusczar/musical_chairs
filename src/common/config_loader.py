@@ -1,6 +1,6 @@
 import yaml
 import os
-import configparser
+
 
 def get_config():
     config_path = ""

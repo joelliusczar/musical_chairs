@@ -11,10 +11,10 @@ class MusicalChairsApi:
     self.config = config
 
   @cherrypy.expose
-  def index(self):
+  def default(self, *args, **kwargs):
+    print("hit index")
     print(os.getcwd())
     return open("../client/build/index.html")
-
 
 if __name__ == '__main__':
 
@@ -29,5 +29,5 @@ if __name__ == '__main__':
   app = MusicalChairsApi(appConfig)
   print(webConfig)
   stations = StationController(appConfig)
-  cherrypy.tree.mount(stations, "/stations",webConfig)
+  cherrypy.tree.mount(stations, "/api/stations",webConfig)
   cherrypy.quickstart(app, "/", webConfig)

@@ -20,10 +20,10 @@ export const DomRoutes = {
 };
 
 export const ApiRoutes = {
-  queue: (stationName) => `/stations/${stationName}/queue/`,
-  history: (stationName) => `/stations/${stationName}/history/`,
-  stations: () => "/stations/",
+  queue: (stationName) => `api/stations/${stationName}/queue/`,
+  history: (stationName) => `api/stations/${stationName}/history/`,
+  stations: () => "api/stations/",
   songRequest: (stationName, songId) => 
-    `/stations/${stationName}/request/${songId}`,
-  songCatalogue: (stationName) => `/stations/${stationName}/song-catalogue/`,
+    `api/stations/${stationName}/request/${songId}`,
+  songCatalogue: (stationName) => `api/stations/${stationName}/song-catalogue/`,
 };

@@ -30,7 +30,7 @@ def get_station_list(conn):
       "name": key[1], 
       "tags": list(map(lambda r: { 
         "name": r[tg.name],
-        "id": r[tg.tagPK],
+        "id": r[tg.pk],
       }, group))
     }
 
@@ -54,7 +54,7 @@ offset=0):
   records = conn.execute(query)
   for row in records:
     yield {
-        "id": row[s.songPK],
+        "id": row[s.pk],
         "song": row[s.title],
         "album": row[s.album],
         "artist": row[s.artist],

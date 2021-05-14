@@ -78,7 +78,7 @@ def add_song_to_queue(conn, stationName, songPK):
     sq.addedTimestamp, \
     sq.requestedTimestamp], \
     select(
-      st.stationPK, \
+      st.pk, \
       literal(songPK), \
       literal(timestamp), \
       literal(timestamp)) \

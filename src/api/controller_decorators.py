@@ -27,7 +27,7 @@ def provide_db_conn(func):
 
 def check_access(func):
   def wrap(*args, **kwargs):
-    print(cherrypy.request.headers["origin"])
+    print(cherrypy.request.header_list)
     if "lastVisited" in cherrypy.session:
       print(cherrypy.session["lastVisited"])
     cherrypy.session["lastVisited"] = time.time()

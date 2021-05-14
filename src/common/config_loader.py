@@ -22,8 +22,6 @@ def get_http_config():
     else:
         config_path = "../configs/web_config.yml"
 
-    config = configparser.ConfigParser()
-
     with open(config_path,"r") as stream:
         config =  yaml.safe_load(stream)
     return config

@@ -1,9 +1,12 @@
 #!/bin/bash
 
-if [ -e "$HOME"/start_up ]; then
-    rm -rf"$HOME"/start_up/*
+
+. ./radio_common.sh
+
+if [ -e "$radio_home"/start_up ]; then
+    rm -rf"$radio_home"/start_up/*
 else
-    mkdir -pv "$HOME"/start_up 
+    mkdir -pv "$radio_home"/start_up 
 fi
 
-cp -v ./start_up/* "$HOME"/start_up/
+cp -v ./start_up/* "$radio_home"/start_up/

@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 from numpy.random import choice
 import time
 from tinytag import TinyTag

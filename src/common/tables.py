@@ -10,7 +10,7 @@ folders = Table("Folders", metadata,
 songs = Table("Songs", metadata, 
   Column("pk"),
   Column("path"),
-  Column("folderFK"),
+  Column("folderFk"),
   Column("title"),
   Column("artist"),
   Column("albumArtist"),
@@ -18,7 +18,7 @@ songs = Table("Songs", metadata,
   Column("trackNum"),
   Column("discNum"),
   Column("genre"),
-  Column("songCoverFK"),
+  Column("songCoverFk"),
 )
 
 tags = Table("Tags", metadata, 
@@ -27,8 +27,8 @@ tags = Table("Tags", metadata,
 )
 
 songs_tags = Table("SongsTags", metadata, 
-  Column("songFK"),
-  Column("tagFK"),
+  Column("songFk"),
+  Column("tagFk"),
   Column("skip"),
 )
 
@@ -40,21 +40,21 @@ stations = Table("Stations", metadata,
 )
 
 stations_tags = Table("StationsTags", metadata, 
-  Column("stationFK"),
-  Column("tagFK"),
+  Column("stationFk"),
+  Column("tagFk"),
 )
 
 stations_history = Table("StationHistory", metadata, 
-  Column("stationFK"),
-  Column("songFK"),
+  Column("stationFk"),
+  Column("songFk"),
   Column("lastPlayedTimestamp"),
   Column("lastQueuedTimestamp"),
   Column("lastRequestedTimestamp"),
 )
 
 station_queue = Table("StationQueue", metadata,
-    Column("stationFK"),
-    Column("songFK"),
+    Column("stationFk"),
+    Column("songFk"),
     Column("addedTimestamp"),
     Column("requestedTimestamp"),
 )

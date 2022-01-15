@@ -1,15 +1,9 @@
-#!/usr/bin/env python2
-
 import yaml
 import os
 
 
 def get_config():
-    config_path = ""
-    if "radio_config" in os.environ:
-        config_path = os.environ["radio_config"]
-    else:
-        config_path = "../configs/config.yml"
+    config_path = os.environ["radio_config"]
 
     config = None
 
@@ -18,11 +12,7 @@ def get_config():
     return config
 
 def get_http_config():
-    config_path = ""
-    if "http_config" in os.environ:
-        config_path = os.environ["http_config"]
-    else:
-        config_path = "../configs/web_config.yml"
+    config_path = os.environ["http_config"]
 
     with open(config_path,"r") as stream:
         config =  yaml.safe_load(stream)

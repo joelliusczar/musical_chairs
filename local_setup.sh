@@ -10,8 +10,8 @@ base_path="$(dirname "$0")/"
 
 #set up the python environment, then copy 
 setup_py3_env() (
-    codePath="$1"
-    packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
+    local codePath="$1"
+    local packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
     cd "$codePath"
     python3 -m venv "$codePath"/env
     . "$codePath"/env/bin/activate

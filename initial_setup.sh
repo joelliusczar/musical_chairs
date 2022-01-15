@@ -1,30 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 
 . ./radio_common.sh
 
-PACMAN_CONST='pacman'
-
-notInstalled() {
-    echo "$1 not installed"
-    exit 0
-}
-
-pkgMgr=''
-pkgMgrChoice=''
-if  pacman -V 2>/dev/null; then
-    pkgMgrChoice="$PACMAN_CONST"
-    pkgMgr='yes | sudo pacman -S'
-fi
-
-if [ -z "$pkgMgr" ]; then
-    echo "No package manager set"
-    exit 1
-fi
 
 if ! perl -v 2>/dev/null; then
-    notInstalled
-    #eval "$pkgMrg" perl
+    eval "$pkgMrg" perl
 fi
+
 
 if perl -e "exit 1 if index('$PATH','$HOME/.local/bin') != -1"; then
     echo 'Please add "$HOME/.local/bin" to path'
@@ -60,21 +42,30 @@ if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
 fi
 
 if ! ices -V 2>/dev/null; then
-    ices_dir="$build_home"/ices
-    rm -rf "$ices_dir"
-    mkdir -pv "$ices_dir" 
-    cd "$ices_dir"
+    ices_build_dir="$build_home"/ices
+    rm -rf "$ices_build_dir"
+    mkdir -pv "$ices_build_dir" 
+    cd "$ices_build_dir"
     git clone https://github.com/joelliusczar/ices0.git
     cd ices0
-    aclocal 
-    autoreconf -fi
-    automake --add-missing
+    aclocal &&
+    autoreconf -fi &&
+    automake --add-missing &&
     ./configure --prefix="$HOME"/.local \
         --with-python=/usr/bin/python3 \
-        --with-moddir="$radio_home"/modules
-    make
-    make install   
+        --with-moddir="$pyModules_dir" &&
+    make &&
+    make install &&
+    cd "$build_home" &&
+    rm -rf "$ices_build_dir"
 fi
 
+sqlite3 "$sqlite_file" ./sql_scripts/data_def_1.sql
+sqlite3 "$sqlite_file" ./sql_scripts/insert_tags_1.sql
+sqlite3 "$sqlite_file" ./sql_scripts/security_def_1.sql
 
-cp ./templates/configs/stream_keys.yml "$radio_home"/stream_keys.yml
+config_file="$radio_config"/config.yml
+cp ./templates/configs/config.yml "$config_file"
+sed -i -e "s/<searchbase>/$HOME/" -e "s/<dbname>/$sqlite_file/" "$config_file"
+
+link_to_music_files

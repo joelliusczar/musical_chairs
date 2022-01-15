@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
 . ./radio_common.sh
 
-app_path=/var/www/"$app_name"
+app_path=/srv/"$app_name"
 
 
 #check if personal scripts folder exists, clear out if it does,
@@ -23,18 +23,6 @@ else
     mkdir -pv "$app_path" 
 fi
 
-#set up the python environment, then copy 
-setup_py3_env() (
-    codePath="$1"
-    packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
-    cd "$codePath"
-    python3 -m venv "$codePath"/env
-    . "$codePath"/env/bin/activate
-    python3 -m pip install -r ./requirements.txt &&
-    cd - &&
-    mkdir "$codePath""$packagePath""$lib_name"/ &&
-    cp -rv ./src/common/* "$codePath""$packagePath""$lib_name"/ 
-)
 
 setup_py3_env './src/api/' &&
 cp -rv ./src/api "$app_path/" 

@@ -1,30 +1,47 @@
-#!/usr/bin/env python2
-from numpy.random import choice
+from random import sample
 import time
 from tinytag import TinyTag
+from sqlalchemy import select, desc, func
+from .tables import stations_history, songs, stations,\
+     tags, stations_tags, songs_tags
 
 def get_station_pk(conn, stationName):
-    cursor = conn.cursor()
-    n = (stationName, )
-    cursor.execute("SELECT [PK] FROM [Stations] WHERE Name = ?", n)
-    row = cursor.fetchone()
-    pk = row[0] if row else None
-    cursor.close()
+    st = stations.c
+    query = select(st.pk) \
+        .select_from(stations) \
+        .where(st.name == stationName)
+    row = conn.execute(query).fetchone()
+    pk = row.pk if row else None
     return pk
 
 def get_tag_pk(conn, tagName):
-    cursor = conn.cursor()
-    n = (tagName, )
-    cursor.execute("SELECT [PK] FROM [Tags] WHERE Name = ?", n)
-    row = cursor.fetchone()
-    pk = row[0] if row else None
-    cursor.close()
+    t = tags.c
+    query = select(t.pk) \
+        .select_from(stations) \
+        .where(t.name == tagName)
+    row = conn.execute(query).fetchone()
+    pk = row.pk if row else None
     return pk
 
-def get_all_station_possibilities(conn, stationPk):
-
-    cursor = conn.cursor()
+def get_all_station_song_possibilities(conn, stationPk):
+    st = stations.c
+    sg = songs.c
+    sttg = stations_tags.c
+    sgtg = songs_tags.c
+    sth = stations_history.c
     params = (stationPk, )
+    
+    query = select(sg.pk, sg.path) \
+        .select_from(stations) \
+        .join(stations_tags, st.pk == sttg.stationFk) \
+        .join(songs_tags, sgtg.tagFk == sttg.tagFk) \
+        .join(songs, sg.pk == sgtg.songFk) \
+        .join(stations_history, (sth.stationsFk == st.pk) \
+            & (sth.songFk == sg.pk)) \
+        .where(st.pk == stationPk) \
+        .where((sgtg.skip == None) | (sgtg.skip == 0)) \
+        .group_by(sg.pk, sg.path)
+
 
     cursor.execute("SELECT SG.[PK], SG.[Path]"
         "FROM [Stations] S "
@@ -43,13 +60,13 @@ def get_all_station_possibilities(conn, stationPk):
     return rows
 
 def get_random_songPks(conn, stationPk, deficit):
-    rows = get_all_station_possibilities(conn, stationPk)
+    rows = get_all_station_song_possibilities(conn, stationPk)
     sampleSize = deficit if deficit < len(rows) else len(rows)
     aSize = len(rows)
     pSize = len(rows) + 1
     songPks = map(lambda r: r[0], rows)
-    weights = [2 * (float(n) / (pSize * aSize)) for n in xrange(1, pSize)]
-    selection = choice(songPks, sampleSize, p=weights, replace=False)
+    weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
+    selection = sample(songPks, counts=weights, k=sampleSize)
     return selection
 
 def fil_up_queue(conn, stationPk, queueSize):

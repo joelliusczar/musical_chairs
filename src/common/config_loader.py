@@ -3,7 +3,7 @@ import os
 
 
 def get_config():
-    config_path = os.environ["radio_config"]
+    config_path = os.environ["config_file"]
 
     config = None
 

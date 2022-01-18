@@ -60,12 +60,33 @@ if ! ices -V 2>/dev/null; then
     rm -rf "$ices_build_dir"
 fi
 
-sqlite3 "$sqlite_file" ./sql_scripts/data_def_1.sql
-sqlite3 "$sqlite_file" ./sql_scripts/insert_tags_1.sql
-sqlite3 "$sqlite_file" ./sql_scripts/security_def_1.sql
+create_db() {
+    echo "creating $sqlite_file"
+    sqlite3 "$sqlite_file" ".read './sql_scripts/data_def_1.sql'" &&
+    sqlite3 "$sqlite_file" ".read './sql_scripts/insert_tags_1.sql'" &&
+    sqlite3 "$sqlite_file" ".read './sql_scripts/security_def_1.sql'"
+}
 
-config_file="$radio_config"/config.yml
+if [ -e "$sqlite_file" ]; then
+    echo 'The database already exits. Do you want to start from scratch? Y to confirm'
+    read db_choice
+    if [ "$db_choice" = 'Y' ]; then
+        rm -f "$sqlite_file"
+        create_db
+        db_res="$?"
+    else
+        echo 'Using existing db'
+        db_res=1
+    fi
+else 
+    create_db
+    db_res="$?"
+fi
+
 cp ./templates/configs/config.yml "$config_file"
-sed -i -e "s/<searchbase>/$HOME/" -e "s/<dbname>/$sqlite_file/" "$config_file"
+sed -i -e "s@<searchbase>@$HOME@" -e "s@<dbname>@$sqlite_file@" "$config_file"
 
 link_to_music_files
+
+#"$db_res" && sh ./commit_setup.sh 
+#sh ./run_song_scan.sh

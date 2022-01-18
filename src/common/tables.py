@@ -1,24 +1,36 @@
-from sqlalchemy import Table, MetaData, Column, Integer, String, ForeignKey
+from sqlalchemy import Table, MetaData, Column
 
 metadata = MetaData()
 
-folders = Table("Folders", metadata, 
+artists = Table("Artists", metadata,
   Column("pk"),
   Column("name"),
+)
+
+albums = Table("Album", metadata,
+  Column("pk"),
+  Column("name"),
+  Column("albumArtistFk"),
+  Column("year"),
 )
 
 songs = Table("Songs", metadata, 
   Column("pk"),
   Column("path"),
-  Column("folderFk"),
   Column("title"),
-  Column("artist"),
-  Column("albumArtist"),
-  Column("album"),
-  Column("trackNum"),
-  Column("discNum"),
+  Column("albumFk"),
+  Column("track"),
+  Column("disc"),
   Column("genre"),
   Column("songCoverFk"),
+  Column("bitrate"),
+  Column("comment"),
+)
+
+song_artist = Table("SongArtist", metadata,
+  Column("songFk"),
+  Column("artistFk"),
+  Column("isPrimaryArtist"),
 )
 
 tags = Table("Tags", metadata, 

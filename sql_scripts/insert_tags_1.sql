@@ -1,3 +1,5 @@
+SELECT "insert_tags_1.sql";
+
 
 INSERT OR IGNORE INTO [Tags] ([Name]) VALUES('vg');
 INSERT OR IGNORE INTO [Tags] ([Name]) VALUES('thinking');

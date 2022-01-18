@@ -1,31 +1,40 @@
 #!/bin/bash
 
 [ -n "$radio_common_imported" ] && return
+[ -f "$HOME"/.dev_local_rc ] && . "$HOME"/.dev_local_rc
 
-radio_common_imported='radio_common_imported'
-lib_name='musical_chairs_libs'
-app_name='musical_chairs_app'
-radio_home="$HOME"/radio
-ices_configs_dir="$radio_home"/ices_configs
-pyModules_dir="$radio_home"/pyModules
-build_home="$HOME"/Documents/builds
-music_home="$HOME"/music
-radio_config="$radio_home"/config
-db_dir="$radio_home"/db
-sqlite_file="$db_dir"/songs_db
-pyVersion=$(python3 -V)
-pyMajor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /(\d+)\.\d+/')
-pyMinor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /\d+\.(\d+)/')
+export radio_common_imported='radio_common_imported'
+export lib_name='musical_chairs_libs'
+export app_name='musical_chairs_app'
+export radio_home="$HOME"/radio
+export ices_configs_dir="$radio_home"/ices_configs
+export pyModules_dir="$radio_home"/pyModules
+export build_home="$HOME"/Documents/builds
+export music_home="$HOME"/music
+export radio_config_dir="$radio_home"/config
+export config_file="$radio_config_dir"/config.yml
+export db_dir="$radio_home"/db
+export sqlite_file="$db_dir"/songs_db
 
-PACMAN_CONST='pacman'
+# directories that should be cleaned upon changes
+# suffixed with 'cl' for 'clean'
+export process_dir_cl="$radio_home"/process
+export start_up_dir_cl="$radio_home"/start_up
 
-notInstalled() {
+#python version info
+export pyVersion=$(python3 -V)
+export pyMajor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /(\d+)\.\d+/')
+export pyMinor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /\d+\.(\d+)/')
+
+export PACMAN_CONST='pacman'
+
+not_installed() {
     echo "$1 not installed"
     exit 0
 }
 
-pkgMgr=''
-pkgMgrChoice=''
+export pkgMgr=''
+export pkgMgrChoice=''
 if  pacman -V 2>/dev/null; then
     pkgMgrChoice="$PACMAN_CONST"
     pkgMgr='yes | sudo pacman -S'
@@ -39,6 +48,7 @@ fi
 aws_role() {
     echo 'music_reader'
 }
+
 
 s3_name() {
     echo 'joelradio'
@@ -62,20 +72,33 @@ link_to_music_files() {
 setup_py3_env() (
     codePath="$1"
     packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
-    cd "$codePath"
     python3 -m venv "$codePath"/env
     . "$codePath"/env/bin/activate
-    python3 -m pip install -r ./requirements.txt &&
-    cd - &&
+    python3 -m pip install -r "$codePath"/requirements.txt &&
+    deactivate &&
     mkdir "$codePath""$packagePath""$lib_name"/ &&
     cp -rv ./src/common/* "$codePath""$packagePath""$lib_name"/ 
 )
+
+empty_dir_contents() {
+    local dir_to_empty="$1"
+    if [ -e "$dir_to_empty" ]; then 
+        rm -rf "$dir_to_empty"/*
+    else
+        mkdir -pv "$dir_to_empty"
+    fi
+}
 
 [ ! -e "$radio_home" ] && mkdir -pv "$radio_home"
 [ ! -e "$ices_configs_dir" ] && mkdir -pv "$ices_configs_dir"
 [ ! -e "$build_home" ] && mkdir -pv "$build_home"
 [ ! -e "$music_home" ] && mkdir -pv "$music_home"
 [ ! -e "$pyModules_dir" ] && mkdir -pv "$pyModules_dir"
-[ ! -e "$radio_config" ] && mkdir -pv "$radio_config"
+[ ! -e "$radio_config_dir" ] && mkdir -pv "$radio_config_dir"
 [ ! -e "$db_dir" ] && mkdir -pv "$db_dir"
 
+export -f aws_role
+export -f s3_name
+export -f link_to_music_files
+export -f setup_py3_env
+export -f empty_dir_contents

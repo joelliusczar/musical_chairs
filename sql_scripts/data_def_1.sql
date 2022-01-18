@@ -1,25 +1,47 @@
-CREATE TABLE IF NOT EXISTS [Folders] (
+SELECT "data_def_1.sql";
+
+
+CREATE TABLE IF NOT EXISTS [Artists] (
     [PK] INTEGER PRIMARY KEY ASC,
     [Name] TEXT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_folderName ON [Folders] ([Name]);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_artist ON [Artists] ([Name]);
 
+CREATE TABLE IF NOT EXISTS [Album] (
+    [PK] INTEGER PRIMARY KEY ASC,
+    [Name] TEXT NULL,
+    [AlbumArtistFK] INTEGER NULL,
+    [Year] INTEGER,
+    FOREIGN KEY([AlbumArtistFK]) REFERENCES [Artists]([PK])
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_album ON [Album] ([Name]);
 
 CREATE TABLE IF NOT EXISTS [Songs] (
     [PK] INTEGER PRIMARY KEY ASC,
     [Path] TEXT NULL,
-    [FolderFK] INTEGER,
     [Title] TEXT,
-    [Artist] TEXT,
-    [AlbumArtist] TEXT,
-    [Album] TEXT,
-    [TrackNum] INTEGER NULL,
-    [DiscNum] INTEGER NULL,
+    [AlbumFK] INTEGER NULL,
+    [Track] INTEGER NULL,
+    [Disc] INTEGER NULL,
     [Genre] TEXT,
     [SongCoverFK] INTEGER NULL,
-    FOREIGN KEY([FolderFK]) REFERENCES [Folders]([PK])
+    [Explicit] INTEGER,
+    [Bitrate] REAL,
+    [Comment] TEXT,
+    FOREIGN KEY([AlbumFK]) REFERENCES [Album]([PK])
 );
+
+CREATE TABLE IF NOT EXISTS [SongArtists] (
+    [SongFK] INTEGER,
+    [ArtistFK] INTEGER,
+    [IsPrimaryArtist] INTEGER NULL,
+    FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),
+    FOREIGN KEY([ArtistFK]) REFERENCES [Artists]([PK])
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_songsArtists ON [SongArtists]([SongFK], [ArtistFK]);
 
 CREATE TABLE IF NOT EXISTS [SongCovers] (
     [PK] INTEGER PRIMARY KEY ASC,

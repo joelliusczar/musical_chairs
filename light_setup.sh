@@ -3,10 +3,7 @@
 
 . ./radio_common.sh
 
-if [ -e "$radio_home"/start_up ]; then
-    rm -rf"$radio_home"/start_up/*
-else
-    mkdir -pv "$radio_home"/start_up 
-fi
 
-cp -v ./start_up/* "$radio_home"/start_up/
+empty_dir_contents "$start_up_dir_cl"
+
+cp -v ./start_up/* "$start_up_dir_cl"

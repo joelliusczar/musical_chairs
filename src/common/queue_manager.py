@@ -23,41 +23,41 @@ def get_tag_pk(conn, tagName):
     pk = row.pk if row else None
     return pk
 
-def get_all_station_song_possibilities(conn, stationPk):
-    st = stations.c
-    sg = songs.c
-    sttg = stations_tags.c
-    sgtg = songs_tags.c
-    sth = stations_history.c
-    params = (stationPk, )
+# def get_all_station_song_possibilities(conn, stationPk):
+#     st = stations.c
+#     sg = songs.c
+#     sttg = stations_tags.c
+#     sgtg = songs_tags.c
+#     sth = stations_history.c
+#     params = (stationPk, )
     
-    query = select(sg.pk, sg.path) \
-        .select_from(stations) \
-        .join(stations_tags, st.pk == sttg.stationFk) \
-        .join(songs_tags, sgtg.tagFk == sttg.tagFk) \
-        .join(songs, sg.pk == sgtg.songFk) \
-        .join(stations_history, (sth.stationsFk == st.pk) \
-            & (sth.songFk == sg.pk)) \
-        .where(st.pk == stationPk) \
-        .where((sgtg.skip == None) | (sgtg.skip == 0)) \
-        .group_by(sg.pk, sg.path)
+#     query = select(sg.pk, sg.path) \
+#         .select_from(stations) \
+#         .join(stations_tags, st.pk == sttg.stationFk) \
+#         .join(songs_tags, sgtg.tagFk == sttg.tagFk) \
+#         .join(songs, sg.pk == sgtg.songFk) \
+#         .join(stations_history, (sth.stationsFk == st.pk) \
+#             & (sth.songFk == sg.pk)) \
+#         .where(st.pk == stationPk) \
+#         .where((sgtg.skip == None) | (sgtg.skip == 0)) \
+#         .group_by(sg.pk, sg.path)
 
 
-    cursor.execute("SELECT SG.[PK], SG.[Path]"
-        "FROM [Stations] S "
-        "JOIN [StationsTags] ST ON S.[PK] = ST.[StationFK] "
-        "JOIN [SongsTags] SGT ON SGT.[TagFK] = ST.[TagFK] "
-        "JOIN [Songs] SG ON SG.[PK] = SGT.[SongFK] "
-        "LEFT JOIN [StationHistory] SH ON SH.[StationFK] = S.[PK] "
-        "   AND SH.[SongFK] = SG.[PK] "
-        "WHERE S.[PK] = ? AND (SGT.[Skip] IS NULL OR SGT.[Skip] = 0) "
-        "GROUP BY SG.[PK]"
-        "ORDER BY SH.[LastQueuedTimestamp] DESC, SH.[LastPlayedTimestamp] DESC "
-        , params)
+#     cursor.execute("SELECT SG.[PK], SG.[Path]"
+#         "FROM [Stations] S "
+#         "JOIN [StationsTags] ST ON S.[PK] = ST.[StationFK] "
+#         "JOIN [SongsTags] SGT ON SGT.[TagFK] = ST.[TagFK] "
+#         "JOIN [Songs] SG ON SG.[PK] = SGT.[SongFK] "
+#         "LEFT JOIN [StationHistory] SH ON SH.[StationFK] = S.[PK] "
+#         "   AND SH.[SongFK] = SG.[PK] "
+#         "WHERE S.[PK] = ? AND (SGT.[Skip] IS NULL OR SGT.[Skip] = 0) "
+#         "GROUP BY SG.[PK]"
+#         "ORDER BY SH.[LastQueuedTimestamp] DESC, SH.[LastPlayedTimestamp] DESC "
+#         , params)
     
-    rows = cursor.fetchall()
-    cursor.close()
-    return rows
+#     rows = cursor.fetchall()
+#     cursor.close()
+#     return rows
 
 def get_random_songPks(conn, stationPk, deficit):
     rows = get_all_station_song_possibilities(conn, stationPk)

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS [Artists] (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_artist ON [Artists] ([Name]);
 
-CREATE TABLE IF NOT EXISTS [Album] (
+CREATE TABLE IF NOT EXISTS [Albums] (
     [PK] INTEGER PRIMARY KEY ASC,
     [Name] TEXT NULL,
     [AlbumArtistFK] INTEGER NULL,
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS [Album] (
     FOREIGN KEY([AlbumArtistFK]) REFERENCES [Artists]([PK])
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_album ON [Album] ([Name]);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_albums ON [Albums] ([Name]);
 
 CREATE TABLE IF NOT EXISTS [Songs] (
     [PK] INTEGER PRIMARY KEY ASC,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS [Songs] (
     [Explicit] INTEGER,
     [Bitrate] REAL,
     [Comment] TEXT,
-    FOREIGN KEY([AlbumFK]) REFERENCES [Album]([PK])
+    FOREIGN KEY([AlbumFK]) REFERENCES [Albums]([PK])
 );
 
 CREATE TABLE IF NOT EXISTS [SongArtists] (

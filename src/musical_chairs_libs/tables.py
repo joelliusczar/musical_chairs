@@ -1,4 +1,4 @@
-from sqlalchemy import Table, MetaData, Column
+from sqlalchemy import Table, MetaData, Column, Integer, REAL
 
 metadata = MetaData()
 
@@ -7,7 +7,7 @@ artists = Table("Artists", metadata,
   Column("name"),
 )
 
-albums = Table("Album", metadata,
+albums = Table("Albums", metadata,
   Column("pk"),
   Column("name"),
   Column("albumArtistFk"),
@@ -27,7 +27,7 @@ songs = Table("Songs", metadata,
   Column("comment"),
 )
 
-song_artist = Table("SongArtist", metadata,
+song_artist = Table("SongArtists", metadata,
   Column("songFk"),
   Column("artistFk"),
   Column("isPrimaryArtist"),
@@ -69,4 +69,11 @@ station_queue = Table("StationQueue", metadata,
     Column("songFk"),
     Column("addedTimestamp"),
     Column("requestedTimestamp"),
+)
+
+# temp table definition
+last_history_tmp = Table('LastHistory', metadata,
+  Column("songFk", Integer),
+  Column("lastQueued", REAL),
+  prefixes=["TEMP"]
 )

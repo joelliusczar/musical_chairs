@@ -16,10 +16,12 @@ empty_dir_contents "$app_path_cl"
 
 
 setup_py3_env './src/api/' &&
-sudo cp -rv ./src/api "$app_path_cl/" 
+sudo cp -rv ./src/api "$app_path_cl/" &&
+sudo chown -R "$current_user": "$app_path_cl/"
 
 setup_py3_env './src/maintenance/' &&
-cp -rv ./src/maintenance "$process_dir_cl"
+sudo cp -rv ./src/maintenance "$process_dir_cl" &&
+sudo chown -R "$current_user": "$process_dir_cl"
 
 echo "$?"
 

@@ -3,10 +3,12 @@
 [ -n "$radio_common_imported" ] && return
 [ -f "$HOME"/.dev_local_rc ] && . "$HOME"/.dev_local_rc
 
+export test_flag="$1"
+[ "$test_flag" = "test" ] && export radio_home='./test_trash' || export radio_home="$HOME"/radio
+
 export radio_common_imported='radio_common_imported'
 export lib_name='musical_chairs_libs'
 export app_name='musical_chairs_app'
-export radio_home="$HOME"/radio
 export ices_configs_dir="$radio_home"/ices_configs
 export pyModules_dir="$radio_home"/pyModules
 export build_home="$HOME"/Documents/builds
@@ -27,6 +29,7 @@ export pyMajor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /(\d+)\.\d+/')
 export pyMinor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /\d+\.(\d+)/')
 
 export PACMAN_CONST='pacman'
+export current_user=$(whoami)
 
 not_installed() {
     echo "$1 not installed"
@@ -72,20 +75,22 @@ link_to_music_files() {
 setup_py3_env() (
     codePath="$1"
     packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
-    python3 -m venv "$codePath"/env
+    virtualenv -p python3  "$codePath"/env
     . "$codePath"/env/bin/activate
     python3 -m pip install -r "$codePath"/requirements.txt &&
     deactivate &&
-    mkdir "$codePath""$packagePath""$lib_name"/ &&
-    cp -rv ./src/common/* "$codePath""$packagePath""$lib_name"/ 
+    empty_dir_contents "$codePath""$packagePath""$lib_name"/ &&
+    sudo cp -rv ./src/"$lib_name"/* "$codePath""$packagePath""$lib_name"/ &&
+    sudo chown -R "$current_user": "$codePath""$packagePath""$lib_name"/
 )
 
 empty_dir_contents() {
     local dir_to_empty="$1"
     if [ -e "$dir_to_empty" ]; then 
-        rm -rf "$dir_to_empty"/*
+        sudo rm -rf "$dir_to_empty"/*
     else
-        mkdir -pv "$dir_to_empty"
+        sudo mkdir -pv "$dir_to_empty" &&
+        sudo chown -R "$current_user": "$dir_to_empty"
     fi
 }
 

@@ -4,12 +4,11 @@
 
 link_to_music_files
 
-scan_home=${1:-"$process_dir_cl"}
+env_path="$process_dir_cl"/maintenance
+[ "$test_flag" = "test" ] && script_path='./src/maintenance' || script_path="$env_path"
 
+py_maintenance_path="$env_path"/maintenance
 
-py_maintenance_path="$scan_home"/maintenance
-
-. "$py_maintenance_path"/env/bin/activate &&
-python3 -m pip list &&
-python3 "$py_maintenance_path"/scan_new_songs.py
+. "$env_path"/env/bin/activate &&
+python3 "$script_path"/scan_new_songs.py
 deactivate

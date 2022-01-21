@@ -19,8 +19,12 @@ if ! python3 -V 2>/dev/null; then
     eval "$pkgMgr" python3
 fi
 
-if ! pip3 -V 2>/dev/null; then
-    eval "$pkgMgr" python-pip
+if ! python3 -m pip -V 2>/dev/null; then
+    curl https://bootstrap.pypa.io/pip/get-pip.py | python3 /dev/stdin
+fi
+
+if ! python3 -m  virtualenv --version 2>/dev/null; then
+    python -m pip install --user virtualenv
 fi
 
 if ! npm version 2>/dev/null; then
@@ -84,9 +88,9 @@ else
 fi
 
 cp ./templates/configs/config.yml "$config_file"
-sed -i -e "s@<searchbase>@$HOME@" -e "s@<dbname>@$sqlite_file@" "$config_file"
+sed -i -e "s@<searchbase>@$music_home/radio/@" -e "s@<dbname>@$sqlite_file@" "$config_file"
 
 link_to_music_files
 
-#"$db_res" && sh ./commit_setup.sh 
+$(exit "$db_res") && sh ./commit_setup.sh 
 #sh ./run_song_scan.sh

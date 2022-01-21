@@ -1,8 +1,7 @@
-#!/usr/bin/env python2
-
 import sys
 import yaml
 import sqlite3
+from sqlalchemy import create_engine
 from musical_chairs_libs.queue_manager import get_next_queued
 from musical_chairs_libs.config_loader import get_config
 from musical_chairs_libs.station_proc_manager import set_station_proc, remove_station_proc
@@ -20,7 +19,8 @@ class RadioHandle:
 
     def ices_init(self):
         dbName = self.config['dbName']
-        conn = sqlite3.connect(dbName)
+        engine = create_engine(f"sqlite+pysqlite:///{dbName}")
+        conn = engine.connect()
         set_station_proc(conn, self.stationName)
         conn.commit()
         conn.close()
@@ -31,7 +31,8 @@ class RadioHandle:
     # Return 1 if ok, 0 if something went wrong.
     def ices_shutdown(self):
         dbName = self.config['dbName']
-        conn = sqlite3.connect(dbName)
+        engine = create_engine(f"sqlite+pysqlite:///{dbName}")
+        conn = engine.connect()
         remove_station_proc(conn, self.stationName)
         conn.commit()
         conn.close()
@@ -43,12 +44,13 @@ class RadioHandle:
     def ices_get_next(self):
         searchBase = self.config['searchBase']
         dbName = self.config['dbName']
-        conn = sqlite3.connect(dbName)
+        engine = create_engine(f"sqlite+pysqlite:///{dbName}")
+        conn = engine.connect()
         (currentsong, title, album, artist) = \
             get_next_queued(conn, self.stationName)
         conn.close()
-        self.display = "%s - %s - %s" % (title, artist, album)
-        self.songFullPath = (searchBase + "/" + currentsong).encode('utf-8')
+        self.display = f"{title} - {album} - {artist}"
+        self.songFullPath = f"{searchBase}/{currentsong}".encode('utf-8')
         return self.songFullPath
 
     # This function, if defined, returns the string you'd like used

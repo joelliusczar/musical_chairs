@@ -2,33 +2,98 @@
 
 . ./radio_common.sh
 
+pkgMgr=''
+pkgMgrChoice=''
+if  pacman -V 2>/dev/null; then
+    pkgMgrChoice="$PACMAN_CONST"
+    pkgMgr='yes | sudo pacman -S'
+elif apt version apt; then
+    pkgMgrChoice="$APT_CONST"
+    pkgMgr='yes | sudo apt install'
+fi
+
+if [ -z "$pkgMgr" ]; then
+    echo "No package manager set"
+    exit 1
+fi
 
 if ! perl -v 2>/dev/null; then
     eval "$pkgMrg" perl
 fi
 
-
-if perl -e "exit 1 if index('$PATH','$HOME/.local/bin') != -1"; then
-    echo 'Please add "$HOME/.local/bin" to path'
-    echo 'Exiting'
-    exit 1
-fi
+[ ! -e "$HOME/.local/bin" ] && mkdir -pv "$HOME/.local/bin"
 
 
 if ! python3 -V 2>/dev/null; then
     eval "$pkgMgr" python3
 fi
 
+if [ "$pyMinor" -le 10 ] && [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+    eval "$pkgMgr" python3-distutils
+fi
+
 if ! python3 -m pip -V 2>/dev/null; then
     curl https://bootstrap.pypa.io/pip/get-pip.py | python3 /dev/stdin
 fi
 
+
 if ! python3 -m  virtualenv --version 2>/dev/null; then
-    python -m pip install --user virtualenv
+    python3 -m pip install --user virtualenv
 fi
 
 if ! npm version 2>/dev/null; then
     eval "$pkgMgr" npm
+fi
+
+if ! s3fs --version 2>/dev/null; then
+    eval "$pkgMgr" s3fs
+fi
+
+if ! sqlite3 -version 2>/dev/null; then
+    eval "$pkgMgr" sqlite3
+fi
+
+if ! git --version 2>/dev/null; then
+    eval "$pkgMgr" git
+fi
+
+if ! aclocal --version 2>/dev/null; then
+    eval "$pkgMgr" automake
+fi
+
+if ! libtool --version 2>/dev/null && [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+    eval "$pkgMgr" libtool-bin
+fi
+
+if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+    if [  -z "$(apt version libxml2-dev)" ]; then
+        eval "$pkgMgr" libxml2-dev
+    fi
+    if [  -z "$(apt version libogg-dev)" ]; then
+        eval "$pkgMgr" libogg-dev
+    fi
+    if [  -z "$(apt version libvorbis-dev)" ]; then
+        eval "$pkgMgr" libvorbis-dev
+    fi
+    if [  -z "$(apt version libshout3-dev)" ]; then
+        eval "$pkgMgr" libshout3-dev
+    fi
+    if [  -z "$(apt version libmp3lame-dev)" ]; then
+        eval "$pkgMgr" libmp3lame-dev
+    fi
+    if [  -z "$(apt version libflac-dev)" ]; then
+        eval "$pkgMgr" libflac-dev
+    fi
+    if [  -z "$(apt version libfaad-dev)" ]; then
+        eval "$pkgMgr" libfaad-dev
+    fi
+    if [ -z "$(apt version python"$pyMajor"."$pyMinor"-dev)" ]; then
+        eval "$pkgMgr" python"$pyMajor"."$pyMinor"-dev
+    fi
+    if [  -z "$(apt version libperl-dev)" ]; then
+        eval "$pkgMgr" libperl-dev
+    fi
+
 fi
 
 if ! [ -e "$build_home" ]; then
@@ -43,6 +108,15 @@ if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
     if ! icecast -v 2>/dev/null; then
         eval "$pkgMgr" icecast
     fi
+elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+    if ! icecast2 -v 2>/dev/null; then
+        eval "$pkgMgr" icecast2
+    fi
+fi
+
+if perl -e "exit 1 if index('$PATH','$HOME/.local/bin') != -1"; then
+    echo 'Please add "$HOME/.local/bin" to path'
+    export PATH="$PATH":"$HOME"/.local/bin
 fi
 
 if ! ices -V 2>/dev/null; then
@@ -60,15 +134,15 @@ if ! ices -V 2>/dev/null; then
         --with-moddir="$pyModules_dir" &&
     make &&
     make install &&
-    cd "$build_home" &&
+    cd - &&
     rm -rf "$ices_build_dir"
 fi
 
 create_db() {
     echo "creating $sqlite_file"
-    sqlite3 "$sqlite_file" ".read './sql_scripts/data_def_1.sql'" &&
-    sqlite3 "$sqlite_file" ".read './sql_scripts/insert_tags_1.sql'" &&
-    sqlite3 "$sqlite_file" ".read './sql_scripts/security_def_1.sql'"
+    sqlite3 "$sqlite_file" ".read ./sql_scripts/data_def_1.sql" &&
+    sqlite3 "$sqlite_file" ".read ./sql_scripts/insert_tags_1.sql" &&
+    sqlite3 "$sqlite_file" ".read ./sql_scripts/security_def_1.sql"
 }
 
 if [ -e "$sqlite_file" ]; then
@@ -86,9 +160,9 @@ else
     create_db
     db_res="$?"
 fi
-
+pwd
 cp ./templates/configs/config.yml "$config_file"
-sed -i -e "s@<searchbase>@$music_home/radio/@" -e "s@<dbname>@$sqlite_file@" "$config_file"
+sed -i -e "s@<searchbase>@$music_home/@" -e "s@<dbname>@$sqlite_file@" "$config_file"
 
 link_to_music_files
 

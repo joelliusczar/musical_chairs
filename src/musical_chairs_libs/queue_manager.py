@@ -1,12 +1,10 @@
-from ntpath import join
-from random import sample
-from sys import prefix
+from numpy.random import choice
 import time
-from tinytag import TinyTag
 from sqlalchemy import select, desc, func, insert, delete, update
 from musical_chairs_libs.tables import stations_history, songs, stations,\
      tags, stations_tags, songs_tags, station_queue, albums, artists, song_artist, \
     last_history_tmp
+
 
 def get_station_pk(conn, stationName):
     st = stations.c
@@ -38,7 +36,7 @@ def get_all_station_song_possibilities(conn, stationPk):
         .join(stations_tags, st.pk == sttg.stationFk) \
         .join(songs_tags, sgtg.tagFk == sttg.tagFk) \
         .join(songs, sg.pk == sgtg.songFk) \
-        .join(stations_history, (hist.stationsFk == st.pk) \
+        .join(stations_history, (hist.stationFk == st.pk) \
             & (hist.songFk == sg.pk), isouter=True) \
         .where(st.pk == stationPk) \
         .where((sgtg.skip == None) | (sgtg.skip == 0)) \
@@ -46,7 +44,7 @@ def get_all_station_song_possibilities(conn, stationPk):
         .order_by(desc(func.max(hist.lastQueuedTimestamp))) \
         .order_by(desc(func.max(hist.lastPlayedTimestamp)))
     
-    rows = conn.excecute(query).fetchall()
+    rows = conn.execute(query).fetchall()
     return rows
 
 def get_random_songPks(conn, stationPk, deficit):
@@ -54,9 +52,10 @@ def get_random_songPks(conn, stationPk, deficit):
     sampleSize = deficit if deficit < len(rows) else len(rows)
     aSize = len(rows)
     pSize = len(rows) + 1
-    songPks = map(lambda r: r[0], rows)
+    songPks = map(lambda r: r.pk, rows)
+    # the sum of weights needs to equal 1
     weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
-    selection = sample(songPks, counts=weights, k=sampleSize)
+    selection = choice(songPks, sampleSize, p = weights, replace=False)
     return selection
 
 def fil_up_queue(conn, stationPk, queueSize):
@@ -118,11 +117,12 @@ def move_from_queue_to_history(conn, stationPk, songPk, queueTimestamp, requeste
                 lastRequestedTimestamp = requestedTimestamp)
         conn.execute(histInsert)
 
+
 def is_queue_empty(conn, stationPk):
     q = station_queue.c
     query = select(func.count(1)).select_from(station_queue).where(q.stationFk == stationPk)
-    isEmpty = conn.execute(query).fetchone().count
-    return isEmpty
+    res = conn.execute(query).fetchone()
+    return res.count < 1
 
 
 def get_next_queued(conn, stationName, queueSize = 50):

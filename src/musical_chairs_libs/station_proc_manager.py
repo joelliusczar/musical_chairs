@@ -1,34 +1,27 @@
 import os
-import signal
+from sqlalchemy import select, desc, func, insert, delete, update
+from musical_chairs_libs.tables import stations
 
 def set_station_proc(conn, stationName):
-    cursor = conn.cursor()
     pid = os.getpid()
-    params = (pid, stationName, )
-    cursor.execute("UPDATE [Stations] "
-        "SET [ProcId] = ? "
-        "WHERE [Name] = ?", params)
-    cursor.close()
+    st = stations.c
+    stmt = update(stations).values(procId = pid).where(st.name == stationName)
+    conn.execute(stmt)
 
 def remove_station_proc(conn, stationName):
-    cursor = conn.cursor()
-    params = (stationName, )
-    cursor.execute("UPDATE [Stations] "
-        "SET [ProcId] = NULL "
-        "WHERE [Name] = ?", params)
-    cursor.close()
+    st = stations.c
+    stmt = update(stations).values(procId = None).where(st.name == stationName)
+    conn.execute(stmt)
 
 def end_all_stations(conn):
-    cursor = conn.cursor()
-    for row in cursor.execute("SELECT [ProcId] FROM [Stations] "
-        "WHERE [ProcId] IS NOT NULL"):
-        pid = row[0]
+    st = stations.c
+    query = select(st.procId).select_from(stations).where(st.procId != None)
+    for row in conn.execute(query).fetchall():
+        pid = row.procId
         try:
             os.kill(pid, 2)
         except: pass
-    cursor.close()
-    updateCursor = conn.cursor()
-    updateCursor.execute("UPDATE [Stations] "
-        "SET [ProcId] = NULL ")
-    updateCursor.close()
+    stmt = update(stations).values(procId = None)
+    conn.execute(stmt)
+
 

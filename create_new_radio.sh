@@ -39,8 +39,14 @@ from musical_chairs_libs.station_manager import add_station
 add_station('${internal_name}','${public_name}')
 EOF
 } && {
-  echo 'yes 1'
-  echo 'yes 2'
+while read tagname; do
+{ 
+python3 <<EOF
+from musical_chairs_libs.station_manager import assign_tag_to_station
+
+EOF
+    }
+  done
 } ||
 {
   echo 'no 1'

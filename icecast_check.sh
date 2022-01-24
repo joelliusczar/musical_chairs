@@ -2,8 +2,11 @@
 
 . ./radio_common.sh
 
+set_pkg_mgr
+
 case "$pkgMgrChoice" in
     "$PACMAN_CONST") icecast_='icecast';;
+    "$APT_CONST") icecast_='icecast2';;
     *) icecast_='icecast2';;
 esac
 

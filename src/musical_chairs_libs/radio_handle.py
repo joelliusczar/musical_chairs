@@ -4,7 +4,7 @@ import sqlite3
 from sqlalchemy import create_engine
 from musical_chairs_libs.queue_manager import get_next_queued
 from musical_chairs_libs.config_loader import get_config
-from musical_chairs_libs.station_proc_manager import set_station_proc, remove_station_proc
+from musical_chairs_libs.station_manager import set_station_proc, remove_station_proc
 
 
 

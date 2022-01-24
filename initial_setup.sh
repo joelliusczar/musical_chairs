@@ -2,15 +2,7 @@
 
 . ./radio_common.sh
 
-pkgMgr=''
-pkgMgrChoice=''
-if  pacman -V 2>/dev/null; then
-    pkgMgrChoice="$PACMAN_CONST"
-    pkgMgr='yes | sudo pacman -S'
-elif apt version apt; then
-    pkgMgrChoice="$APT_CONST"
-    pkgMgr='yes | sudo apt install'
-fi
+set_pkg_mgr
 
 if [ -z "$pkgMgr" ]; then
     echo "No package manager set"
@@ -131,7 +123,8 @@ if ! ices -V 2>/dev/null; then
     automake --add-missing &&
     ./configure --prefix="$HOME"/.local \
         --with-python=/usr/bin/python3 \
-        --with-moddir="$pyModules_dir" &&
+        --with-moddir="$pyModules_dir" \
+        --program-prefix='mc-' &&
     make &&
     make install &&
     cd - &&
@@ -160,9 +153,8 @@ else
     create_db
     db_res="$?"
 fi
-pwd
-cp ./templates/configs/config.yml "$config_file"
-sed -i -e "s@<searchbase>@$music_home/@" -e "s@<dbname>@$sqlite_file@" "$config_file"
+
+
 
 link_to_music_files
 

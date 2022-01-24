@@ -4,7 +4,7 @@
 [ -f "$HOME"/.dev_local_rc ] && . "$HOME"/.dev_local_rc
 
 test_flag="$1"
-[ "$test_flag" = "test" ] && export radio_home='./test_trash' || export radio_home="$HOME"/radio
+[ "$test_flag" = "test" ] && radio_home='./test_trash' || radio_home="$HOME"/radio
 
 lib_name='musical_chairs_libs'
 app_name='musical_chairs_app'
@@ -19,7 +19,7 @@ sqlite_file="$db_dir"/songs_db
 
 # directories that should be cleaned upon changes
 # suffixed with 'cl' for 'clean'
-process_dir_cl="$radio_home"/process
+maintenance_dir_cl="$radio_home"/maintenance
 start_up_dir_cl="$radio_home"/start_up
 
 #python version info
@@ -30,6 +30,18 @@ pyMinor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /\d+\.(\d+)/')
 PACMAN_CONST='pacman'
 APT_CONST='apt'
 current_user=$(whoami)
+
+set_pkg_mgr() {
+    pkgMgr=''
+    pkgMgrChoice=''
+    if  pacman -V 2>/dev/null; then
+        pkgMgrChoice="$PACMAN_CONST"
+        pkgMgr='yes | sudo pacman -S'
+    elif apt version apt 2>/dev/null; then
+        pkgMgrChoice="$APT_CONST"
+        pkgMgr='yes | sudo apt install'
+    fi
+}
 
 not_installed() {
     echo "$1 not installed"

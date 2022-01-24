@@ -1,8 +1,8 @@
 import yaml
 import os
 import re
-import sqlite3
 import sys
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import insert, create_engine, select, update
 from tinytag import TinyTag
 from musical_chairs_libs.tables import songs, artists, albums, song_artist, songs_tags
@@ -113,9 +113,7 @@ def save_paths(conn, searchBase):
       songPk = conn.execute(songInsert).lastrowid
       sort_to_tags(conn, songPk, path)
       print(f"inserted: {idx}".rjust(len(str(idx)), " "),end="\r")
-    except BaseException as ex: 
-      print(f"Did not insert: {idx}".rjust(len(str(idx)), " "),end="\r")
-      log_insert_error(f"failed to insert song with path: \n{path}", ex)
+    except IntegrityError: pass
 
 def map_path_to_tags(path):
   if path.startswith("Soundtrack/VG_Soundtrack"):
@@ -128,17 +126,11 @@ def map_path_to_tags(path):
 
 def sort_to_tags(conn, songPk, path):
   for tag in map_path_to_tags(path):
-    tagFk = get_tag_pk(conn, tag)
+    tagFk = get_tag_pk(tag, conn)
     stmt = insert(songs_tags).values(songFk = songPk, tagFk = tagFk)
     try:
       conn.execute(stmt)
-    except: log_insert_error(f"Failed to insert association for \npath: {path}\ntag: {tag}")
-
-def log_insert_error(msg, exception, ignore = True):
-  if not ignore:
-    print(msg)
-    print(exception)
-
+    except IntegrityError: pass
 
 def fresh_start(searchBase, conn):
   print("starting")

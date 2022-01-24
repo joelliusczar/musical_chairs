@@ -6,7 +6,7 @@ handle = None
 # Should return 1 if ok, and 0 if something went wrong.
 def ices_init():
     global handle
-    handle = RadioHandle('vg')
+    handle = RadioHandle("<internal_station_name>")
     return handle.ices_init()
 
 # Function called to shutdown your python enviroment.

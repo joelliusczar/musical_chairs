@@ -1,11 +1,11 @@
 from sqlalchemy import select, desc
-from musical_chairs_libs.queue_manager import get_tag_pk
-from .tables import songs, SongsTags
+from musical_chairs_libs.station_manager import get_tag_pk
+from musical_chairs_libs.tables import songs, SongsTags
 from tinytag import TinyTag
 
 def get_tag_song_catalogue(conn, searchBase, tagName, limit=50, offset=0):
-  tagPK = get_tag_pk(conn.connection.connection, tagName)
-  if not tag_pk:
+  tagPK = get_tag_pk(tagName, conn)
+  if not tagPK:
     return
   s = songs.c
   st = SongsTags.c

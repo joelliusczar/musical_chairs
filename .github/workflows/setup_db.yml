@@ -22,6 +22,6 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Run script
-        run: bash run_db_setup.sh
+        run: sh run_db_setup.sh
 
 

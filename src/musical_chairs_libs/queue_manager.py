@@ -1,28 +1,11 @@
-from numpy.random import choice
 import time
+from numpy.random import choice
 from sqlalchemy import select, desc, func, insert, delete, update
 from musical_chairs_libs.tables import stations_history, songs, stations,\
      tags, stations_tags, songs_tags, station_queue, albums, artists, song_artist, \
     last_history_tmp
+from musical_chairs_libs.station_manager import get_station_pk
 
-
-def get_station_pk(conn, stationName):
-    st = stations.c
-    query = select(st.pk) \
-        .select_from(stations) \
-        .where(st.name == stationName)
-    row = conn.execute(query).fetchone()
-    pk = row.pk if row else None
-    return pk
-
-def get_tag_pk(conn, tagName):
-    t = tags.c
-    query = select(t.pk) \
-        .select_from(tags) \
-        .where(t.name == tagName)
-    row = conn.execute(query).fetchone()
-    pk = row.pk if row else None
-    return pk
 
 def get_all_station_song_possibilities(conn, stationPk):
     st = stations.c

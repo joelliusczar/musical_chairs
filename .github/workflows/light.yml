@@ -22,6 +22,6 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Run script
-        run: bash light_setup.sh
+        run: sh light_setup.sh
 
 

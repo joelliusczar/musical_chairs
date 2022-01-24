@@ -26,28 +26,31 @@ CREATE TABLE IF NOT EXISTS [Songs] (
     [Track] INTEGER NULL,
     [Disc] INTEGER NULL,
     [Genre] TEXT,
-    [SongCoverFK] INTEGER NULL,
     [Explicit] INTEGER,
     [Bitrate] REAL,
     [Comment] TEXT,
     FOREIGN KEY([AlbumFK]) REFERENCES [Albums]([PK])
 );
 
-CREATE TABLE IF NOT EXISTS [SongArtists] (
-    [SongFK] INTEGER,
-    [ArtistFK] INTEGER,
+CREATE TABLE IF NOT EXISTS [SongsArtists] (
+    [SongFK] INTEGER NOT NULL,
+    [ArtistFK] INTEGER NOT NULL,
     [IsPrimaryArtist] INTEGER NULL,
     FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),
     FOREIGN KEY([ArtistFK]) REFERENCES [Artists]([PK])
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_songsArtists ON [SongArtists]([SongFK], [ArtistFK]);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_songsArtists ON [SongsArtists]([SongFK], [ArtistFK]);
 
 CREATE TABLE IF NOT EXISTS [SongCovers] (
     [PK] INTEGER PRIMARY KEY ASC,
-    [SongFK] INTEGER,
-    FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK])
+    [SongFK] INTEGER NOT NULL,
+    [CoverSongFK] INTEGER NOT NULL,
+    FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),
+    FOREIGN KEY([CoverSongFK]) REFERENCES [Songs]([PK]) 
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cover ON [SongCovers] ([SongFK], [CoverSongFK]);
 
 --don't want to insert duplicate songs
 CREATE UNIQUE INDEX IF NOT EXISTS idx_path ON [Songs] ([Path]);
@@ -60,9 +63,9 @@ CREATE TABLE IF NOT EXISTS [Tags] (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_tags ON [Tags] ([Name]);
 
 CREATE TABLE IF NOT EXISTS [SongsTags] (
-    [SongFK] INTEGER,
-    [TagFK] INTEGER,
-    [Skip] INTEGER,
+    [SongFK] INTEGER NOT NULL,
+    [TagFK] INTEGER NOT NULL,
+    [Skip] INTEGER NULL,
     FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),
     FOREIGN KEY([TagFK]) REFERENCES [Tags]([PK])
 );
@@ -71,7 +74,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_songsTags ON [SongsTags]([SongFK], [TagFK]
 
 CREATE TABLE IF NOT EXISTS [Stations] (
     [PK] INTEGER PRIMARY KEY ASC,
-    [Name] TEXT NULL,
+    [Name] TEXT NOT NULL,
     [DisplayName] TEXT NULL,
     [ProcId] INTEGER NULL
 );
@@ -79,8 +82,8 @@ CREATE TABLE IF NOT EXISTS [Stations] (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_stations ON [Stations] ([Name]);
 
 CREATE TABLE IF NOT EXISTS [StationsTags] (
-    [StationFK] INTEGER,
-    [TagFK] INTEGER,
+    [StationFK] INTEGER NOT NULL,
+    [TagFK] INTEGER NOT NULL,
     FOREIGN KEY([StationFK]) REFERENCES [Station]([PK]),
     FOREIGN KEY([TagFK]) REFERENCES [Tags]([PK])
 );
@@ -88,8 +91,8 @@ CREATE TABLE IF NOT EXISTS [StationsTags] (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_stationsTags ON [StationsTags]([StationFK], [TagFK]);
 
 CREATE TABLE IF NOT EXISTS [StationHistory] (
-    [StationFK] INTEGER,
-    [SongFK] INTEGER,
+    [StationFK] INTEGER NOT NULL,
+    [SongFK] INTEGER NOT NULL,
     [LastPlayedTimestamp] REAL,
     [LastQueuedTimestamp] REAL,
     [LastRequestedTimestamp] REAL,
@@ -98,8 +101,8 @@ CREATE TABLE IF NOT EXISTS [StationHistory] (
 );
 
 CREATE TABLE IF NOT EXISTS [StationQueue] (
-    [StationFK] INTEGER,
-    [SongFK] INTEGER,
+    [StationFK] INTEGER NOT NULL,
+    [SongFK] INTEGER NOT NULL,
     [AddedTimestamp] REAL,
     [RequestedTimestamp] REAL,
     FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),

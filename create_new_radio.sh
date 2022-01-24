@@ -12,13 +12,14 @@ read internal_name
 echo "public: $public_name"
 echo "internal: $internal_name"
 
-sourcePassword=$(sudo grep '<source-password>' "$ic_conf_loc" | perl -e 'print "$1" if />(\w+)/')
+sourcePassword=$(sudo grep '<source-password>' "$ic_conf_loc" | perl -ne 'print "$1\n" if />(\w+)/')
 
 added_config_name="$ices_configs_dir"/ices."$internal_name".conf
 cp ./templates/configs/ices.conf "$added_config_name"
 sed -i -e "/<Password>/s/>[[:alnum:]]*/>${sourcePassword}/" \
   -e "/<Module>/s/internal_station_name/${internal_name}/" \
   -e "/<Name>/s/public_station_name/${public_name}/" \
+  -e "/<Mountpoint>/s/internal_station_name/${internal_name}/" \
   "$added_config_name"
 
 added_module_name="$pyModules_dir"/"$internal_name".py
@@ -37,16 +38,19 @@ fi
 { python3  <<EOF
 from musical_chairs_libs.station_manager import add_station
 add_station('${internal_name}','${public_name}')
+print('${internal_name} added')
 EOF
 } && {
-while read tagname; do
-{ 
-python3 <<EOF
+while true; do
+read -p 'Enter a tag to assign to station: ' tagname
+[ -z "$tagname" ] && break
+{ python3 <<EOF
 from musical_chairs_libs.station_manager import assign_tag_to_station
-
+assign_tag_to_station('${internal_name}','${tagname}')
+print('tag ${tagname} assigned to ${internal_name}')
 EOF
-    }
-  done
+}
+done
 } ||
 {
   echo 'no 1'

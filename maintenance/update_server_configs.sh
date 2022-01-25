@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ./radio_common.sh
+. ../radio_common.sh
 . ./icecast_check.sh
 
 genPass() {

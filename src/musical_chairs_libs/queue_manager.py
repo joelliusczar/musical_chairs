@@ -24,8 +24,8 @@ def get_all_station_song_possibilities(conn, stationPk):
 		.where(st.pk == stationPk) \
 		.where((sgtg.skip == None) | (sgtg.skip == 0)) \
 		.group_by(sg.pk, sg.path) \
-		.order_by(desc(func.max(hist.lastQueuedTimestamp))) \
-		.order_by(desc(func.max(hist.lastPlayedTimestamp)))
+		.order_by(desc(func.max(hist.queuedTimestamp))) \
+		.order_by(desc(func.max(hist.playedTimestamp)))
 	
 	rows = conn.execute(query).fetchall()
 	return rows
@@ -35,77 +35,53 @@ def get_random_songPks(conn, stationPk, deficit):
 	sampleSize = deficit if deficit < len(rows) else len(rows)
 	aSize = len(rows)
 	pSize = len(rows) + 1
-	songPks = map(lambda r: r.pk, rows)
+	songPks = list(map(lambda r: r.pk, rows))
 	# the sum of weights needs to equal 1
 	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
-	selection = choice(songPks, sampleSize, p = weights, replace=False)
+	selection = choice(songPks, sampleSize, p = weights, replace=False).tolist()
 	return selection
 
 def fil_up_queue(conn, stationPk, queueSize):
 	q = station_queue.c
 	queryQueueSize = select(func.count(1)).select_from(station_queue)\
 		.where(q.stationFk == stationPk)
-	count = conn.execute(queryQueueSize).fetchone().count
+	count = conn.execute(queryQueueSize).scalar()
 	deficit = queueSize - count
 	if deficit < 1:
 		return
 	songPks = get_random_songPks(conn, stationPk, deficit)
 	timestamp = time.time()
-	params = list(map(lambda s: {"stationFk": stationPk, "songFk": s, "addedTimestamp": timestamp }, songPks))
-	queueInsert = insert(station_queue).values(params)
-	conn.execute(queueInsert)
-	historyInsert = insert(stations_history).values(params)
-	conn.execute(historyInsert)
+	params = list(map(lambda s: {"stationFk": stationPk, "songFk": s, "queuedTimestamp": timestamp }, songPks))
+	queueInsert = insert(station_queue)
+	conn.execute(queueInsert, params)
+	historyInsert = insert(stations_history)
+	conn.execute(historyInsert, params)
 
-def move_from_queue_to_history(conn, stationPk, songPk, queueTimestamp, requestedTimestamp):
+def move_from_queue_to_history(conn, stationPk, songPk, queueTimestamp):
 	q = station_queue.c
 	# can't delete by songPk alone b/c the song might be queued multiple times
 	queueDel = delete(station_queue).where(q.stationFk == stationPk) \
 		.where(q.songFk == songPk) \
-		.where(q.addedTimestamp == queueTimestamp)
-	delResult = conn.execute(queueDel)
+		.where(q.queuedTimestamp == queueTimestamp)
+	conn.execute(queueDel)
 	currentTime = time.time()
 
-	prevChangsCount = delResult.rowcount
-
-	last_history_tmp.drop(conn, checkfirst = True)
-	last_history_tmp.create(conn)
-
 	hist = stations_history.c
-	lastQueued = func.max(hist.lastQueuedTimestamp).label("lastQueued")
-	lastHistoryQuery = select(hist.songFk, lastQueued) \
-		.select_from(stations_history) \
-		.where(hist.stationFk == stationPk) \
-		.group_by(hist.songFk) \
-		.having(lastQueued != None)
-	tmp = last_history_tmp.c
-	tmpInsert = insert(last_history_tmp) \
-		.from_select([tmp.songFk, tmp.lastQueued],lastHistoryQuery)
-	conn.execute(tmpInsert)
 
-	songTmpSubquery = select(tmp.songFk).select_from(last_history_tmp).subquery()
-	tsTmpSubquery = select(tmp.lastQueued).select_from(last_history_tmp).subquery()
 	histUpdateStmt = update(stations_history) \
-		.values(lastPlayedTimestamp = currentTime) \
+		.values(playedTimestamp = currentTime) \
 		.where(hist.stationFk == stationPk) \
 		.where(hist.songFk == songPk) \
-		.where(hist.songFk.in_(songTmpSubquery)) \
-		.where(hist.lastQueuedTimestamp.in_(tsTmpSubquery))
-	histUpdateResult = conn.execute(histUpdateStmt)
-	last_history_tmp.drop(conn, checkfirst = True)
+		.where(hist.queuedTimestamp == queueTimestamp)
+	conn.execute(histUpdateStmt)
 
-	if histUpdateResult.rowcount == prevChangsCount:
-		histInsert = insert(stations_history) \
-			.values(stationFk = stationPk, songFk = songPk, lastPlayedTimestamp = currentTime, \
-				lastRequestedTimestamp = requestedTimestamp)
-		conn.execute(histInsert)
 
 
 def is_queue_empty(conn, stationPk):
 	q = station_queue.c
 	query = select(func.count(1)).select_from(station_queue).where(q.stationFk == stationPk)
-	res = conn.execute(query).fetchone()
-	return res.count < 1
+	res = conn.execute(query).scalar()
+	return res < 1
 
 
 def get_next_queued(conn, stationName, queueSize = 50):
@@ -118,19 +94,18 @@ def get_next_queued(conn, stationName, queueSize = 50):
 	ar = artists.c
 	sgar = song_artist.c
 	query = select(sg.pk, sg.path, sg.title, ab.name, ar.name, \
-		q.addedTimestamp, q.requestedTimestamp).select_from(station_queue) \
-		.join(songs, sg.pk == q.songsFk) \
+		q.queuedTimestamp).select_from(station_queue) \
+		.join(songs, sg.pk == q.songFk) \
 		.join(albums, sg.albumFk == ab.pk, isouter=True) \
 		.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
 		.join(artists, ar.pk == sgar.artistFk) \
 		.where(q.stationFk == stationPk) \
-		.order_by(q.addedTimestamp) \
+		.order_by(q.queuedTimestamp) \
 		.limit(1)
 	(songPk, path, title, album, artist, \
-		queueTimestamp, requestedTimestamp) = conn.execute(query).fetchone()
-	move_from_queue_to_history(conn, stationPk, songPk, queueTimestamp, requestedTimestamp)
+		queueTimestamp) = conn.execute(query).fetchone()
+	move_from_queue_to_history(conn, stationPk, songPk, queueTimestamp)
 	fil_up_queue(conn, stationPk, queueSize)
-	conn.commit()
 	return (path, title, album, artist)
 
 

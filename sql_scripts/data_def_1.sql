@@ -93,9 +93,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_stationsTags ON [StationsTags]([StationFK]
 CREATE TABLE IF NOT EXISTS [StationHistory] (
     [StationFK] INTEGER NOT NULL,
     [SongFK] INTEGER NOT NULL,
-    [LastPlayedTimestamp] REAL,
-    [LastQueuedTimestamp] REAL,
-    [LastRequestedTimestamp] REAL,
+    [PlayedTimestamp] REAL,
+    [QueuedTimestamp] REAL,
+    [RequestedTimestamp] REAL,
     FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),
     FOREIGN KEY([StationFK]) REFERENCES [Station]([PK])
 );
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS [StationHistory] (
 CREATE TABLE IF NOT EXISTS [StationQueue] (
     [StationFK] INTEGER NOT NULL,
     [SongFK] INTEGER NOT NULL,
-    [AddedTimestamp] REAL,
+    [QueuedTimestamp] REAL,
     [RequestedTimestamp] REAL,
     FOREIGN KEY([SongFK]) REFERENCES [Songs]([PK]),
     FOREIGN KEY([StationFK]) REFERENCES [Station]([PK])

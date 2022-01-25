@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. ./radio_common.sh
+. ../radio_common.sh
 . ./icecast_check.sh
 
 echo 'Enter radio station public name or description:'

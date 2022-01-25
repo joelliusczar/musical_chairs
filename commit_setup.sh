@@ -12,5 +12,3 @@ npm run --prefix ./src/client build &&
 sudo mkdir -pv "$app_path_cl"/client &&
 sudo cp -rv ./src/client/build "$app_path_cl"/client/
 
-
-sh ./light_setup.sh

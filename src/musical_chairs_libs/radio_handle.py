@@ -19,7 +19,6 @@ class RadioHandle:
 		engine = create_engine(f"sqlite+pysqlite:///{dbName}")
 		conn = engine.connect()
 		set_station_proc(conn, self.stationName)
-		conn.commit()
 		conn.close()
 		print('Executing initialize() function..')
 		return 1
@@ -31,7 +30,6 @@ class RadioHandle:
 		engine = create_engine(f"sqlite+pysqlite:///{dbName}")
 		conn = engine.connect()
 		remove_station_proc(conn, self.stationName)
-		conn.commit()
 		conn.close()
 		print('Executing shutdown() function...')
 		return 1
@@ -47,14 +45,14 @@ class RadioHandle:
 			get_next_queued(conn, self.stationName)
 		conn.close()
 		self.display = f"{title} - {album} - {artist}"
-		self.songFullPath = f"{searchBase}/{currentsong}".encode('utf-8')
+		self.songFullPath = f"{searchBase}/{currentsong}"
 		return self.songFullPath
 
 	# This function, if defined, returns the string you'd like used
 	# as metadata (ie for title streaming) for the current song. You may
 	# return null to indicate that the file comment should be used.
 	def ices_get_metadata(self):
-		return self.display.encode('utf-8')
+		return self.display
 
 	# Function used to put the current line number of
 	# the playlist in the cue file. If you don't care about this number

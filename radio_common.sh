@@ -44,6 +44,14 @@ set_pkg_mgr() {
 	fi
 }
 
+set_icecast_version() {
+	case "$pkgMgrChoice" in
+    "$PACMAN_CONST") icecast_='icecast';;
+    "$APT_CONST") icecast_='icecast2';;
+    *) icecast_='icecast2';;
+	esac
+}
+
 not_installed() {
 	echo "$1 not installed"
 	exit 0
@@ -60,8 +68,10 @@ s3_name() {
 
 
 link_to_music_files() {
-	if [ ! -e "$music_home"/radio/Soundtrack ]; then 
+	if [ ! -e "$music_home"/Soundtrack ]; then 
 		if [ -n "$IS_RADIO_LOCAL_DEV" ]; then
+			echo "$IS_RADIO_LOCAL_DEV"
+			echo 'why here?'
 			s3fs "$(s3_name)" "$music_home"/ 
 		else
 			s3fs "$(s3_name)" "$music_home"/ -o iam_role="$(aws_role)"

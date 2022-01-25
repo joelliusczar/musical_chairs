@@ -27,7 +27,7 @@ songs = Table("Songs", metadata,
 	Column("comment"),
 )
 
-song_artist = Table("SongArtists", metadata,
+song_artist = Table("SongsArtists", metadata,
 	Column("songFk"),
 	Column("artistFk"),
 	Column("isPrimaryArtist"),
@@ -59,15 +59,15 @@ stations_tags = Table("StationsTags", metadata,
 stations_history = Table("StationHistory", metadata, 
 	Column("stationFk"),
 	Column("songFk"),
-	Column("lastPlayedTimestamp"),
-	Column("lastQueuedTimestamp"),
-	Column("lastRequestedTimestamp"),
+	Column("playedTimestamp"),
+	Column("queuedTimestamp"),
+	Column("requestedTimestamp"),
 )
 
 station_queue = Table("StationQueue", metadata,
 	Column("stationFk"),
 	Column("songFk"),
-	Column("addedTimestamp"),
+	Column("queuedTimestamp"),
 	Column("requestedTimestamp"),
 )
 

@@ -14,7 +14,5 @@ if __name__ == '__main__':
 	dbName = config["dbName"]
 	engine = create_engine(f"sqlite+pysqlite:///{config['dbName']}", echo=True)
 	conn = engine.connect()
-	add_station("VG","Video Game Music")
-	assign_tag_to_station("VG","vg")
-	#songInfo = get_next_queued(conn, "vg")
+	songInfo = get_next_queued(conn, "VG")
 

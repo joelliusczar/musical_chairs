@@ -1,14 +1,10 @@
 #!/bin/sh
 
-. ./radio_common.sh
+. ../radio_common.sh
 
 set_pkg_mgr
 
-case "$pkgMgrChoice" in
-    "$PACMAN_CONST") icecast_='icecast';;
-    "$APT_CONST") icecast_='icecast2';;
-    *) icecast_='icecast2';;
-esac
+set_icecast_version
 
 if ! systemctl status "$icecast_" &>/dev/null; then
     echo "$icecast_ is not running at the moment"

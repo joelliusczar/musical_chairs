@@ -4,10 +4,15 @@
 
 link_to_music_files
 
+set_pkg_mgr
+set_icecast_version
+
 if ! systemctl status "$icecast_" &>/dev/null; then
     sudo systemctl start "$icecast_"
 fi
 
+export config_file
+. "$maintenance_dir_cl"/env/bin/activate &&
 for conf in "$ices_configs_dir"/*.conf; do
 	mc-ices -c "$conf"
 done

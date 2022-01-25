@@ -6,7 +6,7 @@ set_pkg_mgr
 
 set_icecast_version
 
-if ! systemctl status "$icecast_" &>/dev/null; then
+if ! systemctl status "$icecast_" >/dev/null 2>&1; then
     echo "$icecast_ is not running at the moment"
     exit 1
 fi

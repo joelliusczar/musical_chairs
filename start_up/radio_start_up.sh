@@ -7,7 +7,7 @@ link_to_music_files
 set_pkg_mgr
 set_icecast_version
 
-if ! systemctl status "$icecast_" &>/dev/null; then
+if ! systemctl status "$icecast_" >/dev/null 2>&1; then
     sudo systemctl start "$icecast_"
 fi
 

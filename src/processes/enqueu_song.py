@@ -5,7 +5,7 @@ from musical_chairs_libs.queue_manager import get_station_pk
 import time
 
 def enqueu_song(conn, songPk, stationName):
-    tagPk = get_station_pk(conn, stationName)
+    tagPk = get_station_pk(stationName, conn)
     cursor = conn.cursor()
     timestamp = time.time()
     params = (songPk, tagPk, timestamp, timestamp, )

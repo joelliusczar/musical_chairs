@@ -15,16 +15,22 @@ echo "internal: $internal_name"
 sourcePassword=$(sudo grep '<source-password>' "$ic_conf_loc" | perl -ne 'print "$1\n" if />(\w+)/')
 
 added_config_name="$ices_configs_dir"/ices."$internal_name".conf
-cp ./templates/configs/ices.conf "$added_config_name"
+cp ./templates/configs/ices.conf "$added_config_name" &&
 sed -i -e "/<Password>/s/>[[:alnum:]]*/>${sourcePassword}/" \
   -e "/<Module>/s/internal_station_name/${internal_name}/" \
   -e "/<Name>/s/public_station_name/${public_name}/" \
   -e "/<Mountpoint>/s/internal_station_name/${internal_name}/" \
-  "$added_config_name"
+  "$added_config_name" ||
+{
+  exit 1
+}
 
-added_module_name="$pyModules_dir"/"$internal_name".py
-cp ./templates/template.py "$added_module_name"
-sed -i -e "s/<internal_station_name>/${internal_name}/" "$added_module_name" 
+added_module_name="$pyModules_dir"/"$internal_name".py &&
+cp ./templates/template.py "$added_module_name" &&
+sed -i -e "s/<internal_station_name>/${internal_name}/" "$added_module_name" ||
+{
+  exit 1
+}
 
 export config_file
 

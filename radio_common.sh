@@ -21,6 +21,7 @@ sqlite_file="$db_dir"/songs_db
 # suffixed with 'cl' for 'clean'
 maintenance_dir_cl="$radio_home"/maintenance
 start_up_dir_cl="$radio_home"/start_up
+templates_dir_cl="$maintenance_dir_cl"/templates
 
 #python version info
 pyVersion=$(python3 -V)

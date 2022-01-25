@@ -11,6 +11,7 @@ def provide_db_conn(echo = False):
 		def wrap(*args, **kwargs):
 			conn = None
 			ownedConn = None
+			nargs = args
 			if "conn" in kwargs:
 				conn = kwargs["conn"]
 				ownedConn = _use_connection_or_default(conn)
@@ -20,14 +21,14 @@ def provide_db_conn(echo = False):
 				if len(args) == len(sig.parameters):
 					conn = args[-1]
 					ownedConn = _use_connection_or_default(conn)
-					args[-1] = ownedConn
+					nargs = (*args[:-1], ownedConn)
 				elif len(args) < len(sig.parameters):
 					ownedConn = get_configured_db_connection(echo)
 					kwargs["conn"] = ownedConn
 				else:
 					raise ValueError("Too many args provided to this method")
 			try:
-				func(*args, **kwargs)
+				func(*nargs, **kwargs)
 			finally:
 				if not conn:
 					ownedConn.close()

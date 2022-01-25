@@ -109,7 +109,7 @@ def is_queue_empty(conn, stationPk):
 
 
 def get_next_queued(conn, stationName, queueSize = 50):
-	stationPk = get_station_pk(conn, stationName)
+	stationPk = get_station_pk(stationName, conn)
 	if is_queue_empty(conn, stationPk):
 		fil_up_queue(conn, stationPk, queueSize + 1)
 	sg = songs.c

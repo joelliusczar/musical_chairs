@@ -29,7 +29,7 @@ def end_all_stations(conn):
 	stmt = update(stations).values(procId = None)
 	conn.execute(stmt)
 
-def get_station_pk(conn, stationName):
+def get_station_pk(stationName, conn):
 	st = stations.c
 	query = select(st.pk) \
 		.select_from(stations) \
@@ -64,13 +64,36 @@ def add_station(stationName, displayName, conn):
 		print("Could not insert")
 		sys.exit(1)
 
+def _get_or_save_tag(tagName, conn):
+	if not tagName:
+		return None
+	tg = tags.c
+	query = select(tg.pk).select_from(tags).where(tg.name == tagName)
+	row = conn.execute(query).fetchone()
+	if row:
+		return row.pk
+	stmt = insert(tags).values(name = tagName)
+	res = conn.execute(stmt)
+	return res.lastrowid
+
 @provide_db_conn()
 def assign_tag_to_station(stationName, tagName, conn):
-	stationPk = get_station_pk(conn, stationName)
-	tagPk = get_tag_pk(tagName, conn)
+	stationPk = get_station_pk(stationName, conn)
+	tagPk = _get_or_save_tag(tagName, conn)
 	try:
 		stmt = insert(stations_tags).values(stationFk = stationPk, tagFk = tagPk)
 		conn.execute(stmt)
-	except IntegrityError:
+	except IntegrityError as ex:
 		print("Could not insert")
+		print(ex)
 		sys.exit(1)
+
+@provide_db_conn()
+def remove_station(stationName, conn):
+	sttg = stations_tags.c
+	st = stations.c
+	stationPk = get_station_pk(stationName, conn)
+	assignedTagsDel = delete(stations_tags).where(sttg.stationFk == stationPk)
+	conn.execute(assignedTagsDel)
+	stationDel = delete(stations).where(st.stationPk == stationPk)
+	conn.execute(stationDel)

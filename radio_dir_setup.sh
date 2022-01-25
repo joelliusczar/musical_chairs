@@ -11,7 +11,9 @@ app_path_cl=/srv/"$app_name"
 #check if personal scripts folder exists, clear out if it does,
 #delete otherwise
 empty_dir_contents "$maintenance_dir_cl"
-
+cp ./radio_common.sh "$maintenance_dir_cl"/radio_common.sh
+mkdir -pv "$templates_dir_cl" &&
+cp -rv ./templates/* "$templates_dir_cl"
 
 #check if web application folder exists, clear out if it does,
 #delete otherwise
@@ -24,5 +26,5 @@ sudo chown -R "$current_user": "$app_path_cl/"
 
 echo 'creating maintenance dir'
 setup_py3_env './src/maintenance/' &&
-sudo cp -rv ./src/maintenance "$maintenance_dir_cl" &&
+sudo cp -rv ./src/maintenance/* "$maintenance_dir_cl" &&
 sudo chown -R "$current_user": "$maintenance_dir_cl"

@@ -111,7 +111,7 @@ if perl -e "exit 1 if index('$PATH','$HOME/.local/bin') != -1"; then
 	export PATH="$PATH":"$HOME"/.local/bin
 fi
 
-if ! ices -V 2>/dev/null; then
+if ! mc-ices -V 2>/dev/null; then
 	ices_build_dir="$build_home"/ices
 	rm -rf "$ices_build_dir"
 	mkdir -pv "$ices_build_dir" 

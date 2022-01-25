@@ -35,10 +35,10 @@ current_user=$(whoami)
 set_pkg_mgr() {
 	pkgMgr=''
 	pkgMgrChoice=''
-	if  pacman -V >/dev/null 2>&1; then
+	if  which pacman >/dev/null 2>&1; then
 		pkgMgrChoice="$PACMAN_CONST"
 		pkgMgr='yes | sudo pacman -S'
-	elif apt version apt >/dev/null 2>&1; then
+	elif which apt >/dev/null 2>&1; then
 		pkgMgrChoice="$APT_CONST"
 		pkgMgr='yes | sudo apt install'
 	fi

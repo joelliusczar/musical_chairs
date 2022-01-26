@@ -8,7 +8,11 @@ sed -i -e "s@<searchbase>@$music_home/@" -e "s@<dbname>@$sqlite_file@" "$config_
 app_path_cl=/srv/"$app_name"
 
 #keep a copy in the parent radio directory
-cp ./radio_common.sh "$radio_home"/radio_common.sh
+test_flag="$1"
+if [ "$test_flag" != "test" ]; then
+	cp ./radio_common.sh "$radio_home"/radio_common.sh
+	cp ./icecast_check.sh "$radio_home"/icecast_check.sh
+fi
 
 #check if personal scripts folder exists, clear out if it does,
 #delete otherwise

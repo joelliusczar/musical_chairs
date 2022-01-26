@@ -1,8 +1,9 @@
 #!/bin/sh
 
-base_path="$(dirname "$0")/"
-current_path=$(pwd)
-cd "$base_path"
+test_flag="$1"
+[ "$test_flag" = "test" ] && defs_home='../' || defs_home="$HOME"/radio
+
+. "$defs_home"/radio_common.sh
 
 app_name='musical_chairs_app'
 app_path=/var/www/"$app_name"

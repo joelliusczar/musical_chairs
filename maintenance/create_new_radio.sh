@@ -1,11 +1,10 @@
 #!/bin/sh
 
-base_path="$(dirname "$0")/"
-current_path=$(pwd)
-cd "$base_path"
+test_flag="$1"
+[ "$test_flag" = "test" ] && defs_home='../' || defs_home="$HOME"/radio
 
-. ../radio_common.sh
-. ./icecast_check.sh
+. "$defs_home"/radio_common.sh
+. "$defs_home"/icecast_check.sh
 
 echo 'Enter radio station public name or description:'
 read public_name

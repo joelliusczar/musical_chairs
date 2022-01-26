@@ -1,10 +1,9 @@
 #!/bin/sh
 
-base_path="$(dirname "$0")/"
-current_path=$(pwd)
-cd "$base_path"
+test_flag="$1"
+[ "$test_flag" = "test" ] && defs_home='../' || defs_home="$HOME"
 
-. ../radio_common.sh
+. "$defs_home"/radio_common.sh
 
 set_pkg_mgr
 

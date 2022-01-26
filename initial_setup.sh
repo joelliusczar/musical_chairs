@@ -113,6 +113,7 @@ fi
 
 if ! mc-ices -V 2>/dev/null; then
 	ices_build_dir="$build_home"/ices
+	old_dir=$(pwd)
 	rm -rf "$ices_build_dir"
 	mkdir -pv "$ices_build_dir" 
 	cd "$ices_build_dir"
@@ -122,12 +123,12 @@ if ! mc-ices -V 2>/dev/null; then
 	autoreconf -fi &&
 	automake --add-missing &&
 	./configure --prefix="$HOME"/.local \
-		--with-python=/usr/bin/python3 \
+		--with-python=$(which python3) \
 		--with-moddir="$pyModules_dir" \
 		--program-prefix='mc-' &&
 	make &&
 	make install &&
-	cd - &&
+	cd "$old_dir" &&
 	rm -rf "$ices_build_dir"
 fi
 
@@ -154,9 +155,6 @@ else
 	db_res="$?"
 fi
 
-
-
-link_to_music_files
-
+pwd
 $(exit "$db_res") && sh ./commit_setup.sh 
 #sh ./run_song_scan.sh

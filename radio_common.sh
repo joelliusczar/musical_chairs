@@ -93,7 +93,8 @@ setup_py3_env() (
 	deactivate &&
 	empty_dir_contents "$codePath""$packagePath""$lib_name"/ &&
 	sudo cp -rv ./src/"$lib_name"/* "$codePath""$packagePath""$lib_name"/ &&
-	sudo chown -R "$current_user": "$codePath""$packagePath""$lib_name"/
+	sudo chown -R "$current_user": "$codePath""$packagePath""$lib_name"/ ||
+	echo "something went amiss while setting up py env"
 )
 
 empty_dir_contents() {

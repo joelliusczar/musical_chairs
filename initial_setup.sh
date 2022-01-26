@@ -147,7 +147,7 @@ if [ -e "$sqlite_file" ]; then
 		db_res="$?"
 	else
 		echo 'Using existing db'
-		db_res=1
+		db_res=0
 	fi
 else 
 	create_db

@@ -58,31 +58,31 @@ if ! libtool --version 2>/dev/null && [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 fi
 
 if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
-	if [  -z "$(apt version libxml2-dev)" ]; then
+	if dpkg -s libxml2-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" libxml2-dev
 	fi
-	if [  -z "$(apt version libogg-dev)" ]; then
+	if dpkg -s libogg-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" libogg-dev
 	fi
-	if [  -z "$(apt version libvorbis-dev)" ]; then
+	if dpkg -s libvorbis-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" libvorbis-dev
 	fi
-	if [  -z "$(apt version libshout3-dev)" ]; then
+	if dpkg -s libshout3-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" libshout3-dev
 	fi
-	if [  -z "$(apt version libmp3lame-dev)" ]; then
+	if dpkg -s libmp3lame-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" libmp3lame-dev
 	fi
-	if [  -z "$(apt version libflac-dev)" ]; then
+	if dpkg -s libflac-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" libflac-dev
 	fi
-	if [  -z "$(apt version libfaad-dev)" ]; then
+	if dpkg -s libfaad-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" libfaad-dev
 	fi
-	if [ -z "$(apt version python"$pyMajor"."$pyMinor"-dev)" ]; then
+	if dpkg -s python"$pyMajor"."$pyMinor"-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" python"$pyMajor"."$pyMinor"-dev
 	fi
-	if [  -z "$(apt version libperl-dev)" ]; then
+	if dpkg -s libperl-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" libperl-dev
 	fi
 

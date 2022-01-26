@@ -1,5 +1,9 @@
 #!/bin/sh
 
+base_path="$(dirname "$0")/"
+current_path=$(pwd)
+cd "$base_path"
+
 . ../radio_common.sh
 . ./icecast_check.sh
 
@@ -48,7 +52,8 @@ print('${internal_name} added')
 EOF
 } && {
 while true; do
-read -p 'Enter a tag to assign to station: ' tagname
+echo -n 'Enter a tag to assign to station: '
+read tagname
 [ -z "$tagname" ] && break
 { python3 <<EOF
 from musical_chairs_libs.station_manager import assign_tag_to_station

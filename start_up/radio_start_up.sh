@@ -1,4 +1,8 @@
-#!/bin/bash
+#!/bin/sh
+
+base_path="$(dirname "$0")/"
+current_path=$(pwd)
+cd "$base_path"
 
 . ../radio_common.sh
 
@@ -16,6 +20,3 @@ export config_file
 for conf in "$ices_configs_dir"/*.conf; do
 	mc-ices -c "$conf"
 done
-
-# /usr/local/bin/ices -c /etc/ices/ices.vg.conf
-# /usr/local/bin/ices -c /etc/ices/ices.thinking.conf

@@ -26,13 +26,13 @@ cp -rv ./templates/* "$templates_dir_cl"
 empty_dir_contents "$app_path_cl"
 
 
-setup_py3_env './src/api/' &&
-sudo cp -rv ./src/api "$app_path_cl/" &&
+sudo cp -rv ./src/api/* "$app_path_cl/" &&
+setup_py3_env "$app_path_cl" &&
 sudo chown -R "$current_user": "$app_path_cl/"
 
 echo 'creating maintenance dir'
-setup_py3_env './maintenance/' &&
 sudo cp -rv ./maintenance/* "$maintenance_dir_cl" &&
+setup_py3_env "$maintenance_dir_cl" &&
 sudo chown -R "$current_user": "$maintenance_dir_cl"
 
 sh ./light_setup.sh

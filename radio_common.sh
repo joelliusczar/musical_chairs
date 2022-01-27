@@ -87,14 +87,15 @@ setup_py3_env() (
 	
 	local codePath="$1"
 	local packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
+	local dest="$codePath"/"$packagePath""$lib_name"/
 	virtualenv -p python3  "$codePath"/env
 	. "$codePath"/env/bin/activate
 	python3 -m pip install -r "$codePath"/requirements.txt &&
 	deactivate &&
-	empty_dir_contents "$codePath""$packagePath""$lib_name"/ &&
-	sudo cp -rv ./src/"$lib_name"/* "$codePath""$packagePath""$lib_name"/ &&
-	sudo chown -R "$current_user": "$codePath""$packagePath""$lib_name"/ ||
-	echo "something went amiss while setting up py env"
+	empty_dir_contents "$dest" &&
+	sudo cp -rv ./src/"$lib_name"/* "$dest" &&
+	sudo chown -R "$current_user": "$dest" 
+
 )
 
 empty_dir_contents() {

@@ -11,7 +11,7 @@ mkdir -pv "$ices_build_dir"
 cd "$ices_build_dir"
 git clone https://github.com/joelliusczar/ices0.git
 cd ices0
-if [ "$test_flag" = "test" ]; then
+if [ "$test_flag" = "dbg" ]; then
 	git checkout debuging
 fi
 aclocal &&

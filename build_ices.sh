@@ -2,6 +2,8 @@
 
 . ./radio_common.sh
 
+
+
 ices_build_dir="$build_home"/ices
 old_dir=$(pwd)
 rm -rf "$ices_build_dir"
@@ -9,6 +11,9 @@ mkdir -pv "$ices_build_dir"
 cd "$ices_build_dir"
 git clone https://github.com/joelliusczar/ices0.git
 cd ices0
+if [ "$test_flag" = "test" ]; then
+	git checkout debuging
+fi
 aclocal &&
 autoreconf -fi &&
 automake --add-missing &&

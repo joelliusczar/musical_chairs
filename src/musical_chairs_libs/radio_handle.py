@@ -31,6 +31,8 @@ class RadioHandle:
 		conn = engine.connect()
 		remove_station_proc(conn, self.stationName)
 		conn.close()
+		print(f"Station is shutting down on {self.display}")
+		print(self.songFullPath)
 		print('Executing shutdown() function...')
 		return 1
 

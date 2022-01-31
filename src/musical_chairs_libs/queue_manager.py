@@ -98,7 +98,7 @@ def get_next_queued(conn, stationName, queueSize = 50):
 		.join(songs, sg.pk == q.songFk) \
 		.join(albums, sg.albumFk == ab.pk, isouter=True) \
 		.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
-		.join(artists, ar.pk == sgar.artistFk) \
+		.join(artists, sgar.artistFk == ar.pk, isouter=True) \
 		.where(q.stationFk == stationPk) \
 		.order_by(q.queuedTimestamp) \
 		.limit(1)

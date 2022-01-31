@@ -1,3 +1,4 @@
+import os
 from sqlalchemy import create_engine
 from musical_chairs_libs.queue_manager import get_next_queued
 from musical_chairs_libs.config_loader import get_config
@@ -43,11 +44,14 @@ class RadioHandle:
 		dbName = self.config['dbName']
 		engine = create_engine(f"sqlite+pysqlite:///{dbName}")
 		conn = engine.connect()
-		(currentsong, title, album, artist) = \
+		(songPath, title, album, artist) = \
 			get_next_queued(conn, self.stationName)
 		conn.close()
-		self.display = f"{title} - {album} - {artist}"
-		self.songFullPath = f"{searchBase}/{currentsong}"
+		if title:
+			self.display = f"{title} - {album} - {artist}"
+		else:
+			self.display = os.path.splitext(os.path.split(songPath)[1])[0]
+		self.songFullPath = f"{searchBase}/{songPath}"
 		return self.songFullPath
 
 	# This function, if defined, returns the string you'd like used

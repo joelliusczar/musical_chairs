@@ -39,6 +39,9 @@ def scan_files(searchBase):
 def get_file_tags(songFullPath):
 	try:
 		tag = TinyTag.get(songFullPath)
+		if not tag.title:
+			fileName = os.path.splitext(os.path.split(songFullPath)[1])[0]
+			tag.title = fileName
 		return tag
 	except:
 		print(f"error: {songFullPath}")
@@ -97,9 +100,11 @@ def update_metadata(conn, searchBase):
 			.values(title = fileTag.title, albumFk = albumFk, track = fileTag.track, \
 				disc = fileTag.disc, bitrate = fileTag.bitrate, comment = fileTag.comment, \
 				genre = fileTag.genre)
-			songArtistInsert = insert(song_artist).values(songFk = row.pk, artistFk = artistFk)
 			conn.execute(songUpdate)
-			conn.execute(songArtistInsert)
+			try:
+				songArtistInsert = insert(song_artist).values(songFk = row.pk, artistFk = artistFk)
+				conn.execute(songArtistInsert)
+			except IntegrityError: pass 
 		if len(recordSet) < 1:
 			break
 		page += 1
@@ -133,7 +138,7 @@ def sort_to_tags(conn, songPk, path):
 
 def fresh_start(searchBase, conn):
 	print("starting")
-	save_paths(conn, searchBase)
+	#save_paths(conn, searchBase)
 	print("saving paths done")
 	update_metadata(conn, searchBase)
 	print("updating songs done")

@@ -1,19 +1,24 @@
 #!/bin/sh
 
 test_flag="$1"
-[ "$test_flag" = "test" ] && defs_home='../' || defs_home="$HOME"/radio
+[ "$test_flag" = "test" ] && defs_home='.' || defs_home="$HOME"/radio
 
 . "$defs_home"/radio_common.sh
 
 link_to_music_files
 
-if [ "$test_flag" = "test" ]; then 
-  env_path='./src/maintenance' 
-else 
-  env_path="$maintenance_dir_cl"
-fi
+env_path="$maintenance_dir_cl"
+
 
 export config_file
 . "$env_path"/env/bin/activate &&
-python3 "$env_path"/scan_new_songs.py
+{ python3  <<EOF
+from musical_chairs_libs.song_scanner import save_paths, update_metadata
+print("Starting")
+inserted = save_paths('${music_home}')
+print(f"saving paths done: {inserted} inserted")
+updated = update_metadata('${music_home}')
+print(f"updating songs done: {updated}")
+EOF
+}
 deactivate

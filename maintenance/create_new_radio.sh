@@ -1,7 +1,7 @@
 #!/bin/sh
 
 test_flag="$1"
-[ "$test_flag" = "test" ] && defs_home='../' || defs_home="$HOME"/radio
+[ "$test_flag" = "test" ] && defs_home='.' || defs_home="$HOME"/radio
 
 . "$defs_home"/radio_common.sh
 . "$defs_home"/icecast_check.sh
@@ -37,11 +37,8 @@ sed -i -e "s/<internal_station_name>/${internal_name}/" "$added_module_name" ||
 
 export config_file
 
-if [ "$test_flag" = "test" ]; then 
-  env_path='./src/maintenance' 
-else 
-  env_path="$maintenance_dir_cl"
-fi
+env_path="$maintenance_dir_cl"
+
 
 . "$env_path"/env/bin/activate &&
 { python3  <<EOF

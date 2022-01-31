@@ -7,6 +7,7 @@ from tinytag import TinyTag
 from musical_chairs_libs.tables import songs, artists, albums, song_artist, songs_tags
 from musical_chairs_libs.config_loader import get_config
 from musical_chairs_libs.station_manager import get_tag_pk
+from musical_chairs_libs.connection_decorator import provide_db_conn
 
 def getFilter(endings):
 	def _filter(str):
@@ -76,12 +77,14 @@ def get_or_save_album(conn, name, artistFk = None, year = None):
 	res = conn.execute(stmt)
 	return res.lastrowid
 
-def update_metadata(conn, searchBase):
-	transaction = conn.begin()
+@provide_db_conn()
+def update_metadata(searchBase, conn):
 	page = 0
-	pageSize = 5000
+	pageSize = 1000
 	sg = songs.c
+	updateCount = 0
 	while True:
+		transaction = conn.begin()
 		offset = page * pageSize
 		limit = (page + 1) * pageSize
 		query = select(sg.pk, sg.path).select_from(songs) \
@@ -100,7 +103,7 @@ def update_metadata(conn, searchBase):
 			.values(title = fileTag.title, albumFk = albumFk, track = fileTag.track, \
 				disc = fileTag.disc, bitrate = fileTag.bitrate, comment = fileTag.comment, \
 				genre = fileTag.genre)
-			conn.execute(songUpdate)
+			updateCount += conn.execute(songUpdate).rowcount
 			try:
 				songArtistInsert = insert(song_artist).values(songFk = row.pk, artistFk = artistFk)
 				conn.execute(songArtistInsert)
@@ -108,16 +111,21 @@ def update_metadata(conn, searchBase):
 		if len(recordSet) < 1:
 			break
 		page += 1
-	transaction.commit()
+		transaction.commit()
+	return update
 
-def save_paths(conn, searchBase):
+@provide_db_conn()
+def save_paths(searchBase, conn):
+	insertCount = 0
 	for idx, path in enumerate(scan_files(searchBase)):
 		try:
 			songInsert = insert(songs).values(path = path)
 			songPk = conn.execute(songInsert).lastrowid
-			sort_to_tags(conn, songPk, path)
+			insertCount += 1
+			sort_to_tags(songPk, path, conn)
 			print(f"inserted: {idx}".rjust(len(str(idx)), " "),end="\r")
 		except IntegrityError: pass
+	return insertCount
 
 def map_path_to_tags(path):
 	if path.startswith("Soundtrack/VG_Soundtrack"):
@@ -128,7 +136,7 @@ def map_path_to_tags(path):
 		return ["pop"]
 	return []
 
-def sort_to_tags(conn, songPk, path):
+def sort_to_tags(songPk, path, conn):
 	for tag in map_path_to_tags(path):
 		tagFk = get_tag_pk(tag, conn)
 		stmt = insert(songs_tags).values(songFk = songPk, tagFk = tagFk)
@@ -136,20 +144,3 @@ def sort_to_tags(conn, songPk, path):
 			conn.execute(stmt)
 		except IntegrityError: pass
 
-def fresh_start(searchBase, conn):
-	print("starting")
-	#save_paths(conn, searchBase)
-	print("saving paths done")
-	update_metadata(conn, searchBase)
-	print("updating songs done")
-
-if __name__ == "__main__":
-	print(sys.prefix)
-	print(f"current version is: {1}")
-	config = get_config()
-	searchBase = config["searchBase"]
-	dbName = config["dbName"]
-	engine = create_engine(f"sqlite+pysqlite:///{config['dbName']}")
-	conn = engine.connect()
-	fresh_start(searchBase, conn)
-	conn.close()

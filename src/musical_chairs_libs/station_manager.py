@@ -2,7 +2,6 @@ import os
 import sys
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select, desc, func, insert, delete, update
-from musical_chairs_libs.config_loader import get_configured_db_connection
 from musical_chairs_libs.tables import stations, tags, stations_tags
 from musical_chairs_libs.connection_decorator import provide_db_conn
 
@@ -18,6 +17,7 @@ def remove_station_proc(conn, stationName):
 	stmt = update(stations).values(procId = None).where(st.name == stationName)
 	conn.execute(stmt)
 
+@provide_db_conn()
 def end_all_stations(conn):
 	st = stations.c
 	query = select(st.procId).select_from(stations).where(st.procId != None)

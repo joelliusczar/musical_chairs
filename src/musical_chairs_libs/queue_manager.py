@@ -2,8 +2,7 @@ import time
 from numpy.random import choice
 from sqlalchemy import select, desc, func, insert, delete, update
 from musical_chairs_libs.tables import stations_history, songs, stations,\
-	 tags, stations_tags, songs_tags, station_queue, albums, artists, song_artist, \
-	last_history_tmp
+	stations_tags, songs_tags, station_queue, albums, artists, song_artist
 from musical_chairs_libs.station_manager import get_station_pk
 
 

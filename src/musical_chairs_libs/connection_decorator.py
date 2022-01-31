@@ -28,7 +28,7 @@ def provide_db_conn(echo = False):
 				else:
 					raise ValueError("Too many args provided to this method")
 			try:
-				func(*nargs, **kwargs)
+				return func(*nargs, **kwargs)
 			finally:
 				if not conn:
 					ownedConn.close()

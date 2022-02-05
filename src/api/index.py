@@ -1,14 +1,12 @@
 import cherrypy
 import os
-from musical_chairs_libs.config_loader import get_http_config, get_config
+from musical_chairs_libs.config_loader import ConfigLoader
 from controllers.stations_controller import StationController
-
+from musical_chairs_libs.station_service import StationService
 
 
 class MusicalChairsApi:
 
-  def __init__(self, config):
-    self.config = config
 
   @cherrypy.expose
   def default(self, *args, **kwargs):
@@ -20,14 +18,17 @@ if __name__ == '__main__':
 
   dirName = os.path.dirname(os.path.realpath(__file__))
   os.chdir(dirName)
-  webConfig = get_http_config()
+  configLoader = ConfigLoader()
+  webConfig = configLoader.get_http_config()
   webConfig["global"]["tools.response_headers.on"] = True
   webConfig["global"]["tools.response_headers.headers"] = \
     [("Access-Control-Allow-Origin","*")]
   webConfig["global"]["tools.sessions.on"] = True
-  appConfig = get_config()
+  appConfig = configLoader.config
   app = MusicalChairsApi(appConfig)
   print(webConfig)
-  stations = StationController(appConfig)
+  conn = configLoader.get_configured_db_connection()
+  stationService = StationService(conn)
+  stations = StationController(stationService)
   cherrypy.tree.mount(stations, "/api/stations",webConfig)
   cherrypy.quickstart(app, "/", webConfig)

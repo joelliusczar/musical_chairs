@@ -44,7 +44,6 @@ class StationService:
 		pk = row.pk if row else None
 		return pk
 
-
 	def get_tag_pk(self, tagName: str) -> int:
 		t = tags.c
 		query = select(t.pk) \
@@ -53,7 +52,6 @@ class StationService:
 		row = self.conn.execute(query).fetchone()
 		pk = row.pk if row else None
 		return pk
-
 
 	def does_station_exist(self, stationName: str) -> bool:
 		st = stations.c
@@ -91,7 +89,6 @@ class StationService:
 			print("Could not insert")
 			print(ex)
 			sys.exit(1)
-
 
 	def remove_station(self, stationName: str) -> None:
 		sttg = stations_tags.c

@@ -1,15 +1,20 @@
 import cherrypy
-from musical_chairs_libs.station_service import get_station_list, \
-  get_station_song_catalogue, add_song_to_queue
-from services.queue_service import get_now_playing_and_queue
+from api.services import queue_service
+from musical_chairs_libs.station_service import StationService
+from musical_chairs_libs.queue_service import get_now_playing_and_queue
 from controller_decorators import check_access
-from musical_chairs_libs.history_service import get_history_for_station
-from musical_chairs_libs.connection_decorator import provide_db_conn
+from musical_chairs_libs.history_service import HistoryService
+from musical_chairs_libs.queue_service import QueueService
+
 
 class StationController:
 
-  def __init__(self, config):
-    self.config = config
+  def __init__(self, stationService: StationService, 
+  historyService: HistoryService,
+  queueService: QueueService):
+    self.station_service = stationService
+    self.history_service = historyService
+    self.queue_service = queueService
 
   def _cp_dispatch(self, vpath):
     if len(vpath) == 2:
@@ -23,23 +28,20 @@ class StationController:
 
   @cherrypy.expose
   @cherrypy.tools.json_out()
-  @provide_db_conn()
-  def index(self, conn):
-    stations = list(get_station_list(conn))
+  def index(self):
+    stations = list(self.station_service.get_station_list())
     return { "items": stations }
 
   @cherrypy.expose
   @cherrypy.tools.json_out()
-  @provide_db_conn()
   def history(self, stationName = "", limit = 50, pageNumber = 0, conn = None):
     if not stationName:
       return []
-    history = list(get_history_for_station(conn, stationName))
+    history = list(self.history_service.get_history_for_station(stationName))
     return {"items": history }
 
   @cherrypy.expose
   @cherrypy.tools.json_out()
-  @provide_db_conn()
   def queue(self, stationName = "", limit = 50, pageNumber = 1, conn = None):
     if not stationName:
       return []
@@ -48,18 +50,16 @@ class StationController:
 
   @cherrypy.expose
   @cherrypy.tools.json_out()
-  @provide_db_conn()
   def song_catalogue(self, stationName, conn):
     if not stationName:
       return []
-    songs = list(get_station_song_catalogue(conn, stationName))
+    songs = list(self.station_service.get_station_song_catalogue(stationName))
     return { "items": songs}
 
   @cherrypy.expose
   @cherrypy.tools.json_out()
   @check_access
-  @provide_db_conn()
   def request(self, stationName, songPK, conn):
     r = cherrypy.request
-    resultCount = add_song_to_queue(conn, stationName, songPK)
+    resultCount = self.queue_service.add_song_to_queue(stationName, songPK)
     return resultCount

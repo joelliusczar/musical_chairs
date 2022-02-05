@@ -1,7 +1,7 @@
-from musical_chairs_libs.config_loader import get_http_config, get_config
-from controllers.stations_controller import StationController
 import cherrypy
 import os
+from musical_chairs_libs.config_loader import get_http_config, get_config
+from controllers.stations_controller import StationController
 
 
 

@@ -17,7 +17,7 @@ fi
 export config_file
 . "$env_path"/env/bin/activate &&
 { python3  <<EOF
-from musical_chairs_libs.station_manager import end_all_stations
+from musical_chairs_libs.station_service import end_all_stations
 end_all_stations()
 print("Done")
 EOF

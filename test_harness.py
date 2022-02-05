@@ -1,18 +1,16 @@
 import sys
-from sqlalchemy import create_engine
-from musical_chairs_libs.config_loader import get_config
-from musical_chairs_libs.queue_manager import get_next_queued
-from musical_chairs_libs.station_manager import add_station, assign_tag_to_station
+from musical_chairs_libs.config_loader import ConfigLoader
+from musical_chairs_libs.queue_service import QueueService
+from musical_chairs_libs.station_service import StationService
+from musical_chairs_libs.radio_handle import RadioHandle
 
 
 
 
 if __name__ == '__main__':
 	print(sys.prefix)
-	config = get_config()
-	searchBase = config["searchBase"]
-	dbName = config["dbName"]
-	engine = create_engine(f"sqlite+pysqlite:///{config['dbName']}", echo=True)
-	conn = engine.connect()
-	songInfo = get_next_queued(conn, "vg")
+	handle = RadioHandle("vg")
+	res = handle.ices_get_next()
+	display = handle.ices_get_metadata()
+	print("done")
 

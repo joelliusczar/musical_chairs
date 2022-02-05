@@ -42,7 +42,7 @@ env_path="$maintenance_dir_cl"
 
 . "$env_path"/env/bin/activate &&
 { python3  <<EOF
-from musical_chairs_libs.station_manager import add_station
+from musical_chairs_libs.station_service import add_station
 add_station('${internal_name}','${public_name}')
 print('${internal_name} added')
 EOF
@@ -52,7 +52,7 @@ echo -n 'Enter a tag to assign to station: '
 read tagname
 [ -z "$tagname" ] && break
 { python3 <<EOF
-from musical_chairs_libs.station_manager import assign_tag_to_station
+from musical_chairs_libs.station_service import assign_tag_to_station
 assign_tag_to_station('${internal_name}','${tagname}')
 print('tag ${tagname} assigned to ${internal_name}')
 EOF

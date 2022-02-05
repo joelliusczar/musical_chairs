@@ -1,6 +1,6 @@
 import sys
 from musical_chairs_libs.config_loader import get_config
-from musical_chairs_libs.queue_manager import get_history_for_station
+from musical_chairs_libs.queue_service import get_history_for_station
 import sqlite3
 
 

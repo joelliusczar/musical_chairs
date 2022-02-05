@@ -1,12 +1,23 @@
+from dataclasses import dataclass
 from sqlalchemy import select, desc
+from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import stations_history, songs, stations, \
 	albums, artists, song_artist
 
+@dataclass
+class HistoryItem:
+	songPk: int
+	title: str
+	albums: str
+	artist: str
+	playedTimestamp: float
 
-def get_history_for_station(conn, 
-stationName, 
-limit=50, 
-offset=0):
+class HistoryService:
+
+	def __init__(self, conn: Connection) -> None:
+			self.conn = conn
+
+def get_history_for_station(self, stationName: str, limit: int = 50, offset: int = 0):
 	h = stations_history.c
 	st = stations.c
 	sg = songs.c
@@ -24,12 +35,12 @@ offset=0):
 		.where(st.name == stationName) \
 		.order_by(desc(h.playedTimestamp)) \
 		.limit(limit)
-	records = conn.execute(query)
+	records = self.conn.execute(query)
 	for row in records:
-		yield { 
-				'id': row.pk,
-				'song': row.title, 
-				'album': row.album,
-				'artist': row.artist,
-				'playedTimestamp': row.playedTimestamp,
-		}
+		yield HistoryItem( 
+				row.pk,
+				row.title, 
+				row.album,
+				row.artist,
+				row.playedTimestamp
+				)

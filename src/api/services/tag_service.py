@@ -1,5 +1,5 @@
 from sqlalchemy import select, desc
-from musical_chairs_libs.station_manager import get_tag_pk
+from musical_chairs_libs.station_service import get_tag_pk
 from musical_chairs_libs.tables import songs, SongsTags
 from tinytag import TinyTag
 

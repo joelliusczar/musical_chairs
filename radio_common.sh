@@ -90,7 +90,7 @@ setup_py3_env() (
 	local dest="$codePath"/"$packagePath""$lib_name"/
 	virtualenv -p python3  "$codePath"/env &&
 	. "$codePath"/env/bin/activate &&
-	python3 -m pip install -r "$codePath"/requirements.txt &&
+	python3 -m pip install -r "$radio_home"/requirements.txt &&
 	deactivate &&
 	empty_dir_contents "$dest" &&
 	sudo cp -rv ./src/"$lib_name"/* "$dest" &&

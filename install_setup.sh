@@ -15,6 +15,14 @@ fi
 
 [ ! -e "$HOME/.local/bin" ] && mkdir -pv "$HOME/.local/bin"
 
+case "$OSTYPE" in
+	darwin*)
+		if ! brew --version 2>/dev/null; then
+			/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+		fi
+	*) ;;
+esac
+
 
 if ! python3 -V 2>/dev/null; then
 	eval "$pkgMgr" python3
@@ -37,9 +45,13 @@ if ! npm version 2>/dev/null; then
 	eval "$pkgMgr" npm
 fi
 
-if ! s3fs --version 2>/dev/null; then
-	eval "$pkgMgr" s3fs
-fi
+
+case "$OSTYPE" in
+	linux-gnu*)
+		if ! s3fs --version 2>/dev/null; then
+			eval "$pkgMgr" s3fs
+		fi
+esac
 
 if ! sqlite3 -version 2>/dev/null; then
 	eval "$pkgMgr" sqlite3
@@ -96,15 +108,20 @@ if ! [ -e "$radio_home" ]; then
 	mkdir -pv "$radio_home"
 fi
 
-if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
-	if ! icecast -v 2>/dev/null; then
-		eval "$pkgMgr" icecast
-	fi
-elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
-	if ! icecast2 -v 2>/dev/null; then
-		eval "$pkgMgr" icecast2
-	fi
-fi
+case "$OSTYPE" in
+	linux-gnu*)
+		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
+			if ! icecast -v 2>/dev/null; then
+				eval "$pkgMgr" icecast
+			fi
+		elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+			if ! icecast2 -v 2>/dev/null; then
+				eval "$pkgMgr" icecast2
+			fi
+		fi
+		;;
+	*) ;;
+esac
 
 if perl -e "exit 1 if index('$PATH','$HOME/.local/bin') != -1"; then
 	echo 'Please add "$HOME/.local/bin" to path'

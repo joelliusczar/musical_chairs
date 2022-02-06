@@ -1,0 +1,7 @@
+{
+  "editor.tabSize": 2,
+  "python.terminal.activateEnvironment": false,
+  "python.analysis.extraPaths": [
+    "./src", "./test_trash"
+  ]
+}

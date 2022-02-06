@@ -9,11 +9,6 @@ app_path_cl=/srv/"$app_name"
 empty_dir_contents "$app_path_cl"
 
 
-sudo cp -rv ./src/api/* "$app_path_cl/" &&
-setup_py3_env "$app_path_cl" &&
-sudo chown -R "$current_user": "$app_path_cl/"
-
-
 #set up react then copy
 npm --prefix ./src/client i &&
 npm run --prefix ./src/client build &&

@@ -30,18 +30,27 @@ pyMinor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /\d+\.(\d+)/')
 
 PACMAN_CONST='pacman'
 APT_CONST='apt'
+HOMEBREW_CONST='homebrew'
 current_user=$(whoami)
 
 set_pkg_mgr() {
 	pkgMgr=''
 	pkgMgrChoice=''
-	if  which pacman >/dev/null 2>&1; then
-		pkgMgrChoice="$PACMAN_CONST"
-		pkgMgr='yes | sudo pacman -S'
-	elif which apt-get >/dev/null 2>&1; then
-		pkgMgrChoice="$APT_CONST"
-		pkgMgr='yes | sudo apt-get install'
-	fi
+	case "$OSTYPE" in
+	linux-gnu*)
+		if  which pacman >/dev/null 2>&1; then
+			pkgMgrChoice="$PACMAN_CONST"
+			pkgMgr='yes | sudo pacman -S'
+		elif which apt-get >/dev/null 2>&1; then
+			pkgMgrChoice="$APT_CONST"
+			pkgMgr='yes | sudo apt-get install'
+		fi
+		;;
+	darwin*)
+		pkgMgrChoice="$HOMEBREW_CONST"
+		pkgMgr='yes | brew install'
+	*)
+	;;
 }
 
 set_icecast_version() {

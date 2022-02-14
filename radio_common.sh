@@ -16,22 +16,35 @@ radio_config_dir="$radio_home"/config
 config_file="$radio_config_dir"/config.yml
 db_dir="$radio_home"/db
 sqlite_file="$db_dir"/songs_db
+bin_dir="$HOME"/.local/bin
 
 # directories that should be cleaned upon changes
 # suffixed with 'cl' for 'clean'
 maintenance_dir_cl="$radio_home"/maintenance
 start_up_dir_cl="$radio_home"/start_up
 templates_dir_cl="$maintenance_dir_cl"/templates
+app_path_cl=/srv/"$app_name"
+app_path_client_cl="$app_path_cl"/client/
 
-#python version info
-pyVersion=$(python3 -V)
-pyMajor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /(\d+)\.\d+/')
-pyMinor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /\d+\.(\d+)/')
+http_config="$app_path_cl"/web_config.yml
+
+#local paths
+api_src="./src/api"
+client_src="./src/client"
+
+
 
 PACMAN_CONST='pacman'
-APT_CONST='apt'
+APT_CONST='apt-get'
 HOMEBREW_CONST='homebrew'
 current_user=$(whoami)
+
+set_python_version_const() {
+	#python version info
+	pyVersion=$(mc-python -V)
+	pyMajor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /(\d+)\.\d+/')
+	pyMinor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /\d+\.(\d+)/')
+}
 
 set_pkg_mgr() {
 	pkgMgr=''
@@ -49,11 +62,13 @@ set_pkg_mgr() {
 	darwin*)
 		pkgMgrChoice="$HOMEBREW_CONST"
 		pkgMgr='yes | brew install'
-	*)
-	;;
+		;;
+	*) 
+		;;
+	esac
 }
 
-set_icecast_version() {
+set_icecast_name() {
 	case "$pkgMgrChoice" in
     "$PACMAN_CONST") icecast_='icecast';;
     "$APT_CONST") icecast_='icecast2';;
@@ -79,8 +94,6 @@ s3_name() {
 link_to_music_files() {
 	if [ ! -e "$music_home"/Soundtrack ]; then 
 		if [ -n "$IS_RADIO_LOCAL_DEV" ]; then
-			echo "$IS_RADIO_LOCAL_DEV"
-			echo 'why here?'
 			s3fs "$(s3_name)" "$music_home"/ 
 		else
 			s3fs "$(s3_name)" "$music_home"/ -o iam_role="$(aws_role)"
@@ -93,13 +106,12 @@ link_to_music_files() {
 
 #set up the python environment, then copy 
 setup_py3_env() (
-	
 	local codePath="$1"
 	local packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
 	local dest="$codePath"/"$packagePath""$lib_name"/
-	virtualenv -p python3  "$codePath"/env &&
+	virtualenv -p mc-python  "$codePath"/env &&
 	. "$codePath"/env/bin/activate &&
-	python3 -m pip install -r "$radio_home"/requirements.txt &&
+	mc-python -m pip install -r "$radio_home"/requirements.txt &&
 	deactivate &&
 	empty_dir_contents "$dest" &&
 	sudo cp -rv ./src/"$lib_name"/* "$dest" &&
@@ -113,9 +125,21 @@ empty_dir_contents() {
 		sudo rm -rf "$dir_to_empty"/*
 	else
 		sudo mkdir -pv "$dir_to_empty" &&
-		sudo chown -R "$current_user": "$dir_to_empty"
 	fi
+	sudo chown -R "$current_user": "$dir_to_empty"
 }
+
+get_bin_path() {
+	local pkg="$0"
+	case "$OSTYPE" in
+		darwin*)
+			brew info "$pkg" \
+			| grep -A1 'has been installed as' \
+			| awk 'END{ print $1 }'
+		*) which "$pkg" ;;
+	esac
+}
+
 
 [ ! -e "$radio_home" ] && mkdir -pv "$radio_home"
 [ ! -e "$ices_configs_dir" ] && mkdir -pv "$ices_configs_dir"

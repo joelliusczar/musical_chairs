@@ -1,4 +1,0 @@
-tinytag==1.7.0
-PyYAML==5.4.1
-SQLAlchemy==1.4.29
-numpy==1.22.1

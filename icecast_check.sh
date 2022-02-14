@@ -1,13 +1,19 @@
 #!/bin/sh
 
-test_flag="$1"
-[ "$test_flag" = "test" ] && defs_home='../' || defs_home="$HOME"/radio
-
-. "$defs_home"/radio_common.sh
+if [ -e ./radio_common.sh ]; then
+. ./radio_common.sh
+elif [ -e ../radio_common.sh]; then
+. ../radio_common.sh
+elif [ -e "$HOME"/radio/radio_common.sh]; then
+. "$HOME"/radio/radio_common.sh
+else
+  echo "radio_common.sh not found"
+  exit 1
+fi
 
 set_pkg_mgr
 
-set_icecast_version
+set_icecast_name
 
 if ! systemctl status "$icecast_" >/dev/null 2>&1; then
     echo "$icecast_ is not running at the moment"

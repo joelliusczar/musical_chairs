@@ -1,6 +1,15 @@
 #!/bin/sh
 
+if [ -e ./radio_common.sh ]; then
 . ./radio_common.sh
+elif [ -e ../radio_common.sh]; then
+. ../radio_common.sh
+elif [ -e "$HOME"/radio/radio_common.sh]; then
+. "$HOME"/radio/radio_common.sh
+else
+  echo "radio_common.sh not found"
+  exit 1
+fi
 
 set_pkg_mgr
 
@@ -13,32 +22,48 @@ if ! perl -v 2>/dev/null; then
 	eval "$pkgMrg" perl
 fi
 
-[ ! -e "$HOME/.local/bin" ] && mkdir -pv "$HOME/.local/bin"
+[ ! -e "$bin_dir" ] && mkdir -pv "$bin_dir"
+
+if perl -e "exit 1 if index('$PATH','$bin_dir') != -1"; then
+	echo "Please add '$bin_dir' to path"
+	export PATH="$PATH":"$bin_dir"
+fi
 
 case "$OSTYPE" in
 	darwin*)
 		if ! brew --version 2>/dev/null; then
 			/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 		fi
+		;;
 	*) ;;
 esac
 
-
-if ! python3 -V 2>/dev/null; then
-	eval "$pkgMgr" python3
+if ! mc-python -V 2>/dev/null; then
+	case "$OSTYPE" in
+		darwin*)
+			if ! brew info python3 2>1 1>/dev/null; then
+				eval "$pkgMgr" python3
+			fi
+			;;
+		linux-gnu*) 
+			if ! python3 -V 2>/dev/null; then
+				eval "$pkgMgr" python3
+			fi
+			;;
+		*) ;;
+	esac
+	ln -s $(get_bin_path python3) "$bin_dir"/mc-python
 fi
 
-if [ "$pyMinor" -le 10 ] && [ "$pkgMgrChoice" = "$APT_CONST" ]; then
-	eval "$pkgMgr" python3-distutils
+
+
+if ! mc-python -m pip -V 2>/dev/null; then
+	curl https://bootstrap.pypa.io/pip/get-pip.py | mc-python /dev/stdin
 fi
 
-if ! python3 -m pip -V 2>/dev/null; then
-	curl https://bootstrap.pypa.io/pip/get-pip.py | python3 /dev/stdin
-fi
 
-
-if ! python3 -m  virtualenv --version 2>/dev/null; then
-	python3 -m pip install --user virtualenv
+if ! mc-python -m  virtualenv --version 2>/dev/null; then
+	mc-python -m pip install --user virtualenv
 fi
 
 if ! npm version 2>/dev/null; then
@@ -51,6 +76,7 @@ case "$OSTYPE" in
 		if ! s3fs --version 2>/dev/null; then
 			eval "$pkgMgr" s3fs
 		fi
+		;;
 esac
 
 if ! sqlite3 -version 2>/dev/null; then
@@ -68,6 +94,8 @@ fi
 if ! libtool --version 2>/dev/null && [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 	eval "$pkgMgr" libtool-bin
 fi
+
+set_python_version_const
 
 if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 	if ! dpkg -s libxml2-dev >/dev/null 2>&1; then
@@ -97,7 +125,9 @@ if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 	if ! dpkg -s libperl-dev >/dev/null 2>&1; then
 		eval "$pkgMgr" libperl-dev
 	fi
-
+	if ! dpkg -s python3-distutils >/dev/null 2>&1; then
+		eval "$pkgMgr" python3-distutils
+	fi
 fi
 
 if ! [ -e "$build_home" ]; then
@@ -123,10 +153,7 @@ case "$OSTYPE" in
 	*) ;;
 esac
 
-if perl -e "exit 1 if index('$PATH','$HOME/.local/bin') != -1"; then
-	echo 'Please add "$HOME/.local/bin" to path'
-	export PATH="$PATH":"$HOME"/.local/bin
-fi
+
 
 if ! mc-ices -V 2>/dev/null; then
 	sh ./build_ices.sh
@@ -155,6 +182,5 @@ else
 	db_res="$?"
 fi
 
-pwd
 $(exit "$db_res") && sh ./commit_setup.sh 
 #sh ./run_song_scan.sh

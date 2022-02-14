@@ -1,7 +1,18 @@
 {
   "editor.tabSize": 2,
+  "editor.rulers": [80,120],
+  "workbench.colorCustomizations": {
+    "editorRuler.foreground": "#ef40ff"
+  },
   "python.terminal.activateEnvironment": false,
   "python.analysis.extraPaths": [
     "./src", "./test_trash"
-  ]
+  ],
+  "terminal.integrated.env.osx": {
+    "lib_name": "musical_chairs_libs",
+    "app_name": "musical_chairs_app",
+    "other_val": "${config:terminal.integrated.inheritEnv}",
+    "config_file": "${workspaceFolder}/test_trash/config/config.yml",
+    "http_config": "${workspaceFolder}/test_trash/config/web_config.yml"
+  }
 }

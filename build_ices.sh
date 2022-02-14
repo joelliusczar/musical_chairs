@@ -1,7 +1,15 @@
 #!/bin/sh
 
+if [ -e ./radio_common.sh ]; then
 . ./radio_common.sh
-
+elif [ -e ../radio_common.sh]; then
+. ../radio_common.sh
+elif [ -e "$HOME"/radio/radio_common.sh]; then
+. "$HOME"/radio/radio_common.sh
+else
+  echo "radio_common.sh not found"
+  exit 1
+fi
 
 
 ices_build_dir="$build_home"/ices
@@ -20,7 +28,7 @@ aclocal &&
 autoreconf -fi &&
 automake --add-missing &&
 ./configure --prefix="$HOME"/.local \
-	--with-python=$(which python3) \
+	--with-python=$(which mc-python) \
 	--with-moddir="$pyModules_dir" \
 	--program-prefix="$name_prefix" &&
 make &&

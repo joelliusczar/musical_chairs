@@ -1,11 +1,18 @@
 #!/bin/sh
 
-test_flag="$1"
-[ "$test_flag" = "test" ] && defs_home='../' || defs_home="$HOME"/radio
+if [ -e ./radio_common.sh ]; then
+. ./radio_common.sh
+elif [ -e ../radio_common.sh]; then
+. ../radio_common.sh
+elif [ -e "$HOME"/radio/radio_common.sh]; then
+. "$HOME"/radio/radio_common.sh
+else
+  echo "radio_common.sh not found"
+  exit 1
+fi
 
-. "$defs_home"/radio_common.sh
+export config_file
+export http_config
+. "$maintenance_dir_cl"/env/bin/activate &&
 
-app_name='musical_chairs_app'
-app_path=/var/www/"$app_name"
-
-"$app_path"/api/env/bin/python3 "$app_path"/api/index.py
+mc-python "$app_path"/index.py

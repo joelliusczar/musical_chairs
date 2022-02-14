@@ -14,15 +14,15 @@ cp ./requirements.txt "$radio_home"/requirements.txt
 #check if personal scripts folder exists, clear out if it does,
 #delete otherwise
 empty_dir_contents "$maintenance_dir_cl"
-cp ./radio_common.sh "$maintenance_dir_cl"/radio_common.sh
+sudo cp -rv ./maintenance/* "$maintenance_dir_cl" &&
+setup_py3_env "$maintenance_dir_cl" &&
+
 mkdir -pv "$templates_dir_cl" &&
 cp -rv ./templates/* "$templates_dir_cl"
 
-echo 'creating maintenance dir'
-sudo cp -rv ./maintenance/* "$maintenance_dir_cl" &&
-setup_py3_env "$maintenance_dir_cl" &&
 sudo chown -R "$current_user": "$maintenance_dir_cl"
 
+#create the folder for the start up scripts
 empty_dir_contents "$start_up_dir_cl"
 
 sudo cp -v ./start_up/* "$start_up_dir_cl"

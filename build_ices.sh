@@ -11,7 +11,12 @@ else
   exit 1
 fi
 
-
+case "$OSTYPE" in
+	darwin*)
+		PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH"
+		;;
+	*) ;;
+esac
 ices_build_dir="$build_home"/ices
 old_dir=$(pwd)
 name_prefix='mc-'

@@ -22,19 +22,26 @@ else
   exit 1
 fi
 
-genPass() {
+gen_pass() {
 	LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16 
 }
 
-sourcePassword=$(genPass)
-relayPassword=$(genPass)
-adminPassword=$(genPass)
+sourcePassword=$(gen_pass)
+relayPassword=$(gen_pass)
+adminPassword=$(gen_pass)
 
 
-sudo sed -i -e "/source-password/s/>[[:alnum:]]*/>${sourcePassword}/" \
-	-e "/relay-password/s/>[[:alnum:]]*/>${relayPassword}/" \
-	-e "/admin-password/s/>[[:alnum:]]*/>${adminPassword}/" \
-	"$ic_conf_loc"
+sudo -p 'Pass required for modifying icecast config: ' \
+	sed -i -e "/source-password/s/>[[:alnum:]]*/>${sourcePassword}/" \
+	"$ic_conf_loc" &&
+sudo -p 'Pass required for modifying icecast config: ' \
+	sed -i -e "/relay-password/s/>[[:alnum:]]*/>${relayPassword}/" \
+	"$ic_conf_loc" &&
+sudo -p 'Pass required for modifying icecast config: ' \
+	sed -i -e "/admin-password/s/>[[:alnum:]]*/>${adminPassword}/" \
+	"$ic_conf_loc" || 
+show_err_and_exit 
+
 
 for conf in "$ices_configs_dir"/*.conf; do
 	[ ! -e "$conf" ] && continue

@@ -32,25 +32,27 @@ read internal_name
 echo "public: $public_name"
 echo "internal: $internal_name"
 
-sourcePassword=$(sudo grep '<source-password>' "$ic_conf_loc" | perl -ne 'print "$1\n" if />(\w+)/')
+sourcePassword=$(sudo -p 'Pass required to read icecast config: ' \
+  grep '<source-password>' "$ic_conf_loc" \
+  | perl -ne 'print "$1\n" if />(\w+)/') || 
+show_err_and_exit 
 
 added_config_name="$ices_configs_dir"/ices."$internal_name".conf
 cp "$templates_dir_cl"/configs/ices.conf "$added_config_name" &&
 sed -i -e "/<Password>/s/>[[:alnum:]]*/>${sourcePassword}/" \
-  -e "/<Module>/s/internal_station_name/${internal_name}/" \
-  -e "/<Name>/s/public_station_name/${public_name}/" \
-  -e "/<Mountpoint>/s/internal_station_name/${internal_name}/" \
+  "$added_config_name" &&
+sed -i -e "/<Module>/s/internal_station_name/${internal_name}/" \
+  "$added_config_name" &&
+sed -i -e "/<Name>/s/public_station_name/${public_name}/" \
+  "$added_config_name" &&
+sed -i -e "/<Mountpoint>/s/internal_station_name/${internal_name}/" \
   "$added_config_name" ||
-{
-  exit 1
-}
+show_err_and_exit
 
 added_module_name="$pyModules_dir"/"$internal_name".py &&
 cp "$templates_dir_cl"/template.py "$added_module_name" &&
 sed -i -e "s/<internal_station_name>/${internal_name}/" "$added_module_name" ||
-{
-  exit 1
-}
+show_err_and_exit
 
 export config_file
 

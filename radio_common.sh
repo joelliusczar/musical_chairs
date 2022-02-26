@@ -1,10 +1,28 @@
-#!/bin/bash
+#!/bin/sh
 
 
 [ -f "$HOME"/.dev_local_rc ] && . "$HOME"/.dev_local_rc
 
-test_flag="$1"
-[ "$test_flag" = "test" ] && radio_home='./test_trash' || radio_home="$HOME"/radio
+while [ ! -z "$1" ]; do
+	case $1 in
+		test)
+			test_flag='test'
+			;;
+		radio_home=*)
+			radio_home=${1#radio_home=}
+			;;
+		api_setup=*)
+			api_setup=${1#api_setup=}
+			;;
+		bar=*)
+			bar=${1#bar=}
+			;;
+		*) ;;
+	esac
+	shift
+done
+
+radio_home=${radio_home:-"$HOME"/radio}
 
 lib_name='musical_chairs_libs'
 app_name='musical_chairs_app'
@@ -23,7 +41,15 @@ bin_dir="$HOME"/.local/bin
 maintenance_dir_cl="$radio_home"/maintenance
 start_up_dir_cl="$radio_home"/start_up
 templates_dir_cl="$maintenance_dir_cl"/templates
-app_path_cl=/srv/"$app_name"
+case "$OSTYPE" in
+	linux-gnu*)
+		app_path_cl=/srv/"$app_name"
+		;;
+	darwin*)
+		app_path_cl=/Library/WebServer/"$app_name"
+		;;
+	*) ;;
+esac
 app_path_client_cl="$app_path_cl"/client/
 
 http_config="$app_path_cl"/web_config.yml
@@ -53,10 +79,11 @@ set_pkg_mgr() {
 	linux-gnu*)
 		if  which pacman >/dev/null 2>&1; then
 			pkgMgrChoice="$PACMAN_CONST"
-			pkgMgr='yes | sudo pacman -S'
+			pkgMgr='yes | sudo -p "Pass required for pacman install: " pacman -S'
 		elif which apt-get >/dev/null 2>&1; then
 			pkgMgrChoice="$APT_CONST"
-			pkgMgr='yes | sudo apt-get install'
+			local msg='Pass required for apt-get install: '
+			pkgMgr="yes | sudo -p '$msg' apt-get install: "
 		fi
 		;;
 	darwin*)
@@ -109,35 +136,64 @@ setup_py3_env() (
 	local codePath="$1"
 	local packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
 	local dest="$codePath"/"$packagePath""$lib_name"/
-	virtualenv -p mc-python  "$codePath"/env &&
+	mc-python -m virtualenv "$codePath"/env &&
 	. "$codePath"/env/bin/activate &&
 	mc-python -m pip install -r "$radio_home"/requirements.txt &&
 	deactivate &&
 	empty_dir_contents "$dest" &&
-	sudo cp -rv ./src/"$lib_name"/* "$dest" &&
-	sudo chown -R "$current_user": "$dest" ||
-	exit 1
+	sudo -p 'Password required to copy lib files: ' \
+		cp -rv ./src/"$lib_name"/* "$dest" &&
+	sudo -p 'Password required to change owner of copied files: ' \
+		chown -R "$current_user": "$dest" ||
+	return "$?"
 )
 
 empty_dir_contents() {
 	local dir_to_empty="$1"
 	if [ -e "$dir_to_empty" ]; then 
-		sudo rm -rf "$dir_to_empty"/*
+		sudo -p "Password required for removing old files: " \
+			rm -rf "$dir_to_empty"/* ||
+		return "$?"
 	else
-		sudo mkdir -pv "$dir_to_empty" &&
+		sudo -p 'Password required for creating files: ' \
+			mkdir -pv "$dir_to_empty"  ||
+		return "$?"
 	fi
-	sudo chown -R "$current_user": "$dir_to_empty"
+	msg='Password required for changing owner of created files to current user: '
+	sudo -p "$msg" \
+		chown -R "$current_user": "$dir_to_empty" ||
+	return "$?"
 }
 
 get_bin_path() {
-	local pkg="$0"
+	local pkg="$1"
 	case "$OSTYPE" in
 		darwin*)
 			brew info "$pkg" \
 			| grep -A1 'has been installed as' \
 			| awk 'END{ print $1 }'
+			;;
 		*) which "$pkg" ;;
 	esac
+}
+
+brew_is_installed() {
+	local pkg="$1"
+	echo "checking for $pkg"
+	case "$OSTYPE" in
+		darwin*)
+			brew info "$pkg" >/dev/null 2>&1 &&
+			! brew info "$pkg" | grep 'Not installed' >/dev/null
+			;;
+		*) return 0 ;;
+	esac
+}
+
+show_err_and_exit() {
+	local err_code="$?"
+	local msg="$1"
+	[ ! -z "$msg" ] && echo "$msg"
+	exit "$err_code"
 }
 
 
@@ -148,4 +204,9 @@ get_bin_path() {
 [ ! -e "$pyModules_dir" ] && mkdir -pv "$pyModules_dir"
 [ ! -e "$radio_config_dir" ] && mkdir -pv "$radio_config_dir"
 [ ! -e "$db_dir" ] && mkdir -pv "$db_dir"
-
+msg='Pass required for creating web server directory: '
+[ ! -e "$app_path_cl" ] && 
+{ 
+	sudo -p "$msg" mkdir -pv "$app_path_cl" ||
+	show_err_and_exit "Could not create $app_path_cl" 
+}

@@ -1,15 +1,16 @@
 #!/bin/sh
 
 if [ -e ./radio_common.sh ]; then
-. ./radio_common.sh
+	. ./radio_common.sh
 elif [ -e ../radio_common.sh]; then
-. ../radio_common.sh
+	. ../radio_common.sh
 elif [ -e "$HOME"/radio/radio_common.sh]; then
-. "$HOME"/radio/radio_common.sh
+	. "$HOME"/radio/radio_common.sh
 else
   echo "radio_common.sh not found"
   exit 1
 fi
+
 
 set_pkg_mgr
 
@@ -41,7 +42,7 @@ esac
 if ! mc-python -V 2>/dev/null; then
 	case "$OSTYPE" in
 		darwin*)
-			if ! brew info python3 2>1 1>/dev/null; then
+			if ! brew_is_installed python3; then
 				eval "$pkgMgr" python3
 			fi
 			;;
@@ -52,9 +53,8 @@ if ! mc-python -V 2>/dev/null; then
 			;;
 		*) ;;
 	esac
-	ln -s $(get_bin_path python3) "$bin_dir"/mc-python
+	ln -sf $(get_bin_path python3) "$bin_dir"/mc-python
 fi
-
 
 
 if ! mc-python -m pip -V 2>/dev/null; then
@@ -91,9 +91,28 @@ if ! aclocal --version 2>/dev/null; then
 	eval "$pkgMgr" automake
 fi
 
-if ! libtool --version 2>/dev/null && [ "$pkgMgrChoice" = "$APT_CONST" ]; then
-	eval "$pkgMgr" libtool-bin
-fi
+
+case "$OSTYPE" in
+		darwin*)
+			if ! brew_is_installed libtool; then
+				echo "################ Hewwo? ###################" 
+				eval "$pkgMgr" libtool 
+			fi
+			if ! brew_is_installed pkg-config; then
+				eval "$pkgMgr" pkg-config
+			fi
+			if ! brew_is_installed libshout; then
+				eval "$pkgMgr" libshout 
+			fi
+			;;
+		linux-gnu*) 
+			if [ "$pkgMgrChoice" = "$APT_CONST" ] \
+			&& ! libtool --version 2>/dev/null; then
+				eval "$pkgMgr" libtool-bin
+			fi
+			;;
+		*) ;;
+	esac
 
 set_python_version_const
 

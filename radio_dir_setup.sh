@@ -2,10 +2,10 @@
 
 . ./radio_common.sh
 
-
-cp ./templates/configs/config.yml "$config_file"
-sed -i -e "s@<searchbase>@$music_home/@" "$config_file"
-sed -i -e "s@<dbname>@$sqlite_file@" "$config_file"
+cp ./templates/configs/config.yml "$config_file" &&
+sed -i -e "s@<searchbase>@$music_home/@" "$config_file" &&
+sed -i -e "s@<dbname>@$sqlite_file@" "$config_file" &&
+rm -f "$config_file"-e
 
 
 #keep a copy in the parent radio directory

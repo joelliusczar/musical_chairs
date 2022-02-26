@@ -11,11 +11,8 @@ while [ ! -z "$1" ]; do
 		radio_home=*)
 			radio_home=${1#radio_home=}
 			;;
-		api_setup=*)
-			api_setup=${1#api_setup=}
-			;;
-		bar=*)
-			bar=${1#bar=}
+		web_root=*)
+			web_root=${1#web_root=}
 			;;
 		*) ;;
 	esac
@@ -41,15 +38,17 @@ bin_dir="$HOME"/.local/bin
 maintenance_dir_cl="$radio_home"/maintenance
 start_up_dir_cl="$radio_home"/start_up
 templates_dir_cl="$maintenance_dir_cl"/templates
+
 case "$OSTYPE" in
 	linux-gnu*)
-		app_path_cl=/srv/"$app_name"
+		export web_root=${web_root:-/srv}
 		;;
 	darwin*)
-		app_path_cl=/Library/WebServer/"$app_name"
+		export web_root=${web_root:-/Library/WebServer}
 		;;
 	*) ;;
 esac
+app_path_cl="$web_root"/"$app_name"
 app_path_client_cl="$app_path_cl"/client/
 
 http_config="$app_path_cl"/web_config.yml
@@ -138,7 +137,10 @@ setup_py3_env() (
 	local dest="$codePath"/"$packagePath""$lib_name"/
 	mc-python -m virtualenv "$codePath"/env &&
 	. "$codePath"/env/bin/activate &&
-	mc-python -m pip install -r "$radio_home"/requirements.txt &&
+	# #python_env
+	# use regular python command rather mc-python
+	# because mc-python still points to the homebrew location
+	python -m pip install -r "$radio_home"/requirements.txt &&
 	deactivate &&
 	empty_dir_contents "$dest" &&
 	sudo -p 'Password required to copy lib files: ' \

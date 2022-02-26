@@ -17,6 +17,7 @@ cp ./templates/configs/web_config.yml "$http_config" &&
 
 #replace the static dir place holder in the web config that's been copied
 sed -i -e "s@<staticdir>@$app_path_client_cl@" "$http_config" &&
+rm -f "$http_config"-e
 
 sudo -p 'Pass rquired for copying api files: ' \
   cp -rv "$api_src"/* "$app_path_cl/" &&

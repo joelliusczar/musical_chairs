@@ -95,7 +95,6 @@ fi
 case "$OSTYPE" in
 		darwin*)
 			if ! brew_is_installed libtool; then
-				echo "################ Hewwo? ###################" 
 				eval "$pkgMgr" libtool 
 			fi
 			if ! brew_is_installed pkg-config; then

@@ -1,7 +1,5 @@
 import cherrypy
-from api.services import queue_service
 from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.queue_service import get_now_playing_and_queue
 from controller_decorators import check_access
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService
@@ -45,7 +43,7 @@ class StationController:
   def queue(self, stationName = "", limit = 50, pageNumber = 1, conn = None):
     if not stationName:
       return []
-    queue = get_now_playing_and_queue(conn, stationName)
+    queue = self.queue_service.get_now_playing_and_queue(stationName)
     return queue
 
   @cherrypy.expose

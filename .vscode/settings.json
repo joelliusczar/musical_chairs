@@ -6,13 +6,14 @@
   },
   "python.terminal.activateEnvironment": false,
   "python.analysis.extraPaths": [
-    "./src", "./test_trash"
+    "src", "test_trash/maintenance/env"
   ],
+  "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/maintenance/env/bin/python",
   "terminal.integrated.env.osx": {
     "lib_name": "musical_chairs_libs",
     "app_name": "musical_chairs_app",
     "other_val": "${config:terminal.integrated.inheritEnv}",
     "config_file": "${workspaceFolder}/test_trash/config/config.yml",
-    "http_config": "${workspaceFolder}/test_trash/config/web_config.yml"
+    "http_config": "${workspaceFolder}/test_trash/musical_chairs_app/web_config.yml"
   }
 }

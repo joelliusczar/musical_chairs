@@ -22,7 +22,7 @@ while [ ! -z "$1" ]; do
 	shift
 done
 
-radio_home=${radio_home:-"$HOME"/radio}
+export radio_home=${radio_home:-"$HOME"/radio}
 
 lib_name='musical_chairs_libs'
 app_name='musical_chairs_app'

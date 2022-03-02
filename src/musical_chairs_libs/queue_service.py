@@ -147,12 +147,12 @@ class QueueService:
 
 		subquery = select(st.pk) \
 			.select_from(stations) \
-			.join(stations_tags, sttg.stationFK == st.pk) \
-			.join(songs_tags, sgtg.tagFK == sttg.tagFK) \
-			.where(sgtg.songFK == songPK)
+			.join(stations_tags, sttg.stationFk == st.pk) \
+			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
+			.where(sgtg.songFk == songPK)
 
-		stmt = insert(station_queue).from_select([sq.stationFK, \
-			sq.songFK, \
+		stmt = insert(station_queue).from_select([sq.stationFk, \
+			sq.songFk, \
 			sq.addedTimestamp, \
 			sq.requestedTimestamp], \
 			select(

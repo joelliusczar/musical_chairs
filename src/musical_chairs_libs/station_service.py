@@ -107,11 +107,11 @@ class StationService:
 		query = select(st.pk, st.name, tg.name, tg.pk, \
 			func.min(st.displayName)) \
 			.select_from(stations) \
-			.join(stations_tags, st.pk == sttg.stationFK) \
-			.join(songs_tags, sgtg.tagFK == sttg.tagFK) \
-			.join(tags, sttg.tagFK == tg.pk) \
+			.join(stations_tags, st.pk == sttg.stationFk) \
+			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
+			.join(tags, sttg.tagFk == tg.pk) \
 			.group_by(st.pk, st.name, tg.name, tg.pk) \
-			.having(func.count(sgtg.tagFK) > 0)
+			.having(func.count(sgtg.tagFk) > 0)
 		records = self.conn.execute(query)
 		partition = lambda r: (r[st.pk], r[st.name])
 		for key, group in itertools.groupby(records, partition):
@@ -131,9 +131,9 @@ class StationService:
 		sgtg = songs_tags.c
 		query = select(s.pk, s.title, s.album, s.artist) \
 			.select_from(stations) \
-			.join(stations_tags, st.pk == sttg.stationFK) \
-			.join(songs_tags, sgtg.tagFK == sttg.tagFK) \
-			.join(songs, s.pk == sgtg.songFK) \
+			.join(stations_tags, st.pk == sttg.stationFk) \
+			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
+			.join(songs, s.pk == sgtg.songFk) \
 			.where(st.name == stationName) \
 			.limit(limit) \
 			.offset(offset)

@@ -14,6 +14,7 @@
     "app_name": "musical_chairs_app",
     "other_val": "${config:terminal.integrated.inheritEnv}",
     "config_file": "${workspaceFolder}/test_trash/config/config.yml",
-    "http_config": "${workspaceFolder}/test_trash/musical_chairs_app/web_config.yml"
+    "http_config": "${workspaceFolder}/test_trash/musical_chairs_app/web_config.yml",
+    "test_root": "${workspaceFolder}/test_trash"
   }
 }

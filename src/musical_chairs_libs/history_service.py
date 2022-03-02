@@ -27,8 +27,8 @@ def get_history_for_station(self, stationName: str, limit: int = 50, offset: int
 	query = select(sg.pk, sg.path, h.playedTimestamp, sg.title, ab.name.label("album"),\
 		ar.name.label("artist")) \
 		.select_from(stations_history) \
-		.join(songs, h.songFK == sg.pk) \
-		.join(stations, st.pk == h.stationFK) \
+		.join(songs, h.songFk == sg.pk) \
+		.join(stations, st.pk == h.stationFk) \
 		.join(albums, sg.albumFk == ab.pk, isouter=True) \
 		.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
 		.join(artists, sgar.artistFk == ar.pk, isouter=True) \

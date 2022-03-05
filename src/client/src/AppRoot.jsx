@@ -9,36 +9,36 @@ import store from "./reducers";
 import { theme, useStyles } from "./style_config";
 
 function AppRoot() {
-  const classes = useStyles();
+	const classes = useStyles();
 
-  return (
-    <Provider store={store}>
-      <ThemeProvider theme={theme}>
-        {<BrowserRouter basename="/">
-          <div className={classes.root}>
-            <AppBar color="primary" position="fixed" className={classes.appBar}>
-              <Typography variant="h1">Musical Chairs</Typography>
-            </AppBar>
-            <Drawer
-              variant="permanent"
-              anchor="left"
-              className={classes.drawer}
-              classes={{
-                paper: classes.drawerPaper,
-              }}
-            >
-              <NavMenu />
-            </Drawer>
-            <main className={classes.content}>
-              <div className={classes.toolbar} />
-              <Typography variant="h1">{apiAddress}</Typography>
-              <AppRoutes />
-            </main>
-          </div>
-        </BrowserRouter>}
-      </ThemeProvider>
-    </Provider>
-  );
+	return (
+		<Provider store={store}>
+			<ThemeProvider theme={theme}>
+				{<BrowserRouter basename="/">
+					<div className={classes.root}>
+						<AppBar color="primary" position="fixed" className={classes.appBar}>
+							<Typography variant="h1">Musical Chairs</Typography>
+						</AppBar>
+						<Drawer
+							variant="permanent"
+							anchor="left"
+							className={classes.drawer}
+							classes={{
+								paper: classes.drawerPaper,
+							}}
+						>
+							<NavMenu />
+						</Drawer>
+						<main className={classes.content}>
+							<div className={classes.toolbar} />
+							<Typography variant="h1">{apiAddress}</Typography>
+							<AppRoutes />
+						</main>
+					</div>
+				</BrowserRouter>}
+			</ThemeProvider>
+		</Provider>
+	);
 }
 
 export default AppRoot;

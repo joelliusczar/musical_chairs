@@ -6,12 +6,12 @@ from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService
 from dependencies import station_service, history_service, queue_service
 
-router = APIRouter(prefix="/stations")
+router = APIRouter(prefix="/api/stations")
 
 @router.get("/")
 def index(stationService: StationService = Depends(station_service)):
 	stations = list(stationService.get_station_list())
-	return stations
+	return { "items": stations }
 
 @router.get("/{stationName}/history")
 def history(
@@ -20,7 +20,8 @@ def history(
 ) -> Dict:
 	if not stationName:
 		return []
-	history = list(historyService.get_history_for_station(stationName))
+	history = list(historyService \
+		.get_history_for_station(stationName=stationName))
 	return {"items": history }
 
 @router.get("/{stationName}/queue")

@@ -28,6 +28,7 @@ Loader.propTypes = {
   status: PropTypes.string,
   children: PropTypes.node,
   isReady: PropTypes.bool,
+  error: PropTypes.object,
 };
 
 export default Loader;

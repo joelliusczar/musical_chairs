@@ -110,7 +110,7 @@ export default function History() {
               {songHistoryObj.items.map((item, idx) => {
                 return (
                   <TableRow key={`song_${idx}`}>
-                    <TableCell>{item.song || "{No song name}"}</TableCell>
+                    <TableCell>{item.title || "{No song name}"}</TableCell>
                     <TableCell>{item.album || "{No album name}"}</TableCell>
                     <TableCell>{item.artist || "{No artist name}"}</TableCell>
                     <TableCell></TableCell>

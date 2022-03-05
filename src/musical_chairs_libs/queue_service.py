@@ -149,11 +149,12 @@ class QueueService:
 				.where(st.name == stationName)
 		records = self.conn.execute(query)
 		for row in records:
-			yield QueueItem(row.pk, 
-				row.path,
+			yield QueueItem(
+				row.pk, 
 				row.title,
 				row.album,
 				row.artist,
+				row.path,
 				row.queuedTimestamp
 			)
 

@@ -1,29 +1,21 @@
 from importlib.resources import path
 import time
-from typing import Iterable
+from typing import Tuple
+from collections.abc import Iterable
 from musical_chairs_libs.station_service import StationService
 from numpy.random import choice
 from sqlalchemy import select, desc, func, insert, delete, update, literal
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import stations_history, songs, stations,\
 	stations_tags, songs_tags, station_queue, albums, artists, song_artist
-from dataclasses import dataclass
-from musical_chairs_libs.history_service import HistoryService
-
-@dataclass
-class QueueItem:
-	songPk: int
-	path: str
-	title: str
-	album: str
-	artist: str
-	queuedTimestamp: float
-	requestedTimestamp: float = None
+from musical_chairs_libs.history_service import HistoryService, HistoryItem
+from musical_chairs_libs.dataclasses import QueueItem, CurrentPlayingInfo
 
 
 class QueueService:
 
-	def __init__(self, 
+	def __init__(
+		self, 
 		conn: Connection, 
 		stationService: StationService,
 		historyService: HistoryService
@@ -55,7 +47,11 @@ class QueueService:
 		rows = self.conn.execute(query).fetchall()
 		return rows
 
-	def get_random_songPks(self, stationPk: int, deficitSize: int):
+	def get_random_songPks(
+		self, 
+		stationPk: int, 
+		deficitSize: int
+	) -> Iterable[int]:
 		rows = self.get_all_station_song_possibilities(stationPk)
 		sampleSize = deficitSize if deficitSize < len(rows) else len(rows)
 		aSize = len(rows)
@@ -66,7 +62,7 @@ class QueueService:
 		selection = choice(songPks, sampleSize, p = weights, replace=False).tolist()
 		return selection
 
-	def fil_up_queue(self, stationPk: int, queueSize: int):
+	def fil_up_queue(self, stationPk: int, queueSize: int) -> None:
 		q = station_queue.c
 		queryQueueSize = select(func.count(1)).select_from(station_queue)\
 			.where(q.stationFk == stationPk)
@@ -76,17 +72,22 @@ class QueueService:
 			return
 		songPks = self.get_random_songPks(stationPk, deficitSize)
 		timestamp = time.time()
-		params = list(map(lambda s: {"stationFk": stationPk, "songFk": s, "queuedTimestamp": timestamp }, songPks))
+		params = list(map(lambda s: {
+			"stationFk": stationPk, 
+			"songFk": s, 
+			"queuedTimestamp": timestamp 
+		}, songPks))
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
 		historyInsert = insert(stations_history)
 		self.conn.execute(historyInsert, params)
 
-	def move_from_queue_to_history(self, 
+	def move_from_queue_to_history(
+		self, 
 		stationPk: int, 
 		songPk: int, 
 		queueTimestamp: float
-	):
+	) -> None:
 		q = station_queue.c
 		# can't delete by songPk alone b/c the song might be queued multiple times
 		queueDel = delete(station_queue).where(q.stationFk == stationPk) \
@@ -113,22 +114,21 @@ class QueueService:
 		res = self.conn.execute(query).scalar()
 		return res < 1
 
-	def get_queue_for_station(self, 
+	def get_queue_for_station(
+		self, 
 		stationPk: int=None, 
 		stationName: str=None,
 		limit: int=None
 	) -> Iterable[QueueItem]:
-		if not stationPk:
-			if stationName:
-				stationPk = self.station_service.get_station_pk(stationName)
-			else:
-				raise ValueError("Either stationName or pk must be provided")
+		if not stationPk and not stationName:
+			raise ValueError("Either stationName or pk must be provided")
 		sg = songs.c
 		q = station_queue.c
 		ab = albums.c
 		ar = artists.c
 		sgar = song_artist.c
-		query = select(
+		st = stations.c
+		baseQuery = select(
 				sg.pk, \
 				sg.path, \
 				sg.title, \
@@ -142,40 +142,45 @@ class QueueService:
 			.join(artists, sgar.artistFk == ar.pk, isouter=True) \
 			.where(q.stationFk == stationPk) \
 			.order_by(q.queuedTimestamp)
-		if limit:
-			query = query.limit(limit)
+		if stationPk:
+			query = baseQuery.where(q.stationFk == stationPk)
+		elif stationName:
+			query = baseQuery.join(stations, st.pk == q.stationFk) \
+				.where(st.name == stationName)
 		records = self.conn.execute(query)
 		for row in records:
-			yield QueueItem(row.pk, \
-				row.path, \
-				row.title, \
-				row.album, \
-				row.artist, \
-				row.queuedTimestamp)
+			yield QueueItem(row.pk, 
+				row.path,
+				row.title,
+				row.album,
+				row.artist,
+				row.queuedTimestamp
+			)
 
-	def pop_next_queued(self, 
+	def pop_next_queued(
+		self, 
 		stationPk: int=None,
 		stationName: str=None, 
 		queueSize: int=50
-	):
-		if not stationPk:
-			if stationName:
-				stationPk = self.station_service.get_station_pk(stationName)
-			else:
-				raise ValueError("Either stationName or pk must be provided")
+	) -> Tuple[str, str, str, str]:
+		if not stationPk and not stationName:
+			raise ValueError("Either stationName or pk must be provided")
 		if self.is_queue_empty(stationPk):
 			self.fil_up_queue(stationPk, queueSize + 1)
-		results = self.get_queue_for_station(stationPk, 1)
+		results = self.get_queue_for_station(stationPk, limit=1)
 		queueItem = next(results)
-		self.move_from_queue_to_history(stationPk, queueItem.songPk, queueItem.queuedTimestamp)
+		self.move_from_queue_to_history(stationPk, \
+			queueItem.songPk, \
+			queueItem.queuedTimestamp)
 		self.fil_up_queue(stationPk, queueSize)
-		return (queueItem.path, queueItem.title,queueItem.album, queueItem.artist)
+		return (queueItem.path, queueItem.title, queueItem.album, queueItem.artist)
 
-	def add_song_to_queue(self, 
+	def add_song_to_queue(
+		self, 
 		songPk: int,
 		stationPk: int=None, 
 		stationName: str=None
-	):
+	) -> int:
 		if not stationPk:
 			if stationName:
 				stationPk = self.station_service.get_station_pk(stationName)
@@ -192,39 +197,44 @@ class QueueService:
 			.join(stations_tags, sttg.stationFk == st.pk) \
 			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
 			.where(sgtg.songFk == songPk)
-
-		stmt = insert(station_queue).from_select([sq.stationFk, \
-			sq.songFk, \
-			sq.addedTimestamp, \
-			sq.requestedTimestamp], \
-			select(
+		baseFromQuery= select(
 				st.pk, \
 				literal(songPk), \
 				literal(timestamp), \
 				literal(timestamp)) \
-					.where(st.name == stationName) \
-					.where(st.pk.in_(subquery)))
-
+					.where(st.pk.in_(subquery))
+		if stationPk:
+			fromQuery = baseFromQuery.where(st.stationFk == stationPk)
+		elif stationName:
+			fromQuery = baseFromQuery.where(st.name == stationName) \
+				.where(st.name == stationName)
+		stmt = insert(station_queue).from_select(
+			[
+				sq.stationFk, \
+				sq.songFk, \
+				sq.addedTimestamp, \
+				sq.requestedTimestamp \
+			], \
+			fromQuery
+			)
 		rc = self.conn.execute(stmt)
 		return rc.rowcount
 	
 
-	def get_now_playing_and_queue(self, 
+	def get_now_playing_and_queue(
+		self, 
 		stationPk: int = None, 
 		stationName: str = None
-	):
+	) -> CurrentPlayingInfo:
 		if not stationPk:
 			if stationName:
 				stationPk = self.station_service.get_station_pk(stationName)
 			else:
 				raise ValueError("Either stationName or pk must be provided")
 		queue = list(self.get_queue_for_station(stationPk))
-		try:
-			playing = next(self.history_service\
-				.get_history_for_station(stationPk, limit=1))
-			return {'nowPlaying':playing, 'items': queue}
-		except:
-			return {'nowPlaying':'', 'items': queue}
+		playing = next(self.history_service\
+			.get_history_for_station(stationPk, limit=1), None)
+		return CurrentPlayingInfo(playing, queue)
 
 
 

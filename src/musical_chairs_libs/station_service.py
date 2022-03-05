@@ -1,12 +1,24 @@
 import os
 import sys
 import itertools
-import time
+from dataclasses import dataclass
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select, desc, func, insert, delete, update, literal
+from sqlalchemy import select, \
+	func, \
+	insert, \
+	delete, \
+	update
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.tables import stations, tags, stations_tags, songs_tags, \
-	station_queue, songs
+from musical_chairs_libs.tables import stations, \
+	tags, \
+	stations_tags, \
+	songs_tags, \
+	songs, \
+	albums, \
+	artists, \
+	song_artist
+from collections.abc import Iterable
+from musical_chairs_libs.dataclasses import Tag, StationInfo, SongItem
 
 class StationService:
 
@@ -16,12 +28,14 @@ class StationService:
 	def set_station_proc(self, stationName: str) -> None:
 		pid = os.getpid()
 		st = stations.c
-		stmt = update(stations).values(procId = pid).where(st.name == stationName)
+		stmt = update(stations)\
+			.values(procId = pid).where(st.name == stationName)
 		self.conn.execute(stmt)
 
 	def remove_station_proc(self, stationName: str) -> None:
 		st = stations.c
-		stmt = update(stations).values(procId = None).where(st.name == stationName)
+		stmt = update(stations)\
+			.values(procId = None).where(st.name == stationName)
 		self.conn.execute(stmt)
 
 	def end_all_stations(self) -> None:
@@ -55,13 +69,16 @@ class StationService:
 
 	def does_station_exist(self, stationName: str) -> bool:
 		st = stations.c
-		query = select(func.count(1)).select_from(stations).where(st.name == stationName)
+		query = select(func.count(1))\
+			.select_from(stations)\
+			.where(st.name == stationName)
 		res = self.conn.execute(query).fetchone()
 		return res.count < 1
 
 	def add_station(self, stationName: str, displayName: str) -> None:
 		try:
-			stmt = insert(stations).values(name = stationName, displayName = displayName)
+			stmt = insert(stations)\
+				.values(name = stationName, displayName = displayName)
 			self.conn.execute(stmt)
 		except IntegrityError:
 			print("Could not insert")
@@ -83,7 +100,8 @@ class StationService:
 		stationPk = self.get_station_pk(stationName)
 		tagPk = self.get_or_save_tag(tagName)
 		try:
-			stmt = insert(stations_tags).values(stationFk = stationPk, tagFk = tagPk)
+			stmt = insert(stations_tags)\
+				.values(stationFk = stationPk, tagFk = tagPk)
 			self.conn.execute(stmt)
 		except IntegrityError as ex:
 			print("Could not insert")
@@ -94,19 +112,24 @@ class StationService:
 		sttg = stations_tags.c
 		st = stations.c
 		stationPk = self.get_station_pk(stationName)
-		assignedTagsDel = delete(stations_tags).where(sttg.stationFk == stationPk)
+		assignedTagsDel = delete(stations_tags)\
+			.where(sttg.stationFk == stationPk)
 		self.conn.execute(assignedTagsDel)
 		stationDel = delete(stations).where(st.stationPk == stationPk)
 		self.conn.execute(stationDel)
 
-	def get_station_list(self):
+	def get_station_list(self) -> Iterable[StationInfo]:
 		st = stations.c
 		sgtg = songs_tags.c
 		sttg = stations_tags.c
 		tg = tags.c
-		query = select(st.pk, st.name, tg.name, tg.pk, \
-			func.min(st.displayName)) \
-			.select_from(stations) \
+		query = select(
+			st.pk, 
+			st.name, 
+			tg.name, 
+			tg.pk,
+			func.min(st.displayName)
+		).select_from(stations) \
 			.join(stations_tags, st.pk == sttg.stationFk) \
 			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
 			.join(tags, sttg.tagFk == tg.pk) \
@@ -115,34 +138,47 @@ class StationService:
 		records = self.conn.execute(query)
 		partition = lambda r: (r[st.pk], r[st.name])
 		for key, group in itertools.groupby(records, partition):
-			yield { 
-				"id": key[0],
-				"name": key[1], 
-				"tags": list(map(lambda r: { 
-					"name": r[tg.name],
-					"id": r[tg.pk],
-				}, group))
-			}
+			yield StationInfo(
+				id=key[0],
+				name=key[1],
+				tags=list(map(lambda r: Tag(r[tg.pk], r[tg.name]), group))
+			)
 
-	def get_station_song_catalogue(self, stationName: str, limit: int = 50, offset: int = 0):
-		s = songs.c
+	def get_station_song_catalogue(
+		self, 
+		stationPk: int = None,
+		stationName: str = None, 
+		limit: int = None, 
+		offset: int = 0
+	) -> Iterable[SongItem]:
+		if not stationPk and not stationName:
+			raise ValueError("Either stationName or pk must be provided")
+		sg = songs.c
 		st = stations.c
 		sttg = stations_tags.c
 		sgtg = songs_tags.c
-		query = select(s.pk, s.title, s.album, s.artist) \
-			.select_from(stations) \
+		ab = albums.c
+		ar = artists.c
+		sgar = song_artist.c
+		baseQuery = select(
+			sg.pk, 
+			sg.title, 
+			ab.name.label("album"), \
+			ar.name.label("artist"), \
+		).select_from(stations) \
 			.join(stations_tags, st.pk == sttg.stationFk) \
 			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
-			.join(songs, s.pk == sgtg.songFk) \
-			.where(st.name == stationName) \
+			.join(songs, sg.pk == sgtg.songFk) \
+			.join(albums, sg.albumFk == ab.pk, isouter=True) \
+			.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
+			.join(artists, sgar.artistFk == ar.pk, isouter=True) \
 			.limit(limit) \
 			.offset(offset)
+		if stationPk:
+			query = baseQuery.where(st.pk == stationPk)
+		elif stationName:
+			query = baseQuery.where(st.name == stationName)
 		records = self.conn.execute(query)
 		for row in records:
-			yield {
-					"id": row[s.pk],
-					"song": row[s.title],
-					"album": row[s.album],
-					"artist": row[s.artist],
-			}
+			yield SongItem(row.pk, row.title, row.album, row.artist)
 

@@ -1,4 +1,5 @@
 export const apiAddress = process.env.REACT_APP_API_ADDRESS;
+export const apiVersion = process.env.REACT_APP_API_VERSION;
 
 export const CallStatus = {
 	loading: "loading",
@@ -20,11 +21,12 @@ export const DomRoutes = {
 };
 
 export const ApiRoutes = {
-	queue: (stationName) => `api/stations/${stationName}/queue/`,
-	history: (stationName) => `api/stations/${stationName}/history/`,
-	stations: () => "api/stations/",
+	queue: (stationName) => `api/${apiVersion}/stations/${stationName}/queue/`,
+	history: (stationName) => 
+		`api/${apiVersion}/stations/${stationName}/history/`,
+	stations: () => `api/${apiVersion}/stations/`,
 	songRequest: (stationName, songId) => 
-		`api/stations/${stationName}/request/${songId}`,
+		`api/${apiVersion}/stations/${stationName}/request/${songId}`,
 	songCatalogue: (stationName) => 
-		`api/stations/${stationName}/song-catalogue/`,
+		`api/${apiVersion}/stations/${stationName}/catalogue/`,
 };

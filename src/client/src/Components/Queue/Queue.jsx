@@ -39,7 +39,7 @@ const useStyles = makeStyles(() => ({
 */
 const formatNowPlaying = (nowPlaying) => {
 	if(!nowPlaying) return "No song info available";
-	const song = nowPlaying.song || "{No song name}";
+	const song = nowPlaying.title || "{No song name}";
 	const album = nowPlaying.album || "{No album name}";
 	const artist = nowPlaying.artist || "{No artist name}";
 	const str = `Song: ${song} - ${album} - ${artist}`;

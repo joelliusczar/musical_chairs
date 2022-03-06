@@ -1,12 +1,13 @@
 from typing import Dict
 from fastapi import APIRouter, Depends
 from musical_chairs_libs.station_service import StationService
-
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService
 from dependencies import station_service, history_service, queue_service
+from constants import api_version
 
-router = APIRouter(prefix="/api/stations")
+
+router = APIRouter(prefix=f"/api/{api_version}/stations")
 
 @router.get("/")
 def index(stationService: StationService = Depends(station_service)):

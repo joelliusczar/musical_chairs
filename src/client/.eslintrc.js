@@ -20,10 +20,10 @@ module.exports = {
 	],
 	"rules": {
 		"indent": [
-			"error",
 			2,
 			"tab",
 		],
+		"no-tabs": 0,
 		"linebreak-style": [
 			"error",
 			"unix",
@@ -46,6 +46,6 @@ module.exports = {
 		],
 		"no-console": "warn",
 		"array-callback-return": "error",
-		"max-len": ["error", { "code": 80 }]
+		"max-len": ["error", { "code": 80, "tabWidth": 2 }],
 	},
 };

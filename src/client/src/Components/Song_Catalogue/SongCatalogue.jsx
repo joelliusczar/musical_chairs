@@ -122,7 +122,7 @@ export default function SongCatalogue() {
 								return (
 									<TableRow key={`song_${idx}`}>
 										<TableCell>
-											{item.song || "{No song name}"}
+											{item.title || "{No song name}"}
 										</TableCell>
 										<TableCell>
 											{item.album || "{No album name}"}

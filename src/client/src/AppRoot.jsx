@@ -16,7 +16,11 @@ function AppRoot() {
 			<ThemeProvider theme={theme}>
 				{<BrowserRouter basename="/">
 					<div className={classes.root}>
-						<AppBar color="primary" position="fixed" className={classes.appBar}>
+						<AppBar 
+							color="primary" 
+							position="fixed" 
+							className={classes.appBar}
+						>
 							<Typography variant="h1">Musical Chairs</Typography>
 						</AppBar>
 						<Drawer

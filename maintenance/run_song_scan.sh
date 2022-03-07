@@ -18,7 +18,8 @@ env_path="$maintenance_dir_cl"
 
 export config_file
 . "$env_path"/env/bin/activate &&
-{ mc-python  <<EOF
+# #python_env
+{ python  <<EOF
 from fastapi import Depends
 from musical_chairs_libs.dependencies import song_scanner
 print("Starting")

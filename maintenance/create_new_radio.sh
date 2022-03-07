@@ -60,7 +60,8 @@ env_path="$maintenance_dir_cl"
 
 
 . "$env_path"/env/bin/activate &&
-{ mc-python  <<EOF
+# #python_env
+{ python  <<EOF
 from fastapi import Depends
 from musical_chairs_libs.dependencies import station_service
 stationService = Depends(station_service)
@@ -72,7 +73,8 @@ while true; do
 echo -n 'Enter a tag to assign to station: '
 read tagname
 [ -z "$tagname" ] && break
-{ mc-python <<EOF
+# #python_env
+{ python <<EOF
 from fastapi import Depends
 from musical_chairs_libs.dependencies import station_service
 stationService = Depends(station_service)

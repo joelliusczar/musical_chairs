@@ -61,8 +61,10 @@ env_path="$maintenance_dir_cl"
 
 . "$env_path"/env/bin/activate &&
 { mc-python  <<EOF
-from musical_chairs_libs.station_service import add_station
-add_station('${internal_name}','${public_name}')
+from fastapi import Depends
+from musical_chairs_libs.dependencies import station_service
+stationService = Depends(station_service)
+stationService.add_station('${internal_name}','${public_name}')
 print('${internal_name} added')
 EOF
 } && {
@@ -71,8 +73,10 @@ echo -n 'Enter a tag to assign to station: '
 read tagname
 [ -z "$tagname" ] && break
 { mc-python <<EOF
-from musical_chairs_libs.station_service import assign_tag_to_station
-assign_tag_to_station('${internal_name}','${tagname}')
+from fastapi import Depends
+from musical_chairs_libs.dependencies import station_service
+stationService = Depends(station_service)
+stationService.assign_tag_to_station('${internal_name}','${tagname}')
 print('tag ${tagname} assigned to ${internal_name}')
 EOF
 }

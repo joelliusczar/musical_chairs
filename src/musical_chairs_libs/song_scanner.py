@@ -140,7 +140,7 @@ class SongScanner:
 			transaction.commit()
 		return update
 
-	def save_paths(self,searchBase: str) -> int:
+	def save_paths(self, searchBase: str) -> int:
 		insertCount = 0
 		for idx, path in enumerate(scan_files(searchBase)):
 			try:

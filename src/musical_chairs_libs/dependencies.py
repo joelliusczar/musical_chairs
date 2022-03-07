@@ -1,10 +1,10 @@
-import os
 from fastapi import Depends
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.config_loader import ConfigLoader
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.queue_service import QueueService
+from musical_chairs_libs.song_scanner import SongScanner
 
 def config_loader() -> ConfigLoader:
 	return ConfigLoader()
@@ -26,3 +26,9 @@ def queue_service(
 	historyService: HistoryService = Depends(history_service)
 ) -> QueueService:
 	return QueueService(conn, stationService, historyService)
+
+def song_scanner(
+	conn: Connection = Depends(conn), 
+	stationService: StationService = Depends(station_service)
+) -> SongScanner:
+	return SongScanner(conn, stationService)

@@ -3,7 +3,10 @@ from fastapi import APIRouter, Depends
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService
-from dependencies import station_service, history_service, queue_service
+from musical_chairs_libs.dependencies import \
+station_service, \
+history_service, \
+queue_service
 from constants import api_version
 
 

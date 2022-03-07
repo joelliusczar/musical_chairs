@@ -23,8 +23,10 @@ fi
 export config_file
 . "$env_path"/env/bin/activate &&
 { mc-python  <<EOF
-from musical_chairs_libs.station_service import end_all_stations
-end_all_stations()
+from fastapi import Depends
+from musical_chairs_libs.dependencies import station_service
+stationService = Depends(station_service)
+stationService.end_all_stations()
 print("Done")
 EOF
 }

@@ -18,6 +18,8 @@ show_err_and_exit
 
 
 #set up react then copy
+ls
+npm version
 
 #install packages
 npm --prefix "$client_src" i &&

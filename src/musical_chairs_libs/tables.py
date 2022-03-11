@@ -1,4 +1,4 @@
-from sqlalchemy import Table, MetaData, Column, Integer, REAL
+from sqlalchemy import Table, MetaData, Column, REAL, TEXT, BLOB, INTEGER
 
 metadata = MetaData()
 
@@ -71,9 +71,12 @@ station_queue = Table("StationQueue", metadata,
 	Column("requestedTimestamp"),
 )
 
-# temp table definition
-last_history_tmp = Table('LastHistory', metadata,
-	Column("songFk", Integer),
-	Column("lastQueued", REAL),
-	prefixes=["TEMP"]
+users = Table("Users", metadata,
+	Column("pk", INTEGER),
+	Column("userName", TEXT),
+	Column("hashedPW", BLOB),
+	Column("salt", BLOB),
+	Column("email", TEXT),
+	Column("isActive", INTEGER),
 )
+

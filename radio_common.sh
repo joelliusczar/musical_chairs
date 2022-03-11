@@ -4,7 +4,7 @@
 [ -f "$HOME"/.dev_local_rc ] && . "$HOME"/.dev_local_rc
 
 while [ ! -z "$1" ]; do
-	case $1 in
+	case "$1" in
 		test)
 			test_flag='test'
 			;;
@@ -39,11 +39,11 @@ maintenance_dir_cl="$radio_home"/maintenance
 start_up_dir_cl="$radio_home"/start_up
 templates_dir_cl="$maintenance_dir_cl"/templates
 
-case "$OSTYPE" in
-	linux-gnu*)
+case $(uname) in
+	Linux*)
 		export web_root=${web_root:-/srv}
 		;;
-	darwin*)
+	Darwin*)
 		export web_root=${web_root:-/Library/WebServer}
 		;;
 	*) ;;
@@ -74,8 +74,8 @@ set_python_version_const() {
 set_pkg_mgr() {
 	pkgMgr=''
 	pkgMgrChoice=''
-	case "$OSTYPE" in
-	linux-gnu*)
+	case $(uname) in
+	Linux*)
 		if  which pacman >/dev/null 2>&1; then
 			pkgMgrChoice="$PACMAN_CONST"
 			pkgMgr='yes | sudo -p "Pass required for pacman install: " pacman -S'
@@ -85,7 +85,7 @@ set_pkg_mgr() {
 			pkgMgr="yes | sudo -p '$msg' apt-get install: "
 		fi
 		;;
-	darwin*)
+	Darwin*)
 		pkgMgrChoice="$HOMEBREW_CONST"
 		pkgMgr='yes | brew install'
 		;;
@@ -169,8 +169,8 @@ empty_dir_contents() {
 
 get_bin_path() {
 	local pkg="$1"
-	case "$OSTYPE" in
-		darwin*)
+	case $(uname) in
+		Darwin*)
 			brew info "$pkg" \
 			| grep -A1 'has been installed as' \
 			| awk 'END{ print $1 }'
@@ -182,8 +182,8 @@ get_bin_path() {
 brew_is_installed() {
 	local pkg="$1"
 	echo "checking for $pkg"
-	case "$OSTYPE" in
-		darwin*)
+	case $(uname) in
+		Darwin*)
 			brew info "$pkg" >/dev/null 2>&1 &&
 			! brew info "$pkg" | grep 'Not installed' >/dev/null
 			;;

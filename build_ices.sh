@@ -11,8 +11,8 @@ else
   exit 1
 fi
 
-case "$OSTYPE" in
-	darwin*)
+case $(uname) in
+	Darwin*)
 		PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH"
 		;;
 	*) ;;

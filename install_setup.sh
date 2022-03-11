@@ -30,8 +30,8 @@ if perl -e "exit 1 if index('$PATH','$bin_dir') != -1"; then
 	export PATH="$PATH":"$bin_dir"
 fi
 
-case "$OSTYPE" in
-	darwin*)
+case $(uname) in
+	Darwin*)
 		if ! brew --version 2>/dev/null; then
 			/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 		fi
@@ -40,14 +40,14 @@ case "$OSTYPE" in
 esac
 
 if ! mc-python -V 2>/dev/null; then
-	case "$OSTYPE" in
-		darwin*)
-			if ! brew_is_installed python3; then
+	case $(uname) in
+		Linux*) 
+			if ! python3 -V 2>/dev/null; then
 				eval "$pkgMgr" python3
 			fi
 			;;
-		linux-gnu*) 
-			if ! python3 -V 2>/dev/null; then
+		Darwin*)
+			if ! brew_is_installed python3; then
 				eval "$pkgMgr" python3
 			fi
 			;;
@@ -71,8 +71,8 @@ if ! npm version 2>/dev/null; then
 fi
 
 
-case "$OSTYPE" in
-	linux-gnu*)
+case $(uname) in
+	Linux*)
 		if ! s3fs --version 2>/dev/null; then
 			eval "$pkgMgr" s3fs
 		fi
@@ -92,8 +92,8 @@ if ! aclocal --version 2>/dev/null; then
 fi
 
 
-case "$OSTYPE" in
-		darwin*)
+case $(uname) in
+		Darwin*)
 			if ! brew_is_installed libtool; then
 				eval "$pkgMgr" libtool 
 			fi
@@ -104,7 +104,7 @@ case "$OSTYPE" in
 				eval "$pkgMgr" libshout 
 			fi
 			;;
-		linux-gnu*) 
+		Linux*) 
 			if [ "$pkgMgrChoice" = "$APT_CONST" ] \
 			&& ! libtool --version 2>/dev/null; then
 				eval "$pkgMgr" libtool-bin
@@ -156,8 +156,8 @@ if ! [ -e "$radio_home" ]; then
 	mkdir -pv "$radio_home"
 fi
 
-case "$OSTYPE" in
-	linux-gnu*)
+case $(uname) in
+	Linux*)
 		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
 			if ! icecast -v 2>/dev/null; then
 				eval "$pkgMgr" icecast

@@ -131,7 +131,9 @@ link_to_music_files() {
 }
 
 #set up the python environment, then copy 
+# subshell () auto switches in use python version back at the end of function
 setup_py3_env() (
+	set_python_version_const
 	local codePath="$1"
 	local packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
 	local dest="$codePath"/"$packagePath""$lib_name"/
@@ -141,7 +143,6 @@ setup_py3_env() (
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
 	python -m pip install -r "$radio_home"/requirements.txt &&
-	deactivate &&
 	empty_dir_contents "$dest" &&
 	sudo -p 'Password required to copy lib files: ' \
 		cp -rv ./src/"$lib_name"/* "$dest" &&

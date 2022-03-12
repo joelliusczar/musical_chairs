@@ -15,4 +15,4 @@ export config_file
 export http_config
 . "$maintenance_dir_cl"/env/bin/activate &&
 # see #python_env
-python "$app_path"/index.py
+python "$app_path_cl"/index.py

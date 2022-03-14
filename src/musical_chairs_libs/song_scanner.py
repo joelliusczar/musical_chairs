@@ -6,8 +6,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy import insert, select, update
 from tinytag import TinyTag
 from musical_chairs_libs.tables import songs, artists, albums, song_artist, songs_tags
-from musical_chairs_libs.station_service import StationService, get_tag_pk
-from musical_chairs_libs.connection_decorator import provide_db_conn
+from musical_chairs_libs.station_service import StationService
 from collections.abc import Iterable
 
 def getFilter(endings: Iterable[str]) -> Callable[[str],bool]:

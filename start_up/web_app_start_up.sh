@@ -13,6 +13,6 @@ fi
 
 export config_file
 export http_config
-. "$maintenance_dir_cl"/env/bin/activate &&
+. "$app_path_cl"/env/bin/activate &&
 # see #python_env
-python "$app_path_cl"/index.py
+uvicorn --app-dir "$app_path_cl" --host 0.0.0.0 --port 8032 "index:app" &

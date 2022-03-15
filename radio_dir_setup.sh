@@ -32,6 +32,6 @@ empty_dir_contents "$start_up_dir_cl" &&
 
 sudo -p 'Pass required for copying start up files: ' \
 	cp -v ./start_up/* "$start_up_dir_cl" &&
-:  -p 'Pass required for changing owner of start up files: ' \
+sudo -p 'Pass required for changing owner of start up files: ' \
 	chown -R "$current_user": "$start_up_dir_cl" || 
 show_err_and_exit 

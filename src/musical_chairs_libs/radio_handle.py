@@ -1,36 +1,27 @@
 import os
-from sqlalchemy import create_engine
-from musical_chairs_libs.queue_service import QueueService
-from musical_chairs_libs.config_loader import ConfigLoader
-from musical_chairs_libs.station_service import StationService
-
+from fastapi import Depends
+from musical_chairs_libs.dependencies import \
+station_service, \
+queue_service
 
 
 class RadioHandle:
 
-	def __init__(self, stationName: str, configLoader: ConfigLoader = None) -> None:
+	def __init__(self, stationName: str) -> None:
 		self.songnumber = -1
 		self.songFullPath = ""
 		self.display = ""
-		if configLoader: 
-			self.config_loader = configLoader
-		else:
-			self.config_loader = ConfigLoader()
 		self.stationName = stationName
 
 	def ices_init(self) -> int:
-		conn = self.config_loader.get_configured_db_connection()
-		StationService(conn).set_station_proc(self.stationName)
-		conn.close()
+		Depends(station_service).set_station_proc(self.stationName)
 		print('Executing initialize() function..')
 		return 1
 
 	# Function called to shutdown your python enviroment.
 	# Return 1 if ok, 0 if something went wrong.
 	def ices_shutdown(self) -> int:
-		conn = self.config_loader.get_configured_db_connection()
-		StationService(conn).remove_station_proc(self.stationName)
-		conn.close()
+		Depends(station_service).remove_station_proc(self.stationName)
 		print(f"Station is shutting down on {self.display}")
 		print(self.songFullPath)
 		print('Executing shutdown() function...')
@@ -40,12 +31,9 @@ class RadioHandle:
 	# Should return a string.
 	def ices_get_next(self) -> str:
 		searchBase = self.config_loader.config['searchBase']
-		conn = self.config_loader.get_configured_db_connection()
-		stationService = StationService(conn)
-		queueService = QueueService(conn, stationService)
+		queueService = Depends(queue_service)
 		(songPath, title, album, artist) = \
 			queueService.pop_next_queued(self.stationName)
-		conn.close()
 		if title:
 			self.display = f"{title} - {album} - {artist}"
 		else:

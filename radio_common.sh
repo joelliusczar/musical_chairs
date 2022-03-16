@@ -66,6 +66,7 @@ current_user=$(whoami)
 
 set_python_version_const() {
 	#python version info
+	! mc-python -V 2>/dev/null || return "$?"
 	pyVersion=$(mc-python -V)
 	pyMajor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /(\d+)\.\d+/')
 	pyMinor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /\d+\.(\d+)/')
@@ -133,7 +134,7 @@ link_to_music_files() {
 #set up the python environment, then copy 
 # subshell () auto switches in use python version back at the end of function
 setup_py3_env() (
-	set_python_version_const
+	set_python_version_const || return "$?"
 	local codePath="$1"
 	local packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
 	local dest="$codePath"/"$packagePath""$lib_name"/

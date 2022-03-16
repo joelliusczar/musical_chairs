@@ -10,7 +10,11 @@ def config_loader() -> ConfigLoader:
 	return ConfigLoader()
 
 def conn(configLoader: ConfigLoader = Depends(config_loader)) -> Connection:
-	return configLoader.get_configured_db_connection()
+	conn = configLoader.get_configured_db_connection()
+	try:
+		yield conn
+	finally:
+		conn.close()
 
 def station_service(conn: Connection = Depends(conn)) -> StationService:
 	return StationService(conn)

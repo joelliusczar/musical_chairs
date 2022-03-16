@@ -1,7 +1,9 @@
 import os
 from fastapi import Depends
+from musical_chairs_libs.config_loader import ConfigLoader
 from musical_chairs_libs.dependencies import \
 station_service, \
+config_loader, \
 queue_service
 
 
@@ -11,6 +13,7 @@ class RadioHandle:
 		self.songnumber = -1
 		self.songFullPath = ""
 		self.display = ""
+		self.config_loader = Depends(config_loader)
 		self.stationName = stationName
 
 	def ices_init(self) -> int:

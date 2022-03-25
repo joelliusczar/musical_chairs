@@ -13,5 +13,10 @@ fi
 
 sh ./radio_dir_setup.sh
 
-sh ./api_setup/setup_backend.sh
-sh ./api_setup/setup_client.sh
+sh ./setup_backend.sh
+sh ./setup_client.sh
+
+if [ -n "$test_flag" ]; then
+	cp -v './reference/songs_db' "$sqlite_file" || 
+	show_err_and_exit 
+fi

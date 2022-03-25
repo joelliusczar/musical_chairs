@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import Connection
 from sqlalchemy import insert, select, update
 from tinytag import TinyTag
+from musical_chairs_libs.config_loader import ConfigLoader
 from musical_chairs_libs.tables import songs, artists, albums, song_artist, songs_tags
 from musical_chairs_libs.station_service import StationService
 from collections.abc import Iterable
@@ -53,7 +54,18 @@ def get_file_tags(songFullPath: str) -> TinyTag:
 
 class SongScanner:
 
-	def __init__(self, conn: Connection, stationService: StationService) -> None:
+	def __init__(
+		self, 
+		conn: Connection, 
+		stationService: StationService = None,
+		configLoader: ConfigLoader = None
+	) -> None:
+			if not conn:
+				if not configLoader:
+					configLoader = ConfigLoader()
+				conn = configLoader.get_configured_db_connection()
+			if not stationService:
+				stationService = StationService(conn)
 			self.conn = conn
 			self.station_service = stationService
 

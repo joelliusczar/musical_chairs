@@ -21,13 +21,6 @@ class ConfigLoader:
 			self._config =  yaml.safe_load(stream)
 		return self._config
 
-	def get_http_config(self) -> dict[str, Any]:
-		config_path = os.environ["http_config"]
-
-		with open(config_path,"r") as stream:
-			config =  yaml.safe_load(stream)
-		return config
-
 	def get_configured_db_connection(self, echo = False) -> Connection:
 		config = self.config
 		engine = create_engine(f"sqlite+pysqlite:///{config['dbName']}", echo=echo)

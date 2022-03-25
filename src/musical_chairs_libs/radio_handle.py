@@ -1,30 +1,39 @@
 import os
-from fastapi import Depends
+from sqlalchemy import create_engine
+from musical_chairs_libs.queue_service import QueueService
 from musical_chairs_libs.config_loader import ConfigLoader
-from musical_chairs_libs.dependencies import \
-station_service, \
-config_loader, \
-queue_service
+from musical_chairs_libs.station_service import StationService
+
 
 
 class RadioHandle:
 
-	def __init__(self, stationName: str) -> None:
+	def __init__(
+		self,
+		stationName: str, 
+		configLoader: ConfigLoader = None
+	) -> None:
 		self.songnumber = -1
 		self.songFullPath = ""
 		self.display = ""
-		self.config_loader = Depends(config_loader)
+		if not configLoader:
+			configLoader = ConfigLoader()
+		self.config_loader = configLoader
 		self.stationName = stationName
 
 	def ices_init(self) -> int:
-		Depends(station_service).set_station_proc(self.stationName)
+		conn = self.config_loader.get_configured_db_connection()
+		StationService(conn).set_station_proc(stationName=self.stationName)
+		conn.close()
 		print('Executing initialize() function..')
 		return 1
 
 	# Function called to shutdown your python enviroment.
 	# Return 1 if ok, 0 if something went wrong.
 	def ices_shutdown(self) -> int:
-		Depends(station_service).remove_station_proc(self.stationName)
+		conn = self.config_loader.get_configured_db_connection()
+		StationService(conn).remove_station_proc(stationName=self.stationName)
+		conn.close()
 		print(f"Station is shutting down on {self.display}")
 		print(self.songFullPath)
 		print('Executing shutdown() function...')
@@ -34,9 +43,11 @@ class RadioHandle:
 	# Should return a string.
 	def ices_get_next(self) -> str:
 		searchBase = self.config_loader.config['searchBase']
-		queueService = Depends(queue_service)
+		conn = self.config_loader.get_configured_db_connection()
+		queueService = QueueService(conn)
 		(songPath, title, album, artist) = \
-			queueService.pop_next_queued(self.stationName)
+			queueService.pop_next_queued(stationName=self.stationName)
+		conn.close()
 		if title:
 			self.display = f"{title} - {album} - {artist}"
 		else:

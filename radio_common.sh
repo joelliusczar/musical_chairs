@@ -19,6 +19,11 @@ while [ ! -z "$1" ]; do
 	shift
 done
 
+if [ -n "$test_flag" ]; then
+	radio_home='./test_trash'
+	web_root='./test_trash'
+fi
+
 export radio_home=${radio_home:-"$HOME"/radio}
 
 lib_name='musical_chairs_libs'
@@ -37,7 +42,7 @@ bin_dir="$HOME"/.local/bin
 # suffixed with 'cl' for 'clean'
 maintenance_dir_cl="$radio_home"/maintenance
 start_up_dir_cl="$radio_home"/start_up
-templates_dir_cl="$maintenance_dir_cl"/templates
+templates_dir_cl="$radio_home"/templates
 
 case $(uname) in
 	Linux*)
@@ -50,8 +55,6 @@ case $(uname) in
 esac
 app_path_cl="$web_root"/"$app_name"
 app_path_client_cl="$app_path_cl"/client/
-
-http_config="$app_path_cl"/web_config.yml
 
 #local paths
 api_src="./src/api"
@@ -134,9 +137,7 @@ link_to_music_files() {
 #set up the python environment, then copy 
 # subshell () auto switches in use python version back at the end of function
 setup_py3_env() (
-	echo "yo?"
 	set_python_version_const || return "$?"
-	echo "hi?"
 	local codePath="$1"
 	local packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
 	local dest="$codePath"/"$packagePath""$lib_name"/
@@ -200,6 +201,36 @@ show_err_and_exit() {
 	local msg="$1"
 	[ ! -z "$msg" ] && echo "$msg"
 	exit "$err_code"
+}
+
+setup_config_file() {
+	cp ./templates/configs/config.yml "$config_file" &&
+	sed -i -e "s@<searchbase>@$music_home/@" "$config_file" &&
+	sed -i -e "s@<dbname>@$sqlite_file@" "$config_file" &&
+	rm -f "$config_file"-e
+}
+
+setup_dir() {
+	local src_dir="$1"
+	local dest_dir="$2"
+	empty_dir_contents "$dest_dir" &&
+	sudo -p 'Pass required for copying files: ' \
+		cp -rv "src_dir"/* "$dest_dir" &&
+	sudo -p 'Pass required for changing owner of maintenance files: ' \
+		chown -R "$current_user": "$dest_dir"
+	return "$?"
+}
+
+setup_dir_with_py() {
+	local src_dir="$1"
+	local dest_dir="$2"
+	empty_dir_contents "$dest_dir" &&
+	sudo -p 'Pass required for copying files: ' \
+		cp -rv "src_dir"/* "$dest_dir" &&
+	setup_py3_env "$dest_dir" &&
+	sudo -p 'Pass required for changing owner of maintenance files: ' \
+		chown -R "$current_user": "$dest_dir"
+	return "$?"
 }
 
 

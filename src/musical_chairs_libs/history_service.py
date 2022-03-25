@@ -5,10 +5,22 @@ from musical_chairs_libs.tables import stations_history, songs, stations, \
 	albums, artists, song_artist
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.dataclasses import HistoryItem
+from musical_chairs_libs.config_loader import ConfigLoader
 
 class HistoryService:
 
-	def __init__(self, conn: Connection, stationService: StationService) -> None:
+	def __init__(
+		self, 
+		conn: Connection, 
+		stationService: StationService = None,
+		configLoader: ConfigLoader = None
+	) -> None:
+			if not conn:
+				if not configLoader:
+					configLoader = ConfigLoader()
+				conn = configLoader.get_configured_db_connection()
+			if not stationService:
+				stationService = StationService(conn)
 			self.conn = conn
 			self.station_service = stationService
 

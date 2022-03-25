@@ -1,28 +1,52 @@
 from importlib.resources import path
 import time
-from typing import Tuple
+from typing import Any, Callable, List, Tuple
 from collections.abc import Iterable
+from musical_chairs_libs.config_loader import ConfigLoader
 from musical_chairs_libs.station_service import StationService
-from numpy.random import choice
+
 from sqlalchemy import select, desc, func, insert, delete, update, literal
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import stations_history, songs, stations,\
 	stations_tags, songs_tags, station_queue, albums, artists, song_artist
-from musical_chairs_libs.history_service import HistoryService, HistoryItem
+from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.dataclasses import QueueItem, CurrentPlayingInfo
+from numpy.random import choice as numpy_choice
 
+def choice(
+	items: List, 
+	sampleSize: int
+) -> Iterable[Any]:
+	aSize = len(items)
+	pSize = len(items) + 1
+	# the sum of weights needs to equal 1
+	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
+	return numpy_choice(items, sampleSize, p = weights, replace=False).tolist()
 
 class QueueService:
 
 	def __init__(
 		self, 
-		conn: Connection, 
-		stationService: StationService,
-		historyService: HistoryService
+		conn: Connection = None, 
+		stationService: StationService = None,
+		historyService: HistoryService = None,
+		choiceSelector: Callable[[List, int], Iterable[Any]] = None,
+		configLoader: ConfigLoader = None
 	) -> None:
-			self.conn: Connection = conn
-			self.station_service: StationService = stationService
-			self.history_service: HistoryService = historyService
+			if not conn:
+				if not configLoader:
+					configLoader = ConfigLoader()
+				conn = configLoader.get_configured_db_connection()
+			if not stationService:
+				stationService = StationService(conn)
+			if not historyService:
+				historyService = HistoryService(conn, stationService)
+			if not choiceSelector:
+				choiceSelector = choice
+			self.conn = conn
+			self.station_service = stationService
+			self.history_service: HistoryService = historyService,
+			self.choice = choiceSelector
 
 	def get_all_station_song_possibilities(self, stationPk: int):
 		st = stations.c
@@ -54,12 +78,8 @@ class QueueService:
 	) -> Iterable[int]:
 		rows = self.get_all_station_song_possibilities(stationPk)
 		sampleSize = deficitSize if deficitSize < len(rows) else len(rows)
-		aSize = len(rows)
-		pSize = len(rows) + 1
 		songPks = list(map(lambda r: r.pk, rows))
-		# the sum of weights needs to equal 1
-		weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
-		selection = choice(songPks, sampleSize, p = weights, replace=False).tolist()
+		selection = self.choice(songPks, sampleSize)
 		return selection
 
 	def fil_up_queue(self, stationPk: int, queueSize: int) -> None:
@@ -140,7 +160,6 @@ class QueueService:
 			.join(albums, sg.albumFk == ab.pk, isouter=True) \
 			.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
 			.join(artists, sgar.artistFk == ar.pk, isouter=True) \
-			.where(q.stationFk == stationPk) \
 			.order_by(q.queuedTimestamp)
 		if stationPk:
 			query = baseQuery.where(q.stationFk == stationPk)
@@ -164,14 +183,17 @@ class QueueService:
 		stationName: str=None, 
 		queueSize: int=50
 	) -> Tuple[str, str, str, str]:
-		if not stationPk and not stationName:
-			raise ValueError("Either stationName or pk must be provided")
+		if not stationPk:
+			if stationName:
+				stationPk = self.station_service.get_station_pk(stationName)
+			else:
+				raise ValueError("Either stationName or pk must be provided")
 		if self.is_queue_empty(stationPk):
 			self.fil_up_queue(stationPk, queueSize + 1)
 		results = self.get_queue_for_station(stationPk, limit=1)
 		queueItem = next(results)
 		self.move_from_queue_to_history(stationPk, \
-			queueItem.songPk, \
+			queueItem.id, \
 			queueItem.queuedTimestamp)
 		self.fil_up_queue(stationPk, queueSize)
 		return (queueItem.path, queueItem.title, queueItem.album, queueItem.artist)

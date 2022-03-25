@@ -12,7 +12,6 @@ else
 fi
 
 export config_file
-export http_config
 . "$app_path_cl"/env/bin/activate &&
 # see #python_env
 uvicorn --app-dir "$app_path_cl" --host 0.0.0.0 --port 8032 "index:app" &

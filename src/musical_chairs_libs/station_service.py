@@ -19,10 +19,15 @@ from musical_chairs_libs.tables import stations, \
 	song_artist
 from collections.abc import Iterable
 from musical_chairs_libs.dataclasses import Tag, StationInfo, SongItem
+from musical_chairs_libs.config_loader import ConfigLoader
 
 class StationService:
 
 	def __init__(self, conn: Connection):
+			if not conn:
+				if not configLoader:
+					configLoader = ConfigLoader()
+				conn = configLoader.get_configured_db_connection()
 			self.conn = conn
 
 	def set_station_proc(self, stationName: str) -> None:

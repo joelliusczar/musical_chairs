@@ -17,7 +17,7 @@ env_path="$maintenance_dir_cl"
 
 
 export config_file
-. "$env_path"/env/bin/activate &&
+. "$env_path"/"$py_env"/bin/activate &&
 # #python_env
 { python  <<EOF
 from musical_chairs_libs.song_scanner import SongScanner

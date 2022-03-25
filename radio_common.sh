@@ -44,6 +44,9 @@ maintenance_dir_cl="$radio_home"/maintenance
 start_up_dir_cl="$radio_home"/start_up
 templates_dir_cl="$radio_home"/templates
 
+#python environment names
+py_env='mc_env'
+
 case $(uname) in
 	Linux*)
 		export web_root=${web_root:-/srv}
@@ -139,10 +142,11 @@ link_to_music_files() {
 setup_py3_env() (
 	set_python_version_const || return "$?"
 	local codePath="$1"
-	local packagePath="env/lib/python$pyMajor.$pyMinor/site-packages/"
+	local env_name=${2:-"$py_env"}
+	local packagePath="$env_name/lib/python$pyMajor.$pyMinor/site-packages/"
 	local dest="$codePath"/"$packagePath""$lib_name"/
-	mc-python -m virtualenv "$codePath"/env &&
-	. "$codePath"/env/bin/activate &&
+	mc-python -m virtualenv "$codePath"/$env_name &&
+	. "$codePath"/$env_name/bin/activate &&
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
@@ -224,10 +228,11 @@ setup_dir() {
 setup_dir_with_py() {
 	local src_dir="$1"
 	local dest_dir="$2"
+	local env_name="$3"
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
 		cp -rv "src_dir"/* "$dest_dir" &&
-	setup_py3_env "$dest_dir" &&
+	setup_py3_env "$dest_dir" "$env_name" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
 	return "$?"

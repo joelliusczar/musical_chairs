@@ -1,6 +1,6 @@
 #!/bin/sh
 
-called_from='.'
+called_from=$(dirname $0)
 
 if [ -e "$called_from/test_trash" ]; then
 	test_root="$called_from/test_trash"
@@ -8,7 +8,6 @@ else
 	echo "test_trash not found"
 	exit 1
 fi
-
 
 
 if [ -e ./radio_common.sh ]; then
@@ -30,5 +29,5 @@ setup_config_file
 test_dir="$called_from/src/tests"
 
 export config_file
-. "$maintenance_dir_cl"/env/bin/activate &&
+. "$maintenance_dir_cl"/"$py_env"/bin/activate &&
 pytest "$test_dir"

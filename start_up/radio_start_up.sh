@@ -23,7 +23,7 @@ if ! systemctl status "$icecast_" >/dev/null 2>&1; then
 fi
 
 export config_file
-. "$maintenance_dir_cl"/env/bin/activate &&
+. "$maintenance_dir_cl"/"$py_env"/bin/activate &&
 for conf in "$ices_configs_dir"/*.conf; do
 	mc-ices -c "$conf"
 done

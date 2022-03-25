@@ -21,7 +21,7 @@ else
 fi
 
 export config_file
-. "$env_path"/env/bin/activate &&
+. "$env_path"/"$py_env"/bin/activate &&
 # #python_env
 { python  <<EOF
 from musical_chairs_libs.station_service import StationService

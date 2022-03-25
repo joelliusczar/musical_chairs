@@ -20,10 +20,9 @@ export config_file
 . "$env_path"/env/bin/activate &&
 # #python_env
 { python  <<EOF
-from fastapi import Depends
-from musical_chairs_libs.dependencies import song_scanner
+from musical_chairs_libs.song_scanner import SongScanner
 print("Starting")
-stationService = Depends(song_scanner)
+stationService = SongScanner()
 inserted = stationService.save_paths('${music_home}')
 print(f"saving paths done: {inserted} inserted")
 updated = stationService.update_metadata('${music_home}')

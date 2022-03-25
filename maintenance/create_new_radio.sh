@@ -62,7 +62,6 @@ env_path="$maintenance_dir_cl"
 . "$env_path"/env/bin/activate &&
 # #python_env
 { python  <<EOF
-
 from musical_chairs_libs.station_service import StationService
 stationService = StationService()
 stationService.add_station('${internal_name}','${public_name}')
@@ -75,9 +74,8 @@ read tagname
 [ -z "$tagname" ] && break
 # #python_env
 { python <<EOF
-from fastapi import Depends
-from musical_chairs_libs.dependencies import station_service
-stationService = Depends(station_service)
+from musical_chairs_libs.station_service import StationService
+stationService = StationService()
 stationService.assign_tag_to_station('${internal_name}','${tagname}')
 print('tag ${tagname} assigned to ${internal_name}')
 EOF

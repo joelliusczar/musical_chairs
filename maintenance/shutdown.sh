@@ -24,9 +24,8 @@ export config_file
 . "$env_path"/env/bin/activate &&
 # #python_env
 { python  <<EOF
-from fastapi import Depends
-from musical_chairs_libs.dependencies import station_service
-stationService = Depends(station_service)
+from musical_chairs_libs.station_service import StationService
+stationService = StationService()
 stationService.end_all_stations()
 print("Done")
 EOF

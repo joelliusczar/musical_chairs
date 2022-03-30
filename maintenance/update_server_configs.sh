@@ -22,9 +22,6 @@ else
   exit 1
 fi
 
-gen_pass() {
-	LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16 
-}
 
 sourcePassword=$(gen_pass)
 relayPassword=$(gen_pass)

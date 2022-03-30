@@ -141,21 +141,17 @@ link_to_music_files() {
 # subshell () auto switches in use python version back at the end of function
 setup_py3_env() (
 	set_python_version_const || return "$?"
-	local codePath="$1"
+	local dest_base="$1"
 	local env_name=${2:-"$py_env"}
 	local packagePath="$env_name/lib/python$pyMajor.$pyMinor/site-packages/"
-	local dest="$codePath"/"$packagePath""$lib_name"/
-	mc-python -m virtualenv "$codePath"/$env_name &&
-	. "$codePath"/$env_name/bin/activate &&
+	local dest="$dest_base"/"$packagePath""$lib_name"/
+	mc-python -m virtualenv "$dest_base"/$env_name &&
+	. "$dest_base"/$env_name/bin/activate &&
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
 	python -m pip install -r "$radio_home"/requirements.txt &&
-	empty_dir_contents "$dest" &&
-	sudo -p 'Password required to copy lib files: ' \
-		cp -rv ./src/"$lib_name"/* "$dest" &&
-	sudo -p 'Password required to change owner of copied files: ' \
-		chown -R "$current_user": "$dest" ||
+	setup_dir ./src/"$lib_name" "$dest" ||
 	return "$?"
 )
 
@@ -236,6 +232,16 @@ setup_dir_with_py() {
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
 	return "$?"
+}
+
+gen_pass() {
+	local pass_len=${1:-16}
+	LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$pass_len" 
+}
+
+append_trailing_slash_if_needed() {
+	local str="${1%/}/"
+	echo "$str"
 }
 
 

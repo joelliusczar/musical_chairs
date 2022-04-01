@@ -8,6 +8,9 @@ while [ ! -z "$1" ]; do
 		test)
 			test_flag='test'
 			;;
+		testdb)
+			test_db_flag='test_db'
+			;;
 		radio_home=*)
 			radio_home=${1#radio_home=}
 			;;
@@ -56,8 +59,9 @@ case $(uname) in
 		;;
 	*) ;;
 esac
-app_path_cl="$web_root"/"$app_name"
-app_path_client_cl="$app_path_cl"/client/
+
+app_path_cl="$web_root"/api/"$app_name"
+app_path_client_cl="$web_root"/client/"$app_name"
 
 #local paths
 api_src="./src/api"
@@ -215,7 +219,7 @@ setup_dir() {
 	local dest_dir="$2"
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
-		cp -rv "src_dir"/* "$dest_dir" &&
+		cp -rv "$src_dir"/* "$dest_dir" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
 	return "$?"
@@ -227,7 +231,7 @@ setup_dir_with_py() {
 	local env_name="$3"
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
-		cp -rv "src_dir"/* "$dest_dir" &&
+		cp -rv "$src_dir"/* "$dest_dir" &&
 	setup_py3_env "$dest_dir" "$env_name" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"

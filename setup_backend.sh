@@ -11,5 +11,5 @@ else
   exit 1
 fi
 
-setup_dir_with_py "$api_src" "$app_path_cl/" || 
+setup_dir_with_py "$api_src" "$app_path_cl" || 
 show_err_and_exit 

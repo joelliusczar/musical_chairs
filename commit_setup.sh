@@ -11,12 +11,12 @@ else
   exit 1
 fi
 
-sh ./radio_dir_setup.sh
+sh ./radio_dir_setup.sh &&
 
-sh ./setup_backend.sh
-sh ./setup_client.sh
+sh ./setup_backend.sh &&
+sh ./setup_client.sh &&
 
-if [ -n "$test_flag" ]; then
+if [ -n "$test_flag" ] || [ -n "$test_db_flag" ]; then
 	cp -v './reference/songs_db' "$sqlite_file" || 
 	show_err_and_exit 
 fi

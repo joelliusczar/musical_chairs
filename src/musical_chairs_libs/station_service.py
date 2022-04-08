@@ -18,7 +18,7 @@ from musical_chairs_libs.tables import stations, \
 	artists, \
 	song_artist
 from collections.abc import Iterable
-from musical_chairs_libs.dataclasses import Tag, StationInfo, SongItem
+from musical_chairs_libs.dtos import Tag, StationInfo, SongItem
 from musical_chairs_libs.config_loader import ConfigLoader
 
 class StationService:

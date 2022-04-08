@@ -1,4 +1,3 @@
-from importlib.resources import path
 import time
 from typing import Any, Callable, List, Tuple
 from collections.abc import Iterable
@@ -10,11 +9,11 @@ from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import stations_history, songs, stations,\
 	stations_tags, songs_tags, station_queue, albums, artists, song_artist
 from musical_chairs_libs.history_service import HistoryService
-from musical_chairs_libs.dataclasses import QueueItem, CurrentPlayingInfo
+from musical_chairs_libs.dtos import QueueItem, CurrentPlayingInfo
 from numpy.random import choice as numpy_choice
 
 def choice(
-	items: List, 
+	items: List[Any], 
 	sampleSize: int
 ) -> Iterable[Any]:
 	aSize = len(items)

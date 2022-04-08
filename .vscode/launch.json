@@ -5,17 +5,22 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: Unit Test",
+      "type": "python",
+      "python": "${workspaceFolder}/test_trash/utest/mc_env/bin",     
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "python": "${command:python.interpreterPath}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src",
-        "config_file": "${workspaceFolder}/test_trash/config/config.yml",
-        "http_config": "${workspaceFolder}/test_trash/musical_chairs_app/web_config.yml"
-      },
+      "module": "pytest",
       "request": "launch",
       "program": "${file}",
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
     }
   ]
 }

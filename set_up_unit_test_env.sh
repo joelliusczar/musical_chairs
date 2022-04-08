@@ -12,14 +12,9 @@ else
 fi
 
 
-if [ -n "$(find ./src/"$lib_name" -newer "$utest_env_dir"/"$py_env")" ]; then
-	echo "changes?"
-	setup_py3_env "$utest_env_dir" || 
-	show_err_and_exit 
-fi
+setup_config_file ||
+show_err_and_exit
+echo "PYTHONPATH='$src_path'" >> "$config_file"
 
-test_src="$abs_src_path/src/tests"
-
-
-. "$utest_env_dir"/"$py_env"/bin/activate &&
-pytest -s "$test_src"
+cp -v './reference/songs_db' "$sqlite_file" || 
+show_err_and_exit 

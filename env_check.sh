@@ -138,48 +138,6 @@ mc-ices -V >/dev/null 2>&1 ||
 	echo "$maintenance_dir_cl is not in place"
 
 
-compare_dirs() (
-	local src_dir="$1"
-	local cpy_dir="$2"
-
-	if [ ! -e "$cpy_dir" ]; then
-		echo "$cpy_dir/ is not in place" 
-		return 1
-	fi
-	rm -f src_fifo cpy_fifo cmp_fifo
-	mkfifo src_fifo cpy_fifo cmp_fifo
-
-	src_res=$(find "$src_dir" | \
-		sed "s@${src_dir%/}/\{0,1\}@@" | sort) 
-	cpy_res=$(find "$cpy_dir" -not -path "$cpy_dir/$py_env/*" \
-		-and -not -path "$cpy_dir/$py_env" | \
-		sed "s@${cpy_dir%/}/\{0,1\}@@" | sort)
-
-	get_file_list() {
-		local supress="$1"
-		echo "$src_res" > src_fifo &
-		echo "$cpy_res" > cpy_fifo &
-		[ -n "$supress" ] && comm "-$supress" src_fifo cpy_fifo ||
-			comm src_fifo cpy_fifo
-	}
-
-	in_both=$(get_file_list 12)
-	in_src=$(get_file_list 23)
-	in_cpy=$(get_file_list 13)
-	[ -n "$(echo "$in_cpy" | xargs)" ] && 
-			echo "There are items that only exist in $cpy_dir"
-	[ -n "$(echo "$in_src" | xargs)" ] && 
-			echo "There are items missing from the $cpy_dir"
-	if [ -n "$in_both" ]; then
-		echo "$in_both" > cmp_fifo &
-		while read file_name; do
-			[ "${src_dir%/}/$file_name" -nt "${cpy_dir%/}/$file_name" ] &&
-				echo "$file_name is outdated"
-		done <cmp_fifo
-	fi
-	rm -f src_fifo cpy_fifo cmp_fifo
-)
-
 compare_dirs './maintenance' "$maintenance_dir_cl"
 
 [ -e "$maintenance_dir_cl/$py_env" ] ||

@@ -3,76 +3,17 @@
 
 [ -f "$HOME"/.dev_local_rc ] && . "$HOME"/.dev_local_rc
 
-while [ ! -z "$1" ]; do
-	case "$1" in
-		test)
-			test_flag='test'
-			;;
-		testdb)
-			test_db_flag='test_db'
-			;;
-		radio_home=*)
-			radio_home=${1#radio_home=}
-			;;
-		web_root=*)
-			web_root=${1#web_root=}
-			;;
-		*) ;;
-	esac
-	shift
-done
+to_abs_path() {
+	local target_path="$1"
+	if [ "$target_path" = '.' ]; then
+		pwd
+	elif [ "$target_path" = '..' ]; then
+		dirname $(pwd)
+	else
+		echo $(cd $(dirname "$target_path"); pwd)
+	fi
+}
 
-if [ -n "$test_flag" ]; then
-	radio_home='./test_trash'
-	web_root='./test_trash'
-fi
-
-export radio_home=${radio_home:-"$HOME"/radio}
-
-lib_name='musical_chairs_libs'
-app_name='musical_chairs_app'
-ices_configs_dir="$radio_home"/ices_configs
-pyModules_dir="$radio_home"/pyModules
-build_home="$HOME"/Documents/builds
-music_home="$HOME"/music/radio
-radio_config_dir="$radio_home"/config
-config_file="$radio_config_dir"/config.yml
-db_dir="$radio_home"/db
-sqlite_file="$db_dir"/songs_db
-bin_dir="$HOME"/.local/bin
-
-# directories that should be cleaned upon changes
-# suffixed with 'cl' for 'clean'
-maintenance_dir_cl="$radio_home"/maintenance
-start_up_dir_cl="$radio_home"/start_up
-templates_dir_cl="$radio_home"/templates
-
-#python environment names
-py_env='mc_env'
-
-case $(uname) in
-	Linux*)
-		export web_root=${web_root:-/srv}
-		;;
-	Darwin*)
-		export web_root=${web_root:-/Library/WebServer}
-		;;
-	*) ;;
-esac
-
-app_path_cl="$web_root"/api/"$app_name"
-app_path_client_cl="$web_root"/client/"$app_name"
-
-#local paths
-api_src="./src/api"
-client_src="./src/client"
-
-
-
-PACMAN_CONST='pacman'
-APT_CONST='apt-get'
-HOMEBREW_CONST='homebrew'
-current_user=$(whoami)
 
 set_python_version_const() {
 	#python version info
@@ -151,6 +92,8 @@ setup_py3_env() (
 	local dest="$dest_base"/"$packagePath""$lib_name"/
 	mc-python -m virtualenv "$dest_base"/$env_name &&
 	. "$dest_base"/$env_name/bin/activate &&
+	#this is to make some of my newer than checks work
+	touch "$dest_base"/$env_name && 
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
@@ -208,9 +151,9 @@ show_err_and_exit() {
 }
 
 setup_config_file() {
-	cp ./templates/configs/config.yml "$config_file" &&
-	sed -i -e "s@<searchbase>@$music_home/@" "$config_file" &&
-	sed -i -e "s@<dbname>@$sqlite_file@" "$config_file" &&
+	cp ./templates/configs/.env "$config_file" &&
+	sed -i -e "s@^\(searchBase=\).*\$@\1'$music_home'@" "$config_file" &&
+	sed -i -e "s@^\(dbName=\).*\$@\1'$sqlite_file'@" "$config_file" &&
 	rm -f "$config_file"-e
 }
 
@@ -243,11 +186,138 @@ gen_pass() {
 	LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$pass_len" 
 }
 
-append_trailing_slash_if_needed() {
-	local str="${1%/}/"
-	echo "$str"
+compare_dirs() (
+	local src_dir="$1"
+	local cpy_dir="$2"
+	local exit_code=0
+	if [ ! -e "$cpy_dir" ]; then
+		echo "$cpy_dir/ is not in place" 
+		return 1
+	fi
+	rm -f src_fifo cpy_fifo cmp_fifo
+	mkfifo src_fifo cpy_fifo cmp_fifo
+
+	src_res=$(find "$src_dir" | \
+		sed "s@${src_dir%/}/\{0,1\}@@" | sort) 
+	cpy_res=$(find "$cpy_dir" -not -path "$cpy_dir/$py_env/*" \
+		-and -not -path "$cpy_dir/$py_env" | \
+		sed "s@${cpy_dir%/}/\{0,1\}@@" | sort)
+
+	get_file_list() {
+		local supress="$1"
+		echo "$src_res" > src_fifo &
+		echo "$cpy_res" > cpy_fifo &
+		[ -n "$supress" ] && comm "-$supress" src_fifo cpy_fifo ||
+			comm src_fifo cpy_fifo
+	}
+
+	in_both=$(get_file_list 12)
+	in_src=$(get_file_list 23)
+	in_cpy=$(get_file_list 13)
+	[ -n "$(echo "$in_cpy" | xargs)" ] && 
+			{
+				echo "There are items that only exist in $cpy_dir"
+				exit_code=2
+			}
+	[ -n "$(echo "$in_src" | xargs)" ] && 
+			{
+				echo "There are items missing from the $cpy_dir"
+				exit_code=3
+			}
+	if [ -n "$in_both" ]; then
+		exit_code=4
+		echo "$in_both" > cmp_fifo &
+		while read file_name; do
+			[ "${src_dir%/}/$file_name" -nt "${cpy_dir%/}/$file_name" ] &&
+				echo "$file_name is outdated"
+		done <cmp_fifo
+	fi
+	rm -f src_fifo cpy_fifo cmp_fifo
+	return "$exit_code"
+)
+
+is_newer_than_files() {
+	local candidate="$1"
+	local dir_to_check="$2"
+	find "$dir_to_check" -newer "$candidate"
 }
 
+while [ ! -z "$1" ]; do
+	case "$1" in
+		test)
+			test_flag='test'
+			;;
+		testdb)
+			test_db_flag='test_db'
+			;;
+		radio_home=*)
+			radio_home=${1#radio_home=}
+			;;
+		web_root=*)
+			web_root=${1#web_root=}
+			;;
+		*) ;;
+	esac
+	shift
+done
+
+workspace_abs_path=$(to_abs_path $0)
+
+test_root="$workspace_abs_path/test_trash"
+
+if [ -n "$test_flag" ]; then
+	radio_home="$test_root"
+	web_root="$test_root"
+fi
+
+export radio_home=${radio_home:-"$HOME"/radio}
+
+lib_name='musical_chairs_libs'
+app_name='musical_chairs_app'
+ices_configs_dir="$radio_home"/ices_configs
+pyModules_dir="$radio_home"/pyModules
+build_home="$HOME"/Documents/builds
+music_home="$HOME"/music/radio
+radio_config_dir="$radio_home"/config
+config_file="$radio_config_dir"/.env
+db_dir="$radio_home"/db
+sqlite_file="$db_dir"/songs_db
+bin_dir="$HOME"/.local/bin
+utest_env_dir="$test_root"/utest
+
+# directories that should be cleaned upon changes
+# suffixed with 'cl' for 'clean'
+maintenance_dir_cl="$radio_home"/maintenance
+start_up_dir_cl="$radio_home"/start_up
+templates_dir_cl="$radio_home"/templates
+
+#python environment names
+py_env='mc_env'
+
+case $(uname) in
+	Linux*)
+		export web_root=${web_root:-/srv}
+		;;
+	Darwin*)
+		export web_root=${web_root:-/Library/WebServer}
+		;;
+	*) ;;
+esac
+
+app_path_cl="$web_root"/api/"$app_name"
+app_path_client_cl="$web_root"/client/"$app_name"
+
+#local paths
+src_path="$workspace_abs_path/src"
+api_src="$src_path/api"
+client_src="$src_path/client"
+lib_src="$src_path/$lib_name"
+
+
+PACMAN_CONST='pacman'
+APT_CONST='apt-get'
+HOMEBREW_CONST='homebrew'
+current_user=$(whoami)
 
 [ ! -e "$radio_home" ] && mkdir -pv "$radio_home"
 [ ! -e "$ices_configs_dir" ] && mkdir -pv "$ices_configs_dir"

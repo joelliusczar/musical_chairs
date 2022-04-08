@@ -4,17 +4,25 @@
   "workbench.colorCustomizations": {
     "editorRuler.foreground": "#ef40ff"
   },
-  "python.terminal.activateEnvironment": false,
   "python.analysis.extraPaths": [
-    "src", "test_trash/maintenance/env"
+    "src", "test_trash/utest/mc-env"
   ],
-  "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/maintenance/env/bin/python",
+  "python.analysis.typeCheckingMode": "strict",
+  "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/utest/mc_env/bin/python",
   "terminal.integrated.env.osx": {
     "lib_name": "musical_chairs_libs",
     "app_name": "musical_chairs_app",
     "other_val": "${config:terminal.integrated.inheritEnv}",
-    "config_file": "${workspaceFolder}/test_trash/config/config.yml",
-    "http_config": "${workspaceFolder}/test_trash/musical_chairs_app/web_config.yml",
+    "config_file": "${workspaceFolder}/test_trash/config/.env",
     "test_root": "${workspaceFolder}/test_trash"
-  }
+  },
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.testing.cwd": "${workspaceFolder}/src/tests",
+  "python.testing.pytestPath": "${workspaceFolder}/test_trash/utest/mc_env/bin/pytest",
+  "python.testing.pytestArgs": [
+    "-s"
+  ],
+  "python.terminal.activateEnvironment": false,
+  "python.envFile": "${workspaceFolder}/test_trash/config/.env"
 }

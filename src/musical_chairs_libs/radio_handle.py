@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine
+from typing import Optional
 from musical_chairs_libs.queue_service import QueueService
 from musical_chairs_libs.config_loader import ConfigLoader
 from musical_chairs_libs.station_service import StationService
@@ -11,7 +11,7 @@ class RadioHandle:
 	def __init__(
 		self,
 		stationName: str, 
-		configLoader: ConfigLoader = None
+		configLoader: Optional[ConfigLoader] = None
 	) -> None:
 		self.songnumber = -1
 		self.songFullPath = ""
@@ -42,7 +42,7 @@ class RadioHandle:
 	# Function called to get the next filename to stream. 
 	# Should return a string.
 	def ices_get_next(self) -> str:
-		searchBase = self.config_loader.config['searchBase']
+		searchBase = self.config_loader.search_base
 		conn = self.config_loader.get_configured_db_connection()
 		queueService = QueueService(conn)
 		(songPath, title, album, artist) = \

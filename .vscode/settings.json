@@ -8,6 +8,8 @@
     "src", "test_trash/utest/mc-env"
   ],
   "python.analysis.typeCheckingMode": "strict",
+  "python.analysis.stubPath": "typings",
+  "python.analysis.indexing": true,
   "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/utest/mc_env/bin/python",
   "terminal.integrated.env.osx": {
     "lib_name": "musical_chairs_libs",
@@ -24,5 +26,6 @@
     "-s"
   ],
   "python.terminal.activateEnvironment": false,
-  "python.envFile": "${workspaceFolder}/test_trash/config/.env"
+  "python.envFile": "${workspaceFolder}/test_trash/config/.env",
+  "python.analysis.useLibraryCodeForTypes": false
 }

@@ -1,19 +1,20 @@
-from collections.abc import Iterable
+from typing import Iterator, Optional
 from sqlalchemy import select, desc
-from sqlalchemy.engine import Connection
+from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
 from musical_chairs_libs.tables import stations_history, songs, stations, \
 	albums, artists, song_artist
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.dtos import HistoryItem
 from musical_chairs_libs.config_loader import ConfigLoader
 
-class HistoryService:
 
+
+class HistoryService:
 	def __init__(
 		self, 
-		conn: Connection, 
-		stationService: StationService = None,
-		configLoader: ConfigLoader = None
+		conn: WrappedDbConnection, 
+		stationService: Optional[StationService]=None,
+		configLoader: Optional[ConfigLoader]=None
 	) -> None:
 			if not conn:
 				if not configLoader:
@@ -26,13 +27,12 @@ class HistoryService:
 
 	def get_history_for_station(
 		self, 
-		stationPk: int=None,
-		stationName: str=None, 
+		stationPk: Optional[int]=None,
+		stationName: Optional[str]=None, 
 		limit: int=50, 
 		offset: int=0
-	) -> Iterable[HistoryItem]:
-		if not stationPk and not stationName:
-			raise ValueError("Either stationName or pk must be provided")
+	) -> Iterator[HistoryItem]:
+
 		h = stations_history.c
 		st = stations.c
 		sg = songs.c
@@ -55,16 +55,18 @@ class HistoryService:
 			.offset(offset) \
 			.limit(limit)
 		if stationPk:
-			query = baseQuery.where(h.stationFk == stationPk)
+			query  = baseQuery.where(h.stationFk == stationPk)
 		elif stationName:
 			query = baseQuery.join(stations, st.pk == h.stationFk) \
 				.where(st.name == stationName)
-		records = self.conn.execute(query)
-		for row in records:
+		else:
+			raise ValueError("Either stationName or pk must be provided")
+		records = self.conn.execute(query) 
+		for row in records: #	type: ignore
 			yield HistoryItem( 
-					row.pk,
-					row.title, 
-					row.album,
-					row.artist,
-					row.playedTimestamp
+					row.pk, #	type: ignore
+					row.title, #	type: ignore
+					row.album, #	type: ignore
+					row.artist, #	type: ignore
+					row.playedTimestamp #	type: ignore
 				)

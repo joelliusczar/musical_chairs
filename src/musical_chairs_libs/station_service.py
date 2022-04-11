@@ -1,14 +1,15 @@
 import os
 import sys
 import itertools
-from dataclasses import dataclass
+from typing import Callable, Iterator, Optional, Tuple
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.engine.row import Row
 from sqlalchemy import select, \
 	func, \
 	insert, \
 	delete, \
 	update
-from sqlalchemy.engine import Connection
+from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
 from musical_chairs_libs.tables import stations, \
 	tags, \
 	stations_tags, \
@@ -17,13 +18,17 @@ from musical_chairs_libs.tables import stations, \
 	albums, \
 	artists, \
 	song_artist
-from collections.abc import Iterable
-from musical_chairs_libs.dtos import Tag, StationInfo, SongItem
+from musical_chairs_libs.dtos import Tag, \
+	StationInfo, \
+	SongItem
 from musical_chairs_libs.config_loader import ConfigLoader
 
 class StationService:
 
-	def __init__(self, conn: Connection):
+	def __init__(self, 
+		conn: WrappedDbConnection,
+		configLoader: Optional[ConfigLoader]=None
+	):
 			if not conn:
 				if not configLoader:
 					configLoader = ConfigLoader()
@@ -47,29 +52,29 @@ class StationService:
 		st = stations.c
 		query = select(st.procId).select_from(stations).where(st.procId != None)
 		for row in self.conn.execute(query).fetchall():
-			pid = row.procId
+			pid: int = row.procId #type: ignore
 			try:
 				os.kill(pid, 2)
 			except: pass
 		stmt = update(stations).values(procId = None)
 		self.conn.execute(stmt)
 
-	def get_station_pk(self, stationName: str) -> int:
+	def get_station_pk(self, stationName: str) -> Optional[int]:
 		st = stations.c
 		query = select(st.pk) \
 			.select_from(stations) \
 			.where(st.name == stationName)
 		row = self.conn.execute(query).fetchone()
-		pk = row.pk if row else None
+		pk: Optional[int] = row.pk if row else None #type: ignore
 		return pk
 
-	def get_tag_pk(self, tagName: str) -> int:
+	def get_tag_pk(self, tagName: str) -> Optional[int]:
 		t = tags.c
 		query = select(t.pk) \
 			.select_from(tags) \
 			.where(t.name == tagName)
 		row = self.conn.execute(query).fetchone()
-		pk = row.pk if row else None
+		pk: Optional[int] = row.pk if row else None #type: ignore
 		return pk
 
 	def does_station_exist(self, stationName: str) -> bool:
@@ -78,7 +83,7 @@ class StationService:
 			.select_from(stations)\
 			.where(st.name == stationName)
 		res = self.conn.execute(query).fetchone()
-		return res.count < 1
+		return res.count < 1 if res else False
 
 	def add_station(self, stationName: str, displayName: str) -> None:
 		try:
@@ -89,17 +94,17 @@ class StationService:
 			print("Could not insert")
 			sys.exit(1)
 
-	def get_or_save_tag(self, tagName: str) -> int:
+	def get_or_save_tag(self, tagName: str) -> Optional[int]:
 		if not tagName:
 			return None
 		tg = tags.c
 		query = select(tg.pk).select_from(tags).where(tg.name == tagName)
 		row = self.conn.execute(query).fetchone()
 		if row:
-			return row.pk
+			return row.pk #type: ignore
 		stmt = insert(tags).values(name = tagName)
 		res = self.conn.execute(stmt)
-		return res.lastrowid
+		return res.lastrowid #type: ignore
 
 	def assign_tag_to_station(self,stationName: str, tagName: str) -> None:
 		stationPk = self.get_station_pk(stationName)
@@ -123,7 +128,7 @@ class StationService:
 		stationDel = delete(stations).where(st.stationPk == stationPk)
 		self.conn.execute(stationDel)
 
-	def get_station_list(self) -> Iterable[StationInfo]:
+	def get_station_list(self) -> Iterator[StationInfo]:
 		st = stations.c
 		sgtg = songs_tags.c
 		sttg = stations_tags.c
@@ -141,23 +146,22 @@ class StationService:
 			.group_by(st.pk, st.name, tg.name, tg.pk) \
 			.having(func.count(sgtg.tagFk) > 0)
 		records = self.conn.execute(query)
-		partition = lambda r: (r[st.pk], r[st.name])
-		for key, group in itertools.groupby(records, partition):
+		partitionFn: Callable[[Row], Tuple[int, str]] = \
+			lambda r: (r[st.pk], r[st.name])
+		for key, group in itertools.groupby(records, partitionFn): #type: ignore
 			yield StationInfo(
-				id=key[0],
+				id=key[0], 
 				name=key[1],
-				tags=list(map(lambda r: Tag(r[tg.pk], r[tg.name]), group))
+				tags=list(map(lambda r: Tag(r[tg.pk], r[tg.name]), group)) #type: ignore
 			)
 
 	def get_station_song_catalogue(
 		self, 
-		stationPk: int = None,
-		stationName: str = None, 
-		limit: int = None, 
+		stationPk: Optional[int]=None,
+		stationName: Optional[str]=None, 
+		limit: Optional[int]=None, 
 		offset: int = 0
-	) -> Iterable[SongItem]:
-		if not stationPk and not stationName:
-			raise ValueError("Either stationName or pk must be provided")
+	) -> Iterator[SongItem]:
 		sg = songs.c
 		st = stations.c
 		sttg = stations_tags.c
@@ -183,7 +187,13 @@ class StationService:
 			query = baseQuery.where(st.pk == stationPk)
 		elif stationName:
 			query = baseQuery.where(st.name == stationName)
+		else:
+			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
-		for row in records:
-			yield SongItem(row.pk, row.title, row.album, row.artist)
+		for row in records: #type: ignore
+			yield SongItem(row.pk, #type: ignore
+				row.title, #type: ignore
+				row.album, #type: ignore
+				row.artist #type: ignore
+			)
 

@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 from collections.abc import Iterable
+from typing import Optional
 from pydantic import BaseModel
+
 
 class AccountInfo(BaseModel):
 	username: str
-	password: bytearray
+	password: bytes
 	email: str
 
 @dataclass
@@ -18,7 +20,7 @@ class SongItem:
 class QueueItem(SongItem): 
 	path: str
 	queuedTimestamp: float
-	requestedTimestamp: float = None
+	requestedTimestamp: Optional[float] = None
 
 @dataclass
 class HistoryItem(SongItem):
@@ -26,7 +28,7 @@ class HistoryItem(SongItem):
 
 @dataclass
 class CurrentPlayingInfo:
-	nowPlaying: HistoryItem
+	nowPlaying: Optional[HistoryItem]
 	items: Iterable[QueueItem]
 
 @dataclass

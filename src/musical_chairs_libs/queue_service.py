@@ -1,11 +1,11 @@
 import time
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, List, Optional, Tuple, Iterator
 from collections.abc import Iterable
 from musical_chairs_libs.config_loader import ConfigLoader
 from musical_chairs_libs.station_service import StationService
-
 from sqlalchemy import select, desc, func, insert, delete, update, literal
-from sqlalchemy.engine import Connection
+from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
+from sqlalchemy.engine.row import Row
 from musical_chairs_libs.tables import stations_history, songs, stations,\
 	stations_tags, songs_tags, station_queue, albums, artists, song_artist
 from musical_chairs_libs.history_service import HistoryService
@@ -26,11 +26,11 @@ class QueueService:
 
 	def __init__(
 		self, 
-		conn: Connection = None, 
-		stationService: StationService = None,
-		historyService: HistoryService = None,
-		choiceSelector: Callable[[List, int], Iterable[Any]] = None,
-		configLoader: ConfigLoader = None
+		conn: Optional[WrappedDbConnection] = None, 
+		stationService: Optional[StationService]=None,
+		historyService: Optional[HistoryService]=None,
+		choiceSelector: Optional[Callable[[List[Any], int], Iterable[Any]]]=None,
+		configLoader: Optional[ConfigLoader]=None
 	) -> None:
 			if not conn:
 				if not configLoader:
@@ -44,10 +44,10 @@ class QueueService:
 				choiceSelector = choice
 			self.conn = conn
 			self.station_service = stationService
-			self.history_service: HistoryService = historyService,
+			self.history_service = historyService
 			self.choice = choiceSelector
 
-	def get_all_station_song_possibilities(self, stationPk: int):
+	def get_all_station_song_possibilities(self, stationPk: int) -> List[Row]:
 		st = stations.c
 		sg = songs.c
 		sttg = stations_tags.c
@@ -67,7 +67,7 @@ class QueueService:
 			.order_by(desc(func.max(hist.queuedTimestamp))) \
 			.order_by(desc(func.max(hist.playedTimestamp)))
 		
-		rows = self.conn.execute(query).fetchall()
+		rows: List[Row] = self.conn.execute(query).fetchall()
 		return rows
 
 	def get_random_songPks(
@@ -77,15 +77,16 @@ class QueueService:
 	) -> Iterable[int]:
 		rows = self.get_all_station_song_possibilities(stationPk)
 		sampleSize = deficitSize if deficitSize < len(rows) else len(rows)
-		songPks = list(map(lambda r: r.pk, rows))
+		songPks: List[int] = list(map(lambda r: r.pk, rows)) #type: ignore
 		selection = self.choice(songPks, sampleSize)
 		return selection
 
 	def fil_up_queue(self, stationPk: int, queueSize: int) -> None:
 		q = station_queue.c
-		queryQueueSize = select(func.count(1)).select_from(station_queue)\
+		queryQueueSize: str = select(func.count(1)).select_from(station_queue)\
 			.where(q.stationFk == stationPk)
-		count = self.conn.execute(queryQueueSize).scalar()
+		countRes = self.conn.execute(queryQueueSize).scalar()
+		count: int = countRes if countRes else 0
 		deficitSize = queueSize - count
 		if deficitSize < 1:
 			return
@@ -130,17 +131,16 @@ class QueueService:
 		q = station_queue.c
 		query = select(func.count(1)).select_from(station_queue)\
 			.where(q.stationFk == stationPk)
-		res = self.conn.execute(query).scalar()
+		countRes = self.conn.execute(query).scalar()
+		res = countRes if countRes else 0
 		return res < 1
 
 	def get_queue_for_station(
 		self, 
-		stationPk: int=None, 
-		stationName: str=None,
-		limit: int=None
-	) -> Iterable[QueueItem]:
-		if not stationPk and not stationName:
-			raise ValueError("Either stationName or pk must be provided")
+		stationPk: Optional[int]=None, 
+		stationName: Optional[str]=None,
+		limit: Optional[int]=None
+	) -> Iterator[QueueItem]:
 		sg = songs.c
 		q = station_queue.c
 		ab = albums.c
@@ -165,28 +165,30 @@ class QueueService:
 		elif stationName:
 			query = baseQuery.join(stations, st.pk == q.stationFk) \
 				.where(st.name == stationName)
+		else:
+			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
-		for row in records:
+		for row in records: # type: ignore
 			yield QueueItem(
-				row.pk, 
-				row.title,
-				row.album,
-				row.artist,
-				row.path,
-				row.queuedTimestamp
+				row.pk, # type: ignore
+				row.title, # type: ignore
+				row.album, # type: ignore
+				row.artist, # type: ignore
+				row.path, # type: ignore
+				row.queuedTimestamp # type: ignore
 			)
 
 	def pop_next_queued(
 		self, 
-		stationPk: int=None,
-		stationName: str=None, 
+		stationPk: Optional[int]=None,
+		stationName: Optional[str]=None, 
 		queueSize: int=50
 	) -> Tuple[str, str, str, str]:
 		if not stationPk:
 			if stationName:
 				stationPk = self.station_service.get_station_pk(stationName)
-			else:
-				raise ValueError("Either stationName or pk must be provided")
+		if not stationPk:
+			raise ValueError("Either stationName or pk must be provided")
 		if self.is_queue_empty(stationPk):
 			self.fil_up_queue(stationPk, queueSize + 1)
 		results = self.get_queue_for_station(stationPk, limit=1)
@@ -200,14 +202,12 @@ class QueueService:
 	def add_song_to_queue(
 		self, 
 		songPk: int,
-		stationPk: int=None, 
-		stationName: str=None
+		stationPk: Optional[int]=None, 
+		stationName: Optional[str]=None
 	) -> int:
 		if not stationPk:
 			if stationName:
 				stationPk = self.station_service.get_station_pk(stationName)
-			else:
-				raise ValueError("Either stationName or pk must be provided")
 		timestamp = time.time()
 		sq = station_queue.c
 		st = stations.c
@@ -230,6 +230,8 @@ class QueueService:
 		elif stationName:
 			fromQuery = baseFromQuery.where(st.name == stationName) \
 				.where(st.name == stationName)
+		else:
+				raise ValueError("Either stationName or pk must be provided")
 		stmt = insert(station_queue).from_select(
 			[
 				sq.stationFk, \
@@ -238,15 +240,14 @@ class QueueService:
 				sq.requestedTimestamp \
 			], \
 			fromQuery
-			)
-		rc = self.conn.execute(stmt)
-		return rc.rowcount
+		)
+		return self.conn.execute(stmt).rowcount #type: ignore
 	
 
 	def get_now_playing_and_queue(
 		self, 
-		stationPk: int = None, 
-		stationName: str = None
+		stationPk: Optional[int]=None, 
+		stationName: Optional[str]=None
 	) -> CurrentPlayingInfo:
 		if not stationPk:
 			if stationName:
@@ -254,8 +255,8 @@ class QueueService:
 			else:
 				raise ValueError("Either stationName or pk must be provided")
 		queue = list(self.get_queue_for_station(stationPk))
-		playing = next(self.history_service\
-			.get_history_for_station(stationPk, limit=1), None)
+		playing = next(self.history_service. \
+			get_history_for_station(stationPk, limit=1), None)
 		return CurrentPlayingInfo(playing, queue)
 
 

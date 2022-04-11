@@ -1,12 +1,20 @@
 import os
 import re
-from typing import Callable, Optional
+from typing import Callable, \
+	Iterator, \
+	Optional
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.engine import Connection
-from sqlalchemy import insert, select, update
+from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
+from sqlalchemy import insert, \
+	select, \
+	update
 from tinytag import TinyTag
 from musical_chairs_libs.config_loader import ConfigLoader
-from musical_chairs_libs.tables import songs, artists, albums, song_artist, songs_tags
+from musical_chairs_libs.tables import songs, \
+	artists, \
+	albums, \
+	song_artist, \
+	songs_tags
 from musical_chairs_libs.station_service import StationService
 from collections.abc import Iterable
 
@@ -23,7 +31,7 @@ def _append_slash_if_missing(str: str) -> str:
 		return str
 	return str if str.endswith("/") else f"{str}/"
 
-def scan_files(searchBase: str) -> Iterable[str]:
+def scan_files(searchBase: str) -> Iterator[str]:
 	searchBaseRgx = r"^" + re.escape(_append_slash_if_missing(searchBase))
 	for root, _, files in os.walk(searchBase):
 		matches = filter(getFilter([".flac", ".mp3",".ogg"]), files)
@@ -52,13 +60,22 @@ def get_file_tags(songFullPath: str) -> TinyTag:
 		tag.title = fileName
 		return tag
 
+def map_path_to_tags(path: str) -> Iterable[str]:
+	if path.startswith("Soundtrack/VG_Soundtrack"):
+		return ["vg", "soundtrack"]
+	elif path.startswith("Soundtrack/Movie_Soundtrack"):
+		return ["movies", "soundtrack"]
+	elif path.startswith("Pop"):
+		return ["pop"]
+	return []
+
 class SongScanner:
 
 	def __init__(
 		self, 
-		conn: Connection, 
-		stationService: StationService = None,
-		configLoader: ConfigLoader = None
+		conn: WrappedDbConnection, 
+		stationService: Optional[StationService]=None,
+		configLoader: Optional[ConfigLoader]=None
 	) -> None:
 			if not conn:
 				if not configLoader:
@@ -69,24 +86,24 @@ class SongScanner:
 			self.conn = conn
 			self.station_service = stationService
 
-	def get_or_save_artist(self, name) -> Optional[int]:
+	def get_or_save_artist(self, name: Optional[str]) -> Optional[int]:
 		if not name:
 			return None
 		a = artists.c
 		query = select(a.pk).select_from(artists).where(a.name == name)
 		row = self.conn.execute(query).fetchone()
 		if row:
-			return row.pk
+			return row.pk #type: ignore
 		print(name)
 		stmt = insert(artists).values(name = name)
 		res = self.conn.execute(stmt)
-		return res.lastrowid
+		return res.lastrowid #type: ignore
 
 	def get_or_save_album(
 		self, 
-		name: str, 
-		artistFk: int = None, 
-		year: int = None
+		name: Optional[str], 
+		artistFk: Optional[int]=None, 
+		year: Optional[int]=None
 	) -> Optional[int]:
 		if not name:
 			return None
@@ -94,7 +111,7 @@ class SongScanner:
 		query = select(a.pk).select_from(albums).where(a.name == name)
 		row = self.conn.execute(query).fetchone()
 		if row:
-			return row.pk
+			return row.pk #type: ignore
 		print(name)
 		stmt = insert(albums).values(
 			name = name, 
@@ -102,7 +119,7 @@ class SongScanner:
 			year = year
 		)
 		res = self.conn.execute(stmt)
-		return res.lastrowid
+		return res.lastrowid #type: ignore
 
 	def update_metadata(self, searchBase: str):
 		page = 0
@@ -119,7 +136,9 @@ class SongScanner:
 			recordSet = self.conn.execute(query).fetchall()
 			for idx, row in enumerate(recordSet):
 				print(f"{idx}".rjust(len(str(idx)), " "),end="\r")
-				songFullPath = f"{searchBase}/{row.path}"
+				songPath: str = row.path #type: ignore
+				songPk: int = row.pk #type: ignore
+				songFullPath = f"{searchBase}/{songPath}"
 				fileTag = get_file_tags(songFullPath)
 				artistFk = self.get_or_save_artist(fileTag.artist)
 				albumArtistFk = self.get_or_save_artist(fileTag.albumartist)
@@ -129,7 +148,7 @@ class SongScanner:
 					fileTag.year
 				)
 				songUpdate = update(songs) \
-				.where(sg.pk == row.pk) \
+				.where(sg.pk == songPk) \
 				.values(
 					title = fileTag.title, 
 					albumFk = albumFk, 
@@ -139,10 +158,10 @@ class SongScanner:
 					comment = fileTag.comment, 
 					genre = fileTag.genre
 				)
-				updateCount += self.conn.execute(songUpdate).rowcount
+				updateCount += self.conn.execute(songUpdate).rowcount #type: ignore
 				try:
 					songArtistInsert = insert(song_artist)\
-						.values(songFk = row.pk, artistFk = artistFk)
+						.values(songFk = songPk, artistFk = artistFk)
 					self.conn.execute(songArtistInsert)
 				except IntegrityError: pass 
 			if len(recordSet) < 1:
@@ -156,24 +175,15 @@ class SongScanner:
 		for idx, path in enumerate(scan_files(searchBase)):
 			try:
 				songInsert = insert(songs).values(path = path)
-				songPk = self.conn.execute(songInsert).lastrowid
+				songPk: int = self.conn.execute(songInsert).lastrowid #type: ignore
 				insertCount += 1
 				self.sort_to_tags(songPk, path)
 				print(f"inserted: {idx}".rjust(len(str(idx)), " "),end="\r")
 			except IntegrityError: pass
 		return insertCount
 
-	def map_path_to_tags(path: str) -> Iterable[str]:
-		if path.startswith("Soundtrack/VG_Soundtrack"):
-			return ["vg", "soundtrack"]
-		elif path.startswith("Soundtrack/Movie_Soundtrack"):
-			return ["movies", "soundtrack"]
-		elif path.startswith("Pop"):
-			return ["pop"]
-		return []
-
 	def sort_to_tags(self, songPk: int, path: str) -> None:
-		for tag in self.map_path_to_tags(path):
+		for tag in map_path_to_tags(path):
 			tagFk = self.station_service.get_tag_pk(tag)
 			stmt = insert(songs_tags).values(songFk = songPk, tagFk = tagFk)
 			try:

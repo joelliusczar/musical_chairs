@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 from fastapi import APIRouter, Depends
+from musical_chairs_libs.dtos import CurrentPlayingInfo, HistoryItem, SongItem
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService
@@ -21,9 +22,9 @@ def index(stationService: StationService = Depends(station_service)):
 def history(
 	stationName: str, 
 	historyService: HistoryService = Depends(history_service)
-) -> Dict:
+) -> Dict[str, List[HistoryItem]]:
 	if not stationName:
-		return []
+		return {}
 	history = list(historyService \
 		.get_history_for_station(stationName=stationName))
 	return {"items": history }
@@ -32,18 +33,18 @@ def history(
 def queue(
 	stationName: str, 
 	queueService: QueueService = Depends(queue_service)
-):
+) -> CurrentPlayingInfo:
 	if not stationName:
-		return []
+		return CurrentPlayingInfo(None, [])
 	queue = queueService.get_now_playing_and_queue(stationName=stationName)
 	return queue
 
 @router.get("/{stationName}/catalogue")
 def song_catalogue(stationName: str, 
 	stationService: StationService = Depends(station_service)
-):
+) -> Dict[str, List[SongItem]]:
 	if not stationName:
-		return []
+		return {}
 	songs = list(stationService\
 		.get_station_song_catalogue(stationName=stationName))
 	return { "items": songs}

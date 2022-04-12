@@ -1,7 +1,7 @@
 import time
 from typing import Any, Callable, List, Optional, Tuple, Iterator
 from collections.abc import Iterable
-from musical_chairs_libs.env_manager import ConfigLoader
+from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.station_service import StationService
 from sqlalchemy import select, desc, func, insert, delete, update, literal
 from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
@@ -30,12 +30,12 @@ class QueueService:
 		stationService: Optional[StationService]=None,
 		historyService: Optional[HistoryService]=None,
 		choiceSelector: Optional[Callable[[List[Any], int], Iterable[Any]]]=None,
-		configLoader: Optional[ConfigLoader]=None
+		envManager: Optional[EnvManager]=None
 	) -> None:
 			if not conn:
-				if not configLoader:
-					configLoader = ConfigLoader()
-				conn = configLoader.get_configured_db_connection()
+				if not envManager:
+					envManager = EnvManager()
+				conn = envManager.get_configured_db_connection()
 			if not stationService:
 				stationService = StationService(conn)
 			if not historyService:

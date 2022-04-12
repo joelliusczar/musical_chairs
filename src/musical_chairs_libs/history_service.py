@@ -5,7 +5,7 @@ from musical_chairs_libs.tables import stations_history, songs, stations, \
 	albums, artists, song_artist
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.dtos import HistoryItem
-from musical_chairs_libs.env_manager import ConfigLoader
+from musical_chairs_libs.env_manager import EnvManager
 
 
 
@@ -14,12 +14,12 @@ class HistoryService:
 		self, 
 		conn: WrappedDbConnection, 
 		stationService: Optional[StationService]=None,
-		configLoader: Optional[ConfigLoader]=None
+		envManager: Optional[EnvManager]=None
 	) -> None:
 			if not conn:
-				if not configLoader:
-					configLoader = ConfigLoader()
-				conn = configLoader.get_configured_db_connection()
+				if not envManager:
+					envManager = EnvManager()
+				conn = envManager.get_configured_db_connection()
 			if not stationService:
 				stationService = StationService(conn)
 			self.conn = conn

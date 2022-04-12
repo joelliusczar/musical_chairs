@@ -22,4 +22,7 @@ class WrappedDbConnection:
 	def begin(self) -> Transaction:
 		return self.conn.begin()
 
+	def close(self) -> None:
+		self.conn.close()
+
 	

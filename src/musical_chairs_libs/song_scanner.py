@@ -9,7 +9,7 @@ from sqlalchemy import insert, \
 	select, \
 	update
 from tinytag import TinyTag
-from musical_chairs_libs.env_manager import ConfigLoader
+from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.tables import songs, \
 	artists, \
 	albums, \
@@ -75,12 +75,12 @@ class SongScanner:
 		self, 
 		conn: WrappedDbConnection, 
 		stationService: Optional[StationService]=None,
-		configLoader: Optional[ConfigLoader]=None
+		envManager: Optional[EnvManager]=None
 	) -> None:
 			if not conn:
-				if not configLoader:
-					configLoader = ConfigLoader()
-				conn = configLoader.get_configured_db_connection()
+				if not envManager:
+					envManager = EnvManager()
+				conn = envManager.get_configured_db_connection()
 			if not stationService:
 				stationService = StationService(conn)
 			self.conn = conn

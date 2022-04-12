@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine
 from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
 
-class ConfigLoader:
+class EnvManager:
 
 	@property
 	def search_base(self) -> str:

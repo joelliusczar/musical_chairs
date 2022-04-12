@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 from musical_chairs_libs.queue_service import QueueService
-from musical_chairs_libs.env_manager import ConfigLoader
+from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.station_service import StationService
 
 
@@ -11,14 +11,14 @@ class RadioHandle:
 	def __init__(
 		self,
 		stationName: str, 
-		configLoader: Optional[ConfigLoader] = None
+		envManager: Optional[EnvManager] = None
 	) -> None:
 		self.songnumber = -1
 		self.songFullPath = ""
 		self.display = ""
-		if not configLoader:
-			configLoader = ConfigLoader()
-		self.config_loader = configLoader
+		if not envManager:
+			envManager = EnvManager()
+		self.config_loader = envManager
 		self.stationName = stationName
 
 	def ices_init(self) -> int:

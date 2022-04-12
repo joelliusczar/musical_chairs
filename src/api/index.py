@@ -1,5 +1,4 @@
 
-import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from controllers import stations_controller
@@ -13,6 +12,3 @@ app.add_middleware(
 )
 app.include_router(stations_controller.router)
 
-
-if __name__ == '__main__':
-	uvicorn.run(app, host="0.0.0.0", port=8032)

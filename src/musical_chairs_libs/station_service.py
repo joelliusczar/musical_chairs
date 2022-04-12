@@ -21,18 +21,18 @@ from musical_chairs_libs.tables import stations, \
 from musical_chairs_libs.dtos import Tag, \
 	StationInfo, \
 	SongItem
-from musical_chairs_libs.env_manager import ConfigLoader
+from musical_chairs_libs.env_manager import EnvManager
 
 class StationService:
 
 	def __init__(self, 
 		conn: WrappedDbConnection,
-		configLoader: Optional[ConfigLoader]=None
+		envManager: Optional[EnvManager]=None
 	):
 			if not conn:
-				if not configLoader:
-					configLoader = ConfigLoader()
-				conn = configLoader.get_configured_db_connection()
+				if not envManager:
+					envManager = EnvManager()
+				conn = envManager.get_configured_db_connection()
 			self.conn = conn
 
 	def set_station_proc(self, stationName: str) -> None:

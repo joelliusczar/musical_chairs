@@ -25,10 +25,10 @@ CREATE TABLE IF NOT EXISTS [Songs] (
 	[AlbumFK] INTEGER NULL,
 	[Track] INTEGER NULL,
 	[Disc] INTEGER NULL,
-	[Genre] TEXT,
-	[Explicit] INTEGER,
-	[Bitrate] REAL,
-	[Comment] TEXT,
+	[Genre] TEXT NULL,
+	[Explicit] INTEGER NULL,
+	[Bitrate] REAL NULL,
+	[Comment] TEXT NULL,
 	FOREIGN KEY([AlbumFK]) REFERENCES [Albums]([PK])
 );
 

@@ -21,7 +21,7 @@ from musical_chairs_libs.tables import stations, \
 from musical_chairs_libs.dtos import Tag, \
 	StationInfo, \
 	SongItem
-from musical_chairs_libs.config_loader import ConfigLoader
+from musical_chairs_libs.env_manager import ConfigLoader
 
 class StationService:
 

@@ -5,7 +5,7 @@ from musical_chairs_libs.tables import stations_history, songs, stations, \
 	albums, artists, song_artist
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.dtos import HistoryItem
-from musical_chairs_libs.config_loader import ConfigLoader
+from musical_chairs_libs.env_manager import ConfigLoader
 
 
 

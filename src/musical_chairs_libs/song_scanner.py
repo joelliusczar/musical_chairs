@@ -9,7 +9,7 @@ from sqlalchemy import insert, \
 	select, \
 	update
 from tinytag import TinyTag
-from musical_chairs_libs.config_loader import ConfigLoader
+from musical_chairs_libs.env_manager import ConfigLoader
 from musical_chairs_libs.tables import songs, \
 	artists, \
 	albums, \

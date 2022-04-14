@@ -12,7 +12,7 @@ class AccountInfo(BaseModel):
 @dataclass
 class SongItem:
 	id: int
-	title: str
+	name: str
 	album: str
 	artist: str
 

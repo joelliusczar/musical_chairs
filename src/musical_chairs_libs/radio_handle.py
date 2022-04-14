@@ -45,11 +45,11 @@ class RadioHandle:
 		searchBase = self.config_loader.search_base
 		conn = self.config_loader.get_configured_db_connection()
 		queueService = QueueService(conn)
-		(songPath, title, album, artist) = \
+		(songPath, songName, album, artist) = \
 			queueService.pop_next_queued(stationName=self.stationName)
 		conn.close()
-		if title:
-			self.display = f"{title} - {album} - {artist}"
+		if songName:
+			self.display = f"{songName} - {album} - {artist}"
 		else:
 			self.display = os.path.splitext(os.path.split(songPath)[1])[0]
 		self.songFullPath = f"{searchBase}/{songPath}"

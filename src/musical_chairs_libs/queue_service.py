@@ -150,7 +150,7 @@ class QueueService:
 		baseQuery = select(
 				sg.pk, \
 				sg.path, \
-				sg.title, \
+				sg.name, \
 				ab.name.label("album"), \
 				ar.name.label("artist"), \
 				q.queuedTimestamp
@@ -171,7 +171,7 @@ class QueueService:
 		for row in records: # type: ignore
 			yield QueueItem(
 				row.pk, # type: ignore
-				row.title, # type: ignore
+				row.name, # type: ignore
 				row.album, # type: ignore
 				row.artist, # type: ignore
 				row.path, # type: ignore
@@ -197,7 +197,7 @@ class QueueService:
 			queueItem.id, \
 			queueItem.queuedTimestamp)
 		self.fil_up_queue(stationPk, queueSize)
-		return (queueItem.path, queueItem.title, queueItem.album, queueItem.artist)
+		return (queueItem.path, queueItem.name, queueItem.album, queueItem.artist)
 
 	def add_song_to_queue(
 		self, 

@@ -39,7 +39,7 @@ const useStyles = makeStyles(() => ({
 */
 const formatNowPlaying = (nowPlaying) => {
 	if(!nowPlaying) return "No song info available";
-	const song = nowPlaying.title || "{No song name}";
+	const song = nowPlaying.name || "{No song name}";
 	const album = nowPlaying.album || "{No album name}";
 	const artist = nowPlaying.artist || "{No artist name}";
 	const str = `Song: ${song} - ${album} - ${artist}`;
@@ -139,7 +139,7 @@ export default function Queue() {
 								return (
 									<TableRow key={`song_${idx}`}>
 										<TableCell>
-											{item.title || "{No song name}"}
+											{item.name || "{No song name}"}
 										</TableCell>
 										<TableCell>
 											{item.album || "{No album name}"}

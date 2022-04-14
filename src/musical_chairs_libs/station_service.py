@@ -171,7 +171,7 @@ class StationService:
 		sgar = song_artist.c
 		baseQuery = select(
 			sg.pk, 
-			sg.title, 
+			sg.name.label("song"), 
 			ab.name.label("album"), \
 			ar.name.label("artist"), \
 		).select_from(stations) \
@@ -192,7 +192,7 @@ class StationService:
 		records = self.conn.execute(query)
 		for row in records: #type: ignore
 			yield SongItem(row.pk, #type: ignore
-				row.title, #type: ignore
+				row.song, #type: ignore
 				row.album, #type: ignore
 				row.artist #type: ignore
 			)

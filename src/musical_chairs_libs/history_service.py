@@ -43,7 +43,7 @@ class HistoryService:
 			sg.pk, \
 			sg.path, \
 			h.playedTimestamp, \
-			sg.title, \
+			sg.name, \
 			ab.name.label("album"),\
 			ar.name.label("artist")
 		).select_from(stations_history) \
@@ -65,7 +65,7 @@ class HistoryService:
 		for row in records: #	type: ignore
 			yield HistoryItem( 
 					row.pk, #	type: ignore
-					row.title, #	type: ignore
+					row.name, #	type: ignore
 					row.album, #	type: ignore
 					row.artist, #	type: ignore
 					row.playedTimestamp #	type: ignore

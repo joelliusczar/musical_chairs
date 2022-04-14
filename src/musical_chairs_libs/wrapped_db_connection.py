@@ -1,5 +1,5 @@
 from typing import Any, List, Optional
-from sqlalchemy.engine import Connection, Transaction
+from sqlalchemy.engine import Connection, Transaction, Engine
 from sqlalchemy.engine.cursor import CursorResult
 
 
@@ -12,6 +12,10 @@ class WrappedDbConnection:
 
 	def __init__(self, conn: Connection) -> None:
 			self.conn = conn
+
+	@property
+	def engine(self) -> Engine:
+		return self.conn.engine
 
 	def execute(self, 
 		statement: Any,

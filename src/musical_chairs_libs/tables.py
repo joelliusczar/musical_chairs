@@ -30,7 +30,7 @@ songs = Table("Songs", metadata,
 	Column("track", Integer, nullable=True),
 	Column("disc", Integer, nullable=True),
 	Column("genre", String, nullable=True),
-	Column('explicit', Integer, nullable=True),
+	Column("explicit", Integer, nullable=True),
 	Column("bitrate", Float, nullable=True),
 	Column("comment", String, nullable=True),
 )
@@ -41,7 +41,7 @@ song_artist = Table("SongsArtists", metadata,
 	Column("isPrimaryArtist", Integer, nullable=True),
 )
 
-songCovers = Table("SongCovers", metadata,
+song_covers = Table("SongCovers", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("songFk", ForeignKey("Songs.pk"), nullable=False),
 	Column("coverSongFk", ForeignKey("Songs.pk"), nullable=False),

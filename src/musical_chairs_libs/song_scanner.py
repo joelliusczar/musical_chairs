@@ -47,16 +47,23 @@ def scan_files(searchBase: str) -> Iterator[str]:
 				yield match
 
 def get_file_tags(songFullPath: str) -> TinyTag:
+	fileAndExtIdx = 1
+	fileNameNoExtIdx = 0
 	try:
 		tag = TinyTag.get(songFullPath)
 		if not tag.title:
-			fileName = os.path.splitext(os.path.split(songFullPath)[1])[0]
-			tag.title = fileName
+			fileNameNoExt = os.path.splitext(
+				os.path.split(songFullPath)[fileAndExtIdx]
+			)[fileNameNoExtIdx]
+			tag.title = fileNameNoExt
 		return tag
 	except:
 		print(f"error: {songFullPath}")
-		fileName = os.path.splitext(os.path.split(songFullPath)[1])[0]
-		tag = TinyTag(None, 0)
+		fileName = os.path.splitext(
+			os.path.split(songFullPath)[fileAndExtIdx]
+		)[fileNameNoExtIdx]
+
+		tag = TinyTag(filehandler=None, filesize=0)
 		tag.title = fileName
 		return tag
 

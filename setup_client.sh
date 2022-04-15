@@ -17,8 +17,9 @@ empty_dir_contents "$app_path_client_cl" ||
 show_err_and_exit 
 
 
+export REACT_APP_API_ADDRESS="$full_url"
+export REACT_APP_API_VERSION=v1
 #set up react then copy
-
 #install packages
 npm --prefix "$client_src" i &&
 #build code (transpile it)

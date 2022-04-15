@@ -22,21 +22,26 @@ from musical_chairs_libs.dtos import Tag, \
 	StationInfo, \
 	SongItem
 from musical_chairs_libs.env_manager import EnvManager
+from musical_chairs_libs.os_process_manager import OSProcessManager
 
 class StationService:
 
 	def __init__(self, 
 		conn: WrappedDbConnection,
-		envManager: Optional[EnvManager]=None
+		envManager: Optional[EnvManager]=None,
+		processManager: Optional[OSProcessManager]=None
 	):
 			if not conn:
 				if not envManager:
 					envManager = EnvManager()
 				conn = envManager.get_configured_db_connection()
+			if not processManager:
+				processManager = OSProcessManager()
 			self.conn = conn
+			self.process_manager = processManager
 
 	def set_station_proc(self, stationName: str) -> None:
-		pid = os.getpid()
+		pid = self.process_manager.getpid()
 		st = stations.c
 		stmt = update(stations)\
 			.values(procId = pid).where(st.name == stationName)
@@ -53,9 +58,7 @@ class StationService:
 		query = select(st.procId).select_from(stations).where(st.procId != None)
 		for row in self.conn.execute(query).fetchall():
 			pid: int = row.procId #type: ignore
-			try:
-				os.kill(pid, 2)
-			except: pass
+			self.process_manager.end_process(pid)
 		stmt = update(stations).values(procId = None)
 		self.conn.execute(stmt)
 

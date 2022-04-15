@@ -16,7 +16,7 @@ link_to_music_files
 env_path="$maintenance_dir_cl"
 
 
-export config_file
+export dbName="$sqlite_file"
 . "$env_path"/"$py_env"/bin/activate &&
 # #python_env
 { python  <<EOF

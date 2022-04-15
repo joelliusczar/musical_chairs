@@ -54,7 +54,7 @@ cp "$templates_dir_cl"/template.py "$added_module_name" &&
 sed -i -e "s/<internal_station_name>/${internal_name}/" "$added_module_name" ||
 show_err_and_exit
 
-export config_file
+export dbName="$sqlite_file"
 
 env_path="$maintenance_dir_cl"
 

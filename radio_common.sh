@@ -250,6 +250,9 @@ while [ ! -z "$1" ]; do
 		testdb)
 			test_db_flag='test_db'
 			;;
+		env=*)
+			app_env=${1#env=}
+			;;
 		radio_home=*)
 			radio_home=${1#radio_home=}
 			;;
@@ -272,8 +275,10 @@ fi
 
 export radio_home=${radio_home:-"$HOME"/radio}
 
-lib_name='musical_chairs_libs'
-app_name='musical_chairs_app'
+proj_name='musical_chairs'
+lib_name="$proj_name"_libs
+app_name="$proj_name"_app
+url_base=$(echo "$proj_name" | tr -d _)
 ices_configs_dir="$radio_home"/ices_configs
 pyModules_dir="$radio_home"/pyModules
 build_home="$HOME"/Documents/builds
@@ -312,6 +317,17 @@ src_path="$workspace_abs_path/src"
 api_src="$src_path/api"
 client_src="$src_path/client"
 lib_src="$src_path/$lib_name"
+
+case "$app_env" in 
+	local*)
+		url_suffix='-local.fm:8080'
+		;;
+	*)
+		url_suffix='.fm'
+		;;
+esac
+
+full_url="http://$url_base""$url_suffix"
 
 
 PACMAN_CONST='pacman'

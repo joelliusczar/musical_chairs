@@ -11,6 +11,9 @@ else
   exit 1
 fi
 
+#we have this as a seperate script so I can easily run it without being tangled
+#with the rest
+
 case $(uname) in
 	Darwin*)
 		PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH"

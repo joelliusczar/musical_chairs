@@ -94,25 +94,25 @@ fi
 
 
 case $(uname) in
-		Darwin*)
-			if ! brew_is_installed libtool; then
-				eval "$pkgMgr" libtool 
-			fi
-			if ! brew_is_installed pkg-config; then
-				eval "$pkgMgr" pkg-config
-			fi
-			if ! brew_is_installed libshout; then
-				eval "$pkgMgr" libshout 
-			fi
-			;;
-		Linux*) 
-			if [ "$pkgMgrChoice" = "$APT_CONST" ] \
-			&& ! libtool --version 2>/dev/null; then
-				eval "$pkgMgr" libtool-bin
-			fi
-			;;
-		*) ;;
-	esac
+	Darwin*)
+		if ! brew_is_installed libtool; then
+			eval "$pkgMgr" libtool 
+		fi
+		if ! brew_is_installed pkg-config; then
+			eval "$pkgMgr" pkg-config
+		fi
+		if ! brew_is_installed libshout; then
+			eval "$pkgMgr" libshout 
+		fi
+		;;
+	Linux*) 
+		if [ "$pkgMgrChoice" = "$APT_CONST" ] \
+		&& ! libtool --version 2>/dev/null; then
+			eval "$pkgMgr" libtool-bin
+		fi
+		;;
+	*) ;;
+esac
 
 set_python_version_const
 
@@ -149,9 +149,6 @@ if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 	fi
 fi
 
-if ! [ -e "$build_home" ]; then
-	mkdir -pv "$build_home"
-fi
 
 if ! [ -e "$radio_home" ]; then
 	mkdir -pv "$radio_home"
@@ -178,28 +175,19 @@ if ! mc-ices -V 2>/dev/null; then
 	sh ./build_ices.sh
 fi
 
-create_db() {
-	echo "creating $sqlite_file"
-	sqlite3 "$sqlite_file" ".read ./sql_scripts/data_def_1.sql" &&
-	sqlite3 "$sqlite_file" ".read ./sql_scripts/insert_tags_1.sql" &&
-	sqlite3 "$sqlite_file" ".read ./sql_scripts/security_def_1.sql"
-}
 
-if [ -e "$sqlite_file" ]; then
-	echo 'The database already exits. Do you want to start from scratch? Y to confirm'
-	read db_choice
-	if [ "$db_choice" = 'Y' ]; then
-		rm -f "$sqlite_file"
-		create_db
-		db_res="$?"
-	else
-		echo 'Using existing db'
-		db_res=0
-	fi
-else 
-	create_db
-	db_res="$?"
+if ! nginx -v 2>/dev/null; then
+	case $(uname) in
+		Darwin*)
+			eval "$pkgMgr" nginx 
+			;;
+		Linux*) 
+			if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+				eval "$pkgMgr" nginx-full
+			fi
+			;;
+		*) ;;
+	esac
+	update_nginx_conf
 fi
 
-$(exit "$db_res") && sh ./commit_setup.sh 
-#sh ./run_song_scan.sh

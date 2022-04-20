@@ -24,7 +24,7 @@ cp ./requirements.txt "$radio_home"/requirements.txt
 setup_dir_with_py './maintenance' "$maintenance_dir_cl" || 
 	show_err_and_exit 
 
-setup_dir './templates' "$templates_dir_cl"|| 
+setup_dir './templates' "$templates_dir_cl" || 
 	show_err_and_exit 
 
 #create the folder for the start up scripts

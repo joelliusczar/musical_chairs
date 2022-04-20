@@ -13,3 +13,6 @@ fi
 
 setup_dir_with_py "$api_src" "$app_path_cl" || 
 show_err_and_exit 
+
+update_nginx_conf || 
+show_err_and_exit 

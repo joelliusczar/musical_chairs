@@ -1,7 +1,8 @@
 #!/bin/sh
 
 
-[ -f "$HOME"/.dev_local_rc ] && . "$HOME"/.dev_local_rc
+[ -f "$HOME"/.profile ] && . "$HOME"/.profile
+[ -f "$HOME"/.zprofile ] && . "$HOME"/.zprofile
 
 to_abs_path() {
 	local target_path="$1"
@@ -242,6 +243,60 @@ is_newer_than_files() {
 	find "$dir_to_check" -newer "$candidate"
 }
 
+literal_to_regex() {
+	#this will handle cases as I need them and not exhaustively
+	local str="$1"
+	echo str | sed 's/\*/\\*/g'
+}
+
+get_and_enable_nginx_conf_dir() {
+	#break options into a list
+	#then isolate the option we're interested in
+	local nginx_conf=$(nginx -V 2>&1 | \
+		sed 's/ /\n/g' | \ 
+		sed -n '/--conf-path/p' | \ 
+		sed 's/.*=\(.*\)/\1/')
+	local guesses=$(cat<<-EOF
+		include /etc/nginx/sites-enabled/*;
+		include servers/*;
+	EOF
+	)
+	echo "$guesses" | while read guess; do
+		if grep -F "$guess" "$nginx_conf"; then
+			local escaped_guess=$(literal_to_regex "$guess")
+			#uncomment line if necessary
+			#redirect to stderr so out doesn't get poluted
+			sudo -p "Enable $guess" \
+				sed -i "\@$escaped_guess@s/^[ \t]*#//" "$guess" 1>&2 
+			local conf_dir=$(echo "$guess" | sed 's@/*; *@@') #remove trailing path chars
+			break
+		fi
+	done
+	echo "$conf_dir"
+}
+
+update_nginx_conf() {
+	local conf_dir=$(get_and_enable_nginx_conf_dir)
+	local app_conf_file="$conf_dir"/"$app_name".conf
+	sudo -p 'copy nginx config' \
+		cp ./templates/nginx_template.conf "$app_conf_file" &&
+	sed -i "s@<app_path_client_cl>@$app_path_client_cl@" "$app_conf_file" &&
+	sed -i "s@<full_url>@$full_url@" "$app_conf_file" 
+	sudo -p 'Remove default nginx config' \
+		rm "$conf_dir"/default
+	case $(uname) in
+		Darwin*)
+			nginx -s reload
+			;;
+		Linux*) 
+			if systemctl is-active --quiet nginx; then
+				sudo systemctl restart nginx
+			fi
+			;;
+		*) ;;
+	esac
+}
+
 while [ ! -z "$1" ]; do
 	case "$1" in
 		test)
@@ -258,6 +313,9 @@ while [ ! -z "$1" ]; do
 			;;
 		web_root=*)
 			web_root=${1#web_root=}
+			;;
+		setup_lvl=*)
+			setup_lvl=${1#setup_lvl=}
 			;;
 		*) ;;
 	esac

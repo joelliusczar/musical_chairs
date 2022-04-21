@@ -159,7 +159,7 @@ case $(uname) in
 	Linux*)
 		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
 			if ! icecast -v 2>/dev/null; then
-				install_package icecast
+				yes 'no' | install_package icecast
 			fi
 		elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 			if ! icecast2 -v 2>/dev/null; then

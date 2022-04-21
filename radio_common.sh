@@ -20,7 +20,7 @@ install_package() {
 	local pkgName="$1"
 	case $(uname) in
 		Linux*)
-			if  which pacman >/dev/null 2>&1; then
+			if which pacman >/dev/null 2>&1; then
 				yes | sudo -p 'Pass required for pacman install: ' \
 					pacman -S "$pkgName"
 			elif which apt-get >/dev/null 2>&1; then
@@ -40,8 +40,8 @@ set_python_version_const() {
 	#python version info
 	mc-python -V 2>/dev/null || return "$?"
 	pyVersion=$(mc-python -V)
-	pyMajor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /(\d+)\.\d+/')
-	pyMinor=$(echo "$pyVersion"| perl -ne 'print "$1\n" if /\d+\.(\d+)/')
+	pyMajor=$(echo "$pyVersion" | perl -ne 'print "$1\n" if /(\d+)\.\d+/')
+	pyMinor=$(echo "$pyVersion" | perl -ne 'print "$1\n" if /\d+\.(\d+)/')
 }
 
 set_pkg_mgr() {
@@ -348,6 +348,9 @@ restart_nginx() {
 		Linux*) 
 			if systemctl is-active --quiet nginx; then
 				sudo systemctl restart nginx
+			else
+				echo "nginx not started"
+				return 1
 			fi
 			;;
 		*) ;;

@@ -14,21 +14,10 @@ fi
 
 set_pkg_mgr
 
-if [ -z "$pkgMgr" ]; then
-	echo "No package manager set"
-	exit 1
-fi
+[ -n "$pkgMgrChoice " ] || show_err_and_exit "No package manager set"
 
-if ! perl -v 2>/dev/null; then
-	eval "$pkgMrg" perl
-fi
+curl -V || show_err_and_exit "curl is not installed"
 
-[ ! -e "$bin_dir" ] && mkdir -pv "$bin_dir"
-
-if perl -e "exit 1 if index('$PATH','$bin_dir') != -1"; then
-	echo "Please add '$bin_dir' to path"
-	export PATH="$PATH":"$bin_dir"
-fi
 
 case $(uname) in
 	Darwin*)
@@ -40,16 +29,28 @@ case $(uname) in
 	*) ;;
 esac
 
+if ! perl -v 2>/dev/null; then
+	install_package perl
+fi
+
+[ ! -e "$bin_dir" ] && mkdir -pv "$bin_dir"
+
+if perl -e "exit 1 if index('$PATH','$bin_dir') != -1"; then
+	echo "Please add '$bin_dir' to path"
+	export PATH="$PATH":"$bin_dir"
+fi
+
+
 if ! mc-python -V 2>/dev/null; then
 	case $(uname) in
 		Linux*) 
 			if ! python3 -V 2>/dev/null; then
-				eval "$pkgMgr" python3
+				install_package python3
 			fi
 			;;
 		Darwin*)
 			if ! brew_is_installed python3; then
-				eval "$pkgMgr" python3
+				install_package python3
 			fi
 			;;
 		*) ;;
@@ -68,47 +69,47 @@ if ! mc-python -m  virtualenv --version 2>/dev/null; then
 fi
 
 if ! npm version 2>/dev/null; then
-	eval "$pkgMgr" npm
+	install_package npm
 fi
 
 
 case $(uname) in
 	Linux*)
 		if ! s3fs --version 2>/dev/null; then
-			eval "$pkgMgr" s3fs
+			install_package s3fs
 		fi
 		;;
 esac
 
 if ! sqlite3 -version 2>/dev/null; then
-	eval "$pkgMgr" sqlite3
+	install_package sqlite3
 fi
 
 if ! git --version 2>/dev/null; then
-	eval "$pkgMgr" git
+	install_package git
 fi
 
 if ! aclocal --version 2>/dev/null; then
-	eval "$pkgMgr" automake
+	install_package automake
 fi
 
 
 case $(uname) in
 	Darwin*)
 		if ! brew_is_installed libtool; then
-			eval "$pkgMgr" libtool 
+			install_package libtool 
 		fi
 		if ! brew_is_installed pkg-config; then
-			eval "$pkgMgr" pkg-config
+			install_package pkg-config
 		fi
 		if ! brew_is_installed libshout; then
-			eval "$pkgMgr" libshout 
+			install_package libshout 
 		fi
 		;;
 	Linux*) 
 		if [ "$pkgMgrChoice" = "$APT_CONST" ] \
 		&& ! libtool --version 2>/dev/null; then
-			eval "$pkgMgr" libtool-bin
+			install_package libtool-bin
 		fi
 		;;
 	*) ;;
@@ -118,34 +119,34 @@ set_python_version_const
 
 if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 	if ! dpkg -s libxml2-dev >/dev/null 2>&1; then
-		eval "$pkgMgr" libxml2-dev
+		install_package libxml2-dev
 	fi
 	if ! dpkg -s libogg-dev >/dev/null 2>&1; then
-		eval "$pkgMgr" libogg-dev
+		install_package libogg-dev
 	fi
 	if ! dpkg -s libvorbis-dev >/dev/null 2>&1; then
-		eval "$pkgMgr" libvorbis-dev
+		install_package libvorbis-dev
 	fi
 	if ! dpkg -s libshout3-dev >/dev/null 2>&1; then
-		eval "$pkgMgr" libshout3-dev
+		install_package libshout3-dev
 	fi
 	if ! dpkg -s libmp3lame-dev >/dev/null 2>&1; then
-		eval "$pkgMgr" libmp3lame-dev
+		install_package libmp3lame-dev
 	fi
 	if ! dpkg -s libflac-dev >/dev/null 2>&1; then
-		eval "$pkgMgr" libflac-dev
+		install_package libflac-dev
 	fi
 	if ! dpkg -s libfaad-dev >/dev/null 2>&1; then
-		eval "$pkgMgr" libfaad-dev
+		install_package libfaad-dev
 	fi
 	if ! dpkg -s python"$pyMajor"."$pyMinor"-dev >/dev/null 2>&1; then
-		eval "$pkgMgr" python"$pyMajor"."$pyMinor"-dev
+		install_package python"$pyMajor"."$pyMinor"-dev
 	fi
 	if ! dpkg -s libperl-dev >/dev/null 2>&1; then
-		eval "$pkgMgr" libperl-dev
+		install_package libperl-dev
 	fi
 	if ! dpkg -s python3-distutils >/dev/null 2>&1; then
-		eval "$pkgMgr" python3-distutils
+		install_package python3-distutils
 	fi
 fi
 
@@ -158,11 +159,11 @@ case $(uname) in
 	Linux*)
 		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
 			if ! icecast -v 2>/dev/null; then
-				eval "$pkgMgr" icecast
+				install_package icecast
 			fi
 		elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 			if ! icecast2 -v 2>/dev/null; then
-				eval "$pkgMgr" icecast2
+				install_package icecast2
 			fi
 		fi
 		;;
@@ -179,17 +180,18 @@ fi
 if ! nginx -v 2>/dev/null; then
 	case $(uname) in
 		Darwin*)
-			eval "$pkgMgr" nginx 
+			install_package nginx 
 			;;
 		Linux*) 
 			if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
-				eval "$pkgMgr" nginx-full
+				install_package nginx-full
 			fi
 			;;
 		*) ;;
 	esac
 	setup_nginx_confs
+	confDir=$(get_nginx_conf_dir_abs_path)
 	sudo -p 'copy nginx config' \
-		cp ./templates/nginx_evil.conf "$conf_dir"/nginx_evil.com
+		cp ./templates/nginx_evil.conf "$confDir"/nginx_evil.com
 fi
 

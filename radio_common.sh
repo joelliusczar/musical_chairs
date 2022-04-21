@@ -16,6 +16,26 @@ to_abs_path() {
 }
 
 
+install_package() {
+	local pkgName="$1"
+	case $(uname) in
+		Linux*)
+			if  which pacman >/dev/null 2>&1; then
+				yes | sudo -p 'Pass required for pacman install: ' \
+					pacman -S "$pkgName"
+			elif which apt-get >/dev/null 2>&1; then
+				yes | sudo -p 'Pass required for apt-get install: ' \
+					apt-get install "$pkgName"
+			fi
+			;;
+		Darwin*)
+			yes | brew install "$pkgName"
+			;;
+		*) 
+			;;
+	esac
+}
+
 set_python_version_const() {
 	#python version info
 	mc-python -V 2>/dev/null || return "$?"
@@ -25,25 +45,20 @@ set_python_version_const() {
 }
 
 set_pkg_mgr() {
-	pkgMgr=''
 	pkgMgrChoice=''
 	case $(uname) in
-	Linux*)
-		if  which pacman >/dev/null 2>&1; then
-			pkgMgrChoice="$PACMAN_CONST"
-			pkgMgr='yes | sudo -p "Pass required for pacman install: " pacman -S'
-		elif which apt-get >/dev/null 2>&1; then
-			pkgMgrChoice="$APT_CONST"
-			local msg='Pass required for apt-get install: '
-			pkgMgr="yes | sudo -p '$msg' apt-get install: "
-		fi
-		;;
-	Darwin*)
-		pkgMgrChoice="$HOMEBREW_CONST"
-		pkgMgr='yes | brew install'
-		;;
-	*) 
-		;;
+		Linux*)
+			if  which pacman >/dev/null 2>&1; then
+				pkgMgrChoice="$PACMAN_CONST"
+			elif which apt-get >/dev/null 2>&1; then
+				pkgMgrChoice="$APT_CONST"
+			fi
+			;;
+		Darwin*)
+			pkgMgrChoice="$HOMEBREW_CONST"
+			;;
+		*) 
+			;;
 	esac
 }
 
@@ -308,6 +323,11 @@ get_abs_path_from_nginx_include() {
 			echo "$absPath"
 		fi
 	fi
+}
+
+get_nginx_conf_dir_abs_path() {
+	local confDirInclude=$(get_nginx_conf_dir_include)
+	get_abs_path_from_nginx_include "$confDirInclude"
 }
 
 enable_nginx_include() {

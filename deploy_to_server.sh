@@ -19,14 +19,17 @@ fi
 #myVar=$(cat<<EOF
 #...
 #)
-mkfifo remoteScriptFifo
-cat "$radio_common_path" > remoteScriptFifo &
+mkfifo radio_common_fifo clone_repo_fifo script_select_fifo 
+mkfifo remote_script_fifo
 
-echo "radio_server_repo_url='$radio_server_repo_url'" >> remoteScriptFifo &
+
+cat "$radio_common_path" > radio_common_fifo &
+
 
 #clone repo
 { cat <<'RemoteScriptEOF1'
 
+echo 'Part C'
 
 if ! git --version 2>/dev/null; then
 	install_package git
@@ -38,11 +41,12 @@ git clone "$radio_server_repo_url" "$proj_name" &&
 cd "$proj_name" 
 
 RemoteScriptEOF1
-} >> remoteScriptFifo &
+} > clone_repo_fifo &
 
 #select which setup script to run
 { cat<<RemoteScriptEOF2
 
+echo 'Part D'
 
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"
@@ -64,18 +68,32 @@ else
 fi
 
 RemoteScriptEOF2
-} >> remoteScriptFifo &
+} > script_select_fifo &
 
 
 
+{
+	cat<<RemoteScriptEOF3
+$(cat radio_common_fifo)
+
+radio_server_repo_url="$radio_server_repo_url"
+
+$(cat clone_repo_fifo)
+
+$(cat script_select_fifo)
 
 
+RemoteScriptEOF3
+} > remote_script_fifo &
 
-ssh -i "$radio_key_file" "$radio_server_ssh_address" \
-	'bash -s' < remoteScriptFifo &&
-echo "All done" || echo "Onk!"
-rm -f remoteScriptFifo
+cat remote_script_fifo
 
+# ssh -i "$radio_key_file" "$radio_server_ssh_address" \
+# 	'bash -s' < remote_script_fifo &&
+# echo "All done" || echo "Onk!"
+
+rm -f remote_script_fifo
+rm -f radio_common_fifo clone_repo_fifo script_select_fifo 
 
 
 

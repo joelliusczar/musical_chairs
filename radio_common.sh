@@ -167,7 +167,7 @@ show_err_and_exit() {
 }
 
 setup_config_file() {
-	cp ./templates/configs/.env "$config_file" &&
+	cp ./templates/.env "$config_file" &&
 	sed -i -e "s@^\(searchBase=\).*\$@\1'$music_home'@" "$config_file" &&
 	sed -i -e "s@^\(dbName=\).*\$@\1'$sqlite_file'@" "$config_file" &&
 	rm -f "$config_file"-e
@@ -292,7 +292,7 @@ get_nginx_conf_dir_include() {
 update_nginx_conf() {
 	local appConfFile="$1"
 	sudo -p 'copy nginx config' \
-		cp ./templates/nginx_template.conf "$appConfFile" &&
+		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
 	sed -i "s@<app_path_client_cl>@$app_path_client_cl@" "$appConfFile" &&
 	sed -i "s@<full_url>@$full_url@" "$appConfFile" 
 }
@@ -443,6 +443,9 @@ src_path="$workspace_abs_path/src"
 api_src="$src_path/api"
 client_src="$src_path/client"
 lib_src="$src_path/$lib_name"
+templates_src="$workspace_abs_path/templates"
+start_up_src="$workspace_abs_path/start_up"
+maintenance_src="$workspace_abs_path/maintenance"
 
 case "$app_env" in 
 	local*)

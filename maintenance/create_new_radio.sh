@@ -38,7 +38,7 @@ sourcePassword=$(sudo -p 'Pass required to read icecast config: ' \
 show_err_and_exit 
 
 added_config_name="$ices_configs_dir"/ices."$internal_name".conf
-cp "$templates_dir_cl"/configs/ices.conf "$added_config_name" &&
+cp "$templates_dir_cl"/ices.conf "$added_config_name" &&
 sed -i -e "/<Password>/s/>[[:alnum:]]*/>${sourcePassword}/" \
   "$added_config_name" &&
 sed -i -e "/<Module>/s/internal_station_name/${internal_name}/" \

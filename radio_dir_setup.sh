@@ -21,13 +21,13 @@ cp ./requirements.txt "$radio_home"/requirements.txt
 
 #check if personal scripts folder exists, clear out if it does,
 #delete otherwise
-setup_dir_with_py './maintenance' "$maintenance_dir_cl" || 
+setup_dir_with_py "$maintenance_src" "$maintenance_dir_cl" || 
 	show_err_and_exit 
 
-setup_dir './templates' "$templates_dir_cl" || 
+setup_dir "$templates_src" "$templates_dir_cl" || 
 	show_err_and_exit 
 
 #create the folder for the start up scripts
-setup_dir './start_up' "$start_up_dir_cl" || 
+setup_dir "$start_up_src" "$start_up_dir_cl" || 
 	show_err_and_exit 
 

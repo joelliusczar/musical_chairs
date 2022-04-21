@@ -14,14 +14,8 @@ fi
 
 link_to_music_files
 
-if [ "$test_flag" = "test" ]; then 
-  env_path='./src/maintenance' 
-else 
-  env_path="$maintenance_dir_cl"
-fi
-
 export dbName="$sqlite_file"
-. "$env_path"/"$py_env"/bin/activate &&
+. "$maintenance_dir_cl"/"$py_env"/bin/activate &&
 # #python_env
 { python  <<EOF
 from musical_chairs_libs.station_service import StationService

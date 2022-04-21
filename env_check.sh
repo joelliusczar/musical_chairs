@@ -138,13 +138,13 @@ mc-ices -V >/dev/null 2>&1 ||
 	echo "$maintenance_dir_cl is not in place"
 
 
-compare_dirs './maintenance' "$maintenance_dir_cl"
+compare_dirs "$maintenance_src" "$maintenance_dir_cl"
 
 [ -e "$maintenance_dir_cl/$py_env" ] ||
 	echo "$maintenance_dir_cl/$py_env is not in place"
 
-compare_dirs './templates' "$templates_dir_cl"
-compare_dirs './start_up' "$start_up_dir_cl"
+compare_dirs "$templates_src" "$templates_dir_cl"
+compare_dirs "$start_up_src" "$start_up_dir_cl"
 compare_dirs "$api_src" "$app_path_cl"
 
 [ -e "$app_path_cl/$py_env" ] ||

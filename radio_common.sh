@@ -249,13 +249,18 @@ literal_to_regex() {
 	echo str | sed 's/\*/\\*/g'
 }
 
-get_and_enable_nginx_conf_dir() {
+get_nginx_value() {
+	local key={$1:-'conf-path'}
 	#break options into a list
 	#then isolate the option we're interested in
-	local nginx_conf=$(nginx -V 2>&1 | \
-		sed 's/ /\n/g' | \ 
-		sed -n '/--conf-path/p' | \ 
-		sed 's/.*=\(.*\)/\1/')
+	nginx -V 2>&1 | \
+			sed 's/ /\n/g' | \ 
+			sed -n "/--$key/p" | \ 
+			sed 's/.*=\(.*\)/\1/'
+}
+
+get_nginx_conf_dir_include() {
+	local nginx_conf=$(get_nginx_value)
 	local guesses=$(cat<<-EOF
 		include /etc/nginx/sites-enabled/*;
 		include servers/*;
@@ -263,27 +268,59 @@ get_and_enable_nginx_conf_dir() {
 	)
 	echo "$guesses" | while read guess; do
 		if grep -F "$guess" "$nginx_conf"; then
-			local escaped_guess=$(literal_to_regex "$guess")
-			#uncomment line if necessary
-			#redirect to stderr so out doesn't get poluted
-			sudo -p "Enable $guess" \
-				sed -i "\@$escaped_guess@s/^[ \t]*#//" "$guess" 1>&2 
-			local conf_dir=$(echo "$guess" | sed 's@/*; *@@') #remove trailing path chars
+			echo "$guess"
 			break
 		fi
 	done
-	echo "$conf_dir"
 }
 
 update_nginx_conf() {
-	local conf_dir=$(get_and_enable_nginx_conf_dir)
-	local app_conf_file="$conf_dir"/"$app_name".conf
+	local appConfFile="$1"
 	sudo -p 'copy nginx config' \
-		cp ./templates/nginx_template.conf "$app_conf_file" &&
-	sed -i "s@<app_path_client_cl>@$app_path_client_cl@" "$app_conf_file" &&
-	sed -i "s@<full_url>@$full_url@" "$app_conf_file" 
-	sudo -p 'Remove default nginx config' \
-		rm "$conf_dir"/default
+		cp ./templates/nginx_template.conf "$appConfFile" &&
+	sed -i "s@<app_path_client_cl>@$app_path_client_cl@" "$appConfFile" &&
+	sed -i "s@<full_url>@$full_url@" "$appConfFile" 
+}
+
+get_abs_path_from_nginx_include() {
+	local confDirInclude="$1"
+	local confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
+		sed 's@\*; *@@') 
+	#test if already exists as absolute path
+	if [ -d  "$confDir" ]; then
+		echo "$confDir"
+		return
+	else
+		prefix=$(get_nginx_value 'prefix')
+		local absPath="$prefix"/"$confDir"
+		if [ ! -d "$absPath" ]; then
+			if [ -e "$absPath" ]; then 
+				echo "$absPath is a file, not a directory" 1>&2
+				return 1
+			fi
+			#Apparently nginx will look for includes with either an absolute path
+			#or path relative to the prefix
+			#some os'es are finicky about creating directories at the root lvl
+			#even with sudo, so we're not going to even try
+			#we'll just create missing dir in $prefix folder
+			sudo -p "Add nginx conf dir" \
+				mkdir -pv "$absPath"
+			echo "$absPath"
+		fi
+	fi
+}
+
+enable_nginx_include() {
+	local confDirInclude="$1"
+	local confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
+		sed 's@\*; *@@') 
+	local escaped_guess=$(literal_to_regex "$confDirInclude")
+	#uncomment line if necessary
+	sudo -p "Enable $confDirInclude" \
+		sed -i "\@$escaped_guess@s/^[ \t]*#//" $(get_nginx_value) 
+}
+
+restart_nginx() {
 	case $(uname) in
 		Darwin*)
 			nginx -s reload
@@ -295,6 +332,17 @@ update_nginx_conf() {
 			;;
 		*) ;;
 	esac
+}
+
+setup_nginx_confs() {
+	local confDirInclude=$(get_nginx_conf_dir_include)
+	#remove trailing path chars
+	local confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 
+	enable_nginx_include "$confDirInclude"
+	update_nginx_conf "$confDir"/"$app_name".conf
+	sudo -p 'Remove default nginx config' \
+		rm -f "$confDir"/default
+	restart_nginx
 }
 
 while [ ! -z "$1" ]; do

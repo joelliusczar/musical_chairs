@@ -188,6 +188,8 @@ if ! nginx -v 2>/dev/null; then
 			;;
 		*) ;;
 	esac
-	update_nginx_conf
+	setup_nginx_confs
+	sudo -p 'copy nginx config' \
+		cp ./templates/nginx_evil.conf "$conf_dir"/nginx_evil.com
 fi
 

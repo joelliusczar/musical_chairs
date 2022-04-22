@@ -254,9 +254,12 @@ if ! nginx -v 2>/dev/null; then
 			;;
 		*) ;;
 	esac &&
+fi
+
+confDir=$(get_nginx_conf_dir_abs_path)
+if [ ! -e "confDir"/nginx_evil.conf ]; then
 	setup_nginx_confs &&
-	confDir=$(get_nginx_conf_dir_abs_path) &&
 	sudo -p 'copy nginx config' \
-		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.com
+		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
 

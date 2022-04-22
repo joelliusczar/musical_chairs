@@ -104,7 +104,7 @@ link_to_music_files() {
 
 is_python_sufficient_version() {
 	set_python_version_const &&
-	[ "$pyMajor" -eq 3 ] && ["$pyMinor" -ge 9]
+	[ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge 9 ]
 }
 
 #set up the python environment, then copy 

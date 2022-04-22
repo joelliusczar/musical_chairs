@@ -24,6 +24,7 @@ install_package() {
 				yes | sudo -p 'Pass required for pacman install: ' \
 					pacman -S "$pkgName"
 			elif which apt-get >/dev/null 2>&1; then
+				echo "Try to install $pkgName"
 				yes | sudo -p 'Pass required for apt-get install: ' \
 					apt-get install "$pkgName"
 			fi
@@ -96,6 +97,11 @@ link_to_music_files() {
 	res="$?"
 	echo 'Music files should exist now'
 	return "$res"
+}
+
+is_python_sufficient_version() {
+	set_python_version_const &&
+	[ "$pyMajor" -eq 3 ] && ["$pyMinor" -ge 9]
 }
 
 #set up the python environment, then copy 

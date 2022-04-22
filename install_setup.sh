@@ -50,9 +50,7 @@ if perl -e "exit 1 if index('$PATH','$bin_dir') != -1"; then
 fi
 
 
-set_python_version_const
-
-if ! mc-python -V 2>/dev/null || "$pyMajor" -ne 3 || "$pyMinor" -lt 9; then
+if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 	pythonToLink='python3'
 	case $(uname) in
 		Linux*) 
@@ -60,7 +58,7 @@ if ! mc-python -V 2>/dev/null || "$pyMajor" -ne 3 || "$pyMinor" -lt 9; then
 				install_package python3
 			fi
 			#unbuntu only installs up to 3.8.10 which has a mysterious bug
-			if "$pyMajor" -ne 3 || "$pyMinor" -lt 9; then
+			if ! is_python_sufficient_version; then
 				if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 					if ! dpkg -s build-essential >/dev/null 2>&1; then
 						install_package build-essential

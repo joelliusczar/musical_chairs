@@ -15,6 +15,23 @@ fi
 
 if [ -n "$(git status --porcelain)" ]; then
 	echo "There are uncommited changes that will not be apart of the deploy"
+	echo "continue?"
+	read c
+	if [ "$c" = 'n' ] || [ "$c" = 'N' ]; then
+		echo 'Canceling action'
+		exit
+	fi
+fi
+
+git fetch
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse ${u})" ]; then
+	echo "remote branch may not have latest set of commits"
+	echo "continue?"
+	read c
+	if [ "$c" = 'n' ] || [ "$c" = 'N' ]; then
+		echo 'Canceling action'
+		exit
+	fi
 fi
 
 #Would have prefered to just use a variable
@@ -33,7 +50,6 @@ cat "$radio_common_path" > radio_common_fifo &
 #clone repo
 { cat <<'RemoteScriptEOF1'
 
-echo 'Part C'
 
 if ! git --version 2>/dev/null; then
 	install_package git
@@ -50,7 +66,6 @@ RemoteScriptEOF1
 #select which setup script to run
 { cat<<RemoteScriptEOF2
 
-echo 'Part D'
 
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"

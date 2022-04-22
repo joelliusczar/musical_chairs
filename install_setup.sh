@@ -16,12 +16,21 @@ set_pkg_mgr
 
 [ -n "$pkgMgrChoice " ] || show_err_and_exit "No package manager set"
 
-curl -V || show_err_and_exit "curl is not installed"
+curl -V || show_err_and_exit "curl is somehow not installed"
 
 
 case $(uname) in
+	Linux*) 
+		if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+			sudo apt-get update
+		fi
+		;;
 	Darwin*)
 		if ! brew --version 2>/dev/null; then
+			#-f = -fail - fails quietly, i.e. no error page ...I think?
+			#-s = -silent - don't show any sort of loading bar or such
+			#-S = -show-error - idk
+			#-L = -location - if page gets redirect, try again at new location
 			/bin/bash -c "$(curl -fsSL \
 				https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 		fi
@@ -41,11 +50,68 @@ if perl -e "exit 1 if index('$PATH','$bin_dir') != -1"; then
 fi
 
 
-if ! mc-python -V 2>/dev/null; then
+set_python_version_const
+
+if ! mc-python -V 2>/dev/null || "$pyMajor" -ne 3 || "$pyMinor" -lt 9; then
+	pythonToLink='python3'
 	case $(uname) in
 		Linux*) 
 			if ! python3 -V 2>/dev/null; then
 				install_package python3
+			fi
+			#unbuntu only installs up to 3.8.10 which has a mysterious bug
+			if "$pyMajor" -ne 3 || "$pyMinor" -lt 9; then
+				if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+					if ! dpkg -s build-essential >/dev/null 2>&1; then
+						install_package build-essential
+					fi
+					if ! dpkg -s zlib1g-dev >/dev/null 2>&1; then
+						install_package zlib1g-dev
+					fi
+					if ! dpkg -s libncurses5-dev >/dev/null 2>&1; then
+						install_package libncurses5-dev
+					fi
+					if ! dpkg -s libgdbm-dev >/dev/null 2>&1; then
+						install_package libgdbm-dev
+					fi
+					if ! dpkg -s libnss3-dev >/dev/null 2>&1; then
+						install_package libnss3-dev
+					fi
+					if ! dpkg -s libssl-dev >/dev/null 2>&1; then
+						install_package libssl-dev
+					fi
+					if ! dpkg -s libreadline-dev >/dev/null 2>&1; then
+						install_package libreadline-dev
+					fi
+					if ! dpkg -s libffi-dev >/dev/null 2>&1; then
+						install_package libffi-dev
+					fi
+					if ! dpkg -s libsqlite3-dev >/dev/null 2>&1; then
+						install_package libsqlite3-dev
+					fi
+					if ! dpkg -s wget >/dev/null 2>&1; then
+						#not sure if this is actually needed or just the guide I
+						#was reading was using it to download the tar file
+						install_package wget
+					fi
+					if ! dpkg -s libbz2-dev >/dev/null 2>&1; then
+						install_package libbz2-dev
+					fi
+					(
+						python_build_dir="$build_home"/python
+						empty_dir_contents "$python_build_dir"
+						cd "$python_build_dir"
+						verNum='3.9.1'
+						curl -o Python-"$verNum".tgz \
+							https://www.python.org/ftp/python/"$verNum"/Python-"$verNum".tgz
+						tar -xf Python-"$verNum".tgz &&
+						cd Python-"$verNum" &&
+						./configure --enable-optimizations &&
+						make &&
+						sudo -p "install python3.9" make altinstall
+					)
+				fi
+				pythonToLink='python3.9'
 			fi
 			;;
 		Darwin*)
@@ -55,7 +121,7 @@ if ! mc-python -V 2>/dev/null; then
 			;;
 		*) ;;
 	esac
-	ln -sf $(get_bin_path python3) "$bin_dir"/mc-python
+	ln -sf $(get_bin_path "$pythonToLink") "$bin_dir"/mc-python
 fi
 
 
@@ -115,6 +181,7 @@ case $(uname) in
 	*) ;;
 esac
 
+#leave this here incase the python check above did update the python version
 set_python_version_const
 
 if [ "$pkgMgrChoice" = "$APT_CONST" ]; then

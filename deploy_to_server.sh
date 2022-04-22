@@ -13,6 +13,10 @@ fi
 
 . "$radio_common_path"
 
+if [ -n "$(git status --porcelain)" ]; then
+	echo "There are uncommited changes that will not be apart of the deploy"
+fi
+
 #Would have prefered to just use a variable
 #but it seems to choke on certain characters like ')' for some reason
 #when I do it like 
@@ -86,11 +90,10 @@ $(cat script_select_fifo)
 RemoteScriptEOF3
 } > remote_script_fifo &
 
-cat remote_script_fifo
 
-# ssh -i "$radio_key_file" "$radio_server_ssh_address" \
-# 	'bash -s' < remote_script_fifo &&
-# echo "All done" || echo "Onk!"
+ssh -i "$radio_key_file" "$radio_server_ssh_address" \
+	'bash -s' < remote_script_fifo &&
+echo "All done" || echo "Onk!"
 
 rm -f remote_script_fifo
 rm -f radio_common_fifo clone_repo_fifo script_select_fifo 

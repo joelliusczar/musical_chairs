@@ -62,39 +62,39 @@ if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 				if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 					if ! dpkg -s build-essential >/dev/null 2>&1; then
 						install_package build-essential
-					fi
+					fi &&
 					if ! dpkg -s zlib1g-dev >/dev/null 2>&1; then
 						install_package zlib1g-dev
-					fi
+					fi &&
 					if ! dpkg -s libncurses5-dev >/dev/null 2>&1; then
 						install_package libncurses5-dev
-					fi
+					fi &&
 					if ! dpkg -s libgdbm-dev >/dev/null 2>&1; then
 						install_package libgdbm-dev
-					fi
+					fi &&
 					if ! dpkg -s libnss3-dev >/dev/null 2>&1; then
 						install_package libnss3-dev
-					fi
+					fi &&
 					if ! dpkg -s libssl-dev >/dev/null 2>&1; then
 						install_package libssl-dev
-					fi
+					fi &&
 					if ! dpkg -s libreadline-dev >/dev/null 2>&1; then
 						install_package libreadline-dev
-					fi
+					fi &&
 					if ! dpkg -s libffi-dev >/dev/null 2>&1; then
 						install_package libffi-dev
-					fi
+					fi &&
 					if ! dpkg -s libsqlite3-dev >/dev/null 2>&1; then
 						install_package libsqlite3-dev
-					fi
+					fi &&
 					if ! dpkg -s wget >/dev/null 2>&1; then
 						#not sure if this is actually needed or just the guide I
 						#was reading was using it to download the tar file
 						install_package wget
-					fi
+					fi &&
 					if ! dpkg -s libbz2-dev >/dev/null 2>&1; then
 						install_package libbz2-dev
-					fi
+					fi &&
 					(
 						python_build_dir="$build_home"/python
 						empty_dir_contents "$python_build_dir"
@@ -108,7 +108,7 @@ if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 						make &&
 						sudo -p "install python3.9" make altinstall
 					)
-				fi
+				fi &&
 				pythonToLink='python3.9'
 			fi
 			;;
@@ -118,9 +118,9 @@ if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 			fi
 			;;
 		*) ;;
-	esac
+	esac &&
 	ln -sf $(get_bin_path "$pythonToLink") "$bin_dir"/mc-python
-fi
+fi || show_err_and_exit "python install failed"
 
 
 if ! mc-python -m pip -V 2>/dev/null; then
@@ -185,31 +185,31 @@ set_python_version_const
 if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 	if ! dpkg -s libxml2-dev >/dev/null 2>&1; then
 		install_package libxml2-dev
-	fi
+	fi &&
 	if ! dpkg -s libogg-dev >/dev/null 2>&1; then
 		install_package libogg-dev
-	fi
+	fi &&
 	if ! dpkg -s libvorbis-dev >/dev/null 2>&1; then
 		install_package libvorbis-dev
-	fi
+	fi &&
 	if ! dpkg -s libshout3-dev >/dev/null 2>&1; then
 		install_package libshout3-dev
-	fi
+	fi &&
 	if ! dpkg -s libmp3lame-dev >/dev/null 2>&1; then
 		install_package libmp3lame-dev
-	fi
+	fi &&
 	if ! dpkg -s libflac-dev >/dev/null 2>&1; then
 		install_package libflac-dev
-	fi
+	fi &&
 	if ! dpkg -s libfaad-dev >/dev/null 2>&1; then
 		install_package libfaad-dev
-	fi
+	fi &&
 	if ! dpkg -s python"$pyMajor"."$pyMinor"-dev >/dev/null 2>&1; then
 		install_package python"$pyMajor"."$pyMinor"-dev
-	fi
+	fi &&
 	if ! dpkg -s libperl-dev >/dev/null 2>&1; then
 		install_package libperl-dev
-	fi
+	fi &&
 	if ! dpkg -s python3-distutils >/dev/null 2>&1; then
 		install_package python3-distutils
 	fi

@@ -26,6 +26,9 @@ install_package() {
 			elif which apt-get >/dev/null 2>&1; then
 				echo "Try to install $pkgName"
 				yes | sudo -p 'Pass required for apt-get install: ' \
+					apt-get install "$pkgName" ||
+				sudo dpkg --configure -a &&
+				yes | sudo -p 'Pass required for apt-get install: ' \
 					apt-get install "$pkgName"
 			fi
 			;;

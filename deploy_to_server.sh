@@ -24,15 +24,15 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 git fetch
-if [ "$(git rev-parse HEAD)" != "$(git rev-parse ${u})" ]; then
-	echo "remote branch may not have latest set of commits"
-	echo "continue?"
-	read c
-	if [ "$c" = 'n' ] || [ "$c" = 'N' ]; then
-		echo 'Canceling action'
-		exit
-	fi
-fi
+# if [ "$(git rev-parse HEAD)" != "$(git rev-parse ${u})" ]; then
+# 	echo "remote branch may not have latest set of commits"
+# 	echo "continue?"
+# 	read c
+# 	if [ "$c" = 'n' ] || [ "$c" = 'N' ]; then
+# 		echo 'Canceling action'
+# 		exit
+# 	fi
+# fi
 
 #Would have prefered to just use a variable
 #but it seems to choke on certain characters like ')' for some reason

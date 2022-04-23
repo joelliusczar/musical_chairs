@@ -253,9 +253,9 @@ if ! nginx -v 2>/dev/null; then
 			fi
 			;;
 		*) ;;
-	esac &&
+	esac
 fi
-
+set -x
 confDir=$(get_nginx_conf_dir_abs_path)
 if [ ! -e "confDir"/nginx_evil.conf ]; then
 	setup_nginx_confs &&

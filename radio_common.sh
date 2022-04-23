@@ -4,6 +4,10 @@
 [ -f "$HOME"/.profile ] && . "$HOME"/.profile
 [ -f "$HOME"/.zprofile ] && . "$HOME"/.zprofile
 
+include_count=${include_count:-0}
+include_count=$((include_count + 1))
+export include_count
+
 to_abs_path() {
 	local target_path="$1"
 	if [ "$target_path" = '.' ]; then
@@ -274,24 +278,24 @@ literal_to_regex() {
 }
 
 get_nginx_value() {
-	local key={$1:-'conf-path'}
+	local key=${1:-'conf-path'}
 	#break options into a list
 	#then isolate the option we're interested in
 	nginx -V 2>&1 | \
-			sed 's/ /\n/g' | \ 
-			sed -n "/--$key/p" | \ 
-			sed 's/.*=\(.*\)/\1/'
+		sed 's/ /\n/g' | \
+		sed -n "/--$key/p" | \
+		sed 's/.*=\(.*\)/\1/'
 }
 
 get_nginx_conf_dir_include() {
 	local nginx_conf=$(get_nginx_value)
-	local guesses=$(cat<<-EOF
+	local guesses=$(cat<<-'EOF'
 		include /etc/nginx/sites-enabled/*;
 		include servers/*;
 	EOF
 	)
 	echo "$guesses" | while read guess; do
-		if grep -F "$guess" "$nginx_conf"; then
+		if grep -F "$guess" "$nginx_conf" >/dev/null; then
 			echo "$guess"
 			break
 		fi
@@ -315,7 +319,7 @@ get_abs_path_from_nginx_include() {
 		echo "$confDir"
 		return
 	else
-		prefix=$(get_nginx_value 'prefix')
+		local prefix=$(get_nginx_value 'prefix')
 		local absPath="$prefix"/"$confDir"
 		if [ ! -d "$absPath" ]; then
 			if [ -e "$absPath" ]; then 
@@ -377,6 +381,13 @@ setup_nginx_confs() {
 	restart_nginx
 }
 
+debug_print() {
+	local msg="$1"
+	if [ -n "$diag_flag" ]; then
+		echo "$msg" >> diag_out_"$include_count"
+	fi
+}
+
 while [ ! -z "$1" ]; do
 	case "$1" in
 		test)
@@ -384,6 +395,10 @@ while [ ! -z "$1" ]; do
 			;;
 		testdb)
 			test_db_flag='test_db'
+			;;
+		diag)
+			diag_flag='diag'
+			echo '' > diag_out_"$include_count"
 			;;
 		env=*)
 			app_env=${1#env=}

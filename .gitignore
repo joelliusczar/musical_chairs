@@ -8,3 +8,5 @@ env/
 .env.local
 
 test_trash/*
+
+diag_out_*

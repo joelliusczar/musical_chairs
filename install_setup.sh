@@ -136,7 +136,7 @@ if ! npm version 2>/dev/null; then
 	install_package npm
 fi
 
-
+exit
 case $(uname) in
 	(Linux*)
 		if ! s3fs --version 2>/dev/null; then

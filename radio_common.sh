@@ -300,14 +300,16 @@ update_nginx_conf() (
 	appConfFile="$1"
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
-	sed -i "s@<app_path_client_cl>@$app_path_client_cl@" "$appConfFile" &&
-	sed -i "s@<full_url>@$full_url@" "$appConfFile" 
+	sudo -p "update $appConfFile" \
+		sed -i "s@<app_path_client_cl>@$app_path_client_cl@" "$appConfFile" &&
+	sudo -p "update $appConfFile" \
+		sed -i "s@<full_url>@$full_url@" "$appConfFile" 
 )
 
 get_abs_path_from_nginx_include() (
 	confDirInclude="$1"
 	confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
-		sed 's@\*; *@@') 
+		sed 's@/\*; *@@') 
 	#test if already exists as absolute path
 	if [ -d  "$confDir" ]; then
 		echo "$confDir"
@@ -340,7 +342,7 @@ get_nginx_conf_dir_abs_path() (
 enable_nginx_include() (
 	confDirInclude="$1"
 	confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
-		sed 's@\*; *@@') 
+		sed 's@/\*; *@@') 
 	escaped_guess=$(literal_to_regex "$confDirInclude")
 	#uncomment line if necessary
 	sudo -p "Enable $confDirInclude" \

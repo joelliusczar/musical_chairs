@@ -257,9 +257,20 @@ if ! nginx -v 2>/dev/null; then
 fi
 
 confDir=$(get_nginx_conf_dir_abs_path)
-if [ ! -e "confDir"/nginx_evil.conf ]; then
+if [ ! -e "$confDir"/"$appConfFile" ]; then
 	setup_nginx_confs &&
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
 
+
+case $(uname) in
+	(Linux*)
+		if [ -e /root/.vimrc ]; then
+			sudo -p 'update root .vimrc' echo 'set number' > /root/.vimrc
+			sudo -p 'update root .vimrc' echo 'set expandtab' >> /root/.vimrc
+			sudo -p 'update root .vimrc' echo 'set tabstop=2' >> /root/.vimrc
+		fi
+		;;
+	(*) ;;
+esac

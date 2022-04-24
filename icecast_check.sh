@@ -11,18 +11,18 @@ else
 	exit 1
 fi
 
-set_pkg_mgr
+pkgMgrChoice=$(get_pkg_mgr)
 
-set_icecast_name
+icecast_name=$(get_icecast_name "$pkgMgrChoice")
 
 case $(uname) in
 	Linux*)
-		if ! systemctl status "$icecast_" >/dev/null 2>&1; then
-				echo "$icecast_ is not running at the moment"
+		if ! systemctl status "$icecast_name" >/dev/null 2>&1; then
+				echo "$icecast_name is not running at the moment"
 				exit 1
 		fi
 
-		ic_conf_loc=$(systemctl status "$icecast_" | grep -A2 CGroup | \
+		ic_conf_loc=$(systemctl status "$icecast_name" | grep -A2 CGroup | \
 				head -n2 | tail -n1 | awk '{ print $NF }' \
 		)
 		;;

@@ -11,9 +11,9 @@ else
   exit 1
 fi
 
-set_pkg_mgr
+pkgMgrChoice=$(get_pkg_mgr)
 
-[ -n "$pkgMgr" ] ||
+[ -n "$pkgMgrChoice" ] ||
 	echo "No package manager set"
 
 perl -v >/dev/null 2>&1 ||

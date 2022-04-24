@@ -8,8 +8,8 @@ include_count=${include_count:-0}
 include_count=$((include_count + 1))
 export include_count
 
-to_abs_path() {
-	local target_path="$1"
+to_abs_path() (
+	target_path="$1"
 	if [ "$target_path" = '.' ]; then
 		pwd
 	elif [ "$target_path" = '..' ]; then
@@ -17,13 +17,13 @@ to_abs_path() {
 	else
 		echo $(cd $(dirname "$target_path"); pwd)
 	fi
-}
+)
 
 
-install_package() {
-	local pkgName="$1"
+install_package() (
+	pkgName="$1"
 	case $(uname) in
-		Linux*)
+		(Linux*)
 			if which pacman >/dev/null 2>&1; then
 				yes | sudo -p 'Pass required for pacman install: ' \
 					pacman -S "$pkgName"
@@ -36,13 +36,13 @@ install_package() {
 					apt-get install "$pkgName"
 			fi
 			;;
-		Darwin*)
+		(Darwin*)
 			yes | brew install "$pkgName"
 			;;
-		*) 
+		(*) 
 			;;
 	esac
-}
+)
 
 set_python_version_const() {
 	#python version info
@@ -53,45 +53,39 @@ set_python_version_const() {
 }
 
 set_pkg_mgr() {
-	pkgMgrChoice=''
 	case $(uname) in
-		Linux*)
+		(Linux*)
 			if  which pacman >/dev/null 2>&1; then
-				pkgMgrChoice="$PACMAN_CONST"
+				echo "$PACMAN_CONST"
 			elif which apt-get >/dev/null 2>&1; then
-				pkgMgrChoice="$APT_CONST"
+				echo "$APT_CONST"
 			fi
 			;;
-		Darwin*)
-			pkgMgrChoice="$HOMEBREW_CONST"
+		(Darwin*)
+			echo "$HOMEBREW_CONST"
 			;;
-		*) 
+		(*) 
 			;;
 	esac
+	return 1
 }
 
-set_icecast_name() {
+get_icecast_name() (
+	pkgMgrChoice="$1"
 	case "$pkgMgrChoice" in
-    "$PACMAN_CONST") icecast_='icecast';;
-    "$APT_CONST") icecast_='icecast2';;
-    *) icecast_='icecast2';;
+    ("$PACMAN_CONST") echo 'icecast';;
+    ("$APT_CONST") echo 'icecast2';;
+    (*) echo 'icecast2';;
 	esac
-}
-
-not_installed() {
-	echo "$1 not installed"
-	exit 0
-}
+)
 
 aws_role() {
 	echo 'music_reader'
 }
 
-
 s3_name() {
 	echo 'joelradio'
 }
-
 
 link_to_music_files() {
 	if [ ! -e "$music_home"/Soundtrack ]; then 
@@ -115,10 +109,10 @@ is_python_sufficient_version() {
 # subshell () auto switches in use python version back at the end of function
 setup_py3_env() (
 	set_python_version_const || return "$?"
-	local dest_base="$1"
-	local env_name=${2:-"$py_env"}
-	local packagePath="$env_name/lib/python$pyMajor.$pyMinor/site-packages/"
-	local dest="$dest_base"/"$packagePath""$lib_name"/
+	dest_base="$1"
+	env_name=${2:-"$py_env"}
+	packagePath="$env_name/lib/python$pyMajor.$pyMinor/site-packages/"
+	dest="$dest_base"/"$packagePath""$lib_name"/
 	mc-python -m virtualenv "$dest_base"/$env_name &&
 	. "$dest_base"/$env_name/bin/activate &&
 	#this is to make some of my newer than checks work
@@ -131,8 +125,8 @@ setup_py3_env() (
 	return "$?"
 )
 
-empty_dir_contents() {
-	local dir_to_empty="$1"
+empty_dir_contents() (
+	dir_to_empty="$1"
 	if [ -e "$dir_to_empty" ]; then 
 		sudo -p "Password required for removing old files: " \
 			rm -rf "$dir_to_empty"/* ||
@@ -146,38 +140,38 @@ empty_dir_contents() {
 	sudo -p "$msg" \
 		chown -R "$current_user": "$dir_to_empty" ||
 	return "$?"
-}
+)
 
-get_bin_path() {
-	local pkg="$1"
+get_bin_path() (
+	pkg="$1"
 	case $(uname) in
-		Darwin*)
+		(Darwin*)
 			brew info "$pkg" \
 			| grep -A1 'has been installed as' \
 			| awk 'END{ print $1 }'
 			;;
-		*) which "$pkg" ;;
+		(*) which "$pkg" ;;
 	esac
-}
+)
 
-brew_is_installed() {
-	local pkg="$1"
+brew_is_installed() (
+	pkg="$1"
 	echo "checking for $pkg"
 	case $(uname) in
-		Darwin*)
+		(Darwin*)
 			brew info "$pkg" >/dev/null 2>&1 &&
 			! brew info "$pkg" | grep 'Not installed' >/dev/null
 			;;
-		*) return 0 ;;
+		(*) return 0 ;;
 	esac
-}
+)
 
-show_err_and_exit() {
-	local err_code="$?"
-	local msg="$1"
+show_err_and_exit() (
+	err_code="$?"
+	msg="$1"
 	[ ! -z "$msg" ] && echo "$msg"
 	exit "$err_code"
-}
+)
 
 setup_config_file() {
 	cp ./templates/.env "$config_file" &&
@@ -186,21 +180,21 @@ setup_config_file() {
 	rm -f "$config_file"-e
 }
 
-setup_dir() {
-	local src_dir="$1"
-	local dest_dir="$2"
+setup_dir() (
+	src_dir="$1"
+	dest_dir="$2"
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
 		cp -rv "$src_dir"/* "$dest_dir" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
 	return "$?"
-}
+)
 
-setup_dir_with_py() {
-	local src_dir="$1"
-	local dest_dir="$2"
-	local env_name="$3"
+setup_dir_with_py() (
+	src_dir="$1"
+	dest_dir="$2"
+	env_name="$3"
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
 		cp -rv "$src_dir"/* "$dest_dir" &&
@@ -208,17 +202,17 @@ setup_dir_with_py() {
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
 	return "$?"
-}
+)
 
-gen_pass() {
-	local pass_len=${1:-16}
+gen_pass() (
+	pass_len=${1:-16}
 	LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$pass_len" 
-}
+)
 
 compare_dirs() (
-	local src_dir="$1"
-	local cpy_dir="$2"
-	local exit_code=0
+	src_dir="$1"
+	cpy_dir="$2"
+	exit_code=0
 	if [ ! -e "$cpy_dir" ]; then
 		echo "$cpy_dir/ is not in place" 
 		return 1
@@ -232,13 +226,13 @@ compare_dirs() (
 		-and -not -path "$cpy_dir/$py_env" | \
 		sed "s@${cpy_dir%/}/\{0,1\}@@" | sort)
 
-	get_file_list() {
-		local supress="$1"
+	get_file_list() (
+		supress="$1"
 		echo "$src_res" > src_fifo &
 		echo "$cpy_res" > cpy_fifo &
 		[ -n "$supress" ] && comm "-$supress" src_fifo cpy_fifo ||
 			comm src_fifo cpy_fifo
-	}
+	)
 
 	in_both=$(get_file_list 12)
 	in_src=$(get_file_list 23)
@@ -265,31 +259,31 @@ compare_dirs() (
 	return "$exit_code"
 )
 
-is_newer_than_files() {
-	local candidate="$1"
-	local dir_to_check="$2"
+is_newer_than_files() (
+	candidate="$1"
+	dir_to_check="$2"
 	find "$dir_to_check" -newer "$candidate"
-}
+)
 
-literal_to_regex() {
+literal_to_regex() (
 	#this will handle cases as I need them and not exhaustively
-	local str="$1"
+	str="$1"
 	echo str | sed 's/\*/\\*/g'
-}
+)
 
-get_nginx_value() {
-	local key=${1:-'conf-path'}
+get_nginx_value() (
+	key=${1:-'conf-path'}
 	#break options into a list
 	#then isolate the option we're interested in
 	nginx -V 2>&1 | \
 		sed 's/ /\n/g' | \
 		sed -n "/--$key/p" | \
 		sed 's/.*=\(.*\)/\1/'
-}
+)
 
-get_nginx_conf_dir_include() {
-	local nginx_conf=$(get_nginx_value)
-	local guesses=$(cat<<-'EOF'
+get_nginx_conf_dir_include() (
+	nginx_conf=$(get_nginx_value)
+	guesses=$(cat<<-'EOF'
 		include /etc/nginx/sites-enabled/*;
 		include servers/*;
 	EOF
@@ -300,27 +294,27 @@ get_nginx_conf_dir_include() {
 			break
 		fi
 	done
-}
+)
 
-update_nginx_conf() {
-	local appConfFile="$1"
+update_nginx_conf() (
+	appConfFile="$1"
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
 	sed -i "s@<app_path_client_cl>@$app_path_client_cl@" "$appConfFile" &&
 	sed -i "s@<full_url>@$full_url@" "$appConfFile" 
-}
+)
 
-get_abs_path_from_nginx_include() {
-	local confDirInclude="$1"
-	local confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
+get_abs_path_from_nginx_include() (
+	confDirInclude="$1"
+	confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
 		sed 's@\*; *@@') 
 	#test if already exists as absolute path
 	if [ -d  "$confDir" ]; then
 		echo "$confDir"
 		return
 	else
-		local prefix=$(get_nginx_value 'prefix')
-		local absPath="$prefix"/"$confDir"
+		prefix=$(get_nginx_value 'prefix')
+		absPath="$prefix"/"$confDir"
 		if [ ! -d "$absPath" ]; then
 			if [ -e "$absPath" ]; then 
 				echo "$absPath is a file, not a directory" 1>&2
@@ -336,29 +330,29 @@ get_abs_path_from_nginx_include() {
 			echo "$absPath"
 		fi
 	fi
-}
+)
 
-get_nginx_conf_dir_abs_path() {
-	local confDirInclude=$(get_nginx_conf_dir_include)
+get_nginx_conf_dir_abs_path() (
+	confDirInclude=$(get_nginx_conf_dir_include)
 	get_abs_path_from_nginx_include "$confDirInclude"
-}
+)
 
-enable_nginx_include() {
-	local confDirInclude="$1"
-	local confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
+enable_nginx_include() (
+	confDirInclude="$1"
+	confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
 		sed 's@\*; *@@') 
-	local escaped_guess=$(literal_to_regex "$confDirInclude")
+	escaped_guess=$(literal_to_regex "$confDirInclude")
 	#uncomment line if necessary
 	sudo -p "Enable $confDirInclude" \
 		sed -i "\@$escaped_guess@s/^[ \t]*#//" $(get_nginx_value) 
-}
+)
 
-restart_nginx() {
+restart_nginx() (
 	case $(uname) in
-		Darwin*)
+		(Darwin*)
 			nginx -s reload
 			;;
-		Linux*) 
+		(Linux*) 
 			if systemctl is-active --quiet nginx; then
 				sudo systemctl restart nginx
 			else
@@ -366,53 +360,53 @@ restart_nginx() {
 				return 1
 			fi
 			;;
-		*) ;;
+		(*) ;;
 	esac
-}
+)
 
-setup_nginx_confs() {
-	local confDirInclude=$(get_nginx_conf_dir_include)
+setup_nginx_confs() (
+	confDirInclude=$(get_nginx_conf_dir_include)
 	#remove trailing path chars
-	local confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 
 	enable_nginx_include "$confDirInclude"
 	update_nginx_conf "$confDir"/"$app_name".conf
 	sudo -p 'Remove default nginx config' \
 		rm -f "$confDir"/default
 	restart_nginx
-}
+)
 
-debug_print() {
-	local msg="$1"
+debug_print() (
+	msg="$1"
 	if [ -n "$diag_flag" ]; then
 		echo "$msg" >> diag_out_"$include_count"
 	fi
-}
+)
 
 while [ ! -z "$1" ]; do
 	case "$1" in
-		test)
+		(test)
 			test_flag='test'
 			;;
-		testdb)
+		(testdb)
 			test_db_flag='test_db'
 			;;
-		diag)
+		(diag)
 			diag_flag='diag'
 			echo '' > diag_out_"$include_count"
 			;;
-		env=*)
+		(env=*)
 			app_env=${1#env=}
 			;;
-		radio_home=*)
+		(radio_home=*)
 			radio_home=${1#radio_home=}
 			;;
-		web_root=*)
+		(web_root=*)
 			web_root=${1#web_root=}
 			;;
-		setup_lvl=*)
+		(setup_lvl=*)
 			setup_lvl=${1#setup_lvl=}
 			;;
-		*) ;;
+		(*) ;;
 	esac
 	shift
 done
@@ -453,13 +447,13 @@ templates_dir_cl="$radio_home"/templates
 py_env='mc_env'
 
 case $(uname) in
-	Linux*)
+	(Linux*)
 		export web_root=${web_root:-/srv}
 		;;
-	Darwin*)
+	(Darwin*)
 		export web_root=${web_root:-/Library/WebServer}
 		;;
-	*) ;;
+	(*) ;;
 esac
 
 app_path_cl="$web_root"/api/"$app_name"
@@ -475,10 +469,10 @@ start_up_src="$workspace_abs_path/start_up"
 maintenance_src="$workspace_abs_path/maintenance"
 
 case "$app_env" in 
-	local*)
+	(local*)
 		url_suffix='-local.fm:8080'
 		;;
-	*)
+	(*)
 		url_suffix='.fm'
 		;;
 esac

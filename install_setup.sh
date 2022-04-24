@@ -12,7 +12,7 @@ else
 fi
 
 
-set_pkg_mgr
+pkgMgrChoice=$(get_pkg_mgr)
 
 [ -n "$pkgMgrChoice " ] || show_err_and_exit "No package manager set"
 
@@ -20,12 +20,12 @@ curl -V || show_err_and_exit "curl is somehow not installed"
 
 
 case $(uname) in
-	Linux*) 
+	(Linux*) 
 		if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 			sudo apt-get update
 		fi
 		;;
-	Darwin*)
+	(Darwin*)
 		if ! brew --version 2>/dev/null; then
 			#-f = -fail - fails quietly, i.e. no error page ...I think?
 			#-s = -silent - don't show any sort of loading bar or such
@@ -35,7 +35,7 @@ case $(uname) in
 				https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 		fi
 		;;
-	*) ;;
+	(*) ;;
 esac
 
 if ! perl -v 2>/dev/null; then
@@ -53,7 +53,7 @@ fi
 if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 	pythonToLink='python3'
 	case $(uname) in
-		Linux*) 
+		(Linux*) 
 			if ! python3 -V 2>/dev/null; then
 				install_package python3
 			fi
@@ -112,12 +112,12 @@ if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 				pythonToLink='python3.9'
 			fi
 			;;
-		Darwin*)
+		(Darwin*)
 			if ! brew_is_installed python3; then
 				install_package python3
 			fi
 			;;
-		*) ;;
+		(*) ;;
 	esac &&
 	ln -sf $(get_bin_path "$pythonToLink") "$bin_dir"/mc-python
 fi || show_err_and_exit "python install failed"
@@ -138,7 +138,7 @@ fi
 
 
 case $(uname) in
-	Linux*)
+	(Linux*)
 		if ! s3fs --version 2>/dev/null; then
 			install_package s3fs
 		fi
@@ -159,7 +159,7 @@ fi
 
 
 case $(uname) in
-	Darwin*)
+	(Darwin*)
 		if ! brew_is_installed libtool; then
 			install_package libtool 
 		fi
@@ -170,13 +170,13 @@ case $(uname) in
 			install_package libshout 
 		fi
 		;;
-	Linux*) 
+	(Linux*) 
 		if [ "$pkgMgrChoice" = "$APT_CONST" ] \
 		&& ! libtool --version 2>/dev/null; then
 			install_package libtool-bin
 		fi
 		;;
-	*) ;;
+	(*) ;;
 esac
 
 #leave this here incase the python check above did update the python version
@@ -221,7 +221,7 @@ if ! [ -e "$radio_home" ]; then
 fi
 
 case $(uname) in
-	Linux*)
+	(Linux*)
 		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
 			if ! icecast -v 2>/dev/null; then
 				yes 'no' | install_package icecast
@@ -232,7 +232,7 @@ case $(uname) in
 			fi
 		fi
 		;;
-	*) ;;
+	(*) ;;
 esac
 
 
@@ -244,15 +244,15 @@ fi
 
 if ! nginx -v 2>/dev/null; then
 	case $(uname) in
-		Darwin*)
+		(Darwin*)
 			install_package nginx 
 			;;
-		Linux*) 
+		(Linux*) 
 			if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 				install_package nginx-full
 			fi
 			;;
-		*) ;;
+		(*) ;;
 	esac
 fi
 

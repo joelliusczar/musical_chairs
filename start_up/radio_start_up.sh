@@ -13,12 +13,12 @@ fi
 
 link_to_music_files
 
-set_pkg_mgr
-set_icecast_name
+pkgMgrChoice=$(get_pkg_mgr)
+icecast_name=$(get_icecast_name "$pkgMgrChoice")
 
-if ! systemctl status "$icecast_" >/dev/null 2>&1; then
+if ! systemctl status "$icecast_name" >/dev/null 2>&1; then
 		sudo -p 'Pass required for starting icecast service: ' \
-			systemctl start "$icecast_" || 
+			systemctl start "$icecast_name" || 
 		show_err_and_exit 
 fi
 

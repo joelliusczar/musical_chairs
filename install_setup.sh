@@ -257,8 +257,8 @@ if ! nginx -v 2>/dev/null; then
 fi
 
 confDir=$(get_nginx_conf_dir_abs_path)
-echo "Checking for $confDir/$appConfFile"
-if [ ! -e "$confDir"/"$appConfFile" ]; then
+echo "Checking for "$confDir/$app_name.conf"
+if [ ! -e "$confDir/$app_name.conf" ]; then
 	setup_nginx_confs &&
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf

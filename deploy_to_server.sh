@@ -58,7 +58,11 @@ fi
 empty_dir_contents "$build_home"/"$proj_name" &&
 cd "$build_home"/"$proj_name" &&
 git clone "$radio_server_repo_url" "$proj_name" &&
-cd "$proj_name" 
+cd "$proj_name" &&
+if [ -n "$diag_flag" ]; then
+	git checkout -t diagnosis
+fi
+
 
 RemoteScriptEOF1
 } > clone_repo_fifo &

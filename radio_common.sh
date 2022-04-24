@@ -22,13 +22,13 @@ to_abs_path() (
 
 install_package() (
 	pkgName="$1"
+	echo "Try to install --$pkgName--"
 	case $(uname) in
 		(Linux*)
 			if which pacman >/dev/null 2>&1; then
 				yes | sudo -p 'Pass required for pacman install: ' \
 					pacman -S "$pkgName"
 			elif which apt-get >/dev/null 2>&1; then
-				echo "Try to install $pkgName"
 				yes | sudo -p 'Pass required for apt-get install: ' \
 					apt-get install "$pkgName" ||
 				sudo dpkg --configure -a &&
@@ -52,7 +52,7 @@ set_python_version_const() {
 	pyMinor=$(echo "$pyVersion" | perl -ne 'print "$1\n" if /\d+\.(\d+)/')
 }
 
-set_pkg_mgr() {
+get_pkg_mgr() {
 	case $(uname) in
 		(Linux*)
 			if  which pacman >/dev/null 2>&1; then
@@ -386,17 +386,20 @@ debug_print() (
 
 while [ ! -z "$1" ]; do
 	case "$1" in
+		#build out to test_trash rather than the normal directories
+		#sets radio_home and web_root without having to set them explicitly
 		(test)
 			test_flag='test'
 			;;
-		(testdb)
+		(testdb) #tells setup to replace sqlite3 db
 			test_db_flag='test_db'
 			;;
-		(diag)
+		#activates debug_print. Also tells deploy script to use the diag branch
+		(diag) 
 			diag_flag='diag'
 			echo '' > diag_out_"$include_count"
 			;;
-		(env=*)
+		(env=*) #affects which url to use
 			app_env=${1#env=}
 			;;
 		(radio_home=*)
@@ -405,7 +408,7 @@ while [ ! -z "$1" ]; do
 		(web_root=*)
 			web_root=${1#web_root=}
 			;;
-		(setup_lvl=*)
+		(setup_lvl=*) #affects which setup scripst to run
 			setup_lvl=${1#setup_lvl=}
 			;;
 		(*) ;;

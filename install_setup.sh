@@ -132,18 +132,26 @@ if ! mc-python -m  virtualenv --version 2>/dev/null; then
 	mc-python -m pip install --user virtualenv
 fi
 
-if ! npm version 2>/dev/null; then
-	install_package npm
+if ! nvm --version 2>/dev/null; then
+	(Linux*)
+		curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | \
+		bash
+		. .bashrc	
+		;;
+fi
+
+if nvm run node --version 2>/dev/null; then
+	nvm install node
 fi
 
 
-case $(uname) in
-	(Linux*)
-		if ! s3fs --version 2>/dev/null; then
-			install_package s3fs
-		fi
-		;;
-esac
+if ! s3fs --version 2>/dev/null; then
+	case $(uname) in
+		(Linux*)
+				install_package s3fs
+			;;
+	esac
+fi
 
 if ! sqlite3 -version 2>/dev/null; then
 	install_package sqlite3

@@ -29,11 +29,8 @@ install_package() (
 				yes | sudo -p 'Pass required for pacman install: ' \
 					pacman -S "$pkgName"
 			elif which apt-get >/dev/null 2>&1; then
-				yes | sudo -p 'Pass required for apt-get install: ' \
-					apt-get install "$pkgName" ||
-				sudo dpkg --configure -a &&
-				yes | sudo -p 'Pass required for apt-get install: ' \
-					apt-get install "$pkgName"
+				 sudo -p 'Pass required for apt-get install: ' \
+					DEBIAN_FRONTEND=noninteractive apt-get -y install "$pkgName" 
 			fi
 			;;
 		(Darwin*)

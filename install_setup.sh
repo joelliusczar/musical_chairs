@@ -127,6 +127,7 @@ if ! mc-python -m pip -V 2>/dev/null; then
 	curl https://bootstrap.pypa.io/pip/get-pip.py | mc-python /dev/stdin
 fi
 
+mc-python -m pip install --upgrade pip
 
 if ! mc-python -m  virtualenv --version 2>/dev/null; then
 	mc-python -m pip install --user virtualenv
@@ -135,12 +136,13 @@ fi
 if ! nvm --version 2>/dev/null; then
 	case $(uname) in
 		(Linux*)
-			touch .bashrc
-			[ -f .bashrc ] || show_err_and_exit "Error: .bashrc is not a regular file"
+			touch "$HOME"/.bashrc #create if doesn't exist
+			[ -f "$HOME"/.bashrc ] || 
+			show_err_and_exit "Error: .bashrc is not a regular file"
 			curl -o- \
 				https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | \
 				bash
-			. .bashrc	
+			. "$HOME"/.bashrc	
 			;;
 		(*)
 	esac

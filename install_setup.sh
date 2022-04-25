@@ -267,11 +267,18 @@ fi
 
 case $(uname) in
 	(Linux*)
-		if [ -e /root/.vimrc ]; then
+		if [ ! -e /root/.vimrc ]; then
 			sudo -p 'update root .vimrc' echo 'set number' > /root/.vimrc
 			sudo -p 'update root .vimrc' echo 'set expandtab' >> /root/.vimrc
 			sudo -p 'update root .vimrc' echo 'set tabstop=2' >> /root/.vimrc
 		fi
+		;;
+	(*) ;;
+esac
+
+case $(uname) in
+	(Linux*)
+		sudo -p 'want to reboot' reboot
 		;;
 	(*) ;;
 esac

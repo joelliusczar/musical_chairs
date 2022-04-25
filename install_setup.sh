@@ -133,11 +133,15 @@ if ! mc-python -m  virtualenv --version 2>/dev/null; then
 fi
 
 if ! nvm --version 2>/dev/null; then
-	(Linux*)
-		curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | \
-		bash
-		. .bashrc	
-		;;
+	case $(uname) in
+		(Linux*)
+			curl -o- \
+				https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | \
+				bash
+			. .bashrc	
+			;;
+		(*)
+	esac
 fi
 
 if nvm run node --version 2>/dev/null; then

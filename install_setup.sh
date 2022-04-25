@@ -135,6 +135,8 @@ fi
 if ! nvm --version 2>/dev/null; then
 	case $(uname) in
 		(Linux*)
+			[ -e .bashrc ] || touch .bashrc
+			[ -f .bashrc ] || show_err_and_exit "Error: .bashrc is not a regular file"
 			curl -o- \
 				https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | \
 				bash

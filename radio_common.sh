@@ -3,6 +3,7 @@
 
 [ -f "$HOME"/.profile ] && . "$HOME"/.profile
 [ -f "$HOME"/.zprofile ] && . "$HOME"/.zprofile
+[ -f "$HOME"/.zshrc ] && . "$HOME"/.zshrc
 
 include_count=${include_count:-0}
 include_count=$((include_count + 1))

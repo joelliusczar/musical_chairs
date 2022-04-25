@@ -136,22 +136,25 @@ fi
 if ! nvm --version 2>/dev/null; then
 	case $(uname) in
 		(Linux*)
-			touch "$HOME"/.bashrc #create if doesn't exist
-			[ -f "$HOME"/.bashrc ] || 
-			show_err_and_exit "Error: .bashrc is not a regular file"
-			curl -o- \
-				https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | \
-				bash
-			. "$HOME"/.bashrc	
+			rc_script="$HOME"/.bashrc
 			;;
-		(*)
+		(Darwin*)
+			rc_script="$HOME"/.zshrc
+			;;
+		(*) ;;
 	esac
+	touch "$rc_script" #create if doesn't exist
+	[ -f "$rc_script" ] || 
+	show_err_and_exit "Error: .bashrc is not a regular file"
+	curl -o- \
+		https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | \
+		bash
+	. "$rc_script"
 fi
 
 if nvm run node --version 2>/dev/null; then
 	nvm install node
 fi
-
 
 if ! s3fs --version 2>/dev/null; then
 	case $(uname) in

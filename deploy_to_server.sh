@@ -56,7 +56,8 @@ if ! git --version 2>/dev/null; then
 fi
 
 empty_dir_contents "$build_home"/"$proj_name" &&
-cd "$build_home"/"$proj_name" &&
+#since the clone will create the sub dir, we'll just start in the parent
+cd "$build_home" && 
 git clone "$radio_server_repo_url" "$proj_name" &&
 cd "$proj_name" &&
 if [ -n "$diag_flag" ]; then

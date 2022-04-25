@@ -55,7 +55,7 @@ if ! git --version 2>/dev/null; then
 	install_package git
 fi
 
-empty_dir_contents "$build_home"/"$proj_name" &&
+rm -rf "$build_home"/"$proj_name" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$build_home" && 
 git clone "$radio_server_repo_url" "$proj_name" &&

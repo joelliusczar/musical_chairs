@@ -282,11 +282,3 @@ if [ ! -e "$confDir/$app_name.conf" ]; then
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
-
-
-case $(uname) in
-	(Linux*)
-		sudo -p 'want to reboot' reboot
-		;;
-	(*) ;;
-esac

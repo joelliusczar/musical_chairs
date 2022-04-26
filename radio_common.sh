@@ -171,11 +171,11 @@ show_err_and_exit() (
 	exit "$err_code"
 )
 
+#this may seem useless but we need it for test runner to read .env
 setup_config_file() {
 	cp ./templates/.env "$config_file" &&
-	sed -i -e "s@^\(searchBase=\).*\$@\1'$music_home'@" "$config_file" &&
-	sed -i -e "s@^\(dbName=\).*\$@\1'$sqlite_file'@" "$config_file" &&
-	rm -f "$config_file"-e
+	perl -pi -e "s@^(searchBase=).*\$@\1'$music_home'@" "$config_file" &&
+	perl -pi -e "s@^(dbName=).*\$@\1'$sqlite_file'@" "$config_file"
 }
 
 setup_dir() (
@@ -266,7 +266,7 @@ is_newer_than_files() (
 literal_to_regex() (
 	#this will handle cases as I need them and not exhaustively
 	str="$1"
-	echo str | sed 's/\*/\\*/g'
+	echo "$str" | sed 's/\*/\\*/g'
 )
 
 get_nginx_value() (
@@ -299,9 +299,9 @@ update_nginx_conf() (
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update $appConfFile" \
-		sed -i "s@<app_path_client_cl>@$app_path_client_cl@" "$appConfFile" &&
+		perl -pi -e "s@<app_path_client_cl>@$app_path_client_cl@" "$appConfFile" &&
 	sudo -p "update $appConfFile" \
-		sed -i "s@<full_url>@$full_url@" "$appConfFile" 
+		perl -pi -e "s@<full_url>@$full_url@" "$appConfFile" 
 )
 
 get_abs_path_from_nginx_include() (
@@ -320,6 +320,7 @@ get_abs_path_from_nginx_include() (
 				echo "$absPath is a file, not a directory" 1>&2
 				return 1
 			fi
+			debug_print "Hello?"
 			#Apparently nginx will look for includes with either an absolute path
 			#or path relative to the prefix
 			#some os'es are finicky about creating directories at the root lvl
@@ -327,8 +328,8 @@ get_abs_path_from_nginx_include() (
 			#we'll just create missing dir in $prefix folder
 			sudo -p "Add nginx conf dir" \
 				mkdir -pv "$absPath"
-			echo "$absPath"
 		fi
+		echo "$absPath"
 	fi
 )
 
@@ -339,12 +340,10 @@ get_nginx_conf_dir_abs_path() (
 
 enable_nginx_include() (
 	confDirInclude="$1"
-	confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
-		sed 's@/\*; *@@') 
 	escaped_guess=$(literal_to_regex "$confDirInclude")
 	#uncomment line if necessary
 	sudo -p "Enable $confDirInclude" \
-		sed -i "\@$escaped_guess@s/^[ \t]*#//" $(get_nginx_value) 
+		perl -pi -e "s/^[ \t]*#// if m@$escaped_guess@" "$(get_nginx_value)"
 )
 
 restart_nginx() (

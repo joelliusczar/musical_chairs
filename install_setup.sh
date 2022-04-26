@@ -152,7 +152,7 @@ if ! nvm --version 2>/dev/null; then
 	. "$rc_script"
 fi
 
-if nvm run node --version 2>/dev/null; then
+if ! nvm run node --version 2>/dev/null; then
 	nvm install node
 fi
 

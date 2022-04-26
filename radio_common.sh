@@ -125,6 +125,7 @@ setup_py3_env() (
 
 empty_dir_contents() (
 	dir_to_empty="$1"
+	echo "Emptying $dir_to_empty"
 	if [ -e "$dir_to_empty" ]; then 
 		sudo -p "Password required for removing old files: " \
 			rm -rf "$dir_to_empty"/* ||

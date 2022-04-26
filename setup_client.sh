@@ -11,6 +11,15 @@ else
   exit 1
 fi
 
+#in theory, this should be sourced by .bashrc
+#but sometimes there's an interactive check that ends the sourcing early
+if [ -z "$NVM_DIR" ]; then
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+  # This loads nvm bash_completion
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" 
+fi
+
 #check if web application folder exists, clear out if it does,
 #delete otherwise
 empty_dir_contents "$app_path_client_cl" || 

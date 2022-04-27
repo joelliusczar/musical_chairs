@@ -14,8 +14,8 @@ fi
 #in theory, this should be sourced by .bashrc
 #but sometimes there's an interactive check that ends the sourcing early
 if [ -z "$NVM_DIR" ]; then
-  export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+  export NVM_DIR="$HOME"/.nvm
+  [ -s "$NVM_DIR"/nvm.sh ] && \. "$NVM_DIR"/nvm.sh  # This loads nvm
 fi
 
 

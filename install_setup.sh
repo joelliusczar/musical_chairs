@@ -14,7 +14,7 @@ fi
 
 pkgMgrChoice=$(get_pkg_mgr)
 
-[ -n "$pkgMgrChoice " ] || show_err_and_exit "No package manager set"
+[ -n "$pkgMgrChoice" ] || show_err_and_exit "No package manager set"
 
 curl -V || show_err_and_exit "curl is somehow not installed"
 
@@ -99,8 +99,8 @@ if ! nvm --version 2>/dev/null; then
 	show_err_and_exit "Error: .bashrc is not a regular file"
 	curl -o- \
 		https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
-	export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+	export NVM_DIR="$HOME"/.nvm
+  [ -s "$NVM_DIR"/nvm.sh ] && \. "$NVM_DIR"/nvm.sh  # This loads nvm
 fi
 
 if ! nvm run node --version 2>/dev/null; then
@@ -165,8 +165,8 @@ if ! nginx -v 2>/dev/null; then
 fi
 
 confDir=$(get_nginx_conf_dir_abs_path)
-echo "Checking for $confDir/$app_name.conf"
-if [ ! -e "$confDir/$app_name.conf" ]; then
+echo "Checking for ${confDir}/${app_name}.conf"
+if [ ! -e "$confDir"/"$app_name".conf ]; then
 	setup_nginx_confs &&
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf

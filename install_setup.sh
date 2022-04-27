@@ -14,8 +14,8 @@ fi
 
 pkgMgrChoice=$(get_pkg_mgr)
 
-[ -n "$pkgMgrChoice" ] && [ "$exp_name" != 'py3.8' ] 
-|| show_err_and_exit "No package manager set"
+[ -n "$pkgMgrChoice" ] && [ "$exp_name" != 'py3.8' ] || 
+show_err_and_exit "No package manager set"
 
 curl -V || show_err_and_exit "curl is somehow not installed"
 

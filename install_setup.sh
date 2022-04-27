@@ -147,9 +147,9 @@ if ! nvm --version 2>/dev/null; then
 	[ -f "$rc_script" ] || 
 	show_err_and_exit "Error: .bashrc is not a regular file"
 	curl -o- \
-		https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | \
-		bash
-	. "$rc_script"
+		https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+	export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 fi
 
 if ! nvm run node --version 2>/dev/null; then

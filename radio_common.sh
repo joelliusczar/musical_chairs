@@ -492,10 +492,10 @@ reference_src_db="$reference_src/$db_name"
 
 case "$app_env" in 
 	(local*)
-		url_suffix='-local.fm:8080'
+		url_suffix='-local.radio,fm:8080'
 		;;
 	(*)
-		url_suffix='.fm'
+		url_suffix='.radio.fm'
 		;;
 esac
 

@@ -18,6 +18,7 @@ if [ -z "$NVM_DIR" ]; then
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 fi
 
+
 #check if web application folder exists, clear out if it does,
 #delete otherwise
 empty_dir_contents "$web_root"/"$app_client_path_cl" || 

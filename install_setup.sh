@@ -14,7 +14,8 @@ fi
 
 pkgMgrChoice=$(get_pkg_mgr)
 
-[ -n "$pkgMgrChoice" ] || show_err_and_exit "No package manager set"
+[ -n "$pkgMgrChoice" ] && [ "$exp_name" != 'py3.8' ] 
+|| show_err_and_exit "No package manager set"
 
 curl -V || show_err_and_exit "curl is somehow not installed"
 
@@ -58,7 +59,7 @@ if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 				install_package python3
 			fi
 			#unbuntu only installs up to 3.8.10 which has a mysterious bug
-			if ! is_python_sufficient_version; then
+			if ! is_python_sufficient_version && [ "$exp_name" != 'py3.8' ]; then
 				sh ./compiled_dependencies/build_separate_python.sh &&
 				pythonToLink='python3.9'
 			fi

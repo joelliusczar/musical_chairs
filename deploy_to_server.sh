@@ -77,6 +77,8 @@ RemoteScriptEOF1
 #select which setup script to run
 { cat<<RemoteScriptEOF2
 
+export diag_flag="$diag_flag"
+export exp_name="$exp_name"
 
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"

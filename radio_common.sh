@@ -398,14 +398,14 @@ while [ ! -z "$1" ]; do
 		#build out to test_trash rather than the normal directories
 		#sets app_root and web_root without having to set them explicitly
 		(test)
-			test_flag='test'
+			export test_flag='test'
 			;;
 		(testdb) #tells setup to replace sqlite3 db
-			test_db_flag='test_db'
+			export test_db_flag='test_db'
 			;;
 		#activates debug_print. Also tells deploy script to use the diag branch
 		(diag) 
-			diag_flag='diag'
+			export diag_flag='diag'
 			echo '' > diag_out_"$include_count"
 			;;
 		(env=*) #affects which url to use
@@ -418,7 +418,11 @@ while [ ! -z "$1" ]; do
 			web_root=${1#web_root=}
 			;;
 		(setup_lvl=*) #affects which setup scripst to run
-			setup_lvl=${1#setup_lvl=}
+			export setup_lvl=${1#setup_lvl=}
+			;;
+		#when I want to conditionally run with some experimental code
+		(experiment=*) 
+			export exp_name=${1#experiment=}
 			;;
 		(*) ;;
 	esac

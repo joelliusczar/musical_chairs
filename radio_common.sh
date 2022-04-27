@@ -195,7 +195,7 @@ setup_dir() (
 	dest_dir="$2"
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
-		cp -rv "$src_dir"/* "$dest_dir" &&
+		cp -rv "$src_dir"/. "$dest_dir" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
 	return "$?"
@@ -207,7 +207,7 @@ setup_dir_with_py() (
 	env_name="$3"
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
-		cp -rv "$src_dir"/* "$dest_dir" &&
+		cp -rv "$src_dir"/. "$dest_dir" &&
 	setup_py3_env "$dest_dir" "$env_name" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"

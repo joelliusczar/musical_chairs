@@ -37,29 +37,27 @@ sourcePassword=$(sudo -p 'Pass required to read icecast config: ' \
   | perl -ne 'print "$1\n" if />(\w+)/') || 
 show_err_and_exit 
 
-added_config_name="$ices_configs_dir"/ices."$internal_name".conf
-cp "$templates_dir_cl"/ices.conf "$added_config_name" &&
-sed -i -e "/<Password>/s/>[[:alnum:]]*/>${sourcePassword}/" \
-  "$added_config_name" &&
-sed -i -e "/<Module>/s/internal_station_name/${internal_name}/" \
-  "$added_config_name" &&
-sed -i -e "/<Name>/s/public_station_name/${public_name}/" \
-  "$added_config_name" &&
-sed -i -e "/<Mountpoint>/s/internal_station_name/${internal_name}/" \
-  "$added_config_name" ||
+station_conf="$app_root"/"$ices_configs_dir"/ices."$internal_name".conf
+cp "$app_root"/"$templates_dir_cl"/ices.conf "$station_conf" &&
+perl -pi -e "s/icecast_password/$sourcePassword/ if /<Password>/" \
+  "$station_conf" &&
+perl -pi -e "s/internal_station_name/$internal_name/ if /<Module>/" \
+  "$station_conf" &&
+perl -pi -e "s/public_station_name/$public_name/ if /<Name>/" \
+  "$station_conf" &&
+perl -pi -e "s/internal_station_name/$internal_name/ if /<Mountpoint>/" \
+  "$station_conf" ||
 show_err_and_exit
 
-added_module_name="$pyModules_dir"/"$internal_name".py &&
-cp "$templates_dir_cl"/template.py "$added_module_name" &&
-sed -i -e "s/<internal_station_name>/${internal_name}/" "$added_module_name" ||
+station_module="$app_root"/"$pyModules_dir"/"$internal_name".py &&
+cp "$app_root"/"$templates_dir_cl"/template.py "$station_module" &&
+perl -pi -e "s/<internal_station_name>/$internal_name/" "$station_module" ||
 show_err_and_exit
 
-export dbName="$sqlite_file"
-
-env_path="$maintenance_dir_cl"
+export dbName="$app_root"/"$sqlite_file"
 
 
-. "$env_path"/"$py_env"/bin/activate &&
+. "$app_root"/"$maintenance_dir_cl"/"$py_env"/bin/activate &&
 # #python_env
 { python  <<EOF
 from musical_chairs_libs.station_service import StationService

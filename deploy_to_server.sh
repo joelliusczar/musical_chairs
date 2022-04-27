@@ -34,17 +34,23 @@ if [ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]; then
 	fi
 fi
 
+if [ "$setup_lvl" = 'db' ]; then
+	remote_home=$(ssh -i "$radio_key_file" "$radio_server_ssh_address" \
+		'bash -c "echo $HOME"' | awk 'END{ print $1 }')
+	scp -i "$radio_key_file" "$reference_src_db" \
+		"$radio_server_ssh_address":"$remote_home/$sqlite_file"
+	exit
+fi
+
 #Would have prefered to just use a variable
 #but it seems to choke on certain characters like ')' for some reason
 #when I do it like 
 #myVar=$(cat<<EOF
 #...
 #)
-mkfifo radio_common_fifo clone_repo_fifo script_select_fifo 
-mkfifo remote_script_fifo
+mkfifo clone_repo_fifo script_select_fifo \
+	remote_script_fifo
 
-
-cat "$radio_common_path" > radio_common_fifo &
 
 
 #clone repo
@@ -55,9 +61,9 @@ if ! git --version 2>/dev/null; then
 	install_package git
 fi
 
-rm -rf "$build_home"/"$proj_name" &&
+rm -rf "$app_root/$build_dir/$proj_name" &&
 #since the clone will create the sub dir, we'll just start in the parent
-cd "$build_home" && 
+cd "$app_root/$build_dir" && 
 git clone "$radio_server_repo_url" "$proj_name" &&
 cd "$proj_name" &&
 if [ -n "$diag_flag" ]; then
@@ -98,7 +104,9 @@ RemoteScriptEOF2
 
 {
 	cat<<RemoteScriptEOF3
-$(cat radio_common_fifo)
+$(cat "$radio_common_path")
+
+
 
 radio_server_repo_url="$radio_server_repo_url"
 

@@ -19,8 +19,8 @@ pkgMgrChoice=$(get_pkg_mgr)
 perl -v >/dev/null 2>&1 ||
 	echo "Perl is not installed"
 
-[ -e "$bin_dir" ] || 
-	echo "$bin_dir does not exist"
+[ -e "$app_root"/"$bin_dir" ] || 
+	echo "${app_root}/${bin_dir} does not exist"
 
 case $(uname) in
 	Darwin*)
@@ -102,11 +102,11 @@ if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 		echo "python3-distutils is not installed"
 fi
 
-[ -e "$build_home" ] ||
-	echo "$build_home does not exist"
+[ -e "$app_root"/"$build_home" ] ||
+	echo "${app_root}/${build_home} does not exist"
 
-[ -e "$radio_home" ] ||
-	echo "$radio_home does not exist"
+[ -e "$app_trunk" ] ||
+	echo "${app_trunk} does not exist"
 
 case $(uname) in
 	Linux*)
@@ -124,37 +124,37 @@ esac
 mc-ices -V >/dev/null 2>&1 ||
 	echo "mc-ices is not installed"
 
-[ -e "$sqlite_file" ] ||
-	echo "$sqlite_file does not exist"
+[ -e "$app_root"/"$sqlite_file" ] ||
+	echo "${app_root}/${sqlite_file} does not exist"
 
-[ -e "$radio_home"/radio_common.sh ] ||
+[ -e "$app_trunk"/radio_common.sh ] ||
 	echo "radio_common.sh is not in place"
-[ -e "$radio_home"/icecast_check.sh ] ||
+[ -e "$app_trunk"/icecast_check.sh ] ||
 	echo "icecast_check.sh is not in place"
-[ -e "$radio_home"/requirements.txt ] ||
+[ -e "$app_trunk"/requirements.txt ] ||
 	echo "requirements.txt is not in place"
 
-[ -e "$maintenance_dir_cl" ] ||
-	echo "$maintenance_dir_cl is not in place"
+[ -e "$app_root"/"$maintenance_dir_cl" ] ||
+	echo "${app_root}/${maintenance_dir_cl} is not in place"
 
 
-compare_dirs "$maintenance_src" "$maintenance_dir_cl"
+compare_dirs "$maintenance_src" "$app_root"/"$maintenance_dir_cl"
 
-[ -e "$maintenance_dir_cl/$py_env" ] ||
-	echo "$maintenance_dir_cl/$py_env is not in place"
+[ -e "$app_root"/"$maintenance_dir_cl/$py_env" ] ||
+	echo "${app_root}/${maintenance_dir_cl}/${py_env} is not in place"
 
-compare_dirs "$templates_src" "$templates_dir_cl"
-compare_dirs "$start_up_src" "$start_up_dir_cl"
-compare_dirs "$api_src" "$app_path_cl"
+compare_dirs "$templates_src" "$app_root"/"$templates_dir_cl"
+compare_dirs "$start_up_src" "$app_root"/"$start_up_dir_cl"
+compare_dirs "$api_src" "$web_root"/"$app_api_path_cl"
 
-[ -e "$app_path_cl/$py_env" ] ||
-	echo "$app_path_cl/$py_env is not in place"
+[ -e "$web_root"/"$app_api_path_cl/$py_env" ] ||
+	echo "${web_root}/${app_api_path_cl}/${py_env} is not in place"
 compare_dirs "$client_src"/build \
- "$app_path_client_cl"
+ "$web_root"/"$app_client_path_cl"
 
 if [ -n "$test_flag" ] || [ -n "$test_db_flag" ]; then
-	[ -e "$sqlite_file" ] || 
-		echo "$sqlite_file is not in place"
+	[ -e "$app_root"/"$sqlite_file" ] || 
+		echo "${app_root}/${sqlite_file} is not in place"
 fi
 
 echo "done"

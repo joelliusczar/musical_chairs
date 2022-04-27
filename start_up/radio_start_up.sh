@@ -22,9 +22,9 @@ if ! systemctl status "$icecast_name" >/dev/null 2>&1; then
 		show_err_and_exit 
 fi
 
-export searchBase="$music_home"
-export dbName="$sqlite_file"
-. "$maintenance_dir_cl"/"$py_env"/bin/activate &&
-for conf in "$ices_configs_dir"/*.conf; do
+export searchBase="$app_root"/"$content_home"
+export dbName="$app_root"/"$sqlite_file"
+. "$app_root"/"$maintenance_dir_cl"/"$py_env"/bin/activate &&
+for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
 	mc-ices -c "$conf"
 done

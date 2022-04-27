@@ -27,5 +27,8 @@
   ],
   "python.terminal.activateEnvironment": false,
   "python.envFile": "${workspaceFolder}/test_trash/config/.env",
-  "python.analysis.useLibraryCodeForTypes": false
+  "python.analysis.useLibraryCodeForTypes": false,
+  "search.exclude": {
+    "**/test_trash": true
+  }
 }

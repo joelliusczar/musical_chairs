@@ -42,11 +42,11 @@ if ! perl -v 2>/dev/null; then
 	install_package perl
 fi
 
-[ ! -e "$bin_dir" ] && mkdir -pv "$bin_dir"
+[ ! -e "$app_root"/"$bin_dir" ] && mkdir -pv "$app_root"/"$bin_dir"
 
-if perl -e "exit 1 if index('$PATH','$bin_dir') != -1"; then
-	echo "Please add '$bin_dir' to path"
-	export PATH="$PATH":"$bin_dir"
+if perl -e "exit 1 if index('$PATH','${app_root}/${bin_dir}') != -1"; then
+	echo "Please add '${app_root}/${bin_dir}' to path"
+	export PATH="$PATH":"$app_root"/"$bin_dir"
 fi
 
 
@@ -96,7 +96,7 @@ if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 						install_package libbz2-dev
 					fi &&
 					(
-						python_build_dir="$build_home"/python
+						python_build_dir="$app_root"/"$build_home"/python
 						empty_dir_contents "$python_build_dir"
 						cd "$python_build_dir"
 						verNum='3.9.1'
@@ -119,7 +119,7 @@ if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 			;;
 		(*) ;;
 	esac &&
-	ln -sf $(get_bin_path "$pythonToLink") "$bin_dir"/mc-python
+	ln -sf $(get_bin_path "$pythonToLink") "$app_root"/"$bin_dir"/mc-python
 fi || show_err_and_exit "python install failed"
 
 
@@ -235,8 +235,8 @@ if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 fi
 
 
-if ! [ -e "$radio_home" ]; then
-	mkdir -pv "$radio_home"
+if ! [ -e "$app_trunk" ]; then
+	mkdir -pv "$app_trunk"
 fi
 
 case $(uname) in

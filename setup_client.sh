@@ -20,7 +20,7 @@ fi
 
 #check if web application folder exists, clear out if it does,
 #delete otherwise
-empty_dir_contents "$app_path_client_cl" || 
+empty_dir_contents "$web_root"/"$app_client_path_cl" || 
 show_err_and_exit 
 
 
@@ -33,7 +33,7 @@ npm --prefix "$client_src" i &&
 npm run --prefix "$client_src" build &&
 #copy built code to new location
 sudo -p 'Pass required for copying client files: ' \
-  cp -rv "$client_src"/build/* "$app_path_client_cl" &&
+  cp -rv "$client_src"/build/* "$web_root"/"$app_client_path_cl" &&
 sudo -p 'Pass required for changing owner of client files: ' \
- chown -R "$current_user": "$app_path_client_cl" || 
+ chown -R "$current_user": "$web_root"/"$app_client_path_cl" || 
 show_err_and_exit 

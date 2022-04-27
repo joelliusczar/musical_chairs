@@ -14,8 +14,8 @@ fi
 
 link_to_music_files
 
-export dbName="$sqlite_file"
-. "$maintenance_dir_cl"/"$py_env"/bin/activate &&
+export dbName="$app_root"/"$sqlite_file"
+. "$app_root"/"$maintenance_dir_cl"/"$py_env"/bin/activate &&
 # #python_env
 { python  <<EOF
 from musical_chairs_libs.station_service import StationService

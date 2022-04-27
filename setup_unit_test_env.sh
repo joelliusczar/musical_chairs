@@ -12,9 +12,9 @@ else
 fi
 
 
-setup_config_file ||
+setup_env_api_file ||
 show_err_and_exit
-echo "PYTHONPATH='$src_path'" >> "$config_file"
+echo "PYTHONPATH='$src_path'" >> "$app_root"/"$env_api_file"
 
-cp -v './reference/songs_db' "$sqlite_file" || 
+cp -v "$reference_src_db" "$app_root"/"$sqlite_file" || 
 show_err_and_exit 

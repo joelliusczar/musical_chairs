@@ -29,18 +29,18 @@ adminPassword=$(gen_pass)
 
 
 sudo -p 'Pass required for modifying icecast config: ' \
-	sed -i -e "/source-password/s/>[[:alnum:]]*/>${sourcePassword}/" \
+	perl -pi -e "s/>\w*/>${sourcePassword}/ if /source-password/" \
 	"$ic_conf_loc" &&
 sudo -p 'Pass required for modifying icecast config: ' \
-	sed -i -e "/relay-password/s/>[[:alnum:]]*/>${relayPassword}/" \
+	perl -pi -e "s/>\w*/>${relayPassword}/ if /relay-password/" \
 	"$ic_conf_loc" &&
 sudo -p 'Pass required for modifying icecast config: ' \
-	sed -i -e "/admin-password/s/>[[:alnum:]]*/>${adminPassword}/" \
+	perl -pi -e "s/>\w*/>${adminPassword}/ if /admin-password/" \
 	"$ic_conf_loc" || 
 show_err_and_exit 
 
 
-for conf in "$ices_configs_dir"/*.conf; do
+for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
 	[ ! -e "$conf" ] && continue
-	sed -i -e "/Password/s/>[[:alnum:]]*/>${sourcePassword}/" "$conf"
+	perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
 done

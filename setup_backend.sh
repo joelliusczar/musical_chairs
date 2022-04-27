@@ -11,7 +11,7 @@ else
   exit 1
 fi
 
-setup_dir_with_py "$api_src" "$app_path_cl" || 
+setup_dir_with_py "$api_src" "$web_root"/"$app_api_path_cl" || 
 show_err_and_exit 
 
 setup_nginx_confs || 

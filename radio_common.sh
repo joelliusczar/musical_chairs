@@ -86,11 +86,11 @@ s3_name() {
 }
 
 link_to_music_files() {
-	if [ ! -e "$music_home"/Soundtrack ]; then 
+	if [ ! -e "$app_root"/"$content_home"/Soundtrack ]; then 
 		if [ -n "$IS_RADIO_LOCAL_DEV" ]; then
-			s3fs "$(s3_name)" "$music_home"/ 
+			s3fs "$(s3_name)" "$app_root"/"$content_home"/ 
 		else
-			s3fs "$(s3_name)" "$music_home"/ -o iam_role="$(aws_role)"
+			s3fs "$(s3_name)" "$app_root"/"$content_home"/ -o iam_role="$(aws_role)"
 		fi
 	fi
 	res="$?"
@@ -118,27 +118,24 @@ setup_py3_env() (
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
-	python -m pip install -r "$radio_home"/requirements.txt &&
+	python -m pip install -r "$app_trunk"/requirements.txt &&
 	setup_dir ./src/"$lib_name" "$dest" ||
 	return "$?"
 )
 
 empty_dir_contents() (
 	dir_to_empty="$1"
-	echo "Emptying $dir_to_empty"
+	echo "Emptying ${dir_to_empty}"
 	if [ -e "$dir_to_empty" ]; then 
 		sudo -p "Password required for removing old files: " \
-			rm -rf "$dir_to_empty"/* ||
-		return "$?"
+			rm -rf "$dir_to_empty"/* || return "$?"
 	else
 		sudo -p 'Password required for creating files: ' \
-			mkdir -pv "$dir_to_empty"  ||
-		return "$?"
-	fi
+			mkdir -pv "$dir_to_empty" || return "$?"
+	fi 
 	msg='Password required for changing owner of created files to current user: '
 	sudo -p "$msg" \
-		chown -R "$current_user": "$dir_to_empty" ||
-	return "$?"
+		chown -R "$current_user": "$dir_to_empty" 
 )
 
 get_bin_path() (
@@ -165,19 +162,33 @@ brew_is_installed() (
 	esac
 )
 
-show_err_and_exit() (
+#this needs to command group and not a subshell 
+#else it will basically do nothing
+show_err_and_exit() {
 	err_code="$?"
 	msg="$1"
 	[ ! -z "$msg" ] && echo "$msg"
 	exit "$err_code"
+}
+
+does_file_exist() (
+	candidate="$1"
+	if [ ! -e "$candidate" ]; then
+		echo "${candidate} does not exist"
+		return 1
+	fi
 )
 
 #this may seem useless but we need it for test runner to read .env
-setup_config_file() {
-	cp ./templates/.env "$config_file" &&
-	perl -pi -e "s@^(searchBase=).*\$@\1'$music_home'@" "$config_file" &&
-	perl -pi -e "s@^(dbName=).*\$@\1'$sqlite_file'@" "$config_file"
-}
+setup_env_api_file() (
+	envFile="$app_root"/"$env_api_file"
+	cp "$templates_src"/.env_api "$envFile" &&
+	does_file_exist "$envFile" &&
+	perl -pi -e "s@^(searchBase=).*\$@\1'${app_root}/${content_home}'@" \
+		"$envFile" &&
+	does_file_exist "$envFile" &&
+	perl -pi -e "s@^(dbName=).*\$@\1'${app_root}/${sqlite_file}'@" "$envFile" 
+)
 
 setup_dir() (
 	src_dir="$1"
@@ -200,7 +211,6 @@ setup_dir_with_py() (
 	setup_py3_env "$dest_dir" "$env_name" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
-	return "$?"
 )
 
 gen_pass() (
@@ -299,10 +309,11 @@ update_nginx_conf() (
 	appConfFile="$1"
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
-	sudo -p "update $appConfFile" \
-		perl -pi -e "s@<app_path_client_cl>@$app_path_client_cl@" "$appConfFile" &&
-	sudo -p "update $appConfFile" \
-		perl -pi -e "s@<full_url>@$full_url@" "$appConfFile" 
+	sudo -p "update ${appConfFile}" \
+		perl -pi -e "s@<app_client_path_cl>@${web_root}/${app_client_path_cl}@" \
+		"$appConfFile" &&
+	sudo -p "update ${appConfFile}" \
+		perl -pi -e "s@<full_url>@${full_url}@" "$appConfFile" 
 )
 
 get_abs_path_from_nginx_include() (
@@ -385,7 +396,7 @@ debug_print() (
 while [ ! -z "$1" ]; do
 	case "$1" in
 		#build out to test_trash rather than the normal directories
-		#sets radio_home and web_root without having to set them explicitly
+		#sets app_root and web_root without having to set them explicitly
 		(test)
 			test_flag='test'
 			;;
@@ -400,8 +411,8 @@ while [ ! -z "$1" ]; do
 		(env=*) #affects which url to use
 			app_env=${1#env=}
 			;;
-		(radio_home=*)
-			radio_home=${1#radio_home=}
+		(app_root=*)
+			app_root=${1#app_root=}
 			;;
 		(web_root=*)
 			web_root=${1#web_root=}
@@ -416,35 +427,41 @@ done
 
 workspace_abs_path=$(to_abs_path $0)
 
+app_root=${app_root:-"$HOME"}
 test_root="$workspace_abs_path/test_trash"
 
+
 if [ -n "$test_flag" ]; then
-	radio_home="$test_root"
+	app_root="$test_root"
 	web_root="$test_root"
 fi
 
-export radio_home=${radio_home:-"$HOME"/radio}
-
 proj_name='musical_chairs'
+db_name='songs_db'
+app_trunk="$app_root/$proj_name"
+export app_root="$app_root"
+export web_root="$web_root"
+export app_trunk="$app_trunk"
+
 lib_name="$proj_name"_libs
 app_name="$proj_name"_app
 url_base=$(echo "$proj_name" | tr -d _)
-ices_configs_dir="$radio_home"/ices_configs
-pyModules_dir="$radio_home"/pyModules
-build_home="$HOME"/Documents/builds
-music_home="$HOME"/music/radio
-radio_config_dir="$radio_home"/config
-config_file="$radio_config_dir"/.env
-db_dir="$radio_home"/db
-sqlite_file="$db_dir"/songs_db
-bin_dir="$HOME"/.local/bin
+ices_configs_dir="$proj_name"/ices_configs
+pyModules_dir="$proj_name"/pyModules
+build_dir='Documents/builds'
+content_home='music/radio'
+config_dir="$proj_name"/config
+env_api_file="$config_dir"/.env
+db_dir="$proj_name"/db
+sqlite_file="$db_dir"/"$db_name"
+bin_dir='.local/bin'
 utest_env_dir="$test_root"/utest
 
 # directories that should be cleaned upon changes
 # suffixed with 'cl' for 'clean'
-maintenance_dir_cl="$radio_home"/maintenance
-start_up_dir_cl="$radio_home"/start_up
-templates_dir_cl="$radio_home"/templates
+maintenance_dir_cl="$proj_name"/maintenance
+start_up_dir_cl="$proj_name"/start_up
+templates_dir_cl="$proj_name"/templates
 
 #python environment names
 py_env='mc_env'
@@ -459,8 +476,8 @@ case $(uname) in
 	(*) ;;
 esac
 
-app_path_cl="$web_root"/api/"$app_name"
-app_path_client_cl="$web_root"/client/"$app_name"
+app_api_path_cl=api/"$app_name"
+app_client_path_cl=client/"$app_name"
 
 #local paths
 src_path="$workspace_abs_path/src"
@@ -470,6 +487,8 @@ lib_src="$src_path/$lib_name"
 templates_src="$workspace_abs_path/templates"
 start_up_src="$workspace_abs_path/start_up"
 maintenance_src="$workspace_abs_path/maintenance"
+reference_src="$workspace_abs_path/reference"
+reference_src_db="$reference_src/$db_name"
 
 case "$app_env" in 
 	(local*)
@@ -488,16 +507,23 @@ APT_CONST='apt-get'
 HOMEBREW_CONST='homebrew'
 current_user=$(whoami)
 
-[ ! -e "$radio_home" ] && mkdir -pv "$radio_home"
-[ ! -e "$ices_configs_dir" ] && mkdir -pv "$ices_configs_dir"
-[ ! -e "$build_home" ] && mkdir -pv "$build_home"
-[ ! -e "$music_home" ] && mkdir -pv "$music_home"
-[ ! -e "$pyModules_dir" ] && mkdir -pv "$pyModules_dir"
-[ ! -e "$radio_config_dir" ] && mkdir -pv "$radio_config_dir"
-[ ! -e "$db_dir" ] && mkdir -pv "$db_dir"
+[ -e "$app_trunk" ] || 
+mkdir -pv "$app_trunk"
+[ -e "$app_root"/"$ices_configs_dir" ] || 
+mkdir -pv "$app_root"/"$ices_configs_dir"
+[ -e "$app_root"/"$build_dir" ] || 
+mkdir -pv "$app_root"/"$build_dir"
+[ -e "$app_root"/"$content_home" ] || 
+mkdir -pv "$app_root"/"$content_home"
+[ -e "$app_root"/"$pyModules_dir" ] || 
+mkdir -pv "$app_root"/"$pyModules_dir"
+[ -e "$app_root"/"$config_dir" ] || 
+mkdir -pv "$app_root"/"$config_dir"
+[ -e "$app_root"/"$db_dir" ] || 
+mkdir -pv "$app_root"/"$db_dir"
 msg='Pass required for creating web server directory: '
-[ ! -e "$app_path_cl" ] && 
+[ -e "$web_root"/"$app_api_path_cl" ] ||
 { 
-	sudo -p "$msg" mkdir -pv "$app_path_cl" ||
-	show_err_and_exit "Could not create $app_path_cl" 
+	sudo -p "$msg" mkdir -pv "$web_root"/"$app_api_path_cl" ||
+	show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}" 
 }

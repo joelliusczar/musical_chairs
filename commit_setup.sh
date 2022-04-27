@@ -17,6 +17,6 @@ sh ./setup_backend.sh &&
 sh ./setup_client.sh &&
 
 if [ -n "$test_flag" ] || [ -n "$test_db_flag" ]; then
-	cp -v './reference/songs_db' "$sqlite_file" || 
+	cp -v "$reference_src_db" "$app_root"/"$sqlite_file" || 
 	show_err_and_exit 
 fi

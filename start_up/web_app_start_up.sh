@@ -11,7 +11,8 @@ else
   exit 1
 fi
 
-export dbName="$sqlite_file"
-. "$app_path_cl"/"$py_env"/bin/activate &&
+export dbName="$app_root"/"$sqlite_file"
+. "$web_root"/"$app_api_path_cl"/"$py_env"/bin/activate &&
 # see #python_env
-uvicorn --app-dir "$app_path_cl" --host 0.0.0.0 --port 8032 "index:app" &
+uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
+  --host 0.0.0.0 --port 8032 "index:app" &

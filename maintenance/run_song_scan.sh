@@ -13,19 +13,19 @@ fi
 
 link_to_music_files
 
-env_path="$maintenance_dir_cl"
+env_path="$app_root"/"$maintenance_dir_cl"
 
 
-export dbName="$sqlite_file"
+export dbName="$app_root"/"$sqlite_file"
 . "$env_path"/"$py_env"/bin/activate &&
 # #python_env
 { python  <<EOF
 from musical_chairs_libs.song_scanner import SongScanner
 print("Starting")
 stationService = SongScanner()
-inserted = stationService.save_paths('${music_home}')
+inserted = stationService.save_paths('${app_root}/${content_home}')
 print(f"saving paths done: {inserted} inserted")
-updated = stationService.update_metadata('${music_home}')
+updated = stationService.update_metadata('${app_root}/${content_home}')
 print(f"updating songs done: {updated}")
 EOF
 }

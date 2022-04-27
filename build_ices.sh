@@ -20,7 +20,7 @@ case $(uname) in
 		;;
 	*) ;;
 esac
-ices_build_dir="$build_home"/ices
+ices_build_dir="$app_root"/"$build_home"/ices
 (
 	name_prefix='mc-'
 	empty_dir_contents "$ices_build_dir"
@@ -34,9 +34,9 @@ ices_build_dir="$build_home"/ices
 	aclocal &&
 	autoreconf -fi &&
 	automake --add-missing &&
-	./configure --prefix="$HOME"/.local \
+	./configure --prefix="$app_root"/.local \
 		--with-python=$(which mc-python) \
-		--with-moddir="$pyModules_dir" \
+		--with-moddir="$app_root"/"$pyModules_dir" \
 		--program-prefix="$name_prefix" &&
 	make &&
 	make install &&

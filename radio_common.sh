@@ -231,37 +231,37 @@ compare_dirs() (
 
 	src_res=$(find "$src_dir" | \
 		sed "s@${src_dir%/}/\{0,1\}@@" | sort) 
-	cpy_res=$(find "$cpy_dir" -not -path "$cpy_dir/$py_env/*" \
-		-and -not -path "$cpy_dir/$py_env" | \
+	cpy_res=$(find "${cpy_dir}" -not -path "${cpy_dir}/${py_env}/*" \
+		-and -not -path "${cpy_dir}/${py_env}" | \
 		sed "s@${cpy_dir%/}/\{0,1\}@@" | sort)
 
 	get_file_list() (
 		supress="$1"
 		echo "$src_res" > src_fifo &
 		echo "$cpy_res" > cpy_fifo &
-		[ -n "$supress" ] && comm "-$supress" src_fifo cpy_fifo ||
+		[ -n "$supress" ] && comm "-${supress}" src_fifo cpy_fifo ||
 			comm src_fifo cpy_fifo
 	)
 
 	in_both=$(get_file_list 12)
 	in_src=$(get_file_list 23)
 	in_cpy=$(get_file_list 13)
-	[ -n "$(echo "$in_cpy" | xargs)" ] && 
+	[ -n "$(echo "${in_cpy}" | xargs)" ] && 
 			{
-				echo "There are items that only exist in $cpy_dir"
+				echo "There are items that only exist in ${cpy_dir}"
 				exit_code=2
 			}
-	[ -n "$(echo "$in_src" | xargs)" ] && 
+	[ -n "$(echo "${in_src}" | xargs)" ] && 
 			{
-				echo "There are items missing from the $cpy_dir"
+				echo "There are items missing from the ${cpy_dir}"
 				exit_code=3
 			}
 	if [ -n "$in_both" ]; then
 		exit_code=4
 		echo "$in_both" > cmp_fifo &
 		while read file_name; do
-			[ "${src_dir%/}/$file_name" -nt "${cpy_dir%/}/$file_name" ] &&
-				echo "$file_name is outdated"
+			[ "${src_dir%/}/${file_name}" -nt "${cpy_dir%/}/${file_name}" ] &&
+				echo "${file_name} is outdated"
 		done <cmp_fifo
 	fi
 	rm -f src_fifo cpy_fifo cmp_fifo
@@ -286,7 +286,7 @@ get_nginx_value() (
 	#then isolate the option we're interested in
 	nginx -V 2>&1 | \
 		sed 's/ /\n/g' | \
-		sed -n "/--$key/p" | \
+		sed -n "/--${key}/p" | \
 		sed 's/.*=\(.*\)/\1/'
 )
 
@@ -329,7 +329,7 @@ get_abs_path_from_nginx_include() (
 		absPath="$prefix"/"$confDir"
 		if [ ! -d "$absPath" ]; then
 			if [ -e "$absPath" ]; then 
-				echo "$absPath is a file, not a directory" 1>&2
+				echo "{$absPath} is a file, not a directory" 1>&2
 				return 1
 			fi
 			debug_print "Hello?"
@@ -354,7 +354,7 @@ enable_nginx_include() (
 	confDirInclude="$1"
 	escaped_guess=$(literal_to_regex "$confDirInclude")
 	#uncomment line if necessary
-	sudo -p "Enable $confDirInclude" \
+	sudo -p "Enable ${confDirInclude}" \
 		perl -pi -e "s/^[ \t]*#// if m@$escaped_guess@" "$(get_nginx_value)"
 )
 

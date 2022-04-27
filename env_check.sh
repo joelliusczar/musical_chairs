@@ -63,7 +63,7 @@ case $(uname) in
 		;;
 	Linux*) 
 		if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
-			libtool --version >/dev/null 2>&1>/dev/null 2>&1 ||
+			libtool --version >/dev/null >/dev/null 2>&1 ||
 				echo "libtool is not installed"
 		fi
 		;;
@@ -74,9 +74,9 @@ set_python_version_const >/dev/null 2>&1
 
 [ -n "$pyVersion" ]||
 	echo "pyVersion is not set"
-[ -n "$pyMajor" ]||
+[ -n "$pyMajor" ] ||
 	echo "pyMajor is not set"
-[ -n "$pyMinor" ]||
+[ -n "$pyMinor" ] ||
 	echo "pyMinor is not set"
 
 if [ "$pkgMgrChoice" = "$APT_CONST" ]; then

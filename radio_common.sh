@@ -105,7 +105,7 @@ link_to_music_files() {
 	return "$res"
 }
 
-is_python_sufficient_version() {
+is_python_version_good() {
 	[ "$exp_name" == 'py3.8' ] && return
 	set_python_version_const &&
 	[ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge 9 ]

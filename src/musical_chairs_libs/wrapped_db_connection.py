@@ -21,7 +21,11 @@ class WrappedDbConnection:
 		statement: Any,
 		params: Optional[List[Any]]=None
 	) -> CursorResult:
-		return self.conn.execute(statement, params) # type: ignore
+		if params:
+			return self.conn.execute(statement, params) # type: ignore
+		else:
+			#apparently can't pass in None for params?
+			return self.conn.execute(statement) # type: ignore
 
 	def begin(self) -> Transaction:
 		return self.conn.begin()

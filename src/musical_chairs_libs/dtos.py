@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from collections.abc import Iterable
-from typing import Optional
+from typing import Optional, Iterable
 from pydantic import BaseModel
 
 

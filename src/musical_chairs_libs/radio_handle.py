@@ -3,6 +3,7 @@ from typing import Optional
 from musical_chairs_libs.queue_service import QueueService
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.station_service import StationService
+from musical_chairs_libs.os_process_manager import OSProcessManager
 
 
 
@@ -11,19 +12,24 @@ class RadioHandle:
 	def __init__(
 		self,
 		stationName: str, 
-		envManager: Optional[EnvManager] = None
+		envManager: Optional[EnvManager]=None,
+		processManager: Optional[OSProcessManager]=None
 	) -> None:
 		self.songnumber = -1
 		self.songFullPath = ""
 		self.display = ""
 		if not envManager:
 			envManager = EnvManager()
-		self.config_loader = envManager
+		if not processManager:
+			processManager = OSProcessManager()
+		self.env_manager = envManager
 		self.stationName = stationName
+		self.process_manager = processManager
 
 	def ices_init(self) -> int:
-		conn = self.config_loader.get_configured_db_connection()
-		StationService(conn).set_station_proc(stationName=self.stationName)
+		conn = self.env_manager.get_configured_db_connection()
+		StationService(conn, processManager=self.process_manager)\
+			.set_station_proc(stationName=self.stationName)
 		conn.close()
 		print('Executing initialize() function..')
 		return 1
@@ -31,8 +37,9 @@ class RadioHandle:
 	# Function called to shutdown your python enviroment.
 	# Return 1 if ok, 0 if something went wrong.
 	def ices_shutdown(self) -> int:
-		conn = self.config_loader.get_configured_db_connection()
-		StationService(conn).remove_station_proc(stationName=self.stationName)
+		conn = self.env_manager.get_configured_db_connection()
+		StationService(conn, processManager=self.process_manager)\
+			.remove_station_proc(stationName=self.stationName)
 		conn.close()
 		print(f"Station is shutting down on {self.display}")
 		print(self.songFullPath)
@@ -42,8 +49,8 @@ class RadioHandle:
 	# Function called to get the next filename to stream. 
 	# Should return a string.
 	def ices_get_next(self) -> str:
-		searchBase = self.config_loader.search_base
-		conn = self.config_loader.get_configured_db_connection()
+		searchBase = self.env_manager.search_base
+		conn = self.env_manager.get_configured_db_connection()
 		queueService = QueueService(conn)
 		(songPath, songName, album, artist) = \
 			queueService.pop_next_queued(stationName=self.stationName)

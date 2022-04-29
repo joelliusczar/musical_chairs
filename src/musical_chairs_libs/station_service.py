@@ -1,4 +1,3 @@
-import os
 import sys
 import itertools
 from typing import Callable, Iterator, Optional, Tuple
@@ -27,7 +26,7 @@ from musical_chairs_libs.os_process_manager import OSProcessManager
 class StationService:
 
 	def __init__(self, 
-		conn: WrappedDbConnection,
+		conn: Optional[WrappedDbConnection]=None,
 		envManager: Optional[EnvManager]=None,
 		processManager: Optional[OSProcessManager]=None
 	):

@@ -16,5 +16,7 @@ setup_env_api_file ||
 show_err_and_exit
 echo "PYTHONPATH='$src_path'" >> "$app_root"/"$env_api_file"
 
+setup_py3_env "$utest_env_dir"
+
 cp -v "$reference_src_db" "$app_root"/"$sqlite_file" || 
 show_err_and_exit 

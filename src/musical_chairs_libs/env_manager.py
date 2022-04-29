@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine #type: ignore
 from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
 
 class EnvManager:

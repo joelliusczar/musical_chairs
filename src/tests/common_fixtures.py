@@ -1,6 +1,7 @@
 from typing import Iterator
 import pytest
 from musical_chairs_libs.env_manager import EnvManager
+from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
 from musical_chairs_libs.tables import metadata, \
 	artists, \
@@ -12,6 +13,7 @@ from musical_chairs_libs.tables import metadata, \
 	stations, \
 	stations_tags
 from sqlalchemy import insert
+from .mocks.mock_process_manager import MockOSProcessManager
 
 @pytest.fixture
 def db_conn() -> WrappedDbConnection:
@@ -28,8 +30,35 @@ def db_conn_in_mem() -> Iterator[WrappedDbConnection]:
 	finally:
 		conn.close()
 
+def get_configured_db_connection(echo: bool=False,
+		inMemory: bool=False 
+) -> WrappedDbConnection:
+	envMgr = EnvManager()  
+	conn = envMgr.get_configured_db_connection(echo=echo, inMemory=True) 
+	_setup_in_mem_tbls_full(conn)
+	return conn
+
+@pytest.fixture
+def radio_handle_in_mem() -> RadioHandle:
+	envMgr = EnvManager()
+	envMgr.get_configured_db_connection = get_configured_db_connection
+	processManager = MockOSProcessManager(1)
+	radioHandle = RadioHandle("oscar_station", 
+		envManager=envMgr, 
+		processManager=processManager
+	)
+	return radioHandle
+
+@pytest.fixture
+def radio_handle() -> RadioHandle:
+	radioHandle = RadioHandle("vg", processManager=MockOSProcessManager(1))
+	return radioHandle
+
 @pytest.fixture
 def setup_in_mem_tbls(db_conn_in_mem: WrappedDbConnection) -> None:
+	_setup_in_mem_tbls(db_conn_in_mem)
+
+def _setup_in_mem_tbls(db_conn_in_mem: WrappedDbConnection) -> None:
 	metadata.create_all(db_conn_in_mem.engine)
 	artistParams = [
 		{ "pk": 1, "name": "alpha_artist" },
@@ -45,15 +74,13 @@ def setup_in_mem_tbls(db_conn_in_mem: WrappedDbConnection) -> None:
 
 @pytest.fixture
 def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
-	setup_in_mem_tbls(db_conn_in_mem)
+	_setup_in_mem_tbls_full(db_conn_in_mem)
+
+def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
+	_setup_in_mem_tbls(db_conn_in_mem)
 	albumParams = [
 		{ "pk": 1, "name": "broo_album", "albumArtistFk": 7, "year": 2001 },
 		{ "pk": 2, "name": "moo_album", "albumArtistFk": 7, "year": 2003 },
-		{ "pk": 3, "name": "juliet_album", "albumArtistFk": 7 },
-		{ "pk": 4, "name": "soo_album", "year": 2004 },
-		{ "pk": 5, "name": "doo_album" },
-		{ "pk": 6, "name": "roo_album" },
-		{ "pk": 7, "name": "koo_album", "year": 2010 },
 		{ "pk": 8, "name": "shoo_album", "albumArtistFk": 6, "year": 2003 },
 		{ "pk": 9, "name": "who_2_album", "albumArtistFk": 6, "year": 2001 },
 		{ "pk": 10, "name": "who_1_album", "albumArtistFk": 5, "year": 2001 },
@@ -61,9 +88,23 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 	]
 	stmt = insert(albums)
 	db_conn_in_mem.execute(stmt, albumParams)
+	albumParams2 = [
+		{ "pk": 4, "name": "soo_album", "year": 2004 },
+		{ "pk": 7, "name": "koo_album", "year": 2010 },
+	]
+	db_conn_in_mem.execute(stmt, albumParams2)
+	albumParams3 = [
+		{ "pk": 5, "name": "doo_album" },
+		{ "pk": 6, "name": "roo_album" },
+	]
+	db_conn_in_mem.execute(stmt, albumParams3)
+	albumParams4 = [
+		{ "pk": 3, "name": "juliet_album", "albumArtistFk": 7 }
+	]
+	db_conn_in_mem.execute(stmt, albumParams4)
 	songParams = [
 		{ "pk": 1,
-			"path": "/foo/goo/boo/sierra", 
+			"path": "foo/goo/boo/sierra", 
 			"name": "sierra_song",
 			"albumFk": 11,
 			"track": 1,
@@ -74,7 +115,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 2,
-			"path": "/foo/goo/boo/tango", 
+			"path": "foo/goo/boo/tango", 
 			"name": "tango_song",
 			"albumFk": 11,
 			"track": 2,
@@ -85,7 +126,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 3,
-			"path": "/foo/goo/boo/uniform", 
+			"path": "foo/goo/boo/uniform", 
 			"name": "uniform_song",
 			"albumFk": 11,
 			"track": 3,
@@ -96,7 +137,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 4,
-			"path": "/foo/goo/boo/victor", 
+			"path": "foo/goo/boo/victor", 
 			"name": "victor_song",
 			"albumFk": 11,
 			"track": 4,
@@ -106,7 +147,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 5,
-			"path": "/foo/goo/boo/victor", 
+			"path": "foo/goo/boo/victor_2", 
 			"name": "victor_song",
 			"albumFk": 11,
 			"track": 4,
@@ -116,7 +157,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 6,
-			"path": "/foo/goo/who_1/whiskey", 
+			"path": "foo/goo/who_1/whiskey", 
 			"name": "whiskey_song",
 			"albumFk": 10,
 			"track": 1,
@@ -125,7 +166,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 7,
-			"path": "/foo/goo/who_1/xray", 
+			"path": "foo/goo/who_1/xray", 
 			"name": "xray_song",
 			"albumFk": 10,
 			"track": 2,
@@ -134,7 +175,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 8,
-			"path": "/foo/goo/who_1/yankee", 
+			"path": "foo/goo/who_1/yankee", 
 			"name": "yankee_song",
 			"albumFk": 10,
 			"track": 3,
@@ -143,7 +184,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 9,
-			"path": "/foo/goo/who_1/zulu", 
+			"path": "foo/goo/who_1/zulu", 
 			"name": "zulu_song",
 			"albumFk": 10,
 			"track": 4,
@@ -152,7 +193,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 10,
-			"path": "/foo/goo/who_1/alpha", 
+			"path": "foo/goo/who_1/alpha", 
 			"name": "alpha_song",
 			"albumFk": 10,
 			"track": 5,
@@ -161,7 +202,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 11,
-			"path": "/foo/goo/who_2/bravo", 
+			"path": "foo/goo/who_2/bravo", 
 			"name": "bravo_song",
 			"albumFk": 9,
 			"track": 1,
@@ -170,7 +211,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 12,
-			"path": "/foo/goo/who_2/charlie", 
+			"path": "foo/goo/who_2/charlie", 
 			"name": "charlie_song",
 			"albumFk": 9,
 			"track": 2,
@@ -179,7 +220,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 13,
-			"path": "/foo/goo/who_2/delta", 
+			"path": "foo/goo/who_2/delta", 
 			"name": "delta_song",
 			"albumFk": 9,
 			"track": 3,
@@ -188,7 +229,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"comment": "Kazoos make good swimmers"
 		},
 		{ "pk": 14,
-			"path": "/foo/goo/who_2/foxtrot", 
+			"path": "foo/goo/who_2/foxtrot", 
 			"name": "foxtrot_song",
 			"albumFk": 9,
 			"track": 4,
@@ -196,7 +237,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"genre": "pop",
 		},
 		{ "pk": 15,
-			"path": "/foo/goo/who_2/golf", 
+			"path": "foo/goo/who_2/golf", 
 			"name": "golf_song",
 			"albumFk": 9,
 			"track": 5,
@@ -204,93 +245,93 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"genre": "pop",
 		},
 		{ "pk": 16,
-			"path": "/foo/goo/shoo/hotel", 
+			"path": "foo/goo/shoo/hotel", 
 			"name": "hotel_song",
 			"albumFk": 8,
 			"track": 1,
 			"disc": 1,
 		},
 		{ "pk": 17,
-			"path": "/foo/goo/shoo/india", 
+			"path": "foo/goo/shoo/india", 
 			"name": "india_song",
 			"albumFk": 8,
 			"track": 2,
 			"disc": 1,
 		},
 		{ "pk": 18,
-			"path": "/foo/goo/shoo/juliet", 
+			"path": "foo/goo/shoo/juliet", 
 			"name": "juliet_song",
 			"albumFk": 8,
 			"track": 3,
 			"disc": 1,
 		},
 		{ "pk": 19,
-			"path": "/foo/goo/shoo/kilo", 
+			"path": "foo/goo/shoo/kilo", 
 			"name": "kilo_song",
 			"albumFk": 8,
 			"track": 4,
 			"disc": 1,
 		},
 		{ "pk": 20,
-			"path": "/foo/goo/koo/lima", 
+			"path": "foo/goo/koo/lima", 
 			"name": "lima_song",
 			"albumFk": 7,
 			"track": 1,
 		},
 		{ "pk": 21,
-			"path": "/foo/goo/koo/mike", 
+			"path": "foo/goo/koo/mike", 
 			"name": "mike_song",
 			"albumFk": 7,
 			"track": 2,
 		},
 		{ "pk": 22,
-			"path": "/foo/goo/koo/november", 
+			"path": "foo/goo/koo/november", 
 			"name": "november_song",
 			"albumFk": 7,
 			"track": 3,
 		},
 		{ "pk": 23,
-			"path": "/foo/goo/roo/oscar", 
+			"path": "foo/goo/roo/oscar", 
 			"name": "oscar_song",
 			"albumFk": 6,
 		},
 		{ "pk": 24,
-			"path": "/foo/goo/roo/papa", 
+			"path": "foo/goo/roo/papa", 
 			"name": "papa_song",
 			"albumFk": 6,
 		},
 		{ "pk": 25,
-			"path": "/foo/goo/roo/romeo", 
+			"path": "foo/goo/roo/romeo", 
 			"name": "romeo_song",
 			"albumFk": 6,
 		},
 		{ "pk": 26,
-			"path": "/foo/goo/roo/sierra2", 
+			"path": "foo/goo/roo/sierra2", 
 			"name": "sierra2_song",
 			"albumFk": 6,
 		},
 		{ "pk": 27,
-			"path": "/foo/goo/roo/tango2", 
+			"path": "foo/goo/roo/tango2", 
 			"name": "tango2_song",
 		},
 		{ "pk": 28,
-			"path": "/foo/goo/roo/uniform2", 
+			"path": "foo/goo/roo/uniform2", 
 			"name": "uniform2_song",
 		},
 		{ "pk": 29,
-			"path": "/foo/goo/roo/victor2", 
+			"path": "foo/goo/roo/victor2", 
 			"name": "victor2_song",
 		},
 		{ "pk": 30,
-			"path": "/foo/goo/roo/whiskey2", 
+			"path": "foo/goo/roo/whiskey2", 
 			"name": "whiskey2_song",
 		},
 		{ "pk": 31,
-			"path": "/foo/goo/roo/xray2", 
+			"path": "foo/goo/roo/xray2", 
 			"name": "xray2_song",
 		},
 		{ "pk": 32,
-			"path": "/foo/goo/doo/yankee2", 
+			"path": "foo/goo/doo/yankee2", 
 			"name": "yankee2_song",
 			"albumFk": 5,
 			"genre": "bop",
@@ -298,7 +339,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"bitrate": 121,
 		},
 		{ "pk": 33,
-			"path": "/foo/goo/doo/zulu2", 
+			"path": "foo/goo/doo/zulu2", 
 			"name": "zulu2_song",
 			"albumFk": 5,
 			"genre": "bop",
@@ -306,7 +347,7 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"bitrate": 121,
 		},
 		{ "pk": 34,
-			"path": "/foo/goo/soo/alpha2", 
+			"path": "foo/goo/soo/alpha2", 
 			"name": "alpha2_song",
 			"albumFk": 4,
 			"track": 1,
@@ -314,65 +355,171 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 			"bitrate": 121,
 		},
 		{ "pk": 35,
-			"path": "/foo/goo/soo/bravo2", 
+			"path": "foo/goo/soo/bravo2", 
 			"name": "bravo2_song",
 			"albumFk": 4,
 			"track": 2,
 			"explicit": 1,
 		},
 		{ "pk": 36,
-			"path": "/foo/goo/soo/charlie2", 
+			"path": "foo/goo/soo/charlie2", 
 			"name": "charlie2_song",
 			"albumFk": 4,
 			"track": 3,
 			"comment": "Boot 'n' scoot"
 		},
 		{ "pk": 37,
-			"path": "/foo/goo/moo/delta2", 
+			"path": "foo/goo/moo/delta2", 
 			"name": "delta2_song",
 			"albumFk": 2,
 			"track": 1,
 		},
 		{ "pk": 38,
-			"path": "/foo/goo/moo/echo2", 
+			"path": "foo/goo/moo/echo2", 
 			"name": "echo2_song",
 			"albumFk": 2,
 			"track": 2,
 		},
 		{ "pk": 39,
-			"path": "/foo/goo/moo/foxtrot2", 
+			"path": "foo/goo/moo/foxtrot2", 
 			"name": "foxtrot2_song",
 			"albumFk": 2,
 			"track": 3,
 		},
 		{ "pk": 40,
-			"path": "/foo/goo/moo/golf2", 
+			"path": "foo/goo/moo/golf2", 
 			"name": "golf2_song",
 			"albumFk": 2,
 			"track": 4,
 		},
 		{ "pk": 41,
-			"path": "/foo/goo/broo/hotel2", 
+			"path": "foo/goo/broo/hotel2", 
 			"name": "hotel2_song",
 			"albumFk": 1,
 		},
 		{ "pk": 42,
-			"path": "/foo/goo/broo/india2", 
+			"path": "foo/goo/broo/india2", 
 			"name": "india2_song",
 			"albumFk": 1,
 		},
 		{ "pk": 43,
-			"path": "/foo/goo/broo/juliet2", 
+			"path": "foo/goo/broo/juliet2", 
 			"name": "juliet2_song",
 			"albumFk": 1,
 		},
 	]
 	stmt = insert(songs)
-	db_conn_in_mem.execute(stmt, songParams)
+
+	songParams1 = list(filter(lambda s: \
+		'explicit' in s and \
+		'albumFk' in s and \
+		'track' in s and \
+		'disc' in s and \
+		'genre' in s and \
+		'bitrate' in s and \
+		'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams1)
+	songParams2 = list(filter(lambda s: \
+		not 'explicit' in s and \
+		'albumFk' in s and \
+		'track' in s and \
+		'disc' in s and \
+		'genre' in s and \
+		'bitrate' in s and \
+		'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams2)
+	songParams3 = list(filter(lambda s: \
+		not 'explicit' in s and \
+		'albumFk' in s and \
+		'track' in s and \
+		'disc' in s and \
+		'genre' in s and \
+		not 'bitrate' in s and \
+		'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams3)
+	songParams4 = list(filter(lambda s: \
+		not 'explicit' in s and \
+		'albumFk' in s and \
+		'track' in s and \
+		'disc' in s and \
+		'genre' in s and \
+		not 'bitrate' in s and \
+		not 'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams4)
+	songParams5 = list(filter(lambda s: \
+		not 'explicit' in s and \
+		'albumFk' in s and \
+		'track' in s and \
+		'disc' in s and \
+		not 'genre' in s and \
+		not 'bitrate' in s and \
+		not 'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams5)
+	songParams6 = list(filter(lambda s: \
+		not 'explicit' in s and \
+		'albumFk' in s and \
+		'track' in s and \
+		not 'disc' in s and \
+		not 'genre' in s and \
+		not 'bitrate' in s and \
+		not 'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams6)
+	songParams7 = list(filter(lambda s: \
+		not 'explicit' in s and \
+		'albumFk' in s and \
+		not 'track' in s and \
+		not 'disc' in s and \
+		not 'genre' in s and \
+		not 'bitrate' in s and \
+		not 'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams7)
+	songParams8 = list(filter(lambda s: \
+		not 'explicit' in s and \
+		not 'albumFk' in s and \
+		not 'track' in s and \
+		not 'disc' in s and \
+		not 'genre' in s and \
+		not 'bitrate' in s and \
+		not 'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams8)
+	songParams9 = list(filter(lambda s: \
+		'explicit' in s and \
+		'albumFk' in s and \
+		not 'track' in s and \
+		not 'disc' in s and \
+		'genre' in s and \
+		'bitrate' in s and \
+		not 'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams9)
+	songParams10 = list(filter(lambda s: \
+		'explicit' in s and \
+		'albumFk' in s and \
+		'track' in s and \
+		not 'disc' in s and \
+		not 'genre' in s and \
+		'bitrate' in s and \
+		not 'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams10)
+	songParams11 = list(filter(lambda s: \
+		'explicit' in s and \
+		'albumFk' in s and \
+		'track' in s and \
+		not 'disc' in s and \
+		not 'genre' in s and \
+		not 'bitrate' in s and \
+		not 'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams11)
+	songParams12 = list(filter(lambda s: \
+		not 'explicit' in s and \
+		'albumFk' in s and \
+		'track' in s and \
+		not 'disc' in s and \
+		not 'genre' in s and \
+		not 'bitrate' in s and \
+		'comment' in s, songParams))
+	db_conn_in_mem.execute(stmt, songParams12)
+
 	songArtistParams = [
-		{ "songFk": 43, "artistFk": 7, "isPrimaryArtist": 1 },
-		{ "songFk": 42, "artistFk": 7, "isPrimaryArtist": 1 },
-		{ "songFk": 41, "artistFk": 7, "isPrimaryArtist": 1 },
 		{ "songFk": 40, "artistFk": 7 },
 		{ "songFk": 39, "artistFk": 7 },
 		{ "songFk": 38, "artistFk": 7 },
@@ -416,7 +563,12 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 	]
 	stmt = insert(song_artist)
 	db_conn_in_mem.execute(stmt, songArtistParams)
-	
+	songArtistParams2 = [
+		{ "songFk": 43, "artistFk": 7, "isPrimaryArtist": 1 },
+		{ "songFk": 42, "artistFk": 7, "isPrimaryArtist": 1 },
+		{ "songFk": 41, "artistFk": 7, "isPrimaryArtist": 1 },
+	]
+	db_conn_in_mem.execute(stmt, songArtistParams2)
 	tagsParams = [
 		{ "pk": 1, "name": "kilo_tag" },
 		{ "pk": 2, "name": "lima_tag" },
@@ -454,7 +606,6 @@ def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		{ "songFk": 19, "tagFk": 1 },
 		{ "songFk": 18, "tagFk": 1 },
 		{ "songFk": 17, "tagFk": 1 },
-		{ "songFk": 18, "tagFk": 1 },
 		{ "songFk": 17, "tagFk": 3 },
 		{ "songFk": 16, "tagFk": 3 },
 		{ "songFk": 15, "tagFk": 4 },

@@ -5,7 +5,10 @@
     "editorRuler.foreground": "#ef40ff"
   },
   "python.analysis.extraPaths": [
-    "src", "test_trash/utest/mc-env"
+    "src/musical_chairs_libs", 
+    "src/tests",
+    "test_trash/utest/mc_env", 
+    "test_trash/musical_chairs/maintenance/mc_env"
   ],
   "python.analysis.typeCheckingMode": "strict",
   "python.analysis.stubPath": "typings",
@@ -26,7 +29,7 @@
     "-s"
   ],
   "python.terminal.activateEnvironment": false,
-  "python.envFile": "${workspaceFolder}/test_trash/config/.env",
+  "python.envFile": "${workspaceFolder}/test_trash/musical_chairs/config/.env",
   "python.analysis.useLibraryCodeForTypes": false,
   "search.exclude": {
     "**/test_trash": true

@@ -50,6 +50,13 @@ set_python_version_const() {
 	pyMinor=$(echo "$pyVersion" | perl -ne 'print "$1\n" if /\d+\.(\d+)/')
 }
 
+set_env_path_var() {
+	if perl -e "exit 1 if index('$PATH','${app_root}/${bin_dir}') != -1"; then
+		echo "Please add '${app_root}/${bin_dir}' to path"
+		export PATH="$PATH":"$app_root"/"$bin_dir"
+	fi
+}
+
 get_pkg_mgr() {
 	case $(uname) in
 		(Linux*)
@@ -99,6 +106,7 @@ link_to_music_files() {
 }
 
 is_python_sufficient_version() {
+	[ "$exp_name" == 'py3.8' ] && return
 	set_python_version_const &&
 	[ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge 9 ]
 }
@@ -107,6 +115,7 @@ is_python_sufficient_version() {
 # subshell () auto switches in use python version back at the end of function
 setup_py3_env() (
 	set_python_version_const || return "$?"
+	set_env_path_var #ensure that we can see mc-python
 	dest_base="$1"
 	env_name=${2:-"$py_env"}
 	packagePath="$env_name/lib/python$pyMajor.$pyMinor/site-packages/"

@@ -44,12 +44,7 @@ fi
 
 [ ! -e "$app_root"/"$bin_dir" ] && mkdir -pv "$app_root"/"$bin_dir"
 
-if perl -e "exit 1 if index('$PATH','${app_root}/${bin_dir}') != -1"; then
-	#perl -pi -e "s/(export[ \t]*PATH=.*:?[\"\$]?[\$\{]?\{?PATH[\}'\"]?[\"]?:?.*)/$1"
-	echo "Please add '${app_root}/${bin_dir}' to path"
-	export PATH="$PATH":"$app_root"/"$bin_dir"
-fi
-
+set_env_path_var
 
 if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 	pythonToLink='python3'
@@ -58,8 +53,7 @@ if ! mc-python -V 2>/dev/null || ! is_python_sufficient_version; then
 			if ! python3 -V 2>/dev/null; then
 				install_package python3
 			fi
-			#unbuntu only installs up to 3.8.10 which has a mysterious bug
-			if ! is_python_sufficient_version && [ "$exp_name" != 'py3.8' ]; then
+			if ! is_python_sufficient_version then
 				install_package python3.9 &&
 				pythonToLink='python3.9'
 			fi
@@ -136,12 +130,9 @@ case $(uname) in
 	(*) ;;
 esac
 
-
-
 if ! mc-ices -V 2>/dev/null; then
 	sh ./compiled_dependencies/build_ices.sh
 fi
-
 
 if ! nginx -v 2>/dev/null; then
 	case $(uname) in

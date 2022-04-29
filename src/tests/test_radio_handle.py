@@ -12,12 +12,12 @@ def test_construct_radio_handle():
 	RadioHandle("test2", envMgr)
 
 def test_radio_init(radio_handle_in_mem: RadioHandle):
-	num = radio_handle.ices_init()
+	num = radio_handle_in_mem.ices_init()
 	assert num == 1
 
 def test_radio_get_next_song(radio_handle_in_mem: RadioHandle):
-	radio_handle.ices_init()
-	path = radio_handle.ices_get_next()
+	radio_handle_in_mem.ices_init()
+	path = radio_handle_in_mem.ices_get_next()
 	print(path)
 
 def test_radio_get_next_song_with_real_db(radio_handle: RadioHandle):

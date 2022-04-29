@@ -135,9 +135,6 @@ esac
 mc-ices -V >/dev/null 2>&1 ||
 echo "mc-ices is not installed"
 
-[ -e "$app_root"/"$sqlite_file" ] ||
-echo "${app_root}/${sqlite_file} does not exist"
-
 [ -e "$app_trunk"/radio_common.sh ] ||
 echo "radio_common.sh is not in place"
 [ -e "$app_trunk"/icecast_check.sh ] ||
@@ -175,6 +172,6 @@ confDir=$(get_nginx_conf_dir_abs_path)
 [ -e "$confDir"/"$app_name".conf ] || 
 echo "ngnix config not found"
 
-[ -e "$confDir"/nginx_evil/.conf ] || 
+[ -e "$confDir"/nginx_evil.conf ] || 
 echo "ngnix evil config not found"
 echo "done"

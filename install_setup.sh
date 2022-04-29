@@ -73,13 +73,15 @@ fi || show_err_and_exit "python install failed"
 
 
 if ! mc-python -m pip -V 2>/dev/null; then
-	curl https://bootstrap.pypa.io/pip/get-pip.py | mc-python /dev/stdin
+	curl https://bootstrap.pypa.io/pip/get-pip.py | mc-python /dev/stdin ||
+	show_err_and_exit "Couldn't install pip"
 fi
 
 mc-python -m pip install --upgrade pip
 
 if ! mc-python -m  virtualenv --version 2>/dev/null; then
-	mc-python -m pip install --user virtualenv
+	mc-python -m pip install --user virtualenv ||
+	show_err_and_exit "Couldn't install virtualenv"
 fi
 
 if ! nvm --version 2>/dev/null; then

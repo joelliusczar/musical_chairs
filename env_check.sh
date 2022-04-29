@@ -175,6 +175,6 @@ confDir=$(get_nginx_conf_dir_abs_path)
 [ -e "$confDir"/"$app_name".conf ] || 
 echo "ngnix config not found"
 
-[ -e "$confDir"/nginx_evil/.conf" ] || 
+[ -e "$confDir"/nginx_evil/.conf ] || 
 echo "ngnix evil config not found"
 echo "done"

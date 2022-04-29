@@ -41,13 +41,13 @@ echo "virtualenv is not installed"
 
 if [ -z "$NVM_DIR" ]; then
   export NVM_DIR="$HOME"/.nvm
-  [ -s "$NVM_DIR"/nvm.sh ] && \. "$NVM_DIR"/nvm.sh  # This loads nvm
+  [ -s "$NVM_DIR"/nvm.sh ] && \. "$NVM_DIR"/nvm.sh  >/dev/null 2>&1
 fi
 
-nvm --version 2>/dev/null ||
+nvm --version >/dev/null 2>&1 ||
 echo "nvm not available"
 
-nvm run node --version 2>/dev/null ||
+nvm run node --version >/dev/null 2>&1 ||
 echo "no version of node present"
 
 case $(uname) in
@@ -175,6 +175,6 @@ confDir=$(get_nginx_conf_dir_abs_path)
 [ -e "$confDir"/"$app_name".conf ] || 
 echo "ngnix config not found"
 
-[ -e nginx_evil/"$app_name.conf" ] || 
+[ -e "$confDir"/nginx_evil/.conf" ] || 
 echo "ngnix evil config not found"
 echo "done"

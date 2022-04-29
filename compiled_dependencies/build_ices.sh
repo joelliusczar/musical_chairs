@@ -34,7 +34,8 @@ case $(uname) in
 	(Linux*) 
 		if [ "$pkgMgrChoice" = "$APT_CONST" ] \
 		&& ! libtool --version 2>/dev/null; then
-			install_package libtool-bin
+			install_package libtool-bin ||
+			show_err_and_exit "Couldn't install libtool"
 		fi
 		;;
 	(*) ;;

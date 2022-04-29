@@ -136,7 +136,8 @@ case $(uname) in
 esac
 
 if ! mc-ices -V 2>/dev/null; then
-	sh ./compiled_dependencies/build_ices.sh
+	sh ./compiled_dependencies/build_ices.sh ||
+	show_err_and_exit "Couldn't install ices"
 fi
 
 if ! nginx -v 2>/dev/null; then

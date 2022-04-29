@@ -19,6 +19,10 @@ cp ./radio_common.sh "$app_trunk"/radio_common.sh
 cp ./icecast_check.sh "$app_trunk"/icecast_check.sh
 cp ./requirements.txt "$app_trunk"/requirements.txt
 
+cp ./radio_common.sh "$app_root"/radio_common.sh
+cp ./icecast_check.sh "$app_root"/icecast_check.sh
+cp ./requirements.txt "$app_root"/requirements.txt
+
 #check if personal scripts folder exists, clear out if it does,
 #delete otherwise
 setup_dir_with_py "$maintenance_src" "$app_root"/"$maintenance_dir_cl" || 

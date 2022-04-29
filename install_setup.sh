@@ -60,7 +60,9 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 			fi
 			;;
 		(Darwin*)
-			if ! brew_is_installed python3; then
+			#want to install python thru homebrew bc the default version on mac
+			#is below what we want
+			if ! brew_is_installed python3; then 
 				install_package python3
 			fi
 			;;

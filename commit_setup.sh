@@ -16,7 +16,7 @@ sh ./radio_dir_setup.sh &&
 sh ./setup_backend.sh &&
 sh ./setup_client.sh &&
 
-if [ -n "$test_flag" ] || [ -n "$test_db_flag" ]; then
+if [ -n "$copy_db_flag" ]; then
 	cp -v "$reference_src_db" "$app_root"/"$sqlite_file" || 
 	show_err_and_exit 
 fi

@@ -34,12 +34,11 @@ if [ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]; then
 	fi
 fi
 
-if [ "$setup_lvl" = 'db' ]; then
+if [ -n "$copy_db_flag" ]; then
 	remote_home=$(ssh -i "$radio_key_file" "$radio_server_ssh_address" \
 		'bash -c "echo $HOME"' | awk 'END{ print $1 }')
 	scp -i "$radio_key_file" "$reference_src_db" \
 		"$radio_server_ssh_address":"$remote_home/$sqlite_file"
-	exit
 fi
 
 #Would have prefered to just use a variable
@@ -65,11 +64,7 @@ rm -rf "$app_root/$build_dir/$proj_name" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$app_root/$build_dir" && 
 git clone "$radio_server_repo_url" "$proj_name" &&
-cd "$proj_name" &&
-if [ -n "$diag_flag" ]; then
-	git checkout -t diagnosis
-fi
-
+cd "$proj_name" 
 
 RemoteScriptEOF1
 } > clone_repo_fifo &

@@ -163,10 +163,9 @@ echo "${web_root}/${app_api_path_cl}/${py_env} is not in place"
 compare_dirs "$client_src"/build \
  "$web_root"/"$app_client_path_cl"
 
-if [ -n "$test_flag" ] || [ -n "$test_db_flag" ]; then
-	[ -e "$app_root"/"$sqlite_file" ] || 
-	echo "${app_root}/${sqlite_file} is not in place"
-fi
+
+[ -e "$app_root"/"$sqlite_file" ] || 
+echo "${app_root}/${sqlite_file} is not in place"
 
 nginx -v 2>/dev/null || 
 echo "nginx is not installed"

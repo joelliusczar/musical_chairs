@@ -353,7 +353,7 @@ get_nginx_conf_dir_abs_path() (
 enable_nginx_include() (
 	confDirInclude="$1"
 	escaped_guess=$(literal_to_regex "$confDirInclude")
-	#uncomment line if necessary
+	#uncomment line if necessary in config
 	sudo -p "Enable ${confDirInclude}" \
 		perl -pi -e "s/^[ \t]*#// if m@$escaped_guess@" "$(get_nginx_value)"
 )
@@ -393,6 +393,18 @@ debug_print() (
 	fi
 )
 
+get_rc_candidate() {
+	case $(uname) in
+		(Linux*)
+			echo "$HOME"/.bashrc
+			;;
+		(Darwin*)
+			echo "$HOME"/.zshrc
+			;;
+		(*) ;;
+	esac
+}
+
 while [ ! -z "$1" ]; do
 	case "$1" in
 		#build out to test_trash rather than the normal directories
@@ -400,8 +412,8 @@ while [ ! -z "$1" ]; do
 		(test)
 			export test_flag='test'
 			;;
-		(testdb) #tells setup to replace sqlite3 db
-			export test_db_flag='test_db'
+		(copyDb) #tells setup to replace sqlite3 db
+			export copy_db_flag='test_db'
 			;;
 		#activates debug_print. Also tells deploy script to use the diag branch
 		(diag) 

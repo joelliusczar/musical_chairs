@@ -13,7 +13,7 @@ fi
 
 printenv > "$app_root"/used_env_vars
 
-pkgMgrChoice=$(get_pkg_mgr)
+export pkgMgrChoice=$(get_pkg_mgr)
 
 [ -n "$pkgMgrChoice" ] || show_err_and_exit "No package manager set"
 

@@ -54,7 +54,7 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 			if ! python3 -V 2>/dev/null; then
 				install_package python3
 			fi
-			if ! is_python_version_good then
+			if ! is_python_version_good; then
 				install_package python3.9 &&
 				pythonToLink='python3.9'
 			fi

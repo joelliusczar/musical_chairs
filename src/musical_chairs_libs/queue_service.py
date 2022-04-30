@@ -1,16 +1,17 @@
 import time
 from typing import Any, Callable, List, Optional, Tuple, Iterator
 from collections.abc import Iterable
+from sqlalchemy import select, desc, func, insert, delete, update
+from sqlalchemy.engine.row import Row
+from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.station_service import StationService
-from sqlalchemy import select, desc, func, insert, delete, update
 from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
-from sqlalchemy.engine.row import Row
 from musical_chairs_libs.tables import stations_history, songs, stations,\
 	stations_tags, songs_tags, station_queue, albums, artists, song_artist
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.dtos import QueueItem, CurrentPlayingInfo
-from numpy.random import choice as numpy_choice
+from numpy.random import choice as numpy_choice #type: ignore
 
 def choice(
 	items: List[Any], 
@@ -48,11 +49,11 @@ class QueueService:
 			self.choice = choiceSelector
 
 	def get_all_station_song_possibilities(self, stationPk: int) -> List[Row]:
-		st = stations.c
-		sg = songs.c
-		sttg = stations_tags.c
-		sgtg = songs_tags.c
-		hist = stations_history.c
+		st: ColumnCollection = stations.columns
+		sg: ColumnCollection = songs.columns
+		sttg: ColumnCollection = stations_tags.columns
+		sgtg: ColumnCollection = songs_tags.columns
+		hist: ColumnCollection = stations_history.columns
 		
 		query = select(sg.pk, sg.path) \
 			.select_from(stations) \
@@ -82,7 +83,7 @@ class QueueService:
 		return selection
 
 	def fil_up_queue(self, stationPk: int, queueSize: int) -> None:
-		q = station_queue.c
+		q: ColumnCollection = station_queue.columns
 		queryQueueSize: str = select(func.count(1)).select_from(station_queue)\
 			.where(q.stationFk == stationPk)
 		countRes = self.conn.execute(queryQueueSize).scalar()
@@ -116,7 +117,7 @@ class QueueService:
 		self.conn.execute(queueDel)
 		currentTime = time.time()
 
-		hist = stations_history.c
+		hist: ColumnCollection = stations_history.columns
 
 		histUpdateStmt = update(stations_history) \
 			.values(playedTimestamp = currentTime) \
@@ -128,7 +129,7 @@ class QueueService:
 
 
 	def is_queue_empty(self, stationPk: int) -> bool:
-		q = station_queue.c
+		q: ColumnCollection = station_queue.columns
 		query = select(func.count(1)).select_from(station_queue)\
 			.where(q.stationFk == stationPk)
 		countRes = self.conn.execute(query).scalar()
@@ -141,12 +142,12 @@ class QueueService:
 		stationName: Optional[str]=None,
 		limit: Optional[int]=None
 	) -> Iterator[QueueItem]:
-		sg = songs.c
-		q = station_queue.c
-		ab = albums.c
-		ar = artists.c
-		sgar = song_artist.c
-		st = stations.c
+		sg: ColumnCollection = songs.columns
+		q: ColumnCollection = station_queue.columns
+		ab: ColumnCollection = albums.columns
+		ar: ColumnCollection = artists.columns
+		sgar: ColumnCollection = song_artist.columns
+		st: ColumnCollection = stations.columns
 		baseQuery = select(
 				sg.pk, \
 				sg.path, \
@@ -168,14 +169,14 @@ class QueueService:
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
-		for row in records: # type: ignore
+		for row in records: 
 			yield QueueItem(
-				row.pk, # type: ignore
-				row.name, # type: ignore
-				row.album, # type: ignore
-				row.artist, # type: ignore
-				row.path, # type: ignore
-				row.queuedTimestamp # type: ignore
+				row.pk, 
+				row.name, 
+				row.album, 
+				row.artist, 
+				row.path, 
+				row.queuedTimestamp 
 			)
 
 	def pop_next_queued(
@@ -209,10 +210,10 @@ class QueueService:
 			if stationName:
 				stationPk = self.station_service.get_station_pk(stationName)
 		timestamp = time.time()
-		sq = station_queue.c
-		st = stations.c
-		sttg = stations_tags.c
-		sgtg = songs_tags.c
+		sq: ColumnCollection = station_queue.columns
+		st: ColumnCollection = stations.columns
+		sttg: ColumnCollection = stations_tags.columns
+		sgtg: ColumnCollection = songs_tags.columns
 
 		subquery = select(st.pk) \
 			.select_from(stations) \

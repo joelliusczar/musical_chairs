@@ -4,6 +4,7 @@
   "workbench.colorCustomizations": {
     "editorRuler.foreground": "#ef40ff"
   },
+  "python.languageServer": "Pylance",
   "python.analysis.extraPaths": [
     "src/musical_chairs_libs", 
     "src/tests",
@@ -13,6 +14,7 @@
   "python.analysis.typeCheckingMode": "strict",
   "python.analysis.stubPath": "typings",
   "python.analysis.indexing": true,
+  "python.analysis.useLibraryCodeForTypes": true,
   "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/utest/mc_env/bin/python",
   "terminal.integrated.env.osx": {
     "lib_name": "musical_chairs_libs",
@@ -30,7 +32,6 @@
   ],
   "python.terminal.activateEnvironment": false,
   "python.envFile": "${workspaceFolder}/test_trash/musical_chairs/config/.env",
-  "python.analysis.useLibraryCodeForTypes": false,
   "search.exclude": {
     "**/test_trash": true
   }

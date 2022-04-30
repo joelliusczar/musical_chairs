@@ -1,11 +1,14 @@
+#pyright: reportUnknownMemberType=false
 from typing import Iterator, Optional
 from sqlalchemy import select, desc
+from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
 from musical_chairs_libs.tables import stations_history, songs, stations, \
 	albums, artists, song_artist
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.dtos import HistoryItem
 from musical_chairs_libs.env_manager import EnvManager
+
 
 
 
@@ -32,20 +35,19 @@ class HistoryService:
 		limit: int=50, 
 		offset: int=0
 	) -> Iterator[HistoryItem]:
-
-		h = stations_history.c
-		st = stations.c
-		sg = songs.c
-		ab = albums.c
-		ar = artists.c
-		sgar = song_artist.c
+		h: ColumnCollection = stations_history.columns 
+		st: ColumnCollection = stations.columns 
+		sg: ColumnCollection = songs.columns 
+		ab: ColumnCollection = albums.columns 
+		ar: ColumnCollection = artists.columns 
+		sgar: ColumnCollection = song_artist.columns 
 		baseQuery = select(
-			sg.pk, \
-			sg.path, \
-			h.playedTimestamp, \
-			sg.name, \
-			ab.name.label("album"),\
-			ar.name.label("artist")
+			sg.pk, 
+			sg.path, 
+			h.playedTimestamp, 
+			sg.name, 
+			ab.name.label("album"),
+			ar.name.label("artist") 
 		).select_from(stations_history) \
 			.join(songs, h.songFk == sg.pk) \
 			.join(albums, sg.albumFk == ab.pk, isouter=True) \
@@ -62,11 +64,11 @@ class HistoryService:
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query) 
-		for row in records: #	type: ignore
+		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield HistoryItem( 
-					row.pk, #	type: ignore
-					row.name, #	type: ignore
-					row.album, #	type: ignore
-					row.artist, #	type: ignore
-					row.playedTimestamp #	type: ignore
+					row.pk, #pyright: ignore [reportUnknownArgumentType]
+					row.name, #pyright: ignore [reportUnknownArgumentType]
+					row.album, #pyright: ignore [reportUnknownArgumentType]
+					row.artist, #pyright: ignore [reportUnknownArgumentType]
+					row.playedTimestamp #pyright: ignore [reportUnknownArgumentType]
 				)

@@ -13,9 +13,9 @@ fi
 
 if [ -e ./icecast_check.sh ]; then
 . ./icecast_check.sh
-elif [ -e ../icecast_check.sh]; then
+elif [ -e ../icecast_check.sh ]; then
 . ../icecast_check.sh
-elif [ -e "$HOME"/radio/icecast_check.sh]; then
+elif [ -e "$HOME"/radio/icecast_check.sh ]; then
 . "$HOME"/radio/icecast_check.sh
 else
   echo "icecast_check.sh not found"

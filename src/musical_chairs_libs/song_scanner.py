@@ -1,14 +1,16 @@
+#pyright: reportUnknownMemberType=false
 import os
 import re
 from typing import Callable, \
 	Iterator, \
 	Optional
 from sqlalchemy.exc import IntegrityError
-from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
+from sqlalchemy.engine import Connection
 from sqlalchemy import insert, \
 	select, \
 	update
-from tinytag import TinyTag
+from sqlalchemy.sql import ColumnCollection
+from tinytag import TinyTag #pyright: ignore [reportMissingTypeStubs]
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.tables import songs, \
 	artists, \
@@ -50,12 +52,12 @@ def get_file_tags(songFullPath: str) -> TinyTag:
 	fileAndExtIdx = 1
 	fileNameNoExtIdx = 0
 	try:
-		tag = TinyTag.get(songFullPath)
+		tag: TinyTag = TinyTag.get(songFullPath)
 		if not tag.title:
 			fileNameNoExt = os.path.splitext(
 				os.path.split(songFullPath)[fileAndExtIdx]
 			)[fileNameNoExtIdx]
-			tag.title = fileNameNoExt
+			tag.title = fileNameNoExt #pyright: ignore [reportGeneralTypeIssues]
 		return tag
 	except:
 		print(f"error: {songFullPath}")
@@ -64,7 +66,7 @@ def get_file_tags(songFullPath: str) -> TinyTag:
 		)[fileNameNoExtIdx]
 
 		tag = TinyTag(filehandler=None, filesize=0)
-		tag.title = fileName
+		tag.title = fileName #pyright: ignore [reportGeneralTypeIssues]
 		return tag
 
 def map_path_to_tags(path: str) -> Iterable[str]:
@@ -80,7 +82,7 @@ class SongScanner:
 
 	def __init__(
 		self, 
-		conn: WrappedDbConnection, 
+		conn: Connection, 
 		stationService: Optional[StationService]=None,
 		envManager: Optional[EnvManager]=None
 	) -> None:
@@ -96,15 +98,17 @@ class SongScanner:
 	def get_or_save_artist(self, name: Optional[str]) -> Optional[int]:
 		if not name:
 			return None
-		a = artists.c
+		a: ColumnCollection = artists.columns
 		query = select(a.pk).select_from(artists).where(a.name == name)
 		row = self.conn.execute(query).fetchone()
 		if row:
-			return row.pk #type: ignore
+			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
+			return pk
 		print(name)
 		stmt = insert(artists).values(name = name)
 		res = self.conn.execute(stmt)
-		return res.lastrowid #type: ignore
+		insertedPk: int = res.lastrowid 
+		return insertedPk
 
 	def get_or_save_album(
 		self, 
@@ -114,11 +118,12 @@ class SongScanner:
 	) -> Optional[int]:
 		if not name:
 			return None
-		a = albums.c
+		a: ColumnCollection = albums.columns
 		query = select(a.pk).select_from(albums).where(a.name == name)
 		row = self.conn.execute(query).fetchone()
 		if row:
-			return row.pk #type: ignore
+			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
+			return pk
 		print(name)
 		stmt = insert(albums).values(
 			name = name, 
@@ -126,12 +131,13 @@ class SongScanner:
 			year = year
 		)
 		res = self.conn.execute(stmt)
-		return res.lastrowid #type: ignore
+		insertedPk: int = res.lastrowid 
+		return insertedPk
 
 	def update_metadata(self, searchBase: str):
 		page = 0
 		pageSize = 1000
-		sg = songs.c
+		sg: ColumnCollection = songs.columns
 		updateCount = 0
 		while True:
 			transaction = self.conn.begin()
@@ -143,8 +149,8 @@ class SongScanner:
 			recordSet = self.conn.execute(query).fetchall()
 			for idx, row in enumerate(recordSet):
 				print(f"{idx}".rjust(len(str(idx)), " "),end="\r")
-				songPath: str = row.path #type: ignore
-				songPk: int = row.pk #type: ignore
+				songPath: str = row.path #pyright: ignore [reportGeneralTypeIssues]
+				songPk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
 				songFullPath = f"{searchBase}/{songPath}"
 				fileTag = get_file_tags(songFullPath)
 				artistFk = self.get_or_save_artist(fileTag.artist)
@@ -165,7 +171,8 @@ class SongScanner:
 					comment = fileTag.comment, 
 					genre = fileTag.genre
 				)
-				updateCount += self.conn.execute(songUpdate).rowcount #type: ignore
+				count: int = self.conn.execute(songUpdate).rowcount 
+				updateCount += count
 				try:
 					songArtistInsert = insert(song_artist)\
 						.values(songFk = songPk, artistFk = artistFk)
@@ -182,7 +189,7 @@ class SongScanner:
 		for idx, path in enumerate(scan_files(searchBase)):
 			try:
 				songInsert = insert(songs).values(path = path)
-				songPk: int = self.conn.execute(songInsert).lastrowid #type: ignore
+				songPk: int = self.conn.execute(songInsert).lastrowid 
 				insertCount += 1
 				self.sort_to_tags(songPk, path)
 				print(f"inserted: {idx}".rjust(len(str(idx)), " "),end="\r")

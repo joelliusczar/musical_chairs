@@ -1,17 +1,40 @@
+#pyright: reportUnknownMemberType=false
 import time
-from typing import Any, Callable, List, Optional, Tuple, Iterator
+from typing import \
+	Any, \
+	Callable, \
+	List, \
+	Optional, \
+	Tuple, \
+	Iterator
 from collections.abc import Iterable
-from sqlalchemy import select, desc, func, insert, delete, update
+from sqlalchemy import \
+	select, \
+	desc, \
+	func, \
+	insert, \
+	delete, \
+	update, \
+	literal #pyright: ignore [reportUnknownVariableType]
+from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import Row
 from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
-from musical_chairs_libs.tables import stations_history, songs, stations,\
-	stations_tags, songs_tags, station_queue, albums, artists, song_artist
+from musical_chairs_libs.tables import \
+	stations_history, \
+	songs, \
+	stations,\
+	stations_tags, \
+	songs_tags, \
+	station_queue, \
+	albums, \
+	artists, \
+	song_artist
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.dtos import QueueItem, CurrentPlayingInfo
-from numpy.random import choice as numpy_choice #type: ignore
+from numpy.random import \
+	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 
 def choice(
 	items: List[Any], 
@@ -27,7 +50,7 @@ class QueueService:
 
 	def __init__(
 		self, 
-		conn: Optional[WrappedDbConnection] = None, 
+		conn: Optional[Connection] = None, 
 		stationService: Optional[StationService]=None,
 		historyService: Optional[HistoryService]=None,
 		choiceSelector: Optional[Callable[[List[Any], int], Iterable[Any]]]=None,
@@ -78,7 +101,12 @@ class QueueService:
 	) -> Iterable[int]:
 		rows = self.get_all_station_song_possibilities(stationPk)
 		sampleSize = deficitSize if deficitSize < len(rows) else len(rows)
-		songPks: List[int] = list(map(lambda r: r.pk, rows)) #type: ignore
+		songPks: List[int] = list(
+			map(
+				lambda r: r.pk, #type: ignore
+				rows
+			)
+		) 
 		selection = self.choice(songPks, sampleSize)
 		return selection
 
@@ -109,7 +137,7 @@ class QueueService:
 		songPk: int, 
 		queueTimestamp: float
 	) -> None:
-		q = station_queue.c
+		q: ColumnCollection = station_queue.columns
 		# can't delete by songPk alone b/c the song might be queued multiple times
 		queueDel = delete(station_queue).where(q.stationFk == stationPk) \
 			.where(q.songFk == songPk) \
@@ -169,14 +197,14 @@ class QueueService:
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
-		for row in records: 
+		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield QueueItem(
-				row.pk, 
-				row.name, 
-				row.album, 
-				row.artist, 
-				row.path, 
-				row.queuedTimestamp 
+				row.pk, #pyright: ignore [reportUnknownArgumentType]
+				row.name, #pyright: ignore [reportUnknownArgumentType]
+				row.album, #pyright: ignore [reportUnknownArgumentType]
+				row.artist, #pyright: ignore [reportUnknownArgumentType]
+				row.path, #pyright: ignore [reportUnknownArgumentType]
+				row.queuedTimestamp #pyright: ignore [reportUnknownArgumentType]
 			)
 
 	def pop_next_queued(
@@ -198,7 +226,12 @@ class QueueService:
 			queueItem.id, \
 			queueItem.queuedTimestamp)
 		self.fil_up_queue(stationPk, queueSize)
-		return (queueItem.path, queueItem.name, queueItem.album, queueItem.artist)
+		return (
+			queueItem.path, \
+			queueItem.name, \
+			queueItem.album, \
+			queueItem.artist
+		)
 
 	def add_song_to_queue(
 		self, 
@@ -242,7 +275,8 @@ class QueueService:
 			], \
 			fromQuery
 		)
-		return self.conn.execute(stmt).rowcount #type: ignore
+		return self.conn.execute(stmt)\
+			.rowcount #pyright: ignore [reportUnknownVariableType]
 	
 
 	def get_now_playing_and_queue(

@@ -1,6 +1,6 @@
 import os
 from sqlalchemy import create_engine #pyright: ignore [reportUnknownVariableType]
-from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
+from sqlalchemy.engine import Connection
 
 class EnvManager:
 
@@ -11,10 +11,10 @@ class EnvManager:
 	def get_configured_db_connection(self, 
 		echo: bool=False,
 		inMemory: bool=False
-	) -> WrappedDbConnection:
+	) -> Connection:
 
 		dbStr = "sqlite://" if inMemory  else f"sqlite:///{os.environ['dbName']}"
 
 		engine = create_engine(dbStr, echo=echo)
 		conn = engine.connect()
-		return WrappedDbConnection(conn)
+		return conn

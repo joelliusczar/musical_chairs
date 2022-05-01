@@ -1,14 +1,16 @@
+#pyright: reportUnknownMemberType=false
 import sys
 import itertools
 from typing import Callable, Iterator, Optional, Tuple
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import Row
+from sqlalchemy.engine import Connection
 from sqlalchemy import select, \
 	func, \
 	insert, \
 	delete, \
 	update
-from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
+from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.tables import stations, \
 	tags, \
 	stations_tags, \
@@ -26,7 +28,7 @@ from musical_chairs_libs.os_process_manager import OSProcessManager
 class StationService:
 
 	def __init__(self, 
-		conn: Optional[WrappedDbConnection]=None,
+		conn: Optional[Connection]=None,
 		envManager: Optional[EnvManager]=None,
 		processManager: Optional[OSProcessManager]=None
 	):
@@ -41,51 +43,52 @@ class StationService:
 
 	def set_station_proc(self, stationName: str) -> None:
 		pid = self.process_manager.getpid()
-		st = stations.c
+		st: ColumnCollection = stations.columns
 		stmt = update(stations)\
 			.values(procId = pid).where(st.name == stationName)
 		self.conn.execute(stmt)
 
 	def remove_station_proc(self, stationName: str) -> None:
-		st = stations.c
+		st: ColumnCollection = stations.columns
 		stmt = update(stations)\
 			.values(procId = None).where(st.name == stationName)
 		self.conn.execute(stmt)
 
 	def end_all_stations(self) -> None:
-		st = stations.c
+		st: ColumnCollection = stations.columns
 		query = select(st.procId).select_from(stations).where(st.procId != None)
 		for row in self.conn.execute(query).fetchall():
-			pid: int = row.procId #type: ignore
+			pid: int = row.procId  #pyright: ignore [reportGeneralTypeIssues]
 			self.process_manager.end_process(pid)
 		stmt = update(stations).values(procId = None)
 		self.conn.execute(stmt)
 
 	def get_station_pk(self, stationName: str) -> Optional[int]:
-		st = stations.c
+		st: ColumnCollection = stations.columns
 		query = select(st.pk) \
 			.select_from(stations) \
 			.where(st.name == stationName)
 		row = self.conn.execute(query).fetchone()
-		pk: Optional[int] = row.pk if row else None #type: ignore
+		pk: Optional[int] = row.pk if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk
 
 	def get_tag_pk(self, tagName: str) -> Optional[int]:
-		t = tags.c
+		t: ColumnCollection = tags.columns
 		query = select(t.pk) \
 			.select_from(tags) \
 			.where(t.name == tagName)
 		row = self.conn.execute(query).fetchone()
-		pk: Optional[int] = row.pk if row else None #type: ignore
+		pk: Optional[int] = row.pk if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk
 
 	def does_station_exist(self, stationName: str) -> bool:
-		st = stations.c
+		st: ColumnCollection = stations.columns
 		query = select(func.count(1))\
 			.select_from(stations)\
 			.where(st.name == stationName)
 		res = self.conn.execute(query).fetchone()
-		return res.count < 1 if res else False
+		count: int = res.count < 1 if res else 0
+		return count < 1 
 
 	def add_station(self, stationName: str, displayName: str) -> None:
 		try:
@@ -99,14 +102,16 @@ class StationService:
 	def get_or_save_tag(self, tagName: str) -> Optional[int]:
 		if not tagName:
 			return None
-		tg = tags.c
+		tg: ColumnCollection = tags.columns
 		query = select(tg.pk).select_from(tags).where(tg.name == tagName)
 		row = self.conn.execute(query).fetchone()
 		if row:
-			return row.pk #type: ignore
+			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
+			return pk
 		stmt = insert(tags).values(name = tagName)
 		res = self.conn.execute(stmt)
-		return res.lastrowid #type: ignore
+		insertedPk: int = res.lastrowid 
+		return insertedPk
 
 	def assign_tag_to_station(self,stationName: str, tagName: str) -> None:
 		stationPk = self.get_station_pk(stationName)
@@ -121,8 +126,8 @@ class StationService:
 			sys.exit(1)
 
 	def remove_station(self, stationName: str) -> None:
-		sttg = stations_tags.c
-		st = stations.c
+		sttg: ColumnCollection = stations_tags.columns
+		st: ColumnCollection = stations.columns
 		stationPk = self.get_station_pk(stationName)
 		assignedTagsDel = delete(stations_tags)\
 			.where(sttg.stationFk == stationPk)
@@ -131,10 +136,10 @@ class StationService:
 		self.conn.execute(stationDel)
 
 	def get_station_list(self) -> Iterator[StationInfo]:
-		st = stations.c
-		sgtg = songs_tags.c
-		sttg = stations_tags.c
-		tg = tags.c
+		st: ColumnCollection = stations.columns
+		sgtg: ColumnCollection = songs_tags.columns
+		sttg: ColumnCollection = stations_tags.columns
+		tg: ColumnCollection = tags.columns
 		query = select(
 			st.pk, 
 			st.name, 
@@ -150,11 +155,13 @@ class StationService:
 		records = self.conn.execute(query)
 		partitionFn: Callable[[Row], Tuple[int, str]] = \
 			lambda r: (r[st.pk], r[st.name])
-		for key, group in itertools.groupby(records, partitionFn): #type: ignore
+		mapFn: Callable[[Row], Tag] = \
+			lambda r: Tag(r[tg.pk],r[tg.name])
+		for key, group in itertools.groupby(records, partitionFn): #pyright: ignore [reportUnknownVariableType]
 			yield StationInfo(
 				id=key[0], 
 				name=key[1],
-				tags=list(map(lambda r: Tag(r[tg.pk], r[tg.name]), group)) #type: ignore
+				tags=list(map(mapFn, group)) #pyright: ignore [reportUnknownArgumentType] 
 			)
 
 	def get_station_song_catalogue(
@@ -164,13 +171,13 @@ class StationService:
 		limit: Optional[int]=None, 
 		offset: int = 0
 	) -> Iterator[SongItem]:
-		sg = songs.c
-		st = stations.c
-		sttg = stations_tags.c
-		sgtg = songs_tags.c
-		ab = albums.c
-		ar = artists.c
-		sgar = song_artist.c
+		sg: ColumnCollection = songs.columns
+		st: ColumnCollection = stations.columns
+		sttg: ColumnCollection = stations_tags.columns
+		sgtg: ColumnCollection = songs_tags.columns
+		ab: ColumnCollection = albums.columns
+		ar: ColumnCollection = artists.columns
+		sgar: ColumnCollection = song_artist.columns
 		baseQuery = select(
 			sg.pk, 
 			sg.name.label("song"), 
@@ -192,10 +199,10 @@ class StationService:
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
-		for row in records: #type: ignore
-			yield SongItem(row.pk, #type: ignore
-				row.song, #type: ignore
-				row.album, #type: ignore
-				row.artist #type: ignore
+		for row in records: #pyright: ignore [reportUnknownVariableType] 
+			yield SongItem(row.pk, #pyright: ignore [reportUnknownArgumentType] 
+				row.song, #pyright: ignore [reportUnknownArgumentType] 
+				row.album, #pyright: ignore [reportUnknownArgumentType] 
+				row.artist #pyright: ignore [reportUnknownArgumentType] 
 			)
 

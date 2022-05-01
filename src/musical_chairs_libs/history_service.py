@@ -2,7 +2,7 @@
 from typing import Iterator, Optional
 from sqlalchemy import select, desc
 from sqlalchemy.sql import ColumnCollection
-from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
+from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import stations_history, songs, stations, \
 	albums, artists, song_artist
 from musical_chairs_libs.station_service import StationService
@@ -15,7 +15,7 @@ from musical_chairs_libs.env_manager import EnvManager
 class HistoryService:
 	def __init__(
 		self, 
-		conn: WrappedDbConnection, 
+		conn: Connection, 
 		stationService: Optional[StationService]=None,
 		envManager: Optional[EnvManager]=None
 	) -> None:

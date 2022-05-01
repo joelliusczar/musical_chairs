@@ -4,11 +4,12 @@ from sqlalchemy import select
 from .common_fixtures import setup_in_mem_tbls as setup_in_mem_tbls, \
 	db_conn_in_mem as db_conn_in_mem
 from musical_chairs_libs.tables import artists
-from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
+from sqlalchemy.engine import Connection
+from sqlalchemy.sql import ColumnCollection
 
 @pytest.mark.usefixtures("setup_in_mem_tbls")
-def test_in_mem_db(db_conn_in_mem: WrappedDbConnection) -> None:
-	a = artists.c
+def test_in_mem_db(db_conn_in_mem: Connection) -> None:
+	a: ColumnCollection = artists.columns
 	query = select(artists).order_by(a.name)
 	res = db_conn_in_mem.execute(query).fetchall()
 	assert res[0].name == "alpha_artist"

@@ -2,7 +2,7 @@ from typing import Iterator
 import pytest
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.radio_handle import RadioHandle
-from musical_chairs_libs.wrapped_db_connection import WrappedDbConnection
+from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import metadata, \
 	artists, \
 	albums, \
@@ -16,13 +16,13 @@ from sqlalchemy import insert
 from .mocks.mock_process_manager import MockOSProcessManager
 
 @pytest.fixture
-def db_conn() -> WrappedDbConnection:
+def db_conn() -> Connection:
 	envManager = EnvManager()
 	conn = envManager.get_configured_db_connection()
 	return conn
 
 @pytest.fixture
-def db_conn_in_mem() -> Iterator[WrappedDbConnection]:
+def db_conn_in_mem() -> Iterator[Connection]:
 	envManager = EnvManager()
 	conn = envManager.get_configured_db_connection(inMemory=True)
 	try:
@@ -32,7 +32,7 @@ def db_conn_in_mem() -> Iterator[WrappedDbConnection]:
 
 def get_configured_db_connection(echo: bool=False,
 		inMemory: bool=False 
-) -> WrappedDbConnection:
+) -> Connection:
 	envMgr = EnvManager()  
 	conn = envMgr.get_configured_db_connection(echo=echo, inMemory=True) 
 	_setup_in_mem_tbls_full(conn)
@@ -55,10 +55,10 @@ def radio_handle() -> RadioHandle:
 	return radioHandle
 
 @pytest.fixture
-def setup_in_mem_tbls(db_conn_in_mem: WrappedDbConnection) -> None:
+def setup_in_mem_tbls(db_conn_in_mem: Connection) -> None:
 	_setup_in_mem_tbls(db_conn_in_mem)
 
-def _setup_in_mem_tbls(db_conn_in_mem: WrappedDbConnection) -> None:
+def _setup_in_mem_tbls(db_conn_in_mem: Connection) -> None:
 	metadata.create_all(db_conn_in_mem.engine)
 	artistParams = [
 		{ "pk": 1, "name": "alpha_artist" },
@@ -70,13 +70,13 @@ def _setup_in_mem_tbls(db_conn_in_mem: WrappedDbConnection) -> None:
 		{ "pk": 7, "name": "golf_artist" }
 	]
 	stmt = insert(artists)
-	db_conn_in_mem.execute(stmt, artistParams)
+	db_conn_in_mem.execute(stmt, artistParams) #pyright: ignore [reportUnknownMemberType]
 
 @pytest.fixture
-def setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
+def setup_in_mem_tbls_full(db_conn_in_mem: Connection) -> None:
 	_setup_in_mem_tbls_full(db_conn_in_mem)
 
-def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
+def _setup_in_mem_tbls_full(db_conn_in_mem: Connection) -> None:
 	_setup_in_mem_tbls(db_conn_in_mem)
 	albumParams = [
 		{ "pk": 1, "name": "broo_album", "albumArtistFk": 7, "year": 2001 },
@@ -87,21 +87,21 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		{ "pk": 11, "name": "boo_album", "albumArtistFk": 4, "year": 2001 },
 	]
 	stmt = insert(albums)
-	db_conn_in_mem.execute(stmt, albumParams)
+	db_conn_in_mem.execute(stmt, albumParams) #pyright: ignore [reportUnknownMemberType]
 	albumParams2 = [
 		{ "pk": 4, "name": "soo_album", "year": 2004 },
 		{ "pk": 7, "name": "koo_album", "year": 2010 },
 	]
-	db_conn_in_mem.execute(stmt, albumParams2)
+	db_conn_in_mem.execute(stmt, albumParams2) #pyright: ignore [reportUnknownMemberType]
 	albumParams3 = [
 		{ "pk": 5, "name": "doo_album" },
 		{ "pk": 6, "name": "roo_album" },
 	]
-	db_conn_in_mem.execute(stmt, albumParams3)
+	db_conn_in_mem.execute(stmt, albumParams3) #pyright: ignore [reportUnknownMemberType]
 	albumParams4 = [
 		{ "pk": 3, "name": "juliet_album", "albumArtistFk": 7 }
 	]
-	db_conn_in_mem.execute(stmt, albumParams4)
+	db_conn_in_mem.execute(stmt, albumParams4) #pyright: ignore [reportUnknownMemberType]
 	songParams = [
 		{ "pk": 1,
 			"path": "foo/goo/boo/sierra", 
@@ -418,7 +418,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		'genre' in s and \
 		'bitrate' in s and \
 		'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams1)
+	db_conn_in_mem.execute(stmt, songParams1) #pyright: ignore [reportUnknownMemberType]
 	songParams2 = list(filter(lambda s: \
 		not 'explicit' in s and \
 		'albumFk' in s and \
@@ -427,7 +427,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		'genre' in s and \
 		'bitrate' in s and \
 		'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams2)
+	db_conn_in_mem.execute(stmt, songParams2) #pyright: ignore [reportUnknownMemberType]
 	songParams3 = list(filter(lambda s: \
 		not 'explicit' in s and \
 		'albumFk' in s and \
@@ -436,7 +436,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		'genre' in s and \
 		not 'bitrate' in s and \
 		'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams3)
+	db_conn_in_mem.execute(stmt, songParams3) #pyright: ignore [reportUnknownMemberType]
 	songParams4 = list(filter(lambda s: \
 		not 'explicit' in s and \
 		'albumFk' in s and \
@@ -445,7 +445,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		'genre' in s and \
 		not 'bitrate' in s and \
 		not 'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams4)
+	db_conn_in_mem.execute(stmt, songParams4) #pyright: ignore [reportUnknownMemberType]
 	songParams5 = list(filter(lambda s: \
 		not 'explicit' in s and \
 		'albumFk' in s and \
@@ -454,7 +454,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		not 'genre' in s and \
 		not 'bitrate' in s and \
 		not 'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams5)
+	db_conn_in_mem.execute(stmt, songParams5) #pyright: ignore [reportUnknownMemberType]
 	songParams6 = list(filter(lambda s: \
 		not 'explicit' in s and \
 		'albumFk' in s and \
@@ -463,7 +463,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		not 'genre' in s and \
 		not 'bitrate' in s and \
 		not 'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams6)
+	db_conn_in_mem.execute(stmt, songParams6) #pyright: ignore [reportUnknownMemberType]s
 	songParams7 = list(filter(lambda s: \
 		not 'explicit' in s and \
 		'albumFk' in s and \
@@ -472,7 +472,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		not 'genre' in s and \
 		not 'bitrate' in s and \
 		not 'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams7)
+	db_conn_in_mem.execute(stmt, songParams7) #pyright: ignore [reportUnknownMemberType]
 	songParams8 = list(filter(lambda s: \
 		not 'explicit' in s and \
 		not 'albumFk' in s and \
@@ -481,7 +481,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		not 'genre' in s and \
 		not 'bitrate' in s and \
 		not 'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams8)
+	db_conn_in_mem.execute(stmt, songParams8) #pyright: ignore [reportUnknownMemberType]
 	songParams9 = list(filter(lambda s: \
 		'explicit' in s and \
 		'albumFk' in s and \
@@ -490,7 +490,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		'genre' in s and \
 		'bitrate' in s and \
 		not 'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams9)
+	db_conn_in_mem.execute(stmt, songParams9) #pyright: ignore [reportUnknownMemberType]
 	songParams10 = list(filter(lambda s: \
 		'explicit' in s and \
 		'albumFk' in s and \
@@ -499,7 +499,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		not 'genre' in s and \
 		'bitrate' in s and \
 		not 'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams10)
+	db_conn_in_mem.execute(stmt, songParams10) #pyright: ignore [reportUnknownMemberType]
 	songParams11 = list(filter(lambda s: \
 		'explicit' in s and \
 		'albumFk' in s and \
@@ -508,7 +508,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		not 'genre' in s and \
 		not 'bitrate' in s and \
 		not 'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams11)
+	db_conn_in_mem.execute(stmt, songParams11) #pyright: ignore [reportUnknownMemberType]
 	songParams12 = list(filter(lambda s: \
 		not 'explicit' in s and \
 		'albumFk' in s and \
@@ -517,7 +517,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		not 'genre' in s and \
 		not 'bitrate' in s and \
 		'comment' in s, songParams))
-	db_conn_in_mem.execute(stmt, songParams12)
+	db_conn_in_mem.execute(stmt, songParams12) #pyright: ignore [reportUnknownMemberType]
 
 	songArtistParams = [
 		{ "songFk": 40, "artistFk": 7 },
@@ -562,13 +562,13 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		{ "songFk": 1, "artistFk": 4 },
 	]
 	stmt = insert(song_artist)
-	db_conn_in_mem.execute(stmt, songArtistParams)
+	db_conn_in_mem.execute(stmt, songArtistParams) #pyright: ignore [reportUnknownMemberType]
 	songArtistParams2 = [
 		{ "songFk": 43, "artistFk": 7, "isPrimaryArtist": 1 },
 		{ "songFk": 42, "artistFk": 7, "isPrimaryArtist": 1 },
 		{ "songFk": 41, "artistFk": 7, "isPrimaryArtist": 1 },
 	]
-	db_conn_in_mem.execute(stmt, songArtistParams2)
+	db_conn_in_mem.execute(stmt, songArtistParams2) #pyright: ignore [reportUnknownMemberType]
 	tagsParams = [
 		{ "pk": 1, "name": "kilo_tag" },
 		{ "pk": 2, "name": "lima_tag" },
@@ -576,7 +576,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		{ "pk": 4, "name": "november_tag" },
 	]
 	stmt = insert(tags)
-	db_conn_in_mem.execute(stmt, tagsParams)
+	db_conn_in_mem.execute(stmt, tagsParams) #pyright: ignore [reportUnknownMemberType]
 
 	songTagParams = [
 		{ "songFk": 43, "tagFk": 1 },
@@ -625,7 +625,7 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		{ "songFk": 1, "tagFk": 2 },
 	]
 	stmt = insert(songs_tags)
-	db_conn_in_mem.execute(stmt, songTagParams)
+	db_conn_in_mem.execute(stmt, songTagParams) #pyright: ignore [reportUnknownMemberType]
 
 	stationParams = [
 		{ "pk": 1, 
@@ -642,11 +642,11 @@ def _setup_in_mem_tbls_full(db_conn_in_mem: WrappedDbConnection) -> None:
 		}
 	]
 	stmt = insert(stations)
-	db_conn_in_mem.execute(stmt, stationParams)
+	db_conn_in_mem.execute(stmt, stationParams) #pyright: ignore [reportUnknownMemberType]
 
 	stationTagsParams = [
 		{ "stationFk": 1, "tagFk": 2 },
 		{ "stationFk": 1, "tagFk": 4 },
 	]
 	stmt = insert(stations_tags)
-	db_conn_in_mem.execute(stmt, stationTagsParams)
+	db_conn_in_mem.execute(stmt, stationTagsParams) #pyright: ignore [reportUnknownMemberType]

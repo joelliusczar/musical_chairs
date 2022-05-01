@@ -41,6 +41,7 @@ if [ -n "$copy_db_flag" ]; then
 		"$radio_server_ssh_address":"$remote_home/$sqlite_file"
 fi
 
+
 #Would have prefered to just use a variable
 #but it seems to choke on certain characters like ')' for some reason
 #when I do it like 
@@ -77,18 +78,21 @@ export exp_name="$exp_name"
 
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"
+	sh ./run_unit_tests.sh &&
 	sh ./setup_backend.sh
 elif [ "$setup_lvl" = 'client' ]; then
 	echo "$setup_lvl"
 	sh ./setup_client.sh
 elif [ "$setup_lvl" = 'radio' ]; then
 	echo "$setup_lvl"
+	sh ./run_unit_tests.sh &&
 	sh ./radio_dir_setup.sh
 elif [ "$setup_lvl" = 'install' ]; then
 	echo "$setup_lvl"
 	sh ./install_setup.sh
 else 
 	echo "$setup_lvl"
+	sh ./run_unit_tests.sh &&
 	sh ./radio_dir_setup.sh &&
 	sh ./setup_backend.sh &&
 	sh ./setup_client.sh 

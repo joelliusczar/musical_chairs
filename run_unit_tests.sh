@@ -18,8 +18,11 @@ if [ -n "$(find ./src/"$lib_name" -newer "$utest_env_dir"/"$py_env")" ]; then
 	show_err_and_exit 
 fi
 
-test_src="$abs_src_path/src/tests"
+test_src="$src_path"/tests
 
+export PYTHONPATH="$src_path"
+export dbName="$app_root"/"$sqlite_file"
+export searchBase="$app_root"/"$content_home"
 
 . "$utest_env_dir"/"$py_env"/bin/activate &&
 pytest -s "$test_src"

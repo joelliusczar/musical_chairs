@@ -165,3 +165,5 @@ if [ ! -e "$confDir"/"$app_name".conf ]; then
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
+
+cp ./radio_common.sh "$app_root"/radio_common.sh

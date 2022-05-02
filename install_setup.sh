@@ -11,6 +11,8 @@ else
   exit 1
 fi
 
+process_global_vars "$@"
+
 printenv > "$app_root"/used_env_vars
 
 export pkgMgrChoice=$(get_pkg_mgr)
@@ -124,11 +126,13 @@ case $(uname) in
 	(Linux*)
 		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
 			if ! icecast -v 2>/dev/null; then
-				yes 'no' | install_package icecast
+				yes 'no' | install_package icecast &&
+				setup_icecast_confs icecast
 			fi
 		elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 			if ! icecast2 -v 2>/dev/null; then
-				install_package icecast2
+				install_package icecast2 &&
+				setup_icecast_confs icecast2
 			fi
 		fi
 		;;

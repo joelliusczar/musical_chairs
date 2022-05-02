@@ -58,6 +58,7 @@ set_env_path_var() {
 }
 
 get_pkg_mgr() {
+	define_setup_vars
 	case $(uname) in
 		(Linux*)
 			if  which pacman >/dev/null 2>&1; then
@@ -113,7 +114,7 @@ is_python_version_good() {
 
 #set up the python environment, then copy 
 # subshell () auto switches in use python version back at the end of function
-setup_py3_env() (
+deploy_py_libs() (
 	set_python_version_const || return "$?"
 	set_env_path_var #ensure that we can see mc-python
 	dest_base="$1"
@@ -217,7 +218,7 @@ setup_dir_with_py() (
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
 		cp -rv "$src_dir"/. "$dest_dir" &&
-	setup_py3_env "$dest_dir" "$env_name" &&
+	deploy_py_libs "$dest_dir" "$env_name" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
 )
@@ -376,8 +377,8 @@ restart_nginx() (
 			if systemctl is-active --quiet nginx; then
 				sudo systemctl restart nginx
 			else
-				echo "nginx not started"
-				return 1
+				sudo systemctl enable nginx
+				sudo systemctl start nginx
 			fi
 			;;
 		(*) ;;
@@ -385,15 +386,326 @@ restart_nginx() (
 )
 
 setup_nginx_confs() (
-	confDirInclude=$(get_nginx_conf_dir_include)
+	process_global_vars "$@" &&
+	confDirInclude=$(get_nginx_conf_dir_include) &&
 	#remove trailing path chars
-	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 
-	enable_nginx_include "$confDirInclude"
-	update_nginx_conf "$confDir"/"$app_name".conf
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") &&
+	enable_nginx_include "$confDirInclude" &&
+	update_nginx_conf "$confDir"/"$app_name".conf &&
 	sudo -p 'Remove default nginx config' \
-		rm -f "$confDir"/default
+		rm -f "$confDir"/default &&
 	restart_nginx
 )
+
+start_icecast_service() (
+	icecastName="$1"
+	case $(uname) in
+		(Linux*) 
+			if ! systemctl is-active --quiet "$icecastName"; then
+				sudo systemctl enable "$icecastName"
+				sudo systemctl start "$icecastName"
+			fi
+			;;
+		(*) ;;
+	esac
+)
+
+get_icecast_conf() (
+	icecastName="$1"
+	case $(uname) in
+		Linux*)
+			if ! systemctl status "$icecastName" >/dev/null 2>&1; then
+					echo "$icecastName is not running at the moment"
+					exit 1
+			fi
+
+			echo $(systemctl status "$icecastName" | grep -A2 CGroup | \
+					head -n2 | tail -n1 | awk '{ print $NF }' \
+			)
+			;;
+		*) ;;
+	esac
+)
+
+update_icecast_conf() (
+	icecastConfLocation="$1"
+	sourcePassword="$2"
+	relayPassword="$3"
+	adminPassword="$4"
+
+	sudo -p 'Pass required for modifying icecast config: ' \
+		perl -pi -e "s/>\w*/>${sourcePassword}/ if /source-password/" \
+		"$icecastConfLocation" &&
+	sudo -p 'Pass required for modifying icecast config: ' \
+		perl -pi -e "s/>\w*/>${relayPassword}/ if /relay-password/" \
+		"$icecastConfLocation" &&
+	sudo -p 'Pass required for modifying icecast config: ' \
+		perl -pi -e "s/>\w*/>${adminPassword}/ if /admin-password/" \
+		"$icecastConfLocation"
+)
+
+update_all_ices_confs() (
+	sourcePassword="$1"
+	process_global_vars "$@"
+	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
+		[ ! -f "$conf" ] && continue
+		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
+	done
+)
+
+get_icecast_source_password() (
+	icecastConfLocation="$1"
+	sudo -p 'Pass required to read icecast config: ' \
+  	grep '<source-password>' "$icecastConfLocation" \
+  	| perl -ne 'print "$1\n" if />(\w+)/'
+)
+
+setup_icecast_confs() (
+	icecastName="$1"
+	process_global_vars "$@" &&
+	#need to make sure that  icecast is running so we can get the config 
+	#location from systemd. While icecast does have a custom config option
+	#I don't feel like editing the systemd service to make it happen
+	start_icecast_service "$icecastName" &&
+	icecastConfLocation=$(get_icecast_conf "$icecastName") &&
+	sourcePassword=$(gen_pass) &&
+	update_icecast_conf "$icecastConfLocation" \
+		"$sourcePassword" $(gen_pass) $(gen_pass) &&
+	update_all_ices_confs "$sourcePassword"
+	sudo systemctl restart "$icecastName"
+)
+	
+create_ices_config() (
+	internalName="$1"
+	publicName="$2"
+	sourcePassword="$3"
+	process_global_vars "$@" &&
+	station_conf="$app_root"/"$ices_configs_dir"/ices."$internalName".conf
+	cp "$app_root"/"$templates_dir_cl"/ices.conf "$station_conf" &&
+	perl -pi -e "s/icecast_password/$sourcePassword/ if /<Password>/" \
+		"$station_conf" &&
+	perl -pi -e "s/internal_station_name/$internalName/ if /<Module>/" \
+		"$station_conf" &&
+	perl -pi -e "s/public_station_name/$publicName/ if /<Name>/" \
+		"$station_conf" &&
+	perl -pi -e "s/internal_station_name/$internalName/ if /<Mountpoint>/" \
+		"$station_conf"
+)
+
+create_ices_py_module() (
+	internalName="$1"
+	process_global_vars "$@" &&
+	station_module="$app_root"/"$pyModules_dir"/"$internalName".py &&
+	cp "$app_root"/"$templates_dir_cl"/template.py "$station_module" &&
+	perl -pi -e "s/<internal_station_name>/$internalName/" "$station_module"
+)
+
+create_ices_station_files() (
+	internalName="$1"
+	publicName="$2"
+	sourcePassword="$3"
+	process_global_vars "$@" &&
+	create_ices_config "$internalName" "$publicName" "$sourcePassword"
+	create_ices_py_module "$internalName"
+)
+
+save_station_to_db() (
+	internalName="$1"
+	publicName="$2"
+	# #python_env
+	python <<-EOF
+	from musical_chairs_libs.station_service import StationService
+	stationService = StationService()
+	stationService.add_station('${internalName}','${publicName}')
+	print('${internalName} added')
+	EOF
+)
+
+add_tags_to_station() (
+	internalName="$1"
+	while true; do
+		read tagname
+		[ -z "$tagname" ] && break
+		# #python_env
+		python <<-EOF
+		from musical_chairs_libs.station_service import StationService
+		stationService = StationService()
+		stationService.assign_tag_to_station('${internalName}','${tagname}')
+		print('tag ${tagname} assigned to ${internalName}')
+		EOF
+		
+	done
+)
+
+create_new_station() (
+	process_global_vars "$@"
+	echo 'Enter radio station public name or description:'
+	read publicName
+
+	echo 'Enter radio station internal name:'
+	read internalName
+
+	echo "public: $publicName"
+	echo "internal: $internalName"
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
+	start_icecast_service "$icecastName" &&
+	sourcePassword=$(get_icecast_source_password) &&
+	create_ices_config "$internalName" "$publicName" "$sourcePassword" &&
+	create_ices_py_module "$internalName" &&
+	export dbName="$app_root"/"$sqlite_file"
+	. "$app_trunk"/"$py_env"/bin/activate &&
+	save_station_to_db "$internalName" "$publicName" &&
+	add_tags_to_station "$internalName"
+)
+
+run_song_scan() (
+	process_global_vars "$@" &&
+	link_to_music_files &&
+	setup_radio &&
+	export dbName="$app_root"/"$sqlite_file" &&
+	. "$app_trunk"/"$py_env"/bin/activate &&
+	# #python_env
+	python  <<-EOF
+	from musical_chairs_libs.song_scanner import SongScanner
+	print("Starting")
+	stationService = SongScanner()
+	inserted = stationService.save_paths('${app_root}/${content_home}')
+	print(f"saving paths done: {inserted} inserted")
+	updated = stationService.update_metadata('${app_root}/${content_home}')
+	print(f"updating songs done: {updated}")
+	EOF
+)
+
+shutdown_all_stations() (
+	process_global_vars "$@" &&
+	setup_radio &&
+	export dbName="$app_root"/"$sqlite_file" &&
+	. "$app_trunk"/"$py_env"/bin/activate &&
+	# #python_env
+	python  <<-EOF
+	from musical_chairs_libs.station_service import StationService
+	stationService = StationService()
+	stationService.end_all_stations()
+	print("Done")
+	EOF
+)
+
+start_up_radio() (
+	process_global_vars "$@" &&
+	link_to_music_files &&
+	setup_radio &&
+	export searchBase="$app_root"/"$content_home" &&
+	export dbName="$app_root"/"$sqlite_file" &&
+	. "$app_trunk"/"$py_env"/bin/activate &&
+	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
+		mc-ices -c "$conf"
+	done
+)
+
+start_up_web_server() (
+	process_global_vars "$@" &&
+	setup_api &&
+	export dbName="$app_root"/"$sqlite_file" &&
+	. "$web_root"/"$app_api_path_cl"/"$py_env"/bin/activate &&
+	# see #python_env
+	uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
+		--host 0.0.0.0 --port 8032 "index:app" 
+)
+
+setup_api() (
+	process_global_vars "$@" &&
+	setup_dir_with_py "$api_src" "$web_root"/"$app_api_path_cl" &&
+	setup_nginx_confs 
+)
+
+setup_client() (
+	process_global_vars "$@" &&
+	#in theory, this should be sourced by .bashrc
+	#but sometimes there's an interactive check that ends the sourcing early
+	if [ -z "$NVM_DIR" ]; then
+		export NVM_DIR="$HOME"/.nvm
+		[ -s "$NVM_DIR"/nvm.sh ] && \. "$NVM_DIR"/nvm.sh  # This loads nvm
+	fi &&
+	#check if web application folder exists, clear out if it does,
+	#delete otherwise
+	empty_dir_contents "$web_root"/"$app_client_path_cl" &&
+
+	export REACT_APP_API_ADDRESS="$full_url" &&
+	export REACT_APP_API_VERSION=v1 &&
+	#set up react then copy
+	#install packages
+	npm --prefix "$client_src" i &&
+	#build code (transpile it)
+	npm run --prefix "$client_src" build &&
+	#copy built code to new location
+	sudo -p 'Pass required for copying client files: ' \
+		cp -rv "$client_src"/build/. "$web_root"/"$app_client_path_cl" &&
+	sudo -p 'Pass required for changing owner of client files: ' \
+		chown -R "$current_user": "$web_root"/"$app_client_path_cl" 
+)
+
+#assume install_setup.sh has been run
+setup_radio() (
+	process_global_vars "$@" &&
+	#keep a copy in the parent radio directory
+	cp ./radio_common.sh "$app_trunk"/radio_common.sh &&
+	cp ./requirements.txt "$app_trunk"/requirements.txt &&
+
+	cp ./radio_common.sh "$app_root"/radio_common.sh &&
+	cp ./requirements.txt "$app_root"/requirements.txt &&
+	
+	deploy_py_libs "$app_trunk" &&
+
+	setup_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
+
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
+	setup_icecast_confs "$icecastName"
+)
+
+#assume install_setup.sh has been run
+setup_unit_test_env() (
+	process_global_vars "$@"
+	setup_env_api_file &&
+	#redirect stderr into stdout missing env will also trigger redeploy
+	srcChanges=$(find ./src/"$lib_name" -newer "$utest_env_dir"/"$py_env" 2>&1)
+	if [ -n "$srcChanges" ]; then
+		echo "changes?"
+		deploy_py_libs "$utest_env_dir" 
+	fi &&
+
+	echo "PYTHONPATH='$src_path'" >> "$test_root"/"$env_api_file" &&
+
+	cp -v "$reference_src_db" "$test_root"/"$sqlite_file"
+)
+
+setup_all() (
+	process_global_vars "$@" &&
+	setup_radio &&
+	setup_api &&
+	setup_client &&
+	setup_unit_test_env &&
+	if [ -n "$copy_db_flag" ]; then
+		cp -v "$reference_src_db" "$app_root"/"$sqlite_file" 
+	fi
+)
+
+#assume install_setup.sh has been run
+run_unit_tests() (
+	process_global_vars "$@"
+	setup_unit_test_env &&
+
+	test_src="$src_path"/tests &&
+
+	export PYTHONPATH="$src_path" &&
+	export dbName="$test_root"/"$sqlite_file" &&
+	export searchBase="$test_root"/"$content_home" &&
+
+	. "$utest_env_dir"/"$py_env"/bin/activate &&
+	pytest -s "$test_src"
+)
+
 
 debug_print() (
 	msg="$1"
@@ -414,141 +726,178 @@ get_rc_candidate() {
 	esac
 }
 
-while [ ! -z "$1" ]; do
-	case "$1" in
-		#build out to test_trash rather than the normal directories
-		#sets app_root and web_root without having to set them explicitly
-		(test)
-			export test_flag='test'
+process_global_args() {
+	while [ ! -z "$1" ]; do
+		case "$1" in
+			#build out to test_trash rather than the normal directories
+			#sets app_root and web_root without having to set them explicitly
+			(test)
+				export test_flag='test'
+				;;
+			(copyDb) #tells setup to replace sqlite3 db
+				export copy_db_flag='test_db'
+				;;
+			#activates debug_print. Also tells deploy script to use the diag branch
+			(diag) 
+				export diag_flag='diag'
+				echo '' > diag_out_"$include_count"
+				;;
+			(env=*) #affects which url to use
+				app_env=${1#env=}
+				;;
+			(app_root=*)
+				app_root=${1#app_root=}
+				;;
+			(web_root=*)
+				web_root=${1#web_root=}
+				;;
+			(setup_lvl=*) #affects which setup scripst to run
+				export setup_lvl=${1#setup_lvl=}
+				;;
+			#when I want to conditionally run with some experimental code
+			(experiment=*) 
+				export exp_name=${1#experiment=}
+				;;
+			(*) ;;
+		esac
+		shift
+	done
+}
+
+define_top_level_terms() {
+	app_root=${app_root:-"$HOME"}
+	test_root="$workspace_abs_path/test_trash"
+
+
+	if [ -n "$test_flag" ]; then
+		app_root="$test_root"
+		web_root="$test_root"
+	fi
+
+	proj_name='musical_chairs'
+	db_name='songs_db'
+	app_trunk="$app_root/$proj_name"
+	export app_root="$app_root"
+	export web_root="$web_root"
+	export app_trunk="$app_trunk"
+
+	lib_name="$proj_name"_libs
+	app_name="$proj_name"_app
+
+	[ -e "$app_trunk" ] || 
+	mkdir -pv "$app_trunk"
+}
+
+define_app_dir_paths() {
+	ices_configs_dir="$proj_name"/ices_configs
+	pyModules_dir="$proj_name"/pyModules
+	build_dir='Documents/builds'
+	content_home='music/radio'
+	config_dir="$proj_name"/config
+	env_api_file="$config_dir"/.env
+	db_dir="$proj_name"/db
+	sqlite_file="$db_dir"/"$db_name"
+	bin_dir='.local/bin'
+	utest_env_dir="$test_root"/utest
+
+	# directories that should be cleaned upon changes
+	# suffixed with 'cl' for 'clean'
+	templates_dir_cl="$proj_name"/templates
+
+	[ -e "$app_root"/"$ices_configs_dir" ] || 
+	mkdir -pv "$app_root"/"$ices_configs_dir"
+	[ -e "$app_root"/"$pyModules_dir" ] || 
+	mkdir -pv "$app_root"/"$pyModules_dir"
+	[ -e "$app_root"/"$build_dir" ] || 
+	mkdir -pv "$app_root"/"$build_dir"
+	[ -e "$app_root"/"$content_home" ] || 
+	mkdir -pv "$app_root"/"$content_home"
+	[ -e "$app_root"/"$config_dir" ] || 
+	mkdir -pv "$app_root"/"$config_dir"
+	[ -e "$app_root"/"$db_dir" ] || 
+	mkdir -pv "$app_root"/"$db_dir"
+}
+
+define_web_server_paths() {
+	case $(uname) in
+		(Linux*)
+			export web_root=${web_root:-/srv}
 			;;
-		(copyDb) #tells setup to replace sqlite3 db
-			export copy_db_flag='test_db'
-			;;
-		#activates debug_print. Also tells deploy script to use the diag branch
-		(diag) 
-			export diag_flag='diag'
-			echo '' > diag_out_"$include_count"
-			;;
-		(env=*) #affects which url to use
-			app_env=${1#env=}
-			;;
-		(app_root=*)
-			app_root=${1#app_root=}
-			;;
-		(web_root=*)
-			web_root=${1#web_root=}
-			;;
-		(setup_lvl=*) #affects which setup scripst to run
-			export setup_lvl=${1#setup_lvl=}
-			;;
-		#when I want to conditionally run with some experimental code
-		(experiment=*) 
-			export exp_name=${1#experiment=}
+		(Darwin*)
+			export web_root=${web_root:-/Library/WebServer}
 			;;
 		(*) ;;
 	esac
-	shift
-done
 
-workspace_abs_path=$(to_abs_path $0)
+	app_api_path_cl=api/"$app_name"
+	app_client_path_cl=client/"$app_name"
 
-app_root=${app_root:-"$HOME"}
-test_root="$workspace_abs_path/test_trash"
-
-
-if [ -n "$test_flag" ]; then
-	app_root="$test_root"
-	web_root="$test_root"
-fi
-
-proj_name='musical_chairs'
-db_name='songs_db'
-app_trunk="$app_root/$proj_name"
-export app_root="$app_root"
-export web_root="$web_root"
-export app_trunk="$app_trunk"
-
-lib_name="$proj_name"_libs
-app_name="$proj_name"_app
-url_base=$(echo "$proj_name" | tr -d _)
-ices_configs_dir="$proj_name"/ices_configs
-pyModules_dir="$proj_name"/pyModules
-build_dir='Documents/builds'
-content_home='music/radio'
-config_dir="$proj_name"/config
-env_api_file="$config_dir"/.env
-db_dir="$proj_name"/db
-sqlite_file="$db_dir"/"$db_name"
-bin_dir='.local/bin'
-utest_env_dir="$test_root"/utest
-
-# directories that should be cleaned upon changes
-# suffixed with 'cl' for 'clean'
-maintenance_dir_cl="$proj_name"/maintenance
-start_up_dir_cl="$proj_name"/start_up
-templates_dir_cl="$proj_name"/templates
-
-#python environment names
-py_env='mc_env'
-
-case $(uname) in
-	(Linux*)
-		export web_root=${web_root:-/srv}
-		;;
-	(Darwin*)
-		export web_root=${web_root:-/Library/WebServer}
-		;;
-	(*) ;;
-esac
-
-app_api_path_cl=api/"$app_name"
-app_client_path_cl=client/"$app_name"
-
-#local paths
-src_path="$workspace_abs_path/src"
-api_src="$src_path/api"
-client_src="$src_path/client"
-lib_src="$src_path/$lib_name"
-templates_src="$workspace_abs_path/templates"
-start_up_src="$workspace_abs_path/start_up"
-maintenance_src="$workspace_abs_path/maintenance"
-reference_src="$workspace_abs_path/reference"
-reference_src_db="$reference_src/$db_name"
-
-case "$app_env" in 
-	(local*)
-		url_suffix='-local.radio,fm:8080'
-		;;
-	(*)
-		url_suffix='.radio.fm'
-		;;
-esac
-
-full_url="http://$url_base""$url_suffix"
-
-
-PACMAN_CONST='pacman'
-APT_CONST='apt-get'
-HOMEBREW_CONST='homebrew'
-current_user=$(whoami)
-
-[ -e "$app_trunk" ] || 
-mkdir -pv "$app_trunk"
-[ -e "$app_root"/"$ices_configs_dir" ] || 
-mkdir -pv "$app_root"/"$ices_configs_dir"
-[ -e "$app_root"/"$build_dir" ] || 
-mkdir -pv "$app_root"/"$build_dir"
-[ -e "$app_root"/"$content_home" ] || 
-mkdir -pv "$app_root"/"$content_home"
-[ -e "$app_root"/"$pyModules_dir" ] || 
-mkdir -pv "$app_root"/"$pyModules_dir"
-[ -e "$app_root"/"$config_dir" ] || 
-mkdir -pv "$app_root"/"$config_dir"
-[ -e "$app_root"/"$db_dir" ] || 
-mkdir -pv "$app_root"/"$db_dir"
-msg='Pass required for creating web server directory: '
-[ -e "$web_root"/"$app_api_path_cl" ] ||
-{ 
-	sudo -p "$msg" mkdir -pv "$web_root"/"$app_api_path_cl" ||
-	show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}" 
+	msg='Pass required for creating web server directory: '
+	[ -e "$web_root"/"$app_api_path_cl" ] ||
+	{ 
+		sudo -p "$msg" mkdir -pv "$web_root"/"$app_api_path_cl" ||
+		show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}" 
+	}
 }
+
+define_url() {
+	url_base=$(echo "$proj_name" | tr -d _)
+	case "$app_env" in 
+		(local*)
+			url_suffix='-local.radio,fm:8080'
+			;;
+		(*)
+			url_suffix='.radio.fm'
+			;;
+	esac
+
+	full_url="http://$url_base""$url_suffix"
+}
+
+define_src_paths() {
+	src_path="$workspace_abs_path/src"
+	api_src="$src_path/api"
+	client_src="$src_path/client"
+	lib_src="$src_path/$lib_name"
+	templates_src="$workspace_abs_path/templates"
+	start_up_src="$workspace_abs_path/start_up"
+	maintenance_src="$workspace_abs_path/maintenance"
+	reference_src="$workspace_abs_path/reference"
+	reference_src_db="$reference_src/$db_name"
+}
+
+define_setup_vars() {
+	PACMAN_CONST='pacman'
+	APT_CONST='apt-get'
+	HOMEBREW_CONST='homebrew'
+	current_user=$(whoami)
+}
+
+process_global_vars() {
+	if [ -n "$globals_set" ]; then
+		return
+	fi
+	workspace_abs_path=$(to_abs_path $0)
+
+	process_global_args "$@"
+
+	define_top_level_terms
+
+	define_app_dir_paths
+
+	define_web_server_paths
+	
+	define_url
+	
+	define_src_paths
+	
+	#python environment names
+	py_env='mc_env'
+
+	define_setup_vars
+
+	globals_set='globals'
+}
+
+
+

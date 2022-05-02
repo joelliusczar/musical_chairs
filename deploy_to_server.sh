@@ -37,10 +37,14 @@ fi
 if [ -n "$copy_db_flag" ]; then
 	remote_home=$(ssh -i "$radio_key_file" "$radio_server_ssh_address" \
 		'bash -c "echo $HOME"' | awk 'END{ print $1 }')
+	ssh -i "$radio_key_file" "$radio_server_ssh_address" \
+		"mkdir -p '${remote_home}/${db_dir}'"
 	scp -i "$radio_key_file" "$reference_src_db" \
 		"$radio_server_ssh_address":"$remote_home/$sqlite_file"
 fi
 
+sh ./run_unit_tests.sh
+unitTestSuccess="$?"
 
 #Would have prefered to just use a variable
 #but it seems to choke on certain characters like ')' for some reason
@@ -78,24 +82,22 @@ export exp_name="$exp_name"
 
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"
-	sh ./run_unit_tests.sh &&
-	sh ./setup_backend.sh
+	(exit "$unitTestSuccess") &&
+	setup_api
 elif [ "$setup_lvl" = 'client' ]; then
 	echo "$setup_lvl"
-	sh ./setup_client.sh
+	setup_client
 elif [ "$setup_lvl" = 'radio' ]; then
 	echo "$setup_lvl"
-	sh ./run_unit_tests.sh &&
-	sh ./radio_dir_setup.sh
+	(exit "$unitTestSuccess") &&
+	start_up_radio
 elif [ "$setup_lvl" = 'install' ]; then
 	echo "$setup_lvl"
 	sh ./install_setup.sh
 else 
 	echo "$setup_lvl"
-	sh ./run_unit_tests.sh &&
-	sh ./radio_dir_setup.sh &&
-	sh ./setup_backend.sh &&
-	sh ./setup_client.sh 
+	(exit "$unitTestSuccess") &&
+	setup_all
 fi
 
 RemoteScriptEOF2
@@ -106,8 +108,6 @@ RemoteScriptEOF2
 {
 	cat<<RemoteScriptEOF3
 $(cat "$radio_common_path")
-
-
 
 radio_server_repo_url="$radio_server_repo_url"
 

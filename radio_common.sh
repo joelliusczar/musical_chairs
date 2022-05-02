@@ -114,7 +114,7 @@ is_python_version_good() {
 
 #set up the python environment, then copy 
 # subshell () auto switches in use python version back at the end of function
-setup_py3_env() (
+deploy_py_libs() (
 	set_python_version_const || return "$?"
 	set_env_path_var #ensure that we can see mc-python
 	dest_base="$1"
@@ -218,7 +218,7 @@ setup_dir_with_py() (
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
 		cp -rv "$src_dir"/. "$dest_dir" &&
-	setup_py3_env "$dest_dir" "$env_name" &&
+	deploy_py_libs "$dest_dir" "$env_name" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
 )
@@ -386,23 +386,24 @@ restart_nginx() (
 )
 
 setup_nginx_confs() (
-	confDirInclude=$(get_nginx_conf_dir_include)
+	process_global_vars "$@" &&
+	confDirInclude=$(get_nginx_conf_dir_include) &&
 	#remove trailing path chars
-	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 
-	enable_nginx_include "$confDirInclude"
-	update_nginx_conf "$confDir"/"$app_name".conf
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") &&
+	enable_nginx_include "$confDirInclude" &&
+	update_nginx_conf "$confDir"/"$app_name".conf &&
 	sudo -p 'Remove default nginx config' \
-		rm -f "$confDir"/default
+		rm -f "$confDir"/default &&
 	restart_nginx
 )
 
 start_icecast_service() (
-	icecast_name="$1"
+	icecastName="$1"
 	case $(uname) in
 		(Linux*) 
-			if ! systemctl is-active --quiet "$icecast_name"; then
-				sudo systemctl enable "$icecast_name"
-				sudo systemctl start "$icecast_name"
+			if ! systemctl is-active --quiet "$icecastName"; then
+				sudo systemctl enable "$icecastName"
+				sudo systemctl start "$icecastName"
 			fi
 			;;
 		(*) ;;
@@ -410,15 +411,15 @@ start_icecast_service() (
 )
 
 get_icecast_conf() (
-	icecast_name="$1"
+	icecastName="$1"
 	case $(uname) in
 		Linux*)
-			if ! systemctl status "$icecast_name" >/dev/null 2>&1; then
-					echo "$icecast_name is not running at the moment"
+			if ! systemctl status "$icecastName" >/dev/null 2>&1; then
+					echo "$icecastName is not running at the moment"
 					exit 1
 			fi
 
-			echo $(systemctl status "$icecast_name" | grep -A2 CGroup | \
+			echo $(systemctl status "$icecastName" | grep -A2 CGroup | \
 					head -n2 | tail -n1 | awk '{ print $NF }' \
 			)
 			;;
@@ -426,25 +427,26 @@ get_icecast_conf() (
 	esac
 )
 
-update_icecast_conf() {
-	ic_conf_loc="$1"
+update_icecast_conf() (
+	icecastConfLocation="$1"
 	sourcePassword="$2"
 	relayPassword="$3"
 	adminPassword="$4"
 
 	sudo -p 'Pass required for modifying icecast config: ' \
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /source-password/" \
-		"$ic_conf_loc" &&
+		"$icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
 		perl -pi -e "s/>\w*/>${relayPassword}/ if /relay-password/" \
-		"$ic_conf_loc" &&
+		"$icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
 		perl -pi -e "s/>\w*/>${adminPassword}/ if /admin-password/" \
-		"$ic_conf_loc"
-}
+		"$icecastConfLocation"
+)
 
 update_all_ices_confs() (
 	sourcePassword="$1"
+	process_global_vars "$@"
 	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
 		[ ! -f "$conf" ] && continue
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
@@ -452,70 +454,75 @@ update_all_ices_confs() (
 )
 
 get_icecast_source_password() (
-	ic_conf_loc="$1"
+	icecastConfLocation="$1"
 	sudo -p 'Pass required to read icecast config: ' \
-  	grep '<source-password>' "$ic_conf_loc" \
+  	grep '<source-password>' "$icecastConfLocation" \
   	| perl -ne 'print "$1\n" if />(\w+)/'
 )
 
 setup_icecast_confs() (
-	icecast_name="$1"
-	start_icecast_service "$icecast_name" &&
-	ic_conf_loc=$(get_icecast_conf "$icecast_name") &&
+	icecastName="$1"
+	process_global_vars "$@" &&
+	#need to make sure that  icecast is running so we can get the config 
+	#location from systemd. While icecast does have a custom config option
+	#I don't feel like editing the systemd service to make it happen
+	start_icecast_service "$icecastName" &&
+	icecastConfLocation=$(get_icecast_conf "$icecastName") &&
 	sourcePassword=$(gen_pass) &&
-	update_icecast_conf "$ic_conf_loc" \
+	update_icecast_conf "$icecastConfLocation" \
 		"$sourcePassword" $(gen_pass) $(gen_pass) &&
 	update_all_ices_confs "$sourcePassword"
-	sudo systemctl restart "$icecast_name"
+	sudo systemctl restart "$icecastName"
 )
 	
 create_ices_config() (
-	internal_name="$1"
-	public_name="$2"
+	internalName="$1"
+	publicName="$2"
 	sourcePassword="$3"
-	station_conf="$app_root"/"$ices_configs_dir"/ices."$internal_name".conf
+	process_global_vars "$@" &&
+	station_conf="$app_root"/"$ices_configs_dir"/ices."$internalName".conf
 	cp "$app_root"/"$templates_dir_cl"/ices.conf "$station_conf" &&
 	perl -pi -e "s/icecast_password/$sourcePassword/ if /<Password>/" \
 		"$station_conf" &&
-	perl -pi -e "s/internal_station_name/$internal_name/ if /<Module>/" \
+	perl -pi -e "s/internal_station_name/$internalName/ if /<Module>/" \
 		"$station_conf" &&
-	perl -pi -e "s/public_station_name/$public_name/ if /<Name>/" \
+	perl -pi -e "s/public_station_name/$publicName/ if /<Name>/" \
 		"$station_conf" &&
-	perl -pi -e "s/internal_station_name/$internal_name/ if /<Mountpoint>/" \
+	perl -pi -e "s/internal_station_name/$internalName/ if /<Mountpoint>/" \
 		"$station_conf"
 )
 
 create_ices_py_module() (
-	internal_name="$1"
-	station_module="$app_root"/"$pyModules_dir"/"$internal_name".py &&
+	internalName="$1"
+	process_global_vars "$@" &&
+	station_module="$app_root"/"$pyModules_dir"/"$internalName".py &&
 	cp "$app_root"/"$templates_dir_cl"/template.py "$station_module" &&
-	perl -pi -e "s/<internal_station_name>/$internal_name/" "$station_module"
+	perl -pi -e "s/<internal_station_name>/$internalName/" "$station_module"
 )
 
 create_ices_station_files() (
-	internal_name="$1"
-	public_name="$2"
+	internalName="$1"
+	publicName="$2"
 	sourcePassword="$3"
-	create_ices_config "$internal_name" "$public_name" "$sourcePassword"
-	create_ices_py_module "$internal_name"
+	process_global_vars "$@" &&
+	create_ices_config "$internalName" "$publicName" "$sourcePassword"
+	create_ices_py_module "$internalName"
 )
 
 save_station_to_db() (
-	internal_name="$1"
-	public_name="$2"
-	export dbName="$app_root"/"$sqlite_file"
-	. "$app_trunk"/"$py_env"/bin/activate &&
+	internalName="$1"
+	publicName="$2"
 	# #python_env
 	python <<-EOF
 	from musical_chairs_libs.station_service import StationService
 	stationService = StationService()
-	stationService.add_station('${internal_name}','${public_name}')
-	print('${internal_name} added')
+	stationService.add_station('${internalName}','${publicName}')
+	print('${internalName} added')
 	EOF
 )
 
 add_tags_to_station() (
-	internal_name="$1"
+	internalName="$1"
 	while true; do
 		read tagname
 		[ -z "$tagname" ] && break
@@ -523,8 +530,8 @@ add_tags_to_station() (
 		python <<-EOF
 		from musical_chairs_libs.station_service import StationService
 		stationService = StationService()
-		stationService.assign_tag_to_station('${internal_name}','${tagname}')
-		print('tag ${tagname} assigned to ${internal_name}')
+		stationService.assign_tag_to_station('${internalName}','${tagname}')
+		print('tag ${tagname} assigned to ${internalName}')
 		EOF
 		
 	done
@@ -533,27 +540,30 @@ add_tags_to_station() (
 create_new_station() (
 	process_global_vars "$@"
 	echo 'Enter radio station public name or description:'
-	read public_name
+	read publicName
 
 	echo 'Enter radio station internal name:'
-	read internal_name
+	read internalName
 
-	echo "public: $public_name"
-	echo "internal: $internal_name"
+	echo "public: $publicName"
+	echo "internal: $internalName"
 	pkgMgrChoice=$(get_pkg_mgr) &&
-	icecast_name=$(get_icecast_name "$pkgMgrChoice") &&
-	start_icecast_service "$icecast_name"
+	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
+	start_icecast_service "$icecastName" &&
 	sourcePassword=$(get_icecast_source_password) &&
-	create_ices_config "$internal_name" "$public_name" "$sourcePassword" &&
-	create_ices_py_module "$internal_name" &&
-	save_station_to_db "$internal_name" "$public_name" &&
-	add_tags_to_station "$internal_name"
+	create_ices_config "$internalName" "$publicName" "$sourcePassword" &&
+	create_ices_py_module "$internalName" &&
+	export dbName="$app_root"/"$sqlite_file"
+	. "$app_trunk"/"$py_env"/bin/activate &&
+	save_station_to_db "$internalName" "$publicName" &&
+	add_tags_to_station "$internalName"
 )
 
 run_song_scan() (
-	process_global_vars "$@"
-	link_to_music_files
-	export dbName="$app_root"/"$sqlite_file"
+	process_global_vars "$@" &&
+	link_to_music_files &&
+	setup_radio &&
+	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
 	python  <<-EOF
@@ -568,8 +578,9 @@ run_song_scan() (
 )
 
 shutdown_all_stations() (
-	process_global_vars "$@"
-	export dbName="$app_root"/"$sqlite_file"
+	process_global_vars "$@" &&
+	setup_radio &&
+	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
 	python  <<-EOF
@@ -581,13 +592,11 @@ shutdown_all_stations() (
 )
 
 start_up_radio() (
-	process_global_vars "$@"
-	link_to_music_files
-	pkgMgrChoice=$(get_pkg_mgr)
-	icecast_name=$(get_icecast_name "$pkgMgrChoice")
-	start_icecast_service "$icecast_name"
-	export searchBase="$app_root"/"$content_home"
-	export dbName="$app_root"/"$sqlite_file"
+	process_global_vars "$@" &&
+	link_to_music_files &&
+	setup_radio &&
+	export searchBase="$app_root"/"$content_home" &&
+	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_trunk"/"$py_env"/bin/activate &&
 	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
 		mc-ices -c "$conf"
@@ -595,8 +604,9 @@ start_up_radio() (
 )
 
 start_up_web_server() (
-	process_global_vars "$@"
-	export dbName="$app_root"/"$sqlite_file"
+	process_global_vars "$@" &&
+	setup_api &&
+	export dbName="$app_root"/"$sqlite_file" &&
 	. "$web_root"/"$app_api_path_cl"/"$py_env"/bin/activate &&
 	# see #python_env
 	uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
@@ -604,19 +614,19 @@ start_up_web_server() (
 )
 
 setup_api() (
-	process_global_vars "$@"
+	process_global_vars "$@" &&
 	setup_dir_with_py "$api_src" "$web_root"/"$app_api_path_cl" &&
 	setup_nginx_confs 
 )
 
 setup_client() (
-	process_global_vars "$@"
+	process_global_vars "$@" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
 		export NVM_DIR="$HOME"/.nvm
 		[ -s "$NVM_DIR"/nvm.sh ] && \. "$NVM_DIR"/nvm.sh  # This loads nvm
-	fi
+	fi &&
 	#check if web application folder exists, clear out if it does,
 	#delete otherwise
 	empty_dir_contents "$web_root"/"$app_client_path_cl" &&
@@ -635,9 +645,9 @@ setup_client() (
 		chown -R "$current_user": "$web_root"/"$app_client_path_cl" 
 )
 
+#assume install_setup.sh has been run
 setup_radio() (
-	process_global_vars "$@"
-	setup_env_api_file  &&
+	process_global_vars "$@" &&
 	#keep a copy in the parent radio directory
 	cp ./radio_common.sh "$app_trunk"/radio_common.sh &&
 	cp ./requirements.txt "$app_trunk"/requirements.txt &&
@@ -645,22 +655,24 @@ setup_radio() (
 	cp ./radio_common.sh "$app_root"/radio_common.sh &&
 	cp ./requirements.txt "$app_root"/requirements.txt &&
 	
-	setup_py3_env "$app_trunk" &&
+	deploy_py_libs "$app_trunk" &&
 
 	setup_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
 
 	pkgMgrChoice=$(get_pkg_mgr) &&
-	icecast_name=$(get_icecast_name "$pkgMgrChoice") &&
-	setup_icecast_confs "$icecast_name"
+	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
+	setup_icecast_confs "$icecastName"
 )
 
+#assume install_setup.sh has been run
 setup_unit_test_env() (
 	process_global_vars "$@"
 	setup_env_api_file &&
-
-	if [ -n "$(find ./src/"$lib_name" -newer "$utest_env_dir"/"$py_env")" ]; then
+	#redirect stderr into stdout missing env will also trigger redeploy
+	srcChanges=$(find ./src/"$lib_name" -newer "$utest_env_dir"/"$py_env" 2>&1)
+	if [ -n "$srcChanges" ]; then
 		echo "changes?"
-		setup_py3_env "$utest_env_dir" 
+		deploy_py_libs "$utest_env_dir" 
 	fi &&
 
 	echo "PYTHONPATH='$src_path'" >> "$test_root"/"$env_api_file" &&
@@ -679,6 +691,7 @@ setup_all() (
 	fi
 )
 
+#assume install_setup.sh has been run
 run_unit_tests() (
 	process_global_vars "$@"
 	setup_unit_test_env &&
@@ -861,6 +874,9 @@ define_setup_vars() {
 }
 
 process_global_vars() {
+	if [ -n "$globals_set" ]; then
+		return
+	fi
 	workspace_abs_path=$(to_abs_path $0)
 
 	process_global_args "$@"
@@ -880,6 +896,7 @@ process_global_vars() {
 
 	define_setup_vars
 
+	globals_set='globals'
 }
 
 

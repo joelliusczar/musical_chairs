@@ -142,20 +142,15 @@ echo "icecast_check.sh is not in place"
 [ -e "$app_trunk"/requirements.txt ] ||
 echo "requirements.txt is not in place"
 
-[ -e "$app_root"/"$maintenance_dir_cl" ] ||
-echo "${app_root}/${maintenance_dir_cl} is not in place"
 
 
-compare_dirs "$maintenance_src" "$app_root"/"$maintenance_dir_cl"
-
-[ -e "$app_root"/"$maintenance_dir_cl/$py_env" ] ||
-echo "${app_root}/${maintenance_dir_cl}/${py_env} is not in place"
+[ -e "$app_trunk"/"$py_env" ] ||
+echo "${app_trunk}/${py_env} is not in place"
 
 compare_dirs "$templates_src" "$app_root"/"$templates_dir_cl"
-compare_dirs "$start_up_src" "$app_root"/"$start_up_dir_cl"
 compare_dirs "$api_src" "$web_root"/"$app_api_path_cl"
 
-[ -e "$web_root"/"$app_api_path_cl/$py_env" ] ||
+[ -e "$web_root"/"$app_api_path_cl"/"$py_env" ] ||
 echo "${web_root}/${app_api_path_cl}/${py_env} is not in place"
 compare_dirs "$client_src"/build \
  "$web_root"/"$app_client_path_cl"

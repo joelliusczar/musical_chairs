@@ -500,15 +500,6 @@ create_ices_py_module() (
 	perl -pi -e "s/<internal_station_name>/$internalName/" "$station_module"
 )
 
-create_ices_station_files() (
-	internalName="$1"
-	publicName="$2"
-	sourcePassword="$3"
-	process_global_vars "$@" &&
-	create_ices_config "$internalName" "$publicName" "$sourcePassword"
-	create_ices_py_module "$internalName"
-)
-
 save_station_to_db() (
 	internalName="$1"
 	publicName="$2"
@@ -538,21 +529,27 @@ add_tags_to_station() (
 )
 
 create_new_station() (
-	process_global_vars "$@"
-	echo 'Enter radio station public name or description:'
-	read publicName
-
-	echo 'Enter radio station internal name:'
-	read internalName
-
-	echo "public: $publicName"
-	echo "internal: $internalName"
+	process_global_vars "$@" &&
+	setup_radio &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
-	start_icecast_service "$icecastName" &&
-	sourcePassword=$(get_icecast_source_password) &&
+	icecastConfLocation=$(get_icecast_conf "$icecastName") &&
+	sourcePassword=$(get_icecast_source_password "$icecastConfLocation") &&
+	echo 'Enter radio station public name or description:' &&
+	read publicName &&
+
+	echo 'Enter radio station internal name:' &&
+	read internalName &&
+
+	echo "public: $publicName" &&
+	echo "internal: $internalName" &&
+	
 	create_ices_config "$internalName" "$publicName" "$sourcePassword" &&
 	create_ices_py_module "$internalName" &&
+	if [ "$skip" = 'save_station' ]; then
+		echo "Not saving to db"
+		return
+	fi
 	export dbName="$app_root"/"$sqlite_file"
 	. "$app_trunk"/"$py_env"/bin/activate &&
 	save_station_to_db "$internalName" "$publicName" &&
@@ -649,10 +646,7 @@ setup_client() (
 setup_radio() (
 	process_global_vars "$@" &&
 	#keep a copy in the parent radio directory
-	cp ./radio_common.sh "$app_trunk"/radio_common.sh &&
 	cp ./requirements.txt "$app_trunk"/requirements.txt &&
-
-	cp ./radio_common.sh "$app_root"/radio_common.sh &&
 	cp ./requirements.txt "$app_root"/requirements.txt &&
 	
 	deploy_py_libs "$app_trunk" &&
@@ -757,6 +751,9 @@ process_global_args() {
 			#when I want to conditionally run with some experimental code
 			(experiment=*) 
 				export exp_name=${1#experiment=}
+				;;
+			(skip=*)
+				export skip_option=${1#skip=}
 				;;
 			(*) ;;
 		esac

@@ -94,6 +94,7 @@ s3_name() {
 }
 
 link_to_music_files() {
+	process_global_vars "$@" &&
 	if [ ! -e "$app_root"/"$content_home"/Soundtrack ]; then 
 		if [ -n "$IS_RADIO_LOCAL_DEV" ]; then
 			s3fs "$(s3_name)" "$app_root"/"$content_home"/ 
@@ -591,7 +592,7 @@ shutdown_all_stations() (
 start_up_radio() (
 	process_global_vars "$@" &&
 	link_to_music_files &&
-	setup_radio &&
+	shutdown_all_stations &&
 	export searchBase="$app_root"/"$content_home" &&
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_trunk"/"$py_env"/bin/activate &&

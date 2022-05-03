@@ -13,6 +13,7 @@ fi
 
 process_global_vars "$@"
 
+
 printenv > "$app_root"/used_env_vars
 
 export pkgMgrChoice=$(get_pkg_mgr)

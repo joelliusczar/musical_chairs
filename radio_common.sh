@@ -772,35 +772,35 @@ define_top_level_terms() {
 		web_root="$test_root"
 	fi
 
-	proj_name='musical_chairs'
+	export proj_name='musical_chairs'
 	db_name='songs_db'
 	app_trunk="$app_root/$proj_name"
 	export app_root="$app_root"
 	export web_root="$web_root"
 	export app_trunk="$app_trunk"
 
-	lib_name="$proj_name"_libs
-	app_name="$proj_name"_app
+	export lib_name="$proj_name"_libs
+	export app_name="$proj_name"_app
 
 	[ -e "$app_trunk" ] || 
 	mkdir -pv "$app_trunk"
 }
 
 define_app_dir_paths() {
-	ices_configs_dir="$proj_name"/ices_configs
-	pyModules_dir="$proj_name"/pyModules
-	build_dir='Documents/builds'
-	content_home='music/radio'
-	config_dir="$proj_name"/config
-	env_api_file="$config_dir"/.env
-	db_dir="$proj_name"/db
-	sqlite_file="$db_dir"/"$db_name"
-	bin_dir='.local/bin'
-	utest_env_dir="$test_root"/utest
+	export ices_configs_dir="$proj_name"/ices_configs
+	export pyModules_dir="$proj_name"/pyModules
+	export build_dir='Documents/builds'
+	export content_home='music/radio'
+	export config_dir="$proj_name"/config
+	export env_api_file="$config_dir"/.env
+	export db_dir="$proj_name"/db
+	export sqlite_file="$db_dir"/"$db_name"
+	export bin_dir='.local/bin'
+	export utest_env_dir="$test_root"/utest
 
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
-	templates_dir_cl="$proj_name"/templates
+	export templates_dir_cl="$proj_name"/templates
 
 	[ -e "$app_root"/"$ices_configs_dir" ] || 
 	mkdir -pv "$app_root"/"$ices_configs_dir"
@@ -827,8 +827,8 @@ define_web_server_paths() {
 		(*) ;;
 	esac
 
-	app_api_path_cl=api/"$app_name"
-	app_client_path_cl=client/"$app_name"
+	export app_api_path_cl=api/"$app_name"
+	export app_client_path_cl=client/"$app_name"
 
 	msg='Pass required for creating web server directory: '
 	[ -e "$web_root"/"$app_api_path_cl" ] ||
@@ -849,52 +849,52 @@ define_url() {
 			;;
 	esac
 
-	full_url="http://$url_base""$url_suffix"
+	export full_url="http://$url_base""$url_suffix"
 }
 
 define_src_paths() {
-	src_path="$workspace_abs_path/src"
-	api_src="$src_path/api"
-	client_src="$src_path/client"
-	lib_src="$src_path/$lib_name"
-	templates_src="$workspace_abs_path/templates"
-	start_up_src="$workspace_abs_path/start_up"
-	maintenance_src="$workspace_abs_path/maintenance"
-	reference_src="$workspace_abs_path/reference"
-	reference_src_db="$reference_src/$db_name"
+	export src_path="$workspace_abs_path/src"
+	export api_src="$src_path/api"
+	export client_src="$src_path/client"
+	export lib_src="$src_path/$lib_name"
+	export templates_src="$workspace_abs_path/templates"
+	export start_up_src="$workspace_abs_path/start_up"
+	export maintenance_src="$workspace_abs_path/maintenance"
+	export reference_src="$workspace_abs_path/reference"
+	export reference_src_db="$reference_src/$db_name"
 }
 
 define_setup_vars() {
-	PACMAN_CONST='pacman'
-	APT_CONST='apt-get'
-	HOMEBREW_CONST='homebrew'
-	current_user=$(whoami)
+	export PACMAN_CONST='pacman'
+	export APT_CONST='apt-get'
+	export HOMEBREW_CONST='homebrew'
+	export current_user=$(whoami)
 }
 
 process_global_vars() {
 	if [ -n "$globals_set" ]; then
 		return
 	fi
-	workspace_abs_path=$(to_abs_path $0)
+	export workspace_abs_path=$(to_abs_path $0) 
 
-	process_global_args "$@"
+	process_global_args "$@" &&
 
-	define_top_level_terms
+	define_top_level_terms &&
 
-	define_app_dir_paths
+	define_app_dir_paths &&
 
-	define_web_server_paths
+	define_web_server_paths &&
 	
-	define_url
+	define_url &&
 	
-	define_src_paths
+	define_src_paths &&
 	
 	#python environment names
-	py_env='mc_env'
+	export py_env='mc_env' &&
 
-	define_setup_vars
+	define_setup_vars &&
 
-	globals_set='globals'
+	export globals_set='globals'
 }
 
 

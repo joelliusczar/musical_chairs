@@ -191,6 +191,8 @@ show_err_and_exit() {
 	exit "$err_code"
 }
 
+#needed this method because perl will still 
+#exit 0 even if a file doesn't exist
 does_file_exist() (
 	candidate="$1"
 	if [ ! -e "$candidate" ]; then
@@ -231,6 +233,12 @@ setup_dir_with_py() (
 	deploy_py_libs "$dest_dir" "$env_name" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
 		chown -R "$current_user": "$dest_dir"
+)
+
+copy_db() (
+	process_global_vars "$@" &&
+	[ -e "$app_root"/"$sqlite_file" ] ||
+	cp -v "$reference_src_db" "$app_root"/"$sqlite_file"
 )
 
 gen_pass() (
@@ -481,7 +489,7 @@ setup_icecast_confs() (
 	sourcePassword=$(gen_pass) &&
 	update_icecast_conf "$icecastConfLocation" \
 		"$sourcePassword" $(gen_pass) $(gen_pass) &&
-	update_all_ices_confs "$sourcePassword"
+	update_all_ices_confs "$sourcePassword" &&
 	sudo systemctl restart "$icecastName"
 )
 	
@@ -559,7 +567,7 @@ create_new_station() (
 	if [ "$skip" = 'save_station' ]; then
 		echo "Not saving to db"
 		return
-	fi
+	fi &&
 	export dbName="$app_root"/"$sqlite_file"
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	save_station_to_db "$internalName" "$publicName" &&

@@ -134,7 +134,8 @@ deploy_py_libs() (
 	env_name=${2:-"$py_env"}
 	packagePath="$env_name/lib/python$pyMajor.$pyMinor/site-packages/"
 	dest="$dest_base"/"$packagePath""$lib_name"/
-	mc-python -m virtualenv "$dest_base"/$env_name &&
+	error_check_path "$dest_base"/"$env_name" &&
+	mc-python -m virtualenv "$dest_base"/"$env_name" &&
 	. "$dest_base"/$env_name/bin/activate &&
 	#this is to make some of my newer than checks work
 	touch "$dest_base"/$env_name && 

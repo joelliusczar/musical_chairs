@@ -835,6 +835,7 @@ define_top_level_terms() {
 
 	[ -e "$app_root"/"$app_trunk" ] || 
 	mkdir -pv "$app_root"/"$app_trunk"
+	echo "top level terms defined"
 }
 
 define_app_dir_paths() {
@@ -865,6 +866,8 @@ define_app_dir_paths() {
 	mkdir -pv "$app_root"/"$config_dir"
 	[ -e "$app_root"/"$db_dir" ] || 
 	mkdir -pv "$app_root"/"$db_dir"
+
+	echo "app dir paths defined and created"
 }
 
 define_web_server_paths() {
@@ -887,6 +890,8 @@ define_web_server_paths() {
 		sudo -p "$msg" mkdir -pv "$web_root"/"$app_api_path_cl" ||
 		show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}" 
 	}
+
+	echo "web server paths defined"
 }
 
 define_url() {
@@ -901,6 +906,7 @@ define_url() {
 	esac
 
 	export full_url="http://$url_base""$url_suffix"
+	echo "url defined"
 }
 
 define_src_paths() {
@@ -911,6 +917,7 @@ define_src_paths() {
 	export templates_src="$workspace_abs_path/templates"
 	export reference_src="$workspace_abs_path/reference"
 	export reference_src_db="$reference_src/$db_name"
+	echo "source paths defined"
 }
 
 define_setup_vars() {
@@ -918,6 +925,7 @@ define_setup_vars() {
 	export APT_CONST='apt-get'
 	export HOMEBREW_CONST='homebrew'
 	export current_user=$(whoami)
+	echo "setup vars defined"
 }
 
 process_global_vars() {

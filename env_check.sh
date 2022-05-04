@@ -11,6 +11,8 @@ else
   exit 1
 fi
 
+process_global_vars "$@"
+
 pkgMgrChoice=$(get_pkg_mgr)
 
 [ -n "$pkgMgrChoice" ] ||
@@ -116,8 +118,8 @@ fi
 [ -e "$app_root"/"$build_home" ] ||
 echo "${app_root}/${build_home} does not exist"
 
-[ -e "$app_trunk" ] ||
-echo "${app_trunk} does not exist"
+[ -e "$app_root"/"$app_trunk" ] ||
+echo "${app_root}/${app_trunk} does not exist"
 
 case $(uname) in
 	Linux*)
@@ -135,16 +137,14 @@ esac
 mc-ices -V >/dev/null 2>&1 ||
 echo "mc-ices is not installed"
 
-[ -e "$app_trunk"/radio_common.sh ] ||
+[ -e "$app_root"/"$app_trunk"/radio_common.sh ] ||
 echo "radio_common.sh is not in place"
-[ -e "$app_trunk"/icecast_check.sh ] ||
-echo "icecast_check.sh is not in place"
-[ -e "$app_trunk"/requirements.txt ] ||
+[ -e "$app_root"/"$app_trunk"/requirements.txt ] ||
 echo "requirements.txt is not in place"
 
 
 
-[ -e "$app_trunk"/"$py_env" ] ||
+[ -e "$app_root"/"$app_trunk"/"$py_env" ] ||
 echo "${app_trunk}/${py_env} is not in place"
 
 compare_dirs "$templates_src" "$app_root"/"$templates_dir_cl"

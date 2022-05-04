@@ -20,6 +20,15 @@ to_abs_path() (
 	fi
 )
 
+get_src_path() (
+	if [ -d "$app_root"/"$proj_name" ]; then
+		echo "$app_root"/"$proj_name"
+	else
+		echo "src directory not in expected location" 2>&1
+		return 1
+	fi
+)
+
 
 install_package() (
 	pkgName="$1"
@@ -129,8 +138,8 @@ deploy_py_libs() (
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
-	python -m pip install -r "$app_trunk"/requirements.txt &&
-	setup_dir ./src/"$lib_name" "$dest" ||
+	python -m pip install -r "$app_root"/"$app_trunk"/requirements.txt &&
+	setup_dir "$src_path"/"$lib_name" "$dest" ||
 	return "$?"
 )
 
@@ -552,17 +561,17 @@ create_new_station() (
 		return
 	fi
 	export dbName="$app_root"/"$sqlite_file"
-	. "$app_trunk"/"$py_env"/bin/activate &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	save_station_to_db "$internalName" "$publicName" &&
 	add_tags_to_station "$internalName"
 )
 
 run_song_scan() (
-	process_global_vars "$@" &&
+	process_global_vars "$@" &&"$app_root"
 	link_to_music_files &&
 	setup_radio &&
 	export dbName="$app_root"/"$sqlite_file" &&
-	. "$app_trunk"/"$py_env"/bin/activate &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
 	python  <<-EOF
 	from musical_chairs_libs.song_scanner import SongScanner
@@ -579,7 +588,7 @@ shutdown_all_stations() (
 	process_global_vars "$@" &&
 	setup_radio &&
 	export dbName="$app_root"/"$sqlite_file" &&
-	. "$app_trunk"/"$py_env"/bin/activate &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
 	python  <<-EOF
 	from musical_chairs_libs.station_service import StationService
@@ -595,7 +604,7 @@ start_up_radio() (
 	shutdown_all_stations &&
 	export searchBase="$app_root"/"$content_home" &&
 	export dbName="$app_root"/"$sqlite_file" &&
-	. "$app_trunk"/"$py_env"/bin/activate &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
 		mc-ices -c "$conf"
 	done
@@ -647,10 +656,11 @@ setup_client() (
 setup_radio() (
 	process_global_vars "$@" &&
 	#keep a copy in the parent radio directory
-	cp ./requirements.txt "$app_trunk"/requirements.txt &&
-	cp ./requirements.txt "$app_root"/requirements.txt &&
+	cp "$workspace_abs_path"/requirements.txt \
+		"$app_root"/"$app_trunk"/requirements.txt &&
+	cp "$workspace_abs_path"/requirements.txt "$app_root"/requirements.txt &&
 	
-	deploy_py_libs "$app_trunk" &&
+	deploy_py_libs "$app_root"/"$app_trunk" &&
 
 	setup_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
 
@@ -664,7 +674,8 @@ setup_unit_test_env() (
 	process_global_vars "$@"
 	setup_env_api_file &&
 	#redirect stderr into stdout missing env will also trigger redeploy
-	srcChanges=$(find ./src/"$lib_name" -newer "$utest_env_dir"/"$py_env" 2>&1)
+	srcChanges=$(find "$src_path"/"$lib_name" -newer \
+		"$utest_env_dir"/"$py_env" 2>&1)
 	if [ -n "$srcChanges" ]; then
 		echo "changes?"
 		deploy_py_libs "$utest_env_dir" 
@@ -774,33 +785,33 @@ define_top_level_terms() {
 
 	export proj_name='musical_chairs'
 	db_name='songs_db'
-	app_trunk="$app_root/$proj_name"
+	export app_trunk="$proj_name"_dir
 	export app_root="$app_root"
 	export web_root="$web_root"
-	export app_trunk="$app_trunk"
+
 
 	export lib_name="$proj_name"_libs
 	export app_name="$proj_name"_app
 
-	[ -e "$app_trunk" ] || 
-	mkdir -pv "$app_trunk"
+	[ -e "$app_root"/"$app_trunk" ] || 
+	mkdir -pv "$app_root"/"$app_trunk"
 }
 
 define_app_dir_paths() {
-	export ices_configs_dir="$proj_name"/ices_configs
-	export pyModules_dir="$proj_name"/pyModules
+	export ices_configs_dir="$app_trunk"/ices_configs
+	export pyModules_dir="$app_trunk"/pyModules
 	export build_dir='Documents/builds'
 	export content_home='music/radio'
-	export config_dir="$proj_name"/config
+	export config_dir="$app_trunk"/config
 	export env_api_file="$config_dir"/.env
-	export db_dir="$proj_name"/db
+	export db_dir="$app_trunk"/db
 	export sqlite_file="$db_dir"/"$db_name"
 	export bin_dir='.local/bin'
 	export utest_env_dir="$test_root"/utest
 
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
-	export templates_dir_cl="$proj_name"/templates
+	export templates_dir_cl="$app_trunk"/templates
 
 	[ -e "$app_root"/"$ices_configs_dir" ] || 
 	mkdir -pv "$app_root"/"$ices_configs_dir"
@@ -875,7 +886,9 @@ process_global_vars() {
 	if [ -n "$globals_set" ]; then
 		return
 	fi
-	export workspace_abs_path=$(to_abs_path $0) 
+	copied_src_path=$(get_src_path)
+	local_src_path=$(to_abs_path $0)
+	export workspace_abs_path=${copied_src_path:-local_src_path}
 
 	process_global_args "$@" &&
 

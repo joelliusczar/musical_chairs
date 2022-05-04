@@ -21,8 +21,11 @@ to_abs_path() (
 )
 
 get_src_path() (
+	error_check_path "$app_root"/"$build_dir"/"$proj_name" &&
 	if [ -d "$app_root"/"$build_dir"/"$proj_name" ]; then
 		echo "$app_root"/"$build_dir"/"$proj_name"
+	elif [ -d "$app_root"/Documents/Code/radio/"$proj_name" ]; then 
+		echo "$app_root"/Documents/Code/radio/"$proj_name"
 	else
 		echo "src directory not in expected location" 2>&1
 		return 1

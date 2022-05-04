@@ -73,11 +73,11 @@ if ! git --version 2>/dev/null; then
 fi
 
 error_check_path "$app_root"/"$build_dir"/"$proj_name" &&
-rm -r "$app_root/$build_dir/$proj_name" &&
+rm -rf "$app_root/$build_dir/$proj_name" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$app_root"/"$build_dir" && 
 git clone "$radio_server_repo_url" "$proj_name" &&
-cd "$proj_name" 
+cd "$proj_name"  &&
 
 RemoteScriptEOF1
 } > clone_repo_fifo &
@@ -85,8 +85,8 @@ RemoteScriptEOF1
 #select which setup script to run
 { cat<<RemoteScriptEOF2
 
-export diag_flag="$diag_flag"
-export exp_name="$exp_name"
+export diag_flag="$diag_flag" &&
+export exp_name="$exp_name" &&
 
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"

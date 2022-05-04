@@ -734,7 +734,7 @@ setup_all() (
 	setup_radio &&
 	setup_api &&
 	setup_client &&
-	setup_unit_test_env &&
+	setup_unit_test_env
 )
 
 #assume install_setup.sh has been run

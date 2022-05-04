@@ -869,8 +869,6 @@ define_src_paths() {
 	export client_src="$src_path/client"
 	export lib_src="$src_path/$lib_name"
 	export templates_src="$workspace_abs_path/templates"
-	export start_up_src="$workspace_abs_path/start_up"
-	export maintenance_src="$workspace_abs_path/maintenance"
 	export reference_src="$workspace_abs_path/reference"
 	export reference_src_db="$reference_src/$db_name"
 }
@@ -886,14 +884,6 @@ process_global_vars() {
 	if [ -n "$globals_set" ]; then
 		return
 	fi
-	copied_src_path=$(get_src_path)
-	local_src_path=$(to_abs_path $0)
-	if [ -n "$copied_src_path" ]; then
-		export workspace_abs_path="$copied_src_path"
-	else
-		export workspace_abs_path="$local_src_path"
-	fi
-	export workspace_abs_path=${copied_src_path:-local_src_path}
 
 	process_global_args "$@" &&
 
@@ -904,6 +894,14 @@ process_global_vars() {
 	define_web_server_paths &&
 	
 	define_url &&
+
+	copied_src_path=$(get_src_path) &&
+	local_src_path=$(to_abs_path $0) &&
+	if [ -n "$copied_src_path" ]; then
+		export workspace_abs_path="$copied_src_path"
+	else
+		export workspace_abs_path="$local_src_path"
+	fi &&
 	
 	define_src_paths &&
 	

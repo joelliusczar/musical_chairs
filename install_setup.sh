@@ -76,7 +76,7 @@ fi || show_err_and_exit "python install failed"
 
 
 if ! mc-python -m pip -V 2>/dev/null; then
-	curl https://bootstrap.pypa.io/pip/get-pip.py | mc-python /dev/stdin ||
+	mc-python -c "$(curl -fsSL https://bootstrap.pypa.io/pip/get-pip.py)" ||
 	show_err_and_exit "Couldn't install pip"
 fi
 

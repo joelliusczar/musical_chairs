@@ -21,8 +21,8 @@ to_abs_path() (
 )
 
 get_src_path() (
-	if [ -d "$app_root"/"$proj_name" ]; then
-		echo "$app_root"/"$proj_name"
+	if [ -d "$app_root"/"$build_dir"/"$proj_name" ]; then
+		echo "$app_root"/"$build_dir"/"$proj_name"
 	else
 		echo "src directory not in expected location" 2>&1
 		return 1

@@ -888,6 +888,11 @@ process_global_vars() {
 	fi
 	copied_src_path=$(get_src_path)
 	local_src_path=$(to_abs_path $0)
+	if [ -n "$copied_src_path" ]; then
+		export workspace_abs_path="$copied_src_path"
+	else
+		export workspace_abs_path="$local_src_path"
+	fi
 	export workspace_abs_path=${copied_src_path:-local_src_path}
 
 	process_global_args "$@" &&

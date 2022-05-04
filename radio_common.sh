@@ -21,11 +21,12 @@ to_abs_path() (
 )
 
 get_src_path() (
-	error_check_path "$app_root"/"$build_dir"/"$proj_name" &&
-	if [ -d "$app_root"/"$build_dir"/"$proj_name" ]; then
-		echo "$app_root"/"$build_dir"/"$proj_name"
-	elif [ -d "$app_root"/Documents/Code/radio/"$proj_name" ]; then 
-		echo "$app_root"/Documents/Code/radio/"$proj_name"
+
+	error_check_path "$HOME"/"$build_dir"/"$proj_name" &&
+	if [ -d "$HOME"/"$build_dir"/"$proj_name" ]; then
+		echo "$HOME"/"$build_dir"/"$proj_name"
+	elif [ -d "$HOME"/Documents/Code/radio/"$proj_name" ]; then 
+		echo "$HOME"/Documents/Code/radio/"$proj_name"
 	else
 		echo "src directory not in expected location" 2>&1
 		return 1
@@ -152,6 +153,9 @@ error_check_path() (
 	if echo "$target_dir" | grep '\/\/'; then
 		echo "segments seem to be missing in ${target_dir}"
 		return 1
+	elif [ "$target_dir" = '/' ];then
+		echo "segments seem to be missing in ${target_dir}"
+		return 1
 	fi
 )
 
@@ -217,7 +221,7 @@ does_file_exist() (
 
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
-	envFile="$app_root"/"$env_api_file"
+	envFile="$app_root"/"$config_dir".env
 	error_check_path "$templates_src"/.env_api &&
 	error_check_path "$envFile" &&
 	cp "$templates_src"/.env_api "$envFile" &&
@@ -715,10 +719,17 @@ setup_radio() (
 
 #assume install_setup.sh has been run
 setup_unit_test_env() (
-	process_global_vars "$@"
+	process_global_vars "$@" &&
+	[ -e "$test_root"/"$config_dir" ] || 
+	mkdir -pv "$test_root"/"$config_dir" &&
+	[ -e "$test_root"/"$db_dir" ] || 
+	mkdir -pv "$test_root"/"$db_dir" &&
 	error_check_path "$reference_src_db" &&
 	error_check_path "$test_root"/"$sqlite_file" &&
-	setup_env_api_file &&
+	(
+		export app_root="$test_root"
+		setup_env_api_file 
+	) &&
 	copy_db &&
 	#redirect stderr into stdout missing env will also trigger redeploy
 	srcChanges=$(find "$src_path"/"$lib_name" -newer \
@@ -728,7 +739,7 @@ setup_unit_test_env() (
 		deploy_py_libs "$utest_env_dir" 
 	fi &&
 
-	echo "PYTHONPATH='$src_path'" >> "$test_root"/"$env_api_file" &&
+	echo "PYTHONPATH='$src_path'" >> "$test_root"/"$config_dir".env &&
 
 	cp -v "$reference_src_db" "$test_root"/"$sqlite_file"
 )
@@ -817,9 +828,21 @@ process_global_args() {
 	done
 }
 
+define_consts() {
+	export PACMAN_CONST='pacman'
+	export APT_CONST='apt-get'
+	export HOMEBREW_CONST='homebrew'
+	export current_user=$(whoami)
+	export proj_name='musical_chairs'
+	export build_dir='Documents/builds'
+	export content_home='music/radio'
+	export bin_dir='.local/bin'
+	echo "constants defined"
+}
+
 define_top_level_terms() {
 	app_root=${app_root:-"$HOME"}
-	test_root="$workspace_abs_path/test_trash"
+	export test_root="$workspace_abs_path/test_trash"
 
 
 	if [ -n "$test_flag" ]; then
@@ -827,7 +850,6 @@ define_top_level_terms() {
 		web_root="$test_root"
 	fi
 
-	export proj_name='musical_chairs'
 	db_name='songs_db'
 	export app_trunk="$proj_name"_dir
 	export app_root="$app_root"
@@ -845,13 +867,10 @@ define_top_level_terms() {
 define_app_dir_paths() {
 	export ices_configs_dir="$app_trunk"/ices_configs
 	export pyModules_dir="$app_trunk"/pyModules
-	export build_dir='Documents/builds'
-	export content_home='music/radio'
+	
 	export config_dir="$app_trunk"/config
-	export env_api_file="$config_dir"/.env
 	export db_dir="$app_trunk"/db
 	export sqlite_file="$db_dir"/"$db_name"
-	export bin_dir='.local/bin'
 	export utest_env_dir="$test_root"/utest
 
 	# directories that should be cleaned upon changes
@@ -924,21 +943,18 @@ define_src_paths() {
 	echo "source paths defined"
 }
 
-define_setup_vars() {
-	export PACMAN_CONST='pacman'
-	export APT_CONST='apt-get'
-	export HOMEBREW_CONST='homebrew'
-	export current_user=$(whoami)
-	echo "setup vars defined"
-}
 
 process_global_vars() {
 	if [ -n "$globals_set" ]; then
 		return
 	fi
 
-	process_global_args "$@" &&
+	define_consts &&
 
+	export workspace_abs_path=$(get_src_path) &&
+
+	process_global_args "$@" &&
+	
 	define_top_level_terms &&
 
 	define_app_dir_paths &&
@@ -947,20 +963,14 @@ process_global_vars() {
 	
 	define_url &&
 
-	copied_src_path=$(get_src_path) &&
-	local_src_path=$(to_abs_path $0) &&
-	if [ -n "$copied_src_path" ]; then
-		export workspace_abs_path="$copied_src_path"
-	else
-		export workspace_abs_path="$local_src_path"
-	fi &&
+	#get_src_path needs to be called down here because it's dependent 
+	#on several other variables being defined first
+	
 	
 	define_src_paths &&
 	
 	#python environment names
 	export py_env='mc_env' &&
-
-	define_setup_vars &&
 
 	export globals_set='globals'
 }

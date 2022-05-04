@@ -631,6 +631,7 @@ start_up_web_server() (
 setup_api() (
 	process_global_vars "$@" &&
 	setup_dir_with_py "$api_src" "$web_root"/"$app_api_path_cl" &&
+	copy_db &&
 	setup_nginx_confs 
 )
 
@@ -671,7 +672,7 @@ setup_radio() (
 	deploy_py_libs "$app_root"/"$app_trunk" &&
 
 	setup_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
-
+	copy_db &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	setup_icecast_confs "$icecastName"
@@ -681,6 +682,7 @@ setup_radio() (
 setup_unit_test_env() (
 	process_global_vars "$@"
 	setup_env_api_file &&
+	copy_db &&
 	#redirect stderr into stdout missing env will also trigger redeploy
 	srcChanges=$(find "$src_path"/"$lib_name" -newer \
 		"$utest_env_dir"/"$py_env" 2>&1)

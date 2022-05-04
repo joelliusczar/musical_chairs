@@ -13,6 +13,9 @@ fi
 
 . "$radio_common_path"
 
+process_global_vars "$@" ||
+show_err_and_exit "error with global variabls"
+
 if [ -n "$(git status --porcelain)" ]; then
 	echo "There are uncommited changes that will not be apart of the deploy"
 	echo "continue?"
@@ -43,7 +46,7 @@ if [ -n "$copy_db_flag" ]; then
 		"$radio_server_ssh_address":"$remote_home/$sqlite_file"
 fi
 
-sh ./run_unit_tests.sh
+run_unit_tests
 unitTestSuccess="$?"
 
 #Would have prefered to just use a variable
@@ -65,7 +68,8 @@ if ! git --version 2>/dev/null; then
 	install_package git
 fi
 
-rm -rf "$app_root/$build_dir/$proj_name" &&
+error_check_path "$app_root/$build_dir/$proj_name" &&
+rm -r "$app_root/$build_dir/$proj_name" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$app_root/$build_dir" && 
 git clone "$radio_server_repo_url" "$proj_name" &&

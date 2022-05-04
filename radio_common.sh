@@ -143,18 +143,28 @@ deploy_py_libs() (
 	return "$?"
 )
 
+error_check_path() (
+	target_dir="$1"
+	if echo "$target_dir" | grep '\/\/'; then
+		echo "segments seem to be missing in ${target_dir}"
+		return 1
+	fi
+)
+
 empty_dir_contents() (
 	dir_to_empty="$1"
-	echo "Emptying ${dir_to_empty}"
+	error_check_path "$dir_to_empty" &&
+	echo "Emptying ${dir_to_empty}" &&
 	if [ -e "$dir_to_empty" ]; then 
-		sudo -p "Password required for removing old files: " \
+
+		sudo -p "Password required for removing files from ${dir_to_empty}: " \
 			rm -rf "$dir_to_empty"/* || return "$?"
 	else
-		sudo -p 'Password required for creating files: ' \
+		sudo -p "Password required for creating ${dir_to_empty}: " \
 			mkdir -pv "$dir_to_empty" || return "$?"
 	fi 
-	msg='Password required for changing owner of created files to current user: '
-	sudo -p "$msg" \
+	sudo -p \
+		"Password required to change owner of ${dir_to_empty} to current user: " \
 		chown -R "$current_user": "$dir_to_empty" 
 )
 
@@ -204,6 +214,8 @@ does_file_exist() (
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	envFile="$app_root"/"$env_api_file"
+	error_check_path "$templates_src"/.env_api &&
+	error_check_path "$envFile" &&
 	cp "$templates_src"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
 	perl -pi -e "s@^(searchBase=).*\$@\1'${app_root}/${content_home}'@" \
@@ -215,6 +227,8 @@ setup_env_api_file() (
 setup_dir() (
 	src_dir="$1"
 	dest_dir="$2"
+	error_check_path "$src_dir"/. &&
+	error_check_path "$dest_dir" &&
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
 		cp -rv "$src_dir"/. "$dest_dir" &&
@@ -227,6 +241,8 @@ setup_dir_with_py() (
 	src_dir="$1"
 	dest_dir="$2"
 	env_name="$3"
+	error_check_path "$src_dir"/. &&
+	error_check_path "$dest_dir" &&
 	empty_dir_contents "$dest_dir" &&
 	sudo -p 'Pass required for copying files: ' \
 		cp -rv "$src_dir"/. "$dest_dir" &&
@@ -237,6 +253,8 @@ setup_dir_with_py() (
 
 copy_db() (
 	process_global_vars "$@" &&
+	error_check_path "$reference_src_db" &&
+	error_check_path "$app_root"/"$sqlite_file" &&
 	[ -e "$app_root"/"$sqlite_file" ] ||
 	cp -v "$reference_src_db" "$app_root"/"$sqlite_file"
 )
@@ -249,6 +267,8 @@ gen_pass() (
 compare_dirs() (
 	src_dir="$1"
 	cpy_dir="$2"
+	error_check_path "$src_dir"
+	error_check_path "$cpy_dir"
 	exit_code=0
 	if [ ! -e "$cpy_dir" ]; then
 		echo "$cpy_dir/ is not in place" 
@@ -335,6 +355,8 @@ get_nginx_conf_dir_include() (
 
 update_nginx_conf() (
 	appConfFile="$1"
+	error_check_path "$templates_src" &&
+	error_check_path "$appConfFile" &&
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
@@ -499,6 +521,8 @@ create_ices_config() (
 	sourcePassword="$3"
 	process_global_vars "$@" &&
 	station_conf="$app_root"/"$ices_configs_dir"/ices."$internalName".conf
+	error_check_path "$app_root"/"$templates_dir_cl"/ices.conf &&
+	error_check_path "$station_conf" &&
 	cp "$app_root"/"$templates_dir_cl"/ices.conf "$station_conf" &&
 	perl -pi -e "s/icecast_password/$sourcePassword/ if /<Password>/" \
 		"$station_conf" &&
@@ -514,6 +538,8 @@ create_ices_py_module() (
 	internalName="$1"
 	process_global_vars "$@" &&
 	station_module="$app_root"/"$pyModules_dir"/"$internalName".py &&
+	error_check_path "$app_root"/"$templates_dir_cl"/template.py &&
+	error_check_path "$station_module" &&
 	cp "$app_root"/"$templates_dir_cl"/template.py "$station_module" &&
 	perl -pi -e "s/<internal_station_name>/$internalName/" "$station_module"
 )
@@ -637,6 +663,8 @@ setup_api() (
 
 setup_client() (
 	process_global_vars "$@" &&
+	error_check_path "$client_src" &&
+	error_check_path "$web_root"/"$app_client_path_cl" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -664,6 +692,9 @@ setup_client() (
 #assume install_setup.sh has been run
 setup_radio() (
 	process_global_vars "$@" &&
+	error_check_path "$workspace_abs_path"/requirements.txt &&
+	error_check_path "$app_root"/"$app_trunk"/requirements.txt &&
+	error_check_path "$app_root"/requirements.txt &&
 	#keep a copy in the parent radio directory
 	cp "$workspace_abs_path"/requirements.txt \
 		"$app_root"/"$app_trunk"/requirements.txt &&
@@ -681,6 +712,8 @@ setup_radio() (
 #assume install_setup.sh has been run
 setup_unit_test_env() (
 	process_global_vars "$@"
+	error_check_path "$reference_src_db" &&
+	error_check_path "$test_root"/"$sqlite_file" &&
 	setup_env_api_file &&
 	copy_db &&
 	#redirect stderr into stdout missing env will also trigger redeploy
@@ -702,9 +735,6 @@ setup_all() (
 	setup_api &&
 	setup_client &&
 	setup_unit_test_env &&
-	if [ -n "$copy_db_flag" ]; then
-		cp -v "$reference_src_db" "$app_root"/"$sqlite_file" 
-	fi
 )
 
 #assume install_setup.sh has been run

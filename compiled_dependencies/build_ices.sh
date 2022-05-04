@@ -104,5 +104,5 @@ ices_build_dir="$app_root"/"$build_dir"/ices
 		--program-prefix="$name_prefix" &&
 	make &&
 	make install &&
-	rm -rf "$ices_build_dir"
+	rm -r "$ices_build_dir"
 )

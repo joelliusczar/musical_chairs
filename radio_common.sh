@@ -57,8 +57,15 @@ install_package() (
 
 set_python_version_const() {
 	#python version info
-	mc-python -V 2>/dev/null || return "$?"
-	pyVersion=$(mc-python -V)
+	if mc-python -V 2>/dev/null; then
+		pyVersion=$(mc-python -V)
+	elif python3 -V 2>/dev/null; then
+		pyVersion=$(python3 -V)
+	elif python -V 2>/dev/null; then
+		pyVersion=$(python -V)
+	else 
+		return 1
+	fi
 	pyMajor=$(echo "$pyVersion" | perl -ne 'print "$1\n" if /(\d+)\.\d+/')
 	pyMinor=$(echo "$pyVersion" | perl -ne 'print "$1\n" if /\d+\.(\d+)/')
 }

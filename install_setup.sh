@@ -74,6 +74,7 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 	ln -sf $(get_bin_path "$pythonToLink") "$app_root"/"$bin_dir"/mc-python
 fi || show_err_and_exit "python install failed"
 
+mc-python -V 2>/dev/null || show_err_and_exit "mc-python not available"
 
 if ! mc-python -m pip -V 2>/dev/null; then
 	mc-python -c "$(curl -fsSL https://bootstrap.pypa.io/pip/get-pip.py)" ||

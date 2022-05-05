@@ -91,13 +91,16 @@ export exp_name="$exp_name" &&
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"
 	(exit "$unitTestSuccess") &&
+	. ./radio_common.sh
 	setup_api
 elif [ "$setup_lvl" = 'client' ]; then
 	echo "$setup_lvl"
+	. ./radio_common.sh
 	setup_client
 elif [ "$setup_lvl" = 'radio' ]; then
 	echo "$setup_lvl"
 	(exit "$unitTestSuccess") &&
+	. ./radio_common.sh
 	start_up_radio
 elif [ "$setup_lvl" = 'install' ]; then
 	echo "$setup_lvl"
@@ -105,6 +108,7 @@ elif [ "$setup_lvl" = 'install' ]; then
 else 
 	echo "$setup_lvl"
 	(exit "$unitTestSuccess") &&
+	. ./radio_common.sh
 	setup_all
 fi
 

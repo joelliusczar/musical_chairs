@@ -530,7 +530,7 @@ update_all_ices_confs() (
 	sourcePassword="$1"
 	process_global_vars "$@"
 	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
-		[ ! -f "$conf" ] && continue
+		[ ! -s "$conf" ] && continue
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
 	done &&
 	echo "done updating ices confs"
@@ -683,7 +683,7 @@ shutdown_all_stations() (
 	EOF
 )
 
-start_up_radio() (
+startup_radio() (
 	process_global_vars "$@" &&
 	link_to_music_files &&
 	shutdown_all_stations &&
@@ -691,11 +691,12 @@ start_up_radio() (
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
+		[ ! -s "$conf" ] && continue
 		mc-ices -c "$conf"
 	done
 )
 
-start_up_web_server() (
+startup_web_server() (
 	process_global_vars "$@" &&
 	setup_api &&
 	export dbName="$app_root"/"$sqlite_file" &&

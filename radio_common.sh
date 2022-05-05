@@ -310,7 +310,7 @@ sync_requirement_list() (
 	#keep a copy in the parent radio directory
 	cp "$workspace_abs_path"/requirements.txt \
 		"$app_root"/"$app_trunk"/requirements.txt &&
-	cp "$workspace_abs_path"/requirements.txt "$app_root"/requirements.txt &&
+	cp "$workspace_abs_path"/requirements.txt "$app_root"/requirements.txt
 )
 
 gen_pass() (

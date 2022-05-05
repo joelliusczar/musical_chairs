@@ -505,12 +505,14 @@ update_icecast_conf() (
 )
 
 update_all_ices_confs() (
+	echo "updating ices confs"
 	sourcePassword="$1"
 	process_global_vars "$@"
 	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
 		[ ! -f "$conf" ] && continue
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
-	done
+	done &&
+	echo "done updating ices confs"
 )
 
 get_icecast_source_password() (

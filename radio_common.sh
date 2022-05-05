@@ -78,17 +78,20 @@ set_env_path_var() {
 }
 
 get_pkg_mgr() {
-	define_consts 1>&2 &&
+	define_consts 1>&2
 	case $(uname) in
 		(Linux*)
 			if  which pacman >/dev/null 2>&1; then
 				echo "$PACMAN_CONST"
+				return 0
 			elif which apt-get >/dev/null 2>&1; then
 				echo "$APT_CONST"
+				return 0
 			fi
 			;;
 		(Darwin*)
 			echo "$HOMEBREW_CONST"
+			return 0
 			;;
 		(*) 
 			;;
@@ -273,11 +276,13 @@ setup_dir_with_py() (
 )
 
 copy_initial_db() (
+	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
 	error_check_path "$reference_src_db" &&
 	error_check_path "$app_root"/"$sqlite_file" &&
 	[ -e "$app_root"/"$sqlite_file" ] ||
-	cp -v "$reference_src_db" "$app_root"/"$sqlite_file"
+	cp -v "$reference_src_db" "$app_root"/"$sqlite_file" &&
+	echo 'done tentatively copying initial db'
 )
 
 sync_utility_scripts() (

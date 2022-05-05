@@ -114,6 +114,7 @@ s3_name() {
 }
 
 link_to_music_files() {
+	echo 'linking music files'
 	process_global_vars "$@" &&
 	if [ ! -e "$app_root"/"$content_home"/Soundtrack ]; then 
 		if [ -n "$IS_RADIO_LOCAL_DEV" ]; then
@@ -121,10 +122,8 @@ link_to_music_files() {
 		else
 			s3fs "$(s3_name)" "$app_root"/"$content_home"/ -o iam_role="$(aws_role)"
 		fi
-	fi
-	res="$?"
-	echo 'Music files should exist now'
-	return "$res"
+	fi &&
+	echo 'music files should exist now'
 }
 
 is_python_version_good() {
@@ -136,6 +135,7 @@ is_python_version_good() {
 #set up the python environment, then copy 
 # subshell () auto switches in use python version back at the end of function
 deploy_py_libs() (
+	echo "setting up py libs"
 	set_python_version_const || return "$?"
 	set_env_path_var #ensure that we can see mc-python
 	dest_base="$1"
@@ -151,8 +151,8 @@ deploy_py_libs() (
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
 	python -m pip install -r "$app_root"/"$app_trunk"/requirements.txt &&
-	setup_dir "$src_path"/"$lib_name" "$dest" ||
-	return "$?"
+	setup_dir "$src_path"/"$lib_name" "$dest" &&
+	echo "done setting up py libs"
 )
 
 error_check_path() (
@@ -168,8 +168,8 @@ error_check_path() (
 
 empty_dir_contents() (
 	dir_to_empty="$1"
+	echo "emptying ${dir_to_empty}"
 	error_check_path "$dir_to_empty" &&
-	echo "Emptying ${dir_to_empty}" &&
 	if [ -e "$dir_to_empty" ]; then 
 
 		sudo -p "Password required for removing files from ${dir_to_empty}: " \
@@ -177,10 +177,11 @@ empty_dir_contents() (
 	else
 		sudo -p "Password required for creating ${dir_to_empty}: " \
 			mkdir -pv "$dir_to_empty" || return "$?"
-	fi 
+	fi &&
 	sudo -p \
 		"Password required to change owner of ${dir_to_empty} to current user: " \
-		chown -R "$current_user": "$dir_to_empty" 
+		chown -R "$current_user": "$dir_to_empty" &&
+	echo "done emptying ${dir_to_empty}"
 )
 
 get_bin_path() (
@@ -228,6 +229,7 @@ does_file_exist() (
 
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
+	echo 'setting up .env file'
 	envFile="$app_root"/"$config_dir".env
 	error_check_path "$templates_src"/.env_api &&
 	error_check_path "$envFile" &&
@@ -236,34 +238,38 @@ setup_env_api_file() (
 	perl -pi -e "s@^(searchBase=).*\$@\1'${app_root}/${content_home}'@" \
 		"$envFile" &&
 	does_file_exist "$envFile" &&
-	perl -pi -e "s@^(dbName=).*\$@\1'${app_root}/${sqlite_file}'@" "$envFile" 
+	perl -pi -e "s@^(dbName=).*\$@\1'${app_root}/${sqlite_file}'@" "$envFile" &&
+	echo 'done setting up .env file'
 )
 
 setup_dir() (
-	src_dir="$1"
-	dest_dir="$2"
-	error_check_path "$src_dir"/. &&
-	error_check_path "$dest_dir" &&
-	empty_dir_contents "$dest_dir" &&
+	from_dir="$1"
+	to_dir="$2"
+	echo "setting up dir from ${from_dir} to ${to_dir}"
+	error_check_path "$from_dir"/. &&
+	error_check_path "$to_dir" &&
+	empty_dir_contents "$to_dir" &&
 	sudo -p 'Pass required for copying files: ' \
-		cp -rv "$src_dir"/. "$dest_dir" &&
+		cp -rv "$from_dir"/. "$to_dir" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
-		chown -R "$current_user": "$dest_dir"
-	return "$?"
+		chown -R "$current_user": "$to_dir" &&
+	echo "done setting up dir from ${from_dir} to ${to_dir}"
 )
 
 setup_dir_with_py() (
-	src_dir="$1"
-	dest_dir="$2"
+	from_dir="$1"
+	to_dir="$2"
 	env_name="$3"
-	error_check_path "$src_dir"/. &&
-	error_check_path "$dest_dir" &&
-	empty_dir_contents "$dest_dir" &&
+	echo "setting up dir for python from ${from_dir} to ${to_dir}"
+	error_check_path "$from_dir"/. &&
+	error_check_path "$to_dir" &&
+	empty_dir_contents "$to_dir" &&
 	sudo -p 'Pass required for copying files: ' \
-		cp -rv "$src_dir"/. "$dest_dir" &&
-	deploy_py_libs "$dest_dir" "$env_name" &&
+		cp -rv "$from_dir"/. "$to_dir" &&
+	deploy_py_libs "$to_dir" "$env_name" &&
 	sudo -p 'Pass required for changing owner of maintenance files: ' \
-		chown -R "$current_user": "$dest_dir"
+		chown -R "$current_user": "$to_dir" &&
+	echo "done setting up dir for python from ${from_dir} to ${to_dir}"
 )
 
 copy_initial_db() (
@@ -374,6 +380,7 @@ get_nginx_conf_dir_include() (
 )
 
 update_nginx_conf() (
+	echo "updating nginx site conf"
 	appConfFile="$1"
 	error_check_path "$templates_src" &&
 	error_check_path "$appConfFile" &&
@@ -383,7 +390,8 @@ update_nginx_conf() (
 		perl -pi -e "s@<app_client_path_cl>@${web_root}/${app_client_path_cl}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<full_url>@${full_url}@" "$appConfFile" 
+		perl -pi -e "s@<full_url>@${full_url}@" "$appConfFile" &&
+	echo "done updating nginx site conf"
 )
 
 get_abs_path_from_nginx_include() (
@@ -421,31 +429,36 @@ get_nginx_conf_dir_abs_path() (
 )
 
 enable_nginx_include() (
+	echo "enabling nginx site confs"
 	confDirInclude="$1"
 	escaped_guess=$(literal_to_regex "$confDirInclude")
 	#uncomment line if necessary in config
 	sudo -p "Enable ${confDirInclude}" \
-		perl -pi -e "s/^[ \t]*#// if m@$escaped_guess@" "$(get_nginx_value)"
+		perl -pi -e "s/^[ \t]*#// if m@$escaped_guess@" "$(get_nginx_value)" &&
+	echo "done enabling nginx site confs"
 )
 
 restart_nginx() (
+	echo 'starting/restarting up nginx'
 	case $(uname) in
 		(Darwin*)
 			nginx -s reload
 			;;
 		(Linux*) 
 			if systemctl is-active --quiet nginx; then
-				sudo systemctl restart nginx
+				sudo -p 'starting nginx' systemctl restart nginx
 			else
-				sudo systemctl enable nginx
-				sudo systemctl start nginx
+				sudo -p 'enabling nginx' systemctl enable nginx
+				sudo -p 'restarting nginx' systemctl start nginx
 			fi
 			;;
 		(*) ;;
-	esac
+	esac &&
+	echo 'Done starting/restarting up nginx'
 )
 
 setup_nginx_confs() (
+	echo 'setting up nginx confs'
 	process_global_vars "$@" &&
 	confDirInclude=$(get_nginx_conf_dir_include) &&
 	#remove trailing path chars
@@ -454,20 +467,23 @@ setup_nginx_confs() (
 	update_nginx_conf "$confDir"/"$app_name".conf &&
 	sudo -p 'Remove default nginx config' \
 		rm -f "$confDir"/default &&
-	restart_nginx
+	restart_nginx &&
+	echo 'done setting up nginx confs'
 )
 
 start_icecast_service() (
+	echo 'starting icecast service'
 	icecastName="$1"
 	case $(uname) in
 		(Linux*) 
 			if ! systemctl is-active --quiet "$icecastName"; then
-				sudo systemctl enable "$icecastName"
-				sudo systemctl start "$icecastName"
+				sudo -p "enabling ${icecastName}" systemctl enable "$icecastName"
+				sudo -p "starting ${icecastName}" systemctl start "$icecastName"
 			fi
 			;;
 		(*) ;;
-	esac
+	esac &&
+	echo 'done starting icecast service'
 )
 
 get_icecast_conf() (
@@ -478,16 +494,15 @@ get_icecast_conf() (
 					echo "$icecastName is not running at the moment"
 					exit 1
 			fi
-
-			echo $(systemctl status "$icecastName" | grep -A2 CGroup | \
-					head -n2 | tail -n1 | awk '{ print $NF }' \
-			)
+				systemctl status "$icecastName" | grep -A2 CGroup | \
+					head -n2 | tail -n1 | awk '{ print $NF }'
 			;;
 		*) ;;
 	esac
 )
 
 update_icecast_conf() (
+	echo "updating icecast config"
 	icecastConfLocation="$1"
 	sourcePassword="$2"
 	relayPassword="$3"
@@ -501,7 +516,8 @@ update_icecast_conf() (
 		"$icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
 		perl -pi -e "s/>\w*/>${adminPassword}/ if /admin-password/" \
-		"$icecastConfLocation"
+		"$icecastConfLocation" &&
+	echo "done updating icecast config"
 )
 
 update_all_ices_confs() (
@@ -517,12 +533,13 @@ update_all_ices_confs() (
 
 get_icecast_source_password() (
 	icecastConfLocation="$1"
-	sudo -p 'Pass required to read icecast config: ' \
+	sudo -S -p 'Pass required to read icecast config: ' \
   	grep '<source-password>' "$icecastConfLocation" \
   	| perl -ne 'print "$1\n" if />(\w+)/'
 )
 
 setup_icecast_confs() (
+	echo "setting up icecast/ices"
 	icecastName="$1"
 	process_global_vars "$@" &&
 	#need to make sure that  icecast is running so we can get the config 
@@ -534,10 +551,12 @@ setup_icecast_confs() (
 	update_icecast_conf "$icecastConfLocation" \
 		"$sourcePassword" $(gen_pass) $(gen_pass) &&
 	update_all_ices_confs "$sourcePassword" &&
-	sudo systemctl restart "$icecastName"
+	sudo -p "restaring ${icecastName}" systemctl restart "$icecastName" &&
+	echo "done setting up icecast/ices"
 )
 	
 create_ices_config() (
+	echo 'creating ices config'
 	internalName="$1"
 	publicName="$2"
 	sourcePassword="$3"
@@ -553,17 +572,20 @@ create_ices_config() (
 	perl -pi -e "s/public_station_name/$publicName/ if /<Name>/" \
 		"$station_conf" &&
 	perl -pi -e "s/internal_station_name/$internalName/ if /<Mountpoint>/" \
-		"$station_conf"
+		"$station_conf" &&
+	echo 'done creating ices config'
 )
 
 create_ices_py_module() (
+	echo 'creating ices module'
 	internalName="$1"
 	process_global_vars "$@" &&
 	station_module="$app_root"/"$pyModules_dir"/"$internalName".py &&
 	error_check_path "$app_root"/"$templates_dir_cl"/template.py &&
 	error_check_path "$station_module" &&
 	cp "$app_root"/"$templates_dir_cl"/template.py "$station_module" &&
-	perl -pi -e "s/<internal_station_name>/$internalName/" "$station_module"
+	perl -pi -e "s/<internal_station_name>/$internalName/" "$station_module" &&
+	echo 'done creating ices module'
 )
 
 save_station_to_db() (
@@ -595,6 +617,7 @@ add_tags_to_station() (
 )
 
 create_new_station() (
+	echo 'creating new station'
 	process_global_vars "$@" &&
 	setup_radio &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
@@ -619,7 +642,8 @@ create_new_station() (
 	export dbName="$app_root"/"$sqlite_file"
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	save_station_to_db "$internalName" "$publicName" &&
-	add_tags_to_station "$internalName"
+	add_tags_to_station "$internalName" &&
+	echo 'done creating new station'
 )
 
 run_song_scan() (
@@ -677,13 +701,16 @@ start_up_web_server() (
 )
 
 setup_api() (
+	echo "setting up api"
 	process_global_vars "$@" &&
 	setup_dir_with_py "$api_src" "$web_root"/"$app_api_path_cl" &&
 	copy_initial_db &&
-	setup_nginx_confs 
+	setup_nginx_confs &&
+	echo "done setting up client"
 )
 
 setup_client() (
+	echo "setting up client"
 	process_global_vars "$@" &&
 	error_check_path "$client_src" &&
 	error_check_path "$web_root"/"$app_client_path_cl" &&
@@ -708,11 +735,13 @@ setup_client() (
 	sudo -p 'Pass required for copying client files: ' \
 		cp -rv "$client_src"/build/. "$web_root"/"$app_client_path_cl" &&
 	sudo -p 'Pass required for changing owner of client files: ' \
-		chown -R "$current_user": "$web_root"/"$app_client_path_cl" 
+		chown -R "$current_user": "$web_root"/"$app_client_path_cl" &&
+	echo "done setting up client"
 )
 
 #assume install_setup.sh has been run
 setup_radio() (
+	echo "setting up radio"
 	process_global_vars "$@" &&
 	error_check_path "$workspace_abs_path"/requirements.txt &&
 	error_check_path "$app_root"/"$app_trunk"/requirements.txt &&
@@ -728,11 +757,13 @@ setup_radio() (
 	copy_initial_db &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
-	setup_icecast_confs "$icecastName"
+	setup_icecast_confs "$icecastName" &&
+	echo "done setting up radio"
 )
 
 #assume install_setup.sh has been run
 setup_unit_test_env() (
+	echo "setting up test environment" 
 	process_global_vars "$@" &&
 	[ -e "$test_root"/"$config_dir" ] || 
 	mkdir -pv "$test_root"/"$config_dir" &&
@@ -755,19 +786,23 @@ setup_unit_test_env() (
 
 	echo "PYTHONPATH='$src_path'" >> "$test_root"/"$config_dir".env &&
 
-	cp -v "$reference_src_db" "$test_root"/"$sqlite_file"
+	cp -v "$reference_src_db" "$test_root"/"$sqlite_file" &&
+	echo "done setting up test environment"
 )
 
 setup_all() (
+	echo "setting up all"
 	process_global_vars "$@" &&
 	setup_radio &&
 	setup_api &&
 	setup_client &&
-	setup_unit_test_env
+	setup_unit_test_env &&
+	echo "done setting up all"
 )
 
 #assume install_setup.sh has been run
 run_unit_tests() (
+	echo "running unit tests" 
 	process_global_vars "$@"
 	setup_unit_test_env &&
 
@@ -778,9 +813,9 @@ run_unit_tests() (
 	export searchBase="$test_root"/"$content_home" &&
 
 	. "$utest_env_dir"/"$py_env"/bin/activate &&
-	pytest -s "$test_src"
+	pytest -s "$test_src" #leaving off the && for now
+	echo "done running unit tests" 
 )
-
 
 debug_print() (
 	msg="$1"
@@ -921,10 +956,10 @@ define_web_server_paths() {
 	export app_api_path_cl=api/"$app_name"
 	export app_client_path_cl=client/"$app_name"
 
-	msg='Pass required for creating web server directory: '
 	[ -e "$web_root"/"$app_api_path_cl" ] ||
 	{ 
-		sudo -p "$msg" mkdir -pv "$web_root"/"$app_api_path_cl" ||
+		sudo -p 'Pass required for creating web server directory: ' \
+			mkdir -pv "$web_root"/"$app_api_path_cl" ||
 		show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}" 
 	}
 
@@ -956,7 +991,6 @@ define_src_paths() {
 	export reference_src_db="$reference_src/$db_name"
 	echo "source paths defined"
 }
-
 
 process_global_vars() {
 	if [ -n "$globals_set" ]; then

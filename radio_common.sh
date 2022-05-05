@@ -230,6 +230,18 @@ does_file_exist() (
 	fi
 )
 
+kill_process_using_port() (
+	portNum="$1"
+	if ss -V 1>/dev/null 2>&1; then
+		procId=$(ss -lpn 'sport = :8032' | perl -ne 'print "$1\n" if /pid=(\d+)/')
+		if [ -n "$procId" ]; then
+			kill -15 "$procId"
+		fi
+	else 
+		echo "Script not wired up to be able to kill process at port: ${portNum}"
+	fi
+)
+
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
@@ -288,6 +300,17 @@ copy_initial_db() (
 sync_utility_scripts() (
 	process_global_vars "$@" &&
 	cp "$workspace_abs_path"/radio_common.sh "$app_root"/radio_common.sh
+)
+
+sync_requirement_list() (
+	process_global_vars "$@" &&
+	error_check_path "$workspace_abs_path"/requirements.txt &&
+	error_check_path "$app_root"/"$app_trunk"/requirements.txt &&
+	error_check_path "$app_root"/requirements.txt &&
+	#keep a copy in the parent radio directory
+	cp "$workspace_abs_path"/requirements.txt \
+		"$app_root"/"$app_trunk"/requirements.txt &&
+	cp "$workspace_abs_path"/requirements.txt "$app_root"/requirements.txt &&
 )
 
 gen_pass() (
@@ -696,7 +719,7 @@ startup_radio() (
 	done
 )
 
-startup_webserver() (
+startup_api() (
 	process_global_vars "$@" &&
 	setup_api &&
 	export dbName="$app_root"/"$sqlite_file" &&
@@ -709,6 +732,7 @@ startup_webserver() (
 setup_api() (
 	echo "setting up api"
 	process_global_vars "$@" &&
+	sync_requirement_list &&
 	setup_dir_with_py "$api_src" "$web_root"/"$app_api_path_cl" &&
 	copy_initial_db &&
 	setup_nginx_confs &&
@@ -749,13 +773,7 @@ setup_client() (
 setup_radio() (
 	echo "setting up radio"
 	process_global_vars "$@" &&
-	error_check_path "$workspace_abs_path"/requirements.txt &&
-	error_check_path "$app_root"/"$app_trunk"/requirements.txt &&
-	error_check_path "$app_root"/requirements.txt &&
-	#keep a copy in the parent radio directory
-	cp "$workspace_abs_path"/requirements.txt \
-		"$app_root"/"$app_trunk"/requirements.txt &&
-	cp "$workspace_abs_path"/requirements.txt "$app_root"/requirements.txt &&
+	sync_requirement_list &&
 	
 	deploy_py_libs "$app_root"/"$app_trunk" &&
 

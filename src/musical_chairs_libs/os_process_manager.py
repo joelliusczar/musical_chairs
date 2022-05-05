@@ -7,6 +7,6 @@ class OSProcessManager:
 
 	def end_process(self, procId: int) -> None:
 		try:
-			os.kill(procId, 2)
+			os.kill(procId, 15)
 		except:
 			pass

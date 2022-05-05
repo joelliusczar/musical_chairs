@@ -37,16 +37,6 @@ if [ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]; then
 	fi
 fi
 
-if [ -n "$copy_db_flag" ]; then
-	remote_home=$(ssh -i "$radio_key_file" "$radio_server_ssh_address" \
-		'bash -c "echo $HOME"' | awk 'END{ print $1 }')
-	ssh -i "$radio_key_file" "$radio_server_ssh_address" \
-		"mkdir -p '${remote_home}/${db_dir}'"
-	scp -i "$radio_key_file" "$reference_src_db" \
-		"$radio_server_ssh_address":"$remote_home/$sqlite_file"
-fi
-
-echo "Here?"
 run_unit_tests
 unitTestSuccess="$?"
 
@@ -91,25 +81,34 @@ export exp_name="$exp_name" &&
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"
 	(exit "$unitTestSuccess") &&
-	. ./radio_common.sh
-	setup_api
+	. ./radio_common.sh &&
+	sync_utility_scripts &&
+	setup_api &&
+	echo "finished setup"
 elif [ "$setup_lvl" = 'client' ]; then
 	echo "$setup_lvl"
-	. ./radio_common.sh
-	setup_client
+	. ./radio_common.sh &&
+	sync_utility_scripts &&
+	setup_client &&
+	echo "finished setup"
 elif [ "$setup_lvl" = 'radio' ]; then
 	echo "$setup_lvl"
 	(exit "$unitTestSuccess") &&
-	. ./radio_common.sh
-	start_up_radio
+	. ./radio_common.sh &&
+	sync_utility_scripts &&
+	start_up_radio &&
+	echo "finished setup"
 elif [ "$setup_lvl" = 'install' ]; then
 	echo "$setup_lvl"
-	sh ./install_setup.sh
+	sh ./install_setup.sh &&
+	echo "finished setup"
 else 
 	echo "$setup_lvl"
 	(exit "$unitTestSuccess") &&
-	. ./radio_common.sh
-	setup_all
+	. ./radio_common.sh &&
+	sync_utility_scripts &&
+	setup_all &&
+	echo "finished setup"
 fi
 
 RemoteScriptEOF2

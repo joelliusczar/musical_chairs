@@ -78,7 +78,7 @@ set_env_path_var() {
 }
 
 get_pkg_mgr() {
-	define_setup_vars
+	define_consts
 	case $(uname) in
 		(Linux*)
 			if  which pacman >/dev/null 2>&1; then

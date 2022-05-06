@@ -83,8 +83,7 @@ if [ "$setup_lvl" = 'api' ]; then
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
-	startup_api &&
-	echo "finished setup"
+	startup_api &
 elif [ "$setup_lvl" = 'client' ]; then
 	echo "$setup_lvl"
 	. ./radio_common.sh &&
@@ -96,8 +95,7 @@ elif [ "$setup_lvl" = 'radio' ]; then
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
-	startup_radio &&
-	echo "finished setup"
+	startup_radio &
 elif [ "$setup_lvl" = 'install' ]; then
 	echo "$setup_lvl"
 	sh ./install_setup.sh &&
@@ -107,7 +105,7 @@ else
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
-	setup_all &&
+	setup_all
 	echo "finished setup"
 fi
 

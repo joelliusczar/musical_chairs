@@ -817,8 +817,8 @@ setup_unit_test_env() (
 setup_all() (
 	echo "setting up all"
 	process_global_vars "$@" &&
-	setup_radio &&
-	setup_api &&
+	setup_radio &
+	setup_api &
 	setup_client &&
 	setup_unit_test_env &&
 	echo "done setting up all"

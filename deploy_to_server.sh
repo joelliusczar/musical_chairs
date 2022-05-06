@@ -47,9 +47,6 @@ unitTestSuccess="$?"
 #myVar=$(cat<<EOF
 #...
 #)
-rm -f remote_script_fifo
-rm -f radio_common_fifo clone_repo_fifo script_select_fifo 
-
 mkfifo clone_repo_fifo script_select_fifo \
 	remote_script_fifo
 
@@ -86,19 +83,19 @@ if [ "$setup_lvl" = 'api' ]; then
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
-	startup_api &
+	startup_api 
 elif [ "$setup_lvl" = 'client' ]; then
 	echo "$setup_lvl"
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
-	setup_client &&
+	setup_client && 
 	echo "finished setup"
 elif [ "$setup_lvl" = 'radio' ]; then
 	echo "$setup_lvl"
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
-	sync_utility_scripts &&
-	startup_radio &
+	sync_utility_scripts && 
+	startup_radio
 elif [ "$setup_lvl" = 'install' ]; then
 	echo "$setup_lvl"
 	sh ./install_setup.sh &&
@@ -108,7 +105,7 @@ else
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
-	setup_all
+	setup_all &&
 	echo "finished setup"
 fi
 
@@ -133,9 +130,11 @@ RemoteScriptEOF3
 
 
 ssh -i "$radio_key_file" "$radio_server_ssh_address" \
-	'bash -s' < remote_script_fifo &
+	'bash -s' < remote_script_fifo &&
+echo "All done" || echo "Onk!"
 
-
+rm -f remote_script_fifo
+rm -f radio_common_fifo clone_repo_fifo script_select_fifo 
 
 
 

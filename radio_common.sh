@@ -232,6 +232,7 @@ does_file_exist() (
 
 kill_process_using_port() (
 	portNum="$1"
+	echo "attempting to end process using port number: ${portNum}"
 	if ss -V 1>/dev/null 2>&1; then
 		procId=$(ss -lpn 'sport = :8032' | perl -ne 'print "$1\n" if /pid=(\d+)/')
 		if [ -n "$procId" ]; then
@@ -240,6 +241,7 @@ kill_process_using_port() (
 	else 
 		echo "Script not wired up to be able to kill process at port: ${portNum}"
 	fi
+	echo "Hopefully process using is done ${portNum}"
 )
 
 #this may seem useless but we need it for test runner to read .env
@@ -419,6 +421,16 @@ update_nginx_conf() (
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<full_url>@${full_url}@" "$appConfFile" &&
+	case "$app_env" in 
+		(local*)
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s/<listen>/8080/" "$appConfFile"
+			;;
+		(*)
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s/<listen>/[::]:80/" "$appConfFile"
+			;;
+	esac &&
 	echo "done updating nginx site conf"
 )
 
@@ -438,7 +450,6 @@ get_abs_path_from_nginx_include() (
 				echo "{$absPath} is a file, not a directory" 1>&2
 				return 1
 			fi
-			debug_print "Hello?"
 			#Apparently nginx will look for includes with either an absolute path
 			#or path relative to the prefix
 			#some os'es are finicky about creating directories at the root lvl
@@ -544,6 +555,10 @@ update_icecast_conf() (
 		"$icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
 		perl -pi -e "s/>\w*/>${adminPassword}/ if /admin-password/" \
+		"$icecastConfLocation" &&
+	sudo -p 'Pass required for modifying icecast config: ' \
+		perl -pi -e "s@^([ \t]*)<.*@\1<bind-address>::</bind-address>@" \
+		-e "if /<bind-address>/" \
 		"$icecastConfLocation" &&
 	echo "done updating icecast config"
 )
@@ -721,6 +736,7 @@ startup_radio() (
 
 startup_api() (
 	process_global_vars "$@" &&
+	kill_process_using_port 8032 &&
 	setup_api &&
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$web_root"/"$app_api_path_cl"/"$py_env"/bin/activate &&

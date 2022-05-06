@@ -47,6 +47,9 @@ unitTestSuccess="$?"
 #myVar=$(cat<<EOF
 #...
 #)
+rm -f remote_script_fifo
+rm -f radio_common_fifo clone_repo_fifo script_select_fifo 
+
 mkfifo clone_repo_fifo script_select_fifo \
 	remote_script_fifo
 
@@ -130,11 +133,9 @@ RemoteScriptEOF3
 
 
 ssh -i "$radio_key_file" "$radio_server_ssh_address" \
-	'bash -s' < remote_script_fifo &&
-echo "All done" || echo "Onk!"
+	'bash -s' < remote_script_fifo &
 
-rm -f remote_script_fifo
-rm -f radio_common_fifo clone_repo_fifo script_select_fifo 
+
 
 
 

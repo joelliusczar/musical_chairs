@@ -711,17 +711,22 @@ shutdown_all_stations() (
 	#gonna assume that the environment has been setup because if 
 	#the environment hasn't been setup yet then no radio stations 
 	#are running
-	[ -s "$app_root"/"$app_trunk"/"$py_env"/bin/activate ] || return
+	if [ ! -s "$app_root"/"$app_trunk"/"$py_env"/bin/activate ]; then
+		echo "python env not setup, so no stations to shut down"
+		return
+	fi
 	process_global_vars "$@" &&
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
-	python  <<-EOF
+	{ python  <<-EOF
 	from musical_chairs_libs.station_service import StationService
 	stationService = StationService()
 	stationService.end_all_stations()
 	print("Done")
 	EOF
+	} &&
+	echo "Done ending all stations"
 )
 
 startup_radio() (

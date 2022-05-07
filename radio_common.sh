@@ -70,6 +70,19 @@ set_python_version_const() {
 	pyMinor=$(echo "$pyVersion" | perl -ne 'print "$1\n" if /\d+\.(\d+)/')
 }
 
+set_ices_version_const() {
+	if ! mc-ices -V 2>/dev/null; then
+		return 1
+	fi
+	icesVersion=$(mc-ices -V | grep ^ices)
+	icesMajor=$(echo "$icesVersion" \
+		| perl -ne 'print "$1\n" if /(\d+)\.(\d+)\.(\d+)/')
+	icesMinor=$(echo "$icesVersion" \
+		| perl -ne 'print "$2\n" if /(\d+)\.(\d+)\.(\d+)/')
+	icesPatch=$(echo "$icesVersion" \
+		| perl -ne 'print "$3\n" if /(\d+)\.(\d+)\.(\d+)/')
+}
+
 set_env_path_var() {
 	if perl -e "exit 1 if index('$PATH','${app_root}/${bin_dir}') != -1"; then
 		echo "Please add '${app_root}/${bin_dir}' to path"
@@ -133,6 +146,11 @@ is_python_version_good() {
 	[ "$exp_name" = 'py3.8' ] && return 0
 	set_python_version_const &&
 	[ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge 9 ]
+}
+
+is_ices_version_good() {
+	set_ices_version_const &&
+	[ "$icesMajor" -ge 0 ] && [ "$icesMinor" -ge 5 ]
 }
 
 #set up the python environment, then copy 

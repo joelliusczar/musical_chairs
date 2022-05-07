@@ -143,7 +143,8 @@ case $(uname) in
 	(*) ;;
 esac
 
-if ! mc-ices -V 2>/dev/null; then
+if ! mc-ices -V 2>/dev/null || ! is_ices_version_good; then
+	shutdown_all_stations &&
 	sh ./compiled_dependencies/build_ices.sh ||
 	show_err_and_exit "Couldn't install ices"
 fi

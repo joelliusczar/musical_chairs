@@ -708,8 +708,11 @@ run_song_scan() (
 )
 
 shutdown_all_stations() (
+	#gonna assume that the environment has been setup because if 
+	#the environment hasn't been setup yet then no radio stations 
+	#are running
+	[ -s "$app_root"/"$app_trunk"/"$py_env"/bin/activate ] || return
 	process_global_vars "$@" &&
-	setup_radio &&
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
@@ -724,7 +727,7 @@ shutdown_all_stations() (
 startup_radio() (
 	process_global_vars "$@" &&
 	link_to_music_files &&
-	shutdown_all_stations &&
+	setup_radio &&
 	export searchBase="$app_root"/"$content_home" &&
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
@@ -736,18 +739,18 @@ startup_radio() (
 
 startup_api() (
 	process_global_vars "$@" &&
-	kill_process_using_port 8032 &&
 	setup_api &&
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$web_root"/"$app_api_path_cl"/"$py_env"/bin/activate &&
 	# see #python_env
 	uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
-		--host 0.0.0.0 --port 8032 "index:app" &
+		--host 0.0.0.0 --port "$api_port" "index:app" &
 )
 
 setup_api() (
 	echo "setting up api"
 	process_global_vars "$@" &&
+	kill_process_using_port "$api_port" &&
 	sync_requirement_list &&
 	setup_dir_with_py "$api_src" "$web_root"/"$app_api_path_cl" &&
 	copy_initial_db &&
@@ -789,6 +792,7 @@ setup_client() (
 setup_radio() (
 	echo "setting up radio"
 	process_global_vars "$@" &&
+	shutdown_all_stations && 
 	sync_requirement_list &&
 	
 	deploy_py_libs "$app_root"/"$app_trunk" &&
@@ -926,6 +930,7 @@ define_consts() {
 	export build_dir='Documents/builds'
 	export content_home='music/radio'
 	export bin_dir='.local/bin'
+	export api_port='8032'
 	echo "constants defined"
 }
 

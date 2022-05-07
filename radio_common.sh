@@ -708,6 +708,7 @@ run_song_scan() (
 )
 
 shutdown_all_stations() (
+	process_global_vars "$@" &&
 	#gonna assume that the environment has been setup because if 
 	#the environment hasn't been setup yet then no radio stations 
 	#are running
@@ -715,7 +716,6 @@ shutdown_all_stations() (
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
-	process_global_vars "$@" &&
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env

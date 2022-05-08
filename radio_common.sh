@@ -768,6 +768,7 @@ startup_api() (
 	# see #python_env
 	uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
 		--host 0.0.0.0 --port "$api_port" "index:app" >api.out 2>&1 &
+	echo "Done with api"
 )
 
 setup_api() (
@@ -778,7 +779,7 @@ setup_api() (
 	setup_dir_with_py "$api_src" "$web_root"/"$app_api_path_cl" &&
 	copy_initial_db &&
 	setup_nginx_confs &&
-	echo "done setting up client"
+	echo "done setting up api"
 )
 
 setup_client() (

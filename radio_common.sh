@@ -766,8 +766,10 @@ startup_api() (
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$web_root"/"$app_api_path_cl"/"$py_env"/bin/activate &&
 	# see #python_env
-	nohup uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
-		--host 0.0.0.0 --port "$api_port" "index:app" >api.out 2>&1 &
+	(
+		uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
+		--host 0.0.0.0 --port "$api_port" "index:app" 
+	) >api.out 2>&1 &
 	echo "Done with api"
 )
 

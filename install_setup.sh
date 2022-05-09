@@ -121,11 +121,6 @@ if ! git --version 2>/dev/null; then
 	install_package git
 fi
 
-
-if [ ! -e "$app_root"/"$app_trunk" ]; then
-	mkdir -pv "$app_root"/"$app_trunk"
-fi
-
 case $(uname) in
 	(Linux*)
 		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then

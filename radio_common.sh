@@ -766,7 +766,7 @@ startup_api() (
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$web_root"/"$app_api_path_cl"/"$py_env"/bin/activate &&
 	# see #python_env
-	nohup uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
+	uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
 	--host 0.0.0.0 --port "$api_port" "index:app" &
 	echo "Done with api"
 )
@@ -977,8 +977,6 @@ define_top_level_terms() {
 	export lib_name="$proj_name"_libs
 	export app_name="$proj_name"_app
 
-	[ -e "$app_root"/"$app_trunk" ] || 
-	mkdir -pv "$app_root"/"$app_trunk"
 	echo "top level terms defined"
 }
 
@@ -994,19 +992,6 @@ define_app_dir_paths() {
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
 	export templates_dir_cl="$app_trunk"/templates
-
-	[ -e "$app_root"/"$ices_configs_dir" ] || 
-	mkdir -pv "$app_root"/"$ices_configs_dir"
-	[ -e "$app_root"/"$pyModules_dir" ] || 
-	mkdir -pv "$app_root"/"$pyModules_dir"
-	[ -e "$app_root"/"$build_dir" ] || 
-	mkdir -pv "$app_root"/"$build_dir"
-	[ -e "$app_root"/"$content_home" ] || 
-	mkdir -pv "$app_root"/"$content_home"
-	[ -e "$app_root"/"$config_dir" ] || 
-	mkdir -pv "$app_root"/"$config_dir"
-	[ -e "$app_root"/"$db_dir" ] || 
-	mkdir -pv "$app_root"/"$db_dir"
 
 	echo "app dir paths defined and created"
 }
@@ -1024,13 +1009,6 @@ define_web_server_paths() {
 
 	export app_api_path_cl=api/"$app_name"
 	export app_client_path_cl=client/"$app_name"
-
-	[ -e "$web_root"/"$app_api_path_cl" ] ||
-	{ 
-		sudo -p 'Pass required for creating web server directory: ' \
-			mkdir -pv "$web_root"/"$app_api_path_cl" ||
-		show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}" 
-	}
 
 	echo "web server paths defined"
 }
@@ -1061,6 +1039,32 @@ define_src_paths() {
 	echo "source paths defined"
 }
 
+setup_base_dirs() {
+
+	[ -e "$app_root"/"$app_trunk" ] || 
+	mkdir -pv "$app_root"/"$app_trunk"
+
+	[ -e "$app_root"/"$ices_configs_dir" ] || 
+	mkdir -pv "$app_root"/"$ices_configs_dir"
+	[ -e "$app_root"/"$pyModules_dir" ] || 
+	mkdir -pv "$app_root"/"$pyModules_dir"
+	[ -e "$app_root"/"$build_dir" ] || 
+	mkdir -pv "$app_root"/"$build_dir"
+	[ -e "$app_root"/"$content_home" ] || 
+	mkdir -pv "$app_root"/"$content_home"
+	[ -e "$app_root"/"$config_dir" ] || 
+	mkdir -pv "$app_root"/"$config_dir"
+	[ -e "$app_root"/"$db_dir" ] || 
+	mkdir -pv "$app_root"/"$db_dir"
+
+	[ -e "$web_root"/"$app_api_path_cl" ] ||
+	{ 
+		sudo -p 'Pass required for creating web server directory: ' \
+			mkdir -pv "$web_root"/"$app_api_path_cl" ||
+		show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}" 
+	}
+}
+
 process_global_vars() {
 	if [ -n "$globals_set" ]; then
 		return
@@ -1079,15 +1083,13 @@ process_global_vars() {
 	define_web_server_paths &&
 	
 	define_url &&
-
-	#get_src_path needs to be called down here because it's dependent 
-	#on several other variables being defined first
-	
 	
 	define_src_paths &&
 	
 	#python environment names
 	export py_env='mc_env' &&
+
+	setup_base_dirs &&
 
 	export globals_set='globals'
 }

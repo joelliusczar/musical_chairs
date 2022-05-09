@@ -88,9 +88,9 @@ ices_build_dir="$app_root"/"$build_dir"/ices
 (
 	name_prefix='mc-'
 	empty_dir_contents "$ices_build_dir"
-	cd "$ices_build_dir"
-	git clone https://github.com/joelliusczar/ices0.git
-	cd ices0
+	cd "$app_root"/"$build_dir"
+	git clone https://github.com/joelliusczar/ices0.git ices
+	cd ices
 	if [ "$test_flag" = "dbg" ]; then
 		git checkout debuging
 		name_prefix='dbg-'
@@ -104,5 +104,6 @@ ices_build_dir="$app_root"/"$build_dir"/ices
 		--program-prefix="$name_prefix" &&
 	make &&
 	make install &&
-	rm -r "$ices_build_dir"
+	cd "$app_root"/"$build_dir" &&
+	rm -rf "$ices_build_dir"
 )

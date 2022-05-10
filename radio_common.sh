@@ -709,6 +709,7 @@ create_new_station() (
 		echo "Not saving to db"
 		return
 	fi &&
+	echo "Saving to db"
 	export dbName="$app_root"/"$sqlite_file"
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	save_station_to_db "$internalName" "$publicName" &&

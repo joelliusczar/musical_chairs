@@ -107,6 +107,10 @@ elif [ "$setup_lvl" = 'install' ]; then
 	echo "$setup_lvl"
 	sh ./install_setup.sh &&
 	echo "finished setup"
+elif [ "$setup_lvl" = 'scripts' ]; then
+	echo "$setup_lvl"	
+	. ./radio_common.sh &&
+	sync_utility_scripts 
 else 
 	echo "$setup_lvl"
 	(exit "$unitTestSuccess") &&

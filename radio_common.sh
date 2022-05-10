@@ -705,7 +705,7 @@ create_new_station() (
 	
 	create_ices_config "$internalName" "$publicName" "$sourcePassword" &&
 	create_ices_py_module "$internalName" &&
-	echo ""
+	echo "skip_option: ${skip_option}"
 	if [ "$skip_option" = 'save_station' ]; then
 		echo "Not saving to db"
 		return

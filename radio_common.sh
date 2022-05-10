@@ -959,7 +959,7 @@ define_consts() {
 	echo "constants defined"
 }
 
-create_install_dirs() {
+create_install_dir() {
 	[ -d "$radio_repo_path" ] || 
 	mkdir -pv "$radio_repo_path"
 

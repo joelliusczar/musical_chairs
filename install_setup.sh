@@ -53,7 +53,10 @@ set_env_path_var
 
 output_env_vars
 
-echo 'Checking for mc-python'
+if mc-python -V >/dev/null 2>&1; then
+	echo 'found mc-python'
+fi
+
 if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 	pythonToLink='python3'
 	case $(uname) in

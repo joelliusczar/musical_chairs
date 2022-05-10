@@ -59,13 +59,15 @@ mkfifo clone_repo_fifo script_select_fifo \
 #we call process_global_vars to also set up directories
 process_global_vars "$@" ||
 show_err_and_exit "error with global variabls"
+[ -z "$SSH_CONNECTION" ] || 
+show_err_and_exit "This section should only be run remotely"
 
 if ! git --version 2>/dev/null; then
 	install_package git
 fi
 
-error_check_path "$radio_repo_path" &&
-rm -rf "$radio_repo_path" &&
+error_check_path "$(get_repo_path)" &&
+rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$app_root"/"$build_dir" && 
 git clone "$radio_server_repo_url" "$proj_name" &&
@@ -132,6 +134,7 @@ exit_code="$?"
 export ACCESS_KEY_ID=$(gen_pass)
 export SECRET_ACCESS_KEY=$(gen_pass)
 
+echo "$exit_code"
 (exit "$exit_code")
 
 RemoteScriptEOF3

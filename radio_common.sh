@@ -24,8 +24,7 @@ get_repo_path() (
 	if [ -n "$radio_repo_path" ]; then
 		echo "$radio_repo_path"
 	else
-		echo "src directory not in expected location" >&2
-		return 1
+		echo "$default_radio_repo_path" 
 	fi
 )
 
@@ -969,13 +968,13 @@ define_consts() {
 	export bin_dir='.local/bin'
 	export api_port='8032'
 	#done't try to change from home
-	export radio_repo_path="$HOME"/"$build_dir"/"$proj_name"
+	export default_radio_repo_path="$HOME"/"$build_dir"/"$proj_name"
 	echo "constants defined"
 }
 
 create_install_dir() {
-	[ -d "$radio_repo_path" ] || 
-	mkdir -pv "$radio_repo_path"
+	[ -d "$(get_repo_path)" ] || 
+	mkdir -pv "$(get_repo_path)"
 
 }
 

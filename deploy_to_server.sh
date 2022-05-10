@@ -127,12 +127,12 @@ radio_server_repo_url="$radio_server_repo_url"
 $(cat clone_repo_fifo)
 
 $(cat script_select_fifo)
-exit_code=$?
+exit_code="$?"
 
 export ACCESS_KEY_ID=$(gen_pass)
 export SECRET_ACCESS_KEY=$(gen_pass)
 
-(exit "$exit_code")
+(return "$exit_code")
 
 RemoteScriptEOF3
 } > remote_script_fifo &

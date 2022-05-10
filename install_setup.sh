@@ -14,7 +14,7 @@ fi
 process_global_vars "$@"
 
 
-printenv > "$app_root"/used_env_vars
+
 
 export pkgMgrChoice=$(get_pkg_mgr)
 
@@ -49,6 +49,8 @@ fi
 [ ! -e "$app_root"/"$bin_dir" ] && mkdir -pv "$app_root"/"$bin_dir"
 
 set_env_path_var
+
+
 
 if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 	pythonToLink='python3'
@@ -170,3 +172,6 @@ sync_utility_scripts
 
 echo "$ACCESS_KEY_ID":"$SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
 chmod 600 "$HOME"/.passwd-s3fs
+ACCESS_KEY_ID=$(gen_pass)
+SECRET_ACCESS_KEY=$(gen_pass)
+printenv > "$app_root"/used_env_vars

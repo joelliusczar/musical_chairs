@@ -20,15 +20,11 @@ to_abs_path() (
 	fi
 )
 
-get_src_path() (
-
-	error_check_path "$HOME"/"$build_dir"/"$proj_name" &&
-	if [ -d "$HOME"/"$build_dir"/"$proj_name" ]; then
-		echo "$HOME"/"$build_dir"/"$proj_name"
-	elif [ -d "$HOME"/Documents/Code/radio/"$proj_name" ]; then 
-		echo "$HOME"/Documents/Code/radio/"$proj_name"
+get_repo_path() (
+	if [ -n "$radio_repo_path" ]; then
+		echo "$radio_repo_path"
 	else
-		echo "src directory not in expected location" 2>&1
+		echo "src directory not in expected location" >&2
 		return 1
 	fi
 )
@@ -91,7 +87,7 @@ set_env_path_var() {
 }
 
 get_pkg_mgr() {
-	define_consts 1>&2
+	define_consts >&2
 	case $(uname) in
 		(Linux*)
 			if  which pacman >/dev/null 2>&1; then
@@ -172,7 +168,7 @@ deploy_py_libs() (
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
 	python -m pip install -r "$app_root"/"$app_trunk"/requirements.txt &&
-	setup_dir "$src_path"/"$lib_name" "$dest" &&
+	setup_dir "$lib_src" "$dest" &&
 	echo "done setting up py libs"
 )
 
@@ -708,7 +704,7 @@ create_new_station() (
 )
 
 run_song_scan() (
-	process_global_vars "$@" &&"$app_root"
+	process_global_vars "$@"
 	link_to_music_files &&
 	setup_radio &&
 	export dbName="$app_root"/"$sqlite_file" &&
@@ -848,7 +844,7 @@ setup_unit_test_env() (
 	) &&
 	copy_initial_db &&
 	#redirect stderr into stdout missing env will also trigger redeploy
-	srcChanges=$(find "$src_path"/"$lib_name" -newer \
+	srcChanges=$(find "$lib_src" -newer \
 		"$utest_env_dir"/"$py_env" 2>&1)
 	if [ -n "$srcChanges" ]; then
 		echo "changes?"
@@ -954,11 +950,19 @@ define_consts() {
 	export HOMEBREW_CONST='homebrew'
 	export current_user=$(whoami)
 	export proj_name='musical_chairs'
-	export build_dir='Documents/builds'
+	export build_dir='builds'
 	export content_home='music/radio'
 	export bin_dir='.local/bin'
 	export api_port='8032'
+	#done't try to change from home
+	export radio_repo_path="$HOME"/"$build_dir"/"$proj_name"
 	echo "constants defined"
+}
+
+create_install_dirs() {
+	[ -d "$radio_repo_path" ] || 
+	mkdir -pv "$radio_repo_path"
+
 }
 
 define_top_level_terms() {
@@ -1031,7 +1035,7 @@ define_url() {
 	echo "url defined"
 }
 
-define_src_paths() {
+define_repo_paths() {
 	export src_path="$workspace_abs_path/src"
 	export api_src="$src_path/api"
 	export client_src="$src_path/client"
@@ -1051,8 +1055,6 @@ setup_base_dirs() {
 	mkdir -pv "$app_root"/"$ices_configs_dir"
 	[ -e "$app_root"/"$pyModules_dir" ] || 
 	mkdir -pv "$app_root"/"$pyModules_dir"
-	[ -e "$app_root"/"$build_dir" ] || 
-	mkdir -pv "$app_root"/"$build_dir"
 	[ -e "$app_root"/"$content_home" ] || 
 	mkdir -pv "$app_root"/"$content_home"
 	[ -e "$app_root"/"$config_dir" ] || 
@@ -1075,7 +1077,12 @@ process_global_vars() {
 
 	define_consts &&
 
-	export workspace_abs_path=$(get_src_path) &&
+	create_install_dir &&
+
+	workspace_abs_path=$(get_repo_path) &&
+	#put export on separate line so it doesn't turn a failure in the previous
+	#line into a success code
+	export workspace_abs_path &&
 
 	process_global_args "$@" &&
 	
@@ -1087,7 +1094,7 @@ process_global_vars() {
 	
 	define_url &&
 	
-	define_src_paths &&
+	define_repo_paths &&
 	
 	#python environment names
 	export py_env='mc_env' &&

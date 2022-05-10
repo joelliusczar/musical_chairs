@@ -53,8 +53,10 @@ mkfifo clone_repo_fifo script_select_fifo \
 
 
 #clone repo
+#we need this section to resolve its variables remotely on the server
 { cat <<'RemoteScriptEOF1'
-#we need this to run remotely on the server
+#in addition to setting up any utilizing any passed in params
+#we call process_global_vars to also set up directories
 process_global_vars "$@" ||
 show_err_and_exit "error with global variabls"
 
@@ -62,8 +64,8 @@ if ! git --version 2>/dev/null; then
 	install_package git
 fi
 
-error_check_path "$app_root"/"$build_dir"/"$proj_name" &&
-rm -rf "$app_root/$build_dir/$proj_name" &&
+error_check_path "$radio_repo_path" &&
+rm -rf "$radio_repo_path" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$app_root"/"$build_dir" && 
 git clone "$radio_server_repo_url" "$proj_name" &&

@@ -51,13 +51,19 @@ install_package() (
 	esac
 )
 
+output_env_vars() (
+	export ACCESS_KEY_ID=$(gen_pass)
+	export SECRET_ACCESS_KEY=$(gen_pass)
+	printenv > "$app_root"/used_env_vars
+)
+
 set_python_version_const() {
 	#python version info
-	if mc-python -V 2>/dev/null; then
+	if mc-python -V >/dev/null 2>&1; then
 		pyVersion=$(mc-python -V)
-	elif python3 -V 2>/dev/null; then
+	elif python3 -V >/dev/null 2>&1; then
 		pyVersion=$(python3 -V)
-	elif python -V 2>/dev/null; then
+	elif python -V >/dev/null 2>&1; then
 		pyVersion=$(python -V)
 	else 
 		return 1
@@ -67,16 +73,16 @@ set_python_version_const() {
 }
 
 set_ices_version_const() {
-	if ! mc-ices -V 2>/dev/null; then
+	if ! mc-ices -V >/dev/null 2>&1; then
 		return 1
 	fi
 	icesVersion=$(mc-ices -V | grep ^ices)
 	icesMajor=$(echo "$icesVersion" \
-		| perl -ne 'print "$1\n" if /(\d+)\.(\d+)\.(\d+)/')
+		| perl -ne 'print "$1\n" if /(\d+)\.(\d+)\.?(\d*)/')
 	icesMinor=$(echo "$icesVersion" \
-		| perl -ne 'print "$2\n" if /(\d+)\.(\d+)\.(\d+)/')
+		| perl -ne 'print "$2\n" if /(\d+)\.(\d+)\.?(\d*)/')
 	icesPatch=$(echo "$icesVersion" \
-		| perl -ne 'print "$3\n" if /(\d+)\.(\d+)\.(\d+)/')
+		| perl -ne 'print "$3\n" if /(\d+)\.(\d+)\.?(\d*)/')
 }
 
 set_env_path_var() {

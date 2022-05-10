@@ -13,7 +13,7 @@ fi
 
 process_global_vars "$@"
 
-
+output_env_vars
 
 
 export pkgMgrChoice=$(get_pkg_mgr)
@@ -21,6 +21,7 @@ export pkgMgrChoice=$(get_pkg_mgr)
 [ -n "$pkgMgrChoice" ] || show_err_and_exit "No package manager set"
 
 curl -V || show_err_and_exit "curl is somehow not installed"
+
 
 
 case $(uname) in
@@ -50,8 +51,9 @@ fi
 
 set_env_path_var
 
+output_env_vars
 
-
+echo 'Checking for mc-python'
 if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 	pythonToLink='python3'
 	case $(uname) in
@@ -172,6 +174,5 @@ sync_utility_scripts
 
 echo "$ACCESS_KEY_ID":"$SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
 chmod 600 "$HOME"/.passwd-s3fs
-ACCESS_KEY_ID=$(gen_pass)
-SECRET_ACCESS_KEY=$(gen_pass)
-printenv > "$app_root"/used_env_vars
+
+output_env_vars

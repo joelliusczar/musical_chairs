@@ -132,7 +132,7 @@ exit_code="$?"
 export ACCESS_KEY_ID=$(gen_pass)
 export SECRET_ACCESS_KEY=$(gen_pass)
 
-(return "$exit_code")
+(exit "$exit_code")
 
 RemoteScriptEOF3
 } > remote_script_fifo &

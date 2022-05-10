@@ -47,8 +47,8 @@ unitTestSuccess="$?"
 #myVar=$(cat<<EOF
 #...
 #)
-mkfifo clone_repo_fifo script_select_fifo \
-	remote_script_fifo
+mkfifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
+	remote_script_fifo 
 
 
 
@@ -59,7 +59,8 @@ mkfifo clone_repo_fifo script_select_fifo \
 #we call process_global_vars to also set up directories
 process_global_vars "$@" ||
 show_err_and_exit "error with global variabls"
-[ -z "$SSH_CONNECTION" ] || 
+echo "$SSH_CONNECTION"
+[ -n "$SSH_CONNECTION" ] || 
 show_err_and_exit "This section should only be run remotely"
 
 if ! git --version 2>/dev/null; then
@@ -118,17 +119,9 @@ fi
 RemoteScriptEOF2
 } > script_select_fifo &
 
-
-
+#we need this section to also resolve its variables remotely on the server
 {
-	cat<<RemoteScriptEOF3
-$(cat "$radio_common_path")
-
-radio_server_repo_url="$radio_server_repo_url"
-
-$(cat clone_repo_fifo)
-
-$(cat script_select_fifo)
+cat<<'RemoteScriptEOF3'
 exit_code="$?"
 
 export ACCESS_KEY_ID=$(gen_pass)
@@ -136,8 +129,22 @@ export SECRET_ACCESS_KEY=$(gen_pass)
 
 echo "$exit_code"
 (exit "$exit_code")
-
 RemoteScriptEOF3
+} > remote_cleanup_fifo &
+
+{
+	cat<<RemoteScriptEOF4
+$(cat "$radio_common_path")
+
+radio_server_repo_url="$radio_server_repo_url"
+
+$(cat clone_repo_fifo)
+
+$(cat script_select_fifo)
+
+$(remote_cleanup_fifo)
+
+RemoteScriptEOF4
 } > remote_script_fifo &
 
 
@@ -145,7 +152,7 @@ ssh -i "$radio_key_file" "$radio_server_ssh_address" \
 	'bash -s' < remote_script_fifo &&
 echo "All done" || echo "Onk!"
 
-rm -f remote_script_fifo
+rm -f remote_script_fifo remote_cleanup_fifo
 rm -f radio_common_fifo clone_repo_fifo script_select_fifo 
 
 

@@ -53,9 +53,6 @@ set_env_path_var
 
 output_env_vars
 
-if mc-python -V >/dev/null 2>&1; then
-	echo 'found mc-python'
-fi
 
 if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 	pythonToLink='python3'
@@ -81,7 +78,7 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 	ln -sf $(get_bin_path "$pythonToLink") "$app_root"/"$bin_dir"/mc-python
 fi || show_err_and_exit "python install failed"
 
-mc-python -V 2>/dev/null || show_err_and_exit "mc-python not available"
+mc-python -V >/dev/null 2>&1 || show_err_and_exit "mc-python not available"
 
 if ! mc-python -m pip -V 2>/dev/null; then
 	curl -o "$app_root"/"$build_dir"/get-pip.py \

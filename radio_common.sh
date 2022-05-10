@@ -125,14 +125,22 @@ s3_name() {
 	echo 'joelradio'
 }
 
+kill_s3fs() {
+	process_global_vars "$@" &&
+	kill -9 $(ps -e | grep s3fs | awk '{ print $1 }')
+	fusermount -u "$app_root"/"$content_home"
+}
+
 link_to_music_files() {
 	echo 'linking music files'
 	process_global_vars "$@" &&
 	if [ ! -e "$app_root"/"$content_home"/Soundtrack ]; then 
-		if [ -n "$IS_RADIO_LOCAL_DEV" ]; then
-			s3fs "$(s3_name)" "$app_root"/"$content_home"/ 
+		if [ -e "$HOME"/.passwd-s3fs ]; then
+			s3fs "$(s3_name)" "$app_root"/"$content_home"/ \
+				-o connect_timeout=5 -o retries=1 
+			[ -e "$app_root"/"$content_home"/Soundtrack ]
 		else
-			s3fs "$(s3_name)" "$app_root"/"$content_home"/ -o iam_role="$(aws_role)"
+			return 1
 		fi
 	fi &&
 	echo 'music files should exist now'

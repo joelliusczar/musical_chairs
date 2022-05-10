@@ -166,4 +166,7 @@ if [ ! -e "$confDir"/"$app_name".conf ]; then
 		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
 
-sync_utility_scripts
+sync_utility_scripts 
+
+echo "$ACCESS_KEY_ID":"$SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
+chmod 600 "$HOME"/.passwd-s3fs

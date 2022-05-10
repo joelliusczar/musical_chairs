@@ -79,6 +79,8 @@ RemoteScriptEOF1
 
 export diag_flag="$diag_flag" &&
 export exp_name="$exp_name" &&
+export ACCESS_KEY_ID="$ACCESS_KEY_ID" &&
+export SECRET_ACCESS_KEY="$SECRET_ACCESS_KEY" &&
 
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"
@@ -125,7 +127,12 @@ radio_server_repo_url="$radio_server_repo_url"
 $(cat clone_repo_fifo)
 
 $(cat script_select_fifo)
+exit_code=$?
 
+export ACCESS_KEY_ID=$(gen_pass)
+export SECRET_ACCESS_KEY=$(gen_pass)
+
+(exit "$exit_code")
 
 RemoteScriptEOF3
 } > remote_script_fifo &

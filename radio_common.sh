@@ -1088,8 +1088,7 @@ setup_base_dirs() {
 process_global_vars() {
 	
 	process_global_args "$@" &&
-
-	[ -z "$globals_set" ] || return
+	[ -z "$globals_set" ] || return 0 &&
 
 	define_consts &&
 

@@ -146,7 +146,7 @@ $(cat clone_repo_fifo)
 
 $(cat script_select_fifo)
 
-$(remote_cleanup_fifo)
+$(cat remote_cleanup_fifo)
 
 RemoteScriptEOF4
 } > remote_script_fifo &

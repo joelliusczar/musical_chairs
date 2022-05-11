@@ -1086,9 +1086,10 @@ setup_base_dirs() {
 }
 
 process_global_vars() {
-	if [ -n "$globals_set" ]; then
-		return
-	fi
+	
+	process_global_args "$@" &&
+
+	[ -z "$globals_set" ] || return
 
 	define_consts &&
 
@@ -1098,8 +1099,6 @@ process_global_vars() {
 	#put export on separate line so it doesn't turn a failure in the previous
 	#line into a success code
 	export workspace_abs_path &&
-
-	process_global_args "$@" &&
 	
 	define_top_level_terms &&
 

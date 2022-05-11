@@ -142,7 +142,7 @@ link_to_music_files() {
 	if [ ! -e "$app_root"/"$content_home"/Soundtrack ]; then 
 		if [ -e "$HOME"/.passwd-s3fs ]; then
 			s3fs "$(s3_name)" "$app_root"/"$content_home"/ \
-				-o connect_timeout=5 -o retries=1 
+				-o connect_timeout=10 -o retries=1 
 			[ -e "$app_root"/"$content_home"/Soundtrack ]
 		else
 			return 1
@@ -782,7 +782,7 @@ startup_api() (
 	#the whole chain in the background, and then block due to some of the 
 	#preceeding comands still having stdout open
 	(uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
-	--host 0.0.0.0 --port "$api_port" "index:app" </dev/null >api_out 2>&1 &)
+	--host 0.0.0.0 --port "$api_port" "index:app" </dev/null >api.out 2>&1 &)
 	echo "Done with api"
 )
 
@@ -1040,7 +1040,7 @@ define_url() {
 	url_base=$(echo "$proj_name" | tr -d _)
 	case "$app_env" in 
 		(local*)
-			url_suffix='-local.radio,fm:8080'
+			url_suffix='-local.radio.fm:8080'
 			;;
 		(*)
 			url_suffix='.radio.fm'
@@ -1087,10 +1087,8 @@ setup_base_dirs() {
 }
 
 process_global_vars() {
-	
-	process_global_args "$@" &&
-	[ -z "$globals_set" ] || return 0 &&
-
+	process_global_args "$@" || return
+	[ -z "$globals_set" ] || return 0
 	define_consts &&
 
 	create_install_dir &&

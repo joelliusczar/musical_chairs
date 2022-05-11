@@ -7,7 +7,7 @@ from controllers import stations_controller
 app = FastAPI()
 app.add_middleware(
 	CORSMiddleware, 
-	allow_origins=["*"],
+	allow_origins=["127.0.0.1"],
 	allow_methods=["*"]
 )
 app.include_router(stations_controller.router)

@@ -760,6 +760,7 @@ shutdown_all_stations() (
 
 startup_radio() (
 	process_global_vars "$@" &&
+	set_env_path_var && #ensure that we can see mc-ices
 	link_to_music_files &&
 	setup_radio &&
 	export searchBase="$app_root"/"$content_home" &&

@@ -260,8 +260,13 @@ does_file_exist() (
 kill_process_using_port() (
 	portNum="$1"
 	echo "attempting to end process using port number: ${portNum}"
-	if ss -V 1>/dev/null 2>&1; then
+	if ss -V >/dev/null 2>&1; then
 		procId=$(ss -lpn 'sport = :8032' | perl -ne 'print "$1\n" if /pid=(\d+)/')
+		if [ -n "$procId" ]; then
+			kill -15 "$procId"
+		fi
+	elif lsof -v >/dev/null 2>&1; then
+		procId=$(sudo lsof -i :8032 | awk '{ print $2 }' | tail -n 1)
 		if [ -n "$procId" ]; then
 			kill -15 "$procId"
 		fi
@@ -447,7 +452,7 @@ update_nginx_conf() (
 		perl -pi -e "s@<app_client_path_cl>@${web_root}/${app_client_path_cl}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<full_url>@${full_url}@" "$appConfFile" &&
+		perl -pi -e "s@<server_name>@${server_name}@" "$appConfFile" &&
 	case "$app_env" in 
 		(local*)
 			sudo -p "update ${appConfFile}" \
@@ -470,18 +475,19 @@ get_abs_path_from_nginx_include() (
 		echo "$confDir"
 		return
 	else
-		prefix=$(get_nginx_value 'prefix')
-		absPath="$prefix"/"$confDir"
+		sites_folder_path=$(dirname $(get_nginx_value))
+		echo "sites_folder_path: $sites_folder_path" >&2
+		absPath="$sites_folder_path"/"$confDir"
 		if [ ! -d "$absPath" ]; then
 			if [ -e "$absPath" ]; then 
 				echo "{$absPath} is a file, not a directory" 1>&2
 				return 1
 			fi
 			#Apparently nginx will look for includes with either an absolute path
-			#or path relative to the prefix
+			#or path relative to the config
 			#some os'es are finicky about creating directories at the root lvl
 			#even with sudo, so we're not going to even try
-			#we'll just create missing dir in $prefix folder
+			#we'll just create missing dir in $sites_folder_path folder
 			sudo -p "Add nginx conf dir" \
 				mkdir -pv "$absPath"
 		fi
@@ -1038,6 +1044,7 @@ define_web_server_paths() {
 
 define_url() {
 	url_base=$(echo "$proj_name" | tr -d _)
+	echo "env: ${app_env}"
 	case "$app_env" in 
 		(local*)
 			url_suffix='-local.radio.fm:8080'
@@ -1046,8 +1053,8 @@ define_url() {
 			url_suffix='.radio.fm'
 			;;
 	esac
-
-	export full_url="http://$url_base""$url_suffix"
+	export server_name="${url_base}${url_suffix}"
+	export full_url="http://${server_name}"
 	echo "url defined"
 }
 

@@ -833,6 +833,22 @@ setup_client() (
 	echo "done setting up client"
 )
 
+setup_full_web() (
+	echo "setting up full web"
+	process_global_vars "$@" &&
+	setup_client &&
+	setup_api &&
+	echo "done setting up full web"
+)
+
+startup_full_web() (
+	echo "starting up full web"
+	process_global_vars "$@" &&
+	setup_client &&
+	setup_api &&
+	echo "done starting up full web"
+)
+
 #assume install_setup.sh has been run
 setup_radio() (
 	echo "setting up radio"

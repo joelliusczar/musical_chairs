@@ -130,8 +130,7 @@ exit_code="$?"
 
 export ACCESS_KEY_ID=$(gen_pass)
 export SECRET_ACCESS_KEY=$(gen_pass)
-
-echo "$exit_code"
+echo 'Done Server side'
 (exit "$exit_code")
 RemoteScriptEOF3
 } > remote_cleanup_fifo &

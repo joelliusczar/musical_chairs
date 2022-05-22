@@ -1,5 +1,4 @@
-#pyright: reportUnknownMemberType=false
-import sys
+#pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import itertools
 from typing import Callable, Iterator, Optional, Tuple
 from sqlalchemy.exc import IntegrityError
@@ -32,26 +31,28 @@ class StationService:
 		envManager: Optional[EnvManager]=None,
 		processManager: Optional[OSProcessManager]=None
 	):
-			if not conn:
-				if not envManager:
-					envManager = EnvManager()
-				conn = envManager.get_configured_db_connection()
-			if not processManager:
-				processManager = OSProcessManager()
-			self.conn = conn
-			self.process_manager = processManager
+		if not conn:
+			if not envManager:
+				envManager = EnvManager()
+			conn = envManager.get_configured_db_connection()
+		if not processManager:
+			processManager = OSProcessManager()
+		self.conn = conn
+		self.process_manager = processManager
 
 	def set_station_proc(self, stationName: str) -> None:
 		pid = self.process_manager.getpid()
 		st: ColumnCollection = stations.columns
 		stmt = update(stations)\
-			.values(procId = pid).where(st.name == stationName)
+			.values(procId = pid) \
+			.where(func.lower(st.name) == func.lower(stationName))
 		self.conn.execute(stmt)
 
 	def remove_station_proc(self, stationName: str) -> None:
 		st: ColumnCollection = stations.columns
 		stmt = update(stations)\
-			.values(procId = None).where(st.name == stationName)
+			.values(procId = None) \
+			.where(func.lower(st.name) == func.lower(stationName))
 		self.conn.execute(stmt)
 
 	def end_all_stations(self) -> None:
@@ -67,7 +68,7 @@ class StationService:
 		st: ColumnCollection = stations.columns
 		query = select(st.pk) \
 			.select_from(stations) \
-			.where(st.name == stationName)
+			.where(func.lower(st.name) == func.lower(stationName))
 		row = self.conn.execute(query).fetchone()
 		pk: Optional[int] = row.pk if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk
@@ -76,7 +77,7 @@ class StationService:
 		t: ColumnCollection = tags.columns
 		query = select(t.pk) \
 			.select_from(tags) \
-			.where(t.name == tagName)
+			.where(func.lower(t.name) == func.lower(tagName))
 		row = self.conn.execute(query).fetchone()
 		pk: Optional[int] = row.pk if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk
@@ -85,25 +86,25 @@ class StationService:
 		st: ColumnCollection = stations.columns
 		query = select(func.count(1))\
 			.select_from(stations)\
-			.where(st.name == stationName)
+			.where(func.lower(st.name) == func.lower(stationName))
 		res = self.conn.execute(query).fetchone()
 		count: int = res.count < 1 if res else 0
 		return count < 1 
 
-	def add_station(self, stationName: str, displayName: str) -> None:
-		try:
-			stmt = insert(stations)\
-				.values(name = stationName, displayName = displayName)
-			self.conn.execute(stmt)
-		except IntegrityError:
-			print("Could not insert")
-			sys.exit(1)
+	def add_station(self, stationName: str, displayName: str) -> bool:
+		if self.does_station_exist(stationName):
+			return False
+		stmt = insert(stations)\
+			.values(name = stationName, displayName = displayName)
+		self.conn.execute(stmt)
+		return True
 
 	def get_or_save_tag(self, tagName: str) -> Optional[int]:
 		if not tagName:
 			return None
 		tg: ColumnCollection = tags.columns
-		query = select(tg.pk).select_from(tags).where(tg.name == tagName)
+		query = select(tg.pk).select_from(tags) \
+			.where(func.lower(tg.name) == func.lower(tagName))
 		row = self.conn.execute(query).fetchone()
 		if row:
 			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
@@ -113,17 +114,17 @@ class StationService:
 		insertedPk: int = res.lastrowid 
 		return insertedPk
 
-	def assign_tag_to_station(self,stationName: str, tagName: str) -> None:
+	def assign_tag_to_station(self,stationName: str, tagName: str) -> bool:
 		stationPk = self.get_station_pk(stationName)
 		tagPk = self.get_or_save_tag(tagName)
 		try:
 			stmt = insert(stations_tags)\
 				.values(stationFk = stationPk, tagFk = tagPk)
 			self.conn.execute(stmt)
-		except IntegrityError as ex:
+			return True
+		except IntegrityError:
 			print("Could not insert")
-			print(ex)
-			sys.exit(1)
+			return False
 
 	def remove_station(self, stationName: str) -> None:
 		sttg: ColumnCollection = stations_tags.columns
@@ -195,7 +196,7 @@ class StationService:
 		if stationPk:
 			query = baseQuery.where(st.pk == stationPk)
 		elif stationName:
-			query = baseQuery.where(st.name == stationName)
+			query = baseQuery.where(func.lower(st.name) == func.lower(stationName))
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)

@@ -1,3 +1,4 @@
+#pyright: reportMissingTypeStubs=false
 from typing import Iterator
 import pytest
 from musical_chairs_libs.env_manager import EnvManager

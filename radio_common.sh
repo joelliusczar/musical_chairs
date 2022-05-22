@@ -51,8 +51,8 @@ install_package() (
 )
 
 output_env_vars() (
-	export ACCESS_KEY_ID=$(gen_pass)
-	export SECRET_ACCESS_KEY=$(gen_pass)
+	export S3_ACCESS_KEY_ID=$(gen_pass)
+	export S3_SECRET_ACCESS_KEY=$(gen_pass)
 	printenv > "$app_root"/used_env_vars
 )
 
@@ -142,7 +142,7 @@ link_to_music_files() {
 	if [ ! -e "$app_root"/"$content_home"/Soundtrack ]; then 
 		if [ -e "$HOME"/.passwd-s3fs ]; then
 			s3fs "$(s3_name)" "$app_root"/"$content_home"/ \
-				-o connect_timeout=10 -o retries=1 
+				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
 			[ -e "$app_root"/"$content_home"/Soundtrack ]
 		else
 			return 1
@@ -162,9 +162,14 @@ is_ices_version_good() {
 	[ "$icesMajor" -ge 0 ] && [ "$icesMinor" -ge 5 ]
 }
 
-#set up the python environment, then copy 
+is_dir_empty() (
+	target_dir="$1"
+	[ ! -d "$target_dir" ] || [ -z "$(ls -A ${target_dir})" ]
+)
+
+# set up the python environment, then copy 
 # subshell () auto switches in use python version back at the end of function
-deploy_py_libs() (
+create_py_env_in() (
 	echo "setting up py libs"
 	set_python_version_const || return "$?"
 	set_env_path_var #ensure that we can see mc-python
@@ -201,9 +206,10 @@ empty_dir_contents() (
 	echo "emptying ${dir_to_empty}"
 	error_check_path "$dir_to_empty" &&
 	if [ -e "$dir_to_empty" ]; then 
-
-		sudo -p "Password required for removing files from ${dir_to_empty}: " \
-			rm -rf "$dir_to_empty"/* || return "$?"
+		if ! is_dir_empty "$dir_to_empty"; then
+			sudo -p "Password required for removing files from ${dir_to_empty}: " \
+				rm -rf "$dir_to_empty"/* || return "$?"
+		fi
 	else
 		sudo -p "Password required for creating ${dir_to_empty}: " \
 			mkdir -pv "$dir_to_empty" || return "$?"
@@ -279,7 +285,7 @@ kill_process_using_port() (
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
-	envFile="$app_root"/"$config_dir".env
+	envFile="$app_root"/"$config_dir"/.env
 	error_check_path "$templates_src"/.env_api &&
 	error_check_path "$envFile" &&
 	cp "$templates_src"/.env_api "$envFile" &&
@@ -305,30 +311,50 @@ setup_dir() (
 	echo "done setting up dir from ${from_dir} to ${to_dir}"
 )
 
-setup_dir_with_py() (
-	from_dir="$1"
-	to_dir="$2"
-	env_name="$3"
-	echo "setting up dir for python from ${from_dir} to ${to_dir}"
-	error_check_path "$from_dir"/. &&
-	error_check_path "$to_dir" &&
-	empty_dir_contents "$to_dir" &&
-	sudo -p 'Pass required for copying files: ' \
-		cp -rv "$from_dir"/. "$to_dir" &&
-	deploy_py_libs "$to_dir" "$env_name" &&
-	sudo -p 'Pass required for changing owner of maintenance files: ' \
-		chown -R "$current_user": "$to_dir" &&
-	echo "done setting up dir for python from ${from_dir} to ${to_dir}"
-)
-
-copy_initial_db() (
+setup_db() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
 	error_check_path "$reference_src_db" &&
 	error_check_path "$app_root"/"$sqlite_file" &&
-	[ -e "$app_root"/"$sqlite_file" ] ||
-	cp -v "$reference_src_db" "$app_root"/"$sqlite_file" &&
-	echo 'done tentatively copying initial db'
+	if [ ! -e "$app_root"/"$sqlite_file" ]; then
+		cp -v "$reference_src_db" "$app_root"/"$sqlite_file" 
+	else
+		if [ -n "$(pgrep 'mc-ices')" ]; then
+			shutdown_all_stations
+		fi
+		if [ -n "$(pgrep 'uvicorn')" ]; then
+			kill_process_using_port "$api_port"
+		fi
+	fi
+	
+	export dbName="$app_root"/"$sqlite_file" &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	python <<-EOF
+	from musical_chairs_libs.tables import metadata 
+	from musical_chairs_libs.env_manager import EnvManager
+	envManager = EnvManager()
+	conn = envManager.get_configured_db_connection()
+	metadata.create_all(conn.engine)
+
+	print('Created all tables')
+	EOF
+	
+	echo 'done with db stuff'
+)
+
+print_schema_scripts() (
+	process_global_vars "$@" &&
+	create_py_env_in "$app_root"/"$app_trunk" &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	python <<-EOF
+	from musical_chairs_libs.tables import metadata 
+	from musical_chairs_libs.env_manager import EnvManager
+	envManager = EnvManager()
+	conn = envManager.get_configured_db_connection(echo=True, inMemory=True)
+	metadata.create_all(conn.engine)
+
+	print('Created all tables')
+	EOF
 )
 
 sync_utility_scripts() (
@@ -671,8 +697,10 @@ save_station_to_db() (
 	python <<-EOF
 	from musical_chairs_libs.station_service import StationService
 	stationService = StationService()
-	stationService.add_station('${internalName}','${publicName}')
-	print('${internalName} added')
+	if stationService.add_station('${internalName}','${publicName}'):
+		print('${internalName} added')
+	else:
+		print('${internalName} may already exist')
 	EOF
 )
 
@@ -685,8 +713,8 @@ add_tags_to_station() (
 		python <<-EOF
 		from musical_chairs_libs.station_service import StationService
 		stationService = StationService()
-		stationService.assign_tag_to_station('${internalName}','${tagname}')
-		print('tag ${tagname} assigned to ${internalName}')
+		if stationService.assign_tag_to_station('${internalName}','${tagname}'):
+			print('tag ${tagname} assigned to ${internalName}')
 		EOF
 		
 	done
@@ -782,12 +810,12 @@ startup_api() (
 	process_global_vars "$@" &&
 	setup_api &&
 	export dbName="$app_root"/"$sqlite_file" &&
-	. "$web_root"/"$app_api_path_cl"/"$py_env"/bin/activate &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background with in a subshell so that it doesn't put 
 	#the whole chain in the background, and then block due to some of the 
 	#preceeding comands still having stdout open
-	(uvicorn --app-dir "$web_root"/"$app_api_path_cl" \
+	(uvicorn --app-dir "$web_root"/"$app_api_path_cl" --root-path /api/v1 \
 	--host 0.0.0.0 --port "$api_port" "index:app" </dev/null >api.out 2>&1 &)
 	echo "Done with api"
 )
@@ -797,8 +825,9 @@ setup_api() (
 	process_global_vars "$@" &&
 	kill_process_using_port "$api_port" &&
 	sync_requirement_list &&
-	setup_dir_with_py "$api_src" "$web_root"/"$app_api_path_cl" &&
-	copy_initial_db &&
+	setup_dir "$api_src" "$web_root"/"$app_api_path_cl"
+	create_py_env_in "$app_root"/"$app_trunk" &&
+	setup_db &&
 	setup_nginx_confs &&
 	echo "done setting up api"
 )
@@ -856,10 +885,10 @@ setup_radio() (
 	shutdown_all_stations && 
 	sync_requirement_list &&
 	
-	deploy_py_libs "$app_root"/"$app_trunk" &&
+	create_py_env_in "$app_root"/"$app_trunk" &&
 
 	setup_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
-	copy_initial_db &&
+	setup_db &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	setup_icecast_confs "$icecastName" &&
@@ -870,28 +899,28 @@ setup_radio() (
 setup_unit_test_env() (
 	echo "setting up test environment" 
 	process_global_vars "$@" &&
-	[ -e "$test_root"/"$config_dir" ] || 
-	mkdir -pv "$test_root"/"$config_dir" &&
-	[ -e "$test_root"/"$db_dir" ] || 
-	mkdir -pv "$test_root"/"$db_dir" &&
+	export app_root="$test_root"
+	[ -e "$app_root"/"$config_dir" ] || 
+	mkdir -pv "$app_root"/"$config_dir" &&
+	[ -e "$app_root"/"$db_dir" ] || 
+	mkdir -pv "$app_root"/"$db_dir" &&
 	error_check_path "$reference_src_db" &&
-	error_check_path "$test_root"/"$sqlite_file" &&
-	(
-		export app_root="$test_root"
-		setup_env_api_file 
-	) &&
-	copy_initial_db &&
+	error_check_path "$app_root"/"$sqlite_file" &&
+	sync_requirement_list
+	setup_env_api_file 
 	#redirect stderr into stdout missing env will also trigger redeploy
 	srcChanges=$(find "$lib_src" -newer \
 		"$utest_env_dir"/"$py_env" 2>&1)
-	if [ -n "$srcChanges" ]; then
+	if [ -n "$srcChanges" ] || \
+	[ "$app_root"/"$app_trunk"/requirements.txt -nt "$utest_env_dir"/"$py_env" ]
+	then
 		echo "changes?"
-		deploy_py_libs "$utest_env_dir" 
+		create_py_env_in "$utest_env_dir" 
 	fi &&
+	setup_db &&
+	echo "PYTHONPATH='$src_path'" >> "$app_root"/"$config_dir"/.env &&
 
-	echo "PYTHONPATH='$src_path'" >> "$test_root"/"$config_dir".env &&
-
-	cp -v "$reference_src_db" "$test_root"/"$sqlite_file" &&
+	cp -v "$reference_src_db" "$app_root"/"$sqlite_file" &&
 	echo "done setting up test environment"
 )
 
@@ -958,13 +987,13 @@ process_global_args() {
 				echo '' > diag_out_"$include_count"
 				;;
 			(env=*) #affects which url to use
-				app_env=${1#env=}
+				export app_env=${1#env=}
 				;;
 			(app_root=*)
-				app_root=${1#app_root=}
+				export app_root=${1#app_root=}
 				;;
 			(web_root=*)
-				web_root=${1#web_root=}
+				export web_root=${1#web_root=}
 				;;
 			(setup_lvl=*) #affects which setup scripst to run
 				export setup_lvl=${1#setup_lvl=}
@@ -1139,5 +1168,9 @@ process_global_vars() {
 	export globals_set='globals'
 }
 
-
+fn_ls() (
+	process_global_vars "$@" >/dev/null
+	perl -ne 'print "$1\n" if /^([a-zA-Z_0-9]+)\(\)/' \
+		"$workspace_abs_path"/radio_common.sh | sort
+)
 

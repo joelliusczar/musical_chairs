@@ -1,12 +1,15 @@
 from dataclasses import dataclass
-from typing import Optional, Iterable
-from pydantic import BaseModel
+from typing import List, Optional, Iterable
 
 
-class AccountInfo(BaseModel):
-	username: str
-	password: bytes
-	email: str
+@dataclass
+class AccountInfo:
+	id: int
+	userName: str
+	hash: Optional[bytes]
+	email: Optional[str]
+	isAuthenticated: bool = False
+	roles: List[str] = []
 
 @dataclass
 class SongItem:

@@ -1,4 +1,4 @@
-#pyright: reportUnknownMemberType=false
+#pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import os
 import re
 from typing import Callable, \

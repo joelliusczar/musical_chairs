@@ -82,8 +82,8 @@ RemoteScriptEOF1
 
 export diag_flag="$diag_flag" &&
 export exp_name="$exp_name" &&
-export ACCESS_KEY_ID="$ACCESS_KEY_ID" &&
-export SECRET_ACCESS_KEY="$SECRET_ACCESS_KEY" &&
+export S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" &&
+export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
 
 if [ "$setup_lvl" = 'api' ]; then
 	echo "$setup_lvl"

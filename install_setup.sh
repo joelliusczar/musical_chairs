@@ -172,7 +172,7 @@ fi
 
 sync_utility_scripts 
 
-echo "$ACCESS_KEY_ID":"$SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
+echo "$S3_ACCESS_KEY_ID":"$S3_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
 chmod 600 "$HOME"/.passwd-s3fs
 
 output_env_vars

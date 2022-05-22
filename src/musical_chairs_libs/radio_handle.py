@@ -1,3 +1,4 @@
+#pyright: reportMissingTypeStubs=false
 import os
 from typing import Optional
 from musical_chairs_libs.queue_service import QueueService

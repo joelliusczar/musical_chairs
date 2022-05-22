@@ -1,3 +1,4 @@
+#pyright: reportMissingTypeStubs=false
 from .common_fixtures import db_conn as db_conn, \
 	radio_handle_in_mem as radio_handle_in_mem, \
 	radio_handle as radio_handle

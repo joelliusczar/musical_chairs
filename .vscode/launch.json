@@ -17,10 +17,20 @@
       "name": "Python: Current File",
       "type": "python",
       "python": "${command:python.interpreterPath}",
-      "module": "pytest",
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
+    },
+    {
+      "name": "Python: API",
+      "type": "python",
+      "python": "${command:python.interpreterPath}",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/api/index.py",
+      "console": "integratedTerminal",
+      "env": {
+        "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
+      }
     }
   ]
 }

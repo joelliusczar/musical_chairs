@@ -1,3 +1,4 @@
+#pyright: reportMissingTypeStubs=false
 from fastapi import APIRouter
 from constants import api_version
 from musical_chairs_libs.dtos import AccountInfo

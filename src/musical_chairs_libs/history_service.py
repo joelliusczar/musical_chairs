@@ -1,6 +1,6 @@
-#pyright: reportUnknownMemberType=false
+#pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 from typing import Iterator, Optional
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import stations_history, songs, stations, \
@@ -60,7 +60,7 @@ class HistoryService:
 			query  = baseQuery.where(h.stationFk == stationPk)
 		elif stationName:
 			query = baseQuery.join(stations, st.pk == h.stationFk) \
-				.where(st.name == stationName)
+				.where(func.lower(st.name) == func.lower(stationName))
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query) 

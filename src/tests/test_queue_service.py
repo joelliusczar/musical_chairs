@@ -1,3 +1,4 @@
+#pyright: reportMissingTypeStubs=false
 from .common_fixtures import db_conn as db_conn
 from musical_chairs_libs.queue_service import QueueService
 from sqlalchemy.engine import Connection

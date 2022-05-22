@@ -1,4 +1,5 @@
 #pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false
+#pyright: reportMissingTypeStubs=false
 import pytest
 from sqlalchemy import select
 from .common_fixtures import setup_in_mem_tbls as setup_in_mem_tbls, \

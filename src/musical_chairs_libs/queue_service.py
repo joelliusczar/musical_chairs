@@ -1,4 +1,4 @@
-#pyright: reportUnknownMemberType=false
+#pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import time
 from typing import \
 	Any, \
@@ -106,7 +106,7 @@ class QueueService:
 				lambda r: r.pk, #type: ignore
 				rows
 			)
-		) 
+		)
 		selection = self.choice(songPks, sampleSize)
 		return selection
 
@@ -193,7 +193,7 @@ class QueueService:
 			query = baseQuery.where(q.stationFk == stationPk)
 		elif stationName:
 			query = baseQuery.join(stations, st.pk == q.stationFk) \
-				.where(st.name == stationName)
+				.where(func.lower(st.name) == func.lower(stationName))
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
@@ -262,8 +262,8 @@ class QueueService:
 		if stationPk:
 			fromQuery = baseFromQuery.where(st.stationFk == stationPk)
 		elif stationName:
-			fromQuery = baseFromQuery.where(st.name == stationName) \
-				.where(st.name == stationName)
+			fromQuery = baseFromQuery \
+				.where(func.lower(st.name) == func.lower(stationName))
 		else:
 				raise ValueError("Either stationName or pk must be provided")
 		stmt = insert(station_queue).from_select(

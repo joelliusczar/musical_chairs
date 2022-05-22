@@ -5,22 +5,14 @@
     "editorRuler.foreground": "#ef40ff"
   },
   "python.languageServer": "Pylance",
-  "python.analysis.extraPaths": [
-    "src/musical_chairs_libs", 
-    "src/tests",
-    "test_trash/utest/mc_env", 
-    "test_trash/musical_chairs/maintenance/mc_env"
-  ],
   "python.analysis.typeCheckingMode": "strict",
-  "python.analysis.stubPath": "typings",
   "python.analysis.indexing": true,
   "python.analysis.useLibraryCodeForTypes": true,
   "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/utest/mc_env/bin/python",
   "terminal.integrated.env.osx": {
+    "PTHONPATH": "${workspaceFolder}/src",
     "lib_name": "musical_chairs_libs",
     "app_name": "musical_chairs_app",
-    "other_val": "${config:terminal.integrated.inheritEnv}",
-    "config_file": "${workspaceFolder}/test_trash/config/.env",
     "test_root": "${workspaceFolder}/test_trash"
   },
   "python.testing.unittestEnabled": false,
@@ -31,8 +23,8 @@
     "-s"
   ],
   "python.terminal.activateEnvironment": false,
-  "python.envFile": "${workspaceFolder}/test_trash/musical_chairs/config/.env",
+  "python.envFile": "${workspaceFolder}/test_trash/musical_chairs_dir/config/.env",
   "search.exclude": {
     "**/test_trash": true
-  }
+  },
 }

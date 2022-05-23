@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Iterable
 
 
@@ -9,7 +9,7 @@ class AccountInfo:
 	hash: Optional[bytes]
 	email: Optional[str]
 	isAuthenticated: bool = False
-	roles: List[str] = []
+	roles: List[str] = field(default_factory=list)
 
 @dataclass
 class SongItem:

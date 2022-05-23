@@ -21,12 +21,12 @@ export const DomRoutes = {
 };
 
 export const ApiRoutes = {
-	queue: (stationName) => `api/${apiVersion}/stations/${stationName}/queue/`,
+	queue: (stationName) => `stations/${stationName}/queue/`,
 	history: (stationName) => 
-		`api/${apiVersion}/stations/${stationName}/history/`,
-	stations: () => `api/${apiVersion}/stations/`,
+		`stations/${stationName}/history/`,
+	stations: () => "stations/",
 	songRequest: (stationName, songId) => 
-		`api/${apiVersion}/stations/${stationName}/request/${songId}`,
+		`stations/${stationName}/request/${songId}`,
 	songCatalogue: (stationName) => 
-		`api/${apiVersion}/stations/${stationName}/catalogue/`,
+		`stations/${stationName}/catalogue/`,
 };

@@ -11,7 +11,7 @@ from musical_chairs_libs.accounts_service import AccountsService
 app = FastAPI()
 app.add_middleware(
 	CORSMiddleware, 
-	allow_origins=["127.0.0.1"],
+	allow_origins=["http://127.0.0.1", "http://127.0.0.1:3000"],
 	allow_methods=["*"]
 )
 app.include_router(stations_controller.router)

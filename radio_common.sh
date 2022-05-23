@@ -847,8 +847,8 @@ setup_client() (
 	#delete otherwise
 	empty_dir_contents "$web_root"/"$app_client_path_cl" &&
 
-	export REACT_APP_API_ADDRESS="$full_url" &&
 	export REACT_APP_API_VERSION=v1 &&
+	export REACT_APP_API_ADDRESS="$full_url"/api/"$REACT_APP_API_VERSION" &&
 	#set up react then copy
 	#install packages
 	npm --prefix "$client_src" i &&

@@ -1,5 +1,5 @@
 import { unstable_createMuiStrictModeTheme as createMuiTheme, 
-	makeStyles} from "@material-ui/core";
+	makeStyles} from "@mui/material";
 
 const h1Size = 34;
 const fontDecSize = 2;

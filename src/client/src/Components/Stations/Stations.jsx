@@ -9,11 +9,11 @@ import {
 	makeStyles,
 	Tooltip,
 	Typography,
-} from "@material-ui/core";
+} from "@mui/material";
 import Loader from "../Shared/Loader";
 import { fetchStations } from "./stations_slice";
 import { useDispatch, useSelector } from "react-redux";
-import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { CallStatus, DomRoutes, CallType } from "../../constants";
 import { Link, useLocation } from "react-router-dom";
 

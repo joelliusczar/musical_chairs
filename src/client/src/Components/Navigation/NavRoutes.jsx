@@ -1,6 +1,6 @@
 import React from "react";
 import { Route, Switch, NavLink } from "react-router-dom";
-import { List, ListItem } from "@material-ui/core";
+import { List, ListItem } from "@mui/material";
 import Queue from "../Queue/Queue";
 import History from "../History/History";
 import Stations from "../Stations/Stations";

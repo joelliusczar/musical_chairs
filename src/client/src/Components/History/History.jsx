@@ -12,7 +12,7 @@ import { makeStyles,
 	TableCell, 
 	TableHead, 
 	TableRow,
-} from "@material-ui/core";
+} from "@mui/material";
 import Loader from "../Shared/Loader";
 import { CallStatus, DomRoutes, CallType } from "../../constants";
 

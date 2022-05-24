@@ -1,6 +1,6 @@
 import React from "react";
 import "./App.css";
-import { AppBar, Drawer, ThemeProvider, Typography } from "@material-ui/core";
+import { AppBar, Drawer, ThemeProvider, Typography } from "@mui/material";
 import { AppRoutes, NavMenu } from "./Components/Navigation/NavRoutes";
 import { BrowserRouter } from "react-router-dom";
 import { apiAddress } from "./constants";

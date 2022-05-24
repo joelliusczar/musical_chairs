@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { CircularProgress, Typography } from "@material-ui/core";
+import { CircularProgress, Typography } from "@mui/material";
 import { CallStatus } from "../../constants";
 
 const Loader = ({status, children, error, isReady}) => {

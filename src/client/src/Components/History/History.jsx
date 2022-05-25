@@ -3,8 +3,7 @@ import { useHistory, useParams } from "react-router-dom";
 import { fetchStations } from "../Stations/stations_slice";
 import { fetchHistory } from "./history_slice";
 import { useDispatch, useSelector } from "react-redux";
-import { makeStyles, 
-	MenuItem, 
+import { MenuItem, 
 	Select,
 	Table, 
 	TableBody, 
@@ -13,6 +12,7 @@ import { makeStyles,
 	TableHead, 
 	TableRow,
 } from "@mui/material";
+import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
 import { CallStatus, DomRoutes, CallType } from "../../constants";
 

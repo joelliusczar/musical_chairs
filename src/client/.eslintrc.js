@@ -44,7 +44,7 @@ module.exports = {
 				"imports": "always-multiline",
 			},
 		],
-		"no-console": "warn",
+		"no-console": ["warn", { "allow": ["warn", "error"]}],
 		"array-callback-return": "error",
 		"max-len": ["error", { "code": 80, "tabWidth": 2 }],
 	},

@@ -7,6 +7,6 @@ export function constructWebClient() {
 	});
 }
 
-const defaultWebClient = constructWebClient();
+export const defaultWebClient = constructWebClient();
 
 export default defaultWebClient;

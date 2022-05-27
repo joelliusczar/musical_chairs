@@ -29,4 +29,5 @@ export const ApiRoutes = {
 		`stations/${stationName}/request/${songId}`,
 	songCatalogue: (stationName) => 
 		`stations/${stationName}/catalogue/`,
+	login: "token",
 };

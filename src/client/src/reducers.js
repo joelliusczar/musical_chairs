@@ -3,6 +3,7 @@ import stationsReducer from "./Components/Stations/stations_slice";
 import historyReducer from "./Components/History/history_slice";
 import songCatalogueReducer 
 	from "./Components/Song_Catalogue/song_catalogue_slice";
+import accountsReducer from "./Components/Accounts/accounts_slice";
 import { configureStore } from "@reduxjs/toolkit";
 import logger from "redux-logger";
 
@@ -12,6 +13,7 @@ const reducer = {
 	stations: stationsReducer,
 	history: historyReducer,
 	songCatalogue: songCatalogueReducer,
+	accounts: accountsReducer,
 };
 
 

@@ -56,7 +56,7 @@ export function LoginForm(props) {
 				</Box>
 				<Box>
 					<Button onClick={formik.submitForm}>
-						Save
+						Submit
 					</Button>
 					<Button onClick={handleCancel}>
 						Cancel

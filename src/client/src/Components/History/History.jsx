@@ -3,13 +3,13 @@ import { useHistory, useParams } from "react-router-dom";
 import { fetchStations } from "../Stations/stations_slice";
 import { fetchHistory } from "./history_slice";
 import { useDispatch, useSelector } from "react-redux";
-import { MenuItem, 
+import { MenuItem,
 	Select,
-	Table, 
-	TableBody, 
-	TableContainer, 
-	TableCell, 
-	TableHead, 
+	Table,
+	TableBody,
+	TableContainer,
+	TableCell,
+	TableHead,
 	TableRow,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
@@ -30,17 +30,17 @@ export default function History() {
 	const urlHistory = useHistory();
 	const dispatch = useDispatch();
 	const classes = useStyles();
-	const stations = useSelector((appState) => 
+	const stations = useSelector((appState) =>
 		appState.stations.values[CallType.fetch]);
-	const stationsStatus =	useSelector((appState) => 
+	const stationsStatus =	useSelector((appState) =>
 		appState.stations.status[CallType.fetch]);
-	const songHistoryObj = useSelector((appState) => 
+	const songHistoryObj = useSelector((appState) =>
 		appState.history.values[CallType.fetch]);
-	const songHistoryStatus =	useSelector((appState) => 
+	const songHistoryStatus =	useSelector((appState) =>
 		appState.history.status[CallType.fetch]);
-	const songHistoryError =	useSelector((appState) => 
+	const songHistoryError =	useSelector((appState) =>
 		appState.history.error[CallType.fetch]);
-	
+
 
 	useEffect(() => {
 		if(!stationsStatus || stationsStatus === CallStatus.idle) { 

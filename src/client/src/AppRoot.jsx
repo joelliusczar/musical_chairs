@@ -18,6 +18,9 @@ import store from "./reducers";
 import { theme, drawerWidth } from "./style_config";
 import { LoginModal } from "./Components/Accounts/AccountsLoginModal";
 import { SnackbarProvider } from "notistack";
+import { useSelector } from "react-redux";
+import { CallType } from "./constants";
+import { UserMenu } from "./Components/Accounts/UserMenu";
 
 export const useStyles = makeStyles(() => ({
 	drawerPaper: {
@@ -28,6 +31,13 @@ export const useStyles = makeStyles(() => ({
 function AppTrunk() {
 	const classes = useStyles();
 	const [loginOpen, setLoginOpen ] = useState(false);
+	const [menuAnchor, setMenuAchor ] = useState(null);
+	const currentUser = useSelector((appState) =>
+		appState.accounts.values[CallType.post]);
+
+	const openUserMenu = (e) => {
+		setMenuAchor(e.currentTarget);
+	};
 
 	return (
 		<Box sx={{ display: "flex" }}>
@@ -38,12 +48,24 @@ function AppTrunk() {
 			>
 				<Toolbar>
 					<Typography variant="h1">Musical Chairs</Typography>
-					<Button
+					{!currentUser.username ? <Button
 						color="inherit"
 						onClick={() => setLoginOpen(true)}
 					>
 						Login
-					</Button>
+					</Button> :
+						<>
+							<Button
+								color="inherit"
+								onClick={openUserMenu}
+							>
+								{currentUser.username}
+							</Button>
+							<UserMenu 
+								anchorEl={menuAnchor}
+							/>
+						</>
+					}
 				</Toolbar>
 			</AppBar>
 			<Drawer

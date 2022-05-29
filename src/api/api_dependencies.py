@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import re
 from typing import Iterator, Optional
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.engine import Connection
@@ -59,7 +60,7 @@ def get_current_user(
 			headers={"WWW-Authenticate": "Bearer"}
 		)
 	for scope in [*securityScopes.scopes, UserRoleDef.ADMIN.value]:
-		if scope in user.roles:
+		if scope in map(lambda r: re.sub(r":\d+$","", r), user.roles):
 			break
 		user.isAuthenticated = False
 		raise HTTPException(

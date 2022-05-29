@@ -1,26 +1,27 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
-import re
-from typing import \
-	Any, \
-	Callable, \
-	List, \
-	Optional, \
-	Tuple, \
+from datetime import timedelta
+from typing import\
+	Any,\
+	Callable,\
+	List,\
+	Optional,\
+	Tuple,\
 	Iterator
 from collections.abc import Iterable
-from sqlalchemy import \
-	select, \
-	desc, \
-	func, \
-	insert, \
-	delete, \
+from sqlalchemy import\
+	select,\
+	desc,\
+	func,\
+	insert,\
+	delete,\
 	update
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import Row
 from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.accounts_service import UserRoleDef
+from musical_chairs_libs.accounts_service import AccountsService
+from musical_chairs_libs.song_info_service import SongInfoService
 from musical_chairs_libs.tables import \
 	stations_history, \
 	songs, \
@@ -32,13 +33,16 @@ from musical_chairs_libs.tables import \
 	artists, \
 	song_artist
 from musical_chairs_libs.history_service import HistoryService
-from musical_chairs_libs.dtos import AccountInfo, QueueItem, CurrentPlayingInfo
+from musical_chairs_libs.dtos import\
+	AccountInfo,\
+	QueueItem,\
+	CurrentPlayingInfo
 from numpy.random import \
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 from musical_chairs_libs.simple_functions import get_datetime
 
 def choice(
-	items: List[Any], 
+	items: List[Any],
 	sampleSize: int
 ) -> Iterable[Any]:
 	aSize = len(items)
@@ -47,19 +51,15 @@ def choice(
 	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
 	return numpy_choice(items, sampleSize, p = weights, replace=False).tolist()
 
-def _extract_request_timeout(role: str) -> int:
-	match = re.search(r"^song:request:(\d+)?$", role)
-	if match:
-		return int(match.group(1))
-	return -1
-
 class QueueService:
 
 	def __init__(
-		self, 
-		conn: Optional[Connection] = None, 
+		self,
+		conn: Optional[Connection]=None,
 		stationService: Optional[StationService]=None,
 		historyService: Optional[HistoryService]=None,
+		accountService: Optional[AccountsService]=None,
+		songInfoService: Optional[SongInfoService]=None,
 		choiceSelector: Optional[Callable[[List[Any], int], Iterable[Any]]]=None,
 		envManager: Optional[EnvManager]=None
 	) -> None:
@@ -71,11 +71,17 @@ class QueueService:
 				stationService = StationService(conn)
 			if not historyService:
 				historyService = HistoryService(conn, stationService)
+			if not accountService:
+				accountService = AccountsService(conn, envManager)
+			if not songInfoService:
+				songInfoService = SongInfoService(conn)
 			if not choiceSelector:
 				choiceSelector = choice
 			self.conn = conn
 			self.station_service = stationService
 			self.history_service = historyService
+			self.account_service = accountService
+			self.song_info_service = songInfoService
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 
@@ -98,7 +104,7 @@ class QueueService:
 			.group_by(sg.pk, sg.path) \
 			.order_by(desc(func.max(hist.queuedTimestamp))) \
 			.order_by(desc(func.max(hist.playedTimestamp)))
-		
+
 		rows: List[Row] = self.conn.execute(query).fetchall()
 		return rows
 
@@ -187,18 +193,19 @@ class QueueService:
 		sgar: ColumnCollection = song_artist.columns
 		st: ColumnCollection = stations.columns
 		baseQuery = select(
-				sg.pk, \
-				sg.path, \
-				sg.name, \
-				ab.name.label("album"), \
-				ar.name.label("artist"), \
+				sg.pk,
+				sg.path,
+				sg.name,
+				ab.name.label("album"),
+				ar.name.label("artist"),
 				q.queuedTimestamp
-			).select_from(station_queue) \
-			.join(songs, sg.pk == q.songFk) \
-			.join(albums, sg.albumFk == ab.pk, isouter=True) \
-			.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
-			.join(artists, sgar.artistFk == ar.pk, isouter=True) \
-			.order_by(q.queuedTimestamp)
+			)\
+				.select_from(station_queue) \
+				.join(songs, sg.pk == q.songFk) \
+				.join(albums, sg.albumFk == ab.pk, isouter=True) \
+				.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
+				.join(artists, sgar.artistFk == ar.pk, isouter=True) \
+				.order_by(q.queuedTimestamp)
 		if stationPk:
 			query = baseQuery.where(q.stationFk == stationPk)
 		elif stationName:
@@ -243,48 +250,6 @@ class QueueService:
 			queueItem.artist
 		)
 
-	def time_til_user_can_make_request(
-		self,
-		user: AccountInfo
-	) -> int:
-		if not user:
-			return -1
-		if UserRoleDef.ADMIN.value in user.roles:
-			return 0
-		requestRoles = list(filter(
-			lambda r: r.startswith(UserRoleDef.SONG_REQUEST.value),
-			user.roles
-		))
-		if not any(requestRoles):
-			return -1
-		timeout = min(map(_extract_request_timeout, requestRoles)) * 60
-		q: ColumnCollection = station_queue.columns
-		hist: ColumnCollection = stations_history.columns
-		queueLatestQuery = select(func.max(q.requestedTimestamp))\
-			.select_from(station_queue)\
-			.where(q.requestedByUserFk == user.id)
-		queueLatestHistory = select(func.max(hist.requestedTimestamp))\
-			.select_from(stations_history)\
-			.where(hist.requestedByUserFk == user.id)
-		lastRequestedInQueue = self.conn.execute(queueLatestQuery).scalar()
-		lastRequestedInHistory = self.conn.execute(queueLatestHistory).scalar()
-		lastRequested = max(
-			(lastRequestedInQueue or 0),
-			(lastRequestedInHistory or 0)
-		)
-		timeLeft = lastRequested + timeout - self.get_datetime().timestamp()
-		return int(timeLeft) if timeLeft > 0 else 0
-
-	def can_song_be_queued_to_station(self, songPk: int, stationPk: int) -> bool:
-		sttg: ColumnCollection = stations_tags.columns
-		sgtg: ColumnCollection = songs_tags.columns
-		query = select(func.count(1)).select_from(songs_tags)\
-			.join(stations_tags, (sttg.tagFk == sgtg.tagFk)\
-				& (sttg.stationFk == stationPk))\
-			.where(sgtg.songFk == songPk)
-		countRes = self.conn.execute(query).scalar()
-		return True if countRes and countRes > 0 else False
-
 	def _add_song_to_queue(
 		self,
 		songPk: int,
@@ -307,11 +272,22 @@ class QueueService:
 		stationName: str,
 		user: AccountInfo
 	):
-		timeleft = self.time_til_user_can_make_request(user)
+		timeleft = self.account_service.time_til_user_can_make_request(user)
 		if timeleft == 0:
 			stationPk = self.station_service.get_station_pk(stationName)
-			if stationPk and self.can_song_be_queued_to_station(songPk, stationPk):
+			if stationPk and self.station_service.can_song_be_queued_to_station(
+					songPk,
+					stationPk
+				):
 				self._add_song_to_queue(songPk, stationPk, user.id)
+			songInfo = self.song_info_service.song_info(songPk)
+			songName = songInfo.name if songInfo else "Song"
+			raise LookupError(f"{songName} cannot be added to {stationName}")
+		timeleftDelta = timedelta(seconds=timeleft)
+		raise RuntimeError(f"User {user.preferredName} cannot request "
+			f"anymore songs right now. Please wait {str(timeleftDelta)} "
+			"and try again")
+
 
 
 	def get_now_playing_and_queue(

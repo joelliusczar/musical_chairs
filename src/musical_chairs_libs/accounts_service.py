@@ -1,6 +1,7 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import bcrypt
 import os
+import re
 from datetime import timedelta
 from typing import Any, List, Optional
 from musical_chairs_libs.dtos import AccountInfo
@@ -8,7 +9,10 @@ from musical_chairs_libs.env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine.row import Row
-from musical_chairs_libs.tables import users, userRoles
+from musical_chairs_libs.tables import users,\
+	userRoles,\
+	station_queue,\
+	stations_history
 from musical_chairs_libs.simple_functions import get_datetime
 from sqlalchemy import select, insert, desc, func
 from jose import jwt
@@ -16,12 +20,18 @@ from enum import Enum
 
 class UserRoleDef(Enum):
 	ADMIN = "admin"
-	SONG_REQUEST = "song:request:"
+	SONG_REQUEST = "song:request"
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALGORITHM = "HS256"
 SECRET_KEY=os.environ["RADIO_AUTH_SECRET_KEY"]
+
+def _extract_request_timeout(role: str) -> int:
+	match = re.search(r"^song:request:(\d+)?$", role)
+	if match:
+		return int(match.group(1))
+	return -1
 
 class AccountsService:
 
@@ -154,3 +164,35 @@ class AccountsService:
 			None,
 			roles=self._get_roles(pk)
 		)
+
+	def time_til_user_can_make_request(
+		self,
+		user: AccountInfo
+	) -> int:
+		if not user:
+			return -1
+		if UserRoleDef.ADMIN.value in user.roles:
+			return 0
+		requestRoles = list(filter(
+			lambda r: r.startswith(UserRoleDef.SONG_REQUEST.value),
+			user.roles
+		))
+		if not any(requestRoles):
+			return -1
+		timeout = min(map(_extract_request_timeout, requestRoles)) * 60
+		q: ColumnCollection = station_queue.columns
+		hist: ColumnCollection = stations_history.columns
+		queueLatestQuery = select(func.max(q.requestedTimestamp))\
+			.select_from(station_queue)\
+			.where(q.requestedByUserFk == user.id)
+		queueLatestHistory = select(func.max(hist.requestedTimestamp))\
+			.select_from(stations_history)\
+			.where(hist.requestedByUserFk == user.id)
+		lastRequestedInQueue = self.conn.execute(queueLatestQuery).scalar()
+		lastRequestedInHistory = self.conn.execute(queueLatestHistory).scalar()
+		lastRequested = max(
+			(lastRequestedInQueue or 0),
+			(lastRequestedInHistory or 0)
+		)
+		timeLeft = lastRequested + timeout - self.get_datetime().timestamp()
+		return int(timeLeft) if timeLeft > 0 else 0

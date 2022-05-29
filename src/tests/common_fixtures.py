@@ -8,6 +8,7 @@ from musical_chairs_libs.accounts_service import AccountsService
 from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos import AccountInfo
 from sqlalchemy.engine import Connection
+from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.tables import metadata
 from .mocks.mock_process_manager import MockOSProcessManager
 from .db_population import populate_artists,\
@@ -127,9 +128,14 @@ def queue_service_in_mem(db_conn_in_mem_full: Connection) -> QueueService:
 	return queueService
 
 @pytest.fixture
-def account_service(db_conn_in_mem_full: Connection) -> AccountsService:
+def account_service_in_mem(db_conn_in_mem_full: Connection) -> AccountsService:
 	accountService = AccountsService(db_conn_in_mem_full)
 	return accountService
+
+@pytest.fixture
+def station_service_in_mem(db_conn_in_mem_full: Connection) -> StationService:
+	stationService = StationService(db_conn_in_mem_full)
+	return stationService
 
 @pytest.fixture
 def setup_in_mem_tbls_full(

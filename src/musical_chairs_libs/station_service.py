@@ -160,16 +160,16 @@ class StationService:
 			lambda r: Tag(r[tg.pk],r[tg.name])
 		for key, group in itertools.groupby(records, partitionFn): #pyright: ignore [reportUnknownVariableType]
 			yield StationInfo(
-				id=key[0], 
+				id=key[0],
 				name=key[1],
 				tags=list(map(mapFn, group)) #pyright: ignore [reportUnknownArgumentType] 
 			)
 
 	def get_station_song_catalogue(
-		self, 
+		self,
 		stationPk: Optional[int]=None,
-		stationName: Optional[str]=None, 
-		limit: Optional[int]=None, 
+		stationName: Optional[str]=None,
+		limit: Optional[int]=None,
 		offset: int = 0
 	) -> Iterator[SongItem]:
 		sg: ColumnCollection = songs.columns
@@ -180,8 +180,8 @@ class StationService:
 		ar: ColumnCollection = artists.columns
 		sgar: ColumnCollection = song_artist.columns
 		baseQuery = select(
-			sg.pk, 
-			sg.name.label("song"), 
+			sg.pk,
+			sg.name.label("song"),
 			ab.name.label("album"), \
 			ar.name.label("artist"), \
 		).select_from(stations) \
@@ -200,10 +200,19 @@ class StationService:
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
-		for row in records: #pyright: ignore [reportUnknownVariableType] 
-			yield SongItem(row.pk, #pyright: ignore [reportUnknownArgumentType] 
-				row.song, #pyright: ignore [reportUnknownArgumentType] 
-				row.album, #pyright: ignore [reportUnknownArgumentType] 
-				row.artist #pyright: ignore [reportUnknownArgumentType] 
+		for row in records: #pyright: ignore [reportUnknownVariableType]
+			yield SongItem(row.pk, #pyright: ignore [reportUnknownArgumentType]
+				row.song, #pyright: ignore [reportUnknownArgumentType]
+				row.album, #pyright: ignore [reportUnknownArgumentType]
+				row.artist #pyright: ignore [reportUnknownArgumentType]
 			)
 
+	def can_song_be_queued_to_station(self, songPk: int, stationPk: int) -> bool:
+		sttg: ColumnCollection = stations_tags.columns
+		sgtg: ColumnCollection = songs_tags.columns
+		query = select(func.count(1)).select_from(songs_tags)\
+			.join(stations_tags, (sttg.tagFk == sgtg.tagFk)\
+				& (sttg.stationFk == stationPk))\
+			.where(sgtg.songFk == songPk)
+		countRes = self.conn.execute(query).scalar()
+		return True if countRes and countRes > 0 else False

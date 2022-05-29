@@ -8,8 +8,13 @@ class AccountInfo:
 	userName: str
 	hash: Optional[bytes]
 	email: Optional[str]
-	isAuthenticated: bool = False
-	roles: List[str] = field(default_factory=list)
+	displayName: Optional[str]=None
+	isAuthenticated: bool=False
+	roles: List[str]=field(default_factory=list)
+
+	@property
+	def preferredName(self) -> str:
+		return self.displayName or self.userName
 
 @dataclass
 class SongItem:
@@ -23,7 +28,7 @@ class SongItem:
 class QueueItem(SongItem):
 	path: str
 	queuedTimestamp: float
-	requestedTimestamp: Optional[float] = None
+	requestedTimestamp: Optional[float]=None
 
 @dataclass
 class HistoryItem(SongItem):

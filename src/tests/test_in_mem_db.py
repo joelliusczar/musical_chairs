@@ -2,13 +2,16 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
 from sqlalchemy import select
-from .common_fixtures import setup_in_mem_tbls as setup_in_mem_tbls, \
+from .constant_fixtures_for_test import test_password as test_password,\
+	primary_user as primary_user,\
+	test_date_ordered_list as test_date_ordered_list
+from .common_fixtures import setup_in_mem_tbls_full as setup_in_mem_tbls_full, \
 	db_conn_in_mem as db_conn_in_mem
 from musical_chairs_libs.tables import artists
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
 
-@pytest.mark.usefixtures("setup_in_mem_tbls")
+@pytest.mark.usefixtures("setup_in_mem_tbls_full")
 def test_in_mem_db(db_conn_in_mem: Connection) -> None:
 	a: ColumnCollection = artists.columns
 	query = select(artists).order_by(a.name)

@@ -9,13 +9,10 @@ from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.dtos import HistoryItem
 from musical_chairs_libs.env_manager import EnvManager
 
-
-
-
 class HistoryService:
 	def __init__(
-		self, 
-		conn: Connection, 
+		self,
+		conn: Connection,
 		stationService: Optional[StationService]=None,
 		envManager: Optional[EnvManager]=None
 	) -> None:
@@ -29,25 +26,25 @@ class HistoryService:
 			self.station_service = stationService
 
 	def get_history_for_station(
-		self, 
+		self,
 		stationPk: Optional[int]=None,
-		stationName: Optional[str]=None, 
-		limit: int=50, 
+		stationName: Optional[str]=None,
+		limit: int=50,
 		offset: int=0
 	) -> Iterator[HistoryItem]:
-		h: ColumnCollection = stations_history.columns 
-		st: ColumnCollection = stations.columns 
-		sg: ColumnCollection = songs.columns 
-		ab: ColumnCollection = albums.columns 
-		ar: ColumnCollection = artists.columns 
-		sgar: ColumnCollection = song_artist.columns 
+		h: ColumnCollection = stations_history.columns
+		st: ColumnCollection = stations.columns
+		sg: ColumnCollection = songs.columns
+		ab: ColumnCollection = albums.columns
+		ar: ColumnCollection = artists.columns
+		sgar: ColumnCollection = song_artist.columns
 		baseQuery = select(
-			sg.pk, 
-			sg.path, 
-			h.playedTimestamp, 
-			sg.name, 
+			sg.pk,
+			sg.path,
+			h.playedTimestamp,
+			sg.name,
 			ab.name.label("album"),
-			ar.name.label("artist") 
+			ar.name.label("artist")
 		).select_from(stations_history) \
 			.join(songs, h.songFk == sg.pk) \
 			.join(albums, sg.albumFk == ab.pk, isouter=True) \
@@ -63,9 +60,9 @@ class HistoryService:
 				.where(func.lower(st.name) == func.lower(stationName))
 		else:
 			raise ValueError("Either stationName or pk must be provided")
-		records = self.conn.execute(query) 
+		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield HistoryItem( 
+			yield HistoryItem(
 					row.pk, #pyright: ignore [reportUnknownArgumentType]
 					row.name, #pyright: ignore [reportUnknownArgumentType]
 					row.album, #pyright: ignore [reportUnknownArgumentType]

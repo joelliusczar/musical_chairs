@@ -12,7 +12,7 @@ class RadioHandle:
 
 	def __init__(
 		self,
-		stationName: str, 
+		stationName: str,
 		envManager: Optional[EnvManager]=None,
 		processManager: Optional[OSProcessManager]=None
 	) -> None:
@@ -47,7 +47,7 @@ class RadioHandle:
 		print('Executing shutdown() function...')
 		return 1
 
-	# Function called to get the next filename to stream. 
+	# Function called to get the next filename to stream.
 	# Should return a string.
 	def ices_get_next(self) -> str:
 		searchBase = self.env_manager.search_base

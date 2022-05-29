@@ -6,8 +6,9 @@ from typing import Callable, \
 	Optional
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import Connection
-from sqlalchemy import insert, \
-	select, \
+from sqlalchemy import \
+	insert,\
+	select,\
 	update
 from sqlalchemy.sql import ColumnCollection
 from tinytag import TinyTag #pyright: ignore [reportMissingTypeStubs]
@@ -81,8 +82,8 @@ def map_path_to_tags(path: str) -> Iterable[str]:
 class SongScanner:
 
 	def __init__(
-		self, 
-		conn: Connection, 
+		self,
+		conn: Connection,
 		stationService: Optional[StationService]=None,
 		envManager: Optional[EnvManager]=None
 	) -> None:
@@ -107,13 +108,13 @@ class SongScanner:
 		print(name)
 		stmt = insert(artists).values(name = name)
 		res = self.conn.execute(stmt)
-		insertedPk: int = res.lastrowid 
+		insertedPk: int = res.lastrowid
 		return insertedPk
 
 	def get_or_save_album(
-		self, 
-		name: Optional[str], 
-		artistFk: Optional[int]=None, 
+		self,
+		name: Optional[str],
+		artistFk: Optional[int]=None,
 		year: Optional[int]=None
 	) -> Optional[int]:
 		if not name:
@@ -126,12 +127,12 @@ class SongScanner:
 			return pk
 		print(name)
 		stmt = insert(albums).values(
-			name = name, 
-			albumArtistFk = artistFk, 
+			name = name,
+			albumArtistFk = artistFk,
 			year = year
 		)
 		res = self.conn.execute(stmt)
-		insertedPk: int = res.lastrowid 
+		insertedPk: int = res.lastrowid
 		return insertedPk
 
 	def update_metadata(self, searchBase: str):
@@ -156,28 +157,28 @@ class SongScanner:
 				artistFk = self.get_or_save_artist(fileTag.artist)
 				albumArtistFk = self.get_or_save_artist(fileTag.albumartist)
 				albumFk = self.get_or_save_album(
-					fileTag.album, 
-					albumArtistFk, 
+					fileTag.album,
+					albumArtistFk,
 					fileTag.year
 				)
 				songUpdate = update(songs) \
 				.where(sg.pk == songPk) \
 				.values(
-					title = fileTag.title, 
-					albumFk = albumFk, 
-					track = fileTag.track, 
-					disc = fileTag.disc, 
-					bitrate = fileTag.bitrate, 
-					comment = fileTag.comment, 
+					title = fileTag.title,
+					albumFk = albumFk,
+					track = fileTag.track,
+					disc = fileTag.disc,
+					bitrate = fileTag.bitrate,
+					comment = fileTag.comment,
 					genre = fileTag.genre
 				)
-				count: int = self.conn.execute(songUpdate).rowcount 
+				count: int = self.conn.execute(songUpdate).rowcount
 				updateCount += count
 				try:
 					songArtistInsert = insert(song_artist)\
 						.values(songFk = songPk, artistFk = artistFk)
 					self.conn.execute(songArtistInsert)
-				except IntegrityError: pass 
+				except IntegrityError: pass
 			if len(recordSet) < 1:
 				break
 			page += 1

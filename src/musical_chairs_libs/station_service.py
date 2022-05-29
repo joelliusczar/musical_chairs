@@ -26,7 +26,7 @@ from musical_chairs_libs.os_process_manager import OSProcessManager
 
 class StationService:
 
-	def __init__(self, 
+	def __init__(self,
 		conn: Optional[Connection]=None,
 		envManager: Optional[EnvManager]=None,
 		processManager: Optional[OSProcessManager]=None

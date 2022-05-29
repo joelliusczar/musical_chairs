@@ -1,7 +1,7 @@
 import os
 
 class OSProcessManager:
-	
+
 	def getpid(self) -> int:
 		return os.getpid()
 

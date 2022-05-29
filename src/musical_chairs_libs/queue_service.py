@@ -1,5 +1,5 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
-import time
+import re
 from typing import \
 	Any, \
 	Callable, \
@@ -14,13 +14,13 @@ from sqlalchemy import \
 	func, \
 	insert, \
 	delete, \
-	update, \
-	literal #pyright: ignore [reportUnknownVariableType]
+	update
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import Row
 from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.station_service import StationService
+from musical_chairs_libs.accounts_service import UserRoleDef
 from musical_chairs_libs.tables import \
 	stations_history, \
 	songs, \
@@ -32,9 +32,10 @@ from musical_chairs_libs.tables import \
 	artists, \
 	song_artist
 from musical_chairs_libs.history_service import HistoryService
-from musical_chairs_libs.dtos import QueueItem, CurrentPlayingInfo
+from musical_chairs_libs.dtos import AccountInfo, QueueItem, CurrentPlayingInfo
 from numpy.random import \
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
+from musical_chairs_libs.simple_functions import get_datetime
 
 def choice(
 	items: List[Any], 
@@ -45,6 +46,12 @@ def choice(
 	# the sum of weights needs to equal 1
 	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
 	return numpy_choice(items, sampleSize, p = weights, replace=False).tolist()
+
+def _extract_request_timeout(role: str) -> int:
+	match = re.search(r"^song:request:(\d+)?$", role)
+	if match:
+		return int(match.group(1))
+	return -1
 
 class QueueService:
 
@@ -70,6 +77,7 @@ class QueueService:
 			self.station_service = stationService
 			self.history_service = historyService
 			self.choice = choiceSelector
+			self.get_datetime = get_datetime
 
 	def get_all_station_song_possibilities(self, stationPk: int) -> List[Row]:
 		st: ColumnCollection = stations.columns
@@ -77,7 +85,7 @@ class QueueService:
 		sttg: ColumnCollection = stations_tags.columns
 		sgtg: ColumnCollection = songs_tags.columns
 		hist: ColumnCollection = stations_history.columns
-		
+
 		query = select(sg.pk, sg.path) \
 			.select_from(stations) \
 			.join(stations_tags, st.pk == sttg.stationFk) \
@@ -95,8 +103,8 @@ class QueueService:
 		return rows
 
 	def get_random_songPks(
-		self, 
-		stationPk: int, 
+		self,
+		stationPk: int,
 		deficitSize: int
 	) -> Iterable[int]:
 		rows = self.get_all_station_song_possibilities(stationPk)
@@ -110,6 +118,7 @@ class QueueService:
 		selection = self.choice(songPks, sampleSize)
 		return selection
 
+
 	def fil_up_queue(self, stationPk: int, queueSize: int) -> None:
 		q: ColumnCollection = station_queue.columns
 		queryQueueSize: str = select(func.count(1)).select_from(station_queue)\
@@ -120,11 +129,11 @@ class QueueService:
 		if deficitSize < 1:
 			return
 		songPks = self.get_random_songPks(stationPk, deficitSize)
-		timestamp = time.time()
+		timestamp = self.get_datetime().timestamp()
 		params = list(map(lambda s: {
-			"stationFk": stationPk, 
-			"songFk": s, 
-			"queuedTimestamp": timestamp 
+			"stationFk": stationPk,
+			"songFk": s,
+			"queuedTimestamp": timestamp
 		}, songPks))
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
@@ -138,12 +147,13 @@ class QueueService:
 		queueTimestamp: float
 	) -> None:
 		q: ColumnCollection = station_queue.columns
+
 		# can't delete by songPk alone b/c the song might be queued multiple times
 		queueDel = delete(station_queue).where(q.stationFk == stationPk) \
 			.where(q.songFk == songPk) \
 			.where(q.queuedTimestamp == queueTimestamp)
 		self.conn.execute(queueDel)
-		currentTime = time.time()
+		currentTime = self.get_datetime().timestamp()
 
 		hist: ColumnCollection = stations_history.columns
 
@@ -165,8 +175,8 @@ class QueueService:
 		return res < 1
 
 	def get_queue_for_station(
-		self, 
-		stationPk: Optional[int]=None, 
+		self,
+		stationPk: Optional[int]=None,
 		stationName: Optional[str]=None,
 		limit: Optional[int]=None
 	) -> Iterator[QueueItem]:
@@ -208,9 +218,9 @@ class QueueService:
 			)
 
 	def pop_next_queued(
-		self, 
+		self,
 		stationPk: Optional[int]=None,
-		stationName: Optional[str]=None, 
+		stationName: Optional[str]=None,
 		queueSize: int=50
 	) -> Tuple[str, str, str, str]:
 		if not stationPk:
@@ -233,55 +243,80 @@ class QueueService:
 			queueItem.artist
 		)
 
-	def add_song_to_queue(
-		self, 
-		songPk: int,
-		stationPk: Optional[int]=None, 
-		stationName: Optional[str]=None
+	def time_til_user_can_make_request(
+		self,
+		user: AccountInfo
 	) -> int:
-		if not stationPk:
-			if stationName:
-				stationPk = self.station_service.get_station_pk(stationName)
-		timestamp = time.time()
-		sq: ColumnCollection = station_queue.columns
-		st: ColumnCollection = stations.columns
+		if not user:
+			return -1
+		if UserRoleDef.ADMIN.value in user.roles:
+			return 0
+		requestRoles = list(filter(
+			lambda r: r.startswith(UserRoleDef.SONG_REQUEST.value),
+			user.roles
+		))
+		if not any(requestRoles):
+			return -1
+		timeout = min(map(_extract_request_timeout, requestRoles)) * 60
+		q: ColumnCollection = station_queue.columns
+		hist: ColumnCollection = stations_history.columns
+		queueLatestQuery = select(func.max(q.requestedTimestamp))\
+			.select_from(station_queue)\
+			.where(q.requestedByUserFk == user.id)
+		queueLatestHistory = select(func.max(hist.requestedTimestamp))\
+			.select_from(stations_history)\
+			.where(hist.requestedByUserFk == user.id)
+		lastRequestedInQueue = self.conn.execute(queueLatestQuery).scalar()
+		lastRequestedInHistory = self.conn.execute(queueLatestHistory).scalar()
+		lastRequested = max(
+			(lastRequestedInQueue or 0),
+			(lastRequestedInHistory or 0)
+		)
+		timeLeft = lastRequested + timeout - self.get_datetime().timestamp()
+		return int(timeLeft) if timeLeft > 0 else 0
+
+	def can_song_be_queued_to_station(self, songPk: int, stationPk: int) -> bool:
 		sttg: ColumnCollection = stations_tags.columns
 		sgtg: ColumnCollection = songs_tags.columns
-
-		subquery = select(st.pk) \
-			.select_from(stations) \
-			.join(stations_tags, sttg.stationFk == st.pk) \
-			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
+		query = select(func.count(1)).select_from(songs_tags)\
+			.join(stations_tags, (sttg.tagFk == sgtg.tagFk)\
+				& (sttg.stationFk == stationPk))\
 			.where(sgtg.songFk == songPk)
-		baseFromQuery= select(
-				st.pk, \
-				literal(songPk), \
-				literal(timestamp), \
-				literal(timestamp)) \
-					.where(st.pk.in_(subquery))
-		if stationPk:
-			fromQuery = baseFromQuery.where(st.stationFk == stationPk)
-		elif stationName:
-			fromQuery = baseFromQuery \
-				.where(func.lower(st.name) == func.lower(stationName))
-		else:
-				raise ValueError("Either stationName or pk must be provided")
-		stmt = insert(station_queue).from_select(
-			[
-				sq.stationFk, \
-				sq.songFk, \
-				sq.addedTimestamp, \
-				sq.requestedTimestamp \
-			], \
-			fromQuery
+		countRes = self.conn.execute(query).scalar()
+		return True if countRes and countRes > 0 else False
+
+	def _add_song_to_queue(
+		self,
+		songPk: int,
+		stationPk: int,
+		userPk: int
+	) -> int:
+		timestamp = self.get_datetime().timestamp()
+
+		stmt = insert(station_queue).values(
+			stationFk = stationPk,
+			songFk = songPk,
+			queuedTimestamp = timestamp,
+			requestedTimestamp = timestamp,
+			requestedByUserFk = userPk
 		)
-		return self.conn.execute(stmt)\
-			.rowcount #pyright: ignore [reportUnknownVariableType]
-	
+		return self.conn.execute(stmt).rowcount #pyright: ignore [reportUnknownVariableType]
+
+	def add_song_to_queue(self,
+		songPk: int,
+		stationName: str,
+		user: AccountInfo
+	):
+		timeleft = self.time_til_user_can_make_request(user)
+		if timeleft == 0:
+			stationPk = self.station_service.get_station_pk(stationName)
+			if stationPk and self.can_song_be_queued_to_station(songPk, stationPk):
+				self._add_song_to_queue(songPk, stationPk, user.id)
+
 
 	def get_now_playing_and_queue(
-		self, 
-		stationPk: Optional[int]=None, 
+		self,
+		stationPk: Optional[int]=None,
 		stationName: Optional[str]=None
 	) -> CurrentPlayingInfo:
 		if not stationPk:

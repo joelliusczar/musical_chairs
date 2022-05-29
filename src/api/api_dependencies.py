@@ -6,7 +6,7 @@ from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.queue_service import QueueService
-from musical_chairs_libs.accounts_service import AccountsService
+from musical_chairs_libs.accounts_service import AccountsService, UserRoleDef
 from musical_chairs_libs.dtos import AccountInfo
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 
@@ -58,7 +58,7 @@ def get_current_user(
 			detail="Could not validate credentials",
 			headers={"WWW-Authenticate": "Bearer"}
 		)
-	for scope in [*securityScopes.scopes, "admin"]:
+	for scope in [*securityScopes.scopes, UserRoleDef.ADMIN.value]:
 		if scope in user.roles:
 			break
 		user.isAuthenticated = False

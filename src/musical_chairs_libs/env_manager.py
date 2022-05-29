@@ -8,7 +8,7 @@ class EnvManager:
 	def search_base(self) -> str:
 		return os.environ["searchBase"]
 
-	def get_configured_db_connection(self, 
+	def get_configured_db_connection(self,
 		echo: bool=False,
 		inMemory: bool=False
 	) -> Connection:

@@ -28,7 +28,7 @@ albums = Table("Albums", metadata,
 	Column("lastModifiedTimestamp", Float, nullable=True),
 )
 
-songs = Table("Songs", metadata, 
+songs = Table("Songs", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("path", String, nullable=True, unique=True),
 	Column("name", String),
@@ -63,7 +63,7 @@ song_covers = Table("SongCovers", metadata,
 	UniqueConstraint("songFk", "coverSongFk")
 )
 
-tags = Table("Tags", metadata, 
+tags = Table("Tags", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("name", String, nullable=True, unique=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
@@ -71,7 +71,7 @@ tags = Table("Tags", metadata,
 	Column("lastModifiedTimestamp", Float, nullable=True),
 )
 
-songs_tags = Table("SongsTags", metadata, 
+songs_tags = Table("SongsTags", metadata,
 	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
 	Column("tagFk", Integer, ForeignKey("Tags.pk"), nullable=False),
 	Column("skip", Integer, nullable=True),
@@ -81,7 +81,7 @@ songs_tags = Table("SongsTags", metadata,
 	UniqueConstraint("songFk", "tagFk")
 )
 
-stations = Table("Stations", metadata, 
+stations = Table("Stations", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("name", String, nullable=False, unique=True),
 	Column("displayName", String, nullable=True),
@@ -91,7 +91,7 @@ stations = Table("Stations", metadata,
 	Column("lastModifiedTimestamp", Float, nullable=True),
 )
 
-stations_tags = Table("StationsTags", metadata, 
+stations_tags = Table("StationsTags", metadata,
 	Column("stationFk", Integer, nullable=False),
 	Column("tagFk", Integer, nullable=False),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
@@ -100,7 +100,7 @@ stations_tags = Table("StationsTags", metadata,
 	UniqueConstraint("stationFk", "tagFk")
 )
 
-stations_history = Table("StationHistory", metadata, 
+stations_history = Table("StationHistory", metadata,
 	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
 	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
 	Column("playedTimestamp", Float),

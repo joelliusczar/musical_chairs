@@ -18,8 +18,9 @@ class SongItem:
 	album: str
 	artist: str
 
+
 @dataclass
-class QueueItem(SongItem): 
+class QueueItem(SongItem):
 	path: str
 	queuedTimestamp: float
 	requestedTimestamp: Optional[float] = None

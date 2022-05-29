@@ -1,7 +1,7 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import bcrypt
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, List, Optional
 from musical_chairs_libs.dtos import AccountInfo
 from musical_chairs_libs.env_manager import EnvManager
@@ -9,8 +9,14 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine.row import Row
 from musical_chairs_libs.tables import users, userRoles
+from musical_chairs_libs.simple_functions import get_datetime
 from sqlalchemy import select, insert, desc, func
 from jose import jwt
+from enum import Enum
+
+class UserRoleDef(Enum):
+	ADMIN = "admin"
+	SONG_REQUEST = "song:request:"
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES=30
@@ -19,17 +25,18 @@ SECRET_KEY=os.environ["RADIO_AUTH_SECRET_KEY"]
 
 class AccountsService:
 
-	def __init__(self, 
+	def __init__(self,
 		conn: Optional[Connection]=None,
 		envManager: Optional[EnvManager]=None
 	) -> None:
 		if not conn:
 			if not envManager:
-				envManager = EnvManager()	
+				envManager = EnvManager()
 			conn = envManager.get_configured_db_connection()
 		self.conn = conn
 		self._system_user: Optional[AccountInfo] = None
-	
+		self.get_datetime = get_datetime
+
 
 	def get_account(self, userName: str) -> Optional[AccountInfo]:
 		cleanedUserName = userName.strip() if userName else None
@@ -54,8 +61,8 @@ class AccountsService:
 			roles=self._get_roles(pk)
 		)
 
-	def authenticate_user(self, 
-		userName: str, 
+	def authenticate_user(self,
+		userName: str,
 		guess: bytes
 	) -> Optional[AccountInfo]:
 		user = self.get_account(userName)
@@ -67,8 +74,8 @@ class AccountsService:
 			user.isAuthenticated = False
 		return user
 
-	def create_account(self, userName: str, 
-		pw: bytes, 
+	def create_account(self, userName: str,
+		pw: bytes,
 		email: Optional[str]=None
 	) -> bool:
 		cleanedUserName = userName.strip() if userName else None
@@ -84,19 +91,20 @@ class AccountsService:
 			return False
 		hash = bcrypt.hashpw(pw, bcrypt.gensalt(12))
 		stmt = insert(users).values(
-			userName=cleanedUserName, 
-			hashedPW=hash, 
-			email=cleanedEmail, 
-			creationTimestamp=datetime.utcnow(), 
-			isActive=True 
+			userName=cleanedUserName,
+			hashedPW=hash,
+			email=cleanedEmail,
+			creationTimestamp = self.get_datetime().timestamp(),
+			isActive = True
 		)
 		self.conn.execute(stmt)
 		return True
 
 	def create_access_token(self, userName: str) -> str:
-		expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+		expire = self.get_datetime() \
+			+ timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 		token: str = jwt.encode({
-				"sub": userName, 
+				"sub": userName,
 				"exp": expire
 			},
 			SECRET_KEY,
@@ -124,7 +132,7 @@ class AccountsService:
 				rows
 			)
 		)
-		
+
 	@property
 	def system_user(self) -> Optional[AccountInfo]:
 		if self._system_user:

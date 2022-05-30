@@ -2,7 +2,12 @@
 from typing import Dict, List
 from fastapi import APIRouter, Depends, Security, HTTPException, status
 from musical_chairs_libs.accounts_service import UserRoleDef
-from musical_chairs_libs.dtos import AccountInfo, CurrentPlayingInfo, HistoryItem, SongItem, StationInfo
+from musical_chairs_libs.dtos import AccountInfo,\
+	CurrentPlayingInfo,\
+	HistoryItem,\
+	SongItem,\
+	StationInfo,\
+	TableData
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService
@@ -44,14 +49,23 @@ def queue(
 	return queue
 
 @router.get("/{stationName}/catalogue")
-def song_catalogue(stationName: str,
+def song_catalogue(
+	stationName: str,
+	page: int = 0,
+	limit: int = 50,
 	stationService: StationService = Depends(station_service)
-) -> Dict[str, List[SongItem]]:
+) -> TableData[SongItem]:
 	if not stationName:
-		return {}
-	songs = list(stationService\
-		.get_station_song_catalogue(stationName=stationName))
-	return { "items": songs}
+		return TableData(0, [])
+	songs = list(
+		stationService.get_station_song_catalogue(
+			stationName = stationName,\
+			page = page,\
+			limit = limit
+		)
+	)
+	totalRows = stationService.song_catalogue_count(stationName = stationName)
+	return TableData(totalRows, songs)
 
 @router.post("/{stationName}/request/{songPk}")
 def request_song(

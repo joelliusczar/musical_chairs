@@ -1,6 +1,12 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Iterable
+from typing import List, Optional, Iterable, TypeVar, Generic
 
+T = TypeVar("T")
+
+@dataclass
+class TableData(Generic[T]):
+	totalRows: int
+	items: List[T]
 
 @dataclass
 class AccountInfo:

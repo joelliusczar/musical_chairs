@@ -4,9 +4,12 @@ import { CallStatus, ApiRoutes, CallType } from "../../constants";
 
 export const fetchSongCatalogue = createAsyncThunk(
 	"song_catalogue/fetch",
-	async ({ station }) => {
+	async ({ station, params }) => {
+
 		const response = await webClient
-			.get(ApiRoutes.songCatalogue(station));
+			.get(`${ApiRoutes.songCatalogue(station)}`, {
+				params: params,
+			});
 		return response.data;
 	}
 );
@@ -17,6 +20,7 @@ const initialState = {
 	},
 	values: { 
 		[CallType.fetch]:{
+			totalRows: 0,
 			items: [],
 		},
 	},

@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { useHistory, useParams } from "react-router-dom";
+import { useHistory, useParams, useLocation, Link } from "react-router-dom";
 import { fetchStations } from "../Stations/stations_slice";
 import { fetchSongCatalogue } from "./song_catalogue_slice";
 import { useDispatch, useSelector } from "react-redux";
-import { MenuItem, 
+import { MenuItem,
 	Select,
-	Table, 
-	TableBody, 
-	TableContainer, 
-	TableCell, 
-	TableHead, 
+	Table,
+	TableBody,
+	TableContainer,
+	TableCell,
+	TableHead,
 	TableRow,
 	Button,
+	Pagination,
+	PaginationItem,
+	Box,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
@@ -29,6 +32,9 @@ export default function SongCatalogue() {
 	const [selectedStation, setSelectedStation] = useState("");
 	const [selectTouched, setSelectTouched] = useState();
 	const { station: stationParam } = useParams();
+	const location = useLocation();
+	const queryObj = new URLSearchParams(location.search);
+	const page = parseInt(queryObj.get("page") || "1");
 	const urlHistory = useHistory();
 	const dispatch = useDispatch();
 	const classes = useStyles();
@@ -36,25 +42,52 @@ export default function SongCatalogue() {
 		appState.stations.values[CallType.fetch]);
 	const stationsStatus =	useSelector((appState) =>
 		appState.stations.status[CallType.fetch]);
-	const songCatalogueObj = useSelector((appState) => 
+	const songCatalogueObj = useSelector((appState) =>
 		appState.songCatalogue.values[CallType.fetch]);
-	const songCatalogueStatus =	useSelector((appState) => 
+	const songCatalogueStatus =	useSelector((appState) =>
 		appState.songCatalogue.status[CallType.fetch]);
-	const songCatalogueError =	useSelector((appState) => 
+	const songCatalogueError =	useSelector((appState) =>
 		appState.songCatalogue.error[CallType.fetch]);
-	
+
 	const dispatchSongRequest = (songId) => {
 		dispatch(requestSong({station: stationParam, songId }));
 	};
 
+	const getPageUrl = (params) => {
+		let queryStr = null;
+		if(queryObj) {
+			if(params.page) {
+				queryObj.set("page", params.page);
+			}
+			if(params.rows) {
+				queryObj.set("rows", params.rows);
+			}
+			queryStr = `?${queryObj.toString()}`;
+		}
+		return `${DomRoutes.songCatalogue}${selectedStation}${queryStr}`;
+	};
+
+	const getPageCount = () => {
+		const rows = parseInt(queryObj.get("rows") || "1");
+		const totalRows = songCatalogueObj.totalRows;
+		if(rows < 1) {
+			return 0;
+		}
+		return Math.floor(totalRows / rows);
+	};
+
+	const getRowsCount = () => {
+		return parseInt(queryObj.get("rows") || "50");
+	};
+
 	useEffect(() => {
-		if(!stationsStatus || stationsStatus === CallStatus.idle) { 
+		if(!stationsStatus || stationsStatus === CallStatus.idle) {
 			dispatch(fetchStations());
 		}
 	}, [dispatch, stationsStatus]);
 
 	useEffect(() => {
-		document.title = 
+		document.title =
 			`Musical Chairs - Song Catalogue${`- ${stationParam || ""}`}`;
 	},[stationParam]);
 
@@ -69,13 +102,19 @@ export default function SongCatalogue() {
 		if(stations.items.some(s => s.name.toLowerCase() === station)) {
 			setSelectedStation(stationParam);
 			setSelectTouched(false);
-			dispatch(fetchSongCatalogue({ station: stationParam }));
+			const queryObj = new URLSearchParams(location.search);
+			const page = parseInt(queryObj.get("page") || "1");
+			const limit = parseInt(queryObj.get("rows") || "50");
+			dispatch(fetchSongCatalogue({
+				station: stationParam,
+				params: { page: page - 1, limit: limit } }));
 		}
-	}, [stationParam, 
-		dispatch, 
-		setSelectedStation, 
-		setSelectTouched, 
+	}, [stationParam,
+		dispatch,
+		setSelectedStation,
+		setSelectTouched,
 		stations,
+		location.search,
 	]);
 
 	return (
@@ -102,9 +141,9 @@ export default function SongCatalogue() {
 					})}
 				</Select>
 			)}
-			<Loader 
-				status={songCatalogueStatus} 
-				error={songCatalogueError} 
+			<Loader
+				status={songCatalogueStatus}
+				error={songCatalogueError}
 				isReady={!!stationParam}
 			>
 				<TableContainer>
@@ -131,10 +170,10 @@ export default function SongCatalogue() {
 											{item.artist || "{No artist name}"}
 										</TableCell>
 										<TableCell>
-											<Button 
+											<Button
 												color="primary"
 												variant="contained"
-												onClick={() => 
+												onClick={() =>
 													dispatchSongRequest(item.id)
 												}
 											>
@@ -147,6 +186,34 @@ export default function SongCatalogue() {
 						</TableBody>
 					</Table>
 				</TableContainer>
+				<Box sx={{ display: "flex"}}>
+					<Select
+						displayEmpty
+						defaultValue={50}
+						label="Row Count"
+						onChange={(e) => {
+							urlHistory.replace(getPageUrl({ rows: e.target.value, page: 1 }));
+						}}
+						renderValue={(v) => v || "Select Row Count"}
+						value={getRowsCount()}
+					>
+						{[10, 50, 100, 1000].map((size) => {
+							return (<MenuItem key={`size_${size}`} value={size}>
+								{size}
+							</MenuItem>);
+						})}
+					</Select>
+					<Pagination
+						count={getPageCount()}
+						page={page}
+						renderItem={item => (<PaginationItem
+							component={Link}
+							to={getPageUrl({page: item.page})}
+							{...item}
+						/>)}
+						sx={{ }}
+					/>
+				</Box>
 			</Loader>
 		</>
 	);

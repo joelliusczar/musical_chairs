@@ -1,0 +1,4 @@
+
+
+class AlreadyUsedError(ValueError):
+	pass

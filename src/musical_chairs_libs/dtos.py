@@ -1,7 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 import re
 from dataclasses import dataclass, field
-from typing import Iterator, List, Optional, Iterable, Set, Tuple, TypeVar, Generic
+from typing import Iterator, List, Optional, Iterable, Set, Tuple, TypeVar, Generic, Union
 from enum import Enum
 from pydantic import BaseModel, validator
 from email_validator import validate_email #pyright: ignore reportUnknownVariableType
@@ -51,6 +51,10 @@ class UserRoleDef(Enum):
 			countDict[extracted[0]] = count + 1
 		return countDict
 
+	def modded_value(self, mod: Optional[Union[str, int]]=None) -> str:
+		if not mod:
+			return self.value
+		return f"{self.value}{mod}"
 
 T = TypeVar("T")
 
@@ -90,7 +94,7 @@ class SaveAccountInfo(BaseModel):
 	email: str
 	password: str
 	displayName: Optional[str]=None
-	isNew: bool=True
+	id: Optional[int]
 	roles: List[str]=[]
 
 	@validator("email")
@@ -124,10 +128,6 @@ class SaveAccountInfo(BaseModel):
 			if extracted not in roleSet:
 				raise ValueError(f"{role} is an illegal role")
 		return v
-
-
-
-
 
 
 @dataclass

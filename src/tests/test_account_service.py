@@ -58,7 +58,7 @@ def test_when_can_make_request_with_history(
 	accountService = account_service_mock_current_time
 	_insert_row_into_history(accountService.conn, 1)
 
-	primary_user.roles = [f"{UserRoleDef.SONG_REQUEST.value}60"]
+	primary_user.roles = [UserRoleDef.SONG_REQUEST.modded_value(60)]
 	global currentTestDate
 	currentTestDate =\
 		datetime(
@@ -192,8 +192,8 @@ def test_unique_roles():
 	with pytest.raises(StopIteration):
 		next(gen)
 	testRoles2 = [
-		f"{UserRoleDef.SONG_REQUEST.value}5",
-		f"{UserRoleDef.SONG_REQUEST.value}15"
+		UserRoleDef.SONG_REQUEST.modded_value(5),
+		UserRoleDef.SONG_REQUEST.modded_value("15")
 	]
 	gen = UserRoleDef.remove_repeat_roles(testRoles2)
 	results = list(gen)
@@ -206,7 +206,7 @@ def test_unique_roles():
 	gen = UserRoleDef.remove_repeat_roles(testRoles3)
 	results = list(gen)
 	assert len(results) == 1
-	assert results[0] == f"{UserRoleDef.SONG_REQUEST.value}"
+	assert results[0] == UserRoleDef.SONG_REQUEST.modded_value()
 	testRoles4 = [
 		f"{UserRoleDef.SONG_REQUEST.value}",
 		f"{UserRoleDef.SONG_REQUEST.value}15",
@@ -217,18 +217,18 @@ def test_unique_roles():
 	gen = UserRoleDef.remove_repeat_roles(testRoles4)
 	results = sorted(list(gen))
 	assert len(results) == 3
-	assert results[0] == f"{UserRoleDef.SONG_ADD.value}15"
-	assert results[1] == f"{UserRoleDef.SONG_REQUEST.value}"
-	assert results[2] == f"{UserRoleDef.USER_LIST.value}"
+	assert results[0] == UserRoleDef.SONG_ADD.modded_value("15")
+	assert results[1] == UserRoleDef.SONG_REQUEST.modded_value()
+	assert results[2] == UserRoleDef.USER_LIST.modded_value("")
 
 
 def test_count_repeat_roles():
 	testRoles = [
-		f"{UserRoleDef.SONG_REQUEST.value}",
-		f"{UserRoleDef.SONG_REQUEST.value}15",
-		f"{UserRoleDef.SONG_ADD.value}60",
-		f"{UserRoleDef.SONG_ADD.value}15",
-		f"{UserRoleDef.USER_LIST.value}"
+		UserRoleDef.SONG_REQUEST.value,
+		UserRoleDef.SONG_REQUEST.modded_value("15"),
+		UserRoleDef.SONG_ADD.modded_value(60),
+		UserRoleDef.SONG_ADD.modded_value(15),
+		UserRoleDef.USER_LIST.modded_value()
 	]
 	result = UserRoleDef.count_repeat_roles(testRoles)
 	assert len(result.items()) == 3

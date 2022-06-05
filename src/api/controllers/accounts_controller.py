@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from musical_chairs_libs.accounts_service import AccountsService
 from musical_chairs_libs.dtos import SaveAccountInfo
 from api_dependencies import accounts_service
+from musical_chairs_libs.errors import AlreadyUsedError
+from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
 
 
 
@@ -24,15 +26,11 @@ def is_phrase_used(
 def create_new_account(
 	accountInfo: SaveAccountInfo,
 	accountsService: AccountsService = Depends(accounts_service)
-) -> int:
-	if(accountsService.is_username_used(accountInfo.username)):
+) -> SaveAccountInfo:
+	try:
+		return accountsService.create_account(accountInfo)
+	except (AlreadyUsedError, EmailNotValidError) as ex:
 		raise HTTPException(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail = f"Username {accountInfo.username} is already used."
+			detail = str(ex)
 		)
-	if(accountsService.is_email_used(accountInfo.email)):
-		raise HTTPException(
-			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail = f"Email {accountInfo.email} is already used."
-		)
-	return accountsService.create_account(accountInfo)

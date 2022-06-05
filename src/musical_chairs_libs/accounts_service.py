@@ -14,6 +14,7 @@ from musical_chairs_libs.tables import users,\
 	stations_history
 from musical_chairs_libs.simple_functions import get_datetime,\
 	format_user_name
+from musical_chairs_libs.errors import AlreadyUsedError
 from sqlalchemy import select, insert, desc, func, delete
 from jose import jwt
 from email_validator import validate_email, EmailNotValidError #pyright: ignore reportUnknownVariableType
@@ -77,13 +78,15 @@ class AccountsService:
 			user.isAuthenticated = False
 		return user
 
-	def create_account(self, accountInfo: SaveAccountInfo) -> int:
+	def create_account(self, accountInfo: SaveAccountInfo) -> SaveAccountInfo:
 		cleanedUsername = format_user_name(accountInfo.username)
 		cleanedEmail: str = validate_email(accountInfo.email).email #pyright: ignore reportUnknownMemberType
 		if self._is_username_used(cleanedUsername):
-			return -1
+			raise AlreadyUsedError(
+				f"Username {accountInfo.username} is already used."
+			)
 		if self._is_email_used(cleanedEmail):
-			return -1
+			raise AlreadyUsedError(f"Email {accountInfo.email} is already used.")
 		hash = bcrypt.hashpw(accountInfo.password.encode(), bcrypt.gensalt(12))
 		stmt = insert(users).values(
 			userName=cleanedUsername,
@@ -95,8 +98,15 @@ class AccountsService:
 		)
 		res = self.conn.execute(stmt)
 		insertedPk: int = res.lastrowid
-		self.save_roles(insertedPk, [f"{UserRoleDef.SONG_REQUEST}60"])
-		return insertedPk
+		insertedRows = self.save_roles(
+			insertedPk,
+			[UserRoleDef.SONG_REQUEST.modded_value("60")]
+		)
+		resultDto = accountInfo.copy(update={
+			"id": insertedPk,
+			"roles": insertedRows
+		}, exclude={ "password"})
+		return resultDto
 
 	def remove_all_roles(self, userId: int) -> int:
 		if not userId:
@@ -104,11 +114,11 @@ class AccountsService:
 		delStmt = delete(userRoles).where(ur.userFk == userId)
 		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType]
 
-	def save_roles(self, userId: int, roles: List[str]) -> int:
+	def save_roles(self, userId: int, roles: List[str]) -> List[str]:
 		if not userId or not roles:
-			return 0
+			return []
 		self.remove_all_roles(userId)
-		uniqueRoles = UserRoleDef.remove_repeat_roles(roles)
+		uniqueRoles = list(UserRoleDef.remove_repeat_roles(roles))
 		roleParams = list(map(
 			lambda r: {
 				"userFk": userId,
@@ -118,7 +128,8 @@ class AccountsService:
 			uniqueRoles
 		))
 		stmt = insert(userRoles	)
-		return self.conn.execute(stmt, roleParams).rowcount #pyright: ignore [reportUnknownVariableType]
+		self.conn.execute(stmt, roleParams)
+		return uniqueRoles
 
 
 	def create_access_token(self, userName: str) -> str:
@@ -183,7 +194,7 @@ class AccountsService:
 		if user.isAdmin:
 			return 0
 		requestRoles = list(filter(
-			lambda r: r.startswith(UserRoleDef.SONG_REQUEST.value),
+			lambda r: r.startswith(UserRoleDef.SONG_REQUEST.modded_value()),
 			user.roles
 		))
 		if not any(requestRoles):

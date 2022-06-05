@@ -18,7 +18,7 @@ const initialState = {
 	status: {
 		[CallType.fetch]: "",
 	},
-	values: { 
+	values: {
 		[CallType.fetch]:{
 			totalRows: 0,
 			items: [],

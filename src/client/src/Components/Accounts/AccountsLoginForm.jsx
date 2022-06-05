@@ -6,6 +6,8 @@ import PropTypes from "prop-types";
 import { login } from "./accounts_slice";
 import { useDispatch } from "react-redux";
 import { useSnackbar } from "notistack";
+import { Link } from "react-router-dom";
+import { DomRoutes } from "../../constants";
 
 export function LoginForm(props) {
 
@@ -41,6 +43,12 @@ export function LoginForm(props) {
 		<FormikProvider value={formik}>
 			<Box sx={{ p: 1 }}>
 				<Typography variant="h1">Login</Typography>
+				<Link
+					onClick={handleCancel}
+					to={`${DomRoutes.accountsEdit}`}
+				>
+					Create new account
+				</Link>
 				<Box sx={{ m: 1}}>
 					<FormikTextField
 						label="User Name"

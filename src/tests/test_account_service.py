@@ -1,9 +1,11 @@
+#pyright: reportMissingTypeStubs=false, reportPrivateUsage=false
 import pytest
 from sqlalchemy import insert
 from sqlalchemy.engine import Connection
 from datetime import datetime, timezone
 from musical_chairs_libs.tables import stations_history, station_queue
-from musical_chairs_libs.accounts_service import AccountsService, UserRoleDef
+from musical_chairs_libs.accounts_service import AccountsService,\
+	UserRoleDef
 from musical_chairs_libs.dtos import AccountInfo
 from .constant_fixtures_for_test import test_password as test_password,\
 	primary_user as primary_user,\
@@ -56,7 +58,7 @@ def test_when_can_make_request_with_history(
 	accountService = account_service_mock_current_time
 	_insert_row_into_history(accountService.conn, 1)
 
-	primary_user.roles = [f"{UserRoleDef.SONG_REQUEST.value}:60"]
+	primary_user.roles = [f"{UserRoleDef.SONG_REQUEST.value}60"]
 	global currentTestDate
 	currentTestDate =\
 		datetime(
@@ -123,7 +125,7 @@ def test_when_can_make_request_with_queue(
 	accountService = account_service_mock_current_time
 	_insert_row_into_queue(accountService.conn, 1)
 
-	primary_user.roles = [f"{UserRoleDef.SONG_REQUEST.value}:60"]
+	primary_user.roles = [f"{UserRoleDef.SONG_REQUEST.value}60"]
 	global currentTestDate
 	currentTestDate =\
 		datetime(
@@ -178,3 +180,58 @@ def test_when_song_can_be_added_with_admin(
 	primary_user.roles = [UserRoleDef.ADMIN.value]
 	result = accountService.time_til_user_can_make_request(primary_user)
 	assert result == 0
+
+def test_unique_roles():
+	with pytest.raises(StopIteration):
+		gen = UserRoleDef.remove_repeat_roles([])
+		next(gen)
+	testRoles1 = [UserRoleDef.SONG_REQUEST.value]
+	gen = UserRoleDef.remove_repeat_roles(testRoles1)
+	result = next(gen)
+	assert result == UserRoleDef.SONG_REQUEST.value
+	with pytest.raises(StopIteration):
+		next(gen)
+	testRoles2 = [
+		f"{UserRoleDef.SONG_REQUEST.value}5",
+		f"{UserRoleDef.SONG_REQUEST.value}15"
+	]
+	gen = UserRoleDef.remove_repeat_roles(testRoles2)
+	results = list(gen)
+	assert len(results) == 1
+	assert results[0] == f"{UserRoleDef.SONG_REQUEST.value}5"
+	testRoles3 = [
+		f"{UserRoleDef.SONG_REQUEST.value}",
+		f"{UserRoleDef.SONG_REQUEST.value}15"
+	]
+	gen = UserRoleDef.remove_repeat_roles(testRoles3)
+	results = list(gen)
+	assert len(results) == 1
+	assert results[0] == f"{UserRoleDef.SONG_REQUEST.value}"
+	testRoles4 = [
+		f"{UserRoleDef.SONG_REQUEST.value}",
+		f"{UserRoleDef.SONG_REQUEST.value}15",
+		f"{UserRoleDef.SONG_ADD.value}60",
+		f"{UserRoleDef.SONG_ADD.value}15",
+		f"{UserRoleDef.USER_LIST.value}"
+	]
+	gen = UserRoleDef.remove_repeat_roles(testRoles4)
+	results = sorted(list(gen))
+	assert len(results) == 3
+	assert results[0] == f"{UserRoleDef.SONG_ADD.value}15"
+	assert results[1] == f"{UserRoleDef.SONG_REQUEST.value}"
+	assert results[2] == f"{UserRoleDef.USER_LIST.value}"
+
+
+def test_count_repeat_roles():
+	testRoles = [
+		f"{UserRoleDef.SONG_REQUEST.value}",
+		f"{UserRoleDef.SONG_REQUEST.value}15",
+		f"{UserRoleDef.SONG_ADD.value}60",
+		f"{UserRoleDef.SONG_ADD.value}15",
+		f"{UserRoleDef.USER_LIST.value}"
+	]
+	result = UserRoleDef.count_repeat_roles(testRoles)
+	assert len(result.items()) == 3
+	assert result[UserRoleDef.SONG_REQUEST.value] == 2
+	assert result[UserRoleDef.SONG_ADD.value] == 2
+	assert result[UserRoleDef.USER_LIST.value] == 1

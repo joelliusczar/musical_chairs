@@ -1,10 +1,12 @@
 import React from "react";
-import { Route, Switch, NavLink } from "react-router-dom";
+import { Route, Switch, NavLink, Redirect } from "react-router-dom";
 import { List, ListItem } from "@mui/material";
 import Queue from "../Queue/Queue";
 import History from "../History/History";
 import Stations from "../Stations/Stations";
 import SongCatalogue from "../Song_Catalogue/SongCatalogue";
+import { AccountEdit } from "../Accounts/AccountsEdit";
+import { NotFound } from "../Shared/NotFound";
 import { DomRoutes } from "../../constants";
 
 
@@ -45,6 +47,13 @@ export function AppRoutes() {
 			<Route path={`${DomRoutes.songCatalogue}:station?`}>
 				<SongCatalogue />
 			</Route>
+			<Route path={`${DomRoutes.accountsEdit}:id?`}>
+				<AccountEdit />
+			</Route>
+			<Route path={`${DomRoutes.notFound}`}>
+				<NotFound />
+			</Route>
+			<Redirect to={`${DomRoutes.notFound}`} />
 		</Switch>
 	);
 }

@@ -26,7 +26,12 @@ from .constant_fixtures_for_test import test_password as test_password,\
 
 
 class ConnectionConstructor(Protocol):
-	def __call__(self, echo: bool=False, inMemory: bool=False) -> Connection:
+	def __call__(
+		self,
+		echo: bool=False,
+		inMemory: bool=False,
+		check_same_thread: bool=True
+	) -> Connection:
 			...
 
 @pytest.fixture
@@ -77,11 +82,16 @@ def construct_mock_connection_constructor(
 
 	def get_mock_db_connection_constructor(
 		echo: bool=False,
-		inMemory: bool=False
+		inMemory: bool=False,
+		check_same_thread: bool=True
 	) -> Connection:
 		envMgr = EnvManager()
 		inMemory = True
-		conn = envMgr.get_configured_db_connection(echo=echo, inMemory=inMemory)
+		conn = envMgr.get_configured_db_connection(
+			echo=echo,
+			inMemory=inMemory,
+			check_same_thread=check_same_thread
+		)
 		_setup_in_mem_tbls_full(
 			conn,
 			orderedTestDates,

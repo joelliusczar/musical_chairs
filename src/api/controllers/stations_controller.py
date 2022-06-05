@@ -1,13 +1,13 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Dict, List
 from fastapi import APIRouter, Depends, Security, HTTPException, status
-from musical_chairs_libs.accounts_service import UserRoleDef
 from musical_chairs_libs.dtos import AccountInfo,\
 	CurrentPlayingInfo,\
 	HistoryItem,\
 	SongItem,\
 	StationInfo,\
-	TableData
+	TableData,\
+	UserRoleDef
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService
@@ -81,7 +81,7 @@ def request_song(
 		queueService.add_song_to_queue(songPk, stationName, user)
 	except (LookupError, RuntimeError) as ex:
 		raise HTTPException(
-			status_code = status.HTTP_400_BAD_REQUEST,
+			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail = str(ex)
 		)
 # def request(self, stationName, songPk):

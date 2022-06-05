@@ -2,27 +2,30 @@
 import uvicorn #pyright: ignore [reportMissingTypeStubs]
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from controllers import stations_controller
+from controllers import stations_controller, accounts_controller
 from fastapi.security import OAuth2PasswordRequestForm
 from api_dependencies import accounts_service
 from musical_chairs_libs.accounts_service import \
 	AccountsService, \
 	ACCESS_TOKEN_EXPIRE_MINUTES
+from musical_chairs_libs.dtos import AuthenticatedAccount
 
 
 app = FastAPI()
 app.add_middleware(
-	CORSMiddleware, 
+	CORSMiddleware,
 	allow_origins=["http://127.0.0.1", "http://localhost:3000"],
 	allow_methods=["*"]
 )
 app.include_router(stations_controller.router)
+app.include_router(accounts_controller.router)
 
 
 @app.post("/token")
 def login(
 	formData: OAuth2PasswordRequestForm=Depends(),
-	accountService: AccountsService=Depends(accounts_service)):
+	accountService: AccountsService=Depends(accounts_service)
+) -> AuthenticatedAccount:
 	user = accountService.authenticate_user(
 		formData.username,
 		formData.password.encode()
@@ -34,13 +37,12 @@ def login(
 			headers={"WWW-Authenticate": "Bearer"}
 		)
 	token = accountService.create_access_token(user.userName)
-	return {
-		"access_token": token,
-		"token_type": "bearer",
-		"username": user.userName,
-		"roles": user.roles,
-		"lifetime": ACCESS_TOKEN_EXPIRE_MINUTES * 60
-	}
+	return AuthenticatedAccount(
+		token,
+		"bearer",
+		user.userName,
+		user.roles,ACCESS_TOKEN_EXPIRE_MINUTES * 60
+	)
 
 if __name__ == "__main__":
 	uvicorn.run(app, host="0.0.0.0", port=8032) #pyright: ignore [reportGeneralTypeIssues]

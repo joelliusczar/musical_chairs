@@ -61,7 +61,7 @@ function AppTrunk() {
 							>
 								{currentUser.username}
 							</Button>
-							<UserMenu 
+							<UserMenu
 								anchorEl={menuAnchor}
 							/>
 						</>

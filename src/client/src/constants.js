@@ -18,16 +18,27 @@ export const DomRoutes = {
 	history: "/history/",
 	stations: "/stations/",
 	songCatalogue: "/song-catalogue/",
+	accountsEdit: "/accounts/edit",
+	notFound: "/not-found",
 };
 
 export const ApiRoutes = {
 	queue: (stationName) => `stations/${stationName}/queue/`,
-	history: (stationName) => 
+	history: (stationName) =>
 		`stations/${stationName}/history/`,
 	stations: () => "stations/",
-	songRequest: (stationName, songId) => 
+	songRequest: (stationName, songId) =>
 		`stations/${stationName}/request/${songId}`,
-	songCatalogue: (stationName) => 
+	songCatalogue: (stationName) =>
 		`stations/${stationName}/catalogue/`,
 	login: "token",
+	check: "accounts/check",
+	setupInfo: "accounts/setup-info",
+};
+
+export const UserRoleDef = {
+	"ADMIN": "admin::",
+	"SONG_ADD": "song:add:",
+	"SONG_REQUEST": "song:request:",
+	"USER_LIST": "user:list:",
 };

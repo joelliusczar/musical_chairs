@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { defaultWebClient as webClient } from "../../api";
-import { ApiRoutes, CallType, CallStatus } from "../../constants";
+import { ApiRoutes, CallType, CallStatus, UserRoleDef } from "../../constants";
 
 export const login = createAsyncThunk(
 	"accounts/login",
@@ -13,16 +13,34 @@ export const login = createAsyncThunk(
 	}
 );
 
+export const createAccount = async ({ values }) => {
+	const response = await webClient.post("accounts/new", values);
+	return response.data;
+};
+
+export const checkValues = async ({ values }) => {
+	const response = await webClient.get("accounts/check", {
+		params: values,
+	});
+	return response.data;
+};
+
+
 const initialState = {
 	status: {
 		[CallType.post]: "",
+		[CallType.fetch]: "",
 	},
 	values: {
 		[CallType.post]:{
+			userId: "",
 			username: "",
 			roles: [],
 			access_token: "",
 			lifetime: 0,
+		},
+		[CallType.fetch]: {
+			roles: [],
 		},
 	},
 	error: {},
@@ -50,6 +68,10 @@ const slice = createSlice({
 		},
 	},
 });
+
+export const isAdminSelector = appState =>
+	appState.accounts.values[CallType.post].roles
+		.some(r => r.startsWith(UserRoleDef.ADMIN));
 
 export const logout = slice.actions.logout;
 

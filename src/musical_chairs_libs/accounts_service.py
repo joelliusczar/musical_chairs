@@ -1,10 +1,9 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import bcrypt
 import os
-import re
 from datetime import timedelta
 from typing import Any, List, Optional
-from musical_chairs_libs.dtos import AccountInfo
+from musical_chairs_libs.dtos import AccountInfo, UserRoleDef, SaveAccountInfo
 from musical_chairs_libs.env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
@@ -13,25 +12,20 @@ from musical_chairs_libs.tables import users,\
 	userRoles,\
 	station_queue,\
 	stations_history
-from musical_chairs_libs.simple_functions import get_datetime
-from sqlalchemy import select, insert, desc, func
+from musical_chairs_libs.simple_functions import get_datetime,\
+	format_user_name
+from sqlalchemy import select, insert, desc, func, delete
 from jose import jwt
-from enum import Enum
-
-class UserRoleDef(Enum):
-	ADMIN = "admin"
-	SONG_REQUEST = "song:request"
-
+from email_validator import validate_email, EmailNotValidError #pyright: ignore reportUnknownVariableType
 
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALGORITHM = "HS256"
 SECRET_KEY=os.environ["RADIO_AUTH_SECRET_KEY"]
 
-def _extract_request_timeout(role: str) -> int:
-	match = re.search(r"^song:request:(\d+)?$", role)
-	if match:
-		return int(match.group(1))
-	return -1
+u: ColumnCollection = users.columns
+ur: ColumnCollection = userRoles.columns
+q: ColumnCollection = station_queue.columns
+hist: ColumnCollection = stations_history.columns
 
 class AccountsService:
 
@@ -49,10 +43,9 @@ class AccountsService:
 
 
 	def get_account(self, userName: str) -> Optional[AccountInfo]:
-		cleanedUserName = userName.strip() if userName else None
+		cleanedUserName = format_user_name(userName)
 		if not cleanedUserName:
 			return None
-		u: ColumnCollection = users.columns
 		query = select(u.pk, u.userName, u.hashedPW, u.email)\
 			.select_from(users) \
 			.where(u.hashedPW != None) \
@@ -84,37 +77,55 @@ class AccountsService:
 			user.isAuthenticated = False
 		return user
 
-	def create_account(self, userName: str,
-		pw: bytes,
-		email: Optional[str]=None
-	) -> bool:
-		cleanedUserName = userName.strip() if userName else None
-		if not cleanedUserName:
-			return False
-		cleanedEmail = email.strip() if email else None
-		u: ColumnCollection = users.columns
-		queryAny: str = select(func.count(1)).select_from(users)\
-			.where(func.lower(u.userName) == func.lower(cleanedUserName))
-		countRes = self.conn.execute(queryAny).scalar()
-		count: int = countRes if countRes else 0
-		if count > 0:
-			return False
-		hash = bcrypt.hashpw(pw, bcrypt.gensalt(12))
+	def create_account(self, accountInfo: SaveAccountInfo) -> int:
+		cleanedUsername = format_user_name(accountInfo.username)
+		cleanedEmail: str = validate_email(accountInfo.email).email #pyright: ignore reportUnknownMemberType
+		if self._is_username_used(cleanedUsername):
+			return -1
+		if self._is_email_used(cleanedEmail):
+			return -1
+		hash = bcrypt.hashpw(accountInfo.password.encode(), bcrypt.gensalt(12))
 		stmt = insert(users).values(
-			userName=cleanedUserName,
+			userName=cleanedUsername,
+			displayName=accountInfo.displayName,
 			hashedPW=hash,
 			email=cleanedEmail,
 			creationTimestamp = self.get_datetime().timestamp(),
 			isActive = True
 		)
-		self.conn.execute(stmt)
-		return True
+		res = self.conn.execute(stmt)
+		insertedPk: int = res.lastrowid
+		self.save_roles(insertedPk, [f"{UserRoleDef.SONG_REQUEST}60"])
+		return insertedPk
+
+	def remove_all_roles(self, userId: int) -> int:
+		if not userId:
+			return 0
+		delStmt = delete(userRoles).where(ur.userFk == userId)
+		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType]
+
+	def save_roles(self, userId: int, roles: List[str]) -> int:
+		if not userId or not roles:
+			return 0
+		self.remove_all_roles(userId)
+		uniqueRoles = UserRoleDef.remove_repeat_roles(roles)
+		roleParams = list(map(
+			lambda r: {
+				"userFk": userId,
+				"role": r,
+				"isActive": True
+			},
+			uniqueRoles
+		))
+		stmt = insert(userRoles	)
+		return self.conn.execute(stmt, roleParams).rowcount #pyright: ignore [reportUnknownVariableType]
+
 
 	def create_access_token(self, userName: str) -> str:
 		expire = self.get_datetime() \
 			+ timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 		token: str = jwt.encode({
-				"sub": userName,
+				"sub": format_user_name(userName),
 				"exp": expire
 			},
 			SECRET_KEY,
@@ -132,7 +143,6 @@ class AccountsService:
 		return user
 
 	def _get_roles(self, userPk: int) -> List[str]:
-		ur: ColumnCollection = userRoles.columns
 		query = select(ur.role)\
 			.select_from(userRoles) \
 			.where(ur.userFk == userPk)
@@ -147,7 +157,6 @@ class AccountsService:
 	def system_user(self) -> Optional[AccountInfo]:
 		if self._system_user:
 			return self._system_user
-		u: ColumnCollection = users.columns
 		query = select(u.pk, u.userName)\
 			.select_from(users) \
 			.where(func.lower(u.userName) == "system") \
@@ -171,7 +180,7 @@ class AccountsService:
 	) -> int:
 		if not user:
 			return -1
-		if UserRoleDef.ADMIN.value in user.roles:
+		if user.isAdmin:
 			return 0
 		requestRoles = list(filter(
 			lambda r: r.startswith(UserRoleDef.SONG_REQUEST.value),
@@ -179,9 +188,12 @@ class AccountsService:
 		))
 		if not any(requestRoles):
 			return -1
-		timeout = min(map(_extract_request_timeout, requestRoles)) * 60
-		q: ColumnCollection = station_queue.columns
-		hist: ColumnCollection = stations_history.columns
+		timeout = min(
+			map(
+				lambda r: UserRoleDef.extract_role_segments(r)[1] or -1,
+				requestRoles
+			)
+		) * 60
 		queueLatestQuery = select(func.max(q.requestedTimestamp))\
 			.select_from(station_queue)\
 			.where(q.requestedByUserFk == user.id)
@@ -196,3 +208,32 @@ class AccountsService:
 		)
 		timeLeft = lastRequested + timeout - self.get_datetime().timestamp()
 		return int(timeLeft) if timeLeft > 0 else 0
+
+	def _is_username_used(self, username: str) -> bool:
+		queryAny: str = select(func.count(1)).select_from(users)\
+				.where(func.lower(u.userName) == func.lower(username))
+		countRes = self.conn.execute(queryAny).scalar()
+		return countRes > 0 if countRes else False
+
+	def is_username_used(self, username: str) -> bool:
+		cleanedUserName = format_user_name(username)
+		if not cleanedUserName:
+			return True
+		return self._is_username_used(cleanedUserName)
+
+	def _is_email_used(self, email: str) -> bool:
+		queryAny: str = select(func.count(1)).select_from(users)\
+				.where(func.lower(u.email) == func.lower(email))
+		countRes = self.conn.execute(queryAny).scalar()
+		return countRes > 0 if countRes else False
+
+	def is_email_used(self, email: str) -> bool:
+		try:
+			cleanedEmail: str = validate_email(email).email #pyright: ignore reportUnknownMemberType
+			if not cleanedEmail:
+				return True
+			return self._is_email_used(cleanedEmail)
+		except EmailNotValidError:
+			return False
+
+

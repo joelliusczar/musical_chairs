@@ -3,7 +3,10 @@ import bcrypt
 import os
 from datetime import timedelta
 from typing import Any, List, Optional
-from musical_chairs_libs.dtos import AccountInfo, UserRoleDef, SaveAccountInfo
+from musical_chairs_libs.dtos import\
+	AccountInfo,\
+	UserRoleDef,\
+	SaveAccountInfo
 from musical_chairs_libs.env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
@@ -13,7 +16,7 @@ from musical_chairs_libs.tables import users,\
 	station_queue,\
 	stations_history
 from musical_chairs_libs.simple_functions import get_datetime,\
-	format_user_name
+	format_name_for_save
 from musical_chairs_libs.errors import AlreadyUsedError
 from sqlalchemy import select, insert, desc, func, delete
 from jose import jwt
@@ -44,7 +47,7 @@ class AccountsService:
 
 
 	def get_account(self, userName: str) -> Optional[AccountInfo]:
-		cleanedUserName = format_user_name(userName)
+		cleanedUserName = format_name_for_save(userName)
 		if not cleanedUserName:
 			return None
 		query = select(u.pk, u.userName, u.hashedPW, u.email)\
@@ -79,7 +82,7 @@ class AccountsService:
 		return user
 
 	def create_account(self, accountInfo: SaveAccountInfo) -> SaveAccountInfo:
-		cleanedUsername = format_user_name(accountInfo.username)
+		cleanedUsername = format_name_for_save(accountInfo.username)
 		cleanedEmail: str = validate_email(accountInfo.email).email #pyright: ignore reportUnknownMemberType
 		if self._is_username_used(cleanedUsername):
 			raise AlreadyUsedError(
@@ -136,7 +139,7 @@ class AccountsService:
 		expire = self.get_datetime() \
 			+ timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 		token: str = jwt.encode({
-				"sub": format_user_name(userName),
+				"sub": format_name_for_save(userName),
 				"exp": expire
 			},
 			SECRET_KEY,
@@ -227,7 +230,7 @@ class AccountsService:
 		return countRes > 0 if countRes else False
 
 	def is_username_used(self, username: str) -> bool:
-		cleanedUserName = format_user_name(username)
+		cleanedUserName = format_name_for_save(username)
 		if not cleanedUserName:
 			return True
 		return self._is_username_used(cleanedUserName)

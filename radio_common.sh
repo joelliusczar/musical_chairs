@@ -763,7 +763,11 @@ run_song_scan() (
 	# #python_env
 	python  <<-EOF
 	from musical_chairs_libs.song_scanner import SongScanner
+	from musical_chairs_libs.env_manager import EnvManager
 	print("Starting")
+	try:
+		EnvManager.setup_db_if_missing()
+	except: pass
 	stationService = SongScanner()
 	inserted = stationService.save_paths('${app_root}/${content_home}')
 	print(f"saving paths done: {inserted} inserted")
@@ -884,9 +888,9 @@ startup_full_web() (
 setup_radio() (
 	echo "setting up radio"
 	process_global_vars "$@" &&
-	shutdown_all_stations && 
+	shutdown_all_stations &&
 	sync_requirement_list &&
-	
+
 	create_py_env_in "$app_root"/"$app_trunk" &&
 
 	setup_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
@@ -899,7 +903,7 @@ setup_radio() (
 
 #assume install_setup.sh has been run
 setup_unit_test_env() (
-	echo "setting up test environment" 
+	echo "setting up test environment"
 	process_global_vars "$@" &&
 	export app_root="$test_root"
 	[ -e "$app_root"/"$config_dir" ] || 

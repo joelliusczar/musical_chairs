@@ -1,20 +1,28 @@
 import os
 from sqlalchemy import create_engine #pyright: ignore [reportUnknownVariableType]
 from sqlalchemy.engine import Connection
+from musical_chairs_libs.tables import metadata
 
 class EnvManager:
 
+	@classmethod
 	@property
-	def search_base(self) -> str:
+	def search_base(cls) -> str:
 		return os.environ["searchBase"]
 
-	def get_configured_db_connection(self,
+	@classmethod
+	@property
+	def db_name(cls) -> str:
+		return os.environ["dbName"]
+
+	@classmethod
+	def get_configured_db_connection(cls,
 		echo: bool=False,
 		inMemory: bool=False,
 		check_same_thread: bool=True
 	) -> Connection:
 
-		dbStr = "sqlite://" if inMemory  else f"sqlite:///{os.environ['dbName']}"
+		dbStr = "sqlite://" if inMemory  else f"sqlite:///{cls.db_name}"
 
 		engine = create_engine(
 			dbStr,
@@ -23,3 +31,12 @@ class EnvManager:
 		)
 		conn = engine.connect()
 		return conn
+
+	@classmethod
+	def setup_db_if_missing(cls):
+		if not os.path.exists(cls.db_name):
+			conn = cls.get_configured_db_connection()
+			metadata.create_all(conn.engine)
+			conn.close()
+		else:
+			raise RuntimeError("Db already exists")

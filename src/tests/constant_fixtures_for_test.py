@@ -3,21 +3,27 @@ import bcrypt
 from musical_chairs_libs.dtos import AccountInfo
 from datetime import datetime, timezone
 
-@pytest.fixture
-def test_password():
+def mock_password() -> bytes:
 	return bcrypt.hashpw(b"testPassword", bcrypt.gensalt())
 
 @pytest.fixture
-def primary_user(test_password: bytes) -> AccountInfo:
+def fixture_mock_password() -> bytes:
+	return mock_password()
+
+
+def primary_user(mockPassword: bytes) -> AccountInfo:
 	return AccountInfo(
 		1,
 		"testUser_alpha",
-		test_password,
+		mockPassword,
 		email="test@test.com"
 	)
 
 @pytest.fixture
-def test_date_ordered_list() -> list[datetime]:
+def fixture_primary_user(fixture_mock_password: bytes) -> AccountInfo:
+	return primary_user(fixture_mock_password)
+
+def mock_ordered_date_list() -> list[datetime]:
 	return [
 		datetime(
 			year=2021,
@@ -37,5 +43,9 @@ def test_date_ordered_list() -> list[datetime]:
 		)
 	]
 
-def test_dates_ordered_fixture(test_date_ordered_list: list[datetime]):
+@pytest.fixture
+def fixture_mock_ordered_date_list() -> list[datetime]:
+	return mock_ordered_date_list()
+
+def test_dates_ordered_fixture(fixture_mock_ordered_date_list: list[datetime]):
 	assert True

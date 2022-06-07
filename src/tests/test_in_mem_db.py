@@ -2,20 +2,22 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
 from sqlalchemy import select
-from .constant_fixtures_for_test import test_password as test_password,\
-	primary_user as primary_user,\
-	test_date_ordered_list as test_date_ordered_list
-from .common_fixtures import setup_in_mem_tbls_full as setup_in_mem_tbls_full, \
-	db_conn_in_mem as db_conn_in_mem
+from .constant_fixtures_for_test import\
+	fixture_mock_password as fixture_mock_password,\
+	fixture_primary_user as fixture_primary_user,\
+	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
+from .common_fixtures import\
+	fixture_setup_in_mem_tbls as fixture_setup_in_mem_tbls, \
+	fixture_db_conn_in_mem as fixture_db_conn_in_mem
 from musical_chairs_libs.tables import artists
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
 
-@pytest.mark.usefixtures("setup_in_mem_tbls_full")
-def test_in_mem_db(db_conn_in_mem: Connection) -> None:
+@pytest.mark.usefixtures("fixture_setup_in_mem_tbls")
+def test_in_mem_db(fixture_db_conn_in_mem: Connection) -> None:
 	a: ColumnCollection = artists.columns
 	query = select(artists).order_by(a.name)
-	res = db_conn_in_mem.execute(query).fetchall()
+	res = fixture_db_conn_in_mem.execute(query).fetchall()
 	assert res[0].name == "alpha_artist"
 	assert res[0].pk == 1
 	assert res[1].name == "bravo_artist"

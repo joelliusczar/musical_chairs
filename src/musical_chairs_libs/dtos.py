@@ -3,10 +3,35 @@ import re
 from dataclasses import dataclass, field
 from typing import Iterator, List, Optional, Iterable, Set, Tuple, TypeVar, Generic, Union
 from enum import Enum
+import unicodedata
 from pydantic import BaseModel, validator
 from email_validator import validate_email #pyright: ignore reportUnknownVariableType
 
+class SavedNameString:
 
+	def __init__(self, value: str) -> None:
+		if not value:
+			self._value = ""
+			return
+		trimed = value.strip()
+		self._value = unicodedata.normalize("NFC", trimed)
+
+	def __str__(self) -> str:
+		return self._value
+
+
+class SearchNameString:
+
+	def __init__(self, value: str) -> None:
+		if not value:
+			self._value = ""
+			return
+		trimed = value.strip()
+		normalized = unicodedata.normalize("NFKD", trimed)
+		self._value = normalized.lower()
+
+	def __str__(self) -> str:
+		return self._value
 
 class UserRoleDef(Enum):
 	ADMIN = "admin::"
@@ -136,6 +161,22 @@ class SongItem:
 	name: str
 	album: str
 	artist: str
+
+@dataclass
+class SongItemPlumbing:
+	id: int
+	path: str
+	name: Optional[SavedNameString]=None
+	albumPk: Optional[int]=None
+	artistPk: Optional[int]=None
+	track: Optional[int]=None
+	disc: Optional[int]=None
+	genre: Optional[str]=None
+	bitrate: Optional[float]=None
+	comment: Optional[str]=None
+	duration: Optional[float]=None
+	explicit: Optional[bool]=None
+
 
 
 @dataclass

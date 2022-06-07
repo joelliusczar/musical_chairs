@@ -8,15 +8,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import Connection
 from sqlalchemy import \
 	insert,\
-	select,\
 	update
-from sqlalchemy.sql import ColumnCollection
-from tinytag import TinyTag #pyright: ignore [reportMissingTypeStubs]
+from tinytag import TinyTag
+from musical_chairs_libs.dtos import SongItemPlumbing #pyright: ignore [reportMissingTypeStubs]
 from musical_chairs_libs.env_manager import EnvManager
+from musical_chairs_libs.song_info_service import SongInfoService
 from musical_chairs_libs.tables import songs, \
-	artists, \
-	albums, \
-	song_artist, \
 	songs_tags
 from musical_chairs_libs.station_service import StationService
 from collections.abc import Iterable
@@ -85,7 +82,8 @@ class SongScanner:
 		self,
 		conn: Connection,
 		stationService: Optional[StationService]=None,
-		envManager: Optional[EnvManager]=None
+		envManager: Optional[EnvManager]=None,
+		songInfoService: Optional[SongInfoService]=None
 	) -> None:
 			if not conn:
 				if not envManager:
@@ -93,93 +91,50 @@ class SongScanner:
 				conn = envManager.get_configured_db_connection()
 			if not stationService:
 				stationService = StationService(conn)
+			if not songInfoService:
+				songInfoService = SongInfoService(conn)
 			self.conn = conn
 			self.station_service = stationService
+			self.song_info_service = songInfoService
 
-	def get_or_save_artist(self, name: Optional[str]) -> Optional[int]:
-		if not name:
-			return None
-		a: ColumnCollection = artists.columns
-		query = select(a.pk).select_from(artists).where(a.name == name)
-		row = self.conn.execute(query).fetchone()
-		if row:
-			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
-			return pk
-		print(name)
-		stmt = insert(artists).values(name = name)
-		res = self.conn.execute(stmt)
-		insertedPk: int = res.lastrowid
-		return insertedPk
-
-	def get_or_save_album(
-		self,
-		name: Optional[str],
-		artistFk: Optional[int]=None,
-		year: Optional[int]=None
-	) -> Optional[int]:
-		if not name:
-			return None
-		a: ColumnCollection = albums.columns
-		query = select(a.pk).select_from(albums).where(a.name == name)
-		row = self.conn.execute(query).fetchone()
-		if row:
-			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
-			return pk
-		print(name)
-		stmt = insert(albums).values(
-			name = name,
-			albumArtistFk = artistFk,
-			year = year
-		)
-		res = self.conn.execute(stmt)
-		insertedPk: int = res.lastrowid
-		return insertedPk
 
 	def update_metadata(self, searchBase: str):
 		page = 0
 		pageSize = 1000
-		sg: ColumnCollection = songs.columns
 		updateCount = 0
 		while True:
 			transaction = self.conn.begin()
-			offset = page * pageSize
-			limit = (page + 1) * pageSize
-			query = select(sg.pk, sg.path).select_from(songs) \
-				.where(sg.title == None) \
-				.limit(limit).offset(offset)
-			recordSet = self.conn.execute(query).fetchall()
-			for idx, row in enumerate(recordSet):
+			songRefs = list(self.song_info_service.get_song_refs(
+				page=page,
+				pageSize=pageSize
+			))
+			for idx, row in enumerate(songRefs):
 				print(f"{idx}".rjust(len(str(idx)), " "),end="\r")
-				songPath: str = row.path #pyright: ignore [reportGeneralTypeIssues]
-				songPk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
-				songFullPath = f"{searchBase}/{songPath}"
+				songFullPath = f"{searchBase}/{row.path}"
 				fileTag = get_file_tags(songFullPath)
-				artistFk = self.get_or_save_artist(fileTag.artist)
-				albumArtistFk = self.get_or_save_artist(fileTag.albumartist)
-				albumFk = self.get_or_save_album(
+				artistFk = self.song_info_service.get_or_save_artist(fileTag.artist)
+				albumArtistFk = self.song_info_service\
+					.get_or_save_artist(fileTag.albumartist)
+				albumFk = self.song_info_service.get_or_save_album(
 					fileTag.album,
 					albumArtistFk,
 					fileTag.year
 				)
-				songUpdate = update(songs) \
-				.where(sg.pk == songPk) \
-				.values(
-					title = fileTag.title,
-					albumFk = albumFk,
-					track = fileTag.track,
-					disc = fileTag.disc,
-					bitrate = fileTag.bitrate,
-					comment = fileTag.comment,
-					genre = fileTag.genre
+				songItem = SongItemPlumbing(
+					row.id,
+					row.path,
+					row.name,
+					albumFk,
+					artistFk,
+					fileTag.track,
+					fileTag.disc,
+					fileTag.genre,
+					fileTag.bitrate,
+					fileTag.comment,
+					fileTag.duration
 				)
-				count: int = self.conn.execute(songUpdate).rowcount
-				updateCount += count
-				try:
-					songArtistInsert = insert(song_artist)\
-						.values(songFk = songPk, artistFk = artistFk)
-					self.conn.execute(songArtistInsert)
-				except IntegrityError: pass
-			if len(recordSet) < 1:
+				updateCount += self.song_info_service.update_song_info(songItem)
+			if len(songRefs) < 1:
 				break
 			page += 1
 			transaction.commit()

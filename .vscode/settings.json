@@ -4,6 +4,7 @@
   "workbench.colorCustomizations": {
     "editorRuler.foreground": "#ef40ff"
   },
+  "python.analysis.extraPaths": ["src/tests"],
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "strict",
   "python.analysis.indexing": true,

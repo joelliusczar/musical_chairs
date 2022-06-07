@@ -3,7 +3,7 @@
 
 [ -f "$HOME"/.profile ] && . "$HOME"/.profile
 [ -f "$HOME"/.zprofile ] && . "$HOME"/.zprofile
-[ -f "$HOME"/.zshrc ] && . "$HOME"/.zshrc
+#[ -f "$HOME"/.zshrc ] && . "$HOME"/.zshrc
 
 include_count=${include_count:-0}
 include_count=$((include_count + 1))
@@ -24,7 +24,7 @@ get_repo_path() (
 	if [ -n "$radio_repo_path" ]; then
 		echo "$radio_repo_path"
 	else
-		echo "$default_radio_repo_path" 
+		echo "$default_radio_repo_path"
 	fi
 )
 
@@ -38,14 +38,14 @@ install_package() (
 				yes | sudo -p 'Pass required for pacman install: ' \
 					pacman -S "$pkgName"
 			elif which apt-get >/dev/null 2>&1; then
-				 sudo -p 'Pass required for apt-get install: ' \
-					DEBIAN_FRONTEND=noninteractive apt-get -y install "$pkgName" 
+				sudo -p 'Pass required for apt-get install: ' \
+					DEBIAN_FRONTEND=noninteractive apt-get -y install "$pkgName"
 			fi
 			;;
 		(Darwin*)
 			yes | brew install "$pkgName"
 			;;
-		(*) 
+		(*)
 			;;
 	esac
 )
@@ -64,7 +64,7 @@ set_python_version_const() {
 		pyVersion=$(python3 -V)
 	elif python -V >/dev/null 2>&1; then
 		pyVersion=$(python -V)
-	else 
+	else
 		return 1
 	fi
 	pyMajor=$(echo "$pyVersion" | perl -ne 'print "$1\n" if /(\d+)\.\d+/')
@@ -107,7 +107,7 @@ get_pkg_mgr() {
 			echo "$HOMEBREW_CONST"
 			return 0
 			;;
-		(*) 
+		(*)
 			;;
 	esac
 	return 1
@@ -181,7 +181,7 @@ create_py_env_in() (
 	mc-python -m virtualenv "$dest_base"/"$env_name" &&
 	. "$dest_base"/$env_name/bin/activate &&
 	#this is to make some of my newer than checks work
-	touch "$dest_base"/$env_name && 
+	touch "$dest_base"/$env_name &&
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
@@ -276,7 +276,7 @@ kill_process_using_port() (
 		if [ -n "$procId" ]; then
 			kill -15 "$procId"
 		fi
-	else 
+	else
 		echo "Script not wired up to be able to kill process at port: ${portNum}"
 	fi
 	echo "Hopefully process using is done ${portNum}"
@@ -346,8 +346,9 @@ print_schema_scripts() (
 	process_global_vars "$@" &&
 	create_py_env_in "$app_root"/"$app_trunk" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	python <<-EOF
-	from musical_chairs_libs.tables import metadata 
+	printf '\033c' &&
+	(python <<-EOF
+	from musical_chairs_libs.tables import metadata
 	from musical_chairs_libs.env_manager import EnvManager
 	envManager = EnvManager()
 	conn = envManager.get_configured_db_connection(echo=True, inMemory=True)
@@ -355,6 +356,7 @@ print_schema_scripts() (
 
 	print('Created all tables')
 	EOF
+	) | sed '/^[0-9]/d' | sed '/^)/s/)/);/'
 )
 
 sync_utility_scripts() (
@@ -408,12 +410,12 @@ compare_dirs() (
 	in_both=$(get_file_list 12)
 	in_src=$(get_file_list 23)
 	in_cpy=$(get_file_list 13)
-	[ -n "$(echo "${in_cpy}" | xargs)" ] && 
+	[ -n "$(echo "${in_cpy}" | xargs)" ] &&
 			{
 				echo "There are items that only exist in ${cpy_dir}"
 				exit_code=2
 			}
-	[ -n "$(echo "${in_src}" | xargs)" ] && 
+	[ -n "$(echo "${in_src}" | xargs)" ] &&
 			{
 				echo "There are items missing from the ${cpy_dir}"
 				exit_code=3
@@ -656,7 +658,7 @@ setup_icecast_confs() (
 	sudo -p "restaring ${icecastName}" systemctl restart "$icecastName" &&
 	echo "done setting up icecast/ices"
 )
-	
+
 create_ices_config() (
 	echo 'creating ices config'
 	internalName="$1"

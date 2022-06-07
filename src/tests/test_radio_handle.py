@@ -1,11 +1,11 @@
 #pyright: reportMissingTypeStubs=false
-from .common_fixtures import db_conn as db_conn, \
-	radio_handle_in_mem as radio_handle_in_mem, \
-	radio_handle as radio_handle, \
-	env_manager_with_in_mem_db as env_manager_with_in_mem_db
-from .constant_fixtures_for_test import test_password as test_password,\
-	primary_user as primary_user,\
-	test_date_ordered_list as test_date_ordered_list
+from .common_fixtures import \
+	fixture_radio_handle as fixture_radio_handle, \
+	fixture_env_manager_with_in_mem_db as fixture_env_manager_with_in_mem_db
+from .constant_fixtures_for_test import\
+	fixture_mock_password as fixture_mock_password,\
+	fixture_primary_user as fixture_primary_user,\
+	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.radio_handle import RadioHandle
 
@@ -16,16 +16,16 @@ def test_construct_radio_handle():
 	RadioHandle("test")
 	RadioHandle("test2", envMgr)
 
-def test_radio_init(radio_handle_in_mem: RadioHandle):
-	num = radio_handle_in_mem.ices_init()
+def test_radio_init(fixture_radio_handle: RadioHandle):
+	num = fixture_radio_handle.ices_init()
 	assert num == 1
 
-def test_radio_get_next_song(radio_handle_in_mem: RadioHandle):
-	radio_handle_in_mem.ices_init()
-	path = radio_handle_in_mem.ices_get_next()
+def test_radio_get_next_song(fixture_radio_handle: RadioHandle):
+	fixture_radio_handle.ices_init()
+	path = fixture_radio_handle.ices_get_next()
 	print(path)
 
-def test_radio_get_next_song_with_real_db(radio_handle: RadioHandle):
-	radio_handle.ices_init()
-	path = radio_handle.ices_get_next()
+def test_radio_get_next_song_with_real_db(fixture_radio_handle: RadioHandle):
+	fixture_radio_handle.ices_init()
+	path = fixture_radio_handle.ices_get_next()
 	print(path)

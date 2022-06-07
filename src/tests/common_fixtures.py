@@ -1,6 +1,6 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
-from typing import Iterator, List, Protocol
+from typing import Iterator, List
 from datetime import datetime
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.queue_service import QueueService
@@ -9,39 +9,18 @@ from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos import AccountInfo
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.tables import metadata
 from .mocks.mock_process_manager import MockOSProcessManager
-from .db_population import populate_artists,\
-	populate_albums,\
-	populate_songs,\
-	populate_songs_artists,\
-	populate_tags,\
-	populate_songs_tags,\
-	populate_stations,\
-	populate_station_tags,\
-	populate_users
-from .constant_fixtures_for_test import test_password as test_password,\
-	primary_user as primary_user,\
-	test_date_ordered_list as test_date_ordered_list
+from .mocks.mock_db_constructors import setup_in_mem_tbls,\
+	construct_mock_connection_constructor
 
+from .constant_fixtures_for_test import\
+	fixture_mock_password as fixture_mock_password,\
+	fixture_primary_user as fixture_primary_user,\
+	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
 
-class ConnectionConstructor(Protocol):
-	def __call__(
-		self,
-		echo: bool=False,
-		inMemory: bool=False,
-		check_same_thread: bool=True
-	) -> Connection:
-			...
 
 @pytest.fixture
-def db_conn() -> Connection:
-	envManager = EnvManager()
-	conn = envManager.get_configured_db_connection()
-	return conn
-
-@pytest.fixture
-def db_conn_in_mem() -> Iterator[Connection]:
+def fixture_db_conn_in_mem() -> Iterator[Connection]:
 	envManager = EnvManager()
 	conn = envManager.get_configured_db_connection(inMemory=True)
 	try:
@@ -50,10 +29,10 @@ def db_conn_in_mem() -> Iterator[Connection]:
 		conn.close()
 
 @pytest.fixture
-def db_conn_in_mem_full(
-	test_date_ordered_list: List[datetime],
-	primary_user: AccountInfo,
-	test_password: bytes,
+def fixture_populated_db_conn_in_mem(
+	fixture_mock_ordered_date_list: List[datetime],
+	fixture_primary_user: AccountInfo,
+	fixture_mock_password: bytes,
 	request: pytest.FixtureRequest
 ) -> Iterator[Connection]:
 	requestEcho = request.node.get_closest_marker("echo")
@@ -63,62 +42,38 @@ def db_conn_in_mem_full(
 		echo = requestEcho.args[0]
 	envManager = EnvManager()
 	conn = envManager.get_configured_db_connection(inMemory=True, echo=echo)
-	_setup_in_mem_tbls_full(
+	setup_in_mem_tbls(
 		conn,
-		test_date_ordered_list,
-		primary_user,
-		test_password
+		fixture_mock_ordered_date_list,
+		fixture_primary_user,
+		fixture_mock_password
 	)
 	try:
 		yield conn
 	finally:
 		conn.close()
 
-def construct_mock_connection_constructor(
-	orderedTestDates: List[datetime],
-	primaryUser: AccountInfo,
-	testPassword: bytes
-) -> ConnectionConstructor:
-
-	def get_mock_db_connection_constructor(
-		echo: bool=False,
-		inMemory: bool=False,
-		check_same_thread: bool=True
-	) -> Connection:
-		envMgr = EnvManager()
-		inMemory = True
-		conn = envMgr.get_configured_db_connection(
-			echo=echo,
-			inMemory=inMemory,
-			check_same_thread=check_same_thread
-		)
-		_setup_in_mem_tbls_full(
-			conn,
-			orderedTestDates,
-			primaryUser,
-			testPassword
-		)
-		return conn
-	return get_mock_db_connection_constructor
 
 @pytest.fixture
-def env_manager_with_in_mem_db(
-	test_date_ordered_list: List[datetime],
-	primary_user: AccountInfo,
-	test_password: bytes
+def fixture_env_manager_with_in_mem_db(
+	fixture_mock_ordered_date_list: List[datetime],
+	fixture_primary_user: AccountInfo,
+	fixture_mock_password: bytes
 ) -> EnvManager:
 	envMgr = EnvManager()
 	envMgr.get_configured_db_connection = \
 		construct_mock_connection_constructor(
-			test_date_ordered_list,
-			primary_user,
-			test_password
+			fixture_mock_ordered_date_list,
+			fixture_primary_user,
+			fixture_mock_password
 		)
 	return envMgr
 
 @pytest.fixture
-def radio_handle_in_mem(env_manager_with_in_mem_db: EnvManager) -> RadioHandle:
-	envMgr = env_manager_with_in_mem_db
+def fixture_radio_handle(
+	fixture_env_manager_with_in_mem_db: EnvManager
+) -> RadioHandle:
+	envMgr = fixture_env_manager_with_in_mem_db
 	processManager = MockOSProcessManager(1)
 	radioHandle = RadioHandle(
 		"oscar_station",
@@ -127,58 +82,44 @@ def radio_handle_in_mem(env_manager_with_in_mem_db: EnvManager) -> RadioHandle:
 	)
 	return radioHandle
 
-@pytest.fixture
-def radio_handle() -> RadioHandle:
-	radioHandle = RadioHandle("vg", processManager=MockOSProcessManager(1))
-	return radioHandle
 
 @pytest.fixture
-def queue_service_in_mem(db_conn_in_mem_full: Connection) -> QueueService:
-	queueService = QueueService(db_conn_in_mem_full)
+def fixture_queue_service(
+	fixture_populated_db_conn_in_mem: Connection
+) -> QueueService:
+	queueService = QueueService(fixture_populated_db_conn_in_mem)
 	return queueService
 
 @pytest.fixture
-def account_service_in_mem(db_conn_in_mem_full: Connection) -> AccountsService:
-	accountService = AccountsService(db_conn_in_mem_full)
+def fixture_account_service(
+	fixture_populated_db_conn_in_mem: Connection) -> AccountsService:
+	accountService = AccountsService(fixture_populated_db_conn_in_mem)
 	return accountService
 
 @pytest.fixture
-def station_service_in_mem(db_conn_in_mem_full: Connection) -> StationService:
-	stationService = StationService(db_conn_in_mem_full)
+def fixture_station_service(
+	fixture_populated_db_conn_in_mem: Connection
+) -> StationService:
+	stationService = StationService(fixture_populated_db_conn_in_mem)
 	return stationService
 
 @pytest.fixture
-def setup_in_mem_tbls_full(
-	db_conn_in_mem: Connection,
-	test_date_ordered_list: List[datetime],
-	primary_user: AccountInfo,
-	test_password: bytes
+def fixture_setup_in_mem_tbls(
+	fixture_db_conn_in_mem: Connection,
+	fixture_mock_ordered_date_list: List[datetime],
+	fixture_primary_user: AccountInfo,
+	fixture_mock_password: bytes
 ) -> None:
-	_setup_in_mem_tbls_full(
-		db_conn_in_mem,
-		test_date_ordered_list,
-		primary_user,
-		test_password
+	setup_in_mem_tbls(
+		fixture_db_conn_in_mem,
+		fixture_mock_ordered_date_list,
+		fixture_primary_user,
+		fixture_mock_password
 	)
 
-def _setup_in_mem_tbls_full(
-	conn: Connection,
-	orderedTestDates: List[datetime],
-	primaryUser: AccountInfo,
-	testPassword: bytes
-) -> None:
-	metadata.create_all(conn.engine)
-	populate_artists(conn)
-	populate_albums(conn)
-	populate_songs(conn)
-	populate_songs_artists(conn)
-	populate_tags(conn)
-	populate_songs_tags(conn)
-	populate_stations(conn)
-	populate_station_tags(conn)
-	populate_users(conn, orderedTestDates, primaryUser, testPassword)
+
 
 
 if __name__ == "__main__":
-	print(test_date_ordered_list)
+	print(fixture_mock_ordered_date_list)
 	pass

@@ -696,14 +696,14 @@ save_station_to_db() (
 	internalName="$1"
 	publicName="$2"
 	# #python_env
-	python <<-EOF
+	python <<EOF
 	from musical_chairs_libs.station_service import StationService
 	stationService = StationService()
 	if stationService.add_station('${internalName}','${publicName}'):
 		print('${internalName} added')
 	else:
 		print('${internalName} may already exist')
-	EOF
+EOF
 )
 
 add_tags_to_station() (
@@ -712,13 +712,13 @@ add_tags_to_station() (
 		read tagname
 		[ -z "$tagname" ] && break
 		# #python_env
-		python <<-EOF
-		from musical_chairs_libs.station_service import StationService
-		stationService = StationService()
-		if stationService.assign_tag_to_station('${internalName}','${tagname}'):
-			print('tag ${tagname} assigned to ${internalName}')
-		EOF
-		
+		python <<EOF
+			from musical_chairs_libs.station_service import StationService
+			stationService = StationService()
+			if stationService.assign_tag_to_station('${internalName}','${tagname}'):
+				print('tag ${tagname} assigned to ${internalName}')
+EOF
+
 	done
 )
 
@@ -738,7 +738,7 @@ create_new_station() (
 
 	echo "public: $publicName" &&
 	echo "internal: $internalName" &&
-	
+
 	create_ices_config "$internalName" "$publicName" "$sourcePassword" &&
 	create_ices_py_module "$internalName" &&
 	echo "skip_option: ${skip_option}"
@@ -779,22 +779,30 @@ run_song_scan() (
 
 shutdown_all_stations() (
 	process_global_vars "$@" &&
-	#gonna assume that the environment has been setup because if 
-	#the environment hasn't been setup yet then no radio stations 
+	#gonna assume that the environment has been setup because if
+	#the environment hasn't been setup yet then no radio stations
 	#are running
 	if [ ! -s "$app_root"/"$app_trunk"/"$py_env"/bin/activate ]; then
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
-	export dbName="$app_root"/"$sqlite_file" &&
+	export dbName="$app_root"/"$sqlite_file-" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
-	{ python  <<-EOF
+	{ python  <<EOF
+try:
 	from musical_chairs_libs.station_service import StationService
-	stationService = StationService()
-	stationService.end_all_stations()
-	print("Done")
-	EOF
+	from sqlalchemy.exc import OperationalError
+	try:
+		stationService = StationService()
+		stationService.end_all_stations()
+	except OperationalError as ex:
+		print("Could not the shutdown operation."
+		" Assuming that they are already down.")
+except ModuleNotFoundError:
+	print("Could not import something")
+print("Done")
+EOF
 	} &&
 	echo "Done ending all stations"
 )
@@ -819,8 +827,8 @@ startup_api() (
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# see #python_env
-	#put uvicorn in background with in a subshell so that it doesn't put 
-	#the whole chain in the background, and then block due to some of the 
+	#put uvicorn in background with in a subshell so that it doesn't put
+	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
 	(uvicorn --app-dir "$web_root"/"$app_api_path_cl" --root-path /api/v1 \
 	--host 0.0.0.0 --port "$api_port" "index:app" </dev/null >api.out 2>&1 &)

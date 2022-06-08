@@ -80,7 +80,7 @@ class SongScanner:
 
 	def __init__(
 		self,
-		conn: Connection,
+		conn: Optional[Connection]=None,
 		stationService: Optional[StationService]=None,
 		envManager: Optional[EnvManager]=None,
 		songInfoService: Optional[SongInfoService]=None

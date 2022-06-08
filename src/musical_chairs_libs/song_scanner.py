@@ -10,7 +10,7 @@ from sqlalchemy import \
 	insert,\
 	update
 from tinytag import TinyTag
-from musical_chairs_libs.dtos import SongItemPlumbing #pyright: ignore [reportMissingTypeStubs]
+from musical_chairs_libs.dtos import SongItemPlumbing, SavedNameString
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.song_info_service import SongInfoService
 from musical_chairs_libs.tables import songs, \
@@ -105,6 +105,7 @@ class SongScanner:
 		while True:
 			transaction = self.conn.begin()
 			songRefs = list(self.song_info_service.get_song_refs(
+				songName=None,
 				page=page,
 				pageSize=pageSize
 			))
@@ -112,24 +113,29 @@ class SongScanner:
 				print(f"{idx}".rjust(len(str(idx)), " "),end="\r")
 				songFullPath = f"{searchBase}/{row.path}"
 				fileTag = get_file_tags(songFullPath)
-				artistFk = self.song_info_service.get_or_save_artist(fileTag.artist)
+				artistFk = self.song_info_service\
+					.get_or_save_artist(SavedNameString(fileTag.artist))
 				albumArtistFk = self.song_info_service\
-					.get_or_save_artist(fileTag.albumartist)
+					.get_or_save_artist(SavedNameString(fileTag.albumartist))
+				composerFk = self.song_info_service\
+					.get_or_save_artist(SavedNameString(fileTag.composer))
 				albumFk = self.song_info_service.get_or_save_album(
-					fileTag.album,
+					SavedNameString(fileTag.album),
 					albumArtistFk,
 					fileTag.year
 				)
 				songItem = SongItemPlumbing(
 					row.id,
 					row.path,
-					row.name,
+					SavedNameString(fileTag.title),
 					albumFk,
 					artistFk,
+					composerFk,
 					fileTag.track,
 					fileTag.disc,
 					fileTag.genre,
 					fileTag.bitrate,
+					fileTag.samplerate,
 					fileTag.comment,
 					fileTag.duration
 				)

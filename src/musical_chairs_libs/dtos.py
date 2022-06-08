@@ -9,29 +9,43 @@ from email_validator import validate_email #pyright: ignore reportUnknownVariabl
 
 class SavedNameString:
 
-	def __init__(self, value: str) -> None:
-		if not value:
-			self._value = ""
-			return
-		trimed = value.strip()
-		self._value = unicodedata.normalize("NFC", trimed)
+	def __init__(self, value: Optional[str]) -> None:
+		self._value = self.format_name_for_save(value)
 
 	def __str__(self) -> str:
 		return self._value
 
+	def __len__(self) -> int:
+		return len(self._value)
+
+	@staticmethod
+	def format_name_for_save(value: Optional[str]) -> str:
+		if not value:
+			return ""
+		trimed = value.strip()
+		return unicodedata.normalize("NFC", trimed)
 
 class SearchNameString:
 
-	def __init__(self, value: str) -> None:
-		if not value:
-			self._value = ""
-			return
-		trimed = value.strip()
-		normalized = unicodedata.normalize("NFKD", trimed)
-		self._value = normalized.lower()
+	def __init__(self, value: Optional[str]) -> None:
+		self._value = self.format_name_for_search(value)
 
 	def __str__(self) -> str:
 		return self._value
+
+	def __len__(self) -> int:
+		return len(self._value)
+
+	@staticmethod
+	def format_name_for_search(
+		value: Optional[str]
+	) -> str:
+		if not value:
+			return ""
+		trimed = value.strip()
+		normalized = unicodedata.normalize("NFKD", trimed)
+		lower = normalized.lower()
+		return lower
 
 class UserRoleDef(Enum):
 	ADMIN = "admin::"
@@ -169,10 +183,12 @@ class SongItemPlumbing:
 	name: Optional[SavedNameString]=None
 	albumPk: Optional[int]=None
 	artistPk: Optional[int]=None
+	composerPk: Optional[int]=None
 	track: Optional[int]=None
 	disc: Optional[int]=None
 	genre: Optional[str]=None
 	bitrate: Optional[float]=None
+	sampleRate: Optional[float]=None
 	comment: Optional[str]=None
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None

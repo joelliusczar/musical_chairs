@@ -13,7 +13,8 @@ metadata = MetaData()
 artists = Table("Artists", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("name", String, unique=True),
-	Column("searchableName", String, unique=True),
+	#searchable name for artist is not neccessarily unique
+	Column("searchableName", String),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True),
@@ -22,7 +23,8 @@ artists = Table("Artists", metadata,
 albums = Table("Albums", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("name", String, nullable=True, unique=True),
-	Column("searchableName", String, unique=True),
+	#searchable name for artist is not neccessarily unique
+	Column("searchableName", String),
 	Column("albumArtistFk", Integer, ForeignKey("Artists.pk"), nullable=True ),
 	Column("year", Integer),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
@@ -42,7 +44,9 @@ songs = Table("Songs", metadata,
 	Column("explicit", Integer, nullable=True),
 	Column("bitrate", Float, nullable=True),
 	Column("comment", String, nullable=True),
+	Column("lyrics", String, nullable=True),
 	Column("duration", Float, nullable=True),
+	Column("sampleRate", Float, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True),
@@ -52,6 +56,7 @@ song_artist = Table("SongsArtists", metadata,
 	Column("songFk", ForeignKey("Songs.pk"), nullable=False),
 	Column("artistFk", ForeignKey("Artists.pk"), nullable=False),
 	Column("isPrimaryArtist", Integer, nullable=True),
+	Column("comment", String, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True),

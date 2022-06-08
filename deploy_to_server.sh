@@ -43,12 +43,12 @@ unitTestSuccess="$?"
 
 #Would have prefered to just use a variable
 #but it seems to choke on certain characters like ')' for some reason
-#when I do it like 
+#when I do it like
 #myVar=$(cat<<EOF
 #...
 #)
 mkfifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
-	remote_script_fifo 
+	remote_script_fifo
 
 
 
@@ -60,7 +60,7 @@ mkfifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
 process_global_vars "$@" ||
 show_err_and_exit "error with global variabls"
 echo "$SSH_CONNECTION"
-[ -n "$SSH_CONNECTION" ] || 
+[ -n "$SSH_CONNECTION" ] ||
 show_err_and_exit "This section should only be run remotely"
 
 if ! git --version 2>/dev/null; then
@@ -70,7 +70,7 @@ fi
 error_check_path "$(get_repo_path)" &&
 rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
-cd "$app_root"/"$build_dir" && 
+cd "$app_root"/"$build_dir" &&
 git clone "$radio_server_repo_url" "$proj_name" &&
 cd "$proj_name"  &&
 
@@ -90,33 +90,27 @@ if [ "$setup_lvl" = 'api' ]; then
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
-	startup_api 
+	startup_api
 elif [ "$setup_lvl" = 'client' ]; then
 	echo "$setup_lvl"
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
-	setup_client && 
+	setup_client &&
 	echo "finished setup"
 elif [ "$setup_lvl" = 'radio' ]; then
 	echo "$setup_lvl"
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
-	sync_utility_scripts && 
+	sync_utility_scripts &&
 	startup_radio
 elif [ "$setup_lvl" = 'install' ]; then
 	echo "$setup_lvl"
 	sh ./install_setup.sh &&
 	echo "finished setup"
-elif [ "$setup_lvl" = 'scripts' ]; then
-	echo "$setup_lvl"	
-	. ./radio_common.sh &&
-	sync_utility_scripts 
-else 
+else
 	echo "$setup_lvl"
-	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
-	setup_all &&
 	echo "finished setup"
 fi
 

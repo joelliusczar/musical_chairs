@@ -1,4 +1,5 @@
 import json
+import pytest
 from musical_chairs_libs.env_manager import EnvManager
 from .api_test_dependencies import mock_depend_env_manager
 from fastapi.testclient import TestClient
@@ -22,6 +23,7 @@ def test_create_account_success():
 	usedName = "testUser_bravo"
 	testUser["username"] = usedName
 
+@pytest.mark.xfail
 def test_create_account_fail_username():
 	usedName = "testUser_bravo"
 	testUser = {

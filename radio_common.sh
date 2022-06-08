@@ -767,7 +767,8 @@ run_song_scan() (
 	from musical_chairs_libs.env_manager import EnvManager
 	print("Starting")
 	shouldReplaceDb = os.environ.get("replace_db_flag", False) and True
-	EnvManager.setup_db_if_missing(shouldReplaceDb)
+	print(f"About to replace db? {shouldReplaceDb}")
+	EnvManager.setup_db_if_missing(shouldReplaceDb, echo = True)
 	stationService = SongScanner()
 	inserted = stationService.save_paths('${app_root}/${content_home}')
 	print(f"saving paths done: {inserted} inserted")
@@ -949,7 +950,7 @@ run_unit_tests() (
 
 	test_src="$src_path"/tests &&
 
-	export PYTHONPATH="$src_path" &&
+	export PYTHONPATH="${src_path}:${src_path}/api" &&
 	export dbName="$test_root"/"$sqlite_file" &&
 	export searchBase="$test_root"/"$content_home" &&
 

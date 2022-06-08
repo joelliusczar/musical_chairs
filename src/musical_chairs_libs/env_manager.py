@@ -34,7 +34,9 @@ class EnvManager:
 
 	@classmethod
 	def setup_db_if_missing(cls, replace: bool=False, echo: bool = False):
-		if not os.path.exists(cls.db_name) or replace:
+		if replace:
+			os.remove(cls.db_name)
+		if not os.path.exists(cls.db_name):
 			conn = cls.get_configured_db_connection(echo=echo)
 			metadata.create_all(conn.engine)
 			conn.close()

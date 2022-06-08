@@ -77,7 +77,7 @@ class SongInfoService:
 			return pk
 		print(name)
 		searchableName = format_name_for_search(name)
-		timestamp = self.get_datetime().timestamp
+		timestamp = self.get_datetime().timestamp()
 		stmt = insert(artists).values(
 			name = cleanedName,
 			searchableName = searchableName,
@@ -103,7 +103,7 @@ class SongInfoService:
 			return pk
 		print(name)
 		searchableName = format_name_for_search(name)
-		timestamp = self.get_datetime().timestamp
+		timestamp = self.get_datetime().timestamp()
 		stmt = insert(albums).values(
 			name = cleanedName,
 			searchableName = searchableName,
@@ -145,7 +145,7 @@ class SongInfoService:
 	def update_song_info(self, songInfo: SongItemPlumbing) -> int:
 		saveName = str(songInfo.name)
 		searchableName = str(SearchNameString(saveName))
-		timestamp = self.get_datetime().timestamp
+		timestamp = self.get_datetime().timestamp()
 		songUpdate = update(songs) \
 				.where(sg.pk == songInfo.id) \
 				.values(

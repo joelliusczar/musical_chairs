@@ -765,9 +765,7 @@ run_song_scan() (
 	from musical_chairs_libs.song_scanner import SongScanner
 	from musical_chairs_libs.env_manager import EnvManager
 	print("Starting")
-	try:
-		EnvManager.setup_db_if_missing()
-	except: pass
+	EnvManager.setup_db_if_missing()
 	stationService = SongScanner()
 	inserted = stationService.save_paths('${app_root}/${content_home}')
 	print(f"saving paths done: {inserted} inserted")

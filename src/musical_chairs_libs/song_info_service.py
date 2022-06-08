@@ -76,10 +76,12 @@ class SongInfoService:
 			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
 			return pk
 		print(name)
+		searchableName = format_name_for_search(name)
+		timestamp = self.get_datetime().timestamp
 		stmt = insert(artists).values(
 			name = cleanedName,
-			searchableName = format_name_for_search(name),
-			lastModifiedTimestamp = self.get_datetime().timestamp
+			searchableName = searchableName,
+			lastModifiedTimestamp = timestamp
 		)
 		res = self.conn.execute(stmt)
 		insertedPk: int = res.lastrowid
@@ -100,12 +102,14 @@ class SongInfoService:
 			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
 			return pk
 		print(name)
+		searchableName = format_name_for_search(name)
+		timestamp = self.get_datetime().timestamp
 		stmt = insert(albums).values(
 			name = cleanedName,
-			searchableName = format_name_for_search(name),
+			searchableName = searchableName,
 			albumArtistFk = artistFk,
 			year = year,
-			lastModifiedTimestamp = self.get_datetime().timestamp
+			lastModifiedTimestamp = timestamp
 		)
 		res = self.conn.execute(stmt)
 		insertedPk: int = res.lastrowid
@@ -140,11 +144,13 @@ class SongInfoService:
 
 	def update_song_info(self, songInfo: SongItemPlumbing) -> int:
 		saveName = str(songInfo.name)
+		searchableName = str(SearchNameString(saveName))
+		timestamp = self.get_datetime().timestamp
 		songUpdate = update(songs) \
 				.where(sg.pk == songInfo.id) \
 				.values(
 					name = saveName,
-					searchableName = str(SearchNameString(saveName)),
+					searchableName = searchableName,
 					albumFk = songInfo.albumPk,
 					track = songInfo.track,
 					disc = songInfo.disc,
@@ -152,7 +158,7 @@ class SongInfoService:
 					comment = songInfo.comment,
 					genre = songInfo.genre,
 					duration = songInfo.duration,
-					lastModifiedTimestamp = self.get_datetime().timestamp,
+					lastModifiedTimestamp = timestamp,
 					lastModifiedByUserFk = None
 				)
 		count: int = self.conn.execute(songUpdate).rowcount

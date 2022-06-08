@@ -762,10 +762,12 @@ run_song_scan() (
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
 	python  <<-EOF
+	import os
 	from musical_chairs_libs.song_scanner import SongScanner
 	from musical_chairs_libs.env_manager import EnvManager
 	print("Starting")
-	EnvManager.setup_db_if_missing()
+	shouldReplaceDb = os.environ.get("replace_db_flag", False) and True
+	EnvManager.setup_db_if_missing(shouldReplaceDb)
 	stationService = SongScanner()
 	inserted = stationService.save_paths('${app_root}/${content_home}')
 	print(f"saving paths done: {inserted} inserted")
@@ -911,7 +913,7 @@ setup_unit_test_env() (
 	error_check_path "$reference_src_db" &&
 	error_check_path "$app_root"/"$sqlite_file" &&
 	sync_requirement_list
-	setup_env_api_file 
+	setup_env_api_file
 	#redirect stderr into stdout missing env will also trigger redeploy
 	srcChanges=$(find "$lib_src" -newer \
 		"$utest_env_dir"/"$py_env" 2>&1)
@@ -919,10 +921,11 @@ setup_unit_test_env() (
 	[ "$app_root"/"$app_trunk"/requirements.txt -nt "$utest_env_dir"/"$py_env" ]
 	then
 		echo "changes?"
-		create_py_env_in "$utest_env_dir" 
+		create_py_env_in "$utest_env_dir"
 	fi &&
 	setup_db &&
-	echo "PYTHONPATH='$src_path'" >> "$app_root"/"$config_dir"/.env &&
+	echo "PYTHONPATH='${src_path}:${src_path}/api'" \
+		>> "$app_root"/"$config_dir"/.env &&
 
 	cp -v "$reference_src_db" "$app_root"/"$sqlite_file" &&
 	echo "done setting up test environment"
@@ -982,12 +985,12 @@ process_global_args() {
 			(test)
 				export test_flag='test'
 				;;
-			(copyDb) #tells setup to replace sqlite3 db
-				export copy_db_flag='test_db'
+			(replaceDb) #tells setup to replace sqlite3 db
+				export replace_db_flag='true'
 				;;
 			#activates debug_print. Also tells deploy script to use the diag branch
-			(diag) 
-				export diag_flag='diag'
+			(diag)
+				export diag_flag='true'
 				echo '' > diag_out_"$include_count"
 				;;
 			(env=*) #affects which url to use
@@ -1003,7 +1006,7 @@ process_global_args() {
 				export setup_lvl=${1#setup_lvl=}
 				;;
 			#when I want to conditionally run with some experimental code
-			(experiment=*) 
+			(experiment=*)
 				export exp_name=${1#experiment=}
 				;;
 			(skip=*)
@@ -1061,7 +1064,7 @@ define_top_level_terms() {
 define_app_dir_paths() {
 	export ices_configs_dir="$app_trunk"/ices_configs
 	export pyModules_dir="$app_trunk"/pyModules
-	
+
 	export config_dir="$app_trunk"/config
 	export db_dir="$app_trunk"/db
 	export sqlite_file="$db_dir"/"$db_name"
@@ -1094,7 +1097,7 @@ define_web_server_paths() {
 define_url() {
 	url_base=$(echo "$proj_name" | tr -d _)
 	echo "env: ${app_env}"
-	case "$app_env" in 
+	case "$app_env" in
 		(local*)
 			url_suffix='-local.radio.fm:8080'
 			;;
@@ -1120,25 +1123,25 @@ define_repo_paths() {
 
 setup_base_dirs() {
 
-	[ -e "$app_root"/"$app_trunk" ] || 
+	[ -e "$app_root"/"$app_trunk" ] ||
 	mkdir -pv "$app_root"/"$app_trunk"
 
-	[ -e "$app_root"/"$ices_configs_dir" ] || 
+	[ -e "$app_root"/"$ices_configs_dir" ] ||
 	mkdir -pv "$app_root"/"$ices_configs_dir"
-	[ -e "$app_root"/"$pyModules_dir" ] || 
+	[ -e "$app_root"/"$pyModules_dir" ] ||
 	mkdir -pv "$app_root"/"$pyModules_dir"
-	[ -e "$app_root"/"$content_home" ] || 
+	[ -e "$app_root"/"$content_home" ] ||
 	mkdir -pv "$app_root"/"$content_home"
-	[ -e "$app_root"/"$config_dir" ] || 
+	[ -e "$app_root"/"$config_dir" ] ||
 	mkdir -pv "$app_root"/"$config_dir"
-	[ -e "$app_root"/"$db_dir" ] || 
+	[ -e "$app_root"/"$db_dir" ] ||
 	mkdir -pv "$app_root"/"$db_dir"
 
 	[ -e "$web_root"/"$app_api_path_cl" ] ||
-	{ 
+	{
 		sudo -p 'Pass required for creating web server directory: ' \
 			mkdir -pv "$web_root"/"$app_api_path_cl" ||
-		show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}" 
+		show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}"
 	}
 }
 
@@ -1153,17 +1156,17 @@ process_global_vars() {
 	#put export on separate line so it doesn't turn a failure in the previous
 	#line into a success code
 	export workspace_abs_path &&
-	
+
 	define_top_level_terms &&
 
 	define_app_dir_paths &&
 
 	define_web_server_paths &&
-	
+
 	define_url &&
-	
+
 	define_repo_paths &&
-	
+
 	#python environment names
 	export py_env='mc_env' &&
 

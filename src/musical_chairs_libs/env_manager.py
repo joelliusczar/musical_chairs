@@ -33,10 +33,8 @@ class EnvManager:
 		return conn
 
 	@classmethod
-	def setup_db_if_missing(cls):
-		if not os.path.exists(cls.db_name):
+	def setup_db_if_missing(cls, replace: bool=False):
+		if not os.path.exists(cls.db_name) or replace:
 			conn = cls.get_configured_db_connection()
 			metadata.create_all(conn.engine)
 			conn.close()
-		else:
-			raise RuntimeError("Db already exists")

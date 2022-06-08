@@ -11,7 +11,7 @@
   "python.analysis.useLibraryCodeForTypes": true,
   "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/utest/mc_env/bin/python",
   "terminal.integrated.env.osx": {
-    "PTHONPATH": "${workspaceFolder}/src",
+    "PTHONPATH": "${workspaceFolder}/src:${workspaceFolder}/src/api",
     "lib_name": "musical_chairs_libs",
     "app_name": "musical_chairs_app",
     "test_root": "${workspaceFolder}/test_trash"

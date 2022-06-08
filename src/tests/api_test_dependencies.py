@@ -1,5 +1,3 @@
-import sys
-sys.path.append("../api")
 from datetime import datetime
 from typing import List
 from fastapi import Depends

@@ -91,7 +91,7 @@ ices_build_dir="$app_root"/"$build_dir"/ices
 	cd "$app_root"/"$build_dir"
 	git clone https://github.com/joelliusczar/ices0.git ices
 	cd ices
-	if [ "$test_flag" = "dbg" ]; then
+	if [ "$exp_name" = "dbg_ices" ]; then
 		git checkout debuging
 		name_prefix='dbg-'
 	fi

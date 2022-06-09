@@ -129,8 +129,7 @@ class SongInfoService:
 			query = query.where(sg.name == cleanedName)
 		if pageSize:
 			offset = page * pageSize
-			limit = (page + 1) * pageSize
-			query = query.limit(limit).offset(offset)
+			query = query.limit(pageSize).offset(offset)
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield SongItemPlumbing(

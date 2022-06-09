@@ -3,7 +3,7 @@ import re
 import unicodedata
 from unidecode import unidecode
 from dataclasses import dataclass, field
-from typing import Iterator, List, Optional, Iterable, Set, Tuple, TypeVar, Generic, Union
+from typing import Any, Iterator, List, Optional, Iterable, Set, Tuple, TypeVar, Generic, Union
 from enum import Enum
 from pydantic import BaseModel, validator
 from email_validator import validate_email #pyright: ignore reportUnknownVariableType
@@ -18,6 +18,9 @@ class SavedNameString:
 
 	def __len__(self) -> int:
 		return len(self._value)
+
+	def __eq__(self, o: Any) -> bool:
+		return self._value == o
 
 	@staticmethod
 	def format_name_for_save(value: Optional[str]) -> str:
@@ -36,6 +39,9 @@ class SearchNameString:
 
 	def __len__(self) -> int:
 		return len(self._value)
+
+	def __eq__(self, o: Any) -> bool:
+		return self._value == o
 
 	@staticmethod
 	def format_name_for_search(

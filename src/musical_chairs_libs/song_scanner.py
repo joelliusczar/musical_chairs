@@ -98,7 +98,7 @@ class SongScanner:
 			self.song_info_service = songInfoService
 
 
-	def update_metadata(self, searchBase: str):
+	def update_metadata(self, searchBase: str) -> int:
 		page = 0
 		pageSize = 1000
 		updateCount = 0
@@ -145,7 +145,7 @@ class SongScanner:
 				break
 			page += 1
 			transaction.commit()
-		return update
+		return updateCount
 
 	def save_paths(self, searchBase: str) -> int:
 		insertCount = 0

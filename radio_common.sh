@@ -769,10 +769,10 @@ run_song_scan() (
 	shouldReplaceDb = os.environ.get("replace_db_flag", False) and True
 	print(f"About to replace db? {shouldReplaceDb}")
 	EnvManager.setup_db_if_missing(shouldReplaceDb, echo = True)
-	stationService = SongScanner()
-	inserted = stationService.save_paths('${app_root}/${content_home}')
+	songScanner = SongScanner()
+	inserted = songScanner.save_paths('${app_root}/${content_home}')
 	print(f"saving paths done: {inserted} inserted")
-	updated = stationService.update_metadata('${app_root}/${content_home}')
+	updated = songScanner.update_metadata('${app_root}/${content_home}')
 	print(f"updating songs done: {updated}")
 	EOF
 )

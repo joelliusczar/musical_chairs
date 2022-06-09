@@ -786,7 +786,7 @@ shutdown_all_stations() (
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
-	export dbName="$app_root"/"$sqlite_file-" &&
+	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
 	{ python  <<EOF

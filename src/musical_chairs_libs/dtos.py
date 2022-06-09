@@ -1,9 +1,10 @@
 #pyright: reportMissingTypeStubs=false
 import re
+import unicodedata
+from unidecode import unidecode
 from dataclasses import dataclass, field
 from typing import Iterator, List, Optional, Iterable, Set, Tuple, TypeVar, Generic, Union
 from enum import Enum
-import unicodedata
 from pydantic import BaseModel, validator
 from email_validator import validate_email #pyright: ignore reportUnknownVariableType
 
@@ -43,8 +44,8 @@ class SearchNameString:
 		if not value:
 			return ""
 		trimed = value.strip()
-		normalized = unicodedata.normalize("NFKD", trimed)
-		lower = normalized.lower()
+		transformed = unidecode(trimed, errors="preserve")
+		lower = transformed.lower()
 		return lower
 
 class UserRoleDef(Enum):

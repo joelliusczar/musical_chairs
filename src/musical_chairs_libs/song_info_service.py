@@ -123,7 +123,7 @@ class SongInfoService:
 			sg.path,
 			sg.name
 		).select_from(songs)
-		if type(songName) is SavedNameString:
+		if type(songName) is SavedNameString or songName is None:
 			#allow null through
 			cleanedName = str(songName) if songName else None
 			query = query.where(sg.name == cleanedName)

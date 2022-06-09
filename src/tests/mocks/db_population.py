@@ -359,10 +359,29 @@ def populate_songs(conn: Connection):
 			"name": "juliet2_song",
 			"albumFk": 1,
 		},
+		{ "pk": 44,
+			"path": "foo/rude/bog/kilo2",
+		},
+		{ "pk": 45,
+			"path": "foo/rude/bog/lima2",
+		},
+		{ "pk": 46,
+			"path": "foo/rude/rog/mike2",
+		},
+		{ "pk": 47,
+			"path": "foo/rude/rog/november2",
+		},
+		{ "pk": 48,
+			"path": "foo/rude/rog/oscar2",
+		},
+		{ "pk": 49,
+			"path": "foo/dude/dog/papa2",
+		},
 	]
 	stmt = insert(songs)
 
 	songParams1 = list(filter(lambda s: \
+		'name' in s and \
 		'explicit' in s and \
 		'albumFk' in s and \
 		'track' in s and \
@@ -372,6 +391,7 @@ def populate_songs(conn: Connection):
 		'comment' in s, songParams))
 	conn.execute(stmt, songParams1) #pyright: ignore [reportUnknownMemberType]
 	songParams2 = list(filter(lambda s: \
+		'name' in s and \
 		not 'explicit' in s and \
 		'albumFk' in s and \
 		'track' in s and \
@@ -381,6 +401,7 @@ def populate_songs(conn: Connection):
 		'comment' in s, songParams))
 	conn.execute(stmt, songParams2) #pyright: ignore [reportUnknownMemberType]
 	songParams3 = list(filter(lambda s: \
+		'name' in s and \
 		not 'explicit' in s and \
 		'albumFk' in s and \
 		'track' in s and \
@@ -390,6 +411,7 @@ def populate_songs(conn: Connection):
 		'comment' in s, songParams))
 	conn.execute(stmt, songParams3) #pyright: ignore [reportUnknownMemberType]
 	songParams4 = list(filter(lambda s: \
+		'name' in s and \
 		not 'explicit' in s and \
 		'albumFk' in s and \
 		'track' in s and \
@@ -399,6 +421,7 @@ def populate_songs(conn: Connection):
 		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams4) #pyright: ignore [reportUnknownMemberType]
 	songParams5 = list(filter(lambda s: \
+		'name' in s and \
 		not 'explicit' in s and \
 		'albumFk' in s and \
 		'track' in s and \
@@ -408,6 +431,7 @@ def populate_songs(conn: Connection):
 		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams5) #pyright: ignore [reportUnknownMemberType]
 	songParams6 = list(filter(lambda s: \
+		'name' in s and \
 		not 'explicit' in s and \
 		'albumFk' in s and \
 		'track' in s and \
@@ -417,6 +441,7 @@ def populate_songs(conn: Connection):
 		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams6) #pyright: ignore [reportUnknownMemberType]s
 	songParams7 = list(filter(lambda s: \
+		'name' in s and \
 		not 'explicit' in s and \
 		'albumFk' in s and \
 		not 'track' in s and \
@@ -426,6 +451,7 @@ def populate_songs(conn: Connection):
 		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams7) #pyright: ignore [reportUnknownMemberType]
 	songParams8 = list(filter(lambda s: \
+		'name' in s and \
 		not 'explicit' in s and \
 		not 'albumFk' in s and \
 		not 'track' in s and \
@@ -435,6 +461,7 @@ def populate_songs(conn: Connection):
 		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams8) #pyright: ignore [reportUnknownMemberType]
 	songParams9 = list(filter(lambda s: \
+		'name' in s and \
 		'explicit' in s and \
 		'albumFk' in s and \
 		not 'track' in s and \
@@ -444,6 +471,7 @@ def populate_songs(conn: Connection):
 		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams9) #pyright: ignore [reportUnknownMemberType]
 	songParams10 = list(filter(lambda s: \
+		'name' in s and \
 		'explicit' in s and \
 		'albumFk' in s and \
 		'track' in s and \
@@ -453,6 +481,7 @@ def populate_songs(conn: Connection):
 		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams10) #pyright: ignore [reportUnknownMemberType]
 	songParams11 = list(filter(lambda s: \
+		'name' in s and \
 		'explicit' in s and \
 		'albumFk' in s and \
 		'track' in s and \
@@ -462,6 +491,7 @@ def populate_songs(conn: Connection):
 		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams11) #pyright: ignore [reportUnknownMemberType]
 	songParams12 = list(filter(lambda s: \
+		'name' in s and \
 		not 'explicit' in s and \
 		'albumFk' in s and \
 		'track' in s and \
@@ -470,6 +500,16 @@ def populate_songs(conn: Connection):
 		not 'bitrate' in s and \
 		'comment' in s, songParams))
 	conn.execute(stmt, songParams12) #pyright: ignore [reportUnknownMemberType]
+	songParams13 = list(filter(lambda s: \
+		not 'name' in s and \
+		not 'explicit' in s and \
+		not 'albumFk' in s and \
+		not 'track' in s and \
+		not 'disc' in s and \
+		not 'genre' in s and \
+		not 'bitrate' in s and \
+		not 'comment' in s, songParams))
+	conn.execute(stmt, songParams13) #pyright: ignore [reportUnknownMemberType]
 
 def populate_songs_artists(conn: Connection):
 	songArtistParams = [

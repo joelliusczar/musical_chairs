@@ -109,6 +109,7 @@ class SongScanner:
 				page=page,
 				pageSize=pageSize
 			))
+			print(f"{len(songRefs)} records pulled back")
 			for idx, row in enumerate(songRefs):
 				print(f"{idx}".rjust(len(str(idx)), " "),end="\r")
 				songFullPath = f"{searchBase}/{row.path}"

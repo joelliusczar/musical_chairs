@@ -2,6 +2,7 @@ import os
 from sqlalchemy import create_engine #pyright: ignore [reportUnknownVariableType]
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import metadata
+from musical_chairs_libs.dtos import SearchNameString, SavedNameString
 
 class EnvManager:
 
@@ -30,6 +31,18 @@ class EnvManager:
 			connect_args={ "check_same_thread": check_same_thread } #fastapi docs said this was okay
 		)
 		conn = engine.connect()
+		conn.connection.connection.create_function( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues]
+			"format_name_for_search",
+			1,
+			SearchNameString.format_name_for_search,
+			deterministic=True
+		)
+		conn.connection.connection.create_function( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues]
+			"format_name_for_save",
+			1,
+			SavedNameString.format_name_for_save,
+			deterministic=True
+		)
 		return conn
 
 	@classmethod

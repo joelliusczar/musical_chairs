@@ -377,6 +377,14 @@ def populate_songs(conn: Connection):
 		{ "pk": 49,
 			"path": "foo/dude/dog/papa2",
 		},
+		{ "pk": 50,
+			"path": "foo/bar/baz/romeo2",
+			"name": "目黒将司",
+		},
+		{ "pk": 51,
+			"path": "foo/bar/baz/sierra3",
+			"name": "Aoife Ní Fhearraigh",
+		}
 	]
 	stmt = insert(songs)
 
@@ -658,47 +666,47 @@ def populate_users(
 	usersParams = [
 		{
 			"pk": primaryUser.id,
-			"userName": primaryUser.userName,
+			"username": primaryUser.userName,
 			"displayName": None,
 			"hashedPW": primaryUser.hash,
 			"email": primaryUser.email,
-			"isActive": 1,
+			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
 			"pk": 2,
-			"userName": "testUser_bravo",
+			"username": "testUser_bravo",
 			"displayName": None,
 			"hashedPW": testPassword,
 			"email": "test2@test.com",
-			"isActive": 1,
+			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp()
 		},
 		{
 			"pk": 3,
-			"userName": "testUser_charlie",
+			"username": "testUser_charlie",
 			"displayName": None,
 			"hashedPW": None,
 			"email": "test3@test.com",
-			"isActive": 1,
+			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp()
 		},
 		{
 			"pk": 4,
-			"userName": "testUser_delta",
+			"username": "testUser_delta",
 			"displayName": None,
 			"hashedPW": testPassword,
 			"email": "test4@test.com",
-			"isActive": 0,
+			"isDisabled": True,
 			"creationTimestamp": orderedTestDates[1].timestamp()
 		},
 		{
 			"pk": 5,
-			"userName": "testUser_echo",
+			"username": "testUser_echo",
 			"displayName": None,
 			"hashedPW": None,
 			"email": None,
-			"isActive": 1,
+			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp()
 		}
 	]

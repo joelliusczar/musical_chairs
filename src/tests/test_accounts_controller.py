@@ -1,5 +1,4 @@
 import json
-import pytest
 from musical_chairs_libs.env_manager import EnvManager
 from .api_test_dependencies import mock_depend_env_manager
 from fastapi.testclient import TestClient
@@ -23,7 +22,6 @@ def test_create_account_success():
 	usedName = "testUser_bravo"
 	testUser["username"] = usedName
 
-@pytest.mark.xfail
 def test_create_account_fail_username():
 	usedName = "testUser_bravo"
 	testUser = {
@@ -47,4 +45,4 @@ def test_create_account_fail_username():
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
 	assert response.status_code == 422
-	assert data["detail"] == "Username TESTUSER_BRAVO is already used."
+	assert data["detail"] == "Username tëstUser_bravo is already used."

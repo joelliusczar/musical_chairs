@@ -7,8 +7,7 @@ from typing import Callable, \
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import Connection
 from sqlalchemy import \
-	insert,\
-	update
+	insert
 from tinytag import TinyTag
 from musical_chairs_libs.dtos import SongItemPlumbing, SavedNameString
 from musical_chairs_libs.env_manager import EnvManager

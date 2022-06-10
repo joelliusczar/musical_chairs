@@ -2,11 +2,14 @@
 import bcrypt
 import os
 from datetime import timedelta
-from typing import Any, List, Optional
+from typing import Any, Iterable, Optional, Sequence
 from musical_chairs_libs.dtos import\
 	AccountInfo,\
+	SearchNameString,\
+	SavedNameString,\
 	UserRoleDef,\
-	SaveAccountInfo
+	SaveAccountInfo,\
+	RoleInfo
 from musical_chairs_libs.env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
@@ -15,12 +18,15 @@ from musical_chairs_libs.tables import users,\
 	userRoles,\
 	station_queue,\
 	stations_history
-from musical_chairs_libs.simple_functions import get_datetime,\
-	format_name_for_save
+from musical_chairs_libs.simple_functions import get_datetime
 from musical_chairs_libs.errors import AlreadyUsedError
 from sqlalchemy import select, insert, desc, func, delete
 from jose import jwt
-from email_validator import validate_email, EmailNotValidError #pyright: ignore reportUnknownVariableType
+from email_validator import validate_email #pyright: ignore reportUnknownVariableType
+from email_validator import\
+	EmailNotValidError,\
+	ValidatedEmail
+
 
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALGORITHM = "HS256"
@@ -47,13 +53,15 @@ class AccountsService:
 
 
 	def get_account(self, userName: str) -> Optional[AccountInfo]:
-		cleanedUserName = format_name_for_save(userName)
+		cleanedUserName = SavedNameString(userName)
 		if not cleanedUserName:
 			return None
-		query = select(u.pk, u.userName, u.hashedPW, u.email)\
+		query = select(u.pk, u.username, u.hashedPW, u.email)\
 			.select_from(users) \
+			.where(u.isDisabled != True)\
 			.where(u.hashedPW != None) \
-			.where(func.lower(u.userName) == func.lower(cleanedUserName)) \
+			.where(func.format_name_for_save(u.username) \
+				== str(cleanedUserName)) \
 			.order_by(desc(u.creationTimestamp)) \
 			.limit(1)
 		row = self.conn.execute(query).fetchone()
@@ -65,14 +73,14 @@ class AccountsService:
 			row.userName, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			row.hashedPW, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			row.email, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			roles=self._get_roles(pk)
+			roles=[r.role for r in self._get_roles(pk)]
 		)
 
 	def authenticate_user(self,
-		userName: str,
+		username: str,
 		guess: bytes
 	) -> Optional[AccountInfo]:
-		user = self.get_account(userName)
+		user = self.get_account(username)
 		if not user:
 			return None
 		if user.hash:
@@ -82,8 +90,8 @@ class AccountsService:
 		return user
 
 	def create_account(self, accountInfo: SaveAccountInfo) -> SaveAccountInfo:
-		cleanedUsername = format_name_for_save(accountInfo.username)
-		cleanedEmail: str = validate_email(accountInfo.email).email #pyright: ignore reportUnknownMemberType
+		cleanedUsername = SearchNameString(accountInfo.username)
+		cleanedEmail: ValidatedEmail = validate_email(accountInfo.email)
 		if self._is_username_used(cleanedUsername):
 			raise AlreadyUsedError(
 				f"Username {accountInfo.username} is already used."
@@ -92,12 +100,11 @@ class AccountsService:
 			raise AlreadyUsedError(f"Email {accountInfo.email} is already used.")
 		hash = bcrypt.hashpw(accountInfo.password.encode(), bcrypt.gensalt(12))
 		stmt = insert(users).values(
-			userName=cleanedUsername,
-			displayName=accountInfo.displayName,
+			username=SavedNameString.format_name_for_save(accountInfo.username),
+			displayName=SavedNameString.format_name_for_save(accountInfo.displayName),
 			hashedPW=hash,
-			email=cleanedEmail,
+			email=cleanedEmail.email,
 			creationTimestamp = self.get_datetime().timestamp(),
-			isActive = True
 		)
 		res = self.conn.execute(stmt)
 		insertedPk: int = res.lastrowid
@@ -111,24 +118,29 @@ class AccountsService:
 		}, exclude={ "password"})
 		return resultDto
 
-	def remove_all_roles(self, userId: int) -> int:
+	def remove_roles_for_user(self, userId: int, roles: Iterable[str]) -> int:
 		if not userId:
 			return 0
-		delStmt = delete(userRoles).where(ur.userFk == userId)
+		roles = roles or []
+		delStmt = delete(userRoles).where(ur.userFk == userId)\
+			.where(ur.role in roles)
 		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType]
 
-	def save_roles(self, userId: int, roles: List[str]) -> List[str]:
+	def save_roles(self, userId: int, roles: Sequence[str]) -> Iterable[str]:
 		if not userId or not roles:
 			return []
-		self.remove_all_roles(userId)
-		uniqueRoles = list(UserRoleDef.remove_repeat_roles(roles))
+		uniqueRoles = set(UserRoleDef.remove_repeat_roles(roles))
+		existingRoles = set((r.role for r in self._get_roles(userId)))
+		outRoles = existingRoles - uniqueRoles
+		inRoles = uniqueRoles - existingRoles
+		self.remove_roles_for_user(userId, outRoles)
 		roleParams = list(map(
 			lambda r: {
 				"userFk": userId,
 				"role": r,
-				"isActive": True
+				"creationTimestamp": self.get_datetime().timestamp()
 			},
-			uniqueRoles
+			inRoles
 		))
 		stmt = insert(userRoles	)
 		self.conn.execute(stmt, roleParams)
@@ -139,7 +151,7 @@ class AccountsService:
 		expire = self.get_datetime() \
 			+ timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 		token: str = jwt.encode({
-				"sub": format_name_for_save(userName),
+				"sub": SavedNameString.format_name_for_save(userName),
 				"exp": expire
 			},
 			SECRET_KEY,
@@ -149,23 +161,26 @@ class AccountsService:
 
 	def get_user_from_token(self, token: str) -> Optional[AccountInfo]:
 		decoded: dict[Any, Any] = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-		userName = decoded.get("sub")
+		userName = decoded.get("sub") or ""
 		user = self.get_account(userName)
 		if not user:
 			return None
 		user.isAuthenticated = True
 		return user
 
-	def _get_roles(self, userPk: int) -> List[str]:
-		query = select(ur.role)\
+	def _get_roles(self, userPk: int) -> Iterable[RoleInfo]:
+		query = select(ur.role, ur.creationTimestamp)\
 			.select_from(userRoles) \
 			.where(ur.userFk == userPk)
-		rows: List[Row] = self.conn.execute(query).fetchall()
-		return list(map(
-				lambda r: r.role, #pyright: ignore [reportUnknownLambdaType, reportGeneralTypeIssues]
+		rows: Iterable[Row] = self.conn.execute(query).fetchall()
+		return map(
+				lambda r: RoleInfo(userPk,
+					r.role, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+					r.creationTimestamp #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+				),
 				rows
 			)
-		)
+
 
 	@property
 	def system_user(self) -> Optional[AccountInfo]:
@@ -185,7 +200,7 @@ class AccountsService:
 			row.userName, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			None,
 			None,
-			roles=self._get_roles(pk)
+			roles=[r.role for r in self._get_roles(pk)]
 		)
 
 	def time_til_user_can_make_request(
@@ -223,27 +238,28 @@ class AccountsService:
 		timeLeft = lastRequested + timeout - self.get_datetime().timestamp()
 		return int(timeLeft) if timeLeft > 0 else 0
 
-	def _is_username_used(self, username: str) -> bool:
+	def _is_username_used(self, username: SearchNameString) -> bool:
 		queryAny: str = select(func.count(1)).select_from(users)\
-				.where(func.lower(u.userName) == func.lower(username))
+				.where(func.format_name_for_search(u.username) == str(username))
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
 	def is_username_used(self, username: str) -> bool:
-		cleanedUserName = format_name_for_save(username)
+		cleanedUserName = SearchNameString(username)
 		if not cleanedUserName:
 			return True
 		return self._is_username_used(cleanedUserName)
 
-	def _is_email_used(self, email: str) -> bool:
+	def _is_email_used(self, email: ValidatedEmail) -> bool:
+		emailStr = email.email #pyright: ignore reportUnknownMemberType
 		queryAny: str = select(func.count(1)).select_from(users)\
-				.where(func.lower(u.email) == func.lower(email))
+				.where(func.lower(u.email) == emailStr)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
 	def is_email_used(self, email: str) -> bool:
 		try:
-			cleanedEmail: str = validate_email(email).email #pyright: ignore reportUnknownMemberType
+			cleanedEmail:ValidatedEmail  = validate_email(email)
 			if not cleanedEmail:
 				return True
 			return self._is_email_used(cleanedEmail)

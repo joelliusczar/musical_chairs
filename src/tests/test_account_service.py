@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from musical_chairs_libs.tables import stations_history, station_queue
 from musical_chairs_libs.accounts_service import AccountsService,\
 	UserRoleDef
-from musical_chairs_libs.dtos import AccountInfo
+from musical_chairs_libs.dtos import AccountInfo, SaveAccountInfo
 from .constant_fixtures_for_test import\
 	fixture_mock_password as fixture_mock_password,\
 	fixture_primary_user as fixture_primary_user,\
@@ -14,6 +14,8 @@ from .constant_fixtures_for_test import\
 from .common_fixtures import \
 	fixture_populated_db_conn_in_mem as fixture_populated_db_conn_in_mem, \
 	fixture_account_service as fixture_account_service
+
+currentTestDate: datetime = datetime.now(timezone.utc)
 
 def _insert_row_into_history(conn: Connection, userPk: int):
 	queuedTimestamp = \
@@ -49,6 +51,9 @@ def fixture_account_service_mock_current_time(
 	fixture_account_service: AccountsService
 ):
 	def _get_test_datetime() -> datetime:
+		global currentTestDate
+		if not currentTestDate:
+			currentTestDate = datetime.now(timezone.utc)
 		return currentTestDate
 	fixture_account_service.get_datetime = _get_test_datetime
 	return fixture_account_service
@@ -237,3 +242,17 @@ def test_count_repeat_roles():
 	assert result[UserRoleDef.SONG_REQUEST.value] == 2
 	assert result[UserRoleDef.SONG_ADD.value] == 2
 	assert result[UserRoleDef.USER_LIST.value] == 1
+
+def test_create_account(
+	fixture_account_service_mock_current_time: AccountsService,
+):
+	accountService = fixture_account_service_mock_current_time
+	accountInfo = SaveAccountInfo(
+		username="testUser",
+		email="testPerson@gmail.com",
+		password="hello12",
+		displayName="Testeroni"
+	)
+	result = accountService.create_account(accountInfo)
+	assert result
+	assert len(result.roles) == 1

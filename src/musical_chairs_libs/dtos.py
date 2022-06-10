@@ -3,7 +3,7 @@ import re
 import unicodedata
 from unidecode import unidecode
 from dataclasses import dataclass, field
-from typing import Any, Iterator, List, Optional, Iterable, Set, Tuple, TypeVar, Generic, Union
+from typing import Any, Iterator, List, Optional, Iterable, Sequence, Set, Tuple, TypeVar, Generic, Union
 from enum import Enum
 from pydantic import BaseModel, validator
 from email_validator import validate_email #pyright: ignore reportUnknownVariableType
@@ -49,9 +49,9 @@ class SearchNameString:
 	) -> str:
 		if not value:
 			return ""
-		trimed = value.strip()
-		transformed = unidecode(trimed, errors="preserve")
-		lower = transformed.lower()
+		transformed = unidecode(value, errors="preserve")
+		trimed = transformed.strip()
+		lower = trimed.lower()
 		return lower
 
 class UserRoleDef(Enum):
@@ -73,7 +73,7 @@ class UserRoleDef(Enum):
 		return ("", 0)
 
 	@staticmethod
-	def remove_repeat_roles(roles: List[str]) -> Iterator[str]:
+	def remove_repeat_roles(roles: Sequence[str]) -> Iterator[str]:
 		if not roles or not len(roles):
 			return iter(())
 		rolesDict: dict[str, str] = {}
@@ -140,7 +140,7 @@ class SaveAccountInfo(BaseModel):
 	email: str
 	password: str
 	displayName: Optional[str]=None
-	id: Optional[int]
+	id: Optional[int]=None
 	roles: List[str]=[]
 
 	@validator("email")
@@ -175,6 +175,11 @@ class SaveAccountInfo(BaseModel):
 				raise ValueError(f"{role} is an illegal role")
 		return v
 
+@dataclass
+class RoleInfo:
+	userPk: int
+	role: str
+	creationTimestamp: float
 
 @dataclass
 class SongItem:

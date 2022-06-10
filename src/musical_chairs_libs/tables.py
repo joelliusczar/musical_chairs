@@ -1,42 +1,48 @@
-from sqlalchemy import Table, \
-	MetaData, \
-	Column, \
-	Float, \
-	LargeBinary, \
-	Integer, \
-	String, \
-	ForeignKey, \
-	UniqueConstraint
+from sqlalchemy import Table,\
+	MetaData,\
+	Column,\
+	Float,\
+	LargeBinary,\
+	Integer,\
+	String,\
+	ForeignKey,\
+	Index
+from typing import Any
+
+
 
 metadata = MetaData()
 
 artists = Table("Artists", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("name", String, unique=True),
-	#searchable name for artist is not neccessarily unique
-	Column("searchableName", String),
+	Column("name", String, nullable=False),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True),
+	Column("lastModifiedTimestamp", Float, nullable=True)
 )
+
+_ar_name: Any = artists.c.name #pyright: ignore reportUnknownMemberType
+
+Index("idx_uniqueArtistsName", _ar_name, unique=True)
+
 
 albums = Table("Albums", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("name", String, nullable=True, unique=True),
-	#searchable name for artist is not neccessarily unique
-	Column("searchableName", String),
-	Column("albumArtistFk", Integer, ForeignKey("Artists.pk"), nullable=True ),
-	Column("year", Integer),
+	Column("name", String, nullable=False),
+	Column("albumArtistFk", Integer, ForeignKey("Artists.pk"), nullable=True),
+	Column("year", Integer, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True),
+	Column("lastModifiedTimestamp", Float, nullable=True)
 )
+_ab_name: Any = albums.c.name #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueAlbumName", _ab_name, unique=True)
+
 
 songs = Table("Songs", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("path", String, nullable=True, unique=True),
-	Column("name", String),
-	Column("searchableName", String),
+	Column("path", String, nullable=False),
+	Column("name", String, nullable=True),
 	Column("albumFk", Integer, ForeignKey("Albums.pk"), nullable=True),
 	Column("track", Integer, nullable=True),
 	Column("disc", Integer, nullable=True),
@@ -49,8 +55,10 @@ songs = Table("Songs", metadata,
 	Column("sampleRate", Float, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True),
+	Column("lastModifiedTimestamp", Float, nullable=True)
 )
+_sg_path: Any = songs.c.path #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueSongPath", _sg_path, unique=True)
 
 song_artist = Table("SongsArtists", metadata,
 	Column("songFk", ForeignKey("Songs.pk"), nullable=False),
@@ -59,8 +67,12 @@ song_artist = Table("SongsArtists", metadata,
 	Column("comment", String, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True),
+	Column("lastModifiedTimestamp", Float, nullable=True)
 )
+_sa_songFk: Any = song_artist.c.songFk #pyright: ignore reportUnknownMemberType
+_sa_artistFk: Any = song_artist.c.artistFk #pyright: ignore reportUnknownMemberType
+
+Index("idx_songsArtists", _sa_songFk, _sa_artistFk, unique=True)
 
 song_covers = Table("SongCovers", metadata,
 	Column("pk", Integer, primary_key=True),
@@ -68,18 +80,21 @@ song_covers = Table("SongCovers", metadata,
 	Column("coverSongFk", ForeignKey("Songs.pk"), nullable=False),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True),
-	UniqueConstraint("songFk", "coverSongFk")
+	Column("lastModifiedTimestamp", Float, nullable=True)
 )
+_sc_songFk: Any = song_covers.c.songFk #pyright: ignore reportUnknownMemberType
+_sc_coverSongFk: Any = song_covers.c.coverSongFk #pyright: ignore reportUnknownMemberType
+Index("idx_songCovers", _sc_songFk, _sc_coverSongFk, unique=True)
 
 tags = Table("Tags", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("name", String, nullable=True, unique=True),
-	Column("searchableName", String, unique=True),
+	Column("name", String, nullable=False),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True),
+	Column("lastModifiedTimestamp", Float, nullable=True)
 )
+_tg_name: Any = tags.c.name #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueTagName", _tg_name, unique=True)
 
 songs_tags = Table("SongsTags", metadata,
 	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
@@ -87,29 +102,35 @@ songs_tags = Table("SongsTags", metadata,
 	Column("skip", Integer, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True),
-	UniqueConstraint("songFk", "tagFk")
+	Column("lastModifiedTimestamp", Float, nullable=True)
 )
+sgtg_songFk: Any = songs_tags.c.songFk #pyright: ignore reportUnknownMemberType
+sgtg_tagFk: Any = songs_tags.c.tagFk #pyright: ignore reportUnknownMemberType
+Index("idx_songsTags", sgtg_songFk, sgtg_tagFk, unique=True)
 
 stations = Table("Stations", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("name", String, nullable=False, unique=True),
-	Column("searchableName", String, unique=True),
+	Column("name", String, nullable=False),
 	Column("displayName", String, nullable=True),
 	Column("procId", Integer, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True),
+	Column("lastModifiedTimestamp", Float, nullable=True)
 )
+_st_name: Any = stations.c.name #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueStationName", _st_name, unique=True)
 
 stations_tags = Table("StationsTags", metadata,
 	Column("stationFk", Integer, nullable=False),
 	Column("tagFk", Integer, nullable=False),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True),
-	UniqueConstraint("stationFk", "tagFk")
+	Column("lastModifiedTimestamp", Float, nullable=True)
 )
+
+_sttg_stationFk: Any = stations_tags.c.stationFk #pyright: ignore reportUnknownMemberType
+_sttg_tagFk: Any = stations_tags.c.tagFk #pyright: ignore reportUnknownMemberType
+Index("idx_stationsTags", _sttg_stationFk, _sttg_tagFk, unique=True)
 
 stations_history = Table("StationHistory", metadata,
 	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
@@ -117,7 +138,7 @@ stations_history = Table("StationHistory", metadata,
 	Column("playedTimestamp", Float),
 	Column("queuedTimestamp", Float),
 	Column("requestedTimestamp", Float),
-	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True),
+	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True)
 )
 
 station_queue = Table("StationQueue", metadata,
@@ -125,29 +146,28 @@ station_queue = Table("StationQueue", metadata,
 	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
 	Column("queuedTimestamp", Float),
 	Column("requestedTimestamp", Float),
-	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True),
+	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True)
 )
 
 users = Table("Users", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("userName", String),
-	Column("searchableUserName", String),
+	Column("username", String, nullable=False),
 	Column("displayName", String, nullable=True),
-	Column("hashedPW", LargeBinary),
-	Column("email", String),
-	Column("searchableEmail", String),
-	Column("isActive", Integer),
-	Column("creationTimestamp", Float),
-	UniqueConstraint("userName"),
-	UniqueConstraint("searchableUserName"),
-	UniqueConstraint("email")
+	Column("hashedPW", LargeBinary, nullable=True),
+	Column("email", String, nullable=True),
+	Column("isDisabled", Integer, nullable=True),
+	Column("creationTimestamp", Float, nullable=False)
 )
+_u_username: Any = users.c.username #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueUsername", _u_username, unique=True)
+_u_email: Any = users.c.email #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueEmail", _u_email, unique=True)
 
 userRoles = Table("UserRoles", metadata,
-	Column("pk", Integer, primary_key=True),
 	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
 	Column("role", String),
-	Column("isActive", Integer),
-	UniqueConstraint("userFk", "role")
+	Column("creationTimestamp", Float, nullable=False)
 )
-
+_ur_userFk: Any = userRoles.c.userFk #pyright: ignore reportUnknownMemberType
+_ur_role: Any = userRoles.c.role #pyright: ignore reportUnknownMemberType
+Index("idx_userRoles", _ur_userFk, _ur_role, unique=True)

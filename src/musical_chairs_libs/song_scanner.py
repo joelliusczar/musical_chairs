@@ -9,7 +9,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy import \
 	insert
 from tinytag import TinyTag
-from musical_chairs_libs.dtos import SongItemPlumbing, SavedNameString
+from musical_chairs_libs.dtos import SongItemPlumbing
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.song_info_service import SongInfoService
 from musical_chairs_libs.tables import songs, \
@@ -114,20 +114,20 @@ class SongScanner:
 				songFullPath = f"{searchBase}/{row.path}"
 				fileTag = get_file_tags(songFullPath)
 				artistFk = self.song_info_service\
-					.get_or_save_artist(SavedNameString(fileTag.artist))
+					.get_or_save_artist(fileTag.artist)
 				albumArtistFk = self.song_info_service\
-					.get_or_save_artist(SavedNameString(fileTag.albumartist))
+					.get_or_save_artist(fileTag.albumartist)
 				composerFk = self.song_info_service\
-					.get_or_save_artist(SavedNameString(fileTag.composer))
+					.get_or_save_artist(fileTag.composer)
 				albumFk = self.song_info_service.get_or_save_album(
-					SavedNameString(fileTag.album),
+					fileTag.album,
 					albumArtistFk,
 					fileTag.year
 				)
 				songItem = SongItemPlumbing(
 					row.id,
 					row.path,
-					SavedNameString(fileTag.title),
+					fileTag.title,
 					albumFk,
 					artistFk,
 					composerFk,
@@ -151,7 +151,7 @@ class SongScanner:
 		for idx, path in enumerate(scan_files(searchBase)):
 			try:
 				songInsert = insert(songs).values(path = path)
-				songPk: int = self.conn.execute(songInsert).lastrowid 
+				songPk: int = self.conn.execute(songInsert).lastrowid
 				insertCount += 1
 				self.sort_to_tags(songPk, path)
 				print(f"inserted: {idx}".rjust(len(str(idx)), " "),end="\r")

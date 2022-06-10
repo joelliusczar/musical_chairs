@@ -2,7 +2,6 @@
 from typing import Iterator, Optional, Union
 from musical_chairs_libs.dtos import\
 	SavedNameString,\
-	SearchNameString,\
 	SongItem,\
 	SongItemPlumbing
 from sqlalchemy import select, insert, update
@@ -63,21 +62,18 @@ class SongInfoService:
 			row.artist #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 		)
 
-	def get_or_save_artist(self, name: Optional[SavedNameString]) -> Optional[int]:
+	def get_or_save_artist(self, name: Optional[str]) -> Optional[int]:
 		if not name:
 			return None
-		#we're deliberately querying by the displayable string
-		#since it's conceivable to have distinct artist names that
-		#use different versions of same base character symbol
-		query = select(ar.pk).select_from(artists).where(ar.name == str(name))
+		savedName = SavedNameString.format_name_for_save(name)
+		query = select(ar.pk).select_from(artists).where(ar.name == savedName)
 		row = self.conn.execute(query).fetchone()
 		if row:
 			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
 			return pk
 		print(name)
 		stmt = insert(artists).values(
-			name = str(name),
-			searchableName = SearchNameString.format_name_for_search(str(name)),
+			name = savedName,
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
 		res = self.conn.execute(stmt)
@@ -86,24 +82,23 @@ class SongInfoService:
 
 	def get_or_save_album(
 		self,
-		name: Optional[SavedNameString],
+		name: Optional[str],
 		artistFk: Optional[int]=None,
 		year: Optional[int]=None
 	) -> Optional[int]:
 		if not name:
 			return None
-		#we're deliberately querying by the displayable string
-		#since it's conceivable to have distinct album names that
-		#use different versions of same base character symbol
-		query = select(ab.pk).select_from(albums).where(ab.name == str(name))
+		savedName = SavedNameString.format_name_for_save(name)
+		query = select(ab.pk).select_from(albums).where(ab.name == savedName)
+		if artistFk:
+			query = query.where(ab.albumArtistFk == artistFk)
 		row = self.conn.execute(query).fetchone()
 		if row:
 			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
 			return pk
 		print(name)
 		stmt = insert(albums).values(
-			name = str(name),
-			searchableName = SearchNameString.format_name_for_search(str(name)),
+			name = savedName,
 			albumArtistFk = artistFk,
 			year = year,
 			lastModifiedTimestamp = self.get_datetime().timestamp()
@@ -114,7 +109,7 @@ class SongInfoService:
 
 	def get_song_refs(
 		self,
-		songName: Union[Optional[SavedNameString], _Sentinel]=_missing,
+		songName: Union[Optional[str], _Sentinel]=_missing,
 		page: int=0,
 		pageSize: Optional[int]=None,
 	) -> Iterator[SongItemPlumbing]:
@@ -123,10 +118,11 @@ class SongInfoService:
 			sg.path,
 			sg.name
 		).select_from(songs)
-		if type(songName) is SavedNameString or songName is None:
+		if type(songName) is str or songName is None:
 			#allow null through
-			cleanedName = str(songName) if songName else None
-			query = query.where(sg.name == cleanedName)
+			savedName = SavedNameString.format_name_for_save(songName) if songName\
+				else None
+			query = query.where(sg.name == savedName)
 		if pageSize:
 			offset = page * pageSize
 			query = query.limit(pageSize).offset(offset)
@@ -135,18 +131,16 @@ class SongInfoService:
 			yield SongItemPlumbing(
 					row.pk, #pyright: ignore [reportUnknownArgumentType]
 					row.path, #pyright: ignore [reportUnknownArgumentType]
-					SavedNameString(row.name) #pyright: ignore [reportUnknownArgumentType]
+					SavedNameString.format_name_for_save(row.name) #pyright: ignore [reportUnknownArgumentType]
 				)
 
 	def update_song_info(self, songInfo: SongItemPlumbing) -> int:
-		saveName = str(songInfo.name)
-		searchableName = str(SearchNameString(saveName))
+		savedName =  SavedNameString.format_name_for_save(songInfo.name)
 		timestamp = self.get_datetime().timestamp()
 		songUpdate = update(songs) \
 				.where(sg.pk == songInfo.id) \
 				.values(
-					name = saveName,
-					searchableName = searchableName,
+					name = savedName,
 					albumFk = songInfo.albumPk,
 					track = songInfo.track,
 					disc = songInfo.disc,

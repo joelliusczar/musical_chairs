@@ -22,7 +22,6 @@ artists = Table("Artists", metadata,
 )
 
 _ar_name: Any = artists.c.name #pyright: ignore reportUnknownMemberType
-
 Index("idx_uniqueArtistsName", _ar_name, unique=True)
 
 
@@ -36,7 +35,8 @@ albums = Table("Albums", metadata,
 	Column("lastModifiedTimestamp", Float, nullable=True)
 )
 _ab_name: Any = albums.c.name #pyright: ignore reportUnknownMemberType
-Index("idx_uniqueAlbumName", _ab_name, unique=True)
+_ab_albumArtistFk: Any = albums.c.albumArtistFk #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueAlbumNameForArtist", _ab_name, _ab_albumArtistFk, unique=True)
 
 
 songs = Table("Songs", metadata,

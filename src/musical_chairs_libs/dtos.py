@@ -192,7 +192,7 @@ class SongItem:
 class SongItemPlumbing:
 	id: int
 	path: str
-	name: Optional[SavedNameString]=None
+	name: Optional[str]=None
 	albumPk: Optional[int]=None
 	artistPk: Optional[int]=None
 	composerPk: Optional[int]=None

@@ -1,6 +1,6 @@
 import json
 from musical_chairs_libs.env_manager import EnvManager
-from .api_test_dependencies import mock_depend_env_manager
+from .api_test_dependencies import mock_depend_env_manager, login_test_user
 from .constant_fixtures_for_test import\
 	clear_mock_password,\
 	clear_mock_bad_password_clear
@@ -21,7 +21,7 @@ def test_create_account_success():
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["id"] == 7
+	assert data["id"] == 8
 
 def test_create_account_fail_username():
 	usedName = "testUser_bravo"
@@ -153,6 +153,9 @@ def test_login_fail():
 	assert data["detail"][0]["msg"] == "field required"
 
 def test_get_account_list():
-	response = client.get("/accounts/list")
+	headers = login_test_user("testUser_golf", client)
+
+	response = client.get("/accounts/list", headers=headers)
 	data = json.loads(response.content)
-	assert len(data) == 6
+	assert response.status_code == 200
+	assert len(data) == 7

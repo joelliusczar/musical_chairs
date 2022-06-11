@@ -1,11 +1,15 @@
 #pyright: reportMissingTypeStubs=false
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.security import OAuth2PasswordRequestForm
 from musical_chairs_libs.accounts_service import AccountsService,\
 	ACCESS_TOKEN_EXPIRE_MINUTES
-from musical_chairs_libs.dtos import SaveAccountInfo, AuthenticatedAccount
-from api_dependencies import accounts_service
+from musical_chairs_libs.dtos import\
+	AccountInfo,\
+	SaveAccountInfo,\
+	AuthenticatedAccount,\
+	UserRoleDef
+from api_dependencies import accounts_service, get_current_user
 from musical_chairs_libs.errors import AlreadyUsedError
 from musical_chairs_libs.simple_functions import build_error_obj
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
@@ -68,6 +72,10 @@ def create_new_account(
 def get_user_list(
 	page: int = 0,
 	pageSize: Optional[int] = None,
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.USER_LIST.value]
+	),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> List[SaveAccountInfo]:
 	return list(accountsService.get_account_list(page, pageSize))

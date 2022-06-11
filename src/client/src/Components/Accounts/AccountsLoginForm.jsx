@@ -35,16 +35,13 @@ export function LoginForm(props) {
 		},
 	});
 
-	const handleCancel = () => {
-		onCancel && onCancel();
-	};
 
 	return (
 		<FormikProvider value={formik}>
 			<Box sx={{ p: 1 }}>
 				<Typography variant="h1">Login</Typography>
 				<Link
-					onClick={handleCancel}
+					onClick={onCancel}
 					to={`${DomRoutes.accountsEdit}`}
 				>
 					Create new account
@@ -66,9 +63,9 @@ export function LoginForm(props) {
 					<Button onClick={formik.submitForm}>
 						Submit
 					</Button>
-					<Button onClick={handleCancel}>
+					{onCancel &&<Button onClick={onCancel}>
 						Cancel
-					</Button>
+					</Button>}
 				</Box>
 			</Box>
 		</FormikProvider>
@@ -76,7 +73,7 @@ export function LoginForm(props) {
 }
 
 LoginForm.propTypes = {
-	afterSubmit: PropTypes.func,
+	afterSubmit: PropTypes.func.isRequired,
 	onCancel: PropTypes.func,
 };
 

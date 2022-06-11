@@ -718,6 +718,15 @@ def populate_users(
 			"email": "test6@test.com",
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 7,
+			"username": "testUser_golf",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test7@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
 		}
 	]
 	stmt = insert(users)
@@ -762,6 +771,11 @@ def populate_user_roles(
 		{
 			"userFk": 6,
 			"role": UserRoleDef.SONG_ADD.modded_value(120),
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": 7,
+			"role": UserRoleDef.USER_LIST.value,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 	]

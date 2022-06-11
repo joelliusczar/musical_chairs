@@ -19,6 +19,7 @@ export const DomRoutes = {
 	stations: "/stations/",
 	songCatalogue: "/song-catalogue/",
 	accountsEdit: "/accounts/edit",
+	accountsLogin: "accounts/login",
 	notFound: "/not-found",
 };
 

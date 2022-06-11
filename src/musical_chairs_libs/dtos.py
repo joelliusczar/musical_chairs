@@ -59,6 +59,7 @@ class UserRoleDef(Enum):
 	SONG_ADD = "song:add:"
 	SONG_REQUEST = "song:request:"
 	USER_LIST = "user:list:"
+	USER_EDIT = "user:edit:"
 
 	@classmethod
 	def as_set(cls) -> Set[str]:

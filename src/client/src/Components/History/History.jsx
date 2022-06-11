@@ -66,10 +66,10 @@ export default function History() {
 			dispatch(fetchHistory({ station: stationParam }));
 		}
 	}, [
-		stationParam, 
-		dispatch, 
-		setSelectedStation, 
-		setSelectTouched, 
+		stationParam,
+		dispatch,
+		setSelectedStation,
+		setSelectTouched,
 		stations,
 	]);
 
@@ -97,9 +97,9 @@ export default function History() {
 					})}
 				</Select>
 			)}
-			<Loader 
-				status={songHistoryStatus} 
-				error={songHistoryError} 
+			<Loader
+				status={songHistoryStatus}
+				error={songHistoryError}
 				isReady={!!stationParam}
 			>
 				<TableContainer>

@@ -10,6 +10,8 @@ import { UserRoleDef } from "../../constants";
 import { FormikSelect } from "../Shared/FormikSelect";
 import { useSnackbar } from "notistack";
 import { useSelector } from "react-redux";
+import { currentUserSelector } from "./accounts_slice";
+import { GoToNotFound } from "../Shared/NotFound";
 
 
 const inputField = {
@@ -21,6 +23,7 @@ export function AccountEdit() {
 	const { id } = useParams();
 	const { enqueueSnackbar } = useSnackbar();
 	const isAdmin = useSelector(isAdminSelector);
+	const currentUser = useSelector(currentUserSelector);
 
 	const validatePhraseIsUnused = async (value, context) => {
 		const used = await checkValues({ values: {
@@ -92,6 +95,10 @@ export function AccountEdit() {
 		roles.splice(idx, 1);
 		formik.setFieldValue("roles", roles);
 	};
+
+	if(currentUser.username && !id) {
+		return <GoToNotFound />;
+	}
 
 	return (
 		<FormikProvider value={formik}>

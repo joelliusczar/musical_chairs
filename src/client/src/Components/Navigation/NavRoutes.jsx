@@ -1,13 +1,16 @@
 import React from "react";
-import { Route, Switch, NavLink, Redirect } from "react-router-dom";
+import { Route, Switch, NavLink, useHistory } from "react-router-dom";
 import { List, ListItem } from "@mui/material";
 import Queue from "../Queue/Queue";
 import History from "../History/History";
 import Stations from "../Stations/Stations";
 import SongCatalogue from "../Song_Catalogue/SongCatalogue";
 import { AccountEdit } from "../Accounts/AccountsEdit";
-import { NotFound } from "../Shared/NotFound";
+import { LoginForm } from "../Accounts/AccountsLoginForm";
+import { currentUserSelector } from "../Accounts/accounts_slice";
+import { NotFound, GoToNotFound } from "../Shared/NotFound";
 import { DomRoutes } from "../../constants";
+import { useSelector } from "react-redux";
 
 
 export function NavMenu() {
@@ -33,6 +36,10 @@ export function NavMenu() {
 }
 
 export function AppRoutes() {
+
+	const urlHistory = useHistory();
+	const currentUser = useSelector(currentUserSelector);
+
 	return (
 		<Switch>
 			<Route path={`${DomRoutes.queue}:station?`}>
@@ -50,10 +57,15 @@ export function AppRoutes() {
 			<Route path={`${DomRoutes.accountsEdit}:id?`}>
 				<AccountEdit />
 			</Route>
+			{!currentUser.username && <Route path={`${DomRoutes.accountsLogin}`} >
+				<LoginForm
+					afterSubmit={() => urlHistory.push("")}
+				/>
+			</Route>}
 			<Route path={`${DomRoutes.notFound}`}>
 				<NotFound />
 			</Route>
-			<Redirect to={`${DomRoutes.notFound}`} />
+			<GoToNotFound />
 		</Switch>
 	);
 }

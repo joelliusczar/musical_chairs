@@ -73,6 +73,9 @@ export const isAdminSelector = appState =>
 	appState.accounts.values[CallType.post].roles
 		.some(r => r.startsWith(UserRoleDef.ADMIN));
 
+export const currentUserSelector = appState =>
+	appState.accounts.values[CallType.post];
+
 export const logout = slice.actions.logout;
 
 export default slice.reducer;

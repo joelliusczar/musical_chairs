@@ -344,19 +344,15 @@ setup_db() (
 
 print_schema_scripts() (
 	process_global_vars "$@" &&
+	sync_requirement_list &&
 	create_py_env_in "$app_root"/"$app_trunk" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	printf '\033c' &&
 	(python <<-EOF
-	from musical_chairs_libs.tables import metadata
 	from musical_chairs_libs.env_manager import EnvManager
-	envManager = EnvManager()
-	conn = envManager.get_configured_db_connection(echo=True, inMemory=True)
-	metadata.create_all(conn.engine)
-
-	print('Created all tables')
+	EnvManager.print_expected_schema()
 	EOF
-	) #| sed '/^[0-9]/d' | sed '/^)/s/)/);/'
+	)
 )
 
 sync_utility_scripts() (

@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { defaultWebClient as webClient } from "../../api";
-import { ApiRoutes, CallType, CallStatus, UserRoleDef } from "../../constants";
+import { CallType, CallStatus, UserRoleDef } from "../../constants";
 
 export const login = createAsyncThunk(
 	"accounts/login",
@@ -8,7 +8,7 @@ export const login = createAsyncThunk(
 		const formData = new window.FormData();
 		formData.append("username", username);
 		formData.append("password", password);
-		const response = await webClient.post(ApiRoutes.login, formData);
+		const response = await webClient.post("accounts/open", formData);
 		return response.data;
 	}
 );

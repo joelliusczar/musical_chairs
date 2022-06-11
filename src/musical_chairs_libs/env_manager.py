@@ -51,5 +51,16 @@ class EnvManager:
 			os.remove(cls.db_name)
 		if not os.path.exists(cls.db_name):
 			conn = cls.get_configured_db_connection(echo=echo)
+
 			metadata.create_all(conn.engine)
 			conn.close()
+
+	@classmethod
+	def print_expected_schema(cls):
+		conn = cls.get_configured_db_connection(inMemory=True)
+		metadata.create_all(conn.engine)
+		result = conn.execute("SELECT sql FROM sqlite_master WHERE type='table';") #pyright: ignore [reportUnknownMemberType]
+		print("\n".join(map(lambda r: r[0], result.fetchall())))
+		result = conn.execute("SELECT sql FROM sqlite_master WHERE type='index';") #pyright: ignore [reportUnknownMemberType]
+		print("\n".join(map(lambda r: r[0], result.fetchall())))
+		conn.close()

@@ -89,7 +89,7 @@ class UserRoleDef(Enum):
 		return (r for r in rolesDict.values())
 
 	@staticmethod
-	def count_repeat_roles(roles: List[str]) -> dict[str, int]:
+	def count_repeat_roles(roles: Iterable[str]) -> dict[str, int]:
 		countDict: dict[str, int] = {}
 		for role in roles:
 			extracted = UserRoleDef.extract_role_segments(role)
@@ -175,6 +175,10 @@ class SaveAccountInfo(BaseModel):
 				raise ValueError(f"{role} is an illegal role")
 		return v
 
+
+class ErrorInfo(BaseModel):
+	msg: str
+
 @dataclass
 class RoleInfo:
 	userPk: int
@@ -204,8 +208,6 @@ class SongItemPlumbing:
 	comment: Optional[str]=None
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
-
-
 
 @dataclass
 class QueueItem(SongItem):

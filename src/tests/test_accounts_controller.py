@@ -19,8 +19,6 @@ def test_create_account_success():
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["id"] == 6
-	usedName = "testUser_bravo"
-	testUser["username"] = usedName
 
 def test_create_account_fail_username():
 	usedName = "testUser_bravo"
@@ -33,16 +31,30 @@ def test_create_account_fail_username():
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
 	assert response.status_code == 422
-	assert data["detail"] == "Username testUser_bravo is already used."
+	assert data["detail"][0]["msg"] == "username: testUser_bravo is already used."
 
 	testUser["username"] = usedName.upper()
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
 	assert response.status_code == 422
-	assert data["detail"] == "Username TESTUSER_BRAVO is already used."
+	assert data["detail"][0]["msg"] == "username: TESTUSER_BRAVO is already used."
 
 	testUser["username"] = "tëstUser_bravo"
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
 	assert response.status_code == 422
-	assert data["detail"] == "Username tëstUser_bravo is already used."
+	assert data["detail"][0]["msg"] == "username: tëstUser_bravo is already used."
+
+def test_create_account_fail_password():
+	testUser = {
+		"username": "testUser",
+		"email": "testPerson@gmail.com",
+		"password": "hello",
+		"displayName": "Testeroni"
+	}
+	response = client.post("/accounts/new", json=testUser)
+	data = json.loads(response.content)
+	assert response.status_code == 422
+	assert data["detail"][0]["msg"] == \
+		"Password does not meet the length requirement\n"\
+		"Mininum Length 6. your password length: 5"

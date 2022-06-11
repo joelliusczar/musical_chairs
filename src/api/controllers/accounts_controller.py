@@ -32,5 +32,5 @@ def create_new_account(
 	except (AlreadyUsedError, EmailNotValidError) as ex:
 		raise HTTPException(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail = str(ex)
+			detail = ex.args[0]
 		)

@@ -2,13 +2,17 @@
 import uvicorn #pyright: ignore [reportMissingTypeStubs]
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from controllers import stations_controller, accounts_controller
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.requests import Request
+from controllers import stations_controller, accounts_controller
 from api_dependencies import accounts_service
 from musical_chairs_libs.accounts_service import \
 	AccountsService, \
 	ACCESS_TOKEN_EXPIRE_MINUTES
 from musical_chairs_libs.dtos import AuthenticatedAccount
+from musical_chairs_libs.simple_functions import build_error_obj
 
 
 app = FastAPI()
@@ -19,6 +23,14 @@ app.add_middleware(
 )
 app.include_router(stations_controller.router)
 app.include_router(accounts_controller.router)
+
+@app.exception_handler(RequestValidationError) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]
+def change_validation_errors(
+	request: Request,
+	ex: RequestValidationError
+) -> JSONResponse:
+	errorList = list(map(lambda e: build_error_obj(e["msg"]), ex.errors()))
+	return JSONResponse({ "detail": errorList }, status_code=422)
 
 
 @app.post("/token")
@@ -33,7 +45,7 @@ def login(
 	if not user or not user.isAuthenticated:
 		raise HTTPException(
 			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail="Incorrect username or password",
+			detail=[build_error_obj("Incorrect username or password")],
 			headers={"WWW-Authenticate": "Bearer"}
 		)
 	token = accountService.create_access_token(user.userName)

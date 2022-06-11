@@ -18,7 +18,7 @@ from musical_chairs_libs.tables import users,\
 	userRoles,\
 	station_queue,\
 	stations_history
-from musical_chairs_libs.simple_functions import get_datetime
+from musical_chairs_libs.simple_functions import get_datetime, build_error_obj
 from musical_chairs_libs.errors import AlreadyUsedError
 from sqlalchemy import select, insert, desc, func, delete
 from jose import jwt
@@ -93,11 +93,13 @@ class AccountsService:
 		cleanedUsername = SearchNameString(accountInfo.username)
 		cleanedEmail: ValidatedEmail = validate_email(accountInfo.email)
 		if self._is_username_used(cleanedUsername):
-			raise AlreadyUsedError(
-				f"Username {accountInfo.username} is already used."
-			)
+			raise AlreadyUsedError([
+				build_error_obj(f"username: {accountInfo.username} is already used.")
+			])
 		if self._is_email_used(cleanedEmail):
-			raise AlreadyUsedError(f"Email {accountInfo.email} is already used.")
+			raise AlreadyUsedError([
+				build_error_obj(f"email: {accountInfo.email} is already used.")
+			])
 		hash = bcrypt.hashpw(accountInfo.password.encode(), bcrypt.gensalt(12))
 		stmt = insert(users).values(
 			username=SavedNameString.format_name_for_save(accountInfo.username),

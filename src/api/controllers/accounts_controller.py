@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from musical_chairs_libs.accounts_service import AccountsService,\
@@ -34,7 +35,9 @@ def login(
 		token,
 		"bearer",
 		user.userName,
-		user.roles,ACCESS_TOKEN_EXPIRE_MINUTES * 60
+		user.roles,
+		ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+		user.displayName
 	)
 
 @router.get("/check")
@@ -60,3 +63,11 @@ def create_new_account(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail = ex.args[0]
 		)
+
+@router.get("/list")
+def get_user_list(
+	page: int = 0,
+	pageSize: Optional[int] = None,
+	accountsService: AccountsService = Depends(accounts_service)
+) -> List[SaveAccountInfo]:
+	return list(accountsService.get_account_list(page, pageSize))

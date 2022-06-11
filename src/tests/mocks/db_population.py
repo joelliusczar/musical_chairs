@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.dtos import AccountInfo
+from musical_chairs_libs.dtos import AccountInfo, UserRoleDef
 from musical_chairs_libs.tables import \
 	artists, \
 	albums, \
@@ -11,7 +11,8 @@ from musical_chairs_libs.tables import \
 	songs_tags, \
 	stations, \
 	stations_tags, \
-	users
+	users,\
+	userRoles
 from sqlalchemy import insert
 
 def populate_artists(conn: Connection):
@@ -708,7 +709,61 @@ def populate_users(
 			"email": None,
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 6,
+			"username": "testUser_foxtrot",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test6@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
 		}
 	]
 	stmt = insert(users)
 	conn.execute(stmt, usersParams) #pyright: ignore [reportUnknownMemberType]
+
+def populate_user_roles(
+	conn: Connection,
+	orderedTestDates: List[datetime],
+	primaryUser: AccountInfo,
+):
+	userRoleParams = [
+		{
+			"userFk": primaryUser.id,
+			"role": UserRoleDef.ADMIN.value,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": 2,
+			"role": UserRoleDef.SONG_REQUEST.modded_value(15),
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": 3,
+			"role": UserRoleDef.SONG_REQUEST.modded_value(15),
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": 4,
+			"role": UserRoleDef.SONG_REQUEST.modded_value(15),
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": 4,
+			"role": UserRoleDef.SONG_ADD.modded_value(120),
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": 6,
+			"role": UserRoleDef.SONG_REQUEST.modded_value(15),
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": 6,
+			"role": UserRoleDef.SONG_ADD.modded_value(120),
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+	]
+	stmt = insert(userRoles)
+	conn.execute(stmt, userRoleParams) #pyright: ignore [reportUnknownMemberType]

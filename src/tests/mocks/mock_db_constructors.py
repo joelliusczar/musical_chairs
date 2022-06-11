@@ -12,7 +12,8 @@ from .db_population import populate_artists,\
 	populate_songs_tags,\
 	populate_stations,\
 	populate_station_tags,\
-	populate_users
+	populate_users,\
+	populate_user_roles
 
 class ConnectionConstructor(Protocol):
 	def __call__(
@@ -39,6 +40,7 @@ def setup_in_mem_tbls(
 	populate_stations(conn)
 	populate_station_tags(conn)
 	populate_users(conn, orderedTestDates, primaryUser, testPassword)
+	populate_user_roles(conn, orderedTestDates, primaryUser)
 
 def construct_mock_connection_constructor(
 	orderedTestDates: List[datetime],

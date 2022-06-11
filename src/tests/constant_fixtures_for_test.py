@@ -1,13 +1,16 @@
 import pytest
-import bcrypt
 from musical_chairs_libs.dtos import AccountInfo
+from musical_chairs_libs.simple_functions import hashpw
 from datetime import datetime, timezone
 
-def mock_password() -> bytes:
-	return bcrypt.hashpw(b"testPassword", bcrypt.gensalt())
+def clear_mock_password() -> str:
+	return "testPassword"
 
-def mock_bad_password() -> bytes:
-	return bcrypt.hashpw(b"badPassword", bcrypt.gensalt())
+def mock_password() -> bytes:
+	return hashpw(clear_mock_password().encode())
+
+def clear_mock_bad_password_clear() -> str:
+	return "badPassword"
 
 @pytest.fixture
 def fixture_mock_password() -> bytes:

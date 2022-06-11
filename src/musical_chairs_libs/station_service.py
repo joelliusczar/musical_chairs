@@ -191,7 +191,7 @@ class StationService:
 	) -> int:
 		baseQuery = select(func.count(1))
 		query = self._attach_catalogue_joins(baseQuery, stationPk, stationName)
-		count = self.conn.execute(query).scalar()
+		count = self.conn.execute(query).scalar() or 0
 		return count
 
 	def get_station_song_catalogue(

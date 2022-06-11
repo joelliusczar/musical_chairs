@@ -1,8 +1,7 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
-import bcrypt
 import os
 from datetime import timedelta
-from typing import Any, Iterable, Optional, Sequence
+from typing import Any, Iterable, Iterator, Optional, Sequence
 from musical_chairs_libs.dtos import\
 	AccountInfo,\
 	SearchNameString,\
@@ -18,7 +17,11 @@ from musical_chairs_libs.tables import users,\
 	userRoles,\
 	station_queue,\
 	stations_history
-from musical_chairs_libs.simple_functions import get_datetime, build_error_obj
+from musical_chairs_libs.simple_functions import\
+	get_datetime,\
+	build_error_obj,\
+	hashpw,\
+	checkpw
 from musical_chairs_libs.errors import AlreadyUsedError
 from sqlalchemy import select, insert, desc, func, delete
 from jose import jwt
@@ -70,7 +73,7 @@ class AccountsService:
 		pk: int = row.pk #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 		return AccountInfo(
 			pk, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			row.userName, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+			row.username, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			row.hashedPW, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			row.email, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			roles=[r.role for r in self._get_roles(pk)]
@@ -84,7 +87,7 @@ class AccountsService:
 		if not user:
 			return None
 		if user.hash:
-			user.isAuthenticated = bcrypt.checkpw(guess, user.hash)
+			user.isAuthenticated = checkpw(guess, user.hash)
 		else:
 			user.isAuthenticated = False
 		return user
@@ -100,7 +103,7 @@ class AccountsService:
 			raise AlreadyUsedError([
 				build_error_obj(f"{accountInfo.email} is already used.", "email")
 			])
-		hash = bcrypt.hashpw(accountInfo.password.encode(), bcrypt.gensalt(12))
+		hash = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
 			username=SavedNameString.format_name_for_save(accountInfo.username),
 			displayName=SavedNameString.format_name_for_save(accountInfo.displayName),
@@ -268,4 +271,19 @@ class AccountsService:
 		except EmailNotValidError:
 			return False
 
-
+	def get_account_list(
+		self,
+		page: int = 0,
+		pageSize: Optional[int]=None
+	) -> Iterator[SaveAccountInfo]:
+		offset = page * pageSize if pageSize else 0
+		query = select(u.pk, u.username, u.displayName, u.email)\
+			.offset(offset)\
+			.limit(pageSize)
+		records = self.conn.execute(query)
+		for row in records: #pyright: ignore [reportUnknownVariableType]
+			yield SaveAccountInfo.construct(
+				id=row.pk, #pyright: ignore [reportUnknownArgumentType]
+				username=row.username, #pyright: ignore [reportUnknownArgumentType]
+				email=row.email #pyright: ignore [reportUnknownArgumentType]
+			)

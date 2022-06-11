@@ -116,6 +116,7 @@ class AuthenticatedAccount:
 	username: str
 	roles: List[str]
 	lifetime: int
+	displayName: Optional[str]=""
 
 @dataclass
 class AccountInfo:

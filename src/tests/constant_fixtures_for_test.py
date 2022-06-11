@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 def mock_password() -> bytes:
 	return bcrypt.hashpw(b"testPassword", bcrypt.gensalt())
 
+def mock_bad_password() -> bytes:
+	return bcrypt.hashpw(b"badPassword", bcrypt.gensalt())
+
 @pytest.fixture
 def fixture_mock_password() -> bytes:
 	return mock_password()

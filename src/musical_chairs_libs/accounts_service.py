@@ -94,11 +94,11 @@ class AccountsService:
 		cleanedEmail: ValidatedEmail = validate_email(accountInfo.email)
 		if self._is_username_used(cleanedUsername):
 			raise AlreadyUsedError([
-				build_error_obj(f"username: {accountInfo.username} is already used.")
+				build_error_obj(f"{accountInfo.username} is already used.", "username")
 			])
 		if self._is_email_used(cleanedEmail):
 			raise AlreadyUsedError([
-				build_error_obj(f"email: {accountInfo.email} is already used.")
+				build_error_obj(f"{accountInfo.email} is already used.", "email")
 			])
 		hash = bcrypt.hashpw(accountInfo.password.encode(), bcrypt.gensalt(12))
 		stmt = insert(users).values(

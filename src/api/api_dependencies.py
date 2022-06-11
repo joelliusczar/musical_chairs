@@ -12,7 +12,7 @@ from musical_chairs_libs.dtos import AccountInfo
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 
 oauth2_scheme = OAuth2PasswordBearer(
-	tokenUrl="token"
+	tokenUrl="accounts/open"
 )
 
 def get_configured_db_connection(

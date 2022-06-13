@@ -3,7 +3,9 @@ from musical_chairs_libs.env_manager import EnvManager
 from .api_test_dependencies import mock_depend_env_manager, login_test_user
 from .constant_fixtures_for_test import\
 	clear_mock_password,\
-	clear_mock_bad_password_clear
+	clear_mock_bad_password_clear,\
+	primary_user,\
+	mock_password
 from fastapi.testclient import TestClient
 from api.index import app
 
@@ -159,3 +161,43 @@ def test_get_account_list():
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert len(data) == 7
+
+def test_change_email():
+	headers = login_test_user("testUser_golf", client)
+	response = client.put(
+		"/accounts/update-email/7",
+		headers=headers,
+		json={ "email": "test_golf@test.com" }
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["email"] == "test_golf@test.com"
+
+	response = client.put(
+		"/accounts/update-email/7",
+		json={ "email": "test_golf@test.com" }
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 401
+	assert data["detail"][0]["msg"] == "Not authenticated"
+
+	headers = login_test_user("testUser_foxtrot", client)
+	response = client.put(
+		"/accounts/update-email/7",
+		headers=headers,
+		json={ "email": "test_golf@test.com" }
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 403
+	assert data["detail"][0]["msg"] == \
+		"Insufficient permissions to perform that action"
+
+	headers = login_test_user(primary_user(mock_password()).userName, client)
+	response = client.put(
+		"/accounts/update-email/7",
+		headers=headers,
+		json={ "email": "test_golf_again@test.com" }
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["email"] == "test_golf_again@test.com"

@@ -1,6 +1,6 @@
 #pyright: reportMissingTypeStubs=false
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Security
+from typing import Any, List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Security, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from musical_chairs_libs.accounts_service import AccountsService,\
 	ACCESS_TOKEN_EXPIRE_MINUTES
@@ -9,7 +9,7 @@ from musical_chairs_libs.dtos import\
 	SaveAccountInfo,\
 	AuthenticatedAccount,\
 	UserRoleDef
-from api_dependencies import accounts_service, get_current_user
+from api_dependencies import accounts_service, get_current_user, get_account_if_can_edit
 from musical_chairs_libs.errors import AlreadyUsedError
 from musical_chairs_libs.simple_functions import build_error_obj
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
@@ -79,3 +79,17 @@ def get_user_list(
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> List[SaveAccountInfo]:
 	return list(accountsService.get_account_list(page, pageSize))
+
+@router.put("/update-email/{userId}")
+def update_email(
+	email: Any = Body(default="", embed=True),
+	prev: SaveAccountInfo = Depends(get_account_if_can_edit),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> SaveAccountInfo:
+	try:
+		return accountsService.update_email(email, prev)
+	except (AlreadyUsedError, EmailNotValidError) as ex:
+		raise HTTPException(
+			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail = ex.args[0]
+		)

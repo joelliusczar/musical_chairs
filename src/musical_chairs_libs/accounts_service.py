@@ -21,11 +21,11 @@ from musical_chairs_libs.simple_functions import\
 	get_datetime,\
 	build_error_obj,\
 	hashpw,\
-	checkpw
-from musical_chairs_libs.errors import AlreadyUsedError
-from sqlalchemy import select, insert, desc, func, delete
+	checkpw,\
+	validate_email
+from musical_chairs_libs.errors import AlreadyUsedError, IllegalOperationError
+from sqlalchemy import select, insert, desc, func, delete, update
 from jose import jwt
-from email_validator import validate_email #pyright: ignore reportUnknownVariableType
 from email_validator import\
 	EmailNotValidError,\
 	ValidatedEmail
@@ -55,7 +55,7 @@ class AccountsService:
 		self.get_datetime = get_datetime
 
 
-	def get_account(self, userName: str) -> Optional[AccountInfo]:
+	def get_account_for_login(self, userName: str) -> Optional[AccountInfo]:
 		cleanedUserName = SavedNameString(userName)
 		if not cleanedUserName:
 			return None
@@ -83,7 +83,7 @@ class AccountsService:
 		username: str,
 		guess: bytes
 	) -> Optional[AccountInfo]:
-		user = self.get_account(username)
+		user = self.get_account_for_login(username)
 		if not user:
 			return None
 		if user.hash:
@@ -167,7 +167,7 @@ class AccountsService:
 	def get_user_from_token(self, token: str) -> Optional[AccountInfo]:
 		decoded: dict[Any, Any] = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 		userName = decoded.get("sub") or ""
-		user = self.get_account(userName)
+		user = self.get_account_for_login(userName)
 		if not user:
 			return None
 		user.isAuthenticated = True
@@ -264,7 +264,7 @@ class AccountsService:
 
 	def is_email_used(self, email: str) -> bool:
 		try:
-			cleanedEmail:ValidatedEmail  = validate_email(email)
+			cleanedEmail  = validate_email(email)
 			if not cleanedEmail:
 				return True
 			return self._is_email_used(cleanedEmail)
@@ -285,5 +285,71 @@ class AccountsService:
 			yield SaveAccountInfo.construct(
 				id=row.pk, #pyright: ignore [reportUnknownArgumentType]
 				username=row.username, #pyright: ignore [reportUnknownArgumentType]
+				displayName=row.displayName,
 				email=row.email #pyright: ignore [reportUnknownArgumentType]
 			)
+
+	def get_account_for_edit(
+		self,
+		userId: Optional[int]
+	) -> Optional[SaveAccountInfo]:
+		if not userId:
+			return None
+		query = select(u.username, u.displayName, u.email)\
+			.where(u.pk == userId)
+
+		row = self.conn.execute(query).fetchone()
+		if not row:
+			return None
+		roles = [r.role for r in self._get_roles(userId)]
+		return SaveAccountInfo.construct(
+			id = userId,
+			username=row.username, #pyright: ignore [reportGeneralTypeIssues]
+			displayName=row.displayName, #pyright: ignore [reportGeneralTypeIssues]
+			email=row.email, #pyright: ignore [reportGeneralTypeIssues]
+			roles=roles
+		)
+
+	def _get_account_if_can_edit(self,\
+		userId: Optional[int],
+		currentUser: AccountInfo
+	) -> SaveAccountInfo:
+		prev = self.get_account_for_edit(userId) if userId else None
+		if not prev:
+			raise LookupError([build_error_obj(
+				f"Account not found"
+			)])
+		if userId != currentUser.id and not currentUser.isAdmin:
+			raise IllegalOperationError([build_error_obj(
+				"Only the account owner or an admin can make changes to account"
+			)])
+		return prev
+
+	def update_email(self,
+		email: str,
+		prev: SaveAccountInfo
+	) -> SaveAccountInfo:
+		validEmail = validate_email(email)
+		updatedEmail: str = validEmail.email #pyright: ignore [reportGeneralTypeIssues]
+		if updatedEmail != prev.email and self._is_email_used(validEmail):
+			raise AlreadyUsedError([
+				build_error_obj(f"{email} is already used.", "email")
+			])
+		stmt = update(users).values(email = updatedEmail)\
+			.where(u.pk == prev.id)
+		self.conn.execute(stmt)
+		prev.email = updatedEmail
+		return prev
+
+
+	def update_account_general_changes(
+		self,
+		accountInfo: SaveAccountInfo,
+		currentUser: AccountInfo
+	) -> SaveAccountInfo:
+		userId = accountInfo.id if accountInfo else None
+		prev = self._get_account_if_can_edit(userId, currentUser)
+		stmt = update(users).values(displayName = accountInfo.displayName)
+		self.conn.execute(stmt)
+		prev.displayName = accountInfo.displayName
+		return prev

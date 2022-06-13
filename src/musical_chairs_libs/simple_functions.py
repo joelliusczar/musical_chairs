@@ -1,6 +1,9 @@
+#pyright: reportMissingTypeStubs=false
 import bcrypt
+import email_validator #pyright: ignore reportUnknownMemberType
 from datetime import datetime, timezone
 from typing import Any, Optional
+from email_validator import ValidatedEmail
 
 def get_datetime() -> datetime:
 	return datetime.now(timezone.utc)
@@ -14,3 +17,6 @@ def hashpw(pw: bytes) -> bytes:
 
 def checkpw(guess: bytes, hash: bytes) -> bool:
 	return bcrypt.checkpw(guess, hash)
+
+def validate_email(email: str) -> ValidatedEmail:
+	return email_validator.validate_email(email) #pyright: ignore reportUnknownMemberType

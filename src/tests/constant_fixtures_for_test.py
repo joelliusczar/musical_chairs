@@ -17,17 +17,16 @@ def fixture_mock_password() -> bytes:
 	return mock_password()
 
 
-def primary_user(mockPassword: bytes) -> AccountInfo:
+def primary_user() -> AccountInfo:
 	return AccountInfo(
-		1,
-		"testUser_alpha",
-		mockPassword,
+		id=1,
+		username="testUser_alpha",
 		email="test@test.com"
 	)
 
 @pytest.fixture
-def fixture_primary_user(fixture_mock_password: bytes) -> AccountInfo:
-	return primary_user(fixture_mock_password)
+def fixture_primary_user() -> AccountInfo:
+	return primary_user()
 
 def mock_ordered_date_list() -> list[datetime]:
 	return [

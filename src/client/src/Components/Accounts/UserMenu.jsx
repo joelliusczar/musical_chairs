@@ -5,13 +5,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "./accounts_slice";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
-import { CallType } from "../../constants";
+import { currentUserSelector } from "./accounts_slice";
 
 export function UserMenu(props) {
 	const { anchorEl } = props;
 	const dispatch = useDispatch();
-	const user = useSelector((appState) =>
-		appState.accounts.values[CallType.post]);
+	const user = useSelector(currentUserSelector);
 
 	const open = !!anchorEl;
 

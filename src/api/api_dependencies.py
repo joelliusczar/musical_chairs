@@ -1,14 +1,14 @@
 #pyright: reportMissingTypeStubs=false
-import re
 from typing import Iterator
 from fastapi import Depends, HTTPException, status
+
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.queue_service import QueueService
 from musical_chairs_libs.accounts_service import AccountsService, UserRoleDef
-from musical_chairs_libs.dtos import AccountInfo, SaveAccountInfo
+from musical_chairs_libs.dtos import AccountInfo
 from musical_chairs_libs.simple_functions import build_error_obj
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 
@@ -52,7 +52,7 @@ def get_current_user_base(
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	user = accountsService.get_user_from_token(token)
-	if not user or not user.isAuthenticated:
+	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_401_UNAUTHORIZED,
 			detail=[build_error_obj("Could not validate credentials")],
@@ -64,11 +64,14 @@ def get_current_user(
 	securityScopes: SecurityScopes,
 	user: AccountInfo = Depends(get_current_user_base),
 ) -> AccountInfo:
-
-	for scope in [*securityScopes.scopes, UserRoleDef.ADMIN.value]:
-		if scope in map(lambda r: re.sub(r":\d+$","", r), user.roles):
+	if user.isAdmin:
+		return user
+	for scope in securityScopes.scopes:
+		if scope in map(
+			lambda r: UserRoleDef.extract_role_segments(r)[0],
+			user.roles
+		):
 			break
-		user.isAuthenticated = False
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,
 			detail=[build_error_obj(
@@ -83,7 +86,7 @@ def get_account_if_can_edit(
 	userId: int,
 	currentUser: AccountInfo = Depends(get_current_user_base),
 	accountsService: AccountsService = Depends(accounts_service)
-) -> SaveAccountInfo:
+) -> AccountInfo:
 	if userId != currentUser.id and not currentUser.isAdmin:
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,

@@ -5,12 +5,15 @@ import Queue from "../Queue/Queue";
 import History from "../History/History";
 import Stations from "../Stations/Stations";
 import SongCatalogue from "../Song_Catalogue/SongCatalogue";
-import { AccountEdit } from "../Accounts/AccountsEdit";
+import { AccountsNew } from "../Accounts/AccountsNew";
 import { LoginForm } from "../Accounts/AccountsLoginForm";
+import { AccountsList } from "../Accounts/AccountsList";
+import { AccountsRoles } from "../Accounts/AccountsRoles";
 import { currentUserSelector } from "../Accounts/accounts_slice";
-import { NotFound, GoToNotFound } from "../Shared/NotFound";
+import { NotFound } from "../Shared/NotFound";
 import { DomRoutes } from "../../constants";
 import { useSelector } from "react-redux";
+
 
 
 export function NavMenu() {
@@ -30,6 +33,9 @@ export function NavMenu() {
 			</ListItem>
 			<ListItem button component={NavLink} to={DomRoutes.songCatalogue}>
 				Song Catalogue
+			</ListItem>
+			<ListItem button component={NavLink} to={DomRoutes.accountsList}>
+				Accounts List
 			</ListItem>
 		</List>
 	);
@@ -54,18 +60,23 @@ export function AppRoutes() {
 			<Route path={`${DomRoutes.songCatalogue}:station?`}>
 				<SongCatalogue />
 			</Route>
-			<Route path={`${DomRoutes.accountsEdit}:id?`}>
-				<AccountEdit />
-			</Route>
-			{!currentUser.username && <Route path={`${DomRoutes.accountsLogin}`} >
+			{!currentUser.username &&<Route path={DomRoutes.accountsNew}>
+				<AccountsNew />
+			</Route>}
+			{!currentUser.username && <Route path={DomRoutes.accountsLogin} >
 				<LoginForm
 					afterSubmit={() => urlHistory.push("")}
 				/>
 			</Route>}
-			<Route path={`${DomRoutes.notFound}`}>
+			<Route path={DomRoutes.accountsList}>
+				<AccountsList />
+			</Route>
+			<Route path={`${DomRoutes.accountsRoles}:id`}>
+				<AccountsRoles />
+			</Route>
+			<Route>
 				<NotFound />
 			</Route>
-			<GoToNotFound />
 		</Switch>
 	);
 }

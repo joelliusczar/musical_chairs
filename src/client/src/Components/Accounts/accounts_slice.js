@@ -1,6 +1,11 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { defaultWebClient as webClient } from "../../api";
-import { CallType, CallStatus, UserRoleDef } from "../../constants";
+import { CallStatus, UserRoleDef } from "../../constants";
+
+export const AccountsCallTypes = {
+	login: "login",
+};
+
 
 export const login = createAsyncThunk(
 	"accounts/login",
@@ -25,22 +30,45 @@ export const checkValues = async ({ values }) => {
 	return response.data;
 };
 
+export const fetchUser = async ({ id }) => {
+	const response = await webClient.get(`accounts/${id}`);
+	return response.data;
+};
+
+export const fetchUserList = async ({ params, currentUser }) => {
+	const response = await webClient.get("accounts/list", {
+		params: params,
+		headers: {
+			"Authorization": `Bearer ${currentUser.access_token}`,
+		},
+	});
+	return response.data;
+};
+
+export const updateUserRoles = async ({ id, roles, currentUser }) => {
+	const response = await webClient.put(`accounts/update-roles/${id}`,
+		{ roles },
+		{
+			headers: {
+				"Authorization": `Bearer ${currentUser.access_token}`,
+			},
+		}
+	);
+	return response.data;
+};
 
 const initialState = {
 	status: {
-		[CallType.post]: "",
-		[CallType.fetch]: "",
+		[AccountsCallTypes.login]: "",
+		[AccountsCallTypes.fetch]: "",
 	},
 	values: {
-		[CallType.post]:{
+		[AccountsCallTypes.login]:{
 			userId: "",
 			username: "",
 			roles: [],
 			access_token: "",
 			lifetime: 0,
-		},
-		[CallType.fetch]: {
-			roles: [],
 		},
 	},
 	error: {},
@@ -51,30 +79,32 @@ const slice = createSlice({
 	initialState,
 	reducers: {
 		logout: (state) => {
-			state.values[CallType.post] = {...initialState.values[CallType.post]};
+			state.values[AccountsCallTypes.login] = {
+				...initialState.values[AccountsCallTypes.login],
+			};
 		},
 	},
 	extraReducers: {
 		[login.pending]: (state) => {
-			state.status[CallType.post] = CallStatus.loading;
+			state.status[AccountsCallTypes.login] = CallStatus.loading;
 		},
 		[login.fulfilled]: (state, action) => {
-			state.status[CallType.post] = CallStatus.done;
-			state.values[CallType.post] = action.payload;
+			state.status[AccountsCallTypes.login] = CallStatus.done;
+			state.values[AccountsCallTypes.login] = action.payload;
 		},
 		[login.rejected]: (state, action) => {
-			state.status[CallType.post] = CallStatus.done;
-			state.values[CallType.post] = action.payload;
+			state.status[AccountsCallTypes.login] = CallStatus.done;
+			state.error[AccountsCallTypes.login] = action.payload;
 		},
 	},
 });
 
 export const isAdminSelector = appState =>
-	appState.accounts.values[CallType.post].roles
+	appState.accounts.values[AccountsCallTypes.login].roles
 		.some(r => r.startsWith(UserRoleDef.ADMIN));
 
 export const currentUserSelector = appState =>
-	appState.accounts.values[CallType.post];
+	appState.accounts.values[AccountsCallTypes.login];
 
 export const logout = slice.actions.logout;
 

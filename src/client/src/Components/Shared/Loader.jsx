@@ -3,11 +3,7 @@ import PropTypes from "prop-types";
 import { CircularProgress, Typography } from "@mui/material";
 import { CallStatus } from "../../constants";
 
-const Loader = ({status, children, error, isReady}) => {
-
-	if(!isReady) {
-		return null;
-	}
+const Loader = ({status, children, error}) => {
 
 	try {
 		switch(status) {
@@ -15,7 +11,7 @@ const Loader = ({status, children, error, isReady}) => {
 			return children;
 		case CallStatus.failed:
 			return (<Typography color="error">
-				{JSON.stringify(error)}
+				{error}
 			</Typography>);
 		default:
 			return <CircularProgress />;
@@ -23,14 +19,13 @@ const Loader = ({status, children, error, isReady}) => {
 	}
 	catch(err) {
 		return (<Typography color="error">{JSON.stringify(err)}</Typography>);
-	} 
+	}
 };
 
 Loader.propTypes = {
 	status: PropTypes.string,
 	children: PropTypes.node,
-	isReady: PropTypes.bool,
-	error: PropTypes.object,
+	error: PropTypes.string,
 };
 
 export default Loader;

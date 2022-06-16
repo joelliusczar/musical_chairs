@@ -2,7 +2,7 @@
 import re
 import unicodedata
 from unidecode import unidecode
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Iterator, List, Optional, Iterable, Sequence, Set, Tuple, TypeVar, Generic, Union
 from enum import Enum
 from pydantic import BaseModel, validator
@@ -105,45 +105,46 @@ class UserRoleDef(Enum):
 
 T = TypeVar("T")
 
-@dataclass
-class TableData(Generic[T]):
+class TableData(BaseModel, Generic[T]):
 	totalRows: int
 	items: List[T]
 
-@dataclass
-class AuthenticatedAccount:
-	access_token: str
-	token_type: str
+class AccountInfoBase(BaseModel):
 	username: str
-	roles: List[str]
-	lifetime: int
-	displayName: Optional[str]=""
-
-@dataclass
-class AccountInfo:
-	id: int
-	userName: str
-	hash: Optional[bytes]
-	email: Optional[str]
-	displayName: Optional[str]=None
-	isAuthenticated: bool=False
-	roles: List[str]=field(default_factory=list)
+	displayName: str=""
+	email: str
+	roles: List[str]=[]
 
 	@property
 	def preferredName(self) -> str:
-		return self.displayName or self.userName
+		return self.displayName or self.username
 
 	@property
 	def isAdmin(self) -> bool:
-		return UserRoleDef.ADMIN.value in self.roles
+		return UserRoleDef.ADMIN.value in map(
+			lambda r: UserRoleDef.extract_role_segments(r)[0],
+			self.roles
+		)
 
-class SaveAccountInfo(BaseModel):
-	username: str
-	email: str
+class AccountInfo(AccountInfoBase):
+	id: int
+
+class AuthenticatedAccount(AccountInfoBase):
+	'''
+	This AccountInfo is only returned after successful authentication.
+	'''
+	access_token: str
+	token_type: str
+	lifetime: int
+
+class AccountCreationInfo(AccountInfoBase):
+	'''
+	This AccountInfo is only to the server to create an account.
+	Password is clear text here because it hasn't been hashed yet.
+	No id property because no id has been assigned yet.
+	This class also has validation on several of its properties.
+	'''
 	password: str
-	displayName: Optional[str]=None
-	id: Optional[int]=None
-	roles: List[str]=[]
 
 	@validator("email")
 	def check_email(cls, v: str) -> str:

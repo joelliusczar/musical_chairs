@@ -56,7 +56,7 @@ def song_catalogue(
 	stationService: StationService = Depends(station_service)
 ) -> TableData[SongItem]:
 	if not stationName:
-		return TableData(0, [])
+		return TableData(totalRows=0, items=[])
 	songs = list(
 		stationService.get_station_song_catalogue(
 			stationName = stationName,\
@@ -65,7 +65,7 @@ def song_catalogue(
 		)
 	)
 	totalRows = stationService.song_catalogue_count(stationName = stationName)
-	return TableData(totalRows, songs)
+	return TableData(totalRows=totalRows, items=songs)
 
 @router.post("/{stationName}/request/{songPk}")
 def request_song(

@@ -1,13 +1,13 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import os
 from datetime import timedelta
-from typing import Any, Iterable, Iterator, Optional, Sequence
+from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple
 from musical_chairs_libs.dtos import\
 	AccountInfo,\
 	SearchNameString,\
 	SavedNameString,\
 	UserRoleDef,\
-	SaveAccountInfo,\
+	AccountCreationInfo,\
 	RoleInfo
 from musical_chairs_libs.env_manager import EnvManager
 from sqlalchemy.engine import Connection
@@ -55,13 +55,16 @@ class AccountsService:
 		self.get_datetime = get_datetime
 
 
-	def get_account_for_login(self, userName: str) -> Optional[AccountInfo]:
-		cleanedUserName = SavedNameString(userName)
+	def get_account_for_login(
+		self,
+		username: str
+	) -> Tuple[Optional[AccountInfo], Optional[bytes]]:
+		cleanedUserName = SavedNameString(username)
 		if not cleanedUserName:
-			return None
+			return (None, None)
 		query = select(u.pk, u.username, u.hashedPW, u.email)\
 			.select_from(users) \
-			.where(u.isDisabled != True)\
+			.where((u.isDisabled != True) | (u.isDisabled == None))\
 			.where(u.hashedPW != None) \
 			.where(func.format_name_for_save(u.username) \
 				== str(cleanedUserName)) \
@@ -69,30 +72,29 @@ class AccountsService:
 			.limit(1)
 		row = self.conn.execute(query).fetchone()
 		if not row:
-			return None
+			return (None, None)
 		pk: int = row.pk #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-		return AccountInfo(
-			pk, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			row.username, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			row.hashedPW, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			row.email, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+		hashedPw: bytes = row.hashedPW #pyright: ignore [reportGeneralTypeIssues]
+		accountInfo = AccountInfo(
+			id=pk, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+			username=row.username, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+			email=row.email, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			roles=[r.role for r in self._get_roles(pk)]
 		)
+		return (accountInfo, hashedPw)
 
 	def authenticate_user(self,
 		username: str,
 		guess: bytes
 	) -> Optional[AccountInfo]:
-		user = self.get_account_for_login(username)
+		user, hashedPw = self.get_account_for_login(username)
 		if not user:
 			return None
-		if user.hash:
-			user.isAuthenticated = checkpw(guess, user.hash)
-		else:
-			user.isAuthenticated = False
-		return user
+		if hashedPw and checkpw(guess, hashedPw):
+			return user
+		return None
 
-	def create_account(self, accountInfo: SaveAccountInfo) -> SaveAccountInfo:
+	def create_account(self, accountInfo: AccountCreationInfo) -> AccountInfo:
 		cleanedUsername = SearchNameString(accountInfo.username)
 		cleanedEmail: ValidatedEmail = validate_email(accountInfo.email)
 		if self._is_username_used(cleanedUsername):
@@ -117,10 +119,12 @@ class AccountsService:
 			insertedPk,
 			[UserRoleDef.SONG_REQUEST.modded_value("60")]
 		)
-		resultDto = accountInfo.copy(update={
+		accountDict = accountInfo.dict(exclude={ "password"})
+		resultDto = AccountInfo.parse_obj({
+			**accountDict,
 			"id": insertedPk,
 			"roles": insertedRows
-		}, exclude={ "password"})
+		})
 		return resultDto
 
 	def remove_roles_for_user(self, userId: int, roles: Iterable[str]) -> int:
@@ -131,8 +135,12 @@ class AccountsService:
 			.where(ur.role in roles)
 		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType]
 
-	def save_roles(self, userId: int, roles: Sequence[str]) -> Iterable[str]:
-		if not userId or not roles:
+	def save_roles(
+		self,
+		userId: Optional[int],
+		roles: Sequence[str]
+	) -> Iterable[str]:
+		if userId is None or not roles:
 			return []
 		uniqueRoles = set(UserRoleDef.remove_repeat_roles(roles))
 		existingRoles = set((r.role for r in self._get_roles(userId)))
@@ -147,7 +155,7 @@ class AccountsService:
 			},
 			inRoles
 		))
-		stmt = insert(userRoles	)
+		stmt = insert(userRoles)
 		self.conn.execute(stmt, roleParams)
 		return uniqueRoles
 
@@ -165,12 +173,15 @@ class AccountsService:
 		return token
 
 	def get_user_from_token(self, token: str) -> Optional[AccountInfo]:
-		decoded: dict[Any, Any] = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+		decoded: dict[Any, Any] = jwt.decode(
+			token,
+			SECRET_KEY,
+			algorithms=[ALGORITHM]
+		)
 		userName = decoded.get("sub") or ""
-		user = self.get_account_for_login(userName)
+		user, _ = self.get_account_for_login(userName)
 		if not user:
 			return None
-		user.isAuthenticated = True
 		return user
 
 	def _get_roles(self, userPk: int) -> Iterable[RoleInfo]:
@@ -185,28 +196,6 @@ class AccountsService:
 				),
 				rows
 			)
-
-
-	@property
-	def system_user(self) -> Optional[AccountInfo]:
-		if self._system_user:
-			return self._system_user
-		query = select(u.pk, u.userName)\
-			.select_from(users) \
-			.where(func.lower(u.userName) == "system") \
-			.order_by(desc(u.creationTimestamp)) \
-			.limit(1)
-		row = self.conn.execute(query).fetchone()
-		if not row:
-			return None
-		pk: int = row.pk #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-		return AccountInfo(
-			pk, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			row.userName, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			None,
-			None,
-			roles=[r.role for r in self._get_roles(pk)]
-		)
 
 	def time_til_user_can_make_request(
 		self,
@@ -271,18 +260,23 @@ class AccountsService:
 		except EmailNotValidError:
 			return False
 
+	def get_accounts_count(self) -> int:
+		query = select(func.count(1)).select_from(users)
+		count = self.conn.execute(query).scalar() or 0
+		return count
+
 	def get_account_list(
 		self,
 		page: int = 0,
 		pageSize: Optional[int]=None
-	) -> Iterator[SaveAccountInfo]:
+	) -> Iterator[AccountInfo]:
 		offset = page * pageSize if pageSize else 0
 		query = select(u.pk, u.username, u.displayName, u.email)\
 			.offset(offset)\
 			.limit(pageSize)
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield SaveAccountInfo.construct(
+			yield AccountInfo.construct(
 				id=row.pk, #pyright: ignore [reportUnknownArgumentType]
 				username=row.username, #pyright: ignore [reportUnknownArgumentType]
 				displayName=row.displayName,
@@ -292,7 +286,7 @@ class AccountsService:
 	def get_account_for_edit(
 		self,
 		userId: Optional[int]
-	) -> Optional[SaveAccountInfo]:
+	) -> Optional[AccountInfo]:
 		if not userId:
 			return None
 		query = select(u.username, u.displayName, u.email)\
@@ -302,7 +296,7 @@ class AccountsService:
 		if not row:
 			return None
 		roles = [r.role for r in self._get_roles(userId)]
-		return SaveAccountInfo.construct(
+		return AccountInfo.construct(
 			id = userId,
 			username=row.username, #pyright: ignore [reportGeneralTypeIssues]
 			displayName=row.displayName, #pyright: ignore [reportGeneralTypeIssues]
@@ -313,7 +307,7 @@ class AccountsService:
 	def _get_account_if_can_edit(self,\
 		userId: Optional[int],
 		currentUser: AccountInfo
-	) -> SaveAccountInfo:
+	) -> AccountInfo:
 		prev = self.get_account_for_edit(userId) if userId else None
 		if not prev:
 			raise LookupError([build_error_obj(
@@ -327,8 +321,8 @@ class AccountsService:
 
 	def update_email(self,
 		email: str,
-		prev: SaveAccountInfo
-	) -> SaveAccountInfo:
+		prev: AccountInfo
+	) -> AccountInfo:
 		validEmail = validate_email(email)
 		updatedEmail: str = validEmail.email #pyright: ignore [reportGeneralTypeIssues]
 		if updatedEmail != prev.email and self._is_email_used(validEmail):
@@ -344,9 +338,9 @@ class AccountsService:
 
 	def update_account_general_changes(
 		self,
-		accountInfo: SaveAccountInfo,
+		accountInfo: AccountInfo,
 		currentUser: AccountInfo
-	) -> SaveAccountInfo:
+	) -> AccountInfo:
 		userId = accountInfo.id if accountInfo else None
 		prev = self._get_account_if_can_edit(userId, currentUser)
 		stmt = update(users).values(displayName = accountInfo.displayName)

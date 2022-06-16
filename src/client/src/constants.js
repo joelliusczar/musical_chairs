@@ -18,8 +18,10 @@ export const DomRoutes = {
 	history: "/history/",
 	stations: "/stations/",
 	songCatalogue: "/song-catalogue/",
-	accountsEdit: "/accounts/edit",
-	accountsLogin: "accounts/login",
+	accountsNew: "/accounts/new",
+	accountsLogin: "/accounts/login",
+	accountsRoles: "/accounts/roles/",
+	accountsList: "/accounts/list",
 	notFound: "/not-found",
 };
 
@@ -42,4 +44,5 @@ export const UserRoleDef = {
 	"SONG_ADD": "song:add:",
 	"SONG_REQUEST": "song:request:",
 	"USER_LIST": "user:list:",
+	"USER_EDIT": "user:edit:",
 };

@@ -15,7 +15,8 @@ app = FastAPI()
 app.add_middleware(
 	CORSMiddleware,
 	allow_origins=["http://127.0.0.1", "http://localhost:3000"],
-	allow_methods=["*"]
+	allow_methods=["*"],
+	allow_headers=["Authorization"]
 )
 app.include_router(stations_controller.router)
 app.include_router(accounts_controller.router)

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from musical_chairs_libs.tables import stations_history, station_queue
 from musical_chairs_libs.accounts_service import AccountsService,\
 	UserRoleDef
-from musical_chairs_libs.dtos import AccountInfo, SaveAccountInfo
+from musical_chairs_libs.dtos import AccountInfo, AccountCreationInfo
 from .constant_fixtures_for_test import\
 	fixture_mock_password as fixture_mock_password,\
 	fixture_primary_user as fixture_primary_user,\
@@ -247,7 +247,7 @@ def test_create_account(
 	fixture_account_service_mock_current_time: AccountsService,
 ):
 	accountService = fixture_account_service_mock_current_time
-	accountInfo = SaveAccountInfo(
+	accountInfo = AccountCreationInfo(
 		username="testUser",
 		email="testPerson@gmail.com",
 		password="hello12",

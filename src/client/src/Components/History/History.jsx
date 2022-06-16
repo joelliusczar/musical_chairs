@@ -43,7 +43,7 @@ export default function History() {
 
 
 	useEffect(() => {
-		if(!stationsStatus || stationsStatus === CallStatus.idle) { 
+		if(!stationsStatus || stationsStatus === CallStatus.idle) {
 			dispatch(fetchStations());
 		}
 	}, [dispatch, stationsStatus]);

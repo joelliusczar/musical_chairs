@@ -19,8 +19,8 @@ import { theme, drawerWidth } from "./style_config";
 import { LoginModal } from "./Components/Accounts/AccountsLoginModal";
 import { SnackbarProvider } from "notistack";
 import { useSelector } from "react-redux";
-import { CallType } from "./constants";
 import { UserMenu } from "./Components/Accounts/UserMenu";
+import { currentUserSelector } from "./Components/Accounts/accounts_slice";
 
 export const useStyles = makeStyles(() => ({
 	drawerPaper: {
@@ -32,8 +32,7 @@ function AppTrunk() {
 	const classes = useStyles();
 	const [loginOpen, setLoginOpen ] = useState(false);
 	const [menuAnchor, setMenuAchor ] = useState(null);
-	const currentUser = useSelector((appState) =>
-		appState.accounts.values[CallType.post]);
+	const currentUser = useSelector(currentUserSelector);
 
 	const openUserMenu = (e) => {
 		setMenuAchor(e.currentTarget);

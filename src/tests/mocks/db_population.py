@@ -667,9 +667,9 @@ def populate_users(
 	usersParams = [
 		{
 			"pk": primaryUser.id,
-			"username": primaryUser.userName,
+			"username": primaryUser.username,
 			"displayName": None,
-			"hashedPW": primaryUser.hash,
+			"hashedPW": testPassword,
 			"email": primaryUser.email,
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[0].timestamp()
@@ -725,6 +725,15 @@ def populate_users(
 			"displayName": None,
 			"hashedPW": testPassword,
 			"email": "test7@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 8,
+			"username": "testUser_hotel",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test8@test.com",
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp()
 		}

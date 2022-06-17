@@ -14,6 +14,8 @@ export const login = createAsyncThunk(
 		formData.append("username", username);
 		formData.append("password", password);
 		const response = await webClient.post("accounts/open", formData);
+		webClient.defaults.headers.common["Authorization"] =
+		`Bearer ${response.data.access_token}`;
 		return response.data;
 	}
 );
@@ -35,24 +37,16 @@ export const fetchUser = async ({ id }) => {
 	return response.data;
 };
 
-export const fetchUserList = async ({ params, currentUser }) => {
+export const fetchUserList = async ({ params }) => {
 	const response = await webClient.get("accounts/list", {
 		params: params,
-		headers: {
-			"Authorization": `Bearer ${currentUser.access_token}`,
-		},
 	});
 	return response.data;
 };
 
-export const updateUserRoles = async ({ id, roles, currentUser }) => {
+export const updateUserRoles = async ({ id, roles }) => {
 	const response = await webClient.put(`accounts/update-roles/${id}`,
-		{ roles },
-		{
-			headers: {
-				"Authorization": `Bearer ${currentUser.access_token}`,
-			},
-		}
+		roles
 	);
 	return response.data;
 };

@@ -1,4 +1,5 @@
 import json
+from musical_chairs_libs.dtos import UserRoleDef
 from musical_chairs_libs.env_manager import EnvManager
 from .api_test_dependencies import mock_depend_env_manager, login_test_user
 from .constant_fixtures_for_test import\
@@ -210,3 +211,14 @@ def test_change_email():
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["email"] == "test_golf_again@test.com"
+
+def test_change_roles():
+	headers = login_test_user(primary_user().username, client)
+	response = client.put(
+		"/accounts/update-roles/7",
+		headers=headers,
+		json=[UserRoleDef.USER_LIST.value]
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["roles"][0] == "user:list:"

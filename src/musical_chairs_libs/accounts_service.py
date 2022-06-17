@@ -1,6 +1,6 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import os
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple
 from musical_chairs_libs.dtos import\
 	AccountInfo,\
@@ -132,7 +132,7 @@ class AccountsService:
 			return 0
 		roles = roles or []
 		delStmt = delete(userRoles).where(ur.userFk == userId)\
-			.where(ur.role in roles)
+			.where(ur.role.in_(roles))
 		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType]
 
 	def save_roles(
@@ -147,6 +147,8 @@ class AccountsService:
 		outRoles = existingRoles - uniqueRoles
 		inRoles = uniqueRoles - existingRoles
 		self.remove_roles_for_user(userId, outRoles)
+		if not inRoles:
+			return uniqueRoles
 		roleParams = list(map(
 			lambda r: {
 				"userFk": userId,
@@ -172,12 +174,19 @@ class AccountsService:
 		)
 		return token
 
+	def has_expired(self, timestamp: float) -> bool:
+		dt = datetime.fromtimestamp(timestamp, timezone.utc)
+		return dt < self.get_datetime()
+
 	def get_user_from_token(self, token: str) -> Optional[AccountInfo]:
 		decoded: dict[Any, Any] = jwt.decode(
 			token,
 			SECRET_KEY,
 			algorithms=[ALGORITHM]
 		)
+		expiration = decoded.get("exp") or 0
+		if self.has_expired(expiration):
+			return None
 		userName = decoded.get("sub") or ""
 		user, _ = self.get_account_for_login(userName)
 		if not user:

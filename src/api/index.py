@@ -1,4 +1,5 @@
 #pyright: reportUnusedFunction=false, reportMissingTypeStubs=false
+from typing import Any
 import uvicorn #pyright: ignore [reportMissingTypeStubs]
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,7 @@ from musical_chairs_libs.simple_functions import build_error_obj
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
+
 app = FastAPI()
 app.add_middleware(
 	CORSMiddleware,
@@ -21,13 +23,18 @@ app.add_middleware(
 app.include_router(stations_controller.router)
 app.include_router(accounts_controller.router)
 
+def transForm_error(err: Any) -> dict[str, Any]:
+	msg = err["msg"]
+	field = err["loc"][1] if len(err["loc"]) > 1 else None
+	return build_error_obj(msg, field)
+
 @app.exception_handler(RequestValidationError) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]
 def change_validation_errors(
 	request: Request,
 	ex: RequestValidationError
 ) -> JSONResponse:
 	errorList = list(map(
-		lambda e: build_error_obj(e["msg"], e["loc"][1]), #pyright: ignore [reportGeneralTypeIssues]
+		lambda e: transForm_error(e),
 		ex.errors())
 	)
 	return JSONResponse({ "detail": errorList }, status_code=422)

@@ -14,6 +14,8 @@ from musical_chairs_libs.tables import \
 	users,\
 	userRoles
 from sqlalchemy import insert
+from .special_strings_reference import chinese1, irish1
+
 
 def populate_artists(conn: Connection):
 	artistParams = [
@@ -380,11 +382,11 @@ def populate_songs(conn: Connection):
 		},
 		{ "pk": 50,
 			"path": "foo/bar/baz/romeo2",
-			"name": "目黒将司",
+			"name": chinese1,
 		},
 		{ "pk": 51,
 			"path": "foo/bar/baz/sierra3",
-			"name": "Aoife Ní Fhearraigh",
+			"name": irish1,
 		}
 	]
 	stmt = insert(songs)
@@ -573,11 +575,16 @@ def populate_songs_artists(conn: Connection):
 	conn.execute(stmt, songArtistParams2) #pyright: ignore [reportUnknownMemberType]
 
 def populate_tags(conn: Connection):
+	global tagsParams
 	tagsParams = [
 		{ "pk": 1, "name": "kilo_tag" },
 		{ "pk": 2, "name": "lima_tag" },
 		{ "pk": 3, "name": "mike_tag" },
 		{ "pk": 4, "name": "november_tag" },
+		{ "pk": 5, "name": "oscar_tag" },
+		{ "pk": 6, "name": "papa_tag" },
+		{ "pk": 7, "name": "romeo_tag" },
+		{ "pk": 8, "name": "sierra_tag" },
 	]
 	stmt = insert(tags)
 	conn.execute(stmt, tagsParams) #pyright: ignore [reportUnknownMemberType]
@@ -628,11 +635,15 @@ def populate_songs_tags(conn: Connection):
 		{ "songFk": 3, "tagFk": 1 },
 		{ "songFk": 2, "tagFk": 1 },
 		{ "songFk": 1, "tagFk": 2 },
+		{ "songFk": 1, "tagFk": 6 },
+		{ "songFk": 4, "tagFk": 6 },
+		{ "songFk": 50, "tagFk": 6 },
 	]
 	stmt = insert(songs_tags)
 	conn.execute(stmt, songTagParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_stations(conn: Connection):
+	global stationParams
 	stationParams = [
 		{ "pk": 1,
 			"name": "oscar_station",
@@ -654,6 +665,8 @@ def populate_station_tags(conn: Connection):
 	stationTagsParams = [
 		{ "stationFk": 1, "tagFk": 2 },
 		{ "stationFk": 1, "tagFk": 4 },
+		{ "stationFk": 1, "tagFk": 7 },
+		{ "stationFk": 3, "tagFk": 6 },
 	]
 	stmt = insert(stations_tags)
 	conn.execute(stmt, stationTagsParams) #pyright: ignore [reportUnknownMemberType]
@@ -664,6 +677,7 @@ def populate_users(
 	primaryUser: AccountInfo,
 	testPassword: bytes
 ):
+	global usersParams
 	usersParams = [
 		{
 			"pk": primaryUser.id,
@@ -736,6 +750,15 @@ def populate_users(
 			"email": "test8@test.com",
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 9,
+			"username": "testUser_india",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test9@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
 		}
 	]
 	stmt = insert(users)
@@ -769,7 +792,7 @@ def populate_user_roles(
 		},
 		{
 			"userFk": 4,
-			"role": UserRoleDef.SONG_ADD.modded_value(120),
+			"role": UserRoleDef.SONG_EDIT.modded_value(120),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
@@ -779,7 +802,7 @@ def populate_user_roles(
 		},
 		{
 			"userFk": 6,
-			"role": UserRoleDef.SONG_ADD.modded_value(120),
+			"role": UserRoleDef.SONG_EDIT.modded_value(120),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
@@ -787,6 +810,20 @@ def populate_user_roles(
 			"role": UserRoleDef.USER_LIST.value,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
+		{
+			"userFk": 9,
+			"role": UserRoleDef.TAG_EDIT(),
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		}
 	]
 	stmt = insert(userRoles)
 	conn.execute(stmt, userRoleParams) #pyright: ignore [reportUnknownMemberType]
+
+def get_starting_users():
+	return usersParams
+
+def get_starting_tags():
+	return tagsParams
+
+def get_starting_stations():
+	return stationParams

@@ -1,13 +1,15 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Dict, List
-from fastapi import APIRouter, Depends, Security, HTTPException, status
+from typing import Dict, List, Optional
+from fastapi import APIRouter, Depends, Security, HTTPException, status, Query
 from musical_chairs_libs.dtos import AccountInfo,\
 	CurrentPlayingInfo,\
 	HistoryItem,\
 	SongItem,\
 	StationInfo,\
 	TableData,\
-	UserRoleDef
+	UserRoleDef,\
+	Tag
+from musical_chairs_libs.simple_functions import build_error_obj
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService
@@ -20,11 +22,11 @@ from api_dependencies import \
 
 router = APIRouter(prefix="/stations")
 
-@router.get("/")
+@router.get("/list")
 def index(
 	stationService: StationService = Depends(station_service)
 ) -> Dict[str, List[StationInfo]]:
-	stations = list(stationService.get_station_list())
+	stations = list(stationService.get_stations_with_songs_list())
 	return { "items": stations }
 
 @router.get("/{stationName}/history")
@@ -84,6 +86,58 @@ def request_song(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail = str(ex)
 		)
+
+@router.get("/")
+def get_station_for_edit(
+	stationId: Optional[int]=None,
+	stationName: Optional[str]=None,
+	stationService: StationService = Depends(station_service)
+) -> StationInfo:
+	stationInfo = stationService.get_station_for_edit(
+		stationId=stationId,
+		stationName=stationName
+	)
+	if stationInfo is None:
+		msg = f"{stationId or stationName or 'Station'} not found"
+		field = "stationId" if stationId else "stationName" \
+			if stationName else None
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(msg, field)]
+		)
+	return stationInfo
+
+@router.get("/tags")
+def get_tags(
+	page: int = 0,
+	pageSize: Optional[int]=None,
+	stationId: Optional[int]=None,
+	stationName: Optional[str]=None,
+	tagIds: Optional[list[int]] = Query(default=None),
+	stationService: StationService = Depends(station_service),
+) -> TableData[Tag]:
+	totalRows = stationService.get_tags_count()
+	items = list(stationService.get_tags(
+		page=page,
+		pageSize=pageSize,
+		stationId=stationId,
+		stationName=stationName,
+		tagIds=tagIds
+	))
+	return TableData(totalRows=totalRows, items=items)
+
+@router.post("/tags")
+def create_tag(
+	tagName: str,
+	stationService: StationService = Depends(station_service),
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.TAG_EDIT()]
+	)
+) -> Tag:
+	tag = stationService.save_tag(tagName, userId=user.id)
+	return tag
+
 # def request(self, stationName, songPk):
 #	 r = cherrypy.request
 #	 resultCount = self.queue_service.add_song_to_queue(stationName, songPk)

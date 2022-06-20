@@ -11,7 +11,6 @@ from musical_chairs_libs.dtos import\
 	UserRoleDef,\
 	TableData
 from api_dependencies import accounts_service, get_current_user, get_account_if_can_edit
-from musical_chairs_libs.errors import AlreadyUsedError
 from musical_chairs_libs.simple_functions import build_error_obj
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
 
@@ -62,13 +61,7 @@ def create_new_account(
 	accountInfo: AccountCreationInfo,
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	try:
-		return accountsService.create_account(accountInfo)
-	except (AlreadyUsedError, EmailNotValidError) as ex:
-		raise HTTPException(
-			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail = ex.args[0]
-		)
+	return accountsService.create_account(accountInfo)
 
 @router.get("/list", dependencies=[
 	Security(get_current_user, scopes=[UserRoleDef.USER_LIST.value])
@@ -88,13 +81,7 @@ def update_email(
 	prev: AccountInfo = Depends(get_account_if_can_edit),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	try:
-		return accountsService.update_email(email, prev)
-	except (AlreadyUsedError, EmailNotValidError) as ex:
-		raise HTTPException(
-			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail = ex.args[0]
-		)
+	return accountsService.update_email(email, prev)
 
 @router.put("/update-roles/{userId}")
 def update_roles(

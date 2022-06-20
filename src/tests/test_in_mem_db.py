@@ -2,10 +2,7 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
 from sqlalchemy import select
-from .constant_fixtures_for_test import\
-	fixture_mock_password as fixture_mock_password,\
-	fixture_primary_user as fixture_primary_user,\
-	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
+from .constant_fixtures_for_test import *
 from .common_fixtures import\
 	fixture_setup_in_mem_tbls as fixture_setup_in_mem_tbls, \
 	fixture_db_conn_in_mem as fixture_db_conn_in_mem

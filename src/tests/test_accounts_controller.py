@@ -1,19 +1,18 @@
 import json
 from musical_chairs_libs.dtos import UserRoleDef
-from musical_chairs_libs.env_manager import EnvManager
-from .api_test_dependencies import mock_depend_env_manager, login_test_user
+from .api_test_dependencies import\
+	fixture_api_test_client as fixture_api_test_client
+from .api_test_dependencies import *
 from .constant_fixtures_for_test import\
 	clear_mock_password,\
 	clear_mock_bad_password_clear,\
 	primary_user
+from .mocks.db_population import get_starting_users
 from fastapi.testclient import TestClient
-from api.index import app
 
-app.dependency_overrides[EnvManager] = mock_depend_env_manager
 
-client = TestClient(app)
-
-def test_create_account_success():
+def test_create_account_success(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
 	testUser = {
 		"username": "testUser",
 		"email": "testPerson@gmail.com",
@@ -23,9 +22,17 @@ def test_create_account_success():
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["id"] == 9
+	starting_users = get_starting_users()
+	assert data["id"] == len(starting_users) + 1
 
-def test_create_account_fail_username():
+	headers = login_test_user(primary_user().username, client)
+	response = client.get("/accounts/list", headers=headers)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+
+
+def test_create_account_fail_username(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
 	usedName = "testUser_bravo"
 	testUser = {
 		"username": usedName,
@@ -53,7 +60,8 @@ def test_create_account_fail_username():
 	assert data["detail"][0]["field"] == "username"
 	assert data["detail"][0]["msg"] == "tëstUser_bravo is already used."
 
-def test_create_account_fail_password():
+def test_create_account_fail_password(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
 	testUser = {
 		"username": "testUser",
 		"email": "testPerson@gmail.com",
@@ -68,7 +76,8 @@ def test_create_account_fail_password():
 		"Password does not meet the length requirement\n"\
 		"Mininum Length 6. your password length: 5"
 
-def test_create_account_fail_email():
+def test_create_account_fail_email(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
 	testUser = {
 		"username": "testUser",
 		"email": "testPerson",
@@ -98,7 +107,8 @@ def test_create_account_fail_email():
 	assert data["detail"][0]["msg"] == \
 		"test4@test.com is already used."
 
-def test_login_success():
+def test_login_success(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
 	formData = {
 		"username": "testUser_foxtrot",
 		"password": clear_mock_password()
@@ -114,7 +124,8 @@ def test_login_success():
 	assert data["email"] == "test6@test.com"
 
 
-def test_login_fail():
+def test_login_fail(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
 	formData = {
 		"username": "testUser_charlie",
 		"password": clear_mock_bad_password_clear()
@@ -155,14 +166,16 @@ def test_login_fail():
 	assert data["detail"][0]["field"] == "username"
 	assert data["detail"][0]["msg"] == "field required"
 
-def test_get_account_list():
+def test_get_account_list(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
 	headers = login_test_user("testUser_golf", client)
+	startingUsersList = get_starting_users()
 
 	response = client.get("/accounts/list", headers=headers)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["totalRows"] == 8
-	assert len(data["items"]) == 8
+	assert data["totalRows"] ==len(startingUsersList)
+	assert len(data["items"]) ==len(startingUsersList)
 
 	headers = login_test_user("testUser_hotel", client)
 
@@ -172,7 +185,8 @@ def test_get_account_list():
 	assert data["detail"][0]["msg"] ==\
 		"Insufficient permissions to perform that action"
 
-def test_change_email():
+def test_change_email(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
 	headers = login_test_user("testUser_golf", client)
 	response = client.put(
 		"/accounts/update-email/7",
@@ -212,7 +226,8 @@ def test_change_email():
 	assert response.status_code == 200
 	assert data["email"] == "test_golf_again@test.com"
 
-def test_change_roles():
+def test_change_roles(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
 	headers = login_test_user(primary_user().username, client)
 	response = client.put(
 		"/accounts/update-roles/7",

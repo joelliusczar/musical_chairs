@@ -20,7 +20,7 @@ class ConnectionConstructor(Protocol):
 		self,
 		echo: bool=False,
 		inMemory: bool=False,
-		check_same_thread: bool=True
+		checkSameThread: bool=True
 	) -> Connection:
 			...
 
@@ -51,14 +51,14 @@ def construct_mock_connection_constructor(
 	def get_mock_db_connection_constructor(
 		echo: bool=False,
 		inMemory: bool=False,
-		check_same_thread: bool=True
+		checkSameThread: bool=True
 	) -> Connection:
 		envMgr = EnvManager()
-		inMemory = True
+
 		conn = envMgr.get_configured_db_connection(
 			echo=echo,
-			inMemory=inMemory,
-			check_same_thread=check_same_thread
+			inMemory=True,
+			checkSameThread=checkSameThread
 		)
 		setup_in_mem_tbls(
 			conn,

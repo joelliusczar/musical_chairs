@@ -17,10 +17,11 @@ class EnvManager:
 		return os.environ["dbName"]
 
 	@classmethod
-	def get_configured_db_connection(cls,
+	def get_configured_db_connection(
+		cls,
 		echo: bool=False,
 		inMemory: bool=False,
-		check_same_thread: bool=True
+		checkSameThread: bool=True
 	) -> Connection:
 
 		dbStr = "sqlite://" if inMemory  else f"sqlite:///{cls.db_name}"
@@ -28,7 +29,7 @@ class EnvManager:
 		engine = create_engine(
 			dbStr,
 			echo=echo,
-			connect_args={ "check_same_thread": check_same_thread } #fastapi docs said this was okay
+			connect_args={ "check_same_thread": checkSameThread } #fastapi docs said this was okay
 		)
 		conn = engine.connect()
 		conn.connection.connection.create_function( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues]

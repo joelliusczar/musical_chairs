@@ -56,10 +56,14 @@ class SearchNameString:
 
 class UserRoleDef(Enum):
 	ADMIN = "admin::"
-	SONG_ADD = "song:add:"
+	SONG_EDIT = "song:edit:"
 	SONG_REQUEST = "song:request:"
+	TAG_EDIT = "tag:edit:"
 	USER_LIST = "user:list:"
 	USER_EDIT = "user:edit:"
+
+	def __call__(self, mod: Optional[Union[str, int]]=None) -> str:
+		return self.modded_value(mod)
 
 	@classmethod
 	def as_set(cls) -> Set[str]:
@@ -102,6 +106,7 @@ class UserRoleDef(Enum):
 		if not mod:
 			return self.value
 		return f"{self.value}{mod}"
+
 
 T = TypeVar("T")
 
@@ -227,7 +232,7 @@ class CurrentPlayingInfo:
 	nowPlaying: Optional[HistoryItem]
 	items: Iterable[QueueItem]
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class Tag:
 	id: int
 	name: str
@@ -236,4 +241,10 @@ class Tag:
 class StationInfo:
 	id: int
 	name: str
-	tags: Iterable[Tag]
+	displayName: str
+	tags: list[Tag]
+
+class StationCreationInfo(BaseModel):
+	name: str
+	displayName: str
+	tags: list[Tag]

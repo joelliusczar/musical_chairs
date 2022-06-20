@@ -3,12 +3,10 @@ from sqlalchemy import select, func
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.tables import songs
-from .constant_fixtures_for_test import\
-	fixture_mock_password as fixture_mock_password,\
-	fixture_primary_user as fixture_primary_user,\
-	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
+from .constant_fixtures_for_test import *
 from .common_fixtures import \
 	fixture_populated_db_conn_in_mem as fixture_populated_db_conn_in_mem
+from .mocks.special_strings_reference import chinese1
 
 
 sg: ColumnCollection = songs.columns #pyright: ignore [reportUnknownMemberType]
@@ -22,7 +20,7 @@ def test_iron_str(fixture_populated_db_conn_in_mem: Connection):
 	).where(sg_pk == 50)
 	record = conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
 	if record:
-		assert record.name == "目黒将司" #pyright: ignore [reportGeneralTypeIssues]
+		assert record.name == chinese1 #pyright: ignore [reportGeneralTypeIssues]
 		assert record.ironedStr == "mu hei jiang si" #pyright: ignore [reportGeneralTypeIssues]
 	else:
 		assert False

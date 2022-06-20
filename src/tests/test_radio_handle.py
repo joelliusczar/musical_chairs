@@ -1,11 +1,8 @@
 #pyright: reportMissingTypeStubs=false
 from .common_fixtures import \
-	fixture_radio_handle as fixture_radio_handle, \
-	fixture_env_manager_with_in_mem_db as fixture_env_manager_with_in_mem_db
-from .constant_fixtures_for_test import\
-	fixture_mock_password as fixture_mock_password,\
-	fixture_primary_user as fixture_primary_user,\
-	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
+	fixture_radio_handle as fixture_radio_handle
+from .common_fixtures import *
+from .constant_fixtures_for_test import *
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.radio_handle import RadioHandle
 

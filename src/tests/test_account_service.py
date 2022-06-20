@@ -8,12 +8,11 @@ from musical_chairs_libs.accounts_service import AccountsService,\
 	UserRoleDef
 from musical_chairs_libs.dtos import AccountInfo, AccountCreationInfo
 from .constant_fixtures_for_test import\
-	fixture_mock_password as fixture_mock_password,\
-	fixture_primary_user as fixture_primary_user,\
-	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
-from .common_fixtures import \
-	fixture_populated_db_conn_in_mem as fixture_populated_db_conn_in_mem, \
+	fixture_primary_user as fixture_primary_user
+from .constant_fixtures_for_test import *
+from .common_fixtures import\
 	fixture_account_service as fixture_account_service
+from .common_fixtures import *
 
 currentTestDate: datetime = datetime.now(timezone.utc)
 
@@ -217,14 +216,14 @@ def test_unique_roles():
 	testRoles4 = [
 		f"{UserRoleDef.SONG_REQUEST.value}",
 		f"{UserRoleDef.SONG_REQUEST.value}15",
-		f"{UserRoleDef.SONG_ADD.value}60",
-		f"{UserRoleDef.SONG_ADD.value}15",
+		f"{UserRoleDef.SONG_EDIT.value}60",
+		f"{UserRoleDef.SONG_EDIT.value}15",
 		f"{UserRoleDef.USER_LIST.value}"
 	]
 	gen = UserRoleDef.remove_repeat_roles(testRoles4)
 	results = sorted(list(gen))
 	assert len(results) == 3
-	assert results[0] == UserRoleDef.SONG_ADD.modded_value("15")
+	assert results[0] == UserRoleDef.SONG_EDIT.modded_value("15")
 	assert results[1] == UserRoleDef.SONG_REQUEST.modded_value()
 	assert results[2] == UserRoleDef.USER_LIST.modded_value("")
 
@@ -233,14 +232,14 @@ def test_count_repeat_roles():
 	testRoles = [
 		UserRoleDef.SONG_REQUEST.value,
 		UserRoleDef.SONG_REQUEST.modded_value("15"),
-		UserRoleDef.SONG_ADD.modded_value(60),
-		UserRoleDef.SONG_ADD.modded_value(15),
+		UserRoleDef.SONG_EDIT.modded_value(60),
+		UserRoleDef.SONG_EDIT.modded_value(15),
 		UserRoleDef.USER_LIST.modded_value()
 	]
 	result = UserRoleDef.count_repeat_roles(testRoles)
 	assert len(result.items()) == 3
 	assert result[UserRoleDef.SONG_REQUEST.value] == 2
-	assert result[UserRoleDef.SONG_ADD.value] == 2
+	assert result[UserRoleDef.SONG_EDIT.value] == 2
 	assert result[UserRoleDef.USER_LIST.value] == 1
 
 def test_create_account(
@@ -264,29 +263,29 @@ def test_save_roles(
 	accountService = fixture_account_service_mock_current_time
 	accountInfo = accountService.get_account_for_edit(6)
 	assert accountInfo and len(accountInfo.roles) == 2
-	assert accountInfo and accountInfo.roles[0] == "song:add:120"
+	assert accountInfo and accountInfo.roles[0] == "song:edit:120"
 	assert accountInfo and accountInfo.roles[1] == "song:request:15"
 
 
 	result = list(sorted(accountService.save_roles(6, accountInfo.roles)))
 	assert len(result) == 2
-	assert result[0] == "song:add:120"
+	assert result[0] == "song:edit:120"
 	assert result[1] == "song:request:15"
 	fetched = list(sorted(map(lambda r: r.role, accountService._get_roles(6))))
 	assert len(fetched) == 2
-	assert fetched[0] == "song:add:120"
+	assert fetched[0] == "song:edit:120"
 	assert fetched[1] == "song:request:15"
 
 
 	nextSet = [*result, UserRoleDef.USER_LIST.value]
 	result = list(sorted(accountService.save_roles(6, nextSet)))
 	assert len(result) == 3
-	assert result[0] == "song:add:120"
+	assert result[0] == "song:edit:120"
 	assert result[1] == "song:request:15"
 	assert result[2] == "user:list:"
 	fetched = list(sorted(map(lambda r: r.role, accountService._get_roles(6))))
 	assert len(fetched) == 3
-	assert fetched[0] == "song:add:120"
+	assert fetched[0] == "song:edit:120"
 	assert fetched[1] == "song:request:15"
 	assert fetched[2] == "user:list:"
 
@@ -294,12 +293,12 @@ def test_save_roles(
 	nextSet = [*result, UserRoleDef.USER_LIST.value]
 	result = list(sorted(accountService.save_roles(6, nextSet)))
 	assert len(result) == 3
-	assert result[0] == "song:add:120"
+	assert result[0] == "song:edit:120"
 	assert result[1] == "song:request:15"
 	assert result[2] == "user:list:"
 	fetched = list(sorted(map(lambda r: r.role, accountService._get_roles(6))))
 	assert len(fetched) == 3
-	assert fetched[0] == "song:add:120"
+	assert fetched[0] == "song:edit:120"
 	assert fetched[1] == "song:request:15"
 	assert fetched[2] == "user:list:"
 
@@ -315,12 +314,12 @@ def test_save_roles(
 	assert fetched[1] == "user:list:"
 
 
-	nextSet = ["user:list:", "song:add:120"]
+	nextSet = ["user:list:", "song:edit:120"]
 	result = list(sorted(accountService.save_roles(6, nextSet)))
 	assert len(result) == 2
-	assert result[0] == "song:add:120"
+	assert result[0] == "song:edit:120"
 	assert result[1] == "user:list:"
 	fetched = list(sorted(map(lambda r: r.role, accountService._get_roles(6))))
 	assert len(fetched) == 2
-	assert fetched[0] == "song:add:120"
+	assert fetched[0] == "song:edit:120"
 	assert fetched[1] == "user:list:"

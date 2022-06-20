@@ -51,6 +51,3 @@ def mock_ordered_date_list() -> list[datetime]:
 @pytest.fixture
 def fixture_mock_ordered_date_list() -> list[datetime]:
 	return mock_ordered_date_list()
-
-def test_dates_ordered_fixture(fixture_mock_ordered_date_list: list[datetime]):
-	assert True

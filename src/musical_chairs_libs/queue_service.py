@@ -115,12 +115,7 @@ class QueueService:
 	) -> Iterable[int]:
 		rows = self.get_all_station_song_possibilities(stationPk)
 		sampleSize = deficitSize if deficitSize < len(rows) else len(rows)
-		songPks: List[int] = list(
-			map(
-				lambda r: r.pk, #type: ignore
-				rows
-			)
-		)
+		songPks = [r["pk"] for r in rows]
 		selection = self.choice(songPks, sampleSize)
 		return selection
 
@@ -136,20 +131,20 @@ class QueueService:
 			return
 		songPks = self.get_random_songPks(stationPk, deficitSize)
 		timestamp = self.get_datetime().timestamp()
-		params = list(map(lambda s: {
+		params = [{
 			"stationFk": stationPk,
 			"songFk": s,
 			"queuedTimestamp": timestamp
-		}, songPks))
+		} for s in songPks]
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
 		historyInsert = insert(stations_history)
 		self.conn.execute(historyInsert, params)
 
 	def move_from_queue_to_history(
-		self, 
-		stationPk: int, 
-		songPk: int, 
+		self,
+		stationPk: int,
+		songPk: int,
 		queueTimestamp: float
 	) -> None:
 		q: ColumnCollection = station_queue.columns

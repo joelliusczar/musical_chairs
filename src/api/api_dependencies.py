@@ -67,10 +67,7 @@ def get_current_user(
 	if user.isAdmin:
 		return user
 	for scope in securityScopes.scopes:
-		if scope in map(
-			lambda r: UserRoleDef.extract_role_segments(r)[0],
-			user.roles
-		):
+		if scope in (UserRoleDef.extract_role_segments(r)[0] for r in user.roles):
 			break
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,

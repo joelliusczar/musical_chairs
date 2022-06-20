@@ -138,6 +138,17 @@ def create_tag(
 	tag = stationService.save_tag(tagName, userId=user.id)
 	return tag
 
+@router.delete("/tags" )
+def delete_tag(
+	tagId: int,
+	stationService: StationService = Depends(station_service),
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.TAG_DELETE()]
+	)
+) -> int:
+	return stationService.delete_tag(tagId)
+
 # def request(self, stationName, songPk):
 #	 r = cherrypy.request
 #	 resultCount = self.queue_service.add_song_to_queue(stationName, songPk)

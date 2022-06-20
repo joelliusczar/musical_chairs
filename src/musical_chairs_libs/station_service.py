@@ -169,14 +169,12 @@ class StationService:
 		records = self.conn.execute(query)
 		partitionFn: Callable[[Row], Tuple[int, str, str]] = \
 			lambda r: (r[st.pk], r[st.name], r["displayName"])
-		mapFn: Callable[[Row], Tag] = \
-			lambda r: Tag(r[tg.pk],r[tg.name])
 		for key, group in itertools.groupby(records, partitionFn): #pyright: ignore [reportUnknownVariableType]
 			yield StationInfo(
 				id=key[0],
 				name=key[1],
 				displayName=key[2],
-				tags=list(map(mapFn, group)) #pyright: ignore [reportUnknownArgumentType]
+				tags=[Tag(r[tg.pk],r[tg.name]) for r in cast(Iterator[Row],group)]
 			)
 
 	def _attach_catalogue_joins(
@@ -305,15 +303,12 @@ class StationService:
 		if not inTagIds:
 			return uniqueTags
 		lastModifiedUserId: Any = userId
-		tagParams = list(map(
-			lambda t: {
-				"stationFk": stationId,
-				"tagFk": t,
-				"lastModifiedByUserFk": lastModifiedUserId,
-				"lastModifiedTimestamp": self.get_datetime().timestamp()
-			},
-			inTagIds
-		))
+		tagParams = [{
+			"stationFk": stationId,
+			"tagFk": t,
+			"lastModifiedByUserFk": lastModifiedUserId,
+			"lastModifiedTimestamp": self.get_datetime().timestamp()
+		} for t in inTagIds]
 		stmt = insert(stations_tags_tbl)
 		self.conn.execute(stmt, tagParams)
 		return uniqueTags
@@ -381,6 +376,12 @@ class StationService:
 					f"{tagName} is already used.", "tagName"
 				)]
 			)
+
+	def delete_tag(self, tagId: int) -> int:
+		stmt = delete(tags_tbl).where(tg.pk == tagId)
+		res = self.conn.execute(stmt)
+		return cast(int, res.rowcount) or 0
+
 
 	def save_station(
 		self,

@@ -53,10 +53,7 @@ def test_save_station(fixture_station_service: StationService):
 	assert fetched and len(fetched.tags) == 2
 
 
-	nonExistentTagId = max(map(
-		lambda t: cast(int, t["pk"]),
-		get_starting_tags())
-	) + 2
+	nonExistentTagId = max(cast(int, t["pk"]) for t in  get_starting_tags()) + 2
 	testData = StationCreationInfo(
 		name = "brand_new_station_fake_tag",
 		displayName="Brand new station with bad tag",

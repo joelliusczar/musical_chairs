@@ -149,14 +149,12 @@ class AccountsService:
 		self.remove_roles_for_user(userId, outRoles)
 		if not inRoles:
 			return uniqueRoles
-		roleParams = list(map(
-			lambda r: {
+		roleParams = [{
 				"userFk": userId,
 				"role": r,
 				"creationTimestamp": self.get_datetime().timestamp()
-			},
-			inRoles
-		))
+			} for r in inRoles
+		]
 		stmt = insert(userRoles)
 		self.conn.execute(stmt, roleParams)
 		return uniqueRoles
@@ -198,13 +196,10 @@ class AccountsService:
 			.select_from(userRoles) \
 			.where(ur.userFk == userPk)
 		rows: Iterable[Row] = self.conn.execute(query).fetchall()
-		return map(
-				lambda r: RoleInfo(userPk,
-					r.role, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-					r.creationTimestamp #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-				),
-				rows
-			)
+		return (RoleInfo(userPk,
+					r["role"],
+					r["creationTimestamp"]
+				) for r in rows)
 
 	def time_til_user_can_make_request(
 		self,

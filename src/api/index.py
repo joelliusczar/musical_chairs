@@ -36,10 +36,7 @@ def change_validation_errors(
 	request: Request,
 	ex: RequestValidationError
 ) -> JSONResponse:
-	errorList = list(map(
-		lambda e: transForm_error(e),
-		ex.errors())
-	)
+	errorList = [transForm_error(e) for e in ex.errors()]
 	return JSONResponse({ "detail": errorList }, status_code=422)
 
 @app.exception_handler(StarletteHTTPException) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]
@@ -75,7 +72,7 @@ def everything_else(
 			format="%(asctime)s %(message)s",
 			filename="radio.log",
 			encoding="utf-8",
-			level=logging.WARNING
+			level=logging.INFO
 		)
 	logging.error(ex)
 	return JSONResponse(

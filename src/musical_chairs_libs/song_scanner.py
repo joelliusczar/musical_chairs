@@ -42,7 +42,7 @@ def scan_files(searchBase: str) -> Iterator[str]:
 			# not the full path
 			# so here, we're gluing the cloud part of the path to
 			# the filename name to provide the cloud path
-			for match in map(lambda m: f"{subRoot}/{m}", matches):
+			for match in (f"{subRoot}/{m}" for m in matches):
 				yield match
 
 def get_file_tags(songFullPath: str) -> TinyTag:

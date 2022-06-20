@@ -58,6 +58,7 @@ class UserRoleDef(Enum):
 	ADMIN = "admin::"
 	SONG_EDIT = "song:edit:"
 	SONG_REQUEST = "song:request:"
+	TAG_DELETE = "tag:delete:"
 	TAG_EDIT = "tag:edit:"
 	USER_LIST = "user:list:"
 	USER_EDIT = "user:edit:"
@@ -126,10 +127,8 @@ class AccountInfoBase(BaseModel):
 
 	@property
 	def isAdmin(self) -> bool:
-		return UserRoleDef.ADMIN.value in map(
-			lambda r: UserRoleDef.extract_role_segments(r)[0],
-			self.roles
-		)
+		return UserRoleDef.ADMIN.value in \
+			(UserRoleDef.extract_role_segments(r)[0] for r in self.roles)
 
 class AccountInfo(AccountInfoBase):
 	id: int

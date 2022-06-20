@@ -61,7 +61,7 @@ class EnvManager:
 		conn = cls.get_configured_db_connection(inMemory=True)
 		metadata.create_all(conn.engine)
 		result = conn.execute("SELECT sql FROM sqlite_master WHERE type='table';") #pyright: ignore [reportUnknownMemberType]
-		print("\n".join(map(lambda r: r[0], result.fetchall())))
+		print("\n".join((r[0] for r in result.fetchall())))
 		result = conn.execute("SELECT sql FROM sqlite_master WHERE type='index';") #pyright: ignore [reportUnknownMemberType]
-		print("\n".join(map(lambda r: r[0], result.fetchall())))
+		print("\n".join((r[0] for r in result.fetchall())))
 		conn.close()

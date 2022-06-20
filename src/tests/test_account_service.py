@@ -271,7 +271,7 @@ def test_save_roles(
 	assert len(result) == 2
 	assert result[0] == "song:edit:120"
 	assert result[1] == "song:request:15"
-	fetched = list(sorted(map(lambda r: r.role, accountService._get_roles(6))))
+	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 2
 	assert fetched[0] == "song:edit:120"
 	assert fetched[1] == "song:request:15"
@@ -283,7 +283,7 @@ def test_save_roles(
 	assert result[0] == "song:edit:120"
 	assert result[1] == "song:request:15"
 	assert result[2] == "user:list:"
-	fetched = list(sorted(map(lambda r: r.role, accountService._get_roles(6))))
+	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 3
 	assert fetched[0] == "song:edit:120"
 	assert fetched[1] == "song:request:15"
@@ -296,7 +296,7 @@ def test_save_roles(
 	assert result[0] == "song:edit:120"
 	assert result[1] == "song:request:15"
 	assert result[2] == "user:list:"
-	fetched = list(sorted(map(lambda r: r.role, accountService._get_roles(6))))
+	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 3
 	assert fetched[0] == "song:edit:120"
 	assert fetched[1] == "song:request:15"
@@ -308,7 +308,7 @@ def test_save_roles(
 	assert len(result) == 2
 	assert result[0] == "song:request:15"
 	assert result[1] == "user:list:"
-	fetched = list(sorted(map(lambda r: r.role, accountService._get_roles(6))))
+	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 2
 	assert fetched[0] == "song:request:15"
 	assert fetched[1] == "user:list:"
@@ -319,7 +319,7 @@ def test_save_roles(
 	assert len(result) == 2
 	assert result[0] == "song:edit:120"
 	assert result[1] == "user:list:"
-	fetched = list(sorted(map(lambda r: r.role, accountService._get_roles(6))))
+	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 2
 	assert fetched[0] == "song:edit:120"
 	assert fetched[1] == "user:list:"

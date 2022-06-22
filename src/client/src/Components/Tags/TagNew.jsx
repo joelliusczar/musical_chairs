@@ -4,7 +4,7 @@ import { FormikProvider, useFormik } from "formik";
 import { FormikTextField } from "../Shared/FormikTextField";
 import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
-import { saveTag } from "./stations_slice";
+import { saveTag } from "./tagsService";
 
 const inputField = {
 	margin: 2,

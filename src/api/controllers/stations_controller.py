@@ -1,14 +1,13 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Dict, List, Optional
-from fastapi import APIRouter, Depends, Security, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Security, HTTPException, status
 from musical_chairs_libs.dtos import AccountInfo,\
 	CurrentPlayingInfo,\
 	HistoryItem,\
 	SongItem,\
 	StationInfo,\
 	TableData,\
-	UserRoleDef,\
-	Tag
+	UserRoleDef
 from musical_chairs_libs.simple_functions import build_error_obj
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.history_service import HistoryService
@@ -107,47 +106,6 @@ def get_station_for_edit(
 		)
 	return stationInfo
 
-@router.get("/tags")
-def get_tags(
-	page: int = 0,
-	pageSize: Optional[int]=None,
-	stationId: Optional[int]=None,
-	stationName: Optional[str]=None,
-	tagIds: Optional[list[int]] = Query(default=None),
-	stationService: StationService = Depends(station_service),
-) -> TableData[Tag]:
-	totalRows = stationService.get_tags_count()
-	items = list(stationService.get_tags(
-		page=page,
-		pageSize=pageSize,
-		stationId=stationId,
-		stationName=stationName,
-		tagIds=tagIds
-	))
-	return TableData(totalRows=totalRows, items=items)
-
-@router.post("/tags")
-def create_tag(
-	tagName: str,
-	stationService: StationService = Depends(station_service),
-	user: AccountInfo = Security(
-		get_current_user,
-		scopes=[UserRoleDef.TAG_EDIT()]
-	)
-) -> Tag:
-	tag = stationService.save_tag(tagName, userId=user.id)
-	return tag
-
-@router.delete("/tags" )
-def delete_tag(
-	tagId: int,
-	stationService: StationService = Depends(station_service),
-	user: AccountInfo = Security(
-		get_current_user,
-		scopes=[UserRoleDef.TAG_DELETE()]
-	)
-) -> int:
-	return stationService.delete_tag(tagId)
 
 # def request(self, stationName, songPk):
 #	 r = cherrypy.request

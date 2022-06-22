@@ -1,5 +1,4 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
-from datetime import timedelta
 from typing import\
 	Any,\
 	Callable,\
@@ -100,7 +99,6 @@ class QueueService:
 			.join(stations_history, (hist.stationFk == st.pk) \
 				& (hist.songFk == sg.pk), isouter=True) \
 			.where(st.pk == stationPk) \
-			.where((sgtg.skip == None) | (sgtg.skip == 0)) \
 			.group_by(sg.pk, sg.path) \
 			.order_by(desc(func.max(hist.queuedTimestamp))) \
 			.order_by(desc(func.max(hist.playedTimestamp)))
@@ -267,21 +265,15 @@ class QueueService:
 		stationName: str,
 		user: AccountInfo
 	):
-		timeleft = self.account_service.time_til_user_can_make_request(user)
-		if timeleft == 0:
-			stationPk = self.station_service.get_station_pk(stationName)
-			if stationPk and self.station_service.can_song_be_queued_to_station(
-					songPk,
-					stationPk
-				):
-				self._add_song_to_queue(songPk, stationPk, user.id)
+		stationPk = self.station_service.get_station_pk(stationName)
+		if stationPk and self.station_service.can_song_be_queued_to_station(
+				songPk,
+				stationPk
+			):
+			self._add_song_to_queue(songPk, stationPk, user.id)
 			songInfo = self.song_info_service.song_info(songPk)
 			songName = songInfo.name if songInfo else "Song"
 			raise LookupError(f"{songName} cannot be added to {stationName}")
-		timeleftDelta = timedelta(seconds=timeleft)
-		raise RuntimeError(f"User {user.preferredName} cannot request "
-			f"anymore songs right now. Please wait {str(timeleftDelta)} "
-			"and try again")
 
 
 

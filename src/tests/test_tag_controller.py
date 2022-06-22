@@ -14,7 +14,7 @@ def test_save_tag(fixture_api_test_client: TestClient):
 	headers = login_test_user("testUser_india", client)
 	starting_tags_list = get_starting_tags()
 	response = client.post(
-		"/stations/tags",
+		"/tags",
 		headers=headers,
 		params={ "tagName": "posted_tag" }
 	)
@@ -24,20 +24,20 @@ def test_save_tag(fixture_api_test_client: TestClient):
 	assert data["id"] == len(starting_tags_list) + 1
 
 	tagIds = [data["id"]]
-	response = client.get("/stations/tags", params={ "tagIds": tagIds})
+	response = client.get("/tags", params={ "tagIds": tagIds})
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["totalRows"] == len(starting_tags_list) + 1
 	assert len(data["items"]) == 1
 
-	response = client.get("/stations/tags")
+	response = client.get("/tags")
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["totalRows"] == len(starting_tags_list) + 1
 	assert len(data["items"]) == len(starting_tags_list) + 1
 
 	response = client.post(
-		"/stations/tags",
+		"/tags",
 		headers=headers,
 		params={ "tagName": "oscar_tag" }
 	)
@@ -47,7 +47,7 @@ def test_save_tag(fixture_api_test_client: TestClient):
 	assert data["detail"][0]["field"] == "tagName"
 
 	response = client.post(
-		"/stations/tags",
+		"/tags",
 		headers=headers,
 		params={ "tagName": chinese1 }
 	)

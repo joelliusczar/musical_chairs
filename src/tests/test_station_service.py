@@ -1,8 +1,6 @@
-import pytest
 from typing import cast
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.dtos import StationCreationInfo, Tag
-from musical_chairs_libs.errors import AlreadyUsedError
 from .constant_fixtures_for_test import *
 from .common_fixtures import \
 	fixture_station_service as fixture_station_service
@@ -26,16 +24,6 @@ def test_get_stations_list(fixture_station_service: StationService):
 	data = list(stationService.get_stations_with_songs_list())
 	assert len(data) == 2
 
-def test_save_tag(fixture_station_service: StationService):
-	stationService = fixture_station_service
-	result = stationService.save_tag("brandNewTag")
-	assert result.id == len(get_starting_tags()) + 1
-	fetched = list(stationService.get_tags(tagIds=[result.id]))
-	assert len(fetched) == 1
-	with pytest.raises(AlreadyUsedError):
-		stationService.save_tag("mike_tag")
-	with pytest.raises(AlreadyUsedError):
-		stationService.save_tag("mike_tag", 6)
 
 def test_save_station(fixture_station_service: StationService):
 	stationService = fixture_station_service

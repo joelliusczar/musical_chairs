@@ -3,10 +3,8 @@ import itertools
 from typing import\
 	Any,\
 	Callable,\
-	Iterable,\
 	Iterator,\
 	Optional,\
-	Sequence,\
 	Tuple,\
 	cast
 from sqlalchemy.exc import IntegrityError
@@ -28,16 +26,15 @@ from musical_chairs_libs.tables import\
 	artists, \
 	song_artist
 from musical_chairs_libs.dtos import\
-	SearchNameString,\
 	Tag,\
 	StationInfo, \
 	SongItem,\
 	StationCreationInfo,\
 	SavedNameString
 from musical_chairs_libs.env_manager import EnvManager
+from musical_chairs_libs.tag_service import TagService
 from musical_chairs_libs.os_process_manager import OSProcessManager
-from musical_chairs_libs.simple_functions import get_datetime, build_error_obj
-from musical_chairs_libs.errors import AlreadyUsedError
+from musical_chairs_libs.simple_functions import get_datetime
 
 sg: ColumnCollection = songs.columns
 st: ColumnCollection = stations_tbl.columns
@@ -53,7 +50,8 @@ class StationService:
 	def __init__(self,
 		conn: Optional[Connection]=None,
 		envManager: Optional[EnvManager]=None,
-		processManager: Optional[OSProcessManager]=None
+		processManager: Optional[OSProcessManager]=None,
+		tagService: Optional[TagService]=None
 	):
 		if not conn:
 			if not envManager:
@@ -61,8 +59,11 @@ class StationService:
 			conn = envManager.get_configured_db_connection()
 		if not processManager:
 			processManager = OSProcessManager()
+		if not tagService:
+			tagService = TagService(conn)
 		self.conn = conn
 		self.process_manager = processManager
+		self.tag_service = tagService
 		self.get_datetime = get_datetime
 
 	def set_station_proc(self, stationName: str) -> None:
@@ -95,14 +96,6 @@ class StationService:
 		pk: Optional[int] = row.pk if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk
 
-	def get_tag_pk(self, tagName: str) -> Optional[int]:
-		query = select(tg.pk) \
-			.select_from(tags_tbl) \
-			.where(func.lower(tg.name) == func.lower(tagName))
-		row = self.conn.execute(query).fetchone()
-		pk = row["pk"] if row else None #pyright: ignore [reportGeneralTypeIssues]
-		return pk
-
 	def does_station_exist(self, stationName: str) -> bool:
 		query = select(func.count(1))\
 			.select_from(stations_tbl)\
@@ -118,32 +111,6 @@ class StationService:
 			.values(name = stationName, displayName = displayName)
 		self.conn.execute(stmt)
 		return True
-
-	def get_or_save_tag(self, tagName: str) -> Optional[int]:
-		if not tagName:
-			return None
-		query = select(tg.pk).select_from(tags_tbl) \
-			.where(func.lower(tg.name) == func.lower(tagName))
-		row = self.conn.execute(query).fetchone()
-		if row:
-			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
-			return pk
-		stmt = insert(tags_tbl).values(name = tagName)
-		res = self.conn.execute(stmt)
-		insertedPk: int = res.lastrowid
-		return insertedPk
-
-	def assign_tag_to_station(self,stationName: str, tagName: str) -> bool:
-		stationPk = self.get_station_pk(stationName)
-		tagPk = self.get_or_save_tag(tagName)
-		try:
-			stmt = insert(stations_tags_tbl)\
-				.values(stationFk = stationPk, tagFk = tagPk)
-			self.conn.execute(stmt)
-			return True
-		except IntegrityError:
-			print("Could not insert")
-			return False
 
 	def remove_station(self, stationName: str) -> None:
 		stationPk = self.get_station_pk(stationName)
@@ -236,6 +203,18 @@ class StationService:
 				cast(str, row.artist)
 			)
 
+	def assign_tag_to_station(self, stationName: str, tagName: str) -> bool:
+		stationPk = self.get_station_pk(stationName)
+		tagPk = self.tag_service.get_or_save_tag(tagName)
+		try:
+			stmt = insert(stations_tags_tbl)\
+				.values(stationFk = stationPk, tagFk = tagPk)
+			self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+			return True
+		except IntegrityError:
+			print("Could not insert")
+			return False
+
 	def can_song_be_queued_to_station(self, songPk: int, stationPk: int) -> bool:
 		query = select(func.count(1)).select_from(songs_tags)\
 			.join(stations_tags_tbl, (sttg.tagFk == sgtg.tagFk)\
@@ -243,75 +222,6 @@ class StationService:
 			.where(sgtg.songFk == songPk)
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
-
-	def get_tags_count(self) -> int:
-		query = select(func.count(1)).select_from(tags_tbl)
-		count = self.conn.execute(query).scalar() or 0
-		return count
-
-	def get_tags(
-		self,
-		page: int = 0,
-		pageSize: Optional[int]=None,
-		stationId: Optional[int]=None,
-		stationName: Optional[str]=None,
-		tagIds: Optional[Iterable[int]]=None
-	) -> Iterator[Tag]:
-		offset = page * pageSize if pageSize else 0
-		query = select(tg.pk, tg.name).select_from(tags_tbl)
-		if stationId:
-			query = query.join(stations_tags_tbl, tg.pk == sttg.tagFk)\
-				.where(sttg.stationFk == stationId)
-		elif stationName:
-			searchStr = SearchNameString.format_name_for_search(stationName)
-			query = query.join(stations_tags_tbl, tg.pk == sttg.tagFk)\
-				.join(stations_tbl, sttg.stationFk == st.pk)\
-				.where(func.format_name_for_search(st.name).like(f"%{searchStr}%"))
-		if tagIds:
-			query = query.where(tg.pk.in_(tagIds))
-		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query)
-		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield Tag(
-				cast(int,row.pk),
-				cast(str, row.name)
-			)
-
-	def remove_tags_for_station(self, stationId: int, tagIds: Iterable[int]) -> int:
-		if not stationId:
-			return 0
-		tagIds = tagIds or []
-		delStmt = delete(stations_tags_tbl).where(sttg.stationFk == stationId)\
-			.where(sttg.tagFk.in_(tagIds))
-		return cast(int, self.conn.execute(delStmt).rowcount)
-
-
-	def add_tags_to_station(
-		self,
-		stationId: int,
-		tags: Sequence[Tag],
-		userId: Optional[int]=0
-	) -> Iterable[Tag]:
-		if stationId is None or not tags:
-			return []
-		uniqueTags = set(tags)
-		uniqueTagIds = {t.id for t in uniqueTags}
-		existingTagIds = {t.id for t in self.get_tags(stationId=stationId)}
-		outTagIds = existingTagIds - uniqueTagIds
-		inTagIds = uniqueTagIds - existingTagIds
-		self.remove_tags_for_station(stationId, outTagIds)
-		if not inTagIds:
-			return uniqueTags
-		lastModifiedUserId: Any = userId
-		tagParams = [{
-			"stationFk": stationId,
-			"tagFk": t,
-			"lastModifiedByUserFk": lastModifiedUserId,
-			"lastModifiedTimestamp": self.get_datetime().timestamp()
-		} for t in inTagIds]
-		stmt = insert(stations_tags_tbl)
-		self.conn.execute(stmt, tagParams)
-		return uniqueTags
 
 	def _is_stationName_used(self, stationName: SavedNameString) -> bool:
 		queryAny: str = select(func.count(1)).select_from(stations_tbl)\
@@ -338,7 +248,7 @@ class StationService:
 		else:
 			return None
 		row = self.conn.execute(query).fetchone()
-		tags = self.get_tags(stationId=stationId)
+		tags = self.tag_service.get_tags(stationId=stationId)
 		if not row:
 			return None
 		return StationInfo(
@@ -347,41 +257,6 @@ class StationService:
 			row["displayName"],
 			list(tags)
 		)
-
-	def save_tag(
-		self,
-		tagName: str,
-		tagId: Optional[int]=None,
-		userId: Optional[int]=None
-	) -> Tag:
-		if not tagName and not tagId:
-			return Tag(-1, "")
-		upsert = update if tagId else insert
-		savedName = SavedNameString(tagName)
-		stmt = upsert(tags_tbl).values(
-			name = str(savedName),
-			lastModifiedByUserFk = userId,
-			lastModifiedTimestamp = self.get_datetime().timestamp()
-		)
-		if tagId:
-			stmt = stmt.where(tg.pk == tagId)
-		try:
-			res = self.conn.execute(stmt)
-
-			affectedPk: int = tagId if tagId else res.lastrowid
-			return Tag(affectedPk, str(savedName))
-		except IntegrityError:
-			raise AlreadyUsedError(
-				[build_error_obj(
-					f"{tagName} is already used.", "tagName"
-				)]
-			)
-
-	def delete_tag(self, tagId: int) -> int:
-		stmt = delete(tags_tbl).where(tg.pk == tagId)
-		res = self.conn.execute(stmt)
-		return cast(int, res.rowcount) or 0
-
 
 	def save_station(
 		self,
@@ -405,7 +280,8 @@ class StationService:
 		res = self.conn.execute(stmt)
 
 		affectedPk: int = stationId if stationId else res.lastrowid
-		resultTags = self.add_tags_to_station(affectedPk, station.tags, userId)
+		resultTags = self.tag_service\
+			.add_tags_to_station(affectedPk, station.tags, userId)
 		return StationInfo(
 			affectedPk,
 			str(savedName),

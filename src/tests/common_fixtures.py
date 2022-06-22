@@ -10,6 +10,7 @@ from musical_chairs_libs.dtos import AccountInfo
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.song_info_service import SongInfoService
 from musical_chairs_libs.station_service import StationService
+from musical_chairs_libs.tag_service import TagService
 from .mocks.mock_process_manager import MockOSProcessManager
 from .mocks.mock_db_constructors import setup_in_mem_tbls,\
 	construct_mock_connection_constructor
@@ -110,6 +111,13 @@ def fixture_song_info_service(
 ) -> SongInfoService:
 	songInfoService = SongInfoService(fixture_populated_db_conn_in_mem)
 	return songInfoService
+
+@pytest.fixture
+def fixture_tag_service(
+	fixture_populated_db_conn_in_mem: Connection
+) -> TagService:
+	tagService = TagService(fixture_populated_db_conn_in_mem)
+	return tagService
 
 @pytest.fixture
 def fixture_setup_in_mem_tbls(

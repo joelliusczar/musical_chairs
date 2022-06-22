@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Any
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos import AccountInfo, UserRoleDef
 from musical_chairs_libs.tables import \
@@ -57,6 +57,7 @@ def populate_albums(conn: Connection):
   conn.execute(stmt, albumParams4) #pyright: ignore [reportUnknownMemberType]
 
 def populate_songs(conn: Connection):
+	global songParams
 	songParams = [
 		{ "pk": 1,
 			"path": "foo/goo/boo/sierra",
@@ -819,11 +820,14 @@ def populate_user_roles(
 	stmt = insert(userRoles)
 	conn.execute(stmt, userRoleParams) #pyright: ignore [reportUnknownMemberType]
 
-def get_starting_users():
+def get_starting_users() -> list[dict[Any, Any]]:
 	return usersParams
 
-def get_starting_tags():
+def get_starting_tags() -> list[dict[Any, Any]]:
 	return tagsParams
 
-def get_starting_stations():
+def get_starting_stations() -> list[dict[Any, Any]]:
 	return stationParams
+
+def get_starting_songs() -> list[dict[Any, Any]]:
+	return songParams

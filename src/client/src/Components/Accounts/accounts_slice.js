@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 import { defaultWebClient as webClient } from "../../api";
 import { CallStatus, UserRoleDef } from "../../constants";
 
@@ -7,18 +7,15 @@ export const AccountsCallTypes = {
 };
 
 
-export const login = createAsyncThunk(
-	"accounts/login",
-	async ({username, password}) => {
-		const formData = new window.FormData();
-		formData.append("username", username);
-		formData.append("password", password);
-		const response = await webClient.post("accounts/open", formData);
-		webClient.defaults.headers.common["Authorization"] =
-		`Bearer ${response.data.access_token}`;
-		return response.data;
-	}
-);
+export const login = async ({username, password}) => {
+	const formData = new window.FormData();
+	formData.append("username", username);
+	formData.append("password", password);
+	const response = await webClient.post("accounts/open", formData);
+	webClient.defaults.headers.common["Authorization"] =
+	`Bearer ${response.data.access_token}`;
+	return response.data;
+};
 
 export const createAccount = async ({ values }) => {
 	const response = await webClient.post("accounts/new", values);
@@ -96,6 +93,20 @@ const slice = createSlice({
 export const isAdminSelector = appState =>
 	appState.accounts.values[AccountsCallTypes.login].roles
 		.some(r => r.startsWith(UserRoleDef.ADMIN));
+
+export const hasAnyRolesSelector = (requiredRoles) => (appState) => {
+	if(!requiredRoles || requiredRoles.length < 1) return true;
+	const userRoles = appState.accounts.values[AccountsCallTypes.login].roles;
+	if(userRoles.some(r => r.startsWith(UserRoleDef.ADMIN))) {
+		return true;
+	}
+	for (const role of requiredRoles) {
+		if(userRoles.some(r => r.startsWith(role))) {
+			return true;
+		}
+	}
+	return false;
+};
 
 export const currentUserSelector = appState =>
 	appState.accounts.values[AccountsCallTypes.login];

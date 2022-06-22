@@ -3,10 +3,22 @@ import re
 import unicodedata
 from unidecode import unidecode
 from dataclasses import dataclass
-from typing import Any, Iterator, List, Optional, Iterable, Sequence, Set, Tuple, TypeVar, Generic, Union
+from typing import\
+	Any,\
+	Iterator,\
+	List,\
+	Optional,\
+	Iterable,\
+	Sequence,\
+	Set,\
+	Tuple,\
+	TypeVar,\
+	Generic,\
+	Union
 from enum import Enum
 from pydantic import BaseModel, validator
 from email_validator import validate_email #pyright: ignore reportUnknownVariableType
+
 
 class SavedNameString:
 
@@ -60,14 +72,16 @@ class UserRoleDef(Enum):
 	SONG_REQUEST = "song:request:"
 	TAG_DELETE = "tag:delete:"
 	TAG_EDIT = "tag:edit:"
+	STATION_EDIT = "station:edit:"
+	STATION_DELETE = "station:delete:"
 	USER_LIST = "user:list:"
 	USER_EDIT = "user:edit:"
 
 	def __call__(self, mod: Optional[Union[str, int]]=None) -> str:
 		return self.modded_value(mod)
 
-	@classmethod
-	def as_set(cls) -> Set[str]:
+	@staticmethod
+	def as_set() -> Set[str]:
 		return {r.value for r in UserRoleDef}
 
 	@staticmethod
@@ -244,6 +258,6 @@ class StationInfo:
 	tags: list[Tag]
 
 class StationCreationInfo(BaseModel):
-	name: str
+	stationName: str
 	displayName: str
 	tags: list[Tag]

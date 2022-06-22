@@ -13,3 +13,11 @@ export const NotFound = () => {
 		</div>
 	);
 };
+
+export const NoPermissions = () => {
+	return (
+		<div>
+			You do not have permission to view this page.
+		</div>
+	);
+};

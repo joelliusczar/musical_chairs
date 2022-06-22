@@ -9,10 +9,11 @@ import { AccountsNew } from "../Accounts/AccountsNew";
 import { LoginForm } from "../Accounts/AccountsLoginForm";
 import { AccountsList } from "../Accounts/AccountsList";
 import { AccountsRoles } from "../Accounts/AccountsRoles";
-import { currentUserSelector } from "../Accounts/accounts_slice";
-import { NotFound } from "../Shared/NotFound";
-import { DomRoutes } from "../../constants";
-import { useSelector } from "react-redux";
+import { StationEdit } from "../Stations/StationEdit";
+import { NotFound } from "../Shared/RoutingErrors";
+import { DomRoutes, UserRoleDef } from "../../constants";
+import { PrivateRoute } from "../Shared/PrivateRoute";
+import { useCurrentUser } from "../Accounts/AuthContext";
 
 
 
@@ -44,7 +45,7 @@ export function NavMenu() {
 export function AppRoutes() {
 
 	const urlHistory = useHistory();
-	const currentUser = useSelector(currentUserSelector);
+	const currentUser = useCurrentUser();
 
 	return (
 		<Switch>
@@ -71,8 +72,16 @@ export function AppRoutes() {
 			<Route path={DomRoutes.accountsList}>
 				<AccountsList />
 			</Route>
-			<Route path={`${DomRoutes.accountsRoles}:id`}>
+			<PrivateRoute
+				path={`${DomRoutes.accountsRoles}:id`}
+				scopes={[UserRoleDef.ADMIN]}
+			>
 				<AccountsRoles />
+			</PrivateRoute>
+			<Route
+				path={`${DomRoutes.stationsEdit}`}
+			>
+				<StationEdit />
 			</Route>
 			<Route>
 				<NotFound />

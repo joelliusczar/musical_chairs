@@ -201,26 +201,9 @@ class AccountsService:
 					r["creationTimestamp"]
 				) for r in rows)
 
-	def time_til_user_can_make_request(
-		self,
-		user: AccountInfo
-	) -> int:
+	def last_request_timestamp(self, user: AccountInfo) -> int:
 		if not user:
-			return -1
-		if user.isAdmin:
 			return 0
-		requestRoles = list(filter(
-			lambda r: r.startswith(UserRoleDef.SONG_REQUEST.modded_value()),
-			user.roles
-		))
-		if not any(requestRoles):
-			return -1
-		timeout = min(
-			map(
-				lambda r: UserRoleDef.extract_role_segments(r)[1] or -1,
-				requestRoles
-			)
-		) * 60
 		queueLatestQuery = select(func.max(q.requestedTimestamp))\
 			.select_from(station_queue)\
 			.where(q.requestedByUserFk == user.id)
@@ -233,8 +216,7 @@ class AccountsService:
 			(lastRequestedInQueue or 0),
 			(lastRequestedInHistory or 0)
 		)
-		timeLeft = lastRequested + timeout - self.get_datetime().timestamp()
-		return int(timeLeft) if timeLeft > 0 else 0
+		return lastRequested
 
 	def _is_username_used(self, username: SearchNameString) -> bool:
 		queryAny: str = select(func.count(1)).select_from(users)\

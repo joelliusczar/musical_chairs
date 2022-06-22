@@ -16,7 +16,8 @@ export const CallType = {
 export const DomRoutes = {
 	queue: "/queue/",
 	history: "/history/",
-	stations: "/stations/",
+	stations: "/stations/list/",
+	stationsEdit: "/stations/edit/",
 	songCatalogue: "/song-catalogue/",
 	accountsNew: "/accounts/new",
 	accountsLogin: "/accounts/login",
@@ -41,8 +42,10 @@ export const ApiRoutes = {
 
 export const UserRoleDef = {
 	"ADMIN": "admin::",
-	"SONG_ADD": "song:add:",
+	"SONG_EDIT": "song:edit:",
 	"SONG_REQUEST": "song:request:",
+	"STATION_EDIT": "station:edit:",
+	"STATION_DELETE": "station:delete:",
 	"USER_LIST": "user:list:",
 	"USER_EDIT": "user:edit:",
 };

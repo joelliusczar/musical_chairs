@@ -31,7 +31,7 @@ def index(
 
 @router.get("/{stationName}/history")
 def history(
-	stationName: str, 
+	stationName: str,
 	historyService: HistoryService = Depends(history_service)
 ) -> Dict[str, List[HistoryItem]]:
 	if not stationName:
@@ -42,7 +42,7 @@ def history(
 
 @router.get("/{stationName}/queue")
 def queue(
-	stationName: str, 
+	stationName: str,
 	queueService: QueueService = Depends(queue_service)
 ) -> CurrentPlayingInfo:
 	if not stationName:

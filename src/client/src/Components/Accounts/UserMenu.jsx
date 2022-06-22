@@ -1,21 +1,20 @@
 import React from "react";
 import { Menu, MenuItem } from "@mui/material";
 import PropTypes from "prop-types";
-import { useDispatch, useSelector } from "react-redux";
-import { logout } from "./accounts_slice";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
-import { currentUserSelector } from "./accounts_slice";
+import { useCurrentUser, useLogin } from "./AuthContext";
 
 export function UserMenu(props) {
 	const { anchorEl } = props;
-	const dispatch = useDispatch();
-	const user = useSelector(currentUserSelector);
+	const [, logout] = useLogin();
+
+	const user = useCurrentUser();
 
 	const open = !!anchorEl;
 
 	const logoutClick = () => {
-		dispatch(logout());
+		logout();
 	};
 
 	return (

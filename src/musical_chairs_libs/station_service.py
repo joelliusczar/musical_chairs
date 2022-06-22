@@ -392,7 +392,7 @@ class StationService:
 		if not station:
 			return self.get_station_for_edit(stationId)
 		upsert = update if stationId else insert
-		savedName = SavedNameString(station.name)
+		savedName = SavedNameString(station.stationName)
 		savedDisplayName = SavedNameString(station.displayName)
 		stmt = upsert(stations_tbl).values(
 			name = str(savedName),

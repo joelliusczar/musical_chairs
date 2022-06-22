@@ -13,6 +13,20 @@ from typing import Any
 
 metadata = MetaData()
 
+users = Table("Users", metadata,
+	Column("pk", Integer, primary_key=True),
+	Column("username", String, nullable=False),
+	Column("displayName", String, nullable=True),
+	Column("hashedPW", LargeBinary, nullable=True),
+	Column("email", String, nullable=True),
+	Column("isDisabled", Integer, nullable=True),
+	Column("creationTimestamp", Float, nullable=False)
+)
+_u_username: Any = users.c.username #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueUsername", _u_username, unique=True)
+_u_email: Any = users.c.email #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueEmail", _u_email, unique=True)
+
 artists = Table("Artists", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("name", String, nullable=False),
@@ -99,7 +113,6 @@ Index("idx_uniqueTagName", _tg_name, unique=True)
 songs_tags = Table("SongsTags", metadata,
 	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
 	Column("tagFk", Integer, ForeignKey("Tags.pk"), nullable=False),
-	Column("skip", Integer, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True)
@@ -132,6 +145,18 @@ _sttg_stationFk: Any = stations_tags.c.stationFk #pyright: ignore reportUnknownM
 _sttg_tagFk: Any = stations_tags.c.tagFk #pyright: ignore reportUnknownMemberType
 Index("idx_stationsTags", _sttg_stationFk, _sttg_tagFk, unique=True)
 
+banned_songs_stations =  Table("BannedSongsStations", metadata,
+	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
+	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
+	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
+		nullable=True),
+	Column("lastModifiedTimestamp", Float, nullable=True)
+)
+
+_bsgst_stationFk: Any = banned_songs_stations.c.stationFk #pyright: ignore reportUnknownMemberType
+_bsgst_songFk: Any = banned_songs_stations.c.songFk #pyright: ignore reportUnknownMemberType
+Index("idx_bannedSongStation", _bsgst_stationFk, _bsgst_songFk, unique=True)
+
 stations_history = Table("StationHistory", metadata,
 	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
 	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
@@ -149,19 +174,7 @@ station_queue = Table("StationQueue", metadata,
 	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True)
 )
 
-users = Table("Users", metadata,
-	Column("pk", Integer, primary_key=True),
-	Column("username", String, nullable=False),
-	Column("displayName", String, nullable=True),
-	Column("hashedPW", LargeBinary, nullable=True),
-	Column("email", String, nullable=True),
-	Column("isDisabled", Integer, nullable=True),
-	Column("creationTimestamp", Float, nullable=False)
-)
-_u_username: Any = users.c.username #pyright: ignore reportUnknownMemberType
-Index("idx_uniqueUsername", _u_username, unique=True)
-_u_email: Any = users.c.email #pyright: ignore reportUnknownMemberType
-Index("idx_uniqueEmail", _u_email, unique=True)
+
 
 userRoles = Table("UserRoles", metadata,
 	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),

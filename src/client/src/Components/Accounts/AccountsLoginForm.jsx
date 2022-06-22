@@ -3,17 +3,16 @@ import { Box, Button, Typography } from "@mui/material";
 import { FormikProvider, useFormik } from "formik";
 import { FormikTextField } from "../Shared/FormikTextField";
 import PropTypes from "prop-types";
-import { login } from "./accounts_slice";
-import { useDispatch } from "react-redux";
 import { useSnackbar } from "notistack";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
+import { useLogin } from "./AuthContext";
 
 export function LoginForm(props) {
 
 	const { afterSubmit, onCancel } = props;
-	const dispatch = useDispatch();
 	const { enqueueSnackbar } = useSnackbar();
+	const [ login ] = useLogin();
 
 	const formik = useFormik({
 		initialValues: {
@@ -22,9 +21,7 @@ export function LoginForm(props) {
 		},
 		onSubmit: async (values) => {
 			try {
-				await dispatch(
-					login({username: values.username, password: values.password})
-				).unwrap();
+				await login(values.username, values.password);
 				enqueueSnackbar("Login successful", { variant: "success"});
 				afterSubmit();
 			}

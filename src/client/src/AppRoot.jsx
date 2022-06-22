@@ -18,9 +18,9 @@ import store from "./reducers";
 import { theme, drawerWidth } from "./style_config";
 import { LoginModal } from "./Components/Accounts/AccountsLoginModal";
 import { SnackbarProvider } from "notistack";
-import { useSelector } from "react-redux";
 import { UserMenu } from "./Components/Accounts/UserMenu";
-import { currentUserSelector } from "./Components/Accounts/accounts_slice";
+import { AuthContextProvider } from "./Components/Accounts/AuthContext";
+import { useCurrentUser } from "./Components/Accounts/AuthContext";
 
 export const useStyles = makeStyles(() => ({
 	drawerPaper: {
@@ -32,7 +32,7 @@ function AppTrunk() {
 	const classes = useStyles();
 	const [loginOpen, setLoginOpen ] = useState(false);
 	const [menuAnchor, setMenuAchor ] = useState(null);
-	const currentUser = useSelector(currentUserSelector);
+	const currentUser = useCurrentUser();
 
 	const openUserMenu = (e) => {
 		setMenuAchor(e.currentTarget);
@@ -95,13 +95,15 @@ function AppTrunk() {
 function AppRoot() {
 	return (
 		<Provider store={store}>
-			<ThemeProvider theme={theme}>
-				<SnackbarProvider>
-					<BrowserRouter basename="/">
-						<AppTrunk />
-					</BrowserRouter>
-				</SnackbarProvider>
-			</ThemeProvider>
+			<AuthContextProvider>
+				<ThemeProvider theme={theme}>
+					<SnackbarProvider>
+						<BrowserRouter basename="/">
+							<AppTrunk />
+						</BrowserRouter>
+					</SnackbarProvider>
+				</ThemeProvider>
+			</AuthContextProvider>
 		</Provider>
 	);
 }

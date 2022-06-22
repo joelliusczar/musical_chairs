@@ -10,9 +10,9 @@ import {
 } from "@mui/material";
 import Loader from "../Shared/Loader";
 import { CallStatus, DomRoutes } from "../../constants";
-import { useSelector } from "react-redux";
 import { useLocation, Link } from "react-router-dom";
-import { currentUserSelector, fetchUserList } from "./accounts_slice";
+import { fetchUserList } from "./accounts_slice";
+import { useCurrentUser } from "./AuthContext";
 
 export const AccountsList = () => {
 	const [fetchStatus, setFetchStatus] = useState(null);
@@ -23,7 +23,7 @@ export const AccountsList = () => {
 	});
 	const location = useLocation();
 
-	const currentUser = useSelector(currentUserSelector);
+	const currentUser = useCurrentUser();
 
 	useEffect(() => {
 		document.title =

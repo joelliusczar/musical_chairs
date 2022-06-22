@@ -3,14 +3,13 @@ import { FormikProvider, useFormik } from "formik";
 import { Box, MenuItem, Button, Chip } from "@mui/material";
 import { useParams } from "react-router-dom";
 import { useSnackbar } from "notistack";
-import { useSelector } from "react-redux";
 import { UserRoleDef } from "../../constants";
 import { FormikSelect } from "../Shared/FormikSelect";
-import { NotFound } from "../Shared/NotFound";
+import { NotFound } from "../Shared/RoutingErrors";
 import { updateUserRoles, fetchUser } from "./accounts_slice";
 import { CallStatus } from "../../constants";
 import Loader from "../Shared/Loader";
-import { currentUserSelector } from "./accounts_slice";
+import { useCurrentUser } from "./AuthContext";
 
 
 const inputField = {
@@ -23,7 +22,7 @@ export const AccountsRoles = () => {
 	const [fetchStatus, setFetchStatus] = useState();
 	//const [saveStatus, setSaveStatus] = useState();
 	const [fetchError, setFetchError] = useState(null);
-	const currentUser = useSelector(currentUserSelector);
+	const currentUser = useCurrentUser();
 
 	const formik = useFormik({
 		initialValues: {
@@ -89,7 +88,6 @@ export const AccountsRoles = () => {
 				if(!fetchStatus && id) {
 					setFetchStatus(CallStatus.loading);
 					const data = await fetchUser({ id });
-					setFetchStatus(CallStatus.done);
 					resetForm({
 						values: {
 							accountInfo: data,

@@ -24,7 +24,7 @@ get_repo_path() (
 	if [ -n "$radio_repo_path" ]; then
 		echo "$radio_repo_path"
 	else
-		echo "$default_radio_repo_path" 
+		echo "$default_radio_repo_path"
 	fi
 )
 
@@ -38,14 +38,14 @@ install_package() (
 				yes | sudo -p 'Pass required for pacman install: ' \
 					pacman -S "$pkgName"
 			elif which apt-get >/dev/null 2>&1; then
-				 sudo -p 'Pass required for apt-get install: ' \
-					DEBIAN_FRONTEND=noninteractive apt-get -y install "$pkgName" 
+				sudo -p 'Pass required for apt-get install: ' \
+					DEBIAN_FRONTEND=noninteractive apt-get -y install "$pkgName"
 			fi
 			;;
 		(Darwin*)
 			yes | brew install "$pkgName"
 			;;
-		(*) 
+		(*)
 			;;
 	esac
 )
@@ -64,7 +64,7 @@ set_python_version_const() {
 		pyVersion=$(python3 -V)
 	elif python -V >/dev/null 2>&1; then
 		pyVersion=$(python -V)
-	else 
+	else
 		return 1
 	fi
 	pyMajor=$(echo "$pyVersion" | perl -ne 'print "$1\n" if /(\d+)\.\d+/')
@@ -107,7 +107,7 @@ get_pkg_mgr() {
 			echo "$HOMEBREW_CONST"
 			return 0
 			;;
-		(*) 
+		(*)
 			;;
 	esac
 	return 1
@@ -139,7 +139,7 @@ kill_s3fs() {
 link_to_music_files() {
 	echo 'linking music files'
 	process_global_vars "$@" &&
-	if [ ! -e "$app_root"/"$content_home"/Soundtrack ]; then 
+	if [ ! -e "$app_root"/"$content_home"/Soundtrack ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
 			s3fs "$(s3_name)" "$app_root"/"$content_home"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
@@ -167,7 +167,7 @@ is_dir_empty() (
 	[ ! -d "$target_dir" ] || [ -z "$(ls -A ${target_dir})" ]
 )
 
-# set up the python environment, then copy 
+# set up the python environment, then copy
 # subshell () auto switches in use python version back at the end of function
 create_py_env_in() (
 	echo "setting up py libs"
@@ -181,7 +181,7 @@ create_py_env_in() (
 	mc-python -m virtualenv "$dest_base"/"$env_name" &&
 	. "$dest_base"/$env_name/bin/activate &&
 	#this is to make some of my newer than checks work
-	touch "$dest_base"/$env_name && 
+	touch "$dest_base"/$env_name &&
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
@@ -205,7 +205,7 @@ empty_dir_contents() (
 	dir_to_empty="$1"
 	echo "emptying ${dir_to_empty}"
 	error_check_path "$dir_to_empty" &&
-	if [ -e "$dir_to_empty" ]; then 
+	if [ -e "$dir_to_empty" ]; then
 		if ! is_dir_empty "$dir_to_empty"; then
 			sudo -p "Password required for removing files from ${dir_to_empty}: " \
 				rm -rf "$dir_to_empty"/* || return "$?"
@@ -244,7 +244,7 @@ brew_is_installed() (
 	esac
 )
 
-#this needs to command group and not a subshell 
+#this needs to command group and not a subshell
 #else it will basically do nothing
 show_err_and_exit() {
 	err_code="$?"
@@ -253,7 +253,7 @@ show_err_and_exit() {
 	exit "$err_code"
 }
 
-#needed this method because perl will still 
+#needed this method because perl will still
 #exit 0 even if a file doesn't exist
 does_file_exist() (
 	candidate="$1"
@@ -276,7 +276,7 @@ kill_process_using_port() (
 		if [ -n "$procId" ]; then
 			kill -15 "$procId"
 		fi
-	else 
+	else
 		echo "Script not wired up to be able to kill process at port: ${portNum}"
 	fi
 	echo "Hopefully process using is done ${portNum}"
@@ -317,7 +317,7 @@ setup_db() (
 	error_check_path "$reference_src_db" &&
 	error_check_path "$app_root"/"$sqlite_file" &&
 	if [ ! -e "$app_root"/"$sqlite_file" ]; then
-		cp -v "$reference_src_db" "$app_root"/"$sqlite_file" 
+		cp -v "$reference_src_db" "$app_root"/"$sqlite_file"
 	else
 		if [ -n "$(pgrep 'mc-ices')" ]; then
 			shutdown_all_stations
@@ -326,11 +326,11 @@ setup_db() (
 			kill_process_using_port "$api_port"
 		fi
 	fi
-	
+
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	python <<-EOF
-	from musical_chairs_libs.tables import metadata 
+	from musical_chairs_libs.tables import metadata
 	from musical_chairs_libs.env_manager import EnvManager
 	envManager = EnvManager()
 	conn = envManager.get_configured_db_connection()
@@ -338,7 +338,7 @@ setup_db() (
 
 	print('Created all tables')
 	EOF
-	
+
 	echo 'done with db stuff'
 )
 
@@ -373,7 +373,7 @@ sync_requirement_list() (
 
 gen_pass() (
 	pass_len=${1:-16}
-	LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$pass_len" 
+	LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$pass_len"
 )
 
 compare_dirs() (
@@ -383,14 +383,14 @@ compare_dirs() (
 	error_check_path "$cpy_dir"
 	exit_code=0
 	if [ ! -e "$cpy_dir" ]; then
-		echo "$cpy_dir/ is not in place" 
+		echo "$cpy_dir/ is not in place"
 		return 1
 	fi
 	rm -f src_fifo cpy_fifo cmp_fifo
 	mkfifo src_fifo cpy_fifo cmp_fifo
 
 	src_res=$(find "$src_dir" | \
-		sed "s@${src_dir%/}/\{0,1\}@@" | sort) 
+		sed "s@${src_dir%/}/\{0,1\}@@" | sort)
 	cpy_res=$(find "${cpy_dir}" -not -path "${cpy_dir}/${py_env}/*" \
 		-and -not -path "${cpy_dir}/${py_env}" | \
 		sed "s@${cpy_dir%/}/\{0,1\}@@" | sort)
@@ -406,12 +406,12 @@ compare_dirs() (
 	in_both=$(get_file_list 12)
 	in_src=$(get_file_list 23)
 	in_cpy=$(get_file_list 13)
-	[ -n "$(echo "${in_cpy}" | xargs)" ] && 
+	[ -n "$(echo "${in_cpy}" | xargs)" ] &&
 			{
 				echo "There are items that only exist in ${cpy_dir}"
 				exit_code=2
 			}
-	[ -n "$(echo "${in_src}" | xargs)" ] && 
+	[ -n "$(echo "${in_src}" | xargs)" ] &&
 			{
 				echo "There are items missing from the ${cpy_dir}"
 				exit_code=3
@@ -477,7 +477,7 @@ update_nginx_conf() (
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<server_name>@${server_name}@" "$appConfFile" &&
-	case "$app_env" in 
+	case "$app_env" in
 		(local*)
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s/<listen>/8080/" "$appConfFile"
@@ -493,7 +493,7 @@ update_nginx_conf() (
 get_abs_path_from_nginx_include() (
 	confDirInclude="$1"
 	confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
-		sed 's@/\*; *@@') 
+		sed 's@/\*; *@@')
 	#test if already exists as absolute path
 	if [ -d  "$confDir" ]; then
 		echo "$confDir"
@@ -503,7 +503,7 @@ get_abs_path_from_nginx_include() (
 		echo "sites_folder_path: $sites_folder_path" >&2
 		absPath="$sites_folder_path"/"$confDir"
 		if [ ! -d "$absPath" ]; then
-			if [ -e "$absPath" ]; then 
+			if [ -e "$absPath" ]; then
 				echo "{$absPath} is a file, not a directory" 1>&2
 				return 1
 			fi
@@ -540,7 +540,7 @@ restart_nginx() (
 		(Darwin*)
 			nginx -s reload
 			;;
-		(Linux*) 
+		(Linux*)
 			if systemctl is-active --quiet nginx; then
 				sudo -p 'starting nginx' systemctl restart nginx
 			else
@@ -571,7 +571,7 @@ start_icecast_service() (
 	echo 'starting icecast service'
 	icecastName="$1"
 	case $(uname) in
-		(Linux*) 
+		(Linux*)
 			if ! systemctl is-active --quiet "$icecastName"; then
 				sudo -p "enabling ${icecastName}" systemctl enable "$icecastName"
 				sudo -p "starting ${icecastName}" systemctl start "$icecastName"
@@ -634,8 +634,8 @@ update_all_ices_confs() (
 get_icecast_source_password() (
 	icecastConfLocation="$1"
 	sudo -S -p 'Pass required to read icecast config: ' \
-  	grep '<source-password>' "$icecastConfLocation" \
-  	| perl -ne 'print "$1\n" if />(\w+)/'
+		grep '<source-password>' "$icecastConfLocation" \
+		| perl -ne 'print "$1\n" if />(\w+)/'
 )
 
 setup_icecast_confs() (
@@ -654,7 +654,7 @@ setup_icecast_confs() (
 	sudo -p "restaring ${icecastName}" systemctl restart "$icecastName" &&
 	echo "done setting up icecast/ices"
 )
-	
+
 create_ices_config() (
 	echo 'creating ices config'
 	internalName="$1"
@@ -911,9 +911,9 @@ setup_unit_test_env() (
 	echo "setting up test environment"
 	process_global_vars "$@" &&
 	export app_root="$test_root"
-	[ -e "$app_root"/"$config_dir" ] || 
+	[ -e "$app_root"/"$config_dir" ] ||
 	mkdir -pv "$app_root"/"$config_dir" &&
-	[ -e "$app_root"/"$db_dir" ] || 
+	[ -e "$app_root"/"$db_dir" ] ||
 	mkdir -pv "$app_root"/"$db_dir" &&
 	error_check_path "$reference_src_db" &&
 	error_check_path "$app_root"/"$sqlite_file" &&
@@ -948,7 +948,7 @@ setup_all() (
 
 #assume install_setup.sh has been run
 run_unit_tests() (
-	echo "running unit tests" 
+	echo "running unit tests"
 	process_global_vars "$@"
 	setup_unit_test_env &&
 

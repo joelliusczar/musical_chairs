@@ -9,7 +9,10 @@ from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.queue_service import QueueService
 from musical_chairs_libs.accounts_service import AccountsService, UserRoleDef
 from musical_chairs_libs.dtos import AccountInfo
-from musical_chairs_libs.simple_functions import build_error_obj
+from musical_chairs_libs.simple_functions import\
+	build_error_obj,\
+	seconds_to_tuple,\
+	build_timespan_msg
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -60,14 +63,53 @@ def get_current_user_base(
 		)
 	return user
 
+def time_til_user_can_do_action(
+	user: AccountInfo,
+	role: UserRoleDef,
+	accountsService: AccountsService
+) -> int:
+	if not user:
+		return -1
+	if user.isAdmin:
+		return 0
+	requestRoles = [r for r in user.roles \
+		if r.startswith(role())]
+	if not any(requestRoles):
+		return -1
+	timeout = min([UserRoleDef.extract_role_segments(r)[1] for r \
+		in requestRoles]) * 60
+	lastRequestedTimestamp = 0
+	if role == UserRoleDef.SONG_REQUEST:
+		lastRequestedTimestamp = accountsService.last_request_timestamp(user)
+	timeLeft = lastRequestedTimestamp + timeout - accountsService\
+		.get_datetime().timestamp()
+	return int(timeLeft) if timeLeft > 0 else 0
+
+
 def get_current_user(
 	securityScopes: SecurityScopes,
 	user: AccountInfo = Depends(get_current_user_base),
+	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	if user.isAdmin:
 		return user
+	roleMap = {r():r for r in UserRoleDef}
+	roleModSet = {UserRoleDef.extract_role_segments(r)[0] for r in user.roles}
 	for scope in securityScopes.scopes:
-		if scope in (UserRoleDef.extract_role_segments(r)[0] for r in user.roles):
+		if scope in roleModSet:
+			timeleft = time_til_user_can_do_action(
+				user,
+				roleMap[scope],
+				accountsService
+			)
+			if timeleft:
+				raise HTTPException(
+					status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+					detail=[build_error_obj(
+						f"Please wait {build_timespan_msg(seconds_to_tuple(timeleft))} "
+						"before trying again")
+					]
+				)
 			break
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,

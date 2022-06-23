@@ -24,7 +24,8 @@ class EnvManager:
 		checkSameThread: bool=True
 	) -> Connection:
 
-		dbStr = "sqlite://" if inMemory  else f"sqlite:///{cls.db_name}"
+		dbStr = f"sqlite:///file::memory:?cache=shared&uri=true" \
+			if inMemory else f"sqlite:///{cls.db_name}"
 
 		engine = create_engine(
 			dbStr,

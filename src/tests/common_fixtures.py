@@ -1,6 +1,6 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
-from typing import Iterator, List
+from typing import Callable, Iterator, List
 from datetime import datetime
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.queue_service import QueueService
@@ -22,19 +22,7 @@ from .constant_fixtures_for_test import\
 
 
 @pytest.fixture
-def fixture_db_conn_in_mem() -> Iterator[Connection]:
-	envManager = EnvManager()
-	conn = envManager.get_configured_db_connection(inMemory=True)
-	try:
-		yield conn
-	finally:
-		conn.close()
-
-@pytest.fixture
-def fixture_populated_db_conn_in_mem(
-	fixture_mock_ordered_date_list: List[datetime],
-	fixture_primary_user: AccountInfo,
-	fixture_mock_password: bytes,
+def fixture_db_conn_in_mem(
 	request: pytest.FixtureRequest
 ) -> Iterator[Connection]:
 	requestEcho = request.node.get_closest_marker("echo")
@@ -44,31 +32,42 @@ def fixture_populated_db_conn_in_mem(
 		echo = requestEcho.args[0]
 	envManager = EnvManager()
 	conn = envManager.get_configured_db_connection(inMemory=True, echo=echo)
-	setup_in_mem_tbls(
-		conn,
-		fixture_mock_ordered_date_list,
-		fixture_primary_user,
-		fixture_mock_password
-	)
 	try:
 		yield conn
 	finally:
 		conn.close()
 
-
 @pytest.fixture
-def fixture_env_manager_with_in_mem_db(
+def fixture_db_populate_factory(
 	fixture_mock_ordered_date_list: List[datetime],
 	fixture_primary_user: AccountInfo,
 	fixture_mock_password: bytes
-) -> EnvManager:
-	envMgr = EnvManager()
-	envMgr.get_configured_db_connection = \
-		construct_mock_connection_constructor(
+) -> Callable[[Connection], None]:
+	def _setup_tables(conn: Connection):
+		setup_in_mem_tbls(
+			conn,
 			fixture_mock_ordered_date_list,
 			fixture_primary_user,
 			fixture_mock_password
 		)
+	return _setup_tables
+
+@pytest.fixture
+def fixture_populated_db_conn_in_mem(
+	fixture_db_populate_factory: Callable[[Connection], None],
+	fixture_db_conn_in_mem: Connection
+) -> Connection:
+	fixture_db_populate_factory(fixture_db_conn_in_mem)
+	return fixture_db_conn_in_mem
+
+
+@pytest.fixture
+def fixture_env_manager_with_in_mem_db(
+	fixture_db_populate_factory: Callable[[Connection], None]
+) -> EnvManager:
+	envMgr = EnvManager()
+	envMgr.get_configured_db_connection = \
+		construct_mock_connection_constructor(fixture_db_populate_factory)
 	return envMgr
 
 @pytest.fixture

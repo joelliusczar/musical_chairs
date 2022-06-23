@@ -1,4 +1,4 @@
-from typing import List,Protocol
+from typing import Protocol, Callable
 from datetime import datetime
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.env_manager import EnvManager
@@ -26,7 +26,7 @@ class ConnectionConstructor(Protocol):
 
 def setup_in_mem_tbls(
 	conn: Connection,
-	orderedTestDates: List[datetime],
+	orderedTestDates: list[datetime],
 	primaryUser: AccountInfo,
 	testPassword: bytes
 ) -> None:
@@ -43,9 +43,7 @@ def setup_in_mem_tbls(
 	populate_user_roles(conn, orderedTestDates, primaryUser)
 
 def construct_mock_connection_constructor(
-	orderedTestDates: List[datetime],
-	primaryUser: AccountInfo,
-	testPassword: bytes
+	dbPopulate: Callable[[Connection], None]
 ) -> ConnectionConstructor:
 
 	def get_mock_db_connection_constructor(
@@ -54,17 +52,11 @@ def construct_mock_connection_constructor(
 		checkSameThread: bool=True
 	) -> Connection:
 		envMgr = EnvManager()
-
 		conn = envMgr.get_configured_db_connection(
 			echo=echo,
 			inMemory=True,
 			checkSameThread=checkSameThread
 		)
-		setup_in_mem_tbls(
-			conn,
-			orderedTestDates,
-			primaryUser,
-			testPassword
-		)
+		dbPopulate(conn)
 		return conn
 	return get_mock_db_connection_constructor

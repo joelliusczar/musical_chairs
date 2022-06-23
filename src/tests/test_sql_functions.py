@@ -6,6 +6,7 @@ from musical_chairs_libs.tables import songs
 from .constant_fixtures_for_test import *
 from .common_fixtures import \
 	fixture_populated_db_conn_in_mem as fixture_populated_db_conn_in_mem
+from .common_fixtures import *
 from .mocks.special_strings_reference import chinese1
 
 

@@ -15,43 +15,52 @@ from .mocks.mock_db_constructors import construct_mock_connection_constructor
 from sqlalchemy.engine import Connection
 from fastapi.testclient import TestClient
 from api_dependencies import get_configured_db_connection
+from .common_fixtures import\
+	fixture_db_populate_factory as fixture_db_populate_factory,\
+	fixture_db_conn_in_mem as fixture_db_conn_in_mem
+from .common_fixtures import *
 from index import app
-
-
-
-
 
 
 def mock_depend_primary_user():
 	return primary_user()
 
-def mock_depend_env_manager(
+def mock_depend_db_populate_factory(
 	orderedDateList: List[datetime] = Depends(mock_ordered_date_list),
 	primaryUser: AccountInfo = Depends(mock_depend_primary_user),
 	mockPassword: bytes = Depends(mock_password)
-) -> EnvManager:
-	envMgr = EnvManager()
-	envMgr.get_configured_db_connection = \
-		construct_mock_connection_constructor(
+) -> Callable[[Connection], None]:
+	def _setup_tables(conn: Connection):
+		setup_in_mem_tbls(
+			conn,
 			orderedDateList,
 			primaryUser,
 			mockPassword
 		)
+	return _setup_tables
+
+def mock_depend_env_manager() -> EnvManager:
+	envMgr = EnvManager()
+	envMgr.get_configured_db_connection = \
+		construct_mock_connection_constructor(lambda c: None)
 	return envMgr
 
-class MockConfiguredDbConnection():
+class ParentDbConnectionRef():
 
-	def __init__(self):
-		self._conn = None
+	def __init__(self, conn: Connection):
+		self._conn = conn
 
 	def __call__(
 		self,
 		envManager: EnvManager = Depends(mock_depend_env_manager)
-	) -> Connection:
-		if self._conn:
-			return self._conn
-		self._conn = envManager.get_configured_db_connection(checkSameThread=False)
-		return self._conn
+	) -> Iterator[Connection]:
+		if not envManager:
+				envManager = EnvManager()
+		conn = envManager.get_configured_db_connection(checkSameThread=False)
+		try:
+			yield conn
+		finally:
+			conn.close()
 
 def login_test_user(username: str, client: TestClient) -> dict[str, Any]:
 	formData = {
@@ -67,11 +76,12 @@ def login_test_user(username: str, client: TestClient) -> dict[str, Any]:
 	return headers
 
 @pytest.fixture
-def fixture_api_test_client() -> TestClient:
+def fixture_api_test_client(
+	fixture_db_populate_factory: Callable[[Connection], None],
+	fixture_db_conn_in_mem: Connection
+) -> TestClient:
+	fixture_db_populate_factory(fixture_db_conn_in_mem)
 	app.dependency_overrides[EnvManager] = mock_depend_env_manager
-	get_mock_configured_db_connection = MockConfiguredDbConnection()
-	app.dependency_overrides[get_configured_db_connection] =\
-		get_mock_configured_db_connection
 
-	client = TestClient(app, raise_server_exceptions=False)
+	client = TestClient(app, raise_server_exceptions=True)
 	return client

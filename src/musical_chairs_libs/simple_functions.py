@@ -5,6 +5,16 @@ from datetime import datetime, timezone
 from typing import Any, Optional, Tuple
 from email_validator import ValidatedEmail
 
+class DatetimeGetter:
+	def __init__(self, currentDateTime: Optional[datetime]=None) -> None:
+		self.overrideDate = currentDateTime
+
+	def __call__(self) -> datetime:
+		if self.overrideDate:
+			return self.overrideDate
+		return datetime.now(timezone.utc)
+
+
 def get_datetime() -> datetime:
 	return datetime.now(timezone.utc)
 

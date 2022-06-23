@@ -2,7 +2,7 @@ from musical_chairs_libs.os_process_manager import OSProcessManager
 
 
 class MockOSProcessManager(OSProcessManager):
-	
+
 	def __init__(self, mockProcId: int) -> None:
 			self.mockProcId = mockProcId
 

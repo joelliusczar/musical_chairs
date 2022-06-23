@@ -5,6 +5,7 @@ from musical_chairs_libs.dtos import AccountInfo,\
 	CurrentPlayingInfo,\
 	HistoryItem,\
 	SongItem,\
+	StationCreationInfo,\
 	StationInfo,\
 	TableData,\
 	UserRoleDef
@@ -86,25 +87,64 @@ def request_song(
 			detail = str(ex)
 		)
 
-@router.get("/")
-def get_station_for_edit(
-	stationId: Optional[int]=None,
-	stationName: Optional[str]=None,
+@router.get("/check")
+def is_phrase_used(
+	stationName: str = "",
+	stationService: StationService = Depends(station_service)
+) -> dict[str, bool]:
+	return {
+		"stationName": stationService.is_stationName_used(stationName)
+	}
+
+def get_station(
+	id: Optional[int]=None,
+	name: Optional[str]=None,
 	stationService: StationService = Depends(station_service)
 ) -> StationInfo:
 	stationInfo = stationService.get_station_for_edit(
-		stationId=stationId,
-		stationName=stationName
+		stationId=id,
+		stationName=name
 	)
 	if stationInfo is None:
-		msg = f"{stationId or stationName or 'Station'} not found"
-		field = "stationId" if stationId else "stationName" \
-			if stationName else None
+		msg = f"{id or name or 'Station'} not found"
+		field = "id" if id else "name" \
+			if name else None
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail=[build_error_obj(msg, field)]
 		)
 	return stationInfo
+
+@router.get("/")
+def get_station_for_edit(
+	stationInfo: StationInfo = Depends(get_station)
+) -> StationInfo:
+	return stationInfo
+
+@router.post("/")
+def create_station(
+	station: StationCreationInfo,
+	stationService: StationService = Depends(station_service),
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.STATION_EDIT()]
+	)
+) -> StationInfo:
+	result = stationService.save_station(station, userId=user.id)
+	return result or StationInfo(-1,"","",[])
+
+@router.put("/")
+def update_station(
+	station: StationCreationInfo,
+	id: int,
+	stationService: StationService = Depends(station_service),
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.STATION_EDIT()]
+	)
+) -> StationInfo:
+	result = stationService.save_station(station, id, userId=user.id)
+	return result or StationInfo(-1,"","",[])
 
 
 # def request(self, stationName, songPk):

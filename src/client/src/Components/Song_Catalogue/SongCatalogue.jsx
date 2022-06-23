@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useHistory, useParams, useLocation, Link } from "react-router-dom";
-import { fetchStations } from "../Stations/stations_slice";
+import { fetchStations } from "../Stations/stationService";
 import { fetchSongCatalogue } from "./song_catalogue_slice";
 import { useDispatch, useSelector } from "react-redux";
 import { MenuItem,

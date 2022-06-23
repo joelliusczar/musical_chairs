@@ -28,7 +28,7 @@ def test_get_stations_list(fixture_station_service: StationService):
 def test_save_station(fixture_station_service: StationService):
 	stationService = fixture_station_service
 	testData = StationCreationInfo(
-		stationName = "brand_new_station",
+		name = "brand_new_station",
 		displayName="Brand new station",
 		tags=[Tag(3, "mike_tag"), Tag(5, "oscar_tag")]
 	)
@@ -43,7 +43,7 @@ def test_save_station(fixture_station_service: StationService):
 
 	nonExistentTagId = max(cast(int, t["pk"]) for t in  get_starting_tags()) + 2
 	testData = StationCreationInfo(
-		stationName = "brand_new_station_fake_tag",
+		name = "brand_new_station_fake_tag",
 		displayName="Brand new station with bad tag",
 		tags=[Tag(3, "mike_tag"), Tag(nonExistentTagId, "bad_tag")]
 	)
@@ -54,7 +54,7 @@ def test_save_station(fixture_station_service: StationService):
 
 
 	testData = StationCreationInfo(
-		stationName = "papa_station_update",
+		name = "papa_station_update",
 		displayName="Come to papa test",
 		tags=[Tag(3, "mike_tag"), Tag(5, "oscar_tag")]
 	)
@@ -66,7 +66,7 @@ def test_save_station(fixture_station_service: StationService):
 	assert fetched and len(fetched.tags) == 2
 
 	testData = StationCreationInfo(
-		stationName = "oscar_station",
+		name = "oscar_station",
 		displayName="Oscar the grouch",
 		tags=[
 			Tag(2, "badlima_tag"),

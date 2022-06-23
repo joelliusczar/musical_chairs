@@ -14,7 +14,6 @@ from musical_chairs_libs.env_manager import EnvManager
 from .mocks.mock_db_constructors import construct_mock_connection_constructor
 from sqlalchemy.engine import Connection
 from fastapi.testclient import TestClient
-from api_dependencies import get_configured_db_connection
 from .common_fixtures import\
 	fixture_db_populate_factory as fixture_db_populate_factory,\
 	fixture_db_conn_in_mem as fixture_db_conn_in_mem

@@ -31,10 +31,11 @@ from musical_chairs_libs.dtos import\
 	SongItem,\
 	StationCreationInfo,\
 	SavedNameString
+from musical_chairs_libs.errors import AlreadyUsedError
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.tag_service import TagService
 from musical_chairs_libs.os_process_manager import OSProcessManager
-from musical_chairs_libs.simple_functions import get_datetime
+from musical_chairs_libs.simple_functions import get_datetime, build_error_obj
 
 sg: ColumnCollection = songs.columns
 st: ColumnCollection = stations_tbl.columns
@@ -248,7 +249,10 @@ class StationService:
 		else:
 			return None
 		row = self.conn.execute(query).fetchone()
-		tags = self.tag_service.get_tags(stationId=stationId)
+		tags = self.tag_service.get_tags(
+			stationId=stationId,
+			stationName=stationName
+		)
 		if not row:
 			return None
 		return StationInfo(
@@ -267,7 +271,7 @@ class StationService:
 		if not station:
 			return self.get_station_for_edit(stationId)
 		upsert = update if stationId else insert
-		savedName = SavedNameString(station.stationName)
+		savedName = SavedNameString(station.name)
 		savedDisplayName = SavedNameString(station.displayName)
 		stmt = upsert(stations_tbl).values(
 			name = str(savedName),
@@ -277,7 +281,14 @@ class StationService:
 		)
 		if stationId:
 			stmt = stmt.where(st.pk == stationId)
-		res = self.conn.execute(stmt)
+		try:
+			res = self.conn.execute(stmt)
+		except IntegrityError:
+			raise AlreadyUsedError(
+				[build_error_obj(
+					f"{savedName} is already used.", "tagName"
+				)]
+			)
 
 		affectedPk: int = stationId if stationId else res.lastrowid
 		resultTags = self.tag_service\

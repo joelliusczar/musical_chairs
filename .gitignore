@@ -11,3 +11,4 @@ test_trash/*
 
 diag_out_*
 api.out
+radio.log

@@ -5,6 +5,7 @@ from unidecode import unidecode
 from dataclasses import dataclass
 from typing import\
 	Any,\
+	Callable,\
 	Iterator,\
 	List,\
 	Optional,\
@@ -19,6 +20,17 @@ from enum import Enum
 from pydantic import BaseModel, validator
 from email_validator import validate_email #pyright: ignore reportUnknownVariableType
 
+def min_length_validator_factory(
+	minLen: int,
+	field: str
+) -> Callable[[Any, str], str]:
+	def _validator(cls: Any, v: str) -> str:
+		if len(v) < minLen:
+			raise ValueError(f"{field} does not meet the length requirement\n"
+				f"Mininum Length {minLen}. your {field.lower()} length: {len(v)}"
+			)
+		return v
+	return _validator
 
 class SavedNameString:
 
@@ -169,14 +181,11 @@ class AccountCreationInfo(AccountInfoBase):
 		valid = validate_email(v) #pyright: ignore reportUnknownMemberType
 		return valid.email #pyright: ignore reportUnknownMemberType
 
-	@validator("password")
-	def check_password(cls, v: str) -> str:
-		minPassLen = 6
-		if len(v) < minPassLen:
-			raise ValueError("Password does not meet the length requirement\n"
-				f"Mininum Length {minPassLen}. your password length: {len(v)}"
-			)
-		return v
+	_pass_len = validator(
+		"password",
+		allow_reuse=True
+	)(min_length_validator_factory(6, "Password"))
+
 
 	@validator("roles")
 	def are_all_roles_allowed(cls, v: List[str]) -> List[str]:
@@ -258,6 +267,11 @@ class StationInfo:
 	tags: list[Tag]
 
 class StationCreationInfo(BaseModel):
-	stationName: str
+	name: str
 	displayName: str
 	tags: list[Tag]
+
+	_name_len = validator(
+		"name",
+		allow_reuse=True
+	)(min_length_validator_factory(2, "Station name"))

@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
-import { fetchStations } from "./stations_slice";
+import { fetchStations } from "./stationService";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DomRoutes } from "../../constants";
 import { Link, useLocation } from "react-router-dom";

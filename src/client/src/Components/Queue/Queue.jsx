@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
-import { fetchStations } from "../Stations/stations_slice";
+import { fetchStations } from "../Stations/stationService";
 import { fetchQueue } from "./queue_slice";
 import { useDispatch, useSelector } from "react-redux";
-import { MenuItem, 
-	Select, 
-	Table, 
-	TableBody, 
-	TableContainer, 
-	TableCell, 
-	TableHead, 
-	TableRow, 
+import { MenuItem,
+	Select,
+	Table,
+	TableBody,
+	TableContainer,
+	TableCell,
+	TableHead,
+	TableRow,
 	Typography,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";

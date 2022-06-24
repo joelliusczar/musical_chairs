@@ -35,3 +35,11 @@ def test_add_album(fixture_song_info_service: SongInfoService):
 	assert pk == 12
 	pk = songInfoService.get_or_save_album("who_1_album", 4)
 	assert pk == 13
+
+def test_song_ls(fixture_song_info_service: SongInfoService):
+	songInfoService = fixture_song_info_service
+	paths = list(sorted(songInfoService.song_ls()))
+	assert len(paths) == 3
+	assert paths[0] == "blitz/"
+	assert paths[1] == "foo/"
+	assert paths[2] == "jazz/"

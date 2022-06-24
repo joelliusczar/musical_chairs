@@ -1,4 +1,6 @@
-from musical_chairs_libs.simple_functions import seconds_to_tuple
+from musical_chairs_libs.simple_functions import\
+	seconds_to_tuple,\
+	next_directory_level
 
 def test_seconds_to_tuple():
 	result = seconds_to_tuple(59)
@@ -72,3 +74,28 @@ def test_seconds_to_tuple():
 	assert result[1] == 0
 	assert result[2] == 0
 	assert result[3] == 0
+
+def test_next_directory_level():
+	path = "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
+		"01._Come_Together_-_The_Beatles.flac"
+	result = next_directory_level(path)
+	assert result == "Pop/"
+	result = next_directory_level(path, "P")
+	assert result == "Pop/"
+	result = next_directory_level(path, "Pop")
+	assert result == "Pop/"
+	result = next_directory_level(path, "Pop/")
+	assert result == "Pop/Pop_A-F/"
+	result = next_directory_level(path, "Pop/Pop")
+	assert result == "Pop/Pop_A-F/"
+	result = next_directory_level(path, "Pop/Pop_A-")
+	assert result == "Pop/Pop_A-F/"
+	result = next_directory_level(path, "Pop/Pop_A-F")
+	assert result == "Pop/Pop_A-F/"
+	result = next_directory_level(path, "Pop/Pop_A-F/")
+	assert result == "Pop/Pop_A-F/Beatles,_The/"
+	result = next_directory_level(path, "Pop/Pop_A-F/Beatles,_The/")
+	assert result == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"
+	result = next_directory_level(path, "Pop/Pop_A-F/Beatles,_The/Abbey_Road/")
+	assert result == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
+		"01._Come_Together_-_The_Beatles.flac"

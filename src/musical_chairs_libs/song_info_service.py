@@ -1,10 +1,10 @@
 #pyright: reportUnknownMemberType=false
-from typing import Iterator, Optional, Union
+from typing import Iterator, Optional, Union, Any
 from musical_chairs_libs.dtos import\
 	SavedNameString,\
 	SongItem,\
 	SongItemPlumbing
-from sqlalchemy import select, insert, update
+from sqlalchemy import select, insert, update, func, distinct
 from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -24,6 +24,8 @@ sg: ColumnCollection = songs.columns
 ab: ColumnCollection = albums.columns
 ar: ColumnCollection = artists.columns
 sgar: ColumnCollection = song_artist.columns
+
+sg_path: Any = sg.path
 
 class SongInfoService:
 
@@ -168,3 +170,13 @@ class SongInfoService:
 			self.conn.execute(songComposerInsert)
 		except IntegrityError: pass
 		return count
+
+	def song_ls(self, prefix: Optional[str] = "") -> Iterator[str]:
+		query = select(
+			distinct(
+				func.next_directory_level(sg_path, prefix)
+			).label("prefix")
+		).where(sg_path.like(f"{prefix}%"))
+		records = self.conn.execute(query)
+		for row in records: #pyright: ignore [reportUnknownVariableType]
+			yield row["prefix"]

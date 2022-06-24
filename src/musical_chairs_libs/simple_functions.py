@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import re
 import bcrypt
 import email_validator #pyright: ignore reportUnknownMemberType
 from datetime import datetime, timezone
@@ -51,7 +52,16 @@ def build_timespan_msg(timeleft: Tuple[int, int, int, int]) -> str:
 
 def get_duplicates(
 	items: Iterable[Hashable]
-) -> Iterator[Tuple[Hashable,int]]:
+) -> Iterator[Tuple[Hashable, int]]:
 	counter = Counter(items)
 	mostCommon = counter.most_common(1)
 	return (pair for pair in mostCommon if pair[1] > 1)
+
+def next_directory_level(path: str, prefix: Optional[str]="") -> str:
+	if not prefix:
+		prefix = ""
+	matches = re.match(rf"({prefix}[^/]*/?)", path)
+	if matches:
+		groups = matches.groups()
+		return groups[0] if groups else ""
+	return ""

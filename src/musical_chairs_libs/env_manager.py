@@ -3,6 +3,7 @@ from sqlalchemy import create_engine #pyright: ignore [reportUnknownVariableType
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import metadata
 from musical_chairs_libs.dtos import SearchNameString, SavedNameString
+from musical_chairs_libs.simple_functions import next_directory_level
 
 class EnvManager:
 
@@ -43,6 +44,12 @@ class EnvManager:
 			"format_name_for_save",
 			1,
 			SavedNameString.format_name_for_save,
+			deterministic=True
+		)
+		conn.connection.connection.create_function( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues]
+			"next_directory_level",
+			2,
+			next_directory_level,
 			deterministic=True
 		)
 		return conn

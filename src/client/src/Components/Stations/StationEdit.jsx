@@ -3,7 +3,11 @@ import { Box, Typography, Button } from "@mui/material";
 import { FormikProvider, useFormik } from "formik";
 import { FormikTextField } from "../Shared/FormikTextField";
 import { TagAssignment } from "../Tags/TagAssignment";
-import { saveStation, fetchStationForEdit } from "./stationService";
+import {
+	saveStation,
+	fetchStationForEdit,
+	checkValues,
+} from "./stationService";
 import { useSnackbar } from "notistack";
 import { useHistory, useLocation } from "react-router-dom";
 import { DomRoutes } from "../../constants";
@@ -12,6 +16,8 @@ import {
 	initialState,
 	dispatches,
 } from "../Shared/waitingReducer";
+import * as Yup from "yup";
+
 
 const inputField = {
 	margin: 2,
@@ -26,7 +32,14 @@ export const StationEdit = () => {
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
 	const id = queryObj.get("id");
-	const stationName = queryObj.get("name");
+	const nameQueryStr = queryObj.get("name");
+
+	const validatePhraseIsUnused = async (value, context) => {
+		const used = await checkValues({ values: {
+			[context.path]: value,
+		}});
+		return !(context.path in used) || !used[context.path];
+	};
 
 	const formik = useFormik({
 		initialValues: {
@@ -47,6 +60,14 @@ export const StationEdit = () => {
 				enqueueSnackbar(err.response.data.detail[0].msg, { variant: "error"});
 			}
 		},
+		validationSchema: Yup.object().shape({
+			name: Yup.string().required().test(
+				"name",
+				(value) => `${value.path} is already used`,
+				validatePhraseIsUnused
+			),
+		}),
+		validateOnChange: false,
 	});
 	const { resetForm } = formik;
 
@@ -67,12 +88,12 @@ export const StationEdit = () => {
 	useEffect(() => {
 		const fetch = async () => {
 			try {
-				if(!callStatus && (id || stationName)) {
+				if(!callStatus && (id || nameQueryStr)) {
 					dispatch(dispatches.started());
 					const data = await fetchStationForEdit({
 						params: {
 							id,
-							name: stationName,
+							name: nameQueryStr,
 						},
 					});
 					resetForm({values: data});
@@ -85,7 +106,7 @@ export const StationEdit = () => {
 		};
 
 		fetch();
-	}, [dispatch, callStatus, id, stationName]);
+	}, [dispatch, callStatus, id, nameQueryStr]);
 
 
 	return (

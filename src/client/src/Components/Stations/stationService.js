@@ -34,3 +34,11 @@ export const saveStation = async ({ values, id}) => {
 		return response.data;
 	}
 };
+
+
+export const fetchSongCatalogue = async ({ station, params }) => {
+	const response = await webClient.get(`stations/${station}/catalogue/`, {
+		params: params,
+	});
+	return response.data;
+};

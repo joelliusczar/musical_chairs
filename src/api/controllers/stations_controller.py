@@ -13,11 +13,13 @@ from musical_chairs_libs.simple_functions import build_error_obj
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService
+from musical_chairs_libs.tag_service import TagService
 from api_dependencies import \
 	station_service,\
 	history_service,\
 	queue_service,\
-	get_current_user
+	get_current_user,\
+	tag_service
 
 
 router = APIRouter(prefix="/stations")
@@ -89,11 +91,11 @@ def request_song(
 
 @router.get("/check")
 def is_phrase_used(
-	stationName: str = "",
+	name: str = "",
 	stationService: StationService = Depends(station_service)
 ) -> dict[str, bool]:
 	return {
-		"stationName": stationService.is_stationName_used(stationName)
+		"name": stationService.is_stationName_used(name)
 	}
 
 def get_station(
@@ -115,15 +117,30 @@ def get_station(
 		)
 	return stationInfo
 
-@router.get("/")
+@router.get("")
 def get_station_for_edit(
 	stationInfo: StationInfo = Depends(get_station)
 ) -> StationInfo:
 	return stationInfo
 
-@router.post("/")
-def create_station(
+def extra_validated_station(
 	station: StationCreationInfo,
+	tagService: TagService = Depends(tag_service)
+) -> StationCreationInfo:
+	tagIds = {t.id for t in station.tags or []}
+	dbTags = {t.id for t in tagService.get_tags(tagIds=tagIds)}
+	if tagIds - dbTags:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[
+				build_error_obj(
+					f"Tags associated with ids {str(tagIds)} do not exist", "tags")],
+		)
+	return station
+
+@router.post("")
+def create_station(
+	station: StationCreationInfo = Depends(extra_validated_station),
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
 		get_current_user,
@@ -133,10 +150,10 @@ def create_station(
 	result = stationService.save_station(station, userId=user.id)
 	return result or StationInfo(-1,"","",[])
 
-@router.put("/")
+@router.put("")
 def update_station(
-	station: StationCreationInfo,
 	id: int,
+	station: StationCreationInfo  = Depends(extra_validated_station),
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
 		get_current_user,

@@ -44,7 +44,7 @@ def test_save_tag(fixture_api_test_client: TestClient):
 	data = json.loads(response.content)
 	assert response.status_code == 422
 	assert data["detail"][0]["msg"] == "oscar_tag is already used."
-	assert data["detail"][0]["field"] == "tagName"
+	assert data["detail"][0]["field"] == "name"
 
 	response = client.post(
 		"/tags",

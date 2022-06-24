@@ -17,7 +17,7 @@ import { DomRoutes } from "../../constants";
 import { Link, useLocation } from "react-router-dom";
 import {
 	waitingReducer,
-	initialState,
+	listDataInitialState,
 	dispatches,
 } from "../Shared/waitingReducer";
 
@@ -28,16 +28,9 @@ const useStyles = makeStyles(() => ({
 	},
 }));
 
-const stationsInitialState = {
-	...initialState,
-	data: {
-		totalRows: 0,
-		items: [],
-	},
-};
 
 export default function Stations(){
-	const [state, dispatch] = useReducer(waitingReducer(), stationsInitialState);
+	const [state, dispatch] = useReducer(waitingReducer(), listDataInitialState);
 	const { callStatus } = state;
 	const location = useLocation();
 	const classes = useStyles();

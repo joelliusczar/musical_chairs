@@ -2,8 +2,9 @@
 import bcrypt
 import email_validator #pyright: ignore reportUnknownMemberType
 from datetime import datetime, timezone
-from typing import Any, Optional, Tuple
+from typing import Any, Hashable, Iterable, Iterator, Optional, Tuple
 from email_validator import ValidatedEmail
+from collections import Counter
 
 class DatetimeGetter:
 	def __init__(self, currentDateTime: Optional[datetime]=None) -> None:
@@ -47,3 +48,10 @@ def build_timespan_msg(timeleft: Tuple[int, int, int, int]) -> str:
 	seconds = f"and {timeleft[3]} seconds" \
 		if any(timeleft[:-1]) else f"{timeleft[3]} seconds" if timeleft[3] else ""
 	return f"{days}{hours}{minutes}{seconds}"
+
+def get_duplicates(
+	items: Iterable[Hashable]
+) -> Iterator[Tuple[Hashable,int]]:
+	counter = Counter(items)
+	mostCommon = counter.most_common(1)
+	return (pair for pair in mostCommon if pair[1] > 1)

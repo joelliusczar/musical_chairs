@@ -127,13 +127,10 @@ class StationService:
 			st.name,
 			tg.name,
 			tg.pk,
-			func.min(st.displayName).label("displayName")
+			st.displayName,
 		).select_from(stations_tbl) \
 			.join(stations_tags_tbl, st.pk == sttg.stationFk) \
-			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
-			.join(tags_tbl, sttg.tagFk == tg.pk) \
-			.group_by(st.pk, st.name, tg.name, tg.pk) \
-			.having(func.count(sgtg.tagFk) > 0)
+			.join(tags_tbl, sttg.tagFk == tg.pk)
 		records = self.conn.execute(query)
 		partitionFn: Callable[[Row], Tuple[int, str, str]] = \
 			lambda r: (r[st.pk], r[st.name], r["displayName"])
@@ -286,7 +283,7 @@ class StationService:
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
-					f"{savedName} is already used.", "tagName"
+					f"{savedName} is already used.", "name"
 				)]
 			)
 

@@ -19,6 +19,9 @@ from typing import\
 from enum import Enum
 from pydantic import BaseModel, validator
 from email_validator import validate_email #pyright: ignore reportUnknownVariableType
+from collections import Counter
+from musical_chairs_libs.simple_functions import get_duplicates
+
 
 def min_length_validator_factory(
 	minLen: int,
@@ -122,12 +125,7 @@ class UserRoleDef(Enum):
 
 	@staticmethod
 	def count_repeat_roles(roles: Iterable[str]) -> dict[str, int]:
-		countDict: dict[str, int] = {}
-		for role in roles:
-			extracted = UserRoleDef.extract_role_segments(role)
-			count = countDict.get(extracted[0], 0)
-			countDict[extracted[0]] = count + 1
-		return countDict
+		return Counter(UserRoleDef.extract_role_segments(r)[0] for r in roles)
 
 	def modded_value(self, mod: Optional[Union[str, int]]=None) -> str:
 		if not mod:
@@ -190,13 +188,12 @@ class AccountCreationInfo(AccountInfoBase):
 	@validator("roles")
 	def are_all_roles_allowed(cls, v: List[str]) -> List[str]:
 		roleSet = UserRoleDef.as_set()
-		roleCounts = UserRoleDef.count_repeat_roles(v)
-		violations = { k:v for (k,v) in roleCounts.items() if v > 1 }
-		if any(violations):
-			keyIter = iter(violations.keys())
-			key = next(keyIter)
+		duplicate = next(get_duplicates(
+			UserRoleDef.extract_role_segments(r)[0] for r in v
+		), None)
+		if duplicate:
 			raise ValueError(
-				f"{key} has been added {violations[key]} times "
+				f"{duplicate[0]} has been added {duplicate[1]} times "
 				"but it is only legal to add it once."
 			)
 		for role in v:
@@ -268,10 +265,23 @@ class StationInfo:
 
 class StationCreationInfo(BaseModel):
 	name: str
-	displayName: str
-	tags: list[Tag]
+	displayName: Optional[str]
+	tags: Optional[List[Tag]]
 
 	_name_len = validator(
 		"name",
 		allow_reuse=True
 	)(min_length_validator_factory(2, "Station name"))
+
+	@validator("tags")
+	def check_tags_duplicates(cls, v: List[Tag]) -> List[Tag]:
+		if not v:
+			return []
+
+		duplicate = next(get_duplicates(t.id for t in v), None)
+		if duplicate:
+			raise ValueError(
+				f"Tag with id {duplicate[0]} has been added {duplicate[1]} times "
+				"but it is only legal to add it once."
+			)
+		return v

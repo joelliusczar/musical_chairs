@@ -80,3 +80,23 @@ def test_save_station(fixture_station_service: StationService):
 	assert fetched and fetched.name == "oscar_station"
 	assert fetched and fetched.displayName == "Oscar the grouch"
 	assert fetched and len(fetched.tags) == 3
+
+def test_save_with_duplicate_tags(fixture_station_service: StationService):
+	stationService = fixture_station_service
+
+	testData = StationCreationInfo.construct(
+		name = "oscar_station",
+		displayName="Oscar the grouch",
+		tags=[
+			Tag(2, "badlima_tag"),
+			Tag(2, "november_tag"),
+			Tag(7, "badromeo_tag")
+		]
+	)
+	result = stationService.save_station(testData, 1)
+	assert result and result.id == 1
+	assert len(result.tags) == 2
+	fetched = stationService.get_station_for_edit(result.id)
+	assert fetched and fetched.name == "oscar_station"
+	assert fetched and fetched.displayName == "Oscar the grouch"
+	assert fetched and len(fetched.tags) == 2

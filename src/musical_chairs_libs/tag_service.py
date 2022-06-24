@@ -123,29 +123,28 @@ class TagService:
 	def add_tags_to_station(
 		self,
 		stationId: int,
-		tags: Sequence[Tag],
-		userId: Optional[int]=0
+		tags: Optional[Sequence[Tag]],
+		userId: Optional[int]=None
 	) -> Iterable[Tag]:
 		if stationId is None or not tags:
 			return []
-		uniqueTags = set(tags)
-		uniqueTagIds = {t.id for t in uniqueTags}
-		existingTagIds = {t.id for t in self.get_tags(stationId=stationId)}
+		uniqueTagIds = {t.id for t in tags}
+		existingTags = list(self.get_tags(stationId=stationId))
+		existingTagIds = {t.id for t in existingTags}
 		outTagIds = existingTagIds - uniqueTagIds
 		inTagIds = uniqueTagIds - existingTagIds
 		self.remove_tags_for_station(stationId, outTagIds)
-		if not inTagIds:
-			return uniqueTags
-		lastModifiedUserId: Any = userId
+		if not inTagIds: #if no tags have been added
+			return (t for t in existingTags if t.id not in outTagIds)
 		tagParams = [{
 			"stationFk": stationId,
 			"tagFk": t,
-			"lastModifiedByUserFk": lastModifiedUserId,
+			"lastModifiedByUserFk": userId,
 			"lastModifiedTimestamp": self.get_datetime().timestamp()
 		} for t in inTagIds]
 		stmt = insert(stations_tags_tbl)
 		self.conn.execute(stmt, tagParams) #pyright: ignore [reportUnknownMemberType]
-		return uniqueTags
+		return self.get_tags(stationId=stationId)
 
 	def save_tag(
 		self,
@@ -172,7 +171,7 @@ class TagService:
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
-					f"{tagName} is already used.", "tagName"
+					f"{tagName} is already used.", "name"
 				)]
 			)
 

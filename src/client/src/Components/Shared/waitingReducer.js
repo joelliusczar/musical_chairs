@@ -6,6 +6,14 @@ export const initialState = {
 	error: null,
 };
 
+export const listDataInitialState = {
+	...initialState,
+	data: {
+		totalRows: 0,
+		items: [],
+	},
+};
+
 export const waitingTypes = {
 	started: "started",
 	done: "done",

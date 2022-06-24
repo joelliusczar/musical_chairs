@@ -79,6 +79,8 @@ def fixture_api_test_client(
 	fixture_db_populate_factory: Callable[[Connection], None],
 	fixture_db_conn_in_mem: Connection
 ) -> TestClient:
+	# we need some sort of parent reference to the in mem db
+	# so that the db does not get removed at the end of a request
 	fixture_db_populate_factory(fixture_db_conn_in_mem)
 	app.dependency_overrides[EnvManager] = mock_depend_env_manager
 

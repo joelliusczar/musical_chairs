@@ -760,6 +760,15 @@ def populate_users(
 			"email": "test9@test.com",
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 10,
+			"username": "testUser_juliet",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test10@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
 		}
 	]
 	stmt = insert(users)
@@ -815,7 +824,13 @@ def populate_user_roles(
 			"userFk": 9,
 			"role": UserRoleDef.TAG_EDIT(),
 			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": 10,
+			"role": UserRoleDef.STATION_EDIT(),
+			"creationTimestamp": orderedTestDates[0].timestamp()
 		}
+
 	]
 	stmt = insert(userRoles)
 	conn.execute(stmt, userRoleParams) #pyright: ignore [reportUnknownMemberType]

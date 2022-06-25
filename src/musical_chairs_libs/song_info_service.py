@@ -1,10 +1,11 @@
 #pyright: reportUnknownMemberType=false
-from typing import Iterator, Optional, Union, Any
+from typing import Iterator, Optional, Union, Any, cast
 from musical_chairs_libs.dtos import\
 	SavedNameString,\
 	SongItem,\
-	SongItemPlumbing
-from sqlalchemy import select, insert, update, func, distinct
+	SongItemPlumbing,\
+	SongTreeNode
+from sqlalchemy import select, insert, update, func
 from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -25,6 +26,7 @@ ab: ColumnCollection = albums.columns
 ar: ColumnCollection = artists.columns
 sgar: ColumnCollection = song_artist.columns
 
+sg_pk: Any = sg.pk
 sg_path: Any = sg.path
 
 class SongInfoService:
@@ -171,12 +173,15 @@ class SongInfoService:
 		except IntegrityError: pass
 		return count
 
-	def song_ls(self, prefix: Optional[str] = "") -> Iterator[str]:
+	def song_ls(self, prefix: Optional[str] = "") -> Iterator[SongTreeNode]:
 		query = select(
-			distinct(
-				func.next_directory_level(sg_path, prefix)
-			).label("prefix")
-		).where(sg_path.like(f"{prefix}%"))
+				func.next_directory_level(sg_path, prefix).label("prefix"),
+				func.count(sg_pk).label("totalChildCount")
+		).where(sg_path.like(f"{prefix}%"))\
+			.group_by(func.next_directory_level(sg_path, prefix))
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield row["prefix"]
+			yield SongTreeNode(
+				cast(str, row["prefix"]),
+				cast(int, row["totalChildCount"])
+			)

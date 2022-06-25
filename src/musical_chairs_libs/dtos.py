@@ -135,9 +135,11 @@ class UserRoleDef(Enum):
 
 T = TypeVar("T")
 
-class TableData(BaseModel, Generic[T]):
-	totalRows: int
+class ListData(BaseModel, Generic[T]):
 	items: List[T]
+
+class TableData(ListData[T]):
+	totalRows: int
 
 class AccountInfoBase(BaseModel):
 	username: str
@@ -285,3 +287,8 @@ class StationCreationInfo(BaseModel):
 				"but it is only legal to add it once."
 			)
 		return v
+
+@dataclass
+class SongTreeNode:
+	path: str
+	totalChildCount: int

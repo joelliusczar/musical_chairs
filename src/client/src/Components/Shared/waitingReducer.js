@@ -9,10 +9,18 @@ export const initialState = {
 export const listDataInitialState = {
 	...initialState,
 	data: {
-		totalRows: 0,
 		items: [],
 	},
 };
+
+export const pageableDataInitialState = {
+	...listDataInitialState,
+	data: {
+		...listDataInitialState.data,
+		totalRows: 0,
+	},
+};
+
 
 export const waitingTypes = {
 	started: "started",

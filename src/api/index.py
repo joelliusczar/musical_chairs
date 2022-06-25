@@ -11,7 +11,8 @@ from fastapi.requests import Request
 from controllers import\
 	stations_controller,\
 	accounts_controller,\
-	tags_controller
+	tags_controller,\
+	song_info_controller
 from musical_chairs_libs.simple_functions import build_error_obj
 from musical_chairs_libs.errors import AlreadyUsedError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -28,6 +29,7 @@ app.add_middleware(
 app.include_router(stations_controller.router)
 app.include_router(accounts_controller.router)
 app.include_router(tags_controller.router)
+app.include_router(song_info_controller.router)
 
 
 def transForm_error(err: Any) -> dict[str, Any]:

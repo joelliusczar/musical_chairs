@@ -46,3 +46,10 @@ const slice = createSlice({
 });
 
 export default slice.reducer;
+
+export const fetchSongDir = async ({ params }) => {
+	const response = await webClient.get("song-info/tree", {
+		params: params,
+	});
+	return response.data;
+};

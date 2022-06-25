@@ -10,6 +10,7 @@ import { LoginForm } from "../Accounts/AccountsLoginForm";
 import { AccountsList } from "../Accounts/AccountsList";
 import { AccountsRoles } from "../Accounts/AccountsRoles";
 import { StationEdit } from "../Stations/StationEdit";
+import { SongTree } from "../Song_Catalogue/SongTree";
 import { NotFound } from "../Shared/RoutingErrors";
 import { DomRoutes, UserRoleDef } from "../../constants";
 import { PrivateRoute } from "../Shared/PrivateRoute";
@@ -32,8 +33,8 @@ export function NavMenu() {
 			<ListItem button component={NavLink} to={DomRoutes.stations}>
 				Stations
 			</ListItem>
-			<ListItem button component={NavLink} to={DomRoutes.songCatalogue}>
-				Song Catalogue
+			<ListItem button component={NavLink} to={DomRoutes.songTree}>
+				Song Directory
 			</ListItem>
 			<ListItem button component={NavLink} to={DomRoutes.accountsList}>
 				Accounts List
@@ -82,6 +83,9 @@ export function AppRoutes() {
 				path={`${DomRoutes.stationsEdit}`}
 			>
 				<StationEdit />
+			</Route>
+			<Route path={DomRoutes.songTree}>
+				<SongTree />
 			</Route>
 			<Route>
 				<NotFound />

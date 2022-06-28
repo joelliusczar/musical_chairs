@@ -60,7 +60,7 @@ def get_duplicates(
 def next_directory_level(path: str, prefix: Optional[str]="") -> str:
 	if not prefix:
 		prefix = ""
-	matches = re.match(rf"({prefix}[^/]*/?)", path)
+	matches = re.match(rf"({re.escape(prefix)}[^/]*/?)", path)
 	if matches:
 		groups = matches.groups()
 		return groups[0] if groups else ""

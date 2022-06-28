@@ -18,11 +18,12 @@ from musical_chairs_libs.errors import AlreadyUsedError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
 
+cors_allowed_origins=["http://127.0.0.1", "http://localhost:3000"]
 
 app = FastAPI()
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=["http://127.0.0.1", "http://localhost:3000"],
+	allow_origins=cors_allowed_origins,
 	allow_methods=["*"],
 	allow_headers=["Authorization"]
 )
@@ -31,6 +32,11 @@ app.include_router(accounts_controller.router)
 app.include_router(tags_controller.router)
 app.include_router(song_info_controller.router)
 
+def get_cors_origin_or_default(origin: str) -> str:
+	allowedOriginSet = set(cors_allowed_origins)
+	if origin in allowedOriginSet:
+		return origin
+	return cors_allowed_origins[0] if len(cors_allowed_origins) else ""
 
 def transForm_error(err: Any) -> dict[str, Any]:
 	msg = err["msg"]
@@ -59,14 +65,30 @@ def handle_already_used_values(
 	request: Request,
 	ex: AlreadyUsedError
 ) -> JSONResponse:
-	return JSONResponse({ "detail": ex.args[0] }, status_code=422)
+	return JSONResponse(
+		{ "detail": ex.args[0] },
+		status_code=422,
+		headers={
+			"Access-Control-Allow-Origin": get_cors_origin_or_default(
+				request.headers.get("origin", None)
+			)
+		}
+	)
 
 @app.exception_handler(EmailNotValidError) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]
 def handle_invalid_email(
 	request: Request,
 	ex: EmailNotValidError
 ) -> JSONResponse:
-	return JSONResponse({ "detail": ex.args[0] }, status_code=422)
+	return JSONResponse(
+		{ "detail": ex.args[0] },
+		status_code=422,
+		headers={
+			"Access-Control-Allow-Origin": get_cors_origin_or_default(
+				request.headers.get("origin", None)
+			)
+		}
+	)
 
 
 @app.exception_handler(Exception) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]
@@ -81,13 +103,19 @@ def everything_else(
 			level=logging.INFO
 		)
 	logging.error(ex)
-	return JSONResponse(
+	response = JSONResponse(content=
 		{ "detail": [
 				build_error_obj("There was an error processing that request")
 			]
 		},
-		status_code=500
+		status_code=500,
+		headers={
+			"Access-Control-Allow-Origin": get_cors_origin_or_default(
+				request.headers.get("origin", None)
+			)
+		}
 	)
+	return response
 
 if __name__ == "__main__":
 	uvicorn.run(app, host="0.0.0.0", port=8032) #pyright: ignore [reportGeneralTypeIssues]

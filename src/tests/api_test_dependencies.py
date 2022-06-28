@@ -84,5 +84,5 @@ def fixture_api_test_client(
 	fixture_db_populate_factory(fixture_db_conn_in_mem)
 	app.dependency_overrides[EnvManager] = mock_depend_env_manager
 
-	client = TestClient(app, raise_server_exceptions=True)
+	client = TestClient(app, raise_server_exceptions=False)
 	return client

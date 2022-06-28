@@ -27,6 +27,7 @@ ar: ColumnCollection = artists.columns
 sgar: ColumnCollection = song_artist.columns
 
 sg_pk: Any = sg.pk
+sg_name: Any = sg.name,
 sg_path: Any = sg.path
 
 class SongInfoService:
@@ -176,12 +177,23 @@ class SongInfoService:
 	def song_ls(self, prefix: Optional[str] = "") -> Iterator[SongTreeNode]:
 		query = select(
 				func.next_directory_level(sg_path, prefix).label("prefix"),
-				func.count(sg_pk).label("totalChildCount")
+				func.min(sg.name).label("name"),
+				func.count(sg_pk).label("totalChildCount"),
+				func.max(sg_pk).label("pk"),
+				func.max(sg_path).label("control_path")
 		).where(sg_path.like(f"{prefix}%"))\
 			.group_by(func.next_directory_level(sg_path, prefix))
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield SongTreeNode(
-				cast(str, row["prefix"]),
-				cast(int, row["totalChildCount"])
-			)
+			if row["control_path"] == row["prefix"]:
+				yield SongTreeNode(
+					cast(str, row["prefix"]),
+					cast(int, row["totalChildCount"]),
+					cast(int, row["pk"]),
+					cast(str, row["name"])
+				)
+			else:
+				yield SongTreeNode(
+					cast(str, row["prefix"]),
+					cast(int, row["totalChildCount"])
+				)

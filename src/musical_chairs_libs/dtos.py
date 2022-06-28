@@ -253,8 +253,8 @@ class CurrentPlayingInfo:
 	nowPlaying: Optional[HistoryItem]
 	items: Iterable[QueueItem]
 
-@dataclass(eq=True, frozen=True)
-class Tag:
+@dataclass
+class Tag(BaseModel):
 	id: int
 	name: str
 
@@ -263,12 +263,12 @@ class StationInfo:
 	id: int
 	name: str
 	displayName: str
-	tags: list[Tag]
+	tags: Optional[List[Tag]]
 
 class StationCreationInfo(BaseModel):
 	name: str
 	displayName: Optional[str]
-	tags: Optional[List[Tag]]
+	tags: List[Tag]
 
 	_name_len = validator(
 		"name",
@@ -292,3 +292,5 @@ class StationCreationInfo(BaseModel):
 class SongTreeNode:
 	path: str
 	totalChildCount: int
+	id: Optional[int]=None
+	name: Optional[str]=None

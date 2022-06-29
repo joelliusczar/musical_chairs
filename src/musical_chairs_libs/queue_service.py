@@ -32,13 +32,14 @@ from musical_chairs_libs.tables import \
 	artists, \
 	song_artist
 from musical_chairs_libs.history_service import HistoryService
-from musical_chairs_libs.dtos import\
+from musical_chairs_libs.dtos_and_utilities import\
 	AccountInfo,\
 	QueueItem,\
-	CurrentPlayingInfo
+	CurrentPlayingInfo,\
+	get_datetime
 from numpy.random import \
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
-from musical_chairs_libs.simple_functions import get_datetime
+
 
 def choice(
 	items: List[Any],

@@ -2,13 +2,18 @@
 import os
 from datetime import timedelta, datetime, timezone
 from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple
-from musical_chairs_libs.dtos import\
+from musical_chairs_libs.dtos_and_utilities import\
 	AccountInfo,\
 	SearchNameString,\
 	SavedNameString,\
 	UserRoleDef,\
 	AccountCreationInfo,\
-	RoleInfo
+	RoleInfo,\
+	get_datetime,\
+	build_error_obj,\
+	hashpw,\
+	checkpw,\
+	validate_email
 from musical_chairs_libs.env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
@@ -17,12 +22,6 @@ from musical_chairs_libs.tables import users,\
 	userRoles,\
 	station_queue,\
 	stations_history
-from musical_chairs_libs.simple_functions import\
-	get_datetime,\
-	build_error_obj,\
-	hashpw,\
-	checkpw,\
-	validate_email
 from musical_chairs_libs.errors import AlreadyUsedError, IllegalOperationError
 from sqlalchemy import select, insert, desc, func, delete, update
 from jose import jwt

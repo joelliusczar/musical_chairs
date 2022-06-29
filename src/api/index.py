@@ -13,7 +13,7 @@ from controllers import\
 	accounts_controller,\
 	tags_controller,\
 	song_info_controller
-from musical_chairs_libs.simple_functions import build_error_obj
+from musical_chairs_libs.dtos_and_utilities import build_error_obj
 from musical_chairs_libs.errors import AlreadyUsedError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType

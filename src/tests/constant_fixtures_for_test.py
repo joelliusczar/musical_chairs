@@ -1,6 +1,5 @@
 import pytest
-from musical_chairs_libs.dtos import AccountInfo
-from musical_chairs_libs.simple_functions import hashpw
+from musical_chairs_libs.dtos_and_utilities import AccountInfo, hashpw
 from datetime import datetime, timezone
 
 def clear_mock_password() -> str:

@@ -6,7 +6,7 @@ from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.queue_service import QueueService
 from musical_chairs_libs.accounts_service import AccountsService
 from musical_chairs_libs.radio_handle import RadioHandle
-from musical_chairs_libs.dtos import AccountInfo
+from musical_chairs_libs.dtos_and_utilities import AccountInfo
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.song_info_service import SongInfoService
 from musical_chairs_libs.station_service import StationService

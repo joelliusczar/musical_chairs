@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Security, Query
-from musical_chairs_libs.dtos import\
+from musical_chairs_libs.dtos_and_utilities import\
 	TableData,\
 	Tag,\
 	AccountInfo,\

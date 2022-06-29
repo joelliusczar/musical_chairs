@@ -4,15 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, Security, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from musical_chairs_libs.accounts_service import AccountsService,\
 	ACCESS_TOKEN_EXPIRE_MINUTES
-from musical_chairs_libs.dtos import\
+from musical_chairs_libs.dtos_and_utilities import\
 	AccountCreationInfo,\
 	AccountInfo,\
 	AuthenticatedAccount,\
 	UserRoleDef,\
-	TableData
+	TableData,\
+	build_error_obj
 from api_dependencies import accounts_service, get_current_user, get_account_if_can_edit
-from musical_chairs_libs.simple_functions import build_error_obj
-from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
+
 
 
 

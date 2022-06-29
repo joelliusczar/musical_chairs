@@ -7,23 +7,23 @@ from typing import\
 	cast,\
 	Iterable,\
 	Tuple
-from musical_chairs_libs.dtos import\
+from musical_chairs_libs.dtos_and_utilities import\
 	SavedNameString,\
 	SongItem,\
 	SongItemPlumbing,\
 	SongTreeNode,\
 	Tag,\
 	SearchNameString,\
-	SongBase
+	SongBase,\
+	get_datetime,\
+	Sentinel,\
+	missing
 from sqlalchemy import select, insert, update, func, delete
 from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.tag_service import TagService
-from musical_chairs_libs.simple_functions import\
-	get_datetime
-from musical_chairs_libs.dtos_and_utilities.sentinel import Sentinel, missing
 from musical_chairs_libs.tables import\
 	albums as albums_tbl,\
 	song_artist as song_artist_tbl,\

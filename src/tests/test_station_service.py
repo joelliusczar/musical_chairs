@@ -1,6 +1,6 @@
 from typing import cast
 from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.dtos import StationCreationInfo, Tag
+from musical_chairs_libs.dtos_and_utilities import StationCreationInfo, Tag
 from .constant_fixtures_for_test import *
 from .common_fixtures import \
 	fixture_station_service as fixture_station_service

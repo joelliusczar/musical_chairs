@@ -1,15 +1,15 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, Security, HTTPException, status
-from musical_chairs_libs.dtos import AccountInfo,\
+from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
 	CurrentPlayingInfo,\
 	HistoryItem,\
 	SongItem,\
 	StationCreationInfo,\
 	StationInfo,\
 	TableData,\
-	UserRoleDef
-from musical_chairs_libs.simple_functions import build_error_obj
+	UserRoleDef,\
+	build_error_obj
 from musical_chairs_libs.station_service import StationService
 from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.queue_service import QueueService

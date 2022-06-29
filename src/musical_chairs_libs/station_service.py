@@ -25,17 +25,18 @@ from musical_chairs_libs.tables import\
 	albums, \
 	artists, \
 	song_artist
-from musical_chairs_libs.dtos import\
+from musical_chairs_libs.dtos_and_utilities import\
 	Tag,\
 	StationInfo, \
 	SongItem,\
 	StationCreationInfo,\
-	SavedNameString
+	SavedNameString,\
+	get_datetime,\
+	build_error_obj
 from musical_chairs_libs.errors import AlreadyUsedError
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.tag_service import TagService
 from musical_chairs_libs.os_process_manager import OSProcessManager
-from musical_chairs_libs.simple_functions import get_datetime, build_error_obj
 
 sg: ColumnCollection = songs.columns
 st: ColumnCollection = stations_tbl.columns

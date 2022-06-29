@@ -9,7 +9,7 @@ from .constant_fixtures_for_test import\
 	mock_password,\
 	primary_user,\
 	clear_mock_password
-from musical_chairs_libs.dtos import AccountInfo
+from musical_chairs_libs.dtos_and_utilities import AccountInfo
 from musical_chairs_libs.env_manager import EnvManager
 from .mocks.mock_db_constructors import construct_mock_connection_constructor
 from sqlalchemy.engine import Connection

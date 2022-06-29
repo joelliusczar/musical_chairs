@@ -1,4 +1,4 @@
-from musical_chairs_libs.simple_functions import\
+from musical_chairs_libs.dtos_and_utilities import\
 	seconds_to_tuple,\
 	next_directory_level
 

@@ -4,9 +4,10 @@ from sqlalchemy import insert
 from sqlalchemy.engine import Connection
 from datetime import datetime, timezone
 from musical_chairs_libs.tables import stations_history, station_queue
-from musical_chairs_libs.accounts_service import AccountsService,\
+from musical_chairs_libs.accounts_service import AccountsService
+from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
+	AccountCreationInfo,\
 	UserRoleDef
-from musical_chairs_libs.dtos import AccountInfo, AccountCreationInfo
 from .constant_fixtures_for_test import\
 	fixture_primary_user as fixture_primary_user
 from .constant_fixtures_for_test import *

@@ -2,8 +2,11 @@ import os
 from sqlalchemy import create_engine #pyright: ignore [reportUnknownVariableType]
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import metadata
-from musical_chairs_libs.dtos import SearchNameString, SavedNameString
-from musical_chairs_libs.simple_functions import next_directory_level
+from musical_chairs_libs.dtos_and_utilities import\
+	SearchNameString,\
+	SavedNameString,\
+	next_directory_level
+
 
 class EnvManager:
 

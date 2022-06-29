@@ -2,7 +2,7 @@ from typing import Protocol, Callable
 from datetime import datetime
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.env_manager import EnvManager
-from musical_chairs_libs.dtos import AccountInfo
+from musical_chairs_libs.dtos_and_utilities import AccountInfo
 from musical_chairs_libs.tables import metadata
 from .db_population import populate_artists,\
 	populate_albums,\

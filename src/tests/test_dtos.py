@@ -1,4 +1,4 @@
-from musical_chairs_libs.dtos import\
+from musical_chairs_libs.dtos_and_utilities import\
 	AccountInfo,\
 	SavedNameString,\
 	SearchNameString,\

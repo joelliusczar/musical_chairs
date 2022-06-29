@@ -1,5 +1,5 @@
 import json
-from musical_chairs_libs.dtos import UserRoleDef
+from musical_chairs_libs.dtos_and_utilities import UserRoleDef
 from .api_test_dependencies import\
 	fixture_api_test_client as fixture_api_test_client
 from .api_test_dependencies import *

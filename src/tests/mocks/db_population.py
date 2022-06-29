@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Any
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.dtos import AccountInfo, UserRoleDef
+from musical_chairs_libs.dtos_and_utilities import AccountInfo, UserRoleDef
 from musical_chairs_libs.tables import \
 	artists, \
 	albums, \

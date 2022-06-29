@@ -10,8 +10,8 @@ from musical_chairs_libs.queue_service import QueueService
 from musical_chairs_libs.tag_service import TagService
 from musical_chairs_libs.song_info_service import SongInfoService
 from musical_chairs_libs.accounts_service import AccountsService, UserRoleDef
-from musical_chairs_libs.dtos import AccountInfo
-from musical_chairs_libs.simple_functions import\
+from musical_chairs_libs.dtos_and_utilities import\
+	AccountInfo,\
 	build_error_obj,\
 	seconds_to_tuple,\
 	build_timespan_msg

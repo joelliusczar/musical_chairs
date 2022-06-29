@@ -197,10 +197,11 @@ class StationService:
 			.limit(limit)
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield SongItem(cast(int,row.pk),
-				cast(str, row.song),
-				cast(str, row.album),
-				cast(str, row.artist)
+			yield SongItem(
+				id=cast(int,row.pk),
+				name=cast(str, row.song),
+				album=cast(str, row.album),
+				artist=cast(str, row.artist)
 			)
 
 	def assign_tag_to_station(self, stationName: str, tagName: str) -> bool:

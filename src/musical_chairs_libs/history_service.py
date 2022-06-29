@@ -63,9 +63,9 @@ class HistoryService:
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield HistoryItem(
-					row.pk, #pyright: ignore [reportUnknownArgumentType]
-					row.name, #pyright: ignore [reportUnknownArgumentType]
-					row.album, #pyright: ignore [reportUnknownArgumentType]
-					row.artist, #pyright: ignore [reportUnknownArgumentType]
-					row.playedTimestamp #pyright: ignore [reportUnknownArgumentType]
+					id=row.pk, #pyright: ignore [reportUnknownArgumentType]
+					name=row.name, #pyright: ignore [reportUnknownArgumentType]
+					album=row.album, #pyright: ignore [reportUnknownArgumentType]
+					artist=row.artist, #pyright: ignore [reportUnknownArgumentType]
+					playedTimestamp=row.playedTimestamp #pyright: ignore [reportUnknownArgumentType]
 				)

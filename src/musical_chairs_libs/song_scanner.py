@@ -12,6 +12,7 @@ from tinytag import TinyTag
 from musical_chairs_libs.dtos import SongItemPlumbing
 from musical_chairs_libs.env_manager import EnvManager
 from musical_chairs_libs.song_info_service import SongInfoService
+from musical_chairs_libs.tag_service import TagService
 from musical_chairs_libs.tables import songs, \
 	songs_tags
 from musical_chairs_libs.station_service import StationService
@@ -82,7 +83,8 @@ class SongScanner:
 		conn: Optional[Connection]=None,
 		stationService: Optional[StationService]=None,
 		envManager: Optional[EnvManager]=None,
-		songInfoService: Optional[SongInfoService]=None
+		songInfoService: Optional[SongInfoService]=None,
+		tagService: Optional[TagService]=None,
 	) -> None:
 			if not conn:
 				if not envManager:
@@ -92,9 +94,12 @@ class SongScanner:
 				stationService = StationService(conn)
 			if not songInfoService:
 				songInfoService = SongInfoService(conn)
+			if not tagService:
+				tagService = TagService(conn)
 			self.conn = conn
 			self.station_service = stationService
 			self.song_info_service = songInfoService
+			self.tag_service = tagService
 
 
 	def update_metadata(self, searchBase: str) -> int:
@@ -125,19 +130,19 @@ class SongScanner:
 					fileTag.year
 				)
 				songItem = SongItemPlumbing(
-					row.id,
-					row.path,
-					fileTag.title,
-					albumFk,
-					artistFk,
-					composerFk,
-					fileTag.track,
-					fileTag.disc,
-					fileTag.genre,
-					fileTag.bitrate,
-					fileTag.samplerate,
-					fileTag.comment,
-					fileTag.duration
+					id=row.id,
+					path=row.path,
+					name=fileTag.title,
+					albumPk=albumFk,
+					artistPk=artistFk,
+					composerPk=composerFk,
+					track=fileTag.track,
+					disc=fileTag.disc,
+					genre=fileTag.genre,
+					bitrate=fileTag.bitrate,
+					sampleRate=fileTag.samplerate,
+					comment=fileTag.comment,
+					duration=fileTag.duration
 				)
 				updateCount += self.song_info_service.update_song_info(songItem)
 			if len(songRefs) < 1:
@@ -160,7 +165,7 @@ class SongScanner:
 
 	def sort_to_tags(self, songPk: int, path: str) -> None:
 		for tag in map_path_to_tags(path):
-			tagFk = self.station_service.get_tag_pk(tag)
+			tagFk = self.tag_service.get_tag_pk(tag)
 			stmt = insert(songs_tags).values(songFk = songPk, tagFk = tagFk)
 			try:
 				self.conn.execute(stmt)

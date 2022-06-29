@@ -196,9 +196,10 @@ class AccountsService:
 			.select_from(userRoles) \
 			.where(ur.userFk == userPk)
 		rows: Iterable[Row] = self.conn.execute(query).fetchall()
-		return (RoleInfo(userPk,
-					r["role"],
-					r["creationTimestamp"]
+		return (RoleInfo(
+					userPk=userPk,
+					role=r["role"],
+					creationTimestamp=r["creationTimestamp"]
 				) for r in rows)
 
 	def last_request_timestamp(self, user: AccountInfo) -> int:

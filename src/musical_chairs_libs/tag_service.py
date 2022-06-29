@@ -3,8 +3,8 @@ from typing import\
 	Iterable,\
 	Iterator,\
 	Optional,\
-	Sequence,\
-	cast
+	cast,\
+	Union
 from sqlalchemy.engine import Connection
 from sqlalchemy import select, \
 	func, \
@@ -19,6 +19,7 @@ from musical_chairs_libs.dtos import\
 	SearchNameString,\
 	SavedNameString,\
 	Tag
+from musical_chairs_libs.dtos_and_utilities.sentinel import Sentinel, missing
 from musical_chairs_libs.errors import AlreadyUsedError
 from musical_chairs_libs.tables import\
 	stations as stations_tbl, \
@@ -84,8 +85,9 @@ class TagService:
 		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		stationId: Optional[int]=None,
-		stationName: Optional[str]=None,
+		stationId: Union[Optional[int], Sentinel]=missing,
+		stationName: Union[Optional[str], Sentinel]=missing,
+		tagId: Union[Optional[int], Sentinel]=missing,
 		tagIds: Optional[Iterable[int]]=None
 	) -> Iterator[Tag]:
 		offset = page * pageSize if pageSize else 0
@@ -93,12 +95,14 @@ class TagService:
 		if stationId:
 			query = query.join(stations_tags_tbl, tg_pk == sttg_tagFk)\
 				.where(sttg_stationFk == stationId)
-		elif stationName:
+		elif stationName and type(stationName) is str:
 			searchStr = SearchNameString.format_name_for_search(stationName)
 			query = query.join(stations_tags_tbl, tg_pk == sttg_tagFk)\
 				.join(stations_tbl, sttg_stationFk == st_pk)\
 				.where(func.format_name_for_search(st_name).like(f"%{searchStr}%"))
-		if tagIds:
+		if tagId:
+			query = query.where(tg_pk == tagIds)
+		elif tagIds:
 			query = query.where(tg_pk.in_(tagIds))
 		query = query.order_by(tg_name).offset(offset).limit(pageSize)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
@@ -123,7 +127,7 @@ class TagService:
 	def add_tags_to_station(
 		self,
 		stationId: int,
-		tags: Optional[Sequence[Tag]],
+		tags: Optional[Iterable[Tag]],
 		userId: Optional[int]=None
 	) -> Iterable[Tag]:
 		if stationId is None or not tags:
@@ -179,3 +183,5 @@ class TagService:
 		stmt = delete(tags_tbl).where(tg_pk == tagId)
 		res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 		return cast(int, res.rowcount) or 0 #pyright: ignore [reportUnknownMemberType]
+
+

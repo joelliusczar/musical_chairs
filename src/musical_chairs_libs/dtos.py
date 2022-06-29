@@ -2,7 +2,6 @@
 import re
 import unicodedata
 from unidecode import unidecode
-from dataclasses import dataclass
 from typing import\
 	Any,\
 	Callable,\
@@ -208,21 +207,20 @@ class AccountCreationInfo(AccountInfoBase):
 class ErrorInfo(BaseModel):
 	msg: str
 
-@dataclass
-class RoleInfo:
+class RoleInfo(BaseModel):
 	userPk: int
 	role: str
 	creationTimestamp: float
 
-@dataclass
-class SongItem:
+class SongBase(BaseModel):
 	id: int
 	name: str
+
+class SongItem(SongBase):
 	album: str
 	artist: str
 
-@dataclass
-class SongItemPlumbing:
+class SongItemPlumbing(BaseModel):
 	id: int
 	path: str
 	name: Optional[str]=None
@@ -238,18 +236,15 @@ class SongItemPlumbing:
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 
-@dataclass
 class QueueItem(SongItem):
 	path: str
 	queuedTimestamp: float
 	requestedTimestamp: Optional[float]=None
 
-@dataclass
 class HistoryItem(SongItem):
 	playedTimestamp: float
 
-@dataclass
-class CurrentPlayingInfo:
+class CurrentPlayingInfo(BaseModel):
 	nowPlaying: Optional[HistoryItem]
 	items: Iterable[QueueItem]
 
@@ -286,8 +281,8 @@ class StationCreationInfo(BaseModel):
 			)
 		return v
 
-@dataclass
-class SongTreeNode:
+
+class SongTreeNode(BaseModel):
 	path: str
 	totalChildCount: int
 	id: Optional[int]=None

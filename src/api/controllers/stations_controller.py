@@ -48,7 +48,7 @@ def queue(
 	queueService: QueueService = Depends(queue_service)
 ) -> CurrentPlayingInfo:
 	if not stationName:
-		return CurrentPlayingInfo(None, [])
+		return CurrentPlayingInfo(nowPlaying=None, items=[])
 	queue = queueService.get_now_playing_and_queue(stationName=stationName)
 	return queue
 

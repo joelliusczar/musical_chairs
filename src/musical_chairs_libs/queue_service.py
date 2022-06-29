@@ -209,12 +209,12 @@ class QueueService:
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield QueueItem(
-				row.pk, #pyright: ignore [reportUnknownArgumentType]
-				row.name, #pyright: ignore [reportUnknownArgumentType]
-				row.album, #pyright: ignore [reportUnknownArgumentType]
-				row.artist, #pyright: ignore [reportUnknownArgumentType]
-				row.path, #pyright: ignore [reportUnknownArgumentType]
-				row.queuedTimestamp #pyright: ignore [reportUnknownArgumentType]
+				id=row.pk, #pyright: ignore [reportUnknownArgumentType]
+				name=row.name, #pyright: ignore [reportUnknownArgumentType]
+				album=row.album, #pyright: ignore [reportUnknownArgumentType]
+				artist=row.artist, #pyright: ignore [reportUnknownArgumentType]
+				path=row.path, #pyright: ignore [reportUnknownArgumentType]
+				queuedTimestamp=row.queuedTimestamp #pyright: ignore [reportUnknownArgumentType]
 			)
 
 	def pop_next_queued(
@@ -290,7 +290,7 @@ class QueueService:
 		queue = list(self.get_queue_for_station(stationPk))
 		playing = next(self.history_service. \
 			get_history_for_station(stationPk, limit=1), None)
-		return CurrentPlayingInfo(playing, queue)
+		return CurrentPlayingInfo(nowPlaying=playing, items=queue)
 
 
 

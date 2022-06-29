@@ -242,7 +242,7 @@ class SongInfoService:
 		if stationId or tagId or stationName:
 			query = query.join(songs_tags_tbl, sgtg_songFk == sg_pk)
 			if tagId:
-				query.where(sgtg_tagFk == tagId)
+				query = query.where(sgtg_tagFk == tagId)
 			elif stationId:
 				query = query.join(stations_tags_tbl, sgtg_tagFk == sttg_tagFk)\
 					.where(sttg_stationFk == stationId)

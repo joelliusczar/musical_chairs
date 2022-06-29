@@ -43,3 +43,30 @@ def test_song_ls(fixture_song_info_service: SongInfoService):
 	assert paths[0].path == "blitz/"
 	assert paths[1].path == "foo/"
 	assert paths[2].path == "jazz/"
+
+def test_get_songs_by_tag_id(fixture_song_info_service: SongInfoService):
+	songInfoService = fixture_song_info_service
+	songs = sorted(list(songInfoService.get_songs(tagId=3)), key=lambda s: s.name)
+	assert len(songs) == 11
+	assert songs[0].name == "alpha2_song"
+	assert songs[0].id == 34
+	assert songs[1].name == "bravo_song"
+	assert songs[1].id == 11
+	assert songs[2].name == "charlie2_song"
+	assert songs[2].id == 36
+	assert songs[3].name == "hotel_song"
+	assert songs[3].id == 16
+	assert songs[4].name == "india_song"
+	assert songs[4].id == 17
+	assert songs[5].name == "juliet2_song"
+	assert songs[5].id == 43
+	assert songs[6].name == "papa_song"
+	assert songs[6].id == 24
+	assert songs[7].name == "romeo_song"
+	assert songs[7].id == 25
+	assert songs[8].name == "sierra2_song"
+	assert songs[8].id == 26
+	assert songs[9].name == "tango2_song"
+	assert songs[9].id == 27
+	assert songs[10].name == "whiskey_song"
+	assert songs[10].id == 6

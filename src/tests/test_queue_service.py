@@ -2,7 +2,7 @@
 from .constant_fixtures_for_test import *
 from .common_fixtures import fixture_queue_service as fixture_queue_service
 from .common_fixtures import *
-from musical_chairs_libs.queue_service import QueueService
+from musical_chairs_libs.services import QueueService
 
 
 

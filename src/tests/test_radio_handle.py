@@ -3,7 +3,7 @@ from .common_fixtures import \
 	fixture_radio_handle as fixture_radio_handle
 from .common_fixtures import *
 from .constant_fixtures_for_test import *
-from musical_chairs_libs.env_manager import EnvManager
+from musical_chairs_libs.services import EnvManager
 from musical_chairs_libs.radio_handle import RadioHandle
 
 

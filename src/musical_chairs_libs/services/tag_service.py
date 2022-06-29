@@ -13,14 +13,15 @@ from sqlalchemy import select, \
 	update
 from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.exc import IntegrityError
-from musical_chairs_libs.env_manager import EnvManager
+from .env_manager import EnvManager
 from musical_chairs_libs.dtos_and_utilities import\
 	SearchNameString,\
 	SavedNameString,\
 	Tag,\
 	get_datetime,\
-	build_error_obj
-from musical_chairs_libs.dtos_and_utilities.sentinel import Sentinel, missing
+	build_error_obj,\
+	Sentinel,\
+	missing
 from musical_chairs_libs.errors import AlreadyUsedError
 from musical_chairs_libs.tables import\
 	stations as stations_tbl, \

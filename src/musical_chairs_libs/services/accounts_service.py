@@ -14,7 +14,7 @@ from musical_chairs_libs.dtos_and_utilities import\
 	hashpw,\
 	checkpw,\
 	validate_email
-from musical_chairs_libs.env_manager import EnvManager
+from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine.row import Row

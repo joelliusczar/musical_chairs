@@ -1,10 +1,11 @@
 #pyright: reportMissingTypeStubs=false
 import os
 from typing import Optional
-from musical_chairs_libs.queue_service import QueueService
-from musical_chairs_libs.env_manager import EnvManager
-from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.os_process_manager import OSProcessManager
+from musical_chairs_libs.services import\
+	EnvManager,\
+	QueueService,\
+	StationService
+from musical_chairs_libs.dtos_and_utilities import OSProcessManager
 
 
 

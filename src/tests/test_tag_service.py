@@ -1,5 +1,5 @@
 import pytest
-from musical_chairs_libs.tag_service import TagService
+from musical_chairs_libs.services import TagService
 from musical_chairs_libs.errors import AlreadyUsedError
 from .mocks.db_population import get_starting_tags
 from .common_fixtures import \

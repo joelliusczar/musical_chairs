@@ -5,7 +5,7 @@ from musical_chairs_libs.dtos_and_utilities import\
 	Tag,\
 	AccountInfo,\
 	UserRoleDef
-from musical_chairs_libs.tag_service import TagService
+from musical_chairs_libs.services import TagService
 from api_dependencies import \
 	tag_service,\
 	get_current_user

@@ -11,12 +11,14 @@ from sqlalchemy import \
 	insert
 from tinytag import TinyTag
 from musical_chairs_libs.dtos_and_utilities import SongItemPlumbing
-from musical_chairs_libs.env_manager import EnvManager
-from musical_chairs_libs.song_info_service import SongInfoService
-from musical_chairs_libs.tag_service import TagService
+from musical_chairs_libs.services import\
+	EnvManager,\
+	SongInfoService,\
+	TagService,\
+	StationService
 from musical_chairs_libs.tables import songs, \
 	songs_tags
-from musical_chairs_libs.station_service import StationService
+
 
 def getFilter(endings: Iterable[str]) -> Callable[[str],bool]:
 	def _filter(str: str) -> bool:

@@ -3,18 +3,20 @@ from typing import Iterator
 from fastapi import Depends, HTTPException, status
 
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.env_manager import EnvManager
-from musical_chairs_libs.history_service import HistoryService
-from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.queue_service import QueueService
-from musical_chairs_libs.tag_service import TagService
-from musical_chairs_libs.song_info_service import SongInfoService
-from musical_chairs_libs.accounts_service import AccountsService, UserRoleDef
+from musical_chairs_libs.services import\
+	EnvManager,\
+	HistoryService,\
+	StationService,\
+	QueueService,\
+	TagService,\
+	SongInfoService,\
+	AccountsService
 from musical_chairs_libs.dtos_and_utilities import\
 	AccountInfo,\
 	build_error_obj,\
 	seconds_to_tuple,\
-	build_timespan_msg
+	build_timespan_msg,\
+	UserRoleDef
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 
 oauth2_scheme = OAuth2PasswordBearer(

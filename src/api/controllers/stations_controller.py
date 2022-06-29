@@ -10,10 +10,11 @@ from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
 	TableData,\
 	UserRoleDef,\
 	build_error_obj
-from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.history_service import HistoryService
-from musical_chairs_libs.queue_service import QueueService
-from musical_chairs_libs.tag_service import TagService
+from musical_chairs_libs.services import\
+	StationService,\
+	HistoryService,\
+	QueueService,\
+	TagService
 from api_dependencies import \
 	station_service,\
 	history_service,\

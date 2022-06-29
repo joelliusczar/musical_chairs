@@ -2,15 +2,17 @@
 import pytest
 from typing import Callable, Iterator, List
 from datetime import datetime
-from musical_chairs_libs.env_manager import EnvManager
-from musical_chairs_libs.queue_service import QueueService
-from musical_chairs_libs.accounts_service import AccountsService
+from musical_chairs_libs.services import\
+	EnvManager,\
+	QueueService,\
+	AccountsService,\
+	SongInfoService,\
+	StationService,\
+	TagService
+
 from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos_and_utilities import AccountInfo
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.song_info_service import SongInfoService
-from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.tag_service import TagService
 from .mocks.mock_process_manager import MockOSProcessManager
 from .mocks.mock_db_constructors import setup_in_mem_tbls,\
 	construct_mock_connection_constructor

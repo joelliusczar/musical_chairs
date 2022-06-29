@@ -1,4 +1,4 @@
-from musical_chairs_libs.os_process_manager import OSProcessManager
+from musical_chairs_libs.dtos_and_utilities import OSProcessManager
 
 
 class MockOSProcessManager(OSProcessManager):

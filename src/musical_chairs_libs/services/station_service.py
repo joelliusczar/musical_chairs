@@ -32,11 +32,11 @@ from musical_chairs_libs.dtos_and_utilities import\
 	StationCreationInfo,\
 	SavedNameString,\
 	get_datetime,\
-	build_error_obj
+	build_error_obj,\
+	OSProcessManager
 from musical_chairs_libs.errors import AlreadyUsedError
-from musical_chairs_libs.env_manager import EnvManager
-from musical_chairs_libs.tag_service import TagService
-from musical_chairs_libs.os_process_manager import OSProcessManager
+from .env_manager import EnvManager
+from .tag_service import TagService
 
 sg: ColumnCollection = songs.columns
 st: ColumnCollection = stations_tbl.columns

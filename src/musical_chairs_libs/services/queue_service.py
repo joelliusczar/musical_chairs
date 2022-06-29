@@ -17,10 +17,11 @@ from sqlalchemy import\
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import Row
 from sqlalchemy.sql import ColumnCollection
-from musical_chairs_libs.env_manager import EnvManager
-from musical_chairs_libs.station_service import StationService
-from musical_chairs_libs.accounts_service import AccountsService
-from musical_chairs_libs.song_info_service import SongInfoService
+from .env_manager import EnvManager
+from .station_service import StationService
+from .accounts_service import AccountsService
+from .song_info_service import SongInfoService
+from .history_service import HistoryService
 from musical_chairs_libs.tables import \
 	stations_history, \
 	songs, \
@@ -31,7 +32,6 @@ from musical_chairs_libs.tables import \
 	albums, \
 	artists, \
 	song_artist
-from musical_chairs_libs.history_service import HistoryService
 from musical_chairs_libs.dtos_and_utilities import\
 	AccountInfo,\
 	QueueItem,\
@@ -223,7 +223,7 @@ class QueueService:
 		stationPk: Optional[int]=None,
 		stationName: Optional[str]=None,
 		queueSize: int=50
-	) -> Tuple[str, str, str, str]:
+	) -> Tuple[str, str, Optional[str], Optional[str]]:
 		if not stationPk:
 			if stationName:
 				stationPk = self.station_service.get_station_pk(stationName)

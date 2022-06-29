@@ -5,9 +5,9 @@ from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import stations_history, songs, stations, \
 	albums, artists, song_artist
-from musical_chairs_libs.station_service import StationService
+from .station_service import StationService
+from .env_manager import EnvManager
 from musical_chairs_libs.dtos_and_utilities import HistoryItem
-from musical_chairs_libs.env_manager import EnvManager
 
 class HistoryService:
 	def __init__(

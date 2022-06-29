@@ -1,4 +1,4 @@
-from musical_chairs_libs.song_info_service import SongInfoService
+from musical_chairs_libs.services import SongInfoService
 from .constant_fixtures_for_test import *
 from .common_fixtures import\
 	fixture_song_info_service as fixture_song_info_service

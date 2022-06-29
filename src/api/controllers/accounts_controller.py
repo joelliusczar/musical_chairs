@@ -2,7 +2,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Security, Body
 from fastapi.security import OAuth2PasswordRequestForm
-from musical_chairs_libs.accounts_service import AccountsService,\
+from musical_chairs_libs.services import AccountsService,\
 	ACCESS_TOKEN_EXPIRE_MINUTES
 from musical_chairs_libs.dtos_and_utilities import\
 	AccountCreationInfo,\

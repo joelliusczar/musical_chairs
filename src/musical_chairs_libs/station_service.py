@@ -139,7 +139,9 @@ class StationService:
 				id=key[0],
 				name=key[1],
 				displayName=key[2],
-				tags=[Tag(r[tg.pk],r[tg.name]) for r in cast(Iterator[Row],group)]
+				tags=[
+					Tag(id=r[tg.pk],name=r[tg.name]) for r in cast(Iterator[Row], group)
+				]
 			)
 
 	def _attach_catalogue_joins(
@@ -253,10 +255,10 @@ class StationService:
 		if not row:
 			return None
 		return StationInfo(
-			stationId or row["pk"],
-			row["name"],
-			row["displayName"],
-			list(tags)
+			id=stationId or row["pk"],
+			name=row["name"],
+			displayName=row["displayName"],
+			tags=list(tags)
 		)
 
 	def save_station(
@@ -291,8 +293,8 @@ class StationService:
 		resultTags = self.tag_service\
 			.add_tags_to_station(affectedPk, station.tags, userId)
 		return StationInfo(
-			affectedPk,
-			str(savedName),
-			str(savedDisplayName),
-			list(resultTags)
+			id=affectedPk,
+			name=str(savedName),
+			displayName=str(savedDisplayName),
+			tags=list(resultTags)
 		)

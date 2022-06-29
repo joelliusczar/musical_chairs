@@ -253,13 +253,11 @@ class CurrentPlayingInfo:
 	nowPlaying: Optional[HistoryItem]
 	items: Iterable[QueueItem]
 
-@dataclass
 class Tag(BaseModel):
 	id: int
 	name: str
 
-@dataclass
-class StationInfo:
+class StationInfo(BaseModel):
 	id: int
 	name: str
 	displayName: str
@@ -268,7 +266,7 @@ class StationInfo:
 class StationCreationInfo(BaseModel):
 	name: str
 	displayName: Optional[str]
-	tags: List[Tag]
+	tags: Optional[List[Tag]]
 
 	_name_len = validator(
 		"name",

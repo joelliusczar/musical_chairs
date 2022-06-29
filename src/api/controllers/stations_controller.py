@@ -148,7 +148,7 @@ def create_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station, userId=user.id)
-	return result or StationInfo(-1,"","",[])
+	return result or StationInfo(id=-1,name="",displayName="",tags=[])
 
 @router.put("")
 def update_station(
@@ -161,7 +161,7 @@ def update_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station, id, userId=user.id)
-	return result or StationInfo(-1,"","",[])
+	return result or StationInfo(id=-1,name="",displayName="",tags=[])
 
 
 # def request(self, stationName, songPk):

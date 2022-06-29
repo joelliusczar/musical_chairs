@@ -104,8 +104,8 @@ class TagService:
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield Tag(
-				row["pk"], #pyright: ignore [reportUnknownArgumentType]
-				row["name"] #pyright: ignore [reportUnknownArgumentType]
+				id=row["pk"], #pyright: ignore [reportUnknownArgumentType]
+				name=row["name"] #pyright: ignore [reportUnknownArgumentType]
 			)
 
 	def remove_tags_for_station(
@@ -153,7 +153,7 @@ class TagService:
 		userId: Optional[int]=None
 	) -> Tag:
 		if not tagName and not tagId:
-			return Tag(-1, "")
+			return Tag(id=-1, name="")
 		upsert = update if tagId else insert
 		savedName = SavedNameString(tagName)
 		stmt = upsert(tags_tbl).values(
@@ -167,7 +167,7 @@ class TagService:
 			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 
 			affectedPk: int = tagId if tagId else res.lastrowid #pyright: ignore [reportUnknownMemberType]
-			return Tag(affectedPk, str(savedName))
+			return Tag(id=affectedPk, name=str(savedName))
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(

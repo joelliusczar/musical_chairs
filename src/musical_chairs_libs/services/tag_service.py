@@ -103,7 +103,7 @@ class TagService:
 				.join(stations_tbl, sttg_stationFk == st_pk)\
 				.where(func.format_name_for_search(st_name).like(f"%{searchStr}%"))
 		if tagId:
-			query = query.where(tg_pk == tagIds)
+			query = query.where(tg_pk == tagId)
 		elif tagIds:
 			query = query.where(tg_pk.in_(tagIds))
 		query = query.order_by(tg_name).offset(offset).limit(pageSize)

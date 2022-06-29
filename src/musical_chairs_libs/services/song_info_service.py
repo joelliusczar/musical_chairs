@@ -261,7 +261,7 @@ class SongInfoService:
 				name=cast(str, row["name"]),
 			)
 
-	def remove_songs_for_tags(
+	def remove_songs_for_tag(
 		self,
 		tagId: int,
 		songIds: Iterable[int]
@@ -290,7 +290,7 @@ class SongInfoService:
 		existingSongIds = {s.id for s in existingSongs}
 		outSongIds = existingSongIds - songIdSet
 		inSongIds = songIdSet - existingSongIds
-		self.remove_songs_for_tags(tagId, outSongIds)
+		self.remove_songs_for_tag(tagId, outSongIds)
 		if not inSongIds: #if no songs have been linked
 			return (tag,(s for s in existingSongs if s.id not in outSongIds))
 		songParams = [{

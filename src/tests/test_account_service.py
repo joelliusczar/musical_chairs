@@ -66,7 +66,7 @@ def test_when_can_make_request_with_history(
 	accountService = fixture_account_service_mock_current_time
 	_insert_row_into_history(accountService.conn, 1)
 
-	fixture_primary_user.roles = [UserRoleDef.SONG_REQUEST.modded_value(60)]
+	#fixture_primary_user.roles = [UserRoleDef.SONG_REQUEST.modded_value(60)]
 	global currentTestDate
 	currentTestDate =\
 		datetime(
@@ -134,7 +134,7 @@ def test_when_can_make_request_with_queue(
 	accountService = fixture_account_service_mock_current_time
 	_insert_row_into_queue(accountService.conn, 1)
 
-	fixture_primary_user.roles = [f"{UserRoleDef.SONG_REQUEST.value}60"]
+	#fixture_primary_user.roles = [f"{UserRoleDef.SONG_REQUEST.value}60"]
 	global currentTestDate
 	currentTestDate =\
 		datetime(
@@ -188,7 +188,7 @@ def test_when_song_can_be_added_with_admin(
 	fixture_primary_user: AccountInfo
 ):
 	#accountService = fixture_account_service_mock_current_time
-	fixture_primary_user.roles = [UserRoleDef.ADMIN.value]
+	#fixture_primary_user.roles = [UserRoleDef.ADMIN.value]
 	result = None#accountService.time_til_user_can_make_request(fixture_primary_user)
 	assert result == 0
 

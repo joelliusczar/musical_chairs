@@ -223,7 +223,7 @@ class QueueService:
 		stationPk: Optional[int]=None,
 		stationName: Optional[str]=None,
 		queueSize: int=50
-	) -> Tuple[str, str, Optional[str], Optional[str]]:
+	) -> Tuple[str, Optional[str], Optional[str], Optional[str]]:
 		if not stationPk:
 			if stationName:
 				stationPk = self.station_service.get_station_pk(stationName)

@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Table,\
 	MetaData,\
 	Column,\
@@ -7,7 +8,8 @@ from sqlalchemy import Table,\
 	String,\
 	ForeignKey,\
 	Index
-from typing import Any
+from sqlalchemy.sql import ColumnCollection as TblCols
+from sqlalchemy.sql.schema import Column
 
 
 
@@ -184,3 +186,52 @@ userRoles = Table("UserRoles", metadata,
 _ur_userFk: Any = userRoles.c.userFk #pyright: ignore reportUnknownMemberType
 _ur_role: Any = userRoles.c.role #pyright: ignore reportUnknownMemberType
 Index("idx_userRoles", _ur_userFk, _ur_role, unique=True)
+
+
+sg: TblCols = songs.c #pyright: ignore [reportUnknownMemberType]
+sg_pk: Column = sg.pk #pyright: ignore [reportUnknownMemberType]
+sg_name: Column = sg.name #pyright: ignore [reportUnknownMemberType]
+sg_path: Column = sg.path #pyright: ignore [reportUnknownMemberType]
+sg_albumFk: Column = sg.albumFk #pyright: ignore [reportUnknownMemberType]
+sg_track: Column = sg.track #pyright: ignore [reportUnknownMemberType]
+sg_disc: Column = sg.disc #pyright: ignore [reportUnknownMemberType]
+sg_genre: Column = sg.genre #pyright: ignore [reportUnknownMemberType]
+sg_explicit: Column = sg.explicit #pyright: ignore [reportUnknownMemberType]
+sg_bitrate: Column = sg.bitrate #pyright: ignore [reportUnknownMemberType]
+sg_comment: Column = sg.comment #pyright: ignore [reportUnknownMemberType]
+sg_lyrics: Column = sg.lyrics #pyright: ignore [reportUnknownMemberType]
+sg_duration: Column = sg.duration #pyright: ignore [reportUnknownMemberType]
+sg_sampleRate: Column = sg.sampleRate #pyright: ignore [reportUnknownMemberType]
+
+ab: TblCols = albums.c #pyright: ignore [reportUnknownMemberType]
+ab_pk: Column = ab.pk #pyright: ignore [reportUnknownMemberType]
+ab_name: Column = ab.name #pyright: ignore [reportUnknownMemberType]
+ab_year: Column = ab.year #pyright: ignore [reportUnknownMemberType]
+ab_albumArtistFk: Column = ab.albumArtistFk #pyright: ignore [reportUnknownMemberType]
+
+ar: TblCols = artists.c #pyright: ignore [reportUnknownMemberType]
+ar_pk: Column = ar.pk #pyright: ignore [reportUnknownMemberType]
+ar_name: Column = ar.name #pyright: ignore [reportUnknownMemberType]
+
+tg: TblCols = tags.c #pyright: ignore [reportUnknownMemberType]
+tg_pk: Column = tg.pk #pyright: ignore [reportUnknownMemberType]
+tg_name: Column = tg.name #pyright: ignore [reportUnknownMemberType]
+
+
+st: TblCols = stations.c #pyright: ignore [reportUnknownMemberType]
+st_pk: Column = st.pk #pyright: ignore [reportUnknownMemberType]
+st_name: Column = st.name #pyright: ignore [reportUnknownMemberType]
+
+sgar: TblCols = song_artist.c #pyright: ignore [reportUnknownMemberType]
+sgar_songFk: Column = sgar.songFk #pyright: ignore [reportUnknownMemberType]
+sgar_artistFk: Column = sgar.artistFk #pyright: ignore [reportUnknownMemberType]
+sgar_isPrimaryArtist: Column = sgar.isPrimaryArtist #pyright: ignore [reportUnknownMemberType]
+
+sgtg: TblCols = songs_tags.c #pyright: ignore [reportUnknownMemberType]
+sgtg_tagFk: Column = sgtg.tagFk #pyright: ignore [reportUnknownMemberType]
+sgtg_songFk: Column = sgtg.songFk #pyright: ignore [reportUnknownMemberType]
+
+sttg: TblCols = stations_tags.c #pyright: ignore [reportUnknownMemberType]
+sttg_tagFk: Column = sttg.tagFk #pyright: ignore [reportUnknownMemberType]
+sttg_stationFk: Column = sttg.stationFk #pyright: ignore [reportUnknownMemberType]
+

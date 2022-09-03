@@ -150,7 +150,7 @@ ssh -i "$radio_key_file" "$radio_server_ssh_address" \
 echo "All done" || echo "Onk!"
 
 rm -f remote_script_fifo remote_cleanup_fifo
-rm -f radio_common_fifo clone_repo_fifo script_select_fifo 
+rm -f radio_common_fifo clone_repo_fifo script_select_fifo
 
 
 

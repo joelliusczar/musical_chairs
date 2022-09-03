@@ -10,7 +10,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy import \
 	insert
 from tinytag import TinyTag
-from musical_chairs_libs.dtos_and_utilities import SongItemPlumbing
+from musical_chairs_libs.dtos_and_utilities import ScanningSongItem
 from musical_chairs_libs.services import\
 	EnvManager,\
 	SongInfoService,\
@@ -131,13 +131,13 @@ class SongScanner:
 					albumArtistFk,
 					fileTag.year
 				)
-				songItem = SongItemPlumbing(
+				songItem = ScanningSongItem(
 					id=row.id,
 					path=row.path,
 					name=fileTag.title,
-					albumPk=albumFk,
-					artistPk=artistFk,
-					composerPk=composerFk,
+					albumId=albumFk,
+					artistId=artistFk,
+					composerId=composerFk,
 					track=fileTag.track,
 					disc=fileTag.disc,
 					genre=fileTag.genre,

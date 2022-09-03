@@ -5,24 +5,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Unit Test",
-      "type": "python",
-      "python": "${workspaceFolder}/test_trash/utest/mc_env/bin",
-      "request": "launch",
-      "program": "${file}",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "env": {
-        "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
-      }
-    },
-    {
       "name": "Python: Current File",
       "type": "python",
       "python": "${command:python.interpreterPath}",
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
+      "justMyCode": false,
       "env": {
         "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
       }
@@ -34,9 +23,16 @@
       "request": "launch",
       "program": "${workspaceFolder}/src/api/index.py",
       "console": "integratedTerminal",
+      "justMyCode": false,
       "env": {
         "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
       }
-    }
+    },
+    {
+      "name": "Debug Unit Test",
+      "type": "python",
+      "request": "test",
+      "justMyCode": false,
+  },
   ]
 }

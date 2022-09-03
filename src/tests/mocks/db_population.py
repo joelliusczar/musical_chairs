@@ -596,6 +596,7 @@ def populate_songs_artists(conn: Connection):
 		{ "songFk": 43, "artistFk": 7, "isPrimaryArtist": 1 },
 		{ "songFk": 42, "artistFk": 7, "isPrimaryArtist": 1 },
 		{ "songFk": 41, "artistFk": 7, "isPrimaryArtist": 1 },
+		{ "songFk": 1, "artistFk": 6, "isPrimaryArtist": 1 },
 	]
 	conn.execute(stmt, songArtistParams2) #pyright: ignore [reportUnknownMemberType]
 

@@ -1,5 +1,6 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import os
+from dataclasses import asdict
 from datetime import timedelta, datetime, timezone
 from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple
 from musical_chairs_libs.dtos_and_utilities import\
@@ -118,12 +119,10 @@ class AccountsService:
 			insertedPk,
 			[UserRoleDef.SONG_REQUEST.modded_value("60")]
 		)
-		accountDict = accountInfo.dict(exclude={ "password"})
-		resultDto = AccountInfo.parse_obj({
-			**accountDict,
-			"id": insertedPk,
-			"roles": insertedRows
-		})
+		accountDict = accountInfo.scrubed_dict()
+		accountDict["id"] = insertedPk #pyright: ignore [reportGeneralTypeIssues]
+		accountDict["roles"] = insertedRows #pyright: ignore [reportGeneralTypeIssues]
+		resultDto = AccountInfo(**accountDict)
 		return resultDto
 
 	def remove_roles_for_user(self, userId: int, roles: Iterable[str]) -> int:
@@ -257,17 +256,12 @@ class AccountsService:
 		pageSize: Optional[int]=None
 	) -> Iterator[AccountInfo]:
 		offset = page * pageSize if pageSize else 0
-		query = select(u.pk, u.username, u.displayName, u.email)\
+		query = select(u.pk.label("id"), u.username, u.displayName, u.email)\
 			.offset(offset)\
 			.limit(pageSize)
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield AccountInfo.construct(
-				id=row.pk, #pyright: ignore [reportUnknownArgumentType]
-				username=row.username, #pyright: ignore [reportUnknownArgumentType]
-				displayName=row.displayName,
-				email=row.email #pyright: ignore [reportUnknownArgumentType]
-			)
+			yield AccountInfo(**row) #pyright: ignore [reportUnknownArgumentType]
 
 	def get_account_for_edit(
 		self,
@@ -282,12 +276,10 @@ class AccountsService:
 		if not row:
 			return None
 		roles = [r.role for r in self._get_roles(userId)]
-		return AccountInfo.construct(
-			id = userId,
-			username=row.username, #pyright: ignore [reportGeneralTypeIssues]
-			displayName=row.displayName, #pyright: ignore [reportGeneralTypeIssues]
-			email=row.email, #pyright: ignore [reportGeneralTypeIssues]
-			roles=roles
+		return AccountInfo(
+			id=userId,
+			roles=roles,
+			**row #pyright: ignore [reportGeneralTypeIssues]
 		)
 
 	def _get_account_if_can_edit(self,\
@@ -318,8 +310,7 @@ class AccountsService:
 		stmt = update(users).values(email = updatedEmail)\
 			.where(u.pk == prev.id)
 		self.conn.execute(stmt)
-		prev.email = updatedEmail
-		return prev
+		return AccountInfo(**{**asdict(prev), "email": updatedEmail}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
 
 	def update_account_general_changes(
@@ -331,5 +322,4 @@ class AccountsService:
 		prev = self._get_account_if_can_edit(userId, currentUser)
 		stmt = update(users).values(displayName = accountInfo.displayName)
 		self.conn.execute(stmt)
-		prev.displayName = accountInfo.displayName
-		return prev
+		return AccountInfo(**asdict(prev), displayName=accountInfo.displayName)

@@ -1,4 +1,6 @@
-from pydantic import BaseModel, validator
+from pydantic import validator
+from pydantic.dataclasses import dataclass as pydanticDataclass
+from dataclasses import dataclass, field
 from typing import\
 	Optional,\
 	Iterable,\
@@ -6,21 +8,56 @@ from typing import\
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates
 
-class SongBase(BaseModel):
+
+@dataclass()
+class ArtistInfo:
 	id: int
 	name: str
 
-class SongItem(SongBase):
+@dataclass()
+class AlbumInfo:
+	id: int
+	name: str
+	albumArtistId: Optional[int]=None
+
+@dataclass()
+class SongBase:
+	id: int
+	name: str
+
+@dataclass()
+class SongListDisplayItem(SongBase):
 	album: Optional[str]
 	artist: Optional[str]
 
-class SongItemPlumbing(BaseModel):
+@dataclass()
+class SongEditInfo:
 	id: int
 	path: str
 	name: Optional[str]=None
-	albumPk: Optional[int]=None
-	artistPk: Optional[int]=None
-	composerPk: Optional[int]=None
+	albumId: Optional[int]=None
+	artistIds: Optional[List[int]]=field(default_factory=list)
+	coverIds: Optional[List[int]]=field(default_factory=list)
+	primaryArtistId: Optional[int]=None
+	track: Optional[int]=None
+	disc: Optional[int]=None
+	genre: Optional[str]=None
+	bitrate: Optional[float]=None
+	sampleRate: Optional[float]=None
+	comment: Optional[str]=None
+	duration: Optional[float]=None
+	explicit: Optional[bool]=None
+	lyrics: Optional[str]=""
+	tagIds: Optional[List[int]]=field(default_factory=list)
+
+@dataclass(frozen=True)
+class ScanningSongItem:
+	id: int
+	path: str
+	name: Optional[str]=None
+	albumId: Optional[int]=None
+	artistId: Optional[int]=None
+	composerId: Optional[int]=None
 	track: Optional[int]=None
 	disc: Optional[int]=None
 	genre: Optional[str]=None
@@ -30,32 +67,41 @@ class SongItemPlumbing(BaseModel):
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 
-class QueueItem(SongItem):
+@dataclass()
+class QueueItem(SongListDisplayItem):
 	path: str
 	queuedTimestamp: float
 	requestedTimestamp: Optional[float]=None
 
-class HistoryItem(SongItem):
+@dataclass()
+class HistoryItem(SongListDisplayItem):
 	playedTimestamp: float
 
-class CurrentPlayingInfo(BaseModel):
+@dataclass()
+class CurrentPlayingInfo:
 	nowPlaying: Optional[HistoryItem]
 	items: Iterable[QueueItem]
 
-class Tag(BaseModel):
+@dataclass(frozen=True)
+class Tag:
 	id: int
 	name: str
 
-class StationInfo(BaseModel):
+@dataclass()
+class StationInfo:
 	id: int
 	name: str
 	displayName: str
 	tags: Optional[List[Tag]]
 
-class StationCreationInfo(BaseModel):
+@dataclass()
+class StationCreationInfo:
 	name: str
-	displayName: Optional[str]
-	tags: Optional[List[Tag]]
+	displayName: Optional[str]=""
+	tags: Optional[List[Tag]]=field(default_factory=list)
+
+@pydanticDataclass()
+class ValidatedStationCreationInfo(StationCreationInfo):
 
 	_name_len = validator(
 		"name",
@@ -76,8 +122,15 @@ class StationCreationInfo(BaseModel):
 		return v
 
 
-class SongTreeNode(BaseModel):
+@dataclass(frozen=True)
+class SongTreeNode:
 	path: str
 	totalChildCount: int
 	id: Optional[int]=None
 	name: Optional[str]=None
+
+@dataclass()
+class SongEverything:
+	allAlbums: List[AlbumInfo]
+	allArtists: List[ArtistInfo]
+	allTags: List[Tag]

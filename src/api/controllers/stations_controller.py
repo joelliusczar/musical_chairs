@@ -1,11 +1,11 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Dict, List, Optional
-from fastapi import APIRouter, Depends, Security, HTTPException, status
+from fastapi import APIRouter, Depends, Security, HTTPException, status, Body
 from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
 	CurrentPlayingInfo,\
+	ValidatedStationCreationInfo,\
 	HistoryItem,\
-	SongItem,\
-	StationCreationInfo,\
+	SongListDisplayItem,\
 	StationInfo,\
 	TableData,\
 	UserRoleDef,\
@@ -59,7 +59,7 @@ def song_catalogue(
 	page: int = 0,
 	limit: int = 50,
 	stationService: StationService = Depends(station_service)
-) -> TableData[SongItem]:
+) -> TableData[SongListDisplayItem]:
 	if not stationName:
 		return TableData(totalRows=0, items=[])
 	songs = list(
@@ -125,9 +125,9 @@ def get_station_for_edit(
 	return stationInfo
 
 def extra_validated_station(
-	station: StationCreationInfo,
+	station: ValidatedStationCreationInfo = Body(default=None),
 	tagService: TagService = Depends(tag_service)
-) -> StationCreationInfo:
+) -> ValidatedStationCreationInfo:
 	tagIds = {t.id for t in station.tags or []}
 	dbTags = {t.id for t in tagService.get_tags(tagIds=tagIds)}
 	if tagIds - dbTags:
@@ -141,7 +141,7 @@ def extra_validated_station(
 
 @router.post("")
 def create_station(
-	station: StationCreationInfo = Depends(extra_validated_station),
+	station: ValidatedStationCreationInfo = Depends(extra_validated_station),
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
 		get_current_user,
@@ -154,7 +154,7 @@ def create_station(
 @router.put("")
 def update_station(
 	id: int,
-	station: StationCreationInfo  = Depends(extra_validated_station),
+	station: ValidatedStationCreationInfo = Depends(extra_validated_station),
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
 		get_current_user,

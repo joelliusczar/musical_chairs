@@ -28,7 +28,6 @@ get_repo_path() (
 	fi
 )
 
-
 install_package() (
 	pkgName="$1"
 	echo "Try to install --$pkgName--"
@@ -167,27 +166,45 @@ is_dir_empty() (
 	[ ! -d "$target_dir" ] || [ -z "$(ls -A ${target_dir})" ]
 )
 
+get_libs_dir() (
+	set_env_path_var #ensure that we can see mc-python
+	set_python_version_const || return "$?"
+	env_root="$1"
+	packagePath="$py_env/lib/python$pyMajor.$pyMinor/site-packages/"
+	echo "$env_root"/"$packagePath"
+)
+
 # set up the python environment, then copy
 # subshell () auto switches in use python version back at the end of function
 create_py_env_in() (
 	echo "setting up py libs"
-	set_python_version_const || return "$?"
 	set_env_path_var #ensure that we can see mc-python
-	dest_base="$1"
-	env_name=${2:-"$py_env"}
-	packagePath="$env_name/lib/python$pyMajor.$pyMinor/site-packages/"
-	dest="$dest_base"/"$packagePath""$lib_name"/
-	error_check_path "$dest_base"/"$env_name" &&
-	mc-python -m virtualenv "$dest_base"/"$env_name" &&
-	. "$dest_base"/$env_name/bin/activate &&
+	set_python_version_const || return "$?"
+	env_root="$1"
+	error_check_path "$env_root"/"$py_env" &&
+	mc-python -m virtualenv "$env_root"/"$py_env" &&
+	. "$env_root"/$py_env/bin/activate &&
 	#this is to make some of my newer than checks work
-	touch "$dest_base"/$env_name &&
+	touch "$env_root"/$py_env &&
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
 	python -m pip install -r "$app_root"/"$app_trunk"/requirements.txt &&
-	setup_dir "$lib_src" "$dest" &&
 	echo "done setting up py libs"
+)
+
+create_py_env_in_app_trunk() (
+	process_global_vars "$@" &&
+	sync_requirement_list &&
+	create_py_env_in "$app_root"/"$app_trunk" &&
+	copy_dir "$lib_src" \
+		"$(get_libs_dir "$app_root"/"$app_trunk")""$lib_name"
+)
+
+copy_lib_to_test() (
+	process_global_vars "$@" &&
+	copy_dir "$lib_src" \
+		"$(get_libs_dir "$utest_env_dir")"/"$lib_name"
 )
 
 error_check_path() (
@@ -207,16 +224,26 @@ empty_dir_contents() (
 	error_check_path "$dir_to_empty" &&
 	if [ -e "$dir_to_empty" ]; then
 		if ! is_dir_empty "$dir_to_empty"; then
-			sudo -p "Password required for removing files from ${dir_to_empty}: " \
+			if [ -w "$dir_to_empty" ]; then
 				rm -rf "$dir_to_empty"/* || return "$?"
+			else
+				sudo -p "Password required for removing files from ${dir_to_empty}: " \
+					rm -rf "$dir_to_empty"/* || return "$?"
+			fi
 		fi
 	else
-		sudo -p "Password required for creating ${dir_to_empty}: " \
+		if [ -w "$dir_to_empty"/.. ]; then
 			mkdir -pv "$dir_to_empty" || return "$?"
+		else
+			sudo -p "Password required for creating ${dir_to_empty}: " \
+				mkdir -pv "$dir_to_empty" || return "$?"
+		fi
 	fi &&
-	sudo -p \
-		"Password required to change owner of ${dir_to_empty} to current user: " \
-		chown -R "$current_user": "$dir_to_empty" &&
+	if [ ! -w "$dir_to_empty" ]; then
+		sudo -p \
+			"Password required to change owner of ${dir_to_empty} to current user: " \
+			chown -R "$current_user": "$dir_to_empty"
+	fi &&
 	echo "done emptying ${dir_to_empty}"
 )
 
@@ -297,17 +324,23 @@ setup_env_api_file() (
 	echo 'done setting up .env file'
 )
 
-setup_dir() (
+copy_dir() (
 	from_dir="$1"
 	to_dir="$2"
 	echo "setting up dir from ${from_dir} to ${to_dir}"
 	error_check_path "$from_dir"/. &&
 	error_check_path "$to_dir" &&
 	empty_dir_contents "$to_dir" &&
-	sudo -p 'Pass required for copying files: ' \
-		cp -rv "$from_dir"/. "$to_dir" &&
-	sudo -p 'Pass required for changing owner of maintenance files: ' \
-		chown -R "$current_user": "$to_dir" &&
+	if [ -r "$from_dir" ] && [ -w "$to_dir" ]; then
+		cp -rv "$from_dir"/. "$to_dir"
+	else
+		sudo -p 'Pass required for copying files: ' \
+			cp -rv "$from_dir"/. "$to_dir"
+	fi &&
+	if [ ! -w "$to_dir" ]; then
+		sudo -p 'Pass required for changing owner of maintenance files: ' \
+			chown -R "$current_user": "$to_dir"
+	fi &&
 	echo "done setting up dir from ${from_dir} to ${to_dir}"
 )
 
@@ -345,11 +378,11 @@ setup_db() (
 print_schema_scripts() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
-	create_py_env_in "$app_root"/"$app_trunk" &&
+	create_py_env_in_app_trunk &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	printf '\033c' &&
 	(python <<-EOF
-	from musical_chairs_libs.env_manager import EnvManager
+	from musical_chairs_libs.services import EnvManager
 	EnvManager.print_expected_schema()
 	EOF
 	)
@@ -360,6 +393,7 @@ sync_utility_scripts() (
 	cp "$workspace_abs_path"/radio_common.sh "$app_root"/radio_common.sh
 )
 
+#copy python dependency file to the deployment directory
 sync_requirement_list() (
 	process_global_vars "$@" &&
 	error_check_path "$workspace_abs_path"/requirements.txt &&
@@ -642,7 +676,7 @@ setup_icecast_confs() (
 	echo "setting up icecast/ices"
 	icecastName="$1"
 	process_global_vars "$@" &&
-	#need to make sure that  icecast is running so we can get the config 
+	#need to make sure that  icecast is running so we can get the config
 	#location from systemd. While icecast does have a custom config option
 	#I don't feel like editing the systemd service to make it happen
 	start_icecast_service "$icecastName" &&
@@ -836,8 +870,8 @@ setup_api() (
 	process_global_vars "$@" &&
 	kill_process_using_port "$api_port" &&
 	sync_requirement_list &&
-	setup_dir "$api_src" "$web_root"/"$app_api_path_cl"
-	create_py_env_in "$app_root"/"$app_trunk" &&
+	copy_dir "$api_src" "$web_root"/"$app_api_path_cl"
+	create_py_env_in_app_trunk &&
 	setup_db &&
 	setup_nginx_confs &&
 	echo "done setting up api"
@@ -896,9 +930,8 @@ setup_radio() (
 	shutdown_all_stations &&
 	sync_requirement_list &&
 
-	create_py_env_in "$app_root"/"$app_trunk" &&
-
-	setup_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
+	create_py_env_in_app_trunk &&
+	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
 	setup_db &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -951,7 +984,7 @@ run_unit_tests() (
 	echo "running unit tests"
 	process_global_vars "$@"
 	setup_unit_test_env &&
-
+	copy_lib_to_test
 	test_src="$src_path"/tests &&
 
 	export PYTHONPATH="${src_path}:${src_path}/api" &&
@@ -959,8 +992,9 @@ run_unit_tests() (
 	export searchBase="$test_root"/"$content_home" &&
 
 	. "$utest_env_dir"/"$py_env"/bin/activate &&
-	pytest -s "$test_src" #leaving off the && for now
-	echo "done running unit tests" 
+	pytest -s "$test_src" &&
+	rm -r "$(get_libs_dir "$utest_env_dir")"/"$lib_name" &&
+	echo "done running unit tests"
 )
 
 debug_print() (

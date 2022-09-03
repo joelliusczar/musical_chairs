@@ -3,25 +3,28 @@ from typing import\
 	Iterator,\
 	Optional,\
 	Union,\
-	Any,\
 	cast,\
 	Iterable,\
-	Tuple
+	Tuple,\
+	Any
 from musical_chairs_libs.dtos_and_utilities import\
 	SavedNameString,\
-	SongItem,\
-	SongItemPlumbing,\
+	SongListDisplayItem,\
+	ScanningSongItem,\
 	SongTreeNode,\
 	Tag,\
 	SearchNameString,\
 	SongBase,\
 	get_datetime,\
 	Sentinel,\
-	missing
+	missing,\
+	AlbumInfo,\
+	ArtistInfo,\
+	SongEditInfo
 from sqlalchemy import select, insert, update, func, delete
-from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
+
 from .env_manager import EnvManager
 from .tag_service import TagService
 from musical_chairs_libs.tables import\
@@ -32,29 +35,13 @@ from musical_chairs_libs.tables import\
 	stations_tags as stations_tags_tbl,\
 	stations as stations_tbl,\
 	tags as tags_tbl,\
-	songs_tags as songs_tags_tbl
+	songs_tags as songs_tags_tbl,\
+	sg_pk, sg_name, sg_path, tg_pk, st_name, st_pk, ab_name, ab_pk,\
+	ar_name, ar_pk, sttg_stationFk, sttg_tagFk, sg_albumFk, sg_bitrate,\
+	sg_comment, sg_disc, sg_duration, sg_explicit, sg_genre, sg_lyrics,\
+	sg_sampleRate, sgtg_songFk, sgtg_tagFk, sgar_isPrimaryArtist, sgar_songFk,\
+	sgar_artistFk, ab_albumArtistFk, sg_track, ab_year
 
-
-sg: ColumnCollection = songs_tbl.columns
-ab: ColumnCollection = albums_tbl.columns
-tg: ColumnCollection = tags_tbl.columns #pyright: ignore [reportUnknownMemberType]
-st: ColumnCollection = stations_tbl.columns #pyright: ignore [reportUnknownMemberType]
-ar: ColumnCollection = artists_tbl.columns
-sgar: ColumnCollection = song_artist_tbl.columns
-sgtg: ColumnCollection = songs_tags_tbl.columns
-sttg: ColumnCollection = stations_tags_tbl.columns #pyright: ignore [reportUnknownMemberType]
-
-sg_pk: Any = sg.pk
-sg_name: Any = sg.name
-sg_path: Any = sg.path
-tg_pk: Any = tg.pk #pyright: ignore [reportUnknownMemberType]
-tg_name: Any = tg.name #pyright: ignore [reportUnknownMemberType]
-st_pk: Any = st.pk #pyright: ignore [reportUnknownMemberType]
-st_name: Any = st.name #pyright: ignore [reportUnknownMemberType]
-sttg_tagFk: Any = sttg.tagFk #pyright: ignore [reportUnknownMemberType]
-sttg_stationFk: Any = sttg.stationFk #pyright: ignore [reportUnknownMemberType]
-sgtg_tagFk: Any = sgtg.tagFk
-sgtg_songFk: Any = sgtg.songFk
 
 class SongInfoService:
 
@@ -74,23 +61,23 @@ class SongInfoService:
 		self.get_datetime = get_datetime
 		self.tag_service = tagService
 
-	def song_info(self, songPk: int) -> Optional[SongItem]:
+	def song_info(self, songPk: int) -> Optional[SongListDisplayItem]:
 		query = select(
-			sg.pk,
-			sg.name,
-			ab.name.label("album"),
-			ar.name.label("artist")
+			sg_pk,
+			sg_name,
+			ab_name.label("album"),
+			ar_name.label("artist")
 		)\
 			.select_from(songs_tbl)\
-			.join(albums_tbl, sg.albumFk == ab.pk, isouter=True)\
-			.join(song_artist_tbl, sg.pk == sgar.songFk, isouter=True)\
-			.join(artists_tbl, sgar.artistFk == ar.pk, isouter=True)\
-			.where(sg.pk == songPk)\
+			.join(albums_tbl, sg_albumFk == ab_pk, isouter=True)\
+			.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
+			.join(artists_tbl, sgar_artistFk == ar_pk, isouter=True)\
+			.where(sg_pk == songPk)\
 			.limit(1)
 		row = self.conn.execute(query).fetchone()
 		if not row:
 			return None
-		return SongItem(
+		return SongListDisplayItem(
 			row.pk, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			row.name, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			row.album, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
@@ -101,7 +88,7 @@ class SongInfoService:
 		if not name:
 			return None
 		savedName = SavedNameString.format_name_for_save(name)
-		query = select(ar.pk).select_from(artists_tbl).where(ar.name == savedName)
+		query = select(ar_pk).select_from(artists_tbl).where(ar_name == savedName)
 		row = self.conn.execute(query).fetchone()
 		if row:
 			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
@@ -124,9 +111,9 @@ class SongInfoService:
 		if not name:
 			return None
 		savedName = SavedNameString.format_name_for_save(name)
-		query = select(ab.pk).select_from(albums_tbl).where(ab.name == savedName)
+		query = select(ab_pk).select_from(albums_tbl).where(ab_name == savedName)
 		if artistFk:
-			query = query.where(ab.albumArtistFk == artistFk)
+			query = query.where(ab_albumArtistFk == artistFk)
 		row = self.conn.execute(query).fetchone()
 		if row:
 			pk: int = row.pk #pyright: ignore [reportGeneralTypeIssues]
@@ -147,36 +134,36 @@ class SongInfoService:
 		songName: Union[Optional[str], Sentinel]=missing,
 		page: int=0,
 		pageSize: Optional[int]=None,
-	) -> Iterator[SongItemPlumbing]:
+	) -> Iterator[ScanningSongItem]:
 		query = select(
-			sg.pk,
-			sg.path,
-			sg.name
+			sg_pk,
+			sg_path,
+			sg_name
 		).select_from(songs_tbl)
 		if type(songName) is str or songName is None:
 			#allow null through
 			savedName = SavedNameString.format_name_for_save(songName) if songName\
 				else None
-			query = query.where(sg.name == savedName)
+			query = query.where(sg_name == savedName)
 		if pageSize:
 			offset = page * pageSize
 			query = query.limit(pageSize).offset(offset)
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield SongItemPlumbing(
+			yield ScanningSongItem(
 					id=row.pk, #pyright: ignore [reportUnknownArgumentType]
 					path=row.path, #pyright: ignore [reportUnknownArgumentType]
 					name=SavedNameString.format_name_for_save(row.name) #pyright: ignore [reportUnknownArgumentType]
 				)
 
-	def update_song_info(self, songInfo: SongItemPlumbing) -> int:
+	def update_song_info(self, songInfo: ScanningSongItem) -> int:
 		savedName =  SavedNameString.format_name_for_save(songInfo.name)
 		timestamp = self.get_datetime().timestamp()
 		songUpdate = update(songs_tbl) \
-				.where(sg.pk == songInfo.id) \
+				.where(sg_pk == songInfo.id) \
 				.values(
 					name = savedName,
-					albumFk = songInfo.albumPk,
+					albumFk = songInfo.albumId,
 					track = songInfo.track,
 					disc = songInfo.disc,
 					bitrate = songInfo.bitrate,
@@ -190,14 +177,14 @@ class SongInfoService:
 		count: int = self.conn.execute(songUpdate).rowcount
 		try:
 			songComposerInsert = insert(song_artist_tbl)\
-				.values(songFk = songInfo.id, artistFk = songInfo.artistPk)
+				.values(songFk = songInfo.id, artistFk = songInfo.artistId)
 			self.conn.execute(songComposerInsert)
 		except IntegrityError: pass
 		try:
 			songComposerInsert = insert(song_artist_tbl)\
 				.values(
 					songFk = songInfo.id,
-					artistFk = songInfo.composerPk,
+					artistFk = songInfo.composerId,
 					comment = "composer"
 				)
 			self.conn.execute(songComposerInsert)
@@ -207,7 +194,7 @@ class SongInfoService:
 	def song_ls(self, prefix: Optional[str] = "") -> Iterator[SongTreeNode]:
 		query = select(
 				func.next_directory_level(sg_path, prefix).label("prefix"),
-				func.min(sg.name).label("name"),
+				func.min(sg_name).label("name"),
 				func.count(sg_pk).label("totalChildCount"),
 				func.max(sg_pk).label("pk"),
 				func.max(sg_path).label("control_path")
@@ -273,7 +260,6 @@ class SongInfoService:
 			.where(sgtg_songFk.in_(songIds))
 		return cast(int, self.conn.execute(delStmt).rowcount) #pyright: ignore [reportUnknownMemberType]
 
-
 	def link_songs_with_tag(
 		self,
 		tagId: int,
@@ -302,3 +288,122 @@ class SongInfoService:
 		stmt = insert(songs_tags_tbl)
 		self.conn.execute(stmt, songParams) #pyright: ignore [reportUnknownMemberType]
 		return (tag, self.get_songs(tagId=tagId))
+
+	def get_albums(self,
+		page: int = 0,
+		pageSize: Optional[int]=None,
+		albumId: Union[int, Sentinel]=missing,
+		albumIds: Union[Iterable[int], Sentinel]=missing,
+		albumName: Union[str, Sentinel]=missing
+	) -> Iterator[AlbumInfo]:
+		query = select(
+			ab_pk.label("id"),
+			ab_name.label("name"),
+			ab_albumArtistFk.label("albumArtistId"),
+			ab_year.label("year")
+		)
+		if type(albumId) == int:
+			query = query.where(ab_pk == albumId)
+		elif albumIds:
+			query = query.where(ab_pk.in_(cast(Iterable[int],albumIds)))
+		elif type(albumName) is str:
+			searchStr = SearchNameString.format_name_for_search(albumName)
+			query = query\
+				.where(func.format_name_for_search(ab_name).like(f"%{searchStr}%"))
+		offset = page * pageSize if pageSize else 0
+		query = query.offset(offset).limit(pageSize)
+		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
+		yield from (AlbumInfo(**row) for row in records) #pyright: ignore [reportUnknownVariableType, reportUnknownArgumentType]
+
+	def get_artists(self,
+		page: int = 0,
+		pageSize: Optional[int]=None,
+		artistId: Union[int, Sentinel]=missing,
+		artistIds: Union[Iterable[int], Sentinel]=missing,
+		artistName: Union[str, Sentinel]=missing
+	) -> Iterator[ArtistInfo]:
+		query = select(
+			ar_pk.label("id"),
+			ar_name.label("name"),
+		)
+		if type(artistId) == int:
+			query = query.where(ar_pk == artistId)
+		elif artistIds:
+			query = query.where(ar_pk.in_(cast(Iterable[int], artistIds)))
+		elif type(artistName) is str:
+			searchStr = SearchNameString.format_name_for_search(artistName)
+			query = query\
+				.where(func.format_name_for_search(ar_name).like(f"%{searchStr}%"))
+		offset = page * pageSize if pageSize else 0
+		query = query.offset(offset).limit(pageSize)
+		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
+		yield from (ArtistInfo(**row) for row in records) #pyright: ignore [reportUnknownVariableType, reportUnknownArgumentType]
+
+
+
+	def get_song_for_edit(self, songId: int) -> Optional[SongEditInfo]:
+		album_artist = artists_tbl.alias("AlbumArtist") #pyright: ignore [reportUnknownVariableType]
+		query = select(
+			func.max(sg_pk).label("id"),
+			func.max(sg_name).label("name"),
+			func.max(sg_path).label("path"),
+			func.max(sg_track).label("track"),
+			func.max(sg_disc).label("disc"),
+			func.max(sg_genre).label("genre"),
+			func.max(sg_explicit).label("explicit"),
+			func.max(sg_bitrate).label("bitrate"),
+			func.max(sg_comment).label("comment"),
+			func.max(sg_lyrics).label("lyrics"),
+			func.max(sg_duration).label("duration"),
+			func.max(sg_sampleRate).label("sampleRate"),
+			func.max(ab_pk).label("albumId"),
+			sgar_isPrimaryArtist,
+			ar_pk.label("Artist.Id"),
+			tg_pk.label("Tag.Id"),
+		).select_from(songs_tbl)\
+				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
+				.join(artists_tbl, ar_pk == sgar_artistFk)\
+				.join(albums_tbl, sg_albumFk == ab_pk, isouter=True)\
+				.join(songs_tags_tbl, sg_pk == sgtg_songFk, isouter=True)\
+				.join(tags_tbl, sgtg_tagFk ==  tg_pk)\
+				.join(album_artist, ab_albumArtistFk == ar_pk, isouter=True)\
+				.group_by(
+					"Artist.Id",
+					sgar_isPrimaryArtist,
+					"Tag.Id",
+					)\
+				.where(sg_pk == songId)\
+				.order_by(sg_pk)
+		records = self.conn.execute(query).fetchall()
+		currentSongRow = None
+		artists: set[int] = set()
+		tags: set[int] = set()
+		primaryArtistId: Optional[int] = None
+		for row in records:
+			if not currentSongRow:
+				currentSongRow = row
+			artists.add(row["Artist.Id"])
+			tags.add(row["Tag.Id"])
+			if row[sgar_isPrimaryArtist]:
+				primaryArtistId = row["Artist.Id"]
+		if not currentSongRow:
+			return None
+		songDict: dict[Any, Any] = {**currentSongRow}
+		songDict.pop("Artist.Id", None)
+		songDict.pop("Tag.Id", None)
+		songDict.pop(sgar_isPrimaryArtist.description, None)
+		return SongEditInfo(**songDict,
+			artistIds=list(artists),
+			tagIds=list(tags),
+			primaryArtistId=primaryArtistId
+		)
+
+
+
+	# 	result = [{**r} for r in records]
+	# 	print("hi")
+		# for row in rows:
+		# 	yield FullSongInfo(
+		# 		id=row["id"],
+
+		# 	)

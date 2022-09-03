@@ -39,7 +39,7 @@ class HistoryService:
 		ar: ColumnCollection = artists.columns
 		sgar: ColumnCollection = song_artist.columns
 		baseQuery = select(
-			sg.pk,
+			sg.pk.label("id"),
 			sg.path,
 			h.playedTimestamp,
 			sg.name,
@@ -62,10 +62,4 @@ class HistoryService:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield HistoryItem(
-					id=row.pk, #pyright: ignore [reportUnknownArgumentType]
-					name=row.name, #pyright: ignore [reportUnknownArgumentType]
-					album=row.album, #pyright: ignore [reportUnknownArgumentType]
-					artist=row.artist, #pyright: ignore [reportUnknownArgumentType]
-					playedTimestamp=row.playedTimestamp #pyright: ignore [reportUnknownArgumentType]
-				)
+			yield HistoryItem(**row) #pyright: ignore [reportUnknownArgumentType]

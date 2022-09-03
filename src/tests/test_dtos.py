@@ -5,7 +5,6 @@ from musical_chairs_libs.dtos_and_utilities import\
 	UserRoleDef
 
 
-
 def test_len_on_name_strings():
 	savedName = SavedNameString("Hello")
 	assert len(savedName) == 5
@@ -47,7 +46,12 @@ def test_name_strings_as_bool():
 		assert True
 
 def test_is_admin():
-	accountInfo = AccountInfo.construct(roles=[UserRoleDef.SONG_EDIT.value])
+	accountInfo = AccountInfo(
+		id=-1,
+		username="",
+		email="",
+		roles=[UserRoleDef.SONG_EDIT.value]
+	)
 	assert not accountInfo.isAdmin
 	accountInfo.roles.append(UserRoleDef.ADMIN.value)
 	assert accountInfo.isAdmin

@@ -28,7 +28,7 @@ from musical_chairs_libs.tables import\
 from musical_chairs_libs.dtos_and_utilities import\
 	Tag,\
 	StationInfo, \
-	SongItem,\
+	SongListDisplayItem,\
 	StationCreationInfo,\
 	SavedNameString,\
 	get_datetime,\
@@ -184,7 +184,7 @@ class StationService:
 		stationName: Optional[str]=None,
 		page: int = 0,
 		limit: Optional[int]=None
-	) -> Iterator[SongItem]:
+	) -> Iterator[SongListDisplayItem]:
 		offset = page * limit if limit else 0
 
 		baseQuery = select(
@@ -198,7 +198,7 @@ class StationService:
 			.limit(limit)
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield SongItem(
+			yield SongListDisplayItem(
 				id=cast(int,row.pk),
 				name=cast(str, row.song),
 				album=cast(str, row.album),

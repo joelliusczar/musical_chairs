@@ -1,5 +1,6 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Optional
+from dataclasses import asdict
 from fastapi import APIRouter, Depends, HTTPException, status, Security, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from musical_chairs_libs.services import AccountsService,\
@@ -89,9 +90,8 @@ def update_roles(
 	prev: AccountInfo = Depends(get_account_if_can_edit),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	addedRoles = accountsService.save_roles(prev.id, roles)
-	prev.roles = list(addedRoles)
-	return prev
+	addedRoles = list(accountsService.save_roles(prev.id, roles))
+	return AccountInfo(**{**asdict(prev), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
 @router.get("/{userId}")
 def get_account(

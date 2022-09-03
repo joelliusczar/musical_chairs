@@ -1,7 +1,5 @@
 
 
-
-
 class Sentinel:
 
 	def __bool__(self) -> bool:

@@ -1,6 +1,19 @@
+from typing import Any
 from musical_chairs_libs.dtos_and_utilities import\
 	seconds_to_tuple,\
 	next_directory_level
+from sqlalchemy.engine import Connection
+from sqlalchemy import\
+	select
+from sqlalchemy.sql import ColumnCollection
+from .common_fixtures import *
+from .common_fixtures import\
+	fixture_populated_db_conn_in_mem as fixture_populated_db_conn_in_mem
+from musical_chairs_libs.tables import songs as songs_tbl, sg_path
+
+sg: ColumnCollection = songs_tbl.columns #pyright: ignore reportUnknownMemberType
+sg_pk: Any = sg.pk #pyright: ignore reportUnknownMemberType
+sg_name: Any = sg.name #pyright: ignore reportUnknownMemberType
 
 def test_seconds_to_tuple():
 	result = seconds_to_tuple(59)
@@ -99,3 +112,9 @@ def test_next_directory_level():
 	result = next_directory_level(path, "Pop/Pop_A-F/Beatles,_The/Abbey_Road/")
 	assert result == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
 		"01._Come_Together_-_The_Beatles.flac"
+
+def test_populate_model_from_datarow(fixture_populated_db_conn_in_mem: Connection):
+	conn = fixture_populated_db_conn_in_mem
+	query = select(sg_pk.label("id"), sg_name, sg_path)
+	row = conn.execute(query).fetchone() #pyright: ignore reportUnknownMemberType
+	print("oh hai")

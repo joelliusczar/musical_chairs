@@ -14,9 +14,9 @@ export const listDataInitialState = {
 };
 
 export const pageableDataInitialState = {
-	...listDataInitialState,
+	...initialState,
 	data: {
-		...listDataInitialState.data,
+		items: [],
 		totalRows: 0,
 	},
 };

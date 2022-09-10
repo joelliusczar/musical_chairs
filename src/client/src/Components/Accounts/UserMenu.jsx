@@ -3,7 +3,10 @@ import { Menu, MenuItem } from "@mui/material";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
-import { useCurrentUser, useLogin } from "./AuthContext";
+import {
+	useCurrentUser,
+	useLogin,
+} from "../../Context_Providers/AuthContext";
 
 export function UserMenu(props) {
 	const { anchorEl } = props;

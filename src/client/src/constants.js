@@ -18,6 +18,7 @@ export const DomRoutes = {
 	history: "/history/",
 	stations: "/stations/list/",
 	stationsEdit: "/stations/edit/",
+	songEdit: "/songs/edit/",
 	songCatalogue: "/song-catalogue/",
 	songTree: "/song-info/tree/",
 	accountsNew: "/accounts/new",

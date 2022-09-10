@@ -1,4 +1,4 @@
-import webClient from "../../api";
+import webClient from "./api";
 
 
 export const fetchStations = async () => {

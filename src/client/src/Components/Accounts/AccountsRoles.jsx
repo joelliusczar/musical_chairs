@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { FormikProvider, useFormik } from "formik";
 import { Box, MenuItem, Button, Chip } from "@mui/material";
 import { useParams } from "react-router-dom";
 import { useSnackbar } from "notistack";
 import { UserRoleDef } from "../../constants";
-import { FormikSelect } from "../Shared/FormikSelect";
+import { FormSelect } from "../Shared/FormSelect";
 import { NotFound } from "../Shared/RoutingErrors";
-import { updateUserRoles, fetchUser } from "./accounts_slice";
+import { updateUserRoles, fetchUser } from "../../API_Calls/userCalls";
 import { CallStatus } from "../../constants";
 import Loader from "../Shared/Loader";
-import { useCurrentUser } from "./AuthContext";
+import { useCurrentUser } from "../../Context_Providers/AuthContext";
+import { useForm } from "react-hook-form";
+import { formatError } from "../../Helpers/error_formatter";
 
 
 const inputField = {
@@ -24,51 +25,48 @@ export const AccountsRoles = () => {
 	const [fetchError, setFetchError] = useState(null);
 	const currentUser = useCurrentUser();
 
-	const formik = useFormik({
-		initialValues: {
+	const formMethods = useForm({
+		defaultValues: {
 			accountInfo: {
 				roles: [],
 			},
 			tmpRole: "",
 			tmpRoleMod: "",
 		},
-		onSubmit: async (values, { resetForm }) => {
-			try {
-				const data = await updateUserRoles({
-					id,
-					roles: values.accountInfo.roles,
-					currentUser,
-				});
-				enqueueSnackbar("Save successful", { variant: "success"});
-				resetForm({
-					values: {
-						accountInfo: data,
-						tmpRole: "",
-						tmpRoleMod: "",
-					},
-				});
-			}
-			catch(err) {
-				enqueueSnackbar(err.response.data.detail[0].msg, { variant: "error"});
-			}
-		},
 	});
-
-	const { resetForm } = formik;
+	const { handleSubmit, reset, setValue, watch } = formMethods;
+	const callSubmit = handleSubmit(async values => {
+		try {
+			const data = await updateUserRoles({
+				id,
+				roles: values.accountInfo.roles,
+				currentUser,
+			});
+			enqueueSnackbar("Save successful", { variant: "success"});
+			reset({
+				accountInfo: data,
+				tmpRole: "",
+				tmpRoleMod: "",
+			});
+		}
+		catch(err) {
+			enqueueSnackbar(formatError(err), { variant: "error"});
+		}
+	});
+	const watchAll = watch();
 
 	const addRole = () => {
-		const role = formik.values.tmpRole;
-		const mod = formik.values.tmpRoleMod;
+		const role = watchAll.tmpRole;
+		const mod = watchAll.tmpRoleMod;
 		const moddedRole = mod ? `${role}:${mod}` : role;
-		const oldRoles = formik.values.accountInfo.roles;
-		const idx = oldRoles.findIndex(r => r.startsWith(role));
+		const idx = watchAll.accountInfo.roles.findIndex(r => r.startsWith(role));
 		if(idx === -1) {
 			if(role === UserRoleDef.ADMIN) {
-				formik.setFieldValue("accountInfo.roles", [UserRoleDef.ADMIN]);
+				setValue("accountInfo.roles", [UserRoleDef.ADMIN]);
 				return;
 			}
-			const roles = [...formik.values.accountInfo.roles, moddedRole];
-			formik.setFieldValue("accountInfo.roles", roles);
+			const roles = [...watchAll.accountInfo.roles, moddedRole];
+			setValue("accountInfo.roles", roles);
 		}
 		else {
 			enqueueSnackbar(`A value of ${role} is already present in list. ` +
@@ -77,9 +75,9 @@ export const AccountsRoles = () => {
 	};
 
 	const removeRole = (idx) => {
-		const roles = [...formik.values.accountInfo.roles];
+		const roles = [...watchAll.accountInfo.roles];
 		roles.splice(idx, 1);
-		formik.setFieldValue("roles", roles);
+		setValue("accountInfo.roles", roles);
 	};
 
 	useEffect(() => {
@@ -88,12 +86,11 @@ export const AccountsRoles = () => {
 				if(!fetchStatus && id) {
 					setFetchStatus(CallStatus.loading);
 					const data = await fetchUser({ id });
-					resetForm({
-						values: {
-							accountInfo: data,
-							tmpRole: "",
-							tmpRoleMod: "",
-						}});
+					reset({
+						accountInfo: data,
+						tmpRole: "",
+						tmpRoleMod: "",
+					});
 				}
 			}
 			catch(err) {
@@ -105,17 +102,17 @@ export const AccountsRoles = () => {
 
 		};
 		fetch(id);
-	},[fetchStatus, setFetchStatus, id, fetchUser, resetForm]);
+	},[fetchStatus, setFetchStatus, id, fetchUser, reset]);
 
 	if(!id) {
 		return <NotFound />;
 	}
 
 	return (
-		<FormikProvider value={formik} >
+		<>
 			<Loader status={fetchStatus} error={fetchError}>
 				<Box sx={inputField}>
-					{(formik.values.accountInfo.roles || []).map((role, idx) => {
+					{(watchAll.accountInfo.roles || []).map((role, idx) => {
 						return (
 							<Chip
 								key={`role_${idx}`}
@@ -128,10 +125,11 @@ export const AccountsRoles = () => {
 					})}
 				</Box>
 				<Box sx={inputField}>
-					<FormikSelect
+					<FormSelect
 						name="tmpRole"
 						label="Roles"
 						sx={{ width: 195 }}
+						formMethods={formMethods}
 					>
 						{Object.keys(UserRoleDef).map((key) => {
 							return (
@@ -140,13 +138,14 @@ export const AccountsRoles = () => {
 								</MenuItem>
 							);
 						})}
-					</FormikSelect>
-					{formik.values.tmpRole &&
-						formik.values.tmpRole !== UserRoleDef.ADMIN &&
-					<FormikSelect
+					</FormSelect>
+					{watchAll.tmpRole &&
+						watchAll.tmpRole !== UserRoleDef.ADMIN &&
+					<FormSelect
 						label="Mod"
 						name="tmpRoleMod"
 						sx={{ width: 100 }}
+						formMethods={formMethods}
 					>
 						<MenuItem key={"mod_empty"} value={""}>
 							None
@@ -158,20 +157,20 @@ export const AccountsRoles = () => {
 								</MenuItem>
 							);
 						})}
-					</FormikSelect>}
+					</FormSelect>}
 					<Button
-						disabled={!formik.values.tmpRole}
+						disabled={!watchAll.tmpRole}
 						onClick={addRole}
 					>
 						Add Role
 					</Button>
 				</Box>
 				<Box sx={inputField} >
-					<Button onClick={formik.submitForm}>
+					<Button onClick={callSubmit}>
 						Submit
 					</Button>
 				</Box>
 			</Loader>
-		</FormikProvider>
+		</>
 	);
 };

@@ -11,10 +11,11 @@ import { AccountsList } from "../Accounts/AccountsList";
 import { AccountsRoles } from "../Accounts/AccountsRoles";
 import { StationEdit } from "../Stations/StationEdit";
 import { SongTree } from "../Song_Catalogue/SongTree";
+import { SongEdit } from "../Songs/SongEdit";
 import { NotFound } from "../Shared/RoutingErrors";
 import { DomRoutes, UserRoleDef } from "../../constants";
 import { PrivateRoute } from "../Shared/PrivateRoute";
-import { useCurrentUser } from "../Accounts/AuthContext";
+import { useCurrentUser } from "../../Context_Providers/AuthContext";
 
 
 
@@ -83,6 +84,9 @@ export function AppRoutes() {
 				path={`${DomRoutes.stationsEdit}`}
 			>
 				<StationEdit />
+			</Route>
+			<Route path={`${DomRoutes.songEdit}`}>
+				<SongEdit />
 			</Route>
 			<Route path={DomRoutes.songTree}>
 				<SongTree />

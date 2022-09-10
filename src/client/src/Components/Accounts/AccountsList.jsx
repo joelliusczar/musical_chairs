@@ -11,8 +11,8 @@ import {
 import Loader from "../Shared/Loader";
 import { CallStatus, DomRoutes } from "../../constants";
 import { useLocation, Link } from "react-router-dom";
-import { fetchUserList } from "./accounts_slice";
-import { useCurrentUser } from "./AuthContext";
+import { fetchUserList } from "../../API_Calls/userCalls";
+import { useCurrentUser } from "../../Context_Providers/AuthContext";
 
 export const AccountsList = () => {
 	const [fetchStatus, setFetchStatus] = useState(null);

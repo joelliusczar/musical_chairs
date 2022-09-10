@@ -2,18 +2,20 @@ from typing import\
 	List,\
 	TypeVar,\
 	Generic
-from pydantic import BaseModel
+from dataclasses import dataclass
 
 
 T = TypeVar("T")
 
-class ListData(BaseModel, Generic[T]):
+@dataclass()
+class ListData(Generic[T]):
 	items: List[T]
 
+@dataclass()
 class TableData(ListData[T]):
 	totalRows: int
 
 
-class ErrorInfo(BaseModel):
-	msg: str
+# class ErrorInfo(BaseModel):
+# 	msg: str
 

@@ -18,8 +18,13 @@ import { theme, drawerWidth } from "./style_config";
 import { LoginModal } from "./Components/Accounts/AccountsLoginModal";
 import { SnackbarProvider } from "notistack";
 import { UserMenu } from "./Components/Accounts/UserMenu";
-import { AuthContextProvider } from "./Components/Accounts/AuthContext";
-import { useCurrentUser } from "./Components/Accounts/AuthContext";
+import {
+	AuthContextProvider,
+	useCurrentUser,
+} from "./Context_Providers/AuthContext";
+import {
+	AppContextProvider,
+} from "./Context_Providers/AppContextProvider";
 
 export const useStyles = makeStyles((theme) => ({
 	drawerPaper: {
@@ -97,11 +102,13 @@ function AppRoot() {
 		<Provider store={store}>
 			<AuthContextProvider>
 				<ThemeProvider theme={theme}>
-					<SnackbarProvider>
-						<BrowserRouter basename="/">
-							<AppTrunk />
-						</BrowserRouter>
-					</SnackbarProvider>
+					<BrowserRouter basename="/">
+						<AppContextProvider>
+							<SnackbarProvider>
+								<AppTrunk />
+							</SnackbarProvider>
+						</AppContextProvider>
+					</BrowserRouter>
 				</ThemeProvider>
 			</AuthContextProvider>
 		</Provider>

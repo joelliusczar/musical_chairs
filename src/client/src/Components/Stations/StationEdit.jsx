@@ -1,13 +1,12 @@
 import React, { useReducer, useEffect } from "react";
 import { Box, Typography, Button } from "@mui/material";
-import { FormikProvider, useFormik } from "formik";
-import { FormikTextField } from "../Shared/FormikTextField";
+import { FormTextField } from "../Shared/FormTextField";
 import { TagAssignment } from "../Tags/TagAssignment";
 import {
 	saveStation,
 	fetchStationForEdit,
 	checkValues,
-} from "./stationService";
+} from "../../API_Calls/stationCalls";
 import { useSnackbar } from "notistack";
 import { useHistory, useLocation } from "react-router-dom";
 import { DomRoutes } from "../../constants";
@@ -17,12 +16,29 @@ import {
 	dispatches,
 } from "../Shared/waitingReducer";
 import * as Yup from "yup";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+
 
 
 const inputField = {
 	margin: 2,
 };
 
+const validatePhraseIsUnused = async (value, context) => {
+	const used = await checkValues({ values: {
+		[context.path]: value,
+	}});
+	return !(context.path in used) || !used[context.path];
+};
+
+const schema = Yup.object().shape({
+	name: Yup.string().required().test(
+		"name",
+		(value) => `${value.path} is already used`,
+		validatePhraseIsUnused
+	),
+});
 
 export const StationEdit = () => {
 	const { enqueueSnackbar } = useSnackbar();
@@ -34,42 +50,29 @@ export const StationEdit = () => {
 	const id = queryObj.get("id");
 	const nameQueryStr = queryObj.get("name");
 
-	const validatePhraseIsUnused = async (value, context) => {
-		const used = await checkValues({ values: {
-			[context.path]: value,
-		}});
-		return !(context.path in used) || !used[context.path];
-	};
 
-	const formik = useFormik({
-		initialValues: {
+	const formMethods = useForm({
+		defaultValues: {
 			name: "",
 			displayName: "",
 			tags: [],
 		},
-		onSubmit: async (values, { resetForm }) => {
-			try {
-				const stationId = id ? id : values.id ? values.id : null;
-				const data = await saveStation({ values, id: stationId });
-				resetForm({values: data});
-				dispatch(dispatches.done());
-				urlHistory.replace(getPageUrl({ id: data.id }));
-				enqueueSnackbar("Save successful", { variant: "success"});
-			}
-			catch(err) {
-				enqueueSnackbar(err.response.data.detail[0].msg, { variant: "error"});
-			}
-		},
-		validationSchema: Yup.object().shape({
-			name: Yup.string().required().test(
-				"name",
-				(value) => `${value.path} is already used`,
-				validatePhraseIsUnused
-			),
-		}),
-		validateOnChange: false,
+		resolver: yupResolver(schema),
 	});
-	const { resetForm } = formik;
+	const { handleSubmit, reset } = formMethods;
+	const callSubmit = handleSubmit(async values => {
+		try {
+			const stationId = id ? id : values.id ? values.id : null;
+			const data = await saveStation({ values, id: stationId });
+			reset(data);
+			dispatch(dispatches.done());
+			urlHistory.replace(getPageUrl({ id: data.id }));
+			enqueueSnackbar("Save successful", { variant: "success"});
+		}
+		catch(err) {
+			enqueueSnackbar(err.response.data.detail[0].msg, { variant: "error"});
+		}
+	});
 
 	const getPageUrl = (params) => {
 		let queryStr = null;
@@ -88,16 +91,21 @@ export const StationEdit = () => {
 	useEffect(() => {
 		const fetch = async () => {
 			try {
-				if(!callStatus && (id || nameQueryStr)) {
-					dispatch(dispatches.started());
-					const data = await fetchStationForEdit({
-						params: {
-							id,
-							name: nameQueryStr,
-						},
-					});
-					resetForm({values: data});
-					dispatch(dispatches.done());
+				if(id || nameQueryStr) {
+					if(!callStatus) {
+						dispatch(dispatches.started());
+						const data = await fetchStationForEdit({
+							params: {
+								id,
+								name: nameQueryStr,
+							},
+						});
+						reset(data);
+						dispatch(dispatches.done());
+					}
+				}
+				else {
+					reset();
 				}
 			}
 			catch(err) {
@@ -110,30 +118,32 @@ export const StationEdit = () => {
 
 
 	return (
-		<FormikProvider value={formik}>
+		<>
 			<Box sx={inputField}>
 				<Typography variant="h1">
 					Create a station
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
-				<FormikTextField
+				<FormTextField
 					name="name"
+					formMethods={formMethods}
 					label="Internal Name"
 				/>
 			</Box>
 			<Box sx={inputField}>
-				<FormikTextField
+				<FormTextField
 					name="displayName"
+					formMethods={formMethods}
 					label="Display Name"
 				/>
 			</Box>
-			<TagAssignment name="tags" />
+			<TagAssignment name="tags" formMethods={formMethods}/>
 			<Box sx={inputField} >
-				<Button onClick={formik.submitForm}>
+				<Button onClick={callSubmit}>
 					Submit
 				</Button>
 			</Box>
-		</FormikProvider>
+		</>
 	);
 };

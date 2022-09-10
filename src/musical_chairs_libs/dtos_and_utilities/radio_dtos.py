@@ -9,10 +9,14 @@ from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates
 
 
-@dataclass()
+@dataclass(frozen=True)
 class ArtistInfo:
 	id: int
 	name: str
+
+@dataclass(frozen=True)
+class SongArtistInfo(ArtistInfo):
+	isPrimaryArtist: bool
 
 @dataclass()
 class AlbumInfo:
@@ -29,26 +33,6 @@ class SongBase:
 class SongListDisplayItem(SongBase):
 	album: Optional[str]
 	artist: Optional[str]
-
-@dataclass()
-class SongEditInfo:
-	id: int
-	path: str
-	name: Optional[str]=None
-	albumId: Optional[int]=None
-	artistIds: Optional[List[int]]=field(default_factory=list)
-	coverIds: Optional[List[int]]=field(default_factory=list)
-	primaryArtistId: Optional[int]=None
-	track: Optional[int]=None
-	disc: Optional[int]=None
-	genre: Optional[str]=None
-	bitrate: Optional[float]=None
-	sampleRate: Optional[float]=None
-	comment: Optional[str]=None
-	duration: Optional[float]=None
-	explicit: Optional[bool]=None
-	lyrics: Optional[str]=""
-	tagIds: Optional[List[int]]=field(default_factory=list)
 
 @dataclass(frozen=True)
 class ScanningSongItem:
@@ -130,7 +114,20 @@ class SongTreeNode:
 	name: Optional[str]=None
 
 @dataclass()
-class SongEverything:
-	allAlbums: List[AlbumInfo]
-	allArtists: List[ArtistInfo]
-	allTags: List[Tag]
+class SongEditInfo:
+	id: int
+	path: str
+	name: Optional[str]=None
+	album: Optional[AlbumInfo]=None
+	artists: Optional[List[SongArtistInfo]]=field(default_factory=list)
+	covers: Optional[List[int]]=field(default_factory=list)
+	track: Optional[int]=None
+	disc: Optional[int]=None
+	genre: Optional[str]=None
+	bitrate: Optional[float]=None
+	sampleRate: Optional[float]=None
+	comment: Optional[str]=None
+	duration: Optional[float]=None
+	explicit: Optional[bool]=None
+	lyrics: Optional[str]=""
+	tags: Optional[List[Tag]]=field(default_factory=list)

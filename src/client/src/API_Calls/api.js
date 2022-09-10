@@ -1,5 +1,5 @@
 import axios from "axios";
-import { apiAddress } from "./constants";
+import { apiAddress } from "../constants";
 
 export function constructWebClient() {
 	return axios.create({

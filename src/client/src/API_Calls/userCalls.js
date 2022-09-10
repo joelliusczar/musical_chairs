@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { defaultWebClient as webClient } from "../../api";
-import { CallStatus, UserRoleDef } from "../../constants";
+import { defaultWebClient as webClient } from "./api";
+import { CallStatus, UserRoleDef } from "../constants";
 
 export const AccountsCallTypes = {
 	login: "login",

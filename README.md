@@ -14,3 +14,8 @@ source radio_common
 # required for vs code test runner
 setup_unit_test_env
 ```
+
+# Ways to run api
+
+## VSCode debug
+Use debug launch profile Python: API

@@ -5,20 +5,18 @@ import { CallStatus } from "../../constants";
 
 const Loader = ({status, children, error}) => {
 
-	try {
-		switch(status) {
-		case CallStatus.done:
-			return children;
-		case CallStatus.failed:
-			return (<Typography color="error">
-				{error}
-			</Typography>);
-		default:
-			return <CircularProgress />;
+	switch(status) {
+	case CallStatus.done:
+		return children;
+	case CallStatus.failed:
+		return (<Typography color="error">
+			{error}
+		</Typography>);
+	default:
+		if (error) {
+			return (<Typography color="error">{JSON.stringify(error)}</Typography>);
 		}
-	}
-	catch(err) {
-		return (<Typography color="error">{JSON.stringify(err)}</Typography>);
+		return <CircularProgress />;
 	}
 };
 

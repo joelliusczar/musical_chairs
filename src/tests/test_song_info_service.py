@@ -189,11 +189,27 @@ def test_get_song_for_edit(
 
 	assert songInfo.path == "foo/goo/boo/sierra"
 	assert songInfo.name == "sierra_song"
-	assert songInfo.albumId == 11
-	assert songInfo.artistIds and len(songInfo.artistIds) == 2
-	assert not songInfo.coverIds or len(songInfo.coverIds) == 0
+	assert songInfo.album and songInfo.album.id == 11
+	assert songInfo.album and songInfo.album.name == "boo_album"
+	assert songInfo.artists and len(songInfo.artists) == 2
+	sortedArtists = sorted(songInfo.artists, key=lambda a: a.id or 0)
+	if sortedArtists:
+		assert sortedArtists[0].id == 4
+		assert sortedArtists[0].name == "delta_artist"
+		assert sortedArtists[0].isPrimaryArtist == False
+
+		assert sortedArtists[1].id == 6
+		assert sortedArtists[1].name == "foxtrot_artist"
+		assert sortedArtists[1].isPrimaryArtist == True
+	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == 1
 	assert songInfo.disc == 1
 	assert songInfo.genre == "pop"
-	assert songInfo.tagIds and len(songInfo.tagIds) == 2
-	assert songInfo.primaryArtistId == 6
+	assert songInfo.tags and len(songInfo.tags) == 2
+	sortedTags = sorted(songInfo.tags, key=lambda t: t.id or 0)
+	if songInfo.tags:
+		assert sortedTags[0].id == 2
+		assert sortedTags[0].name == "lima_tag"
+
+		assert sortedTags[1].id == 6
+		assert sortedTags[1].name == "papa_tag"

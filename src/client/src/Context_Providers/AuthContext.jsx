@@ -5,13 +5,14 @@ import React, {
 	useMemo,
 } from "react";
 import PropTypes from "prop-types";
-import { login } from "./accounts_slice";
+import { login } from "../API_Calls/userCalls";
 import {
 	waitingReducer,
 	initialState,
 	dispatches,
-} from "../Shared/waitingReducer";
-import { UserRoleDef } from "../../constants";
+} from "../Components/Shared/waitingReducer";
+import { UserRoleDef } from "../constants";
+import { formatError } from "../Helpers/error_formatter";
 
 const loggedOut = {
 	userId: "",
@@ -84,7 +85,8 @@ export const useLogin = () => {
 			dispatch(dispatches.done(data));
 		}
 		catch(err) {
-			dispatch(dispatches.failed(err.response.data.detail[0].msg));
+			dispatch(dispatches.failed(formatError(err)));
+			throw err;
 		}
 	};
 	const _logout = () => dispatch(dispatches.reset(loggedOutState));

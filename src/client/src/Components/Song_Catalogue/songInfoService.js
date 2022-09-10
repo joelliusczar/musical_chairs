@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import webClient from "../../api";
+import webClient from "../../API_Calls/api";
 import { CallStatus, ApiRoutes, CallType } from "../../constants";
 
 export const fetchSongCatalogue = createAsyncThunk(

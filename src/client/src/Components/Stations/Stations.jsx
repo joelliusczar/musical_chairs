@@ -6,12 +6,11 @@ import {
 	Button,
 	Chip,
 	Grid,
-	Tooltip,
 	Typography,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
-import { fetchStations } from "./stationService";
+import { fetchStations } from "../../API_Calls/stationCalls";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DomRoutes } from "../../constants";
 import { Link, useLocation } from "react-router-dom";
@@ -20,6 +19,8 @@ import {
 	pageableDataInitialState,
 	dispatches,
 } from "../Shared/waitingReducer";
+import { UserRoleDef } from "../../constants";
+import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 
 
 const useStyles = makeStyles(() => ({
@@ -37,6 +38,7 @@ export default function Stations(){
 	const { callStatus } = state;
 	const location = useLocation();
 	const classes = useStyles();
+	const canEditStation = useHasAnyRoles([UserRoleDef.STATION_EDIT]);
 
 	useEffect(() => {
 		document.title = "Musical Chairs - Stations";
@@ -81,52 +83,55 @@ export default function Stations(){
 					<AccordionSummary
 						expandIcon={<ExpandMoreIcon />}
 					>
-						<Typography>{s.name}</Typography>
+						<Typography>
+							{s.displayName || s.name}
+						</Typography>
 					</AccordionSummary>
 					<AccordionDetails>
 						<div>
 							<Grid container>
 								<Grid item>
-									<Tooltip
-										title={`${DomRoutes.songCatalogue}${s.name}`}
+									{canEditStation && <Button
+										color="primary"
+										variant="contained"
+										component={Link}
+										to={`${DomRoutes.stationsEdit}?id=${s.id}`}
 									>
-										<Button
-											component={Link}
-											color="primary"
-											variant="contained"
-											className={classes.buttons}
-											to={`${DomRoutes.songCatalogue}${s.name}`}
-										>
-												Song Catalogue
-										</Button>
-									</Tooltip>
+										Edit
+									</Button>}
 								</Grid>
 								<Grid item>
-
-									<Tooltip title={`${DomRoutes.history}${s.name}`}>
-										<Button
-											component={Link}
-											color="primary"
-											variant="contained"
-											className={classes.buttons}
-											to={`${DomRoutes.history}${s.name}`}
-										>
-												Song History
-										</Button>
-									</Tooltip>
+									<Button
+										component={Link}
+										color="primary"
+										variant="contained"
+										className={classes.buttons}
+										to={`${DomRoutes.songCatalogue}${s.name}`}
+									>
+											Song Catalogue
+									</Button>
 								</Grid>
 								<Grid item>
-									<Tooltip title={`${DomRoutes.queue}${s.name}`}>
-										<Button
-											component={Link}
-											color="primary"
-											variant="contained"
-											className={classes.buttons}
-											to={`${DomRoutes.queue}${s.name}`}
-										>
-												Song Queue
-										</Button>
-									</Tooltip>
+									<Button
+										component={Link}
+										color="primary"
+										variant="contained"
+										className={classes.buttons}
+										to={`${DomRoutes.history}${s.name}`}
+									>
+											Song History
+									</Button>
+								</Grid>
+								<Grid item>
+									<Button
+										component={Link}
+										color="primary"
+										variant="contained"
+										className={classes.buttons}
+										to={`${DomRoutes.queue}${s.name}`}
+									>
+											Song Queue
+									</Button>
 								</Grid>
 							</Grid>
 							<Typography display="block">Tags:</Typography>

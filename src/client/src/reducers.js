@@ -1,8 +1,8 @@
 import queueReducer from "./Components/Queue/queue_slice";
 import historyReducer from "./Components/History/history_slice";
-import songCatalogueReducer 
+import songCatalogueReducer
 	from "./Components/Song_Catalogue/songInfoService";
-import accountsReducer from "./Components/Accounts/accounts_slice";
+import accountsReducer from "./API_Calls/userCalls";
 import { configureStore } from "@reduxjs/toolkit";
 import logger from "redux-logger";
 

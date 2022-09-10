@@ -20,7 +20,8 @@ from musical_chairs_libs.dtos_and_utilities import\
 	missing,\
 	AlbumInfo,\
 	ArtistInfo,\
-	SongEditInfo
+	SongEditInfo,\
+	SongArtistInfo
 from sqlalchemy import select, insert, update, func, delete
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -36,7 +37,7 @@ from musical_chairs_libs.tables import\
 	stations as stations_tbl,\
 	tags as tags_tbl,\
 	songs_tags as songs_tags_tbl,\
-	sg_pk, sg_name, sg_path, tg_pk, st_name, st_pk, ab_name, ab_pk,\
+	sg_pk, sg_name, sg_path, tg_pk, tg_name, st_name, st_pk, ab_name, ab_pk,\
 	ar_name, ar_pk, sttg_stationFk, sttg_tagFk, sg_albumFk, sg_bitrate,\
 	sg_comment, sg_disc, sg_duration, sg_explicit, sg_genre, sg_lyrics,\
 	sg_sampleRate, sgtg_songFk, sgtg_tagFk, sgar_isPrimaryArtist, sgar_songFk,\
@@ -313,7 +314,7 @@ class SongInfoService:
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		yield from (AlbumInfo(**row) for row in records) #pyright: ignore [reportUnknownVariableType, reportUnknownArgumentType]
+		yield from (AlbumInfo(id=row["id"], name=row["name"]) for row in records) #pyright: ignore [reportUnknownVariableType, reportUnknownArgumentType]
 
 	def get_artists(self,
 		page: int = 0,
@@ -356,10 +357,13 @@ class SongInfoService:
 			func.max(sg_lyrics).label("lyrics"),
 			func.max(sg_duration).label("duration"),
 			func.max(sg_sampleRate).label("sampleRate"),
-			func.max(ab_pk).label("albumId"),
+			func.max(ab_pk).label("Album.Id"),
+			func.max(ab_name).label("Album.Name"),
 			sgar_isPrimaryArtist,
 			ar_pk.label("Artist.Id"),
+			ar_name.label("Artist.Name"),
 			tg_pk.label("Tag.Id"),
+			tg_name.label("Tag.Name"),
 		).select_from(songs_tbl)\
 				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
 				.join(artists_tbl, ar_pk == sgar_artistFk)\
@@ -369,33 +373,43 @@ class SongInfoService:
 				.join(album_artist, ab_albumArtistFk == ar_pk, isouter=True)\
 				.group_by(
 					"Artist.Id",
+					"Artist.Name",
 					sgar_isPrimaryArtist,
 					"Tag.Id",
+					"Tag.Name",
 					)\
 				.where(sg_pk == songId)\
 				.order_by(sg_pk)
 		records = self.conn.execute(query).fetchall()
 		currentSongRow = None
-		artists: set[int] = set()
-		tags: set[int] = set()
-		primaryArtistId: Optional[int] = None
+		artists: set[SongArtistInfo] = set()
+		tags: set[Tag] = set()
 		for row in records:
 			if not currentSongRow:
 				currentSongRow = row
-			artists.add(row["Artist.Id"])
-			tags.add(row["Tag.Id"])
-			if row[sgar_isPrimaryArtist]:
-				primaryArtistId = row["Artist.Id"]
+			artists.add(SongArtistInfo(
+					row["Artist.Id"],
+					row["Artist.Name"],
+					True if row[sgar_isPrimaryArtist] else False
+				)
+			)
+			tags.add(Tag(row["Tag.Id"], row["Tag.Name"]))
 		if not currentSongRow:
 			return None
 		songDict: dict[Any, Any] = {**currentSongRow}
+		album = AlbumInfo(
+			songDict.pop("Album.Id", None),
+			songDict.pop("Album.Name", None)
+		)
 		songDict.pop("Artist.Id", None)
+		songDict.pop("Artist.Name", None)
 		songDict.pop("Tag.Id", None)
+		songDict.pop("Tag.Name", None)
 		songDict.pop(sgar_isPrimaryArtist.description, None)
 		return SongEditInfo(**songDict,
-			artistIds=list(artists),
-			tagIds=list(tags),
-			primaryArtistId=primaryArtistId
+			album=album,
+			artists=list(artists),
+			tags=list(tags)
 		)
 
 

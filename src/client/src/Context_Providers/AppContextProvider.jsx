@@ -5,6 +5,7 @@ import React, {
 	useReducer,
 	useContext,
 	useCallback,
+	useState,
 } from "react";
 import {
 	waitingReducer,
@@ -51,8 +52,8 @@ export const AppContextProvider = (props) => {
 		waitingReducer(sortedListReducerPaths),
 		{...listDataInitialState}
 	);
-
-	const [tagState, tagsDispatch] = useReducer(
+	const [fetchTagsPromise, setFetchTagsPromise] = useState();
+	const [tagsState, tagsDispatch] = useReducer(
 		waitingReducer(sortedListReducerPaths),
 		{...listDataInitialState}
 	);
@@ -71,20 +72,25 @@ export const AppContextProvider = (props) => {
 		fetch();
 	},[albumsDispatch]);
 
-	useEffect(() => {
-		const fetch = async () => {
-			try {
-				tagsDispatch(dispatches.started());
-				const data = await fetchTags();
+	const fetchTagsCall = useCallback(() => {
+		tagsDispatch(dispatches.started());
+		const fetchPromise = fetchTags()
+			.then(data => {
+				console.log("done dl tags");
 				tagsDispatch(dispatches.done(data));
-			}
-			catch(err) {
+				return data;
+			})
+			.catch(err => {
 				tagsDispatch(dispatches.failed(formatError(err)));
-			}
-		};
+				throw err;
+			});
+		setFetchTagsPromise(fetchPromise);
+		return fetchPromise;
+	},[tagsDispatch, setFetchTagsPromise]);
 
-		fetch();
-	}, [tagsDispatch]);
+	useEffect(() => {
+		fetchTagsCall();
+	}, [fetchTagsCall]);
 
 	const addTag = useCallback(
 		(tag) => tagsDispatch(dispatches.add(tag)),
@@ -96,12 +102,29 @@ export const AppContextProvider = (props) => {
 		[albumsDispatch]
 	);
 
+	const tagCallStatus = tagsState.callStatus;
+
+	const waitForTags = useCallback(async () => {
+		const fetchPromise = !tagCallStatus ? fetchTagsCall() : fetchTagsPromise;
+		return await fetchPromise;
+	},[tagCallStatus, fetchTagsCall, fetchTagsPromise]);
+
+	// const mapTagsToContext = useCallback(async (localTags) => {
+		
+
+	// 	const mapped = localTags.map(
+	// 		(item) => globalTags.find(x => x.id === item.id)
+	// 	);
+	// 	return mapped;
+	// },[tagCallStatus, fetchTagsCall, fetchTagsPromise]);
+
 	const contextValue = useMemo(() => ({
 		albumsState,
 		addAlbum,
-		tagsState: tagState,
+		tagsState,
 		addTag,
-	}),[albumsState, tagState, addTag, addAlbum]);
+		waitForTags,
+	}),[albumsState, tagsState, addTag, addAlbum]);
 
 	return <AppContext.Provider value={contextValue}>
 		{children}
@@ -125,12 +148,12 @@ export const useAlbumData = () => {
 };
 
 export const useTagData = () => {
-	const { tagsState, addTag } = useContext(AppContext);
-	console.log(tagsState);
+	const { tagsState, addTag, waitForTags } = useContext(AppContext);
 	return {
 		items: tagsState.data.items,
 		error: tagsState.error,
 		callStatus: tagsState.callStatus,
 		add: addTag,
+		fetchTags: waitForTags,
 	};
 };

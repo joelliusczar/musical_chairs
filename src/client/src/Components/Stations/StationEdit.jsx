@@ -18,6 +18,7 @@ import {
 import * as Yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { formatError } from "../../Helpers/error_formatter";
 
 
 
@@ -70,7 +71,7 @@ export const StationEdit = () => {
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err) {
-			enqueueSnackbar(err.response.data.detail[0].msg, { variant: "error"});
+			enqueueSnackbar(formatError(err), { variant: "error"});
 		}
 	});
 
@@ -109,7 +110,7 @@ export const StationEdit = () => {
 				}
 			}
 			catch(err) {
-				dispatch(dispatches.failed(err.response.data.detail[0].msg));
+				dispatch(dispatches.failed(formatError(err)));
 			}
 		};
 

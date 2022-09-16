@@ -33,16 +33,17 @@ export const TagAssignment = (props) => {
 
 	const unassignTag = (_e, idx) => {
 		const value = getValues(name);
-		console.log(value);
 		const items = [...value];
 		items.splice(idx, 1);
 		setValue(name, items);
 	};
 
-	// useEffect(() => {
-	// 	const map = items.reduce((soFar, x) => soFar.set(x.id, x), new Map());
-	// 	const tracked = 
-	// },[items]);
+	const transform = {
+		input: (value) => {
+			return value.map((item) =>
+				items.find(x => x.id === item.id));
+		},
+	};
 
 	return (
 		<>
@@ -57,6 +58,7 @@ export const TagAssignment = (props) => {
 						label="Tags"
 						multiple
 						sx={{ minWidth: 195 }}
+						transform={transform}
 						renderValue={(selected) => (
 							<Box
 								sx={{ display: "flex", flexWrap: "wrap", gap: .5}}
@@ -79,11 +81,11 @@ export const TagAssignment = (props) => {
 								})}
 							</Box>)}
 					>
-						<MenuItem key="tag_none" value=""></MenuItem>
+						<MenuItem key={`tag_none_${name}`} value=""></MenuItem>
 						{items.map((t, idx) => {
 							return (
 								<MenuItem
-									key={`tag_${idx}`}
+									key={`tag_${idx}_${name}`}
 									value={t}
 								>
 									{t.name}

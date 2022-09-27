@@ -31,7 +31,13 @@ from musical_chairs_libs.tables import \
 	station_queue, \
 	albums, \
 	artists, \
-	song_artist
+	song_artist,\
+	sgar_pk, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist, \
+	sg_pk, sg_name, sg_path, sg_albumFk, \
+	st_pk, st_name, \
+	ar_pk, ar_name,\
+	ab_pk, ab_name,\
+	q_songFk, q_queuedTimestamp, q_stationFk
 from musical_chairs_libs.dtos_and_utilities import\
 	AccountInfo,\
 	QueueItem,\
@@ -180,34 +186,33 @@ class QueueService:
 		stationName: Optional[str]=None,
 		limit: Optional[int]=None
 	) -> Iterator[QueueItem]:
-		sg: ColumnCollection = songs.columns
-		q: ColumnCollection = station_queue.columns
-		ab: ColumnCollection = albums.columns
-		ar: ColumnCollection = artists.columns
-		sgar: ColumnCollection = song_artist.columns
-		st: ColumnCollection = stations.columns
+		primaryArtistGroupQuery = select(
+			func.max(sgar_pk).label("pk"),
+			func.max(sgar_isPrimaryArtist).label("isPrimary")
+		).group_by(sgar_songFk)
+		subq = primaryArtistGroupQuery.subquery()
+
 		baseQuery = select(
-				sg.pk,
-				sg.path,
-				sg.name,
-				ab.name.label("album"),
-				ar.name.label("artist"),
-				q.queuedTimestamp
-			)\
-				.select_from(station_queue) \
-				.join(songs, sg.pk == q.songFk) \
-				.join(albums, sg.albumFk == ab.pk, isouter=True) \
-				.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
-				.join(artists, sgar.artistFk == ar.pk, isouter=True) \
-				.order_by(q.queuedTimestamp)
+				sg_pk,
+				sg_path,
+				sg_name,
+				ab_name.label("album"),
+				ar_name.label("artist"),
+				q_queuedTimestamp
+			).select_from(station_queue)\
+				.join(songs, sg_pk == q_songFk)\
+				.join(albums, sg_albumFk == ab_pk, isouter=True)\
+				.join(song_artist, sg_pk == sgar_songFk, isouter=True)\
+				.join(artists, sgar_artistFk == ar_pk, isouter=True)\
+				.join(subq, subq.c.pk == sgar_pk)
 		if stationPk:
-			query = baseQuery.where(q.stationFk == stationPk)
+			query = baseQuery.where(q_stationFk == stationPk)
 		elif stationName:
-			query = baseQuery.join(stations, st.pk == q.stationFk) \
-				.where(func.lower(st.name) == func.lower(stationName))
+			query = baseQuery.join(stations, st_pk == q_stationFk) \
+				.where(func.lower(st_name) == func.lower(stationName))
 		else:
 			raise ValueError("Either stationName or pk must be provided")
-		records = self.conn.execute(query)
+		records = self.conn.execute(query.order_by(q_queuedTimestamp))
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield QueueItem(
 				id=row.pk, #pyright: ignore [reportUnknownArgumentType]

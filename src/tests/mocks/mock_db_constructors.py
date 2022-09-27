@@ -1,4 +1,5 @@
-from typing import Protocol, Callable
+import pytest
+from typing import Protocol, Optional
 from datetime import datetime
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import EnvManager
@@ -24,11 +25,26 @@ class ConnectionConstructor(Protocol):
 	) -> Connection:
 			...
 
+class MockDbPopulator(Protocol):
+	def __call__(
+		self,
+		conn: Connection,
+		request: Optional[pytest.FixtureRequest]=None
+	) -> None:
+		...
+
+def db_populator_noop(
+	conn: Connection,
+	request: Optional[pytest.FixtureRequest]=None
+):
+	pass
+
 def setup_in_mem_tbls(
 	conn: Connection,
 	orderedTestDates: list[datetime],
 	primaryUser: AccountInfo,
-	testPassword: bytes
+	testPassword: bytes,
+	request: Optional[pytest.FixtureRequest] = None
 ) -> None:
 	metadata.create_all(conn.engine)
 	populate_artists(conn)
@@ -43,7 +59,8 @@ def setup_in_mem_tbls(
 	populate_user_roles(conn, orderedTestDates, primaryUser)
 
 def construct_mock_connection_constructor(
-	dbPopulate: Callable[[Connection], None]
+	dbPopulate: MockDbPopulator,
+	request: Optional[pytest.FixtureRequest] = None
 ) -> ConnectionConstructor:
 
 	def get_mock_db_connection_constructor(
@@ -57,6 +74,6 @@ def construct_mock_connection_constructor(
 			inMemory=True,
 			checkSameThread=checkSameThread
 		)
-		dbPopulate(conn)
+		dbPopulate(conn, request)
 		return conn
 	return get_mock_db_connection_constructor

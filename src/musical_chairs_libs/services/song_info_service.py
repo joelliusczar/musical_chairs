@@ -21,10 +21,12 @@ from musical_chairs_libs.dtos_and_utilities import\
 	AlbumInfo,\
 	ArtistInfo,\
 	SongEditInfo,\
-	SongArtistInfo
+	build_error_obj,\
+	AlbumCreationInfo
 from sqlalchemy import select, insert, update, func, delete
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
+from musical_chairs_libs.errors import AlreadyUsedError
 
 from .env_manager import EnvManager
 from .tag_service import TagService
@@ -37,11 +39,16 @@ from musical_chairs_libs.tables import\
 	stations as stations_tbl,\
 	tags as tags_tbl,\
 	songs_tags as songs_tags_tbl,\
-	sg_pk, sg_name, sg_path, tg_pk, tg_name, st_name, st_pk, ab_name, ab_pk,\
-	ar_name, ar_pk, sttg_stationFk, sttg_tagFk, sg_albumFk, sg_bitrate,\
-	sg_comment, sg_disc, sg_duration, sg_explicit, sg_genre, sg_lyrics,\
-	sg_sampleRate, sgtg_songFk, sgtg_tagFk, sgar_isPrimaryArtist, sgar_songFk,\
-	sgar_artistFk, ab_albumArtistFk, sg_track, ab_year
+	sg_pk, sg_name, sg_path,\
+	tg_pk, tg_name,\
+	st_name, st_pk,\
+	ab_name, ab_pk, ab_albumArtistFk, ab_year,\
+	ar_name, ar_pk,\
+	sttg_stationFk, sttg_tagFk,\
+	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,\
+	sg_genre, sg_lyrics, sg_sampleRate, sg_track,\
+	sgtg_songFk, sgtg_tagFk,\
+	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk
 
 
 class SongInfoService:
@@ -102,6 +109,68 @@ class SongInfoService:
 		res = self.conn.execute(stmt)
 		insertedPk: int = res.lastrowid
 		return insertedPk
+
+	def save_artist(
+		self,
+		artistName: str,
+		artistId: Optional[int]=None,
+		userId: Optional[int]=None
+	) -> ArtistInfo:
+		if not artistName and not artistId:
+			return ArtistInfo(id=-1, name="")
+		upsert = update if artistId else insert
+		savedName = SavedNameString(artistName)
+		stmt = upsert(artists_tbl).values(
+			name = str(savedName),
+			lastModifiedByUserFk = userId,
+			lastModifiedTimestamp = self.get_datetime().timestamp()
+		)
+		if artistId:
+			stmt = stmt.where(ar_pk == artistId)
+		try:
+			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+
+			affectedPk: int = artistId if artistId else res.lastrowid #pyright: ignore [reportUnknownMemberType]
+			return ArtistInfo(id=affectedPk, name=str(savedName))
+		except IntegrityError:
+			raise AlreadyUsedError(
+				[build_error_obj(
+					f"{artistName} is already used.", "name"
+				)]
+			)
+
+	def save_album(
+		self,
+		album: AlbumCreationInfo,
+		albumId: Optional[int]=None,
+		userId: Optional[int]=None
+	) -> AlbumInfo:
+		if not album and not albumId:
+			return AlbumInfo(id=-1, name="")
+		upsert = update if albumId else insert
+		savedName = SavedNameString(album.name)
+		stmt = upsert(albums_tbl).values(
+			name = str(savedName),
+			year = album.year,
+			albumArtistFk = album.albumArtist.id if album.albumArtist else None,
+			lastModifiedByUserFk = userId,
+			lastModifiedTimestamp = self.get_datetime().timestamp()
+		)
+		if albumId:
+			stmt = stmt.where(ab_pk == albumId)
+		try:
+			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+
+			affectedPk: int = albumId if albumId else res.lastrowid #pyright: ignore [reportUnknownMemberType]
+			artist = next(self.get_artists(artistId=album.albumArtist.id), None)\
+				if album.albumArtist else None
+			return AlbumInfo(affectedPk, str(savedName), album.year, artist)
+		except IntegrityError:
+			raise AlreadyUsedError(
+				[build_error_obj(
+					f"{album.name} is already used for artist.", "name"
+				)]
+			)
 
 	def get_or_save_album(
 		self,
@@ -300,9 +369,11 @@ class SongInfoService:
 		query = select(
 			ab_pk.label("id"),
 			ab_name.label("name"),
+			ab_year.label("year"),
 			ab_albumArtistFk.label("albumArtistId"),
-			ab_year.label("year")
-		)
+			ar_name.label("Artist.Name")
+		).select_from(albums_tbl)\
+			.join(artists_tbl, ar_pk == ab_albumArtistFk)
 		if type(albumId) == int:
 			query = query.where(ab_pk == albumId)
 		elif albumIds:
@@ -314,7 +385,14 @@ class SongInfoService:
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		yield from (AlbumInfo(id=row["id"], name=row["name"]) for row in records) #pyright: ignore [reportUnknownVariableType, reportUnknownArgumentType]
+		yield from (AlbumInfo(
+			row["id"], #pyright: ignore [reportUnknownArgumentType]
+			row["name"], #pyright: ignore [reportUnknownArgumentType]
+			row["year"], #pyright: ignore [reportUnknownArgumentType]
+			ArtistInfo(
+				row["albumArtistId"], #pyright: ignore [reportUnknownArgumentType]
+				row["Artist.Name"] #pyright: ignore [reportUnknownArgumentType]
+			)) for row in records) #pyright: ignore [reportUnknownVariableType, reportUnknownArgumentType]
 
 	def get_artists(self,
 		page: int = 0,
@@ -382,17 +460,23 @@ class SongInfoService:
 				.order_by(sg_pk)
 		records = self.conn.execute(query).fetchall()
 		currentSongRow = None
-		artists: set[SongArtistInfo] = set()
+		artists: set[ArtistInfo] = set()
 		tags: set[Tag] = set()
+		primaryArtist: Optional[ArtistInfo] = None
 		for row in records:
 			if not currentSongRow:
 				currentSongRow = row
-			artists.add(SongArtistInfo(
+			if row[sgar_isPrimaryArtist]:
+				primaryArtist = ArtistInfo(
 					row["Artist.Id"],
-					row["Artist.Name"],
-					True if row[sgar_isPrimaryArtist] else False
+					row["Artist.Name"]
 				)
-			)
+			else:
+				artists.add(ArtistInfo(
+						row["Artist.Id"],
+						row["Artist.Name"]
+					)
+				)
 			tags.add(Tag(row["Tag.Id"], row["Tag.Name"]))
 		if not currentSongRow:
 			return None
@@ -408,6 +492,7 @@ class SongInfoService:
 		songDict.pop(sgar_isPrimaryArtist.description, None)
 		return SongEditInfo(**songDict,
 			album=album,
+			primaryArtist=primaryArtist,
 			artists=list(artists),
 			tags=list(tags)
 		)

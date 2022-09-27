@@ -9,5 +9,5 @@ def test_song_ls_hit(
 ):
 	client = fixture_api_test_client
 	response = client.get(
-		"/song-info/tree")
+		"/song-info/songs/tree")
 	assert response.status_code == 200

@@ -77,6 +77,7 @@ _sg_path: Any = songs.c.path #pyright: ignore reportUnknownMemberType
 Index("idx_uniqueSongPath", _sg_path, unique=True)
 
 song_artist = Table("SongsArtists", metadata,
+	Column("pk", Integer, primary_key=True),
 	Column("songFk", ForeignKey("Songs.pk"), nullable=False),
 	Column("artistFk", ForeignKey("Artists.pk"), nullable=False),
 	Column("isPrimaryArtist", Integer, nullable=True),
@@ -223,6 +224,7 @@ st_pk: Column = st.pk #pyright: ignore [reportUnknownMemberType]
 st_name: Column = st.name #pyright: ignore [reportUnknownMemberType]
 
 sgar: TblCols = song_artist.c #pyright: ignore [reportUnknownMemberType]
+sgar_pk: Column = sgar.pk #pyright: ignore [reportUnknownMemberType]
 sgar_songFk: Column = sgar.songFk #pyright: ignore [reportUnknownMemberType]
 sgar_artistFk: Column = sgar.artistFk #pyright: ignore [reportUnknownMemberType]
 sgar_isPrimaryArtist: Column = sgar.isPrimaryArtist #pyright: ignore [reportUnknownMemberType]
@@ -235,3 +237,7 @@ sttg: TblCols = stations_tags.c #pyright: ignore [reportUnknownMemberType]
 sttg_tagFk: Column = sttg.tagFk #pyright: ignore [reportUnknownMemberType]
 sttg_stationFk: Column = sttg.stationFk #pyright: ignore [reportUnknownMemberType]
 
+q: TblCols = station_queue.c #pyright: ignore [reportUnknownMemberType]
+q_songFk: Column = q.songFk #pyright: ignore [reportUnknownMemberType]
+q_stationFk: Column = q.stationFk #pyright: ignore [reportUnknownMemberType]
+q_queuedTimestamp: Column = q.queuedTimestamp #pyright: ignore [reportUnknownMemberType]

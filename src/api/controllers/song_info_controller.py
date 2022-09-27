@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Security
 from api_dependencies import \
-	song_info_service
+	song_info_service,\
+	get_current_user
 from musical_chairs_libs.services import SongInfoService
 from musical_chairs_libs.dtos_and_utilities import SongTreeNode,\
 	ListData,\
 	AlbumInfo,\
-	ArtistInfo
+	ArtistInfo,\
+	AccountInfo,\
+	UserRoleDef
 
 router = APIRouter(prefix="/song-info")
 
@@ -22,6 +25,18 @@ def get_all_artists(
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> ListData[ArtistInfo]:
 	return ListData(items=list(songInfoService.get_artists()))
+
+@router.post("/artists")
+def create_artist(
+	artistName: str,
+	songInfoService: SongInfoService = Depends(song_info_service),
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.ARTIST_EDIT()]
+	)
+) -> ArtistInfo:
+	artistInfo = songInfoService.save_artist(artistName, userId=user.id)
+	return artistInfo
 
 
 @router.get("/albums/list")

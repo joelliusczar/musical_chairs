@@ -191,16 +191,15 @@ def test_get_song_for_edit(
 	assert songInfo.name == "sierra_song"
 	assert songInfo.album and songInfo.album.id == 11
 	assert songInfo.album and songInfo.album.name == "boo_album"
-	assert songInfo.artists and len(songInfo.artists) == 2
+	assert songInfo.artists and len(songInfo.artists) == 1
 	sortedArtists = sorted(songInfo.artists, key=lambda a: a.id or 0)
-	if sortedArtists:
-		assert sortedArtists[0].id == 4
-		assert sortedArtists[0].name == "delta_artist"
-		assert sortedArtists[0].isPrimaryArtist == False
-
-		assert sortedArtists[1].id == 6
-		assert sortedArtists[1].name == "foxtrot_artist"
-		assert sortedArtists[1].isPrimaryArtist == True
+	assert len(sortedArtists) == 1
+	assert sortedArtists[0].id == 4
+	assert sortedArtists[0].name == "delta_artist"
+	assert songInfo.primaryArtist
+	if songInfo.primaryArtist:
+		assert songInfo.primaryArtist.id == 6
+		assert songInfo.primaryArtist.name == "foxtrot_artist"
 	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == 1
 	assert songInfo.disc == 1

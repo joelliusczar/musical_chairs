@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from .user_role_def import UserRoleDef
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, validate_email
+from .generic_dtos import IdItem
 
 @dataclass(frozen=True)
 class AccountInfoBase:
@@ -25,9 +26,7 @@ class AccountInfoBase:
 		return UserRoleDef.ADMIN.value in \
 			(UserRoleDef.extract_role_segments(r)[0] for r in self.roles)
 
-@dataclass(frozen=True)
-class IdItem:
-	id: int
+
 
 @dataclass(frozen=True)
 class AccountInfo(AccountInfoBase, IdItem):

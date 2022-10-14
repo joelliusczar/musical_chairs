@@ -360,7 +360,8 @@ setup_db() (
 	process_global_vars "$@" &&
 	error_check_path "$reference_src_db" &&
 	error_check_path "$app_root"/"$sqlite_file" &&
-	if [ ! -e "$app_root"/"$sqlite_file" ]; then
+	if [ ! -e "$app_root"/"$sqlite_file" ] || [ -n "$clean_flag" ] \
+	|| [ -n "$replace_db_flag" ]; then
 		cp -v "$reference_src_db" "$app_root"/"$sqlite_file"
 	else
 		if [ -n "$(pgrep 'mc-ices')" ]; then
@@ -1087,7 +1088,7 @@ define_consts() {
 }
 
 create_install_dir() {
-	[ -d "$(get_repo_path)" ] || 
+	[ -d "$(get_repo_path)" ] ||
 	mkdir -pv "$(get_repo_path)"
 
 }

@@ -1,5 +1,5 @@
-import React from "react";
-import { Box, Typography, Button } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
@@ -11,7 +11,7 @@ const inputField = {
 	margin: 2,
 };
 
-export const TagNew = (props) => {
+export const TagEdit = (props) => {
 	const { afterSubmit, onCancel } = props;
 	const { enqueueSnackbar } = useSnackbar();
 
@@ -59,7 +59,38 @@ export const TagNew = (props) => {
 	);
 };
 
-TagNew.propTypes = {
+TagEdit.propTypes = {
 	afterSubmit: PropTypes.func.isRequired,
 	onCancel: PropTypes.func,
+};
+
+
+export const TagNewModalOpener = (props) => {
+
+	const { add } = props;
+
+	const [itemNewOpen, setItemNewOpen ] = useState(false);
+
+	const closeModal = () => {
+		setItemNewOpen(false);
+	};
+
+	const itemCreated = (item) => {
+		add && add(item);
+		closeModal();
+	};
+
+	return (
+		<>
+			<Box sx={inputField}>
+				<Button onClick={() => setItemNewOpen(true)}>Add New Tag</Button>
+			</Box>
+			<Dialog open={itemNewOpen} onClose={closeModal}>
+				<TagEdit afterSubmit={itemCreated} onCancel={closeModal} />
+			</Dialog>
+		</>);
+};
+
+TagNewModalOpener.propTypes = {
+	add: PropTypes.func,
 };

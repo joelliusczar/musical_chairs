@@ -135,7 +135,7 @@ class AccountsService:
 
 	def save_roles(
 		self,
-		userId: Optional[int],
+		userId: int,
 		roles: Sequence[str]
 	) -> Iterable[str]:
 		if userId is None or not roles:
@@ -265,7 +265,7 @@ class AccountsService:
 
 	def get_account_for_edit(
 		self,
-		userId: Optional[int]
+		userId: int
 	) -> Optional[AccountInfo]:
 		if not userId:
 			return None
@@ -283,7 +283,7 @@ class AccountsService:
 		)
 
 	def _get_account_if_can_edit(self,\
-		userId: Optional[int],
+		userId: int,
 		currentUser: AccountInfo
 	) -> AccountInfo:
 		prev = self.get_account_for_edit(userId) if userId else None
@@ -317,8 +317,10 @@ class AccountsService:
 		self,
 		accountInfo: AccountInfo,
 		currentUser: AccountInfo
-	) -> AccountInfo:
-		userId = accountInfo.id if accountInfo else None
+	) -> Optional[AccountInfo]:
+		if not accountInfo:
+			return None
+		userId = accountInfo.id
 		prev = self._get_account_if_can_edit(userId, currentUser)
 		stmt = update(users).values(displayName = accountInfo.displayName)
 		self.conn.execute(stmt)

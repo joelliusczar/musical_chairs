@@ -3,11 +3,11 @@ from musical_chairs_libs.dtos_and_utilities import UserRoleDef
 from .api_test_dependencies import\
 	fixture_api_test_client as fixture_api_test_client
 from .api_test_dependencies import *
-from .constant_fixtures_for_test import\
+from .mocks.constant_values_defs import\
 	clear_mock_password,\
 	clear_mock_bad_password_clear,\
 	primary_user
-from .mocks.db_population import get_starting_users
+from .mocks.db_population import get_initial_users
 from fastapi.testclient import TestClient
 
 
@@ -22,8 +22,8 @@ def test_create_account_success(fixture_api_test_client: TestClient):
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	starting_users = get_starting_users()
-	assert data["id"] == len(starting_users) + 1
+	initial_users = get_initial_users()
+	assert data["id"] == len(initial_users) + 1
 
 	headers = login_test_user(primary_user().username, client)
 	response = client.get("/accounts/list", headers=headers)
@@ -169,13 +169,13 @@ def test_login_fail(fixture_api_test_client: TestClient):
 def test_get_account_list(fixture_api_test_client: TestClient):
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_golf", client)
-	startingUsersList = get_starting_users()
+	initialUsers = get_initial_users()
 
 	response = client.get("/accounts/list", headers=headers)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["totalRows"] ==len(startingUsersList)
-	assert len(data["items"]) ==len(startingUsersList)
+	assert data["totalRows"] ==len(initialUsers)
+	assert len(data["items"]) ==len(initialUsers)
 
 	headers = login_test_user("testUser_hotel", client)
 

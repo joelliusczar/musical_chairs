@@ -72,10 +72,10 @@ def song_catalogue(
 	totalRows = stationService.song_catalogue_count(stationName = stationName)
 	return TableData(totalRows=totalRows, items=songs)
 
-@router.post("/{stationName}/request/{songId}")
+@router.post("/{stationName}/request/{songPk}")
 def request_song(
 	stationName: str,
-	songId: int,
+	songPk: int,
 	queueService: QueueService = Depends(queue_service),
 	user: AccountInfo = Security(
 		get_current_user,
@@ -83,7 +83,7 @@ def request_song(
 	)
 ):
 	try:
-		queueService.add_song_to_queue(songId, stationName, user)
+		queueService.add_song_to_queue(songPk, stationName, user)
 	except (LookupError, RuntimeError) as ex:
 		raise HTTPException(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,

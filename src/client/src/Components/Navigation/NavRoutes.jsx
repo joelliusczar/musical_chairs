@@ -10,7 +10,7 @@ import { LoginForm } from "../Accounts/AccountsLoginForm";
 import { AccountsList } from "../Accounts/AccountsList";
 import { AccountsRoles } from "../Accounts/AccountsRoles";
 import { StationEdit } from "../Stations/StationEdit";
-import { SongTree } from "../Song_Catalogue/SongTree";
+import { SongTree } from "../Songs/SongTree";
 import { SongEdit } from "../Songs/SongEdit";
 import { NotFound } from "../Shared/RoutingErrors";
 import { DomRoutes, UserRoleDef } from "../../constants";
@@ -85,7 +85,7 @@ export function AppRoutes() {
 			>
 				<StationEdit />
 			</Route>
-			<Route path={`${DomRoutes.songEdit}`}>
+			<Route path={`${DomRoutes.songEdit}:id`}>
 				<SongEdit />
 			</Route>
 			<Route path={DomRoutes.songTree}>

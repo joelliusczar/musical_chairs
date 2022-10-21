@@ -5,7 +5,7 @@ from .constant_fixtures_for_test import *
 from .common_fixtures import \
 	fixture_station_service as fixture_station_service
 from .common_fixtures import *
-from .mocks.db_population import get_starting_tags, get_starting_stations
+from .mocks.db_population import get_initial_tags, get_initial_stations
 
 
 def test_if_song_can_be_added_to_station(
@@ -33,7 +33,7 @@ def test_save_station(fixture_station_service: StationService):
 		tags=[Tag(id=3, name="mike_tag"), Tag(id=5, name="oscar_tag")]
 	)
 	result = stationService.save_station(testData)
-	assert result and result.id == len(get_starting_stations()) + 1
+	assert result and result.id == len(get_initial_stations()) + 1
 	fetched = stationService.get_station_for_edit(result.id)
 	assert fetched and fetched.id == result.id
 	assert fetched and fetched.name == "brand_new_station"
@@ -41,14 +41,14 @@ def test_save_station(fixture_station_service: StationService):
 	assert fetched and fetched.tags and len(fetched.tags) == 2
 
 
-	nonExistentTagId = max(cast(int, t["pk"]) for t in  get_starting_tags()) + 2
+	nonExistentTagId = max(cast(int, t["pk"]) for t in  get_initial_tags()) + 2
 	testData = StationCreationInfo(
 		name = "brand_new_station_fake_tag",
 		displayName="Brand new station with bad tag",
 		tags=[Tag(id=3, name="mike_tag"), Tag(id=nonExistentTagId, name="bad_tag")]
 	)
 	result = stationService.save_station(testData)
-	assert result and result.id == len(get_starting_stations()) + 2
+	assert result and result.id == len(get_initial_stations()) + 2
 	fetched = stationService.get_station_for_edit(result.id)
 	assert fetched and fetched.tags and len(fetched.tags) == 1
 

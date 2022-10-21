@@ -12,6 +12,7 @@ from collections import Counter
 
 class UserRoleDef(Enum):
 	ADMIN = "admin::"
+	ARTIST_EDIT = "artist:edit:"
 	SONG_EDIT = "song:edit:"
 	SONG_REQUEST = "song:request:"
 	TAG_DELETE = "tag:delete:"

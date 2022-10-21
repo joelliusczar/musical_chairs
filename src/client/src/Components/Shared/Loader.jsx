@@ -22,7 +22,10 @@ const Loader = ({status, children, error}) => {
 
 Loader.propTypes = {
 	status: PropTypes.string,
-	children: PropTypes.node,
+	children: PropTypes.oneOfType([
+		PropTypes.arrayOf(PropTypes.node),
+		PropTypes.node,
+	]).isRequired,
 	error: PropTypes.string,
 };
 

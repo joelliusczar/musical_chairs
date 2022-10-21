@@ -82,7 +82,7 @@ export const TagNewModalOpener = (props) => {
 
 	return (
 		<>
-			<Box>
+			<Box sx={inputField}>
 				<Button onClick={() => setItemNewOpen(true)}>Add New Tag</Button>
 			</Box>
 			<Dialog open={itemNewOpen} onClose={closeModal}>

@@ -4,7 +4,7 @@ from .api_test_dependencies import login_test_user,\
 	fixture_api_test_client as fixture_api_test_client
 from .api_test_dependencies import *
 from fastapi.testclient import TestClient
-from .mocks.db_population import get_initial_stations, get_initial_tags
+from .mocks.db_population import get_starting_stations, get_starting_tags
 
 
 
@@ -44,7 +44,7 @@ def test_post_with_only_name(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	initialStations = get_initial_stations()
+	starting_stations = get_starting_stations()
 	headers = login_test_user("testUser_juliet", client)
 	testData: dict[str, Any] = {
 		"name": "test_station",
@@ -58,7 +58,7 @@ def test_post_with_only_name(
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	nextId = data["id"]
-	assert nextId == len(initialStations) + 1
+	assert nextId == len(starting_stations) + 1
 
 	response = client.get("stations", params={ "id": nextId })
 	fetched = json.loads(response.content)
@@ -97,12 +97,12 @@ def test_post_with_nonexistent_tags(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	initialTags = get_initial_tags()
+	starting_tags = get_starting_tags()
 	headers = login_test_user("testUser_juliet", client)
 	testData: dict[str, Any] = {
 		"name": "test_station",
 		"tags":[
-				{ "id": len(initialTags) + 1, "name": "badlima_tag"},
+				{ "id": len(starting_tags) + 1, "name": "badlima_tag"},
 			]
 	}
 
@@ -114,6 +114,6 @@ def test_post_with_nonexistent_tags(
 	data = json.loads(response.content)
 	assert response.status_code == 422
 	expected = \
-		f"Tags associated with ids {{{len(initialTags) + 1}}} do not exist"
+		f"Tags associated with ids {{{len(starting_tags) + 1}}} do not exist"
 	assert data["detail"][0]["msg"] == expected
 	assert data["detail"][0]["field"] == "tags"

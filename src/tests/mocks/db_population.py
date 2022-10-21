@@ -17,30 +17,21 @@ from sqlalchemy import insert
 from .special_strings_reference import chinese1, irish1
 
 
-
 def populate_artists(conn: Connection):
-	global artist_params
-	artist_params = [
+	artistParams = [
 		{ "pk": 1, "name": "alpha_artist" },
 		{ "pk": 2, "name": "bravo_artist" },
 		{ "pk": 3, "name": "charlie_artist" },
 		{ "pk": 4, "name": "delta_artist" },
 		{ "pk": 5, "name": "echo_artist" },
 		{ "pk": 6, "name": "foxtrot_artist" },
-		{ "pk": 7, "name": "golf_artist" },
-		{ "pk": 8, "name": "hotel_artist" },
-		{ "pk": 9, "name": "india_artist" },
-		{ "pk": 10, "name": "juliet_artist" },
-		{ "pk": 11, "name": "kilo_artist" },
-		{ "pk": 12, "name": "lima_artist" },
-		{ "pk": 13, "name": "november_artist" },
+		{ "pk": 7, "name": "golf_artist" }
 	]
 	stmt = insert(artists)
-	conn.execute(stmt, artist_params) #pyright: ignore [reportUnknownMemberType]
+	conn.execute(stmt, artistParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_albums(conn: Connection):
-	global album_params
-	albumParams1 = [
+  albumParams = [
 		{ "pk": 1, "name": "broo_album", "albumArtistFk": 7, "year": 2001 },
 		{ "pk": 2, "name": "moo_album", "albumArtistFk": 7, "year": 2003 },
 		{ "pk": 8, "name": "shoo_album", "albumArtistFk": 6, "year": 2003 },
@@ -48,30 +39,26 @@ def populate_albums(conn: Connection):
 		{ "pk": 10, "name": "who_1_album", "albumArtistFk": 5, "year": 2001 },
 		{ "pk": 11, "name": "boo_album", "albumArtistFk": 4, "year": 2001 },
 	]
-	stmt = insert(albums)
-	conn.execute(stmt, albumParams1) #pyright: ignore [reportUnknownMemberType]
-	album_params = albumParams1
-	albumParams2 = [
+  stmt = insert(albums)
+  conn.execute(stmt, albumParams) #pyright: ignore [reportUnknownMemberType]
+  albumParams2 = [
 		{ "pk": 4, "name": "soo_album", "year": 2004 },
 		{ "pk": 7, "name": "koo_album", "year": 2010 },
 	]
-	conn.execute(stmt, albumParams2) #pyright: ignore [reportUnknownMemberType]
-	album_params.extend(albumParams2)
-	albumParams3 = [
+  conn.execute(stmt, albumParams2) #pyright: ignore [reportUnknownMemberType]
+  albumParams3 = [
 		{ "pk": 5, "name": "doo_album" },
 		{ "pk": 6, "name": "roo_album" },
 	]
-	conn.execute(stmt, albumParams3) #pyright: ignore [reportUnknownMemberType]
-	album_params.extend(albumParams3)
-	albumParams4 = [
+  conn.execute(stmt, albumParams3) #pyright: ignore [reportUnknownMemberType]
+  albumParams4 = [
 		{ "pk": 3, "name": "juliet_album", "albumArtistFk": 7 }
 	]
-	conn.execute(stmt, albumParams4) #pyright: ignore [reportUnknownMemberType]
-	album_params.extend(albumParams4)
+  conn.execute(stmt, albumParams4) #pyright: ignore [reportUnknownMemberType]
 
 def populate_songs(conn: Connection):
-	global song_params
-	song_params = [
+	global songParams
+	songParams = [
 		{ "pk": 1,
 			"path": "foo/goo/boo/sierra",
 			"name": "sierra_song",
@@ -426,11 +413,6 @@ def populate_songs(conn: Connection):
 			"name": "zulu3",
 			"path": "blitz/rhino/rhina/zulu3",
 		},
-		{ "pk": 58,
-			"name": "alpha4_song",
-			"path": "jazz/lurk/toot/alpha4_song",
-			"albumFk": 7,
-		},
 	]
 	stmt = insert(songs)
 
@@ -442,7 +424,7 @@ def populate_songs(conn: Connection):
 		'disc' in s and \
 		'genre' in s and \
 		'bitrate' in s and \
-		'comment' in s, song_params))
+		'comment' in s, songParams))
 	conn.execute(stmt, songParams1) #pyright: ignore [reportUnknownMemberType]
 	songParams2 = list(filter(lambda s: \
 		'name' in s and \
@@ -452,7 +434,7 @@ def populate_songs(conn: Connection):
 		'disc' in s and \
 		'genre' in s and \
 		'bitrate' in s and \
-		'comment' in s, song_params))
+		'comment' in s, songParams))
 	conn.execute(stmt, songParams2) #pyright: ignore [reportUnknownMemberType]
 	songParams3 = list(filter(lambda s: \
 		'name' in s and \
@@ -462,7 +444,7 @@ def populate_songs(conn: Connection):
 		'disc' in s and \
 		'genre' in s and \
 		not 'bitrate' in s and \
-		'comment' in s, song_params))
+		'comment' in s, songParams))
 	conn.execute(stmt, songParams3) #pyright: ignore [reportUnknownMemberType]
 	songParams4 = list(filter(lambda s: \
 		'name' in s and \
@@ -472,7 +454,7 @@ def populate_songs(conn: Connection):
 		'disc' in s and \
 		'genre' in s and \
 		not 'bitrate' in s and \
-		not 'comment' in s, song_params))
+		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams4) #pyright: ignore [reportUnknownMemberType]
 	songParams5 = list(filter(lambda s: \
 		'name' in s and \
@@ -482,7 +464,7 @@ def populate_songs(conn: Connection):
 		'disc' in s and \
 		not 'genre' in s and \
 		not 'bitrate' in s and \
-		not 'comment' in s, song_params))
+		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams5) #pyright: ignore [reportUnknownMemberType]
 	songParams6 = list(filter(lambda s: \
 		'name' in s and \
@@ -492,7 +474,7 @@ def populate_songs(conn: Connection):
 		not 'disc' in s and \
 		not 'genre' in s and \
 		not 'bitrate' in s and \
-		not 'comment' in s, song_params))
+		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams6) #pyright: ignore [reportUnknownMemberType]s
 	songParams7 = list(filter(lambda s: \
 		'name' in s and \
@@ -502,7 +484,7 @@ def populate_songs(conn: Connection):
 		not 'disc' in s and \
 		not 'genre' in s and \
 		not 'bitrate' in s and \
-		not 'comment' in s, song_params))
+		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams7) #pyright: ignore [reportUnknownMemberType]
 	songParams8 = list(filter(lambda s: \
 		'name' in s and \
@@ -512,7 +494,7 @@ def populate_songs(conn: Connection):
 		not 'disc' in s and \
 		not 'genre' in s and \
 		not 'bitrate' in s and \
-		not 'comment' in s, song_params))
+		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams8) #pyright: ignore [reportUnknownMemberType]
 	songParams9 = list(filter(lambda s: \
 		'name' in s and \
@@ -522,7 +504,7 @@ def populate_songs(conn: Connection):
 		not 'disc' in s and \
 		'genre' in s and \
 		'bitrate' in s and \
-		not 'comment' in s, song_params))
+		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams9) #pyright: ignore [reportUnknownMemberType]
 	songParams10 = list(filter(lambda s: \
 		'name' in s and \
@@ -532,7 +514,7 @@ def populate_songs(conn: Connection):
 		not 'disc' in s and \
 		not 'genre' in s and \
 		'bitrate' in s and \
-		not 'comment' in s, song_params))
+		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams10) #pyright: ignore [reportUnknownMemberType]
 	songParams11 = list(filter(lambda s: \
 		'name' in s and \
@@ -542,7 +524,7 @@ def populate_songs(conn: Connection):
 		not 'disc' in s and \
 		not 'genre' in s and \
 		not 'bitrate' in s and \
-		not 'comment' in s, song_params))
+		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams11) #pyright: ignore [reportUnknownMemberType]
 	songParams12 = list(filter(lambda s: \
 		'name' in s and \
@@ -552,7 +534,7 @@ def populate_songs(conn: Connection):
 		not 'disc' in s and \
 		not 'genre' in s and \
 		not 'bitrate' in s and \
-		'comment' in s, song_params))
+		'comment' in s, songParams))
 	conn.execute(stmt, songParams12) #pyright: ignore [reportUnknownMemberType]
 	songParams13 = list(filter(lambda s: \
 		not 'name' in s and \
@@ -562,7 +544,7 @@ def populate_songs(conn: Connection):
 		not 'disc' in s and \
 		not 'genre' in s and \
 		not 'bitrate' in s and \
-		not 'comment' in s, song_params))
+		not 'comment' in s, songParams))
 	conn.execute(stmt, songParams13) #pyright: ignore [reportUnknownMemberType]
 
 def populate_songs_artists(conn: Connection):
@@ -607,13 +589,6 @@ def populate_songs_artists(conn: Connection):
 		{ "pk": 38, "songFk": 3, "artistFk": 4 },
 		{ "pk": 39, "songFk": 2, "artistFk": 4 },
 		{ "pk": 40, "songFk": 1, "artistFk": 4 },
-		{ "pk": 45, "songFk": 21, "artistFk": 4 },
-		{ "pk": 46, "songFk": 21, "artistFk": 6 },
-		{ "pk": 47, "songFk": 17, "artistFk": 10 },
-		{ "pk": 48, "songFk": 17, "artistFk": 5 },
-		{ "pk": 49, "songFk": 17, "artistFk": 2 },
-		{ "pk": 50, "songFk": 17, "artistFk": 11 },
-		{ "pk": 51, "songFk": 35, "artistFk": 12 },
 	]
 	stmt = insert(song_artist)
 	conn.execute(stmt, songArtistParams) #pyright: ignore [reportUnknownMemberType]
@@ -626,8 +601,8 @@ def populate_songs_artists(conn: Connection):
 	conn.execute(stmt, songArtistParams2) #pyright: ignore [reportUnknownMemberType]
 
 def populate_tags(conn: Connection):
-	global tags_params
-	tags_params = [
+	global tagsParams
+	tagsParams = [
 		{ "pk": 1, "name": "kilo_tag" },
 		{ "pk": 2, "name": "lima_tag" },
 		{ "pk": 3, "name": "mike_tag" },
@@ -636,11 +611,9 @@ def populate_tags(conn: Connection):
 		{ "pk": 6, "name": "papa_tag" },
 		{ "pk": 7, "name": "romeo_tag" },
 		{ "pk": 8, "name": "sierra_tag" },
-		{ "pk": 9, "name": "tango_tag" },
-		{ "pk": 10, "name": "uniform_tag" },
 	]
 	stmt = insert(tags)
-	conn.execute(stmt, tags_params) #pyright: ignore [reportUnknownMemberType]
+	conn.execute(stmt, tagsParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_songs_tags(conn: Connection):
 	songTagParams = [
@@ -696,8 +669,8 @@ def populate_songs_tags(conn: Connection):
 	conn.execute(stmt, songTagParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_stations(conn: Connection):
-	global station_params
-	station_params = [
+	global stationParams
+	stationParams = [
 		{ "pk": 1,
 			"name": "oscar_station",
 			"displayName": "Oscar the grouch"
@@ -712,7 +685,7 @@ def populate_stations(conn: Connection):
 		}
 	]
 	stmt = insert(stations)
-	conn.execute(stmt, station_params) #pyright: ignore [reportUnknownMemberType]
+	conn.execute(stmt, stationParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_station_tags(conn: Connection):
 	stationTagsParams = [
@@ -730,8 +703,8 @@ def populate_users(
 	primaryUser: AccountInfo,
 	testPassword: bytes
 ):
-	global users_params
-	users_params = [
+	global usersParams
+	usersParams = [
 		{
 			"pk": primaryUser.id,
 			"username": primaryUser.username,
@@ -824,7 +797,7 @@ def populate_users(
 		}
 	]
 	stmt = insert(users)
-	conn.execute(stmt, users_params) #pyright: ignore [reportUnknownMemberType]
+	conn.execute(stmt, usersParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_user_roles(
 	conn: Connection,
@@ -887,22 +860,14 @@ def populate_user_roles(
 	stmt = insert(userRoles)
 	conn.execute(stmt, userRoleParams) #pyright: ignore [reportUnknownMemberType]
 
+def get_starting_users() -> list[dict[Any, Any]]:
+	return usersParams
 
-#don't remember why I am using using funcs to return these global variables
-def get_initial_users() -> list[dict[Any, Any]]:
-	return users_params
+def get_starting_tags() -> list[dict[Any, Any]]:
+	return tagsParams
 
-def get_initial_tags() -> list[dict[Any, Any]]:
-	return tags_params
+def get_starting_stations() -> list[dict[Any, Any]]:
+	return stationParams
 
-def get_initial_stations() -> list[dict[Any, Any]]:
-	return station_params
-
-def get_initial_songs() -> list[dict[Any, Any]]:
-	return song_params
-
-def get_initial_albums() -> list[dict[Any, Any]]:
-	return album_params
-
-def get_initial_artists() -> list[dict[Any, Any]]:
-	return artist_params
+def get_starting_songs() -> list[dict[Any, Any]]:
+	return songParams

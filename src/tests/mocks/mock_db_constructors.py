@@ -25,7 +25,7 @@ class ConnectionConstructor(Protocol):
 	) -> Connection:
 			...
 
-class MockDbPopulateClosure(Protocol):
+class MockDbPopulator(Protocol):
 	def __call__(
 		self,
 		conn: Connection,
@@ -41,10 +41,10 @@ def db_populator_noop(
 
 def setup_in_mem_tbls(
 	conn: Connection,
-	request: Optional[pytest.FixtureRequest],
 	orderedTestDates: list[datetime],
 	primaryUser: AccountInfo,
 	testPassword: bytes,
+	request: Optional[pytest.FixtureRequest] = None
 ) -> None:
 	metadata.create_all(conn.engine)
 	populate_artists(conn)
@@ -59,7 +59,7 @@ def setup_in_mem_tbls(
 	populate_user_roles(conn, orderedTestDates, primaryUser)
 
 def construct_mock_connection_constructor(
-	dbPopulate: MockDbPopulateClosure,
+	dbPopulate: MockDbPopulator,
 	request: Optional[pytest.FixtureRequest] = None
 ) -> ConnectionConstructor:
 

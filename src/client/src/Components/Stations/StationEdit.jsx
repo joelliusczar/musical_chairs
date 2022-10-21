@@ -1,6 +1,7 @@
 import React, { useReducer, useEffect } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
+import { TagAssignment } from "../Tags/TagAssignment";
 import {
 	saveStation,
 	fetchStationForEdit,
@@ -18,12 +19,6 @@ import * as Yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { formatError } from "../../Helpers/error_formatter";
-import {
-	useTagData,
-} from "../../Context_Providers/AppContextProvider";
-import { TagNewModalOpener } from "../Tags/TagEdit";
-import { FormSelect } from "../Shared/FormSelect";
-import Loader from "../Shared/Loader";
 
 
 
@@ -56,14 +51,6 @@ export const StationEdit = () => {
 	const id = queryObj.get("id");
 	const nameQueryStr = queryObj.get("name");
 
-	const {
-		items: tags,
-		callStatus: tagCallStatus,
-		error: tagError,
-		add: addTag,
-		idMapper: tagMapper,
-	} = useTagData();
-
 
 	const formMethods = useForm({
 		defaultValues: {
@@ -79,6 +66,7 @@ export const StationEdit = () => {
 			const stationId = id ? id : values.id ? values.id : null;
 			const data = await saveStation({ values, id: stationId });
 			reset(data);
+			dispatch(dispatches.done());
 			urlHistory.replace(getPageUrl({ id: data.id }));
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -151,23 +139,7 @@ export const StationEdit = () => {
 					label="Display Name"
 				/>
 			</Box>
-			<Box>
-				<Loader status={tagCallStatus} artistError={tagError}>
-					<Box sx={inputField}>
-						<FormSelect
-							name="tags"
-							options={tags}
-							formMethods={formMethods}
-							label="Tags"
-							transform={{input: tagMapper}}
-							multiple
-						/>
-					</Box>
-					<Box sx={inputField}>
-						<TagNewModalOpener add={addTag} />
-					</Box>
-				</Loader>
-			</Box>
+			<TagAssignment name="tags" formMethods={formMethods}/>
 			<Box sx={inputField} >
 				<Button onClick={callSubmit}>
 					Submit

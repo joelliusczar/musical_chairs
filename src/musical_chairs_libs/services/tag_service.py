@@ -95,11 +95,11 @@ class TagService:
 			query = query.join(songs_tags_tbl, tg_pk == sgtg_tagFk)
 			if songId:
 				query = query.where(sgtg_songFk == songId)
-			elif isinstance(songIds, Iterable):
+			elif songIds:
 				query = query.where(sgtg_songFk.in_(songIds))
 		if tagId:
 			query = query.where(tg_pk == tagId)
-		elif isinstance(tagIds, Iterable):
+		elif tagIds:
 			query = query.where(tg_pk.in_(tagIds))
 		query = query.order_by(tg_name).offset(offset).limit(pageSize)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]

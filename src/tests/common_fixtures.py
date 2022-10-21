@@ -15,7 +15,7 @@ from musical_chairs_libs.dtos_and_utilities import AccountInfo
 from sqlalchemy.engine import Connection
 from .mocks.mock_process_manager import MockOSProcessManager
 from .mocks.mock_db_constructors import\
-	MockDbPopulateClosure,\
+	MockDbPopulator,\
 	setup_in_mem_tbls,\
 	construct_mock_connection_constructor
 
@@ -23,7 +23,6 @@ from .constant_fixtures_for_test import\
 	fixture_mock_password as fixture_mock_password,\
 	fixture_primary_user as fixture_primary_user,\
 	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
-
 
 
 
@@ -48,24 +47,23 @@ def fixture_db_populate_factory(
 	fixture_mock_ordered_date_list: List[datetime],
 	fixture_primary_user: AccountInfo,
 	fixture_mock_password: bytes
-) -> MockDbPopulateClosure:
+) -> MockDbPopulator:
 	def _setup_tables(
 		conn: Connection,
 		request: Optional[pytest.FixtureRequest]=None
 	):
 		setup_in_mem_tbls(
 			conn,
-			request,
 			fixture_mock_ordered_date_list,
 			fixture_primary_user,
 			fixture_mock_password,
+			request
 		)
 	return _setup_tables
 
-
 @pytest.fixture
 def fixture_populated_db_conn_in_mem(
-	fixture_db_populate_factory: MockDbPopulateClosure,
+	fixture_db_populate_factory: MockDbPopulator,
 	fixture_db_conn_in_mem: Connection,
 	request: pytest.FixtureRequest
 ) -> Connection:
@@ -75,7 +73,7 @@ def fixture_populated_db_conn_in_mem(
 
 @pytest.fixture
 def fixture_env_manager_with_in_mem_db(
-	fixture_db_populate_factory: MockDbPopulateClosure,
+	fixture_db_populate_factory: MockDbPopulator,
 	request: pytest.FixtureRequest
 ) -> EnvManager:
 	envMgr = EnvManager()
@@ -141,10 +139,10 @@ def fixture_setup_in_mem_tbls(
 ) -> None:
 	setup_in_mem_tbls(
 		fixture_db_conn_in_mem,
-		request,
 		fixture_mock_ordered_date_list,
 		fixture_primary_user,
 		fixture_mock_password,
+		request
 	)
 
 

@@ -1,18 +1,15 @@
-from fastapi import APIRouter, Depends, Security, HTTPException, status, Body
+from fastapi import APIRouter, Depends, Security
 from api_dependencies import \
 	song_info_service,\
-	get_current_user,\
-	tag_service
-from musical_chairs_libs.services import SongInfoService, TagService
+	get_current_user
+from musical_chairs_libs.services import SongInfoService
 from musical_chairs_libs.dtos_and_utilities import SongTreeNode,\
 	ListData,\
 	AlbumInfo,\
 	ArtistInfo,\
 	AccountInfo,\
-	UserRoleDef,\
-	SongEditInfo,\
-	build_error_obj,\
-	ValidatedSongEditInfo
+	UserRoleDef
+
 router = APIRouter(prefix="/song-info")
 
 @router.get("/songs/tree")
@@ -22,62 +19,6 @@ def song_ls(
 ) -> ListData[SongTreeNode]:
 	return ListData(items=list(songInfoService.song_ls(prefix)))
 
-
-@router.get("/songs/{id}")
-def get_song_for_edit(
-	id: int,
-	songInfoService: SongInfoService = Depends(song_info_service)
-) -> SongEditInfo:
-	songInfo = next(songInfoService.get_songs_for_edit([id]), None)
-	if songInfo:
-		return songInfo
-	raise HTTPException(
-		status_code=status.HTTP_404_NOT_FOUND,
-		detail=[build_error_obj(f"{id} not found", "id")]
-	)
-
-def extra_validated_song(
-	song: ValidatedSongEditInfo = Body(default=None),
-	tagService: TagService = Depends(tag_service),
-	songInfoService: SongInfoService = Depends(song_info_service),
-) -> ValidatedSongEditInfo:
-	tagIds = {t.id for t in song.tags or []}
-	dbTags = {t.id for t in tagService.get_tags(tagIds=tagIds)}
-	if tagIds - dbTags:
-		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[
-				build_error_obj(
-					f"Tags associated with ids {str(tagIds)} do not exist", "tags")],
-		)
-	artistIds = {a.id for a in song.allArtists}
-	dbArtists = {a.id for a in songInfoService.get_artists(artistIds=artistIds)}
-	if artistIds - dbArtists:
-		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[
-				build_error_obj(
-					f"Artists associated with ids {str(tagIds)} do not exist", "artists")],
-		)
-	return song
-
-@router.put("/songs/{id}")
-def update_song(
-	id: int,
-	song: ValidatedSongEditInfo = Depends(extra_validated_song),
-	songInfoService: SongInfoService = Depends(song_info_service),
-	user: AccountInfo = Security(
-		get_current_user,
-		scopes=[UserRoleDef.SONG_EDIT()]
-	)
-) -> SongEditInfo:
-	result = next(songInfoService.save_songs([id], song, userId=user.id), None)
-	if result:
-		return result
-	raise HTTPException(
-		status_code=status.HTTP_404_NOT_FOUND,
-		detail=[build_error_obj(f"{id} not found", "id")]
-	)
 
 @router.get("/artists/list")
 def get_all_artists(

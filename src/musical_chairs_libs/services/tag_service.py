@@ -1,5 +1,5 @@
-#pyright: reportUnknownMemberType=false
 from typing import\
+	Any,\
 	Iterable,\
 	Iterator,\
 	Optional,\
@@ -11,6 +11,7 @@ from sqlalchemy import select, \
 	insert, \
 	delete, \
 	update
+from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.exc import IntegrityError
 from .env_manager import EnvManager
 from musical_chairs_libs.dtos_and_utilities import\
@@ -23,10 +24,23 @@ from musical_chairs_libs.dtos_and_utilities import\
 	missing
 from musical_chairs_libs.errors import AlreadyUsedError
 from musical_chairs_libs.tables import\
-	stations as stations_tbl, st_pk, st_name,\
-	tags as tags_tbl, tg_pk, tg_name,\
-	stations_tags as stations_tags_tbl, sttg_tagFk, sttg_stationFk,\
-	songs_tags as songs_tags_tbl, sgtg_songFk, sgtg_tagFk
+	stations as stations_tbl, \
+	tags as tags_tbl, \
+	stations_tags as stations_tags_tbl, \
+	songs_tags
+
+tg: ColumnCollection = tags_tbl.columns #pyright: ignore [reportUnknownMemberType]
+#sg: ColumnCollection = songs.columns #pyright: ignore [reportUnknownMemberType]
+st: ColumnCollection = stations_tbl.columns #pyright: ignore [reportUnknownMemberType]
+sttg: ColumnCollection = stations_tags_tbl.columns #pyright: ignore [reportUnknownMemberType]
+sgtg: ColumnCollection = songs_tags.columns #pyright: ignore [reportUnknownMemberType]
+
+tg_pk: Any = tg.pk #pyright: ignore [reportUnknownMemberType]
+tg_name: Any = tg.name #pyright: ignore [reportUnknownMemberType]
+st_pk: Any = st.pk #pyright: ignore [reportUnknownMemberType]
+st_name: Any = st.name #pyright: ignore [reportUnknownMemberType]
+sttg_tagFk: Any = sttg.tagFk #pyright: ignore [reportUnknownMemberType]
+sttg_stationFk: Any = sttg.stationFk #pyright: ignore [reportUnknownMemberType]
 
 
 class TagService:
@@ -76,10 +90,7 @@ class TagService:
 		stationId: Union[Optional[int], Sentinel]=missing,
 		stationName: Union[Optional[str], Sentinel]=missing,
 		tagId: Union[Optional[int], Sentinel]=missing,
-		#sentinel is only needed for id because None and 0 are both legit values
-		tagIds: Optional[Iterable[int]]=None,
-		songId: Union[Optional[int], Sentinel]=missing,
-		songIds: Optional[Iterable[int]]=None
+		tagIds: Optional[Iterable[int]]=None
 	) -> Iterator[Tag]:
 		offset = page * pageSize if pageSize else 0
 		query = select(tg_pk, tg_name).select_from(tags_tbl)
@@ -91,12 +102,6 @@ class TagService:
 			query = query.join(stations_tags_tbl, tg_pk == sttg_tagFk)\
 				.join(stations_tbl, sttg_stationFk == st_pk)\
 				.where(func.format_name_for_search(st_name).like(f"%{searchStr}%"))
-		if songId or songIds:
-			query = query.join(songs_tags_tbl, tg_pk == sgtg_tagFk)
-			if songId:
-				query = query.where(sgtg_songFk == songId)
-			elif songIds:
-				query = query.where(sgtg_songFk.in_(songIds))
 		if tagId:
 			query = query.where(tg_pk == tagId)
 		elif tagIds:

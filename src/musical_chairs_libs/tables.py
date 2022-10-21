@@ -54,6 +54,7 @@ _ab_name: Any = albums.c.name #pyright: ignore reportUnknownMemberType
 _ab_albumArtistFk: Any = albums.c.albumArtistFk #pyright: ignore reportUnknownMemberType
 Index("idx_uniqueAlbumNameForArtist", _ab_name, _ab_albumArtistFk, unique=True)
 
+
 songs = Table("Songs", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("path", String, nullable=False),

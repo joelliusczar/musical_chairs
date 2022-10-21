@@ -85,7 +85,7 @@ export function AppRoutes() {
 			>
 				<StationEdit />
 			</Route>
-			<Route path={`${DomRoutes.songEdit}`}>
+			<Route path={`${DomRoutes.songEdit}:id`}>
 				<SongEdit />
 			</Route>
 			<Route path={DomRoutes.songTree}>

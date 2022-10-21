@@ -5,7 +5,6 @@ import React, {
 	useReducer,
 	useContext,
 	useCallback,
-	useState,
 } from "react";
 import {
 	waitingReducer,
@@ -14,7 +13,7 @@ import {
 	waitingTypes,
 } from "../Components/Shared/waitingReducer";
 import PropTypes from "prop-types";
-import { fetchAlbumList } from "../API_Calls/songInfoCalls";
+import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
 import { formatError } from "../Helpers/error_formatter";
 import { fetchTags } from "../API_Calls/tagCalls";
 import { CallStatus } from "../constants";
@@ -52,8 +51,13 @@ export const AppContextProvider = (props) => {
 		waitingReducer(sortedListReducerPaths),
 		{...listDataInitialState}
 	);
-	const [fetchTagsPromise, setFetchTagsPromise] = useState();
+
 	const [tagsState, tagsDispatch] = useReducer(
+		waitingReducer(sortedListReducerPaths),
+		{...listDataInitialState}
+	);
+
+	const [artistState, artistDispatch] = useReducer(
 		waitingReducer(sortedListReducerPaths),
 		{...listDataInitialState}
 	);
@@ -72,59 +76,49 @@ export const AppContextProvider = (props) => {
 		fetch();
 	},[albumsDispatch]);
 
-	const fetchTagsCall = useCallback(() => {
-		tagsDispatch(dispatches.started());
-		const fetchPromise = fetchTags()
-			.then(data => {
-				console.log("done dl tags");
+	useEffect(() => {
+		const fetch = async () => {
+			try {
+				tagsDispatch(dispatches.started());
+				const data = await fetchTags();
 				tagsDispatch(dispatches.done(data));
-				return data;
-			})
-			.catch(err => {
+			}
+			catch(err) {
 				tagsDispatch(dispatches.failed(formatError(err)));
-				throw err;
-			});
-		setFetchTagsPromise(fetchPromise);
-		return fetchPromise;
-	},[tagsDispatch, setFetchTagsPromise]);
+			}
+		};
+		fetch();
+	}, [tagsDispatch]);
 
 	useEffect(() => {
-		fetchTagsCall();
-	}, [fetchTagsCall]);
-
-	const addTag = useCallback(
-		(tag) => tagsDispatch(dispatches.add(tag)),
-		[tagsDispatch]
-	);
-
-	const addAlbum = useCallback(
-		(album) => albumsDispatch(dispatches.add(album)),
-		[albumsDispatch]
-	);
-
-	const tagCallStatus = tagsState.callStatus;
-
-	const waitForTags = useCallback(async () => {
-		const fetchPromise = !tagCallStatus ? fetchTagsCall() : fetchTagsPromise;
-		return await fetchPromise;
-	},[tagCallStatus, fetchTagsCall, fetchTagsPromise]);
-
-	// const mapTagsToContext = useCallback(async (localTags) => {
-		
-
-	// 	const mapped = localTags.map(
-	// 		(item) => globalTags.find(x => x.id === item.id)
-	// 	);
-	// 	return mapped;
-	// },[tagCallStatus, fetchTagsCall, fetchTagsPromise]);
+		const fetch = async () => {
+			try {
+				artistDispatch(dispatches.started());
+				const data = await fetchArtistList({});
+				artistDispatch(dispatches.done(data));
+			}
+			catch(err) {
+				artistDispatch(dispatches.failed(formatError(err)));
+			}
+		};
+		fetch();
+	}, [artistDispatch]);
 
 	const contextValue = useMemo(() => ({
 		albumsState,
-		addAlbum,
+		albumsDispatch,
 		tagsState,
-		addTag,
-		waitForTags,
-	}),[albumsState, tagsState, addTag, addAlbum]);
+		tagsDispatch,
+		artistState,
+		artistDispatch,
+	}),[
+		albumsState,
+		tagsState,
+		albumsState,
+		albumsDispatch,
+		artistState,
+		tagsDispatch,
+	]);
 
 	return <AppContext.Provider value={contextValue}>
 		{children}
@@ -138,22 +132,97 @@ AppContextProvider.propTypes = {
 	]).isRequired,
 };
 
+export const emptyValue = { id: 0, name: "" };
+
 export const useAlbumData = () => {
-	const { albumsState, addAlbum } = useContext(AppContext);
+	const {
+		albumsState: { data: { items }, error, callStatus },
+		albumsDispatch: dispatch,
+	} = useContext(AppContext);
+
+	const idMapper = useCallback((value) => {
+		if(!value) return value;
+		if(Array.isArray(value)) {
+			return value.map((item) =>
+				items.find(x => x.id === item.id));
+		}
+		if (typeof(value) === "object") {
+			return items.find(x => x.id === value.id) || null;
+		}
+	},[items]);
+
+	const add = useCallback(
+		(item) => dispatch(dispatches.add(item)),
+		[dispatch]
+	);
+
 	return {
-		items: albumsState.data.items,
-		callStatus: albumsState.callStatus,
-		add: addAlbum,
+		items,
+		error,
+		callStatus,
+		add,
+		idMapper,
 	};
 };
 
 export const useTagData = () => {
-	const { tagsState, addTag, waitForTags } = useContext(AppContext);
+	const {
+		tagsState: { data: { items }, error, callStatus },
+		tagsDispatch: dispatch,
+	} = useContext(AppContext);
+
+	const idMapper = useCallback((value) => {
+		if(!value) return value;
+		if(Array.isArray(value)) {
+			return value.map((item) =>
+				items.find(x => x.id === item.id));
+		}
+		if (typeof(value) === "object") {
+			return items.find(x => x.id === value.id) || null;
+		}
+	},[items]);
+
+	const add = useCallback(
+		(item) => dispatch(dispatches.add(item)),
+		[dispatch]
+	);
+
 	return {
-		items: tagsState.data.items,
-		error: tagsState.error,
-		callStatus: tagsState.callStatus,
-		add: addTag,
-		fetchTags: waitForTags,
+		items,
+		error,
+		callStatus,
+		add,
+		idMapper,
+	};
+};
+
+export const useArtistData = () => {
+	const {
+		artistState: { data: { items }, error, callStatus },
+		artistDispatch: dispatch,
+	} = useContext(AppContext);
+
+	const idMapper = useCallback((value) => {
+		if(!value) return value;
+		if(Array.isArray(value)) {
+			return value.map((item) =>
+				items.find(x => x.id === item.id));
+		}
+		if (typeof(value) === "object") {
+			return items.find(x => x.id === value.id) || null;
+		}
+	},[items]);
+
+	const add = useCallback(
+		(item) => dispatch(dispatches.add(item)),
+		[dispatch]
+	);
+
+	return {
+		items,
+		error,
+		callStatus,
+		add,
+		idMapper,
 	};
 };

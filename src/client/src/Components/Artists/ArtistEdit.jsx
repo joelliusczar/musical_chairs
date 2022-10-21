@@ -3,7 +3,7 @@ import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
-import { saveTag } from "../../API_Calls/tagCalls";
+import { saveArtist } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 
@@ -11,21 +11,21 @@ const inputField = {
 	margin: 2,
 };
 
-export const TagEdit = (props) => {
+export const ArtistEdit = (props) => {
 	const { afterSubmit, onCancel } = props;
 	const { enqueueSnackbar } = useSnackbar();
 
 	const formMethods = useForm({
 		defaultValues: {
-			tagName: "",
+			artistName: "",
 		},
 	});
 	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const tag = await saveTag({ tagName:values.tagName });
+			const artist = await saveArtist({ artistName: values.artistName });
 			enqueueSnackbar("Save successful", { variant: "success"});
-			afterSubmit(tag);
+			afterSubmit(artist);
 		}
 		catch(err) {
 			enqueueSnackbar(formatError(err), { variant: "error"});
@@ -37,12 +37,12 @@ export const TagEdit = (props) => {
 		<>
 			<Box sx={inputField}>
 				<Typography variant="h1">
-					Create a tag
+					Add an artist
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="tagName"
+					name="artistName"
 					label="Name"
 					formMethods={formMethods}
 				/>
@@ -59,13 +59,12 @@ export const TagEdit = (props) => {
 	);
 };
 
-TagEdit.propTypes = {
+ArtistEdit.propTypes = {
 	afterSubmit: PropTypes.func.isRequired,
 	onCancel: PropTypes.func,
 };
 
-
-export const TagNewModalOpener = (props) => {
+export const ArtistNewModalOpener = (props) => {
 
 	const { add } = props;
 
@@ -83,14 +82,14 @@ export const TagNewModalOpener = (props) => {
 	return (
 		<>
 			<Box>
-				<Button onClick={() => setItemNewOpen(true)}>Add New Tag</Button>
+				<Button onClick={() => setItemNewOpen(true)}>Add New Artist</Button>
 			</Box>
 			<Dialog open={itemNewOpen} onClose={closeModal}>
-				<TagEdit afterSubmit={itemCreated} onCancel={closeModal} />
+				<ArtistEdit afterSubmit={itemCreated} onCancel={closeModal} />
 			</Dialog>
 		</>);
 };
 
-TagNewModalOpener.propTypes = {
+ArtistNewModalOpener.propTypes = {
 	add: PropTypes.func,
 };

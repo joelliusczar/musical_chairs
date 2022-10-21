@@ -2,12 +2,12 @@ import json
 import pytest
 from typing import Any, Callable
 from fastapi.testclient import TestClient
-from .constant_fixtures_for_test import\
+from .mocks.constant_values_defs import\
 	primary_user,\
 	clear_mock_password
 from musical_chairs_libs.services import EnvManager
 from .mocks.mock_db_constructors import\
-	MockDbPopulator,\
+	MockDbPopulateClosure,\
 	db_populator_noop,\
 	construct_mock_connection_constructor
 from sqlalchemy.engine import Connection
@@ -48,7 +48,7 @@ def login_test_user(username: str, client: TestClient) -> dict[str, Any]:
 
 @pytest.fixture
 def fixture_api_test_client(
-	fixture_db_populate_factory: MockDbPopulator,
+	fixture_db_populate_factory: MockDbPopulateClosure,
 	fixture_db_conn_in_mem: Connection,
 	request: pytest.FixtureRequest
 ) -> TestClient:

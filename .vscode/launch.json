@@ -32,7 +32,7 @@
       "name": "Debug Unit Test",
       "type": "python",
       "request": "test",
-      "justMyCode": true,
+      "justMyCode": false,
   },
   ]
 }

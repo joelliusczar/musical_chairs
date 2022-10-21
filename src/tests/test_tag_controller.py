@@ -2,7 +2,7 @@ import json
 from .api_test_dependencies import login_test_user,\
 	fixture_api_test_client as fixture_api_test_client
 from .api_test_dependencies import *
-from .mocks.db_population import get_initial_tags
+from .mocks.db_population import get_starting_tags
 from .mocks.special_strings_reference import chinese1
 from fastapi.testclient import TestClient
 
@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 def test_save_tag(fixture_api_test_client: TestClient):
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_india", client)
-	initialTags = get_initial_tags()
+	starting_tags_list = get_starting_tags()
 	response = client.post(
 		"/tags",
 		headers=headers,
@@ -21,20 +21,20 @@ def test_save_tag(fixture_api_test_client: TestClient):
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["name"] == "posted_tag"
-	assert data["id"] == len(initialTags) + 1
+	assert data["id"] == len(starting_tags_list) + 1
 
 	tagIds = [data["id"]]
 	response = client.get("/tags", params={ "tagIds": tagIds})
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["totalRows"] == len(initialTags) + 1
+	assert data["totalRows"] == len(starting_tags_list) + 1
 	assert len(data["items"]) == 1
 
 	response = client.get("/tags")
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["totalRows"] == len(initialTags) + 1
-	assert len(data["items"]) == len(initialTags) + 1
+	assert data["totalRows"] == len(starting_tags_list) + 1
+	assert len(data["items"]) == len(starting_tags_list) + 1
 
 	response = client.post(
 		"/tags",
@@ -54,4 +54,4 @@ def test_save_tag(fixture_api_test_client: TestClient):
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["name"] == chinese1
-	assert data["id"] == len(initialTags) + 2
+	assert data["id"] == len(starting_tags_list) + 2

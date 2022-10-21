@@ -10,7 +10,7 @@ import { LoginForm } from "../Accounts/AccountsLoginForm";
 import { AccountsList } from "../Accounts/AccountsList";
 import { AccountsRoles } from "../Accounts/AccountsRoles";
 import { StationEdit } from "../Stations/StationEdit";
-import { SongTree } from "../Song_Catalogue/SongTree";
+import { SongTree } from "../Songs/SongTree";
 import { SongEdit } from "../Songs/SongEdit";
 import { NotFound } from "../Shared/RoutingErrors";
 import { DomRoutes, UserRoleDef } from "../../constants";

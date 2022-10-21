@@ -33,3 +33,10 @@ export const saveArtist = async ({ artistName }) => {
 	});
 	return response.data;
 };
+
+export const fetchSongTree = async ({ params }) => {
+	const response = await webClient.get("song-info/songs/tree", {
+		params: params,
+	});
+	return response.data;
+};

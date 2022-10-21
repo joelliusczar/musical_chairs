@@ -6,11 +6,14 @@ import {
 	listDataInitialState,
 	dispatches,
 } from "../Shared/waitingReducer";
-import { fetchSongDir } from "./songInfoService";
+import { fetchSongTree } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import PropTypes from "prop-types";
 import { drawerWidth } from "../../style_config";
 import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
+import { Link } from "react-router-dom";
+import { DomRoutes } from "../../constants";
+import { formatError } from "../../Helpers/error_formatter";
 
 
 export const SongTreeNode = (props) => {
@@ -61,14 +64,14 @@ export const SongDirectory = (props) => {
 						dispatch(dispatches.done(cachedResults));
 					}
 					else {
-						const data = await fetchSongDir({ params: { prefix } });
+						const data = await fetchSongTree({ params: { prefix } });
 						setCacheValue(prefix, data);
 						dispatch(dispatches.done(data));
 					}
 				}
 			}
 			catch(err) {
-				dispatch(dispatches.failed(err.response.data.detail[0].msg));
+				dispatch(dispatches.failed(formatError(err)));
 			}
 		};
 		fetch();
@@ -136,14 +139,6 @@ export const SongTree = withCacheProvider()(() => {
 		return !!songInfo?.id && songInfo.id > 0;
 	};
 
-	const openSongEdit = () => {
-		const songInfo = getSelectedSongInfo();
-		if(!songInfo) {
-			console.warn("No song selected.");
-		}
-		console.log(songInfo);
-	};
-
 	return (
 		<>
 			{selectedNodes &&
@@ -159,7 +154,8 @@ export const SongTree = withCacheProvider()(() => {
 				<Toolbar variant="dense" sx={{ pb: 1, alignItems: "baseline"}}>
 					{isSongSelected() &&
 					<Button
-						onClick={openSongEdit}
+						component={Link}
+						to={`${DomRoutes.songEdit}${getSelectedSongInfo()?.id}`}
 					>
 						Edit Song Info
 					</Button>}

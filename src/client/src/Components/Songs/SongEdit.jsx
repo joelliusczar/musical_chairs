@@ -122,7 +122,7 @@ export const SongEdit = () => {
 
 	const songFilePath = watch("path");
 
-	return (<>
+	return (<Loader status={callStatus} error={state.error}>
 		<Box sx={inputField}>
 			<Typography variant="h1">
 				Edit a song
@@ -213,5 +213,5 @@ export const SongEdit = () => {
 				</Button>
 			</Box>
 		</Box>
-	</>);
+	</Loader>);
 };

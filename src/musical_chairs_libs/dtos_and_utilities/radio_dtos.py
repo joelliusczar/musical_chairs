@@ -7,7 +7,6 @@ from typing import\
 	List
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates
-from .generic_dtos import IdItem
 
 
 @dataclass(frozen=True)
@@ -16,16 +15,14 @@ class ArtistInfo:
 	name: str
 
 @dataclass(frozen=True)
-class AlbumCreationInfo:
+class SongArtistInfo(ArtistInfo):
+	isPrimaryArtist: bool
+
+@dataclass()
+class AlbumInfo:
+	id: int
 	name: str
-	year: Optional[int]=None
-	albumArtist: Optional[ArtistInfo]=None
-
-@dataclass(frozen=True)
-class AlbumInfo(AlbumCreationInfo, IdItem):
-	...
-
-
+	albumArtistId: Optional[int]=None
 
 @dataclass()
 class SongBase:
@@ -87,7 +84,7 @@ class StationCreationInfo:
 	displayName: Optional[str]=""
 	tags: Optional[List[Tag]]=field(default_factory=list)
 
-@pydanticDataclass
+@pydanticDataclass()
 class ValidatedStationCreationInfo(StationCreationInfo):
 
 	_name_len = validator(
@@ -122,8 +119,7 @@ class SongEditInfo:
 	path: str
 	name: Optional[str]=None
 	album: Optional[AlbumInfo]=None
-	primaryArtist: Optional[ArtistInfo]=None
-	artists: Optional[List[ArtistInfo]]=field(default_factory=list)
+	artists: Optional[List[SongArtistInfo]]=field(default_factory=list)
 	covers: Optional[List[int]]=field(default_factory=list)
 	track: Optional[int]=None
 	disc: Optional[int]=None

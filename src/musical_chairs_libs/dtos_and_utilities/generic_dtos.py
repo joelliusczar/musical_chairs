@@ -19,6 +19,3 @@ class TableData(ListData[T]):
 # class ErrorInfo(BaseModel):
 # 	msg: str
 
-@dataclass(frozen=True)
-class IdItem:
-	id: int

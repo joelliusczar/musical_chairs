@@ -176,27 +176,16 @@ get_libs_dir() (
 
 # set up the python environment, then copy
 # subshell () auto switches in use python version back at the end of function
-create_py_env_in_dir() (
+create_py_env_in() (
 	echo "setting up py libs"
 	set_env_path_var #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
 	error_check_path "$env_root"/"$py_env" &&
-	if [ -n "$clean_flag" ]; then
-		if ! is_dir_empty "$env_root"/"$py_env"; then
-			if [ -w "$env_root"/"$py_env" ]; then
-				rm -rf "$env_root"/"$py_env" || return "$?"
-			else
-				sudo -p "Password required for removing files from \
-				${env_root}/${py_env}: " \
-					rm -rf "$env_root"/"$py_env" || return "$?"
-			fi
-		fi
-	fi &&
 	mc-python -m virtualenv "$env_root"/"$py_env" &&
 	. "$env_root"/$py_env/bin/activate &&
 	#this is to make some of my newer than checks work
-	touch "$env_root"/"$py_env" &&
+	touch "$env_root"/$py_env &&
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
@@ -207,7 +196,7 @@ create_py_env_in_dir() (
 create_py_env_in_app_trunk() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
-	create_py_env_in_dir "$app_root"/"$app_trunk" &&
+	create_py_env_in "$app_root"/"$app_trunk" &&
 	copy_dir "$lib_src" \
 		"$(get_libs_dir "$app_root"/"$app_trunk")""$lib_name"
 )
@@ -970,7 +959,7 @@ setup_unit_test_env() (
 	[ "$app_root"/"$app_trunk"/requirements.txt -nt "$utest_env_dir"/"$py_env" ]
 	then
 		echo "changes?"
-		create_py_env_in_dir "$utest_env_dir"
+		create_py_env_in "$utest_env_dir"
 	fi &&
 	setup_db &&
 	echo "PYTHONPATH='${src_path}:${src_path}/api'" \
@@ -1037,9 +1026,6 @@ process_global_args() {
 				;;
 			(replaceDb) #tells setup to replace sqlite3 db
 				export replace_db_flag='true'
-				;;
-			(clean) #tells setup functions to delete files/dirs before installing
-				export clean_flag='clean'
 				;;
 			#activates debug_print. Also tells deploy script to use the diag branch
 			(diag)

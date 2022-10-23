@@ -155,7 +155,7 @@ export const SongTree = withCacheProvider()(() => {
 					{isSongSelected() &&
 					<Button
 						component={Link}
-						to={`${DomRoutes.songEdit}${getSelectedSongInfo()?.id}`}
+						to={`${DomRoutes.songEdit}?id=${getSelectedSongInfo()?.id}`}
 					>
 						Edit Song Info
 					</Button>}

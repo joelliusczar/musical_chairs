@@ -14,7 +14,7 @@ import Loader from "../Shared/Loader";
 import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
 import { AlbumNewModalOpener } from "../Albums/AlbumEdit";
 import { TagNewModalOpener } from "../Tags/TagEdit";
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
 	waitingReducer,
 	initialState,
@@ -40,7 +40,9 @@ export const SongEdit = () => {
 	const { enqueueSnackbar } = useSnackbar();
 	const [state, dispatch] = useReducer(waitingReducer(), initialState);
 	const { callStatus } = state;
-	const { id } = useParams();
+	const location = useLocation();
+	const queryObj = new URLSearchParams(location.search);
+	const id = queryObj.get("id");
 
 	const {
 		items: artists,
@@ -109,7 +111,7 @@ export const SongEdit = () => {
 					}
 				}
 				else {
-					reset();
+					dispatch(dispatches.failed("No song selected"));
 				}
 			}
 			catch(err) {

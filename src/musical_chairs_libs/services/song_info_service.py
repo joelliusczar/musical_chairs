@@ -7,7 +7,7 @@ from typing import\
 	Iterable,\
 	Any,\
 	Tuple,\
-	Set
+	Callable
 from musical_chairs_libs.dtos_and_utilities import\
 	SavedNameString,\
 	SongListDisplayItem,\
@@ -20,13 +20,14 @@ from musical_chairs_libs.dtos_and_utilities import\
 	missing,\
 	AlbumInfo,\
 	ArtistInfo,\
+	SongAboutInfo,\
 	SongEditInfo,\
 	build_error_obj,\
 	AlbumCreationInfo,\
 	SongTagTuple,\
 	SongArtistTuple
 from sqlalchemy import select, insert, update, func, delete
-from sqlalchemy.sql.expression import Tuple as dbTuple
+from sqlalchemy.sql.expression import Tuple as dbTuple, Select
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from musical_chairs_libs.errors import AlreadyUsedError
@@ -34,7 +35,7 @@ from .env_manager import EnvManager
 from .tag_service import TagService
 from sqlalchemy.engine.row import Row
 from dataclasses import asdict, fields
-from itertools import chain
+from itertools import chain, groupby
 from musical_chairs_libs.tables import\
 	albums as albums_tbl,\
 	song_artist as song_artist_tbl,\
@@ -538,6 +539,17 @@ class SongInfoService:
 			isPrimaryArtist=cast(int, row[ar_pk]) == primaryArtistId
 		) for row in cast(Iterable[Row],records))
 
+	def _are_all_primary_artist_single(
+		self,
+		songArtists: Iterable[SongArtistTuple]
+	) -> bool:
+		songKey: Callable[[SongArtistTuple],int] = lambda a: a.songId
+		artistsGroups = groupby(sorted(songArtists, key=songKey), key=songKey)
+		for _, g in artistsGroups:
+			if len([sa for sa in g if sa.isPrimaryArtist]) > 1:
+				return False
+		return True
+
 	def link_songs_with_artists(
 		self,
 		songArtists: Iterable[SongArtistTuple],
@@ -546,7 +558,8 @@ class SongInfoService:
 		if not songArtists:
 			return []
 		uniquePairs = set(self.validate_song_artists(songArtists))
-		if len([sa for sa in uniquePairs if sa.isPrimaryArtist]) > 1:
+
+		if not self._are_all_primary_artist_single(uniquePairs):
 			raise ValueError("Only one artist can be the primary artist")
 		existingPairs = set(self.get_song_artists(
 			songIds={sa.songId for sa in uniquePairs}
@@ -569,7 +582,7 @@ class SongInfoService:
 			songIds={sa.songId for sa in uniquePairs}
 		)
 
-	def prepare_song_row_for_model(self, row: Row) -> dict[str, Any]:
+	def _prepare_song_row_for_model(self, row: Row) -> dict[str, Any]:
 		songDict: dict[Any, Any] = {**row}
 		albumArtistId = songDict.pop("album.albumArtistId", None)
 		albumArtistName = songDict.pop("album.albumArtist.name", "")
@@ -590,30 +603,29 @@ class SongInfoService:
 		songDict.pop(sgar_isPrimaryArtist.description, None)
 		return songDict
 
-
-	def get_songs_for_edit(
+	def _get_query_for_songs_for_edit(
 		self,
 		songIds: Iterable[int]
-	) -> Iterator[SongEditInfo]:
+	) -> Select:
 		album_artist = artists_tbl.alias("AlbumArtist") #pyright: ignore [reportUnknownVariableType]
 		query = select(
-			func.max(sg_pk).label("id"),
-			func.max(sg_name).label("name"),
-			func.max(sg_path).label("path"),
-			func.max(sg_track).label("track"),
-			func.max(sg_disc).label("disc"),
-			func.max(sg_genre).label("genre"),
-			func.max(sg_explicit).label("explicit"),
-			func.max(sg_bitrate).label("bitrate"),
-			func.max(sg_comment).label("comment"),
-			func.max(sg_lyrics).label("lyrics"),
-			func.max(sg_duration).label("duration"),
-			func.max(sg_sampleRate).label("sampleRate"),
-			func.max(ab_pk).label("album.id"),
-			func.max(ab_name).label("album.name"),
-			func.max(ab_year).label("album.year"),
-			func.max(ab_albumArtistFk).label("album.albumArtistId"),
-			func.max(album_artist.c.name).label("album.albumArtist.name"),
+			sg_pk.label("id"),
+			sg_name.label("name"),
+			sg_path.label("path"),
+			sg_track.label("track"),
+			sg_disc.label("disc"),
+			sg_genre.label("genre"),
+			sg_explicit.label("explicit"),
+			sg_bitrate.label("bitrate"),
+			sg_comment.label("comment"),
+			sg_lyrics.label("lyrics"),
+			sg_duration.label("duration"),
+			sg_sampleRate.label("sampleRate"),
+			ab_pk.label("album.id"),
+			ab_name.label("album.name"),
+			ab_year.label("album.year"),
+			ab_albumArtistFk.label("album.albumArtistId"),
+			album_artist.c.name.label("album.albumArtist.name"),
 			sgar_isPrimaryArtist,
 			ar_pk.label("artist.id"),
 			ar_name.label("artist.name"),
@@ -625,16 +637,20 @@ class SongInfoService:
 				.join(albums_tbl, sg_albumFk == ab_pk, isouter=True)\
 				.join(songs_tags_tbl, sg_pk == sgtg_songFk, isouter=True)\
 				.join(tags_tbl, sgtg_tagFk ==  tg_pk, isouter=True)\
-				.join(album_artist, ab_albumArtistFk == album_artist.c.pk, isouter=True)\
-				.group_by(
-					"artist.id",
-					"artist.name",
-					sgar_isPrimaryArtist,
-					"tag.id",
-					"tag.name",
-					)\
+				.join(
+					album_artist,
+					ab_albumArtistFk == album_artist.c.pk,
+					isouter=True
+				)\
 				.where(sg_pk.in_(songIds))\
 				.order_by(sg_pk)
+		return query
+
+	def get_songs_for_edit(
+		self,
+		songIds: Iterable[int]
+	) -> Iterator[SongEditInfo]:
+		query = self._get_query_for_songs_for_edit(songIds)
 		records = self.conn.execute(query).fetchall()
 		currentSongRow = None
 		artists: set[ArtistInfo] = set()
@@ -644,7 +660,7 @@ class SongInfoService:
 			if not currentSongRow:
 				currentSongRow = row
 			elif row["id"] != currentSongRow["id"]:
-				songDict = self.prepare_song_row_for_model(currentSongRow)
+				songDict = self._prepare_song_row_for_model(currentSongRow)
 				yield SongEditInfo(**songDict,
 					primaryArtist=primaryArtist,
 					artists=list(artists),
@@ -668,26 +684,25 @@ class SongInfoService:
 			if row["tag.id"]:
 				tags.add(Tag(row["tag.id"], row["tag.name"]))
 		if currentSongRow:
-			songDict = self.prepare_song_row_for_model(currentSongRow)
+			songDict = self._prepare_song_row_for_model(currentSongRow)
 			yield SongEditInfo(**songDict,
 					primaryArtist=primaryArtist,
-					artists=list(artists),
-					tags=list(tags)
+					artists=sorted(artists, key=lambda a: a.id if a else 0),
+					tags=sorted(tags, key=lambda t: t.id if t else 0)
 				)
 
 	def save_songs(
 		self,
 		ids: Iterable[int],
-		songInfo: SongEditInfo,
-		userId: Optional[int]=None,
-		touched: Optional[Set[str]]=None
+		songInfo: SongAboutInfo,
+		userId: Optional[int]=None
 	) -> Iterator[SongEditInfo]:
 		if not ids:
 			return iter([])
 		if not songInfo:
 			return self.get_songs_for_edit(ids)
-		if touched == None:
-			touched = {f.name for f in fields(SongEditInfo)}
+		if songInfo.touched == None:
+			songInfo.touched = {f.name for f in fields(SongAboutInfo)}
 		songInfo.name = str(SavedNameString(songInfo.name))
 		songInfoDict = asdict(songInfo)
 		songInfoDict.pop("artists", None)
@@ -696,31 +711,60 @@ class SongInfoService:
 		songInfoDict.pop("id", None)
 		songInfoDict.pop("album", None)
 		songInfoDict.pop("covers", None)
+		songInfoDict.pop("touched", None)
 		songInfoDict["albumFk"] = songInfo.album.id if songInfo.album else None
 		songInfoDict["lastModifiedByUserFk"] = userId
 		songInfoDict["lastModifiedTimestamp"] = self.get_datetime().timestamp()
-		if "album" in touched:
-			touched.add("albumFk")
+		if "album" in songInfo.touched:
+			songInfo.touched.add("albumFk")
 		stmt = update(songs_tbl).values(
-			**{k:v for k,v in songInfoDict.items() if k in touched}
+			**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
 		).where(sg_pk.in_(ids))
 		self.conn.execute(stmt)
-		if "artists" in touched or "primaryArtist" in touched:
+		if "artists" in songInfo.touched or "primaryArtist" in songInfo.touched:
 			self.link_songs_with_artists(
 				chain(
 					(SongArtistTuple(sid, a.id) for a in songInfo.artists or []
 						for sid in ids
-					) if "artists" in touched else (),
+					) if "artists" in songInfo.touched else (),
 					#we can't use allArtists here bc we need the primaryArtist selection
 					(SongArtistTuple(sid, songInfo.primaryArtist.id, True) for sid in ids)
-						if "primaryArtist" in touched and songInfo.primaryArtist else ()
+						if "primaryArtist" in
+						songInfo.touched and songInfo.primaryArtist else ()
 				),
 				userId
 			)
-		if "tags" in touched:
+		if "tags" in songInfo.touched:
 			self.link_songs_with_tags(
-				(SongTagTuple(songInfo.id, t.id) for t in (songInfo.tags or [])),
+				(SongTagTuple(sid, t.id) for t in (songInfo.tags or []) for sid in ids),
 				userId
 			)
 
 		return self.get_songs_for_edit(ids)
+
+	def get_songs_for_multi_edit(
+		self,
+		songIds: Iterable[int]
+	) -> SongEditInfo:
+		commonSongInfo = None
+		touched = {f.name for f in fields(SongAboutInfo) }
+		removedFields: set[str] = set()
+		for songInfo in self.get_songs_for_edit(songIds):
+			songInfoDict = asdict(songInfo)
+			if not commonSongInfo:
+				commonSongInfo = songInfoDict
+				continue
+			for field in touched:
+				isUniqueField = field in { "touched" }
+				if isUniqueField or songInfoDict[field] != commonSongInfo[field]:
+					removedFields.add(field)
+					commonSongInfo.pop(field, None)
+			touched -= removedFields
+			removedFields.clear()
+		if commonSongInfo:
+			commonSongInfo["id"] = 0
+			commonSongInfo["path"] = ""
+			return SongEditInfo(**commonSongInfo, touched=touched)
+		else:
+			return SongEditInfo(id=0, path="", touched=touched)
+

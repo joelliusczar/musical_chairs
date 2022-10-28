@@ -34,6 +34,7 @@ def populate_artists(conn: Connection):
 		{ "pk": 11, "name": "kilo_artist" },
 		{ "pk": 12, "name": "lima_artist" },
 		{ "pk": 13, "name": "november_artist" },
+		{ "pk": 14, "name": "oscar_artist" },
 	]
 	stmt = insert(artists)
 	conn.execute(stmt, artist_params) #pyright: ignore [reportUnknownMemberType]
@@ -60,6 +61,7 @@ def populate_albums(conn: Connection):
 	albumParams3 = [
 		{ "pk": 5, "name": "doo_album" },
 		{ "pk": 6, "name": "roo_album" },
+		{ "pk": 12, "name": "garoo_album" },
 	]
 	conn.execute(stmt, albumParams3) #pyright: ignore [reportUnknownMemberType]
 	album_params.extend(albumParams3)
@@ -103,7 +105,7 @@ def populate_songs(conn: Connection):
 			"genre": "pop",
 			"explicit": 1,
 			"bitrate": 144,
-			"comment": "Kazoos make good swimmers"
+			"comment": "Kazoos make good parrallel parkers"
 		},
 		{ "pk": 4,
 			"path": "foo/goo/boo/victor",
@@ -113,17 +115,17 @@ def populate_songs(conn: Connection):
 			"disc": 1,
 			"genre": "pop",
 			"bitrate": 144,
-			"comment": "Kazoos make good swimmers"
+			"comment": "Kazoos make bad swimmers"
 		},
 		{ "pk": 5,
 			"path": "foo/goo/boo/victor_2",
 			"name": "victor_song",
 			"albumFk": 11,
-			"track": 4,
+			"track": 5,
 			"disc": 1,
 			"genre": "pop",
 			"bitrate": 144,
-			"comment": "Kazoos make good swimmers"
+			"comment": "Kazoos make good hood rats"
 		},
 		{ "pk": 6,
 			"path": "foo/goo/who_1/whiskey",
@@ -150,7 +152,7 @@ def populate_songs(conn: Connection):
 			"track": 3,
 			"disc": 1,
 			"genre": "pop",
-			"comment": "Kazoos make good swimmers"
+			"comment": "guitars make good swimmers"
 		},
 		{ "pk": 9,
 			"path": "foo/goo/who_1/zulu",
@@ -168,7 +170,7 @@ def populate_songs(conn: Connection):
 			"track": 5,
 			"disc": 1,
 			"genre": "pop",
-			"comment": "Kazoos make good swimmers"
+			"comment": "hotdogs make good lava swimmers"
 		},
 		{ "pk": 11,
 			"path": "foo/goo/who_2/bravo",
@@ -177,7 +179,7 @@ def populate_songs(conn: Connection):
 			"track": 1,
 			"disc": 2,
 			"genre": "pop",
-			"comment": "Kazoos make good swimmers"
+			"comment": "hamburgers make flat swimmers"
 		},
 		{ "pk": 12,
 			"path": "foo/goo/who_2/charlie",

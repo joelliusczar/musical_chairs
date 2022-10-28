@@ -152,7 +152,6 @@ class SongArtistTuple:
 		yield self.songId
 		yield self.artistId
 
-
 @dataclass()
 class SongTagGrouping:
 	songId: int
@@ -162,14 +161,17 @@ class SongTagGrouping:
 		return iter(self.tags or [])
 
 @dataclass()
-class SongEditInfo:
+class SongPathInfo:
 	id: int
 	path: str
+
+@dataclass()
+class SongAboutInfo:
 	name: Optional[str]=None
 	album: Optional[AlbumInfo]=None
 	primaryArtist: Optional[ArtistInfo]=None
-	artists: Optional[List[ArtistInfo]]=field(default_factory=list)
-	covers: Optional[List[int]]=field(default_factory=list)
+	artists: Optional[list[ArtistInfo]]=field(default_factory=list)
+	covers: Optional[list[int]]=field(default_factory=list)
 	track: Optional[int]=None
 	disc: Optional[int]=None
 	genre: Optional[str]=None
@@ -179,7 +181,8 @@ class SongEditInfo:
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 	lyrics: Optional[str]=""
-	tags: Optional[List[Tag]]=field(default_factory=list)
+	tags: Optional[list[Tag]]=field(default_factory=list)
+	touched: Optional[set[str]]=None
 
 	@property
 	def allArtists(self) -> Iterable[ArtistInfo]:
@@ -187,9 +190,14 @@ class SongEditInfo:
 			yield self.primaryArtist
 		yield from (a for a in self.artists or [])
 
+@dataclass()
+class SongEditInfo(SongAboutInfo, SongPathInfo):
+	...
+
+
 
 @pydanticDataclass
-class ValidatedSongEditInfo(SongEditInfo):
+class ValidatedSongAboutInfo(SongAboutInfo):
 
 	@validator("tags")
 	def check_tags_duplicates(cls, v: List[Tag]) -> List[Tag]:

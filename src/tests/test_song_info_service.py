@@ -38,9 +38,9 @@ def test_add_album(fixture_song_info_service: SongInfoService):
 	pk = songInfoService.get_or_save_album("who_1_album", 5)
 	assert pk == 10
 	pk = songInfoService.get_or_save_album("bat_album", 5)
-	assert pk == 12
-	pk = songInfoService.get_or_save_album("who_1_album", 4)
 	assert pk == 13
+	pk = songInfoService.get_or_save_album("who_1_album", 4)
+	assert pk == len(get_initial_artists())
 
 def test_song_ls(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
@@ -500,3 +500,24 @@ def test_get_multiple_songs_for_edit(
 
 		assert sortedTags[1].id == 3
 		assert sortedTags[1].name == "mike_tag"
+
+def test_get_multiple_songs_for_edit2(
+	fixture_song_info_service: SongInfoService
+):
+	songInfoService = fixture_song_info_service
+	songInfoList = sorted(songInfoService.get_songs_for_edit([2, 3]),
+		key=lambda s: s.id
+	)
+	assert len(songInfoList) == 2
+
+def test_get_duplicate_song(
+	fixture_song_info_service: SongInfoService
+):
+	songInfoService = fixture_song_info_service
+	songInfoList = sorted(songInfoService.get_songs_for_edit([1, 1, 1, 1, 6]),
+		key=lambda s: s.id
+	)
+
+	assert len(songInfoList) == 2
+	assert songInfoList[0].id == 1
+	assert songInfoList[1].id == 6

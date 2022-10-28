@@ -1,4 +1,11 @@
-from fastapi import APIRouter, Depends, Security, HTTPException, status, Body
+from fastapi import\
+	APIRouter,\
+	Depends,\
+	Security,\
+	HTTPException,\
+	status,\
+	Body,\
+	Query
 from api_dependencies import \
 	song_info_service,\
 	get_current_user,\
@@ -12,7 +19,7 @@ from musical_chairs_libs.dtos_and_utilities import SongTreeNode,\
 	UserRoleDef,\
 	SongEditInfo,\
 	build_error_obj,\
-	ValidatedSongEditInfo
+	ValidatedSongAboutInfo
 router = APIRouter(prefix="/song-info")
 
 @router.get("/songs/tree")
@@ -35,12 +42,28 @@ def get_song_for_edit(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"{id} not found", "id")]
 	)
+#not sure if this will actually be used anywhere. It's mostly a testing
+#convenience
+@router.get("/songs/list/")
+def get_songs_list(
+	id: list[int] = Query(default=[]),
+	songInfoService: SongInfoService = Depends(song_info_service)
+) -> list[SongEditInfo]:
+	return list(songInfoService.get_songs_for_edit(id))
+
+@router.get("/songs/multi/")
+def get_songs_for_multi_edit(
+	id: list[int] = Query(default=[]),
+	songInfoService: SongInfoService = Depends(song_info_service)
+) -> SongEditInfo:
+	songInfo = songInfoService.get_songs_for_multi_edit(id)
+	return songInfo
 
 def extra_validated_song(
-	song: ValidatedSongEditInfo = Body(default=None),
+	song: ValidatedSongAboutInfo = Body(default=None),
 	tagService: TagService = Depends(tag_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
-) -> ValidatedSongEditInfo:
+) -> ValidatedSongAboutInfo:
 	tagIds = {t.id for t in song.tags or []}
 	dbTags = {t.id for t in tagService.get_tags(tagIds=tagIds)}
 	if tagIds - dbTags:
@@ -64,7 +87,7 @@ def extra_validated_song(
 @router.put("/songs/{id}")
 def update_song(
 	id: int,
-	song: ValidatedSongEditInfo = Depends(extra_validated_song),
+	song: ValidatedSongAboutInfo = Depends(extra_validated_song),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
 		get_current_user,
@@ -72,6 +95,24 @@ def update_song(
 	)
 ) -> SongEditInfo:
 	result = next(songInfoService.save_songs([id], song, userId=user.id), None)
+	if result:
+		return result
+	raise HTTPException(
+		status_code=status.HTTP_404_NOT_FOUND,
+		detail=[build_error_obj(f"{id} not found", "id")]
+	)
+
+@router.put("/songs/multi/")
+def update_songs_multi(
+	id: list[int] = Query(default=[]),
+	song: ValidatedSongAboutInfo = Depends(extra_validated_song),
+	songInfoService: SongInfoService = Depends(song_info_service),
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.SONG_EDIT()]
+	)
+) -> list[SongEditInfo]:
+	result = list(songInfoService.save_songs(id, song, userId=user.id))
 	if result:
 		return result
 	raise HTTPException(

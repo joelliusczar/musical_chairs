@@ -14,6 +14,7 @@ import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
+import { useSnackbar } from "notistack";
 
 
 export const SongTreeNode = (props) => {
@@ -113,6 +114,7 @@ SongDirectory.propTypes = {
 export const SongTree = withCacheProvider()(() => {
 	const [selectedNodes, setSelectedNodes] = useState([]);
 	const { getCacheValue } = useCache();
+	const { enqueueSnackbar } = useSnackbar();
 
 	const onNodeSelect = (e, nodeIds) => {
 		if(nodeIds.lenth === 1) {
@@ -122,26 +124,35 @@ export const SongTree = withCacheProvider()(() => {
 			setSelectedNodes([...nodeIds]);
 		}
 		else {
-			setSelectedNodes([...nodeIds]);
+			if(nodeIds.length < 100) {
+				setSelectedNodes([...nodeIds]);
+			}
+			else {
+				enqueueSnackbar("Maximum songs (100) have been selected.",
+					{ variant: "warning"});
+			}
 		}
 	};
 
 	const getSelectedSongInfo = () => {
-		if(selectedNodes.length !== 1) {
-			return null;
-		}
-		const songInfo = getCacheValue(selectedNodes[0]);
-		return songInfo;
+		return selectedNodes.map(s => getCacheValue(s)?.id).filter(n => !!n);
 	};
 
-	const isSongSelected = () => {
-		const songInfo = getSelectedSongInfo();
-		return !!songInfo?.id && songInfo.id > 0;
+	const getPageUrl = (ids) => {
+		let queryStr = null;
+		const queryObj = new URLSearchParams();
+		for(const id of ids) {
+			queryObj.append("id", id);
+		}
+		queryStr = `?${queryObj.toString()}`;
+		return `${DomRoutes.songEdit}${queryStr}`;
 	};
+
+	const selectedSongIds = getSelectedSongInfo();
 
 	return (
 		<>
-			{selectedNodes &&
+			{!!selectedSongIds.length &&
 			<AppBar
 				sx={{
 					top: (theme) => theme.spacing(6),
@@ -152,13 +163,12 @@ export const SongTree = withCacheProvider()(() => {
 				}}
 			>
 				<Toolbar variant="dense" sx={{ pb: 1, alignItems: "baseline"}}>
-					{isSongSelected() &&
 					<Button
 						component={Link}
-						to={`${DomRoutes.songEdit}?id=${getSelectedSongInfo()?.id}`}
+						to={getPageUrl(selectedSongIds)}
 					>
 						Edit Song Info
-					</Button>}
+					</Button>
 				</Toolbar>
 			</AppBar>}
 			<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />

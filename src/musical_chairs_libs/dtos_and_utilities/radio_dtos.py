@@ -142,7 +142,7 @@ class SongTagTuple:
 class SongArtistTuple:
 	songId: int
 	artistId: int
-	isPrimaryArtist: bool=field(default=False, hash=False, compare=False)
+	isPrimaryArtist: bool=False
 	isLinked: bool=field(default=False, hash=False, compare=False)
 
 	def __len__(self) -> int:

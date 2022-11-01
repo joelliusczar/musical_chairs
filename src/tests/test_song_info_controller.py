@@ -234,3 +234,113 @@ def test_song_save_for_multi_edit(
 	assert tagsLen == 1
 
 
+def test_song_save_for_multi_edit_artist_to_primary(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_foxtrot", client)
+
+	idList = "?id=29&id=28&id=27&id=26&id=25&id=24&id=23"
+
+	getResponseBefore = client.get(
+		f"song-info/songs/list/{idList}",
+		headers=headers
+	)
+
+	data0 = json.loads(getResponseBefore.content)
+	assert getResponseBefore.status_code == 200
+	assert data0
+	assert len(set(d["id"] for d in data0)) == len(data0)
+	assert len(set(d["path"] for d in data0)) == len(data0)
+	assert len(set(d["name"] for d in data0)) == len(data0)
+	assert len(set(d["album"]["id"] for d in data0 if d["album"])) == 2
+	assert len(set(d["primaryArtist"] for d in data0 if d["primaryArtist"])) == 0
+	artistsLen = len(set(
+		(*sorted(a["id"] for a in d["artists"]),)
+		for d in data0 if d["artists"])
+	)
+	assert artistsLen == 1
+	coversLen = len(set(
+		(*sorted(a["id"] for a in d["covers"]),)
+		for d in data0 if d["covers"])
+	)
+	assert coversLen == 0
+	assert len(set(d["track"] for d in data0)) == 1
+	assert len(set(d["disc"] for d in data0)) == 1
+	assert len(set(d["genre"] for d in data0)) == 1
+	assert len(set(d["bitrate"] for d in data0)) == 1
+	assert len(set(d["sampleRate"] for d in data0)) == 1
+	assert len(set(d["comment"] for d in data0)) == 1
+	assert len(set(d["duration"] for d in data0)) == 1
+	assert len(set(d["explicit"] for d in data0)) == 1
+	assert len(set(d["lyrics"] for d in data0)) == 1
+	tagsLen = len(set(
+		(*sorted(a["id"] for a in d["tags"]),)
+		for d in data0 if d["tags"])
+	)
+	assert tagsLen == 2
+
+	sendData = {
+		"album": {
+			"id": 12, "name": "garoo_album"
+		},
+		"tags": [
+			{ "id": 6, "name": "papa_tag" },
+			{ "id": 8, "name": "sierra_tag" }
+		],
+		"artists": [],
+		"primaryArtist": { "id": 5, "name": "foxtrot_artist" },
+		"touched": ["album", "tags", "primaryArtist", "artists"]
+	}
+
+	putResponse = client.put(
+		f"song-info/songs/multi/{idList}",
+		headers=headers,
+		json=sendData
+	)
+
+	data1 = json.loads(putResponse.content)
+	assert putResponse.status_code == 200
+
+	getResponseAfter = client.get(
+		f"song-info/songs/list/{idList}",
+		headers=headers
+	)
+	data2 = json.loads(getResponseAfter.content)
+	assert getResponseAfter.status_code == 200
+	data1_n = sorted((normalize_dict(d) for d in data1), key=lambda d: d["id"])
+	data2_n = sorted((normalize_dict(d) for d in data2), key=lambda d: d["id"])
+	assert data1_n == data2_n
+
+	assert len(set(d["id"] for d in data2)) == len(data2)
+	assert len(set(d["path"] for d in data2)) == len(data2)
+	assert len(set(d["name"] for d in data2)) == len(data2)
+	assert len(set(d["album"]["id"] for d in data2 if d["album"])) == 1
+	assert len(set(d["primaryArtist"]["id"] for d in data2
+		if d["primaryArtist"])
+	) == 1
+	artistsLen = len(set(
+		(*sorted(a["id"] for a in d["artists"]),)
+		for d in data2 if d["artists"])
+	)
+	assert artistsLen == 0
+	coversLen = len(set(
+		(*sorted(a["id"] for a in d["covers"]),)
+		for d in data2 if d["covers"])
+	)
+	assert coversLen == 0
+	assert len(set(d["track"] for d in data2)) == 1
+	assert len(set(d["disc"] for d in data2)) == 1
+	assert len(set(d["genre"] for d in data2)) == 1
+	assert len(set(d["bitrate"] for d in data2)) == 1
+	assert len(set(d["sampleRate"] for d in data2)) == 1
+	assert len(set(d["comment"] for d in data2)) == 1
+	assert len(set(d["duration"] for d in data2)) == 1
+	assert len(set(d["explicit"] for d in data2)) == 1
+	assert len(set(d["lyrics"] for d in data2)) == 1
+	tagsLen = len(set(
+		(*sorted(a["id"] for a in d["tags"]),)
+		for d in data2 if d["tags"])
+	)
+	assert tagsLen == 1
+

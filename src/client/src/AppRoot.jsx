@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, createRef } from "react";
 import "./App.css";
 import {
 	AppBar,
@@ -98,13 +98,18 @@ function AppTrunk() {
 }
 
 function AppRoot() {
+	const notistackRef = createRef();
+
 	return (
 		<Provider store={store}>
 			<AuthContextProvider>
 				<ThemeProvider theme={theme}>
 					<BrowserRouter basename="/">
 						<AppContextProvider>
-							<SnackbarProvider>
+							<SnackbarProvider
+								ref={notistackRef}
+								onClick={() => notistackRef.current.closeSnackbar()}
+							>
 								<AppTrunk />
 							</SnackbarProvider>
 						</AppContextProvider>

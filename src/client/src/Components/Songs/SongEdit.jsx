@@ -1,5 +1,6 @@
 import React, { useReducer, useEffect } from "react";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography, Button, Checkbox } from "@mui/material";
+import { makeStyles } from "@mui/styles";
 import * as Yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -24,6 +25,8 @@ import { useSnackbar } from "notistack";
 import {
 	fetchSongForEdit,
 	saveSongEdits,
+	fetchSongsForMultiEdit,
+	saveSongsEditsMulti,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
 
@@ -31,6 +34,15 @@ import { formatError } from "../../Helpers/error_formatter";
 const inputField = {
 	margin: 2,
 };
+
+const useStyles = makeStyles(() => ({
+	dropdownField: {
+		minWidth: 195,
+		display: "inline-block",
+	},
+}));
+
+
 
 const schema = Yup.object().shape({
 });
@@ -42,7 +54,8 @@ export const SongEdit = () => {
 	const { callStatus } = state;
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
-	const id = queryObj.get("id");
+	const ids = queryObj.getAll("id").map(id => parseInt(id));
+	const classes = useStyles();
 
 	const {
 		items: artists,
@@ -85,10 +98,41 @@ export const SongEdit = () => {
 		},
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset, watch } = formMethods;
+	const { handleSubmit, reset, watch, setValue } = formMethods;
+
+	const multiSongTouchedField = watch("touched");
+
+	const handleMutliSongTouchedCheck = (name) => {
+		const updTouched = [...multiSongTouchedField];
+		const idx = updTouched.findIndex(t => t === name);
+		if(idx === -1) {
+			updTouched.push(name);
+		}
+		else {
+			updTouched.splice(idx, 1);
+		}
+		setValue("touched", updTouched);
+	};
+
+	const isMultSongTouchedChecked = (name) => {
+		if  (!multiSongTouchedField) return false;
+		return multiSongTouchedField.some(t => t === name);
+	};
+
+	// eslint-disable-next-line react/prop-types
+	const TouchedCheckbox = ({ name }) => {
+		return <Checkbox
+			name={name}
+			onChange={() => handleMutliSongTouchedCheck(name)}
+			checked={isMultSongTouchedChecked(name)}
+		/>;
+	};
+
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const data = await saveSongEdits({ id, data: values });
+			const data = ids.length < 2 ?
+				await saveSongEdits({ id: ids[0], data: values }) :
+				await saveSongsEditsMulti({ ids, data: values });
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -100,12 +144,20 @@ export const SongEdit = () => {
 	useEffect(() => {
 		const fetch = async () => {
 			try {
-				if(id) {
+				if(ids.length == 1) {
 					if(!callStatus) {
 						dispatch(dispatches.started());
 						const data = await fetchSongForEdit({
-							id,
+							id: ids[0],
 						});
+						reset(data);
+						dispatch(dispatches.done());
+					}
+				}
+				else if(ids.length > 1) {
+					if(!callStatus) {
+						dispatch(dispatches.started());
+						const data = await fetchSongsForMultiEdit({ ids });
 						reset(data);
 						dispatch(dispatches.done());
 					}
@@ -120,7 +172,7 @@ export const SongEdit = () => {
 		};
 
 		fetch();
-	}, [dispatch, callStatus, id ]);
+	}, [dispatch, callStatus, ids ]);
 
 	const songFilePath = watch("path");
 
@@ -133,6 +185,9 @@ export const SongEdit = () => {
 				Path: {songFilePath}
 			</Typography>
 			<Box sx={inputField}>
+				<TouchedCheckbox
+					name="name"
+				/>
 				<FormTextField
 					name="name"
 					formMethods={formMethods}
@@ -142,22 +197,33 @@ export const SongEdit = () => {
 			<Box>
 				<Loader status={artistCallStatus} artistError={artistError}>
 					<Box sx={inputField}>
+						<TouchedCheckbox
+							name="primaryArtist"
+						/>
 						<FormSelect
 							name="primaryArtist"
 							options={artists}
 							formMethods={formMethods}
 							label="Primary Artist"
-							sx={{ minWidth: 195 }}
+							classes={{
+								root: classes.dropdownField,
+							}}
 							transform={{input: artistMapper}}
 						/>
 					</Box>
 					<Box sx={inputField}>
+						<TouchedCheckbox
+							name="artists"
+						/>
 						<FormSelect
 							name="artists"
 							options={artists}
 							formMethods={formMethods}
 							label="Artists"
 							transform={{input: artistMapper}}
+							classes={{
+								root: classes.dropdownField,
+							}}
 							multiple
 						/>
 					</Box>
@@ -169,6 +235,9 @@ export const SongEdit = () => {
 			<Box>
 				<Loader status={albumCallStatus} artistError={albumError}>
 					<Box sx={inputField}>
+						<TouchedCheckbox
+							name="album"
+						/>
 						<FormSelect
 							name="album"
 							getOptionLabel={(option) => option ?
@@ -178,6 +247,9 @@ export const SongEdit = () => {
 							formMethods={formMethods}
 							label="Album"
 							transform={{input: albumMapper }}
+							classes={{
+								root: classes.dropdownField,
+							}}
 						/>
 					</Box>
 					<Box sx={inputField}>
@@ -188,12 +260,18 @@ export const SongEdit = () => {
 			<Box>
 				<Loader status={tagCallStatus} artistError={tagError}>
 					<Box sx={inputField}>
+						<TouchedCheckbox
+							name="tags"
+						/>
 						<FormSelect
 							name="tags"
 							options={tags}
 							formMethods={formMethods}
 							label="Tags"
 							transform={{input: tagMapper}}
+							classes={{
+								root: classes.dropdownField,
+							}}
 							multiple
 						/>
 					</Box>
@@ -203,6 +281,9 @@ export const SongEdit = () => {
 				</Loader>
 			</Box>
 			<Box sx={inputField}>
+				<TouchedCheckbox
+					name="genre"
+				/>
 				<FormTextField
 					name="genre"
 					formMethods={formMethods}

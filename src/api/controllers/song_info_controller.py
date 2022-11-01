@@ -42,6 +42,7 @@ def get_song_for_edit(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"{id} not found", "id")]
 	)
+
 #not sure if this will actually be used anywhere. It's mostly a testing
 #convenience
 @router.get("/songs/list/")
@@ -57,7 +58,12 @@ def get_songs_for_multi_edit(
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> SongEditInfo:
 	songInfo = songInfoService.get_songs_for_multi_edit(id)
-	return songInfo
+	if songInfo:
+		return songInfo
+	raise HTTPException(
+		status_code=status.HTTP_404_NOT_FOUND,
+		detail=[build_error_obj(f"No songs found", "id")]
+	)
 
 def extra_validated_song(
 	song: ValidatedSongAboutInfo = Body(default=None),
@@ -111,8 +117,8 @@ def update_songs_multi(
 		get_current_user,
 		scopes=[UserRoleDef.SONG_EDIT()]
 	)
-) -> list[SongEditInfo]:
-	result = list(songInfoService.save_songs(id, song, userId=user.id))
+) -> SongEditInfo:
+	result = next(songInfoService.save_songs(id, song, userId=user.id), None)
 	if result:
 		return result
 	raise HTTPException(

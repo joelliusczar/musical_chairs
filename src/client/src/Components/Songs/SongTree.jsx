@@ -14,6 +14,7 @@ import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
+import { buildArrayQueryStr } from "../../Helpers/array_helpers";
 import { useSnackbar } from "notistack";
 
 
@@ -139,12 +140,7 @@ export const SongTree = withCacheProvider()(() => {
 	};
 
 	const getPageUrl = (ids) => {
-		let queryStr = null;
-		const queryObj = new URLSearchParams();
-		for(const id of ids) {
-			queryObj.append("id", id);
-		}
-		queryStr = `?${queryObj.toString()}`;
+		const queryStr = buildArrayQueryStr(ids, "id");
 		return `${DomRoutes.songEdit}${queryStr}`;
 	};
 

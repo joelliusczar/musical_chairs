@@ -1,15 +1,29 @@
 import { defaultWebClient as webClient } from "./api";
+import { buildArrayQueryStr } from "../Helpers/array_helpers";
 
 export const fetchSongForEdit = async ({ id }) => {
 	const response = await webClient.get(`/song-info/songs/${id}`);
 	return response.data;
 };
 
+export const fetchSongsForMultiEdit = async ({ ids }) => {
+	const queryStr = buildArrayQueryStr(ids, "id");
+	const response = await webClient.get(`/song-info/songs/multi/${queryStr}`);
+	return response.data;
+};
+
+
 export const saveSongEdits = async ({ id, data }) => {
 	const response = await webClient.put(`/song-info/songs/${id}`, data);
 	return response.data;
 };
 
+export const saveSongsEditsMulti = async ({ ids, data }) => {
+	const queryStr = buildArrayQueryStr(ids, "id");
+	const response = await webClient
+		.put(`/song-info/songs/multi/${queryStr}`, data);
+	return response.data;
+};
 
 export const fetchArtistList = async ({ params }) => {
 	const response = await webClient.get("/song-info/artists/list", {

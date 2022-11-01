@@ -739,13 +739,20 @@ class SongInfoService:
 				(SongTagTuple(sid, t.id) for t in (songInfo.tags or []) for sid in ids),
 				userId
 			)
+		if len(list(ids)) < 2:
+			return self.get_songs_for_edit(ids)
+		else:
+			fetched = self.get_songs_for_multi_edit(ids)
+			if fetched:
+				yield fetched
 
-		return self.get_songs_for_edit(ids)
 
 	def get_songs_for_multi_edit(
 		self,
 		songIds: Iterable[int]
-	) -> SongEditInfo:
+	) -> Optional[SongEditInfo]:
+		if not songIds:
+			return None
 		commonSongInfo = None
 		touched = {f.name for f in fields(SongAboutInfo) }
 		removedFields: set[str] = set()

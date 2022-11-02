@@ -191,15 +191,12 @@ def test_song_save_for_multi_edit(
 	data1 = json.loads(putResponse.content)
 	assert putResponse.status_code == 200
 
-	getResponseAfter = client.get(
+	getListResponseAfter = client.get(
 		f"song-info/songs/list/{idList}",
 		headers=headers
 	)
-	data2 = json.loads(getResponseAfter.content)
-	assert getResponseAfter.status_code == 200
-	data1_n = sorted((normalize_dict(d) for d in data1), key=lambda d: d["id"])
-	data2_n = sorted((normalize_dict(d) for d in data2), key=lambda d: d["id"])
-	assert data1_n == data2_n
+	data2 = json.loads(getListResponseAfter.content)
+	assert getListResponseAfter.status_code == 200
 
 	assert len(set(d["id"] for d in data2)) == len(data2)
 	assert len(set(d["path"] for d in data2)) == len(data2)
@@ -232,6 +229,19 @@ def test_song_save_for_multi_edit(
 		for d in data2 if d["tags"])
 	)
 	assert tagsLen == 1
+
+	getResponseAfter = client.get(
+		f"song-info/songs/multi/{idList}",
+		headers=headers
+	)
+	data3 = json.loads(getResponseAfter.content)
+	assert getResponseAfter.status_code == 200
+	data1_n = normalize_dict(data1)
+	data3_n = normalize_dict(data3)
+	assert data1_n == data3_n
+
+
+
 
 
 def test_song_save_for_multi_edit_artist_to_primary(
@@ -302,15 +312,13 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	data1 = json.loads(putResponse.content)
 	assert putResponse.status_code == 200
 
-	getResponseAfter = client.get(
+	getListResponseAfter = client.get(
 		f"song-info/songs/list/{idList}",
 		headers=headers
 	)
-	data2 = json.loads(getResponseAfter.content)
-	assert getResponseAfter.status_code == 200
-	data1_n = sorted((normalize_dict(d) for d in data1), key=lambda d: d["id"])
-	data2_n = sorted((normalize_dict(d) for d in data2), key=lambda d: d["id"])
-	assert data1_n == data2_n
+	data2 = json.loads(getListResponseAfter.content)
+	assert getListResponseAfter.status_code == 200
+
 
 	assert len(set(d["id"] for d in data2)) == len(data2)
 	assert len(set(d["path"] for d in data2)) == len(data2)
@@ -343,4 +351,14 @@ def test_song_save_for_multi_edit_artist_to_primary(
 		for d in data2 if d["tags"])
 	)
 	assert tagsLen == 1
+
+	getResponseAfter = client.get(
+		f"song-info/songs/multi/{idList}",
+		headers=headers
+	)
+	data3 = json.loads(getResponseAfter.content)
+	assert getResponseAfter.status_code == 200
+	data1_n = normalize_dict(data1)
+	data3_n = normalize_dict(data3)
+	assert data1_n == data3_n
 

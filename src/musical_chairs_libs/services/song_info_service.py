@@ -703,6 +703,7 @@ class SongInfoService:
 			return self.get_songs_for_edit(ids)
 		if songInfo.touched == None:
 			songInfo.touched = {f.name for f in fields(SongAboutInfo)}
+		ids = list(ids)
 		songInfo.name = str(SavedNameString(songInfo.name))
 		songInfoDict = asdict(songInfo)
 		songInfoDict.pop("artists", None)
@@ -739,8 +740,9 @@ class SongInfoService:
 				(SongTagTuple(sid, t.id) for t in (songInfo.tags or []) for sid in ids),
 				userId
 			)
-		if len(list(ids)) < 2:
-			return self.get_songs_for_edit(ids)
+
+		if len(ids) < 2:
+			yield from self.get_songs_for_edit(ids)
 		else:
 			fetched = self.get_songs_for_multi_edit(ids)
 			if fetched:

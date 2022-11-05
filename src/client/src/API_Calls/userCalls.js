@@ -7,14 +7,29 @@ export const AccountsCallTypes = {
 };
 
 
-export const login = async ({username, password}) => {
+export const login = async ({
+	username,
+	password,
+	logout,
+	responseInterceptorKey,
+}) => {
 	const formData = new window.FormData();
 	formData.append("username", username);
 	formData.append("password", password);
 	const response = await webClient.post("accounts/open", formData);
 	webClient.defaults.headers.common["Authorization"] =
 	`Bearer ${response.data.access_token}`;
-	return response.data;
+	if (!responseInterceptorKey) {
+		responseInterceptorKey = webClient.interceptors.response.use(
+			null,
+			(err) => {
+				if ("x-authexpired" in (err?.response?.headers || {})) {
+					logout();
+				}
+				return Promise.reject(err);
+			});
+	}
+	return { data: response.data, interceptor: responseInterceptorKey };
 };
 
 export const createAccount = async ({ values }) => {

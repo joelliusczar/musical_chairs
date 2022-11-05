@@ -8,8 +8,8 @@ import {
 	useLogin,
 } from "../../Context_Providers/AuthContext";
 
-export function UserMenu(props) {
-	const { anchorEl } = props;
+export const UserMenu = (props) => {
+	const { anchorEl, closeMenu } = props;
 	const [, logout] = useLogin();
 
 	const user = useCurrentUser();
@@ -17,6 +17,7 @@ export function UserMenu(props) {
 	const open = !!anchorEl;
 
 	const logoutClick = () => {
+		closeMenu && closeMenu();
 		logout();
 	};
 
@@ -34,7 +35,7 @@ export function UserMenu(props) {
 			<MenuItem onClick={logoutClick}>Logout</MenuItem>
 		</Menu>
 	);
-}
+};
 
 UserMenu.propTypes = {
 	anchorEl: PropTypes.object,

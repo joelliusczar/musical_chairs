@@ -3,6 +3,7 @@ import React, {
 	useReducer,
 	useContext,
 	useMemo,
+	useState,
 } from "react";
 import PropTypes from "prop-types";
 import { login } from "../API_Calls/userCalls";
@@ -13,6 +14,7 @@ import {
 } from "../Components/Shared/waitingReducer";
 import { UserRoleDef } from "../constants";
 import { formatError } from "../Helpers/error_formatter";
+import { useSnackbar } from "notistack";
 
 const loggedOut = {
 	userId: "",
@@ -35,11 +37,14 @@ export const AuthContextProvider = (props) => {
 		waitingReducer(),
 		loggedOutState
 	);
+	const [ responseInterceptorKey, setResponseInterceptorKey] = useState();
 
 	const contextValue = useMemo(() => ({
 		state,
 		dispatch,
-	}), [state]);
+		responseInterceptorKey,
+		setResponseInterceptorKey,
+	}), [state, responseInterceptorKey, setResponseInterceptorKey]);
 
 	return (
 		<AuthContext.Provider value={contextValue}>
@@ -77,11 +82,26 @@ export const useHasAnyRoles = (requiredRoles) => {
 };
 
 export const useLogin = () => {
-	const { dispatch } = useContext(AuthContext);
+	const {
+		dispatch,
+		responseInterceptorKey,
+		setResponseInterceptorKey,
+	} = useContext(AuthContext);
+	const { enqueueSnackbar } = useSnackbar();
+	const _logout = () => {
+		dispatch(dispatches.reset(loggedOutState));
+		enqueueSnackbar("Logging out.");
+	};
 	const _login = async (username, password) => {
 		try {
 			dispatch(dispatches.started());
-			const data = await login({username, password});
+			const { data, interceptor } = await login({
+				username,
+				password,
+				logout: _logout,
+				responseInterceptorKey,
+			});
+			setResponseInterceptorKey(interceptor);
 			dispatch(dispatches.done(data));
 		}
 		catch(err) {
@@ -89,6 +109,5 @@ export const useLogin = () => {
 			throw err;
 		}
 	};
-	const _logout = () => dispatch(dispatches.reset(loggedOutState));
 	return [_login, _logout];
 };

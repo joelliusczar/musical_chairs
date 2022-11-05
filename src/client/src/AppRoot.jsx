@@ -67,6 +67,7 @@ function AppTrunk() {
 							</Button>
 							<UserMenu
 								anchorEl={menuAnchor}
+								closeMenu={() => setMenuAnchor(null)}
 							/>
 						</>
 					}
@@ -102,20 +103,20 @@ function AppRoot() {
 
 	return (
 		<Provider store={store}>
-			<AuthContextProvider>
-				<ThemeProvider theme={theme}>
-					<BrowserRouter basename="/">
-						<AppContextProvider>
-							<SnackbarProvider
-								ref={notistackRef}
-								onClick={() => notistackRef.current.closeSnackbar()}
-							>
+			<SnackbarProvider
+				ref={notistackRef}
+				onClick={() => notistackRef.current.closeSnackbar()}
+			>
+				<AuthContextProvider>
+					<ThemeProvider theme={theme}>
+						<BrowserRouter basename="/">
+							<AppContextProvider>
 								<AppTrunk />
-							</SnackbarProvider>
-						</AppContextProvider>
-					</BrowserRouter>
-				</ThemeProvider>
-			</AuthContextProvider>
+							</AppContextProvider>
+						</BrowserRouter>
+					</ThemeProvider>
+				</AuthContextProvider>
+			</SnackbarProvider>
 		</Provider>
 	);
 }

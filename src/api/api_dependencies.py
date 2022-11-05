@@ -18,6 +18,7 @@ from musical_chairs_libs.dtos_and_utilities import\
 	build_timespan_msg,\
 	UserRoleDef
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
+from jose.exceptions import ExpiredSignatureError
 
 oauth2_scheme = OAuth2PasswordBearer(
 	tokenUrl="accounts/open"
@@ -68,14 +69,24 @@ def get_current_user_base(
 	token: str = Depends(oauth2_scheme),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	user = accountsService.get_user_from_token(token)
-	if not user:
+	try:
+		user = accountsService.get_user_from_token(token)
+		if not user:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail=[build_error_obj("Could not validate credentials")],
+				headers={"WWW-Authenticate": "Bearer"}
+			)
+		return user
+	except ExpiredSignatureError:
 		raise HTTPException(
-			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail=[build_error_obj("Could not validate credentials")],
-			headers={"WWW-Authenticate": "Bearer"}
-		)
-	return user
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail=[build_error_obj("Credentials are expired")],
+				headers={
+					"WWW-Authenticate": "Bearer",
+					"X-AuthExpired": "true"
+				}
+			)
 
 def time_til_user_can_do_action(
 	user: AccountInfo,

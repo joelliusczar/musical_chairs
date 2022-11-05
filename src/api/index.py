@@ -25,7 +25,8 @@ app.add_middleware(
 	CORSMiddleware,
 	allow_origins=cors_allowed_origins,
 	allow_methods=["*"],
-	allow_headers=["Authorization"]
+	allow_headers=["Authorization"],
+	expose_headers=["X-AuthExpired"]
 )
 app.include_router(stations_controller.router)
 app.include_router(accounts_controller.router)

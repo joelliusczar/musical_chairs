@@ -42,7 +42,32 @@ const useStyles = makeStyles(() => ({
 	},
 }));
 
+const TouchTypes = {
+	set: "set",
+	unset: "unset",
+	edited: "edited",
+};
 
+const createTouchedObject = (touchedArr) => {
+	const result = {};
+	if (!touchedArr) return result;
+	for (const name of touchedArr) {
+		result[name] = TouchTypes.set;
+	}
+	return result;
+};
+
+const touchedObjectToArr = (touchedObj) => {
+	const result = [];
+	if (!touchedObj) return result;
+	for (const key in touchedObj) {
+		const value = touchedObj[key];
+		if(value == TouchTypes.set || TouchTypes.edited) {
+			result.push(key);
+		}
+	}
+	return result;
+};
 
 const schema = Yup.object().shape({
 });
@@ -98,25 +123,33 @@ export const SongEdit = () => {
 		},
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset, watch, setValue } = formMethods;
+	const {
+		handleSubmit,
+		reset,
+		watch,
+		setValue,
+		formState,
+	} = formMethods;
 
 	const multiSongTouchedField = watch("touched");
 
 	const handleMutliSongTouchedCheck = (name) => {
-		const updTouched = [...multiSongTouchedField];
-		const idx = updTouched.findIndex(t => t === name);
-		if(idx === -1) {
-			updTouched.push(name);
+		const updTouched = {...multiSongTouchedField};
+		const value = multiSongTouchedField[name];
+		if (value === TouchTypes.edited || value === TouchTypes.set) {
+			updTouched[name] = TouchTypes.unset;
 		}
 		else {
-			updTouched.splice(idx, 1);
+			updTouched[name] = TouchTypes.set;
 		}
 		setValue("touched", updTouched);
 	};
 
 	const isMultSongTouchedChecked = (name) => {
-		if  (!multiSongTouchedField) return false;
-		return multiSongTouchedField.some(t => t === name);
+		if (!multiSongTouchedField) return false;
+		const value = multiSongTouchedField[name];
+		if (value === TouchTypes.edited || value === TouchTypes.set) return true;
+		return false;
 	};
 
 	// eslint-disable-next-line react/prop-types
@@ -130,6 +163,7 @@ export const SongEdit = () => {
 
 	const callSubmit = handleSubmit(async values => {
 		try {
+			values.touched = touchedObjectToArr(values.touched);
 			const data = ids.length < 2 ?
 				await saveSongEdits({ id: ids[0], data: values }) :
 				await saveSongsEditsMulti({ ids, data: values });
@@ -158,6 +192,7 @@ export const SongEdit = () => {
 					if(!callStatus) {
 						dispatch(dispatches.started());
 						const data = await fetchSongsForMultiEdit({ ids });
+						data.touched = createTouchedObject(data.touched);
 						reset(data);
 						dispatch(dispatches.done());
 					}
@@ -174,6 +209,25 @@ export const SongEdit = () => {
 		fetch();
 	}, [dispatch, callStatus, ids ]);
 
+	useEffect(() => {
+		if (ids?.length < 2) return;
+		const multiSongTouchedField = watch("touched");
+		if(!multiSongTouchedField) return;
+		const updTouched = {...multiSongTouchedField};
+		let added = false;
+		for(const key in formState.touchedFields) {
+			const value = updTouched[key];
+			if(!value) {
+				updTouched[key] = TouchTypes.edited;
+				added = true;
+			}
+		}
+		if (added) {
+			setValue("touched", updTouched);
+		}
+
+	},[formState, setValue, watch, ids]);
+
 	const songFilePath = watch("path");
 
 	return (<Loader status={callStatus} error={state.error}>
@@ -185,9 +239,9 @@ export const SongEdit = () => {
 				Path: {songFilePath}
 			</Typography>
 			<Box sx={inputField}>
-				<TouchedCheckbox
+				{ids?.length > 1 && <TouchedCheckbox
 					name="name"
-				/>
+				/>}
 				<FormTextField
 					name="name"
 					formMethods={formMethods}
@@ -197,9 +251,9 @@ export const SongEdit = () => {
 			<Box>
 				<Loader status={artistCallStatus} artistError={artistError}>
 					<Box sx={inputField}>
-						<TouchedCheckbox
+						{ids?.length > 1 && <TouchedCheckbox
 							name="primaryArtist"
-						/>
+						/>}
 						<FormSelect
 							name="primaryArtist"
 							options={artists}
@@ -212,9 +266,9 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<Box sx={inputField}>
-						<TouchedCheckbox
+						{ids?.length > 1 && <TouchedCheckbox
 							name="artists"
-						/>
+						/>}
 						<FormSelect
 							name="artists"
 							options={artists}
@@ -235,9 +289,9 @@ export const SongEdit = () => {
 			<Box>
 				<Loader status={albumCallStatus} artistError={albumError}>
 					<Box sx={inputField}>
-						<TouchedCheckbox
+						{ids?.length > 1 && <TouchedCheckbox
 							name="album"
-						/>
+						/>}
 						<FormSelect
 							name="album"
 							getOptionLabel={(option) => option ?
@@ -260,9 +314,9 @@ export const SongEdit = () => {
 			<Box>
 				<Loader status={tagCallStatus} artistError={tagError}>
 					<Box sx={inputField}>
-						<TouchedCheckbox
+						{ids?.length > 1 && <TouchedCheckbox
 							name="tags"
-						/>
+						/>}
 						<FormSelect
 							name="tags"
 							options={tags}
@@ -281,9 +335,9 @@ export const SongEdit = () => {
 				</Loader>
 			</Box>
 			<Box sx={inputField}>
-				<TouchedCheckbox
+				{ids?.length > 1 && <TouchedCheckbox
 					name="genre"
-				/>
+				/>}
 				<FormTextField
 					name="genre"
 					formMethods={formMethods}

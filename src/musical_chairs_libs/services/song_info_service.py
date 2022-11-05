@@ -701,7 +701,7 @@ class SongInfoService:
 			return iter([])
 		if not songInfo:
 			return self.get_songs_for_edit(ids)
-		if songInfo.touched == None:
+		if not songInfo.touched:
 			songInfo.touched = {f.name for f in fields(SongAboutInfo)}
 		ids = list(ids)
 		songInfo.name = str(SavedNameString(songInfo.name))

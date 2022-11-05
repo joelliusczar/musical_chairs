@@ -7,7 +7,7 @@ export function LoginModal(props) {
 
 	const { open, setOpen } = props;
 
-	const closeModal = function() {
+	const closeModal = () => {
 		setOpen(false);
 	};
 

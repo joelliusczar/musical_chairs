@@ -875,11 +875,6 @@ def populate_user_roles(
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"userFk": 9,
-			"role": UserRoleDef.TAG_EDIT(),
-			"creationTimestamp": orderedTestDates[0].timestamp()
-		},
-		{
 			"userFk": 10,
 			"role": UserRoleDef.STATION_EDIT(),
 			"creationTimestamp": orderedTestDates[0].timestamp()

@@ -58,7 +58,7 @@ def fixture_account_service_mock_current_time(
 	fixture_account_service.get_datetime = _get_test_datetime
 	return fixture_account_service
 
-@pytest.mark.xfail(run=False) #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
+@pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
 def test_when_can_make_request_with_history(
 	fixture_account_service_mock_current_time: AccountsService,
 	fixture_primary_user: AccountInfo
@@ -126,7 +126,7 @@ def _insert_row_into_queue(conn: Connection, userPk: int):
 	stmt = insert(station_queue)
 	conn.execute(stmt, queueParams) #pyright: ignore [reportUnknownMemberType]
 
-@pytest.mark.xfail(run=False) #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
+@pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
 def test_when_can_make_request_with_queue(
 	fixture_account_service_mock_current_time: AccountsService,
 	fixture_primary_user: AccountInfo
@@ -173,7 +173,7 @@ def test_when_can_make_request_with_queue(
 	result = None#accountService.time_til_user_can_make_request(fixture_primary_user)
 	assert result == 0
 
-@pytest.mark.xfail(run=False) #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
+@pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
 def test_when_song_can_be_added_without_role(
 	fixture_account_service_mock_current_time: AccountsService,
 	fixture_primary_user: AccountInfo
@@ -182,7 +182,7 @@ def test_when_song_can_be_added_without_role(
 	result = None#accountService.time_til_user_can_make_request(fixture_primary_user)
 	assert result == -1
 
-@pytest.mark.xfail(run=False) #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
+@pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
 def test_when_song_can_be_added_with_admin(
 	fixture_account_service_mock_current_time: AccountsService,
 	fixture_primary_user: AccountInfo

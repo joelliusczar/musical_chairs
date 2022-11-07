@@ -16,8 +16,6 @@ export function FormTextField(props) {
 
 	const { ref, ...rest} = register(name);
 
-	console.log(error);
-
 	return (
 		<TextField
 			{...rest}

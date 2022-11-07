@@ -80,17 +80,28 @@ export function AppRoutes() {
 			>
 				<AccountsRoles />
 			</PrivateRoute>
-			<Route
+			<PrivateRoute
 				path={`${DomRoutes.stationsEdit}`}
+				scopes={[UserRoleDef.STATION_EDIT]}
 			>
 				<StationEdit />
-			</Route>
-			<Route path={`${DomRoutes.songEdit}`}>
+			</PrivateRoute>
+			<PrivateRoute
+				path={`${DomRoutes.songEdit}`}
+				scopes={[UserRoleDef.SONG_EDIT]}
+			>
 				<SongEdit />
-			</Route>
-			<Route path={DomRoutes.songTree}>
+			</PrivateRoute>
+			<PrivateRoute
+				path={DomRoutes.songTree}
+				scopes={[
+					UserRoleDef.SONG_TREE_LIST,
+					UserRoleDef.SONG_EDIT,
+					UserRoleDef.SONG_DOWNLOAD,
+				]}
+			>
 				<SongTree />
-			</Route>
+			</PrivateRoute>
 			<Route>
 				<NotFound />
 			</Route>

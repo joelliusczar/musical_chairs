@@ -349,14 +349,14 @@ class SongInfoService:
 
 	def validate_stations_songs(
 		self,
-		songTags: Iterable[StationSongTuple]
+		stationSongs: Iterable[StationSongTuple]
 	) -> Iterable[StationSongTuple]:
-		if not songTags:
+		if not stationSongs:
 			return iter([])
 		query = select(
 			sg_pk,
 			st_pk
-		).where(dbTuple(sg_pk, st_pk).in_(songTags))
+		).where(dbTuple(sg_pk, st_pk).in_(stationSongs))
 
 		records = self.conn.execute(query)
 		yield from (StationSongTuple(

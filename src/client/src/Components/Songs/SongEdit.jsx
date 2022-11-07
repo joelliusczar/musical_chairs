@@ -70,6 +70,41 @@ const touchedObjectToArr = (touchedObj) => {
 };
 
 const schema = Yup.object().shape({
+	"primaryArtist": Yup.object().nullable().test(
+		"primaryArtist",
+		"Primary Artist is already listed.",
+		(value, testContext) => {
+			if (testContext.parent.artists?.some(a => a?.id === value?.id)) {
+				return false;
+			}
+			return true;
+		}
+	),
+	"artists": Yup.array().nullable().test(
+		"artists",
+		"",
+		(value, testContext) => {
+			if (!value) return true;
+			const found = {};
+			for (const artist of value) {
+				if (artist?.id === testContext.parent.primaryArtist?.id) {
+					return testContext.createError({
+						message: `Artist ${artist.name} has already been added` +
+						"as primary artist",
+					});
+				}
+				if (found[artist?.id]) {
+					return testContext.createError({
+						message: `Artist ${artist.name} has already been added`,
+					});
+				}
+				if (artist?.id) {
+					found[artist.id] = true;
+				}
+			}
+			return true;
+		}
+	),
 });
 
 export const SongEdit = () => {

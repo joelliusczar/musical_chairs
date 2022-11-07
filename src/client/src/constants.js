@@ -46,6 +46,7 @@ export const UserRoleDef = {
 	"ADMIN": "admin::",
 	"SONG_EDIT": "song:edit:",
 	"SONG_REQUEST": "song:request:",
+	"SONG_DOWNLOAD": "song:download:",
 	"STATION_EDIT": "station:edit:",
 	"STATION_DELETE": "station:delete:",
 	"USER_LIST": "user:list:",

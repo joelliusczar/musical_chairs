@@ -9,12 +9,12 @@ import { FormTextField } from "../Shared/FormTextField";
 import {
 	useArtistData,
 	useAlbumData,
-	useTagData,
+	useStationData,
 } from "../../Context_Providers/AppContextProvider";
 import Loader from "../Shared/Loader";
 import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
 import { AlbumNewModalOpener } from "../Albums/AlbumEdit";
-import { TagNewModalOpener } from "../Tags/TagEdit";
+import { StationNewModalOpener } from "../Stations/StationEdit";
 import { useLocation } from "react-router-dom";
 import {
 	waitingReducer,
@@ -99,12 +99,12 @@ export const SongEdit = () => {
 	} = useAlbumData();
 
 	const {
-		items: tags,
-		callStatus: tagCallStatus,
-		error: tagError,
-		add: addTag,
-		idMapper: tagMapper,
-	} = useTagData();
+		items: stations,
+		callStatus: stationCallStatus,
+		error: stationError,
+		add: addStation,
+		idMapper: stationMapper,
+	} = useStationData();
 
 	const formMethods = useForm({
 		defaultValues: {
@@ -118,7 +118,7 @@ export const SongEdit = () => {
 				id: 0,
 				name: "",
 			},
-			tags: [],
+			stations: [],
 			genre: "",
 		},
 		resolver: yupResolver(schema),
@@ -312,17 +312,17 @@ export const SongEdit = () => {
 				</Loader>
 			</Box>
 			<Box>
-				<Loader status={tagCallStatus} artistError={tagError}>
+				<Loader status={stationCallStatus} artistError={stationError}>
 					<Box sx={inputField}>
 						{ids?.length > 1 && <TouchedCheckbox
-							name="tags"
+							name="stations"
 						/>}
 						<FormSelect
-							name="tags"
-							options={tags}
+							name="stations"
+							options={stations}
 							formMethods={formMethods}
-							label="Tags"
-							transform={{input: tagMapper}}
+							label="Stations"
+							transform={{input: stationMapper}}
 							classes={{
 								root: classes.dropdownField,
 							}}
@@ -330,7 +330,7 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<Box sx={inputField}>
-						<TagNewModalOpener add={addTag} />
+						<StationNewModalOpener add={addStation} />
 					</Box>
 				</Loader>
 			</Box>

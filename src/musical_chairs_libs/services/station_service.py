@@ -1,12 +1,11 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
-import itertools
 from typing import\
 	Any,\
-	Callable,\
 	Iterator,\
 	Optional,\
-	Tuple,\
-	cast
+	cast,\
+	Iterable,\
+	Union
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.engine import Connection
@@ -17,43 +16,38 @@ from sqlalchemy import select, \
 	update
 from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.tables import\
-	stations as stations_tbl, \
-	tags as tags_tbl, \
-	stations_tags as stations_tags_tbl, \
-	songs_tags, \
+	stations as stations_tbl, st_pk,\
 	songs, \
 	albums, \
 	artists, \
-	song_artist
+	song_artist,\
+	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk
 from musical_chairs_libs.dtos_and_utilities import\
-	Tag,\
 	StationInfo, \
 	SongListDisplayItem,\
 	StationCreationInfo,\
 	SavedNameString,\
 	get_datetime,\
 	build_error_obj,\
-	OSProcessManager
+	OSProcessManager,\
+	Sentinel,\
+	missing
 from musical_chairs_libs.errors import AlreadyUsedError
 from .env_manager import EnvManager
-from .tag_service import TagService
 
 sg: ColumnCollection = songs.columns
 st: ColumnCollection = stations_tbl.columns
-sttg: ColumnCollection = stations_tags_tbl.columns
-sgtg: ColumnCollection = songs_tags.columns
 sgar: ColumnCollection = song_artist.columns
 ab: ColumnCollection = albums.columns
 ar: ColumnCollection = artists.columns
-tg: ColumnCollection = tags_tbl.columns
+
 
 class StationService:
 
 	def __init__(self,
 		conn: Optional[Connection]=None,
 		envManager: Optional[EnvManager]=None,
-		processManager: Optional[OSProcessManager]=None,
-		tagService: Optional[TagService]=None
+		processManager: Optional[OSProcessManager]=None
 	):
 		if not conn:
 			if not envManager:
@@ -61,11 +55,8 @@ class StationService:
 			conn = envManager.get_configured_db_connection()
 		if not processManager:
 			processManager = OSProcessManager()
-		if not tagService:
-			tagService = TagService(conn)
 		self.conn = conn
 		self.process_manager = processManager
-		self.tag_service = tagService
 		self.get_datetime = get_datetime
 
 	def set_station_proc(self, stationName: str) -> None:
@@ -90,7 +81,7 @@ class StationService:
 		stmt = update(stations_tbl).values(procId = None)
 		self.conn.execute(stmt)
 
-	def get_station_pk(self, stationName: str) -> Optional[int]:
+	def get_station_id(self, stationName: str) -> Optional[int]:
 		query = select(st.pk) \
 			.select_from(stations_tbl) \
 			.where(func.lower(st.name) == func.lower(stationName))
@@ -115,34 +106,33 @@ class StationService:
 		return True
 
 	def remove_station(self, stationName: str) -> None:
-		stationPk = self.get_station_pk(stationName)
-		assignedTagsDel = delete(stations_tags_tbl)\
-			.where(sttg.stationFk == stationPk)
+		stationId = self.get_station_id(stationName)
+		assignedTagsDel = delete(stations_songs_tbl)\
+			.where(stsg_stationFk == stationId)
 		self.conn.execute(assignedTagsDel)
-		stationDel = delete(stations_tbl).where(st.stationPk == stationPk)
+		stationDel = delete(stations_tbl).where(st.stationPk == stationId)
 		self.conn.execute(stationDel)
 
-	def get_stations_with_songs_list(self) -> Iterator[StationInfo]:
+	def get_stations(
+		self,
+		stationId: Union[Optional[int], Sentinel]=missing,
+		#sentinel is only needed for id because None and 0 are both legit values
+		stationIds: Optional[Iterable[int]]=None,) -> Iterator[StationInfo]:
 		query = select(
 			st.pk,
 			st.name,
-			tg.name,
-			tg.pk,
 			st.displayName,
-		).select_from(stations_tbl) \
-			.join(stations_tags_tbl, st.pk == sttg.stationFk) \
-			.join(tags_tbl, sttg.tagFk == tg.pk)
+		).select_from(stations_tbl)
+		if stationId:
+			query = query.where(st_pk == stationId)
+		elif isinstance(stationIds, Iterable):
+			query = query.where(st_pk.in_(stationIds))
 		records = self.conn.execute(query)
-		partitionFn: Callable[[Row], Tuple[int, str, str]] = \
-			lambda r: (r[st.pk], r[st.name], r["displayName"])
-		for key, group in itertools.groupby(records, partitionFn): #pyright: ignore [reportUnknownVariableType]
+		for row in cast(Iterable[Row], records):
 			yield StationInfo(
-				id=key[0],
-				name=key[1],
-				displayName=key[2],
-				tags=[
-					Tag(id=r[tg.pk],name=r[tg.name]) for r in cast(Iterator[Row], group)
-				]
+				id=cast(int,row[st.pk]),
+				name=cast(str,row[st.name]),
+				displayName=cast(str,row[st.displayName])
 			)
 
 	def _attach_catalogue_joins(
@@ -153,9 +143,8 @@ class StationService:
 	) -> Any:
 		appended_query = baseQuery\
 			.select_from(stations_tbl) \
-			.join(stations_tags_tbl, st.pk == sttg.stationFk) \
-			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
-			.join(songs, sg.pk == sgtg.songFk) \
+			.join(stations_songs_tbl, st.pk == stsg_stationFk) \
+			.join(songs, sg.pk == stsg_songFk) \
 			.join(albums, sg.albumFk == ab.pk, isouter=True) \
 			.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
 			.join(artists, sgar.artistFk == ar.pk, isouter=True) \
@@ -205,23 +194,10 @@ class StationService:
 				artist=cast(str, row.artist)
 			)
 
-	def assign_tag_to_station(self, stationName: str, tagName: str) -> bool:
-		stationPk = self.get_station_pk(stationName)
-		tagPk = self.tag_service.get_or_save_tag(tagName)
-		try:
-			stmt = insert(stations_tags_tbl)\
-				.values(stationFk = stationPk, tagFk = tagPk)
-			self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
-			return True
-		except IntegrityError:
-			print("Could not insert")
-			return False
-
-	def can_song_be_queued_to_station(self, songPk: int, stationPk: int) -> bool:
-		query = select(func.count(1)).select_from(songs_tags)\
-			.join(stations_tags_tbl, (sttg.tagFk == sgtg.tagFk)\
-				& (sttg.stationFk == stationPk))\
-			.where(sgtg.songFk == songPk)
+	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:
+		query = select(func.count(1)).select_from(stations_songs_tbl)\
+			.where(stsg_songFk == songId)\
+			.where(stsg_stationFk == stationId)
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
 
@@ -250,17 +226,12 @@ class StationService:
 		else:
 			return None
 		row = self.conn.execute(query).fetchone()
-		tags = self.tag_service.get_tags(
-			stationId=stationId,
-			stationName=stationName
-		)
 		if not row:
 			return None
 		return StationInfo(
 			id=stationId or row["pk"],
 			name=row["name"],
-			displayName=row["displayName"],
-			tags=list(tags)
+			displayName=row["displayName"]
 		)
 
 	def save_station(
@@ -292,11 +263,8 @@ class StationService:
 			)
 
 		affectedPk: int = stationId if stationId else res.lastrowid
-		resultTags = self.tag_service\
-			.add_tags_to_station(affectedPk, station.tags, userId)
 		return StationInfo(
 			id=affectedPk,
 			name=str(savedName),
 			displayName=str(savedDisplayName),
-			tags=list(resultTags)
 		)

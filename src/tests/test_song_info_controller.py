@@ -44,10 +44,18 @@ def test_song_save(
 		"id": 10,
 		"name": "juliet_artist"
 	}
-	sendData["tags"] = [
-		{ "id": 2, "name": "lima_tag" },
-		{ "id": 7, "name": "romeo_tag" },
-		{ "id": 10, "name": "uniform_tag" }
+	sendData["stations"] = [
+		{ "id": 2, "name": "papa_station", "displayName": "Come to papa" },
+		{
+			"id": 7,
+			"name": "uniform_station",
+			"displayName": "Asshole at the wheel"
+		},
+		{
+			"id": 10,
+			"name": "xray_station",
+			"displayName": "Pentagular"
+		}
 	]
 	sendData["artists"] = [
 		{ "id": 9, "name": "india_artist" },
@@ -116,8 +124,13 @@ def test_get_songs_for_multi_edit(
 	assert "explicit" not in touched
 	assert data["lyrics"] == None
 	assert "lyrics" in touched
-	assert data["tags"] == [{ "id": 1, "name": "kilo_tag"}]
-	assert "tags" in touched
+	assert data["stations"] == [
+		{ "id": 1,
+			"name": "oscar_station",
+			"displayName": "Oscar the grouch"
+		}
+	]
+	assert "stations" in touched
 	assert "touched" not in touched
 
 def test_song_save_for_multi_edit(
@@ -160,26 +173,34 @@ def test_song_save_for_multi_edit(
 	assert len(set(d["duration"] for d in data0)) == 1
 	assert len(set(d["explicit"] for d in data0)) == 1
 	assert len(set(d["lyrics"] for d in data0)) == 1
-	tagsLen = len(set(
-		(*sorted(a["id"] for a in d["tags"]),)
-		for d in data0 if d["tags"])
+	stationsLen = len(set(
+		(*sorted(a["id"] for a in d["stations"]),)
+		for d in data0 if d["stations"])
 	)
-	assert tagsLen == 5
+	assert stationsLen == 5
 
 	sendData = {
 		"album": {
 			"id": 12, "name": "garoo_album"
 		},
-		"tags": [
-			{ "id": 6, "name": "papa_tag" },
-			{ "id": 8, "name": "sierra_tag" }
+		"stations": [
+			{
+				"id": 6,
+				"name": "yankee_station",
+				"displayName": "Blurg the blergos"
+			},
+			{
+				"id": 8,
+				"name": "victor_station",
+				"displayName": "Fat, drunk, and stupid"
+			}
 		],
 		"primaryArtist": { "id": 14, "name": "oscar_artist" },
 		"artists": [
 			{ "id": 8, "name": "hotel_artist" },
 			{ "id": 1, "name": "alpha_artist" }
 		],
-		"touched": ["album", "tags", "primaryArtist", "artists"]
+		"touched": ["album", "stations", "primaryArtist", "artists"]
 	}
 
 	putResponse = client.put(
@@ -224,11 +245,11 @@ def test_song_save_for_multi_edit(
 	assert len(set(d["duration"] for d in data2)) == 1
 	assert len(set(d["explicit"] for d in data2)) == 1
 	assert len(set(d["lyrics"] for d in data2)) == 1
-	tagsLen = len(set(
-		(*sorted(a["id"] for a in d["tags"]),)
-		for d in data2 if d["tags"])
+	stationsLen = len(set(
+		(*sorted(a["id"] for a in d["stations"]),)
+		for d in data2 if d["stations"])
 	)
-	assert tagsLen == 1
+	assert stationsLen == 1
 
 	getResponseAfter = client.get(
 		f"song-info/songs/multi/{idList}",
@@ -284,23 +305,31 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	assert len(set(d["duration"] for d in data0)) == 1
 	assert len(set(d["explicit"] for d in data0)) == 1
 	assert len(set(d["lyrics"] for d in data0)) == 1
-	tagsLen = len(set(
-		(*sorted(a["id"] for a in d["tags"]),)
-		for d in data0 if d["tags"])
+	stationsLen = len(set(
+		(*sorted(a["id"] for a in d["stations"]),)
+		for d in data0 if d["stations"])
 	)
-	assert tagsLen == 2
+	assert stationsLen == 2
 
 	sendData = {
 		"album": {
 			"id": 12, "name": "garoo_album"
 		},
-		"tags": [
-			{ "id": 6, "name": "papa_tag" },
-			{ "id": 8, "name": "sierra_tag" }
+		"stations": [
+			{
+				"id": 6,
+				"name": "yankee_station",
+				"displayName": "Blurg the blergos"
+			},
+			{
+				"id": 8,
+				"name": "victor_station",
+				"displayName": "Fat, drunk, and stupid"
+			},
 		],
 		"artists": [],
 		"primaryArtist": { "id": 5, "name": "foxtrot_artist" },
-		"touched": ["album", "tags", "primaryArtist", "artists"]
+		"touched": ["album", "stations", "primaryArtist", "artists"]
 	}
 
 	putResponse = client.put(
@@ -346,11 +375,11 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	assert len(set(d["duration"] for d in data2)) == 1
 	assert len(set(d["explicit"] for d in data2)) == 1
 	assert len(set(d["lyrics"] for d in data2)) == 1
-	tagsLen = len(set(
-		(*sorted(a["id"] for a in d["tags"]),)
-		for d in data2 if d["tags"])
+	stationsLen = len(set(
+		(*sorted(a["id"] for a in d["stations"]),)
+		for d in data2 if d["stations"])
 	)
-	assert tagsLen == 1
+	assert stationsLen == 1
 
 	getResponseAfter = client.get(
 		f"song-info/songs/multi/{idList}",

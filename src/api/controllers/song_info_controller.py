@@ -8,9 +8,9 @@ from fastapi import\
 	Query
 from api_dependencies import \
 	song_info_service,\
-	get_current_user,\
-	tag_service
-from musical_chairs_libs.services import SongInfoService, TagService
+	station_service,\
+	get_current_user
+from musical_chairs_libs.services import SongInfoService, StationService
 from musical_chairs_libs.dtos_and_utilities import SongTreeNode,\
 	ListData,\
 	AlbumInfo,\
@@ -67,17 +67,19 @@ def get_songs_for_multi_edit(
 
 def extra_validated_song(
 	song: ValidatedSongAboutInfo = Body(default=None),
-	tagService: TagService = Depends(tag_service),
+	stationService: StationService = Depends(station_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> ValidatedSongAboutInfo:
-	tagIds = {t.id for t in song.tags or []}
-	dbTags = {t.id for t in tagService.get_tags(tagIds=tagIds)}
-	if tagIds - dbTags:
+	stationIds = {s.id for s in song.stations or []}
+	dbStations = {s.id for s in stationService.get_stations(stationIds=stationIds)}
+	if stationIds - dbStations:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail=[
 				build_error_obj(
-					f"Tags associated with ids {str(tagIds)} do not exist", "tags")],
+					f"Stations associated with ids {str(stationIds)} do not exist",
+					"Stations"
+				)],
 		)
 	artistIds = {a.id for a in song.allArtists}
 	dbArtists = {a.id for a in songInfoService.get_artists(artistIds=artistIds)}
@@ -86,7 +88,7 @@ def extra_validated_song(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail=[
 				build_error_obj(
-					f"Artists associated with ids {str(tagIds)} do not exist", "artists")],
+					f"Artists associated with ids {str(stationIds)} do not exist", "artists")],
 		)
 	return song
 

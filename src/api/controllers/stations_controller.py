@@ -13,14 +13,12 @@ from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
 from musical_chairs_libs.services import\
 	StationService,\
 	HistoryService,\
-	QueueService,\
-	TagService
+	QueueService
 from api_dependencies import \
 	station_service,\
 	history_service,\
 	queue_service,\
-	get_current_user,\
-	tag_service
+	get_current_user
 
 
 router = APIRouter(prefix="/stations")
@@ -29,7 +27,7 @@ router = APIRouter(prefix="/stations")
 def index(
 	stationService: StationService = Depends(station_service)
 ) -> Dict[str, List[StationInfo]]:
-	stations = list(stationService.get_stations_with_songs_list())
+	stations = list(stationService.get_stations())
 	return { "items": stations }
 
 @router.get("/{stationName}/history")
@@ -124,24 +122,9 @@ def get_station_for_edit(
 ) -> StationInfo:
 	return stationInfo
 
-def extra_validated_station(
-	station: ValidatedStationCreationInfo = Body(default=None),
-	tagService: TagService = Depends(tag_service)
-) -> ValidatedStationCreationInfo:
-	tagIds = {t.id for t in station.tags or []}
-	dbTags = {t.id for t in tagService.get_tags(tagIds=tagIds)}
-	if tagIds - dbTags:
-		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[
-				build_error_obj(
-					f"Tags associated with ids {str(tagIds)} do not exist", "tags")],
-		)
-	return station
-
 @router.post("")
 def create_station(
-	station: ValidatedStationCreationInfo = Depends(extra_validated_station),
+	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
 		get_current_user,
@@ -149,12 +132,12 @@ def create_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station, userId=user.id)
-	return result or StationInfo(id=-1,name="",displayName="",tags=[])
+	return result or StationInfo(id=-1,name="",displayName="")
 
 @router.put("")
 def update_station(
 	id: int,
-	station: ValidatedStationCreationInfo = Depends(extra_validated_station),
+	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
 		get_current_user,
@@ -162,7 +145,7 @@ def update_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station, id, userId=user.id)
-	return result or StationInfo(id=-1,name="",displayName="",tags=[])
+	return result or StationInfo(id=-1,name="",displayName="")
 
 
 # def request(self, stationName, songPk):

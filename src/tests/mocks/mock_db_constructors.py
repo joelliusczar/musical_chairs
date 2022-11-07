@@ -9,10 +9,8 @@ from .db_population import populate_artists,\
 	populate_albums,\
 	populate_songs,\
 	populate_songs_artists,\
-	populate_tags,\
-	populate_songs_tags,\
+	populate_stations_songs,\
 	populate_stations,\
-	populate_station_tags,\
 	populate_users,\
 	populate_user_roles
 
@@ -51,10 +49,8 @@ def setup_in_mem_tbls(
 	populate_albums(conn)
 	populate_songs(conn)
 	populate_songs_artists(conn)
-	populate_tags(conn)
-	populate_songs_tags(conn)
+	populate_stations_songs(conn)
 	populate_stations(conn)
-	populate_station_tags(conn)
 	populate_users(conn, orderedTestDates, primaryUser, testPassword)
 	populate_user_roles(conn, orderedTestDates, primaryUser)
 

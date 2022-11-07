@@ -75,18 +75,16 @@ class Tag:
 	id: int
 	name: str
 
-@dataclass()
+@dataclass(frozen=True)
 class StationInfo:
 	id: int
 	name: str
-	displayName: str
-	tags: Optional[List[Tag]]
+	displayName: str=field(default="", hash=False, compare=False)
 
 @dataclass()
 class StationCreationInfo:
 	name: str
 	displayName: Optional[str]=""
-	tags: Optional[List[Tag]]=field(default_factory=list)
 
 @pydanticDataclass
 class ValidatedStationCreationInfo(StationCreationInfo):
@@ -95,19 +93,6 @@ class ValidatedStationCreationInfo(StationCreationInfo):
 		"name",
 		allow_reuse=True
 	)(min_length_validator_factory(2, "Station name"))
-
-	@validator("tags")
-	def check_tags_duplicates(cls, v: List[Tag]) -> List[Tag]:
-		if not v:
-			return []
-
-		duplicate = next(get_duplicates(t.id for t in v), None)
-		if duplicate:
-			raise ValueError(
-				f"Tag with id {duplicate[0]} has been added {duplicate[1]} times "
-				"but it is only legal to add it once."
-			)
-		return v
 
 
 @dataclass(frozen=True)
@@ -126,9 +111,9 @@ class SongArtistGrouping:
 		return iter(self.artists or [])
 
 @dataclass(frozen=True)
-class SongTagTuple:
+class StationSongTuple:
 	songId: int
-	tagId: int
+	stationId: int
 	isLinked: bool=field(default=False, hash=False, compare=False)
 
 	def __len__(self) -> int:
@@ -136,7 +121,7 @@ class SongTagTuple:
 
 	def __iter__(self) -> Iterator[Any]:
 		yield self.songId
-		yield self.tagId
+		yield self.stationId
 
 @dataclass(frozen=True)
 class SongArtistTuple:
@@ -181,7 +166,7 @@ class SongAboutInfo:
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 	lyrics: Optional[str]=""
-	tags: Optional[list[Tag]]=field(default_factory=list)
+	stations: Optional[list[StationInfo]]=field(default_factory=list)
 	touched: Optional[set[str]]=None
 
 	@property
@@ -199,15 +184,15 @@ class SongEditInfo(SongAboutInfo, SongPathInfo):
 @pydanticDataclass
 class ValidatedSongAboutInfo(SongAboutInfo):
 
-	@validator("tags")
-	def check_tags_duplicates(cls, v: List[Tag]) -> List[Tag]:
+	@validator("stations")
+	def check_tags_duplicates(cls, v: List[StationInfo]) -> List[StationInfo]:
 		if not v:
 			return []
 
 		duplicate = next(get_duplicates(t.id for t in v), None)
 		if duplicate:
 			raise ValueError(
-				f"Tag with id {duplicate[0]} has been added {duplicate[1]} times "
+				f"Station with id {duplicate[0]} has been added {duplicate[1]} times "
 				"but it is only legal to add it once."
 			)
 		return v

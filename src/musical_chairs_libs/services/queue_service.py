@@ -26,8 +26,7 @@ from musical_chairs_libs.tables import \
 	stations_history, \
 	songs, \
 	stations,\
-	stations_tags, \
-	songs_tags, \
+	stations_songs as stations_songs_tbl, stsg_stationFk, stsg_songFk,\
 	station_queue, \
 	albums, \
 	artists, \
@@ -94,15 +93,12 @@ class QueueService:
 	def get_all_station_song_possibilities(self, stationPk: int) -> List[Row]:
 		st: ColumnCollection = stations.columns
 		sg: ColumnCollection = songs.columns
-		sttg: ColumnCollection = stations_tags.columns
-		sgtg: ColumnCollection = songs_tags.columns
 		hist: ColumnCollection = stations_history.columns
 
 		query = select(sg.pk, sg.path) \
 			.select_from(stations) \
-			.join(stations_tags, st.pk == sttg.stationFk) \
-			.join(songs_tags, sgtg.tagFk == sttg.tagFk) \
-			.join(songs, sg.pk == sgtg.songFk) \
+			.join(stations_songs_tbl, st.pk == stsg_stationFk) \
+			.join(songs, sg.pk == stsg_songFk) \
 			.join(stations_history, (hist.stationFk == st.pk) \
 				& (hist.songFk == sg.pk), isouter=True) \
 			.where(st.pk == stationPk) \
@@ -231,7 +227,7 @@ class QueueService:
 	) -> Tuple[str, Optional[str], Optional[str], Optional[str]]:
 		if not stationPk:
 			if stationName:
-				stationPk = self.station_service.get_station_pk(stationName)
+				stationPk = self.station_service.get_station_id(stationName)
 		if not stationPk:
 			raise ValueError("Either stationName or pk must be provided")
 		if self.is_queue_empty(stationPk):
@@ -271,7 +267,7 @@ class QueueService:
 		stationName: str,
 		user: AccountInfo
 	):
-		stationPk = self.station_service.get_station_pk(stationName)
+		stationPk = self.station_service.get_station_id(stationName)
 		if stationPk and self.station_service.can_song_be_queued_to_station(
 				songPk,
 				stationPk
@@ -290,7 +286,7 @@ class QueueService:
 	) -> CurrentPlayingInfo:
 		if not stationPk:
 			if stationName:
-				stationPk = self.station_service.get_station_pk(stationName)
+				stationPk = self.station_service.get_station_id(stationName)
 			else:
 				raise ValueError("Either stationName or pk must be provided")
 		queue = list(self.get_queue_for_station(stationPk))

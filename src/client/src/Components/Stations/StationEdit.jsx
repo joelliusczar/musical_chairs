@@ -1,34 +1,32 @@
-import React, { useReducer, useEffect } from "react";
-import { Box, Typography, Button } from "@mui/material";
+import React, { useState, useReducer, useEffect } from "react";
+import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
+import PropTypes from "prop-types";
+import { useSnackbar } from "notistack";
 import {
 	saveStation,
-	fetchStationForEdit,
 	checkValues,
+	fetchStationForEdit,
 } from "../../API_Calls/stationCalls";
-import { useSnackbar } from "notistack";
+import { useForm } from "react-hook-form";
+import { formatError } from "../../Helpers/error_formatter";
+import * as Yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { useHistory, useLocation } from "react-router-dom";
-import { DomRoutes } from "../../constants";
 import {
 	waitingReducer,
 	initialState,
 	dispatches,
 } from "../Shared/waitingReducer";
-import * as Yup from "yup";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { formatError } from "../../Helpers/error_formatter";
-import {
-	useTagData,
-} from "../../Context_Providers/AppContextProvider";
-import { TagNewModalOpener } from "../Tags/TagEdit";
-import { FormSelect } from "../Shared/FormSelect";
-import Loader from "../Shared/Loader";
-
-
+import { DomRoutes } from "../../constants";
 
 const inputField = {
 	margin: 2,
+};
+
+const initialValues = {
+	name: "",
+	displayName: "",
 };
 
 const validatePhraseIsUnused = async (value, context) => {
@@ -46,31 +44,43 @@ const schema = Yup.object().shape({
 	),
 });
 
-export const StationEdit = () => {
+export const StationEdit = (props) => {
+	const { onCancel, idKey, nameKey } = props;
 	const { enqueueSnackbar } = useSnackbar();
 	const urlHistory = useHistory();
-	const [state, dispatch] = useReducer(waitingReducer(), initialState);
-	const { callStatus } = state;
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
-	const id = queryObj.get("id");
-	const nameQueryStr = queryObj.get("name");
+	const _idKey = idKey || "id";
+	const _nameKey = nameKey || "name";
+	const id = queryObj.get(_idKey);
+	const nameFromQueryStr = queryObj.get(_nameKey);
+	const [state, dispatch] = useReducer(waitingReducer(), initialState);
+	const { callStatus } = state;
 
-	const {
-		items: tags,
-		callStatus: tagCallStatus,
-		error: tagError,
-		add: addTag,
-		idMapper: tagMapper,
-	} = useTagData();
+	const getPageUrl = (params) => {
+		let queryStr = null;
+		if(queryObj) {
+			if(params.id) {
+				queryObj.set(_idKey, params.id);
+			}
+			if(params.name) {
+				queryObj.set(_nameKey, params.name);
+			}
+			queryStr = `?${queryObj.toString()}`;
+		}
+		return `${DomRoutes.stationsEdit}${queryStr}`;
+	};
+
+	const _afterSubmit = (data) => {
+		reset(data);
+		urlHistory.replace(getPageUrl({ id: data.id }));
+	};
+
+	const afterSubmit = props.afterSubmit || _afterSubmit;
 
 
 	const formMethods = useForm({
-		defaultValues: {
-			name: "",
-			displayName: "",
-			tags: [],
-		},
+		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
 	const { handleSubmit, reset } = formMethods;
@@ -78,39 +88,25 @@ export const StationEdit = () => {
 		try {
 			const stationId = id ? id : values.id ? values.id : null;
 			const data = await saveStation({ values, id: stationId });
-			reset(data);
-			urlHistory.replace(getPageUrl({ id: data.id }));
+			afterSubmit(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err) {
 			enqueueSnackbar(formatError(err), { variant: "error"});
+			console.error(err);
 		}
 	});
-
-	const getPageUrl = (params) => {
-		let queryStr = null;
-		if(queryObj) {
-			if(params.id) {
-				queryObj.set("id", params.id);
-			}
-			if(params.name) {
-				queryObj.set("rows", params.name);
-			}
-			queryStr = `?${queryObj.toString()}`;
-		}
-		return `${DomRoutes.stationsEdit}${queryStr}`;
-	};
 
 	useEffect(() => {
 		const fetch = async () => {
 			try {
-				if(id || nameQueryStr) {
+				if(id || nameFromQueryStr) {
 					if(!callStatus) {
 						dispatch(dispatches.started());
 						const data = await fetchStationForEdit({
 							params: {
 								id,
-								name: nameQueryStr,
+								name: nameFromQueryStr,
 							},
 						});
 						reset(data);
@@ -118,7 +114,7 @@ export const StationEdit = () => {
 					}
 				}
 				else {
-					reset();
+					reset(initialValues);
 				}
 			}
 			catch(err) {
@@ -127,8 +123,7 @@ export const StationEdit = () => {
 		};
 
 		fetch();
-	}, [dispatch, callStatus, id, nameQueryStr]);
-
+	}, [dispatch, callStatus, id, nameFromQueryStr]);
 
 	return (
 		<>
@@ -140,39 +135,67 @@ export const StationEdit = () => {
 			<Box sx={inputField}>
 				<FormTextField
 					name="name"
+					label="Name"
 					formMethods={formMethods}
-					label="Internal Name"
 				/>
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
 					name="displayName"
-					formMethods={formMethods}
 					label="Display Name"
+					formMethods={formMethods}
 				/>
-			</Box>
-			<Box>
-				<Loader status={tagCallStatus} artistError={tagError}>
-					<Box sx={inputField}>
-						<FormSelect
-							name="tags"
-							options={tags}
-							formMethods={formMethods}
-							label="Tags"
-							transform={{input: tagMapper}}
-							multiple
-						/>
-					</Box>
-					<Box sx={inputField}>
-						<TagNewModalOpener add={addTag} />
-					</Box>
-				</Loader>
 			</Box>
 			<Box sx={inputField} >
 				<Button onClick={callSubmit}>
 					Submit
 				</Button>
+				{onCancel &&<Button onClick={onCancel}>
+						Cancel
+				</Button>}
 			</Box>
 		</>
 	);
+};
+
+StationEdit.propTypes = {
+	afterSubmit: PropTypes.func,
+	onCancel: PropTypes.func,
+	idKey: PropTypes.string,
+	nameKey: PropTypes.string,
+};
+
+
+export const StationNewModalOpener = (props) => {
+
+	const { add } = props;
+
+	const [itemNewOpen, setItemNewOpen ] = useState(false);
+
+	const closeModal = () => {
+		setItemNewOpen(false);
+	};
+
+	const itemCreated = (item) => {
+		add && add(item);
+		closeModal();
+	};
+
+	return (
+		<>
+			<Box>
+				<Button onClick={() => setItemNewOpen(true)}>Add New Station</Button>
+			</Box>
+			<Dialog open={itemNewOpen} onClose={closeModal}>
+				<StationEdit
+					afterSubmit={itemCreated}
+					onCancel={closeModal}
+					idKey={"stationId"}
+				/>
+			</Dialog>
+		</>);
+};
+
+StationNewModalOpener.propTypes = {
+	add: PropTypes.func,
 };

@@ -102,27 +102,6 @@ _sc_songFk: Any = song_covers.c.songFk #pyright: ignore reportUnknownMemberType
 _sc_coverSongFk: Any = song_covers.c.coverSongFk #pyright: ignore reportUnknownMemberType
 Index("idx_songCovers", _sc_songFk, _sc_coverSongFk, unique=True)
 
-tags = Table("Tags", metadata,
-	Column("pk", Integer, primary_key=True),
-	Column("name", String, nullable=False),
-	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
-		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True)
-)
-_tg_name: Any = tags.c.name #pyright: ignore reportUnknownMemberType
-Index("idx_uniqueTagName", _tg_name, unique=True)
-
-songs_tags = Table("SongsTags", metadata,
-	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
-	Column("tagFk", Integer, ForeignKey("Tags.pk"), nullable=False),
-	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
-		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True)
-)
-sgtg_songFk: Any = songs_tags.c.songFk #pyright: ignore reportUnknownMemberType
-sgtg_tagFk: Any = songs_tags.c.tagFk #pyright: ignore reportUnknownMemberType
-Index("idx_songsTags", sgtg_songFk, sgtg_tagFk, unique=True)
-
 stations = Table("Stations", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("name", String, nullable=False),
@@ -135,29 +114,16 @@ stations = Table("Stations", metadata,
 _st_name: Any = stations.c.name #pyright: ignore reportUnknownMemberType
 Index("idx_uniqueStationName", _st_name, unique=True)
 
-stations_tags = Table("StationsTags", metadata,
-	Column("stationFk", Integer, nullable=False),
-	Column("tagFk", Integer, nullable=False),
-	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
-		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True)
-)
-
-_sttg_stationFk: Any = stations_tags.c.stationFk #pyright: ignore reportUnknownMemberType
-_sttg_tagFk: Any = stations_tags.c.tagFk #pyright: ignore reportUnknownMemberType
-Index("idx_stationsTags", _sttg_stationFk, _sttg_tagFk, unique=True)
-
-banned_songs_stations =  Table("BannedSongsStations", metadata,
-	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
+stations_songs = Table("StationsSongs", metadata,
 	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
+	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True)
 )
-
-_bsgst_stationFk: Any = banned_songs_stations.c.stationFk #pyright: ignore reportUnknownMemberType
-_bsgst_songFk: Any = banned_songs_stations.c.songFk #pyright: ignore reportUnknownMemberType
-Index("idx_bannedSongStation", _bsgst_stationFk, _bsgst_songFk, unique=True)
+stsg_songFk: Any = stations_songs.c.songFk #pyright: ignore reportUnknownMemberType
+stsg_stationFk: Any = stations_songs.c.stationFk #pyright: ignore reportUnknownMemberType
+Index("idx_stationsSongs", stsg_songFk, stsg_stationFk, unique=True)
 
 stations_history = Table("StationHistory", metadata,
 	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
@@ -213,14 +179,11 @@ ar: TblCols = artists.c #pyright: ignore [reportUnknownMemberType]
 ar_pk: Column = ar.pk #pyright: ignore [reportUnknownMemberType]
 ar_name: Column = ar.name #pyright: ignore [reportUnknownMemberType]
 
-tg: TblCols = tags.c #pyright: ignore [reportUnknownMemberType]
-tg_pk: Column = tg.pk #pyright: ignore [reportUnknownMemberType]
-tg_name: Column = tg.name #pyright: ignore [reportUnknownMemberType]
-
 
 st: TblCols = stations.c #pyright: ignore [reportUnknownMemberType]
 st_pk: Column = st.pk #pyright: ignore [reportUnknownMemberType]
 st_name: Column = st.name #pyright: ignore [reportUnknownMemberType]
+st_displayName: Column = st.displayName #pyright: ignore [reportUnknownMemberType]
 
 sgar: TblCols = song_artist.c #pyright: ignore [reportUnknownMemberType]
 sgar_pk: Column = sgar.pk #pyright: ignore [reportUnknownMemberType]
@@ -228,13 +191,10 @@ sgar_songFk: Column = sgar.songFk #pyright: ignore [reportUnknownMemberType]
 sgar_artistFk: Column = sgar.artistFk #pyright: ignore [reportUnknownMemberType]
 sgar_isPrimaryArtist: Column = sgar.isPrimaryArtist #pyright: ignore [reportUnknownMemberType]
 
-sgtg: TblCols = songs_tags.c #pyright: ignore [reportUnknownMemberType]
-sgtg_tagFk: Column = sgtg.tagFk #pyright: ignore [reportUnknownMemberType]
-sgtg_songFk: Column = sgtg.songFk #pyright: ignore [reportUnknownMemberType]
 
-sttg: TblCols = stations_tags.c #pyright: ignore [reportUnknownMemberType]
-sttg_tagFk: Column = sttg.tagFk #pyright: ignore [reportUnknownMemberType]
-sttg_stationFk: Column = sttg.stationFk #pyright: ignore [reportUnknownMemberType]
+stsg: TblCols = stations_songs.c #pyright: ignore [reportUnknownMemberType]
+stsg_songFk: Column = stsg.songFk #pyright: ignore [reportUnknownMemberType]
+stsg_stationFk: Column = stsg.stationFk #pyright: ignore [reportUnknownMemberType]
 
 q: TblCols = station_queue.c #pyright: ignore [reportUnknownMemberType]
 q_songFk: Column = q.songFk #pyright: ignore [reportUnknownMemberType]

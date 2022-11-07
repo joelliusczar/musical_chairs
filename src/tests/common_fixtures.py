@@ -7,8 +7,7 @@ from musical_chairs_libs.services import\
 	QueueService,\
 	AccountsService,\
 	SongInfoService,\
-	StationService,\
-	TagService
+	StationService
 
 from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos_and_utilities import AccountInfo
@@ -123,13 +122,6 @@ def fixture_song_info_service(
 ) -> SongInfoService:
 	songInfoService = SongInfoService(fixture_populated_db_conn_in_mem)
 	return songInfoService
-
-@pytest.fixture
-def fixture_tag_service(
-	fixture_populated_db_conn_in_mem: Connection
-) -> TagService:
-	tagService = TagService(fixture_populated_db_conn_in_mem)
-	return tagService
 
 @pytest.fixture
 def fixture_setup_in_mem_tbls(

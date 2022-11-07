@@ -5,10 +5,10 @@ from .common_fixtures import\
 from .common_fixtures import *
 from .mocks.db_population import\
 	get_initial_songs,\
-	get_initial_tags,\
 	get_initial_albums,\
-	get_initial_artists
-from musical_chairs_libs.dtos_and_utilities import SongTagTuple
+	get_initial_artists,\
+	get_initial_stations
+from musical_chairs_libs.dtos_and_utilities import StationSongTuple
 
 def test_songs_query(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
@@ -50,261 +50,261 @@ def test_song_ls(fixture_song_info_service: SongInfoService):
 	assert paths[1].path == "foo/"
 	assert paths[2].path == "jazz/"
 
-def test_get_songs_by_tag_id(fixture_song_info_service: SongInfoService):
+def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
-	songs = sorted(songInfoService.get_songIds(tagId=3))
+	songs = sorted(songInfoService.get_songIds(stationId=3))
 	assert len(songs) == 11
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 34, 36, 43 ] == songs
 
-def test_get_song_tags_linked(fixture_song_info_service: SongInfoService):
+def test_get_song_stations_linked(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
-	result = list(songInfoService.get_song_tags(
+	result = list(songInfoService.get_station_songs(
 		songId=43,
-		tagId=1
+		stationId=1
 	))
 	assert result and len(result) == 1
 	assert result[0].songId == 43
-	assert result[0].tagId == 1
+	assert result[0].stationId == 1
 
-	result = sorted(songInfoService.get_song_tags(
+	result = sorted(songInfoService.get_station_songs(
 		songIds=[43, 1],
-		tagIds=[1, 2]
-	), key=lambda x: (x.songId, x.tagId))
+		stationIds=[1, 2]
+	), key=lambda x: (x.songId, x.stationId))
 
 	assert result and len(result) == 3
 	assert result[0].songId == 1
-	assert result[0].tagId == 2
+	assert result[0].stationId == 2
 	assert result[1].songId == 43
-	assert result[1].tagId == 1
+	assert result[1].stationId == 1
 	assert result[2].songId == 43
-	assert result[2].tagId == 2
+	assert result[2].stationId == 2
 
 
-	result = sorted(songInfoService.get_song_tags(
+	result = sorted(songInfoService.get_station_songs(
 		songIds=[43, 1, 2],
-		tagIds=[1, 2]
-	), key=lambda x: (x.songId, x.tagId))
+		stationIds=[1, 2]
+	), key=lambda x: (x.songId, x.stationId))
 
 	assert result and len(result) == 4
 	assert result[0].songId == 1
-	assert result[0].tagId == 2
+	assert result[0].stationId == 2
 	assert result[1].songId == 2
-	assert result[1].tagId == 1
+	assert result[1].stationId == 1
 	assert result[2].songId == 43
-	assert result[2].tagId == 1
+	assert result[2].stationId == 1
 	assert result[3].songId == 43
-	assert result[3].tagId == 2
+	assert result[3].stationId == 2
 
-	result = sorted(songInfoService.get_song_tags(
-		tagIds=[1, 3, 2],
+	result = sorted(songInfoService.get_station_songs(
+		stationIds=[1, 3, 2],
 		songIds=[24, 43, 1, 2]
-	), key=lambda x: (x.songId, x.tagId))
+	), key=lambda x: (x.songId, x.stationId))
 
 	assert result and len(result) == 6
 	assert result[0].songId == 1
-	assert result[0].tagId == 2
+	assert result[0].stationId == 2
 	assert result[1].songId == 2
-	assert result[1].tagId == 1
+	assert result[1].stationId == 1
 	assert result[2].songId == 24
-	assert result[2].tagId == 3
+	assert result[2].stationId == 3
 	assert result[3].songId == 43
-	assert result[3].tagId == 1
+	assert result[3].stationId == 1
 	assert result[4].songId == 43
-	assert result[4].tagId == 2
+	assert result[4].stationId == 2
 	assert result[5].songId == 43
-	assert result[5].tagId == 3
+	assert result[5].stationId == 3
 
 
-def test_get_song_tags_unlinked(fixture_song_info_service: SongInfoService):
+def test_get_song_stations_unlinked(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
 
-	result = sorted(songInfoService.get_song_tags(
+	result = sorted(songInfoService.get_station_songs(
 		songIds=[43, 1, 2, 21],
-		tagIds=[1, 2, 3]
-	), key=lambda x: (x.songId, x.tagId))
+		stationIds=[1, 2, 3]
+	), key=lambda x: (x.songId, x.stationId))
 
 	assert result and len(result) == 6
 	assert result[0].songId == 1
-	assert result[0].tagId == 2
+	assert result[0].stationId == 2
 	assert result[1].songId == 2
-	assert result[1].tagId == 1
+	assert result[1].stationId == 1
 	assert result[2].songId == 21
-	assert result[2].tagId == 1
+	assert result[2].stationId == 1
 	assert result[3].songId == 43
-	assert result[3].tagId == 1
+	assert result[3].stationId == 1
 	assert result[4].songId == 43
-	assert result[4].tagId == 2
+	assert result[4].stationId == 2
 	assert result[5].songId == 43
-	assert result[5].tagId == 3
+	assert result[5].stationId == 3
 
-def test_get_song_tags_extra_filters(
+def test_get_song_stations_extra_filters(
 	fixture_song_info_service: SongInfoService
 ):
 	songInfoService = fixture_song_info_service
-	result = sorted(songInfoService.get_song_tags(
+	result = sorted(songInfoService.get_station_songs(
 		songIds=[1, 2, 24, 43],
-		tagId=1
+		stationId=1
 	), key=lambda x: x.songId)
 
 	assert result and len(result) == 2
 	assert result[0].songId == 2
-	assert result[0].tagId == 1
+	assert result[0].stationId == 1
 	assert result[1].songId == 43
-	assert result[1].tagId == 1
+	assert result[1].stationId == 1
 
-	result = sorted(songInfoService.get_song_tags(
+	result = sorted(songInfoService.get_station_songs(
 		songIds=[43, 1, 2, 24, 32, 33],
-		tagIds=[1,4]
+		stationIds=[1,4]
 	), key=lambda x: x.songId)
 
 	assert result and len(result) == 4
 	assert result[0].songId == 2
-	assert result[0].tagId == 1
+	assert result[0].stationId == 1
 	assert result[1].songId == 32
-	assert result[1].tagId == 4
+	assert result[1].stationId == 4
 	assert result[2].songId == 33
-	assert result[2].tagId == 4
+	assert result[2].stationId == 4
 	assert result[3].songId == 43
-	assert result[3].tagId == 1
+	assert result[3].stationId == 1
 
-	result = sorted(songInfoService.get_song_tags(
-		tagIds=[1,4],
+	result = sorted(songInfoService.get_station_songs(
+		stationIds=[1,4],
 		songId=43
 	), key=lambda x: x.songId)
 
 	assert result and len(result) == 1
 	assert result[0].songId == 43
-	assert result[0].tagId == 1
+	assert result[0].stationId == 1
 
-	result = sorted(songInfoService.get_song_tags(
-		tagIds=[1,4],
+	result = sorted(songInfoService.get_station_songs(
+		stationIds=[1,4],
 		songIds=[43,32]
 	), key=lambda x: x.songId)
 
 	assert result and len(result) == 2
 	assert result[0].songId == 32
-	assert result[0].tagId == 4
+	assert result[0].stationId == 4
 	assert result[1].songId == 43
-	assert result[1].tagId == 1
+	assert result[1].stationId == 1
 
 
-def test_get_song_tags_missing_ids(
+def test_get_song_stations_missing_ids(
 	fixture_song_info_service: SongInfoService
 ):
 	songInfoService = fixture_song_info_service
-	badTagId = len(get_initial_tags()) + 1
+	badStationId = len(get_initial_stations()) + 1
 
-	result = sorted(songInfoService.get_song_tags(
+	result = sorted(songInfoService.get_station_songs(
 		songIds=[43, 2, 1, 21, 33],
-		tagIds=[1, 2, 3, badTagId]
+		stationIds=[1, 2, 3, badStationId]
 	), key=lambda x: x.songId)
 
 	assert result and len(result) == 6
 	assert result[0].songId == 1
-	assert result[0].tagId == 2
+	assert result[0].stationId == 2
 	assert result[1].songId == 2
-	assert result[1].tagId == 1
+	assert result[1].stationId == 1
 	assert result[2].songId == 21
-	assert result[2].tagId == 1
+	assert result[2].stationId == 1
 	assert result[3].songId == 43
-	assert result[3].tagId == 1
+	assert result[3].stationId == 1
 	assert result[4].songId == 43
-	assert result[4].tagId == 2
+	assert result[4].stationId == 2
 	assert result[5].songId == 43
-	assert result[5].tagId == 3
+	assert result[5].stationId == 3
 
 	badSongId = len(get_initial_songs()) + 1
 
-	result = sorted(songInfoService.get_song_tags(
+	result = sorted(songInfoService.get_station_songs(
 		songIds=[43, 1, 2, 21, badSongId],
-		tagIds=[1, 2, 3, badTagId]
+		stationIds=[1, 2, 3, badStationId]
 	), key=lambda x: x.songId)
 
 	assert result and len(result) == 6
 	assert result[0].songId == 1
-	assert result[0].tagId == 2
+	assert result[0].stationId == 2
 	assert result[1].songId == 2
-	assert result[1].tagId == 1
+	assert result[1].stationId == 1
 	assert result[2].songId == 21
-	assert result[2].tagId == 1
+	assert result[2].stationId == 1
 	assert result[3].songId == 43
-	assert result[3].tagId == 1
+	assert result[3].stationId == 1
 	assert result[4].songId == 43
-	assert result[4].tagId == 2
+	assert result[4].stationId == 2
 	assert result[5].songId == 43
-	assert result[5].tagId == 3
+	assert result[5].stationId == 3
 
 
-def test_remove_songs_for_tag(fixture_song_info_service: SongInfoService):
+def test_remove_songs_for_stations(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
-	songs = sorted(songInfoService.get_songIds(tagId=3))
+	songs = sorted(songInfoService.get_songIds(stationId=3))
 	assert len(songs) == 11
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 34, 36, 43] == songs
-	result = songInfoService.remove_songs_for_tags([(43, 3),SongTagTuple(34, 3)]
+	result = songInfoService.remove_songs_for_stations([(43, 3),StationSongTuple(34, 3)]
 	)
 	assert result == 2
-	songs = sorted(songInfoService.get_songIds(tagId=3))
+	songs = sorted(songInfoService.get_songIds(stationId=3))
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 36] == songs
 
-def test_link_songs_with_tag(fixture_song_info_service: SongInfoService):
+def test_link_songs_with_station(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
-	songs = sorted(songInfoService.get_songIds(tagId=7))
+	songs = sorted(songInfoService.get_songIds(stationId=7))
 	assert len(songs) == 0
-	songInfoService.link_songs_with_tags(
-		[SongTagTuple(34, 7),SongTagTuple(43, 7)]
+	songInfoService.link_songs_with_stations(
+		[StationSongTuple(34, 7),StationSongTuple(43, 7)]
 	)
-	songs = sorted(songInfoService.get_songIds(tagId=7))
+	songs = sorted(songInfoService.get_songIds(stationId=7))
 	assert len(songs) == 2
 	assert songs[0] == 34
 	assert songs[1] == 43
 
-def test_link_songs_with_tag_duplicates(
+def test_link_songs_with_station_duplicates(
 	fixture_song_info_service: SongInfoService
 ):
 	songInfoService = fixture_song_info_service
-	songs = list(songInfoService.get_songIds(tagId=7))
+	songs = list(songInfoService.get_songIds(stationId=7))
 	assert len(songs) == 0
-	songInfoService.link_songs_with_tags(
-		[SongTagTuple(34, 7),SongTagTuple(43, 7), SongTagTuple(43, 7)]
+	songInfoService.link_songs_with_stations(
+		[StationSongTuple(34, 7),StationSongTuple(43, 7), StationSongTuple(43, 7)]
 	)
-	songs = sorted(songInfoService.get_songIds(tagId=7))
+	songs = sorted(songInfoService.get_songIds(stationId=7))
 	assert len(songs) == 2
 	assert songs[0] == 34
 	assert songs[1] == 43
 
-def test_link_songs_with_tag_nonexistent_songs(
+def test_link_songs_with_station_nonexistent_songs(
 	fixture_song_info_service: SongInfoService
 ):
 	songInfoService = fixture_song_info_service
 	initialSongs = get_initial_songs()
 	badId = len(initialSongs) + 1
-	songInfoService.link_songs_with_tags(
-		[SongTagTuple(34, 7), SongTagTuple(43, 7), SongTagTuple(badId, 7)]
+	songInfoService.link_songs_with_stations(
+		[StationSongTuple(34, 7), StationSongTuple(43, 7), StationSongTuple(badId, 7)]
 	)
-	songs = sorted(songInfoService.get_songIds(tagId=7))
+	songs = sorted(songInfoService.get_songIds(stationId=7))
 	assert len(songs) == 2
 	assert songs[0] == 34
 	assert songs[1] == 43
 
 
-def test_link_songs_with_tag_nonexistent_tag(
+def test_link_songs_with_station_nonexistent_station(
 	fixture_song_info_service: SongInfoService
 ):
 	songInfoService = fixture_song_info_service
-	initialTags = get_initial_tags()
-	badId = len(initialTags) + 1
+	initialStations = get_initial_stations()
+	badId = len(initialStations) + 1
 	results = list(songInfoService\
-		.link_songs_with_tags([SongTagTuple(34, badId), SongTagTuple(43, badId)]))
+		.link_songs_with_stations([StationSongTuple(34, badId), StationSongTuple(43, badId)]))
 	assert len(results) == 0
-	songs = list(songInfoService.get_songIds(tagId=badId))
+	songs = list(songInfoService.get_songIds(stationId=badId))
 	assert len(songs) == 0
 
-def test_link_already_linked_songs_with_tags(
+def test_link_already_linked_songs_with_stations(
 	fixture_song_info_service: SongInfoService
 ):
 	songInfoService = fixture_song_info_service
 	results = list(songInfoService\
-		.link_songs_with_tags([SongTagTuple(27, 3), SongTagTuple(20, 2)]))
+		.link_songs_with_stations([StationSongTuple(27, 3), StationSongTuple(20, 2)]))
 	assert len(results) == 2
 
 def test_get_albums(
@@ -406,24 +406,26 @@ def test_get_single_song_for_edit(
 	assert songInfo.track == 1
 	assert songInfo.disc == 1
 	assert songInfo.genre == "pop"
-	assert songInfo.tags and len(songInfo.tags) == 2
-	sortedTags = sorted(songInfo.tags, key=lambda t: t.id or 0)
-	if songInfo.tags:
-		assert sortedTags[0].id == 2
-		assert sortedTags[0].name == "lima_tag"
+	assert songInfo.stations and len(songInfo.stations) == 2
+	sortedStations = sorted(songInfo.stations, key=lambda t: t.id or 0)
+	if songInfo.stations:
+		assert sortedStations[0].id == 2
+		assert sortedStations[0].name == "papa_station"
+		assert sortedStations[0].displayName == "Come to papa"
 
-		assert sortedTags[1].id == 6
-		assert sortedTags[1].name == "papa_tag"
+		assert sortedStations[1].id == 6
+		assert sortedStations[1].name == "yankee_station"
+		assert sortedStations[1].displayName == "Blurg the blergos"
 
 
-def test_get_song_for_edit_without_tags(
+def test_get_song_for_edit_without_stations(
 	fixture_song_info_service: SongInfoService
 ):
 	songInfoService = fixture_song_info_service
 	songInfo = next(songInfoService.get_songs_for_edit([39]))
 	assert songInfo
 	assert songInfo.name == "foxtrot2_song"
-	assert songInfo.tags != None and len(songInfo.tags) == 0
+	assert songInfo.stations != None and len(songInfo.stations) == 0
 
 def test_get_song_for_edit_without_artists(
 	fixture_song_info_service: SongInfoService
@@ -460,14 +462,16 @@ def test_get_multiple_songs_for_edit(
 	assert songInfo.track == 1
 	assert songInfo.disc == 1
 	assert songInfo.genre == "pop"
-	assert songInfo.tags and len(songInfo.tags) == 2
-	sortedTags = sorted(songInfo.tags, key=lambda t: t.id or 0)
-	if songInfo.tags:
-		assert sortedTags[0].id == 2
-		assert sortedTags[0].name == "lima_tag"
+	assert songInfo.stations and len(songInfo.stations) == 2
+	sortedStations = sorted(songInfo.stations, key=lambda t: t.id or 0)
+	if songInfo.stations:
+		assert sortedStations[0].id == 2
+		assert sortedStations[0].name == "papa_station"
+		assert sortedStations[0].displayName == "Come to papa"
 
-		assert sortedTags[1].id == 6
-		assert sortedTags[1].name == "papa_tag"
+		assert sortedStations[1].id == 6
+		assert sortedStations[1].name == "yankee_station"
+		assert sortedStations[1].displayName == "Blurg the blergos"
 
 	songInfo = songInfoList[1]
 	assert songInfo.path == "foo/goo/shoo/india"
@@ -492,14 +496,16 @@ def test_get_multiple_songs_for_edit(
 	assert songInfo.track == 2
 	assert songInfo.disc == 1
 	assert not songInfo.genre
-	assert songInfo.tags and len(songInfo.tags) == 2
-	sortedTags = sorted(songInfo.tags, key=lambda t: t.id or 0)
-	if songInfo.tags:
-		assert sortedTags[0].id == 1
-		assert sortedTags[0].name == "kilo_tag"
+	assert songInfo.stations and len(songInfo.stations) == 2
+	sortedStations = sorted(songInfo.stations, key=lambda t: t.id or 0)
+	if songInfo.stations:
+		assert sortedStations[0].id == 1
+		assert sortedStations[0].name == "oscar_station"
+		assert sortedStations[0].displayName == "Oscar the grouch"
 
-		assert sortedTags[1].id == 3
-		assert sortedTags[1].name == "mike_tag"
+		assert sortedStations[1].id == 3
+		assert sortedStations[1].name == "romeo_station"
+		assert sortedStations[1].displayName == "But soft, what yonder wind breaks"
 
 def test_get_multiple_songs_for_edit2(
 	fixture_song_info_service: SongInfoService

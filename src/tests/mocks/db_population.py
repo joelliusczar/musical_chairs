@@ -7,12 +7,10 @@ from musical_chairs_libs.tables import \
 	albums, \
 	songs, \
 	song_artist, \
-	tags,\
-	songs_tags, \
 	stations, \
-	stations_tags, \
 	users,\
-	userRoles
+	userRoles,\
+	stations_songs
 from sqlalchemy import insert
 from .special_strings_reference import chinese1, irish1
 
@@ -627,76 +625,6 @@ def populate_songs_artists(conn: Connection):
 	]
 	conn.execute(stmt, songArtistParams2) #pyright: ignore [reportUnknownMemberType]
 
-def populate_tags(conn: Connection):
-	global tags_params
-	tags_params = [
-		{ "pk": 1, "name": "kilo_tag" },
-		{ "pk": 2, "name": "lima_tag" },
-		{ "pk": 3, "name": "mike_tag" },
-		{ "pk": 4, "name": "november_tag" },
-		{ "pk": 5, "name": "oscar_tag" },
-		{ "pk": 6, "name": "papa_tag" },
-		{ "pk": 7, "name": "romeo_tag" },
-		{ "pk": 8, "name": "sierra_tag" },
-		{ "pk": 9, "name": "tango_tag" },
-		{ "pk": 10, "name": "uniform_tag" },
-	]
-	stmt = insert(tags)
-	conn.execute(stmt, tags_params) #pyright: ignore [reportUnknownMemberType]
-
-def populate_songs_tags(conn: Connection):
-	songTagParams = [
-		{ "songFk": 43, "tagFk": 1 },
-		{ "songFk": 43, "tagFk": 2 },
-		{ "songFk": 43, "tagFk": 3 },
-		{ "songFk": 41, "tagFk": 2 },
-		{ "songFk": 40, "tagFk": 2 },
-		{ "songFk": 38, "tagFk": 2 },
-		{ "songFk": 37, "tagFk": 2 },
-		{ "songFk": 36, "tagFk": 3 },
-		{ "songFk": 35, "tagFk": 4 },
-		{ "songFk": 34, "tagFk": 3 },
-		{ "songFk": 33, "tagFk": 4 },
-		{ "songFk": 32, "tagFk": 4 },
-		{ "songFk": 31, "tagFk": 2 },
-		{ "songFk": 30, "tagFk": 1 },
-		{ "songFk": 29, "tagFk": 1 },
-		{ "songFk": 28, "tagFk": 1 },
-		{ "songFk": 27, "tagFk": 3 },
-		{ "songFk": 26, "tagFk": 3 },
-		{ "songFk": 25, "tagFk": 3 },
-		{ "songFk": 24, "tagFk": 3 },
-		{ "songFk": 23, "tagFk": 1 },
-		{ "songFk": 22, "tagFk": 2 },
-		{ "songFk": 21, "tagFk": 1 },
-		{ "songFk": 20, "tagFk": 2 },
-		{ "songFk": 19, "tagFk": 1 },
-		{ "songFk": 18, "tagFk": 1 },
-		{ "songFk": 17, "tagFk": 1 },
-		{ "songFk": 17, "tagFk": 3 },
-		{ "songFk": 16, "tagFk": 3 },
-		{ "songFk": 15, "tagFk": 4 },
-		{ "songFk": 14, "tagFk": 4 },
-		{ "songFk": 13, "tagFk": 4 },
-		{ "songFk": 12, "tagFk": 1 },
-		{ "songFk": 11, "tagFk": 3 },
-		{ "songFk": 10, "tagFk": 2 },
-		{ "songFk": 9, "tagFk": 1 },
-		{ "songFk": 8, "tagFk": 2 },
-		{ "songFk": 7, "tagFk": 1 },
-		{ "songFk": 6, "tagFk": 3 },
-		{ "songFk": 5, "tagFk": 2 },
-		{ "songFk": 4, "tagFk": 4 },
-		{ "songFk": 3, "tagFk": 1 },
-		{ "songFk": 2, "tagFk": 1 },
-		{ "songFk": 1, "tagFk": 2 },
-		{ "songFk": 1, "tagFk": 6 },
-		{ "songFk": 4, "tagFk": 6 },
-		{ "songFk": 50, "tagFk": 6 },
-	]
-	stmt = insert(songs_tags)
-	conn.execute(stmt, songTagParams) #pyright: ignore [reportUnknownMemberType]
-
 def populate_stations(conn: Connection):
 	global station_params
 	station_params = [
@@ -711,20 +639,92 @@ def populate_stations(conn: Connection):
 		{ "pk": 3,
 			"name": "romeo_station",
 			"displayName": "But soft, what yonder wind breaks"
+		},
+		{ "pk": 4,
+			"name": "sierra_station",
+			"displayName": "The greatest lie the devil ever told"
+		},
+		{ "pk": 5,
+			"name": "tango_station",
+			"displayName": "Nuke the whales"
+		},
+		{ "pk": 6,
+			"name": "yankee_station",
+			"displayName": "Blurg the blergos"
+		},
+		{ "pk": 7,
+			"name": "uniform_station",
+			"displayName": "Asshole at the wheel"
+		},
+		{ "pk": 8,
+			"name": "victor_station",
+			"displayName": "Fat, drunk, and stupid"
+		},
+		{ "pk": 9,
+			"name": "whiskey_station",
+			"displayName": "Chris-cross apple sauce"
+		},
+		{ "pk": 10,
+			"name": "xray_station",
+			"displayName": "Pentagular"
 		}
 	]
 	stmt = insert(stations)
 	conn.execute(stmt, station_params) #pyright: ignore [reportUnknownMemberType]
 
-def populate_station_tags(conn: Connection):
-	stationTagsParams = [
-		{ "stationFk": 1, "tagFk": 2 },
-		{ "stationFk": 1, "tagFk": 4 },
-		{ "stationFk": 1, "tagFk": 7 },
-		{ "stationFk": 3, "tagFk": 6 },
+def populate_stations_songs(conn: Connection):
+	stationSongParams = [
+		{ "songFk": 43, "stationFk": 1 },
+		{ "songFk": 43, "stationFk": 2 },
+		{ "songFk": 43, "stationFk": 3 },
+		{ "songFk": 41, "stationFk": 2 },
+		{ "songFk": 40, "stationFk": 2 },
+		{ "songFk": 38, "stationFk": 2 },
+		{ "songFk": 37, "stationFk": 2 },
+		{ "songFk": 36, "stationFk": 3 },
+		{ "songFk": 35, "stationFk": 4 },
+		{ "songFk": 34, "stationFk": 3 },
+		{ "songFk": 33, "stationFk": 4 },
+		{ "songFk": 32, "stationFk": 4 },
+		{ "songFk": 31, "stationFk": 2 },
+		{ "songFk": 30, "stationFk": 1 },
+		{ "songFk": 29, "stationFk": 1 },
+		{ "songFk": 28, "stationFk": 1 },
+		{ "songFk": 27, "stationFk": 3 },
+		{ "songFk": 26, "stationFk": 3 },
+		{ "songFk": 25, "stationFk": 3 },
+		{ "songFk": 24, "stationFk": 3 },
+		{ "songFk": 23, "stationFk": 1 },
+		{ "songFk": 22, "stationFk": 2 },
+		{ "songFk": 21, "stationFk": 1 },
+		{ "songFk": 20, "stationFk": 2 },
+		{ "songFk": 19, "stationFk": 1 },
+		{ "songFk": 18, "stationFk": 1 },
+		{ "songFk": 17, "stationFk": 1 },
+		{ "songFk": 17, "stationFk": 3 },
+		{ "songFk": 16, "stationFk": 3 },
+		{ "songFk": 15, "stationFk": 4 },
+		{ "songFk": 15, "stationFk": 1 },
+		{ "songFk": 14, "stationFk": 4 },
+		{ "songFk": 13, "stationFk": 4 },
+		{ "songFk": 12, "stationFk": 1 },
+		{ "songFk": 11, "stationFk": 3 },
+		{ "songFk": 10, "stationFk": 2 },
+		{ "songFk": 9, "stationFk": 1 },
+		{ "songFk": 8, "stationFk": 2 },
+		{ "songFk": 7, "stationFk": 1 },
+		{ "songFk": 6, "stationFk": 3 },
+		{ "songFk": 5, "stationFk": 2 },
+		{ "songFk": 4, "stationFk": 4 },
+		{ "songFk": 3, "stationFk": 1 },
+		{ "songFk": 2, "stationFk": 1 },
+		{ "songFk": 1, "stationFk": 2 },
+		{ "songFk": 1, "stationFk": 6 },
+		{ "songFk": 4, "stationFk": 6 },
+		{ "songFk": 50, "stationFk": 6 },
 	]
-	stmt = insert(stations_tags)
-	conn.execute(stmt, stationTagsParams) #pyright: ignore [reportUnknownMemberType]
+	stmt = insert(stations_songs)
+	conn.execute(stmt, stationSongParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_users(
 	conn: Connection,
@@ -893,9 +893,6 @@ def populate_user_roles(
 #don't remember why I am using using funcs to return these global variables
 def get_initial_users() -> list[dict[Any, Any]]:
 	return users_params
-
-def get_initial_tags() -> list[dict[Any, Any]]:
-	return tags_params
 
 def get_initial_stations() -> list[dict[Any, Any]]:
 	return station_params

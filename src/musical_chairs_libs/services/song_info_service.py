@@ -13,7 +13,7 @@ from musical_chairs_libs.dtos_and_utilities import\
 	SongListDisplayItem,\
 	ScanningSongItem,\
 	SongTreeNode,\
-	Tag,\
+	StationInfo,\
 	SearchNameString,\
 	get_datetime,\
 	Sentinel,\
@@ -24,7 +24,7 @@ from musical_chairs_libs.dtos_and_utilities import\
 	SongEditInfo,\
 	build_error_obj,\
 	AlbumCreationInfo,\
-	SongTagTuple,\
+	StationSongTuple,\
 	SongArtistTuple
 from sqlalchemy import select, insert, update, func, delete
 from sqlalchemy.sql.expression import Tuple as dbTuple, Select
@@ -32,7 +32,6 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from musical_chairs_libs.errors import AlreadyUsedError
 from .env_manager import EnvManager
-from .tag_service import TagService
 from sqlalchemy.engine.row import Row
 from dataclasses import asdict, fields
 from itertools import chain, groupby
@@ -41,19 +40,13 @@ from musical_chairs_libs.tables import\
 	song_artist as song_artist_tbl,\
 	artists as artists_tbl,\
 	songs as songs_tbl,\
-	stations_tags as stations_tags_tbl,\
-	stations as stations_tbl,\
-	tags as tags_tbl,\
-	songs_tags as songs_tags_tbl,\
+	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,\
+	stations as stations_tbl, st_name, st_pk, st_displayName, \
 	sg_pk, sg_name, sg_path,\
-	tg_pk, tg_name,\
-	st_name, st_pk,\
 	ab_name, ab_pk, ab_albumArtistFk, ab_year,\
 	ar_name, ar_pk,\
-	sttg_stationFk, sttg_tagFk,\
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,\
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,\
-	sgtg_songFk, sgtg_tagFk,\
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk
 
 
@@ -62,18 +55,14 @@ class SongInfoService:
 	def __init__(
 		self,
 		conn: Optional[Connection]=None,
-		envManager: Optional[EnvManager]=None,
-		tagService: Optional[TagService]=None,
+		envManager: Optional[EnvManager]=None
 	) -> None:
 		if not conn:
 			if not envManager:
 				envManager = EnvManager()
 			conn = envManager.get_configured_db_connection()
-		if not tagService:
-			tagService = TagService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
-		self.tag_service = tagService
 
 	def song_info(self, songPk: int) -> Optional[SongListDisplayItem]:
 		query = select(
@@ -297,30 +286,21 @@ class SongInfoService:
 		pageSize: Optional[int]=None,
 		stationId: Union[Optional[int], Sentinel]=missing,
 		stationName: Union[Optional[str], Sentinel]=missing,
-		tagId: Union[Optional[int], Sentinel]=missing,
-		tagIds: Optional[Iterable[int]]=None,
 		songIds: Optional[Iterable[int]]=None
 	) -> Iterator[int]:
 		offset = page * pageSize if pageSize else 0
 		query = select(sg_pk).select_from(songs_tbl)
 		#add joins
-		if stationId or tagId or stationName or tagIds:
-			query = query.join(songs_tags_tbl, sgtg_songFk == sg_pk)
-			if stationId:
-				query = query.join(stations_tags_tbl, sgtg_tagFk == sttg_tagFk)
-			elif stationName and type(stationName) is str:
-				query = query.join(stations_tags_tbl, sgtg_tagFk == sttg_tagFk)\
-					.join(stations_tbl, sttg_stationFk == st_pk)
+		if stationId or stationName:
+			query = query.join(stations_songs_tbl, stsg_songFk == sg_pk)
+			if stationName and type(stationName) is str:
+				query = query.join(stations_tbl, stsg_stationFk == st_pk)
 		#add wheres
-		if tagId:
-			query = query.where(sgtg_tagFk == tagId)
-		elif tagIds:
-			query = query.where(sgtg_tagFk.in_(tagIds))
 		if stationId:
-			query = query.where(sttg_stationFk == stationId)
+			query = query.where(stsg_stationFk == stationId)
 		elif stationName and type(stationName) is str:
 			searchStr = SearchNameString.format_name_for_search(stationName)
-			query = query.where(
+			query = query.join(stations_tbl, st_pk == stsg_stationFk).where(
 				func.format_name_for_search(st_name).like(f"%{searchStr}%")
 			)
 		if songIds:
@@ -329,89 +309,88 @@ class SongInfoService:
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		yield from (cast(int, row["pk"]) for row in cast(Iterable[Row],records))
 
-	def get_song_tags(
+	def get_station_songs(
 		self,
 		songId: Union[int, Sentinel]=missing,
 		songIds: Optional[Iterable[int]]=None,
-		tagId: Union[Optional[int], Sentinel]=missing,
-		tagIds: Optional[Iterable[int]]=None
-	) -> Iterable[SongTagTuple]:
+		stationId: Union[Optional[int], Sentinel]=missing,
+		stationIds: Optional[Iterable[int]]=None
+	) -> Iterable[StationSongTuple]:
 		query = select(
-			sgtg_tagFk,
-			sgtg_songFk
+			stsg_stationFk,
+			stsg_songFk
 		)
 
 		if type(songId) == int:
-			query = query.where(sgtg_songFk == songId)
+			query = query.where(stsg_songFk == songId)
 		elif isinstance(songIds, Iterable):
-			query = query.where(sgtg_songFk.in_(songIds))
-		if type(tagId) == int:
-			query = query.where(sgtg_tagFk == tagId)
-		elif isinstance(tagIds, Iterable):
-			query = query.where(sgtg_tagFk.in_(tagIds))
-		query = query.order_by(sgtg_songFk)
+			query = query.where(stsg_songFk.in_(songIds))
+		if type(stationId) == int:
+			query = query.where(stsg_stationFk == stationId)
+		elif isinstance(stationIds, Iterable):
+			query = query.where(stsg_stationFk.in_(stationIds))
+		query = query.order_by(stsg_songFk)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		yield from (SongTagTuple(
-				cast(int, row[sgtg_songFk]),
-				cast(int, row[sgtg_tagFk]),
+		yield from (StationSongTuple(
+				cast(int, row[stsg_songFk]),
+				cast(int, row[stsg_stationFk]),
 				True
 			)
 			for row in cast(Iterable[Row],records))
 
-	def remove_songs_for_tags(
+	def remove_songs_for_stations(
 		self,
-		songTags: Iterable[Union[SongTagTuple, Tuple[int, int]]],
+		stationSongs: Iterable[Union[StationSongTuple, Tuple[int, int]]],
 	) -> int:
-		songTags = songTags or []
-		delStmt = delete(songs_tags_tbl)\
-			.where(dbTuple(sgtg_songFk, sgtg_tagFk).in_(songTags))
+		stationSongs = stationSongs or []
+		delStmt = delete(stations_songs_tbl)\
+			.where(dbTuple(stsg_songFk, stsg_stationFk).in_(stationSongs))
 		return cast(int, self.conn.execute(delStmt).rowcount) #pyright: ignore [reportUnknownMemberType]
 
-	def validate_song_tags(
+	def validate_stations_songs(
 		self,
-		songTags: Iterable[SongTagTuple]
-	) -> Iterable[SongTagTuple]:
+		songTags: Iterable[StationSongTuple]
+	) -> Iterable[StationSongTuple]:
 		if not songTags:
 			return iter([])
 		query = select(
 			sg_pk,
-			tg_pk
-		).where(dbTuple(sg_pk, tg_pk).in_(songTags))
+			st_pk
+		).where(dbTuple(sg_pk, st_pk).in_(songTags))
 
 		records = self.conn.execute(query)
-		yield from (SongTagTuple(
+		yield from (StationSongTuple(
 			cast(int, row[sg_pk]),
-			cast(int, row[tg_pk])
+			cast(int, row[st_pk])
 		) for row in cast(Iterable[Row],records))
 
-	def link_songs_with_tags(
+	def link_songs_with_stations(
 		self,
-		songTags: Iterable[SongTagTuple],
+		stationSongs: Iterable[StationSongTuple],
 		userId: Optional[int]=None
-	) -> Iterable[SongTagTuple]:
-		if not songTags:
+	) -> Iterable[StationSongTuple]:
+		if not stationSongs:
 			return []
-		uniquePairs = set(self.validate_song_tags(songTags))
+		uniquePairs = set(self.validate_stations_songs(stationSongs))
 		if not uniquePairs:
 			return []
-		existingPairs = set(self.get_song_tags(
+		existingPairs = set(self.get_station_songs(
 			songIds={st.songId for st in uniquePairs}
 		))
 		outPairs = existingPairs - uniquePairs
 		inPairs = uniquePairs - existingPairs
-		self.remove_songs_for_tags(outPairs)
-		if not inPairs: #if no songs - artist have been linked
+		self.remove_songs_for_stations(outPairs)
+		if not inPairs: #if no songs - stations have been linked
 			return existingPairs - outPairs
-			#return (a for a in existingArtists if a.id not in outArtistIds)
 		params = [{
 			"songFk": p.songId,
-			"tagFk": p.tagId,
+			"stationFk": p.stationId,
 			"lastModifiedByUserFk": userId,
 			"lastModifiedTimestamp": self.get_datetime().timestamp()
 		} for p in inPairs]
-		stmt = insert(songs_tags_tbl)
+		stmt = insert(stations_songs_tbl)
 		self.conn.execute(stmt, params) #pyright: ignore [reportUnknownMemberType]
-		return self.get_song_tags(
+		return self.get_station_songs(
 			songIds={st.songId for st in uniquePairs}
 		)
 
@@ -598,8 +577,9 @@ class SongInfoService:
 		songDict["album"] = album
 		songDict.pop("artist.id", None)
 		songDict.pop("artist.name", None)
-		songDict.pop("tag.id", None)
-		songDict.pop("tag.name", None)
+		songDict.pop("station.id", None)
+		songDict.pop("station.name", None)
+		songDict.pop("station.displayName", None)
 		songDict.pop(sgar_isPrimaryArtist.description, None)
 		return songDict
 
@@ -629,14 +609,15 @@ class SongInfoService:
 			sgar_isPrimaryArtist,
 			ar_pk.label("artist.id"),
 			ar_name.label("artist.name"),
-			tg_pk.label("tag.id"),
-			tg_name.label("tag.name"),
+			st_pk.label("station.id"),
+			st_name.label("station.name"),
+			st_displayName.label("station.displayName")
 		).select_from(songs_tbl)\
 				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
 				.join(artists_tbl, ar_pk == sgar_artistFk, isouter=True)\
 				.join(albums_tbl, sg_albumFk == ab_pk, isouter=True)\
-				.join(songs_tags_tbl, sg_pk == sgtg_songFk, isouter=True)\
-				.join(tags_tbl, sgtg_tagFk ==  tg_pk, isouter=True)\
+				.join(stations_songs_tbl, sg_pk == stsg_songFk, isouter=True)\
+				.join(stations_tbl, stsg_stationFk ==  st_pk, isouter=True)\
 				.join(
 					album_artist,
 					ab_albumArtistFk == album_artist.c.pk,
@@ -654,7 +635,7 @@ class SongInfoService:
 		records = self.conn.execute(query).fetchall()
 		currentSongRow = None
 		artists: set[ArtistInfo] = set()
-		tags: set[Tag] = set()
+		stations: set[StationInfo] = set()
 		primaryArtist: Optional[ArtistInfo] = None
 		for row in records:
 			if not currentSongRow:
@@ -664,11 +645,11 @@ class SongInfoService:
 				yield SongEditInfo(**songDict,
 					primaryArtist=primaryArtist,
 					artists=list(artists),
-					tags=list(tags)
+					stations=list(stations)
 				)
 				currentSongRow = row
 				artists =  set()
-				tags = set()
+				stations = set()
 				primaryArtist = None
 			if row[sgar_isPrimaryArtist]:
 				primaryArtist = ArtistInfo(
@@ -681,14 +662,18 @@ class SongInfoService:
 						row["artist.name"]
 					)
 				)
-			if row["tag.id"]:
-				tags.add(Tag(row["tag.id"], row["tag.name"]))
+			if row["station.id"]:
+				stations.add(StationInfo(
+					row["station.id"],
+					row["station.name"],
+					row["station.displayName"]
+				))
 		if currentSongRow:
 			songDict = self._prepare_song_row_for_model(currentSongRow)
 			yield SongEditInfo(**songDict,
 					primaryArtist=primaryArtist,
 					artists=sorted(artists, key=lambda a: a.id if a else 0),
-					tags=sorted(tags, key=lambda t: t.id if t else 0)
+					stations=sorted(stations, key=lambda t: t.id if t else 0)
 				)
 
 	def save_songs(
@@ -711,6 +696,7 @@ class SongInfoService:
 		songInfoDict.pop("tags", None)
 		songInfoDict.pop("id", None)
 		songInfoDict.pop("album", None)
+		songInfoDict.pop("stations", None)
 		songInfoDict.pop("covers", None)
 		songInfoDict.pop("touched", None)
 		songInfoDict["albumFk"] = songInfo.album.id if songInfo.album else None
@@ -735,9 +721,10 @@ class SongInfoService:
 				),
 				userId
 			)
-		if "tags" in songInfo.touched:
-			self.link_songs_with_tags(
-				(SongTagTuple(sid, t.id) for t in (songInfo.tags or []) for sid in ids),
+		if "stations" in songInfo.touched:
+			self.link_songs_with_stations(
+				(StationSongTuple(sid, t.id)
+					for t in (songInfo.stations or []) for sid in ids),
 				userId
 			)
 

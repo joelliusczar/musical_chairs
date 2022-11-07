@@ -8,7 +8,6 @@ from musical_chairs_libs.services import\
 	HistoryService,\
 	StationService,\
 	QueueService,\
-	TagService,\
 	SongInfoService,\
 	AccountsService
 from musical_chairs_libs.dtos_and_utilities import\
@@ -39,11 +38,6 @@ def station_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> StationService:
 	return StationService(conn)
-
-def tag_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> TagService:
-	return TagService(conn)
 
 def song_info_service(
 	conn: Connection=Depends(get_configured_db_connection)

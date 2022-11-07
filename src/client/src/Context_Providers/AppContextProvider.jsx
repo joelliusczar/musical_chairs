@@ -15,7 +15,7 @@ import {
 import PropTypes from "prop-types";
 import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
 import { formatError } from "../Helpers/error_formatter";
-import { fetchTags } from "../API_Calls/tagCalls";
+import { fetchStations } from "../API_Calls/stationCalls";
 import { CallStatus } from "../constants";
 
 const AppContext = createContext();
@@ -52,7 +52,7 @@ export const AppContextProvider = (props) => {
 		{...listDataInitialState}
 	);
 
-	const [tagsState, tagsDispatch] = useReducer(
+	const [stationsState, stationsDispatch] = useReducer(
 		waitingReducer(sortedListReducerPaths),
 		{...listDataInitialState}
 	);
@@ -79,16 +79,16 @@ export const AppContextProvider = (props) => {
 	useEffect(() => {
 		const fetch = async () => {
 			try {
-				tagsDispatch(dispatches.started());
-				const data = await fetchTags();
-				tagsDispatch(dispatches.done(data));
+				stationsDispatch(dispatches.started());
+				const data = await fetchStations();
+				stationsDispatch(dispatches.done(data));
 			}
 			catch(err) {
-				tagsDispatch(dispatches.failed(formatError(err)));
+				stationsDispatch(dispatches.failed(formatError(err)));
 			}
 		};
 		fetch();
-	}, [tagsDispatch]);
+	}, [stationsDispatch]);
 
 	useEffect(() => {
 		const fetch = async () => {
@@ -107,17 +107,17 @@ export const AppContextProvider = (props) => {
 	const contextValue = useMemo(() => ({
 		albumsState,
 		albumsDispatch,
-		tagsState,
-		tagsDispatch,
+		stationsState,
+		stationsDispatch,
 		artistState,
 		artistDispatch,
 	}),[
 		albumsState,
-		tagsState,
+		stationsState,
 		albumsState,
 		albumsDispatch,
 		artistState,
-		tagsDispatch,
+		stationsDispatch,
 	]);
 
 	return <AppContext.Provider value={contextValue}>
@@ -165,10 +165,10 @@ export const useAlbumData = () => {
 	};
 };
 
-export const useTagData = () => {
+export const useStationData = () => {
 	const {
-		tagsState: { data: { items }, error, callStatus },
-		tagsDispatch: dispatch,
+		stationsState: { data: { items }, error, callStatus },
+		stationsDispatch: dispatch,
 	} = useContext(AppContext);
 
 	const idMapper = useCallback((value) => {

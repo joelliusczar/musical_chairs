@@ -1,7 +1,14 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Optional
 from dataclasses import asdict
-from fastapi import APIRouter, Depends, HTTPException, status, Security, Body
+from fastapi import\
+	APIRouter,\
+	Depends,\
+	HTTPException,\
+	status,\
+	Security,\
+	Body,\
+	Response
 from fastapi.security import OAuth2PasswordRequestForm
 from musical_chairs_libs.services import AccountsService,\
 	ACCESS_TOKEN_EXPIRE_MINUTES
@@ -22,6 +29,7 @@ router = APIRouter(prefix=f"/accounts")
 
 @router.post("/open")
 def login(
+	response: Response,
 	formData: OAuth2PasswordRequestForm=Depends(),
 	accountService: AccountsService=Depends(accounts_service)
 ) -> AuthenticatedAccount:
@@ -36,12 +44,19 @@ def login(
 			headers={"WWW-Authenticate": "Bearer"}
 		)
 	token = accountService.create_access_token(user.username)
+	tokenLifetime = ACCESS_TOKEN_EXPIRE_MINUTES * 60
+	response.set_cookie(
+		key="access_token",
+		value=token,
+		max_age=tokenLifetime,
+		secure=True
+	)
 	return AuthenticatedAccount(
 		access_token=token,
 		token_type="bearer",
 		username=user.username,
 		roles=user.roles,
-		lifetime=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+		lifetime=tokenLifetime,
 		displayName=user.displayName,
 		email=user.email
 	)

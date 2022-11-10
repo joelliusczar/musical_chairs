@@ -106,7 +106,7 @@ export default function Stations(){
 										color="primary"
 										variant="contained"
 										className={classes.buttons}
-										to={`${DomRoutes.songCatalogue}${s.name}`}
+										to={`${DomRoutes.songCatalogue}?name=${s.name}`}
 									>
 											Song Catalogue
 									</Button>

@@ -376,7 +376,7 @@ setup_db() (
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
-	from musical_chairs_libs.env_manager import EnvManager
+	from musical_chairs_libs.services import EnvManager
 	envManager = EnvManager()
 	conn = envManager.get_configured_db_connection()
 	metadata.create_all(conn.engine)
@@ -806,7 +806,7 @@ run_song_scan() (
 	python  <<-EOF
 	import os
 	from musical_chairs_libs.song_scanner import SongScanner
-	from musical_chairs_libs.env_manager import EnvManager
+	from musical_chairs_libs.services import EnvManager
 	print("Starting")
 	shouldReplaceDb = os.environ.get("replace_db_flag", False) and True
 	print(f"About to replace db? {shouldReplaceDb}")
@@ -924,15 +924,15 @@ setup_full_web() (
 	process_global_vars "$@" &&
 	setup_client &&
 	setup_api &&
-	echo "done setting up full web"
+	echo "done setting up full web."
 )
 
 startup_full_web() (
 	echo "starting up full web"
 	process_global_vars "$@" &&
 	setup_client &&
-	setup_api &&
-	echo "done starting up full web"
+	startup_api &&
+	echo "done starting up full web. Access at $full_url"
 )
 
 #assume install_setup.sh has been run

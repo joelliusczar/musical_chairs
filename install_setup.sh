@@ -25,7 +25,7 @@ curl -V || show_err_and_exit "curl is somehow not installed"
 
 
 case $(uname) in
-	(Linux*) 
+	(Linux*)
 		if [ "$pkgMgrChoice" = "$APT_CONST" ] && [ "$exp_name" != 'py3.8' ]; then
 			sudo apt-get update
 		fi
@@ -69,7 +69,7 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 		(Darwin*)
 			#want to install python thru homebrew bc the default version on mac
 			#is below what we want
-			if ! brew_is_installed python3; then 
+			if ! brew_is_installed python3; then
 				install_package python3
 			fi
 			;;
@@ -97,7 +97,7 @@ fi
 if ! nvm --version 2>/dev/null; then
 	rc_script=$(get_rc_candidate)
 	touch "$rc_script" #create if doesn't exist
-	[ -f "$rc_script" ] || 
+	[ -f "$rc_script" ] ||
 	show_err_and_exit "Error: .bashrc is not a regular file"
 	curl -o- \
 		https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
@@ -151,9 +151,9 @@ fi
 if ! nginx -v 2>/dev/null; then
 	case $(uname) in
 		(Darwin*)
-			install_package nginx 
+			install_package nginx
 			;;
-		(Linux*) 
+		(Linux*)
 			if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 				install_package nginx-full
 			fi
@@ -170,7 +170,7 @@ if [ ! -e "$confDir"/"$app_name".conf ]; then
 		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
 
-sync_utility_scripts 
+sync_utility_scripts
 
 echo "$S3_ACCESS_KEY_ID":"$S3_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
 chmod 600 "$HOME"/.passwd-s3fs

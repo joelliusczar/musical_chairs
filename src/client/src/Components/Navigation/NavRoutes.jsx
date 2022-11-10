@@ -22,9 +22,6 @@ import { useCurrentUser } from "../../Context_Providers/AuthContext";
 export function NavMenu() {
 	return (
 		<List>
-			<ListItem button component={NavLink} to="/home">
-				Home
-			</ListItem>
 			<ListItem button component={NavLink} to={DomRoutes.queue} >
 				Queue
 			</ListItem>

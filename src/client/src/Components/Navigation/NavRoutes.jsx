@@ -1,10 +1,10 @@
 import React from "react";
 import { Route, Switch, NavLink, useHistory } from "react-router-dom";
 import { List, ListItem } from "@mui/material";
-import Queue from "../Queue/Queue";
+import { Queue } from "../Queue/Queue";
 import History from "../History/History";
 import Stations from "../Stations/Stations";
-import SongCatalogue from "../Song_Catalogue/SongCatalogue";
+import { SongCatalogue } from "../Song_Catalogue/SongCatalogue";
 import { AccountsNew } from "../Accounts/AccountsNew";
 import { LoginForm } from "../Accounts/AccountsLoginForm";
 import { AccountsList } from "../Accounts/AccountsList";

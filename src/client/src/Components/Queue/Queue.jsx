@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { useHistory, useParams } from "react-router-dom";
-import { fetchStations } from "../../API_Calls/stationCalls";
-import { fetchQueue } from "./queue_slice";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useEffect, useState, useReducer } from "react";
+import { useHistory, useLocation, Link } from "react-router-dom";
+import { fetchQueue } from "../../API_Calls/stationCalls";
 import { MenuItem,
-	Select,
 	Table,
 	TableBody,
 	TableContainer,
@@ -12,16 +9,46 @@ import { MenuItem,
 	TableHead,
 	TableRow,
 	Typography,
+	TextField,
+	Box,
+	Select,
+	Pagination,
+	PaginationItem,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
-import { CallStatus, DomRoutes, CallType } from "../../constants";
+import { DomRoutes } from "../../constants";
+import {
+	useStationData,
+} from "../../Context_Providers/AppContextProvider";
+import {
+	waitingReducer,
+	pageableDataInitialState,
+	dispatches,
+} from "../Shared/waitingReducer";
+import { formatError } from "../../Helpers/error_formatter";
+import {
+	urlBuilderFactory,
+	getRowsCount,
+	getPageCount,
+} from "../../Helpers/pageable_helpers";
 
 const useStyles = makeStyles(() => ({
 	select: {
 		width: 150,
 	},
 }));
+
+const queueInitialState = {
+	...pageableDataInitialState,
+	data: {...pageableDataInitialState.data,
+		nowPlaying: {
+			name: "",
+			album: "",
+			artist: "",
+		},
+	},
+};
 
 /*
 						yield { 
@@ -46,116 +73,177 @@ const formatNowPlaying = (nowPlaying) => {
 	return str;
 };
 
-export default function Queue() {
-	const [selectedStation, setSelectedStation] = useState("");
-	const [selectTouched, setSelectTouched] = useState();
-	const { station: stationParam } = useParams();
-	const history = useHistory();
-	const dispatch = useDispatch();
+export const Queue = () => {
+
+	const {
+		items: stations,
+	} = useStationData();
+
+	const location = useLocation();
+	const queryObj = new URLSearchParams(location.search);
+	const page = parseInt(queryObj.get("page") || "1");
+	const stationNameFromQS = queryObj.get("name") || "";
+
+	const [currentQueryStr, setCurrentQueryStr] = useState("");
+
+	const urlHistory = useHistory();
 	const classes = useStyles();
-	const stations = useSelector((appState) => 
-		appState.stations.values[CallType.fetch]);
-	const stationsStatus =	useSelector((appState) => 
-		appState.stations.status[CallType.fetch]);
-	const queueItems = useSelector((appState) => 
-		appState.queue.values[CallType.fetch]);
-	const queueItemsStatus =	useSelector((appState) => 
-		appState.queue.status[CallType.fetch]);
-	const queueItemsError =	useSelector((appState) => 
-		appState.queue.error[CallType.fetch]);
+
+	const [queueState, queueDispatch] =
+		useReducer(waitingReducer(), queueInitialState);
+
+	const { callStatus: queueCallStatus } = queueState;
+
+	const getPageUrl = urlBuilderFactory(DomRoutes.queue);
 
 	useEffect(() => {
-		if(!stationsStatus || stationsStatus === CallStatus.idle) { 
-			dispatch(fetchStations());
-		}
-	}, [dispatch, stationsStatus]);
+		document.title = `Musical Chairs - Queue${`- ${stationNameFromQS || ""}`}`;
+	},[stationNameFromQS]);
+
 
 	useEffect(() => {
-		document.title = `Musical Chairs - Queue${`- ${stationParam || ""}`}`;
-	},[stationParam]);
+		const fetch = async () => {
+			if (currentQueryStr === location.search) return;
+			const queryObj = new URLSearchParams(location.search);
+			const stationNameFromQS = queryObj.get("name");
+			if (!stationNameFromQS) return;
 
-	useEffect(() => {
-		if(!selectTouched) return;
-		history.replace(`${DomRoutes.queue}${selectedStation}`);
-	}, [history, selectedStation, selectTouched]);
+			const page = parseInt(queryObj.get("page") || "1");
+			const limit = parseInt(queryObj.get("rows") || "50");
+			queueDispatch(dispatches.started());
+			try {
+				const data = await fetchQueue({
+					station: stationNameFromQS,
+					params: { page: page - 1, limit: limit } }
+				);
+				queueDispatch(dispatches.done(data));
+				setCurrentQueryStr(location.search);
+			}
+			catch (err) {
+				queueDispatch(dispatches.failed(formatError(err)));
+			}
 
-	useEffect(() => {
-		if (!stationParam) return;
-		const station = stationParam.toLowerCase();
-		if(stations.items.some(s => s.name.toLowerCase() === station)) {
-			setSelectedStation(stationParam);
-			setSelectTouched(false);
-			dispatch(fetchQueue({ station: stationParam }));
-		}
-	}, [stationParam, dispatch,setSelectedStation, setSelectTouched, stations]);
+		};
+		fetch();
+	},[
+		queueDispatch,
+		fetchQueue,
+		location.search,
+		currentQueryStr,
+		setCurrentQueryStr,
+	]);
 
 	return (
 		<>
-			<h1>Queue: {stationParam}</h1>
-			{stations && (
-				<Select
-					name="station-select"
-					className={classes.select}
-					displayEmpty
-					label="Stations"
-					onChange={(e) => {
-						setSelectTouched(true);
-						setSelectedStation(e.target.value);
-					}}
-					renderValue={(v) => v || "Select Station"}
-					value={selectedStation}
+			<h1>Queue: {stationNameFromQS}</h1>
+			{stations?.length > 0 && (
+				<Box m={1}>
+					<TextField
+						select
+						className={classes.select}
+						label="Stations"
+						onChange={(e) => {
+							urlHistory.replace(getPageUrl(
+								{ name: e.target.value },
+								location.search
+							));
+						}}
+						value={stationNameFromQS?.toLowerCase() || ""}
+					>
+						<MenuItem key="empty_station" value={""}>
+								Select a Station
+						</MenuItem>
+						{stations.map((s) => {
+							return (
+								<MenuItem key={s.name} value={s.name?.toLowerCase()}>
+									{s.displayName}
+								</MenuItem>
+							);
+						})}
+					</TextField>
+				</Box>)}
+			<Box m={1}>
+				<Loader
+					status={queueCallStatus}
+					error={queueState.error}
 				>
-					{stations.items.map((s) => {
-						return (
-							<MenuItem key={s.name} value={s.name}>
-								{s.name}
-							</MenuItem>
-						);
-					})}
-				</Select>
-			)}
-			<Loader 
-				status={queueItemsStatus} 
-				error={queueItemsError} 
-				isReady={!!stationParam}
-			>
-				<Typography>Now Playing</Typography>
-				<Typography>
-					{formatNowPlaying(queueItems.nowPlaying)}
-				</Typography>
-				<TableContainer>
-					<Table size="small">
-						<TableHead>
-							<TableRow>
-								<TableCell>Song</TableCell>
-								<TableCell>Album</TableCell>
-								<TableCell>Artist</TableCell>
-								<TableCell>Added</TableCell>
-								<TableCell>Requested</TableCell>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							{queueItems.items.map((item, idx) => {
-								return (
-									<TableRow key={`song_${idx}`}>
-										<TableCell>
-											{item.name || "{No song name}"}
-										</TableCell>
-										<TableCell>
-											{item.album || "{No album name}"}
-										</TableCell>
-										<TableCell>
-											{item.artist || "{No artist name}"}
-										</TableCell>
-										<TableCell></TableCell>
-										<TableCell></TableCell>
+					<Typography>Now Playing</Typography>
+					<Typography>
+						{formatNowPlaying(queueState?.data?.nowPlaying)}
+					</Typography>
+					{queueState?.data?.items?.length > 0 ? <>
+						<TableContainer>
+							<Table size="small">
+								<TableHead>
+									<TableRow>
+										<TableCell>Song</TableCell>
+										<TableCell>Album</TableCell>
+										<TableCell>Artist</TableCell>
+										<TableCell>Added</TableCell>
+										<TableCell>Requested</TableCell>
 									</TableRow>
-								);
-							})}
-						</TableBody>
-					</Table>
-				</TableContainer>
-			</Loader>
+								</TableHead>
+								<TableBody>
+									{queueState.data?.items?.map((item, idx) => {
+										return (
+											<TableRow key={`song_${idx}`}>
+												<TableCell>
+													{item.name || "{No song name}"}
+												</TableCell>
+												<TableCell>
+													{item.album || "{No album name}"}
+												</TableCell>
+												<TableCell>
+													{item.artist || "{No artist name}"}
+												</TableCell>
+												<TableCell></TableCell>
+												<TableCell></TableCell>
+											</TableRow>
+										);
+									})}
+								</TableBody>
+							</Table>
+						</TableContainer>
+						<Box m={1}>
+							<Select
+								displayEmpty
+								defaultValue={50}
+								label="Row Count"
+								onChange={(e) => {
+									urlHistory.replace(
+										getPageUrl(
+											{ rows: e.target.value, page: 1 },
+											location.search
+										)
+									);
+								}}
+								renderValue={(v) => v || "Select Row Count"}
+								value={getRowsCount(location.search)}
+							>
+								{[10, 50, 100, 1000].map((size) => {
+									return (<MenuItem key={`size_${size}`} value={size}>
+										{size}
+									</MenuItem>);
+								})}
+							</Select>
+							<Pagination
+								count={getPageCount(
+									location.search,
+									queueState.data?.totalRows
+								)}
+								page={page}
+								renderItem={item => {
+									return (<PaginationItem
+										component={Link}
+										to={getPageUrl({ page: item.page }, location.search)}
+										{...item} />);
+								} }
+								sx={{}} />
+						</Box>
+					</> :
+						<Typography>No records</Typography>}
+				</Loader>
+			</Box>
 		</>
 	);
-}
+};

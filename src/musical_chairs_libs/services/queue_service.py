@@ -268,14 +268,16 @@ class QueueService:
 		user: AccountInfo
 	):
 		stationPk = self.station_service.get_station_id(stationName)
-		if stationPk and self.station_service.can_song_be_queued_to_station(
+		songInfo = self.song_info_service.song_info(songPk)
+		songName = songInfo.name if songInfo else "Song"
+		if stationPk and\
+			self.station_service.can_song_be_queued_to_station(
 				songPk,
 				stationPk
 			):
 			self._add_song_to_queue(songPk, stationPk, user.id)
-			songInfo = self.song_info_service.song_info(songPk)
-			songName = songInfo.name if songInfo else "Song"
-			raise LookupError(f"{songName} cannot be added to {stationName}")
+			return
+		raise LookupError(f"{songName} cannot be added to {stationName}")
 
 
 

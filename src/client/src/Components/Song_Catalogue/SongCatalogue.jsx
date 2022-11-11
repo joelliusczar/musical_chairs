@@ -39,7 +39,7 @@ const useStyles = makeStyles(() => ({
 	},
 }));
 
-export default function SongCatalogue() {
+export const SongCatalogue = () => {
 
 	const [stationsState, stationsDispatch] =
 		useReducer(waitingReducer(), listDataInitialState);
@@ -228,7 +228,8 @@ export default function SongCatalogue() {
 									})}
 								</TableBody>
 							</Table>
-						</TableContainer><Box sx={{ display: "flex" }}>
+						</TableContainer>
+						<Box sx={{ display: "flex" }}>
 							<Select
 								displayEmpty
 								defaultValue={50}
@@ -257,11 +258,12 @@ export default function SongCatalogue() {
 										{...item} />);
 								} }
 								sx={{}} />
-						</Box></>:
+						</Box>
+					</>:
 						<Typography>No records</Typography>
 					}
 				</Loader>
 			</Box>
 		</>
 	);
-}
+};

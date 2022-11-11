@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { useHistory, useParams, useLocation, Link } from "react-router-dom";
+import { useHistory, useLocation, Link } from "react-router-dom";
 import {
-	fetchStations,
 	fetchSongCatalogue,
 	sendSongRequest,
 } from "../../API_Calls/stationCalls";
@@ -25,12 +24,19 @@ import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
 	waitingReducer,
-	listDataInitialState,
 	pageableDataInitialState,
 	dispatches,
 } from "../Shared/waitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
+import {
+	useStationData,
+} from "../../Context_Providers/AppContextProvider";
+import {
+	urlBuilderFactory,
+	getRowsCount,
+	getPageCount,
+} from "../../Helpers/pageable_helpers";
 
 
 const useStyles = makeStyles(() => ({
@@ -41,13 +47,14 @@ const useStyles = makeStyles(() => ({
 
 export const SongCatalogue = () => {
 
-	const [stationsState, stationsDispatch] =
-		useReducer(waitingReducer(), listDataInitialState);
+	const {
+		items: stations,
+	} = useStationData();
+
 	const [catalogueState, catalogueDispatch] =
 		useReducer(waitingReducer(), pageableDataInitialState);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
-	const { station: stationParam } = useParams();
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
 	const page = parseInt(queryObj.get("page") || "1");
@@ -55,7 +62,6 @@ export const SongCatalogue = () => {
 	const urlHistory = useHistory();
 	const classes = useStyles();
 
-	const { callStatus: stationsCallStatus } = stationsState;
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
 
@@ -69,61 +75,12 @@ export const SongCatalogue = () => {
 		}
 	};
 
-	const getPageUrl = (params) => {
-		const queryObj = new URLSearchParams(location.search);
-		if(params.page) {
-			queryObj.set("page", params.page);
-		}
-		if(params.rows) {
-			queryObj.set("rows", params.rows);
-		}
-		if(params.id) {
-			queryObj.set("id", params.id);
-		}
-		if(params.name) {
-			queryObj.set("name", params.name);
-		}
-		else if (params.name === "") {
-			queryObj.delete("name");
-		}
-		const queryStr = `?${queryObj.toString()}`;
-		return `${DomRoutes.songCatalogue}${queryStr}`;
-	};
-
-	const getPageCount = () => {
-		const rows = parseInt(queryObj.get("rows") || "1");
-		const totalRows = catalogueState.data.totalRows;
-		if(rows < 1) {
-			return 0;
-		}
-		return Math.floor(totalRows / rows);
-	};
-
-	const getRowsCount = () => {
-		return parseInt(queryObj.get("rows") || "50");
-	};
-
-	useEffect(() => {
-		const fetch = async () => {
-			if (!stationsCallStatus) {
-				stationsDispatch(dispatches.started());
-				try {
-					const data = await fetchStations();
-					stationsDispatch(dispatches.done(data));
-				}
-				catch(err) {
-					stationsDispatch(dispatches.failed(formatError(err)));
-				}
-
-			}
-		};
-		fetch();
-	}, [stationsCallStatus, stationsDispatch]);
+	const getPageUrl = urlBuilderFactory(DomRoutes.songCatalogue);
 
 	useEffect(() => {
 		document.title =
-			`Musical Chairs - Song Catalogue${`- ${stationParam || ""}`}`;
-	},[stationParam]);
+			`Musical Chairs - Song Catalogue${`- ${stationNameFromQS || ""}`}`;
+	},[stationNameFromQS]);
 
 	useEffect(() => {
 		const fetch = async () => {
@@ -160,22 +117,25 @@ export const SongCatalogue = () => {
 
 	return (
 		<>
-			<h1>Song Catalogue: {stationParam}</h1>
-			{stationsState?.data?.items?.length > 0 && (
+			<h1>Song Catalogue: {stationNameFromQS}</h1>
+			{stations?.length > 0 && (
 				<Box m={1}>
 					<TextField
 						select
 						className={classes.select}
 						label="Stations"
 						onChange={(e) => {
-							urlHistory.replace(getPageUrl({ name: e.target.value }));
+							urlHistory.replace(getPageUrl(
+								{ name: e.target.value },
+								location.search)
+							);
 						}}
 						value={stationNameFromQS?.toLowerCase() || ""}
 					>
 						<MenuItem key="empty_station" value={""}>
 								Select a Station
 						</MenuItem>
-						{stationsState.data.items.map((s) => {
+						{stations.map((s) => {
 							return (
 								<MenuItem key={s.name} value={s.name?.toLowerCase()}>
 									{s.displayName}
@@ -236,11 +196,14 @@ export const SongCatalogue = () => {
 								label="Row Count"
 								onChange={(e) => {
 									urlHistory.replace(
-										getPageUrl({ rows: e.target.value, page: 1 })
+										getPageUrl(
+											{ rows: e.target.value, page: 1 },
+											location.search
+										)
 									);
 								}}
 								renderValue={(v) => v || "Select Row Count"}
-								value={getRowsCount()}
+								value={getRowsCount(location.search)}
 							>
 								{[10, 50, 100, 1000].map((size) => {
 									return (<MenuItem key={`size_${size}`} value={size}>
@@ -249,12 +212,18 @@ export const SongCatalogue = () => {
 								})}
 							</Select>
 							<Pagination
-								count={getPageCount()}
+								count={getPageCount(
+									location.search,
+									catalogueState.data?.totalRows
+								)}
 								page={page}
 								renderItem={item => {
 									return (<PaginationItem
 										component={Link}
-										to={getPageUrl({ page: item.page })}
+										to={getPageUrl(
+											{ page: item.page },
+											location.search
+										)}
 										{...item} />);
 								} }
 								sx={{}} />

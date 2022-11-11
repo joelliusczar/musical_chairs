@@ -1,138 +1,133 @@
-import React, { useEffect, useState } from "react";
-import { useHistory, useParams } from "react-router-dom";
-import { fetchStations } from "../../API_Calls/stationCalls";
-import { fetchHistory } from "./history_slice";
-import { useDispatch, useSelector } from "react-redux";
-import { MenuItem,
-	Select,
+import React, { useEffect, useState, useReducer } from "react";
+import { useLocation } from "react-router-dom";
+import { fetchHistory } from "../../API_Calls/stationCalls";
+import {
 	Table,
 	TableBody,
 	TableContainer,
 	TableCell,
 	TableHead,
 	TableRow,
+	Box,
+	Typography,
 } from "@mui/material";
-import { makeStyles } from "@mui/styles";
+import {
+	waitingReducer,
+	pageableDataInitialState,
+	dispatches,
+} from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
-import { CallStatus, DomRoutes, CallType } from "../../constants";
+import { DomRoutes } from "../../constants";
+import { StationSelect } from "../Shared/StationSelect";
+import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
+import { UrlPagination } from "../Shared/UrlPagination";
+import { formatError } from "../../Helpers/error_formatter";
 
 
-const useStyles = makeStyles(() => ({
-	select: {
-		width: 150,
-	},
-}));
+export const History = () => {
 
-export default function History() {
-	const [selectedStation, setSelectedStation] = useState("");
-	const [selectTouched, setSelectTouched] = useState();
-	const { station: stationParam } = useParams();
-	const urlHistory = useHistory();
-	const dispatch = useDispatch();
-	const classes = useStyles();
-	const stations = useSelector((appState) =>
-		appState.stations.values[CallType.fetch]);
-	const stationsStatus =	useSelector((appState) =>
-		appState.stations.status[CallType.fetch]);
-	const songHistoryObj = useSelector((appState) =>
-		appState.history.values[CallType.fetch]);
-	const songHistoryStatus =	useSelector((appState) =>
-		appState.history.status[CallType.fetch]);
-	const songHistoryError =	useSelector((appState) =>
-		appState.history.error[CallType.fetch]);
+	const location = useLocation();
+	const queryObj = new URLSearchParams(location.search);
+	const stationNameFromQS = queryObj.get("name") || "";
 
+	const [currentQueryStr, setCurrentQueryStr] = useState("");
+
+	const [historyState, historyDispatch] =
+		useReducer(waitingReducer(), pageableDataInitialState);
+
+	const { callStatus: historyCallStatus } = historyState;
+
+	const getPageUrl = urlBuilderFactory(DomRoutes.history);
 
 	useEffect(() => {
-		if(!stationsStatus || stationsStatus === CallStatus.idle) {
-			dispatch(fetchStations());
-		}
-	}, [dispatch, stationsStatus]);
+		document.title =
+			`Musical Chairs - History${`- ${stationNameFromQS || ""}`}`;
+	},[stationNameFromQS]);
 
 	useEffect(() => {
-		document.title = `Musical Chairs - History${`- ${stationParam || ""}`}`;
-	},[stationParam]);
+		const fetch = async () => {
+			if (currentQueryStr === location.search) return;
+			const queryObj = new URLSearchParams(location.search);
+			const stationNameFromQS = queryObj.get("name");
+			if (!stationNameFromQS) return;
 
-	useEffect(() => {
-		if(!selectTouched) return;
-		urlHistory.replace(`${DomRoutes.history}${selectedStation}`);
-	}, [urlHistory, selectedStation, selectTouched]);
+			const page = parseInt(queryObj.get("page") || "1");
+			const limit = parseInt(queryObj.get("rows") || "50");
+			historyDispatch(dispatches.started());
+			try {
+				const data = await fetchHistory({
+					station: stationNameFromQS,
+					params: { page: page - 1, limit: limit } }
+				);
+				historyDispatch(dispatches.done(data));
+				setCurrentQueryStr(location.search);
+			}
+			catch (err) {
+				historyDispatch(dispatches.failed(formatError(err)));
+			}
 
-	useEffect(() => {
-		if (!stationParam) return;
-		const station = stationParam.toLowerCase();
-		if(stations.items.some(s => s.name.toLowerCase() === station)) {
-			setSelectedStation(stationParam);
-			setSelectTouched(false);
-			dispatch(fetchHistory({ station: stationParam }));
-		}
-	}, [
-		stationParam,
-		dispatch,
-		setSelectedStation,
-		setSelectTouched,
-		stations,
+		};
+		fetch();
+	},[
+		historyDispatch,
+		fetchHistory,
+		location.search,
+		currentQueryStr,
+		setCurrentQueryStr,
 	]);
 
 	return (
 		<>
-			<h1>History: {stationParam}</h1>
-			{stations && (
-				<Select
-					className={classes.select}
-					displayEmpty
-					label="Stations"
-					onChange={(e) => {
-						setSelectTouched(true);
-						setSelectedStation(e.target.value);
-					}}
-					renderValue={(v) => v || "Select Station"}
-					value={selectedStation}
+			<h1>History: {stationNameFromQS}</h1>
+			<Box m={1}>
+				<StationSelect getPageUrl={getPageUrl} />
+			</Box>
+			<Box m={1}>
+				<Loader
+					status={historyCallStatus}
+					error={historyState.error}
 				>
-					{stations.items.map((s) => {
-						return (
-							<MenuItem key={s.name} value={s.name}>
-								{s.name}
-							</MenuItem>
-						);
-					})}
-				</Select>
-			)}
-			<Loader
-				status={songHistoryStatus}
-				error={songHistoryError}
-				isReady={!!stationParam}
-			>
-				<TableContainer>
-					<Table size="small">
-						<TableHead>
-							<TableRow>
-								<TableCell>Song</TableCell>
-								<TableCell>Album</TableCell>
-								<TableCell>Artist</TableCell>
-								<TableCell>Last Played</TableCell>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							{songHistoryObj.items.map((item, idx) => {
-								return (
-									<TableRow key={`song_${idx}`}>
-										<TableCell>
-											{item.name || "{No song name}"}
-										</TableCell>
-										<TableCell>
-											{item.album || "{No album name}"}
-										</TableCell>
-										<TableCell>
-											{item.artist || "{No artist name}"}
-										</TableCell>
-										<TableCell></TableCell>
+					{historyState?.data?.items?.length > 0 ? <>
+						<TableContainer>
+							<Table size="small">
+								<TableHead>
+									<TableRow>
+										<TableCell>Song</TableCell>
+										<TableCell>Album</TableCell>
+										<TableCell>Artist</TableCell>
+										<TableCell>Last Played</TableCell>
 									</TableRow>
-								);
-							})}
-						</TableBody>
-					</Table>
-				</TableContainer>
-			</Loader>
+								</TableHead>
+								<TableBody>
+									{historyState.data?.items.map((item, idx) => {
+										return (
+											<TableRow key={`song_${idx}`}>
+												<TableCell>
+													{item.name || "{No song name}"}
+												</TableCell>
+												<TableCell>
+													{item.album || "{No album name}"}
+												</TableCell>
+												<TableCell>
+													{item.artist || "{No artist name}"}
+												</TableCell>
+												<TableCell></TableCell>
+											</TableRow>
+										);
+									})}
+								</TableBody>
+							</Table>
+						</TableContainer>
+						<Box sx={{ display: "flex" }}>
+							<UrlPagination
+								getPageUrl={getPageUrl}
+								totalRows={historyState.data?.totalRows}
+							/>
+						</Box>
+					</>:
+						<Typography>No records</Typography>}
+				</Loader>
+			</Box>
 		</>
 	);
-}
+};

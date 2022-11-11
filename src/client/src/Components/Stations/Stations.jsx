@@ -30,7 +30,7 @@ const useStyles = makeStyles(() => ({
 }));
 
 
-export default function Stations(){
+export const Stations = () => {
 	const [state, dispatch] = useReducer(
 		waitingReducer(),
 		pageableDataInitialState
@@ -150,4 +150,4 @@ export default function Stations(){
 			}) : <Typography>No Stations have been added</Typography>}
 		</Loader>
 	</>);
-}
+};

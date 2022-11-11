@@ -49,6 +49,13 @@ export const fetchQueue = async ({ station, params }) => {
 	return response.data;
 };
 
+export const fetchHistory = async ({ station, params }) => {
+	const response = await webClient.get(`stations/${station}/history/`, {
+		params: params,
+	});
+	return response.data;
+};
+
 export const sendSongRequest = async ({ station, songId}) => {
 	const response = await webClient
 		.post(`stations/${station}/request/${songId}`);

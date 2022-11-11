@@ -12,8 +12,6 @@ import {
 import { makeStyles } from "@mui/styles";
 import { AppRoutes, NavMenu } from "./Components/Navigation/NavRoutes";
 import { BrowserRouter } from "react-router-dom";
-import { Provider } from "react-redux";
-import store from "./reducers";
 import { theme, drawerWidth } from "./style_config";
 import { LoginModal } from "./Components/Accounts/AccountsLoginModal";
 import { SnackbarProvider } from "notistack";
@@ -102,22 +100,20 @@ function AppRoot() {
 	const notistackRef = createRef();
 
 	return (
-		<Provider store={store}>
-			<SnackbarProvider
-				ref={notistackRef}
-				onClick={() => notistackRef.current.closeSnackbar()}
-			>
-				<AuthContextProvider>
-					<ThemeProvider theme={theme}>
-						<BrowserRouter basename="/">
-							<AppContextProvider>
-								<AppTrunk />
-							</AppContextProvider>
-						</BrowserRouter>
-					</ThemeProvider>
-				</AuthContextProvider>
-			</SnackbarProvider>
-		</Provider>
+		<SnackbarProvider
+			ref={notistackRef}
+			onClick={() => notistackRef.current.closeSnackbar()}
+		>
+			<AuthContextProvider>
+				<ThemeProvider theme={theme}>
+					<BrowserRouter basename="/">
+						<AppContextProvider>
+							<AppTrunk />
+						</AppContextProvider>
+					</BrowserRouter>
+				</ThemeProvider>
+			</AuthContextProvider>
+		</SnackbarProvider>
 	);
 }
 

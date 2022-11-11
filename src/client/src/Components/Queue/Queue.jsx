@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { useHistory, useLocation, Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { fetchQueue } from "../../API_Calls/stationCalls";
-import { MenuItem,
+import {
 	Table,
 	TableBody,
 	TableContainer,
@@ -9,35 +9,19 @@ import { MenuItem,
 	TableHead,
 	TableRow,
 	Typography,
-	TextField,
 	Box,
-	Select,
-	Pagination,
-	PaginationItem,
 } from "@mui/material";
-import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
-import {
-	useStationData,
-} from "../../Context_Providers/AppContextProvider";
 import {
 	waitingReducer,
 	pageableDataInitialState,
 	dispatches,
 } from "../Shared/waitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
-import {
-	urlBuilderFactory,
-	getRowsCount,
-	getPageCount,
-} from "../../Helpers/pageable_helpers";
-
-const useStyles = makeStyles(() => ({
-	select: {
-		width: 150,
-	},
-}));
+import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
+import { StationSelect } from "../Shared/StationSelect";
+import { UrlPagination } from "../Shared/UrlPagination";
 
 const queueInitialState = {
 	...pageableDataInitialState,
@@ -51,9 +35,9 @@ const queueInitialState = {
 };
 
 /*
-						yield { 
+						yield {
 								'id': row[0],
-								'song': tag.title, 
+								'song': tag.title,
 								'album': tag.album,
 								'artist': tag.artist,
 								'lastPlayedTimestamp': row[2]
@@ -75,19 +59,11 @@ const formatNowPlaying = (nowPlaying) => {
 
 export const Queue = () => {
 
-	const {
-		items: stations,
-	} = useStationData();
-
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
-	const page = parseInt(queryObj.get("page") || "1");
 	const stationNameFromQS = queryObj.get("name") || "";
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
-
-	const urlHistory = useHistory();
-	const classes = useStyles();
 
 	const [queueState, queueDispatch] =
 		useReducer(waitingReducer(), queueInitialState);
@@ -136,32 +112,9 @@ export const Queue = () => {
 	return (
 		<>
 			<h1>Queue: {stationNameFromQS}</h1>
-			{stations?.length > 0 && (
-				<Box m={1}>
-					<TextField
-						select
-						className={classes.select}
-						label="Stations"
-						onChange={(e) => {
-							urlHistory.replace(getPageUrl(
-								{ name: e.target.value },
-								location.search
-							));
-						}}
-						value={stationNameFromQS?.toLowerCase() || ""}
-					>
-						<MenuItem key="empty_station" value={""}>
-								Select a Station
-						</MenuItem>
-						{stations.map((s) => {
-							return (
-								<MenuItem key={s.name} value={s.name?.toLowerCase()}>
-									{s.displayName}
-								</MenuItem>
-							);
-						})}
-					</TextField>
-				</Box>)}
+			<Box m={1}>
+				<StationSelect getPageUrl={getPageUrl} />
+			</Box>
 			<Box m={1}>
 				<Loader
 					status={queueCallStatus}
@@ -204,41 +157,11 @@ export const Queue = () => {
 								</TableBody>
 							</Table>
 						</TableContainer>
-						<Box m={1}>
-							<Select
-								displayEmpty
-								defaultValue={50}
-								label="Row Count"
-								onChange={(e) => {
-									urlHistory.replace(
-										getPageUrl(
-											{ rows: e.target.value, page: 1 },
-											location.search
-										)
-									);
-								}}
-								renderValue={(v) => v || "Select Row Count"}
-								value={getRowsCount(location.search)}
-							>
-								{[10, 50, 100, 1000].map((size) => {
-									return (<MenuItem key={`size_${size}`} value={size}>
-										{size}
-									</MenuItem>);
-								})}
-							</Select>
-							<Pagination
-								count={getPageCount(
-									location.search,
-									queueState.data?.totalRows
-								)}
-								page={page}
-								renderItem={item => {
-									return (<PaginationItem
-										component={Link}
-										to={getPageUrl({ page: item.page }, location.search)}
-										{...item} />);
-								} }
-								sx={{}} />
+						<Box sx={{ display: "flex" }}>
+							<UrlPagination
+								getPageUrl={getPageUrl}
+								totalRows={queueState.data?.totalRows}
+							/>
 						</Box>
 					</> :
 						<Typography>No records</Typography>}

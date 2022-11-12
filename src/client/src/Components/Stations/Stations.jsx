@@ -1,26 +1,22 @@
-import React, { useEffect, useReducer } from "react";
+import React, { useEffect } from "react";
 import {
 	Accordion,
 	AccordionSummary,
 	AccordionDetails,
 	Button,
-	Chip,
 	Grid,
 	Typography,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
-import { fetchStations } from "../../API_Calls/stationCalls";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DomRoutes } from "../../constants";
 import { Link, useLocation } from "react-router-dom";
-import {
-	waitingReducer,
-	pageableDataInitialState,
-	dispatches,
-} from "../Shared/waitingReducer";
 import { UserRoleDef } from "../../constants";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import {
+	useStationData,
+} from "../../Context_Providers/AppContextProvider";
 
 
 const useStyles = makeStyles(() => ({
@@ -31,11 +27,13 @@ const useStyles = makeStyles(() => ({
 
 
 export const Stations = () => {
-	const [state, dispatch] = useReducer(
-		waitingReducer(),
-		pageableDataInitialState
-	);
-	const { callStatus } = state;
+
+	const {
+		items: stations,
+		callStatus: stationCallStatus,
+		error: stationError,
+	} = useStationData();
+
 	const location = useLocation();
 	const classes = useStyles();
 	const canEditStation = useHasAnyRoles([UserRoleDef.STATION_EDIT]);
@@ -43,23 +41,6 @@ export const Stations = () => {
 	useEffect(() => {
 		document.title = "Musical Chairs - Stations";
 	},[location]);
-
-	useEffect(() => {
-		const fetch = async () => {
-			try {
-				if(!callStatus) {
-					dispatch(dispatches.started());
-					const data = await fetchStations();
-					dispatch(dispatches.done(data));
-				}
-			}
-			catch(err) {
-				dispatch(dispatches.failed(err.response.data.detail[0].msg));
-			}
-		};
-
-		fetch();
-	}, [callStatus, dispatch]);
 
 	return (<>
 		<Typography variant="h1">Stations</Typography>
@@ -70,11 +51,10 @@ export const Stations = () => {
 			Add New Station
 		</Button>
 		<Loader
-			status={callStatus}
-			error={state.error}
-			isReady
+			status={stationCallStatus}
+			error={stationError}
 		>
-			{state.data?.items?.length ? state.data.items.map((s, idx) => {
+			{stations?.length ? stations.map((s, idx) => {
 				return (<Accordion
 					key={`station_${idx}`}
 					defaultExpanded={false}
@@ -117,7 +97,7 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										className={classes.buttons}
-										to={`${DomRoutes.history}${s.name}`}
+										to={`${DomRoutes.history}?name=${s.name}`}
 									>
 											Song History
 									</Button>
@@ -128,22 +108,12 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										className={classes.buttons}
-										to={`${DomRoutes.queue}${s.name}`}
+										to={`${DomRoutes.queue}?name=${s.name}`}
 									>
 											Song Queue
 									</Button>
 								</Grid>
 							</Grid>
-							<Typography display="block">Tags:</Typography>
-							<div>
-								{(s.tags || []).map((t,idx) => {
-									return (<Chip
-										key={`tag_${idx}`}
-										label={t.name}
-										className={classes.buttons}
-									/>);
-								})}
-							</div>
 						</div>
 					</AccordionDetails>
 				</Accordion>);

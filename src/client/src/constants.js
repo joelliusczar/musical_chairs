@@ -8,11 +8,6 @@ export const CallStatus = {
 	idle: "idle",
 };
 
-export const CallType = {
-	fetch: "fetch",
-	post: "post",
-};
-
 export const DomRoutes = {
 	queue: "/queue/",
 	history: "/history/",
@@ -26,20 +21,6 @@ export const DomRoutes = {
 	accountsRoles: "/accounts/roles/",
 	accountsList: "/accounts/list",
 	notFound: "/not-found",
-};
-
-export const ApiRoutes = {
-	queue: (stationName) => `stations/${stationName}/queue/`,
-	history: (stationName) =>
-		`stations/${stationName}/history/`,
-	stations: () => "stations/",
-	songRequest: (stationName, songId) =>
-		`stations/${stationName}/request/${songId}`,
-	songCatalogue: (stationName) =>
-		`stations/${stationName}/catalogue/`,
-	login: "token",
-	check: "accounts/check",
-	setupInfo: "accounts/setup-info",
 };
 
 export const UserRoleDef = {

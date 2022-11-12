@@ -15,11 +15,19 @@ import { SongEdit } from "../Songs/SongEdit";
 import { NotFound } from "../Shared/RoutingErrors";
 import { DomRoutes, UserRoleDef } from "../../constants";
 import { PrivateRoute } from "../Shared/PrivateRoute";
-import { useCurrentUser } from "../../Context_Providers/AuthContext";
+import {
+	useCurrentUser,
+	useHasAnyRoles,
+} from "../../Context_Providers/AuthContext";
 
 
 
 export function NavMenu() {
+
+	const canOpenAccountList = useHasAnyRoles([
+		UserRoleDef.USER_EDIT,
+		UserRoleDef.USER_LIST,
+	]);
 	return (
 		<List>
 			<ListItem button component={NavLink} to={DomRoutes.queue} >
@@ -34,9 +42,10 @@ export function NavMenu() {
 			<ListItem button component={NavLink} to={DomRoutes.songTree}>
 				Song Directory
 			</ListItem>
+			{canOpenAccountList &&
 			<ListItem button component={NavLink} to={DomRoutes.accountsList}>
 				Accounts List
-			</ListItem>
+			</ListItem>}
 		</List>
 	);
 }
@@ -68,9 +77,12 @@ export function AppRoutes() {
 					afterSubmit={() => urlHistory.push("")}
 				/>
 			</Route>}
-			<Route path={DomRoutes.accountsList}>
+			<PrivateRoute
+				scopes={[UserRoleDef.USER_LIST, UserRoleDef.USER_EDIT]}
+				path={DomRoutes.accountsList}
+			>
 				<AccountsList />
-			</Route>
+			</PrivateRoute>
 			<PrivateRoute
 				path={`${DomRoutes.accountsRoles}:id`}
 				scopes={[UserRoleDef.ADMIN]}

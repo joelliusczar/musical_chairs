@@ -25,16 +25,16 @@ fi
 case $(uname) in
 	(Darwin*)
 		if ! brew_is_installed libtool; then
-			install_package libtool 
+			install_package libtool
 		fi
 		if ! brew_is_installed pkg-config; then
 			install_package pkg-config
 		fi
 		if ! brew_is_installed libshout; then
-			install_package libshout 
+			install_package libshout
 		fi
 		;;
-	(Linux*) 
+	(Linux*)
 		if [ "$pkgMgrChoice" = "$APT_CONST" ] \
 		&& ! libtool --version 2>/dev/null; then
 			install_package libtool-bin ||

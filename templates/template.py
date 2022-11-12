@@ -1,6 +1,6 @@
 from musical_chairs_libs.radio_handle import RadioHandle
 
-handle = None
+handle: RadioHandle = None #pyright: ignore [reportGeneralTypeIssues]
 
 # Function called to initialize your python environment.
 # Should return 1 if ok, and 0 if something went wrong.
@@ -15,7 +15,7 @@ def ices_shutdown():
 	global handle
 	return handle.ices_shutdown()
 
-# Function called to get the next filename to stream. 
+# Function called to get the next filename to stream.
 # Should return a string.
 def ices_get_next():
 	global handle

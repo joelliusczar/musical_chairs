@@ -22,6 +22,7 @@ import { formatError } from "../../Helpers/error_formatter";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { StationSelect } from "../Shared/StationSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
+import { NowPlaying } from "../Shared/NowPlaying";
 
 const queueInitialState = {
 	...pageableDataInitialState,
@@ -121,9 +122,7 @@ export const Queue = () => {
 					error={queueState.error}
 				>
 					<Typography>Now Playing</Typography>
-					<Typography>
-						{formatNowPlaying(queueState?.data?.nowPlaying)}
-					</Typography>
+					<NowPlaying nowPlaying={queueState?.data?.nowPlaying}/>
 					{queueState?.data?.items?.length > 0 ? <>
 						<TableContainer>
 							<Table size="small">

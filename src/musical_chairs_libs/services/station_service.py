@@ -16,7 +16,7 @@ from sqlalchemy import select, \
 	update
 from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.tables import\
-	stations as stations_tbl, st_pk,\
+	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,\
 	songs, \
 	albums, \
 	artists, \
@@ -34,6 +34,7 @@ from musical_chairs_libs.dtos_and_utilities import\
 	missing
 from musical_chairs_libs.errors import AlreadyUsedError
 from .env_manager import EnvManager
+from .template_service import TemplateService
 
 sg: ColumnCollection = songs.columns
 st: ColumnCollection = stations_tbl.columns
@@ -47,7 +48,8 @@ class StationService:
 	def __init__(self,
 		conn: Optional[Connection]=None,
 		envManager: Optional[EnvManager]=None,
-		processManager: Optional[OSProcessManager]=None
+		processManager: Optional[OSProcessManager]=None,
+		templateService: Optional[TemplateService]=None
 	):
 		if not conn:
 			if not envManager:
@@ -55,8 +57,11 @@ class StationService:
 			conn = envManager.get_configured_db_connection()
 		if not processManager:
 			processManager = OSProcessManager()
+		if not templateService:
+			templateService = TemplateService()
 		self.conn = conn
 		self.process_manager = processManager
+		self.template_service = templateService
 		self.get_datetime = get_datetime
 
 	def set_station_proc(self, stationName: str) -> None:
@@ -103,6 +108,7 @@ class StationService:
 		stmt = insert(stations_tbl)\
 			.values(name = stationName, displayName = displayName)
 		self.conn.execute(stmt)
+		self.template_service.create_station_files(stationName, displayName)
 		return True
 
 	def remove_station(self, stationName: str) -> None:
@@ -119,9 +125,10 @@ class StationService:
 		#sentinel is only needed for id because None and 0 are both legit values
 		stationIds: Optional[Iterable[int]]=None,) -> Iterator[StationInfo]:
 		query = select(
-			st.pk,
-			st.name,
-			st.displayName,
+			st_pk,
+			st_name,
+			st_displayName,
+			st_procId
 		).select_from(stations_tbl)
 		if stationId:
 			query = query.where(st_pk == stationId)
@@ -130,9 +137,10 @@ class StationService:
 		records = self.conn.execute(query)
 		for row in cast(Iterable[Row], records):
 			yield StationInfo(
-				id=cast(int,row[st.pk]),
-				name=cast(str,row[st.name]),
-				displayName=cast(str,row[st.displayName])
+				id=cast(int,row[st_pk]),
+				name=cast(str,row[st_name]),
+				displayName=cast(str,row[st_displayName]),
+				isRunning=bool(row[st_procId])
 			)
 
 	def _attach_catalogue_joins(

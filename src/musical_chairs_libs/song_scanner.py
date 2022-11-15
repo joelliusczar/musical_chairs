@@ -14,10 +14,9 @@ from musical_chairs_libs.dtos_and_utilities import ScanningSongItem
 from musical_chairs_libs.services import\
 	EnvManager,\
 	SongInfoService,\
-	TagService,\
 	StationService
-from musical_chairs_libs.tables import songs, \
-	songs_tags
+
+from musical_chairs_libs.tables import songs
 
 
 def getFilter(endings: Iterable[str]) -> Callable[[str],bool]:
@@ -85,8 +84,7 @@ class SongScanner:
 		conn: Optional[Connection]=None,
 		stationService: Optional[StationService]=None,
 		envManager: Optional[EnvManager]=None,
-		songInfoService: Optional[SongInfoService]=None,
-		tagService: Optional[TagService]=None,
+		songInfoService: Optional[SongInfoService]=None
 	) -> None:
 			if not conn:
 				if not envManager:
@@ -96,12 +94,9 @@ class SongScanner:
 				stationService = StationService(conn)
 			if not songInfoService:
 				songInfoService = SongInfoService(conn)
-			if not tagService:
-				tagService = TagService(conn)
 			self.conn = conn
 			self.station_service = stationService
 			self.song_info_service = songInfoService
-			self.tag_service = tagService
 
 
 	def update_metadata(self, searchBase: str) -> int:
@@ -158,18 +153,10 @@ class SongScanner:
 		for idx, path in enumerate(scan_files(searchBase)):
 			try:
 				songInsert = insert(songs).values(path = path)
-				songPk: int = self.conn.execute(songInsert).lastrowid
+				self.conn.execute(songInsert).lastrowid
 				insertCount += 1
-				self.sort_to_tags(songPk, path)
 				print(f"inserted: {idx}".rjust(len(str(idx)), " "),end="\r")
 			except IntegrityError: pass
 		return insertCount
 
-	def sort_to_tags(self, songPk: int, path: str) -> None:
-		for tag in map_path_to_tags(path):
-			tagFk = self.tag_service.get_tag_pk(tag)
-			stmt = insert(songs_tags).values(songFk = songPk, tagFk = tagFk)
-			try:
-				self.conn.execute(stmt)
-			except IntegrityError: pass
 

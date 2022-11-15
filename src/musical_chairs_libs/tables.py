@@ -184,6 +184,7 @@ st: TblCols = stations.c #pyright: ignore [reportUnknownMemberType]
 st_pk: Column = st.pk #pyright: ignore [reportUnknownMemberType]
 st_name: Column = st.name #pyright: ignore [reportUnknownMemberType]
 st_displayName: Column = st.displayName #pyright: ignore [reportUnknownMemberType]
+st_procId: Column = st.procId #pyright: ignore [reportUnknownMemberType]
 
 sgar: TblCols = song_artist.c #pyright: ignore [reportUnknownMemberType]
 sgar_pk: Column = sgar.pk #pyright: ignore [reportUnknownMemberType]

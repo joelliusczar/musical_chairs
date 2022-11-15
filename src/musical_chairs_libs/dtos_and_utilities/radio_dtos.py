@@ -80,6 +80,7 @@ class StationInfo:
 	id: int
 	name: str
 	displayName: str=field(default="", hash=False, compare=False)
+	isRunning: bool=field(default=False, hash=False, compare=False)
 
 @dataclass()
 class StationCreationInfo:

@@ -1,5 +1,6 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
+import os
 from typing import Iterator, List, Optional
 from datetime import datetime
 from musical_chairs_libs.services import\
@@ -7,7 +8,8 @@ from musical_chairs_libs.services import\
 	QueueService,\
 	AccountsService,\
 	SongInfoService,\
-	StationService
+	StationService,\
+	TemplateService
 
 from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos_and_utilities import AccountInfo
@@ -124,6 +126,11 @@ def fixture_song_info_service(
 	return songInfoService
 
 @pytest.fixture
+def fixture_template_service() -> TemplateService:
+	templateService = TemplateService()
+	return templateService
+
+@pytest.fixture
 def fixture_setup_in_mem_tbls(
 	fixture_db_conn_in_mem: Connection,
 	fixture_mock_ordered_date_list: List[datetime],
@@ -138,6 +145,15 @@ def fixture_setup_in_mem_tbls(
 		fixture_primary_user,
 		fixture_mock_password,
 	)
+
+
+@pytest.fixture
+def fixture_clean_station_folders():
+	yield
+	for file in os.scandir(EnvManager.station_config_dir):
+		os.remove(file.path)
+	for file in os.scandir(EnvManager.station_module_dir):
+		os.remove(file.path)
 
 
 

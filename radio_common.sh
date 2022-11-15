@@ -243,12 +243,9 @@ empty_dir_contents() (
 			fi
 		fi
 	else
-		if [ -w "$dir_to_empty"/.. ]; then
-			mkdir -pv "$dir_to_empty" || return "$?"
-		else
+			mkdir -pv "$dir_to_empty" ||
 			sudo -p "Password required for creating ${dir_to_empty}: " \
 				mkdir -pv "$dir_to_empty" || return "$?"
-		fi
 	fi &&
 	if [ ! -w "$dir_to_empty" ]; then
 		sudo -p \
@@ -326,12 +323,24 @@ setup_env_api_file() (
 	envFile="$app_root"/"$config_dir"/.env
 	error_check_path "$templates_src"/.env_api &&
 	error_check_path "$envFile" &&
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	cp "$templates_src"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
 	perl -pi -e "s@^(searchBase=).*\$@\1'${app_root}/${content_home}'@" \
 		"$envFile" &&
-	does_file_exist "$envFile" &&
 	perl -pi -e "s@^(dbName=).*\$@\1'${app_root}/${sqlite_file}'@" "$envFile" &&
+	perl -pi -e "s@^(templateDir=).*\$@\1'${app_root}/${templates_dir_cl}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(stationConfigDir=).*\$@\1'${app_root}/${ices_configs_dir}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(stationModuleDir=).*\$@\1'${app_root}/${pyModules_dir}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(icecastConfLocation=).*\$@\1'${templates_src}/icecast.xml'@" \
+		"$envFile" &&
 	echo 'done setting up .env file'
 )
 
@@ -631,13 +640,18 @@ start_icecast_service() (
 get_icecast_conf() (
 	icecastName="$1"
 	case $(uname) in
-		Linux*)
+		(Linux*)
 			if ! systemctl status "$icecastName" >/dev/null 2>&1; then
 					echo "$icecastName is not running at the moment"
 					exit 1
 			fi
 				systemctl status "$icecastName" | grep -A2 CGroup | \
 					head -n2 | tail -n1 | awk '{ print $NF }'
+			;;
+		(Darwin*)
+			#we have icecast on the mac anyway so we'll just return the
+			#source code location
+			echo "$templates_src"/icecast.xml
 			;;
 		*) ;;
 	esac
@@ -748,22 +762,6 @@ save_station_to_db() (
 EOF
 )
 
-add_tags_to_station() (
-	internalName="$1"
-	while true; do
-		read tagname
-		[ -z "$tagname" ] && break
-		# #python_env
-		python <<EOF
-			from musical_chairs_libs.station_service import StationService
-			stationService = StationService()
-			if stationService.assign_tag_to_station('${internalName}','${tagname}'):
-				print('tag ${tagname} assigned to ${internalName}')
-EOF
-
-	done
-)
-
 create_new_station() (
 	echo 'creating new station'
 	process_global_vars "$@" &&
@@ -802,15 +800,22 @@ run_song_scan() (
 	setup_radio &&
 	export dbName="$app_root"/"$sqlite_file" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+
+	if [ -n "$shouldReplaceDb" ]; then
+		if [ -w "$dbName" ]; then
+				rm -f "$dbName" || return "$?"
+			else
+				sudo -p "Password required for removing files $dbName" \
+					rm -f "$dbName" || return "$?"
+			fi
+	fi &&
 	# #python_env
 	python  <<-EOF
 	import os
 	from musical_chairs_libs.song_scanner import SongScanner
 	from musical_chairs_libs.services import EnvManager
 	print("Starting")
-	shouldReplaceDb = os.environ.get("replace_db_flag", False) and True
-	print(f"About to replace db? {shouldReplaceDb}")
-	EnvManager.setup_db_if_missing(shouldReplaceDb, echo = True)
+	EnvManager.setup_db_if_missing(echo = True)
 	songScanner = SongScanner()
 	inserted = songScanner.save_paths('${app_root}/${content_home}')
 	print(f"saving paths done: {inserted} inserted")
@@ -866,7 +871,13 @@ startup_radio() (
 startup_api() (
 	process_global_vars "$@" &&
 	setup_api &&
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	export dbName="$app_root"/"$sqlite_file" &&
+	export templateDir="$app_root"/"$templates_dir_cl" &&
+	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
+	export stationConfigDir="$app_root"/"$ices_configs_dir" &&
+	export stationModuleDir="$app_root"/"$pyModules_dir" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background with in a subshell so that it doesn't put
@@ -882,7 +893,8 @@ setup_api() (
 	process_global_vars "$@" &&
 	kill_process_using_port "$api_port" &&
 	sync_requirement_list &&
-	copy_dir "$api_src" "$web_root"/"$app_api_path_cl"
+	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
+	copy_dir "$api_src" "$web_root"/"$app_api_path_cl" &&
 	create_py_env_in_app_trunk &&
 	setup_db &&
 	setup_nginx_confs &&
@@ -956,10 +968,10 @@ setup_unit_test_env() (
 	echo "setting up test environment"
 	process_global_vars "$@" &&
 	export app_root="$test_root"
-	[ -e "$app_root"/"$config_dir" ] ||
-	mkdir -pv "$app_root"/"$config_dir" &&
-	[ -e "$app_root"/"$db_dir" ] ||
-	mkdir -pv "$app_root"/"$db_dir" &&
+
+	setup_common_dirs
+
+	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
 	error_check_path "$reference_src_db" &&
 	error_check_path "$app_root"/"$sqlite_file" &&
 	sync_requirement_list
@@ -1175,21 +1187,27 @@ define_repo_paths() {
 	echo "source paths defined"
 }
 
+setup_common_dirs() {
+	[ -e "$app_root"/"$config_dir" ] ||
+	mkdir -pv "$app_root"/"$config_dir"
+	[ -e "$app_root"/"$ices_configs_dir" ] ||
+	mkdir -pv "$app_root"/"$ices_configs_dir"
+	[ -e "$app_root"/"$pyModules_dir" ] ||
+	mkdir -pv "$app_root"/"$pyModules_dir"
+	[ -e "$app_root"/"$db_dir" ] ||
+	mkdir -pv "$app_root"/"$db_dir"
+}
+
 setup_base_dirs() {
 
 	[ -e "$app_root"/"$app_trunk" ] ||
 	mkdir -pv "$app_root"/"$app_trunk"
 
-	[ -e "$app_root"/"$ices_configs_dir" ] ||
-	mkdir -pv "$app_root"/"$ices_configs_dir"
-	[ -e "$app_root"/"$pyModules_dir" ] ||
-	mkdir -pv "$app_root"/"$pyModules_dir"
+	setup_common_dirs
+
 	[ -e "$app_root"/"$content_home" ] ||
 	mkdir -pv "$app_root"/"$content_home"
-	[ -e "$app_root"/"$config_dir" ] ||
-	mkdir -pv "$app_root"/"$config_dir"
-	[ -e "$app_root"/"$db_dir" ] ||
-	mkdir -pv "$app_root"/"$db_dir"
+
 
 	[ -e "$web_root"/"$app_api_path_cl" ] ||
 	{

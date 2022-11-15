@@ -19,6 +19,10 @@ source radio_common
 setup_unit_test_env
 ```
 
+It is also required to run that if we need to update the .env_api template file.
+If we update .env_api, we also need to update the setup_env_api_file and
+startup_api functions in radio_common.sh
+
 # Ways to run api
 
 After having sourced radio_common, run

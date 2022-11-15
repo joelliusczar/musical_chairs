@@ -21,6 +21,26 @@ class EnvManager:
 		return os.environ["dbName"]
 
 	@classmethod
+	@property
+	def templates_dir(cls) -> str:
+		return os.environ["templateDir"]
+
+	@classmethod
+	@property
+	def icecast_conf_location(cls) -> str:
+		return os.environ["icecastConfLocation"]
+
+	@classmethod
+	@property
+	def station_config_dir(cls) -> str:
+		return os.environ["stationConfigDir"]
+
+	@classmethod
+	@property
+	def station_module_dir(cls) -> str:
+		return os.environ["stationModuleDir"]
+
+	@classmethod
 	def get_configured_db_connection(
 		cls,
 		echo: bool=False,
@@ -58,9 +78,7 @@ class EnvManager:
 		return conn
 
 	@classmethod
-	def setup_db_if_missing(cls, replace: bool=False, echo: bool = False):
-		if replace:
-			os.remove(cls.db_name)
+	def setup_db_if_missing(cls, echo: bool = False):
 		if not os.path.exists(cls.db_name):
 			conn = cls.get_configured_db_connection(echo=echo)
 

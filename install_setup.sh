@@ -57,7 +57,7 @@ output_env_vars
 if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 	pythonToLink='python3'
 	case $(uname) in
-		(Linux*) 
+		(Linux*)
 			if ! python3 -V 2>/dev/null; then
 				install_package python3
 			fi

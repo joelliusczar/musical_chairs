@@ -1037,16 +1037,15 @@ setup_all() (
 run_unit_tests() (
 	echo "running unit tests"
 	process_global_vars "$@"
+	export app_root="$test_root"
 	setup_unit_test_env &&
-	copy_lib_to_test
 	test_src="$src_path"/tests &&
 
-	export PYTHONPATH="${src_path}:${src_path}/api" &&
 	export_py_env_vars &&
+	export PYTHONPATH="${src_path}:${src_path}/api" &&
 
-	. "$utest_env_dir"/"$py_env"/bin/activate &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	pytest -s "$test_src" &&
-	rm -r "$(get_libs_dir "$utest_env_dir")"/"$lib_name" &&
 	echo "done running unit tests"
 )
 

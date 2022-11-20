@@ -17,6 +17,9 @@ import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import {
 	useStationData,
 } from "../../Context_Providers/AppContextProvider";
+import { enableStations, disableStations } from "../../API_Calls/stationCalls";
+import { useSnackbar } from "notistack";
+import { formatError } from "../../Helpers/error_formatter";
 
 
 const useStyles = makeStyles(() => ({
@@ -37,6 +40,18 @@ export const Stations = () => {
 	const location = useLocation();
 	const classes = useStyles();
 	const canEditStation = useHasAnyRoles([UserRoleDef.STATION_EDIT]);
+	const canEnableStation = useHasAnyRoles([UserRoleDef.STATION_FLIP]);
+	const { enqueueSnackbar } = useSnackbar();
+
+	const disableAllStations = async () => {
+		try {
+			await disableStations({ names: "*"});
+			enqueueSnackbar("All stations are being disabled", { variant: "success"});
+		}
+		catch(err) {
+			enqueueSnackbar(formatError(err), {variant: "error" });
+		}
+	};
 
 	useEffect(() => {
 		document.title = "Musical Chairs - Stations";
@@ -49,6 +64,11 @@ export const Stations = () => {
 			to={DomRoutes.stationsEdit}
 		>
 			Add New Station
+		</Button>
+		<Button
+			onClick={disableAllStations}
+		>
+			Disable All Stations
 		</Button>
 		<Loader
 			status={stationCallStatus}
@@ -64,7 +84,7 @@ export const Stations = () => {
 						expandIcon={<ExpandMoreIcon />}
 					>
 						<Typography>
-							{s.displayName || s.name}
+							{s.displayName || s.name} - {s.isRunning? "Online!": "Offline"}
 						</Typography>
 					</AccordionSummary>
 					<AccordionDetails>

@@ -98,7 +98,7 @@ def time_til_user_can_do_action(
 	timeout = min([UserRoleDef.extract_role_segments(r)[1] for r \
 		in requestRoles]) * 60
 	lastRequestedTimestamp = 0
-	if role == UserRoleDef.SONG_REQUEST:
+	if role == UserRoleDef.STATION_REQUEST:
 		lastRequestedTimestamp = accountsService.last_request_timestamp(user)
 	timeLeft = lastRequestedTimestamp + timeout - accountsService\
 		.get_datetime().timestamp()

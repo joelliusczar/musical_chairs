@@ -1,5 +1,5 @@
 import { defaultWebClient as webClient } from "./api";
-import { buildArrayQueryStr } from "../Helpers/array_helpers";
+import { buildArrayQueryStr } from "../Helpers/url_helpers";
 
 export const fetchSongForEdit = async ({ id }) => {
 	const response = await webClient.get(`/song-info/songs/${id}`);

@@ -14,7 +14,7 @@ import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
-import { buildArrayQueryStr } from "../../Helpers/array_helpers";
+import { buildArrayQueryStr } from "../../Helpers/url_helpers";
 import { useSnackbar } from "notistack";
 
 

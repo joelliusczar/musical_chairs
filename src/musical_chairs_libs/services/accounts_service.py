@@ -117,7 +117,7 @@ class AccountsService:
 		insertedPk: int = res.lastrowid
 		insertedRows = self.save_roles(
 			insertedPk,
-			[UserRoleDef.SONG_REQUEST.modded_value("60")]
+			[UserRoleDef.STATION_REQUEST.modded_value("60")]
 		)
 		accountDict = accountInfo.scrubed_dict()
 		accountDict["id"] = insertedPk #pyright: ignore [reportGeneralTypeIssues]

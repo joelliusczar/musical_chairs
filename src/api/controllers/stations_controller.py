@@ -1,6 +1,12 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Dict, List, Optional
-from fastapi import APIRouter, Depends, Security, HTTPException, status, Body
+from fastapi import APIRouter,\
+	Depends,\
+	Security,\
+	HTTPException,\
+	status,\
+	Body,\
+	Query
 from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
 	CurrentPlayingInfo,\
 	ValidatedStationCreationInfo,\
@@ -77,7 +83,7 @@ def request_song(
 	queueService: QueueService = Depends(queue_service),
 	user: AccountInfo = Security(
 		get_current_user,
-		scopes=[UserRoleDef.SONG_REQUEST.value]
+		scopes=[UserRoleDef.STATION_REQUEST.value]
 	)
 ):
 	try:
@@ -147,8 +153,28 @@ def update_station(
 	result = stationService.save_station(station, id, userId=user.id)
 	return result or StationInfo(id=-1,name="",displayName="")
 
+@router.put("/enable/",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[
+		Security(get_current_user, scopes=[UserRoleDef.STATION_FLIP.value])
+	]
+)
+def enable_stations(
+	id: list[int] = Query(default=[]),
+	name: list[str] = Query(default=[]),
+	stationService: StationService = Depends(station_service)
+) -> None:
+	stationService.enable_stations(id, name)
 
-# def request(self, stationName, songPk):
-#	 r = cherrypy.request
-#	 resultCount = self.queue_service.add_song_to_queue(stationName, songPk)
-#	 return resultCount
+@router.put("/disable/",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[
+		Security(get_current_user, scopes=[UserRoleDef.STATION_FLIP.value])
+	]
+)
+def disable_stations(
+	id: list[int] = Query(default=[]),
+	name: list[str] = Query(default=[]),
+	stationService: StationService = Depends(station_service)
+) -> None:
+	stationService.disable_stations(id, name)

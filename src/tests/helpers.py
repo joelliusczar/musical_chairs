@@ -8,3 +8,23 @@ def normalize_dict(targetDict: dict[Any, Any]) -> dict[Any, Any]:
 		if type(v) == dict:
 			targetDict[k] =  normalize_dict(v)
 	return targetDict
+
+def mismatched_properties(
+	dictA: dict[Any, Any],
+	dictB: dict[Any, Any]
+) -> list[str]:
+	mismatchs: list[str] = []
+	for k,v in dictA.items():
+		if k not in dictB:
+			mismatchs.append(k)
+			continue
+		if type(v) == dict:
+			if type(dictB[k]) != dict:
+				mismatchs.append(k)
+				continue
+			mismatchs.extend(f"{k}.{m}" for m in mismatched_properties(v, dictB[k]))
+			continue
+		if v != dictB[k]:
+			mismatchs.append(k)
+			continue
+	return mismatchs

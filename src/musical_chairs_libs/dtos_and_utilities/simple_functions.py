@@ -65,3 +65,9 @@ def next_directory_level(path: str, prefix: Optional[str]="") -> str:
 		groups = matches.groups()
 		return groups[0] if groups else ""
 	return ""
+
+def check_name_safety(name: str) -> Optional[str]:
+		m = re.search(r"\W", name)
+		if m:
+			return m.group(0)
+		return None

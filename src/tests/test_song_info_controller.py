@@ -3,7 +3,7 @@ from .api_test_dependencies import\
 	fixture_api_test_client as fixture_api_test_client
 from .api_test_dependencies import *
 from fastapi.testclient import TestClient
-from .helpers import normalize_dict
+from .helpers import normalize_dict, mismatched_properties
 
 
 
@@ -45,7 +45,10 @@ def test_song_save(
 		"name": "juliet_artist"
 	}
 	sendData["stations"] = [
-		{ "id": 2, "name": "papa_station", "displayName": "Come to papa" },
+		{ "id": 2,
+			"name": "papa_station",
+			"displayName": "Come to papa"
+		},
 		{
 			"id": 7,
 			"name": "uniform_station",
@@ -78,9 +81,13 @@ def test_song_save(
 
 	assert getResponseAfter.status_code == 200
 	data = json.loads(getResponseAfter.content)
-	data = normalize_dict(data)
-	sendData = normalize_dict(sendData)
-	assert data == sendData
+	for s in sendData["stations"]:
+		s["isRunning"] = False
+	mismatches = mismatched_properties(
+		normalize_dict(data),
+		normalize_dict(sendData)
+	)
+	assert not mismatches
 
 def test_get_songs_for_multi_edit(
 	fixture_api_test_client: TestClient
@@ -127,7 +134,8 @@ def test_get_songs_for_multi_edit(
 	assert data["stations"] == [
 		{ "id": 1,
 			"name": "oscar_station",
-			"displayName": "Oscar the grouch"
+			"displayName": "Oscar the grouch",
+			"isRunning": False
 		}
 	]
 	assert "stations" in touched

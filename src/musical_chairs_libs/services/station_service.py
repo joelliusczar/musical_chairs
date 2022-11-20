@@ -5,7 +5,8 @@ from typing import\
 	Optional,\
 	cast,\
 	Iterable,\
-	Union
+	Union,\
+	Sequence
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.engine import Connection
@@ -27,14 +28,15 @@ from musical_chairs_libs.dtos_and_utilities import\
 	SongListDisplayItem,\
 	StationCreationInfo,\
 	SavedNameString,\
+	SearchNameString,\
 	get_datetime,\
 	build_error_obj,\
-	OSProcessManager,\
 	Sentinel,\
 	missing
 from musical_chairs_libs.errors import AlreadyUsedError
 from .env_manager import EnvManager
 from .template_service import TemplateService
+from .process_service import ProcessService
 
 sg: ColumnCollection = songs.columns
 st: ColumnCollection = stations_tbl.columns
@@ -48,7 +50,7 @@ class StationService:
 	def __init__(self,
 		conn: Optional[Connection]=None,
 		envManager: Optional[EnvManager]=None,
-		processManager: Optional[OSProcessManager]=None,
+		processManager: Optional[ProcessService]=None,
 		templateService: Optional[TemplateService]=None
 	):
 		if not conn:
@@ -56,7 +58,7 @@ class StationService:
 				envManager = EnvManager()
 			conn = envManager.get_configured_db_connection()
 		if not processManager:
-			processManager = OSProcessManager()
+			processManager = ProcessService()
 		if not templateService:
 			templateService = TemplateService()
 		self.conn = conn
@@ -77,6 +79,35 @@ class StationService:
 			.where(func.lower(st.name) == func.lower(stationName))
 		self.conn.execute(stmt)
 
+	def _unset_station_procs(self, procIds: Iterable[int]) -> None:
+		stmt = update(stations_tbl)\
+			.values(procId = None) \
+			.where(st_procId.in_(procIds))
+		self.conn.execute(stmt)
+
+	def disable_stations(
+		self,
+		stationIds: Optional[Iterable[int]],
+		stationNames: Optional[Sequence[str]]=None
+	) -> None:
+		query = select(st_procId).where(st_procId.is_not(None))
+		if isinstance(stationIds, Iterable):
+			query = query.where(st_pk.in_(stationIds))
+		elif isinstance(stationNames, Iterable):
+			if len(stationNames) > 1 or stationNames[0] != "*":
+				query = query\
+					.where(func.format_name_for_search(st_name).in_(
+							str(SearchNameString.format_name_for_search(s)) for s
+							in stationNames
+						))
+		rows = self.conn.execute(query)
+		pids = [cast(int, row[st_procId]) for row in cast(Iterable[Row], rows)]
+		for pid in pids:
+			self.process_manager.end_process(pid)
+		self._unset_station_procs(pids)
+
+
+	#deprecated. use disable_stations instead
 	def end_all_stations(self) -> None:
 		query = select(st.procId).select_from(stations_tbl)\
 			.where(st.procId != None)
@@ -122,8 +153,11 @@ class StationService:
 	def get_stations(
 		self,
 		stationId: Union[Optional[int], Sentinel]=missing,
+		stationName: Union[Optional[str], Sentinel]=missing,
 		#sentinel is only needed for id because None and 0 are both legit values
-		stationIds: Optional[Iterable[int]]=None,) -> Iterator[StationInfo]:
+		stationIds: Optional[Iterable[int]]=None,
+		stationNames: Optional[Iterable[str]]=None
+	) -> Iterator[StationInfo]:
 		query = select(
 			st_pk,
 			st_name,
@@ -132,8 +166,18 @@ class StationService:
 		).select_from(stations_tbl)
 		if stationId:
 			query = query.where(st_pk == stationId)
+		elif stationName and type(stationName) is str:
+			searchStr = SearchNameString.format_name_for_search(stationName)
+			query = query\
+				.where(func.format_name_for_search(st_name).like(f"%{searchStr}%"))
 		elif isinstance(stationIds, Iterable):
 			query = query.where(st_pk.in_(stationIds))
+		elif isinstance(stationNames, Iterable):
+				query = query\
+					.where(func.format_name_for_search(st_name).in_(
+						str(SearchNameString.format_name_for_search(s)) for s
+						in stationNames
+					))
 		records = self.conn.execute(query)
 		for row in cast(Iterable[Row], records):
 			yield StationInfo(
@@ -276,3 +320,18 @@ class StationService:
 			name=str(savedName),
 			displayName=str(savedDisplayName),
 		)
+
+	def enable_stations(self,
+		stationIds: Optional[Iterable[int]],
+		stationNames: Optional[Sequence[str]]
+	) -> None:
+		stations: list[StationInfo] = []
+		if stationNames and len(stationNames) == 1 and stationNames[0] == "*":
+			stations = list(self.get_stations())
+		else:
+			stations = list(self.get_stations(
+				stationIds=stationIds,
+				stationNames=stationNames
+			))
+		for station in stations:
+			self.process_manager.startup_station(station.name)

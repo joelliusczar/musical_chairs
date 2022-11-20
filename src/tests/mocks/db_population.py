@@ -841,17 +841,17 @@ def populate_user_roles(
 		},
 		{
 			"userFk": 2,
-			"role": UserRoleDef.SONG_REQUEST.modded_value(15),
+			"role": UserRoleDef.STATION_REQUEST.modded_value(15),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
 			"userFk": 3,
-			"role": UserRoleDef.SONG_REQUEST.modded_value(15),
+			"role": UserRoleDef.STATION_REQUEST.modded_value(15),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
 			"userFk": 4,
-			"role": UserRoleDef.SONG_REQUEST.modded_value(15),
+			"role": UserRoleDef.STATION_REQUEST.modded_value(15),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
@@ -861,7 +861,7 @@ def populate_user_roles(
 		},
 		{
 			"userFk": 6,
-			"role": UserRoleDef.SONG_REQUEST.modded_value(15),
+			"role": UserRoleDef.STATION_REQUEST.modded_value(15),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{

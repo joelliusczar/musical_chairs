@@ -9,7 +9,7 @@ from typing import\
 	Any
 from itertools import chain
 from .validation_functions import min_length_validator_factory
-from .simple_functions import get_duplicates
+from .simple_functions import get_duplicates, check_name_safety
 from .generic_dtos import IdItem
 
 
@@ -94,6 +94,16 @@ class ValidatedStationCreationInfo(StationCreationInfo):
 		"name",
 		allow_reuse=True
 	)(min_length_validator_factory(2, "Station name"))
+
+	@validator("name")
+	def check_name_for_illegal_chars(cls, v: str) -> str:
+		if not v:
+			return ""
+
+		m = check_name_safety(v)
+		if m:
+			raise ValueError(f"Illegal character used in station name: {m}")
+		return v
 
 
 @dataclass(frozen=True)

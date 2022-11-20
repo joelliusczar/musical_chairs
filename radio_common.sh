@@ -90,6 +90,17 @@ set_env_path_var() {
 	fi
 }
 
+export_py_env_vars() {
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
+	export searchBase="$app_root"/"$content_home" &&
+	export dbName="$app_root"/"$sqlite_file" &&
+	export templateDir="$app_root"/"$templates_dir_cl" &&
+	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
+	export stationConfigDir="$app_root"/"$ices_configs_dir" &&
+	export stationModuleDir="$app_root"/"$pyModules_dir" &&
+}
+
 get_pkg_mgr() {
 	define_consts >&2
 	case $(uname) in
@@ -167,7 +178,7 @@ is_dir_empty() (
 )
 
 get_libs_dir() (
-	set_env_path_var #ensure that we can see mc-python
+	set_env_path_var >&2 #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
 	packagePath="$py_env/lib/python$pyMajor.$pyMinor/site-packages/"
@@ -181,22 +192,15 @@ create_py_env_in_dir() (
 	set_env_path_var #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
-	error_check_path "$env_root"/"$py_env" &&
+	pyEnvDir="$env_root"/"$py_env"
+	error_check_path "$pyEnvDir" &&
 	if [ -n "$clean_flag" ]; then
-		if ! is_dir_empty "$env_root"/"$py_env"; then
-			if [ -w "$env_root"/"$py_env" ]; then
-				rm -rf "$env_root"/"$py_env" || return "$?"
-			else
-				sudo -p "Password required for removing files from \
-				${env_root}/${py_env}: " \
-					rm -rf "$env_root"/"$py_env" || return "$?"
-			fi
-		fi
+		rm_contents_if_exist "$pyEnvDir" || return "$?"
 	fi &&
-	mc-python -m virtualenv "$env_root"/"$py_env" &&
-	. "$env_root"/$py_env/bin/activate &&
+	mc-python -m virtualenv "$pyEnvDir" &&
+	. "$pyEnvDir"/bin/activate &&
 	#this is to make some of my newer than checks work
-	touch "$env_root"/"$py_env" &&
+	touch "$pyEnvDir" &&
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
@@ -221,38 +225,76 @@ copy_lib_to_test() (
 error_check_path() (
 	target_dir="$1"
 	if echo "$target_dir" | grep '\/\/'; then
-		echo "segments seem to be missing in ${target_dir}"
+		echo "segments seem to be missing in '${target_dir}'"
 		return 1
 	elif [ "$target_dir" = '/' ];then
-		echo "segments seem to be missing in ${target_dir}"
+		echo "segments seem to be missing in '${target_dir}'"
 		return 1
+	fi
+)
+
+error_check_all_paths() (
+	while [ ! -z "$1" ]; do
+		error_check_path "$1" || return "$?"
+		shift
+	done
+)
+
+sudo_rm_contents() (
+	dir_to_empty="$1"
+	if [ -w "$dir_to_empty" ]; then
+		rm -rf "$dir_to_empty"/*
+	else
+		sudo -p "Password required for removing files from ${dir_to_empty}: " \
+			rm -rf "$dir_to_empty"/*
+	fi
+)
+
+rm_contents_if_exist() (
+	dir_to_empty="$1"
+	if ! is_dir_empty "$dir_to_empty"; then
+		sudo_rm_contents "$dir_to_empty"
+	fi
+)
+
+sudo_cp_contents() (
+	from_dir="$1"
+	to_dir="$2"
+	if [ -r "$from_dir" ] && [ -w "$to_dir" ]; then
+		cp -rv "$from_dir"/. "$to_dir"
+	else
+		sudo -p 'Pass required for copying files: ' \
+			cp -rv "$from_dir"/. "$to_dir"
+	fi
+)
+
+sudo_mkdir() (
+	dir_to_make="$1"
+	mkdir -pv "$dir_to_make" ||
+	sudo -p "Password required for creating ${dir_to_make}: " \
+		mkdir -pv "$dir_to_make"
+)
+
+unroot_dir() (
+	unrooted_dir="$1"
+	if [ ! -w "$unrooted_dir" ]; then
+		sudo -p \
+			"Password required to change owner of ${unrooted_dir} to current user: " \
+			chown -R "$current_user": "$unrooted_dir"
 	fi
 )
 
 empty_dir_contents() (
 	dir_to_empty="$1"
-	echo "emptying ${dir_to_empty}"
+	echo "emptying '${dir_to_empty}'"
 	error_check_path "$dir_to_empty" &&
 	if [ -e "$dir_to_empty" ]; then
-		if ! is_dir_empty "$dir_to_empty"; then
-			if [ -w "$dir_to_empty" ]; then
-				rm -rf "$dir_to_empty"/* || return "$?"
-			else
-				sudo -p "Password required for removing files from ${dir_to_empty}: " \
-					rm -rf "$dir_to_empty"/* || return "$?"
-			fi
-		fi
+		rm_contents_if_exist || return "$?"
 	else
-			mkdir -pv "$dir_to_empty" ||
-			sudo -p "Password required for creating ${dir_to_empty}: " \
-				mkdir -pv "$dir_to_empty" || return "$?"
+		sudo_mkdir "$dir_to_empty" || return "$?"
 	fi &&
-	if [ ! -w "$dir_to_empty" ]; then
-		sudo -p \
-			"Password required to change owner of ${dir_to_empty} to current user: " \
-			chown -R "$current_user": "$dir_to_empty"
-	fi &&
-	echo "done emptying ${dir_to_empty}"
+	unroot_dir "$dir_to_empty" &&
+	echo "done emptying '${dir_to_empty}'"
 )
 
 get_bin_path() (
@@ -321,8 +363,7 @@ kill_process_using_port() (
 setup_env_api_file() (
 	echo 'setting up .env file'
 	envFile="$app_root"/"$config_dir"/.env
-	error_check_path "$templates_src"/.env_api &&
-	error_check_path "$envFile" &&
+	error_check_all_paths "$templates_src"/.env_api "$envFile" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	cp "$templates_src"/.env_api "$envFile" &&
@@ -347,32 +388,37 @@ setup_env_api_file() (
 copy_dir() (
 	from_dir="$1"
 	to_dir="$2"
-	echo "setting up dir from ${from_dir} to ${to_dir}"
-	error_check_path "$from_dir"/. &&
-	error_check_path "$to_dir" &&
+	echo "copying from ${from_dir} to ${to_dir}"
+	error_check_all_paths "$from_dir"/. "$to_dir" &&
 	empty_dir_contents "$to_dir" &&
-	if [ -r "$from_dir" ] && [ -w "$to_dir" ]; then
-		cp -rv "$from_dir"/. "$to_dir"
-	else
-		sudo -p 'Pass required for copying files: ' \
-			cp -rv "$from_dir"/. "$to_dir"
-	fi &&
-	if [ ! -w "$to_dir" ]; then
-		sudo -p 'Pass required for changing owner of maintenance files: ' \
-			chown -R "$current_user": "$to_dir"
-	fi &&
-	echo "done setting up dir from ${from_dir} to ${to_dir}"
+	sudo_cp_contents "$from_dir" "$to_dir" &&
+	unroot_dir "$to_dir" &&
+	echo "done copying dir from ${from_dir} to ${to_dir}"
 )
 
-setup_db() (
+replace_db_file_if_needed() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
-	error_check_path "$reference_src_db" &&
-	error_check_path "$app_root"/"$sqlite_file" &&
+	error_check_all_paths "$reference_src_db" "$app_root"/"$sqlite_file"  &&
 	if [ ! -e "$app_root"/"$sqlite_file" ] || [ -n "$clean_flag" ] \
 	|| [ -n "$replace_db_flag" ]; then
-		cp -v "$reference_src_db" "$app_root"/"$sqlite_file"
-	else
+		cp -v "$reference_src_db" "$app_root"/"$sqlite_file" &&
+		return 0
+		echo 'Done copying db'
+	fi
+	echo 'Done copying db'
+	return 1
+)
+
+replace_db_file_if_needed2() {
+	replace_db_file_if_needed "$@"
+	return 0
+}
+
+setup_db() (
+	echo 'setting up initial db'
+	process_global_vars "$@" &&
+	if ! replace_db_file_if_needed; then
 		if [ -n "$(pgrep 'mc-ices')" ]; then
 			shutdown_all_stations
 		fi
@@ -381,7 +427,7 @@ setup_db() (
 		fi
 	fi
 
-	export dbName="$app_root"/"$sqlite_file" &&
+	export_py_env_vars &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
@@ -417,9 +463,8 @@ sync_utility_scripts() (
 #copy python dependency file to the deployment directory
 sync_requirement_list() (
 	process_global_vars "$@" &&
-	error_check_path "$workspace_abs_path"/requirements.txt &&
-	error_check_path "$app_root"/"$app_trunk"/requirements.txt &&
-	error_check_path "$app_root"/requirements.txt &&
+	error_check_all_paths "$workspace_abs_path"/requirements.txt \
+		"$app_root"/"$app_trunk"/requirements.txt "$app_root"/requirements.txt &&
 	#keep a copy in the parent radio directory
 	cp "$workspace_abs_path"/requirements.txt \
 		"$app_root"/"$app_trunk"/requirements.txt &&
@@ -434,8 +479,7 @@ gen_pass() (
 compare_dirs() (
 	src_dir="$1"
 	cpy_dir="$2"
-	error_check_path "$src_dir"
-	error_check_path "$cpy_dir"
+	error_check_all_paths "$src_dir" "$cpy_dir"
 	exit_code=0
 	if [ ! -e "$cpy_dir" ]; then
 		echo "$cpy_dir/ is not in place"
@@ -523,8 +567,7 @@ get_nginx_conf_dir_include() (
 update_nginx_conf() (
 	echo "updating nginx site conf"
 	appConfFile="$1"
-	error_check_path "$templates_src" &&
-	error_check_path "$appConfFile" &&
+	error_check_all_paths "$templates_src" "$appConfFile" &&
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
@@ -722,8 +765,8 @@ create_ices_config() (
 	sourcePassword="$3"
 	process_global_vars "$@" &&
 	station_conf="$app_root"/"$ices_configs_dir"/ices."$internalName".conf
-	error_check_path "$app_root"/"$templates_dir_cl"/ices.conf &&
-	error_check_path "$station_conf" &&
+	error_check_all_paths "$app_root"/"$templates_dir_cl"/ices.conf \
+		"$station_conf" &&
 	cp "$app_root"/"$templates_dir_cl"/ices.conf "$station_conf" &&
 	perl -pi -e "s/icecast_password/$sourcePassword/ if /<Password>/" \
 		"$station_conf" &&
@@ -741,8 +784,8 @@ create_ices_py_module() (
 	internalName="$1"
 	process_global_vars "$@" &&
 	station_module="$app_root"/"$pyModules_dir"/"$internalName".py &&
-	error_check_path "$app_root"/"$templates_dir_cl"/template.py &&
-	error_check_path "$station_module" &&
+	error_check_all_paths "$app_root"/"$templates_dir_cl"/template.py \
+		"$station_module"
 	cp "$app_root"/"$templates_dir_cl"/template.py "$station_module" &&
 	perl -pi -e "s/<internal_station_name>/$internalName/" "$station_module" &&
 	echo 'done creating ices module'
@@ -787,7 +830,7 @@ create_new_station() (
 		return
 	fi &&
 	echo "Saving to db"
-	export dbName="$app_root"/"$sqlite_file"
+	export_py_env_vars
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	save_station_to_db "$internalName" "$publicName" &&
 	add_tags_to_station "$internalName" &&
@@ -798,16 +841,11 @@ run_song_scan() (
 	process_global_vars "$@"
 	link_to_music_files &&
 	setup_radio &&
-	export dbName="$app_root"/"$sqlite_file" &&
+	export_py_env_vars &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 
 	if [ -n "$shouldReplaceDb" ]; then
-		if [ -w "$dbName" ]; then
-				rm -f "$dbName" || return "$?"
-			else
-				sudo -p "Password required for removing files $dbName" \
-					rm -f "$dbName" || return "$?"
-			fi
+		sudo_rm_contents "$dbName" || return "$?"
 	fi &&
 	# #python_env
 	python  <<-EOF
@@ -833,7 +871,7 @@ shutdown_all_stations() (
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
-	export dbName="$app_root"/"$sqlite_file" &&
+	export_py_env_vars &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
@@ -857,10 +895,12 @@ EOF
 startup_radio() (
 	process_global_vars "$@" &&
 	set_env_path_var && #ensure that we can see mc-ices
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	link_to_music_files &&
 	setup_radio &&
 	export searchBase="$app_root"/"$content_home" &&
-	export dbName="$app_root"/"$sqlite_file" &&
+	export_py_env_vars &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
 		[ ! -s "$conf" ] && continue
@@ -871,13 +911,7 @@ startup_radio() (
 startup_api() (
 	process_global_vars "$@" &&
 	setup_api &&
-	pkgMgrChoice=$(get_pkg_mgr) &&
-	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
-	export dbName="$app_root"/"$sqlite_file" &&
-	export templateDir="$app_root"/"$templates_dir_cl" &&
-	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
-	export stationConfigDir="$app_root"/"$ices_configs_dir" &&
-	export stationModuleDir="$app_root"/"$pyModules_dir" &&
+	export_py_env_vars &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background with in a subshell so that it doesn't put
@@ -896,7 +930,7 @@ setup_api() (
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
 	copy_dir "$api_src" "$web_root"/"$app_api_path_cl" &&
 	create_py_env_in_app_trunk &&
-	setup_db &&
+	replace_db_file_if_needed2 &&
 	setup_nginx_confs &&
 	echo "done setting up api"
 )
@@ -904,8 +938,7 @@ setup_api() (
 setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&
-	error_check_path "$client_src" &&
-	error_check_path "$web_root"/"$app_client_path_cl" &&
+	error_check_all_paths "$client_src"  "$web_root"/"$app_client_path_cl" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -926,8 +959,7 @@ setup_client() (
 	#copy built code to new location
 	sudo -p 'Pass required for copying client files: ' \
 		cp -rv "$client_src"/build/. "$web_root"/"$app_client_path_cl" &&
-	sudo -p 'Pass required for changing owner of client files: ' \
-		chown -R "$current_user": "$web_root"/"$app_client_path_cl" &&
+	unroot_dir "$web_root"/"$app_client_path_cl" &&
 	echo "done setting up client"
 )
 
@@ -956,7 +988,7 @@ setup_radio() (
 
 	create_py_env_in_app_trunk &&
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
-	setup_db &&
+	replace_db_file_if_needed2 &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	setup_icecast_confs "$icecastName" &&
@@ -972,24 +1004,22 @@ setup_unit_test_env() (
 	setup_common_dirs
 
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
-	error_check_path "$reference_src_db" &&
-	error_check_path "$app_root"/"$sqlite_file" &&
+	error_check_all_paths "$reference_src_db" "$app_root"/"$sqlite_file" &&
 	sync_requirement_list
 	setup_env_api_file
-	#redirect stderr into stdout missing env will also trigger redeploy
-	srcChanges=$(find "$lib_src" -newer \
-		"$utest_env_dir"/"$py_env" 2>&1)
+	pyEnvPath="$app_root"/"$app_trunk"/"$py_env"
+	#redirect stderr into stdout so that missing env will also trigger redeploy
+	srcChanges=$(find "$lib_src" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
-	[ "$app_root"/"$app_trunk"/requirements.txt -nt "$utest_env_dir"/"$py_env" ]
+	[ "$workspace_abs_path"/requirements.txt -nt "$pyEnvPath" ]
 	then
 		echo "changes?"
-		create_py_env_in_dir "$utest_env_dir"
-	fi &&
-	setup_db &&
+		create_py_env_in_app_trunk
+	fi
+	replace_db_file_if_needed2 &&
+	echo "$app_root"/"$config_dir"/.env &&
 	echo "PYTHONPATH='${src_path}:${src_path}/api'" \
 		>> "$app_root"/"$config_dir"/.env &&
-
-	cp -v "$reference_src_db" "$app_root"/"$sqlite_file" &&
 	echo "done setting up test environment"
 )
 
@@ -1012,8 +1042,7 @@ run_unit_tests() (
 	test_src="$src_path"/tests &&
 
 	export PYTHONPATH="${src_path}:${src_path}/api" &&
-	export dbName="$test_root"/"$sqlite_file" &&
-	export searchBase="$test_root"/"$content_home" &&
+	export_py_env_vars &&
 
 	. "$utest_env_dir"/"$py_env"/bin/activate &&
 	pytest -s "$test_src" &&
@@ -1220,6 +1249,7 @@ setup_base_dirs() {
 process_global_vars() {
 	process_global_args "$@" || return
 	[ -z "$globals_set" ] || return 0
+
 	define_consts &&
 
 	create_install_dir &&

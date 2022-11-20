@@ -1,4 +1,5 @@
 import webClient from "./api";
+import { buildArrayQueryStrFromObj } from "../Helpers/url_helpers";
 
 
 export const fetchStations = async () => {
@@ -59,5 +60,19 @@ export const fetchHistory = async ({ station, params }) => {
 export const sendSongRequest = async ({ station, songId}) => {
 	const response = await webClient
 		.post(`stations/${station}/request/${songId}`);
+	return response.data;
+};
+
+export const enableStations = async ({ ids }) => {
+	const queryStr = buildArrayQueryStrFromObj({"id": ids});
+	const response = await webClient
+		.put(`stations/enable/${queryStr}`);
+	return response.data;
+};
+
+export const disableStations = async ({ ids, names }) => {
+	const queryStr = buildArrayQueryStrFromObj({"id": ids, "name": names});
+	const response = await webClient
+		.put(`stations/disable/${queryStr}`);
 	return response.data;
 };

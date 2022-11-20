@@ -5,7 +5,7 @@ from musical_chairs_libs.services import\
 	EnvManager,\
 	QueueService,\
 	StationService
-from musical_chairs_libs.dtos_and_utilities import OSProcessManager
+from musical_chairs_libs.services import ProcessService
 
 
 
@@ -15,7 +15,7 @@ class RadioHandle:
 		self,
 		stationName: str,
 		envManager: Optional[EnvManager]=None,
-		processManager: Optional[OSProcessManager]=None
+		processManager: Optional[ProcessService]=None
 	) -> None:
 		self.songnumber = -1
 		self.songFullPath = ""
@@ -23,7 +23,7 @@ class RadioHandle:
 		if not envManager:
 			envManager = EnvManager()
 		if not processManager:
-			processManager = OSProcessManager()
+			processManager = ProcessService()
 		self.env_manager = envManager
 		self.stationName = stationName
 		self.process_manager = processManager

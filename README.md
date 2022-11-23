@@ -48,3 +48,10 @@ nginx, we can try to kill it by calling `kill_process_using_port 8032`
 
 ## VSCode debug
 Use debug launch profile Python: API
+
+# Deploying to server
+
+## Fresh Server
+```
+./deploy_to_server.sh setup_lvl=install
+```

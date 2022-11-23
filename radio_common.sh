@@ -98,7 +98,7 @@ export_py_env_vars() {
 	export templateDir="$app_root"/"$templates_dir_cl" &&
 	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
 	export stationConfigDir="$app_root"/"$ices_configs_dir" &&
-	export stationModuleDir="$app_root"/"$pyModules_dir" &&
+	export stationModuleDir="$app_root"/"$pyModules_dir"
 }
 
 get_pkg_mgr() {
@@ -830,7 +830,7 @@ create_new_station() (
 		return
 	fi &&
 	echo "Saving to db"
-	export_py_env_vars
+	export_py_env_vars &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	save_station_to_db "$internalName" "$publicName" &&
 	add_tags_to_station "$internalName" &&

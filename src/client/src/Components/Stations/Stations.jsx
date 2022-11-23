@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useReducer } from "react";
 import {
 	Accordion,
 	AccordionSummary,
@@ -20,6 +20,12 @@ import {
 import { enableStations, disableStations } from "../../API_Calls/stationCalls";
 import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
+import {
+	waitingReducer,
+	dispatches,
+	keyedWaitingReducerMap,
+} from "../Shared/waitingReducer";
+import { CallStatus } from "../../constants";
 
 
 const useStyles = makeStyles(() => ({
@@ -35,7 +41,12 @@ export const Stations = () => {
 		items: stations,
 		callStatus: stationCallStatus,
 		error: stationError,
+		update: updateStation,
 	} = useStationData();
+
+	const [toggleState, toggleDispatch] = useReducer(
+		waitingReducer(keyedWaitingReducerMap), {}
+	);
 
 	const location = useLocation();
 	const classes = useStyles();
@@ -45,12 +56,57 @@ export const Stations = () => {
 
 	const disableAllStations = async () => {
 		try {
+			toggleDispatch(dispatches.started({ key: "*" }));
 			await disableStations({ names: "*"});
+			toggleDispatch(dispatches.done({ key: "*" }));
 			enqueueSnackbar("All stations are being disabled", { variant: "success"});
 		}
 		catch(err) {
-			enqueueSnackbar(formatError(err), {variant: "error" });
+			const formattedError = formatError(err);
+			toggleDispatch(dispatches.failed({key: "*", data: formattedError}));
+			enqueueSnackbar(formattedError, {variant: "error" });
 		}
+	};
+
+	const handleDisableStation = async (e, id, name) => {
+		e.stopPropagation();
+		try {
+			toggleDispatch(dispatches.started({ key: id }));
+			await disableStations({ ids: id});
+			toggleDispatch(dispatches.done({ key: id }));
+			enqueueSnackbar(`${name} is being disabled`, { variant: "success"});
+			updateStation(id, p => ({...p, isRunning: false}));
+		}
+		catch(err) {
+			const formattedError = formatError(err);
+			toggleDispatch(dispatches.failed({key: id, data: formattedError}));
+			enqueueSnackbar(formattedError, {variant: "error" });
+		}
+	};
+
+	const handleEnableStation = async (e, id, name) => {
+		e.stopPropagation();
+		try {
+			toggleDispatch(dispatches.started({ key: id }));
+			await enableStations({ ids: id});
+			toggleDispatch(dispatches.done({ key: id }));
+			enqueueSnackbar(`${name} is being enabled`, { variant: "success"});
+			updateStation(id, p => ({...p, isRunning: true}));
+		}
+		catch(err) {
+			const formattedError = formatError(err);
+			toggleDispatch(dispatches.failed({key: id, data: formattedError}));
+			enqueueSnackbar(formattedError, {variant: "error" });
+		}
+	};
+
+	const canToggleStation = (id) => {
+		if(toggleState[id]?.callStatus === CallStatus.loading ||
+			toggleState["*"]?.callStatus === CallStatus.loading
+		) {
+			return false;
+		}
+		return true;
 	};
 
 	useEffect(() => {
@@ -59,17 +115,18 @@ export const Stations = () => {
 
 	return (<>
 		<Typography variant="h1">Stations</Typography>
-		<Button
+		{canEditStation && <Button
 			component={Link}
 			to={DomRoutes.stationsEdit}
 		>
 			Add New Station
-		</Button>
-		<Button
+		</Button>}
+		{canEnableStation && <Button
 			onClick={disableAllStations}
+			disabled={!canToggleStation()}
 		>
 			Disable All Stations
-		</Button>
+		</Button>}
 		<Loader
 			status={stationCallStatus}
 			error={stationError}
@@ -84,7 +141,16 @@ export const Stations = () => {
 						expandIcon={<ExpandMoreIcon />}
 					>
 						<Typography>
-							{s.displayName || s.name} - {s.isRunning? "Online!": "Offline"}
+							{s.displayName || s.name} -
+							<Button
+								onClick={e => s.isRunning ?
+									handleDisableStation(e, s.id, s.name) :
+									handleEnableStation(e, s.id, s.name)
+								}
+								disabled={!canToggleStation(s.id)}
+							>
+								{s.isRunning ? "Online!": "Offline"}
+							</Button>
 						</Typography>
 					</AccordionSummary>
 					<AccordionDetails>

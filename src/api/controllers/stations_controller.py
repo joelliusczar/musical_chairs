@@ -19,12 +19,14 @@ from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
 from musical_chairs_libs.services import\
 	StationService,\
 	HistoryService,\
-	QueueService
+	QueueService,\
+	ProcessService
 from api_dependencies import \
 	station_service,\
 	history_service,\
 	queue_service,\
-	get_current_user
+	get_current_user,\
+	process_service
 
 
 router = APIRouter(prefix="/stations")
@@ -162,9 +164,9 @@ def update_station(
 def enable_stations(
 	id: list[int] = Query(default=[]),
 	name: list[str] = Query(default=[]),
-	stationService: StationService = Depends(station_service)
+	processService: ProcessService = Depends(process_service)
 ) -> None:
-	stationService.enable_stations(id, name)
+	processService.enable_stations(id, name)
 
 @router.put("/disable/",
 	status_code=status.HTTP_204_NO_CONTENT,
@@ -175,6 +177,6 @@ def enable_stations(
 def disable_stations(
 	id: list[int] = Query(default=[]),
 	name: list[str] = Query(default=[]),
-	stationService: StationService = Depends(station_service)
+	processService: ProcessService = Depends(process_service)
 ) -> None:
-	stationService.disable_stations(id, name)
+	processService.disable_stations(id, name)

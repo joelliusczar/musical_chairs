@@ -20,4 +20,5 @@ export const buildArrayQueryStrFromObj = (obj) => {
 			queryObj.append(key, value);
 		}
 	}
+	return `?${queryObj.toString()}`;
 };

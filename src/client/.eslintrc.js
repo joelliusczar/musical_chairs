@@ -45,7 +45,7 @@ module.exports = {
 			},
 		],
 		"no-unused-vars": ["warn"],
-		"no-console": ["warn", { "allow": ["warn", "error"]}],
+		"no-console": ["warn", { "allow": ["warn", "error", "info"]}],
 		"array-callback-return": "error",
 		"max-len": ["error", { "code": 80, "tabWidth": 2 }],
 	},

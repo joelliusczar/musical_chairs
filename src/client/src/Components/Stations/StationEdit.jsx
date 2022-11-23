@@ -19,6 +19,9 @@ import {
 	dispatches,
 } from "../Shared/waitingReducer";
 import { DomRoutes } from "../../constants";
+import {
+	useStationData,
+} from "../../Context_Providers/AppContextProvider";
 
 const inputField = {
 	margin: 2,
@@ -56,6 +59,9 @@ export const StationEdit = (props) => {
 	const nameFromQueryStr = queryObj.get(_nameKey);
 	const [state, dispatch] = useReducer(waitingReducer(), initialState);
 	const { callStatus } = state;
+	const {
+		add: addStation,
+	} = useStationData();
 
 	const getPageUrl = (params) => {
 		let queryStr = null;
@@ -89,6 +95,7 @@ export const StationEdit = (props) => {
 			const stationId = id ? id : values.id ? values.id : null;
 			const data = await saveStation({ values, id: stationId });
 			afterSubmit(data);
+			addStation(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err) {

@@ -11,6 +11,7 @@ import {
 	listDataInitialState,
 	dispatches,
 	waitingTypes,
+	globalStoreLogger,
 } from "../Components/Shared/waitingReducer";
 import PropTypes from "prop-types";
 import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
@@ -20,10 +21,12 @@ import { CallStatus } from "../constants";
 
 const AppContext = createContext();
 
+const nameSortFn = (a,b) => a.name > b.name ? 1 : a.name < b.name ? -1 : 0;
+
 const sortedListReducerPaths = {
 	[waitingTypes.done]: (state, payload) => {
 		const items = payload && payload.items ? payload.items
-			.sort((a,b) => a.name > b.name ? 1 : a.name < b.name ? -1 : 0)
+			.sort(nameSortFn)
 			: [];
 		return {
 			...state,
@@ -35,13 +38,36 @@ const sortedListReducerPaths = {
 	},
 	[waitingTypes.add]: (state, payload) => {
 		const items = [...state.data.items, payload]
-			.sort((a,b) => a.name > b.name ? 1 : a.name < b.name ? -1 : 0);
+			.sort(nameSortFn);
 		return {
 			...state,
 			data: {
 				items: items,
 			},
 		};
+	},
+	[waitingTypes.update]: (state, payload) => {
+		const { key, dataOrUpdater } = payload;
+		const items = [...state.data.items];
+		const idx = items.findIndex(x => x.id === key);
+		if (idx > -1) {
+			if (typeof dataOrUpdater === "function") {
+				items.splice(idx, 1, dataOrUpdater(items[idx]));
+			}
+			else {
+				items.splice(idx, 1, dataOrUpdater);
+			}
+			const sortedItems = items.sort(nameSortFn);
+			return {
+				...state,
+				data: {
+					items: sortedItems,
+				},
+			};
+		}
+		else {
+			console.error("Item was not found in local store.");
+		}
 	},
 };
 
@@ -156,11 +182,17 @@ export const useAlbumData = () => {
 		[dispatch]
 	);
 
+	const update = useCallback(
+		(key, item) => dispatch(dispatches.update(key, item)),
+		[dispatch]
+	);
+
 	return {
 		items,
 		error,
 		callStatus,
 		add,
+		update,
 		idMapper,
 	};
 };
@@ -187,11 +219,17 @@ export const useStationData = () => {
 		[dispatch]
 	);
 
+	const update = useCallback(
+		(key, item) => dispatch(dispatches.update(key, item)),
+		[dispatch]
+	);
+
 	return {
 		items,
 		error,
 		callStatus,
 		add,
+		update,
 		idMapper,
 	};
 };
@@ -218,11 +256,17 @@ export const useArtistData = () => {
 		[dispatch]
 	);
 
+	const update = useCallback(
+		(key, item) => dispatch(dispatches.update(key, item)),
+		[dispatch]
+	);
+
 	return {
 		items,
 		error,
 		callStatus,
 		add,
+		update,
 		idMapper,
 	};
 };

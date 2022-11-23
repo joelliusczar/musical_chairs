@@ -1,9 +1,13 @@
 import { CallStatus } from "../../constants";
 
-export const initialState = {
+export const voidState = {
 	callStatus: null,
-	data: {},
 	error: null,
+};
+
+export const initialState = {
+	...voidState,
+	data: {},
 };
 
 export const listDataInitialState = {
@@ -28,15 +32,18 @@ export const waitingTypes = {
 	failed: "failed",
 	reset: "reset",
 	add: "add", //implemented as needed
+	update: "update", //implemented as needed
 	remove: "remove", //implemented as needed
 };
 
 export const dispatches = {
-	started: () => ({ type: waitingTypes.started }),
+	started: (payload) => ({ type: waitingTypes.started, payload: payload }),
 	done: (payload) => ({ type: waitingTypes.done, payload: payload }),
 	failed: (payload) => ({ type: waitingTypes.failed, payload: payload }),
 	reset: (payload) => ({ type: waitingTypes.reset, payload: payload }),
 	add: (payload) => ({ type: waitingTypes.add, payload: payload }),
+	update: (key, dataOrUpdater) =>
+		({ type: waitingTypes.update, payload: { key, dataOrUpdater } }),
 	remove: (payload) => ({ type: waitingTypes.remove, payload: payload }),
 };
 
@@ -58,7 +65,7 @@ export const waitingReducerMap = {
 			callStatus: CallStatus.failed,
 			error: payload,
 		}),
-	[waitingTypes.reset]: (payload) =>
+	[waitingTypes.reset]: (_, payload) =>
 		({
 			callStatus: null,
 			data: payload,
@@ -66,19 +73,87 @@ export const waitingReducerMap = {
 		}),
 };
 
-export const waitingReducer = (reducerMods=null) => {
+export const globalStoreLogger = (result, state, action, reducerMap) => {
+	if (!(action.type in reducerMap)) {
+		console.info("Action type is not mapped. ");
+		return result;
+	}
+	console.info(`${action.type}`);
+	console.info("Previous: ", state);
+	console.info("Payload: ", action.payload);
+	console.info("Next: ", result);
+	return result;
+};
+
+export const waitingReducer = (reducerMods=null, middleware=null) => {
 
 	const reducerMap = {
 		...waitingReducerMap,
 		...reducerMods,
 	};
 
+	if (!middleware || !Array.isArray(middleware)) {
+		middleware = [];
+	}
+
 	return (state, action) => {
-		if(action.type in reducerMap) {
-			return reducerMap[action.type](state, action.payload);
+		if (action.type in reducerMap) {
+			return middleware.reduce(
+				(accumulation, mFn) => mFn(accumulation, state, action, reducerMap),
+				reducerMap[action.type](state, action.payload)
+			);
 		}
 		else {
-			return state;
+			return middleware.reduce(
+				(accumulation, mFn) => mFn(accumulation, state, action, reducerMap),
+				state
+			);
 		}
 	};
+};
+
+export const keyedWaitingReducerMap = {
+	[waitingTypes.started]: (state, payload) => {
+		const { key } = payload;
+		return {
+			...state,
+			[key]: {
+				...state[key],
+				callStatus: CallStatus.loading,
+			},
+		};
+	},
+	[waitingTypes.done]: (state, payload) => {
+		const { key, data } = payload;
+		return {
+			...state,
+			[key]: {
+				...state[key],
+				callStatus: CallStatus.done,
+				data: data,
+			},
+		};
+	},
+	[waitingTypes.failed]: (state, payload) => {
+		const { key, data } = payload;
+		return {
+			...state,
+			[key]: {
+				...state[key],
+				callStatus: CallStatus.failed,
+				error: data,
+			},
+		};
+	},
+	[waitingTypes.reset]: (state, payload) => {
+		const { key, data } = payload;
+		return {
+			...state,
+			[key]: {
+				callStatus: null,
+				error: null,
+				data: data,
+			},
+		};
+	},
 };

@@ -9,7 +9,8 @@ from musical_chairs_libs.services import\
 	StationService,\
 	QueueService,\
 	SongInfoService,\
-	AccountsService
+	AccountsService,\
+	ProcessService
 from musical_chairs_libs.dtos_and_utilities import\
 	AccountInfo,\
 	build_error_obj,\
@@ -58,6 +59,11 @@ def accounts_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> AccountsService:
 	return AccountsService(conn)
+
+def process_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> ProcessService:
+	return ProcessService(conn)
 
 def get_current_user_base(
 	token: str = Depends(oauth2_scheme),

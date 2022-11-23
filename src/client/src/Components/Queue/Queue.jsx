@@ -35,28 +35,6 @@ const queueInitialState = {
 	},
 };
 
-/*
-						yield {
-								'id': row[0],
-								'song': tag.title,
-								'album': tag.album,
-								'artist': tag.artist,
-								'lastPlayedTimestamp': row[2]
-						}
-				except:
-						yield {
-								'id': row[0],
-								'lastPlayedTimestamp': row[2]
-						}
-*/
-const formatNowPlaying = (nowPlaying) => {
-	if(!nowPlaying) return "No song info available";
-	const song = nowPlaying.name || "{No song name}";
-	const album = nowPlaying.album || "{No album name}";
-	const artist = nowPlaying.artist || "{No artist name}";
-	const str = `Song: ${song} - ${album} - ${artist}`;
-	return str;
-};
 
 export const Queue = () => {
 

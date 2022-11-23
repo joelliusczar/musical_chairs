@@ -3,8 +3,7 @@ import os
 from typing import Optional
 from musical_chairs_libs.services import\
 	EnvManager,\
-	QueueService,\
-	StationService
+	QueueService
 from musical_chairs_libs.services import ProcessService
 
 
@@ -14,23 +13,19 @@ class RadioHandle:
 	def __init__(
 		self,
 		stationName: str,
-		envManager: Optional[EnvManager]=None,
-		processManager: Optional[ProcessService]=None
+		envManager: Optional[EnvManager]=None
 	) -> None:
 		self.songnumber = -1
 		self.songFullPath = ""
 		self.display = ""
 		if not envManager:
 			envManager = EnvManager()
-		if not processManager:
-			processManager = ProcessService()
 		self.env_manager = envManager
 		self.stationName = stationName
-		self.process_manager = processManager
 
 	def ices_init(self) -> int:
 		conn = self.env_manager.get_configured_db_connection()
-		StationService(conn, processManager=self.process_manager)\
+		ProcessService(conn)\
 			.set_station_proc(stationName=self.stationName)
 		conn.close()
 		print('Executing initialize() function..')
@@ -40,8 +35,8 @@ class RadioHandle:
 	# Return 1 if ok, 0 if something went wrong.
 	def ices_shutdown(self) -> int:
 		conn = self.env_manager.get_configured_db_connection()
-		StationService(conn, processManager=self.process_manager)\
-			.remove_station_proc(stationName=self.stationName)
+		ProcessService(conn)\
+			.unset_station_procs(stationName=self.stationName)
 		conn.close()
 		print(f"Station is shutting down on {self.display}")
 		print(self.songFullPath)

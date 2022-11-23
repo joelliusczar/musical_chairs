@@ -14,7 +14,6 @@ from musical_chairs_libs.services import\
 from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos_and_utilities import AccountInfo
 from sqlalchemy.engine import Connection
-from .mocks.mock_process_manager import MockOSProcessManager
 from .mocks.mock_db_constructors import\
 	MockDbPopulateClosure,\
 	setup_in_mem_tbls,\
@@ -89,11 +88,9 @@ def fixture_radio_handle(
 	fixture_env_manager_with_in_mem_db: EnvManager
 ) -> RadioHandle:
 	envMgr = fixture_env_manager_with_in_mem_db
-	processManager = MockOSProcessManager(1)
 	radioHandle = RadioHandle(
 		"oscar_station",
-		envManager=envMgr,
-		processManager=processManager
+		envManager=envMgr
 	)
 	return radioHandle
 

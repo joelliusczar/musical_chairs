@@ -131,15 +131,20 @@ RemoteScriptEOF3
 
 {
 	cat<<RemoteScriptEOF4
-$(cat "$radio_common_path")
+scope() (
+	$(cat "$radio_common_path")
 
-radio_server_repo_url="$radio_server_repo_url"
+	radio_server_repo_url="$radio_server_repo_url"
 
-$(cat clone_repo_fifo)
+	$(cat clone_repo_fifo)
 
-$(cat script_select_fifo)
+	$(cat script_select_fifo)
 
-$(cat remote_cleanup_fifo)
+	$(cat remote_cleanup_fifo)
+
+)
+
+scope
 
 RemoteScriptEOF4
 } > remote_script_fifo &

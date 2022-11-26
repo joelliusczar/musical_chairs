@@ -99,6 +99,7 @@ export_py_env_vars() {
 	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
 	export stationConfigDir="$app_root"/"$ices_configs_dir" &&
 	export stationModuleDir="$app_root"/"$pyModules_dir"
+	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
 }
 
 get_pkg_mgr() {
@@ -130,6 +131,66 @@ get_icecast_name() (
     ("$APT_CONST") echo 'icecast2';;
     (*) echo 'icecast2';;
 	esac
+)
+
+get_pb_api_key() (
+	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' "$app_root"/keys/"$proj_name"
+)
+
+get_pb_secret() (
+	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' "$app_root"/keys/"$proj_name"
+)
+
+get_s3_api_key() (
+	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' "$app_root"/keys/"$proj_name"
+)
+
+get_s3_secret() (
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$app_root"/keys/"$proj_name"
+)
+
+get_s3_secret() (
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$app_root"/keys/"$proj_name"
+)
+
+get_mc_auth_key() (
+	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$app_root"/keys/"$proj_name"
+)
+
+get_ssl_vars() (
+	process_global_vars "$@" >&2 &&
+	sendJson=$(cat <<-END
+	{
+		"secretapikey": "$(get_pb_secret)",
+		"apikey": "$(get_pb_api_key)"
+	}
+	END
+	) &&
+	curl -s --header "Content-Type: application/json" \
+	--request POST \
+	--data "$sendJson" \
+	https://porkbun.com/api/json/v3/ssl/retrieve/$(get_domain_name)
+
+)
+
+stdin_json_extract_value() (
+	jsonKey="$1"
+	python3 -c "import sys, json; print(json.load(sys.stdin)['$jsonKey'])"
+)
+
+stdin_json_top_level_keys() (
+	python3 -c "import sys, json; print(json.load(sys.stdin).keys())"
+)
+
+#other keys: 'intermediatecertificate', 'certificatechain'
+get_ssl_private() (
+	process_global_vars "$@" >&2 &&
+	get_ssl_vars | stdin_json_extract_value 'privatekey'
+)
+
+get_ssl_public() (
+	process_global_vars "$@" >&2 &&
+	get_ssl_vars | stdin_json_extract_value 'publickey'
 )
 
 aws_role() {
@@ -919,7 +980,7 @@ startup_api() (
 	#preceeding comands still having stdout open
 	(uvicorn --app-dir "$web_root"/"$app_api_path_cl" --root-path /api/v1 \
 	--host 0.0.0.0 --port "$api_port" "index:app" </dev/null >api.out 2>&1 &)
-	echo "Done with api"
+	echo "done starting up api. Access at $full_url"
 )
 
 setup_api() (
@@ -1188,10 +1249,14 @@ define_web_server_paths() {
 	echo "web server paths defined"
 }
 
-define_url() {
-	url_base=$(echo "$proj_name" | tr -d _)
-	echo "env: ${app_env}"
-	case "$app_env" in
+get_url_base() (
+	echo "$proj_name" | tr -d _
+)
+
+get_domain_name() (
+	envArg="$1"
+	url_base=$(get_url_base)
+	case "$envArg" in
 		(local*)
 			url_suffix='-local.radio.fm:8080'
 			;;
@@ -1199,7 +1264,12 @@ define_url() {
 			url_suffix='.radio.fm'
 			;;
 	esac
-	export server_name="${url_base}${url_suffix}"
+	echo "${url_base}${url_suffix}"
+)
+
+define_url() {
+	echo "env: ${app_env}"
+	export server_name="$(get_domain_name ${app_env})"
 	export full_url="http://${server_name}"
 	echo "url defined"
 }

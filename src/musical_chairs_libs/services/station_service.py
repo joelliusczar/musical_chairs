@@ -225,11 +225,10 @@ class StationService:
 			stmt = stmt.where(st.pk == stationId)
 		try:
 			res = self.conn.execute(stmt)
-			if not stationId:
-				self.template_service.create_station_files(
-					str(savedName),
-					str(savedDisplayName)
-				)
+			self.template_service.create_station_files(
+				str(savedName),
+				str(savedDisplayName)
+			)
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(

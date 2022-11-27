@@ -1,3 +1,4 @@
+import pytest
 from musical_chairs_libs.services import StationService
 from musical_chairs_libs.dtos_and_utilities import StationCreationInfo
 from .constant_fixtures_for_test import *
@@ -23,7 +24,7 @@ def test_get_stations_list(fixture_station_service: StationService):
 	data = list(stationService.get_stations())
 	assert len(data) == 10
 
-
+@pytest.mark.usefixtures("fixture_clean_station_folders")
 def test_save_station(fixture_station_service: StationService):
 	stationService = fixture_station_service
 	testData = StationCreationInfo(

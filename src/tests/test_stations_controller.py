@@ -1,10 +1,13 @@
 import json
+import pytest
 from typing import Any
 from .api_test_dependencies import login_test_user,\
 	fixture_api_test_client as fixture_api_test_client
 from .api_test_dependencies import *
 from fastapi.testclient import TestClient
 from .mocks.db_population import get_initial_stations
+from .common_fixtures import\
+	fixture_clean_station_folders as fixture_clean_station_folders
 
 
 
@@ -34,6 +37,7 @@ def test_invalid_post_duplicate_name(
 			"displayName":"Oscar the grouch"
 	}
 
+@pytest.mark.usefixtures("fixture_clean_station_folders")
 def test_post_with_only_name(
 	fixture_api_test_client: TestClient
 ):

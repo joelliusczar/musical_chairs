@@ -1,8 +1,11 @@
+import pytest
 from musical_chairs_libs.dtos_and_utilities import\
 	AccountInfo,\
 	SavedNameString,\
 	SearchNameString,\
-	UserRoleDef
+	UserRoleDef,\
+	ValidatedSongAboutInfo,\
+	AlbumInfo
 
 
 def test_len_on_name_strings():
@@ -55,3 +58,13 @@ def test_is_admin():
 	assert not accountInfo.isAdmin
 	accountInfo.roles.append(UserRoleDef.ADMIN.value)
 	assert accountInfo.isAdmin
+
+def test_validatedSongAboutInfo():
+	songInfo = ValidatedSongAboutInfo()
+	assert songInfo
+	songInfo = ValidatedSongAboutInfo("Test")
+	assert songInfo
+	songInfo = ValidatedSongAboutInfo("Test", None)
+	assert songInfo
+	with pytest.raises(TypeError):
+		songInfo = ValidatedSongAboutInfo("Test", AlbumInfo()) #pyright: ignore [reportGeneralTypeIssues]

@@ -35,4 +35,5 @@ FormTextField.propTypes = {
 	name: PropTypes.string.isRequired,
 	formMethods: PropTypes.object,
 	label: PropTypes.string,
+	disabled: PropTypes.bool,
 };

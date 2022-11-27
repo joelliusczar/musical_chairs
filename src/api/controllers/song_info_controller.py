@@ -14,6 +14,7 @@ from musical_chairs_libs.services import SongInfoService, StationService
 from musical_chairs_libs.dtos_and_utilities import SongTreeNode,\
 	ListData,\
 	AlbumInfo,\
+	AlbumCreationInfo,\
 	ArtistInfo,\
 	AccountInfo,\
 	UserRoleDef,\
@@ -140,12 +141,23 @@ def create_artist(
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
 		get_current_user,
-		scopes=[UserRoleDef.ARTIST_EDIT()]
+		scopes=[UserRoleDef.SONG_EDIT()]
 	)
 ) -> ArtistInfo:
 	artistInfo = songInfoService.save_artist(artistName, userId=user.id)
 	return artistInfo
 
+@router.post("/albums")
+def create_album(
+	album: AlbumCreationInfo,
+	songInfoService: SongInfoService = Depends(song_info_service),
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.SONG_EDIT()]
+	)
+) -> AlbumInfo:
+	albumInfo = songInfoService.save_album(album, userId=user.id)
+	return albumInfo
 
 @router.get("/albums/list")
 def get_all_albums(

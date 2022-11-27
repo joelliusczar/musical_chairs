@@ -11,7 +11,6 @@ import {
 	listDataInitialState,
 	dispatches,
 	waitingTypes,
-	globalStoreLogger,
 } from "../Components/Shared/waitingReducer";
 import PropTypes from "prop-types";
 import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";

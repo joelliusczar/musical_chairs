@@ -48,6 +48,11 @@ export const saveArtist = async ({ artistName }) => {
 	return response.data;
 };
 
+export const saveAlbum = async ({ data }) => {
+	const response = await webClient.post("/song-info/albums", data);
+	return response.data;
+};
+
 export const fetchSongTree = async ({ params }) => {
 	const response = await webClient.get("song-info/songs/tree", {
 		params: params,

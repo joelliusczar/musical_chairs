@@ -290,6 +290,7 @@ def populate_songs(conn: Connection):
 		{ "pk": 29,
 			"path": "foo/goo/roo/victor2",
 			"name": "victor2_song",
+			"albumFk": 4,
 		},
 		{ "pk": 30,
 			"path": "foo/goo/roo/whiskey2",

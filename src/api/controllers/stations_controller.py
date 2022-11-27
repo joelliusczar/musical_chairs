@@ -38,7 +38,7 @@ def index(
 	stations = list(stationService.get_stations())
 	return { "items": stations }
 
-@router.get("/{stationName}/history")
+@router.get("/{stationName}/history/")
 def history(
 	stationName: str,
 	historyService: HistoryService = Depends(history_service)
@@ -49,7 +49,7 @@ def history(
 		.get_history_for_station(stationName=stationName))
 	return {"items": history }
 
-@router.get("/{stationName}/queue")
+@router.get("/{stationName}/queue/")
 def queue(
 	stationName: str,
 	queueService: QueueService = Depends(queue_service)
@@ -59,7 +59,7 @@ def queue(
 	queue = queueService.get_now_playing_and_queue(stationName=stationName)
 	return queue
 
-@router.get("/{stationName}/catalogue")
+@router.get("/{stationName}/catalogue/")
 def song_catalogue(
 	stationName: str,
 	page: int = 0,

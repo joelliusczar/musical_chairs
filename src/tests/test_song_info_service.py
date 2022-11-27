@@ -436,6 +436,16 @@ def test_get_song_for_edit_without_artists(
 	assert songInfo.name == "alpha4_song"
 	assert songInfo.artists != None and len(songInfo.artists) == 0
 
+def test_get_song_for_edit_without_album(
+	fixture_song_info_service: SongInfoService
+):
+	songInfoService = fixture_song_info_service
+	songInfo = next(songInfoService.get_songs_for_edit([27]))
+	assert songInfo
+	assert songInfo.name == "tango2_song"
+	assert songInfo.album == None
+
+
 def test_get_multiple_songs_for_edit(
 	fixture_song_info_service: SongInfoService
 ):

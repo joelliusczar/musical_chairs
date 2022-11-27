@@ -574,7 +574,8 @@ class SongInfoService:
 				albumArtistName
 			) if albumArtistId else None
 		)
-		songDict["album"] = album
+		if album.id:
+			songDict["album"] = album
 		songDict.pop("artist.id", None)
 		songDict.pop("artist.name", None)
 		songDict.pop("station.id", None)

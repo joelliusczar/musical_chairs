@@ -70,4 +70,5 @@ FormSelect.propTypes = {
 		input: PropTypes.func,
 		output: PropTypes.func,
 	}),
+	disabled: PropTypes.bool,
 };

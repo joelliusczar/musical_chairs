@@ -95,12 +95,11 @@ export function AppRoutes() {
 			>
 				<StationEdit />
 			</PrivateRoute>
-			<PrivateRoute
+			<Route
 				path={`${DomRoutes.songEdit}`}
-				scopes={[UserRoleDef.SONG_EDIT]}
 			>
 				<SongEdit />
-			</PrivateRoute>
+			</Route>
 			<PrivateRoute
 				path={DomRoutes.songTree}
 				scopes={[

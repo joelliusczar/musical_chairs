@@ -4,7 +4,7 @@ import { FormTextField } from "../Shared/FormTextField";
 import { FormSelect } from "../Shared/FormSelect";
 import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
-import { saveArtist } from "../../API_Calls/songInfoCalls";
+import { saveAlbum } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import { useArtistData } from "../../Context_Providers/AppContextProvider";
@@ -29,7 +29,7 @@ export const AlbumEdit = (props) => {
 
 	const formMethods = useForm({
 		defaultValues: {
-			albumName: "",
+			name: "",
 			albumArtist: {
 				id: 0,
 				name: "",
@@ -39,9 +39,9 @@ export const AlbumEdit = (props) => {
 	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const artist = await saveArtist({ artistName: values.artistName });
+			const album = await saveAlbum({ data: values });
 			enqueueSnackbar("Save successful", { variant: "success"});
-			afterSubmit(artist);
+			afterSubmit(album);
 		}
 		catch(err) {
 			enqueueSnackbar(formatError(err), { variant: "error"});
@@ -58,7 +58,7 @@ export const AlbumEdit = (props) => {
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="albumName"
+					name="name"
 					label="Name"
 					formMethods={formMethods}
 				/>

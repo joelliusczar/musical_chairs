@@ -104,7 +104,7 @@ def everything_else(
 	logging.error(ex)
 	response = JSONResponse(content=
 		{ "detail": [
-				build_error_obj("There was an error processing that request")
+				build_error_obj("Onk! Caveman error! What do?")
 			]
 		},
 		status_code=500,

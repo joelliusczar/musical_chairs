@@ -29,6 +29,8 @@ import {
 	saveSongsEditsMulti,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
+import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import { UserRoleDef } from "../../constants";
 
 
 const inputField = {
@@ -116,6 +118,7 @@ export const SongEdit = () => {
 	const queryObj = new URLSearchParams(location.search);
 	const ids = queryObj.getAll("id").map(id => parseInt(id));
 	const classes = useStyles();
+	const canEditSong = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
 
 	const {
 		items: artists,
@@ -193,6 +196,7 @@ export const SongEdit = () => {
 			name={name}
 			onChange={() => handleMutliSongTouchedCheck(name)}
 			checked={isMultSongTouchedChecked(name)}
+			disabled={!canEditSong}
 		/>;
 	};
 
@@ -281,6 +285,7 @@ export const SongEdit = () => {
 					name="name"
 					formMethods={formMethods}
 					label="Name"
+					disabled={!canEditSong}
 				/>
 			</Box>
 			<Box>
@@ -298,6 +303,7 @@ export const SongEdit = () => {
 								root: classes.dropdownField,
 							}}
 							transform={{input: artistMapper}}
+							disabled={!canEditSong}
 						/>
 					</Box>
 					<Box sx={inputField}>
@@ -314,11 +320,12 @@ export const SongEdit = () => {
 								root: classes.dropdownField,
 							}}
 							multiple
+							disabled={!canEditSong}
 						/>
 					</Box>
-					<Box sx={inputField}>
+					{canEditSong && <Box sx={inputField}>
 						<ArtistNewModalOpener add={addArtist} />
-					</Box>
+					</Box>}
 				</Loader>
 			</Box>
 			<Box>
@@ -339,11 +346,12 @@ export const SongEdit = () => {
 							classes={{
 								root: classes.dropdownField,
 							}}
+							disabled={!canEditSong}
 						/>
 					</Box>
-					<Box sx={inputField}>
+					{canEditSong && <Box sx={inputField}>
 						<AlbumNewModalOpener add={addAlbum} />
-					</Box>
+					</Box>}
 				</Loader>
 			</Box>
 			<Box>
@@ -362,11 +370,12 @@ export const SongEdit = () => {
 								root: classes.dropdownField,
 							}}
 							multiple
+							disabled={!canEditSong}
 						/>
 					</Box>
-					<Box sx={inputField}>
+					{canEditSong && <Box sx={inputField}>
 						<StationNewModalOpener add={addStation} />
-					</Box>
+					</Box>}
 				</Loader>
 			</Box>
 			<Box sx={inputField}>
@@ -377,13 +386,14 @@ export const SongEdit = () => {
 					name="genre"
 					formMethods={formMethods}
 					label="Genre"
+					disabled={!canEditSong}
 				/>
 			</Box>
-			<Box sx={inputField} >
+			{canEditSong && <Box sx={inputField} >
 				<Button onClick={callSubmit}>
 					Submit
 				</Button>
-			</Box>
+			</Box>}
 		</Box>
 	</Loader>);
 };

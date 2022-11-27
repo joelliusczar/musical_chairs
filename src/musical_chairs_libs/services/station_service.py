@@ -12,7 +12,6 @@ from sqlalchemy.engine import Connection
 from sqlalchemy import select, \
 	func, \
 	insert, \
-	delete, \
 	update
 from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.tables import\
@@ -68,31 +67,6 @@ class StationService:
 		row = self.conn.execute(query).fetchone()
 		pk: Optional[int] = row.pk if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk
-
-	def does_station_exist(self, stationName: str) -> bool:
-		query = select(func.count(1))\
-			.select_from(stations_tbl)\
-			.where(func.lower(st.name) == func.lower(stationName))
-		res = self.conn.execute(query).fetchone()
-		count: int = res.count < 1 if res else 0
-		return count < 1
-
-	def add_station(self, stationName: str, displayName: str) -> bool:
-		if self.does_station_exist(stationName):
-			return False
-		stmt = insert(stations_tbl)\
-			.values(name = stationName, displayName = displayName)
-		self.conn.execute(stmt)
-		self.template_service.create_station_files(stationName, displayName)
-		return True
-
-	def remove_station(self, stationName: str) -> None:
-		stationId = self.get_station_id(stationName)
-		assignedTagsDel = delete(stations_songs_tbl)\
-			.where(stsg_stationFk == stationId)
-		self.conn.execute(assignedTagsDel)
-		stationDel = delete(stations_tbl).where(st.stationPk == stationId)
-		self.conn.execute(stationDel)
 
 	def get_stations(
 		self,
@@ -251,6 +225,11 @@ class StationService:
 			stmt = stmt.where(st.pk == stationId)
 		try:
 			res = self.conn.execute(stmt)
+			if not stationId:
+				self.template_service.create_station_files(
+					str(savedName),
+					str(savedDisplayName)
+				)
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(

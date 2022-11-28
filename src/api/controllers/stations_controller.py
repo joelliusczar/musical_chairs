@@ -16,7 +16,7 @@ from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
 	TableData,\
 	UserRoleDef,\
 	build_error_obj
-from musical_chairs_libs.services import\
+from musical_chairs_libs.services import \
 	StationService,\
 	HistoryService,\
 	QueueService,\

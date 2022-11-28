@@ -16,13 +16,11 @@ from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
 	TableData,\
 	UserRoleDef,\
 	build_error_obj
-from musical_chairs_libs.services import \
-	StationService,\
+from musical_chairs_libs.services import StationService,\
 	HistoryService,\
 	QueueService,\
 	ProcessService
-from api_dependencies import \
-	station_service,\
+from api_dependencies import station_service,\
 	history_service,\
 	queue_service,\
 	get_current_user,\

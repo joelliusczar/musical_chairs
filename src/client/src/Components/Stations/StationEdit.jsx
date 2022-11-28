@@ -33,7 +33,9 @@ const initialValues = {
 };
 
 const validatePhraseIsUnused = async (value, context) => {
+	const id = context?.parent?.id;
 	const used = await checkValues({ values: {
+		id,
 		[context.path]: value,
 	}});
 	return !(context.path in used) || !used[context.path];

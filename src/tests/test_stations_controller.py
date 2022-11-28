@@ -63,3 +63,21 @@ def test_post_with_only_name(
 	assert response.status_code == 200
 	assert fetched["name"] == "test_station"
 	assert fetched["displayName"] == ""
+
+def test_updating_unchanged(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	response = client.get(
+		"stations/check/?name=romeo_station&id=3",
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert not data["name"]
+
+	response = client.get(
+		"stations/check/?name=romeo_station&id=4",
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["name"]

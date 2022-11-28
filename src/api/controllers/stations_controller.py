@@ -96,13 +96,14 @@ def request_song(
 			detail = str(ex)
 		)
 
-@router.get("/check")
+@router.get("/check/")
 def is_phrase_used(
+	id: Optional[int]=None,
 	name: str = "",
 	stationService: StationService = Depends(station_service)
 ) -> dict[str, bool]:
 	return {
-		"name": stationService.is_stationName_used(name)
+		"name": stationService.is_stationName_used(id, name)
 	}
 
 def get_station(

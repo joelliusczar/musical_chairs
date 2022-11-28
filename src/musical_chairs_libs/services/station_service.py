@@ -171,17 +171,22 @@ class StationService:
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
 
-	def _is_stationName_used(self, stationName: SavedNameString) -> bool:
-		queryAny: str = select(func.count(1)).select_from(stations_tbl)\
-				.where(func.format_name_for_save(st.name) == str(stationName))
+	def _is_stationName_used(
+		self,
+		id: Optional[int],
+		stationName: SavedNameString
+	) -> bool:
+		queryAny: str = select(st_pk, st_name).select_from(stations_tbl)\
+				.where(func.format_name_for_save(st.name) == str(stationName))\
+				.where(st_pk != id)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
-	def is_stationName_used(self, stationName: str) -> bool:
+	def is_stationName_used(self, id: Optional[int], stationName: str) -> bool:
 		cleanedStationName = SavedNameString(stationName)
 		if not cleanedStationName:
 			return True
-		return self._is_stationName_used(cleanedStationName)
+		return self._is_stationName_used(id, cleanedStationName)
 
 	def get_station_for_edit(
 		self,

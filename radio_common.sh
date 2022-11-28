@@ -1294,6 +1294,8 @@ setup_common_dirs() {
 	mkdir -pv "$app_root"/"$pyModules_dir"
 	[ -e "$app_root"/"$db_dir" ] ||
 	mkdir -pv "$app_root"/"$db_dir"
+	[ -e "$app_root"/keys ] ||
+	mkdir -pv "$app_root"/keys
 }
 
 setup_base_dirs() {

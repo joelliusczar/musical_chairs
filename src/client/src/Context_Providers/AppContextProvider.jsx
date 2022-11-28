@@ -49,7 +49,7 @@ const sortedListReducerPaths = {
 	[waitingTypes.update]: (state, payload) => {
 		const { key, dataOrUpdater } = payload;
 		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === key);
+		const idx = items.findIndex(x => x.id === (key * 1));
 		if (idx > -1) {
 			if (typeof dataOrUpdater === "function") {
 				items.splice(idx, 1, dataOrUpdater(items[idx]));

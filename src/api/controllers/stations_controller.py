@@ -1,30 +1,38 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Dict, List, Optional
-from fastapi import APIRouter,\
-	Depends,\
-	Security,\
-	HTTPException,\
-	status,\
-	Body,\
+from fastapi import (
+	APIRouter,
+	Depends,
+	Security,
+	HTTPException,
+	status,
+	Body,
 	Query
-from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
-	CurrentPlayingInfo,\
-	ValidatedStationCreationInfo,\
-	HistoryItem,\
-	SongListDisplayItem,\
-	StationInfo,\
-	TableData,\
-	UserRoleDef,\
+)
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	CurrentPlayingInfo,
+	ValidatedStationCreationInfo,
+	HistoryItem,
+	SongListDisplayItem,
+	StationInfo,
+	TableData,
+	UserRoleDef,
 	build_error_obj
-from musical_chairs_libs.services import StationService,\
-	HistoryService,\
-	QueueService,\
+)
+from musical_chairs_libs.services import (
+	StationService,
+	HistoryService,
+	QueueService,
 	ProcessService
-from api_dependencies import station_service,\
-	history_service,\
-	queue_service,\
-	get_current_user,\
+)
+from api_dependencies import (
+	station_service,
+	history_service,
+	queue_service,
+	get_current_user,
 	process_service
+)
 
 
 router = APIRouter(prefix="/stations")

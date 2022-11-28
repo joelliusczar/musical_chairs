@@ -3,32 +3,36 @@ import os
 from dataclasses import asdict
 from datetime import timedelta, datetime, timezone
 from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple
-from musical_chairs_libs.dtos_and_utilities import\
-	AccountInfo,\
-	SearchNameString,\
-	SavedNameString,\
-	UserRoleDef,\
-	AccountCreationInfo,\
-	RoleInfo,\
-	get_datetime,\
-	build_error_obj,\
-	hashpw,\
-	checkpw,\
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	SearchNameString,
+	SavedNameString,
+	UserRoleDef,
+	AccountCreationInfo,
+	RoleInfo,
+	get_datetime,
+	build_error_obj,
+	hashpw,
+	checkpw,
 	validate_email
+)
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine.row import Row
-from musical_chairs_libs.tables import users,\
-	userRoles,\
-	station_queue,\
+from musical_chairs_libs.tables import (
+	users,
+	userRoles,
+	station_queue,
 	stations_history
+)
 from musical_chairs_libs.errors import AlreadyUsedError, IllegalOperationError
 from sqlalchemy import select, insert, desc, func, delete, update
 from jose import jwt
-from email_validator import\
-	EmailNotValidError,\
+from email_validator import (
+	EmailNotValidError,
 	ValidatedEmail
+)
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES=30

@@ -852,52 +852,6 @@ create_ices_py_module() (
 	echo 'done creating ices module'
 )
 
-save_station_to_db() (
-	internalName="$1"
-	publicName="$2"
-	# #python_env
-	python <<EOF
-	from musical_chairs_libs.station_service import StationService
-	stationService = StationService()
-	if stationService.add_station('${internalName}','${publicName}'):
-		print('${internalName} added')
-	else:
-		print('${internalName} may already exist')
-EOF
-)
-
-create_new_station() (
-	echo 'creating new station'
-	process_global_vars "$@" &&
-	setup_radio &&
-	pkgMgrChoice=$(get_pkg_mgr) &&
-	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
-	icecastConfLocation=$(get_icecast_conf "$icecastName") &&
-	sourcePassword=$(get_icecast_source_password "$icecastConfLocation") &&
-	echo 'Enter radio station public name or description:' &&
-	read publicName &&
-
-	echo 'Enter radio station internal name:' &&
-	read internalName &&
-
-	echo "public: $publicName" &&
-	echo "internal: $internalName" &&
-
-	create_ices_config "$internalName" "$publicName" "$sourcePassword" &&
-	create_ices_py_module "$internalName" &&
-	echo "skip_option: ${skip_option}"
-	if [ "$skip_option" = 'save_station' ]; then
-		echo "Not saving to db"
-		return
-	fi &&
-	echo "Saving to db"
-	export_py_env_vars &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	save_station_to_db "$internalName" "$publicName" &&
-	add_tags_to_station "$internalName" &&
-	echo 'done creating new station'
-)
-
 run_song_scan() (
 	process_global_vars "$@"
 	link_to_music_files &&
@@ -971,6 +925,7 @@ startup_radio() (
 
 startup_api() (
 	process_global_vars "$@" &&
+	set_env_path_var && #ensure that we can see mc-ices
 	setup_api &&
 	export_py_env_vars &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&

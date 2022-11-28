@@ -63,6 +63,7 @@ export const StationEdit = (props) => {
 	const { callStatus } = state;
 	const {
 		add: addStation,
+		update: updateStation,
 	} = useStationData();
 
 	const getPageUrl = (params) => {
@@ -97,7 +98,12 @@ export const StationEdit = (props) => {
 			const stationId = id ? id : values.id ? values.id : null;
 			const data = await saveStation({ values, id: stationId });
 			afterSubmit(data);
-			addStation(data);
+			if (stationId) {
+				updateStation(stationId, data);
+			}
+			else {
+				addStation(data);
+			}
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err) {

@@ -15,7 +15,7 @@ export const fetchStationForEdit = async ({ params }) => {
 };
 
 export const checkValues = async ({ values }) => {
-	const response = await webClient.get("stations/check", {
+	const response = await webClient.get("stations/check/", {
 		params: values,
 	});
 	return response.data;

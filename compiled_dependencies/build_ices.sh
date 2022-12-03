@@ -94,6 +94,10 @@ ices_build_dir="$app_root"/"$build_dir"/ices
 	if [ "$exp_name" = "dbg_ices" ]; then
 		git checkout debuging
 		name_prefix='dbg-'
+	else
+		if [ -n "$ice_branch" ]; then
+			git checkout -t "$ice_branch"
+		fi
 	fi
 	aclocal &&
 	autoreconf -fi &&

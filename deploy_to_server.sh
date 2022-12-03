@@ -72,7 +72,7 @@ rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$app_root"/"$build_dir" &&
 git clone "$radio_server_repo_url" "$proj_name" &&
-if [ -n "$ice_branch" ]; then
+if [ -n "$mc_branch" ]; then
 	echo "Using branch ${mc_branch}"
 	git checkout -t origin/"$mc_branch" || exit 1
 fi

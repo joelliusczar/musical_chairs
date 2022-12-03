@@ -1124,6 +1124,10 @@ process_global_args() {
 				;;
 			(ice_branch=*)
 				export ice_branch=${1#ice_branch=}
+				;;
+			(skip_clean)
+				export skip_clean='true'
+			;;
 			(*) ;;
 		esac
 		shift

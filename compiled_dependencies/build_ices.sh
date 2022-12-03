@@ -96,6 +96,7 @@ ices_build_dir="$app_root"/"$build_dir"/ices
 		name_prefix='dbg-'
 	else
 		if [ -n "$ice_branch" ]; then
+			echo "Using branch ${ice_branch}"
 			git checkout -t "$ice_branch"
 		fi
 	fi
@@ -109,5 +110,7 @@ ices_build_dir="$app_root"/"$build_dir"/ices
 	make &&
 	make install &&
 	cd "$app_root"/"$build_dir" &&
-	rm -rf "$ices_build_dir"
+	if [ -z "$skip_clean" ]; then
+		rm -rf "$ices_build_dir"
+	fi
 )

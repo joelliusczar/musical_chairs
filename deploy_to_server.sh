@@ -72,6 +72,10 @@ rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$app_root"/"$build_dir" &&
 git clone "$radio_server_repo_url" "$proj_name" &&
+if [ -n "$ice_branch" ]; then
+	echo "Using branch ${mc_branch}"
+	git checkout -t origin/"$mc_branch" || exit 1
+fi
 cd "$proj_name"  &&
 
 RemoteScriptEOF1
@@ -144,7 +148,7 @@ scope() (
 
 )
 
-scope
+scope $global_arg
 
 RemoteScriptEOF4
 } > remote_script_fifo &

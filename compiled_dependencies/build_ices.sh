@@ -115,7 +115,7 @@ ices_build_dir="$app_root"/"$build_dir"/ices
 	make &&
 	make install &&
 	cd "$app_root"/"$build_dir" &&
-	if [ -z "$skip_clean" ]; then
-		rm -rf "$ices_build_dir"
+	if [ "$skip_option" != clean ]; then
+		sudo_rm_dir "$ices_build_dir"
 	fi
 )

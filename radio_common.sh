@@ -1095,53 +1095,67 @@ get_rc_candidate() {
 }
 
 process_global_args() {
+	global_args=''
 	while [ ! -z "$1" ]; do
 		case "$1" in
 			#build out to test_trash rather than the normal directories
 			#sets app_root and web_root without having to set them explicitly
 			(test)
 				export test_flag='test'
+				global_args="${global_args} test"
 				;;
 			(replaceDb) #tells setup to replace sqlite3 db
 				export replace_db_flag='true'
+				global_args="${global_args} replaceDb"
 				;;
 			(clean) #tells setup functions to delete files/dirs before installing
 				export clean_flag='clean'
+				global_args="${global_args} clean"
 				;;
 			#activates debug_print. Also tells deploy script to use the diag branch
 			(diag)
 				export diag_flag='true'
+				global_args="${global_args} diag"
 				echo '' > diag_out_"$include_count"
 				;;
 			(env=*) #affects which url to use
 				export app_env=${1#env=}
+				global_args="${global_args} env='${app_env}'"
 				;;
 			(app_root=*)
 				export app_root=${1#app_root=}
+				global_args="${global_args} app_root='${app_root}'"
 				;;
 			(web_root=*)
 				export web_root=${1#web_root=}
+				global_args="${global_args} web_root='${web_root}'"
 				;;
 			(setup_lvl=*) #affects which setup scripst to run
 				export setup_lvl=${1#setup_lvl=}
+				global_args="${global_args} setup_lvl='${setup_lvl}'"
 				;;
 			#when I want to conditionally run with some experimental code
-			(experiment=*)
-				export exp_name=${1#experiment=}
+			(exp_name=*)
+				export exp_name=${1#exp_name=}
+				global_args="${global_args} exp_name='${exp_name}'"
 				;;
 			(skip=*)
 				export skip_option=${1#skip=}
+				global_args="${global_args} skip='${skip_option}'"
 				;;
 			(ice_branch=*)
 				export ice_branch=${1#ice_branch=}
+				global_args="${global_args} ice_branch='${ice_branch}'"
 				;;
-			(skip_clean)
-				export skip_clean='true'
-			;;
+			(mc_branch=*)
+				export mc_branch=${1#mc_branch=}
+				global_args="${global_args} mc_branch='${mc_branch}'"
+				;;
 			(*) ;;
 		esac
 		shift
 	done
+	export global_args
 }
 
 define_consts() {

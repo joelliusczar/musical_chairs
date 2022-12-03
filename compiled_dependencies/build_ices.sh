@@ -102,7 +102,7 @@ ices_build_dir="$app_root"/"$build_dir"/ices
 	else
 		if [ -n "$ice_branch" ]; then
 			echo "Using branch ${ice_branch}"
-			git checkout -t "$ice_branch"
+			git checkout -t origin/"$ice_branch" || exit 1
 		fi
 	fi
 	aclocal &&

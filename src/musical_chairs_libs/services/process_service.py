@@ -140,5 +140,5 @@ class ProcessService:
 		if platform.system() == "Darwin":
 			return self._noop_startup(stationName)
 		stationConf = f"{EnvManager.station_config_dir}/{stationName}.conf"
-		subprocess.run(["mc-ices", "-c", f"'{stationConf}'"])
+		subprocess.run(["mc-ices", "-c", f"'{stationConf}'", "-B"])
 

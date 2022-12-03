@@ -72,9 +72,9 @@ rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$app_root"/"$build_dir" &&
 git clone "$radio_server_repo_url" "$proj_name" &&
-if [ -n "$mc_branch" ]; then
-	echo "Using branch ${mc_branch}"
-	git checkout -t origin/"$mc_branch" || exit 1
+if [ "$currentBranch" != main ]; then
+	echo "Using branch ${currentBranch}"
+	git checkout -t origin/"$currentBranch" || exit 1
 fi
 cd "$proj_name"  &&
 
@@ -139,6 +139,7 @@ $(cat "$radio_common_path")
 scope() (
 
 	radio_server_repo_url="$radio_server_repo_url"
+	currentBranch="$(git branch --show-current 2>/dev/null)"
 
 	$(cat clone_repo_fifo)
 

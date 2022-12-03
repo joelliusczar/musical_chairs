@@ -318,6 +318,16 @@ rm_contents_if_exist() (
 	fi
 )
 
+sudo_rm_dir() (
+	dir_to_empty="$1"
+	if [ -w "$dir_to_empty" ]; then
+		rm -rf "$dir_to_empty"
+	else
+		sudo -p "Password required to remove ${dir_to_empty}: " \
+			rm -rf "$dir_to_empty"
+	fi
+)
+
 sudo_cp_contents() (
 	from_dir="$1"
 	to_dir="$2"

@@ -145,7 +145,8 @@ esac
 if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 || [ -n "$ice_branch" ]; then
 	shutdown_all_stations &&
-	sh ./compiled_dependencies/build_ices.sh "$ice_branch" ||
+	folderPath="$app_root"/"$build_dir"/"$proj_name"/compiled_dependencies
+	sh "$folderPath"/build_ices.sh "$ice_branch" ||
 	show_err_and_exit "Couldn't install ices"
 fi
 

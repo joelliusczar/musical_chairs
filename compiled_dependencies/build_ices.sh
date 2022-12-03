@@ -14,7 +14,12 @@ fi
 #we have this as a seperate script so I can easily run it without being tangled
 #with the rest
 
-#leave this here incase the python check above did update the python version
+
+
+process_global_vars "$@"
+set_env_path_var
+#leave this here incase the python check in the global install script
+#did update the python version
 set_python_version_const
 
 if ! aclocal --version 2>/dev/null; then

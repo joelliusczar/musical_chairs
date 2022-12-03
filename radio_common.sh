@@ -952,6 +952,7 @@ setup_api() (
 	echo "setting up api"
 	process_global_vars "$@" &&
 	kill_process_using_port "$api_port" &&
+	sync_utility_scripts &&
 	sync_requirement_list &&
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
 	copy_dir "$api_src" "$web_root"/"$app_api_path_cl" &&
@@ -1011,6 +1012,7 @@ setup_radio() (
 	process_global_vars "$@" &&
 	shutdown_all_stations &&
 	sync_requirement_list &&
+	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&

@@ -139,7 +139,7 @@ class ProcessService:
 			raise RuntimeError("Invalid station name was used")
 		stationConf = f"{EnvManager.station_config_dir}/{stationName}.conf"
 		if not os.path.isfile(stationConf):
-			raise LookupError("Station Internals are broken")
+			raise LookupError(f"Station not found at: {stationConf}")
 		if platform.system() == "Darwin":
 			return self._noop_startup(stationName)
 		subprocess.run(["mc-ices", "-c", f"'{stationConf}'", "-B"])

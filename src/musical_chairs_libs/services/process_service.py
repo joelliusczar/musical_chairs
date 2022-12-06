@@ -142,5 +142,5 @@ class ProcessService:
 			raise LookupError(f"Station not found at: {stationConf}")
 		if platform.system() == "Darwin":
 			return self._noop_startup(stationName)
-		subprocess.run(["mc-ices", "-c", f"'{stationConf}'", "-B"])
+		subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
 

@@ -751,6 +751,17 @@ start_icecast_service() (
 	echo 'done starting icecast service'
 )
 
+install_ices() (
+	process_global_vars "$@" &&
+	set_env_path_var &&
+	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
+	|| [ -n "$ice_branch" ]; then
+		shutdown_all_stations &&
+		folderPath="$app_root"/"$build_dir"/"$proj_name"/compiled_dependencies
+		sh "$folderPath"/build_ices.sh "$ice_branch"
+	fi
+)
+
 get_icecast_conf() (
 	icecastName="$1"
 	case $(uname) in

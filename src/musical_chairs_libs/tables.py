@@ -200,4 +200,10 @@ stsg_stationFk: Column = stsg.stationFk #pyright: ignore [reportUnknownMemberTyp
 q: TblCols = station_queue.c #pyright: ignore [reportUnknownMemberType]
 q_songFk: Column = q.songFk #pyright: ignore [reportUnknownMemberType]
 q_stationFk: Column = q.stationFk #pyright: ignore [reportUnknownMemberType]
-q_queuedTimestamp: Column = q.queuedTimestamp #pyright: ignore [reportUnknownMemberType]
+q_queuedTimestamp: Column = q.queuedTimestamp #pyright: ignore [reportUnknownMemberType
+
+h: TblCols = stations_history.c #pyright: ignore [reportUnknownMemberType]
+h_songFk: Column = h.songFk #pyright: ignore [reportUnknownMemberType]
+h_stationFk: Column = h.stationFk #pyright: ignore [reportUnknownMemberType]
+h_queuedTimestamp: Column = h.queuedTimestamp #pyright: ignore [reportUnknownMemberType
+

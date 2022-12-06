@@ -73,17 +73,18 @@ export const waitingReducerMap = {
 		}),
 };
 
-export const globalStoreLogger = (result, state, action, reducerMap) => {
-	if (!(action.type in reducerMap)) {
-		console.info("Action type is not mapped. ");
+export const globalStoreLogger = (name) =>
+	(result, state, action, reducerMap) => {
+		if (!(action.type in reducerMap)) {
+			console.info("Action type is not mapped. ");
+			return result;
+		}
+		console.info(`${name} : ${action.type}`);
+		console.info("Previous: ", state);
+		console.info("Payload: ", action.payload);
+		console.info("Next: ", result);
 		return result;
-	}
-	console.info(`${action.type}`);
-	console.info("Previous: ", state);
-	console.info("Payload: ", action.payload);
-	console.info("Next: ", result);
-	return result;
-};
+	};
 
 export const waitingReducer = (reducerMods=null, middleware=null) => {
 

@@ -157,6 +157,21 @@ get_mc_auth_key() (
 	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$app_root"/keys/"$proj_name"
 )
 
+get_address() (
+	keyFile="$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /address6=root@(+[\w:])/' "$keyFile"
+)
+
+get_id_file() (
+	keyFile="$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
+)
+
+connect_sftp() (
+	process_global_vars "$@" >&2 &&
+	sftp -6 -i $(get_id_file) "'root@[$(get_address)]'"
+)
+
 get_ssl_vars() (
 	process_global_vars "$@" >&2 &&
 	sendJson=$(cat <<-END

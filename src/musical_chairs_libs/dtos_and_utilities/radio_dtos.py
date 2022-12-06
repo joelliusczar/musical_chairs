@@ -10,7 +10,7 @@ from typing import\
 from itertools import chain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, check_name_safety
-from .generic_dtos import IdItem
+from .generic_dtos import IdItem, TableData
 
 
 @dataclass(frozen=True)
@@ -66,9 +66,8 @@ class HistoryItem(SongListDisplayItem):
 	playedTimestamp: float
 
 @dataclass()
-class CurrentPlayingInfo:
+class CurrentPlayingInfo(TableData[QueueItem]):
 	nowPlaying: Optional[HistoryItem]
-	items: Iterable[QueueItem]
 
 @dataclass(frozen=True)
 class Tag:

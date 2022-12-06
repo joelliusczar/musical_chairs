@@ -142,13 +142,7 @@ case $(uname) in
 	(*) ;;
 esac
 
-if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
-|| [ -n "$ice_branch" ]; then
-	shutdown_all_stations &&
-	folderPath="$app_root"/"$build_dir"/"$proj_name"/compiled_dependencies
-	sh "$folderPath"/build_ices.sh "$ice_branch" ||
-	show_err_and_exit "Couldn't install ices"
-fi
+install_ices || show_err_and_exit "Couldn't install ices"
 
 if ! nginx -v 2>/dev/null; then
 	case $(uname) in

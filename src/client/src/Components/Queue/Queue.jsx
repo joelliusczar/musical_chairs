@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { useLocation } from "react-router-dom";
-import { fetchQueue } from "../../API_Calls/stationCalls";
+import { Link, useLocation } from "react-router-dom";
+import { fetchQueue, removeSongFromQueue } from "../../API_Calls/stationCalls";
 import {
 	Table,
 	TableBody,
@@ -10,6 +10,7 @@ import {
 	TableRow,
 	Typography,
 	Box,
+	Button,
 } from "@mui/material";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
@@ -23,6 +24,10 @@ import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { StationSelect } from "../Shared/StationSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { NowPlaying } from "../Shared/NowPlaying";
+import { useSnackbar } from "notistack";
+import { OptionsButton } from "../Shared/OptionsButton";
+import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import { UserRoleDef } from "../../constants";
 
 const queueInitialState = {
 	...pageableDataInitialState,
@@ -41,15 +46,60 @@ export const Queue = () => {
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
 	const stationNameFromQS = queryObj.get("name") || "";
+	const { enqueueSnackbar } = useSnackbar();
+	const canSkipSongs = useHasAnyRoles([UserRoleDef.STATION_SKIP]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 
 	const [queueState, queueDispatch] =
-		useReducer(waitingReducer(), queueInitialState);
+		useReducer(waitingReducer(),
+			queueInitialState
+		);
 
 	const { callStatus: queueCallStatus } = queueState;
 
 	const getPageUrl = urlBuilderFactory(DomRoutes.queue);
+
+	const rowButton = canSkipSongs ? (item, idx) => {
+		return (<OptionsButton
+			id={`queue-row-btn-${idx}`}
+			options={[
+				{
+					label: "Skip",
+					onClick:() => handleRemoveSongFromQueue(item),
+				},
+				{
+					label: "Edit",
+					onClick: `${DomRoutes.songEdit}?id=${item.id}`,
+				},
+			]}
+		/>);
+	}: (item) => <Button
+		variant="contained"
+		component={Link}
+		to={`${DomRoutes.songEdit}?id=${item.id}`}
+	>
+		View
+	</Button>;
+
+	const handleRemoveSongFromQueue = async (item) => {
+		try {
+			const page = parseInt(queryObj.get("page") || "1");
+			const limit = parseInt(queryObj.get("rows") || "50");
+			const data = await removeSongFromQueue({
+				stationName: stationNameFromQS,
+				songId: item?.id,
+				queuedTimestamp: item?.queuedTimestamp,
+				page: page - 1,
+				limit: limit,
+			});
+			queueDispatch(dispatches.done(data));
+			enqueueSnackbar("Song has been removed from queue");
+		}
+		catch(err) {
+			enqueueSnackbar(formatError(err), {variant: "error" });
+		}
+	};
 
 	useEffect(() => {
 		document.title = `Musical Chairs - Queue${`- ${stationNameFromQS || ""}`}`;
@@ -111,6 +161,7 @@ export const Queue = () => {
 										<TableCell>Artist</TableCell>
 										<TableCell>Added</TableCell>
 										<TableCell>Requested</TableCell>
+										<TableCell></TableCell>
 									</TableRow>
 								</TableHead>
 								<TableBody>
@@ -128,6 +179,9 @@ export const Queue = () => {
 												</TableCell>
 												<TableCell></TableCell>
 												<TableCell></TableCell>
+												<TableCell>
+													{rowButton(item, idx)}
+												</TableCell>
 											</TableRow>
 										);
 									})}

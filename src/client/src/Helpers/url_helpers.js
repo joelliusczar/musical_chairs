@@ -22,3 +22,7 @@ export const buildArrayQueryStrFromObj = (obj) => {
 	}
 	return `?${queryObj.toString()}`;
 };
+
+export const getListenAddress = (stationName) => {
+	return `http://${window.location.hostname}:8000/${stationName}`;
+};

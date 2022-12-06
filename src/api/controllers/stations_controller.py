@@ -48,12 +48,13 @@ def index(
 def history(
 	stationName: str,
 	historyService: HistoryService = Depends(history_service)
-) -> Dict[str, List[HistoryItem]]:
+) -> TableData[HistoryItem]:
 	if not stationName:
-		return {}
+		return TableData(totalRows=0, items=[])
 	history = list(historyService \
 		.get_history_for_station(stationName=stationName))
-	return {"items": history }
+	totalRows = historyService.history_count(stationName = stationName)
+	return TableData(totalRows=totalRows, items=history)
 
 @router.get("/{stationName}/queue/")
 def queue(
@@ -61,7 +62,7 @@ def queue(
 	queueService: QueueService = Depends(queue_service)
 ) -> CurrentPlayingInfo:
 	if not stationName:
-		return CurrentPlayingInfo(nowPlaying=None, items=[])
+		return CurrentPlayingInfo(nowPlaying=None, items=[], totalRows=0)
 	queue = queueService.get_now_playing_and_queue(stationName=stationName)
 	return queue
 
@@ -101,6 +102,30 @@ def request_song(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail = str(ex)
 		)
+
+@router.delete("/{stationName}/request/",
+	dependencies=[
+		Security(get_current_user, scopes=[UserRoleDef.STATION_SKIP.value])
+	]
+)
+def remove_song_from_queue(
+	stationName: str,
+	id: int,
+	queuedTimestamp: float,
+	queueService: QueueService = Depends(queue_service)
+) -> CurrentPlayingInfo:
+	queue = queueService.remove_song_from_queue(
+		id,
+		queuedTimestamp,
+		stationName=stationName
+	)
+	if queue:
+		return queue
+	raise HTTPException(
+			status_code = status.HTTP_404_NOT_FOUND,
+			detail = f"Song: {id} not found at {queuedTimestamp} on {stationName}"
+		)
+
 
 @router.get("/check/")
 def is_phrase_used(

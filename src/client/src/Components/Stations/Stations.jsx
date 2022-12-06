@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer } from "react";
+import React, { useEffect, useReducer, useState } from "react";
 import {
 	Accordion,
 	AccordionSummary,
@@ -20,12 +20,14 @@ import {
 import { enableStations, disableStations } from "../../API_Calls/stationCalls";
 import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
+import { getListenAddress } from "../../Helpers/url_helpers";
 import {
 	waitingReducer,
 	dispatches,
 	keyedWaitingReducerMap,
 } from "../Shared/waitingReducer";
 import { CallStatus } from "../../constants";
+import { YesNoControl } from "../Shared/YesNoControl";
 
 
 const useStyles = makeStyles(() => ({
@@ -53,6 +55,7 @@ export const Stations = () => {
 	const canEditStation = useHasAnyRoles([UserRoleDef.STATION_EDIT]);
 	const canEnableStation = useHasAnyRoles([UserRoleDef.STATION_FLIP]);
 	const { enqueueSnackbar } = useSnackbar();
+	const [ waitConfirm, setWaitConfirm ] = useState("");
 
 	const disableAllStations = async () => {
 		try {
@@ -109,6 +112,11 @@ export const Stations = () => {
 		return true;
 	};
 
+	const openDisableConfirm = (e, name) => {
+		e.stopPropagation();
+		setWaitConfirm(name);
+	};
+
 	useEffect(() => {
 		document.title = "Musical Chairs - Stations";
 	},[location]);
@@ -121,12 +129,19 @@ export const Stations = () => {
 		>
 			Add New Station
 		</Button>}
-		{canEnableStation && <Button
-			onClick={disableAllStations}
-			disabled={!canToggleStation()}
-		>
-			Disable All Stations
-		</Button>}
+		{canEnableStation && (waitConfirm === "*" ?
+			<YesNoControl
+				message="Disable all stations?"
+				onYes={disableAllStations}
+				onNo={() => setWaitConfirm("")}
+			/> :
+			<Button
+				onClick={() => setWaitConfirm("*")}
+				disabled={!canToggleStation()}
+			>
+				Disable All Stations
+			</Button>
+		)}
 		<Loader
 			status={stationCallStatus}
 			error={stationError}
@@ -142,14 +157,29 @@ export const Stations = () => {
 					>
 						<Typography>
 							{s.displayName || s.name} -
+							{waitConfirm === s.name ?
+								<YesNoControl
+									message={`Disable ${s.displayName}?`}
+									onYes={(e) => handleDisableStation(e, s.id, s.name)}
+									onNo={() => setWaitConfirm("")}
+								/> :
+								<Button
+									onClick={e => s.isRunning ?
+										openDisableConfirm(e, s.name) :
+										handleEnableStation(e, s.id, s.name)
+									}
+									disabled={!canToggleStation(s.id)}
+								>
+									{s.isRunning ? "Online!": "Offline"}
+								</Button>
+							}
+						</Typography>
+						<Typography>
 							<Button
-								onClick={e => s.isRunning ?
-									handleDisableStation(e, s.id, s.name) :
-									handleEnableStation(e, s.id, s.name)
-								}
-								disabled={!canToggleStation(s.id)}
+								component="a"
+								href={getListenAddress(s.name)}
 							>
-								{s.isRunning ? "Online!": "Offline"}
+								Listen
 							</Button>
 						</Typography>
 					</AccordionSummary>

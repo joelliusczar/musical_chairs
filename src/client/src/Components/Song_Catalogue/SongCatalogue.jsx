@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
 	fetchSongCatalogue,
 	sendSongRequest,
@@ -11,9 +11,9 @@ import {
 	TableCell,
 	TableHead,
 	TableRow,
-	Button,
 	Box,
 	Typography,
+	Button,
 } from "@mui/material";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
@@ -27,6 +27,9 @@ import { useSnackbar } from "notistack";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { StationSelect } from "../Shared/StationSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
+import { OptionsButton } from "../Shared/OptionsButton";
+import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import { UserRoleDef } from "../../constants";
 
 
 export const SongCatalogue = () => {
@@ -38,6 +41,7 @@ export const SongCatalogue = () => {
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
 	const stationNameFromQS = queryObj.get("name") || "";
+	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
 
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
@@ -53,6 +57,28 @@ export const SongCatalogue = () => {
 	};
 
 	const getPageUrl = urlBuilderFactory(DomRoutes.songCatalogue);
+
+	const rowButton = canRequestSongs ? (item, idx) => {
+		return (<OptionsButton
+			id={`song-catalog-row-btn-${idx}`}
+			options={[
+				{
+					label: "Request",
+					onClick:() => requestSong(item.id),
+				},
+				{
+					label: "Edit",
+					onClick: `${DomRoutes.songEdit}?id=${item.id}`,
+				},
+			]}
+		/>);
+	}: (item) => <Button
+		variant="contained"
+		component={Link}
+		to={`${DomRoutes.songEdit}?id=${item.id}`}
+	>
+		View
+	</Button>;
 
 	useEffect(() => {
 		document.title =
@@ -111,7 +137,7 @@ export const SongCatalogue = () => {
 										<TableCell>Song</TableCell>
 										<TableCell>Album</TableCell>
 										<TableCell>Artist</TableCell>
-										<TableCell>Request</TableCell>
+										<TableCell></TableCell>
 									</TableRow>
 								</TableHead>
 								<TableBody>
@@ -128,13 +154,7 @@ export const SongCatalogue = () => {
 													{item.artist || "{No artist name}"}
 												</TableCell>
 												<TableCell>
-													<Button
-														color="primary"
-														variant="contained"
-														onClick={() => requestSong(item.id)}
-													>
-														Request
-													</Button>
+													{rowButton(item, idx)}
 												</TableCell>
 											</TableRow>
 										);

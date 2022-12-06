@@ -79,7 +79,7 @@ export const AppContextProvider = (props) => {
 	);
 
 	const [stationsState, stationsDispatch] = useReducer(
-		waitingReducer(sortedListReducerPaths, [globalStoreLogger]),
+		waitingReducer(sortedListReducerPaths, [(globalStoreLogger("Stations"))]),
 		{...listDataInitialState}
 	);
 

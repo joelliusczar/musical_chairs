@@ -1,13 +1,22 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 from typing import Iterator, Optional
 from sqlalchemy import select, desc, func
-from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.tables import stations_history, songs, stations, \
-	albums, artists, song_artist
+from musical_chairs_libs.tables import (
+	stations_history as stations_history_tbl, h_songFk, h_queuedTimestamp,
+	h_stationFk,
+	songs, sg_pk, sg_name, sg_albumFk,
+	stations, st_name, st_pk,
+	albums, ab_pk, ab_name,
+	artists, ar_pk, ar_name,
+	song_artist, sgar_songFk, sgar_artistFk
+)
 from .station_service import StationService
 from .env_manager import EnvManager
-from musical_chairs_libs.dtos_and_utilities import HistoryItem
+from musical_chairs_libs.dtos_and_utilities import (
+	HistoryItem,
+	SearchNameString
+)
 
 class HistoryService:
 	def __init__(
@@ -32,34 +41,45 @@ class HistoryService:
 		limit: int=50,
 		offset: int=0
 	) -> Iterator[HistoryItem]:
-		h: ColumnCollection = stations_history.columns
-		st: ColumnCollection = stations.columns
-		sg: ColumnCollection = songs.columns
-		ab: ColumnCollection = albums.columns
-		ar: ColumnCollection = artists.columns
-		sgar: ColumnCollection = song_artist.columns
 		baseQuery = select(
-			sg.pk.label("id"),
-			sg.path,
-			h.playedTimestamp,
-			sg.name,
-			ab.name.label("album"),
-			ar.name.label("artist")
-		).select_from(stations_history) \
-			.join(songs, h.songFk == sg.pk) \
-			.join(albums, sg.albumFk == ab.pk, isouter=True) \
-			.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
-			.join(artists, sgar.artistFk == ar.pk, isouter=True) \
-			.order_by(desc(h.playedTimestamp)) \
+			sg_pk.label("id"),
+			h_queuedTimestamp.label("playedTimestamp"),
+			sg_name.label("name"),
+			ab_name.label("album"),
+			ar_name.label("artist")
+		).select_from(stations_history_tbl) \
+			.join(songs, h_songFk == sg_pk) \
+			.join(albums, sg_albumFk == ab_pk, isouter=True) \
+			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
+			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
+			.order_by(desc(h_queuedTimestamp)) \
 			.offset(offset) \
 			.limit(limit)
 		if stationPk:
-			query  = baseQuery.where(h.stationFk == stationPk)
+			query  = baseQuery.where(h_stationFk == stationPk)
 		elif stationName:
-			query = baseQuery.join(stations, st.pk == h.stationFk) \
-				.where(func.lower(st.name) == func.lower(stationName))
+			query = baseQuery.join(stations, st_pk == h_stationFk) \
+				.where(func.lower(st_name) == func.lower(stationName))
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield HistoryItem(**row) #pyright: ignore [reportUnknownArgumentType]
+
+	def history_count(
+		self,
+		stationId: Optional[int]=None,
+		stationName: Optional[str]=None
+	) -> int:
+		query = select(func.count(1)).select_from(stations_history_tbl)
+		if stationId:
+			query = query.where(h_stationFk == stationId)
+		elif stationName:
+			query.join(stations, st_pk == h_stationFk)\
+				.where(func.format_name_for_search(st_name)
+					== SearchNameString.format_name_for_search(stationName))
+		else:
+			raise ValueError("Either stationName or id must be provided")
+
+		count = self.conn.execute(query).scalar() or 0
+		return count

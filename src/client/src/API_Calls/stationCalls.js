@@ -63,6 +63,18 @@ export const sendSongRequest = async ({ station, songId}) => {
 	return response.data;
 };
 
+export const removeSongFromQueue = async (params) => {
+	const { stationName, songId, queuedTimestamp } = params;
+	const response = await webClient
+		.delete(`stations/${stationName}/request/`, {
+			params: {
+				id: songId,
+				queuedTimestamp,
+			},
+		});
+	return response.data;
+};
+
 export const enableStations = async ({ ids }) => {
 	const queryStr = buildArrayQueryStrFromObj({"id": ids});
 	const response = await webClient

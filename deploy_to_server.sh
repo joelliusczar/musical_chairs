@@ -73,6 +73,10 @@ rm -rf "$(get_repo_path)" &&
 cd "$app_root"/"$build_dir" &&
 git clone "$radio_server_repo_url" "$proj_name" &&
 cd "$proj_name"  &&
+if [ "$currentBranch" != main ]; then
+	echo "Using branch ${currentBranch}"
+	git checkout -t origin/"$currentBranch" || exit 1
+fi
 
 RemoteScriptEOF1
 } > clone_repo_fifo &
@@ -131,10 +135,11 @@ RemoteScriptEOF3
 
 {
 	cat<<RemoteScriptEOF4
+$(cat "$radio_common_path")
 scope() (
-	$(cat "$radio_common_path")
 
 	radio_server_repo_url="$radio_server_repo_url"
+	currentBranch="$(git branch --show-current 2>/dev/null)"
 
 	$(cat clone_repo_fifo)
 
@@ -144,7 +149,7 @@ scope() (
 
 )
 
-scope
+scope $global_args
 
 RemoteScriptEOF4
 } > remote_script_fifo &

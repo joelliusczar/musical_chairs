@@ -108,7 +108,7 @@ class StationService:
 	def _attach_catalogue_joins(
 		self,
 		baseQuery: Any,
-		stationPk: Optional[int]=None,
+		stationId: Optional[int]=None,
 		stationName: Optional[str]=None
 	) -> Any:
 		appended_query = baseQuery\
@@ -119,8 +119,8 @@ class StationService:
 			.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
 			.join(artists, sgar.artistFk == ar.pk, isouter=True) \
 
-		if stationPk:
-			query = appended_query.where(st.pk == stationPk)
+		if stationId:
+			query = appended_query.where(st.pk == stationId)
 		elif stationName:
 			query = appended_query.where(func.lower(st.name) == func.lower(stationName))
 		else:
@@ -129,11 +129,11 @@ class StationService:
 
 	def song_catalogue_count(
 		self,
-		stationPk: Optional[int]=None,
+		stationId: Optional[int]=None,
 		stationName: Optional[str]=None
 	) -> int:
 		baseQuery = select(func.count(1))
-		query = self._attach_catalogue_joins(baseQuery, stationPk, stationName)
+		query = self._attach_catalogue_joins(baseQuery, stationId, stationName)
 		count = self.conn.execute(query).scalar() or 0
 		return count
 

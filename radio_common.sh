@@ -157,6 +157,21 @@ get_mc_auth_key() (
 	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$app_root"/keys/"$proj_name"
 )
 
+get_address() (
+	keyFile="$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /address6=root@(+[\w:])/' "$keyFile"
+)
+
+get_id_file() (
+	keyFile="$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
+)
+
+connect_sftp() (
+	process_global_vars "$@" >&2 &&
+	sftp -6 -i $(get_id_file) "'root@[$(get_address)]'"
+)
+
 get_ssl_vars() (
 	process_global_vars "$@" >&2 &&
 	sendJson=$(cat <<-END
@@ -315,6 +330,16 @@ rm_contents_if_exist() (
 	dir_to_empty="$1"
 	if ! is_dir_empty "$dir_to_empty"; then
 		sudo_rm_contents "$dir_to_empty"
+	fi
+)
+
+sudo_rm_dir() (
+	dir_to_empty="$1"
+	if [ -w "$dir_to_empty" ]; then
+		rm -rf "$dir_to_empty"
+	else
+		sudo -p "Password required to remove ${dir_to_empty}: " \
+			rm -rf "$dir_to_empty"
 	fi
 )
 
@@ -741,6 +766,17 @@ start_icecast_service() (
 	echo 'done starting icecast service'
 )
 
+install_ices() (
+	process_global_vars "$@" &&
+	set_env_path_var &&
+	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
+	|| [ -n "$ice_branch" ]; then
+		shutdown_all_stations &&
+		folderPath="$app_root"/"$build_dir"/"$proj_name"/compiled_dependencies
+		sh "$folderPath"/build_ices.sh "$ice_branch"
+	fi
+)
+
 get_icecast_conf() (
 	icecastName="$1"
 	case $(uname) in
@@ -942,6 +978,7 @@ setup_api() (
 	echo "setting up api"
 	process_global_vars "$@" &&
 	kill_process_using_port "$api_port" &&
+	sync_utility_scripts &&
 	sync_requirement_list &&
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
 	copy_dir "$api_src" "$web_root"/"$app_api_path_cl" &&
@@ -1001,6 +1038,7 @@ setup_radio() (
 	process_global_vars "$@" &&
 	shutdown_all_stations &&
 	sync_requirement_list &&
+	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
@@ -1085,53 +1123,67 @@ get_rc_candidate() {
 }
 
 process_global_args() {
+	global_args=''
 	while [ ! -z "$1" ]; do
 		case "$1" in
 			#build out to test_trash rather than the normal directories
 			#sets app_root and web_root without having to set them explicitly
 			(test)
 				export test_flag='test'
+				global_args="${global_args} test"
 				;;
 			(replaceDb) #tells setup to replace sqlite3 db
 				export replace_db_flag='true'
+				global_args="${global_args} replaceDb"
 				;;
 			(clean) #tells setup functions to delete files/dirs before installing
 				export clean_flag='clean'
+				global_args="${global_args} clean"
 				;;
 			#activates debug_print. Also tells deploy script to use the diag branch
 			(diag)
 				export diag_flag='true'
+				global_args="${global_args} diag"
 				echo '' > diag_out_"$include_count"
 				;;
 			(env=*) #affects which url to use
 				export app_env=${1#env=}
+				global_args="${global_args} env='${app_env}'"
 				;;
 			(app_root=*)
 				export app_root=${1#app_root=}
+				global_args="${global_args} app_root='${app_root}'"
 				;;
 			(web_root=*)
 				export web_root=${1#web_root=}
+				global_args="${global_args} web_root='${web_root}'"
 				;;
 			(setup_lvl=*) #affects which setup scripst to run
 				export setup_lvl=${1#setup_lvl=}
+				global_args="${global_args} setup_lvl='${setup_lvl}'"
 				;;
 			#when I want to conditionally run with some experimental code
-			(experiment=*)
-				export exp_name=${1#experiment=}
+			(exp_name=*)
+				export exp_name=${1#exp_name=}
+				global_args="${global_args} exp_name='${exp_name}'"
 				;;
 			(skip=*)
 				export skip_option=${1#skip=}
+				global_args="${global_args} skip='${skip_option}'"
 				;;
 			(ice_branch=*)
 				export ice_branch=${1#ice_branch=}
+				global_args="${global_args} ice_branch='${ice_branch}'"
 				;;
-			(skip_clean)
-				export skip_clean='true'
-			;;
+			(mc_branch=*)
+				export mc_branch=${1#mc_branch=}
+				global_args="${global_args} mc_branch='${mc_branch}'"
+				;;
 			(*) ;;
 		esac
 		shift
 	done
+	export global_args
 }
 
 define_consts() {

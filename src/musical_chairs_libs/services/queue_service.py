@@ -1,11 +1,13 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
-from typing import\
-	Any,\
-	Callable,\
-	List,\
-	Optional,\
-	Tuple,\
-	Iterator
+from typing import (
+	Any,
+	Callable,
+	List,
+	Optional,
+	Tuple,
+	Iterator,
+	cast
+)
 from collections.abc import Iterable
 from sqlalchemy import\
 	select,\
@@ -22,26 +24,28 @@ from .station_service import StationService
 from .accounts_service import AccountsService
 from .song_info_service import SongInfoService
 from .history_service import HistoryService
-from musical_chairs_libs.tables import \
-	stations_history, \
-	songs, \
-	stations,\
-	stations_songs as stations_songs_tbl, stsg_stationFk, stsg_songFk,\
-	station_queue, \
-	albums, \
-	artists, \
-	song_artist,\
-	sgar_pk, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist, \
-	sg_pk, sg_name, sg_path, sg_albumFk, \
-	st_pk, st_name, \
-	ar_pk, ar_name,\
-	ab_pk, ab_name,\
-	q_songFk, q_queuedTimestamp, q_stationFk
-from musical_chairs_libs.dtos_and_utilities import\
-	AccountInfo,\
-	QueueItem,\
-	CurrentPlayingInfo,\
-	get_datetime
+from musical_chairs_libs.tables import (
+	stations_history,
+	songs,
+	stations,
+	stations_songs as stations_songs_tbl, stsg_stationFk, stsg_songFk,
+	station_queue, q_songFk, q_queuedTimestamp, q_stationFk,
+	albums,
+	artists,
+	song_artist,
+	sgar_pk, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
+	sg_pk, sg_name, sg_path, sg_albumFk,
+	st_pk, st_name,
+	ar_pk, ar_name,
+	ab_pk, ab_name
+)
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	QueueItem,
+	CurrentPlayingInfo,
+	get_datetime,
+	SearchNameString
+)
 from numpy.random import \
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 
@@ -144,36 +148,32 @@ class QueueService:
 
 	def move_from_queue_to_history(
 		self,
-		stationPk: int,
-		songPk: int,
+		stationId: int,
+		songId: int,
 		queueTimestamp: float
 	) -> None:
-		q: ColumnCollection = station_queue.columns
 
-		# can't delete by songPk alone b/c the song might be queued multiple times
-		queueDel = delete(station_queue).where(q.stationFk == stationPk) \
-			.where(q.songFk == songPk) \
-			.where(q.queuedTimestamp == queueTimestamp)
-		self.conn.execute(queueDel)
+		# can't delete by songId alone b/c the song might be queued multiple times
+		self._remove_song_from_queue(
+			songId,
+			queueTimestamp,
+			stationId,
+		)
 		currentTime = self.get_datetime().timestamp()
 
 		hist: ColumnCollection = stations_history.columns
 
 		histUpdateStmt = update(stations_history) \
 			.values(playedTimestamp = currentTime) \
-			.where(hist.stationFk == stationPk) \
-			.where(hist.songFk == songPk) \
+			.where(hist.stationFk == stationId) \
+			.where(hist.songFk == songId) \
 			.where(hist.queuedTimestamp == queueTimestamp)
 		self.conn.execute(histUpdateStmt)
 
 
 
-	def is_queue_empty(self, stationPk: int) -> bool:
-		q: ColumnCollection = station_queue.columns
-		query = select(func.count(1)).select_from(station_queue)\
-			.where(q.stationFk == stationPk)
-		countRes = self.conn.execute(query).scalar()
-		res = countRes if countRes else 0
+	def is_queue_empty(self, stationId: int) -> bool:
+		res = self.queue_count(stationId)
 		return res < 1
 
 	def get_queue_for_station(
@@ -211,12 +211,12 @@ class QueueService:
 		records = self.conn.execute(query.order_by(q_queuedTimestamp))
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield QueueItem(
-				id=row.pk, #pyright: ignore [reportUnknownArgumentType]
-				name=row.name, #pyright: ignore [reportUnknownArgumentType]
-				album=row.album, #pyright: ignore [reportUnknownArgumentType]
-				artist=row.artist, #pyright: ignore [reportUnknownArgumentType]
-				path=row.path, #pyright: ignore [reportUnknownArgumentType]
-				queuedTimestamp=row.queuedTimestamp #pyright: ignore [reportUnknownArgumentType]
+				id=row[sg_pk], #pyright: ignore [reportUnknownArgumentType]
+				name=row[sg_name], #pyright: ignore [reportUnknownArgumentType]
+				album=row["album"], #pyright: ignore [reportUnknownArgumentType]
+				artist=row["artist"], #pyright: ignore [reportUnknownArgumentType]
+				path=row[sg_path], #pyright: ignore [reportUnknownArgumentType]
+				queuedTimestamp=row[q_queuedTimestamp] #pyright: ignore [reportUnknownArgumentType]
 			)
 
 	def pop_next_queued(
@@ -263,40 +263,96 @@ class QueueService:
 		return self.conn.execute(stmt).rowcount #pyright: ignore [reportUnknownVariableType]
 
 	def add_song_to_queue(self,
-		songPk: int,
+		songId: int,
 		stationName: str,
 		user: AccountInfo
 	):
 		stationPk = self.station_service.get_station_id(stationName)
-		songInfo = self.song_info_service.song_info(songPk)
+		songInfo = self.song_info_service.song_info(songId)
 		songName = songInfo.name if songInfo else "Song"
 		if stationPk and\
 			self.station_service.can_song_be_queued_to_station(
-				songPk,
+				songId,
 				stationPk
 			):
-			self._add_song_to_queue(songPk, stationPk, user.id)
+			self._add_song_to_queue(songId, stationPk, user.id)
 			return
 		raise LookupError(f"{songName} cannot be added to {stationName}")
 
+	def queue_count(
+		self,
+		stationId: Optional[int]=None,
+		stationName: Optional[str]=None
+	) -> int:
+		query = select(func.count(1)).select_from(station_queue)
+		if stationId:
+			query = query.where(q_stationFk == stationId)
+		elif stationName:
+			query.join(stations, st_pk == q_stationFk)\
+				.where(func.format_name_for_search(st_name)
+					== SearchNameString.format_name_for_search(stationName))
+		else:
+			raise ValueError("Either stationName or id must be provided")
+
+		count = self.conn.execute(query).scalar() or 0
+		return count
 
 
 	def get_now_playing_and_queue(
 		self,
-		stationPk: Optional[int]=None,
+		stationId: Optional[int]=None,
 		stationName: Optional[str]=None
 	) -> CurrentPlayingInfo:
-		if not stationPk:
+		if not stationId:
 			if stationName:
-				stationPk = self.station_service.get_station_id(stationName)
+				stationId = self.station_service.get_station_id(stationName)
 			else:
-				raise ValueError("Either stationName or pk must be provided")
-		queue = list(self.get_queue_for_station(stationPk))
+				raise ValueError("Either stationName or id must be provided")
+		queue = list(self.get_queue_for_station(stationId))
 		playing = next(self.history_service. \
-			get_history_for_station(stationPk, limit=1), None)
-		return CurrentPlayingInfo(nowPlaying=playing, items=queue)
+			get_history_for_station(stationId, limit=1), None)
+		return CurrentPlayingInfo(
+			nowPlaying=playing,
+			items=queue,
+			totalRows=self.queue_count(stationId, stationName)
+		)
 
+	def _remove_song_from_queue(self,
+		songId: int,
+		queuedTimestamp: float,
+		stationId: Optional[int]=None,
+		stationName: Optional[str]=None,
+	) -> bool:
+		stmt = delete(station_queue)
 
+		if stationId:
+			stmt = stmt.where(q_stationFk == stationId)
+		elif stationName:
+			subQ = select(st_pk).where(func.format_name_for_search(st_name)
+				== SearchNameString.format_name_for_search(stationName)).\
+					subquery()
+			stmt = stmt.where(q_stationFk.in_(subQ))
+		else:
+			raise ValueError("Either stationName or id must be provided")
+
+		stmt = stmt.where(q_songFk == songId)\
+			.where(q_queuedTimestamp == queuedTimestamp)
+		return cast(int, self.conn.execute(stmt).rowcount) > 0
+
+	def remove_song_from_queue(self,
+		songId: int,
+		queuedTimestamp: float,
+		stationId: Optional[int]=None,
+		stationName: Optional[str]=None,
+	) -> Optional[CurrentPlayingInfo]:
+		if not self._remove_song_from_queue(
+			songId,
+			queuedTimestamp,
+			stationId,
+			stationName
+		):
+			return None
+		return self.get_now_playing_and_queue(stationId, stationName)
 
 
 if __name__ == "__main__":

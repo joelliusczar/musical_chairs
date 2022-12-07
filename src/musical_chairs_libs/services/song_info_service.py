@@ -1,31 +1,33 @@
 #pyright: reportUnknownMemberType=false
-from typing import\
-	Iterator,\
-	Optional,\
-	Union,\
-	cast,\
-	Iterable,\
-	Any,\
-	Tuple,\
+from typing import (
+	Iterator,
+	Optional,
+	Union,
+	cast,
+	Iterable,
+	Any,
+	Tuple,
 	Callable
-from musical_chairs_libs.dtos_and_utilities import\
-	SavedNameString,\
-	SongListDisplayItem,\
-	ScanningSongItem,\
-	SongTreeNode,\
-	StationInfo,\
-	SearchNameString,\
-	get_datetime,\
-	Sentinel,\
-	missing,\
-	AlbumInfo,\
-	ArtistInfo,\
-	SongAboutInfo,\
-	SongEditInfo,\
-	build_error_obj,\
-	AlbumCreationInfo,\
-	StationSongTuple,\
+)
+from musical_chairs_libs.dtos_and_utilities import (
+	SavedNameString,
+	SongListDisplayItem,
+	ScanningSongItem,
+	SongTreeNode,
+	StationInfo,
+	SearchNameString,
+	get_datetime,
+	Sentinel,
+	missing,
+	AlbumInfo,
+	ArtistInfo,
+	SongAboutInfo,
+	SongEditInfo,
+	build_error_obj,
+	AlbumCreationInfo,
+	StationSongTuple,
 	SongArtistTuple
+)
 from sqlalchemy import select, insert, update, func, delete
 from sqlalchemy.sql.expression import Tuple as dbTuple, Select
 from sqlalchemy.engine import Connection
@@ -35,19 +37,20 @@ from .env_manager import EnvManager
 from sqlalchemy.engine.row import Row
 from dataclasses import asdict, fields
 from itertools import chain, groupby
-from musical_chairs_libs.tables import\
-	albums as albums_tbl,\
-	song_artist as song_artist_tbl,\
-	artists as artists_tbl,\
-	songs as songs_tbl,\
-	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,\
-	stations as stations_tbl, st_name, st_pk, st_displayName, \
-	sg_pk, sg_name, sg_path,\
-	ab_name, ab_pk, ab_albumArtistFk, ab_year,\
-	ar_name, ar_pk,\
-	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,\
-	sg_genre, sg_lyrics, sg_sampleRate, sg_track,\
+from musical_chairs_libs.tables import (
+	albums as albums_tbl,
+	song_artist as song_artist_tbl,
+	artists as artists_tbl,
+	songs as songs_tbl,
+	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
+	stations as stations_tbl, st_name, st_pk, st_displayName,
+	sg_pk, sg_name, sg_path,
+	ab_name, ab_pk, ab_albumArtistFk, ab_year,
+	ar_name, ar_pk,
+	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
+	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk
+)
 
 
 class SongInfoService:
@@ -312,7 +315,10 @@ class SongInfoService:
 	def get_song_path(self, id: int) -> Optional[str]:
 		query = select(sg_path).where(sg_pk == id).limit(1)
 		row = cast(Row, self.conn.execute(query).fetchone())
-		return cast(str,row[sg_path]) or None
+		path = cast(str,row[sg_path]) or None
+		if path:
+			return f"{EnvManager.search_base}/{path}"
+		return None
 
 	def get_station_songs(
 		self,

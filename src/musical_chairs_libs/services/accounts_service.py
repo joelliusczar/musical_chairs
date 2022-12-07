@@ -23,8 +23,7 @@ from sqlalchemy.engine.row import Row
 from musical_chairs_libs.tables import (
 	users,
 	userRoles,
-	station_queue,
-	stations_history
+	station_queue, q_requestedTimestamp, q_requestedByUserFk, q_playedTimestamp
 )
 from musical_chairs_libs.errors import AlreadyUsedError, IllegalOperationError
 from sqlalchemy import select, insert, desc, func, delete, update
@@ -42,7 +41,6 @@ SECRET_KEY=os.environ["RADIO_AUTH_SECRET_KEY"]
 u: ColumnCollection = users.columns
 ur: ColumnCollection = userRoles.columns
 q: ColumnCollection = station_queue.columns
-hist: ColumnCollection = stations_history.columns
 
 class AccountsService:
 
@@ -210,9 +208,10 @@ class AccountsService:
 		queueLatestQuery = select(func.max(q.requestedTimestamp))\
 			.select_from(station_queue)\
 			.where(q.requestedByUserFk == user.id)
-		queueLatestHistory = select(func.max(hist.requestedTimestamp))\
-			.select_from(stations_history)\
-			.where(hist.requestedByUserFk == user.id)
+		queueLatestHistory = select(func.max(q_requestedTimestamp))\
+			.select_from(station_queue)\
+			.where(q_playedTimestamp.isnot(None))\
+			.where(q_requestedByUserFk == user.id)
 		lastRequestedInQueue = self.conn.execute(queueLatestQuery).scalar()
 		lastRequestedInHistory = self.conn.execute(queueLatestHistory).scalar()
 		lastRequested = max(

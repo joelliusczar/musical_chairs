@@ -723,6 +723,10 @@ def populate_stations_songs(conn: Connection):
 		{ "songFk": 1, "stationFk": 6 },
 		{ "songFk": 4, "stationFk": 6 },
 		{ "songFk": 50, "stationFk": 6 },
+		{ "songFk": 44, "stationFk": 8 },
+		{ "songFk": 45, "stationFk": 8 },
+		{ "songFk": 46, "stationFk": 8 },
+		{ "songFk": 47, "stationFk": 8 },
 	]
 	stmt = insert(stations_songs)
 	conn.execute(stmt, stationSongParams) #pyright: ignore [reportUnknownMemberType]

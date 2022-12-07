@@ -18,18 +18,15 @@ from sqlalchemy import\
 	update
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import Row
-from sqlalchemy.sql import ColumnCollection
 from .env_manager import EnvManager
 from .station_service import StationService
 from .accounts_service import AccountsService
 from .song_info_service import SongInfoService
-from .history_service import HistoryService
 from musical_chairs_libs.tables import (
-	stations_history,
 	songs,
 	stations,
 	stations_songs as stations_songs_tbl, stsg_stationFk, stsg_songFk,
-	station_queue, q_songFk, q_queuedTimestamp, q_stationFk,
+	station_queue, q_songFk, q_queuedTimestamp, q_stationFk, q_playedTimestamp,
 	albums,
 	artists,
 	song_artist,
@@ -44,7 +41,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	QueueItem,
 	CurrentPlayingInfo,
 	get_datetime,
-	SearchNameString
+	SearchNameString,
+	HistoryItem
 )
 from numpy.random import \
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
@@ -66,7 +64,6 @@ class QueueService:
 		self,
 		conn: Optional[Connection]=None,
 		stationService: Optional[StationService]=None,
-		historyService: Optional[HistoryService]=None,
 		accountService: Optional[AccountsService]=None,
 		songInfoService: Optional[SongInfoService]=None,
 		choiceSelector: Optional[Callable[[List[Any], int], Iterable[Any]]]=None,
@@ -78,8 +75,6 @@ class QueueService:
 				conn = envManager.get_configured_db_connection()
 			if not stationService:
 				stationService = StationService(conn)
-			if not historyService:
-				historyService = HistoryService(conn, stationService)
 			if not accountService:
 				accountService = AccountsService(conn, envManager)
 			if not songInfoService:
@@ -88,63 +83,59 @@ class QueueService:
 				choiceSelector = choice
 			self.conn = conn
 			self.station_service = stationService
-			self.history_service = historyService
 			self.account_service = accountService
 			self.song_info_service = songInfoService
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 
 	def get_all_station_song_possibilities(self, stationPk: int) -> List[Row]:
-		st: ColumnCollection = stations.columns
-		sg: ColumnCollection = songs.columns
-		hist: ColumnCollection = stations_history.columns
 
-		query = select(sg.pk, sg.path) \
+		query = select(sg_pk, sg_path) \
 			.select_from(stations) \
-			.join(stations_songs_tbl, st.pk == stsg_stationFk) \
-			.join(songs, sg.pk == stsg_songFk) \
-			.join(stations_history, (hist.stationFk == st.pk) \
-				& (hist.songFk == sg.pk), isouter=True) \
-			.where(st.pk == stationPk) \
-			.group_by(sg.pk, sg.path) \
-			.order_by(desc(func.max(hist.queuedTimestamp))) \
-			.order_by(desc(func.max(hist.playedTimestamp)))
+			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
+			.join(songs, sg_pk == stsg_songFk) \
+			.join(station_queue, (q_stationFk == st_pk) \
+				& (q_songFk == sg_pk) & q_playedTimestamp.isnot(None), isouter=True) \
+			.where(st_pk == stationPk) \
+			.group_by(sg_pk, sg_path) \
+			.order_by(desc(func.max(q_queuedTimestamp))) \
+			.order_by(desc(func.max(q_playedTimestamp)))
 
 		rows: List[Row] = self.conn.execute(query).fetchall()
 		return rows
 
-	def get_random_songPks(
+	def get_random_songIds(
 		self,
-		stationPk: int,
+		stationId: int,
 		deficitSize: int
 	) -> Iterable[int]:
-		rows = self.get_all_station_song_possibilities(stationPk)
+		rows = self.get_all_station_song_possibilities(stationId)
 		sampleSize = deficitSize if deficitSize < len(rows) else len(rows)
-		songPks = [r["pk"] for r in rows]
-		selection = self.choice(songPks, sampleSize)
+		songIds = [r["pk"] for r in rows]
+		if not songIds:
+			raise RuntimeError("No song possibilities were found")
+		selection = self.choice(songIds, sampleSize)
 		return selection
 
 
-	def fil_up_queue(self, stationPk: int, queueSize: int) -> None:
-		q: ColumnCollection = station_queue.columns
+	def fil_up_queue(self, stationId: int, queueSize: int) -> None:
 		queryQueueSize: str = select(func.count(1)).select_from(station_queue)\
-			.where(q.stationFk == stationPk)
+			.where(q_playedTimestamp.is_(None))\
+			.where(q_stationFk == stationId)
 		countRes = self.conn.execute(queryQueueSize).scalar()
 		count: int = countRes if countRes else 0
 		deficitSize = queueSize - count
 		if deficitSize < 1:
 			return
-		songPks = self.get_random_songPks(stationPk, deficitSize)
+		songIds = self.get_random_songIds(stationId, deficitSize)
 		timestamp = self.get_datetime().timestamp()
 		params = [{
-			"stationFk": stationPk,
+			"stationFk": stationId,
 			"songFk": s,
 			"queuedTimestamp": timestamp
-		} for s in songPks]
+		} for s in songIds]
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
-		historyInsert = insert(stations_history)
-		self.conn.execute(historyInsert, params)
 
 	def move_from_queue_to_history(
 		self,
@@ -153,21 +144,13 @@ class QueueService:
 		queueTimestamp: float
 	) -> None:
 
-		# can't delete by songId alone b/c the song might be queued multiple times
-		self._remove_song_from_queue(
-			songId,
-			queueTimestamp,
-			stationId,
-		)
 		currentTime = self.get_datetime().timestamp()
 
-		hist: ColumnCollection = stations_history.columns
-
-		histUpdateStmt = update(stations_history) \
+		histUpdateStmt = update(station_queue) \
 			.values(playedTimestamp = currentTime) \
-			.where(hist.stationFk == stationId) \
-			.where(hist.songFk == songId) \
-			.where(hist.queuedTimestamp == queueTimestamp)
+			.where(q_stationFk == stationId) \
+			.where(q_songFk== songId) \
+			.where(q_queuedTimestamp== queueTimestamp)
 		self.conn.execute(histUpdateStmt)
 
 
@@ -178,15 +161,19 @@ class QueueService:
 
 	def get_queue_for_station(
 		self,
-		stationPk: Optional[int]=None,
+		stationId: Optional[int]=None,
 		stationName: Optional[str]=None,
 		limit: Optional[int]=None
 	) -> Iterator[QueueItem]:
 		primaryArtistGroupQuery = select(
 			func.max(sgar_pk).label("pk"),
-			func.max(sgar_isPrimaryArtist).label("isPrimary")
+			func.max(sgar_isPrimaryArtist).label("isPrimary"),
+			sgar_songFk.label("songFk")
 		).group_by(sgar_songFk)
+
 		subq = primaryArtistGroupQuery.subquery()
+
+		test = self.conn.execute(primaryArtistGroupQuery).fetchall()
 
 		baseQuery = select(
 				sg_pk,
@@ -200,23 +187,25 @@ class QueueService:
 				.join(albums, sg_albumFk == ab_pk, isouter=True)\
 				.join(song_artist, sg_pk == sgar_songFk, isouter=True)\
 				.join(artists, sgar_artistFk == ar_pk, isouter=True)\
-				.join(subq, subq.c.pk == sgar_pk)
-		if stationPk:
-			query = baseQuery.where(q_stationFk == stationPk)
+				.join(subq, subq.c.pk == sgar_pk, isouter=True)
+		if stationId:
+			query = baseQuery.where(q_stationFk == stationId)
 		elif stationName:
 			query = baseQuery.join(stations, st_pk == q_stationFk) \
-				.where(func.lower(st_name) == func.lower(stationName))
+				.where(func.format_name_for_search(st_name)
+					== SearchNameString.format_name_for_search(stationName))
 		else:
 			raise ValueError("Either stationName or pk must be provided")
-		records = self.conn.execute(query.order_by(q_queuedTimestamp))
-		for row in records: #pyright: ignore [reportUnknownVariableType]
+		query = query.where(q_playedTimestamp.is_(None))
+		records = self.conn.execute(query.order_by(q_queuedTimestamp)).fetchall()
+		for row in cast(Iterable[Row],records):
 			yield QueueItem(
-				id=row[sg_pk], #pyright: ignore [reportUnknownArgumentType]
-				name=row[sg_name], #pyright: ignore [reportUnknownArgumentType]
-				album=row["album"], #pyright: ignore [reportUnknownArgumentType]
-				artist=row["artist"], #pyright: ignore [reportUnknownArgumentType]
-				path=row[sg_path], #pyright: ignore [reportUnknownArgumentType]
-				queuedTimestamp=row[q_queuedTimestamp] #pyright: ignore [reportUnknownArgumentType]
+				id=cast(int,row[sg_pk]),
+				name=cast(str,row[sg_name]),
+				album=cast(str,row["album"]),
+				artist=cast(str,row["artist"]),
+				path=cast(str,row[sg_path]),
+				queuedTimestamp=cast(float,row[q_queuedTimestamp])
 			)
 
 	def pop_next_queued(
@@ -309,8 +298,7 @@ class QueueService:
 			else:
 				raise ValueError("Either stationName or id must be provided")
 		queue = list(self.get_queue_for_station(stationId))
-		playing = next(self.history_service. \
-			get_history_for_station(stationId, limit=1), None)
+		playing = next(self.get_history_for_station(stationId, limit=1), None)
 		return CurrentPlayingInfo(
 			nowPlaying=playing,
 			items=queue,
@@ -353,6 +341,58 @@ class QueueService:
 		):
 			return None
 		return self.get_now_playing_and_queue(stationId, stationName)
+
+	def get_history_for_station(
+		self,
+		stationId: Optional[int]=None,
+		stationName: Optional[str]=None,
+		limit: int=50,
+		offset: int=0
+	) -> Iterator[HistoryItem]:
+		baseQuery = select(
+			sg_pk.label("id"),
+			q_queuedTimestamp.label("playedTimestamp"),
+			sg_name.label("name"),
+			ab_name.label("album"),
+			ar_name.label("artist")
+		).select_from(station_queue) \
+			.join(songs, q_songFk == sg_pk) \
+			.join(albums, sg_albumFk == ab_pk, isouter=True) \
+			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
+			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
+			.where(q_playedTimestamp.isnot(None))\
+			.order_by(desc(q_queuedTimestamp)) \
+			.offset(offset) \
+			.limit(limit)
+		if stationId:
+			query  = baseQuery.where(q_stationFk == stationId)
+		elif stationName:
+			query = baseQuery.join(stations, st_pk == q_stationFk) \
+				.where(func.format_name_for_search(st_name)
+					== SearchNameString.format_name_for_search(stationName))
+		else:
+			raise ValueError("Either stationName or pk must be provided")
+		records = self.conn.execute(query)
+		for row in records: #pyright: ignore [reportUnknownVariableType]
+			yield HistoryItem(**row) #pyright: ignore [reportUnknownArgumentType]
+
+	def history_count(
+		self,
+		stationId: Optional[int]=None,
+		stationName: Optional[str]=None
+	) -> int:
+		query = select(func.count(1)).select_from(station_queue)
+		if stationId:
+			query = query.where(q_stationFk == stationId)
+		elif stationName:
+			query.join(stations, st_pk == q_stationFk)\
+				.where(func.format_name_for_search(st_name)
+					== SearchNameString.format_name_for_search(stationName))
+		else:
+			raise ValueError("Either stationName or id must be provided")
+		query = query.where(q_playedTimestamp.isnot(None))
+		count = self.conn.execute(query).scalar() or 0
+		return count
 
 
 if __name__ == "__main__":

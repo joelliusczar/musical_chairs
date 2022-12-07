@@ -17,5 +17,11 @@ def test_adding_song_to_queue(fixture_queue_service: QueueService):
 	assert len(queue1) == 16
 
 
+def test_queue_of_songs_without_artists(fixture_queue_service: QueueService):
+	queueService = fixture_queue_service
+	queueService.fil_up_queue(8, 50)
+	queue1 = list(queueService.get_queue_for_station(8))
+	assert len(queue1) == 4
+
 
 

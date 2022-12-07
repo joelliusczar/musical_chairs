@@ -3,20 +3,21 @@ from typing import Iterator
 from fastapi import Depends, HTTPException, status
 
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.services import\
-	EnvManager,\
-	HistoryService,\
-	StationService,\
-	QueueService,\
-	SongInfoService,\
-	AccountsService,\
+from musical_chairs_libs.services import (
+	EnvManager,
+	StationService,
+	QueueService,
+	SongInfoService,
+	AccountsService,
 	ProcessService
-from musical_chairs_libs.dtos_and_utilities import\
-	AccountInfo,\
-	build_error_obj,\
-	seconds_to_tuple,\
-	build_timespan_msg,\
+)
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	build_error_obj,
+	seconds_to_tuple,
+	build_timespan_msg,
 	UserRoleDef
+)
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
 
@@ -44,11 +45,6 @@ def song_info_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> SongInfoService:
 	return SongInfoService(conn)
-
-def history_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> HistoryService:
-	return HistoryService(conn)
 
 def queue_service(
 	conn: Connection=Depends(get_configured_db_connection)

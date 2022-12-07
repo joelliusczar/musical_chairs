@@ -3,11 +3,13 @@ import pytest
 from sqlalchemy import insert
 from sqlalchemy.engine import Connection
 from datetime import datetime, timezone
-from musical_chairs_libs.tables import stations_history, station_queue
+from musical_chairs_libs.tables import station_queue
 from musical_chairs_libs.services import AccountsService
-from musical_chairs_libs.dtos_and_utilities import AccountInfo,\
-	AccountCreationInfo,\
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	AccountCreationInfo,
 	UserRoleDef
+)
 from .constant_fixtures_for_test import\
 	fixture_primary_user as fixture_primary_user
 from .constant_fixtures_for_test import *
@@ -43,7 +45,7 @@ def _insert_row_into_history(conn: Connection, userPk: int):
 			"requestedByUserFk": userPk
 		}
 	]
-	stmt = insert(stations_history)
+	stmt = insert(station_queue)
 	conn.execute(stmt, historyParams) #pyright: ignore [reportUnknownMemberType]
 
 @pytest.fixture

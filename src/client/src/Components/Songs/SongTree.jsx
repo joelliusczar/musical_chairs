@@ -14,7 +14,10 @@ import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
-import { buildArrayQueryStr } from "../../Helpers/url_helpers";
+import {
+	buildArrayQueryStr,
+	getDownloadAddress,
+} from "../../Helpers/url_helpers";
 import { useSnackbar } from "notistack";
 
 
@@ -165,6 +168,11 @@ export const SongTree = withCacheProvider()(() => {
 					>
 						Edit Song Info
 					</Button>
+					{selectedSongIds.length === 1 &&<Button
+						href={getDownloadAddress(selectedSongIds[0])}
+					>
+						Download song
+					</Button>}
 				</Toolbar>
 			</AppBar>}
 			<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />

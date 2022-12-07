@@ -309,6 +309,11 @@ class SongInfoService:
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		yield from (cast(int, row["pk"]) for row in cast(Iterable[Row],records))
 
+	def get_song_path(self, id: int) -> Optional[str]:
+		query = select(sg_path).where(sg_pk == id).limit(1)
+		row = cast(Row, self.conn.execute(query).fetchone())
+		return cast(str,row[sg_path]) or None
+
 	def get_station_songs(
 		self,
 		songId: Union[int, Sentinel]=missing,

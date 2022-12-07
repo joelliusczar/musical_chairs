@@ -9,15 +9,19 @@ from typing import (
 	cast
 )
 from collections.abc import Iterable
-from sqlalchemy import\
-	select,\
-	desc,\
-	func,\
-	insert,\
-	delete,\
-	update
+from sqlalchemy import (
+	select,
+	desc,
+	func,
+	insert,
+	delete,
+	update,
+	literal, #pyright: ignore [reportUnknownVariableType]
+	union_all
+)
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import Row
+from sqlalchemy.sql.functions import coalesce
 from .env_manager import EnvManager
 from .station_service import StationService
 from .accounts_service import AccountsService
@@ -170,10 +174,10 @@ class QueueService:
 			func.max(sgar_isPrimaryArtist).label("isPrimary"),
 			sgar_songFk.label("songFk")
 		).group_by(sgar_songFk)
+		#have a default row for songs without any songArtists to match against
+		defaultRow = select(literal(-1), literal(None), literal(None))
 
-		subq = primaryArtistGroupQuery.subquery()
-
-		test = self.conn.execute(primaryArtistGroupQuery).fetchall()
+		subq = union_all(primaryArtistGroupQuery, defaultRow).subquery()
 
 		baseQuery = select(
 				sg_pk,
@@ -187,7 +191,7 @@ class QueueService:
 				.join(albums, sg_albumFk == ab_pk, isouter=True)\
 				.join(song_artist, sg_pk == sgar_songFk, isouter=True)\
 				.join(artists, sgar_artistFk == ar_pk, isouter=True)\
-				.join(subq, subq.c.pk == sgar_pk, isouter=True)
+				.join(subq, subq.c.pk == coalesce(sgar_pk, -1))
 		if stationId:
 			query = baseQuery.where(q_stationFk == stationId)
 		elif stationName:

@@ -159,7 +159,7 @@ get_mc_auth_key() (
 
 get_address() (
 	keyFile="$app_root"/keys/"$proj_name"
-	perl -ne 'print "$1\n" if /address6=root@(+[\w:])/' "$keyFile"
+	perl -ne 'print "$1\n" if /address6=root@([\w:]+)/' "$keyFile"
 )
 
 get_id_file() (
@@ -169,7 +169,7 @@ get_id_file() (
 
 connect_sftp() (
 	process_global_vars "$@" >&2 &&
-	sftp -6 -i $(get_id_file) "'root@[$(get_address)]'"
+	sftp -6 -i $(get_id_file) "root@[$(get_address)]"
 )
 
 get_ssl_vars() (

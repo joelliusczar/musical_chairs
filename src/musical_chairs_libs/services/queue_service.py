@@ -232,9 +232,9 @@ class QueueService:
 			queueItem.queuedTimestamp)
 		self.fil_up_queue(stationPk, queueSize)
 		return (
-			queueItem.path, \
-			queueItem.name, \
-			queueItem.album, \
+			queueItem.path,
+			queueItem.name,
+			queueItem.album,
 			queueItem.artist
 		)
 
@@ -286,7 +286,7 @@ class QueueService:
 					== SearchNameString.format_name_for_search(stationName))
 		else:
 			raise ValueError("Either stationName or id must be provided")
-
+		query = query.where(q_playedTimestamp.is_(None))
 		count = self.conn.execute(query).scalar() or 0
 		return count
 

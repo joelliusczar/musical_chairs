@@ -45,12 +45,18 @@ def index(
 @router.get("/{stationName}/history/")
 def history(
 	stationName: str,
+	page: int = 0,
+	limit: int = 50,
 	queueService: QueueService = Depends(queue_service)
 ) -> TableData[HistoryItem]:
 	if not stationName:
 		return TableData(totalRows=0, items=[])
 	history = list(queueService \
-		.get_history_for_station(stationName=stationName))
+		.get_history_for_station(
+			stationName=stationName,
+			page = page,
+			limit = limit
+		))
 	totalRows = queueService.history_count(stationName = stationName)
 	return TableData(totalRows=totalRows, items=history)
 
@@ -75,8 +81,8 @@ def song_catalogue(
 		return TableData(totalRows=0, items=[])
 	songs = list(
 		stationService.get_station_song_catalogue(
-			stationName = stationName,\
-			page = page,\
+			stationName = stationName,
+			page = page,
 			limit = limit
 		)
 	)

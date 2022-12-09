@@ -110,6 +110,9 @@ export function AppRoutes() {
 			>
 				<SongTree />
 			</PrivateRoute>
+			<Route exact path="/">
+				<Stations />
+			</Route>
 			<Route>
 				<NotFound />
 			</Route>

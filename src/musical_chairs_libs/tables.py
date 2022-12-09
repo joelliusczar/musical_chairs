@@ -125,7 +125,7 @@ stsg_songFk: Any = stations_songs.c.songFk #pyright: ignore reportUnknownMemberT
 stsg_stationFk: Any = stations_songs.c.stationFk #pyright: ignore reportUnknownMemberType
 Index("idx_stationsSongs", stsg_songFk, stsg_stationFk, unique=True)
 
-stations_history = Table("StationHistory", metadata,
+station_queue = Table("StationQueue", metadata,
 	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
 	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
 	Column("playedTimestamp", Float),
@@ -133,15 +133,6 @@ stations_history = Table("StationHistory", metadata,
 	Column("requestedTimestamp", Float),
 	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True)
 )
-
-station_queue = Table("StationQueue", metadata,
-	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
-	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
-	Column("queuedTimestamp", Float),
-	Column("requestedTimestamp", Float),
-	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True)
-)
-
 
 
 userRoles = Table("UserRoles", metadata,
@@ -201,9 +192,7 @@ q: TblCols = station_queue.c #pyright: ignore [reportUnknownMemberType]
 q_songFk: Column = q.songFk #pyright: ignore [reportUnknownMemberType]
 q_stationFk: Column = q.stationFk #pyright: ignore [reportUnknownMemberType]
 q_queuedTimestamp: Column = q.queuedTimestamp #pyright: ignore [reportUnknownMemberType
-
-h: TblCols = stations_history.c #pyright: ignore [reportUnknownMemberType]
-h_songFk: Column = h.songFk #pyright: ignore [reportUnknownMemberType]
-h_stationFk: Column = h.stationFk #pyright: ignore [reportUnknownMemberType]
-h_queuedTimestamp: Column = h.queuedTimestamp #pyright: ignore [reportUnknownMemberType
+q_playedTimestamp: Column = q.playedTimestamp #pyright: ignore [reportUnknownMemberType
+q_requestedTimestamp: Column = q.requestedTimestamp #pyright: ignore [reportUnknownMemberType
+q_requestedByUserFk: Column = q.requestedByUserFk #pyright: ignore [reportUnknownMemberType
 

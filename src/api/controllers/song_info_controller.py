@@ -1,11 +1,13 @@
-from fastapi import\
-	APIRouter,\
-	Depends,\
-	Security,\
-	HTTPException,\
-	status,\
-	Body,\
+from fastapi import (
+	APIRouter,
+	Depends,
+	Security,
+	HTTPException,
+	status,
+	Body,
 	Query
+)
+from fastapi.responses import FileResponse
 from api_dependencies import \
 	song_info_service,\
 	station_service,\
@@ -92,6 +94,25 @@ def extra_validated_song(
 					f"Artists associated with ids {str(stationIds)} do not exist", "artists")],
 		)
 	return song
+
+@router.get(
+	"/songs/download/{id}",
+	# dependencies=[
+	# 	Security(get_current_user, scopes=[UserRoleDef.SONG_DOWNLOAD.value])
+	# ],
+	response_class=FileResponse
+)
+def download_song(
+	id: int,
+	songInfoService: SongInfoService = Depends(song_info_service)
+) -> str:
+	path = songInfoService.get_song_path(id)
+	if path:
+		return path
+	raise HTTPException(
+		status_code=status.HTTP_404_NOT_FOUND,
+		detail=[build_error_obj(f"{id} not found", "id")]
+	)
 
 @router.put("/songs/{id}")
 def update_song(

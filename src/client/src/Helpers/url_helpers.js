@@ -1,3 +1,5 @@
+import { apiAddress } from "../constants";
+
 export const buildArrayQueryStr = (arr, key) => {
 	const queryObj = new URLSearchParams();
 	for (const item of arr) {
@@ -25,4 +27,8 @@ export const buildArrayQueryStrFromObj = (obj) => {
 
 export const getListenAddress = (stationName) => {
 	return `http://${window.location.hostname}:8000/${stationName}`;
+};
+
+export const getDownloadAddress = (songId) => {
+	return `${apiAddress}/song-info/songs/download/${songId}`;
 };

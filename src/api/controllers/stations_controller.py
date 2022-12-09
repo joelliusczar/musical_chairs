@@ -22,13 +22,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from musical_chairs_libs.services import (
 	StationService,
-	HistoryService,
 	QueueService,
 	ProcessService
 )
 from api_dependencies import (
 	station_service,
-	history_service,
 	queue_service,
 	get_current_user,
 	process_service
@@ -47,13 +45,13 @@ def index(
 @router.get("/{stationName}/history/")
 def history(
 	stationName: str,
-	historyService: HistoryService = Depends(history_service)
+	queueService: QueueService = Depends(queue_service)
 ) -> TableData[HistoryItem]:
 	if not stationName:
 		return TableData(totalRows=0, items=[])
-	history = list(historyService \
+	history = list(queueService \
 		.get_history_for_station(stationName=stationName))
-	totalRows = historyService.history_count(stationName = stationName)
+	totalRows = queueService.history_count(stationName = stationName)
 	return TableData(totalRows=totalRows, items=history)
 
 @router.get("/{stationName}/queue/")

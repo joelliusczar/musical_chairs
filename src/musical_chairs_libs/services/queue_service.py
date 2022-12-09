@@ -350,9 +350,10 @@ class QueueService:
 		self,
 		stationId: Optional[int]=None,
 		stationName: Optional[str]=None,
-		limit: int=50,
-		offset: int=0
+		page: int = 0,
+		limit: Optional[int]=50
 	) -> Iterator[HistoryItem]:
+		offset = page * limit if limit else 0
 		baseQuery = select(
 			sg_pk.label("id"),
 			q_queuedTimestamp.label("playedTimestamp"),
@@ -366,7 +367,7 @@ class QueueService:
 			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
 			.where(q_playedTimestamp.isnot(None))\
 			.order_by(desc(q_queuedTimestamp)) \
-			.offset(offset) \
+			.offset(offset)\
 			.limit(limit)
 		if stationId:
 			query  = baseQuery.where(q_stationFk == stationId)

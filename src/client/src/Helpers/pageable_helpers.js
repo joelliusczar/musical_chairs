@@ -28,7 +28,7 @@ export const getRowsCount = (currentLocation) => {
 
 export const getPageCount = (currentLocation, totalRows) => {
 	const queryObj = new URLSearchParams(currentLocation);
-	const rows = parseInt(queryObj.get("rows") || "1");
+	const rows = parseInt(queryObj.get("rows") || "50");
 	if(rows < 1) {
 		return 0;
 	}

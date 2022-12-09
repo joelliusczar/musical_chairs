@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { fetchHistory } from "../../API_Calls/stationCalls";
 import {
 	Table,
@@ -10,6 +10,7 @@ import {
 	TableRow,
 	Box,
 	Typography,
+	Button,
 } from "@mui/material";
 import {
 	waitingReducer,
@@ -22,6 +23,8 @@ import { StationSelect } from "../Shared/StationSelect";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { formatError } from "../../Helpers/error_formatter";
+import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import { UserRoleDef } from "../../constants";
 
 
 export const History = () => {
@@ -29,6 +32,7 @@ export const History = () => {
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
 	const stationNameFromQS = queryObj.get("name") || "";
+	const canEditSong = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 
@@ -96,6 +100,7 @@ export const History = () => {
 										<TableCell>Album</TableCell>
 										<TableCell>Artist</TableCell>
 										<TableCell>Last Played</TableCell>
+										<TableCell></TableCell>
 									</TableRow>
 								</TableHead>
 								<TableBody>
@@ -112,6 +117,15 @@ export const History = () => {
 													{item.artist || "{No artist name}"}
 												</TableCell>
 												<TableCell></TableCell>
+												<TableCell>
+													<Button
+														variant="contained"
+														component={Link}
+														to={`${DomRoutes.songEdit}?id=${item.id}`}
+													>
+														{canEditSong ? "Edit" : "View"}
+													</Button>
+												</TableCell>
 											</TableRow>
 										);
 									})}

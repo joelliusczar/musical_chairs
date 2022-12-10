@@ -430,12 +430,13 @@ kill_process_using_port() (
 	portNum="$1"
 	echo "attempting to end process using port number: ${portNum}"
 	if ss -V >/dev/null 2>&1; then
-		procId=$(ss -lpn 'sport = :8032' | perl -ne 'print "$1\n" if /pid=(\d+)/')
+		procId=$(ss -lpn "sport = :${portNum}" \
+		| perl -ne 'print "$1\n" if /pid=(\d+)/')
 		if [ -n "$procId" ]; then
 			kill -15 "$procId"
 		fi
 	elif lsof -v >/dev/null 2>&1; then
-		procId=$(sudo lsof -i :8032 | awk '{ print $2 }' | tail -n 1)
+		procId=$(sudo lsof -i :${portNum} | awk '{ print $2 }' | tail -n 1)
 		if [ -n "$procId" ]; then
 			kill -15 "$procId"
 		fi
@@ -661,6 +662,8 @@ update_nginx_conf() (
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<server_name>@${server_name}@" "$appConfFile" &&
+	sudo -p "update ${appConfFile}" \
+		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile" &&
 	case "$app_env" in
 		(local*)
 			sudo -p "update ${appConfFile}" \
@@ -1195,7 +1198,7 @@ define_consts() {
 	export build_dir='builds'
 	export content_home='music/radio'
 	export bin_dir='.local/bin'
-	export api_port='8032'
+	export api_port='8033'
 	#done't try to change from home
 	export default_radio_repo_path="$HOME"/"$build_dir"/"$proj_name"
 	echo "constants defined"

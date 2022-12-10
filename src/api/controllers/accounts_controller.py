@@ -48,8 +48,7 @@ def login(
 	response.set_cookie(
 		key="access_token",
 		value=token,
-		max_age=tokenLifetime,
-		secure=True
+		max_age=tokenLifetime
 	)
 	return AuthenticatedAccount(
 		access_token=token,

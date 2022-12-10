@@ -1,6 +1,6 @@
 #pyright: reportUnusedFunction=false, reportMissingTypeStubs=false
 import uvicorn #pyright: ignore [reportMissingTypeStubs]
-import logging
+import musical_chairs_libs.dtos_and_utilities.logging as logging
 from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -95,13 +95,7 @@ def everything_else(
 	request: Request,
 	ex: Exception
 ) -> JSONResponse:
-	logging.basicConfig(
-			format="%(asctime)s %(message)s",
-			filename="radio.log",
-			encoding="utf-8",
-			level=logging.INFO
-		)
-	logging.error(ex)
+	logging.logger.error(ex)
 	response = JSONResponse(content=
 		{ "detail": [
 				build_error_obj("Onk! Caveman error! What do?")

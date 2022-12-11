@@ -965,7 +965,9 @@ startup_radio() (
 startup_api() (
 	process_global_vars "$@" &&
 	set_env_path_var && #ensure that we can see mc-ices
-	setup_api &&
+	if [ "$skip_option" != 'setup_api' ]; then
+		setup_api
+	fi &&
 	export_py_env_vars &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# see #python_env

@@ -1,7 +1,7 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Iterator
-from fastapi import Depends, HTTPException, status
-
+from typing import Iterator, Tuple
+from urllib import parse
+from fastapi import Depends, HTTPException, status, Cookie
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
 	EnvManager,
@@ -61,19 +61,19 @@ def process_service(
 ) -> ProcessService:
 	return ProcessService(conn)
 
-def get_current_user_base(
-	token: str = Depends(oauth2_scheme),
-	accountsService: AccountsService = Depends(accounts_service)
-) -> AccountInfo:
+def get_user_from_token(
+	token: str,
+	accountsService: AccountsService
+) -> Tuple[AccountInfo, float]:
 	try:
-		user = accountsService.get_user_from_token(token)
+		user, expiration = accountsService.get_user_from_token(token)
 		if not user:
 			raise HTTPException(
 				status_code=status.HTTP_401_UNAUTHORIZED,
 				detail=[build_error_obj("Could not validate credentials")],
 				headers={"WWW-Authenticate": "Bearer"}
 			)
-		return user
+		return user, expiration
 	except ExpiredSignatureError:
 		raise HTTPException(
 				status_code=status.HTTP_401_UNAUTHORIZED,
@@ -83,6 +83,18 @@ def get_current_user_base(
 					"X-AuthExpired": "true"
 				}
 			)
+
+
+def get_current_user_base(
+	token: str = Depends(oauth2_scheme),
+	accountsService: AccountsService = Depends(accounts_service),
+	access_token: str = Cookie(default=None)
+) -> AccountInfo:
+	user, _ = get_user_from_token(
+		token or parse.unquote(access_token),
+		accountsService
+	)
+	return user
 
 def time_til_user_can_do_action(
 	user: AccountInfo,

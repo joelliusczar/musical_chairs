@@ -40,7 +40,7 @@ class AuthenticatedAccount(AccountInfoBase):
 	'''
 	access_token: str=""
 	token_type: str=""
-	lifetime: int=0
+	lifetime: float=0
 
 @pydanticDataclass(frozen=True)
 class AccountCreationInfo(AccountInfoBase):

@@ -167,6 +167,17 @@ get_id_file() (
 	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
 )
 
+get_localhost_key_dir() (
+	case $(uname) in
+		(Darwin*)
+			echo "$HOME"/.ssh
+			;;
+		(Linux*)
+			;;
+		(*) ;;
+	esac
+)
+
 connect_sftp() (
 	process_global_vars "$@" >&2 &&
 	sftp -6 -i $(get_id_file) "root@[$(get_address)]"
@@ -236,6 +247,51 @@ link_to_music_files() {
 	fi &&
 	echo 'music files should exist now'
 }
+
+str_contains() (
+	haystackStr="$1"
+	needleStr="$2"
+	case "$haystackStr" in
+		*"$needleStr"*)
+			return 0
+	esac
+	return 1
+)
+
+array_contains() (
+	searchValue="$1"
+	shift
+	while [ ! -z "$1" ]; do
+		case $1 in
+			"$searchValue")
+				echo "$1"
+				return 0
+				;;
+			*)
+			;;
+		esac
+		shift
+	done
+	return 1
+)
+
+array_contains_equals() (
+	searchValue="$1"
+	shift
+	while [ ! -z "$1" ]; do
+		case $1 in
+			"$searchValue"=*)
+				result=${1#"$searchValue"=}
+				echo "$result"
+				return 0
+				;;
+			*)
+			;;
+		esac
+		shift
+	done
+	return 1
+)
 
 is_python_version_good() {
 	[ "$exp_name" = 'py3.8' ] && return 0
@@ -626,6 +682,142 @@ literal_to_regex() (
 	echo "$str" | sed 's/\*/\\*/g'
 )
 
+_get_keychain_osx() (
+	echo '/Library/Keychains/System.keychain'
+)
+
+_get_debug_cert_path() (
+	echo $(get_localhost_key_dir)/"$proj_name"_localhost_debug
+)
+
+_get_local_nginx_cert_path() (
+	echo $(get_localhost_key_dir)/"$proj_name"_localhost_nginx
+)
+
+_is_cert_expired() (
+	openssl x509 -checkend 3600 -nout
+)
+
+_extract_sha256_from_cert() (
+	openssl x509 -fingerprint -sha256 \
+	| perl -ne 'print "$1\n" if /SHA256 Fingerprint=([A-F0-9:]+)/' | tr -d ':'
+)
+
+_certs_matching_name() (
+	commonName="$1"
+	pattern='(-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----)'
+	script=$(cat <<-scriptEOF
+	while(\$_ =~ /$pattern/g) {
+		print "\$1\0"
+	}
+	scriptEOF
+	)
+	security find-certificate -a -p -c "$commonName" \
+	$(_get_keychain_osx) | perl -0777 -ne "$script"
+)
+
+_generate_local_ssl_cert_osx() (
+	commonName="$1"
+	domain="$2" &&
+	keyFile="$3" &&
+	crtFile="$4" &&
+	mkfifo cat_config_fifo
+	{
+	cat<<-OpenSSLConfig
+	$(cat '/System/Library/OpenSSL/openssl.cnf')
+	$(printf "[SAN]\nsubjectAltName=DNS:${domain}")
+	OpenSSLConfig
+	} > cat_config_fifo &
+	openssl req -x509 -sha256 -new -nodes -newkey rsa:2048 -days 7 \
+	-subj "/C=US/ST=CA/O=fake/CN=${commonName}" -reqexts SAN -extensions SAN \
+	-config cat_config_fifo \
+	-keyout "$keyFile" -out "$crtFile"
+	err_code="$?"
+	rm -f cat_config_fifo
+	return "$err_code"
+)
+
+_install_local_cert_osx() (
+	crtFile="$1" &&
+	sudo security add-trusted-cert -p ssl -d -r trustRoot \
+	-k $(_get_keychain_osx) "$crtFile"
+)
+
+_clean_up_invalid_cert() (
+	commonName="$1" &&
+	case $(uname) in
+		(Darwin*)
+			_certs_matching_name "$commonName" | while IFS= read -r -d '' cert; do
+				sha256Value=$(echo "$cert" | _extract_sha256_from_cert) &&
+				echo "$cert" | _is_cert_expired &&
+				sudo security delete-certificate \
+					-Z "$sha256Value" -t $(_get_keychain_osx)
+			done
+			;;
+		(*)
+			return 0
+			;;
+	esac
+	return 0
+)
+
+_setup_ssl_cert_local() (
+	commonName="$1"
+	domain="$2" &&
+	keyFile="$3" &&
+	crtFile="$4" &&
+
+	case $(uname) in
+		(Darwin*)
+			_generate_local_ssl_cert_osx "$commonName" "$domain" \
+			"$keyFile" "$crtFile" &&
+			_install_local_cert_osx "$crtFile" ||
+			return 1
+			;;
+		(*)
+			echo "operating system not configured"
+			return 1
+			;;
+	esac
+	return 0
+)
+
+setup_ssl_cert_local_debug() (
+	process_global_vars "$@" &&
+	keyFile=$(_get_debug_cert_path).key &&
+	crtFile=$(_get_debug_cert_path).crt &&
+	_clean_up_invalid_cert "${app_name}-localhost"
+	_setup_ssl_cert_local "${app_name}-localhost" 'localhost' \
+	"$keyFile" "$crtFile"
+)
+
+setup_ssl_cert_nginx() (
+	process_global_vars "$@" &&
+	domain='musicalchairs' &&
+	case "$app_env" in
+		(local*)
+			#keyFile=$(_get_local_nginx_cert_path).key &&
+			#crtFile=$(_get_local_nginx_cert_path).crt &&
+			#_clean_up_invalid_cert "$domain"
+			#_setup_ssl_cert_local "$domain" "$domain" "$keyFile" "$crtFile"
+			;;
+		(*)
+			return 0
+			;;
+	esac &&
+)
+
+setup_react_env_local() (
+	process_global_vars "$@" &&
+	envFile="$client_src"/.env.local
+	echo "$envFile"
+	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
+	echo 'REACT_APP_API_ADDRESS=http://127.0.0.1:8032' >> "$envFile"
+	echo 'HTTPS=true' >> "$envFile"
+	echo "SSL_CRT_FILE=$(get_localhost_key_dir)/localhost.key" >> "$envFile"
+	echo "SSL_KEY_FILE=$(get_localhost_key_dir)/localhost.crt" >> "$envFile"
+)
+
 get_nginx_value() (
 	key=${1:-'conf-path'}
 	#break options into a list
@@ -667,7 +859,13 @@ update_nginx_conf() (
 	case "$app_env" in
 		(local*)
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<listen>/8080/" "$appConfFile"
+				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile"
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s/<ssl_cert>/$(_get_local_nginx_cert_path).crt/" \
+				"$appConfFile"
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s/<ssl_key>/$(_get_local_nginx_cert_path).key/" \
+				"$appConfFile"
 			;;
 		(*)
 			sudo -p "update ${appConfFile}" \
@@ -747,6 +945,7 @@ setup_nginx_confs() (
 	#remove trailing path chars
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") &&
 	enable_nginx_include "$confDirInclude" &&
+	setup_ssl_cert_nginx &&
 	update_nginx_conf "$confDir"/"$app_name".conf &&
 	sudo -p 'Remove default nginx config' \
 		rm -f "$confDir"/default &&
@@ -792,7 +991,7 @@ get_icecast_conf() (
 					head -n2 | tail -n1 | awk '{ print $NF }'
 			;;
 		(Darwin*)
-			#we have icecast on the mac anyway so we'll just return the
+			#we don't have icecast on the mac anyway so we'll just return the
 			#source code location
 			echo "$templates_src"/icecast.xml
 			;;
@@ -965,7 +1164,7 @@ startup_radio() (
 startup_api() (
 	process_global_vars "$@" &&
 	set_env_path_var && #ensure that we can see mc-ices
-	if [ "$skip_option" != 'setup_api' ]; then
+	if ! str_contains "$skip" "setup_api"; then
 		setup_api
 	fi &&
 	export_py_env_vars &&
@@ -975,7 +1174,8 @@ startup_api() (
 	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
 	(uvicorn --app-dir "$web_root"/"$app_api_path_cl" --root-path /api/v1 \
-	--host 0.0.0.0 --port "$api_port" "index:app" </dev/null >api.out 2>&1 &)
+	--host 0.0.0.0 --port "$api_port" \
+	"index:app" </dev/null >api.out 2>&1 &)
 	echo "done starting up api. Access at $full_url"
 )
 
@@ -1137,6 +1337,10 @@ process_global_args() {
 				export test_flag='test'
 				global_args="${global_args} test"
 				;;
+			(replace=*)
+				export replace=${1#replace=}
+				global_args="${global_args} replace='${replace}'"
+				;;
 			(replaceDb) #tells setup to replace sqlite3 db
 				export replace_db_flag='true'
 				global_args="${global_args} replaceDb"
@@ -1173,8 +1377,8 @@ process_global_args() {
 				global_args="${global_args} exp_name='${exp_name}'"
 				;;
 			(skip=*)
-				export skip_option=${1#skip=}
-				global_args="${global_args} skip='${skip_option}'"
+				export skip=${1#skip=}
+				global_args="${global_args} skip='${skip}'"
 				;;
 			(ice_branch=*)
 				export ice_branch=${1#ice_branch=}

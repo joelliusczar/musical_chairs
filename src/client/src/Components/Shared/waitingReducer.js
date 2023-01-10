@@ -34,6 +34,7 @@ export const waitingTypes = {
 	add: "add", //implemented as needed
 	update: "update", //implemented as needed
 	remove: "remove", //implemented as needed
+	assign: "assign", //implemented as needed
 };
 
 export const dispatches = {
@@ -45,6 +46,7 @@ export const dispatches = {
 	update: (key, dataOrUpdater) =>
 		({ type: waitingTypes.update, payload: { key, dataOrUpdater } }),
 	remove: (payload) => ({ type: waitingTypes.remove, payload: payload }),
+	assign: (payload) => ({ type: waitingTypes.assign, payload: payload}),
 };
 
 export const waitingReducerMap = {
@@ -70,6 +72,14 @@ export const waitingReducerMap = {
 			callStatus: null,
 			data: payload,
 			error: null,
+		}),
+	[waitingTypes.assign]: (state, payload) =>
+		({
+			...state,
+			data: {
+				...state.data,
+				...payload,
+			},
 		}),
 };
 

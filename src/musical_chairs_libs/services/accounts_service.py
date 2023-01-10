@@ -176,7 +176,10 @@ class AccountsService:
 		dt = datetime.fromtimestamp(timestamp, timezone.utc)
 		return dt < self.get_datetime()
 
-	def get_user_from_token(self, token: str) -> Optional[AccountInfo]:
+	def get_user_from_token(
+		self,
+		token: str
+	) -> Tuple[Optional[AccountInfo], float]:
 		decoded: dict[Any, Any] = jwt.decode(
 			token,
 			SECRET_KEY,
@@ -184,12 +187,12 @@ class AccountsService:
 		)
 		expiration = decoded.get("exp") or 0
 		if self.has_expired(expiration):
-			return None
+			return None, 0
 		userName = decoded.get("sub") or ""
 		user, _ = self.get_account_for_login(userName)
 		if not user:
-			return None
-		return user
+			return None, 0
+		return user, expiration
 
 	def _get_roles(self, userPk: int) -> Iterable[RoleInfo]:
 		query = select(ur.role, ur.creationTimestamp)\

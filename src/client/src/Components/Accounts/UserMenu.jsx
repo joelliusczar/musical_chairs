@@ -28,7 +28,7 @@ export const UserMenu = (props) => {
 		>
 			<MenuItem
 				component={Link}
-				to={`${DomRoutes.accountsEdit}/${user.userId}`}
+				to={`${DomRoutes.accountsEdit}/${encodeURIComponent(user.username)}`}
 			>
 				Account Edit
 			</MenuItem>

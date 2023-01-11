@@ -205,11 +205,13 @@ get_ssl_vars() (
 
 stdin_json_extract_value() (
 	jsonKey="$1"
-	python3 -c "import sys, json; print(json.load(sys.stdin)['$jsonKey'])"
+	python3 -c \
+	"import sys, json; print(json.load(sys.stdin, strict=False)['$jsonKey'])"
 )
 
 stdin_json_top_level_keys() (
-	python3 -c "import sys, json; print(json.load(sys.stdin).keys())"
+	python3 -c \
+	"import sys, json; print(json.load(sys.stdin, strict=False).keys())"
 )
 
 #other keys: 'intermediatecertificate', 'certificatechain'
@@ -840,11 +842,10 @@ setup_ssl_cert_nginx() (
 
 			if [ ! -e "$keyFile" ] || [ ! -e "$crtFile" ] ||
 			cat "$crtFile" | is_cert_expired; then
-				sslVars=$(get_ssl_vars) 
-				echo "$sslVars"| stdin_json_extract_value 'privatekey' > \
-				$(get_remote_cert_dir)/private/${proj_name}.crt &&
-				echo "$sslVars"| stdin_json_extract_value 'publickey' > \
-				$(get_remote_cert_dir)/certs/${proj_name}.key
+				sslVars=$(get_ssl_vars)
+				echo "$sslVars"| stdin_json_extract_value 'privatekey' > "$crtFile" &&
+				echo "$sslVars"| \
+				stdin_json_extract_value 'certificatechain' > "$keyFile" &&
 			fi
 			;;
 	esac

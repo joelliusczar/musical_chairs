@@ -751,8 +751,8 @@ _certs_matching_name_exact() (
 _generate_local_ssl_cert_osx() (
 	commonName="$1"
 	domain="$2" &&
-	keyFile="$3" &&
-	crtFile="$4" &&
+	publicKeyFile="$3" &&
+	privateKeyFile="$4" &&
 	mkfifo cat_config_fifo
 	{
 	cat<<-OpenSSLConfig
@@ -763,16 +763,16 @@ _generate_local_ssl_cert_osx() (
 	openssl req -x509 -sha256 -new -nodes -newkey rsa:2048 -days 7 \
 	-subj "/C=US/ST=CA/O=fake/CN=${commonName}" -reqexts SAN -extensions SAN \
 	-config cat_config_fifo \
-	-keyout "$keyFile" -out "$crtFile"
+	-keyout "$publicKeyFile" -out "$privateKeyFile"
 	err_code="$?"
 	rm -f cat_config_fifo
 	return "$err_code"
 )
 
 _install_local_cert_osx() (
-	crtFile="$1" &&
+	privateKeyFile="$1" &&
 	sudo security add-trusted-cert -p ssl -d -r trustRoot \
-	-k $(_get_keychain_osx) "$crtFile"
+	-k $(_get_keychain_osx) "$privateKeyFile"
 )
 
 _clean_up_invalid_cert() (
@@ -796,14 +796,14 @@ _clean_up_invalid_cert() (
 _setup_ssl_cert_local() (
 	commonName="$1"
 	domain="$2" &&
-	keyFile="$3" &&
-	crtFile="$4" &&
+	publicKeyFile="$3" &&
+	privateKeyFile="$4" &&
 
 	case $(uname) in
 		(Darwin*)
 			_generate_local_ssl_cert_osx "$commonName" "$domain" \
-			"$keyFile" "$crtFile" &&
-			_install_local_cert_osx "$crtFile" ||
+			"$publicKeyFile" "$privateKeyFile" &&
+			_install_local_cert_osx "$privateKeyFile" ||
 			return 1
 			;;
 		(*)
@@ -816,11 +816,11 @@ _setup_ssl_cert_local() (
 
 setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
-	keyFile=$(_get_debug_cert_path).key &&
-	crtFile=$(_get_debug_cert_path).crt &&
+	publicKeyFile=$(_get_debug_cert_path).key &&
+	privateKeyFile=$(_get_debug_cert_path).crt &&
 	_clean_up_invalid_cert "${app_name}-localhost"
 	_setup_ssl_cert_local "${app_name}-localhost" 'localhost' \
-	"$keyFile" "$crtFile"
+	"$publicKeyFile" "$privateKeyFile"
 )
 
 setup_ssl_cert_nginx() (
@@ -828,26 +828,27 @@ setup_ssl_cert_nginx() (
 	domain=$(_get_domain_name "$app_env" 'omitPort') &&
 	case "$app_env" in
 		(local*)
-			keyFile=$(_get_local_nginx_cert_path).key &&
-			crtFile=$(_get_local_nginx_cert_path).crt &&
+			publicKeyFile=$(_get_local_nginx_cert_path).key &&
+			privateKeyFile=$(_get_local_nginx_cert_path).crt &&
 			# we're leaving off the && because what would that even mean here?
 			_clean_up_invalid_cert "$domain"
 			if [ -z $(_certs_matching_name_exact "$domain") ]; then
-				_setup_ssl_cert_local "$domain" "$domain" "$keyFile" "$crtFile"
+				_setup_ssl_cert_local \
+				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
 			fi
 			;;
 		(*)
-			keyFile=$(get_remote_cert_dir)/certs/${proj_name}.key &&
-			crtFile=$(get_remote_cert_dir)/private/${proj_name}.crt &&
+			publicKeyFile=$(get_remote_cert_dir)/certs/${proj_name}.key &&
+			privateKeyFile=$(get_remote_cert_dir)/private/${proj_name}.crt &&
 
-			if [ ! -e "$keyFile" ] || [ ! -e "$crtFile" ] ||
-			cat "$crtFile" | is_cert_expired; then
+			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
+			cat "$privateKeyFile" | is_cert_expired; then
 				sslVars=$(get_ssl_vars)
 				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
-				perl -pe 'chomp if eof' > "$crtFile" &&
+				perl -pe 'chomp if eof' > "$privateKeyFile" &&
 				echo "$sslVars" | \
 				stdin_json_extract_value 'certificatechain' | \
-				perl -pe 'chomp if eof' | > "$keyFile"
+				perl -pe 'chomp if eof' | > "$publicKeyFile"
 			fi
 			;;
 	esac
@@ -907,10 +908,10 @@ update_nginx_conf() (
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s@<ssl_cert>@$(_get_local_nginx_cert_path).crt@" \
+				perl -pi -e "s@<ssl_public_key>@$(_get_local_nginx_cert_path).crt@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s@<ssl_key>@$(_get_local_nginx_cert_path).key@" \
+				perl -pi -e "s@<ssl_private_key>@$(_get_local_nginx_cert_path).key@" \
 				"$appConfFile"
 			;;
 		(*)
@@ -919,11 +920,11 @@ update_nginx_conf() (
 
 				sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_cert>@$(get_remote_cert_dir)/private/${proj_name}.crt@" \
+				"s@<ssl_public_key>@$(get_remote_cert_dir)/certs/${proj_name}.key@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_key>@$(get_remote_cert_dir)/certs/${proj_name}.key@" \
+				"s@<ssl_private_key>@$(get_remote_cert_dir)/private/${proj_name}.crt@" \
 				"$appConfFile"
 			;;
 	esac &&

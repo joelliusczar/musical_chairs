@@ -843,9 +843,11 @@ setup_ssl_cert_nginx() (
 			if [ ! -e "$keyFile" ] || [ ! -e "$crtFile" ] ||
 			cat "$crtFile" | is_cert_expired; then
 				sslVars=$(get_ssl_vars)
-				echo "$sslVars" | stdin_json_extract_value 'privatekey' > "$crtFile" &&
+				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
+				perl -pe 'chomp if eof' > "$crtFile" &&
 				echo "$sslVars" | \
-				stdin_json_extract_value 'certificatechain' > "$keyFile"
+				stdin_json_extract_value 'certificatechain' | \
+				perl -pe 'chomp if eof' | > "$keyFile"
 			fi
 			;;
 	esac

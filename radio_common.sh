@@ -195,7 +195,7 @@ get_ssl_vars() (
 	curl -s --header "Content-Type: application/json" \
 	--request POST \
 	--data "$sendJson" \
-	https://porkbun.com/api/json/v3/ssl/retrieve/$(get_domain_name)
+	https://porkbun.com/api/json/v3/ssl/retrieve/$(_get_domain_name)
 
 )
 
@@ -247,6 +247,13 @@ link_to_music_files() {
 	fi &&
 	echo 'music files should exist now'
 }
+
+input_match() (
+	matchFor="$1"
+	while read nextValue; do
+		[ "$nextValue" = "$matchFor" ] && echo 't'
+	done
+)
 
 str_contains() (
 	haystackStr="$1"
@@ -694,16 +701,21 @@ _get_local_nginx_cert_path() (
 	echo $(get_localhost_key_dir)/"$proj_name"_localhost_nginx
 )
 
-_is_cert_expired() (
-	openssl x509 -checkend 3600 -nout
+is_cert_expired() (
+	! openssl x509 -checkend 3600 -noout
 )
 
-_extract_sha256_from_cert() (
+extract_sha256_from_cert() (
 	openssl x509 -fingerprint -sha256 \
 	| perl -ne 'print "$1\n" if /SHA256 Fingerprint=([A-F0-9:]+)/' | tr -d ':'
 )
 
-_certs_matching_name() (
+extract_commonName_from_cert() (
+	openssl x509 -subject \
+	| perl -ne 'print "$1\n" if m{CN=([^/]+)}'
+)
+
+_certs_matching_name_osx() (
 	commonName="$1"
 	pattern='(-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----)'
 	script=$(cat <<-scriptEOF
@@ -714,6 +726,20 @@ _certs_matching_name() (
 	)
 	security find-certificate -a -p -c "$commonName" \
 	$(_get_keychain_osx) | perl -0777 -ne "$script"
+)
+
+_certs_matching_name_exact() (
+	commonName="$1"
+	case $(uname) in
+		(Darwin*)
+			_certs_matching_name_osx "$commonName" | extract_commonName_from_cert \
+			| input_match "$commonName"
+			;;
+		(*)
+			echo "operating system not configured"
+			return 0
+			;;
+	esac
 )
 
 _generate_local_ssl_cert_osx() (
@@ -747,9 +773,9 @@ _clean_up_invalid_cert() (
 	commonName="$1" &&
 	case $(uname) in
 		(Darwin*)
-			_certs_matching_name "$commonName" | while IFS= read -r -d '' cert; do
-				sha256Value=$(echo "$cert" | _extract_sha256_from_cert) &&
-				echo "$cert" | _is_cert_expired &&
+			_certs_matching_name_osx "$commonName" | while IFS= read -r -d '' cert; do
+				sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+				echo "$cert" | is_cert_expired &&
 				sudo security delete-certificate \
 					-Z "$sha256Value" -t $(_get_keychain_osx)
 			done
@@ -793,15 +819,19 @@ setup_ssl_cert_local_debug() (
 
 setup_ssl_cert_nginx() (
 	process_global_vars "$@" &&
-	domain='musicalchairs' &&
+	domain=$(_get_domain_name "$app_env" 'omitPort') &&
 	case "$app_env" in
 		(local*)
-			#keyFile=$(_get_local_nginx_cert_path).key &&
-			#crtFile=$(_get_local_nginx_cert_path).crt &&
-			#_clean_up_invalid_cert "$domain"
-			#_setup_ssl_cert_local "$domain" "$domain" "$keyFile" "$crtFile"
+			keyFile=$(_get_local_nginx_cert_path).key &&
+			crtFile=$(_get_local_nginx_cert_path).crt &&
+			# we're leaving off the && because what would that even mean here?
+			_clean_up_invalid_cert "$domain"
+			if [ -z $(_certs_matching_name_exact "$domain") ]; then
+				_setup_ssl_cert_local "$domain" "$domain" "$keyFile" "$crtFile"
+			fi
 			;;
 		(*)
+			echo "Not configured non-local"
 			return 0
 			;;
 	esac &&
@@ -861,10 +891,10 @@ update_nginx_conf() (
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile"
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<ssl_cert>/$(_get_local_nginx_cert_path).crt/" \
+				perl -pi -e "s@<ssl_cert>@$(_get_local_nginx_cert_path).crt@" \
 				"$appConfFile"
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<ssl_key>/$(_get_local_nginx_cert_path).key/" \
+				perl -pi -e "s@<ssl_key>@$(_get_local_nginx_cert_path).key@" \
 				"$appConfFile"
 			;;
 		(*)
@@ -936,6 +966,13 @@ restart_nginx() (
 		(*) ;;
 	esac &&
 	echo 'Done starting/restarting up nginx'
+)
+
+print_nginx_conf_location() (
+	process_global_vars "$@" &&
+	confDirInclude=$(get_nginx_conf_dir_include) &&
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude")
+	echo "$confDir"
 )
 
 setup_nginx_confs() (
@@ -1471,16 +1508,21 @@ define_web_server_paths() {
 	echo "web server paths defined"
 }
 
-get_url_base() (
+_get_url_base() (
 	echo "$proj_name" | tr -d _
 )
 
-get_domain_name() (
+_get_domain_name() (
 	envArg="$1"
-	url_base=$(get_url_base)
+	omitPort="$2"
+	url_base=$(_get_url_base)
 	case "$envArg" in
 		(local*)
-			url_suffix='-local.radio.fm:8080'
+			if [ -n "$omitPort" ]; then
+				url_suffix='-local.radio.fm'
+			else
+				url_suffix='-local.radio.fm:8080'
+			fi
 			;;
 		(*)
 			url_suffix='.radio.fm'
@@ -1489,10 +1531,10 @@ get_domain_name() (
 	echo "${url_base}${url_suffix}"
 )
 
-define_url() {
+_define_url() {
 	echo "env: ${app_env}"
-	export server_name="$(get_domain_name ${app_env})"
-	export full_url="http://${server_name}"
+	export server_name=$(_get_domain_name "$app_env")
+	export full_url="https://${server_name}"
 	echo "url defined"
 }
 
@@ -1558,7 +1600,7 @@ process_global_vars() {
 
 	define_web_server_paths &&
 
-	define_url &&
+	_define_url &&
 
 	define_repo_paths &&
 

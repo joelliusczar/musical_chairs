@@ -178,6 +178,10 @@ get_localhost_key_dir() (
 	esac
 )
 
+get_remote_cert_dir() (
+	echo '/etc/ssl'
+)
+
 connect_sftp() (
 	process_global_vars "$@" >&2 &&
 	sftp -6 -i $(get_id_file) "root@[$(get_address)]"
@@ -831,10 +835,19 @@ setup_ssl_cert_nginx() (
 			fi
 			;;
 		(*)
-			echo "Not configured non-local"
-			return 0
+			keyFile=$(get_remote_cert_dir)/certs/${proj_name}.key &&
+			crtFile=$(get_remote_cert_dir)/private/${proj_name}.crt &&
+
+			if [ ! -e "$keyFile" ] || [ ! -e "$crtFile" ] ||
+			cat "$crtFile" | is_cert_expired; then
+				sslVars=$(get_ssl_vars) 
+				echo "$sslVars"| stdin_json_extract_value 'privatekey' > \
+				$(get_remote_cert_dir)/private/${proj_name}.crt &&
+				echo "$sslVars"| stdin_json_extract_value 'publickey' > \
+				$(get_remote_cert_dir)/certs/${proj_name}.key
+			fi
 			;;
-	esac &&
+	esac
 )
 
 setup_react_env_local() (
@@ -889,17 +902,26 @@ update_nginx_conf() (
 	case "$app_env" in
 		(local*)
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile"
+				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s@<ssl_cert>@$(_get_local_nginx_cert_path).crt@" \
-				"$appConfFile"
+				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s@<ssl_key>@$(_get_local_nginx_cert_path).key@" \
 				"$appConfFile"
 			;;
 		(*)
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<listen>/[::]:80/" "$appConfFile"
+				perl -pi -e "s/<listen>/[::]:80 ssl/" "$appConfFile" &&
+
+				sudo -p "update ${appConfFile}" \
+				perl -pi -e \
+				"s@<ssl_cert>@$(get_remote_cert_dir)/private/${proj_name}.crt@" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e \
+				"s@<ssl_key>@$(get_remote_cert_dir)/certs/${proj_name}.key@" \
+				"$appConfFile"
 			;;
 	esac &&
 	echo "done updating nginx site conf"

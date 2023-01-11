@@ -168,7 +168,8 @@ fi
 
 sync_utility_scripts
 
-echo "$PB_SECRET" > "$HOME"/keys/"$app_name"
+echo "$APP_AUTH_KEY" > "$HOME"/keys/"$app_name"
+echo "$PB_SECRET" >> "$HOME"/keys/"$app_name"
 echo "$PB_API_KEY" >> "$HOME"/keys/"$app_name"
 
 echo "$S3_ACCESS_KEY_ID":"$S3_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs

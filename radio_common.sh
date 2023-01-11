@@ -847,7 +847,7 @@ setup_ssl_cert_nginx() (
 				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
 				perl -pe 'chomp if eof' > "$privateKeyFile" &&
 				echo "$sslVars" | \
-				stdin_json_extract_value 'certificatechain' | \
+				stdin_json_extract_value 'publickey' | \
 				perl -pe 'chomp if eof' | > "$publicKeyFile"
 			fi
 			;;

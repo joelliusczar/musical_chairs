@@ -840,7 +840,8 @@ setup_ssl_cert_nginx() (
 		(*)
 			publicKeyFile=$(get_remote_cert_dir)/certs/${proj_name}.key &&
 			privateKeyFile=$(get_remote_cert_dir)/private/${proj_name}.crt &&
-			intermediateKeyFile=$(get_remote_cert_dir)/certs/${proj_name}.crt &&
+			intermediateKeyFile=\
+			$(get_remote_cert_dir)/certs/${proj_name}.intermediate.crt &&
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
 			cat "$privateKeyFile" | is_cert_expired; then
@@ -930,7 +931,8 @@ update_nginx_conf() (
 				perl -pi -e \
 				"s@<ssl_private_key>@$(get_remote_cert_dir)/private/${proj_name}.crt@" \
 				"$appConfFile" &&
-			intermediateKeyFile=$(get_remote_cert_dir)/certs/${proj_name}.crt &&
+			intermediateKeyFile=\
+			$(get_remote_cert_dir)/certs/${proj_name}.intermediate.crt &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
 				"s@<ssl_intermediate>@${intermediateKeyFile}@" \

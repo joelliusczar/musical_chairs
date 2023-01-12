@@ -178,8 +178,16 @@ get_localhost_key_dir() (
 	esac
 )
 
-get_remote_cert_dir() (
-	echo '/etc/ssl'
+_get_remote_private_key() (
+	echo "/etc/ssl/private/${proj_name}.key"
+)
+
+_get_remote_public_key() (
+	echo "/etc/ssl/certs/${proj_name}.key"
+)
+
+_get_remote_intermediate_key() (
+	echo "/etc/ssl//certs/${proj_name}.intermediate.crt"
 )
 
 connect_sftp() (
@@ -838,10 +846,9 @@ setup_ssl_cert_nginx() (
 			fi
 			;;
 		(*)
-			publicKeyFile=$(get_remote_cert_dir)/certs/${proj_name}.key &&
-			privateKeyFile=$(get_remote_cert_dir)/private/${proj_name}.crt &&
-			intermediateKeyFile=\
-			$(get_remote_cert_dir)/certs/${proj_name}.intermediate.crt &&
+			publicKeyFile=$(_get_remote_public_key) &&
+			privateKeyFile=$(_get_remote_private_key) &&
+			intermediateKeyFile=$(_get_remote_intermediate_key) &&
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
 			cat "$privateKeyFile" | is_cert_expired; then
@@ -925,17 +932,15 @@ update_nginx_conf() (
 
 				sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_public_key>@$(get_remote_cert_dir)/certs/${proj_name}.key@" \
+				"s@<ssl_public_key>@$(_get_remote_public_key)@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_private_key>@$(get_remote_cert_dir)/private/${proj_name}.crt@" \
+				"s@<ssl_private_key>@$(_get_remote_private_key)@" \
 				"$appConfFile" &&
-			intermediateKeyFile=\
-			$(get_remote_cert_dir)/certs/${proj_name}.intermediate.crt &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_intermediate>@${intermediateKeyFile}@" \
+				"s@<ssl_intermediate>@$(_get_remote_intermediate_key)@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \

@@ -857,10 +857,10 @@ setup_ssl_cert_nginx() (
 				perl -pe 'chomp if eof' > "$privateKeyFile" &&
 				echo "$sslVars" | \
 				stdin_json_extract_value 'certificatechain' | \
-				perl -pe 'chomp if eof' | > "$publicKeyFile" &&
+				perl -pe 'chomp if eof' > "$publicKeyFile" &&
 				echo "$sslVars" | \
 				stdin_json_extract_value 'intermediatecertificate' | \
-				perl -pe 'chomp if eof' | > "$intermediateKeyFile"
+				perl -pe 'chomp if eof' > "$intermediateKeyFile"
 			fi
 			;;
 	esac

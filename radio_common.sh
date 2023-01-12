@@ -840,6 +840,7 @@ setup_ssl_cert_nginx() (
 		(*)
 			publicKeyFile=$(get_remote_cert_dir)/certs/${proj_name}.key &&
 			privateKeyFile=$(get_remote_cert_dir)/private/${proj_name}.crt &&
+			intermediateKeyFile=$(get_remote_cert_dir)/certs/${proj_name}.crt &&
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
 			cat "$privateKeyFile" | is_cert_expired; then
@@ -847,8 +848,11 @@ setup_ssl_cert_nginx() (
 				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
 				perl -pe 'chomp if eof' > "$privateKeyFile" &&
 				echo "$sslVars" | \
-				stdin_json_extract_value 'publickey' | \
-				perl -pe 'chomp if eof' | > "$publicKeyFile"
+				stdin_json_extract_value 'certificatechain' | \
+				perl -pe 'chomp if eof' | > "$publicKeyFile" &&
+				echo "$sslVars" | \
+				stdin_json_extract_value 'intermediatecertificate' | \
+				perl -pe 'chomp if eof' | > "$intermediateKeyFile"
 			fi
 			;;
 	esac
@@ -925,6 +929,15 @@ update_nginx_conf() (
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
 				"s@<ssl_private_key>@$(get_remote_cert_dir)/private/${proj_name}.crt@" \
+				"$appConfFile" &&
+			intermediateKeyFile=$(get_remote_cert_dir)/certs/${proj_name}.crt &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e \
+				"s@<ssl_trusted_certificate>@${intermediateKeyFile}@" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e \
+				's/#ssl_trusted_certificate/ssl_trusted_certificate/' \
 				"$appConfFile"
 			;;
 	esac &&

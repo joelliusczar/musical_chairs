@@ -933,7 +933,7 @@ update_nginx_conf() (
 			intermediateKeyFile=$(get_remote_cert_dir)/certs/${proj_name}.crt &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_trusted_certificate>@${intermediateKeyFile}@" \
+				"s@<ssl_intermediate>@${intermediateKeyFile}@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \

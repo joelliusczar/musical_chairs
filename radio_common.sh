@@ -179,15 +179,15 @@ get_localhost_key_dir() (
 )
 
 _get_remote_private_key() (
-	echo "/etc/ssl/private/${proj_name}.crt"
+	echo "/etc/ssl/private/${proj_name}.private.key.pem"
 )
 
 _get_remote_public_key() (
-	echo "/etc/ssl/certs/${proj_name}.key"
+	echo "/etc/ssl/certs/${proj_name}.public.key.pem"
 )
 
 _get_remote_intermediate_key() (
-	echo "/etc/ssl/certs/${proj_name}.intermediate.crt"
+	echo "/etc/ssl/certs/${proj_name}.intermediate.key.pem"
 )
 
 connect_sftp() (

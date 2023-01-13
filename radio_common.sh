@@ -930,7 +930,7 @@ update_nginx_conf() (
 			;;
 		(*)
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<listen>/[::]:80 ssl/" "$appConfFile" &&
+				perl -pi -e "s/<listen>/[::]:443 ssl/" "$appConfFile" &&
 
 				sudo -p "update ${appConfFile}" \
 				perl -pi -e \

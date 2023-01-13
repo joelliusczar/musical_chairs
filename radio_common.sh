@@ -1020,7 +1020,7 @@ print_nginx_conf_location() (
 	process_global_vars "$@" >/dev/null &&
 	confDirInclude=$(get_nginx_conf_dir_include) &&
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
-	echo "$confDir"
+	echo "$confDir"/"$app_name".conf
 )
 
 print_cert_paths() (

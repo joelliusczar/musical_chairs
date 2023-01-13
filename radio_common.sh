@@ -1024,7 +1024,9 @@ print_nginx_conf_location() (
 )
 
 print_cert_paths() (
-	confDir=$(print_nginx_conf_location)
+	process_global_vars "$@" >/dev/null &&
+	confDirInclude=$(get_nginx_conf_dir_include) &&
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
 	cat "$confDir"/"$app_name".conf | perl -ne \
 	'print "$1\n" if /ssl_certificate ([^;]+)/'
 	cat "$confDir"/"$app_name".conf | perl -ne \

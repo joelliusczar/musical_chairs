@@ -1017,10 +1017,20 @@ restart_nginx() (
 )
 
 print_nginx_conf_location() (
-	process_global_vars "$@" &&
+	process_global_vars "$@" >/dev/null &&
 	confDirInclude=$(get_nginx_conf_dir_include) &&
-	confDir=$(get_abs_path_from_nginx_include "$confDirInclude")
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
 	echo "$confDir"
+)
+
+print_cert_paths() (
+	confDir=$(print_nginx_conf_location)
+	cat "$confDir"/"$app_name".conf | perl -ne \
+	'print "$1\n" if /ssl_certificate ([^;]+)/'
+	cat "$confDir"/"$app_name".conf | perl -ne \
+	'print "$1\n" if /ssl_certificate_key ([^;]+)/'
+	cat "$confDir"/"$app_name".conf | perl -ne \
+	'print "$1\n" if /[^#]ssl_trusted_certificate ([^;]+)/'
 )
 
 setup_nginx_confs() (

@@ -18,7 +18,7 @@ from musical_chairs_libs.errors import AlreadyUsedError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
 
-cors_allowed_origins=["http://127.0.0.1", "https://localhost:3000"]
+cors_allowed_origins=["https://127.0.0.1", "https://localhost:3000"]
 
 app = FastAPI()
 app.add_middleware(
@@ -113,6 +113,12 @@ def everything_else(
 	return response
 
 if __name__ == "__main__":
-	key = sys.argv[1]
-	cert = sys.argv[2]
-	uvicorn.run(app, host="0.0.0.0", port=8032, ssl_keyfile=key, ssl_certfile=cert) #pyright: ignore [reportGeneralTypeIssues]
+	privateKey = sys.argv[1]
+	publicKey = sys.argv[2]
+	uvicorn.run(
+		app, #pyright: ignore [reportGeneralTypeIssues]
+		host="0.0.0.0",
+		port=8032,
+		ssl_keyfile=privateKey,
+		ssl_certfile=publicKey
+	)

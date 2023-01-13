@@ -765,22 +765,22 @@ _generate_local_ssl_cert_osx() (
 	{
 	cat<<-OpenSSLConfig
 	$(cat '/System/Library/OpenSSL/openssl.cnf')
-	$(printf "[SAN]\nsubjectAltName=DNS:${domain}")
+	$(printf "[SAN]\nsubjectAltName=DNS:${domain},IP:127.0.0.1")
 	OpenSSLConfig
 	} > cat_config_fifo &
 	openssl req -x509 -sha256 -new -nodes -newkey rsa:2048 -days 7 \
 	-subj "/C=US/ST=CA/O=fake/CN=${commonName}" -reqexts SAN -extensions SAN \
 	-config cat_config_fifo \
-	-keyout "$publicKeyFile" -out "$privateKeyFile"
+	-keyout "$privateKeyFile" -out "$publicKeyFile"
 	err_code="$?"
 	rm -f cat_config_fifo
 	return "$err_code"
 )
 
 _install_local_cert_osx() (
-	privateKeyFile="$1" &&
+	publicKeyFile="$1" &&
 	sudo security add-trusted-cert -p ssl -d -r trustRoot \
-	-k $(_get_keychain_osx) "$privateKeyFile"
+	-k $(_get_keychain_osx) "$publicKeyFile"
 )
 
 _clean_up_invalid_cert() (
@@ -811,7 +811,7 @@ _setup_ssl_cert_local() (
 		(Darwin*)
 			_generate_local_ssl_cert_osx "$commonName" "$domain" \
 			"$publicKeyFile" "$privateKeyFile" &&
-			_install_local_cert_osx "$privateKeyFile" ||
+			_install_local_cert_osx "$publicKeyFile" ||
 			return 1
 			;;
 		(*)
@@ -824,8 +824,8 @@ _setup_ssl_cert_local() (
 
 setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
-	publicKeyFile=$(_get_debug_cert_path).key &&
-	privateKeyFile=$(_get_debug_cert_path).crt &&
+	publicKeyFile=$(_get_debug_cert_path).public.key.pem &&
+	privateKeyFile=$(_get_debug_cert_path).private.key.pem &&
 	_clean_up_invalid_cert "${app_name}-localhost"
 	_setup_ssl_cert_local "${app_name}-localhost" 'localhost' \
 	"$publicKeyFile" "$privateKeyFile"
@@ -836,8 +836,8 @@ setup_ssl_cert_nginx() (
 	domain=$(_get_domain_name "$app_env" 'omitPort') &&
 	case "$app_env" in
 		(local*)
-			publicKeyFile=$(_get_local_nginx_cert_path).key &&
-			privateKeyFile=$(_get_local_nginx_cert_path).crt &&
+			publicKeyFile=$(_get_local_nginx_cert_path).public.key.pem &&
+			privateKeyFile=$(_get_local_nginx_cert_path).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
 			_clean_up_invalid_cert "$domain"
 			if [ -z $(_certs_matching_name_exact "$domain") ]; then
@@ -866,15 +866,15 @@ setup_ssl_cert_nginx() (
 	esac
 )
 
-setup_react_env_local() (
+setup_react_env_debug() (
 	process_global_vars "$@" &&
 	envFile="$client_src"/.env.local
 	echo "$envFile"
 	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
-	echo 'REACT_APP_API_ADDRESS=http://127.0.0.1:8032' >> "$envFile"
+	echo 'REACT_APP_API_ADDRESS=https://localhost:8032' >> "$envFile"
 	echo 'HTTPS=true' >> "$envFile"
-	echo "SSL_CRT_FILE=$(get_localhost_key_dir)/localhost.key" >> "$envFile"
-	echo "SSL_KEY_FILE=$(get_localhost_key_dir)/localhost.crt" >> "$envFile"
+	echo "SSL_CRT_FILE=$(_get_debug_cert_path).public.key.pem" >> "$envFile"
+	echo "SSL_KEY_FILE=$(_get_debug_cert_path).private.key.pem" >> "$envFile"
 )
 
 get_nginx_value() (
@@ -917,13 +917,15 @@ update_nginx_conf() (
 		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile" &&
 	case "$app_env" in
 		(local*)
+			publicKey=$(_get_local_nginx_cert_path).public.key.pem &&
+			privateKey=$(_get_local_nginx_cert_path).private.key.pem &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s@<ssl_public_key>@$(_get_local_nginx_cert_path).crt@" \
+				perl -pi -e "s@<ssl_public_key>@${publicKey}@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s@<ssl_private_key>@$(_get_local_nginx_cert_path).key@" \
+				perl -pi -e "s@<ssl_private_key>@${privateKey}@" \
 				"$appConfFile"
 			;;
 		(*)

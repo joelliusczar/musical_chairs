@@ -4,6 +4,7 @@ import { apiAddress } from "../constants";
 export function constructWebClient() {
 	return axios.create({
 		baseURL: apiAddress,
+		withCredentials: true,
 	});
 }
 

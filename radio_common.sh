@@ -167,6 +167,29 @@ get_id_file() (
 	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
 )
 
+get_localhost_key_dir() (
+	case $(uname) in
+		(Darwin*)
+			echo "$HOME"/.ssh
+			;;
+		(Linux*)
+			;;
+		(*) ;;
+	esac
+)
+
+_get_remote_private_key() (
+	echo "/etc/ssl/private/${proj_name}.private.key.pem"
+)
+
+_get_remote_public_key() (
+	echo "/etc/ssl/certs/${proj_name}.public.key.pem"
+)
+
+_get_remote_intermediate_key() (
+	echo "/etc/ssl/certs/${proj_name}.intermediate.key.pem"
+)
+
 connect_sftp() (
 	process_global_vars "$@" >&2 &&
 	sftp -6 -i $(get_id_file) "root@[$(get_address)]"
@@ -184,17 +207,19 @@ get_ssl_vars() (
 	curl -s --header "Content-Type: application/json" \
 	--request POST \
 	--data "$sendJson" \
-	https://porkbun.com/api/json/v3/ssl/retrieve/$(get_domain_name)
+	https://porkbun.com/api/json/v3/ssl/retrieve/$(_get_domain_name)
 
 )
 
 stdin_json_extract_value() (
 	jsonKey="$1"
-	python3 -c "import sys, json; print(json.load(sys.stdin)['$jsonKey'])"
+	python3 -c \
+	"import sys, json; print(json.load(sys.stdin, strict=False)['$jsonKey'])"
 )
 
 stdin_json_top_level_keys() (
-	python3 -c "import sys, json; print(json.load(sys.stdin).keys())"
+	python3 -c \
+	"import sys, json; print(json.load(sys.stdin, strict=False).keys())"
 )
 
 #other keys: 'intermediatecertificate', 'certificatechain'
@@ -236,6 +261,58 @@ link_to_music_files() {
 	fi &&
 	echo 'music files should exist now'
 }
+
+input_match() (
+	matchFor="$1"
+	while read nextValue; do
+		[ "$nextValue" = "$matchFor" ] && echo 't'
+	done
+)
+
+str_contains() (
+	haystackStr="$1"
+	needleStr="$2"
+	case "$haystackStr" in
+		*"$needleStr"*)
+			return 0
+	esac
+	return 1
+)
+
+array_contains() (
+	searchValue="$1"
+	shift
+	while [ ! -z "$1" ]; do
+		case $1 in
+			"$searchValue")
+				echo "$1"
+				return 0
+				;;
+			*)
+			;;
+		esac
+		shift
+	done
+	return 1
+)
+
+array_contains_equals() (
+	searchValue="$1"
+	shift
+	while [ ! -z "$1" ]; do
+		case $1 in
+			"$searchValue"=*)
+				result=${1#"$searchValue"=}
+				echo "$result"
+				return 0
+				;;
+			*)
+			;;
+		esac
+		shift
+	done
+	return 1
+)
 
 is_python_version_good() {
 	[ "$exp_name" = 'py3.8' ] && return 0
@@ -430,12 +507,13 @@ kill_process_using_port() (
 	portNum="$1"
 	echo "attempting to end process using port number: ${portNum}"
 	if ss -V >/dev/null 2>&1; then
-		procId=$(ss -lpn 'sport = :8032' | perl -ne 'print "$1\n" if /pid=(\d+)/')
+		procId=$(ss -lpn "sport = :${portNum}" \
+		| perl -ne 'print "$1\n" if /pid=(\d+)/')
 		if [ -n "$procId" ]; then
 			kill -15 "$procId"
 		fi
 	elif lsof -v >/dev/null 2>&1; then
-		procId=$(sudo lsof -i :8032 | awk '{ print $2 }' | tail -n 1)
+		procId=$(sudo lsof -i :${portNum} | awk '{ print $2 }' | tail -n 1)
 		if [ -n "$procId" ]; then
 			kill -15 "$procId"
 		fi
@@ -625,6 +703,180 @@ literal_to_regex() (
 	echo "$str" | sed 's/\*/\\*/g'
 )
 
+_get_keychain_osx() (
+	echo '/Library/Keychains/System.keychain'
+)
+
+_get_debug_cert_path() (
+	echo $(get_localhost_key_dir)/"$proj_name"_localhost_debug
+)
+
+_get_local_nginx_cert_path() (
+	echo $(get_localhost_key_dir)/"$proj_name"_localhost_nginx
+)
+
+is_cert_expired() (
+	! openssl x509 -checkend 3600 -noout
+)
+
+extract_sha256_from_cert() (
+	openssl x509 -fingerprint -sha256 \
+	| perl -ne 'print "$1\n" if /SHA256 Fingerprint=([A-F0-9:]+)/' | tr -d ':'
+)
+
+extract_commonName_from_cert() (
+	openssl x509 -subject \
+	| perl -ne 'print "$1\n" if m{CN=([^/]+)}'
+)
+
+_certs_matching_name_osx() (
+	commonName="$1"
+	pattern='(-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----)'
+	script=$(cat <<-scriptEOF
+	while(\$_ =~ /$pattern/g) {
+		print "\$1\0"
+	}
+	scriptEOF
+	)
+	security find-certificate -a -p -c "$commonName" \
+	$(_get_keychain_osx) | perl -0777 -ne "$script"
+)
+
+_certs_matching_name_exact() (
+	commonName="$1"
+	case $(uname) in
+		(Darwin*)
+			_certs_matching_name_osx "$commonName" | extract_commonName_from_cert \
+			| input_match "$commonName"
+			;;
+		(*)
+			echo "operating system not configured"
+			return 0
+			;;
+	esac
+)
+
+_generate_local_ssl_cert_osx() (
+	commonName="$1"
+	domain="$2" &&
+	publicKeyFile="$3" &&
+	privateKeyFile="$4" &&
+	mkfifo cat_config_fifo
+	{
+	cat<<-OpenSSLConfig
+	$(cat '/System/Library/OpenSSL/openssl.cnf')
+	$(printf "[SAN]\nsubjectAltName=DNS:${domain},IP:127.0.0.1")
+	OpenSSLConfig
+	} > cat_config_fifo &
+	openssl req -x509 -sha256 -new -nodes -newkey rsa:2048 -days 7 \
+	-subj "/C=US/ST=CA/O=fake/CN=${commonName}" -reqexts SAN -extensions SAN \
+	-config cat_config_fifo \
+	-keyout "$privateKeyFile" -out "$publicKeyFile"
+	err_code="$?"
+	rm -f cat_config_fifo
+	return "$err_code"
+)
+
+_install_local_cert_osx() (
+	publicKeyFile="$1" &&
+	sudo security add-trusted-cert -p ssl -d -r trustRoot \
+	-k $(_get_keychain_osx) "$publicKeyFile"
+)
+
+_clean_up_invalid_cert() (
+	commonName="$1" &&
+	case $(uname) in
+		(Darwin*)
+			_certs_matching_name_osx "$commonName" | while IFS= read -r -d '' cert; do
+				sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+				echo "$cert" | is_cert_expired &&
+				sudo security delete-certificate \
+					-Z "$sha256Value" -t $(_get_keychain_osx)
+			done
+			;;
+		(*)
+			return 0
+			;;
+	esac
+	return 0
+)
+
+_setup_ssl_cert_local() (
+	commonName="$1"
+	domain="$2" &&
+	publicKeyFile="$3" &&
+	privateKeyFile="$4" &&
+
+	case $(uname) in
+		(Darwin*)
+			_generate_local_ssl_cert_osx "$commonName" "$domain" \
+			"$publicKeyFile" "$privateKeyFile" &&
+			_install_local_cert_osx "$publicKeyFile" ||
+			return 1
+			;;
+		(*)
+			echo "operating system not configured"
+			return 1
+			;;
+	esac
+	return 0
+)
+
+setup_ssl_cert_local_debug() (
+	process_global_vars "$@" &&
+	publicKeyFile=$(_get_debug_cert_path).public.key.pem &&
+	privateKeyFile=$(_get_debug_cert_path).private.key.pem &&
+	_clean_up_invalid_cert "${app_name}-localhost"
+	_setup_ssl_cert_local "${app_name}-localhost" 'localhost' \
+	"$publicKeyFile" "$privateKeyFile"
+)
+
+setup_ssl_cert_nginx() (
+	process_global_vars "$@" &&
+	domain=$(_get_domain_name "$app_env" 'omitPort') &&
+	case "$app_env" in
+		(local*)
+			publicKeyFile=$(_get_local_nginx_cert_path).public.key.pem &&
+			privateKeyFile=$(_get_local_nginx_cert_path).private.key.pem &&
+			# we're leaving off the && because what would that even mean here?
+			_clean_up_invalid_cert "$domain"
+			if [ -z $(_certs_matching_name_exact "$domain") ]; then
+				_setup_ssl_cert_local \
+				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
+			fi
+			;;
+		(*)
+			publicKeyFile=$(_get_remote_public_key) &&
+			privateKeyFile=$(_get_remote_private_key) &&
+			intermediateKeyFile=$(_get_remote_intermediate_key) &&
+
+			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
+			cat "$privateKeyFile" | is_cert_expired; then
+				sslVars=$(get_ssl_vars)
+				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
+				perl -pe 'chomp if eof' > "$privateKeyFile" &&
+				echo "$sslVars" | \
+				stdin_json_extract_value 'certificatechain' | \
+				perl -pe 'chomp if eof' > "$publicKeyFile" &&
+				echo "$sslVars" | \
+				stdin_json_extract_value 'intermediatecertificate' | \
+				perl -pe 'chomp if eof' > "$intermediateKeyFile"
+			fi
+			;;
+	esac
+)
+
+setup_react_env_debug() (
+	process_global_vars "$@" &&
+	envFile="$client_src"/.env.local
+	echo "$envFile"
+	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
+	echo 'REACT_APP_API_ADDRESS=https://localhost:8032' >> "$envFile"
+	echo 'HTTPS=true' >> "$envFile"
+	echo "SSL_CRT_FILE=$(_get_debug_cert_path).public.key.pem" >> "$envFile"
+	echo "SSL_KEY_FILE=$(_get_debug_cert_path).private.key.pem" >> "$envFile"
+)
+
 get_nginx_value() (
 	key=${1:-'conf-path'}
 	#break options into a list
@@ -661,14 +913,41 @@ update_nginx_conf() (
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<server_name>@${server_name}@" "$appConfFile" &&
+	sudo -p "update ${appConfFile}" \
+		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile" &&
 	case "$app_env" in
 		(local*)
+			publicKey=$(_get_local_nginx_cert_path).public.key.pem &&
+			privateKey=$(_get_local_nginx_cert_path).private.key.pem &&
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<listen>/8080/" "$appConfFile"
+				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s@<ssl_public_key>@${publicKey}@" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s@<ssl_private_key>@${privateKey}@" \
+				"$appConfFile"
 			;;
 		(*)
 			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<listen>/[::]:80/" "$appConfFile"
+				perl -pi -e "s/<listen>/[::]:443 ssl/" "$appConfFile" &&
+
+				sudo -p "update ${appConfFile}" \
+				perl -pi -e \
+				"s@<ssl_public_key>@$(_get_remote_public_key)@" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e \
+				"s@<ssl_private_key>@$(_get_remote_private_key)@" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e \
+				"s@<ssl_intermediate>@$(_get_remote_intermediate_key)@" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e \
+				's/#ssl_trusted_certificate/ssl_trusted_certificate/' \
+				"$appConfFile"
 			;;
 	esac &&
 	echo "done updating nginx site conf"
@@ -737,6 +1016,25 @@ restart_nginx() (
 	echo 'Done starting/restarting up nginx'
 )
 
+print_nginx_conf_location() (
+	process_global_vars "$@" >/dev/null &&
+	confDirInclude=$(get_nginx_conf_dir_include) &&
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
+	echo "$confDir"/"$app_name".conf
+)
+
+print_cert_paths() (
+	process_global_vars "$@" >/dev/null &&
+	confDirInclude=$(get_nginx_conf_dir_include) &&
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
+	cat "$confDir"/"$app_name".conf | perl -ne \
+	'print "$1\n" if /ssl_certificate ([^;]+)/'
+	cat "$confDir"/"$app_name".conf | perl -ne \
+	'print "$1\n" if /ssl_certificate_key ([^;]+)/'
+	cat "$confDir"/"$app_name".conf | perl -ne \
+	'print "$1\n" if /[^#]ssl_trusted_certificate ([^;]+)/'
+)
+
 setup_nginx_confs() (
 	echo 'setting up nginx confs'
 	process_global_vars "$@" &&
@@ -744,6 +1042,7 @@ setup_nginx_confs() (
 	#remove trailing path chars
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") &&
 	enable_nginx_include "$confDirInclude" &&
+	setup_ssl_cert_nginx &&
 	update_nginx_conf "$confDir"/"$app_name".conf &&
 	sudo -p 'Remove default nginx config' \
 		rm -f "$confDir"/default &&
@@ -789,7 +1088,7 @@ get_icecast_conf() (
 					head -n2 | tail -n1 | awk '{ print $NF }'
 			;;
 		(Darwin*)
-			#we have icecast on the mac anyway so we'll just return the
+			#we don't have icecast on the mac anyway so we'll just return the
 			#source code location
 			echo "$templates_src"/icecast.xml
 			;;
@@ -962,7 +1261,9 @@ startup_radio() (
 startup_api() (
 	process_global_vars "$@" &&
 	set_env_path_var && #ensure that we can see mc-ices
-	setup_api &&
+	if ! str_contains "$skip" "setup_api"; then
+		setup_api
+	fi &&
 	export_py_env_vars &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# see #python_env
@@ -970,7 +1271,8 @@ startup_api() (
 	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
 	(uvicorn --app-dir "$web_root"/"$app_api_path_cl" --root-path /api/v1 \
-	--host 0.0.0.0 --port "$api_port" "index:app" </dev/null >api.out 2>&1 &)
+	--host 0.0.0.0 --port "$api_port" \
+	"index:app" </dev/null >api.out 2>&1 &)
 	echo "done starting up api. Access at $full_url"
 )
 
@@ -1132,6 +1434,10 @@ process_global_args() {
 				export test_flag='test'
 				global_args="${global_args} test"
 				;;
+			(replace=*)
+				export replace=${1#replace=}
+				global_args="${global_args} replace='${replace}'"
+				;;
 			(replaceDb) #tells setup to replace sqlite3 db
 				export replace_db_flag='true'
 				global_args="${global_args} replaceDb"
@@ -1168,8 +1474,8 @@ process_global_args() {
 				global_args="${global_args} exp_name='${exp_name}'"
 				;;
 			(skip=*)
-				export skip_option=${1#skip=}
-				global_args="${global_args} skip='${skip_option}'"
+				export skip=${1#skip=}
+				global_args="${global_args} skip='${skip}'"
 				;;
 			(ice_branch=*)
 				export ice_branch=${1#ice_branch=}
@@ -1195,7 +1501,7 @@ define_consts() {
 	export build_dir='builds'
 	export content_home='music/radio'
 	export bin_dir='.local/bin'
-	export api_port='8032'
+	export api_port='8033'
 	#done't try to change from home
 	export default_radio_repo_path="$HOME"/"$build_dir"/"$proj_name"
 	echo "constants defined"
@@ -1262,16 +1568,21 @@ define_web_server_paths() {
 	echo "web server paths defined"
 }
 
-get_url_base() (
+_get_url_base() (
 	echo "$proj_name" | tr -d _
 )
 
-get_domain_name() (
+_get_domain_name() (
 	envArg="$1"
-	url_base=$(get_url_base)
+	omitPort="$2"
+	url_base=$(_get_url_base)
 	case "$envArg" in
 		(local*)
-			url_suffix='-local.radio.fm:8080'
+			if [ -n "$omitPort" ]; then
+				url_suffix='-local.radio.fm'
+			else
+				url_suffix='-local.radio.fm:8080'
+			fi
 			;;
 		(*)
 			url_suffix='.radio.fm'
@@ -1280,10 +1591,10 @@ get_domain_name() (
 	echo "${url_base}${url_suffix}"
 )
 
-define_url() {
+_define_url() {
 	echo "env: ${app_env}"
-	export server_name="$(get_domain_name ${app_env})"
-	export full_url="http://${server_name}"
+	export server_name=$(_get_domain_name "$app_env")
+	export full_url="https://${server_name}"
 	echo "url defined"
 }
 
@@ -1349,7 +1660,7 @@ process_global_vars() {
 
 	define_web_server_paths &&
 
-	define_url &&
+	_define_url &&
 
 	define_repo_paths &&
 

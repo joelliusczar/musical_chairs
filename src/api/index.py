@@ -1,6 +1,7 @@
 #pyright: reportUnusedFunction=false, reportMissingTypeStubs=false
 import uvicorn #pyright: ignore [reportMissingTypeStubs]
-import logging
+import musical_chairs_libs.dtos_and_utilities.logging as logging
+import sys
 from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,15 +18,16 @@ from musical_chairs_libs.errors import AlreadyUsedError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
 
-cors_allowed_origins=["http://127.0.0.1", "http://localhost:3000"]
+cors_allowed_origins=["https://127.0.0.1", "https://localhost:3000"]
 
 app = FastAPI()
 app.add_middleware(
 	CORSMiddleware,
 	allow_origins=cors_allowed_origins,
 	allow_methods=["*"],
-	allow_headers=["Authorization"],
-	expose_headers=["X-AuthExpired"]
+	allow_headers=["Authorization", "Cookie"],
+	expose_headers=["X-AuthExpired"],
+	allow_credentials=True
 )
 app.include_router(stations_controller.router)
 app.include_router(accounts_controller.router)
@@ -95,13 +97,7 @@ def everything_else(
 	request: Request,
 	ex: Exception
 ) -> JSONResponse:
-	logging.basicConfig(
-			format="%(asctime)s %(message)s",
-			filename="radio.log",
-			encoding="utf-8",
-			level=logging.INFO
-		)
-	logging.error(ex)
+	logging.logger.error(ex)
 	response = JSONResponse(content=
 		{ "detail": [
 				build_error_obj("Onk! Caveman error! What do?")
@@ -117,4 +113,12 @@ def everything_else(
 	return response
 
 if __name__ == "__main__":
-	uvicorn.run(app, host="0.0.0.0", port=8032) #pyright: ignore [reportGeneralTypeIssues]
+	privateKey = sys.argv[1]
+	publicKey = sys.argv[2]
+	uvicorn.run(
+		app, #pyright: ignore [reportGeneralTypeIssues]
+		host="0.0.0.0",
+		port=8032,
+		ssl_keyfile=privateKey,
+		ssl_certfile=publicKey
+	)

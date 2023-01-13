@@ -4,9 +4,11 @@ import React, {
 	useContext,
 	useMemo,
 	useState,
+	useEffect,
+	useCallback,
 } from "react";
 import PropTypes from "prop-types";
-import { login } from "../API_Calls/userCalls";
+import { login, login_with_cookie } from "../API_Calls/userCalls";
 import {
 	waitingReducer,
 	initialState,
@@ -17,7 +19,6 @@ import { formatError } from "../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
 
 const loggedOut = {
-	userId: "",
 	username: "",
 	roles: [],
 	access_token: "",
@@ -29,6 +30,11 @@ const loggedOutState = {
 	data: loggedOut,
 };
 
+const expireCookie = (name) => {
+	document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+};
+
+
 const AuthContext = createContext();
 
 export const AuthContextProvider = (props) => {
@@ -37,14 +43,57 @@ export const AuthContextProvider = (props) => {
 		waitingReducer(),
 		loggedOutState
 	);
-	const [ responseInterceptorKey, setResponseInterceptorKey] = useState();
+	const [ , setResponseInterceptorKey] = useState();
+	const { enqueueSnackbar } = useSnackbar();
+	const loggedInUsername = state.data.username;
+
+	const logout = useCallback(() => {
+		dispatch(dispatches.reset(loggedOutState));
+		expireCookie("username");
+		expireCookie("displayName");
+		expireCookie("access_token");
+		enqueueSnackbar("Logging out.");
+	},[dispatch, enqueueSnackbar]);
 
 	const contextValue = useMemo(() => ({
 		state,
 		dispatch,
-		responseInterceptorKey,
 		setResponseInterceptorKey,
-	}), [state, responseInterceptorKey, setResponseInterceptorKey]);
+		logout,
+	}), [state, setResponseInterceptorKey]);
+
+	useEffect(() => {
+		if (loggedInUsername) return;
+		const kvps = document.cookie.split(";");
+		const username = decodeURIComponent(
+			kvps.find(kvp => kvp.startsWith("username"))?.split("=")[1] || ""
+		);
+		const displayName = decodeURIComponent(
+			kvps.find(kvp => kvp.startsWith("displayName"))
+				?.split("=")[1] || username
+		);
+		if(!document.cookie) return;
+		dispatch(dispatches.assign({username, displayName}));
+		const asyncCall = async () => {
+			try {
+				const data = await login_with_cookie(
+					logout,
+					setResponseInterceptorKey
+				);
+				dispatch(dispatches.done(data));
+			}
+			catch (err) {
+				enqueueSnackbar(formatError(err), { variant: "error" });
+			}
+		};
+		asyncCall();
+	},[
+		dispatch,
+		setResponseInterceptorKey,
+		logout,
+		enqueueSnackbar,
+		loggedInUsername,
+	]);
 
 	return (
 		<AuthContext.Provider value={contextValue}>
@@ -84,24 +133,19 @@ export const useHasAnyRoles = (requiredRoles) => {
 export const useLogin = () => {
 	const {
 		dispatch,
-		responseInterceptorKey,
 		setResponseInterceptorKey,
+		logout,
 	} = useContext(AuthContext);
-	const { enqueueSnackbar } = useSnackbar();
-	const _logout = () => {
-		dispatch(dispatches.reset(loggedOutState));
-		enqueueSnackbar("Logging out.");
-	};
+
 	const _login = async (username, password) => {
 		try {
 			dispatch(dispatches.started());
-			const { data, interceptor } = await login({
+			const data = await login({
 				username,
 				password,
-				logout: _logout,
-				responseInterceptorKey,
+				logout: logout,
+				setResponseInterceptorKey,
 			});
-			setResponseInterceptorKey(interceptor);
 			dispatch(dispatches.done(data));
 		}
 		catch(err) {
@@ -109,5 +153,5 @@ export const useLogin = () => {
 			throw err;
 		}
 	};
-	return [_login, _logout];
+	return [_login, logout];
 };

@@ -1,14 +1,17 @@
 #pyright: reportMissingTypeStubs=false
+from urllib import parse
 from typing import Optional
 from dataclasses import asdict
-from fastapi import\
-	APIRouter,\
-	Depends,\
-	HTTPException,\
-	status,\
-	Security,\
-	Body,\
-	Response
+from fastapi import (
+	APIRouter,
+	Depends,
+	HTTPException,
+	status,
+	Security,
+	Body,
+	Response,
+	Cookie
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from musical_chairs_libs.services import AccountsService,\
 	ACCESS_TOKEN_EXPIRE_MINUTES
@@ -19,7 +22,12 @@ from musical_chairs_libs.dtos_and_utilities import\
 	UserRoleDef,\
 	TableData,\
 	build_error_obj
-from api_dependencies import accounts_service, get_current_user, get_account_if_can_edit
+from api_dependencies import (
+	accounts_service,
+	get_current_user,
+	get_account_if_can_edit,
+	get_user_from_token
+)
 
 
 
@@ -47,9 +55,19 @@ def login(
 	tokenLifetime = ACCESS_TOKEN_EXPIRE_MINUTES * 60
 	response.set_cookie(
 		key="access_token",
-		value=token,
+		value=parse.quote(token),
 		max_age=tokenLifetime,
 		secure=True
+	)
+	response.set_cookie(
+		key="username",
+		value=parse.quote(user.username),
+		max_age=tokenLifetime
+	)
+	response.set_cookie(
+		key="displayName",
+		value=parse.quote(user.displayName or user.username),
+		max_age=tokenLifetime
 	)
 	return AuthenticatedAccount(
 		access_token=token,
@@ -60,6 +78,34 @@ def login(
 		displayName=user.displayName,
 		email=user.email
 	)
+
+@router.post("/open_cookie")
+def login_with_cookie(
+	access_token: str  = Cookie(default=None),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> AuthenticatedAccount:
+	uriDecodedToken = parse.unquote(access_token or "")
+	try:
+		user, expiration = get_user_from_token(uriDecodedToken, accountsService)
+		return AuthenticatedAccount(
+			access_token=access_token,
+			token_type="bearer",
+			username=user.username,
+			roles=user.roles,
+			lifetime=expiration,
+			displayName=user.displayName,
+			email=user.email
+		)
+	except:
+		return AuthenticatedAccount(
+			access_token="",
+			token_type="bearer",
+			username="",
+			roles=[],
+			lifetime=0,
+			displayName="",
+			email=""
+		)
 
 @router.get("/check")
 def is_phrase_used(

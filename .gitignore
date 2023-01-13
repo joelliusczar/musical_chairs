@@ -12,3 +12,5 @@ test_trash/*
 diag_out_*
 api.out
 radio.log
+musical_chairs.log
+musical_chairs-debug.log

@@ -22,8 +22,10 @@ from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
 
 oauth2_scheme = OAuth2PasswordBearer(
-	tokenUrl="accounts/open"
+	tokenUrl="accounts/open",
+	auto_error=False
 )
+
 
 def get_configured_db_connection(
 	envManager: EnvManager=Depends(EnvManager)

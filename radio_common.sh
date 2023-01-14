@@ -851,7 +851,9 @@ setup_ssl_cert_nginx() (
 			intermediateKeyFile=$(_get_remote_intermediate_key) &&
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
-			cat "$privateKeyFile" | is_cert_expired; then
+			cat "$publicKeyFile" | is_cert_expired ||
+			str_contains "$replace" "ssl_certs"; then
+				echo "downloading new certs"
 				sslVars=$(get_ssl_vars)
 				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
 				perl -pe 'chomp if eof' > "$privateKeyFile" &&
@@ -1041,8 +1043,8 @@ setup_nginx_confs() (
 	confDirInclude=$(get_nginx_conf_dir_include) &&
 	#remove trailing path chars
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") &&
-	enable_nginx_include "$confDirInclude" &&
 	setup_ssl_cert_nginx &&
+	enable_nginx_include "$confDirInclude" &&
 	update_nginx_conf "$confDir"/"$app_name".conf &&
 	sudo -p 'Remove default nginx config' \
 		rm -f "$confDir"/default &&

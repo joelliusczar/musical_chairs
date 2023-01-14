@@ -8,6 +8,7 @@ import {
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
+import { conflictWith } from "../../Helpers/prop_helpers";
 
 export const OptionsButton = (props) => {
 	const { options, id } = props;
@@ -23,23 +24,22 @@ export const OptionsButton = (props) => {
 		setAnchorEl(null);
 	};
 
+	const linkConfig = options[selectedIndex].href ?
+		{ href: options[selectedIndex].href } :
+		options[selectedIndex].link ?
+			{ component: Link, to: options[selectedIndex].link } :
+			null;
+
 	return <>
 		{!!options && options.length > 0 ? (
 			<>
 				<ButtonGroup variant="contained">
-					{typeof options[selectedIndex].onClick === "string" ?
-						<Button
-							component={Link}
-							to={options[selectedIndex].onClick}
-						>
-							{options[selectedIndex].label}
-						</Button>:
-						<Button
-							onClick={handleButtonClick}
-						>
-							{options[selectedIndex].label}
-						</Button>
-					}
+					<Button
+						onClick={handleButtonClick}
+						{...linkConfig}
+					>
+						{options[selectedIndex].label}
+					</Button>
 					<Button
 						size="small"
 						onClick={e => setAnchorEl(e.currentTarget)}
@@ -70,7 +70,9 @@ export const OptionsButton = (props) => {
 OptionsButton.propTypes = {
 	id: PropTypes.string.isRequired,
 	options: PropTypes.arrayOf(PropTypes.shape({
-		onClick: PropTypes.oneOfType([PropTypes.func, PropTypes.string]),
+		onClick: PropTypes.oneOfType([PropTypes.func]),
+		link: conflictWith("href", PropTypes.string),
+		href: conflictWith("link", PropTypes.string),
 		label: PropTypes.string,
 	})),
 };

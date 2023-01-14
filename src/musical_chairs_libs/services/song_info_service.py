@@ -128,7 +128,7 @@ class SongInfoService:
 		try:
 			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 
-			affectedPk: int = artistId if artistId else res.lastrowid #pyright: ignore [reportUnknownMemberType]
+			affectedPk: int = artistId if artistId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
 			return ArtistInfo(id=affectedPk, name=str(savedName))
 		except IntegrityError:
 			raise AlreadyUsedError(
@@ -159,7 +159,7 @@ class SongInfoService:
 		try:
 			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 
-			affectedPk: int = albumId if albumId else res.lastrowid #pyright: ignore [reportUnknownMemberType]
+			affectedPk: int = albumId if albumId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
 			artist = next(self.get_artists(artistId=album.albumArtist.id), None)\
 				if album.albumArtist else None
 			return AlbumInfo(affectedPk, str(savedName), album.year, artist)

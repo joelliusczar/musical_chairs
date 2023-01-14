@@ -25,6 +25,8 @@ import { UrlPagination } from "../Shared/UrlPagination";
 import { formatError } from "../../Helpers/error_formatter";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
+import { OptionsButton } from "../Shared/OptionsButton";
+import { getDownloadAddress } from "../../Helpers/url_helpers";
 
 
 export const History = () => {
@@ -32,7 +34,8 @@ export const History = () => {
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
 	const stationNameFromQS = queryObj.get("name") || "";
-	const canEditSong = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 
@@ -42,6 +45,32 @@ export const History = () => {
 	const { callStatus: historyCallStatus } = historyState;
 
 	const getPageUrl = urlBuilderFactory(DomRoutes.history);
+
+	const rowButton = (item, idx) => {
+		const rowButtonOptions = [];
+
+		if (canEditSongs) rowButtonOptions.push({
+			label: "Edit",
+			link: `${DomRoutes.songEdit}?id=${item.id}`,
+		});
+
+		if (canDownloadSongs) rowButtonOptions.push({
+			label: "Download",
+			href: getDownloadAddress(item.id),
+		});
+
+		return (rowButtonOptions.length > 1 ? <OptionsButton
+			id={`queue-row-btn-${idx}`}
+			options={rowButtonOptions}
+		/> :
+			<Button
+				variant="contained"
+				component={Link}
+				to={`${DomRoutes.songEdit}?id=${item.id}`}
+			>
+				View
+			</Button>);
+	};
 
 	useEffect(() => {
 		document.title =
@@ -118,13 +147,7 @@ export const History = () => {
 												</TableCell>
 												<TableCell></TableCell>
 												<TableCell>
-													<Button
-														variant="contained"
-														component={Link}
-														to={`${DomRoutes.songEdit}?id=${item.id}`}
-													>
-														{canEditSong ? "Edit" : "View"}
-													</Button>
+													{rowButton(item, idx)}
 												</TableCell>
 											</TableRow>
 										);

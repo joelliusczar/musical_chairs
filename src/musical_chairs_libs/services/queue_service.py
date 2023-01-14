@@ -321,8 +321,7 @@ class QueueService:
 			stmt = stmt.where(q_stationFk == stationId)
 		elif stationName:
 			subQ = select(st_pk).where(func.format_name_for_search(st_name)
-				== SearchNameString.format_name_for_search(stationName)).\
-					subquery()
+				== SearchNameString.format_name_for_search(stationName))
 			stmt = stmt.where(q_stationFk.in_(subQ))
 		else:
 			raise ValueError("Either stationName or id must be provided")

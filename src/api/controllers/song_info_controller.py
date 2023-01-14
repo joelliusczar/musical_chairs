@@ -97,9 +97,9 @@ def extra_validated_song(
 
 @router.get(
 	"/songs/download/{id}",
-	# dependencies=[
-	# 	Security(get_current_user, scopes=[UserRoleDef.SONG_DOWNLOAD.value])
-	# ],
+	dependencies=[
+		Security(get_current_user, scopes=[UserRoleDef.SONG_DOWNLOAD.value])
+	],
 	response_class=FileResponse
 )
 def download_song(

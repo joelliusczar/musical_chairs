@@ -852,8 +852,7 @@ setup_ssl_cert_nginx() (
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
 			cat "$privateKeyFile" | is_cert_expired ||
-			str_contains "$replace" "ssl_certs"
-			; then
+			str_contains "$replace" "ssl_certs"; then
 				echo "downloading new certs"
 				sslVars=$(get_ssl_vars)
 				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \

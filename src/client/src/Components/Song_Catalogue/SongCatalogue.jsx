@@ -30,6 +30,7 @@ import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
+import { getDownloadAddress } from "../../Helpers/url_helpers";
 
 
 export const SongCatalogue = () => {
@@ -42,6 +43,8 @@ export const SongCatalogue = () => {
 	const queryObj = new URLSearchParams(location.search);
 	const stationNameFromQS = queryObj.get("name") || "";
 	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
+	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
@@ -58,27 +61,36 @@ export const SongCatalogue = () => {
 
 	const getPageUrl = urlBuilderFactory(DomRoutes.songCatalogue);
 
-	const rowButton = canRequestSongs ? (item, idx) => {
-		return (<OptionsButton
-			id={`song-catalog-row-btn-${idx}`}
-			options={[
-				{
-					label: "Request",
-					onClick:() => requestSong(item.id),
-				},
-				{
-					label: "Edit",
-					onClick: `${DomRoutes.songEdit}?id=${item.id}`,
-				},
-			]}
-		/>);
-	}: (item) => <Button
-		variant="contained"
-		component={Link}
-		to={`${DomRoutes.songEdit}?id=${item.id}`}
-	>
-		View
-	</Button>;
+	const rowButton = (item, idx) => {
+		const rowButtonOptions = [];
+
+		if(canRequestSongs) rowButtonOptions.push({
+			label: "Request",
+			onClick:() => requestSong(item.id),
+		});
+
+		if (canEditSongs) rowButtonOptions.push({
+			label: "Edit",
+			link: `${DomRoutes.songEdit}?id=${item.id}`,
+		});
+
+		if (canDownloadSongs) rowButtonOptions.push({
+			label: "Download",
+			href: getDownloadAddress(item.id),
+		});
+
+		return (rowButtonOptions.length > 1 ? <OptionsButton
+			id={`queue-row-btn-${idx}`}
+			options={rowButtonOptions}
+		/> :
+			<Button
+				variant="contained"
+				component={Link}
+				to={`${DomRoutes.songEdit}?id=${item.id}`}
+			>
+				View
+			</Button>);
+	};
 
 	useEffect(() => {
 		document.title =

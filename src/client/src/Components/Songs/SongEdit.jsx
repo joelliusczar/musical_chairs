@@ -31,6 +31,7 @@ import {
 import { formatError } from "../../Helpers/error_formatter";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
+import { getDownloadAddress } from "../../Helpers/url_helpers";
 
 
 const inputField = {
@@ -118,7 +119,8 @@ export const SongEdit = () => {
 	const queryObj = new URLSearchParams(location.search);
 	const ids = queryObj.getAll("id").map(id => parseInt(id));
 	const classes = useStyles();
-	const canEditSong = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const {
 		items: artists,
@@ -196,7 +198,7 @@ export const SongEdit = () => {
 			name={name}
 			onChange={() => handleMutliSongTouchedCheck(name)}
 			checked={isMultSongTouchedChecked(name)}
-			disabled={!canEditSong}
+			disabled={!canEditSongs}
 		/>;
 	};
 
@@ -277,6 +279,10 @@ export const SongEdit = () => {
 			<Typography>
 				Path: {songFilePath}
 			</Typography>
+			<Box>
+				{canDownloadSongs && ids.length === 1 &&
+					<Button href={getDownloadAddress(ids[0])}>Download</Button>}
+			</Box>
 			<Box sx={inputField}>
 				{ids?.length > 1 && <TouchedCheckbox
 					name="name"
@@ -285,7 +291,7 @@ export const SongEdit = () => {
 					name="name"
 					formMethods={formMethods}
 					label="Name"
-					disabled={!canEditSong}
+					disabled={!canEditSongs}
 				/>
 			</Box>
 			<Box>
@@ -303,7 +309,7 @@ export const SongEdit = () => {
 								root: classes.dropdownField,
 							}}
 							transform={{input: artistMapper}}
-							disabled={!canEditSong}
+							disabled={!canEditSongs}
 						/>
 					</Box>
 					<Box sx={inputField}>
@@ -320,10 +326,10 @@ export const SongEdit = () => {
 								root: classes.dropdownField,
 							}}
 							multiple
-							disabled={!canEditSong}
+							disabled={!canEditSongs}
 						/>
 					</Box>
-					{canEditSong && <Box sx={inputField}>
+					{canEditSongs && <Box sx={inputField}>
 						<ArtistNewModalOpener add={addArtist} />
 					</Box>}
 				</Loader>
@@ -346,10 +352,10 @@ export const SongEdit = () => {
 							classes={{
 								root: classes.dropdownField,
 							}}
-							disabled={!canEditSong}
+							disabled={!canEditSongs}
 						/>
 					</Box>
-					{canEditSong && <Box sx={inputField}>
+					{canEditSongs && <Box sx={inputField}>
 						<AlbumNewModalOpener add={addAlbum} />
 					</Box>}
 				</Loader>
@@ -370,10 +376,10 @@ export const SongEdit = () => {
 								root: classes.dropdownField,
 							}}
 							multiple
-							disabled={!canEditSong}
+							disabled={!canEditSongs}
 						/>
 					</Box>
-					{canEditSong && <Box sx={inputField}>
+					{canEditSongs && <Box sx={inputField}>
 						<StationNewModalOpener add={addStation} />
 					</Box>}
 				</Loader>
@@ -386,10 +392,10 @@ export const SongEdit = () => {
 					name="genre"
 					formMethods={formMethods}
 					label="Genre"
-					disabled={!canEditSong}
+					disabled={!canEditSongs}
 				/>
 			</Box>
-			{canEditSong && <Box sx={inputField} >
+			{canEditSongs && <Box sx={inputField} >
 				<Button onClick={callSubmit}>
 					Submit
 				</Button>

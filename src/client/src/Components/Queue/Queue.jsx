@@ -28,6 +28,7 @@ import { useSnackbar } from "notistack";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
+import { getDownloadAddress } from "../../Helpers/url_helpers";
 
 const queueInitialState = {
 	...pageableDataInitialState,
@@ -47,7 +48,9 @@ export const Queue = () => {
 	const queryObj = new URLSearchParams(location.search);
 	const stationNameFromQS = queryObj.get("name") || "";
 	const { enqueueSnackbar } = useSnackbar();
+	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
 	const canSkipSongs = useHasAnyRoles([UserRoleDef.STATION_SKIP]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 
@@ -60,27 +63,36 @@ export const Queue = () => {
 
 	const getPageUrl = urlBuilderFactory(DomRoutes.queue);
 
-	const rowButton = canSkipSongs ? (item, idx) => {
-		return (<OptionsButton
+	const rowButton = (item, idx) => {
+		const rowButtonOptions = [];
+
+		if (canEditSongs) rowButtonOptions.push({
+			label: "Edit",
+			link: `${DomRoutes.songEdit}?id=${item.id}`,
+		});
+
+		if (canSkipSongs) rowButtonOptions.push({
+			label: "Skip",
+			onClick:() => handleRemoveSongFromQueue(item),
+		});
+
+		if (canDownloadSongs) rowButtonOptions.push({
+			label: "Download",
+			href: getDownloadAddress(item.id),
+		});
+
+		return (rowButtonOptions.length > 1 ? <OptionsButton
 			id={`queue-row-btn-${idx}`}
-			options={[
-				{
-					label: "Skip",
-					onClick:() => handleRemoveSongFromQueue(item),
-				},
-				{
-					label: "Edit",
-					onClick: `${DomRoutes.songEdit}?id=${item.id}`,
-				},
-			]}
-		/>);
-	}: (item) => <Button
-		variant="contained"
-		component={Link}
-		to={`${DomRoutes.songEdit}?id=${item.id}`}
-	>
-		View
-	</Button>;
+			options={rowButtonOptions}
+		/> :
+			<Button
+				variant="contained"
+				component={Link}
+				to={`${DomRoutes.songEdit}?id=${item.id}`}
+			>
+				View
+			</Button>);
+	};
 
 	const handleRemoveSongFromQueue = async (item) => {
 		try {

@@ -851,7 +851,7 @@ setup_ssl_cert_nginx() (
 			intermediateKeyFile=$(_get_remote_intermediate_key) &&
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
-			cat "$privateKeyFile" | is_cert_expired ||
+			cat "$publicKeyFile" | is_cert_expired ||
 			str_contains "$replace" "ssl_certs"; then
 				echo "downloading new certs"
 				sslVars=$(get_ssl_vars)

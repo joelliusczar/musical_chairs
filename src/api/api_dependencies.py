@@ -63,18 +63,23 @@ def process_service(
 ) -> ProcessService:
 	return ProcessService(conn)
 
+def _could_not_validate() -> HTTPException:
+	return HTTPException(
+		status_code=status.HTTP_401_UNAUTHORIZED,
+		detail=[build_error_obj("Could not validate credentials")],
+		headers={"WWW-Authenticate": "Bearer"}
+	)
+
 def get_user_from_token(
 	token: str,
 	accountsService: AccountsService
 ) -> Tuple[AccountInfo, float]:
+	if not token:
+		raise _could_not_validate()
 	try:
 		user, expiration = accountsService.get_user_from_token(token)
 		if not user:
-			raise HTTPException(
-				status_code=status.HTTP_401_UNAUTHORIZED,
-				detail=[build_error_obj("Could not validate credentials")],
-				headers={"WWW-Authenticate": "Bearer"}
-			)
+			raise _could_not_validate()
 		return user, expiration
 	except ExpiredSignatureError:
 		raise HTTPException(
@@ -93,7 +98,7 @@ def get_current_user_base(
 	access_token: str = Cookie(default=None)
 ) -> AccountInfo:
 	user, _ = get_user_from_token(
-		token or parse.unquote(access_token),
+		token or parse.unquote(access_token or ""),
 		accountsService
 	)
 	return user

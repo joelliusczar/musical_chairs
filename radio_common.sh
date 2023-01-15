@@ -914,7 +914,7 @@ update_nginx_conf() (
 		perl -pi -e "s@<app_client_path_cl>@${web_root}/${app_client_path_cl}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<server_name>@${server_name}@" "$appConfFile" &&
+		perl -pi -e "s@<server_name>@${server_name}@g" "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile" &&
 	case "$app_env" in

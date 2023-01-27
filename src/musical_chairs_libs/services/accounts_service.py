@@ -2,7 +2,7 @@
 import os
 from dataclasses import asdict
 from datetime import timedelta, datetime, timezone
-from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple
+from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple, cast
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	SearchNameString,
@@ -14,7 +14,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
 	hashpw,
 	checkpw,
-	validate_email
+	validate_email,
+	AccountInfoBase,
+	PasswordInfo
 )
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
@@ -25,7 +27,7 @@ from musical_chairs_libs.tables import (
 	userRoles,
 	station_queue, q_requestedTimestamp, q_requestedByUserFk, q_playedTimestamp
 )
-from musical_chairs_libs.errors import AlreadyUsedError, IllegalOperationError
+from musical_chairs_libs.errors import AlreadyUsedError
 from sqlalchemy import select, insert, desc, func, delete, update
 from jose import jwt
 from email_validator import (
@@ -180,6 +182,8 @@ class AccountsService:
 		self,
 		token: str
 	) -> Tuple[Optional[AccountInfo], float]:
+		if not token:
+			return None, 0
 		decoded: dict[Any, Any] = jwt.decode(
 			token,
 			SECRET_KEY,
@@ -194,13 +198,13 @@ class AccountsService:
 			return None, 0
 		return user, expiration
 
-	def _get_roles(self, userPk: int) -> Iterable[RoleInfo]:
+	def _get_roles(self, userId: int) -> Iterable[RoleInfo]:
 		query = select(ur.role, ur.creationTimestamp)\
 			.select_from(userRoles) \
-			.where(ur.userFk == userPk)
+			.where(ur.userFk == userId)
 		rows: Iterable[Row] = self.conn.execute(query).fetchall()
 		return (RoleInfo(
-					userPk=userPk,
+					userPk=userId,
 					role=r["role"],
 					creationTimestamp=r["creationTimestamp"]
 				) for r in rows)
@@ -229,11 +233,19 @@ class AccountsService:
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
-	def is_username_used(self, username: str) -> bool:
+	def is_username_used(
+		self,
+		username: str,
+		loggedInUser: Optional[AccountInfo]=None
+	) -> bool:
 		cleanedUserName = SearchNameString(username)
 		if not cleanedUserName:
+			#if absent, assume we're not checking this right now
+			#to avoid false negatives
 			return True
-		return self._is_username_used(cleanedUserName)
+		loggedInUsername = loggedInUser.username if loggedInUser else None
+		return loggedInUsername != cleanedUserName and\
+			self._is_username_used(cleanedUserName)
 
 	def _is_email_used(self, email: ValidatedEmail) -> bool:
 		emailStr = email.email #pyright: ignore reportUnknownMemberType
@@ -242,12 +254,22 @@ class AccountsService:
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
-	def is_email_used(self, email: str) -> bool:
+	def is_email_used(
+		self,
+		email: str,
+		loggedInUser: Optional[AccountInfo]=None
+	) -> bool:
 		try:
 			cleanedEmail  = validate_email(email)
 			if not cleanedEmail:
+				#if absent, assume we're not checking this right now
+				#to avoid false negatives
 				return True
-			return self._is_email_used(cleanedEmail)
+
+			logggedInEmail = loggedInUser.email if loggedInUser else None
+			cleanedEmailStr = cast(str, cleanedEmail.email)
+			return logggedInEmail != cleanedEmailStr and\
+				self._is_email_used(cleanedEmail)
 		except EmailNotValidError:
 			return False
 
@@ -271,63 +293,64 @@ class AccountsService:
 
 	def get_account_for_edit(
 		self,
-		userId: int
+		userId: Optional[int],
+		username: Optional[str]=None
 	) -> Optional[AccountInfo]:
-		if not userId:
+		if not userId and not username:
 			return None
-		query = select(u.username, u.displayName, u.email)\
-			.where(u.pk == userId)
-
+		query = select(u.pk.label("id"), u.username, u.displayName, u.email)
+		if userId:
+			query = query.where(u.pk == userId)
+		elif username:
+			query = query.where(u.username == username)
+		else:
+			raise ValueError("Either username or id must be provided")
 		row = self.conn.execute(query).fetchone()
 		if not row:
 			return None
-		roles = [r.role for r in self._get_roles(userId)]
+		roles = [r.role for r in self._get_roles(row["id"])]
 		return AccountInfo(
-			id=userId,
+			**row, #pyright: ignore [reportGeneralTypeIssues]
 			roles=roles,
-			**row #pyright: ignore [reportGeneralTypeIssues]
 		)
-
-	def _get_account_if_can_edit(self,\
-		userId: int,
-		currentUser: AccountInfo
-	) -> AccountInfo:
-		prev = self.get_account_for_edit(userId) if userId else None
-		if not prev:
-			raise LookupError([build_error_obj(
-				f"Account not found"
-			)])
-		if userId != currentUser.id and not currentUser.isAdmin:
-			raise IllegalOperationError([build_error_obj(
-				"Only the account owner or an admin can make changes to account"
-			)])
-		return prev
-
-	def update_email(self,
-		email: str,
-		prev: AccountInfo
-	) -> AccountInfo:
-		validEmail = validate_email(email)
-		updatedEmail: str = validEmail.email #pyright: ignore [reportGeneralTypeIssues]
-		if updatedEmail != prev.email and self._is_email_used(validEmail):
-			raise AlreadyUsedError([
-				build_error_obj(f"{email} is already used.", "email")
-			])
-		stmt = update(users).values(email = updatedEmail)\
-			.where(u.pk == prev.id)
-		self.conn.execute(stmt)
-		return AccountInfo(**{**asdict(prev), "email": updatedEmail}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-
 
 	def update_account_general_changes(
 		self,
-		accountInfo: AccountInfo,
+		updatedInfo: AccountInfoBase,
 		currentUser: AccountInfo
-	) -> Optional[AccountInfo]:
-		if not accountInfo:
-			return None
-		userId = accountInfo.id
-		prev = self._get_account_if_can_edit(userId, currentUser)
-		stmt = update(users).values(displayName = accountInfo.displayName)
+	) -> AccountInfo:
+		if not updatedInfo:
+			return currentUser
+		validEmail = validate_email(updatedInfo.email)
+		updatedEmail = cast(str, validEmail.email)
+		if updatedEmail != currentUser.email and self._is_email_used(validEmail):
+			raise AlreadyUsedError([
+				build_error_obj(f"{updatedInfo.email} is already used.", "email")
+			])
+		stmt = update(users).values(
+			displayName = updatedInfo.displayName,
+			email = updatedEmail
+		).where(u.pk == currentUser.id)
 		self.conn.execute(stmt)
-		return AccountInfo(**asdict(prev), displayName=accountInfo.displayName)
+		return AccountInfo(
+			**{**asdict(currentUser), #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+				"displayName": updatedInfo.displayName,
+				"email": updatedEmail
+			}
+		)
+
+	def update_password(
+		self,
+		passwordInfo: PasswordInfo,
+		currentUser: AccountInfo
+	) -> bool:
+		authenticated = self.authenticate_user(
+			currentUser.username,
+			passwordInfo.oldPassword.encode()
+		)
+		if not authenticated:
+			return False
+		hash = hashpw(passwordInfo.newPassword.encode())
+		stmt = update(users).values(hashedPW = hash).where(u.pk == currentUser.id)
+		self.conn.execute(stmt)
+		return True

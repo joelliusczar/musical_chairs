@@ -4,23 +4,17 @@ import { Box, Typography, Button } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { FormTextField } from "../Shared/FormTextField";
 import * as Yup from "yup";
-import { createAccount, checkValues } from "../../API_Calls/userCalls";
+import { createAccount } from "../../API_Calls/userCalls";
 import debouncePromise from "debounce-promise";
 import { useSnackbar } from "notistack";
 import { DomRoutes } from "../../constants";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { formatError } from "../../Helpers/error_formatter";
+import { validatePhraseIsUnused } from "../../Helpers/validation_helpers";
 
 
 const inputField = {
 	margin: 2,
-};
-
-const validatePhraseIsUnused = async (value, context) => {
-	const used = await checkValues({ values: {
-		[context.path]: value,
-	}});
-	return !(context.path in used) || !used[context.path];
 };
 
 const schema = Yup.object().shape({

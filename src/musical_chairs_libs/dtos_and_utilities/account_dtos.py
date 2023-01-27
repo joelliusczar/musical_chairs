@@ -15,6 +15,9 @@ class AccountInfoBase:
 	username: str
 	email: str
 	displayName: Optional[str]=""
+
+@dataclass(frozen=True)
+class AccountInfoSecurity(AccountInfoBase):
 	roles: List[str]=field(default_factory=list)
 
 	@property
@@ -29,12 +32,12 @@ class AccountInfoBase:
 
 
 @dataclass(frozen=True)
-class AccountInfo(AccountInfoBase, IdItem):
+class AccountInfo(AccountInfoSecurity, IdItem):
 	...
 
 
 @dataclass(frozen=True)
-class AuthenticatedAccount(AccountInfoBase):
+class AuthenticatedAccount(AccountInfoSecurity):
 	'''
 	This AccountInfo is only returned after successful authentication.
 	'''
@@ -43,7 +46,7 @@ class AuthenticatedAccount(AccountInfoBase):
 	lifetime: float=0
 
 @pydanticDataclass(frozen=True)
-class AccountCreationInfo(AccountInfoBase):
+class AccountCreationInfo(AccountInfoSecurity):
 	'''
 	This AccountInfo is only to the server to create an account.
 	Password is clear text here because it hasn't been hashed yet.
@@ -93,3 +96,8 @@ class RoleInfo:
 	userPk: int
 	role: str
 	creationTimestamp: float
+
+@dataclass(frozen=True)
+class PasswordInfo:
+	oldPassword: str
+	newPassword: str

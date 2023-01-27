@@ -8,25 +8,28 @@ from fastapi import (
 	HTTPException,
 	status,
 	Security,
-	Body,
 	Response,
 	Cookie
 )
 from fastapi.security import OAuth2PasswordRequestForm
 from musical_chairs_libs.services import AccountsService,\
 	ACCESS_TOKEN_EXPIRE_MINUTES
-from musical_chairs_libs.dtos_and_utilities import\
-	AccountCreationInfo,\
-	AccountInfo,\
-	AuthenticatedAccount,\
-	UserRoleDef,\
-	TableData,\
-	build_error_obj
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountCreationInfo,
+	AccountInfo,
+	AuthenticatedAccount,
+	UserRoleDef,
+	TableData,
+	AccountInfoBase,
+	build_error_obj,
+	PasswordInfo
+)
 from api_dependencies import (
 	accounts_service,
 	get_current_user,
 	get_account_if_can_edit,
-	get_user_from_token
+	get_user_from_token,
+	get_user_from_token_optional
 )
 
 
@@ -111,11 +114,12 @@ def login_with_cookie(
 def is_phrase_used(
 	username: str = "",
 	email: str = "",
+	loggedInUser: Optional[AccountInfo] = Depends(get_user_from_token_optional),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> dict[str, bool]:
 	return {
 		"username": accountsService.is_username_used(username),
-		"email": accountsService.is_email_used(email)
+		"email": accountsService.is_email_used(email, loggedInUser)
 	}
 
 @router.post("/new")
@@ -137,13 +141,32 @@ def get_user_list(
 	totalRows = accountsService.get_accounts_count()
 	return TableData(totalRows=totalRows, items=accounts)
 
-@router.put("/update-email/{userId}")
-def update_email(
-	email: str = Body(default="", embed=True),
+@router.put("")
+def update_account(
+	updatedInfo: AccountInfoBase,
 	prev: AccountInfo = Depends(get_account_if_can_edit),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	return accountsService.update_email(email, prev)
+	return accountsService.update_account_general_changes(updatedInfo, prev)
+
+
+@router.put("/update-password/")
+def update_password(
+	passwordInfo: PasswordInfo,
+	currentUser: AccountInfo = Depends(get_account_if_can_edit),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> bool:
+	if accountsService.update_password(passwordInfo, currentUser):
+		return True
+	raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[
+				build_error_obj(
+					f"Old password was incorrect.",
+					"Password"
+				)],
+		)
+
 
 @router.put("/update-roles/{userId}")
 def update_roles(
@@ -154,7 +177,7 @@ def update_roles(
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
 	return AccountInfo(**{**asdict(prev), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
-@router.get("/{userId}")
+@router.get("")
 def get_account(
 	accountInfo: AccountInfo = Depends(get_account_if_can_edit)
 ) -> AccountInfo:

@@ -6,6 +6,7 @@ import { History } from "../History/History";
 import { Stations } from "../Stations/Stations";
 import { SongCatalogue } from "../Song_Catalogue/SongCatalogue";
 import { AccountsNew } from "../Accounts/AccountsNew";
+import { AccountsEdit } from "../Accounts/AccountsEdit";
 import { LoginForm } from "../Accounts/AccountsLoginForm";
 import { AccountsList } from "../Accounts/AccountsList";
 import { AccountsRoles } from "../Accounts/AccountsRoles";
@@ -76,6 +77,9 @@ export function AppRoutes() {
 				<LoginForm
 					afterSubmit={() => urlHistory.push("")}
 				/>
+			</Route>}
+			{currentUser.username && <Route path={DomRoutes.accountsEdit} >
+				<AccountsEdit />
 			</Route>}
 			<PrivateRoute
 				scopes={[UserRoleDef.USER_LIST, UserRoleDef.USER_EDIT]}

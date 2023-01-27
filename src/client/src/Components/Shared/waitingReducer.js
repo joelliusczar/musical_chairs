@@ -1,3 +1,4 @@
+import clone from "just-clone";
 import { CallStatus } from "../../constants";
 
 export const voidState = {
@@ -31,6 +32,7 @@ export const waitingTypes = {
 	done: "done",
 	failed: "failed",
 	reset: "reset",
+	read: "read",
 	add: "add", //implemented as needed
 	update: "update", //implemented as needed
 	remove: "remove", //implemented as needed
@@ -47,6 +49,7 @@ export const dispatches = {
 		({ type: waitingTypes.update, payload: { key, dataOrUpdater } }),
 	remove: (payload) => ({ type: waitingTypes.remove, payload: payload }),
 	assign: (payload) => ({ type: waitingTypes.assign, payload: payload}),
+	read: (fn) => ({ type: waitingTypes.read, payload: fn}),
 };
 
 export const waitingReducerMap = {
@@ -73,6 +76,12 @@ export const waitingReducerMap = {
 			data: payload,
 			error: null,
 		}),
+	[waitingTypes.read]: (state, payload) =>
+	{
+		const deepCopy = clone(state);
+		payload(deepCopy);
+		return state;
+	},
 	[waitingTypes.assign]: (state, payload) =>
 		({
 			...state,

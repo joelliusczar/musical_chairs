@@ -185,46 +185,64 @@ def test_get_account_list(fixture_api_test_client: TestClient):
 	assert data["detail"][0]["msg"] ==\
 		"Insufficient permissions to perform that action"
 
-def test_change_email(fixture_api_test_client: TestClient):
+def test_update_account(fixture_api_test_client: TestClient):
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_golf", client)
+	#update email success
 	response = client.put(
-		"/accounts/update-email/7",
+		"/accounts?userId=7",
 		headers=headers,
-		json={ "email": "test_golf@test.com" }
+		json={
+			"username": "testUser_golf",
+			"email": "test_golf@test.com",
+		}
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["email"] == "test_golf@test.com"
 
+	#try to update email without being logged in
 	response = client.put(
-		"/accounts/update-email/7",
-		json={ "email": "test_golf@test.com" }
+		"/accounts?userId=7",
+		json={
+			"username": "testUser_golf",
+			"email": "test_golf@test.com",
+		},
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 401
 	assert data["detail"][0]["msg"] == "Not authenticated"
 
+	#try to update email while logged in as wrong user
 	headers = login_test_user("testUser_foxtrot", client)
 	response = client.put(
-		"/accounts/update-email/7",
+		"/accounts?userId=7",
 		headers=headers,
-		json={ "email": "test_golf@test.com" }
+		json={
+			"username": "testUser_golf",
+			"email": "test_golf@test.com",
+		}
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 403
 	assert data["detail"][0]["msg"] == \
 		"Insufficient permissions to perform that action"
 
+	#update email again success
 	headers = login_test_user(primary_user().username, client)
 	response = client.put(
-		"/accounts/update-email/7",
+		"/accounts?userId=7",
 		headers=headers,
-		json={ "email": "test_golf_again@test.com" }
+		json={
+			"username": "testUser_golf",
+			"email": "test_golf_again@test.com",
+			"displayName": "Golf-Test-User"
+		}
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["email"] == "test_golf_again@test.com"
+	assert data["displayName"] == "Golf-Test-User"
 
 def test_change_roles(fixture_api_test_client: TestClient):
 	client = fixture_api_test_client
@@ -237,3 +255,29 @@ def test_change_roles(fixture_api_test_client: TestClient):
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["roles"][0] == "user:list:"
+
+def test_get_account_info(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
+	user = primary_user()
+	headers = login_test_user(user.username, client)
+	response = client.get(
+		f"/accounts/?userId={user.id}",
+		headers=headers
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["id"] == user.id
+	assert data["username"] == user.username
+	assert data["displayName"] == None
+	assert data["email"] == user.email
+
+	response = client.get(
+		f"/accounts/?username={user.username}",
+		headers=headers
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["id"] == user.id
+	assert data["username"] == user.username
+	assert data["displayName"] == None
+	assert data["email"] == user.email

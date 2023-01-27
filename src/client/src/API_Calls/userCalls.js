@@ -59,8 +59,13 @@ export const checkValues = async ({ values }) => {
 	return response.data;
 };
 
-export const fetchUser = async ({ id }) => {
-	const response = await webClient.get(`accounts/${id}`);
+export const fetchUser = async ({ id, username }) => {
+	const response = await webClient.get("accounts", {
+		params: {
+			userId: id,
+			username,
+		},
+	});
 	return response.data;
 };
 
@@ -78,6 +83,33 @@ export const updateUserRoles = async ({ id, roles }) => {
 	return response.data;
 };
 
+export const updateAccountBasic = async ({ id, username, data }) => {
+	const response = await webClient.put("accounts", data, {
+		params: {
+			userId: id,
+			username,
+		},
+	});
+	return response.data;
+};
+
+export const updatePassword = async ({
+	id,
+	username,
+	oldPassword,
+	newPassword,
+}) => {
+	const response = await webClient.put("accounts/update-password/", {
+		oldPassword,
+		newPassword,
+	}, {
+		params: {
+			userId: id,
+			username,
+		},
+	});
+	return response.data;
+};
 
 
 

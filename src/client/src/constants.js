@@ -17,6 +17,7 @@ export const DomRoutes = {
 	songCatalogue: "/song-catalogue/",
 	songTree: "/song-info/tree/",
 	accountsNew: "/accounts/new",
+	accountsEdit: "/accounts/edit",
 	accountsLogin: "/accounts/login",
 	accountsRoles: "/accounts/roles/",
 	accountsList: "/accounts/list",

@@ -1,5 +1,5 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Iterator, Tuple
+from typing import Iterator, Tuple, Optional
 from urllib import parse
 from fastapi import Depends, HTTPException, status, Cookie
 from sqlalchemy.engine import Connection
@@ -63,6 +63,22 @@ def process_service(
 ) -> ProcessService:
 	return ProcessService(conn)
 
+def get_user_from_token_optional(
+	token: str = Depends(oauth2_scheme),
+	accountsService: AccountsService = Depends(accounts_service),
+) -> Optional[AccountInfo]:
+	try:
+		user, _ = accountsService.get_user_from_token(token)
+		return user
+	except ExpiredSignatureError:
+		raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail=[build_error_obj("Credentials are expired")],
+				headers={
+					"WWW-Authenticate": "Bearer",
+					"X-AuthExpired": "true"
+				}
+			)
 
 def get_user_from_token(
 	token: str,
@@ -94,7 +110,7 @@ def get_user_from_token(
 			)
 
 
-def get_current_user_base(
+def get_current_user_simple(
 	token: str = Depends(oauth2_scheme),
 	accountsService: AccountsService = Depends(accounts_service),
 	access_token: str = Cookie(default=None)
@@ -130,7 +146,7 @@ def time_til_user_can_do_action(
 
 def get_current_user(
 	securityScopes: SecurityScopes,
-	user: AccountInfo = Depends(get_current_user_base),
+	user: AccountInfo = Depends(get_current_user_simple),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	if user.isAdmin:
@@ -164,11 +180,13 @@ def get_current_user(
 
 
 def get_account_if_can_edit(
-	userId: int,
-	currentUser: AccountInfo = Depends(get_current_user_base),
+	userId: Optional[int]=None,
+	username: Optional[str]=None,
+	currentUser: AccountInfo = Depends(get_current_user_simple),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	if userId != currentUser.id and not currentUser.isAdmin:
+	if userId != currentUser.id and username != currentUser.username and\
+		not currentUser.isAdmin:
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,
 			detail=[build_error_obj(
@@ -176,7 +194,8 @@ def get_account_if_can_edit(
 			)],
 			headers={"WWW-Authenticate": "Bearer"}
 		)
-	prev = accountsService.get_account_for_edit(userId) if userId else None
+	prev = accountsService.get_account_for_edit(userId, username) \
+		if userId or username else None
 	if not prev:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,

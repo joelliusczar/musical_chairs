@@ -25,11 +25,13 @@ export const UserMenu = (props) => {
 		<Menu
 			open={open}
 			anchorEl={anchorEl}
+			onClose={closeMenu && closeMenu}
 		>
 			<MenuItem
 				component={Link}
 				to={`${DomRoutes.accountsEdit}` +
 				`?username=${encodeURIComponent(user.username)}`}
+				onClick={closeMenu && closeMenu}
 			>
 				Account Edit
 			</MenuItem>

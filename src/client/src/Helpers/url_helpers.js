@@ -1,4 +1,4 @@
-import { apiAddress } from "../constants";
+import { apiAddress, baseAddress } from "../constants";
 
 export const buildArrayQueryStr = (arr, key) => {
 	const queryObj = new URLSearchParams();
@@ -26,7 +26,7 @@ export const buildArrayQueryStrFromObj = (obj) => {
 };
 
 export const getListenAddress = (stationName) => {
-	return `http://${window.location.hostname}:8000/${stationName}`;
+	return `${baseAddress}/listen/stream/${stationName}`;
 };
 
 export const getDownloadAddress = (songId) => {

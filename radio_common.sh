@@ -873,7 +873,7 @@ setup_react_env_debug() (
 	envFile="$client_src"/.env.local
 	echo "$envFile"
 	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
-	echo 'REACT_APP_API_ADDRESS=https://localhost:8032' >> "$envFile"
+	echo 'REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
 	echo 'HTTPS=true' >> "$envFile"
 	echo "SSL_CRT_FILE=$(_get_debug_cert_path).public.key.pem" >> "$envFile"
 	echo "SSL_KEY_FILE=$(_get_debug_cert_path).private.key.pem" >> "$envFile"
@@ -1307,7 +1307,7 @@ setup_client() (
 	empty_dir_contents "$web_root"/"$app_client_path_cl" &&
 
 	export REACT_APP_API_VERSION=v1 &&
-	export REACT_APP_API_ADDRESS="$full_url"/api/"$REACT_APP_API_VERSION" &&
+	export REACT_APP_BASE_ADDRESS="$full_url" &&
 	#set up react then copy
 	#install packages
 	npm --prefix "$client_src" i &&

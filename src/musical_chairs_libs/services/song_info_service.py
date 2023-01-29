@@ -438,7 +438,8 @@ class SongInfoService:
 			ArtistInfo(
 				row["albumArtistId"], #pyright: ignore [reportUnknownArgumentType]
 				row["Artist.Name"] #pyright: ignore [reportUnknownArgumentType]
-			)) for row in records) #pyright: ignore [reportUnknownVariableType, reportUnknownArgumentType]
+			) if row["albumArtistId"] else None
+			) for row in records) #pyright: ignore [reportUnknownVariableType, reportUnknownArgumentType]
 
 	def get_artists(self,
 		page: int = 0,

@@ -1,5 +1,11 @@
-export const apiAddress = process.env.REACT_APP_API_ADDRESS;
+export const baseAddress = process.env.REACT_APP_BASE_ADDRESS;
 export const apiVersion = process.env.REACT_APP_API_VERSION;
+export const isDev = process.env.NODE_ENV === "development";
+export const apiAddress = isDev ?
+	baseAddress : `${baseAddress}/api/${apiVersion}`;
+
+
+
 
 export const CallStatus = {
 	loading: "loading",

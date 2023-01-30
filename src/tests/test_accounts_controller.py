@@ -254,7 +254,7 @@ def test_change_roles(fixture_api_test_client: TestClient):
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["roles"][0] == "user:list:"
+	assert data["roles"][0] == "name=user:list"
 
 def test_get_account_info(fixture_api_test_client: TestClient):
 	client = fixture_api_test_client

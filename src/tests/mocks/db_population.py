@@ -846,32 +846,32 @@ def populate_user_roles(
 		},
 		{
 			"userFk": 2,
-			"role": UserRoleDef.STATION_REQUEST.modded_value(15),
+			"role": UserRoleDef.STATION_REQUEST.modded_value(span=15),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
 			"userFk": 3,
-			"role": UserRoleDef.STATION_REQUEST.modded_value(15),
+			"role": UserRoleDef.STATION_REQUEST.modded_value(span=15),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
 			"userFk": 4,
-			"role": UserRoleDef.STATION_REQUEST.modded_value(15),
+			"role": UserRoleDef.STATION_REQUEST.modded_value(span=15),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
 			"userFk": 4,
-			"role": UserRoleDef.SONG_EDIT.modded_value(120),
+			"role": UserRoleDef.SONG_EDIT.modded_value(span=120),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
 			"userFk": 6,
-			"role": UserRoleDef.STATION_REQUEST.modded_value(15),
+			"role": UserRoleDef.STATION_REQUEST.modded_value(span=15),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
 			"userFk": 6,
-			"role": UserRoleDef.SONG_EDIT.modded_value(120),
+			"role": UserRoleDef.SONG_EDIT.modded_value(span=120),
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{

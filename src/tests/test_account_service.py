@@ -205,16 +205,16 @@ def test_unique_roles():
 	with pytest.raises(StopIteration):
 		next(gen)
 	testRoles2 = [
-		UserRoleDef.STATION_REQUEST.modded_value(5),
-		UserRoleDef.STATION_REQUEST.modded_value("15")
+		UserRoleDef.STATION_REQUEST.modded_value(span=5),
+		UserRoleDef.STATION_REQUEST.modded_value(span="15")
 	]
 	gen = UserRoleDef.remove_repeat_roles(testRoles2)
 	results = list(gen)
 	assert len(results) == 1
-	assert results[0] == f"name={UserRoleDef.STATION_REQUEST.value};mod=5"
+	assert results[0] == f"name={UserRoleDef.STATION_REQUEST.value};span=5"
 	testRoles3 = [
 		f"name={UserRoleDef.STATION_REQUEST.value}",
-		f"name={UserRoleDef.STATION_REQUEST.value};mod=15"
+		f"name={UserRoleDef.STATION_REQUEST.value};span=15"
 	]
 	gen = UserRoleDef.remove_repeat_roles(testRoles3)
 	results = list(gen)
@@ -222,25 +222,25 @@ def test_unique_roles():
 	assert results[0] == UserRoleDef.STATION_REQUEST.modded_value()
 	testRoles4 = [
 		f"name={UserRoleDef.STATION_REQUEST.value}",
-		f"name={UserRoleDef.STATION_REQUEST.value};mod=15",
-		f"name={UserRoleDef.SONG_EDIT.value};mod=60",
-		f"name={UserRoleDef.SONG_EDIT.value};mod=15",
+		f"name={UserRoleDef.STATION_REQUEST.value};span=15",
+		f"name={UserRoleDef.SONG_EDIT.value};span=60",
+		f"name={UserRoleDef.SONG_EDIT.value};span=15",
 		f"name={UserRoleDef.USER_LIST.value}"
 	]
 	gen = UserRoleDef.remove_repeat_roles(testRoles4)
 	results = sorted(list(gen))
 	assert len(results) == 3
-	assert results[0] == UserRoleDef.SONG_EDIT.modded_value("15")
+	assert results[0] == UserRoleDef.SONG_EDIT.modded_value(span="15")
 	assert results[1] == UserRoleDef.STATION_REQUEST.modded_value()
-	assert results[2] == UserRoleDef.USER_LIST.modded_value("")
+	assert results[2] == UserRoleDef.USER_LIST.modded_value(span="")
 
 
 def test_count_repeat_roles():
 	testRoles = [
 		UserRoleDef.STATION_REQUEST.value,
-		UserRoleDef.STATION_REQUEST.modded_value("15"),
-		UserRoleDef.SONG_EDIT.modded_value(60),
-		UserRoleDef.SONG_EDIT.modded_value(15),
+		UserRoleDef.STATION_REQUEST.modded_value(span="15"),
+		UserRoleDef.SONG_EDIT.modded_value(span=60),
+		UserRoleDef.SONG_EDIT.modded_value(span=15),
 		UserRoleDef.USER_LIST.modded_value()
 	]
 	result = UserRoleDef.count_repeat_roles(testRoles)
@@ -270,63 +270,63 @@ def test_save_roles(
 	accountService = fixture_account_service_mock_current_time
 	accountInfo = accountService.get_account_for_edit(6)
 	assert accountInfo and len(accountInfo.roles) == 2
-	assert accountInfo and accountInfo.roles[0] == "name=song:edit;mod=120"
-	assert accountInfo and accountInfo.roles[1] == "name=station:request;mod=15"
+	assert accountInfo and accountInfo.roles[0] == "name=song:edit;span=120"
+	assert accountInfo and accountInfo.roles[1] == "name=station:request;span=15"
 
 
 	result = list(sorted(accountService.save_roles(6, accountInfo.roles)))
 	assert len(result) == 2
-	assert result[0] == "name=song:edit;mod=120"
-	assert result[1] == "name=station:request;mod=15"
+	assert result[0] == "name=song:edit;span=120"
+	assert result[1] == "name=station:request;span=15"
 	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 2
-	assert fetched[0] == "name=song:edit;mod=120"
-	assert fetched[1] == "name=station:request;mod=15"
+	assert fetched[0] == "name=song:edit;span=120"
+	assert fetched[1] == "name=station:request;span=15"
 
 
 	nextSet = [*result, UserRoleDef.USER_LIST.value]
 	result = list(sorted(accountService.save_roles(6, nextSet)))
 	assert len(result) == 3
-	assert result[0] == "name=song:edit;mod=120"
-	assert result[1] == "name=station:request;mod=15"
+	assert result[0] == "name=song:edit;span=120"
+	assert result[1] == "name=station:request;span=15"
 	assert result[2] == "name=user:list"
 	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 3
-	assert fetched[0] == "name=song:edit;mod=120"
-	assert fetched[1] == "name=station:request;mod=15"
+	assert fetched[0] == "name=song:edit;span=120"
+	assert fetched[1] == "name=station:request;span=15"
 	assert fetched[2] == "name=user:list"
 
 
 	nextSet = [*result, UserRoleDef.USER_LIST.value]
 	result = list(sorted(accountService.save_roles(6, nextSet)))
 	assert len(result) == 3
-	assert result[0] == "name=song:edit;mod=120"
-	assert result[1] == "name=station:request;mod=15"
+	assert result[0] == "name=song:edit;span=120"
+	assert result[1] == "name=station:request;span=15"
 	assert result[2] == "name=user:list"
 	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 3
-	assert fetched[0] == "name=song:edit;mod=120"
-	assert fetched[1] == "name=station:request;mod=15"
+	assert fetched[0] == "name=song:edit;span=120"
+	assert fetched[1] == "name=station:request;span=15"
 	assert fetched[2] == "name=user:list"
 
 
-	nextSet = ["name=station:request;mod=15", "name=user:list"]
+	nextSet = ["name=station:request;span=15", "name=user:list"]
 	result = list(sorted(accountService.save_roles(6, nextSet)))
 	assert len(result) == 2
-	assert result[0] == "name=station:request;mod=15"
+	assert result[0] == "name=station:request;span=15"
 	assert result[1] == "name=user:list"
 	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 2
-	assert fetched[0] == "name=station:request;mod=15"
+	assert fetched[0] == "name=station:request;span=15"
 	assert fetched[1] == "name=user:list"
 
 
-	nextSet = ["name=user:list", "name=song:edit;mod=120"]
+	nextSet = ["name=user:list", "name=song:edit;span=120"]
 	result = list(sorted(accountService.save_roles(6, nextSet)))
 	assert len(result) == 2
-	assert result[0] == "name=song:edit;mod=120"
+	assert result[0] == "name=song:edit;span=120"
 	assert result[1] == "name=user:list"
 	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
 	assert len(fetched) == 2
-	assert fetched[0] == "name=song:edit;mod=120"
+	assert fetched[0] == "name=song:edit;span=120"
 	assert fetched[1] == "name=user:list"

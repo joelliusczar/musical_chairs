@@ -1,13 +1,18 @@
 from enum import Enum
-from typing import\
-	Optional,\
-	Union,\
-	Set,\
-	Tuple,\
-	Sequence,\
-	Iterator,\
-	Iterable
+from typing import (
+	Union,
+	Set,
+	Tuple,
+	Sequence,
+	Iterator,
+	Iterable,
+	Optional
+)
 from collections import Counter
+from .type_aliases import (
+	s2sDict,
+	simpleDict
+)
 
 def _kvpSplit(kvp: str) -> Tuple[str, str]:
 	eqSplit = kvp.split("=")
@@ -28,8 +33,8 @@ class UserRoleDef(Enum):
 	USER_LIST = "user:list"
 	USER_EDIT = "user:edit"
 
-	def __call__(self, mod: Optional[Union[str, int]]=None) -> str:
-		return self.modded_value(mod)
+	def __call__(self, **kwargs: Union[str, int]) -> str:
+		return self.modded_value(**kwargs)
 
 	def conforms(self, candidate: str) -> bool:
 		return candidate.startswith(self.nameValue)
@@ -43,12 +48,12 @@ class UserRoleDef(Enum):
 		return {r.value for r in UserRoleDef}
 
 	@staticmethod
-	def role_dict(role: str) -> dict[str, str]:
+	def role_dict(role: str) -> s2sDict:
 		return {p[0]:p[1] for p in (_kvpSplit(k) for k in role.split(";"))}
 
 	@staticmethod
-	def role_str(roleDict: dict[str, str]) -> str:
-		return ";".join(f"{k}={v}" for k,v in roleDict.items())
+	def role_str(roleDict: simpleDict) -> str:
+		return ";".join(sorted(f"{k}={v}" for k,v in roleDict.items() if v != ""))
 
 	@staticmethod
 	def extract_role_segments(role: str) -> Tuple[str, int]:
@@ -63,12 +68,12 @@ class UserRoleDef(Enum):
 	def remove_repeat_roles(roles: Sequence[str]) -> Iterator[str]:
 		if not roles or not len(roles):
 			return iter(())
-		roleDupChecker: dict[str, dict[str, str]] = {}
+		roleDupChecker: dict[str, s2sDict] = {}
 		for role in roles:
 			roleDict = UserRoleDef.role_dict(role)
 			if roleDict["name"] in roleDupChecker:
 				previousRoleDict = roleDupChecker[roleDict["name"]]
-				if int(roleDict.get("mod",0)) < int(previousRoleDict.get("mod",0)):
+				if int(roleDict.get("span",0)) < int(previousRoleDict.get("span",0)):
 					roleDupChecker[roleDict["name"]] = roleDict
 			else:
 				roleDupChecker[roleDict["name"]] = roleDict
@@ -78,7 +83,11 @@ class UserRoleDef(Enum):
 	def count_repeat_roles(roles: Iterable[str]) -> dict[str, int]:
 		return Counter(UserRoleDef.role_dict(r)['name'] for r in roles)
 
-	def modded_value(self, mod: Optional[Union[str, int]]=None) -> str:
-		if not mod:
-			return self.nameValue
-		return f"{self.nameValue};mod={mod}"
+	def modded_value(
+		self,
+		**kwargs: Optional[Union[str, int]]
+	) -> str:
+		if "name" in kwargs and kwargs["name"] != self.value:
+			raise RuntimeError("Name should not be provided.")
+		kwargs["name"] = self.value
+		return UserRoleDef.role_str(kwargs)

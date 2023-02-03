@@ -131,7 +131,7 @@ def time_til_user_can_do_action(
 	if user.isAdmin:
 		return 0
 	requestRoles = [r for r in user.roles \
-		if r.startswith(role())]
+		if r.startswith(role.nameValue)]
 	if not any(requestRoles):
 		return -1
 	timeout = min([UserRoleDef.extract_role_segments(r)[1] for r \
@@ -151,15 +151,13 @@ def get_current_user(
 ) -> AccountInfo:
 	if user.isAdmin:
 		return user
-	roleMap = {r():r for r in UserRoleDef}
+	#roleMap = {r.value:r for r in UserRoleDef}
 	roleModSet = {UserRoleDef.extract_role_segments(r)[0] for r in user.roles}
 	for scope in securityScopes.scopes:
-		if scope in roleModSet:
-			timeleft = time_til_user_can_do_action(
-				user,
-				roleMap[scope],
-				accountsService
-			)
+		roleDict = UserRoleDef.role_dict(scope)
+		if roleDict["name"] in roleModSet:
+			#TODO: replace 0 a fuction call
+			timeleft = 0
 			if timeleft:
 				raise HTTPException(
 					status_code=status.HTTP_429_TOO_MANY_REQUESTS,

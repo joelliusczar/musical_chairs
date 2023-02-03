@@ -201,7 +201,7 @@ def test_unique_roles():
 	testRoles1 = [UserRoleDef.STATION_REQUEST.value]
 	gen = UserRoleDef.remove_repeat_roles(testRoles1)
 	result = next(gen)
-	assert result == UserRoleDef.STATION_REQUEST.value
+	assert result == f"name={UserRoleDef.STATION_REQUEST.value}"
 	with pytest.raises(StopIteration):
 		next(gen)
 	testRoles2 = [
@@ -211,21 +211,21 @@ def test_unique_roles():
 	gen = UserRoleDef.remove_repeat_roles(testRoles2)
 	results = list(gen)
 	assert len(results) == 1
-	assert results[0] == f"{UserRoleDef.STATION_REQUEST.value};mod=5"
+	assert results[0] == f"name={UserRoleDef.STATION_REQUEST.value};mod=5"
 	testRoles3 = [
-		f"{UserRoleDef.STATION_REQUEST.value}",
-		f"{UserRoleDef.STATION_REQUEST.value};mod=15"
+		f"name={UserRoleDef.STATION_REQUEST.value}",
+		f"name={UserRoleDef.STATION_REQUEST.value};mod=15"
 	]
 	gen = UserRoleDef.remove_repeat_roles(testRoles3)
 	results = list(gen)
 	assert len(results) == 1
 	assert results[0] == UserRoleDef.STATION_REQUEST.modded_value()
 	testRoles4 = [
-		f"{UserRoleDef.STATION_REQUEST.value}",
-		f"{UserRoleDef.STATION_REQUEST.value};mod=15",
-		f"{UserRoleDef.SONG_EDIT.value};mod=60",
-		f"{UserRoleDef.SONG_EDIT.value};mod=15",
-		f"{UserRoleDef.USER_LIST.value}"
+		f"name={UserRoleDef.STATION_REQUEST.value}",
+		f"name={UserRoleDef.STATION_REQUEST.value};mod=15",
+		f"name={UserRoleDef.SONG_EDIT.value};mod=60",
+		f"name={UserRoleDef.SONG_EDIT.value};mod=15",
+		f"name={UserRoleDef.USER_LIST.value}"
 	]
 	gen = UserRoleDef.remove_repeat_roles(testRoles4)
 	results = sorted(list(gen))

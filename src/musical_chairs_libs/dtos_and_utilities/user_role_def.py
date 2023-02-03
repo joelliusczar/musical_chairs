@@ -11,23 +11,29 @@ from collections import Counter
 
 def _kvpSplit(kvp: str) -> Tuple[str, str]:
 	eqSplit = kvp.split("=")
+	if len(eqSplit) < 2:
+		return "name", kvp
 	return eqSplit[0], eqSplit[1]
 
 class UserRoleDef(Enum):
-	ADMIN = "name=admin"
-	SONG_EDIT = "name=song:edit"
-	SONG_DOWNLOAD = "name=song:download"
-	SONG_TREE_LIST = "name=songtree:list"
-	STATION_EDIT = "name=station:edit"
-	STATION_DELETE = "name=station:delete"
-	STATION_REQUEST = "name=station:request"
-	STATION_FLIP = "name=station:flip"
-	STATION_SKIP = "name=station:skip"
-	USER_LIST = "name=user:list"
-	USER_EDIT = "name=user:edit"
+	ADMIN = "admin"
+	SONG_EDIT = "song:edit"
+	SONG_DOWNLOAD = "song:download"
+	SONG_TREE_LIST = "songtree:list"
+	STATION_EDIT = "station:edit"
+	STATION_DELETE = "station:delete"
+	STATION_REQUEST = "station:request"
+	STATION_FLIP = "station:flip"
+	STATION_SKIP = "station:skip"
+	USER_LIST = "user:list"
+	USER_EDIT = "user:edit"
 
 	def __call__(self, mod: Optional[Union[str, int]]=None) -> str:
 		return self.modded_value(mod)
+
+	@property
+	def nameValue(self):
+		return f"name={self.value}"
 
 	@staticmethod
 	def as_set() -> Set[str]:
@@ -47,7 +53,7 @@ class UserRoleDef(Enum):
 		if "name" in roleDict:
 			nameValue = roleDict["name"]
 			mod = int(roleDict["mod"]) if "mod" in roleDict else -1
-			return (f"name={nameValue}", mod)
+			return (nameValue, mod)
 		return ("", 0)
 
 	@staticmethod
@@ -67,9 +73,9 @@ class UserRoleDef(Enum):
 
 	@staticmethod
 	def count_repeat_roles(roles: Iterable[str]) -> dict[str, int]:
-		return Counter(f"name={UserRoleDef.role_dict(r)['name']}" for r in roles)
+		return Counter(UserRoleDef.role_dict(r)['name'] for r in roles)
 
 	def modded_value(self, mod: Optional[Union[str, int]]=None) -> str:
 		if not mod:
-			return self.value
-		return f"{self.value};mod={mod}"
+			return self.nameValue
+		return f"{self.nameValue};mod={mod}"

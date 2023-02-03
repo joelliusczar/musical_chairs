@@ -841,7 +841,7 @@ def populate_user_roles(
 	userRoleParams = [
 		{
 			"userFk": primaryUser.id,
-			"role": UserRoleDef.ADMIN.value,
+			"role": f"name={UserRoleDef.ADMIN.value}",
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{
@@ -876,7 +876,7 @@ def populate_user_roles(
 		},
 		{
 			"userFk": 7,
-			"role": UserRoleDef.USER_LIST.value,
+			"role": f"name={UserRoleDef.USER_LIST.value}",
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{

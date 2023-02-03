@@ -34,6 +34,10 @@ const expireCookie = (name) => {
 	document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;";
 };
 
+export const conformsToRole = (candidate, basis) => {
+	return candidate.startsWith(`name=${basis}`);
+};
+
 
 const AuthContext = createContext();
 
@@ -68,11 +72,14 @@ export const AuthContextProvider = (props) => {
 		const username = decodeURIComponent(
 			kvps.find(kvp => kvp.startsWith("username"))?.split("=")[1] || ""
 		);
+
 		const displayName = decodeURIComponent(
 			kvps.find(kvp => kvp.startsWith("displayName"))
 				?.split("=")[1] || username
 		);
+
 		if(!document.cookie) return;
+
 		dispatch(dispatches.assign({username, displayName}));
 		const asyncCall = async () => {
 			try {
@@ -119,11 +126,11 @@ export const useHasAnyRoles = (requiredRoles) => {
 	if(!requiredRoles || requiredRoles.length < 1) return true;
 	const { state: { data } } = useContext(AuthContext);
 	const userRoles = data?.roles;
-	if(userRoles?.some(r => r.startsWith(UserRoleDef.ADMIN))) {
+	if(userRoles?.some(r => conformsToRole(r, UserRoleDef.ADMIN))) {
 		return true;
 	}
 	for (const role of requiredRoles) {
-		if(userRoles?.some(r => r.startsWith(role))) {
+		if(userRoles?.some(r => conformsToRole(r, role))) {
 			return true;
 		}
 	}

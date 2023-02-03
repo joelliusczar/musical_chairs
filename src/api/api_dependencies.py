@@ -131,7 +131,7 @@ def time_til_user_can_do_action(
 	if user.isAdmin:
 		return 0
 	requestRoles = [r for r in user.roles \
-		if r.startswith(role.nameValue)]
+		if role.conforms(r)]
 	if not any(requestRoles):
 		return -1
 	timeout = min([UserRoleDef.extract_role_segments(r)[1] for r \

@@ -31,6 +31,9 @@ class UserRoleDef(Enum):
 	def __call__(self, mod: Optional[Union[str, int]]=None) -> str:
 		return self.modded_value(mod)
 
+	def conforms(self, candidate: str) -> bool:
+		return candidate.startswith(self.nameValue)
+
 	@property
 	def nameValue(self):
 		return f"name={self.value}"

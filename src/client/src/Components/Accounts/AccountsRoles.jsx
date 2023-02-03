@@ -8,7 +8,10 @@ import { NotFound } from "../Shared/RoutingErrors";
 import { updateUserRoles, fetchUser } from "../../API_Calls/userCalls";
 import { CallStatus } from "../../constants";
 import Loader from "../Shared/Loader";
-import { useCurrentUser } from "../../Context_Providers/AuthContext";
+import {
+	useCurrentUser,
+	conformsToRole,
+} from "../../Context_Providers/AuthContext";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 
@@ -59,7 +62,8 @@ export const AccountsRoles = () => {
 		const role = watchAll.tmpRole;
 		const mod = watchAll.tmpRoleMod;
 		const moddedRole = mod ? `${role}:${mod}` : role;
-		const idx = watchAll.accountInfo.roles.findIndex(r => r.startsWith(role));
+		const idx = watchAll.accountInfo.roles
+			.findIndex(r => conformsToRole(r, role));
 		if(idx === -1) {
 			if(role === UserRoleDef.ADMIN) {
 				setValue("accountInfo.roles", [UserRoleDef.ADMIN]);

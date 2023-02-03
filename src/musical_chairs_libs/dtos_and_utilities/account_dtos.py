@@ -27,7 +27,7 @@ class AccountInfoSecurity(AccountInfoBase):
 	@property
 	def isAdmin(self) -> bool:
 		return UserRoleDef.ADMIN.value in \
-			(UserRoleDef.extract_role_segments(r)[0] for r in self.roles)
+			(UserRoleDef.role_dict(r)["name"] for r in self.roles)
 
 
 
@@ -78,7 +78,7 @@ class AccountCreationInfo(AccountInfoSecurity):
 	def are_all_roles_allowed(cls, v: List[str]) -> List[str]:
 		roleSet = UserRoleDef.as_set()
 		duplicate = next(get_duplicates(
-			UserRoleDef.extract_role_segments(r)[0] for r in v
+			UserRoleDef.role_dict(r)["name"] for r in v
 		), None)
 		if duplicate:
 			raise ValueError(
@@ -86,7 +86,7 @@ class AccountCreationInfo(AccountInfoSecurity):
 				"but it is only legal to add it once."
 			)
 		for role in v:
-			extracted = UserRoleDef.extract_role_segments(role)[0]
+			extracted = UserRoleDef.role_dict(role)["name"]
 			if extracted not in roleSet:
 				raise ValueError(f"{role} is an illegal role")
 		return v

@@ -152,7 +152,7 @@ def get_current_user(
 	if user.isAdmin:
 		return user
 	#roleMap = {r.value:r for r in UserRoleDef}
-	roleModSet = {UserRoleDef.extract_role_segments(r)[0] for r in user.roles}
+	roleModSet = {UserRoleDef.role_dict(r)["name"] for r in user.roles}
 	for scope in securityScopes.scopes:
 		roleDict = UserRoleDef.role_dict(scope)
 		if roleDict["name"] in roleModSet:

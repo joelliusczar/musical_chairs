@@ -1,9 +1,15 @@
 import pytest
-from musical_chairs_libs.services import StationService
+from musical_chairs_libs.services import (
+	StationService,
+	AccountsService,
+	UserRoleDomain
+)
 from musical_chairs_libs.dtos_and_utilities import StationCreationInfo
 from .constant_fixtures_for_test import *
-from .common_fixtures import \
-	fixture_station_service as fixture_station_service
+from .common_fixtures import (
+	fixture_station_service as fixture_station_service,
+	fixture_account_service as fixture_account_service
+)
 from .common_fixtures import *
 from .mocks.db_population import get_initial_stations
 
@@ -66,3 +72,45 @@ def test_save_station(fixture_station_service: StationService):
 	fetched = stationService.get_station_for_edit(result.id)
 	assert fetched and fetched.name == "oscar_station"
 	assert fetched and fetched.displayName == "Oscar the grouch"
+
+def test_get_station_user_rule_selection(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+):
+	stationService = fixture_station_service
+	accountService = fixture_account_service
+
+	user,_ = accountService.get_account_for_login("testUser_november")
+	assert user
+	stationUser = stationService.get_station_user(user,3)
+	assert stationUser
+	assert len(stationUser.roles) == 1
+	assert stationUser.roles[0].id == 6
+	stationUser = stationService.get_station_user(user,4)
+	assert stationUser
+	assert len(stationUser.roles) == 1
+	assert stationUser.roles[0].id == 5
+	user,_ = accountService.get_account_for_login("testUser_oscar")
+	assert user
+	stationUser = stationService.get_station_user(user,3)
+	assert stationUser
+	assert len(stationUser.roles) == 1
+	assert stationUser.roles[0].id == 7
+
+	user,_ = accountService.get_account_for_login("testUser_papa")
+	assert user
+	stationUser = stationService.get_station_user(user,3)
+	assert stationUser
+	assert len(stationUser.roles) == 1
+	assert stationUser.roles[0].id == 10
+
+	user,_ = accountService.get_account_for_login("testUser_quebec")
+	assert user
+	stationUser = stationService.get_station_user(user,3)
+	assert stationUser
+	assert len(stationUser.roles) == 2
+	assert stationUser.roles[0].id == None
+	assert stationUser.roles[0].domain == UserRoleDomain.Site
+
+	assert stationUser.roles[1].id == 12
+	assert stationUser.roles[1].domain == UserRoleDomain.Station

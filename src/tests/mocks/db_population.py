@@ -2,15 +2,17 @@ from datetime import datetime
 from typing import List, Any
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import AccountInfo, UserRoleDef
-from musical_chairs_libs.tables import \
-	artists, \
-	albums, \
-	songs, \
-	song_artist, \
-	stations, \
-	users,\
-	userRoles,\
-	stations_songs
+from musical_chairs_libs.tables import (
+	artists,
+	albums,
+	songs,
+	song_artist,
+	stations,
+	users,
+	userRoles,
+	stations_songs,
+	station_user_permissions
+)
 from sqlalchemy import insert
 from .special_strings_reference import chinese1, irish1
 
@@ -828,6 +830,69 @@ def populate_users(
 			"email": "test10@test.com",
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 11,
+			"username": "testUser_kilo",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test11@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 12,
+			"username": "testUser_lima",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test12@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 13,
+			"username": "testUser_mike",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test13@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 14,
+			"username": "testUser_november",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test14@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 15,
+			"username": "testUser_oscar",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test15@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 16,
+			"username": "testUser_papa",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test16@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
+		},
+		{
+			"pk": 17,
+			"username": "testUser_quebec",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test17@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp()
 		}
 	]
 	stmt = insert(users)
@@ -841,53 +906,217 @@ def populate_user_roles(
 	userRoleParams = [
 		{
 			"userFk": primaryUser.id,
-			"role": f"name={UserRoleDef.ADMIN.value}",
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"role": UserRoleDef.ADMIN.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
 		},
 		{
 			"userFk": 2,
-			"role": UserRoleDef.STATION_REQUEST.modded_value(span=15),
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
 		},
 		{
 			"userFk": 3,
-			"role": UserRoleDef.STATION_REQUEST.modded_value(span=15),
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
 		},
 		{
 			"userFk": 4,
-			"role": UserRoleDef.STATION_REQUEST.modded_value(span=15),
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
 		},
 		{
 			"userFk": 4,
-			"role": UserRoleDef.SONG_EDIT.modded_value(span=120),
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"role": UserRoleDef.SONG_EDIT.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
 		},
 		{
 			"userFk": 6,
-			"role": UserRoleDef.STATION_REQUEST.modded_value(span=15),
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
 		},
 		{
 			"userFk": 6,
 			"role": UserRoleDef.SONG_EDIT.modded_value(span=120),
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
 		},
 		{
 			"userFk": 7,
 			"role": f"name={UserRoleDef.USER_LIST.value}",
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
 		},
 		{
 			"userFk": 10,
 			"role": UserRoleDef.STATION_EDIT(),
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
+		},
+		{
+			"userFk": 17,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span":300,
+			"count":15,
+			"priority": None
 		}
 
 	]
 	stmt = insert(userRoles)
 	conn.execute(stmt, userRoleParams) #pyright: ignore [reportUnknownMemberType]
+
+def populate_station_permissions(
+	conn: Connection,
+	orderedTestDates: List[datetime],
+):
+	stationPermissionParams = [
+		{
+			"pk":1,
+			"userFk": 11,
+			"stationFk": 3,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":2,
+			"userFk": 12,
+			"stationFk": None,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":3,
+			"userFk": 13,
+			"stationFk": None,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":4,
+			"userFk": 13,
+			"stationFk": 3,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":5,
+			"userFk": 14,
+			"stationFk": None,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":300,
+			"count":10,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":6,
+			"userFk": 14,
+			"stationFk": 3,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":300,
+			"count":5,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":7,
+			"userFk": 15,
+			"stationFk": None,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":120,
+			"count":5,
+			"priority": 2,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":8,
+			"userFk": 15,
+			"stationFk": 3,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":60,
+			"count":5,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":9,
+			"userFk": 16,
+			"stationFk": None,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":300,
+			"count":20,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":10,
+			"userFk": 16,
+			"stationFk": 3,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":300,
+			"count":25,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":11,
+			"userFk": 17,
+			"stationFk": None,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":300,
+			"count":20,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":12,
+			"userFk": 17,
+			"stationFk": 3,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":300,
+			"count":25,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		}
+	]
+	stmt = insert(station_user_permissions)
+	conn.execute(stmt, stationPermissionParams) #pyright: ignore [reportUnknownMemberType]
 
 
 #don't remember why I am using using funcs to return these global variables

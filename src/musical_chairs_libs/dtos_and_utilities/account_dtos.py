@@ -1,7 +1,8 @@
-from typing import\
-	Any,\
-	List,\
+from typing import (
+	Any,
+	List,
 	Optional
+)
 from pydantic import validator
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
@@ -9,6 +10,8 @@ from .user_role_def import UserRoleDef
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, validate_email
 from .generic_dtos import IdItem
+from .action_rule_dtos import ActionRule
+
 
 @dataclass(frozen=True)
 class AccountInfoBase:
@@ -18,7 +21,7 @@ class AccountInfoBase:
 
 @dataclass(frozen=True)
 class AccountInfoSecurity(AccountInfoBase):
-	roles: List[str]=field(default_factory=list)
+	roles: List[ActionRule]=field(default_factory=list)
 
 	@property
 	def preferredName(self) -> str:
@@ -26,8 +29,7 @@ class AccountInfoSecurity(AccountInfoBase):
 
 	@property
 	def isAdmin(self) -> bool:
-		return UserRoleDef.ADMIN.value in \
-			(UserRoleDef.role_dict(r)["name"] for r in self.roles)
+		return any(r.conforms(UserRoleDef.ADMIN.value) for r in self.roles)
 
 
 
@@ -91,13 +93,13 @@ class AccountCreationInfo(AccountInfoSecurity):
 				raise ValueError(f"{role} is an illegal role")
 		return v
 
-@dataclass(frozen=True)
-class RoleInfo:
-	userPk: int
-	role: str
-	creationTimestamp: float
 
 @dataclass(frozen=True)
 class PasswordInfo:
 	oldPassword: str
 	newPassword: str
+
+
+@dataclass(frozen=True)
+class StationUserInfo(AccountInfo):
+	stationId: Optional[int]=None

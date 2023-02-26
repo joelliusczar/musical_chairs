@@ -9,12 +9,15 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
-from controllers import\
-	stations_controller,\
-	accounts_controller,\
+from controllers import (
+	stations_controller,
+	accounts_controller,
 	song_info_controller
-from musical_chairs_libs.dtos_and_utilities import build_error_obj
-from musical_chairs_libs.errors import AlreadyUsedError
+)
+from musical_chairs_libs.dtos_and_utilities import (
+	build_error_obj,
+	AlreadyUsedError
+)
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
 

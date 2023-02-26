@@ -68,6 +68,7 @@ songs = Table("Songs", metadata,
 	Column("lyrics", String, nullable=True),
 	Column("duration", Float, nullable=True),
 	Column("sampleRate", Float, nullable=True),
+	Column("isDirectoryPlaceholder", Integer, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True)
@@ -134,15 +135,71 @@ station_queue = Table("StationQueue", metadata,
 	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True)
 )
 
-
 userRoles = Table("UserRoles", metadata,
 	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
 	Column("role", String),
+	Column("span", Float, nullable=False),
+	Column("count", Float, nullable=False),
+	Column("priority", Integer),
 	Column("creationTimestamp", Float, nullable=False)
 )
-_ur_userFk: Any = userRoles.c.userFk #pyright: ignore reportUnknownMemberType
-_ur_role: Any = userRoles.c.role #pyright: ignore reportUnknownMemberType
-Index("idx_userRoles", _ur_userFk, _ur_role, unique=True)
+ur_userFk: Column = userRoles.c.userFk #pyright: ignore reportUnknownMemberType
+ur_role: Column = userRoles.c.role #pyright: ignore reportUnknownMemberType
+ur_span: Column = userRoles.c.span #pyright: ignore reportUnknownMemberType
+ur_count: Column = userRoles.c.count #pyright: ignore reportUnknownMemberType
+ur_priority: Column = userRoles.c.priority #pyright: ignore reportUnknownMemberType
+Index("idx_userRoles", ur_userFk, ur_role, unique=True)
+
+station_user_permissions = Table("StationUserPermissions", metadata,
+	Column("pk", Integer, primary_key=True),
+	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=True),
+	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
+	Column("role", String),
+	Column("span", Float, nullable=False),
+	Column("count", Float, nullable=False),
+	Column("priority", Integer),
+	Column("creationTimestamp", Float, nullable=False)
+)
+stup: TblCols = station_user_permissions.c #pyright: ignore [reportUnknownMemberType]
+stup_stationFk: Column = stup.stationFk #pyright: ignore reportUnknownMemberType
+stup_pk: Column = stup.pk #pyright: ignore reportUnknownMemberType
+stup_userFk: Column = stup.userFk #pyright: ignore reportUnknownMemberType
+stup_role: Column = stup.role #pyright: ignore reportUnknownMemberType
+stup_span: Column = stup.span #pyright: ignore reportUnknownMemberType
+stup_count: Column = stup.count #pyright: ignore reportUnknownMemberType
+stup_priority: Column = stup.priority #pyright: ignore reportUnknownMemberType
+
+
+Index(
+	"idx_stationPermissions",
+	stup_stationFk,
+	stup_userFk,
+	stup_role,
+	unique=True
+)
+
+pathUserPermissions = Table("PathUserPermissions", metadata,
+	Column("pk", Integer, primary_key=True),
+	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
+	Column("path", String, nullable=False),
+	Column("role", String),
+	Column("span", Float, nullable=False),
+	Column("count", Float, nullable=False),
+	Column("priority", Integer),
+	Column("creationTimestamp", Float, nullable=False)
+)
+
+_pup_userFk: Column = pathUserPermissions.c.userFk #pyright: ignore reportUnknownMemberType
+_pup_path: Column = pathUserPermissions.c.path #pyright: ignore reportUnknownMemberType
+_pup_role: Column = pathUserPermissions.c.role #pyright: ignore reportUnknownMemberType
+
+Index(
+	"idx_pathPermissions",
+	_pup_userFk,
+	_pup_path,
+	_pup_role,
+	unique=True
+)
 
 
 sg: TblCols = songs.c #pyright: ignore [reportUnknownMemberType]

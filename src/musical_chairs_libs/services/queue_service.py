@@ -42,14 +42,15 @@ from musical_chairs_libs.tables import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
-	QueueItem,
+	SongListDisplayItem,
 	CurrentPlayingInfo,
 	get_datetime,
 	SearchNameString,
-	HistoryItem
+	ActionRule
 )
-from numpy.random import \
+from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
+)
 
 
 def choice(
@@ -93,7 +94,6 @@ class QueueService:
 			self.get_datetime = get_datetime
 
 	def get_all_station_song_possibilities(self, stationPk: int) -> List[Row]:
-
 		query = select(sg_pk, sg_path) \
 			.select_from(stations) \
 			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
@@ -120,7 +120,6 @@ class QueueService:
 			raise RuntimeError("No song possibilities were found")
 		selection = self.choice(songIds, sampleSize)
 		return selection
-
 
 	def fil_up_queue(self, stationId: int, queueSize: int) -> None:
 		queryQueueSize: str = select(func.count(1)).select_from(station_queue)\
@@ -157,8 +156,6 @@ class QueueService:
 			.where(q_queuedTimestamp== queueTimestamp)
 		self.conn.execute(histUpdateStmt)
 
-
-
 	def is_queue_empty(self, stationId: int) -> bool:
 		res = self.queue_count(stationId)
 		return res < 1
@@ -168,7 +165,7 @@ class QueueService:
 		stationId: Optional[int]=None,
 		stationName: Optional[str]=None,
 		limit: Optional[int]=None
-	) -> Iterator[QueueItem]:
+	) -> Iterator[SongListDisplayItem]:
 		primaryArtistGroupQuery = select(
 			func.max(sgar_pk).label("pk"),
 			func.max(sgar_isPrimaryArtist).label("isPrimary"),
@@ -203,7 +200,7 @@ class QueueService:
 		query = query.where(q_playedTimestamp.is_(None))
 		records = self.conn.execute(query.order_by(q_queuedTimestamp)).fetchall()
 		for row in cast(Iterable[Row],records):
-			yield QueueItem(
+			yield SongListDisplayItem(
 				id=cast(int,row[sg_pk]),
 				name=cast(str,row[sg_name]),
 				album=cast(str,row["album"]),
@@ -290,7 +287,6 @@ class QueueService:
 		count = self.conn.execute(query).scalar() or 0
 		return count
 
-
 	def get_now_playing_and_queue(
 		self,
 		stationId: Optional[int]=None,
@@ -301,12 +297,14 @@ class QueueService:
 				stationId = self.station_service.get_station_id(stationName)
 			else:
 				raise ValueError("Either stationName or id must be provided")
+
 		queue = list(self.get_queue_for_station(stationId))
 		playing = next(self.get_history_for_station(stationId, limit=1), None)
 		return CurrentPlayingInfo(
 			nowPlaying=playing,
 			items=queue,
-			totalRows=self.queue_count(stationId, stationName)
+			totalRows=self.queue_count(stationId, stationName),
+			requestRule=ActionRule("")
 		)
 
 	def _remove_song_from_queue(self,
@@ -351,7 +349,7 @@ class QueueService:
 		stationName: Optional[str]=None,
 		page: int = 0,
 		limit: Optional[int]=50
-	) -> Iterator[HistoryItem]:
+	) -> Iterator[SongListDisplayItem]:
 		offset = page * limit if limit else 0
 		baseQuery = select(
 			sg_pk.label("id"),
@@ -378,7 +376,7 @@ class QueueService:
 			raise ValueError("Either stationName or pk must be provided")
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield HistoryItem(**row) #pyright: ignore [reportUnknownArgumentType]
+			yield SongListDisplayItem(**row) #pyright: ignore [reportUnknownArgumentType]
 
 	def history_count(
 		self,

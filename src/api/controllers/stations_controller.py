@@ -13,12 +13,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	CurrentPlayingInfo,
 	ValidatedStationCreationInfo,
-	HistoryItem,
 	SongListDisplayItem,
 	StationInfo,
 	TableData,
 	UserRoleDef,
-	build_error_obj
+	build_error_obj,
+	ActionRule
 )
 from musical_chairs_libs.services import (
 	StationService,
@@ -29,7 +29,8 @@ from api_dependencies import (
 	station_service,
 	queue_service,
 	get_current_user,
-	process_service
+	process_service,
+	get_station_user
 )
 
 
@@ -48,7 +49,7 @@ def history(
 	page: int = 0,
 	limit: int = 50,
 	queueService: QueueService = Depends(queue_service)
-) -> TableData[HistoryItem]:
+) -> TableData[SongListDisplayItem]:
 	if not stationName:
 		return TableData(totalRows=0, items=[])
 	history = list(queueService \
@@ -66,7 +67,12 @@ def queue(
 	queueService: QueueService = Depends(queue_service)
 ) -> CurrentPlayingInfo:
 	if not stationName:
-		return CurrentPlayingInfo(nowPlaying=None, items=[], totalRows=0)
+		return CurrentPlayingInfo(
+			nowPlaying=None,
+			items=[],
+			totalRows=0,
+			requestRule=ActionRule("")
+		)
 	queue = queueService.get_now_playing_and_queue(stationName=stationName)
 	return queue
 
@@ -95,8 +101,8 @@ def request_song(
 	songId: int,
 	queueService: QueueService = Depends(queue_service),
 	user: AccountInfo = Security(
-		get_current_user,
-		scopes=[UserRoleDef.STATION_REQUEST.value]
+		get_station_user,
+		scopes=[UserRoleDef.StationRequest.value]
 	)
 ):
 	try:

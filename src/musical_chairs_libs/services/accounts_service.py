@@ -1,4 +1,4 @@
-#pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
+#pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false, reportUnnecessaryComparison=false
 import os
 from dataclasses import asdict
 from datetime import timedelta, datetime, timezone
@@ -9,14 +9,15 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
 	UserRoleDef,
 	AccountCreationInfo,
-	RoleInfo,
 	get_datetime,
 	build_error_obj,
 	hashpw,
 	checkpw,
 	validate_email,
 	AccountInfoBase,
-	PasswordInfo
+	PasswordInfo,
+	ActionRule,
+	AlreadyUsedError
 )
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
@@ -24,10 +25,10 @@ from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine.row import Row
 from musical_chairs_libs.tables import (
 	users,
-	userRoles,
+	userRoles, ur_role, ur_span, ur_count, ur_priority,
 	station_queue, q_requestedTimestamp, q_requestedByUserFk, q_playedTimestamp
 )
-from musical_chairs_libs.errors import AlreadyUsedError
+
 from sqlalchemy import select, insert, desc, func, delete, update
 from jose import jwt
 from email_validator import (
@@ -83,7 +84,7 @@ class AccountsService:
 			id=pk, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			username=row.username, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 			email=row.email, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			roles=[r.role for r in self._get_roles(pk)]
+			roles=[*self.__get_roles(pk)]
 		)
 		return (accountInfo, hashedPw)
 
@@ -145,7 +146,7 @@ class AccountsService:
 		if userId is None or not roles:
 			return []
 		uniqueRoles = set(UserRoleDef.remove_repeat_roles(roles))
-		existingRoles = set((r.role for r in self._get_roles(userId)))
+		existingRoles = set((r.name for r in self.__get_roles(userId)))
 		outRoles = existingRoles - uniqueRoles
 		inRoles = uniqueRoles - existingRoles
 		self.remove_roles_for_user(userId, outRoles)
@@ -198,15 +199,16 @@ class AccountsService:
 			return None, 0
 		return user, expiration
 
-	def _get_roles(self, userId: int) -> Iterable[RoleInfo]:
-		query = select(ur.role, ur.creationTimestamp)\
+	def __get_roles(self, userId: int) -> Iterable[ActionRule]:
+		query = select(ur_role, ur_span, ur_count, ur_priority)\
 			.select_from(userRoles) \
 			.where(ur.userFk == userId)
-		rows: Iterable[Row] = self.conn.execute(query).fetchall()
-		return (RoleInfo(
-					userPk=userId,
-					role=r["role"],
-					creationTimestamp=r["creationTimestamp"]
+		rows = cast(Iterable[Row], self.conn.execute(query).fetchall())
+		return (ActionRule(
+					r[ur_role],
+					r[ur_span],
+					r[ur_count],
+					r[ur_priority] or 1
 				) for r in rows)
 
 	def last_request_timestamp(self, user: AccountInfo) -> int:
@@ -308,7 +310,7 @@ class AccountsService:
 		row = self.conn.execute(query).fetchone()
 		if not row:
 			return None
-		roles = [r.role for r in self._get_roles(row["id"])]
+		roles = [*self.__get_roles(row["id"])]
 		return AccountInfo(
 			**row, #pyright: ignore [reportGeneralTypeIssues]
 			roles=roles,

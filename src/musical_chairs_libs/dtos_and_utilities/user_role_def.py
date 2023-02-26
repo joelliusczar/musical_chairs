@@ -13,23 +13,26 @@ from .type_aliases import (
 	s2sDict,
 	simpleDict
 )
+from .simple_functions import role_dict
 
-def _kvpSplit(kvp: str) -> Tuple[str, str]:
-	eqSplit = kvp.split("=")
-	if len(eqSplit) < 2:
-		return "name", kvp
-	return eqSplit[0], eqSplit[1]
+class UserRoleDomain(Enum):
+	Site = "site"
+	Station = "station"
+	Path = "path"
+
+	def conforms(self, candidate: str) -> bool:
+		return candidate.startswith(self.value)
 
 class UserRoleDef(Enum):
 	ADMIN = "admin"
 	SONG_EDIT = "song:edit"
 	SONG_DOWNLOAD = "song:download"
 	SONG_TREE_LIST = "songtree:list"
-	STATION_EDIT = "station:edit"
-	STATION_DELETE = "station:delete"
-	STATION_REQUEST = "station:request"
-	STATION_FLIP = "station:flip"
-	STATION_SKIP = "station:skip"
+	STATION_EDIT = f"{UserRoleDomain.Station.value}:edit"
+	STATION_DELETE = f"{UserRoleDomain.Station.value}:delete"
+	STATION_REQUEST = f"{UserRoleDomain.Station.value}:request"
+	STATION_FLIP = f"{UserRoleDomain.Station.value}:flip"
+	STATION_SKIP = f"{UserRoleDomain.Station.value}:skip"
 	USER_LIST = "user:list"
 	USER_EDIT = "user:edit"
 
@@ -49,7 +52,7 @@ class UserRoleDef(Enum):
 
 	@staticmethod
 	def role_dict(role: str) -> s2sDict:
-		return {p[0]:p[1] for p in (_kvpSplit(k) for k in role.split(";"))}
+		return role_dict(role)
 
 	@staticmethod
 	def role_str(roleDict: simpleDict) -> str:
@@ -71,6 +74,7 @@ class UserRoleDef(Enum):
 		roleDupChecker: dict[str, s2sDict] = {}
 		for role in roles:
 			roleDict = UserRoleDef.role_dict(role)
+
 			if roleDict["name"] in roleDupChecker:
 				previousRoleDict = roleDupChecker[roleDict["name"]]
 				if int(roleDict.get("span",0)) < int(previousRoleDict.get("span",0)):

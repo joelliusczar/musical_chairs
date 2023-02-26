@@ -10,7 +10,8 @@ from typing import\
 from itertools import chain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, check_name_safety
-from .generic_dtos import IdItem, TableData
+from .generic_dtos import IdItem, TableData, T
+from .account_dtos import ActionRule
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,12 @@ class SongBase:
 class SongListDisplayItem(SongBase):
 	album: Optional[str]
 	artist: Optional[str]
+	path: str
+	queuedTimestamp: float
+	requestedTimestamp: Optional[float]=None
+	playedTimestamp: Optional[float]=None
+	rules: list[ActionRule]=field(default_factory=list)
+
 
 @dataclass(frozen=True)
 class ScanningSongItem:
@@ -55,19 +62,14 @@ class ScanningSongItem:
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 
-@dataclass()
-class QueueItem(SongListDisplayItem):
-	path: str
-	queuedTimestamp: float
-	requestedTimestamp: Optional[float]=None
 
 @dataclass()
-class HistoryItem(SongListDisplayItem):
-	playedTimestamp: float
+class StationData(TableData[T]):
+	requestRule: ActionRule
 
 @dataclass()
-class CurrentPlayingInfo(TableData[QueueItem]):
-	nowPlaying: Optional[HistoryItem]
+class CurrentPlayingInfo(StationData[SongListDisplayItem]):
+	nowPlaying: Optional[SongListDisplayItem]
 
 @dataclass(frozen=True)
 class Tag:

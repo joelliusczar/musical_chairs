@@ -1,18 +1,21 @@
 import pytest
-from typing import Protocol, Optional
+from typing import (Protocol, Optional)
 from datetime import datetime
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import EnvManager
 from musical_chairs_libs.dtos_and_utilities import AccountInfo
 from musical_chairs_libs.tables import metadata
-from .db_population import populate_artists,\
-	populate_albums,\
-	populate_songs,\
-	populate_songs_artists,\
-	populate_stations_songs,\
-	populate_stations,\
-	populate_users,\
-	populate_user_roles
+from .db_population import (
+	populate_artists,
+	populate_albums,
+	populate_songs,
+	populate_songs_artists,
+	populate_stations_songs,
+	populate_stations,
+	populate_users,
+	populate_user_roles,
+	populate_station_permissions
+)
 
 class ConnectionConstructor(Protocol):
 	def __call__(
@@ -53,6 +56,7 @@ def setup_in_mem_tbls(
 	populate_stations(conn)
 	populate_users(conn, orderedTestDates, primaryUser, testPassword)
 	populate_user_roles(conn, orderedTestDates, primaryUser)
+	populate_station_permissions(conn, orderedTestDates)
 
 def construct_mock_connection_constructor(
 	dbPopulate: MockDbPopulateClosure,
@@ -73,3 +77,4 @@ def construct_mock_connection_constructor(
 		dbPopulate(conn, request)
 		return conn
 	return get_mock_db_connection_constructor
+

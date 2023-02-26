@@ -14,12 +14,17 @@ from musical_chairs_libs.services import (
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	build_error_obj,
+	StationUserInfo,
 	seconds_to_tuple,
 	build_timespan_msg,
-	UserRoleDef
+	UserRoleDomain,
+	IllegalOperationError,
+	ActionRule,
+	get_datetime
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
+from dataclasses import asdict
 
 oauth2_scheme = OAuth2PasswordBearer(
 	tokenUrl="accounts/open",
@@ -121,60 +126,66 @@ def get_current_user_simple(
 	)
 	return user
 
-def time_til_user_can_do_action(
-	user: AccountInfo,
-	role: UserRoleDef,
-	accountsService: AccountsService
-) -> int:
-	if not user:
-		return -1
-	if user.isAdmin:
-		return 0
-	requestRoles = [r for r in user.roles \
-		if role.conforms(r)]
-	if not any(requestRoles):
-		return -1
-	timeout = min([UserRoleDef.extract_role_segments(r)[1] for r \
-		in requestRoles]) * 60
-	lastRequestedTimestamp = 0
-	if role == UserRoleDef.STATION_REQUEST:
-		lastRequestedTimestamp = accountsService.last_request_timestamp(user)
-	timeLeft = lastRequestedTimestamp + timeout - accountsService\
-		.get_datetime().timestamp()
-	return int(timeLeft) if timeLeft > 0 else 0
-
-
 def get_current_user(
-	securityScopes: SecurityScopes,
-	user: AccountInfo = Depends(get_current_user_simple),
-	accountsService: AccountsService = Depends(accounts_service)
+	user: AccountInfo = Depends(get_current_user_simple)
 ) -> AccountInfo:
+	return user
+
+def get_station_user(
+	securityScopes: SecurityScopes,
+	stationId: Optional[int]=None,
+	stationName: Optional[str]=None,
+	user: AccountInfo = Depends(get_current_user_simple),
+	stationService: StationService = Depends(station_service)
+) -> StationUserInfo:
 	if user.isAdmin:
-		return user
-	#roleMap = {r.value:r for r in UserRoleDef}
-	roleModSet = {UserRoleDef.role_dict(r)["name"] for r in user.roles}
-	for scope in securityScopes.scopes:
-		roleDict = UserRoleDef.role_dict(scope)
-		if roleDict["name"] in roleModSet:
-			#TODO: replace 0 a fuction call
-			timeleft = 0
-			if timeleft:
-				raise HTTPException(
+		return StationUserInfo(**asdict(user))
+	stationUser = stationService.get_station_user(user, stationId, stationName)
+	scopes = (s for s in securityScopes.scopes \
+		if UserRoleDomain.Station.conforms(s)
+	)
+	for scope in scopes:
+		selectedRule = next(
+			ActionRule.best_rules_generator(
+				r for r in stationUser.roles if r.conforms(scope)
+			),
+			None
+		)
+		if selectedRule:
+			try:
+				whenNext = stationService.calc_when_user_can_next_do_action(
+					user.id,
+					selectedRule,
+					stationId,
+					stationName
+				)
+				if whenNext > 0:
+					currentTimestamp = get_datetime().timestamp()
+					timeleft = whenNext - currentTimestamp
+					raise HTTPException(
 					status_code=status.HTTP_429_TOO_MANY_REQUESTS,
 					detail=[build_error_obj(
-						f"Please wait {build_timespan_msg(seconds_to_tuple(timeleft))} "
+						"Please wait "
+						f"{build_timespan_msg(seconds_to_tuple(int(timeleft)))} "
 						"before trying again")
 					]
 				)
-			break
-		raise HTTPException(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail=[build_error_obj(
-				"Insufficient permissions to perform that action"
-			)],
-			headers={"WWW-Authenticate": "Bearer"}
-		)
-	return user
+			except IllegalOperationError:
+				raise HTTPException(
+					status_code=status.HTTP_403_FORBIDDEN,
+					detail=[build_error_obj(
+						"Insufficient permissions to perform that action"
+					)],
+				)
+		else:
+			raise HTTPException(
+				status_code=status.HTTP_403_FORBIDDEN,
+				detail=[build_error_obj(
+					"Insufficient permissions to perform that action"
+				)],
+				headers={"WWW-Authenticate": "Bearer"}
+			)
+	return stationUser
 
 
 def get_account_if_can_edit(

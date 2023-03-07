@@ -131,6 +131,14 @@ def get_current_user(
 ) -> AccountInfo:
 	return user
 
+def get_path_user(
+	securityScopes: SecurityScopes,
+	prefix: str,
+	user: AccountInfo = Depends(get_current_user_simple),
+	songInfoService: SongInfoService = Depends(song_info_service)
+):
+	pass
+
 def get_station_user(
 	securityScopes: SecurityScopes,
 	stationId: Optional[int]=None,

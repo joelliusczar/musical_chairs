@@ -77,7 +77,7 @@ class StationService:
 		self.conn = conn
 		self.template_service = templateService
 		self.__security_scope_lookup = {
-			UserRoleDef.StationRequest.value: self.calc_when_user_can_next_request_song
+			UserRoleDef.STATION_REQUEST.value: self.calc_when_user_can_next_request_song
 		}
 		self.get_datetime = get_datetime
 

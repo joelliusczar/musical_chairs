@@ -9,3 +9,4 @@ from .generic_dtos import *
 from .logging import *
 from .action_rule_dtos import *
 from .errors import *
+from .absorbent_trie import *

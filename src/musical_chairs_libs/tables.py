@@ -189,15 +189,16 @@ pathUserPermissions = Table("PathUserPermissions", metadata,
 	Column("creationTimestamp", Float, nullable=False)
 )
 
-_pup_userFk: Column = pathUserPermissions.c.userFk #pyright: ignore reportUnknownMemberType
-_pup_path: Column = pathUserPermissions.c.path #pyright: ignore reportUnknownMemberType
-_pup_role: Column = pathUserPermissions.c.role #pyright: ignore reportUnknownMemberType
+
+pup_userFk: Column = pathUserPermissions.c.userFk #pyright: ignore reportUnknownMemberType
+pup_path: Column = pathUserPermissions.c.path #pyright: ignore reportUnknownMemberType
+pup_role: Column = pathUserPermissions.c.role #pyright: ignore reportUnknownMemberType
 
 Index(
 	"idx_pathPermissions",
-	_pup_userFk,
-	_pup_path,
-	_pup_role,
+	pup_userFk,
+	pup_path,
+	pup_role,
 	unique=True
 )
 

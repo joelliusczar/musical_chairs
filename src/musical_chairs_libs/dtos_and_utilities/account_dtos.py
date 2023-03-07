@@ -103,3 +103,7 @@ class PasswordInfo:
 @dataclass(frozen=True)
 class StationUserInfo(AccountInfo):
 	stationId: Optional[int]=None
+
+@dataclass(frozen=True)
+class PathUserInfo(AccountInfo):
+	pathPrefixes: list[str]=field(default_factory=list)

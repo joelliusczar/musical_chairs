@@ -102,7 +102,7 @@ def request_song(
 	queueService: QueueService = Depends(queue_service),
 	user: AccountInfo = Security(
 		get_station_user,
-		scopes=[UserRoleDef.StationRequest.value]
+		scopes=[UserRoleDef.STATION_REQUEST.value]
 	)
 ):
 	try:

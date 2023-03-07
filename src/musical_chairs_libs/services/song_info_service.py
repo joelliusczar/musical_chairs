@@ -49,7 +49,8 @@ from musical_chairs_libs.tables import (
 	ar_name, ar_pk,
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
-	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk
+	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
+	pathUserPermissions, pup_userFk, pup_path
 )
 
 
@@ -534,7 +535,7 @@ class SongInfoService:
 			isPrimaryArtist=cast(int, row[ar_pk]) == primaryArtistId
 		) for row in cast(Iterable[Row],records))
 
-	def _are_all_primary_artist_single(
+	def __are_all_primary_artist_single(
 		self,
 		songArtists: Iterable[SongArtistTuple]
 	) -> bool:
@@ -554,7 +555,7 @@ class SongInfoService:
 			return []
 		uniquePairs = set(self.validate_song_artists(songArtists))
 
-		if not self._are_all_primary_artist_single(uniquePairs):
+		if not self.__are_all_primary_artist_single(uniquePairs):
 			raise ValueError("Only one artist can be the primary artist")
 		existingPairs = set(self.get_song_artists(
 			songIds={sa.songId for sa in uniquePairs}

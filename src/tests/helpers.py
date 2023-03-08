@@ -1,4 +1,6 @@
+import random
 from typing import Any
+
 
 
 def normalize_dict(targetDict: dict[Any, Any]) -> dict[Any, Any]:
@@ -28,3 +30,12 @@ def mismatched_properties(
 			mismatchs.append(k)
 			continue
 	return mismatchs
+
+def generate_strings() -> list[str]:
+	output = ["" for _ in range(random.randint(512,4096))]
+	for i in range(len(output)):
+		word = "".join(chr(random.randint(97, 122))
+			for _ in range(random.randint(512, 4096))
+		)
+		output[i] = word
+	return output

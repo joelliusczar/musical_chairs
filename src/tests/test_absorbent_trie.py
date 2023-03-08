@@ -1,5 +1,7 @@
 
+import sys
 from musical_chairs_libs.dtos_and_utilities import AbsorbentTrie
+from .helpers import generate_strings
 
 trieWords = [
 	"alpha",
@@ -55,6 +57,7 @@ trieWords = [
 	"chance",
 	"cuss",
 ]
+
 
 def test_tri_top_traversal():
 	t = AbsorbentTrie()
@@ -224,3 +227,11 @@ def test_trie_contains():
 	assert "burner" not in t
 	assert "burnt" in t
 	assert "burnts" not in t
+
+
+# def test_efficiency():
+# 	d = sys.getrecursionlimit()
+# 	strs = generate_strings()
+# 	t = AbsorbentTrie()
+# 	t.extend(strs)
+# 	pass

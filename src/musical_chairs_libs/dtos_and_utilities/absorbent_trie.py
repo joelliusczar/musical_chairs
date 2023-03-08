@@ -18,18 +18,23 @@ class AbsorbentTrie:
 			self.extend(paths)
 
 	def __add__(self, path: str) -> int:
+		node = self
+		added = 0
 		if path:
-			prefix = path[0]
-			key = ord(prefix)
-			subTrie = self._prefix_map.get(key, None)
-			if subTrie != None:
-				return subTrie.__add__(path[1:])
-			else:
-				subTrie = AbsorbentTrie()
-				subTrie.__add__(path[1:])
-				self._prefix_map[key] = subTrie
-				return 1
-		return 0
+			while path:
+				prefix = path[0]
+				key = ord(prefix)
+				subTrie = node._prefix_map.get(key, None)
+				path = path[1:]
+
+				if subTrie != None:
+					node = subTrie
+				else:
+					subTrie = AbsorbentTrie()
+					node._prefix_map[key] = subTrie
+					node = subTrie
+					added = 1
+		return added
 
 	def __update_counts__(self) -> int:
 		if self.isLeaf:

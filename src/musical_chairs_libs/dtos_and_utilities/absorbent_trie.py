@@ -6,7 +6,7 @@ from typing import Iterable, Optional, Iterator, Sequence
 # exists in the trie, the substring is subsumed into the
 # newly added string
 class AbsorbentTrie:
-	__slots__ = ("_prefix_map", "__count__")
+	__slots__ = ("_prefix_map", "__count__", "_child_iter")
 
 	def __init__(
 		self,
@@ -14,6 +14,7 @@ class AbsorbentTrie:
 	) -> None:
 		self._prefix_map: dict[int, "AbsorbentTrie"] = {}
 		self.__count__ = 0
+		self._child_iter = None
 		if paths:
 			self.extend(paths)
 
@@ -69,6 +70,10 @@ class AbsorbentTrie:
 	def keys(self) -> list[str]:
 		return [chr(k) for k in self._prefix_map.keys()]
 
+	@property
+	def values(self) -> Iterator[str]:
+		return self.__traverse_path_optimized__("")
+
 
 	def __len__(self) -> int:
 		#went with a backing variable so that getting the length would be O(1)
@@ -79,8 +84,19 @@ class AbsorbentTrie:
 	def len(self) -> int:
 		return len(self)
 
-	def __iter__(self) -> Iterator[str]:
-		return self.__traverse_path_optimized__("")
+	def __next__(self) -> "AbsorbentTrie":
+		if not self._child_iter:
+			self._child_iter = iter(self._prefix_map.values())
+		try:
+			nextValue = next(self._child_iter)
+			return nextValue
+		except StopIteration:
+			self._child_iter = None
+			raise
+
+	def __iter__(self) -> Iterator["AbsorbentTrie"]:
+		return self
+
 
 	def __bool__(self) -> bool:
 		return not self.isLeaf
@@ -105,14 +121,20 @@ class AbsorbentTrie:
 
 	@property
 	def depth(self) -> int:
-		if self.isLeaf:
-			return 0
 		depth = 0
-		depth = max(
-			depth,
-			max(t.depth for t in self._prefix_map.values())
-		)
-		return depth + 1
+		stack: list["AbsorbentTrie"] = [self]
+		while stack:
+			node = stack.pop()
+			if node.isLeaf:
+				depth = max(depth, len(stack))
+			else:
+				try:
+					child = next(node)
+					stack.append(node)
+					stack.append(child)
+				except StopIteration:
+					pass
+		return depth
 
 
 	def __traverse_optimized_helper__(

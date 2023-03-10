@@ -6,15 +6,16 @@ from typing import Iterable, Optional, Iterator, Sequence
 # exists in the trie, the substring is subsumed into the
 # newly added string
 class AbsorbentTrie:
-	__slots__ = ("_prefix_map", "__count__", "_child_iter")
+	__slots__ = ("_prefix_map", "__count__", "key")
 
 	def __init__(
 		self,
-		paths: Optional[Iterable[str]]=None
+		paths: Optional[Iterable[str]]=None,
+		key: str=""
 	) -> None:
 		self._prefix_map: dict[int, "AbsorbentTrie"] = {}
 		self.__count__ = 0
-		self._child_iter = None
+		self.key = key
 		if paths:
 			self.extend(paths)
 
@@ -31,20 +32,46 @@ class AbsorbentTrie:
 				if subTrie != None:
 					node = subTrie
 				else:
-					subTrie = AbsorbentTrie()
+					subTrie = AbsorbentTrie(key=prefix)
 					node._prefix_map[key] = subTrie
 					node = subTrie
 					added = 1
 		return added
 
-	def __update_counts__(self) -> int:
-		if self.isLeaf:
-			return 1
-		count = 0
-		for node in self._prefix_map.values():
-			count += node.__update_counts__()
-		self.__count__ = count
-		return count
+	def __update_counts__(self):
+		stack: list["AbsorbentTrie"] = [self]
+		iterTracker: dict[int, Iterator["AbsorbentTrie"]] = {}
+		leafCount = 0
+		while stack:
+			node = stack[-1]
+			if node.isLeaf:
+				leafCount += 1
+				stack.pop()
+			else:
+				try:
+					childIter = iterTracker.get(id(node), None)
+					if not childIter:
+						childIter = iter(node)
+						iterTracker[id(node)] = childIter
+					child = next(childIter)
+					stack.append(child)
+				except StopIteration:
+					del iterTracker[id(node)]
+					stack.pop()
+					if not node.isLeaf:
+						node.__count__ = leafCount
+						node.__count__ +=	sum(len(c) for c in node)
+						leafCount = 0
+
+
+			
+		# if self.isLeaf:
+		# 	return 1
+		# leafCount = 0
+		# for node in self._prefix_map.values():
+		# 	leafCount += node.__update_counts__()
+		# self.__count__ = leafCount
+		# return leafCount
 
 
 	def add(self, path: str) -> int:
@@ -84,25 +111,15 @@ class AbsorbentTrie:
 	def len(self) -> int:
 		return len(self)
 
-	def __next__(self) -> "AbsorbentTrie":
-		if not self._child_iter:
-			self._child_iter = iter(self._prefix_map.values())
-		try:
-			nextValue = next(self._child_iter)
-			return nextValue
-		except StopIteration:
-			self._child_iter = None
-			raise
-
 	def __iter__(self) -> Iterator["AbsorbentTrie"]:
-		return self
+		return iter(self._prefix_map.values())
 
 
 	def __bool__(self) -> bool:
 		return not self.isLeaf
 
-	# def __repr__(self) -> str:
-	# 	return str(list(self))
+	def __repr__(self) -> str:
+		return self.key or "<root>"
 
 	def __get_path_end__(
 		self,
@@ -123,16 +140,22 @@ class AbsorbentTrie:
 	def depth(self) -> int:
 		depth = 0
 		stack: list["AbsorbentTrie"] = [self]
+		iterTracker: dict[int, Iterator["AbsorbentTrie"]] = {}
 		while stack:
 			node = stack.pop()
 			if node.isLeaf:
 				depth = max(depth, len(stack))
 			else:
 				try:
-					child = next(node)
+					childIter = iterTracker.get(id(node), None)
+					if not childIter:
+						childIter = iter(node)
+						iterTracker[id(node)] = childIter
+					child = next(childIter)
 					stack.append(node)
 					stack.append(child)
 				except StopIteration:
+					del iterTracker[id(node)]
 					pass
 		return depth
 

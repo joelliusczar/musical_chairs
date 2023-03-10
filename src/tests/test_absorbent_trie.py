@@ -6,6 +6,10 @@ from .helpers import generate_strings
 trieWords = [
 	"alpha",
 	"alpine",
+	"alpapcone",
+	"alpenstock",
+	"alprazolam",
+	"alpacca",
 	"argument",
 	"album",
 	"artist",
@@ -128,6 +132,39 @@ def test_trie_depth():
 	assert t.depth == 3
 	t.add("bcdefg")
 	assert t.depth == 6
+
+def test_path_end():
+	t = AbsorbentTrie()
+	t.extend(trieWords)
+	pe = t.__get_path_end__("a")
+	assert pe
+	assert sorted(pe.keys) == sorted(["l","r","u","c","d","n","t","i"])
+	pe = t.__get_path_end__("al")
+	assert pe
+	assert sorted(pe.keys) == sorted(["p","t","b"])
+
+	pe = t.__get_path_end__("alp")
+	assert pe
+	assert sorted(pe.keys) == sorted(["i","h","a","r", "e"])
+
+	pe = t.__get_path_end__("alpi")
+	assert pe
+	assert sorted(pe.keys) == sorted(["n"])
+
+	pe = t.__get_path_end__("alpin")
+	assert pe
+	assert sorted(pe.keys) == sorted(["e"])
+
+	pe = t.__get_path_end__("alpine")
+	assert pe != None
+	assert pe.keys == []
+
+	pe = t.__get_path_end__("alpinex")
+	assert pe == None
+
+	pe = t.__get_path_end__("")
+	assert pe == t
+
 
 def test_add_and_iterate():
 	t = AbsorbentTrie()

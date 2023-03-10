@@ -126,13 +126,14 @@ class AbsorbentTrie:
 		path: str,
 	) -> Optional["AbsorbentTrie"]:
 		if path:
-			prefix = path[0]
-			key = ord(prefix)
-			subTrie = self._prefix_map.get(key, None)
-			if subTrie != None:
-				pathEnd = subTrie.__get_path_end__(path[1:])
-				return pathEnd
-			return None
+			node = self
+			while node != None and path:
+				prefix = path[0]
+				key = ord(prefix)
+				node = node._prefix_map.get(key, None)
+				if node != None:
+					path = path[1:]
+			return node
 		else:
 			return self
 

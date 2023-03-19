@@ -1,4 +1,6 @@
-from typing import Iterable, Optional, Iterator, Sequence
+from typing import Iterable, Optional, Iterator, Sequence, Tuple, cast
+
+keyValueIteratorList = list[Optional[Iterator[Tuple[int,"AbsorbentTrie"]]]]
 
 # if the added string is a substring of a string already
 # in the trie, nothing is added
@@ -157,33 +159,32 @@ class AbsorbentTrie:
 					stack.append(child)
 				except StopIteration:
 					del iterTracker[id(node)]
-					pass
 		return depth
 
 
-	def __traverse_optimized_helper__(
-		self,
-		colIdx: int,
-		fromIdx: int,
-		letter: str,
-		resultSpace: Sequence[list[str]]
-	):
-			if fromIdx >= len(resultSpace):
-				return
-			if colIdx >= len(resultSpace[0]):
-				return
-			if letter:
-				for i in range(fromIdx, fromIdx + (len(self) or 1)):
-					resultSpace[i][colIdx] = letter
-			nextFromIdx = fromIdx
-			for k,v in self._prefix_map.items():
-				v.__traverse_optimized_helper__(
-					colIdx + 1 if letter else 0,
-					nextFromIdx,
-					chr(k),
-					resultSpace
-				)
-				nextFromIdx += (len(v) or 1)
+	# def __traverse_optimized_helper__(
+	# 	self,
+	# 	colIdx: int,
+	# 	fromIdx: int,
+	# 	letter: str,
+	# 	resultSpace: Sequence[list[str]]
+	# ):
+	# 		if fromIdx >= len(resultSpace):
+	# 			return
+	# 		if colIdx >= len(resultSpace[0]):
+	# 			return
+	# 		if letter:
+	# 			for i in range(fromIdx, fromIdx + (len(self) or 1)):
+	# 				resultSpace[i][colIdx] = letter
+	# 		nextFromIdx = fromIdx
+	# 		for k,v in self._prefix_map.items():
+	# 			v.__traverse_optimized_helper__(
+	# 				colIdx + 1 if letter else 0,
+	# 				nextFromIdx,
+	# 				chr(k),
+	# 				resultSpace
+	# 			)
+	# 			nextFromIdx += (len(v) or 1)
 
 
 
@@ -195,11 +196,65 @@ class AbsorbentTrie:
 		pathEnd = self.__get_path_end__(path)
 
 		if pathEnd:
-			resultSpace = [[""] * (pathEnd.depth) for _ in range(len(pathEnd))]
-			pathEnd.__traverse_optimized_helper__(0, 0, "", resultSpace)
+			depth = pathEnd.depth
+			resultSpace = [[""] * (depth) for _ in range(len(pathEnd))]
+			self.__traverse_optimized_helper__(pathEnd, depth, resultSpace)
 
 			for row in resultSpace:
 				yield path + "".join(row)
+
+
+	def __traverse_optimized_helper__(
+		self,
+		pathEnd: "AbsorbentTrie",
+		depth: int,
+		resultSpace: Sequence[list[str]]
+	):
+		#height stack and char stack should match length of suffix
+		#heightsStack tracks offsets so that all of the strings are aligned
+		heightsStack = [0] * depth
+		#basically tracks the current word
+		#we build the string from back to front so we need to track the front of
+		# of the string using this stack
+		charStack = [""] * depth
+
+		#this is the core stack to track where we are in the algorithm
+		# we need the root to figure out where to go next, we need that +1
+		# to use a bigger stack
+		stack = cast(list[AbsorbentTrie],[None] * (depth + 1))
+
+		iterStack: keyValueIteratorList = [None] * (depth + 1)
+		stackPtr = 0
+		stack[stackPtr] = pathEnd
+		colIdx = 0
+		while stackPtr >= 0:
+			node = stack[stackPtr]
+			try:
+				childIter = iterStack[stackPtr]
+				if not childIter:
+					childIter = iter(node._prefix_map.items())
+				key, child = next(childIter)
+				iterStack[stackPtr] = childIter
+				if stackPtr > 0:
+					colIdx += 1
+				charStack[stackPtr] = chr(key)
+				stackPtr += 1
+				stack[stackPtr] = child
+			except StopIteration:
+				if not iterStack[stackPtr]:
+					for i in range(colIdx + 1, len(heightsStack)):
+						heightsStack[i] += 1
+				iterStack[stackPtr] = None
+				stackPtr -= 1
+				if stackPtr > 0:
+					if charStack[stackPtr]:
+						fromIdx = heightsStack[stackPtr]
+						for i in range(fromIdx, fromIdx + (len(node) or 1)):
+							resultSpace[i][colIdx] = charStack[stackPtr]
+						heightsStack[colIdx] += (len(node) or 1)
+					if stackPtr > 0:
+						colIdx -= 1
+					charStack[stackPtr] = ""
 
 
 	def __inorder_traverse_path_iterator__(

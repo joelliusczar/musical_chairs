@@ -165,6 +165,23 @@ def test_path_end():
 	pe = t.__get_path_end__("")
 	assert pe == t
 
+def test_iterate():
+	t = AbsorbentTrie()
+	t.add("alpha")
+	t.add("album")
+	t.add("alpine")
+	t.add("artist")
+	t.add("arts")
+	t.add("angelic")
+	t.add("bravery")
+	t.add("bravo")
+	t.add("bunk")
+	t.add("bunt")
+
+	l = list(t.__traverse_path_optimized__("a"))
+	assert l
+	expected = sorted(["alpha","album","alpine","artist","arts","angelic"])
+	assert sorted(l) == expected
 
 def test_add_and_iterate():
 	t = AbsorbentTrie()

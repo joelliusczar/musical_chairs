@@ -65,17 +65,6 @@ class AbsorbentTrie:
 						node.__count__ +=	sum(len(c) for c in node)
 						leafCount = 0
 
-
-			
-		# if self.isLeaf:
-		# 	return 1
-		# leafCount = 0
-		# for node in self._prefix_map.values():
-		# 	leafCount += node.__update_counts__()
-		# self.__count__ = leafCount
-		# return leafCount
-
-
 	def add(self, path: str) -> int:
 		added = self.__add__(path)
 		self.__update_counts__()
@@ -99,7 +88,6 @@ class AbsorbentTrie:
 	def keys(self) -> list[str]:
 		return [chr(k) for k in self._prefix_map.keys()]
 
-	@property
 	def values(self) -> Iterator[str]:
 		return self.__traverse_path_optimized__("")
 
@@ -161,33 +149,6 @@ class AbsorbentTrie:
 					del iterTracker[id(node)]
 		return depth
 
-
-	# def __traverse_optimized_helper__(
-	# 	self,
-	# 	colIdx: int,
-	# 	fromIdx: int,
-	# 	letter: str,
-	# 	resultSpace: Sequence[list[str]]
-	# ):
-	# 		if fromIdx >= len(resultSpace):
-	# 			return
-	# 		if colIdx >= len(resultSpace[0]):
-	# 			return
-	# 		if letter:
-	# 			for i in range(fromIdx, fromIdx + (len(self) or 1)):
-	# 				resultSpace[i][colIdx] = letter
-	# 		nextFromIdx = fromIdx
-	# 		for k,v in self._prefix_map.items():
-	# 			v.__traverse_optimized_helper__(
-	# 				colIdx + 1 if letter else 0,
-	# 				nextFromIdx,
-	# 				chr(k),
-	# 				resultSpace
-	# 			)
-	# 			nextFromIdx += (len(v) or 1)
-
-
-
 	def __traverse_path_optimized__(
 		self,
 		path: str
@@ -233,20 +194,29 @@ class AbsorbentTrie:
 				childIter = iterStack[stackPtr]
 				if not childIter:
 					childIter = iter(node._prefix_map.items())
+
+				#it will throw StopIteration here after we've vistited all the children
 				key, child = next(childIter)
 				iterStack[stackPtr] = childIter
+
+				#if stack pointer is 0, then that means that we're working with the root
+				# and we're not storing root in results table
 				if stackPtr > 0:
 					colIdx += 1
 				charStack[stackPtr] = chr(key)
 				stackPtr += 1
 				stack[stackPtr] = child
 			except StopIteration:
+				#this is for when a node has no children (didn't store iterator
+				# before raising) and the current path is not the longest
+				# in the subtree. We add offsets for all the empty spaces
+				# so that the chars get added to correct row
 				if not iterStack[stackPtr]:
 					for i in range(colIdx + 1, len(heightsStack)):
 						heightsStack[i] += 1
 				iterStack[stackPtr] = None
 				stackPtr -= 1
-				if stackPtr > 0:
+				if stackPtr >= 0:
 					if charStack[stackPtr]:
 						fromIdx = heightsStack[stackPtr]
 						for i in range(fromIdx, fromIdx + (len(node) or 1)):

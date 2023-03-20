@@ -178,7 +178,7 @@ def test_iterate():
 	t.add("bunk")
 	t.add("bunt")
 
-	l = list(t.__traverse_path_optimized__("a"))
+	l = list(t.paths_start_with("a"))
 	assert l
 	expected = sorted(["alpha","album","alpine","artist","arts","angelic"])
 	assert sorted(l) == expected
@@ -186,58 +186,58 @@ def test_iterate():
 def test_add_and_iterate():
 	t = AbsorbentTrie()
 	t.add("alpha")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 1
 
 	t.add("alpine")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 2
 
 	t.add("artist")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 3
 
 	t.add("arts")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 4
 
 	t.add("angel")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 5
 
 	t.add("angelic")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 5
 	assert "angel" not in l
 	assert "angelic" in l
 
 	t.add("bravery")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 6
 
 	t.add("brave")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 6
 	assert "brave" not in l
 	assert "bravery" in l
 
 	t.add("bravo")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 7
 	assert "bravo" in l
 
 	t.add("bun")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 8
 
 	t.add("bunk")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 8
 	assert "bun" not in l
 	assert "bunk" in l
 
 	t.add("bunt")
-	l = list(t)
+	l = list(t.values())
 	assert len(l) == 9
 	assert "bun" not in l
 	assert "bunk" in l

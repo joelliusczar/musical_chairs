@@ -1,7 +1,7 @@
 
-import sys
 from musical_chairs_libs.dtos_and_utilities import AbsorbentTrie
-from .helpers import generate_strings
+from .helpers import get_sentences
+
 
 trieWords = [
 	"alpha",
@@ -63,48 +63,149 @@ trieWords = [
 ]
 
 
-def test_tri_top_traversal():
-	t = AbsorbentTrie()
-	t.add("the")
-	l = list(t.__inorder_traverse_path_iterator__())
-	assert l == ["the"]
-	t.add("the/fox/jumped/over/the/dog/")
-	l = list(t.__inorder_traverse_path_iterator__())
-	assert l == ["the/fox/jumped/over/the/dog/"]
-	t.add("the/dove/flew/over/the/fox")
-	l = sorted(t.__inorder_traverse_path_iterator__())
-	assert l == ["the/dove/flew/over/the/fox", "the/fox/jumped/over/the/dog/"]
-
 def test_path_trie_add_and_len():
 	t = AbsorbentTrie()
 	assert len(t) == 0
+
 	added = t.add("a")
 	assert added == 1
 	assert len(t) == 1
+	pathEnd = t.__get_path_end__("a")
+	assert pathEnd != None
+	assert len(pathEnd) == 0
+
 	added = t.add("b")
 	assert added == 1
 	assert len(t) == 2
+	pathEnd = t.__get_path_end__("b")
+	assert pathEnd != None
+	assert len(pathEnd) == 0
+
 	added = t.add("ab")
 	assert added == 1
 	assert len(t) == 2
+	pathEnd = t.__get_path_end__("a")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+
 	added = t.add("abc")
 	assert added == 1
 	assert len(t) == 2
+	pathEnd = t.__get_path_end__("ab")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+
 	added = t.add("abd")
 	assert added == 1
 	assert len(t) == 3
+	pathEnd = t.__get_path_end__("ab")
+	assert pathEnd != None
+	assert len(pathEnd) == 2
+
 	added = t.add("ba")
 	assert added == 1
 	assert len(t) == 3
+	pathEnd = t.__get_path_end__("b")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+
 	added = t.add("abcd")
 	assert added == 1
 	assert len(t) == 3
+	pathEnd = t.__get_path_end__("abc")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+
 	added = t.add("cdef")
 	assert added == 1
 	assert len(t) == 4
+	pathEnd = t.__get_path_end__("c")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+	pathEnd = t.__get_path_end__("cd")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+	pathEnd = t.__get_path_end__("cde")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+	pathEnd = t.__get_path_end__("cdef")
+	assert pathEnd != None
+	assert len(pathEnd) == 0
+
 	added = t.add("cde")
 	assert added == 0
 	assert len(t) == 4
+
+	added = t.add("yes")
+	assert added == 1
+	assert len(t) == 5
+	pathEnd = t.__get_path_end__("y")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+
+	pathEnd = t.__get_path_end__("ye")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+
+	pathEnd = t.__get_path_end__("yes")
+	assert pathEnd != None
+	assert len(pathEnd) == 0
+
+	added = t.add("yetx")
+	assert added == 1
+	assert len(t) == 6
+
+	pathEnd = t.__get_path_end__("y")
+	assert pathEnd != None
+	assert len(pathEnd) == 2
+
+	pathEnd = t.__get_path_end__("ye")
+	assert pathEnd != None
+	assert len(pathEnd) == 2
+
+	pathEnd = t.__get_path_end__("yes")
+	assert pathEnd != None
+	assert len(pathEnd) == 0
+
+	pathEnd = t.__get_path_end__("yet")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+
+	pathEnd = t.__get_path_end__("yetx")
+	assert pathEnd != None
+	assert len(pathEnd) == 0
+
+	added = t.add("yetza")
+	assert added == 1
+	assert len(t) == 7
+
+	pathEnd = t.__get_path_end__("y")
+	assert pathEnd != None
+	assert len(pathEnd) == 3
+
+	pathEnd = t.__get_path_end__("ye")
+	assert pathEnd != None
+	assert len(pathEnd) == 3
+
+	pathEnd = t.__get_path_end__("yes")
+	assert pathEnd != None
+	assert len(pathEnd) == 0
+
+	pathEnd = t.__get_path_end__("yet")
+	assert pathEnd != None
+	assert len(pathEnd) == 2
+
+	pathEnd = t.__get_path_end__("yetx")
+	assert pathEnd != None
+	assert len(pathEnd) == 0
+
+	pathEnd = t.__get_path_end__("yetz")
+	assert pathEnd != None
+	assert len(pathEnd) == 1
+
+	pathEnd = t.__get_path_end__("yetza")
+	assert pathEnd != None
+	assert len(pathEnd) == 0
 
 def test_path_trie_extend():
 	t = AbsorbentTrie()
@@ -283,9 +384,8 @@ def test_trie_contains():
 	assert "burnts" not in t
 
 
-# def test_efficiency():
-# 	d = sys.getrecursionlimit()
-# 	strs = generate_strings()
-# 	t = AbsorbentTrie()
-# 	t.extend(strs)
-# 	pass
+def test_large_set():
+	strs = get_sentences()
+	t = AbsorbentTrie()
+	t.extend(strs)
+	list(t.paths_start_with(''))

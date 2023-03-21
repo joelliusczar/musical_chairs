@@ -1,4 +1,4 @@
-import random
+from pathlib import Path
 from typing import Any
 
 
@@ -31,11 +31,8 @@ def mismatched_properties(
 			continue
 	return mismatchs
 
-def generate_strings() -> list[str]:
-	output = ["" for _ in range(random.randint(512,4096))]
-	for i in range(len(output)):
-		word = "".join(chr(random.randint(97, 122))
-			for _ in range(random.randint(512, 4096))
-		)
-		output[i] = word
-	return output
+
+def get_sentences():
+	s = Path("mocks/absalomabsalom.txt").read_text()
+	sentences = s.replace("\n","").split(".")
+	return sentences

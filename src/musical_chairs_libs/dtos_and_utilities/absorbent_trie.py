@@ -43,6 +43,7 @@ class AbsorbentTrie:
 	def __update_counts__(self):
 		stack: list["AbsorbentTrie"] = [self]
 		iterTracker: dict[int, Iterator["AbsorbentTrie"]] = {}
+		self.__count__ = 0
 		leafCount = 0
 		while stack:
 			node = stack[-1]
@@ -56,12 +57,15 @@ class AbsorbentTrie:
 						childIter = iter(node)
 						iterTracker[id(node)] = childIter
 					child = next(childIter)
+					child.__count__ = 0
+					node.__count__ += leafCount
+					leafCount = 0
 					stack.append(child)
 				except StopIteration:
 					del iterTracker[id(node)]
 					stack.pop()
 					if not node.isLeaf:
-						node.__count__ = leafCount
+						node.__count__ += leafCount
 						node.__count__ +=	sum(len(c) for c in node)
 						leafCount = 0
 
@@ -226,26 +230,6 @@ class AbsorbentTrie:
 						colIdx -= 1
 					charStack[stackPtr] = ""
 
-
-	def __inorder_traverse_path_iterator__(
-		self,
-		path: Optional[str]=None
-	) -> Iterator[str]:
-		if self.isLeaf:
-			yield ""
-		else:
-			if path:
-				prefix = path[0]
-				key = ord(prefix)
-				subTrie = self._prefix_map.get(key, None)
-				if subTrie != None:
-					for suffix in subTrie.__inorder_traverse_path_iterator__(path[1:]):
-						yield prefix + suffix
-				return
-			else:
-				for k, v in self._prefix_map.items():
-					for suffix in v.__inorder_traverse_path_iterator__(""):
-						yield chr(k) + suffix
 
 
 	def paths_start_with(self, path: str) -> Iterable[str]:

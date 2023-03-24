@@ -263,6 +263,8 @@ class SongInfoService:
 		except IntegrityError: pass
 		return count
 
+	# def get_paths_user_can_see(self, )
+
 	def song_ls(self, prefix: Optional[str] = "") -> Iterator[SongTreeNode]:
 		query = select(
 				func.next_directory_level(sg_path, prefix).label("prefix"),

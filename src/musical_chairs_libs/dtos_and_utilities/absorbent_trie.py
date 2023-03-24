@@ -8,7 +8,7 @@ keyValueIteratorList = list[Optional[Iterator[Tuple[int,"AbsorbentTrie"]]]]
 # exists in the trie, the substring is subsumed into the
 # newly added string
 class AbsorbentTrie:
-	__slots__ = ("_prefix_map", "__count__", "key")
+	__slots__ = ("_prefix_map", "__count__", "key", "is_path_end")
 
 	def __init__(
 		self,
@@ -18,18 +18,20 @@ class AbsorbentTrie:
 		self._prefix_map: dict[int, "AbsorbentTrie"] = {}
 		self.__count__ = 0
 		self.key = key
+		self.is_path_end = False
 		if paths:
 			self.extend(paths)
 
 	def __add__(self, path: str) -> int:
 		node = self
 		added = 0
+		pathIdx = 0
 		if path:
-			while path:
-				prefix = path[0]
+			while pathIdx < len(path):
+				prefix = path[pathIdx]
 				key = ord(prefix)
 				subTrie = node._prefix_map.get(key, None)
-				path = path[1:]
+				pathIdx += 1
 
 				if subTrie != None:
 					node = subTrie
@@ -38,6 +40,7 @@ class AbsorbentTrie:
 					node._prefix_map[key] = subTrie
 					node = subTrie
 					added = 1
+		node.is_path_end = True
 		return added
 
 	def __update_counts__(self):
@@ -84,6 +87,22 @@ class AbsorbentTrie:
 			return self.__get_path_end__(path) != None
 		return True
 
+	def has_prefix_for(self, path: str) -> bool:
+		if path:
+			node = self
+			pathIdx = 0
+			while pathIdx < len(path):
+				prefix = path[pathIdx]
+				key = ord(prefix)
+				node = node._prefix_map.get(key, None)
+				if node == None:
+					return False
+				if node.is_path_end:
+					return True
+				pathIdx += 1
+
+		return False
+
 	@property
 	def isLeaf(self) -> bool:
 		return len(self._prefix_map) == 0
@@ -94,7 +113,6 @@ class AbsorbentTrie:
 
 	def values(self) -> Iterator[str]:
 		return self.__traverse_path_optimized__("")
-
 
 	def __len__(self) -> int:
 		#went with a backing variable so that getting the length would be O(1)
@@ -108,7 +126,6 @@ class AbsorbentTrie:
 	def __iter__(self) -> Iterator["AbsorbentTrie"]:
 		return iter(self._prefix_map.values())
 
-
 	def __bool__(self) -> bool:
 		return not self.isLeaf
 
@@ -121,12 +138,13 @@ class AbsorbentTrie:
 	) -> Optional["AbsorbentTrie"]:
 		if path:
 			node = self
-			while node != None and path:
-				prefix = path[0]
+			pathIdx = 0
+			while node != None and pathIdx < len(path):
+				prefix = path[pathIdx]
 				key = ord(prefix)
 				node = node._prefix_map.get(key, None)
 				if node != None:
-					path = path[1:]
+					pathIdx += 1
 			return node
 		else:
 			return self
@@ -187,8 +205,8 @@ class AbsorbentTrie:
 		# we need the root to figure out where to go next, we need that +1
 		# to use a bigger stack
 		stack = cast(list[AbsorbentTrie],[None] * (depth + 1))
-
 		iterStack: keyValueIteratorList = [None] * (depth + 1)
+
 		stackPtr = 0
 		stack[stackPtr] = pathEnd
 		colIdx = 0

@@ -537,3 +537,10 @@ def test_get_duplicate_song(
 	assert len(songInfoList) == 2
 	assert songInfoList[0].id == 1
 	assert songInfoList[1].id == 6
+
+def test_get_user_paths(
+	fixture_song_info_service: SongInfoService
+):
+	songInfoService = fixture_song_info_service
+	results = list(songInfoService.get_paths_user_can_see(11))
+	assert results

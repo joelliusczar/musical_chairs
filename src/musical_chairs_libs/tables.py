@@ -178,7 +178,7 @@ Index(
 	unique=True
 )
 
-pathUserPermissions = Table("PathUserPermissions", metadata,
+path_user_permissions = Table("PathUserPermissions", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
 	Column("path", String, nullable=False),
@@ -190,9 +190,10 @@ pathUserPermissions = Table("PathUserPermissions", metadata,
 )
 
 
-pup_userFk: Column = pathUserPermissions.c.userFk #pyright: ignore reportUnknownMemberType
-pup_path: Column = pathUserPermissions.c.path #pyright: ignore reportUnknownMemberType
-pup_role: Column = pathUserPermissions.c.role #pyright: ignore reportUnknownMemberType
+pup_userFk: Column = path_user_permissions.c.userFk #pyright: ignore reportUnknownMemberType
+pup_path: Column = path_user_permissions.c.path #pyright: ignore reportUnknownMemberType
+pup_role: Column = path_user_permissions.c.role #pyright: ignore reportUnknownMemberType
+pup_priority: Column = path_user_permissions.c.priority #pyright: ignore reportUnknownMemberType
 
 Index(
 	"idx_pathPermissions",

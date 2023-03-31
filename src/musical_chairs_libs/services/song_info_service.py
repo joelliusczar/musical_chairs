@@ -27,7 +27,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlbumCreationInfo,
 	StationSongTuple,
 	SongArtistTuple,
-	AlreadyUsedError
+	AlreadyUsedError,
+	PathPrefixInfo,
+	ActionRule,
+	UserRoleDomain
 )
 from sqlalchemy import select, insert, update, func, delete
 from sqlalchemy.sql.expression import Tuple as dbTuple, Select
@@ -50,7 +53,7 @@ from musical_chairs_libs.tables import (
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
-	pathUserPermissions, pup_userFk, pup_path
+	pup_userFk, pup_path, pup_role, pup_priority
 )
 
 
@@ -263,7 +266,22 @@ class SongInfoService:
 		except IntegrityError: pass
 		return count
 
-	# def get_paths_user_can_see(self, )
+	def get_paths_user_can_see(self, userId: int) -> Iterator[PathPrefixInfo]:
+		query = select(pup_path, pup_role, pup_priority)\
+			.where(pup_userFk == userId)\
+			.order_by(pup_path)
+		records = cast(Iterable[Row], self.conn.execute(query)) #pyright: ignore reportUnknownMemberType
+		for k, g in groupby(records, lambda r: cast(str,r[pup_path])):
+			yield PathPrefixInfo(
+				k,
+				[ActionRule(
+					r[pup_role],
+					priority=r[pup_priority],
+					domain=UserRoleDomain.Path
+				) for r in g
+				]
+			)
+
 
 	def song_ls(self, prefix: Optional[str] = "") -> Iterator[SongTreeNode]:
 		query = select(

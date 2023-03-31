@@ -105,5 +105,11 @@ class StationUserInfo(AccountInfo):
 	stationId: Optional[int]=None
 
 @dataclass(frozen=True)
+class PathPrefixInfo:
+	path: str
+	rules: List[ActionRule]=field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class PathUserInfo(AccountInfo):
-	pathPrefixes: list[str]=field(default_factory=list)
+	pathPrefixes: list[PathPrefixInfo]=field(default_factory=list)

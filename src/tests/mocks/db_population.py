@@ -11,7 +11,8 @@ from musical_chairs_libs.tables import (
 	users,
 	userRoles,
 	stations_songs,
-	station_user_permissions
+	station_user_permissions,
+	path_user_permissions
 )
 from sqlalchemy import insert
 from .special_strings_reference import chinese1, irish1
@@ -1118,6 +1119,64 @@ def populate_station_permissions(
 	stmt = insert(station_user_permissions)
 	conn.execute(stmt, stationPermissionParams) #pyright: ignore [reportUnknownMemberType]
 
+def populate_path_permissions(
+	conn: Connection,
+	orderedTestDates: List[datetime],
+):
+	pathPermissionParams = [
+		{
+			"pk":1,
+			"userFk": 11,
+			"path": "foo/goo/boo",
+			"role": UserRoleDef.PATH_LIST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":2,
+			"userFk": 11,
+			"path": "foo/goo/shoo",
+			"role": UserRoleDef.PATH_LIST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":3,
+			"userFk": 11,
+			"path": "foo/goo/moo",
+			"role": UserRoleDef.PATH_LIST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":4,
+			"userFk": 11,
+			"path": "foo/goo/shoo",
+			"role": UserRoleDef.PATH_ITEM_EDIT.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":5,
+			"userFk": 11,
+			"path": "foo/goo/shoo",
+			"role": UserRoleDef.PATH_ITEM_DOWNLOAD.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+	]
+	stmt = insert(path_user_permissions)
+	conn.execute(stmt, pathPermissionParams) #pyright: ignore [reportUnknownMemberType]
 
 #don't remember why I am using using funcs to return these global variables
 def get_initial_users() -> list[dict[Any, Any]]:

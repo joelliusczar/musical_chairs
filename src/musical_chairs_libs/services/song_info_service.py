@@ -7,7 +7,8 @@ from typing import (
 	Iterable,
 	Any,
 	Tuple,
-	Callable
+	Callable,
+	overload
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
@@ -282,7 +283,6 @@ class SongInfoService:
 				]
 			)
 
-
 	def song_ls(self, prefix: Optional[str] = "") -> Iterator[SongTreeNode]:
 		query = select(
 				func.next_directory_level(sg_path, prefix).label("prefix"),
@@ -336,13 +336,23 @@ class SongInfoService:
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		yield from (cast(int, row["pk"]) for row in cast(Iterable[Row],records))
 
-	def get_song_path(self, id: int) -> Optional[str]:
-		query = select(sg_path).where(sg_pk == id).limit(1)
-		row = cast(Row, self.conn.execute(query).fetchone()) #pyright: ignore reportUnknownMemberType
-		path = cast(str,row[sg_path]) or None
-		if path:
-			return f"{EnvManager.search_base}/{path}"
-		return None
+	@overload
+	def get_song_path(self, itemIds: int) -> Iterator[str]: ...
+
+	@overload
+	def get_song_path(self, itemIds: Iterable[int]) -> Iterator[str]: ...
+
+	def get_song_path(
+		self,
+		itemIds: Union[Iterable[int], int]
+	) -> Iterator[str]:
+		query = select(sg_path)
+		if isinstance(itemIds, Iterable):
+			query = query.where(sg_pk.in_(itemIds))
+		else:
+			query = query.where(sg_pk == itemIds)
+		results = cast(Iterable[Row], self.conn.execute(query)()) #pyright: ignore reportUnknownMemberType
+		yield from (f"{EnvManager.search_base}/{row[sg_path]}" for row in results)
 
 	def get_station_songs(
 		self,

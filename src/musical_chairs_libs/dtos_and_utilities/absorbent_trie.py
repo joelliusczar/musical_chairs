@@ -1,28 +1,45 @@
-from typing import Iterable, Optional, Iterator, Sequence, Tuple, cast
+from typing import (
+	Iterable,
+	Optional,
+	Iterator,
+	Sequence,
+	Tuple,
+	cast,
+	TypeVar,
+	Generic,
+	Union
+)
+from .sentinel import missing, Sentinel, found
 
-keyValueIteratorList = list[Optional[Iterator[Tuple[int,"AbsorbentTrie"]]]]
+T = TypeVar("T")
+
+keyValueIteratorList = list[Optional[Iterator[Tuple[int,"AbsorbentTrie[T]"]]]]
+storeValueType = Union[T, Sentinel]
+extendIterable = Union[Iterable[str], Iterable[Tuple[str, T]]]
 
 # if the added string is a substring of a string already
 # in the trie, nothing is added
 # conversely, if a string is added for which a substring
 # exists in the trie, the substring is subsumed into the
 # newly added string
-class AbsorbentTrie:
-	__slots__ = ("_prefix_map", "__count__", "key", "is_path_end")
+class AbsorbentTrie(Generic[T]):
+	__slots__ = ("_prefix_map", "__count__", "key", "path_store")
+
+	path_store: storeValueType[T]
 
 	def __init__(
 		self,
-		paths: Optional[Iterable[str]]=None,
+		paths: Optional[extendIterable[T]]=None,
 		key: str=""
 	) -> None:
-		self._prefix_map: dict[int, "AbsorbentTrie"] = {}
+		self._prefix_map: dict[int, "AbsorbentTrie[T]"] = {}
 		self.__count__ = 0
 		self.key = key
-		self.is_path_end = False
+		self.path_store = missing
 		if paths:
 			self.extend(paths)
 
-	def __add__(self, path: str) -> int:
+	def __add__(self, path: str, value: storeValueType[T]=missing) -> int:
 		node = self
 		added = 0
 		pathIdx = 0
@@ -36,16 +53,16 @@ class AbsorbentTrie:
 				if subTrie != None:
 					node = subTrie
 				else:
-					subTrie = AbsorbentTrie(key=prefix)
+					subTrie = AbsorbentTrie[T](key=prefix)
 					node._prefix_map[key] = subTrie
 					node = subTrie
 					added = 1
-		node.is_path_end = True
+		node.path_store = value if value != missing else found
 		return added
 
 	def __update_counts__(self):
-		stack: list["AbsorbentTrie"] = [self]
-		iterTracker: dict[int, Iterator["AbsorbentTrie"]] = {}
+		stack: list["AbsorbentTrie[T]"] = [self]
+		iterTracker: dict[int, Iterator["AbsorbentTrie[T]"]] = {}
 		self.__count__ = 0
 		leafCount = 0
 		while stack:
@@ -72,14 +89,18 @@ class AbsorbentTrie:
 						node.__count__ +=	sum(len(c) for c in node)
 						leafCount = 0
 
-	def add(self, path: str) -> int:
-		added = self.__add__(path)
+
+	def add(self, path: str, value: storeValueType[T]=missing) -> int:
+		added = self.__add__(path, value)
 		self.__update_counts__()
 		return added
 
-	def extend(self, paths: Iterable[str]):
+	def extend(self, paths: extendIterable[T]):
 		for path in paths:
-			self.__add__(path)
+			if type(path) == str:
+				self.__add__(path)
+			else:
+				self.__add__(path[0], cast(T, path[1]))
 		self.__update_counts__()
 
 	def __contains__(self, path: str) -> bool:
@@ -87,7 +108,10 @@ class AbsorbentTrie:
 			return self.__get_path_end__(path) != None
 		return True
 
-	def has_prefix_for(self, path: str) -> bool:
+	def __value_at_path__(
+		self,
+		path: str
+	) -> storeValueType[T]:
 		if path:
 			node = self
 			pathIdx = 0
@@ -96,12 +120,40 @@ class AbsorbentTrie:
 				key = ord(prefix)
 				node = node._prefix_map.get(key, None)
 				if node == None:
-					return False
-				if node.is_path_end:
-					return True
+					raise KeyError()
+				if node.path_store:
+					return node.path_store
 				pathIdx += 1
+			raise KeyError()
+		else:
+			if self.path_store:
+				return self.path_store
+			else:
+				raise KeyError()
 
-		return False
+	def has_prefix_for(self, path: str) -> bool:
+		try:
+			value = self.__value_at_path__(path)
+			if value != missing:
+				return True
+			return False
+		except KeyError:
+			return False
+
+	def __getitem__(self, key: str) -> Optional[T]:
+		value = self.__value_at_path__(key)
+		if value == found:
+			return None
+		return cast(T, value)
+
+	def __setitem__(self, key: str, value: T):
+		self.add(key, value)
+
+	def get(self, key: str, default: Optional[T]=None) -> Optional[T]:
+		try:
+			return self[key]
+		except KeyError:
+			return default
 
 	@property
 	def isLeaf(self) -> bool:
@@ -110,6 +162,10 @@ class AbsorbentTrie:
 	@property
 	def keys(self) -> list[str]:
 		return [chr(k) for k in self._prefix_map.keys()]
+
+	@property
+	def is_path_end(self) -> bool:
+		return self.path_store != missing
 
 	def values(self) -> Iterator[str]:
 		return self.__traverse_path_optimized__("")
@@ -123,7 +179,7 @@ class AbsorbentTrie:
 	def len(self) -> int:
 		return len(self)
 
-	def __iter__(self) -> Iterator["AbsorbentTrie"]:
+	def __iter__(self) -> Iterator["AbsorbentTrie[T]"]:
 		return iter(self._prefix_map.values())
 
 	def __bool__(self) -> bool:
@@ -135,7 +191,7 @@ class AbsorbentTrie:
 	def __get_path_end__(
 		self,
 		path: str,
-	) -> Optional["AbsorbentTrie"]:
+	) -> Optional["AbsorbentTrie[T]"]:
 		if path:
 			node = self
 			pathIdx = 0
@@ -152,8 +208,8 @@ class AbsorbentTrie:
 	@property
 	def depth(self) -> int:
 		depth = 0
-		stack: list["AbsorbentTrie"] = [self]
-		iterTracker: dict[int, Iterator["AbsorbentTrie"]] = {}
+		stack: list["AbsorbentTrie[T]"] = [self]
+		iterTracker: dict[int, Iterator["AbsorbentTrie[T]"]] = {}
 		while stack:
 			node = stack.pop()
 			if node.isLeaf:
@@ -189,7 +245,7 @@ class AbsorbentTrie:
 
 	def __traverse_optimized_helper__(
 		self,
-		pathEnd: "AbsorbentTrie",
+		pathEnd: "AbsorbentTrie[T]",
 		depth: int,
 		resultSpace: Sequence[list[str]]
 	):
@@ -204,8 +260,8 @@ class AbsorbentTrie:
 		#this is the core stack to track where we are in the algorithm
 		# we need the root to figure out where to go next, we need that +1
 		# to use a bigger stack
-		stack = cast(list[AbsorbentTrie],[None] * (depth + 1))
-		iterStack: keyValueIteratorList = [None] * (depth + 1)
+		stack = cast(list[AbsorbentTrie[T]],[None] * (depth + 1))
+		iterStack: keyValueIteratorList[T] = [None] * (depth + 1)
 
 		stackPtr = 0
 		stack[stackPtr] = pathEnd

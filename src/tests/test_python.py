@@ -15,6 +15,8 @@ def test_bcrypt():
 	mySalt = bcrypt.gensalt(12)
 	hash = bcrypt.hashpw("my password string".encode(), mySalt)
 	print(hash)
+	testHash = bcrypt.hashpw("testPassword".encode(), mySalt)
+	print(testHash)
 
 @pytest.fixture
 def fixture_side_effect() -> Iterator[None]:

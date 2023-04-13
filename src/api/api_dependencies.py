@@ -1,5 +1,5 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Iterator, Tuple, Optional
+from typing import Iterator, Tuple, Optional, Iterable
 from urllib import parse
 from fastapi import Depends, HTTPException, status, Cookie
 from sqlalchemy.engine import Connection
@@ -9,22 +9,30 @@ from musical_chairs_libs.services import (
 	QueueService,
 	SongInfoService,
 	AccountsService,
-	ProcessService
+	ProcessService,
+	UserActionsHistoryService
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	build_error_obj,
 	StationUserInfo,
-	seconds_to_tuple,
-	build_timespan_msg,
 	UserRoleDomain,
 	IllegalOperationError,
 	ActionRule,
-	get_datetime
+	get_datetime,
+	AbsorbentTrie
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
 from dataclasses import asdict
+from api_error import (
+	build_expired_error,
+	build_not_logged_in_error,
+	build_not_wrong_credentials_error,
+	build_expired_credentials_error,
+	build_wrong_permissions_error,
+	build_too_many_requests_error
+)
 
 oauth2_scheme = OAuth2PasswordBearer(
 	tokenUrl="accounts/open",
@@ -68,6 +76,11 @@ def process_service(
 ) -> ProcessService:
 	return ProcessService(conn)
 
+def user_actions_history_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> UserActionsHistoryService:
+	return UserActionsHistoryService(conn)
+
 def get_user_from_token_optional(
 	token: str = Depends(oauth2_scheme),
 	accountsService: AccountsService = Depends(accounts_service),
@@ -76,43 +89,21 @@ def get_user_from_token_optional(
 		user, _ = accountsService.get_user_from_token(token)
 		return user
 	except ExpiredSignatureError:
-		raise HTTPException(
-				status_code=status.HTTP_401_UNAUTHORIZED,
-				detail=[build_error_obj("Credentials are expired")],
-				headers={
-					"WWW-Authenticate": "Bearer",
-					"X-AuthExpired": "true"
-				}
-			)
+		raise build_expired_error()
 
 def get_user_from_token(
 	token: str,
 	accountsService: AccountsService
 ) -> Tuple[AccountInfo, float]:
 	if not token:
-		raise HTTPException(
-			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail=[build_error_obj("Not authenticated")],
-			headers={"WWW-Authenticate": "Bearer"}
-		)
+		raise build_not_logged_in_error()
 	try:
 		user, expiration = accountsService.get_user_from_token(token)
 		if not user:
-			raise HTTPException(
-				status_code=status.HTTP_401_UNAUTHORIZED,
-				detail=[build_error_obj("Could not validate credentials")],
-				headers={"WWW-Authenticate": "Bearer"}
-			)
+			raise build_not_wrong_credentials_error()
 		return user, expiration
 	except ExpiredSignatureError:
-		raise HTTPException(
-				status_code=status.HTTP_401_UNAUTHORIZED,
-				detail=[build_error_obj("Credentials are expired")],
-				headers={
-					"WWW-Authenticate": "Bearer",
-					"X-AuthExpired": "true"
-				}
-			)
+		raise build_expired_credentials_error()
 
 
 def get_current_user_simple(
@@ -131,13 +122,108 @@ def get_current_user(
 ) -> AccountInfo:
 	return user
 
+def get_user_with_simple_scopes(
+	securityScopes: SecurityScopes,
+	user: AccountInfo = Depends(get_current_user_simple)
+) -> AccountInfo:
+	if user.isAdmin:
+		return user
+	for scope in securityScopes.scopes:
+		if not any(r for r in user.roles if r.name == scope):
+			raise build_wrong_permissions_error()
+	return user
+
+def check_if_can_use_path(
+	scopes: Iterable[str],
+	prefix: str,
+	user: AccountInfo,
+	userPrefixTrie: AbsorbentTrie[list[ActionRule]],
+	userActionHistoryService: UserActionsHistoryService
+):
+	rules = userPrefixTrie.get(prefix, None)
+	if not rules:
+		raise build_wrong_permissions_error()
+	for scope in scopes:
+		selectedRule = next(
+			ActionRule.best_rules_generator(
+				r for r in rules if r.conforms(scope)
+			),
+			None
+		)
+		if selectedRule:
+			try:
+				whenNext = userActionHistoryService.calc_when_user_can_next_do_action(
+					user.id,
+					selectedRule
+				)
+				if whenNext > 0:
+					currentTimestamp = get_datetime().timestamp()
+					timeleft = whenNext - currentTimestamp
+					raise build_too_many_requests_error(int(timeleft))
+			except IllegalOperationError:
+				raise build_wrong_permissions_error()
+		else:
+			raise build_wrong_permissions_error()
+
 def get_path_user(
 	securityScopes: SecurityScopes,
-	prefix: str,
+	prefix: Optional[str]=None,
+	itemId: Optional[int]=None,
 	user: AccountInfo = Depends(get_current_user_simple),
-	songInfoService: SongInfoService = Depends(song_info_service)
-):
-	pass
+	songInfoService: SongInfoService = Depends(song_info_service),
+	userActionHistoryService: UserActionsHistoryService =
+		Depends(user_actions_history_service)
+) -> AccountInfo:
+	if user.isAdmin:
+		return user
+	userPrefixes = songInfoService.get_paths_user_can_see(user.id)
+	userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
+	if prefix == None:
+		if not itemId:
+			raise HTTPException(
+				status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+				detail = "Both prefix and item Id are missing"
+			)
+		prefix = next(songInfoService.get_song_path(itemId), "")
+	scopes = (s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	)
+	check_if_can_use_path(
+		scopes,
+		prefix,
+		user,
+		userPrefixTrie,
+		userActionHistoryService
+	)
+	return user
+
+def get_multi_path_user(
+	securityScopes: SecurityScopes,
+	itemIds: Iterable[int],
+	user: AccountInfo = Depends(get_current_user_simple),
+	songInfoService: SongInfoService = Depends(song_info_service),
+	userActionHistoryService: UserActionsHistoryService =
+		Depends(user_actions_history_service)
+) -> AccountInfo:
+	if user.isAdmin:
+		return user
+	userPrefixes = songInfoService.get_paths_user_can_see(user.id)
+	userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
+	prefixes = songInfoService.get_song_path(itemIds)
+	scopes = [s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	]
+	for prefix in prefixes:
+		check_if_can_use_path(
+			scopes,
+			prefix,
+			user,
+			userPrefixTrie,
+			userActionHistoryService
+		)
+	return user
+
+
 
 def get_station_user(
 	securityScopes: SecurityScopes,
@@ -170,29 +256,11 @@ def get_station_user(
 				if whenNext > 0:
 					currentTimestamp = get_datetime().timestamp()
 					timeleft = whenNext - currentTimestamp
-					raise HTTPException(
-					status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-					detail=[build_error_obj(
-						"Please wait "
-						f"{build_timespan_msg(seconds_to_tuple(int(timeleft)))} "
-						"before trying again")
-					]
-				)
+					raise build_too_many_requests_error(int(timeleft))
 			except IllegalOperationError:
-				raise HTTPException(
-					status_code=status.HTTP_403_FORBIDDEN,
-					detail=[build_error_obj(
-						"Insufficient permissions to perform that action"
-					)],
-				)
+				raise build_wrong_permissions_error()
 		else:
-			raise HTTPException(
-				status_code=status.HTTP_403_FORBIDDEN,
-				detail=[build_error_obj(
-					"Insufficient permissions to perform that action"
-				)],
-				headers={"WWW-Authenticate": "Bearer"}
-			)
+			raise build_wrong_permissions_error()
 	return stationUser
 
 
@@ -204,13 +272,7 @@ def get_account_if_can_edit(
 ) -> AccountInfo:
 	if userId != currentUser.id and username != currentUser.username and\
 		not currentUser.isAdmin:
-		raise HTTPException(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail=[build_error_obj(
-				"Insufficient permissions to perform that action"
-			)],
-			headers={"WWW-Authenticate": "Bearer"}
-		)
+		raise build_wrong_permissions_error()
 	prev = accountsService.get_account_for_edit(userId, username) \
 		if userId or username else None
 	if not prev:

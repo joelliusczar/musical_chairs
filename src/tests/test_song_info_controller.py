@@ -4,16 +4,37 @@ from .api_test_dependencies import\
 from .api_test_dependencies import *
 from fastapi.testclient import TestClient
 from .helpers import normalize_dict, mismatched_properties
+from .constant_fixtures_for_test import (
+	fixture_primary_user as fixture_primary_user
+)
 
 
 
 def test_song_ls_hit(
-	fixture_api_test_client: TestClient
+	fixture_api_test_client: TestClient,
+	fixture_primary_user: AccountInfo,
 ):
 	client = fixture_api_test_client
+
+	headers = login_test_user(fixture_primary_user.username, client)
+
 	response = client.get(
-		"/song-info/songs/tree")
+		"/song-info/songs/tree",
+		headers=headers
+	)
 	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 3
+
+	response = client.get(
+		"/song-info/songs/tree?prefix=f",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 1
 
 def test_song_save(
 	fixture_api_test_client: TestClient
@@ -268,8 +289,6 @@ def test_song_save_for_multi_edit(
 	data1_n = normalize_dict(data1)
 	data3_n = normalize_dict(data3)
 	assert data1_n == data3_n
-
-
 
 
 

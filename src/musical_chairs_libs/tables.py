@@ -32,13 +32,15 @@ Index("idx_uniqueEmail", _u_email, unique=True)
 artists = Table("Artists", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("name", String, nullable=False),
-	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
-		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True)
+	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"),\
+		nullable=False),
+	Column("lastModifiedTimestamp", Float, nullable=False),
+	Column("ownerFk", Integer, ForeignKey("Users.pk"), nullable=False),
 )
 
 _ar_name: Any = artists.c.name #pyright: ignore reportUnknownMemberType
-Index("idx_uniqueArtistsName", _ar_name, unique=True)
+_ar_ownerFk: Any = artists.c.ownerFk #pyright: ignore reportUnknownMemberType
+Index("idx_uniqueArtistsName", _ar_name, _ar_ownerFk, unique=True)
 
 
 albums = Table("Albums", metadata,
@@ -47,12 +49,21 @@ albums = Table("Albums", metadata,
 	Column("albumArtistFk", Integer, ForeignKey("Artists.pk"), nullable=True),
 	Column("year", Integer, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
-		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True)
+		nullable=False),
+	Column("lastModifiedTimestamp", Float, nullable=False),
+	Column("ownerFk", Integer, ForeignKey("Users.pk"), nullable=False)
 )
+
 _ab_name: Any = albums.c.name #pyright: ignore reportUnknownMemberType
 _ab_albumArtistFk: Any = albums.c.albumArtistFk #pyright: ignore reportUnknownMemberType
-Index("idx_uniqueAlbumNameForArtist", _ab_name, _ab_albumArtistFk, unique=True)
+_ab_ownerFk: Any = albums.c.ownerFk #pyright: ignore reportUnknownMemberType
+Index(
+	"idx_uniqueAlbumNameForArtist",
+	_ab_name,
+	_ab_albumArtistFk,
+	_ab_ownerFk,
+	unique=True
+)
 
 songs = Table("Songs", metadata,
 	Column("pk", Integer, primary_key=True),
@@ -149,6 +160,18 @@ ur_span: Column = userRoles.c.span #pyright: ignore reportUnknownMemberType
 ur_count: Column = userRoles.c.count #pyright: ignore reportUnknownMemberType
 ur_priority: Column = userRoles.c.priority #pyright: ignore reportUnknownMemberType
 Index("idx_userRoles", ur_userFk, ur_role, unique=True)
+
+user_action_history = Table("UserActionHistory", metadata,
+	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
+	Column("action", String),
+	Column("timestamp", Float, nullable=False)
+)
+
+uah: TblCols = user_action_history.c #pyright: ignore [reportUnknownMemberType]
+uah_userFk: Column = uah.userFk #pyright: ignore reportUnknownMemberType
+uah_action: Column = uah.action #pyright: ignore reportUnknownMemberType
+uah_timestamp: Column = uah.timestamp #pyright: ignore reportUnknownMemberType
+
 
 station_user_permissions = Table("StationUserPermissions", metadata,
 	Column("pk", Integer, primary_key=True),

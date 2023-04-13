@@ -36,8 +36,9 @@ class UserRoleDef(Enum):
 	USER_LIST = "user:list"
 	USER_EDIT = "user:edit"
 	PATH_LIST = "path:list"
-	PATH_ITEM_EDIT = "path:edit"
-	PATH_ITEM_DOWNLOAD = "path:download"
+	PATH_EDIT = "path:edit"
+	PATH_VIEW = "path:view"
+	PATH_DOWNLOAD = "path:download"
 
 	def __call__(self, **kwargs: Union[str, int]) -> str:
 		return self.modded_value(**kwargs)

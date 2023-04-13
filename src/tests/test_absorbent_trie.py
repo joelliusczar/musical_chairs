@@ -1,4 +1,5 @@
 
+from typing import Any
 from musical_chairs_libs.dtos_and_utilities import AbsorbentTrie
 from .helpers import get_sentences
 
@@ -64,7 +65,7 @@ trieWords = [
 
 
 def test_path_trie_add_and_len():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	assert len(t) == 0
 
 	added = t.add("a")
@@ -208,7 +209,7 @@ def test_path_trie_add_and_len():
 	assert len(pathEnd) == 0
 
 def test_path_trie_extend():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	t.extend([
 		"the",
 		"the/fox/jumped/over/the/dog/",
@@ -221,7 +222,7 @@ def test_path_trie_extend():
 	assert len(t) == 6
 
 def test_trie_depth():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	assert t.depth == 0
 	t.add("a")
 	assert t.depth == 1
@@ -235,7 +236,7 @@ def test_trie_depth():
 	assert t.depth == 6
 
 def test_path_end():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	t.extend(trieWords)
 	pe = t.__get_path_end__("a")
 	assert pe
@@ -267,7 +268,7 @@ def test_path_end():
 	assert pe == t
 
 def test_iterate():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	t.add("alpha")
 	t.add("album")
 	t.add("alpine")
@@ -285,7 +286,7 @@ def test_iterate():
 	assert sorted(l) == expected
 
 def test_add_and_iterate():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	t.add("alpha")
 	l = list(t.values())
 	assert len(l) == 1
@@ -345,7 +346,7 @@ def test_add_and_iterate():
 	assert "bunt" in l
 
 def test_path_trie_starts_with():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	t.extend([
 		"the",
 		"the/fox/jumped/over/the/dog/",
@@ -364,7 +365,7 @@ def test_path_trie_starts_with():
 	pass
 
 def test_trie_contains():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	t.extend(trieWords)
 	assert "x" not in t
 	assert "" in t
@@ -383,12 +384,12 @@ def test_trie_contains():
 
 def test_large_set():
 	strs = get_sentences()
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	t.extend(strs)
 	list(t.paths_start_with(''))
 
 def test_is_path_end():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 
 	t.add("a")
 	t.add("alpha")
@@ -533,7 +534,7 @@ def test_is_path_end():
 	assert yetza.is_path_end
 
 def test_is_prefix_for():
-	t = AbsorbentTrie()
+	t = AbsorbentTrie[Any]()
 	t.extend(trieWords)
 
 	res = t.has_prefix_for("alpa")

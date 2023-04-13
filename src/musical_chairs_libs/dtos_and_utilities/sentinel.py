@@ -2,7 +2,11 @@
 
 class Sentinel:
 
-	def __bool__(self) -> bool:
-		return False
+	def __init__(self, value: bool) -> None:
+		self.value = value
 
-missing = Sentinel()
+	def __bool__(self) -> bool:
+		return self.value
+
+missing = Sentinel(False)
+found = Sentinel(True)

@@ -8,24 +8,32 @@ from fastapi import (
 	Query
 )
 from fastapi.responses import FileResponse
-from api_dependencies import \
-	song_info_service,\
-	station_service,\
-	get_current_user
+from api_dependencies import (
+	song_info_service,
+	station_service,
+	get_current_user,
+	get_path_user,
+	get_multi_path_user,
+	get_user_with_simple_scopes
+)
 from musical_chairs_libs.services import SongInfoService, StationService
-from musical_chairs_libs.dtos_and_utilities import SongTreeNode,\
-	ListData,\
-	AlbumInfo,\
-	AlbumCreationInfo,\
-	ArtistInfo,\
-	AccountInfo,\
-	UserRoleDef,\
-	SongEditInfo,\
-	build_error_obj,\
+from musical_chairs_libs.dtos_and_utilities import (
+	SongTreeNode,
+	ListData,
+	AlbumInfo,
+	AlbumCreationInfo,
+	ArtistInfo,
+	AccountInfo,
+	UserRoleDef,
+	SongEditInfo,
+	build_error_obj,
 	ValidatedSongAboutInfo
+)
 router = APIRouter(prefix="/song-info")
 
-@router.get("/songs/tree")
+@router.get("/songs/tree", dependencies=[
+	Security(get_path_user, scopes=[UserRoleDef.PATH_LIST.value])
+])
 def song_ls(
 	prefix: str = "",
 	songInfoService: SongInfoService = Depends(song_info_service)
@@ -33,34 +41,40 @@ def song_ls(
 	return ListData(items=list(songInfoService.song_ls(prefix)))
 
 
-@router.get("/songs/{id}")
+@router.get("/songs/{id}", dependencies=[
+	Security(get_path_user, scopes=[UserRoleDef.PATH_VIEW.value])
+])
 def get_song_for_edit(
-	id: int,
+	itemId: int,
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> SongEditInfo:
-	songInfo = next(songInfoService.get_songs_for_edit([id]), None)
+	songInfo = next(songInfoService.get_songs_for_edit([itemId]), None)
 	if songInfo:
 		return songInfo
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
-		detail=[build_error_obj(f"{id} not found", "id")]
+		detail=[build_error_obj(f"{itemId} not found", "id")]
 	)
 
 #not sure if this will actually be used anywhere. It's mostly a testing
 #convenience
-@router.get("/songs/list/")
+@router.get("/songs/list/", dependencies=[
+	Security(get_multi_path_user, scopes=[UserRoleDef.PATH_VIEW.value])
+])
 def get_songs_list(
-	id: list[int] = Query(default=[]),
+	itemIds: list[int] = Query(default=[]),
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> list[SongEditInfo]:
-	return list(songInfoService.get_songs_for_edit(id))
+	return list(songInfoService.get_songs_for_edit(itemIds))
 
-@router.get("/songs/multi/")
+@router.get("/songs/multi/", dependencies=[
+	Security(get_multi_path_user, scopes=[UserRoleDef.PATH_VIEW.value])
+])
 def get_songs_for_multi_edit(
-	id: list[int] = Query(default=[]),
+	itemIds: list[int] = Query(default=[]),
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> SongEditInfo:
-	songInfo = songInfoService.get_songs_for_multi_edit(id)
+	songInfo = songInfoService.get_songs_for_multi_edit(itemIds)
 	if songInfo:
 		return songInfo
 	raise HTTPException(
@@ -98,7 +112,7 @@ def extra_validated_song(
 @router.get(
 	"/songs/download/{id}",
 	dependencies=[
-		Security(get_current_user, scopes=[UserRoleDef.SONG_DOWNLOAD.value])
+		Security(get_path_user, scopes=[UserRoleDef.PATH_DOWNLOAD.value])
 	],
 	response_class=FileResponse
 )
@@ -106,7 +120,7 @@ def download_song(
 	id: int,
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> str:
-	path = songInfoService.get_song_path(id)
+	path = next(songInfoService.get_song_path(id), None)
 	if path:
 		return path
 	raise HTTPException(
@@ -114,40 +128,40 @@ def download_song(
 		detail=[build_error_obj(f"{id} not found", "id")]
 	)
 
-@router.put("/songs/{id}")
+@router.put("/songs/{itemId}")
 def update_song(
-	id: int,
+	itemId: int,
 	song: ValidatedSongAboutInfo = Depends(extra_validated_song),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_current_user,
-		scopes=[UserRoleDef.SONG_EDIT()]
+		get_path_user,
+		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> SongEditInfo:
-	result = next(songInfoService.save_songs([id], song, userId=user.id), None)
+	result = next(songInfoService.save_songs([itemId], song, userId=user.id), None)
 	if result:
 		return result
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
-		detail=[build_error_obj(f"{id} not found", "id")]
+		detail=[build_error_obj(f"{itemId} not found", "id")]
 	)
 
 @router.put("/songs/multi/")
 def update_songs_multi(
-	id: list[int] = Query(default=[]),
+	itemIds: list[int] = Query(default=[]),
 	song: ValidatedSongAboutInfo = Depends(extra_validated_song),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_current_user,
-		scopes=[UserRoleDef.SONG_EDIT()]
+		get_multi_path_user,
+		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> SongEditInfo:
-	result = next(songInfoService.save_songs(id, song, userId=user.id), None)
+	result = next(songInfoService.save_songs(itemIds, song, userId=user.id), None)
 	if result:
 		return result
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
-		detail=[build_error_obj(f"{id} not found", "id")]
+		detail=[build_error_obj(f"{itemIds} not found", "id")]
 	)
 
 @router.get("/artists/list")
@@ -161,8 +175,8 @@ def create_artist(
 	artistName: str,
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_current_user,
-		scopes=[UserRoleDef.SONG_EDIT()]
+		get_user_with_simple_scopes,
+		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> ArtistInfo:
 	artistInfo = songInfoService.save_artist(artistName, userId=user.id)
@@ -173,8 +187,8 @@ def create_album(
 	album: AlbumCreationInfo,
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_current_user,
-		scopes=[UserRoleDef.SONG_EDIT()]
+		get_user_with_simple_scopes,
+		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> AlbumInfo:
 	albumInfo = songInfoService.save_album(album, userId=user.id)
@@ -182,6 +196,10 @@ def create_album(
 
 @router.get("/albums/list")
 def get_all_albums(
-	songInfoService: SongInfoService = Depends(song_info_service)
+	songInfoService: SongInfoService = Depends(song_info_service),
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.PATH_VIEW.value]
+	)
 ) -> ListData[AlbumInfo]:
 	return ListData(items=list(songInfoService.get_albums()))

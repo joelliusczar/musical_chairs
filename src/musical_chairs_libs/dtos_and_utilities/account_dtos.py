@@ -113,3 +113,9 @@ class PathPrefixInfo:
 @dataclass(frozen=True)
 class PathUserInfo(AccountInfo):
 	pathPrefixes: list[PathPrefixInfo]=field(default_factory=list)
+
+@dataclass(frozen=True)
+class UserHistoryActionItem:
+	userId: int
+	action: str
+	timestamp: float

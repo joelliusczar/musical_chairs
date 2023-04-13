@@ -327,7 +327,8 @@ is_ices_version_good() {
 
 is_dir_empty() (
 	target_dir="$1"
-	[ ! -d "$target_dir" ] || [ -z "$(ls -A ${target_dir})" ]
+	lsRes=$(ls -A $target_dir)
+	[ ! -d "$target_dir" ] || [ -z "$lsRes" ]
 )
 
 get_libs_dir() (
@@ -617,6 +618,15 @@ print_schema_scripts() (
 	EnvManager.print_expected_schema()
 	EOF
 	)
+)
+
+start_python() (
+	process_global_vars "$@" &&
+	sync_requirement_list &&
+	create_py_env_in_app_trunk &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	printf '\033c' &&
+	python
 )
 
 sync_utility_scripts() (

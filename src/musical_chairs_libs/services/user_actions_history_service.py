@@ -46,7 +46,11 @@ class UserActionsHistoryService:
 			.limit(limit)
 		records = self.conn.execute(query) #pyright: ignore reportUnknownMemberType
 		yield from (
-			UserHistoryActionItem(userId, row[uah_action], row[uah_timestamp])
+			UserHistoryActionItem(
+				userId,
+				cast(str,row[uah_action]),
+				cast(float,row[uah_timestamp])
+			)
 			for row in cast(Iterable[Row], records)
 		)
 

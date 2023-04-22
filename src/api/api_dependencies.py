@@ -20,7 +20,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	IllegalOperationError,
 	ActionRule,
 	get_datetime,
-	AbsorbentTrie
+	AbsorbentTrie,
+	UserRoleDef,
+	PathPrefixInfo,
+	PathsActionRule
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -133,6 +136,27 @@ def get_user_with_simple_scopes(
 			raise build_wrong_permissions_error()
 	return user
 
+def get_path_owner_roles() -> list[ActionRule]:
+	return [
+		ActionRule(UserRoleDef.PATH_EDIT.value, priority=2),
+		ActionRule(UserRoleDef.PATH_DOWNLOAD.value, priority=2),
+		ActionRule(UserRoleDef.PATH_LIST.value, priority=2),
+		ActionRule(UserRoleDef.PATH_VIEW.value, priority=2)
+	]
+
+def get_paths_for_scopes(
+	scopes: Iterable[str],
+	pathRules: Iterable[PathPrefixInfo]
+) -> Iterator[PathsActionRule]:
+	scopes2Path = {s:PathsActionRule(s) for s in scopes}
+	for r in ((p.path, rl) for p
+		in pathRules for rl in p.rules if rl.name in scopes2Path
+	):
+		pathRule = scopes2Path[r[1].name]
+		pathRule.paths.append(r[0])
+	yield from (r for r in scopes2Path.values())
+
+
 def check_if_can_use_path(
 	scopes: Iterable[str],
 	prefix: str,
@@ -140,7 +164,9 @@ def check_if_can_use_path(
 	userPrefixTrie: AbsorbentTrie[list[ActionRule]],
 	userActionHistoryService: UserActionsHistoryService
 ):
-	rules = userPrefixTrie.get(prefix, None)
+	rules = userPrefixTrie.get(prefix, [])
+	if user.dirRoot and prefix.startswith(user.dirRoot):
+		rules.extend(get_path_owner_roles())
 	if not rules:
 		raise build_wrong_permissions_error()
 	for scope in scopes:
@@ -176,26 +202,33 @@ def get_path_user(
 ) -> AccountInfo:
 	if user.isAdmin:
 		return user
-	userPrefixes = songInfoService.get_paths_user_can_see(user.id)
+	userPrefixes = [*songInfoService.get_paths_user_can_see(user.id)]
 	userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
 	if prefix == None:
-		if not itemId:
-			raise HTTPException(
-				status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-				detail = "Both prefix and item Id are missing"
-			)
-		prefix = next(songInfoService.get_song_path(itemId), "")
-	scopes = (s for s in securityScopes.scopes \
+		if itemId:
+			prefix = next(songInfoService.get_song_path(itemId), "")
+	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
-	)
-	check_if_can_use_path(
-		scopes,
-		prefix,
-		user,
-		userPrefixTrie,
-		userActionHistoryService
-	)
-	return user
+	]
+	if prefix:
+		check_if_can_use_path(
+			scopes,
+			prefix,
+			user,
+			userPrefixTrie,
+			userActionHistoryService
+		)
+		return user
+	else:
+		pathRuleMap = {p.name:p for p in get_paths_for_scopes(
+			scopes,
+			userPrefixes
+		)}
+		userDict = asdict(user)
+		userDict["roles"] = [pathRuleMap.get(r.name, r) for r in user.roles]
+		return AccountInfo(
+			**userDict,
+		)
 
 def get_multi_path_user(
 	securityScopes: SecurityScopes,

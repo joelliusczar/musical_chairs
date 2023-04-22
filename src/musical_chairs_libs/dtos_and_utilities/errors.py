@@ -5,3 +5,6 @@ class AlreadyUsedError(ValueError):
 
 class IllegalOperationError(RuntimeError):
 	pass
+
+class AlternateValueError(Exception):
+	pass

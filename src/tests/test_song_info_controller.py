@@ -36,6 +36,40 @@ def test_song_ls_hit(
 	items = data.get("items", [])
 	assert len(items) == 1
 
+def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
+
+	client = fixture_api_test_client
+
+	headers_foo_owner = login_test_user("testUser_kilo", client)
+
+	response = client.get(
+		"/song-info/songs/tree",
+		headers=headers_foo_owner
+	)
+	assert response.status_code == 200
+
+	headers_no_owner = login_test_user("testUser_bravo", client)
+
+	response = client.get(
+		"/song-info/songs/tree",
+		headers=headers_no_owner
+	)
+	assert response.status_code == 422
+
+	headers_foo_goo_boo_user = login_test_user("testUser_lima", client)
+
+	response = client.get(
+		"/song-info/songs/tree",
+		headers=headers_foo_goo_boo_user
+	)
+	assert response.status_code == 200
+
+	response = client.get(
+		"/song-info/songs/tree?prefix=foo",
+		headers=headers_foo_goo_boo_user
+	)
+	assert response.status_code == 404
+
 def test_song_save(
 	fixture_api_test_client: TestClient
 ):

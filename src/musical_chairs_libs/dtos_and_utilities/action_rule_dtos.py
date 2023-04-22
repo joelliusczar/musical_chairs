@@ -1,5 +1,5 @@
 from typing import (Any, Optional, Iterable, Iterator)
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from .user_role_def import UserRoleDomain
 
 @dataclass()
@@ -7,6 +7,8 @@ class ActionRule:
 	name: str=""
 	span: int=0
 	count: int=0
+	#if priority is not specified, priority should be specific
+	# (station, path) > general
 	priority: Optional[int]=0
 	id: Optional[int]=None
 	domain: UserRoleDomain=UserRoleDomain.Site
@@ -91,3 +93,7 @@ class ActionRule:
 				selectedRule = rule
 		if selectedRule:
 			yield selectedRule
+
+@dataclass()
+class PathsActionRule(ActionRule):
+	paths: list[str]=field(default_factory=list)

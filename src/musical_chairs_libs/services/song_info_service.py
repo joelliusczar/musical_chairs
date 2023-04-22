@@ -90,11 +90,11 @@ class SongInfoService:
 		if not row:
 			return None
 		return SongListDisplayItem(
-			id=row[sg_pk],
-			path=row[sg_path],
-			name=row[sg_name],
-			album=row["album"],
-			artist=row["artist"],
+			id=cast(int,row[sg_pk]),
+			path=cast(str,row[sg_path]),
+			name=cast(str,row[sg_name]),
+			album=cast(str,row["album"]),
+			artist=cast(str,row["artist"]),
 			queuedTimestamp=0
 		)
 
@@ -105,7 +105,7 @@ class SongInfoService:
 		query = select(ar_pk).select_from(artists_tbl).where(ar_name == savedName)
 		row = self.conn.execute(query).fetchone() #pyright: ignore reportUnknownMemberType
 		if row:
-			pk: int = row[ar_pk]
+			pk = cast(int, row[ar_pk])
 			return pk
 		print(name)
 		stmt = insert(artists_tbl).values(
@@ -113,7 +113,7 @@ class SongInfoService:
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
 		res = self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
-		insertedPk: int = res.lastrowid #pyright: ignore reportUnknownMemberType
+		insertedPk = cast(int, res.lastrowid) #pyright: ignore reportUnknownMemberType
 		return insertedPk
 
 	def save_artist(
@@ -202,7 +202,7 @@ class SongInfoService:
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
 		res = self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
-		insertedPk: int = res.lastrowid #pyright: ignore reportUnknownMemberType
+		insertedPk = cast(int, res.lastrowid) #pyright: ignore reportUnknownMemberType
 		return insertedPk
 
 	def get_song_refs(
@@ -250,11 +250,11 @@ class SongInfoService:
 					lastModifiedTimestamp = timestamp,
 					lastModifiedByUserFk = None
 				)
-		count: int = self.conn.execute(songUpdate).rowcount #pyright: ignore reportUnknownMemberType
+		count = cast(int, self.conn.execute(songUpdate).rowcount) #pyright: ignore [reportUnknownMemberType]
 		try:
 			songComposerInsert = insert(song_artist_tbl)\
 				.values(songFk = songInfo.id, artistFk = songInfo.artistId)
-			self.conn.execute(songComposerInsert) #pyright: ignore reportUnknownMemberType
+			self.conn.execute(songComposerInsert) #pyright: ignore [reportUnknownMemberType]
 		except IntegrityError: pass
 		try:
 			songComposerInsert = insert(song_artist_tbl)\
@@ -263,7 +263,7 @@ class SongInfoService:
 					artistFk = songInfo.composerId,
 					comment = "composer"
 				)
-			self.conn.execute(songComposerInsert) #pyright: ignore reportUnknownMemberType
+			self.conn.execute(songComposerInsert) #pyright: ignore [reportUnknownMemberType]
 		except IntegrityError: pass
 		return count
 
@@ -271,16 +271,15 @@ class SongInfoService:
 		query = select(pup_path, pup_role, pup_priority)\
 			.where(pup_userFk == userId)\
 			.order_by(pup_path)
-		records = cast(Iterable[Row], self.conn.execute(query)) #pyright: ignore reportUnknownMemberType
+		records = cast(Iterable[Row], self.conn.execute(query)) #pyright: ignore [reportUnknownMemberType]
 		for k, g in groupby(records, lambda r: cast(str,r[pup_path])):
 			yield PathPrefixInfo(
 				k,
 				[ActionRule(
-					r[pup_role],
-					priority=r[pup_priority],
+					cast(str,r[pup_role]),
+					priority=cast(int,r[pup_priority]),
 					domain=UserRoleDomain.Path
-				) for r in g
-				]
+				) for r in g ]
 			)
 
 	def song_ls(self, prefix: Optional[str] = "") -> Iterator[SongTreeNode]:
@@ -702,20 +701,20 @@ class SongInfoService:
 				primaryArtist = None
 			if row[sgar_isPrimaryArtist]:
 				primaryArtist = ArtistInfo(
-					row["artist.id"],
-					row["artist.name"]
+					cast(int, row["artist.id"]),
+					cast(str, row["artist.name"])
 				)
 			elif row["artist.id"]:
 				artists.add(ArtistInfo(
-						row["artist.id"],
-						row["artist.name"]
+						cast(int, row["artist.id"]),
+						cast(str, row["artist.name"])
 					)
 				)
 			if row["station.id"]:
 				stations.add(StationInfo(
-					row["station.id"],
-					row["station.name"],
-					row["station.displayName"]
+					cast(int, row["station.id"]),
+					cast(str, row["station.name"]),
+					cast(str, row["station.displayName"])
 				))
 		if currentSongRow:
 			songDict = self._prepare_song_row_for_model(currentSongRow)
@@ -812,4 +811,6 @@ class SongInfoService:
 			return SongEditInfo(**commonSongInfo, touched=touched)
 		else:
 			return SongEditInfo(id=0, path="", touched=touched)
+
+
 

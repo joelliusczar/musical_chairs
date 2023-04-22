@@ -19,15 +19,14 @@ from sqlalchemy import (
 	update,
 	or_
 )
-from sqlalchemy.sql import ColumnCollection
 from itertools import chain
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
-	songs, sg_pk, sg_name, sg_path,
+	songs, sg_pk, sg_name, sg_path, sg_albumFk,
 	station_queue, q_stationFk, q_requestedTimestamp, q_requestedByUserFk,
-	albums, ab_name,
-	artists, ar_name,
-	song_artist,
+	albums, ab_name, ab_pk,
+	artists, ar_name, ar_pk,
+	song_artist, sgar_songFk, sgar_artistFk,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	station_user_permissions as station_user_permissions_tbl, stup_pk,
 	stup_role, stup_stationFk, stup_userFk, stup_count, stup_span, stup_priority
@@ -53,12 +52,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 from .env_manager import EnvManager
 from .template_service import TemplateService
 
-sg: ColumnCollection = songs.columns
-st: ColumnCollection = stations_tbl.columns
-sgar: ColumnCollection = song_artist.columns
-ab: ColumnCollection = albums.columns
-ar: ColumnCollection = artists.columns
-
 
 class StationService:
 
@@ -82,9 +75,9 @@ class StationService:
 		self.get_datetime = get_datetime
 
 	def get_station_id(self, stationName: str) -> Optional[int]:
-		query = select(st.pk) \
+		query = select(st_pk) \
 			.select_from(stations_tbl) \
-			.where(func.lower(st.name) == func.lower(stationName))
+			.where(func.lower(st_name) == func.lower(stationName))
 		row = self.conn.execute(query).fetchone()
 		pk: Optional[int] = cast(int,row.pk) if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk
@@ -134,16 +127,16 @@ class StationService:
 	) -> Any:
 		appended_query = baseQuery\
 			.select_from(stations_tbl) \
-			.join(stations_songs_tbl, st.pk == stsg_stationFk) \
-			.join(songs, sg.pk == stsg_songFk) \
-			.join(albums, sg.albumFk == ab.pk, isouter=True) \
-			.join(song_artist, sg.pk == sgar.songFk, isouter=True) \
-			.join(artists, sgar.artistFk == ar.pk, isouter=True) \
+			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
+			.join(songs, sg_pk == stsg_songFk) \
+			.join(albums, sg_albumFk == ab_pk, isouter=True) \
+			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
+			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
 
 		if stationId:
-			query = appended_query.where(st.pk == stationId)
+			query = appended_query.where(st_pk == stationId)
 		elif stationName:
-			query = appended_query.where(func.lower(st.name) == func.lower(stationName))
+			query = appended_query.where(func.lower(st_name) == func.lower(stationName))
 		else:
 			raise ValueError("Either stationName or pk must be provided")
 		return query
@@ -201,7 +194,7 @@ class StationService:
 		stationName: SavedNameString
 	) -> bool:
 		queryAny: str = select(st_pk, st_name).select_from(stations_tbl)\
-				.where(func.format_name_for_save(st.name) == str(stationName))\
+				.where(func.format_name_for_save(st_name) == str(stationName))\
 				.where(st_pk != id)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
@@ -217,20 +210,20 @@ class StationService:
 		stationId: Optional[int]=None,
 		stationName: Optional[str]=None,
 	) -> Optional[StationInfo]:
-		query = select(st.pk, st.name, st.displayName)
+		query = select(st_pk, st_name, st_displayName)
 		if stationId:
-			query = query.where(st.pk == stationId)
+			query = query.where(st_pk == stationId)
 		elif stationName:
-			query = query.where(st.name == stationName)
+			query = query.where(st_name == stationName)
 		else:
 			return None
 		row = self.conn.execute(query).fetchone()
 		if not row:
 			return None
 		return StationInfo(
-			id=stationId or row["pk"],
-			name=row["name"],
-			displayName=row["displayName"]
+			id=stationId or cast(int, row["pk"]),
+			name=cast(str, row["name"]),
+			displayName=cast(str, row["displayName"])
 		)
 
 	def save_station(
@@ -251,7 +244,7 @@ class StationService:
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
 		if stationId:
-			stmt = stmt.where(st.pk == stationId)
+			stmt = stmt.where(st_pk == stationId)
 		try:
 			res = self.conn.execute(stmt)
 			self.template_service.create_station_files(
@@ -297,15 +290,18 @@ class StationService:
 		query = query.order_by(stup_role, st_pk)
 		records = self.conn.execute(query).fetchall()
 		fetchedStationId = next(
-			(row[st_pk] for row in records if row[st_pk]),
+			(cast(int, row[st_pk]) for row in records if row[st_pk]),
 			None
 		)
 		generator = (ActionRule(
-				row[stup_role],
-				row[stup_span],
-				row[stup_count],
-				row[stup_priority] if row[stup_priority] else 1 if row[st_pk] else 0,
-				row[stup_pk],
+				cast(str, row[stup_role]),
+				cast(int, row[stup_span]),
+				cast(int, row[stup_count]),
+				cast(int,row[stup_priority])
+					#if priortity is explict use that
+					#otherwise, prefer station specific rule vs non station specific rule
+					if row[stup_priority] else 1 if row[st_pk] else 0,
+				cast(int, row[stup_pk]),
 				UserRoleDomain.Station
 			) for row in records)
 		return fetchedStationId, generator
@@ -359,7 +355,7 @@ class StationService:
 			.limit(selectedRule.count)
 		records = self.conn.execute(query)
 		for row in cast(Iterable[Row], records):
-			yield row[q_requestedTimestamp]
+			yield cast(float,row[q_requestedTimestamp])
 
 	def __calc_when_user_can_noop(
 		self,

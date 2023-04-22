@@ -1,13 +1,15 @@
-from typing import Any
-from sqlalchemy import Table,\
-	MetaData,\
-	Column,\
-	Float,\
-	LargeBinary,\
-	Integer,\
-	String,\
-	ForeignKey,\
+from typing import Any, cast
+from sqlalchemy import (
+	Table,
+	MetaData,
+	Column,
+	Float,
+	LargeBinary,
+	Integer,
+	String,
+	ForeignKey,
 	Index
+)
 from sqlalchemy.sql import ColumnCollection as TblCols
 from sqlalchemy.sql.schema import Column
 
@@ -21,6 +23,7 @@ users = Table("Users", metadata,
 	Column("displayName", String, nullable=True),
 	Column("hashedPW", LargeBinary, nullable=True),
 	Column("email", String, nullable=True),
+	Column("dirRoot", String, nullable=True),
 	Column("isDisabled", Integer, nullable=True),
 	Column("creationTimestamp", Float, nullable=False)
 )
@@ -28,6 +31,16 @@ _u_username: Any = users.c.username #pyright: ignore reportUnknownMemberType
 Index("idx_uniqueUsername", _u_username, unique=True)
 _u_email: Any = users.c.email #pyright: ignore reportUnknownMemberType
 Index("idx_uniqueEmail", _u_email, unique=True)
+
+u = cast(TblCols,users.c) #pyright: ignore [reportUnknownMemberType]
+u_pk = cast(Column,u.pk) #pyright: ignore [reportUnknownMemberType]
+u_username = cast(Column,u.username) #pyright: ignore [reportUnknownMemberType]
+u_displayName = cast(Column,u.displayName) #pyright: ignore [reportUnknownMemberType]
+u_hashedPW = cast(Column,u.hashedPW) #pyright: ignore [reportUnknownMemberType]
+u_email = cast(Column,u.email) #pyright: ignore [reportUnknownMemberType]
+u_dirRoot = cast(Column,u.dirRoot) #pyright: ignore [reportUnknownMemberType]
+u_disabled = cast(Column,u.isDisabled) #pyright: ignore [reportUnknownMemberType]
+u_creationTimestamp = cast(Column,u.creationTimestamp) #pyright: ignore [reportUnknownMemberType]
 
 artists = Table("Artists", metadata,
 	Column("pk", Integer, primary_key=True),
@@ -146,6 +159,14 @@ station_queue = Table("StationQueue", metadata,
 	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True)
 )
 
+q = cast(TblCols, station_queue.c) #pyright: ignore [reportUnknownMemberType]
+q_songFk = cast(Column,q.songFk) #pyright: ignore [reportUnknownMemberType]
+q_stationFk = cast(Column,q.stationFk) #pyright: ignore [reportUnknownMemberType]
+q_queuedTimestamp: Column = q.queuedTimestamp #pyright: ignore [reportUnknownMemberType
+q_playedTimestamp: Column = q.playedTimestamp #pyright: ignore [reportUnknownMemberType
+q_requestedTimestamp: Column = q.requestedTimestamp #pyright: ignore [reportUnknownMemberType
+q_requestedByUserFk: Column = q.requestedByUserFk #pyright: ignore [reportUnknownMemberType
+
 userRoles = Table("UserRoles", metadata,
 	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
 	Column("role", String),
@@ -167,7 +188,7 @@ user_action_history = Table("UserActionHistory", metadata,
 	Column("timestamp", Float, nullable=False)
 )
 
-uah: TblCols = user_action_history.c #pyright: ignore [reportUnknownMemberType]
+uah = cast(TblCols, user_action_history.c) #pyright: ignore [reportUnknownMemberType]
 uah_userFk: Column = uah.userFk #pyright: ignore reportUnknownMemberType
 uah_action: Column = uah.action #pyright: ignore reportUnknownMemberType
 uah_timestamp: Column = uah.timestamp #pyright: ignore reportUnknownMemberType
@@ -183,7 +204,7 @@ station_user_permissions = Table("StationUserPermissions", metadata,
 	Column("priority", Integer),
 	Column("creationTimestamp", Float, nullable=False)
 )
-stup: TblCols = station_user_permissions.c #pyright: ignore [reportUnknownMemberType]
+stup = cast(TblCols, station_user_permissions.c) #pyright: ignore [reportUnknownMemberType]
 stup_stationFk: Column = stup.stationFk #pyright: ignore reportUnknownMemberType
 stup_pk: Column = stup.pk #pyright: ignore reportUnknownMemberType
 stup_userFk: Column = stup.userFk #pyright: ignore reportUnknownMemberType
@@ -227,54 +248,48 @@ Index(
 )
 
 
-sg: TblCols = songs.c #pyright: ignore [reportUnknownMemberType]
-sg_pk: Column = sg.pk #pyright: ignore [reportUnknownMemberType]
-sg_name: Column = sg.name #pyright: ignore [reportUnknownMemberType]
-sg_path: Column = sg.path #pyright: ignore [reportUnknownMemberType]
-sg_albumFk: Column = sg.albumFk #pyright: ignore [reportUnknownMemberType]
-sg_track: Column = sg.track #pyright: ignore [reportUnknownMemberType]
-sg_disc: Column = sg.disc #pyright: ignore [reportUnknownMemberType]
-sg_genre: Column = sg.genre #pyright: ignore [reportUnknownMemberType]
-sg_explicit: Column = sg.explicit #pyright: ignore [reportUnknownMemberType]
-sg_bitrate: Column = sg.bitrate #pyright: ignore [reportUnknownMemberType]
-sg_comment: Column = sg.comment #pyright: ignore [reportUnknownMemberType]
-sg_lyrics: Column = sg.lyrics #pyright: ignore [reportUnknownMemberType]
-sg_duration: Column = sg.duration #pyright: ignore [reportUnknownMemberType]
-sg_sampleRate: Column = sg.sampleRate #pyright: ignore [reportUnknownMemberType]
+sg = cast(TblCols,songs.c) #pyright: ignore [reportUnknownMemberType]
+sg_pk = cast(Column,sg.pk) #pyright: ignore [reportUnknownMemberType]
+sg_name = cast(Column,sg.name) #pyright: ignore [reportUnknownMemberType]
+sg_path = cast(Column,sg.path) #pyright: ignore [reportUnknownMemberType]
+sg_albumFk = cast(Column,sg.albumFk) #pyright: ignore [reportUnknownMemberType]
+sg_track = cast(Column,sg.track) #pyright: ignore [reportUnknownMemberType]
+sg_disc = cast(Column,sg.disc) #pyright: ignore [reportUnknownMemberType]
+sg_genre = cast(Column,sg.genre) #pyright: ignore [reportUnknownMemberType]
+sg_explicit = cast(Column,sg.explicit) #pyright: ignore [reportUnknownMemberType]
+sg_bitrate = cast(Column,sg.bitrate) #pyright: ignore [reportUnknownMemberType]
+sg_comment = cast(Column,sg.comment) #pyright: ignore [reportUnknownMemberType]
+sg_lyrics = cast(Column,sg.lyrics) #pyright: ignore [reportUnknownMemberType]
+sg_duration = cast(Column,sg.duration) #pyright: ignore [reportUnknownMemberType]
+sg_sampleRate = cast(Column,sg.sampleRate) #pyright: ignore [reportUnknownMemberType]
 
-ab: TblCols = albums.c #pyright: ignore [reportUnknownMemberType]
-ab_pk: Column = ab.pk #pyright: ignore [reportUnknownMemberType]
-ab_name: Column = ab.name #pyright: ignore [reportUnknownMemberType]
-ab_year: Column = ab.year #pyright: ignore [reportUnknownMemberType]
-ab_albumArtistFk: Column = ab.albumArtistFk #pyright: ignore [reportUnknownMemberType]
+ab = cast(TblCols, albums.c) #pyright: ignore [reportUnknownMemberType]
+ab_pk = cast(Column,ab.pk) #pyright: ignore [reportUnknownMemberType]
+ab_name = cast(Column,ab.name) #pyright: ignore [reportUnknownMemberType]
+ab_year = cast(Column,ab.year) #pyright: ignore [reportUnknownMemberType]
+ab_albumArtistFk = cast(Column,ab.albumArtistFk) #pyright: ignore [reportUnknownMemberType]
 
-ar: TblCols = artists.c #pyright: ignore [reportUnknownMemberType]
-ar_pk: Column = ar.pk #pyright: ignore [reportUnknownMemberType]
-ar_name: Column = ar.name #pyright: ignore [reportUnknownMemberType]
-
-
-st: TblCols = stations.c #pyright: ignore [reportUnknownMemberType]
-st_pk: Column = st.pk #pyright: ignore [reportUnknownMemberType]
-st_name: Column = st.name #pyright: ignore [reportUnknownMemberType]
-st_displayName: Column = st.displayName #pyright: ignore [reportUnknownMemberType]
-st_procId: Column = st.procId #pyright: ignore [reportUnknownMemberType]
-
-sgar: TblCols = song_artist.c #pyright: ignore [reportUnknownMemberType]
-sgar_pk: Column = sgar.pk #pyright: ignore [reportUnknownMemberType]
-sgar_songFk: Column = sgar.songFk #pyright: ignore [reportUnknownMemberType]
-sgar_artistFk: Column = sgar.artistFk #pyright: ignore [reportUnknownMemberType]
-sgar_isPrimaryArtist: Column = sgar.isPrimaryArtist #pyright: ignore [reportUnknownMemberType]
+ar = cast(TblCols, artists.c) #pyright: ignore [reportUnknownMemberType]
+ar_pk = cast(Column,ar.pk) #pyright: ignore [reportUnknownMemberType]
+ar_name = cast(Column,ar.name) #pyright: ignore [reportUnknownMemberType]
 
 
-stsg: TblCols = stations_songs.c #pyright: ignore [reportUnknownMemberType]
-stsg_songFk: Column = stsg.songFk #pyright: ignore [reportUnknownMemberType]
-stsg_stationFk: Column = stsg.stationFk #pyright: ignore [reportUnknownMemberType]
+st = cast(TblCols, stations.c) #pyright: ignore [reportUnknownMemberType]
+st_pk = cast(Column,st.pk) #pyright: ignore [reportUnknownMemberType]
+st_name = cast(Column,st.name) #pyright: ignore [reportUnknownMemberType]
+st_displayName = cast(Column,st.displayName) #pyright: ignore [reportUnknownMemberType]
+st_procId = cast(Column,st.procId) #pyright: ignore [reportUnknownMemberType]
 
-q: TblCols = station_queue.c #pyright: ignore [reportUnknownMemberType]
-q_songFk: Column = q.songFk #pyright: ignore [reportUnknownMemberType]
-q_stationFk: Column = q.stationFk #pyright: ignore [reportUnknownMemberType]
-q_queuedTimestamp: Column = q.queuedTimestamp #pyright: ignore [reportUnknownMemberType
-q_playedTimestamp: Column = q.playedTimestamp #pyright: ignore [reportUnknownMemberType
-q_requestedTimestamp: Column = q.requestedTimestamp #pyright: ignore [reportUnknownMemberType
-q_requestedByUserFk: Column = q.requestedByUserFk #pyright: ignore [reportUnknownMemberType
+sgar = cast(TblCols, song_artist.c) #pyright: ignore [reportUnknownMemberType]
+sgar_pk = cast(Column,sgar.pk) #pyright: ignore [reportUnknownMemberType]
+sgar_songFk = cast(Column,sgar.songFk) #pyright: ignore [reportUnknownMemberType]
+sgar_artistFk = cast(Column,sgar.artistFk) #pyright: ignore [reportUnknownMemberType]
+sgar_isPrimaryArtist = cast(Column,sgar.isPrimaryArtist) #pyright: ignore [reportUnknownMemberType]
+
+
+stsg = cast(TblCols, stations_songs.c) #pyright: ignore [reportUnknownMemberType]
+stsg_songFk = cast(Column,stsg.songFk) #pyright: ignore [reportUnknownMemberType]
+stsg_stationFk = cast(Column,stsg.stationFk) #pyright: ignore [reportUnknownMemberType]
+
+
 

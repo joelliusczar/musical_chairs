@@ -21,14 +21,13 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
-from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine.row import Row
 from musical_chairs_libs.tables import (
-	users,
-	userRoles, ur_role, ur_span, ur_count, ur_priority,
+	users, u_pk, u_username, u_hashedPW, u_email, u_dirRoot, u_disabled,
+	u_creationTimestamp, u_displayName,
+	userRoles, ur_userFk, ur_role, ur_span, ur_count, ur_priority,
 	station_queue, q_requestedTimestamp, q_requestedByUserFk, q_playedTimestamp
 )
-
 from sqlalchemy import select, insert, desc, func, delete, update
 from jose import jwt
 from email_validator import (
@@ -41,9 +40,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALGORITHM = "HS256"
 SECRET_KEY=os.environ["RADIO_AUTH_SECRET_KEY"]
 
-u: ColumnCollection = users.columns
-ur: ColumnCollection = userRoles.columns
-q: ColumnCollection = station_queue.columns
 
 class AccountsService:
 
@@ -67,24 +63,25 @@ class AccountsService:
 		cleanedUserName = SavedNameString(username)
 		if not cleanedUserName:
 			return (None, None)
-		query = select(u.pk, u.username, u.hashedPW, u.email)\
+		query = select(u_pk, u_username, u_hashedPW, u_email, u_dirRoot)\
 			.select_from(users) \
-			.where((u.isDisabled != True) | (u.isDisabled == None))\
-			.where(u.hashedPW != None) \
-			.where(func.format_name_for_save(u.username) \
+			.where((u_disabled != True) | (u_disabled == None))\
+			.where(u_hashedPW != None) \
+			.where(func.format_name_for_save(u_username) \
 				== str(cleanedUserName)) \
-			.order_by(desc(u.creationTimestamp)) \
+			.order_by(desc(u_creationTimestamp)) \
 			.limit(1)
 		row = self.conn.execute(query).fetchone()
 		if not row:
 			return (None, None)
-		pk: int = row.pk #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-		hashedPw: bytes = row.hashedPW #pyright: ignore [reportGeneralTypeIssues]
+		pk = cast(int,row.pk) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+		hashedPw = cast(bytes, row.hashedPW) #pyright: ignore [reportGeneralTypeIssues]
 		accountInfo = AccountInfo(
-			id=pk, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			username=row.username, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			email=row.email, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			roles=[*self.__get_roles(pk)]
+			id=cast(int,row[u_pk]),
+			username=cast(str,row[u_username]),
+			email=cast(str,row[u_email]),
+			roles=[*self.__get_roles(pk)],
+			dirRoot=cast(str, row[u_dirRoot])
 		)
 		return (accountInfo, hashedPw)
 
@@ -119,7 +116,7 @@ class AccountsService:
 			creationTimestamp = self.get_datetime().timestamp(),
 		)
 		res = self.conn.execute(stmt)
-		insertedPk: int = res.lastrowid
+		insertedPk = cast(int, res.lastrowid)
 		insertedRows = self.save_roles(
 			insertedPk,
 			[UserRoleDef.STATION_REQUEST(span="60")]
@@ -134,8 +131,8 @@ class AccountsService:
 		if not userId:
 			return 0
 		roles = roles or []
-		delStmt = delete(userRoles).where(ur.userFk == userId)\
-			.where(ur.role.in_(roles))
+		delStmt = delete(userRoles).where(ur_userFk == userId)\
+			.where(ur_role.in_(roles))
 		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType]
 
 	def save_roles(
@@ -202,21 +199,21 @@ class AccountsService:
 	def __get_roles(self, userId: int) -> Iterable[ActionRule]:
 		query = select(ur_role, ur_span, ur_count, ur_priority)\
 			.select_from(userRoles) \
-			.where(ur.userFk == userId)
+			.where(ur_userFk == userId)
 		rows = cast(Iterable[Row], self.conn.execute(query).fetchall())
 		return (ActionRule(
-					r[ur_role],
-					r[ur_span],
-					r[ur_count],
-					r[ur_priority] or 1
+					cast(str, r[ur_role]),
+					cast(int, r[ur_span]),
+					cast(int, r[ur_count]),
+					cast(int, r[ur_priority]) or 1
 				) for r in rows)
 
 	def last_request_timestamp(self, user: AccountInfo) -> int:
 		if not user:
 			return 0
-		queueLatestQuery = select(func.max(q.requestedTimestamp))\
+		queueLatestQuery = select(func.max(q_requestedTimestamp))\
 			.select_from(station_queue)\
-			.where(q.requestedByUserFk == user.id)
+			.where(q_requestedByUserFk == user.id)
 		queueLatestHistory = select(func.max(q_requestedTimestamp))\
 			.select_from(station_queue)\
 			.where(q_playedTimestamp.isnot(None))\
@@ -231,7 +228,7 @@ class AccountsService:
 
 	def _is_username_used(self, username: SearchNameString) -> bool:
 		queryAny: str = select(func.count(1)).select_from(users)\
-				.where(func.format_name_for_search(u.username) == str(username))
+				.where(func.format_name_for_search(u_username) == str(username))
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
@@ -252,7 +249,7 @@ class AccountsService:
 	def _is_email_used(self, email: ValidatedEmail) -> bool:
 		emailStr = email.email #pyright: ignore reportUnknownMemberType
 		queryAny: str = select(func.count(1)).select_from(users)\
-				.where(func.lower(u.email) == emailStr)
+				.where(func.lower(u_email) == emailStr)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
@@ -286,7 +283,7 @@ class AccountsService:
 		pageSize: Optional[int]=None
 	) -> Iterator[AccountInfo]:
 		offset = page * pageSize if pageSize else 0
-		query = select(u.pk.label("id"), u.username, u.displayName, u.email)\
+		query = select(u_pk.label("id"), u_username, u_displayName, u_email)\
 			.offset(offset)\
 			.limit(pageSize)
 		records = self.conn.execute(query)
@@ -300,17 +297,17 @@ class AccountsService:
 	) -> Optional[AccountInfo]:
 		if not userId and not username:
 			return None
-		query = select(u.pk.label("id"), u.username, u.displayName, u.email)
+		query = select(u_pk.label("id"), u_username, u_displayName, u_email)
 		if userId:
-			query = query.where(u.pk == userId)
+			query = query.where(u_pk == userId)
 		elif username:
-			query = query.where(u.username == username)
+			query = query.where(u_username == username)
 		else:
 			raise ValueError("Either username or id must be provided")
 		row = self.conn.execute(query).fetchone()
 		if not row:
 			return None
-		roles = [*self.__get_roles(row["id"])]
+		roles = [*self.__get_roles(cast(int,row["id"]))]
 		return AccountInfo(
 			**row, #pyright: ignore [reportGeneralTypeIssues]
 			roles=roles,
@@ -332,7 +329,7 @@ class AccountsService:
 		stmt = update(users).values(
 			displayName = updatedInfo.displayName,
 			email = updatedEmail
-		).where(u.pk == currentUser.id)
+		).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
 		return AccountInfo(
 			**{**asdict(currentUser), #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
@@ -353,6 +350,6 @@ class AccountsService:
 		if not authenticated:
 			return False
 		hash = hashpw(passwordInfo.newPassword.encode())
-		stmt = update(users).values(hashedPW = hash).where(u.pk == currentUser.id)
+		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
 		return True

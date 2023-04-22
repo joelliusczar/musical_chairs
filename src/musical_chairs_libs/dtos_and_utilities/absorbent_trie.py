@@ -10,6 +10,7 @@ from typing import (
 	Union
 )
 from .sentinel import missing, Sentinel, found
+from .errors import AlternateValueError
 
 T = TypeVar("T")
 
@@ -140,19 +141,20 @@ class AbsorbentTrie(Generic[T]):
 		except KeyError:
 			return False
 
-	def __getitem__(self, key: str) -> Optional[T]:
+	def __getitem__(self, key: str) -> T:
 		value = self.__value_at_path__(key)
 		if value == found:
-			return None
+			raise AlternateValueError()
 		return cast(T, value)
 
 	def __setitem__(self, key: str, value: T):
 		self.add(key, value)
 
-	def get(self, key: str, default: Optional[T]=None) -> Optional[T]:
+	def get(self, key: str, default: T) -> T:
 		try:
-			return self[key]
-		except KeyError:
+			value = self[key]
+			return value
+		except (KeyError, AlternateValueError):
 			return default
 
 	@property

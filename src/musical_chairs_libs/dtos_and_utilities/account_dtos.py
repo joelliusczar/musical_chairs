@@ -3,7 +3,7 @@ from typing import (
 	List,
 	Optional
 )
-from pydantic import validator
+from pydantic import validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
 from .user_role_def import UserRoleDef
@@ -22,6 +22,7 @@ class AccountInfoBase:
 @dataclass(frozen=True)
 class AccountInfoSecurity(AccountInfoBase):
 	roles: List[ActionRule]=field(default_factory=list)
+	dirRoot: Optional[str]=None
 
 	@property
 	def preferredName(self) -> str:
@@ -67,10 +68,10 @@ class AccountCreationInfo(AccountInfoSecurity):
 
 	@validator("email")
 	def check_email(cls, v: str) -> str:
-		valid = validate_email(v) #pyright: ignore reportUnknownMemberType
-		return valid.email #pyright: ignore reportUnknownMemberType
+		valid = validate_email(v) #pyright: ignore [reportUnknownMemberType]
+		return valid.email #pyright: ignore [reportGeneralTypeIssues]
 
-	_pass_len = validator(
+	_pass_len = validator( #pyright: ignore [reportUnknownVariableType]
 		"password",
 		allow_reuse=True
 	)(min_length_validator_factory(6, "Password"))

@@ -4,6 +4,7 @@ from musical_chairs_libs.dtos_and_utilities import AccountInfo, UserRoleDef
 try:
 	from .special_strings_reference import chinese1, irish1
 except:
+	#for if I try to import file from interactive
 	from special_strings_reference import chinese1, irish1
 
 fooDirOwnerId = 11
@@ -771,7 +772,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": primaryUser.email,
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[0].timestamp()
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"dirRoot": ""
 		},
 		{
 			"pk": 2,
@@ -780,7 +782,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test2@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 3,
@@ -789,7 +792,8 @@ def get_user_params(
 			"hashedPW": None,
 			"email": "test3@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 4,
@@ -798,7 +802,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test4@test.com",
 			"isDisabled": True,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 5,
@@ -807,7 +812,8 @@ def get_user_params(
 			"hashedPW": None,
 			"email": None,
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 6,
@@ -816,7 +822,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test6@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 7,
@@ -825,7 +832,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test7@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 8,
@@ -834,7 +842,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test8@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 9,
@@ -843,7 +852,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test9@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 10,
@@ -852,7 +862,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test10@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 11,
@@ -861,7 +872,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test11@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": "/foo"
 		},
 		{
 			"pk": 12,
@@ -870,7 +882,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test12@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 13,
@@ -879,7 +892,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test13@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 14,
@@ -888,7 +902,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test14@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 15,
@@ -897,7 +912,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test15@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 16,
@@ -906,7 +922,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test16@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		},
 		{
 			"pk": 17,
@@ -915,7 +932,8 @@ def get_user_params(
 			"hashedPW": testPassword,
 			"email": "test17@test.com",
 			"isDisabled": False,
-			"creationTimestamp": orderedTestDates[1].timestamp()
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		}
 	]
 	return users_params
@@ -1139,7 +1157,7 @@ def get_path_permission_params(
 	return [
 		{
 			"pk":1,
-			"userFk": 11,
+			"userFk": 12,
 			"path": "foo/goo/boo",
 			"role": UserRoleDef.PATH_LIST.value,
 			"span":0,

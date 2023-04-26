@@ -573,4 +573,198 @@ def test_is_prefix_for():
 	res = t.has_prefix_for("hank")
 	assert not res
 
+def test_closest_value_nodes():
+	t = AbsorbentTrie[Any]()
+	assert len(list(t.closest_value_nodes())) == 1
 
+	t.add("ant")
+	assert len(list(t.closest_value_nodes())) == 1
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 1
+	an = t.__get_path_end__("an")
+	assert an != None and len(list(an.closest_value_nodes())) == 1
+	ant = t.__get_path_end__("ant")
+	assert ant != None and len(list(ant.closest_value_nodes())) == 1
+
+	t.add("angel")
+	assert len(list(t.closest_value_nodes())) == 2
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 2
+	an = t.__get_path_end__("an")
+	assert an != None and len(list(an.closest_value_nodes())) == 2
+	ant = t.__get_path_end__("ant")
+	assert ant != None and len(list(ant.closest_value_nodes())) == 1
+	ang = t.__get_path_end__("ang")
+	assert ang != None and len(list(ang.closest_value_nodes())) == 1
+	ange = t.__get_path_end__("ange")
+	assert ange != None and len(list(ange.closest_value_nodes())) == 1
+	angel = t.__get_path_end__("angel")
+	assert angel != None and len(list(angel.closest_value_nodes())) == 1
+
+	t.add("a")
+	assert len(list(t.closest_value_nodes())) == 1
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 1
+	an = t.__get_path_end__("an")
+	assert an != None and len(list(an.closest_value_nodes())) == 2
+	ant = t.__get_path_end__("ant")
+	assert ant != None and len(list(ant.closest_value_nodes())) == 1
+
+	t.add("bun")
+	assert len(list(t.closest_value_nodes())) == 2
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 1
+	b = t.__get_path_end__("b")
+	assert b != None and len(list(b.closest_value_nodes())) == 1
+
+	t.add("bunk")
+	assert len(list(t.closest_value_nodes())) == 2
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 1
+	an = t.__get_path_end__("an")
+	assert an != None and len(list(an.closest_value_nodes())) == 2
+	b = t.__get_path_end__("b")
+	assert b != None and len(list(b.closest_value_nodes())) == 1
+	bu = t.__get_path_end__("bu")
+	assert bu != None and len(list(bu.closest_value_nodes())) == 1
+	bun = t.__get_path_end__("bun")
+	assert bun != None and len(list(bun.closest_value_nodes())) == 1
+
+	t.add("bunt")
+	assert len(list(t.closest_value_nodes())) == 2
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 1
+	an = t.__get_path_end__("an")
+	assert an != None and len(list(an.closest_value_nodes())) == 2
+	b = t.__get_path_end__("b")
+	assert b != None and len(list(b.closest_value_nodes())) == 1
+	bu = t.__get_path_end__("bu")
+	assert bu != None and len(list(bu.closest_value_nodes())) == 1
+	bun = t.__get_path_end__("bun")
+	assert bun != None and len(list(bun.closest_value_nodes())) == 1
+
+	t.add("yes")
+	assert len(list(t.closest_value_nodes())) == 3
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 1
+	an = t.__get_path_end__("an")
+	assert an != None and len(list(an.closest_value_nodes())) == 2
+	b = t.__get_path_end__("b")
+	assert b != None and len(list(b.closest_value_nodes())) == 1
+	y = t.__get_path_end__("y")
+	assert y != None and len(list(y.closest_value_nodes())) == 1
+
+	t.add("yetx")
+	assert len(list(t.closest_value_nodes())) == 4
+	y = t.__get_path_end__("y")
+	assert y != None and len(list(y.closest_value_nodes())) == 2
+	ye = t.__get_path_end__("ye")
+	assert ye != None and len(list(ye.closest_value_nodes())) == 2
+	yes = t.__get_path_end__("yes")
+	assert yes != None and len(list(yes.closest_value_nodes())) == 1
+	yet = t.__get_path_end__("yet")
+	assert yet != None and len(list(yet.closest_value_nodes())) == 1
+
+	t.add("yetza")
+	assert len(list(t.closest_value_nodes())) == 5
+	y = t.__get_path_end__("y")
+	assert y != None and len(list(y.closest_value_nodes())) == 3
+	ye = t.__get_path_end__("ye")
+	assert ye != None and len(list(ye.closest_value_nodes())) == 3
+	yes = t.__get_path_end__("yes")
+	assert yes != None and len(list(yes.closest_value_nodes())) == 1
+	yet = t.__get_path_end__("yet")
+	assert yet != None and len(list(yet.closest_value_nodes())) == 2
+
+
+	t.add("artist")
+	assert len(list(t.closest_value_nodes())) == 5
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 1
+	ar = t.__get_path_end__("ar")
+	assert ar != None and len(list(ar.closest_value_nodes())) == 1
+
+	t.add("arts")
+	assert len(list(t.closest_value_nodes())) == 5
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 1
+	ar = t.__get_path_end__("ar")
+	assert ar != None and len(list(ar.closest_value_nodes())) == 2
+	art = t.__get_path_end__("art")
+	assert art != None and len(list(art.closest_value_nodes())) == 2
+	arts = t.__get_path_end__("arts")
+	assert arts != None and len(list(arts.closest_value_nodes())) == 1
+	arti = t.__get_path_end__("arti")
+	assert arti != None and len(list(arti.closest_value_nodes())) == 1
+
+
+	t.add("art")
+	assert len(list(t.closest_value_nodes())) == 5
+	a = t.__get_path_end__("a")
+	assert a != None and len(list(a.closest_value_nodes())) == 1
+	ar = t.__get_path_end__("ar")
+	assert ar != None and len(list(ar.closest_value_nodes())) == 1
+	art = t.__get_path_end__("art")
+	assert art != None and len(list(art.closest_value_nodes())) == 1
+
+
+def test_shortest_paths():
+	t = AbsorbentTrie[Any]()
+	t.extend(trieWords)
+	shortest = sorted(t.shortest_paths())
+	assert "alpha" in shortest
+	assert "alpine" in shortest
+	assert "alpapcone" in shortest
+	assert "alpenstock" in shortest
+	assert "alprazolam" in shortest
+	assert "alpacca" in shortest
+	assert "argument" in shortest
+	assert "album" in shortest
+	assert "artist" in shortest
+	assert "arts" in shortest
+	assert "author" in shortest
+	assert "accident" in shortest
+	assert "acid" in shortest
+	assert "acclimate" in shortest
+	assert "ada" in shortest
+	assert "altitude" in shortest
+	assert "airplain" in shortest
+	assert "arrow" in shortest
+	assert "artisan" in shortest
+	assert "arbor" in shortest
+	assert "antenna" in shortest
+	assert "armor" in shortest
+	assert "atlanta" in shortest
+	assert "angel" in shortest
+	assert "angelic" not in shortest
+	assert "base" in shortest
+	assert "basic" in shortest
+	assert "bat" in shortest
+	assert "bravo" in shortest
+	assert "brave" in shortest
+	assert "bravery" not in shortest
+	assert "boston" in shortest
+	assert "bob" in shortest
+	assert "branch" in shortest
+	assert "bork" in shortest
+	assert "bun" in shortest
+	assert "bunk" not in shortest
+	assert "burnt" in shortest
+	assert "brake" in shortest
+	assert "bunt" not in shortest
+	assert "charlie" not in shortest
+	assert "chunk" in shortest
+	assert "chuck" in shortest
+	assert "char" in shortest
+	assert "charizard" not in shortest
+	assert "candy" not in shortest
+	assert "cactus" in shortest
+	assert "can" in shortest
+	assert "curtain" in shortest
+	assert "centuar" not in shortest
+	assert "century" not in shortest
+	assert "cent" in shortest
+	assert "champion" in shortest
+	assert "change" in shortest
+	assert "chance" in shortest
+	assert "cuss" in shortest

@@ -1,7 +1,9 @@
 from typing import (
 	Any,
 	List,
-	Optional
+	Optional,
+	Iterator,
+	Union
 )
 from pydantic import validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
@@ -10,7 +12,8 @@ from .user_role_def import UserRoleDef
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, validate_email
 from .generic_dtos import IdItem
-from .action_rule_dtos import ActionRule
+from .action_rule_dtos import ActionRule, PathsActionRule
+from .absorbent_trie import AbsorbentTrie
 
 
 @dataclass(frozen=True)
@@ -21,7 +24,7 @@ class AccountInfoBase:
 
 @dataclass(frozen=True)
 class AccountInfoSecurity(AccountInfoBase):
-	roles: List[ActionRule]=field(default_factory=list)
+	roles: List[Union[ActionRule, PathsActionRule]]=field(default_factory=list)
 	dirRoot: Optional[str]=None
 
 	@property
@@ -31,6 +34,15 @@ class AccountInfoSecurity(AccountInfoBase):
 	@property
 	def isAdmin(self) -> bool:
 		return any(r.conforms(UserRoleDef.ADMIN.value) for r in self.roles)
+
+	def get_permitted_paths(self, scope: str) -> Iterator[str]:
+		pathsGen = (p for pl in \
+			(r for r in self.roles \
+				if isinstance(r, PathsActionRule) and r.name == scope) \
+					for p in pl.paths)
+		pathTree = AbsorbentTrie[Any](pathsGen)
+		yield from (p for p in pathTree.shortest_paths())
+
 
 
 

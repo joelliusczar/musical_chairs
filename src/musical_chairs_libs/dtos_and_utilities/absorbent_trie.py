@@ -24,7 +24,12 @@ extendIterable = Union[Iterable[str], Iterable[Tuple[str, T]]]
 # exists in the trie, the substring is subsumed into the
 # newly added string
 class AbsorbentTrie(Generic[T]):
-	__slots__ = ("_prefix_map", "__count__", "key", "path_store")
+	__slots__ = (
+		"_prefix_map",
+		"__count__",
+		"key",
+		"path_store"
+	)
 
 	path_store: storeValueType[T]
 
@@ -89,7 +94,6 @@ class AbsorbentTrie(Generic[T]):
 						node.__count__ += leafCount
 						node.__count__ +=	sum(len(c) for c in node)
 						leafCount = 0
-
 
 	def add(self, path: str, value: storeValueType[T]=missing) -> int:
 		added = self.__add__(path, value)
@@ -169,6 +173,7 @@ class AbsorbentTrie(Generic[T]):
 	def is_path_end(self) -> bool:
 		return self.path_store != missing
 
+
 	def values(self) -> Iterator[str]:
 		return self.__traverse_path_optimized__("")
 
@@ -239,17 +244,16 @@ class AbsorbentTrie(Generic[T]):
 		if pathEnd:
 			depth = pathEnd.depth
 			resultSpace = [[""] * (depth) for _ in range(len(pathEnd))]
-			self.__traverse_optimized_helper__(pathEnd, depth, resultSpace)
+			pathEnd.__traverse_optimized_helper__(depth, resultSpace)
 
 			for row in resultSpace:
 				yield path + "".join(row)
 
-
 	def __traverse_optimized_helper__(
 		self,
-		pathEnd: "AbsorbentTrie[T]",
 		depth: int,
-		resultSpace: Sequence[list[str]]
+		resultSpace: Sequence[list[str]],
+		useShortestPath: bool=False
 	):
 		#height stack and char stack should match length of suffix
 		#heightsStack tracks offsets so that all of the strings are aligned
@@ -266,17 +270,20 @@ class AbsorbentTrie(Generic[T]):
 		iterStack: keyValueIteratorList[T] = [None] * (depth + 1)
 
 		stackPtr = 0
-		stack[stackPtr] = pathEnd
+		stack[stackPtr] = self
 		colIdx = 0
 		while stackPtr >= 0:
 			node = stack[stackPtr]
 			try:
+				if useShortestPath and node.path_store != missing:
+					raise StopIteration()
 				childIter = iterStack[stackPtr]
 				if not childIter:
 					childIter = iter(node._prefix_map.items())
 
 				#it will throw StopIteration here after we've vistited all the children
 				key, child = next(childIter)
+
 				iterStack[stackPtr] = childIter
 
 				#if stack pointer is 0, then that means that we're working with the root
@@ -299,14 +306,46 @@ class AbsorbentTrie(Generic[T]):
 				if stackPtr >= 0:
 					if charStack[stackPtr]:
 						fromIdx = heightsStack[stackPtr]
-						for i in range(fromIdx, fromIdx + (len(node) or 1)):
+						allocation = len(node) if not useShortestPath \
+							else sum(1 for _ in node.closest_value_nodes())
+						for i in range(fromIdx, fromIdx + (allocation or 1)):
 							resultSpace[i][colIdx] = charStack[stackPtr]
-						heightsStack[colIdx] += (len(node) or 1)
+						heightsStack[colIdx] += (allocation or 1)
 					if stackPtr > 0:
 						colIdx -= 1
 					charStack[stackPtr] = ""
 
-
-
 	def paths_start_with(self, path: str) -> Iterable[str]:
 		return self.__traverse_path_optimized__(path)
+
+	def closest_value_nodes(self) -> Iterator["AbsorbentTrie[T]"]:
+		stack: list["AbsorbentTrie[T]"] = [self]
+		iterTracker: dict[int, Iterator["AbsorbentTrie[T]"]] = {}
+		while stack:
+			node = stack[-1]
+			if node.isLeaf or node.path_store != missing:
+				yield node
+				stack.pop()
+			else:
+				try:
+					childIter = iterTracker.get(id(node), None)
+					if not childIter:
+						childIter = iter(node)
+						iterTracker[id(node)] = childIter
+					child = next(childIter)
+					stack.append(child)
+				except StopIteration:
+					del iterTracker[id(node)]
+					stack.pop()
+
+
+	def shortest_paths(self) -> Iterator[str]:
+		depth = self.depth
+		resultSpace = [[""] * (depth)
+			for _ in range(sum(1 for _ in self.closest_value_nodes()))]
+		self.__traverse_optimized_helper__(depth, resultSpace, True)
+
+		for row in resultSpace:
+				yield "".join(row)
+
+

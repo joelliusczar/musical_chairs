@@ -282,7 +282,7 @@ class SongInfoService:
 				) for r in g ]
 			)
 
-	def song_ls(self, prefix: Optional[str] = "") -> Iterator[SongTreeNode]:
+	def __song_ls_query__(self, prefix: Optional[str]="") -> Select:
 		query = select(
 				func.next_directory_level(sg_path, prefix).label("prefix"),
 				func.min(sg_name).label("name"),
@@ -291,7 +291,13 @@ class SongInfoService:
 				func.max(sg_path).label("control_path")
 		).where(sg_path.like(f"{prefix}%"))\
 			.group_by(func.next_directory_level(sg_path, prefix))
-		records = self.conn.execute(query) #pyright: ignore reportUnknownMemberType
+		return query
+
+	def __query_to_treeNodes__(
+		self,
+		query: Select
+	) -> Iterator[SongTreeNode]:
+		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		for row in cast(Iterable[Row] ,records):
 			if row["control_path"] == row["prefix"]:
 				yield SongTreeNode(
@@ -305,6 +311,25 @@ class SongInfoService:
 					path=cast(str, row["prefix"]),
 					totalChildCount=cast(int, row["totalChildCount"])
 				)
+
+	def song_ls(
+		self,
+		prefixes: Optional[Union[str, Iterable[str]]]=None
+	) -> Iterator[SongTreeNode]:
+		if type(prefixes) == str:
+			query = self.__song_ls_query__(prefixes)
+			yield from self.__query_to_treeNodes__(query)
+		elif isinstance(prefixes, Iterable):
+			query = None
+			for p in prefixes:
+				sub = self.__song_ls_query__(p)
+				if query:
+					query = query.union_all(sub) #pyright: ignore [reportUnknownMemberType]
+				else:
+					query = sub
+			if query:
+				yield from self.__query_to_treeNodes__(query)
+
 
 	def get_songIds(
 		self,

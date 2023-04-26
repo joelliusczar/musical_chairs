@@ -31,14 +31,20 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 router = APIRouter(prefix="/song-info")
 
-@router.get("/songs/tree", dependencies=[
-	Security(get_path_user, scopes=[UserRoleDef.PATH_LIST.value])
-])
+@router.get("/songs/tree")
 def song_ls(
 	prefix: str = "",
+	user: AccountInfo = Security(
+		get_path_user,
+		scopes=[UserRoleDef.PATH_LIST.value]
+	),
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> ListData[SongTreeNode]:
-	return ListData(items=list(songInfoService.song_ls(prefix)))
+	if prefix:
+		return ListData(items=list(songInfoService.song_ls(prefix)))
+	else:
+		prefixes = user.get_permitted_paths(UserRoleDef.PATH_LIST.value)
+		return ListData(items=list(songInfoService.song_ls(prefixes)))
 
 
 @router.get("/songs/{id}", dependencies=[

@@ -33,7 +33,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	UserRoleDomain
 )
-from sqlalchemy import select, insert, update, func, delete
+from sqlalchemy import select, insert, update, func, delete, union_all
 from sqlalchemy.sql.expression import Tuple as dbTuple, Select
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -314,21 +314,17 @@ class SongInfoService:
 
 	def song_ls(
 		self,
-		prefixes: Optional[Union[str, Iterable[str]]]=None
+		prefixes: Optional[Union[str, Iterable[str]]]=""
 	) -> Iterator[SongTreeNode]:
 		if type(prefixes) == str:
 			query = self.__song_ls_query__(prefixes)
 			yield from self.__query_to_treeNodes__(query)
 		elif isinstance(prefixes, Iterable):
-			query = None
+			queryList: list[Select] = []
 			for p in prefixes:
-				sub = self.__song_ls_query__(p)
-				if query:
-					query = query.union_all(sub) #pyright: ignore [reportUnknownMemberType]
-				else:
-					query = sub
-			if query:
-				yield from self.__query_to_treeNodes__(query)
+				queryList.append(self.__song_ls_query__(p))
+			if queryList:
+				yield from self.__query_to_treeNodes__(union_all(*queryList))
 
 
 	def get_songIds(

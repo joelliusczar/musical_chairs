@@ -11,6 +11,23 @@ fooDirOwnerId = 11
 jazzDirOwnerId = 11
 blitzDirOwnerId = 11
 
+bravo_user_id = 2
+charlie_user_id = 3
+delta_user_id = 4
+echo_user_id = 5
+foxtrot_user_id = 6
+golf_user_id = 7
+hotel_user_id = 8
+india_user_id = 9
+juliet_user_id = 10
+kilo_user_id = 11
+lima_user_id = 12
+mike_user_id = 13
+november_user_id = 14
+oscar_user_id = 15
+papa_user_id = 16
+quebec_user_id = 17
+
 artist_params = [
 	{
 		"pk": 1,
@@ -776,7 +793,7 @@ def get_user_params(
 			"dirRoot": ""
 		},
 		{
-			"pk": 2,
+			"pk": bravo_user_id,
 			"username": "testUser_bravo",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -786,7 +803,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 3,
+			"pk": charlie_user_id,
 			"username": "testUser_charlie",
 			"displayName": None,
 			"hashedPW": None,
@@ -796,7 +813,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 4,
+			"pk": delta_user_id,
 			"username": "testUser_delta",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -806,7 +823,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 5,
+			"pk": echo_user_id,
 			"username": "testUser_echo",
 			"displayName": None,
 			"hashedPW": None,
@@ -816,7 +833,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 6,
+			"pk": foxtrot_user_id,
 			"username": "testUser_foxtrot",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -826,7 +843,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 7,
+			"pk": golf_user_id,
 			"username": "testUser_golf",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -836,7 +853,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 8,
+			"pk": hotel_user_id,
 			"username": "testUser_hotel",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -846,7 +863,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 9,
+			"pk": india_user_id,
 			"username": "testUser_india",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -856,7 +873,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 10,
+			"pk": juliet_user_id,
 			"username": "testUser_juliet",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -866,7 +883,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 11,
+			"pk": kilo_user_id,
 			"username": "testUser_kilo",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -876,7 +893,7 @@ def get_user_params(
 			"dirRoot": "/foo"
 		},
 		{
-			"pk": 12,
+			"pk": lima_user_id,
 			"username": "testUser_lima",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -886,7 +903,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 13,
+			"pk": mike_user_id,
 			"username": "testUser_mike",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -896,7 +913,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 14,
+			"pk": november_user_id,
 			"username": "testUser_november",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -906,7 +923,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 15,
+			"pk": oscar_user_id,
 			"username": "testUser_oscar",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -916,7 +933,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 16,
+			"pk": papa_user_id,
 			"username": "testUser_papa",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -926,7 +943,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": 17,
+			"pk": quebec_user_id,
 			"username": "testUser_quebec",
 			"displayName": None,
 			"hashedPW": testPassword,
@@ -1157,7 +1174,7 @@ def get_path_permission_params(
 	return [
 		{
 			"pk":1,
-			"userFk": 12,
+			"userFk": lima_user_id,
 			"path": "foo/goo/boo",
 			"role": UserRoleDef.PATH_LIST.value,
 			"span":0,
@@ -1167,7 +1184,7 @@ def get_path_permission_params(
 		},
 		{
 			"pk":2,
-			"userFk": 11,
+			"userFk": kilo_user_id,
 			"path": "foo/goo/shoo",
 			"role": UserRoleDef.PATH_LIST.value,
 			"span":0,
@@ -1177,7 +1194,7 @@ def get_path_permission_params(
 		},
 		{
 			"pk":3,
-			"userFk": 11,
+			"userFk": kilo_user_id,
 			"path": "foo/goo/moo",
 			"role": UserRoleDef.PATH_LIST.value,
 			"span":0,
@@ -1187,7 +1204,7 @@ def get_path_permission_params(
 		},
 		{
 			"pk":4,
-			"userFk": 11,
+			"userFk": kilo_user_id,
 			"path": "foo/goo/shoo",
 			"role": UserRoleDef.PATH_EDIT.value,
 			"span":0,
@@ -1197,7 +1214,7 @@ def get_path_permission_params(
 		},
 		{
 			"pk":5,
-			"userFk": 11,
+			"userFk": kilo_user_id,
 			"path": "foo/goo/shoo",
 			"role": UserRoleDef.PATH_DOWNLOAD.value,
 			"span":0,

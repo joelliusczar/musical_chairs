@@ -1,11 +1,13 @@
 import pytest
-from musical_chairs_libs.dtos_and_utilities import\
-	AccountInfo,\
-	SavedNameString,\
-	SearchNameString,\
-	UserRoleDef,\
-	ValidatedSongAboutInfo,\
-	AlbumInfo
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	SavedNameString,
+	SearchNameString,
+	UserRoleDef,
+	ValidatedSongAboutInfo,
+	AlbumInfo,
+	ActionRule
+)
 
 
 def test_len_on_name_strings():
@@ -53,10 +55,10 @@ def test_is_admin():
 		id=-1,
 		username="",
 		email="",
-		roles=[UserRoleDef.SONG_EDIT.value]
+		roles=[ActionRule(UserRoleDef.SONG_EDIT.value)]
 	)
 	assert not accountInfo.isAdmin
-	accountInfo.roles.append(UserRoleDef.ADMIN.value)
+	accountInfo.roles.append(ActionRule(UserRoleDef.ADMIN.value))
 	assert accountInfo.isAdmin
 
 def test_validatedSongAboutInfo():

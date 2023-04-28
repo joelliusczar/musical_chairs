@@ -35,10 +35,10 @@ class UserRoleDef(Enum):
 	STATION_SKIP = f"{UserRoleDomain.Station.value}:skip"
 	USER_LIST = "user:list"
 	USER_EDIT = "user:edit"
-	PATH_LIST = "path:list"
-	PATH_EDIT = "path:edit"
-	PATH_VIEW = "path:view"
-	PATH_DOWNLOAD = "path:download"
+	PATH_LIST = f"{UserRoleDomain.Path.value}:list"
+	PATH_EDIT = f"{UserRoleDomain.Path.value}:edit"
+	PATH_VIEW = f"{UserRoleDomain.Path.value}:view"
+	PATH_DOWNLOAD = f"{UserRoleDomain.Path.value}:download"
 
 	def __call__(self, **kwargs: Union[str, int]) -> str:
 		return self.modded_value(**kwargs)

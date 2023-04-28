@@ -22,7 +22,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	AbsorbentTrie,
 	UserRoleDef,
-	PathPrefixInfo,
 	PathsActionRule
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
@@ -36,6 +35,7 @@ from api_error import (
 	build_wrong_permissions_error,
 	build_too_many_requests_error
 )
+from itertools import chain
 
 oauth2_scheme = OAuth2PasswordBearer(
 	tokenUrl="accounts/open",
@@ -144,17 +144,6 @@ def get_path_owner_roles() -> list[ActionRule]:
 		ActionRule(UserRoleDef.PATH_VIEW.value, priority=2)
 	]
 
-def get_paths_for_scopes(
-	scopes: Iterable[str],
-	pathRules: Iterable[PathPrefixInfo]
-) -> Iterator[PathsActionRule]:
-	scopes2Path = {s:PathsActionRule(s) for s in scopes}
-	for r in ((p.path, rl) for p
-		in pathRules for rl in p.rules if rl.name in scopes2Path
-	):
-		pathRule = scopes2Path[r[1].name]
-		pathRule.paths.append(r[0])
-	yield from (r for r in scopes2Path.values())
 
 
 def check_if_can_use_path(
@@ -193,16 +182,49 @@ def check_if_can_use_path(
 
 def get_path_user(
 	securityScopes: SecurityScopes,
+	user: AccountInfo = Depends(get_current_user_simple),
+	songInfoService: SongInfoService = Depends(song_info_service)
+) -> AccountInfo:
+	scopes = {s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	}
+	if user.isAdmin:
+		return user
+	if not scopes:
+		raise build_wrong_permissions_error()
+	userPrefixes = [*songInfoService.get_paths_user_can_see(user.id)]
+	pathRuleMap = {p.name:p for p in \
+		PathsActionRule.paths_to_rules(userPrefixes) if p.name in scopes
+	}
+	roles = [*ActionRule.best_rules_generator(
+		sorted(chain(
+			(pathRuleMap.get(r.name, r) for r in user.roles if r.name in scopes),
+			(r for r in pathRuleMap.values())
+		), key=lambda r: r.name)
+	)]
+	roleNameSet = {r.name for r in roles}
+	if any(s for s in scopes if s not in roleNameSet):
+		raise build_wrong_permissions_error()
+	userDict = asdict(user)
+	userDict["roles"] = roles
+	return AccountInfo(
+		**userDict,
+	)
+
+def get_path_user_specific_path(
+	securityScopes: SecurityScopes,
 	prefix: Optional[str]=None,
 	itemId: Optional[int]=None,
-	user: AccountInfo = Depends(get_current_user_simple),
+	user: AccountInfo = Depends(get_path_user),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
-) -> AccountInfo:
+):
 	if user.isAdmin:
 		return user
-	userPrefixes = [*songInfoService.get_paths_user_can_see(user.id)]
+	userPrefixes = PathsActionRule.rules_to_paths(
+		r for r in user.roles if isinstance(r, PathsActionRule)
+	)
 	userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
 	if prefix == None:
 		if itemId:
@@ -219,16 +241,6 @@ def get_path_user(
 			userActionHistoryService
 		)
 		return user
-	else:
-		pathRuleMap = {p.name:p for p in get_paths_for_scopes(
-			scopes,
-			userPrefixes
-		)}
-		userDict = asdict(user)
-		userDict["roles"] = [pathRuleMap.get(r.name, r) for r in user.roles]
-		return AccountInfo(
-			**userDict,
-		)
 
 def get_multi_path_user(
 	securityScopes: SecurityScopes,
@@ -265,12 +277,14 @@ def get_station_user(
 	user: AccountInfo = Depends(get_current_user_simple),
 	stationService: StationService = Depends(station_service)
 ) -> StationUserInfo:
-	if user.isAdmin:
-		return StationUserInfo(**asdict(user))
-	stationUser = stationService.get_station_user(user, stationId, stationName)
 	scopes = (s for s in securityScopes.scopes \
 		if UserRoleDomain.Station.conforms(s)
 	)
+	if not scopes:
+		raise build_wrong_permissions_error()
+	if user.isAdmin:
+		return StationUserInfo(**asdict(user))
+	stationUser = stationService.get_station_user(user, stationId, stationName)
 	for scope in scopes:
 		selectedRule = next(
 			ActionRule.best_rules_generator(

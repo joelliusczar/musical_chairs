@@ -3,7 +3,8 @@ from typing import (
 	List,
 	Optional,
 	Iterator,
-	Union
+	Union,
+	Iterable
 )
 from pydantic import validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
@@ -12,7 +13,7 @@ from .user_role_def import UserRoleDef
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, validate_email
 from .generic_dtos import IdItem
-from .action_rule_dtos import ActionRule, PathsActionRule
+from .action_rule_dtos import (ActionRule, PathsActionRule, PathPrefixInfo)
 from .absorbent_trie import AbsorbentTrie
 
 
@@ -35,11 +36,16 @@ class AccountInfoSecurity(AccountInfoBase):
 	def isAdmin(self) -> bool:
 		return any(r.conforms(UserRoleDef.ADMIN.value) for r in self.roles)
 
-	def get_permitted_paths(self, scope: str) -> Iterator[str]:
+	def get_permitted_paths(
+		self,
+		scopes: Union[str, Iterable[str]]
+	) -> Iterator[str]:
+		scopeSet = set([scopes] if type(scopes) == str else scopes)
 		pathsGen = (p for pl in \
 			(r for r in self.roles \
-				if isinstance(r, PathsActionRule) and r.name == scope) \
-					for p in pl.paths)
+				if isinstance(r, PathsActionRule) and r.name in scopeSet
+			) for p in pl.paths
+		)
 		pathTree = AbsorbentTrie[Any](pathsGen)
 		yield from (p for p in pathTree.shortest_paths())
 
@@ -116,11 +122,6 @@ class PasswordInfo:
 @dataclass(frozen=True)
 class StationUserInfo(AccountInfo):
 	stationId: Optional[int]=None
-
-@dataclass(frozen=True)
-class PathPrefixInfo:
-	path: str
-	rules: List[ActionRule]=field(default_factory=list)
 
 
 @dataclass(frozen=True)

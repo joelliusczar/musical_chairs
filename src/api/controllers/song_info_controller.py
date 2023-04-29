@@ -1,3 +1,4 @@
+from typing import Optional, Union
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -14,7 +15,8 @@ from api_dependencies import (
 	get_current_user,
 	get_path_user,
 	get_multi_path_user,
-	get_user_with_simple_scopes
+	get_user_with_simple_scopes,
+	get_path_user_and_check_optional_path
 )
 from musical_chairs_libs.services import SongInfoService, StationService
 from musical_chairs_libs.dtos_and_utilities import (
@@ -31,11 +33,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 router = APIRouter(prefix="/song-info")
 
-@router.get("/songs/tree")
+@router.get("/songs/ls")
 def song_ls(
-	prefix: str = "",
+	prefix: Optional[str] = None,
 	user: AccountInfo = Security(
-		get_path_user,
+		get_path_user_and_check_optional_path,
 		scopes=[UserRoleDef.PATH_LIST.value]
 	),
 	songInfoService: SongInfoService = Depends(song_info_service)
@@ -47,13 +49,18 @@ def song_ls(
 		return ListData(items=list(songInfoService.song_ls(prefixes)))
 
 
-@router.get("/songs/{id}", dependencies=[
+@router.get("/songs/{itemId}", dependencies=[
 	Security(get_path_user, scopes=[UserRoleDef.PATH_VIEW.value])
 ])
 def get_song_for_edit(
-	itemId: int,
+	itemId: Union[int, str],
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> SongEditInfo:
+	if type(itemId) != int:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"{itemId} not found", "id")]
+		)
 	songInfo = next(songInfoService.get_songs_for_edit([itemId]), None)
 	if songInfo:
 		return songInfo
@@ -209,3 +216,4 @@ def get_all_albums(
 	)
 ) -> ListData[AlbumInfo]:
 	return ListData(items=list(songInfoService.get_albums()))
+

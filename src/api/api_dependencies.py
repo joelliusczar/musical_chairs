@@ -136,13 +136,27 @@ def get_user_with_simple_scopes(
 			raise build_wrong_permissions_error()
 	return user
 
-def get_path_owner_roles() -> list[ActionRule]:
-	return [
-		ActionRule(UserRoleDef.PATH_EDIT.value, priority=2),
-		ActionRule(UserRoleDef.PATH_DOWNLOAD.value, priority=2),
-		ActionRule(UserRoleDef.PATH_LIST.value, priority=2),
-		ActionRule(UserRoleDef.PATH_VIEW.value, priority=2)
-	]
+def get_path_owner_roles(ownerDir: str) -> Iterator[ActionRule]:
+		yield PathsActionRule(
+			UserRoleDef.PATH_LIST.value,
+			priority=2,
+			paths=[ownerDir]
+		)
+		yield PathsActionRule(
+			UserRoleDef.PATH_VIEW.value,
+			priority=2,
+			paths=[ownerDir]
+		)
+		yield PathsActionRule(
+			UserRoleDef.PATH_EDIT.value,
+			priority=2,
+			paths=[ownerDir]
+		)
+		yield PathsActionRule(
+			UserRoleDef.PATH_DOWNLOAD.value,
+			priority=2,
+			paths=[ownerDir]
+		)
 
 
 
@@ -154,8 +168,8 @@ def check_if_can_use_path(
 	userActionHistoryService: UserActionsHistoryService
 ):
 	rules = userPrefixTrie.get(prefix, [])
-	if user.dirRoot and prefix.startswith(user.dirRoot):
-		rules.extend(get_path_owner_roles())
+	# if user.dirRoot and prefix.startswith(user.dirRoot):
+	# 	rules.extend(get_path_owner_roles(user.dirRoot))
 	if not rules:
 		raise build_wrong_permissions_error()
 	for scope in scopes:
@@ -193,8 +207,20 @@ def get_path_user(
 	if not scopes:
 		raise build_wrong_permissions_error()
 	userPrefixes = [*songInfoService.get_paths_user_can_see(user.id)]
+	userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
+	if user.dirRoot:
+		userPrefixTrie.add(user.dirRoot, [*get_path_owner_roles(user.dirRoot)])
 	pathRuleMap = {p.name:p for p in \
-		PathsActionRule.paths_to_rules(userPrefixes) if p.name in scopes
+		ActionRule.best_rules_generator(sorted(
+			chain(
+				(r for r in PathsActionRule.paths_to_rules(userPrefixes) \
+					if r.name in scopes
+				),
+				(r for r in get_path_owner_roles(user.dirRoot) if r.name in scopes) \
+					if user.dirRoot else ()
+			),
+			key=lambda r: r.name
+		))
 	}
 	roles = [*ActionRule.best_rules_generator(
 		sorted(chain(
@@ -211,7 +237,7 @@ def get_path_user(
 		**userDict,
 	)
 
-def get_path_user_specific_path(
+def get_path_user_and_check_optional_path(
 	securityScopes: SecurityScopes,
 	prefix: Optional[str]=None,
 	itemId: Optional[int]=None,
@@ -219,13 +245,9 @@ def get_path_user_specific_path(
 	songInfoService: SongInfoService = Depends(song_info_service),
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
-):
+) -> AccountInfo:
 	if user.isAdmin:
 		return user
-	userPrefixes = PathsActionRule.rules_to_paths(
-		r for r in user.roles if isinstance(r, PathsActionRule)
-	)
-	userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
 	if prefix == None:
 		if itemId:
 			prefix = next(songInfoService.get_song_path(itemId), "")
@@ -233,6 +255,10 @@ def get_path_user_specific_path(
 		if UserRoleDomain.Path.conforms(s)
 	]
 	if prefix:
+		userPrefixes = PathsActionRule.rules_to_paths(
+			r for r in user.roles if isinstance(r, PathsActionRule)
+		)
+		userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
 		check_if_can_use_path(
 			scopes,
 			prefix,
@@ -240,7 +266,7 @@ def get_path_user_specific_path(
 			userPrefixTrie,
 			userActionHistoryService
 		)
-		return user
+	return user
 
 def get_multi_path_user(
 	securityScopes: SecurityScopes,

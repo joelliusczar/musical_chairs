@@ -19,7 +19,7 @@ def test_song_ls_hit(
 	headers = login_test_user(fixture_primary_user.username, client)
 
 	response = client.get(
-		"/song-info/songs/tree",
+		"/song-info/songs/ls",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -28,7 +28,7 @@ def test_song_ls_hit(
 	assert len(items) == 3
 
 	response = client.get(
-		"/song-info/songs/tree?prefix=f",
+		"/song-info/songs/ls?prefix=f",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -43,15 +43,20 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	headers_foo_owner = login_test_user("testUser_kilo", client)
 
 	response = client.get(
-		"/song-info/songs/tree",
+		"/song-info/songs/ls",
 		headers=headers_foo_owner
 	)
 	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	# assert len(items) == 2
+	# assert items[0]["path"] == "foo/goo/moo/"
+	# assert items[1]["path"] == "foo/goo/shoo/"
 
 	headers_no_owner = login_test_user("testUser_bravo", client)
 
 	response = client.get(
-		"/song-info/songs/tree",
+		"/song-info/songs/ls",
 		headers=headers_no_owner
 	)
 	assert response.status_code == 422
@@ -59,13 +64,13 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	headers_foo_goo_boo_user = login_test_user("testUser_lima", client)
 
 	response = client.get(
-		"/song-info/songs/tree",
+		"/song-info/songs/ls",
 		headers=headers_foo_goo_boo_user
 	)
 	assert response.status_code == 200
 
 	response = client.get(
-		"/song-info/songs/tree?prefix=foo",
+		"/song-info/songs/ls?prefix=foo",
 		headers=headers_foo_goo_boo_user
 	)
 	assert response.status_code == 404
@@ -323,7 +328,6 @@ def test_song_save_for_multi_edit(
 	data1_n = normalize_dict(data1)
 	data3_n = normalize_dict(data3)
 	assert data1_n == data3_n
-
 
 
 def test_song_save_for_multi_edit_artist_to_primary(

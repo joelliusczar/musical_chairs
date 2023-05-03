@@ -1,5 +1,5 @@
 from typing import (Any, Optional, Iterable, Iterator)
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from .user_role_def import UserRoleDomain
 
 
@@ -101,34 +101,14 @@ class ActionRule:
 			yield selectedRule
 
 
-@dataclass(frozen=True)
-class PathPrefixInfo:
-	path: str
-	rules: list[ActionRule]=field(default_factory=list)
-
 @dataclass()
 class PathsActionRule(ActionRule):
-	paths: list[str]=field(default_factory=list)
+	path: Optional[str]=None
 
-	@staticmethod
-	def paths_to_rules(
-		pathRules: Iterable[PathPrefixInfo]
-	) -> Iterator["PathsActionRule"]:
-		paths2Rules: dict[str, PathsActionRule] = {}
-		for r in ((p.path, rl) for p in pathRules for rl in p.rules):
-			pathRule = paths2Rules.get(r[1].name, PathsActionRule(r[1].name))
-			pathRule.paths.append(r[0])
-			paths2Rules[r[1].name] = pathRule
-		yield from (r for r in paths2Rules.values())
+	def __eq__(self, __value: Any) -> bool:
+		return super().__eq__(__value) \
+			and self.path == __value.path
 
-	@staticmethod
-	def rules_to_paths(
-		rules: Iterable["PathsActionRule"]
-	) -> Iterator[PathPrefixInfo]:
-		pathsInfoDict: dict[str, PathPrefixInfo] = {}
-		for i in ((p, r) for r in rules for p in r.paths):
-			pathInfo = pathsInfoDict.get(i[0], PathPrefixInfo(i[0], []))
-			pathInfo.rules.append(i[1])
-			pathsInfoDict[i[0]] = pathInfo
-		yield from (r for r in pathsInfoDict.values())
-
+	def __ne__(self, other: Any) -> bool:
+		return super().__ne__(other) \
+			or self.path != other.path

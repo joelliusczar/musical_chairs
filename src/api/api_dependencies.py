@@ -1,6 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Iterator, Tuple, Optional, Iterable
 from urllib import parse
+from operator import attrgetter
 from fastapi import Depends, HTTPException, status, Cookie
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
@@ -136,26 +137,26 @@ def get_user_with_simple_scopes(
 			raise build_wrong_permissions_error()
 	return user
 
-def get_path_owner_roles(ownerDir: str) -> Iterator[ActionRule]:
+def get_path_owner_roles(ownerDir: str) -> Iterator[PathsActionRule]:
 		yield PathsActionRule(
 			UserRoleDef.PATH_LIST.value,
 			priority=2,
-			paths=[ownerDir]
+			path=ownerDir
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_VIEW.value,
 			priority=2,
-			paths=[ownerDir]
+			path=ownerDir
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_EDIT.value,
 			priority=2,
-			paths=[ownerDir]
+			path=ownerDir
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_DOWNLOAD.value,
 			priority=2,
-			paths=[ownerDir]
+			path=ownerDir
 		)
 
 
@@ -207,20 +208,19 @@ def get_path_user(
 	if not scopes:
 		raise build_wrong_permissions_error()
 	userPrefixes = [*songInfoService.get_paths_user_can_see(user.id)]
-	userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
+	userPrefixTrie = AbsorbentTrie(((p.path, [p]) for p in userPrefixes \
+		if p.path != None)
+	)
 	if user.dirRoot:
-		userPrefixTrie.add(user.dirRoot, [*get_path_owner_roles(user.dirRoot)])
+		dirRootRules = userPrefixTrie.get(user.dirRoot, [])
+		ownerRules = [*get_path_owner_roles(user.dirRoot)]
+		dirRootRules = sorted(
+			chain(dirRootRules, ownerRules),
+			key=attrgetter("name", "priority")
+		)
+		userPrefixTrie[user.dirRoot] = dirRootRules
 	pathRuleMap = {p.name:p for p in \
-		ActionRule.best_rules_generator(sorted(
-			chain(
-				(r for r in PathsActionRule.paths_to_rules(userPrefixes) \
-					if r.name in scopes
-				),
-				(r for r in get_path_owner_roles(user.dirRoot) if r.name in scopes) \
-					if user.dirRoot else ()
-			),
-			key=lambda r: r.name
-		))
+		ActionRule.best_rules_generator()
 	}
 	roles = [*ActionRule.best_rules_generator(
 		sorted(chain(

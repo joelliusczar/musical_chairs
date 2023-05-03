@@ -9,10 +9,12 @@ from typing import (
 	Generic,
 	Union
 )
+from collections import deque
 from .sentinel import missing, Sentinel, found
 from .errors import AlternateValueError
 
 T = TypeVar("T")
+TDefault = TypeVar("TDefault")
 
 keyValueIteratorList = list[Optional[Iterator[Tuple[int,"AbsorbentTrie[T]"]]]]
 storeValueType = Union[T, Sentinel]
@@ -154,7 +156,7 @@ class AbsorbentTrie(Generic[T]):
 	def __setitem__(self, key: str, value: T):
 		self.add(key, value)
 
-	def get(self, key: str, default: T) -> T:
+	def get(self, key: str, default: TDefault) -> Union[T, TDefault]:
 		try:
 			value = self[key]
 			return value
@@ -174,8 +176,28 @@ class AbsorbentTrie(Generic[T]):
 		return self.path_store != missing
 
 
-	def values(self) -> Iterator[str]:
+	def all_paths(self) -> Iterator[str]:
 		return self.__traverse_path_optimized__("")
+
+	def _line_order_values(self) -> Iterator[Optional[T]]:
+		#stack: list["AbsorbentTrie[T]"] = [self]
+		# iterTracker: dict[int, Iterator["AbsorbentTrie[T]"]] = {}
+		queue = deque["AbsorbentTrie[T]"]()
+		queue.append(self)
+		while queue:
+			node = queue.popleft()
+			for child in node._prefix_map.values():
+				queue.append(child)
+			if node.path_store != missing:
+				if type(node.path_store) == Sentinel:
+					return None
+				else:
+					yield cast(T, node.path_store)
+
+
+
+	def values(self) -> Iterator[Optional[T]]:
+		return self._line_order_values()
 
 	def __len__(self) -> int:
 		#went with a backing variable so that getting the length would be O(1)

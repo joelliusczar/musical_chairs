@@ -29,8 +29,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationSongTuple,
 	SongArtistTuple,
 	AlreadyUsedError,
-	PathPrefixInfo,
-	ActionRule,
+	PathsActionRule,
 	UserRoleDomain
 )
 from sqlalchemy import select, insert, update, func, delete, union_all
@@ -267,19 +266,17 @@ class SongInfoService:
 		except IntegrityError: pass
 		return count
 
-	def get_paths_user_can_see(self, userId: int) -> Iterator[PathPrefixInfo]:
+	def get_paths_user_can_see(self, userId: int) -> Iterator[PathsActionRule]:
 		query = select(pup_path, pup_role, pup_priority)\
 			.where(pup_userFk == userId)\
 			.order_by(pup_path)
 		records = cast(Iterable[Row], self.conn.execute(query)) #pyright: ignore [reportUnknownMemberType]
-		for k, g in groupby(records, lambda r: cast(str,r[pup_path])):
-			yield PathPrefixInfo(
-				k,
-				[ActionRule(
-					cast(str,r[pup_role]),
-					priority=cast(int,r[pup_priority]),
-					domain=UserRoleDomain.Path
-				) for r in g ]
+		for r in records:
+			yield PathsActionRule(
+				cast(str,r[pup_role]),
+				priority=cast(int,r[pup_priority]),
+				domain=UserRoleDomain.Path,
+				path=cast(str,r[pup_path])
 			)
 
 	def __song_ls_query__(self, prefix: Optional[str]="") -> Select:

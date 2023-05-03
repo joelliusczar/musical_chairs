@@ -13,7 +13,7 @@ from .user_role_def import UserRoleDef
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, validate_email
 from .generic_dtos import IdItem
-from .action_rule_dtos import (ActionRule, PathsActionRule, PathPrefixInfo)
+from .action_rule_dtos import (ActionRule, PathsActionRule)
 from .absorbent_trie import AbsorbentTrie
 
 
@@ -123,10 +123,6 @@ class PasswordInfo:
 class StationUserInfo(AccountInfo):
 	stationId: Optional[int]=None
 
-
-@dataclass(frozen=True)
-class PathUserInfo(AccountInfo):
-	pathPrefixes: list[PathPrefixInfo]=field(default_factory=list)
 
 @dataclass(frozen=True)
 class UserHistoryActionItem:

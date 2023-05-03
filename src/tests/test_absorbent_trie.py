@@ -288,58 +288,58 @@ def test_iterate():
 def test_add_and_iterate():
 	t = AbsorbentTrie[Any]()
 	t.add("alpha")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 1
 
 	t.add("alpine")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 2
 
 	t.add("artist")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 3
 
 	t.add("arts")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 4
 
 	t.add("angel")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 5
 
 	t.add("angelic")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 5
 	assert "angel" not in l
 	assert "angelic" in l
 
 	t.add("bravery")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 6
 
 	t.add("brave")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 6
 	assert "brave" not in l
 	assert "bravery" in l
 
 	t.add("bravo")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 7
 	assert "bravo" in l
 
 	t.add("bun")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 8
 
 	t.add("bunk")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 8
 	assert "bun" not in l
 	assert "bunk" in l
 
 	t.add("bunt")
-	l = list(t.values())
+	l = list(t.all_paths())
 	assert len(l) == 9
 	assert "bun" not in l
 	assert "bunk" in l
@@ -768,3 +768,77 @@ def test_shortest_paths():
 	assert "change" in shortest
 	assert "chance" in shortest
 	assert "cuss" in shortest
+
+def test_values():
+	t = AbsorbentTrie[Any]()
+	t.extend((w, f"x_{w}_x") for w in [
+		"alpha",
+		"arts",
+		"art",
+		"artist",
+		"artistic",
+		"artisan",
+		"a",
+		"alpine",
+		"ant",
+		"arg",
+		"argument",
+		"argo",
+		"argon"
+	])
+	results = list(t.values())
+	aIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_a_x")
+	alphaIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_alpha_x")
+	artsIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_arts_x")
+	artIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_art_x")
+	artistIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_artist_x")
+	artisticIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_artistic_x")
+	artisanIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_artisan_x")
+	alpineIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_alpine_x")
+	antIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_ant_x")
+	argIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_arg_x")
+	argumentIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_argument_x")
+	argoIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_argo_x")
+	argonIdx = next(i for i in range(len(results)) \
+		if results[i] == "x_argon_x")
+	assert aIdx < argIdx
+	assert aIdx < antIdx
+	assert aIdx < artIdx
+	assert argIdx < artsIdx
+	assert antIdx < artsIdx
+	assert artIdx < artsIdx
+
+	assert argIdx < argoIdx
+	assert antIdx < argoIdx
+	assert artIdx < argoIdx
+
+	assert artsIdx < alphaIdx
+	assert argoIdx < alphaIdx
+
+	assert artsIdx < argonIdx
+	assert argoIdx < argonIdx
+
+	assert alphaIdx < artistIdx
+	assert argonIdx < artistIdx
+
+	assert alphaIdx < alpineIdx
+	assert argonIdx < alpineIdx
+
+	assert artistIdx < artisanIdx
+	assert alpineIdx < artisanIdx
+
+	assert artisanIdx < artisticIdx
+	assert artisanIdx < argumentIdx
+

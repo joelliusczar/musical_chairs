@@ -147,7 +147,11 @@ def check_if_can_use_path(
 ):
 	rules = sorted(r for i in userPrefixTrie.values(prefix) for r in i)
 	if not rules:
-		raise build_wrong_permissions_error()
+		raise HTTPException(
+					status_code=status.HTTP_404_NOT_FOUND,
+					detail=[build_error_obj(f"{prefix} not found")
+					]
+				)
 	for scope in scopes:
 		bestRuleGenerator = (r for g in
 			groupby(
@@ -187,6 +191,7 @@ def get_path_user(
 	if not scopes:
 		raise build_wrong_permissions_error()
 	roles = sorted((r for r in chain(
+		user.roles,
 		(p for p in songInfoService.get_paths_user_can_see(user.id)),
 		(p for p in get_path_owner_roles(user.dirRoot))
 	) if r.name in scopes), reverse=True)

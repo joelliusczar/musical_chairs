@@ -49,9 +49,9 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = sorted(data.get("items", []), key=lambda i: i["path"])
-	# assert len(items) == 2
-	# assert items[0]["path"] == "foo/goo/moo/"
-	# assert items[1]["path"] == "foo/goo/shoo/"
+	assert len(items) == 1
+	assert items[0]["path"] == "foo/"
+
 
 	headers_no_owner = login_test_user("testUser_bravo", client)
 
@@ -59,7 +59,7 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 		"/song-info/songs/ls",
 		headers=headers_no_owner
 	)
-	assert response.status_code == 422
+	assert response.status_code == 403
 
 	headers_foo_goo_boo_user = login_test_user("testUser_lima", client)
 
@@ -68,6 +68,10 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 		headers=headers_foo_goo_boo_user
 	)
 	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	assert len(items) == 1
+	assert items[0]["path"] == "foo/goo/boo/"
 
 	response = client.get(
 		"/song-info/songs/ls?prefix=foo",

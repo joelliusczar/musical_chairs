@@ -969,7 +969,7 @@ def get_user_role_params(
 			"priority": None
 		},
 		{
-			"userFk": 2,
+			"userFk": bravo_user_id,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
@@ -977,7 +977,7 @@ def get_user_role_params(
 			"priority": None
 		},
 		{
-			"userFk": 3,
+			"userFk": charlie_user_id,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
@@ -985,7 +985,7 @@ def get_user_role_params(
 			"priority": None
 		},
 		{
-			"userFk": 4,
+			"userFk": delta_user_id,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
@@ -993,7 +993,7 @@ def get_user_role_params(
 			"priority": None
 		},
 		{
-			"userFk": 4,
+			"userFk": delta_user_id,
 			"role": UserRoleDef.SONG_EDIT.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
@@ -1001,7 +1001,7 @@ def get_user_role_params(
 			"priority": None
 		},
 		{
-			"userFk": 6,
+			"userFk": foxtrot_user_id,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
@@ -1009,15 +1009,23 @@ def get_user_role_params(
 			"priority": None
 		},
 		{
-			"userFk": 6,
-			"role": UserRoleDef.SONG_EDIT.modded_value(span=120),
+			"userFk": foxtrot_user_id,
+			"role": UserRoleDef.PATH_EDIT.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
 			"count": 0,
 			"priority": None
 		},
 		{
-			"userFk": 7,
+			"userFk": foxtrot_user_id,
+			"role": UserRoleDef.PATH_VIEW.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
+		},
+		{
+			"userFk": golf_user_id,
 			"role": f"name={UserRoleDef.USER_LIST.value}",
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
@@ -1025,7 +1033,7 @@ def get_user_role_params(
 			"priority": None
 		},
 		{
-			"userFk": 10,
+			"userFk": juliet_user_id,
 			"role": UserRoleDef.STATION_EDIT(),
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
@@ -1033,7 +1041,7 @@ def get_user_role_params(
 			"priority": None
 		},
 		{
-			"userFk": 17,
+			"userFk": quebec_user_id,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span":300,

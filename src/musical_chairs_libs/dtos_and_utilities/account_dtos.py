@@ -11,11 +11,39 @@ from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
 from .user_role_def import UserRoleDef
 from .validation_functions import min_length_validator_factory
-from .simple_functions import get_duplicates, validate_email
+from .simple_functions import (
+	get_duplicates,
+	validate_email,
+	normalize_opening_slash
+)
 from .generic_dtos import IdItem
 from .action_rule_dtos import (ActionRule, PathsActionRule)
 from .absorbent_trie import AbsorbentTrie
+from itertools import chain
 
+def get_path_owner_roles(ownerDir: Optional[str]) -> Iterator[PathsActionRule]:
+		if not ownerDir:
+			return
+		yield PathsActionRule(
+			UserRoleDef.PATH_LIST.value,
+			priority=2,
+			path=ownerDir
+		)
+		yield PathsActionRule(
+			UserRoleDef.PATH_VIEW.value,
+			priority=2,
+			path=ownerDir
+		)
+		yield PathsActionRule(
+			UserRoleDef.PATH_EDIT.value,
+			priority=2,
+			path=ownerDir
+		)
+		yield PathsActionRule(
+			UserRoleDef.PATH_DOWNLOAD.value,
+			priority=2,
+			path=ownerDir
+		)
 
 @dataclass(frozen=True)
 class AccountInfoBase:
@@ -41,15 +69,15 @@ class AccountInfoSecurity(AccountInfoBase):
 		scopes: Union[str, Iterable[str]]
 	) -> Iterator[str]:
 		scopeSet = set([scopes] if type(scopes) == str else scopes)
-		pathsGen = (p for pl in \
-			(r for r in self.roles \
-				if isinstance(r, PathsActionRule) and r.name in scopeSet
-			) for p in pl.paths
-		)
-		pathTree = AbsorbentTrie[Any](pathsGen)
+		pathsGen = (r.path for r in chain(
+			self.roles,
+			get_path_owner_roles(self.dirRoot)
+			) \
+				if isinstance(r, PathsActionRule) and r.name in scopeSet \
+					and r.path != None
+			)
+		pathTree = AbsorbentTrie[Any](normalize_opening_slash(p) for p in pathsGen)
 		yield from (p for p in pathTree.shortest_paths())
-
-
 
 
 @dataclass(frozen=True)

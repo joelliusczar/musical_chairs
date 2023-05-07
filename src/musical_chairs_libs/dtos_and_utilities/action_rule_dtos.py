@@ -1,4 +1,4 @@
-from typing import (Any, Optional, Iterable, Iterator)
+from typing import (Any, Optional)
 from dataclasses import dataclass
 from .user_role_def import UserRoleDomain
 
@@ -122,25 +122,6 @@ class ActionRule:
 			return True
 		return self.name != other.name or\
 			self.span != other.span or self.count != other.count
-
-	@staticmethod
-	def best_rules_generator(
-		records: Iterable["ActionRule"]
-	) -> Iterator["ActionRule"]:
-		selectedRule = None
-		for rule in records:
-			if not selectedRule:
-				selectedRule = rule
-			elif rule.name != selectedRule.name:
-				yield selectedRule
-				selectedRule = rule
-			if (rule.priority or 0) > (selectedRule.priority or 0):
-				selectedRule = rule
-			#prefer the more restrictive rule
-			elif rule < selectedRule:
-				selectedRule = rule
-		if selectedRule:
-			yield selectedRule
 
 
 @dataclass()

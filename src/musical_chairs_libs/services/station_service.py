@@ -19,7 +19,6 @@ from sqlalchemy import (
 	update,
 	or_
 )
-from itertools import chain
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
 	songs, sg_pk, sg_name, sg_path, sg_albumFk,
@@ -319,10 +318,7 @@ class StationService:
 			stationId,
 			stationName
 		)
-		roles = sorted(chain(
-			user.roles,
-			ActionRule.best_rules_generator(rules_generator)
-		), key=lambda r: r.name)
+		roles = [*rules_generator]
 		userDict = asdict(user)
 		userDict["roles"] = roles
 		return StationUserInfo(

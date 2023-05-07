@@ -20,7 +20,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	IllegalOperationError,
 	ActionRule,
 	get_datetime,
-	UserRoleDef,
+	get_path_owner_roles,
 	PathsActionRule,
 	ChainedAbsorbentTrie
 )
@@ -136,27 +136,7 @@ def get_user_with_simple_scopes(
 			raise build_wrong_permissions_error()
 	return user
 
-def get_path_owner_roles(ownerDir: str) -> Iterator[PathsActionRule]:
-		yield PathsActionRule(
-			UserRoleDef.PATH_LIST.value,
-			priority=2,
-			path=ownerDir
-		)
-		yield PathsActionRule(
-			UserRoleDef.PATH_VIEW.value,
-			priority=2,
-			path=ownerDir
-		)
-		yield PathsActionRule(
-			UserRoleDef.PATH_EDIT.value,
-			priority=2,
-			path=ownerDir
-		)
-		yield PathsActionRule(
-			UserRoleDef.PATH_DOWNLOAD.value,
-			priority=2,
-			path=ownerDir
-		)
+
 
 def check_if_can_use_path(
 	scopes: Iterable[str],
@@ -206,10 +186,10 @@ def get_path_user(
 		return user
 	if not scopes:
 		raise build_wrong_permissions_error()
-	roles = sorted(r for r in chain(
+	roles = sorted((r for r in chain(
 		(p for p in songInfoService.get_paths_user_can_see(user.id)),
-		(p for p in get_path_owner_roles(user.dirRoot)) if user.dirRoot else ()
-	) if r.name in scopes)
+		(p for p in get_path_owner_roles(user.dirRoot))
+	) if r.name in scopes), reverse=True)
 	roleNameSet = {r.name for r in roles}
 	if any(s for s in scopes if s not in roleNameSet):
 		raise build_wrong_permissions_error()
@@ -298,11 +278,16 @@ def get_station_user(
 	if user.isAdmin:
 		return StationUserInfo(**asdict(user))
 	stationUser = stationService.get_station_user(user, stationId, stationName)
+	rules = sorted(stationUser.roles, reverse=True)
 	for scope in scopes:
+		bestRuleGenerator = (r for g in
+			groupby(
+				(r for r in rules if r.conforms(scope)),
+				lambda k: k.name
+			) for r in g[1]
+		)
 		selectedRule = next(
-			ActionRule.best_rules_generator(
-				r for r in stationUser.roles if r.conforms(scope)
-			),
+			bestRuleGenerator,
 			None
 		)
 		if selectedRule:

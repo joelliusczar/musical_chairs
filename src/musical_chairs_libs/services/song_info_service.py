@@ -30,7 +30,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongArtistTuple,
 	AlreadyUsedError,
 	PathsActionRule,
-	UserRoleDomain
+	UserRoleDomain,
+	normalize_opening_slash
 )
 from sqlalchemy import select, insert, update, func, delete, union_all
 from sqlalchemy.sql.expression import Tuple as dbTuple, Select
@@ -280,6 +281,7 @@ class SongInfoService:
 			)
 
 	def __song_ls_query__(self, prefix: Optional[str]="") -> Select:
+		prefix = normalize_opening_slash(prefix, False)
 		query = select(
 				func.next_directory_level(sg_path, prefix).label("prefix"),
 				func.min(sg_name).label("name"),

@@ -1,4 +1,4 @@
-
+import pytest
 from typing import Any
 from musical_chairs_libs.dtos_and_utilities import AbsorbentTrie
 from .helpers import get_sentences
@@ -66,147 +66,135 @@ trieWords = [
 
 def test_path_trie_add_and_len():
 	t = AbsorbentTrie[Any]()
-	assert len(t) == 0
+	assert t.__node_count__ == 0
 
-	added = t.add("a")
-	assert added == 1
-	assert len(t) == 1
-	pathEnd = t.__get_path_end__("a")
+	t.add("a")
+	assert t.__node_count__ == 1
+	pathEnd = t.__node_at_path__("a")
 	assert pathEnd != None
-	assert len(pathEnd) == 0
+	assert pathEnd.__node_count__ == 0
 
-	added = t.add("b")
-	assert added == 1
-	assert len(t) == 2
-	pathEnd = t.__get_path_end__("b")
+	t.add("b")
+	assert t.__node_count__ == 2
+	pathEnd = t.__node_at_path__("b")
 	assert pathEnd != None
-	assert len(pathEnd) == 0
+	assert pathEnd.__node_count__ == 0
 
-	added = t.add("ab")
-	assert added == 1
-	assert len(t) == 2
-	pathEnd = t.__get_path_end__("a")
+	t.add("ab")
+	assert t.__node_count__ == 2
+	pathEnd = t.__node_at_path__("a")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
+	assert pathEnd.__node_count__ == 1
 
-	added = t.add("abc")
-	assert added == 1
-	assert len(t) == 2
-	pathEnd = t.__get_path_end__("ab")
+	t.add("abc")
+	assert t.__node_count__ == 2
+	pathEnd = t.__node_at_path__("ab")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
+	assert pathEnd.__node_count__ == 1
 
-	added = t.add("abd")
-	assert added == 1
-	assert len(t) == 3
-	pathEnd = t.__get_path_end__("ab")
+	t.add("abd")
+	assert t.__node_count__ == 3
+	pathEnd = t.__node_at_path__("ab")
 	assert pathEnd != None
-	assert len(pathEnd) == 2
+	assert pathEnd.__node_count__ == 2
 
-	added = t.add("ba")
-	assert added == 1
-	assert len(t) == 3
-	pathEnd = t.__get_path_end__("b")
+	t.add("ba")
+	assert t.__node_count__ == 3
+	pathEnd = t.__node_at_path__("b")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
+	assert pathEnd.__node_count__ == 1
 
-	added = t.add("abcd")
-	assert added == 1
-	assert len(t) == 3
-	pathEnd = t.__get_path_end__("abc")
+	t.add("abcd")
+	assert t.__node_count__ == 3
+	pathEnd = t.__node_at_path__("abc")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
+	assert pathEnd.__node_count__ == 1
 
-	added = t.add("cdef")
-	assert added == 1
-	assert len(t) == 4
-	pathEnd = t.__get_path_end__("c")
+	t.add("cdef")
+	assert t.__node_count__ == 4
+	pathEnd = t.__node_at_path__("c")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
-	pathEnd = t.__get_path_end__("cd")
+	assert pathEnd.__node_count__ == 1
+	pathEnd = t.__node_at_path__("cd")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
-	pathEnd = t.__get_path_end__("cde")
+	assert pathEnd.__node_count__ == 1
+	pathEnd = t.__node_at_path__("cde")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
-	pathEnd = t.__get_path_end__("cdef")
+	assert pathEnd.__node_count__ == 1
+	pathEnd = t.__node_at_path__("cdef")
 	assert pathEnd != None
-	assert len(pathEnd) == 0
+	assert pathEnd.__node_count__ == 0
 
-	added = t.add("cde")
-	assert added == 0
-	assert len(t) == 4
+	t.add("cde")
+	assert t.__node_count__ == 4
 
-	added = t.add("yes")
-	assert added == 1
-	assert len(t) == 5
-	pathEnd = t.__get_path_end__("y")
+	t.add("yes")
+	assert t.__node_count__ == 5
+	pathEnd = t.__node_at_path__("y")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
+	assert pathEnd.__node_count__ == 1
 
-	pathEnd = t.__get_path_end__("ye")
+	pathEnd = t.__node_at_path__("ye")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
+	assert pathEnd.__node_count__ == 1
 
-	pathEnd = t.__get_path_end__("yes")
+	pathEnd = t.__node_at_path__("yes")
 	assert pathEnd != None
-	assert len(pathEnd) == 0
+	assert pathEnd.__node_count__ == 0
 
-	added = t.add("yetx")
-	assert added == 1
-	assert len(t) == 6
+	t.add("yetx")
+	assert t.__node_count__ == 6
 
-	pathEnd = t.__get_path_end__("y")
+	pathEnd = t.__node_at_path__("y")
 	assert pathEnd != None
-	assert len(pathEnd) == 2
+	assert pathEnd.__node_count__ == 2
 
-	pathEnd = t.__get_path_end__("ye")
+	pathEnd = t.__node_at_path__("ye")
 	assert pathEnd != None
-	assert len(pathEnd) == 2
+	assert pathEnd.__node_count__ == 2
 
-	pathEnd = t.__get_path_end__("yes")
+	pathEnd = t.__node_at_path__("yes")
 	assert pathEnd != None
-	assert len(pathEnd) == 0
+	assert pathEnd.__node_count__ == 0
 
-	pathEnd = t.__get_path_end__("yet")
+	pathEnd = t.__node_at_path__("yet")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
+	assert pathEnd.__node_count__ == 1
 
-	pathEnd = t.__get_path_end__("yetx")
+	pathEnd = t.__node_at_path__("yetx")
 	assert pathEnd != None
-	assert len(pathEnd) == 0
+	assert pathEnd.__node_count__ == 0
 
-	added = t.add("yetza")
-	assert added == 1
-	assert len(t) == 7
+	t.add("yetza")
+	assert t.__node_count__ == 7
 
-	pathEnd = t.__get_path_end__("y")
+	pathEnd = t.__node_at_path__("y")
 	assert pathEnd != None
-	assert len(pathEnd) == 3
+	assert pathEnd.__node_count__ == 3
 
-	pathEnd = t.__get_path_end__("ye")
+	pathEnd = t.__node_at_path__("ye")
 	assert pathEnd != None
-	assert len(pathEnd) == 3
+	assert pathEnd.__node_count__ == 3
 
-	pathEnd = t.__get_path_end__("yes")
+	pathEnd = t.__node_at_path__("yes")
 	assert pathEnd != None
-	assert len(pathEnd) == 0
+	assert pathEnd.__node_count__ == 0
 
-	pathEnd = t.__get_path_end__("yet")
+	pathEnd = t.__node_at_path__("yet")
 	assert pathEnd != None
-	assert len(pathEnd) == 2
+	assert pathEnd.__node_count__ == 2
 
-	pathEnd = t.__get_path_end__("yetx")
+	pathEnd = t.__node_at_path__("yetx")
 	assert pathEnd != None
-	assert len(pathEnd) == 0
+	assert pathEnd.__node_count__ == 0
 
-	pathEnd = t.__get_path_end__("yetz")
+	pathEnd = t.__node_at_path__("yetz")
 	assert pathEnd != None
-	assert len(pathEnd) == 1
+	assert pathEnd.__node_count__ == 1
 
-	pathEnd = t.__get_path_end__("yetza")
+	pathEnd = t.__node_at_path__("yetza")
 	assert pathEnd != None
-	assert len(pathEnd) == 0
+	assert pathEnd.__node_count__ == 0
 
 def test_path_trie_extend():
 	t = AbsorbentTrie[Any]()
@@ -219,7 +207,7 @@ def test_path_trie_extend():
 		"damn/what/the/fuck",
 		"tootle/le/zay/tootle/le/zay"
 	])
-	assert len(t) == 6
+	assert t.__node_count__ == 6
 
 def test_trie_depth():
 	t = AbsorbentTrie[Any]()
@@ -238,33 +226,32 @@ def test_trie_depth():
 def test_path_end():
 	t = AbsorbentTrie[Any]()
 	t.extend(trieWords)
-	pe = t.__get_path_end__("a")
+	pe = t.__node_at_path__("a")
 	assert pe
-	assert sorted(pe.keys) == sorted(["l","r","u","c","d","n","t","i"])
-	pe = t.__get_path_end__("al")
+	assert sorted(pe.child_keys) == sorted(["l","r","u","c","d","n","t","i"])
+	pe = t.__node_at_path__("al")
 	assert pe
-	assert sorted(pe.keys) == sorted(["p","t","b"])
+	assert sorted(pe.child_keys) == sorted(["p","t","b"])
 
-	pe = t.__get_path_end__("alp")
+	pe = t.__node_at_path__("alp")
 	assert pe
-	assert sorted(pe.keys) == sorted(["i","h","a","r", "e"])
+	assert sorted(pe.child_keys) == sorted(["i","h","a","r", "e"])
 
-	pe = t.__get_path_end__("alpi")
+	pe = t.__node_at_path__("alpi")
 	assert pe
-	assert sorted(pe.keys) == sorted(["n"])
+	assert sorted(pe.child_keys) == sorted(["n"])
 
-	pe = t.__get_path_end__("alpin")
+	pe = t.__node_at_path__("alpin")
 	assert pe
-	assert sorted(pe.keys) == sorted(["e"])
+	assert sorted(pe.child_keys) == sorted(["e"])
 
-	pe = t.__get_path_end__("alpine")
+	pe = t.__node_at_path__("alpine")
 	assert pe != None
-	assert pe.keys == []
+	assert pe.child_keys == []
+	with pytest.raises(KeyError):
+		pe = t.__node_at_path__("alpinex")
 
-	pe = t.__get_path_end__("alpinex")
-	assert pe == None
-
-	pe = t.__get_path_end__("")
+	pe = t.__node_at_path__("")
 	assert pe == t
 
 def test_iterate():
@@ -405,131 +392,131 @@ def test_is_path_end():
 	t.add("yetx")
 	t.add("yetza")
 
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None
 	assert a.is_path_end
 
-	al = t.__get_path_end__("al")
+	al = t.__node_at_path__("al")
 	assert al != None
 	assert not al.is_path_end
 
-	alp = t.__get_path_end__("alp")
+	alp = t.__node_at_path__("alp")
 	assert alp != None
 	assert not alp.is_path_end
 
-	alph = t.__get_path_end__("alph")
+	alph = t.__node_at_path__("alph")
 	assert alph != None
 	assert not alph.is_path_end
 
-	alpha = t.__get_path_end__("alpha")
+	alpha = t.__node_at_path__("alpha")
 	assert alpha != None
 	assert alpha.is_path_end
 
-	alpi = t.__get_path_end__("alpi")
+	alpi = t.__node_at_path__("alpi")
 	assert alpi != None
 	assert not alpi.is_path_end
 
-	alpin = t.__get_path_end__("alpin")
+	alpin = t.__node_at_path__("alpin")
 	assert alpin != None
 	assert not alpin.is_path_end
 
-	alpine = t.__get_path_end__("alpine")
+	alpine = t.__node_at_path__("alpine")
 	assert alpine != None
 	assert alpine.is_path_end
 
-	ar = t.__get_path_end__("ar")
+	ar = t.__node_at_path__("ar")
 	assert ar != None
 	assert not ar.is_path_end
 
-	art = t.__get_path_end__("art")
+	art = t.__node_at_path__("art")
 	assert art != None
 	assert not art.is_path_end
 
-	arts = t.__get_path_end__("arts")
+	arts = t.__node_at_path__("arts")
 	assert arts != None
 	assert arts.is_path_end
 
-	arti = t.__get_path_end__("arti")
+	arti = t.__node_at_path__("arti")
 	assert arti != None
 	assert not arti.is_path_end
 
-	artis = t.__get_path_end__("artis")
+	artis = t.__node_at_path__("artis")
 	assert artis != None
 	assert not artis.is_path_end
 
-	artist = t.__get_path_end__("artist")
+	artist = t.__node_at_path__("artist")
 	assert artist != None
 	assert artist.is_path_end
 
-	an = t.__get_path_end__("an")
+	an = t.__node_at_path__("an")
 	assert an != None
 	assert not an.is_path_end
 
-	ang = t.__get_path_end__("ang")
+	ang = t.__node_at_path__("ang")
 	assert ang != None
 	assert not ang.is_path_end
 
-	ange = t.__get_path_end__("ange")
+	ange = t.__node_at_path__("ange")
 	assert ange != None
 	assert not ange.is_path_end
 
-	angel = t.__get_path_end__("angel")
+	angel = t.__node_at_path__("angel")
 	assert angel != None
 	assert angel.is_path_end
 
-	angeli = t.__get_path_end__("angeli")
+	angeli = t.__node_at_path__("angeli")
 	assert angeli != None
 	assert not angeli.is_path_end
 
-	angelic = t.__get_path_end__("angelic")
+	angelic = t.__node_at_path__("angelic")
 	assert angelic != None
 	assert angelic.is_path_end
 
-	b = t.__get_path_end__("b")
+	b = t.__node_at_path__("b")
 	assert b != None
 	assert not b.is_path_end
 
-	bu = t.__get_path_end__("bu")
+	bu = t.__node_at_path__("bu")
 	assert bu != None
 	assert not bu.is_path_end
 
-	bun = t.__get_path_end__("bun")
+	bun = t.__node_at_path__("bun")
 	assert bun != None
 	assert bun.is_path_end
 
-	bunt = t.__get_path_end__("bunt")
+	bunt = t.__node_at_path__("bunt")
 	assert bunt != None
 	assert bunt.is_path_end
 
-	bunk = t.__get_path_end__("bunk")
+	bunk = t.__node_at_path__("bunk")
 	assert bunk != None
 	assert bunk.is_path_end
 
-	y = t.__get_path_end__("y")
+	y = t.__node_at_path__("y")
 	assert y != None
 	assert not y.is_path_end
 
-	ye = t.__get_path_end__("ye")
+	ye = t.__node_at_path__("ye")
 	assert ye != None
 	assert not ye.is_path_end
 
-	yes = t.__get_path_end__("yes")
+	yes = t.__node_at_path__("yes")
 	assert yes != None
 	assert yes.is_path_end
 
-	yet = t.__get_path_end__("yet")
+	yet = t.__node_at_path__("yet")
 	assert yet != None
 	assert not yet.is_path_end
 
-	yetx = t.__get_path_end__("yetx")
+	yetx = t.__node_at_path__("yetx")
 	assert yetx != None
 	assert yetx.is_path_end
 
-	yetz = t.__get_path_end__("yetz")
+	yetz = t.__node_at_path__("yetz")
 	assert yetz != None
 	assert not yetz.is_path_end
 
-	yetza = t.__get_path_end__("yetza")
+	yetza = t.__node_at_path__("yetza")
 	assert yetza != None
 	assert yetza.is_path_end
 
@@ -579,132 +566,132 @@ def test_closest_value_nodes():
 
 	t.add("ant")
 	assert len(list(t.closest_value_nodes())) == 1
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 1
-	an = t.__get_path_end__("an")
+	an = t.__node_at_path__("an")
 	assert an != None and len(list(an.closest_value_nodes())) == 1
-	ant = t.__get_path_end__("ant")
+	ant = t.__node_at_path__("ant")
 	assert ant != None and len(list(ant.closest_value_nodes())) == 1
 
 	t.add("angel")
 	assert len(list(t.closest_value_nodes())) == 2
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 2
-	an = t.__get_path_end__("an")
+	an = t.__node_at_path__("an")
 	assert an != None and len(list(an.closest_value_nodes())) == 2
-	ant = t.__get_path_end__("ant")
+	ant = t.__node_at_path__("ant")
 	assert ant != None and len(list(ant.closest_value_nodes())) == 1
-	ang = t.__get_path_end__("ang")
+	ang = t.__node_at_path__("ang")
 	assert ang != None and len(list(ang.closest_value_nodes())) == 1
-	ange = t.__get_path_end__("ange")
+	ange = t.__node_at_path__("ange")
 	assert ange != None and len(list(ange.closest_value_nodes())) == 1
-	angel = t.__get_path_end__("angel")
+	angel = t.__node_at_path__("angel")
 	assert angel != None and len(list(angel.closest_value_nodes())) == 1
 
 	t.add("a")
 	assert len(list(t.closest_value_nodes())) == 1
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 1
-	an = t.__get_path_end__("an")
+	an = t.__node_at_path__("an")
 	assert an != None and len(list(an.closest_value_nodes())) == 2
-	ant = t.__get_path_end__("ant")
+	ant = t.__node_at_path__("ant")
 	assert ant != None and len(list(ant.closest_value_nodes())) == 1
 
 	t.add("bun")
 	assert len(list(t.closest_value_nodes())) == 2
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 1
-	b = t.__get_path_end__("b")
+	b = t.__node_at_path__("b")
 	assert b != None and len(list(b.closest_value_nodes())) == 1
 
 	t.add("bunk")
 	assert len(list(t.closest_value_nodes())) == 2
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 1
-	an = t.__get_path_end__("an")
+	an = t.__node_at_path__("an")
 	assert an != None and len(list(an.closest_value_nodes())) == 2
-	b = t.__get_path_end__("b")
+	b = t.__node_at_path__("b")
 	assert b != None and len(list(b.closest_value_nodes())) == 1
-	bu = t.__get_path_end__("bu")
+	bu = t.__node_at_path__("bu")
 	assert bu != None and len(list(bu.closest_value_nodes())) == 1
-	bun = t.__get_path_end__("bun")
+	bun = t.__node_at_path__("bun")
 	assert bun != None and len(list(bun.closest_value_nodes())) == 1
 
 	t.add("bunt")
 	assert len(list(t.closest_value_nodes())) == 2
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 1
-	an = t.__get_path_end__("an")
+	an = t.__node_at_path__("an")
 	assert an != None and len(list(an.closest_value_nodes())) == 2
-	b = t.__get_path_end__("b")
+	b = t.__node_at_path__("b")
 	assert b != None and len(list(b.closest_value_nodes())) == 1
-	bu = t.__get_path_end__("bu")
+	bu = t.__node_at_path__("bu")
 	assert bu != None and len(list(bu.closest_value_nodes())) == 1
-	bun = t.__get_path_end__("bun")
+	bun = t.__node_at_path__("bun")
 	assert bun != None and len(list(bun.closest_value_nodes())) == 1
 
 	t.add("yes")
 	assert len(list(t.closest_value_nodes())) == 3
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 1
-	an = t.__get_path_end__("an")
+	an = t.__node_at_path__("an")
 	assert an != None and len(list(an.closest_value_nodes())) == 2
-	b = t.__get_path_end__("b")
+	b = t.__node_at_path__("b")
 	assert b != None and len(list(b.closest_value_nodes())) == 1
-	y = t.__get_path_end__("y")
+	y = t.__node_at_path__("y")
 	assert y != None and len(list(y.closest_value_nodes())) == 1
 
 	t.add("yetx")
 	assert len(list(t.closest_value_nodes())) == 4
-	y = t.__get_path_end__("y")
+	y = t.__node_at_path__("y")
 	assert y != None and len(list(y.closest_value_nodes())) == 2
-	ye = t.__get_path_end__("ye")
+	ye = t.__node_at_path__("ye")
 	assert ye != None and len(list(ye.closest_value_nodes())) == 2
-	yes = t.__get_path_end__("yes")
+	yes = t.__node_at_path__("yes")
 	assert yes != None and len(list(yes.closest_value_nodes())) == 1
-	yet = t.__get_path_end__("yet")
+	yet = t.__node_at_path__("yet")
 	assert yet != None and len(list(yet.closest_value_nodes())) == 1
 
 	t.add("yetza")
 	assert len(list(t.closest_value_nodes())) == 5
-	y = t.__get_path_end__("y")
+	y = t.__node_at_path__("y")
 	assert y != None and len(list(y.closest_value_nodes())) == 3
-	ye = t.__get_path_end__("ye")
+	ye = t.__node_at_path__("ye")
 	assert ye != None and len(list(ye.closest_value_nodes())) == 3
-	yes = t.__get_path_end__("yes")
+	yes = t.__node_at_path__("yes")
 	assert yes != None and len(list(yes.closest_value_nodes())) == 1
-	yet = t.__get_path_end__("yet")
+	yet = t.__node_at_path__("yet")
 	assert yet != None and len(list(yet.closest_value_nodes())) == 2
 
 
 	t.add("artist")
 	assert len(list(t.closest_value_nodes())) == 5
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 1
-	ar = t.__get_path_end__("ar")
+	ar = t.__node_at_path__("ar")
 	assert ar != None and len(list(ar.closest_value_nodes())) == 1
 
 	t.add("arts")
 	assert len(list(t.closest_value_nodes())) == 5
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 1
-	ar = t.__get_path_end__("ar")
+	ar = t.__node_at_path__("ar")
 	assert ar != None and len(list(ar.closest_value_nodes())) == 2
-	art = t.__get_path_end__("art")
+	art = t.__node_at_path__("art")
 	assert art != None and len(list(art.closest_value_nodes())) == 2
-	arts = t.__get_path_end__("arts")
+	arts = t.__node_at_path__("arts")
 	assert arts != None and len(list(arts.closest_value_nodes())) == 1
-	arti = t.__get_path_end__("arti")
+	arti = t.__node_at_path__("arti")
 	assert arti != None and len(list(arti.closest_value_nodes())) == 1
 
 
 	t.add("art")
 	assert len(list(t.closest_value_nodes())) == 5
-	a = t.__get_path_end__("a")
+	a = t.__node_at_path__("a")
 	assert a != None and len(list(a.closest_value_nodes())) == 1
-	ar = t.__get_path_end__("ar")
+	ar = t.__node_at_path__("ar")
 	assert ar != None and len(list(ar.closest_value_nodes())) == 1
-	art = t.__get_path_end__("art")
+	art = t.__node_at_path__("art")
 	assert art != None and len(list(art.closest_value_nodes())) == 1
 
 
@@ -842,3 +829,30 @@ def test_values():
 	assert artisanIdx < artisticIdx
 	assert artisanIdx < argumentIdx
 
+def test_values_with_path():
+	t = AbsorbentTrie[Any]()
+	t.extend((w, f"x_{w}_x") for w in [
+		"alpha",
+		"arts",
+		"art",
+		"artist",
+		"artistic",
+		"artisan",
+		"a",
+		"alpine",
+		"ant",
+		"arg",
+		"argument",
+		"argo",
+		"argon"
+	])
+	results = list(t.values("artsando"))
+	assert "x_a_x" in results
+	assert "x_art_x" in results
+	assert "x_arts_x" in results
+	assert len(results) == 3
+
+	results = list(t.values("arti"))
+	assert "x_a_x" in results
+	assert "x_art_x" in results
+	assert len(results) == 2

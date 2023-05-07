@@ -8,5 +8,8 @@ class Sentinel:
 	def __bool__(self) -> bool:
 		return self.value
 
+	def __repr__(self) -> str:
+		return "found" if self else "missing"
+
 missing = Sentinel(False)
 found = Sentinel(True)

@@ -1,7 +1,6 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Iterator, Tuple, Optional, Iterable
 from urllib import parse
-from operator import attrgetter
 from fastapi import Depends, HTTPException, status, Cookie
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
@@ -21,9 +20,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	IllegalOperationError,
 	ActionRule,
 	get_datetime,
-	AbsorbentTrie,
 	UserRoleDef,
-	PathsActionRule
+	PathsActionRule,
+	ChainedAbsorbentTrie
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -36,7 +35,7 @@ from api_error import (
 	build_wrong_permissions_error,
 	build_too_many_requests_error
 )
-from itertools import chain
+from itertools import chain, groupby
 
 oauth2_scheme = OAuth2PasswordBearer(
 	tokenUrl="accounts/open",
@@ -159,25 +158,25 @@ def get_path_owner_roles(ownerDir: str) -> Iterator[PathsActionRule]:
 			path=ownerDir
 		)
 
-
-
 def check_if_can_use_path(
 	scopes: Iterable[str],
 	prefix: str,
 	user: AccountInfo,
-	userPrefixTrie: AbsorbentTrie[list[ActionRule]],
+	userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
 	userActionHistoryService: UserActionsHistoryService
 ):
-	rules = userPrefixTrie.get(prefix, [])
-	# if user.dirRoot and prefix.startswith(user.dirRoot):
-	# 	rules.extend(get_path_owner_roles(user.dirRoot))
+	rules = sorted(r for i in userPrefixTrie.values(prefix) for r in i)
 	if not rules:
 		raise build_wrong_permissions_error()
 	for scope in scopes:
+		bestRuleGenerator = (r for g in
+			groupby(
+				(r for r in rules if r.conforms(scope)),
+				lambda k: k.name
+			) for r in g[1]
+		)
 		selectedRule = next(
-			ActionRule.best_rules_generator(
-				r for r in rules if r.conforms(scope)
-			),
+			bestRuleGenerator,
 			None
 		)
 		if selectedRule:
@@ -207,27 +206,10 @@ def get_path_user(
 		return user
 	if not scopes:
 		raise build_wrong_permissions_error()
-	userPrefixes = [*songInfoService.get_paths_user_can_see(user.id)]
-	userPrefixTrie = AbsorbentTrie(((p.path, [p]) for p in userPrefixes \
-		if p.path != None)
-	)
-	if user.dirRoot:
-		dirRootRules = userPrefixTrie.get(user.dirRoot, [])
-		ownerRules = [*get_path_owner_roles(user.dirRoot)]
-		dirRootRules = sorted(
-			chain(dirRootRules, ownerRules),
-			key=attrgetter("name", "priority")
-		)
-		userPrefixTrie[user.dirRoot] = dirRootRules
-	pathRuleMap = {p.name:p for p in \
-		ActionRule.best_rules_generator()
-	}
-	roles = [*ActionRule.best_rules_generator(
-		sorted(chain(
-			(pathRuleMap.get(r.name, r) for r in user.roles if r.name in scopes),
-			(r for r in pathRuleMap.values())
-		), key=lambda r: r.name)
-	)]
+	roles = sorted(r for r in chain(
+		(p for p in songInfoService.get_paths_user_can_see(user.id)),
+		(p for p in get_path_owner_roles(user.dirRoot)) if user.dirRoot else ()
+	) if r.name in scopes)
 	roleNameSet = {r.name for r in roles}
 	if any(s for s in scopes if s not in roleNameSet):
 		raise build_wrong_permissions_error()
@@ -255,10 +237,13 @@ def get_path_user_and_check_optional_path(
 		if UserRoleDomain.Path.conforms(s)
 	]
 	if prefix:
-		userPrefixes = PathsActionRule.rules_to_paths(
+		userPrefixes = (
 			r for r in user.roles if isinstance(r, PathsActionRule)
 		)
-		userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
+
+		userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
+			(p.path, p) for p in userPrefixes if p.path
+		)
 		check_if_can_use_path(
 			scopes,
 			prefix,
@@ -279,7 +264,9 @@ def get_multi_path_user(
 	if user.isAdmin:
 		return user
 	userPrefixes = songInfoService.get_paths_user_can_see(user.id)
-	userPrefixTrie = AbsorbentTrie(((p.path, p.rules) for p in userPrefixes))
+	userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
+			(p.path, p) for p in userPrefixes if p.path
+		)
 	prefixes = songInfoService.get_song_path(itemIds)
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)

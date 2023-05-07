@@ -6,7 +6,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	ValidatedSongAboutInfo,
 	AlbumInfo,
-	ActionRule
+	ActionRule,
+	PathsActionRule
 )
 
 
@@ -70,3 +71,350 @@ def test_validatedSongAboutInfo():
 	assert songInfo
 	with pytest.raises(TypeError):
 		songInfo = ValidatedSongAboutInfo("Test", AlbumInfo()) #pyright: ignore [reportGeneralTypeIssues]
+
+
+def test_action_rule_ordering():
+
+	r1 = ActionRule("alpha", priority=3)
+	r2 = ActionRule("alpha", priority=3)
+
+	assert not (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert not (r2 < r1)
+	assert not (r2 > r1)
+	assert (r2 <= r1)
+	assert (r2 >= r1)
+
+	r1 = ActionRule("alpha", priority=3)
+	r2 = ActionRule("alpha", priority=4)
+
+	assert not (r1 > r2)
+	assert (r1 < r2)
+	assert not (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert not (r2 <= r1)
+
+	r1 = ActionRule("alpha", priority=3)
+	r2 = ActionRule("alpha", priority=3, span=10)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = ActionRule("alpha", priority=3, span=10, count=5)
+	r2 = ActionRule("alpha", priority=3, span=10, count=8)
+
+	assert not (r1 > r2)
+	assert (r1 < r2)
+	assert not (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert not (r2 <= r1)
+
+	r1 = ActionRule("alpha", priority=3, span=10, count=5)
+	r2 = ActionRule("alpha", priority=3, span=10, count=5)
+
+	assert not (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = ActionRule("bravo", priority=3, span=10, count=5)
+	r2 = ActionRule("alpha", priority=3, span=10, count=5)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = ActionRule("bravo", priority=3, span=10, count=5)
+	r2 = ActionRule("alpha", priority=3, span=10, count=5)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = ActionRule("bravo", priority=3, span=10, count=5)
+	r2 = ActionRule("alpha", priority=3, span=10, count=8)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = ActionRule("bravo", priority=3, span=10)
+	r2 = ActionRule("alpha", priority=3, count=8)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = ActionRule("bravo", priority=3)
+	r2 = ActionRule("alpha", priority=4)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+
+
+def test_path_action_rule_ordering_no_path():
+
+	r1 = PathsActionRule("alpha", priority=3)
+	r2 = PathsActionRule("alpha", priority=3)
+
+	assert not (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("alpha", priority=3)
+	r2 = PathsActionRule("alpha", priority=4)
+
+	assert not (r1 > r2)
+	assert (r1 < r2)
+	assert not (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert not (r2 <= r1)
+
+	r1 = PathsActionRule("alpha", priority=3)
+	r2 = PathsActionRule("alpha", priority=3, span=10)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("alpha", priority=3, span=10, count=5)
+	r2 = PathsActionRule("alpha", priority=3, span=10, count=8)
+
+	assert not (r1 > r2)
+	assert (r1 < r2)
+	assert not (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert not (r2 <= r1)
+
+	r1 = PathsActionRule("alpha", priority=3, span=10, count=5)
+	r2 = PathsActionRule("alpha", priority=3, span=10, count=5)
+
+	assert not (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("bravo", priority=3, span=10, count=5)
+	r2 = PathsActionRule("alpha", priority=3, span=10, count=5)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("bravo", priority=3, span=10, count=5)
+	r2 = PathsActionRule("alpha", priority=3, span=10, count=5)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("bravo", priority=3, span=10, count=5)
+	r2 = PathsActionRule("alpha", priority=3, span=10, count=8)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("bravo", priority=3, span=10)
+	r2 = PathsActionRule("alpha", priority=3, count=8)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("bravo", priority=3)
+	r2 = PathsActionRule("alpha", priority=4)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+def test_path_action_rule_ordering_with_path():
+
+	r1 = PathsActionRule("alpha", priority=3)
+	r2 = PathsActionRule("alpha", priority=3, path="a")
+
+	assert not (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("alpha", priority=3, path="b")
+	r2 = PathsActionRule("alpha", priority=3, path="a")
+
+	assert not (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("alpha", priority=3, path="a")
+	r2 = PathsActionRule("alpha", priority=3, path="a")
+
+	assert not (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("alpha", priority=3, path="ab")
+	r2 = PathsActionRule("alpha", priority=3, path="a")
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = PathsActionRule("alpha", priority=3, path="ab")
+	r2 = PathsActionRule("alpha", priority=4, path="a")
+
+	assert not (r1 > r2)
+	assert (r1 < r2)
+	assert not (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert not (r2 <= r1)
+
+	r1 = PathsActionRule("alpha", priority=3, path="ab")
+	r2 = PathsActionRule("alpha", priority=3, path="a", span=10)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)

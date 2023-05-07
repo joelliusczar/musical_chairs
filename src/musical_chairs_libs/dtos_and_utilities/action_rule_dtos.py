@@ -5,8 +5,6 @@ from .user_role_def import UserRoleDomain
 
 
 
-#We can't hash this class because it would interfere with best_rules_generator
-
 
 @dataclass()
 class ActionRule:
@@ -33,7 +31,7 @@ class ActionRule:
 	def conforms(self, rule: str) -> bool:
 		return rule == self.name
 
-	def __gt__(self, other: "ActionRule") -> bool:
+	def __gt_help__(self, other: "ActionRule") -> bool:
 		if self.noLimit and other.noLimit:
 			return False
 		if self.noLimit:
@@ -42,7 +40,7 @@ class ActionRule:
 			return False
 		return abs(self.count / self.span) > (other.count / other.span)
 
-	def __lt__(self, other: "ActionRule") -> bool:
+	def __lt_help__(self, other: "ActionRule") -> bool:
 		if self.noLimit and other.noLimit:
 			return False
 		if self.noLimit:
@@ -51,7 +49,7 @@ class ActionRule:
 			return True
 		return abs(self.count / self.span) < (other.count / other.span)
 
-	def __ge__(self, other: "ActionRule") -> bool:
+	def __ge_help__(self, other: "ActionRule") -> bool:
 		if self.noLimit and other.noLimit:
 			return True
 		if self.noLimit:
@@ -60,7 +58,7 @@ class ActionRule:
 			return False
 		return abs(self.count / self.span) >= (other.count / other.span)
 
-	def __le__(self, other: "ActionRule") -> bool:
+	def __le_help__(self, other: "ActionRule") -> bool:
 		if self.noLimit and other.noLimit:
 			return True
 		if self.noLimit:
@@ -68,6 +66,50 @@ class ActionRule:
 		if other.noLimit:
 			return True
 		return abs(self.count / self.span) <= (other.count / other.span)
+
+	def __gt__(self, other: "ActionRule") -> bool:
+		if self.name > other.name:
+			return True
+		if self.name < other.name:
+			return False
+		if (self.priority or 0) > (other.priority or 0):
+			return True
+		if (self.priority or 0) < (other.priority or 0):
+			return False
+		return self.__gt_help__(other)
+
+	def __lt__(self, other: "ActionRule") -> bool:
+		if self.name < other.name:
+			return True
+		if self.name > other.name:
+			return False
+		if (self.priority or 0) < (other.priority or 0):
+			return True
+		if (self.priority or 0) > (other.priority or 0):
+			return False
+		return self.__lt_help__(other)
+
+	def __ge__(self, other: "ActionRule") -> bool:
+		if self.name > other.name:
+			return True
+		if self.name < other.name:
+			return False
+		if (self.priority or 0) > (other.priority or 0):
+			return True
+		if (self.priority or 0) < (other.priority or 0):
+			return False
+		return self.__ge_help__(other)
+
+	def __le__(self, other: "ActionRule") -> bool:
+		if self.name < other.name:
+			return True
+		if self.name > other.name:
+			return False
+		if (self.priority or 0) < (other.priority or 0):
+			return True
+		if (self.priority or 0) > (other.priority or 0):
+			return False
+		return self.__le_help__(other)
 
 	def __eq__(self, other: Any) -> bool:
 		if not other:
@@ -105,6 +147,11 @@ class ActionRule:
 class PathsActionRule(ActionRule):
 	path: Optional[str]=None
 
+	def is_parent_path(self, path: Optional[str]) -> bool:
+		if not self.path or not path:
+			return False
+		return path.startswith(self.path) and len(path) > len(self.path)
+
 	def __eq__(self, __value: Any) -> bool:
 		return super().__eq__(__value) \
 			and self.path == __value.path
@@ -112,3 +159,79 @@ class PathsActionRule(ActionRule):
 	def __ne__(self, other: Any) -> bool:
 		return super().__ne__(other) \
 			or self.path != other.path
+
+	def __gt__(self, other: "ActionRule") -> bool:
+		if self.name > other.name:
+			return True
+		if self.name < other.name:
+			return False
+		if (self.priority or 0) > (other.priority or 0):
+			return True
+		if (self.priority or 0) < (other.priority or 0):
+			return False
+		if isinstance(other, type(self)):
+			if self.is_parent_path(other.path):
+				return False
+			if other.is_parent_path(self.path):
+				return True
+		else:
+			return True
+		return self.__gt_help__(other)
+
+	def __lt__(self, other: "ActionRule") -> bool:
+		if self.name < other.name:
+			return True
+		if self.name > other.name:
+			return False
+		if (self.priority or 0) < (other.priority or 0):
+			return True
+		if (self.priority or 0) > (other.priority or 0):
+			return False
+		if isinstance(other, type(self)):
+			if self.is_parent_path(other.path):
+				return True
+			if other.is_parent_path(self.path):
+				return False
+		else:
+			return False
+		return self.__lt_help__(other)
+
+	def __le__(self, other: "ActionRule") -> bool:
+		if self.name < other.name:
+			return True
+		if self.name > other.name:
+			return False
+		if (self.priority or 0) < (other.priority or 0):
+			return True
+		if (self.priority or 0) > (other.priority or 0):
+			return False
+		if isinstance(other, type(self)):
+			if self.is_parent_path(other.path):
+				return True
+			if other.is_parent_path(self.path):
+				return False
+		else:
+			return False
+		return self.__le_help__(other)
+
+	def __ge__(self, other: "ActionRule") -> bool:
+		if self.name > other.name:
+			return True
+		if self.name < other.name:
+			return False
+		if (self.priority or 0) > (other.priority or 0):
+			return True
+		if (self.priority or 0) < (other.priority or 0):
+			return False
+		if isinstance(other, type(self)):
+			if self.is_parent_path(other.path):
+				return False
+			if other.is_parent_path(self.path):
+				return True
+		else:
+			return True
+		return self.__ge_help__(other)
+
+
+
+

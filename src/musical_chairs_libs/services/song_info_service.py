@@ -359,19 +359,29 @@ class SongInfoService:
 	def get_song_path(self, itemIds: int) -> Iterator[str]: ...
 
 	@overload
-	def get_song_path(self, itemIds: Iterable[int]) -> Iterator[str]: ...
+	def get_song_path(
+		self,
+		itemIds: Iterable[int],
+		useFullSystemPath: bool=True
+	) -> Iterator[str]: ...
 
 	def get_song_path(
 		self,
-		itemIds: Union[Iterable[int], int]
+		itemIds: Union[Iterable[int], int],
+		useFullSystemPath: bool=True
 	) -> Iterator[str]:
 		query = select(sg_path)
 		if isinstance(itemIds, Iterable):
 			query = query.where(sg_pk.in_(itemIds))
 		else:
 			query = query.where(sg_pk == itemIds)
-		results = cast(Iterable[Row], self.conn.execute(query)()) #pyright: ignore reportUnknownMemberType
-		yield from (f"{EnvManager.search_base}/{row[sg_path]}" for row in results)
+		results = cast(Iterable[Row], self.conn.execute(query)) #pyright: ignore reportUnknownMemberType
+		if useFullSystemPath:
+			yield from (f"{EnvManager.search_base}/{row[sg_path]}" \
+				for row in results
+			)
+		else:
+			yield from (cast(str,row[sg_path]) for row in results)
 
 	def get_station_songs(
 		self,

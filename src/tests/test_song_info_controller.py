@@ -157,8 +157,12 @@ def test_get_songs_for_multi_edit(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
+
+	headers = login_test_user("testUser_lima", client)
+
 	response = client.get(
-		f"song-info/songs/multi/?id=2&id=3"
+		f"song-info/songs/multi/?itemIds=2&itemIds=3",
+		headers=headers
 	)
 
 	data = json.loads(response.content)
@@ -211,7 +215,7 @@ def test_song_save_for_multi_edit(
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_foxtrot", client)
 
-	idList = "?id=10&id=4&id=17&id=11&id=15"
+	idList = "?itemIds=10&itemIds=4&itemIds=17&itemIds=11&itemIds=15"
 
 	getResponseBefore = client.get(
 		f"song-info/songs/list/{idList}",

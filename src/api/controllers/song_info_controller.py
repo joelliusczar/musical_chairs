@@ -5,7 +5,6 @@ from fastapi import (
 	Security,
 	HTTPException,
 	status,
-	Body,
 	Query
 )
 from fastapi.responses import FileResponse
@@ -96,7 +95,7 @@ def get_songs_for_multi_edit(
 	)
 
 def extra_validated_song(
-	song: ValidatedSongAboutInfo = Body(default=None),
+	song: ValidatedSongAboutInfo,
 	stationService: StationService = Depends(station_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> ValidatedSongAboutInfo:

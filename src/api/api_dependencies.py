@@ -1,7 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Iterator, Tuple, Optional, Iterable
 from urllib import parse
-from fastapi import Depends, HTTPException, status, Cookie
+from fastapi import Depends, HTTPException, status, Cookie, Query
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
 	EnvManager,
@@ -200,9 +200,10 @@ def get_path_user(
 		raise build_wrong_permissions_error()
 	userDict = asdict(user)
 	userDict["roles"] = roles
-	return AccountInfo(
+	resultUser = AccountInfo(
 		**userDict,
 	)
+	return resultUser
 
 def get_path_user_and_check_optional_path(
 	securityScopes: SecurityScopes,
@@ -240,19 +241,21 @@ def get_path_user_and_check_optional_path(
 
 def get_multi_path_user(
 	securityScopes: SecurityScopes,
-	itemIds: Iterable[int],
-	user: AccountInfo = Depends(get_current_user_simple),
+	itemIds: list[int]=Query(default=[]),
+	user: AccountInfo=Depends(get_path_user),
 	songInfoService: SongInfoService = Depends(song_info_service),
-	userActionHistoryService: UserActionsHistoryService =
+	userActionHistoryService: UserActionsHistoryService=
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
 	if user.isAdmin:
 		return user
-	userPrefixes = songInfoService.get_paths_user_can_see(user.id)
+	userPrefixes = (
+		r for r in user.roles if isinstance(r, PathsActionRule)
+	)
 	userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
 			(p.path, p) for p in userPrefixes if p.path
 		)
-	prefixes = songInfoService.get_song_path(itemIds)
+	prefixes = songInfoService.get_song_path(itemIds, False)
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]

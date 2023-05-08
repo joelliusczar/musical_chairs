@@ -1230,5 +1230,15 @@ def get_path_permission_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
+		{
+			"pk":6,
+			"userFk": lima_user_id,
+			"path": "foo/goo/boo",
+			"role": UserRoleDef.PATH_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
 	]
 

@@ -22,7 +22,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	get_path_owner_roles,
 	PathsActionRule,
-	ChainedAbsorbentTrie
+	ChainedAbsorbentTrie,
+	normalize_opening_slash
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -145,7 +146,9 @@ def check_if_can_use_path(
 	userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
 	userActionHistoryService: UserActionsHistoryService
 ):
-	rules = sorted(r for i in userPrefixTrie.values(prefix) for r in i)
+	rules = sorted(r for i in \
+		userPrefixTrie.values(normalize_opening_slash(prefix)) for r in i
+	)
 	if not rules:
 		raise HTTPException(
 					status_code=status.HTTP_404_NOT_FOUND,
@@ -218,7 +221,7 @@ def get_path_user_and_check_optional_path(
 		return user
 	if prefix == None:
 		if itemId:
-			prefix = next(songInfoService.get_song_path(itemId), "")
+			prefix = next(songInfoService.get_song_path(itemId,False), "")
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]
@@ -230,6 +233,8 @@ def get_path_user_and_check_optional_path(
 		userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
 			(p.path, p) for p in userPrefixes if p.path
 		)
+		userPrefixTrie.add("", (r for r in user.roles \
+			if not isinstance(r, PathsActionRule) or not r.path))
 		check_if_can_use_path(
 			scopes,
 			prefix,
@@ -255,6 +260,8 @@ def get_multi_path_user(
 	userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
 			(p.path, p) for p in userPrefixes if p.path
 		)
+	userPrefixTrie.add("", (r for r in user.roles \
+			if not isinstance(r, PathsActionRule) or not r.path))
 	prefixes = songInfoService.get_song_path(itemIds, False)
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)

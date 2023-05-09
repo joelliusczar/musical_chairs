@@ -52,7 +52,7 @@ def song_ls(
 	Security(get_path_user, scopes=[UserRoleDef.PATH_VIEW.value])
 ])
 def get_song_for_edit(
-	itemId: Union[int, str],
+itemId: Union[int, str], #optional as str so I can send the correct status code
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> SongEditInfo:
 	if type(itemId) != int:
@@ -146,7 +146,7 @@ def update_song(
 	song: ValidatedSongAboutInfo = Depends(extra_validated_song),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_path_user,
+		get_path_user_and_check_optional_path,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> SongEditInfo:

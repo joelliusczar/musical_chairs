@@ -27,6 +27,7 @@ november_user_id = 14
 oscar_user_id = 15
 papa_user_id = 16
 quebec_user_id = 17
+romeo_user_id = 18
 
 artist_params = [
 	{
@@ -951,6 +952,16 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": None
+		},
+		{
+			"pk": romeo_user_id,
+			"username": "testUser_romeo",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test18@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		}
 	]
 	return users_params
@@ -1234,6 +1245,26 @@ def get_path_permission_params(
 			"pk":6,
 			"userFk": lima_user_id,
 			"path": "foo/goo/boo",
+			"role": UserRoleDef.PATH_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":7,
+			"userFk": mike_user_id,
+			"path": "/foo/goo",
+			"role": UserRoleDef.PATH_EDIT.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":8,
+			"userFk": mike_user_id,
+			"path": "/foo/goo",
 			"role": UserRoleDef.PATH_VIEW.value,
 			"span":0,
 			"count":0,

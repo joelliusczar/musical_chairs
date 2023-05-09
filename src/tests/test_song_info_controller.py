@@ -153,6 +153,62 @@ def test_song_save(
 	)
 	assert not mismatches
 
+def test_song_save_no_roles(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	goodHeaders = login_test_user("testUser_foxtrot", client)
+	getResponseBefore = client.get(
+		f"song-info/songs/{1}",
+		headers=goodHeaders
+	)
+	data = json.loads(getResponseBefore.content)
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "sierra_song_update_2"
+
+	headers = login_test_user("testUser_romeo", client)
+	putResponse = client.put(
+		f"song-info/songs/{1}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 403
+
+def test_song_save_with_path_permission(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_mike", client)
+	getResponseBefore = client.get(
+		f"song-info/songs/{1}",
+		headers=headers
+	)
+	data = json.loads(getResponseBefore.content)
+	assert getResponseBefore.status_code == 200
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "sierra_song_update_3"
+	putResponse = client.put(
+		f"song-info/songs/{1}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 200
+
+	getResponseAfter = client.get(
+		f"song-info/songs/{1}",
+		headers=headers
+	)
+
+	assert getResponseAfter.status_code == 200
+	data = json.loads(getResponseAfter.content)
+	mismatches = mismatched_properties(
+		normalize_dict(data),
+		normalize_dict(sendData)
+	)
+	assert not mismatches
+
 def test_get_songs_for_multi_edit(
 	fixture_api_test_client: TestClient
 ):
@@ -344,7 +400,8 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_foxtrot", client)
 
-	idList = "?id=29&id=28&id=27&id=26&id=25&id=24&id=23"
+	idList = "?itemIds=29&itemIds=28&itemIds=27"\
+		"&itemIds=26&itemIds=25&itemIds=24&itemIds=23"
 
 	getResponseBefore = client.get(
 		f"song-info/songs/list/{idList}",

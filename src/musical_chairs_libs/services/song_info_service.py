@@ -277,7 +277,7 @@ class SongInfoService:
 				cast(str,r[pup_role]),
 				priority=cast(int,r[pup_priority]),
 				domain=UserRoleDomain.Path,
-				path=cast(str,r[pup_path])
+				path=normalize_opening_slash(cast(str,r[pup_path]))
 			)
 
 	def __song_ls_query__(self, prefix: Optional[str]="") -> Select:
@@ -356,7 +356,11 @@ class SongInfoService:
 		yield from (cast(int, row["pk"]) for row in cast(Iterable[Row],records))
 
 	@overload
-	def get_song_path(self, itemIds: int) -> Iterator[str]: ...
+	def get_song_path(
+		self,
+		itemIds: int,
+		useFullSystemPath: bool=True
+	) -> Iterator[str]: ...
 
 	@overload
 	def get_song_path(

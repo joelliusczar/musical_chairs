@@ -363,6 +363,8 @@ class AbsorbentTrie(Generic[T]):
 				yield "".join(row)
 
 
+chainedStoreValueType = Union[Iterable[T], storeValueType[T]]
+
 class ChainedAbsorbentTrie(Generic[T]):
 
 		def __init__(
@@ -374,12 +376,19 @@ class ChainedAbsorbentTrie(Generic[T]):
 			if paths:
 				self.extend(paths)
 
-		def add(self, path: str, value: storeValueType[T]=missing):
+		def add(self, path: str, value: chainedStoreValueType[T]=missing):
 			added = self.__absorbentTrie__.__node_at_path__(path, True)
-			if isinstance(added.path_store , Sentinel):
-				added.path_store = [value] if not isinstance(value, Sentinel) else []
-			elif not isinstance(value, Sentinel):
-				added.path_store.append(value)
+			if isinstance(added.path_store, Sentinel):
+				if isinstance(value, Iterable):
+					added.path_store = [*value]
+				else:
+					added.path_store = [value] if not isinstance(value, Sentinel) else []
+			else:
+				if not isinstance(value, Sentinel):
+					if isinstance(value, Iterable):
+						added.path_store.extend(cast(Iterable[T], value))
+					else:
+						added.path_store.append(value)
 			self.__absorbentTrie__.__update_counts__()
 
 		def extend(self, paths: extendIterable[T]):

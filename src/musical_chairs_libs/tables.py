@@ -238,6 +238,8 @@ pup_userFk: Column = path_user_permissions.c.userFk #pyright: ignore reportUnkno
 pup_path: Column = path_user_permissions.c.path #pyright: ignore reportUnknownMemberType
 pup_role: Column = path_user_permissions.c.role #pyright: ignore reportUnknownMemberType
 pup_priority: Column = path_user_permissions.c.priority #pyright: ignore reportUnknownMemberType
+pup_span: Column = path_user_permissions.c.span #pyright: ignore reportUnknownMemberType
+pup_count: Column = path_user_permissions.c.count #pyright: ignore reportUnknownMemberType
 
 Index(
 	"idx_pathPermissions",

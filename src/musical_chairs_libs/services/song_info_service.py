@@ -54,7 +54,7 @@ from musical_chairs_libs.tables import (
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
-	pup_userFk, pup_path, pup_role, pup_priority
+	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count
 )
 
 
@@ -268,7 +268,7 @@ class SongInfoService:
 		return count
 
 	def get_paths_user_can_see(self, userId: int) -> Iterator[PathsActionRule]:
-		query = select(pup_path, pup_role, pup_priority)\
+		query = select(pup_path, pup_role, pup_priority, pup_span, pup_count)\
 			.where(pup_userFk == userId)\
 			.order_by(pup_path)
 		records = cast(Iterable[Row], self.conn.execute(query)) #pyright: ignore [reportUnknownMemberType]
@@ -276,6 +276,8 @@ class SongInfoService:
 			yield PathsActionRule(
 				cast(str,r[pup_role]),
 				priority=cast(int,r[pup_priority]),
+				span=cast(int,r[pup_span]) or 0,
+				count=cast(int,r[pup_count]) or 0,
 				domain=UserRoleDomain.Path,
 				path=normalize_opening_slash(cast(str,r[pup_path]))
 			)

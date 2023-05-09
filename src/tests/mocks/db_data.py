@@ -28,6 +28,7 @@ oscar_user_id = 15
 papa_user_id = 16
 quebec_user_id = 17
 romeo_user_id = 18
+sierra_user_id = 19
 
 artist_params = [
 	{
@@ -962,6 +963,16 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": None
+		},
+		{
+			"pk": sierra_user_id,
+			"username": "testUser_sierra",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test19@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		}
 	]
 	return users_params
@@ -1267,6 +1278,46 @@ def get_path_permission_params(
 			"path": "/foo/goo",
 			"role": UserRoleDef.PATH_VIEW.value,
 			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":9,
+			"userFk": sierra_user_id,
+			"path": "/foo/goo",
+			"role": UserRoleDef.PATH_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":10,
+			"userFk": sierra_user_id,
+			"path": "/foo/goo/who_1",
+			"role": UserRoleDef.PATH_VIEW.value,
+			"span":1,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":11,
+			"userFk": sierra_user_id,
+			"path": "/foo/goo",
+			"role": UserRoleDef.PATH_EDIT.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":12,
+			"userFk": sierra_user_id,
+			"path": "/foo/goo/who_1",
+			"role": UserRoleDef.PATH_EDIT.value,
+			"span":1,
 			"count":0,
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()

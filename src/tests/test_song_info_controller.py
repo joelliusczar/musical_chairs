@@ -393,7 +393,6 @@ def test_song_save_for_multi_edit(
 	data3_n = normalize_dict(data3)
 	assert data1_n == data3_n
 
-
 def test_song_save_for_multi_edit_artist_to_primary(
 	fixture_api_test_client: TestClient
 ):
@@ -521,3 +520,52 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	data3_n = normalize_dict(data3)
 	assert data1_n == data3_n
 
+def test_more_restrictive_path(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_sierra", client)
+	getResponse = client.get(
+		f"song-info/songs/{5}",
+		headers=headers
+	)
+
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "victor_song_update"
+	putResponse = client.put(
+		f"song-info/songs/{5}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 200
+
+	getResponse = client.get(
+		f"song-info/songs/{6}",
+		headers=headers
+	)
+
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "whiskey_song_update"
+	putResponse = client.put(
+		f"song-info/songs/{6}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 403
+
+	headers = login_test_user("testUser_foxtrot", client)
+
+	putResponse = client.put(
+		f"song-info/songs/{6}",
+		headers=headers,
+		json=sendData
+	)
+
+
+	assert putResponse.status_code == 200

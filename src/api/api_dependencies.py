@@ -146,8 +146,10 @@ def check_if_can_use_path(
 	userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
 	userActionHistoryService: UserActionsHistoryService
 ):
-	rules = sorted(r for i in \
-		userPrefixTrie.values(normalize_opening_slash(prefix)) for r in i
+	rules = sorted(
+		(r for i in userPrefixTrie.values(normalize_opening_slash(prefix)) \
+			for r in i),
+		reverse=True
 	)
 	if not rules:
 		raise HTTPException(

@@ -72,9 +72,9 @@ class TemplateService:
 			sourcePassword,
 			username
 		)
-		filename = f"ices.{username}_{internalName}.conf"
-		Path(f"{EnvManager.station_config_dir}/{filename}")\
+		filename_base = f"{username}_{internalName}"
+		Path(f"{EnvManager.station_config_dir}/ices.{filename_base}.conf")\
 			.write_text(configContent)
 		pythonModuleContent = self._create_ices_python_module_content(stationId)
-		Path(f"{EnvManager.station_module_dir}/{internalName}.py")\
+		Path(f"{EnvManager.station_module_dir}/{filename_base}.py")\
 			.write_text(pythonModuleContent)

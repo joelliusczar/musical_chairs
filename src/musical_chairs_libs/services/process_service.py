@@ -5,7 +5,8 @@ import random
 from typing import Optional, Iterable, cast, Union
 from musical_chairs_libs.dtos_and_utilities import (
 	check_name_safety,
-	StationInfo
+	StationInfo,
+	AccountInfo
 )
 from sqlalchemy import (
 	select,
@@ -82,17 +83,17 @@ class ProcessService:
 
 	def enable_stations(self,
 		stationKeys: Union[list[int],str],
-		ownerKey: Union[int, str, None]
+		owner: AccountInfo
 	) -> None:
 		result: list[StationInfo] = []
 		if type(stationKeys) == str and stationKeys == "*":
-			result = list(self.station_service.get_stations(ownerKey=ownerKey))
+			result = list(self.station_service.get_stations(ownerKey=owner.id))
 		elif isinstance(stationKeys, list):
 			result = list(self.station_service.get_stations(
 				stationKeys=stationKeys
 			))
 		for station in result:
-			self._start_station_external_process(station.name)
+			self.__start_station_external_process__(station.name, owner.username)
 
 	def disable_stations(
 		self,
@@ -122,8 +123,12 @@ class ProcessService:
 				.where(func.lower(st_name) == func.lower(stationName))
 		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
-	def _start_station_external_process(self, stationName: str) -> None:
-		m = check_name_safety(stationName)
+	def __start_station_external_process__(
+		self,
+		stationName: str,
+		ownerName: str
+	) -> None:
+		m = check_name_safety(f"{ownerName}_{stationName}")
 		if m:
 			raise RuntimeError("Invalid station name was used")
 		stationConf = f"{EnvManager.station_config_dir}/ices.{stationName}.conf"

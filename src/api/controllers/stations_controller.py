@@ -216,7 +216,7 @@ def enable_stations(
 	),
 	processService: ProcessService = Depends(process_service)
 ) -> None:
-	processService.enable_stations(stationKeys, user.id)
+	processService.enable_stations(stationKeys, user)
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
 def disable_stations(

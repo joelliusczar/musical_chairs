@@ -97,7 +97,6 @@ def get_user_from_token_optional(
 	except ExpiredSignatureError:
 		raise build_expired_error()
 
-
 def get_owner_from_path(
 	ownerKey: Union[int, str],
 	accountsService: AccountsService = Depends(accounts_service)

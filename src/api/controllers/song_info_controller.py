@@ -11,7 +11,6 @@ from fastapi.responses import FileResponse
 from api_dependencies import (
 	song_info_service,
 	station_service,
-	get_current_user,
 	get_path_user,
 	get_multi_path_user,
 	get_user_with_simple_scopes,
@@ -102,7 +101,10 @@ def extra_validated_song(
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> ValidatedSongAboutInfo:
 	stationIds = {s.id for s in song.stations or []}
-	dbStations = {s.id for s in stationService.get_stations(stationKeys=stationIds)}
+	dbStations = {s.id for s in stationService.get_stations(
+		stationKeys=stationIds,
+		ownerKey=user.id
+	)}
 	if stationIds - dbStations:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -114,7 +116,7 @@ def extra_validated_song(
 		)
 	artistIds = {a.id for a in song.allArtists}
 	dbArtists = {a.id for a in songInfoService.get_artists(
-		artists=artistIds,
+		artistKeys=artistIds,
 		userId=user.id
 	)}
 	if artistIds - dbArtists:
@@ -126,12 +128,29 @@ def extra_validated_song(
 					"artists"
 				)],
 		)
+	if song.album:
+		dbAlbum = next(songInfoService.get_albums(
+			albumKeys=song.album.id,
+			userId=user.id
+		), None)
+		if not dbAlbum:
+			raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[
+				build_error_obj(
+					f"Album associated with ids {str(song.album.id)} does not exist",
+					"artists"
+				)],
+		)
 	return song
 
 @router.get(
 	"/songs/download/{id}",
 	dependencies=[
-		Security(get_path_user, scopes=[UserRoleDef.PATH_DOWNLOAD.value])
+		Security(
+			get_path_user_and_check_optional_path,
+			scopes=[UserRoleDef.PATH_DOWNLOAD.value]
+		)
 	],
 	response_class=FileResponse
 )
@@ -187,7 +206,7 @@ def update_songs_multi(
 def get_all_artists(
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_current_user,
+		get_current_user_simple,
 		scopes=[UserRoleDef.PATH_VIEW.value]
 	)
 ) -> ListData[ArtistInfo]:
@@ -221,7 +240,7 @@ def create_album(
 def get_all_albums(
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_current_user,
+		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.PATH_VIEW.value]
 	)
 ) -> ListData[AlbumInfo]:

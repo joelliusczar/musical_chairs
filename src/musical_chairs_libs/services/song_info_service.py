@@ -170,7 +170,7 @@ class SongInfoService:
 			affectedPk: int = albumId if albumId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
 			artist = next(self.get_artists(
 				userId,
-				artists=album.albumArtist.id
+				artistKeys=album.albumArtist.id
 			), None) if album.albumArtist else None
 			return AlbumInfo(affectedPk, str(savedName), album.year, artist)
 		except IntegrityError:
@@ -473,7 +473,7 @@ class SongInfoService:
 	def get_albums(self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		albums: Union[int, str, Iterable[int], None]=None,
+		albumKeys: Union[int, str, Iterable[int], None]=None,
 		userId: Optional[int]=None
 	) -> Iterator[AlbumInfo]:
 		query = select(
@@ -484,12 +484,12 @@ class SongInfoService:
 			ar_name.label("Artist.Name") #pyright: ignore reportUnknownMemberType
 		).select_from(albums_tbl)\
 			.join(artists_tbl, ar_pk == ab_albumArtistFk, isouter=True)
-		if type(albums) == int:
-			query = query.where(ab_pk == albums)
-		elif isinstance(albums, Iterable):
-			query = query.where(ab_pk.in_(albums))
-		elif type(albums) is str:
-			searchStr = SearchNameString.format_name_for_search(albums)
+		if type(albumKeys) == int:
+			query = query.where(ab_pk == albumKeys)
+		elif isinstance(albumKeys, Iterable):
+			query = query.where(ab_pk.in_(albumKeys))
+		elif type(albumKeys) is str:
+			searchStr = SearchNameString.format_name_for_search(albumKeys)
 			query = query\
 				.where(func.format_name_for_search(ab_name).like(f"%{searchStr}%"))
 		if userId:
@@ -510,20 +510,20 @@ class SongInfoService:
 	def get_artists(self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		artists: Union[int, Iterable[int], str, None]=None,
+		artistKeys: Union[int, Iterable[int], str, None]=None,
 		userId: Optional[int]=None
 	) -> Iterator[ArtistInfo]:
 		query = select(
 			ar_pk.label("id"), #pyright: ignore reportUnknownMemberType
 			ar_name.label("name"), #pyright: ignore reportUnknownMemberType
 		)
-		if type(artists) == int:
-			query = query.where(ar_pk == artists)
+		if type(artistKeys) == int:
+			query = query.where(ar_pk == artistKeys)
 		#check speficially if instance because [] is falsy
-		elif isinstance(artists, Iterable) :
-			query = query.where(ar_pk.in_(artists))
-		elif type(artists) is str:
-			searchStr = SearchNameString.format_name_for_search(artists)
+		elif isinstance(artistKeys, Iterable) :
+			query = query.where(ar_pk.in_(artistKeys))
+		elif type(artistKeys) is str:
+			searchStr = SearchNameString.format_name_for_search(artistKeys)
 			query = query\
 				.where(func.format_name_for_search(ar_name).like(f"%{searchStr}%"))
 		if userId:

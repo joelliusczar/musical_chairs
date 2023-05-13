@@ -49,8 +49,8 @@ from musical_chairs_libs.tables import (
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	stations as stations_tbl, st_name, st_pk, st_displayName,
 	sg_pk, sg_name, sg_path,
-	ab_name, ab_pk, ab_albumArtistFk, ab_year,
-	ar_name, ar_pk,
+	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
+	ar_name, ar_pk, ar_ownerFk,
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
@@ -103,7 +103,7 @@ class SongInfoService:
 			return None
 		savedName = SavedNameString.format_name_for_save(name)
 		query = select(ar_pk).select_from(artists_tbl).where(ar_name == savedName)
-		row = self.conn.execute(query).fetchone() #pyright: ignore reportUnknownMemberType
+		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
 		if row:
 			pk = cast(int, row[ar_pk])
 			return pk
@@ -112,15 +112,15 @@ class SongInfoService:
 			name = savedName,
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
-		res = self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
-		insertedPk = cast(int, res.lastrowid) #pyright: ignore reportUnknownMemberType
+		res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		insertedPk = cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
 		return insertedPk
 
 	def save_artist(
 		self,
+		userId: int,
 		artistName: str,
-		artistId: Optional[int]=None,
-		userId: Optional[int]=None
+		artistId: Optional[int]=None
 	) -> ArtistInfo:
 		if not artistName and not artistId:
 			return ArtistInfo(id=-1, name="")
@@ -148,8 +148,8 @@ class SongInfoService:
 	def save_album(
 		self,
 		album: AlbumCreationInfo,
-		albumId: Optional[int]=None,
-		userId: Optional[int]=None
+		userId: int,
+		albumId: Optional[int]=None
 	) -> AlbumInfo:
 		if not album and not albumId:
 			return AlbumInfo(id=-1, name="")
@@ -168,8 +168,10 @@ class SongInfoService:
 			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 
 			affectedPk: int = albumId if albumId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
-			artist = next(self.get_artists(artistId=album.albumArtist.id), None)\
-				if album.albumArtist else None
+			artist = next(self.get_artists(
+				userId,
+				artists=album.albumArtist.id
+			), None) if album.albumArtist else None
 			return AlbumInfo(affectedPk, str(savedName), album.year, artist)
 		except IntegrityError:
 			raise AlreadyUsedError(
@@ -327,30 +329,26 @@ class SongInfoService:
 			if queryList:
 				yield from self.__query_to_treeNodes__(union_all(*queryList))
 
-
 	def get_songIds(
 		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		stationId: Union[Optional[int], Sentinel]=missing,
-		stationName: Union[Optional[str], Sentinel]=missing,
+		station: Union[int, str, None]=None,
 		songIds: Optional[Iterable[int]]=None
 	) -> Iterator[int]:
 		offset = page * pageSize if pageSize else 0
 		query = select(sg_pk).select_from(songs_tbl)
 		#add joins
-		if stationId or stationName:
+		if station:
 			query = query.join(stations_songs_tbl, stsg_songFk == sg_pk)
-			if stationName and type(stationName) is str:
+			if type(station) == int:
+				query = query.where(stsg_stationFk == station)
+			elif type(station) is str:
 				query = query.join(stations_tbl, stsg_stationFk == st_pk)
-		#add wheres
-		if stationId:
-			query = query.where(stsg_stationFk == stationId)
-		elif stationName and type(stationName) is str:
-			searchStr = SearchNameString.format_name_for_search(stationName)
-			query = query.join(stations_tbl, st_pk == stsg_stationFk).where(
-				func.format_name_for_search(st_name).like(f"%{searchStr}%")
-			)
+				searchStr = SearchNameString.format_name_for_search(station)
+				query = query.join(stations_tbl, st_pk == stsg_stationFk).where(
+					func.format_name_for_search(st_name).like(f"%{searchStr}%")
+				)
 		if songIds:
 			query = query.where(sg_pk.in_(songIds))
 		query = query.offset(offset).limit(pageSize)
@@ -391,22 +389,20 @@ class SongInfoService:
 
 	def get_station_songs(
 		self,
-		songId: Union[int, Sentinel]=missing,
-		songIds: Optional[Iterable[int]]=None,
-		stationId: Union[Optional[int], Sentinel]=missing,
-		stationIds: Optional[Iterable[int]]=None
+		songIds: Union[int, Iterable[int], None]=None,
+		stationIds: Union[int, Iterable[int], None]=None,
 	) -> Iterable[StationSongTuple]:
 		query = select(
 			stsg_stationFk,
 			stsg_songFk
 		)
 
-		if type(songId) == int:
-			query = query.where(stsg_songFk == songId)
+		if type(songIds) == int:
+			query = query.where(stsg_songFk == songIds)
 		elif isinstance(songIds, Iterable):
 			query = query.where(stsg_songFk.in_(songIds))
-		if type(stationId) == int:
-			query = query.where(stsg_stationFk == stationId)
+		if type(stationIds) == int:
+			query = query.where(stsg_stationFk == stationIds)
 		elif isinstance(stationIds, Iterable):
 			query = query.where(stsg_stationFk.in_(stationIds))
 		query = query.order_by(stsg_songFk)
@@ -477,9 +473,8 @@ class SongInfoService:
 	def get_albums(self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		albumId: Union[int, Sentinel]=missing,
-		albumIds: Union[Iterable[int], Sentinel]=missing,
-		albumName: Union[str, Sentinel]=missing
+		albums: Union[int, str, Iterable[int], None]=None,
+		userId: Optional[int]=None
 	) -> Iterator[AlbumInfo]:
 		query = select(
 			ab_pk.label("id"), #pyright: ignore reportUnknownMemberType
@@ -489,14 +484,16 @@ class SongInfoService:
 			ar_name.label("Artist.Name") #pyright: ignore reportUnknownMemberType
 		).select_from(albums_tbl)\
 			.join(artists_tbl, ar_pk == ab_albumArtistFk, isouter=True)
-		if type(albumId) == int:
-			query = query.where(ab_pk == albumId)
-		elif isinstance(albumIds, Iterable):
-			query = query.where(ab_pk.in_(albumIds))
-		elif type(albumName) is str:
-			searchStr = SearchNameString.format_name_for_search(albumName)
+		if type(albums) == int:
+			query = query.where(ab_pk == albums)
+		elif isinstance(albums, Iterable):
+			query = query.where(ab_pk.in_(albums))
+		elif type(albums) is str:
+			searchStr = SearchNameString.format_name_for_search(albums)
 			query = query\
 				.where(func.format_name_for_search(ab_name).like(f"%{searchStr}%"))
+		if userId:
+			query = query.where(ab_ownerFk == userId)
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
@@ -513,23 +510,24 @@ class SongInfoService:
 	def get_artists(self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		artistId: Union[int, Sentinel]=missing,
-		artistIds: Union[Iterable[int], Sentinel]=missing,
-		artistName: Union[str, Sentinel]=missing
+		artists: Union[int, Iterable[int], str, None]=None,
+		userId: Optional[int]=None
 	) -> Iterator[ArtistInfo]:
 		query = select(
 			ar_pk.label("id"), #pyright: ignore reportUnknownMemberType
 			ar_name.label("name"), #pyright: ignore reportUnknownMemberType
 		)
-		if type(artistId) == int:
-			query = query.where(ar_pk == artistId)
+		if type(artists) == int:
+			query = query.where(ar_pk == artists)
 		#check speficially if instance because [] is falsy
-		elif isinstance(artistIds, Iterable) :
-			query = query.where(ar_pk.in_(artistIds))
-		elif type(artistName) is str:
-			searchStr = SearchNameString.format_name_for_search(artistName)
+		elif isinstance(artists, Iterable) :
+			query = query.where(ar_pk.in_(artists))
+		elif type(artists) is str:
+			searchStr = SearchNameString.format_name_for_search(artists)
 			query = query\
 				.where(func.format_name_for_search(ar_name).like(f"%{searchStr}%"))
+		if userId:
+			query = query.where(ar_ownerFk == userId)
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
@@ -538,10 +536,8 @@ class SongInfoService:
 
 	def get_song_artists(
 		self,
-		songId: Union[int, Sentinel]=missing,
-		songIds: Optional[Iterable[int]]=None,
-		artistId: Union[Optional[int], Sentinel]=missing,
-		artistIds: Optional[Iterable[int]]=None
+		songIds: Union[int, Iterable[int],None]=None,
+		artistIds: Union[int, Iterable[int],None]=None,
 	) -> Iterable[SongArtistTuple]:
 		query = select(
 			sgar_artistFk,
@@ -549,12 +545,12 @@ class SongInfoService:
 			sgar_isPrimaryArtist
 		)
 
-		if type(songId) == int:
-			query = query.where(sgar_songFk == songId)
+		if type(songIds) == int:
+			query = query.where(sgar_songFk == songIds)
 		elif isinstance(songIds, Iterable):
 			query = query.where(sgar_songFk.in_(songIds))
-		if type(artistId) == int:
-			query = query.where(sgar_artistFk == artistId)
+		if type(artistIds) == int:
+			query = query.where(sgar_artistFk == artistIds)
 		elif isinstance(artistIds, Iterable):
 			query = query.where(sgar_artistFk.in_(artistIds))
 		query = query.order_by(sgar_songFk)
@@ -716,7 +712,7 @@ class SongInfoService:
 		songIds: Iterable[int]
 	) -> Iterator[SongEditInfo]:
 		query = self._get_query_for_songs_for_edit(songIds)
-		records = self.conn.execute(query).fetchall() #pyright: ignore reportUnknownMemberType
+		records = self.conn.execute(query).fetchall() #pyright: ignore [reportUnknownMemberType]
 		currentSongRow = None
 		artists: set[ArtistInfo] = set()
 		stations: set[StationInfo] = set()

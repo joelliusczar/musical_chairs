@@ -15,7 +15,8 @@ from api_dependencies import (
 	get_path_user,
 	get_multi_path_user,
 	get_user_with_simple_scopes,
-	get_path_user_and_check_optional_path
+	get_path_user_and_check_optional_path,
+	get_current_user_simple
 )
 from musical_chairs_libs.services import SongInfoService, StationService
 from musical_chairs_libs.dtos_and_utilities import (
@@ -96,11 +97,12 @@ def get_songs_for_multi_edit(
 
 def extra_validated_song(
 	song: ValidatedSongAboutInfo,
+	user: AccountInfo = Depends(get_current_user_simple),
 	stationService: StationService = Depends(station_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> ValidatedSongAboutInfo:
 	stationIds = {s.id for s in song.stations or []}
-	dbStations = {s.id for s in stationService.get_stations(stationIds=stationIds)}
+	dbStations = {s.id for s in stationService.get_stations(stationKeys=stationIds)}
 	if stationIds - dbStations:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -111,13 +113,18 @@ def extra_validated_song(
 				)],
 		)
 	artistIds = {a.id for a in song.allArtists}
-	dbArtists = {a.id for a in songInfoService.get_artists(artistIds=artistIds)}
+	dbArtists = {a.id for a in songInfoService.get_artists(
+		artists=artistIds,
+		userId=user.id
+	)}
 	if artistIds - dbArtists:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail=[
 				build_error_obj(
-					f"Artists associated with ids {str(stationIds)} do not exist", "artists")],
+					f"Artists associated with ids {str(stationIds)} do not exist",
+					"artists"
+				)],
 		)
 	return song
 
@@ -178,9 +185,13 @@ def update_songs_multi(
 
 @router.get("/artists/list")
 def get_all_artists(
-	songInfoService: SongInfoService = Depends(song_info_service)
+	songInfoService: SongInfoService = Depends(song_info_service),
+	user: AccountInfo = Security(
+		get_current_user,
+		scopes=[UserRoleDef.PATH_VIEW.value]
+	)
 ) -> ListData[ArtistInfo]:
-	return ListData(items=list(songInfoService.get_artists()))
+	return ListData(items=list(songInfoService.get_artists(userId=user.id)))
 
 @router.post("/artists")
 def create_artist(
@@ -191,7 +202,7 @@ def create_artist(
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> ArtistInfo:
-	artistInfo = songInfoService.save_artist(artistName, userId=user.id)
+	artistInfo = songInfoService.save_artist(user.id, artistName)
 	return artistInfo
 
 @router.post("/albums")
@@ -214,5 +225,6 @@ def get_all_albums(
 		scopes=[UserRoleDef.PATH_VIEW.value]
 	)
 ) -> ListData[AlbumInfo]:
-	return ListData(items=list(songInfoService.get_albums()))
+	return ListData(items=list(songInfoService.get_albums(userId=user.id)))
+
 

@@ -27,9 +27,9 @@ users = Table("Users", metadata,
 	Column("isDisabled", Integer, nullable=True),
 	Column("creationTimestamp", Float, nullable=False)
 )
-_u_username: Any = users.c.username #pyright: ignore reportUnknownMemberType
+_u_username = cast(Column,users.c.username) #pyright: ignore [reportUnknownMemberType]
 Index("idx_uniqueUsername", _u_username, unique=True)
-_u_email: Any = users.c.email #pyright: ignore reportUnknownMemberType
+_u_email = cast(Column,users.c.email) #pyright: ignore [reportUnknownMemberType]
 Index("idx_uniqueEmail", _u_email, unique=True)
 
 u = cast(TblCols,users.c) #pyright: ignore [reportUnknownMemberType]
@@ -51,9 +51,12 @@ artists = Table("Artists", metadata,
 	Column("ownerFk", Integer, ForeignKey("Users.pk"), nullable=False),
 )
 
-_ar_name: Any = artists.c.name #pyright: ignore reportUnknownMemberType
-_ar_ownerFk: Any = artists.c.ownerFk #pyright: ignore reportUnknownMemberType
-Index("idx_uniqueArtistsName", _ar_name, _ar_ownerFk, unique=True)
+ar = cast(TblCols, artists.c) #pyright: ignore [reportUnknownMemberType]
+ar_pk = cast(Column,ar.pk) #pyright: ignore [reportUnknownMemberType]
+ar_name = cast(Column,ar.name) #pyright: ignore [reportUnknownMemberType]
+ar_ownerFk = cast(Column,ar.ownerFk) #pyright: ignore [reportUnknownMemberType]
+
+Index("idx_uniqueArtistsName", ar_name, ar_ownerFk, unique=True)
 
 
 albums = Table("Albums", metadata,
@@ -67,14 +70,18 @@ albums = Table("Albums", metadata,
 	Column("ownerFk", Integer, ForeignKey("Users.pk"), nullable=False)
 )
 
-_ab_name: Any = albums.c.name #pyright: ignore reportUnknownMemberType
-_ab_albumArtistFk: Any = albums.c.albumArtistFk #pyright: ignore reportUnknownMemberType
-_ab_ownerFk: Any = albums.c.ownerFk #pyright: ignore reportUnknownMemberType
+ab = cast(TblCols, albums.c) #pyright: ignore [reportUnknownMemberType]
+ab_pk = cast(Column,ab.pk) #pyright: ignore [reportUnknownMemberType]
+ab_name = cast(Column,ab.name) #pyright: ignore [reportUnknownMemberType]
+ab_year = cast(Column,ab.year) #pyright: ignore [reportUnknownMemberType]
+ab_albumArtistFk = cast(Column,ab.albumArtistFk) #pyright: ignore [reportUnknownMemberType]
+ab_ownerFk = cast(Column,ab.ownerFk) #pyright: ignore [reportUnknownMemberType]
+
 Index(
 	"idx_uniqueAlbumNameForArtist",
-	_ab_name,
-	_ab_albumArtistFk,
-	_ab_ownerFk,
+	ab_name,
+	ab_albumArtistFk,
+	ab_ownerFk,
 	unique=True
 )
 
@@ -97,7 +104,7 @@ songs = Table("Songs", metadata,
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True)
 )
-_sg_path: Any = songs.c.path #pyright: ignore reportUnknownMemberType
+_sg_path: Any = songs.c.path #pyright: ignore [reportUnknownMemberType]
 Index("idx_uniqueSongPath", _sg_path, unique=True)
 
 song_artist = Table("SongsArtists", metadata,
@@ -110,8 +117,8 @@ song_artist = Table("SongsArtists", metadata,
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True)
 )
-_sa_songFk: Any = song_artist.c.songFk #pyright: ignore reportUnknownMemberType
-_sa_artistFk: Any = song_artist.c.artistFk #pyright: ignore reportUnknownMemberType
+_sa_songFk: Any = song_artist.c.songFk #pyright: ignore [reportUnknownMemberType]
+_sa_artistFk: Any = song_artist.c.artistFk #pyright: ignore [reportUnknownMemberType]
 
 Index("idx_songsArtists", _sa_songFk, _sa_artistFk, unique=True)
 
@@ -123,8 +130,8 @@ song_covers = Table("SongCovers", metadata,
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True)
 )
-_sc_songFk: Any = song_covers.c.songFk #pyright: ignore reportUnknownMemberType
-_sc_coverSongFk: Any = song_covers.c.coverSongFk #pyright: ignore reportUnknownMemberType
+_sc_songFk = cast(Column,song_covers.c.songFk) #pyright: ignore [reportUnknownMemberType]
+_sc_coverSongFk = cast(Column,song_covers.c.coverSongFk) #pyright: ignore [reportUnknownMemberType]
 Index("idx_songCovers", _sc_songFk, _sc_coverSongFk, unique=True)
 
 stations = Table("Stations", metadata,
@@ -134,10 +141,17 @@ stations = Table("Stations", metadata,
 	Column("procId", Integer, nullable=True),
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
-	Column("lastModifiedTimestamp", Float, nullable=True)
+	Column("lastModifiedTimestamp", Float, nullable=True),
+  Column("ownerFk", Integer, ForeignKey("Users.pk"), nullable=False)
 )
-_st_name: Any = stations.c.name #pyright: ignore reportUnknownMemberType
-Index("idx_uniqueStationName", _st_name, unique=True)
+
+st = cast(TblCols, stations.c) #pyright: ignore [reportUnknownMemberType]
+st_pk = cast(Column,st.pk) #pyright: ignore [reportUnknownMemberType]
+st_name = cast(Column,st.name) #pyright: ignore [reportUnknownMemberType]
+st_displayName = cast(Column,st.displayName) #pyright: ignore [reportUnknownMemberType]
+st_procId = cast(Column,st.procId) #pyright: ignore [reportUnknownMemberType]
+st_ownerFk = cast(Column,st.ownerFk) #pyright: ignore [reportUnknownMemberType]
+Index("idx_uniqueStationName", st_name, st_ownerFk, unique=True)
 
 stations_songs = Table("StationsSongs", metadata,
 	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
@@ -146,8 +160,8 @@ stations_songs = Table("StationsSongs", metadata,
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True)
 )
-stsg_songFk: Any = stations_songs.c.songFk #pyright: ignore reportUnknownMemberType
-stsg_stationFk: Any = stations_songs.c.stationFk #pyright: ignore reportUnknownMemberType
+stsg_songFk = cast(Column, stations_songs.c.songFk) #pyright: ignore [reportUnknownMemberType]
+stsg_stationFk= cast(Column, stations_songs.c.stationFk) #pyright: ignore [reportUnknownMemberType]
 Index("idx_stationsSongs", stsg_songFk, stsg_stationFk, unique=True)
 
 station_queue = Table("StationQueue", metadata,
@@ -175,11 +189,11 @@ userRoles = Table("UserRoles", metadata,
 	Column("priority", Integer),
 	Column("creationTimestamp", Float, nullable=False)
 )
-ur_userFk: Column = userRoles.c.userFk #pyright: ignore reportUnknownMemberType
-ur_role: Column = userRoles.c.role #pyright: ignore reportUnknownMemberType
-ur_span: Column = userRoles.c.span #pyright: ignore reportUnknownMemberType
-ur_count: Column = userRoles.c.count #pyright: ignore reportUnknownMemberType
-ur_priority: Column = userRoles.c.priority #pyright: ignore reportUnknownMemberType
+ur_userFk = cast(Column, userRoles.c.userFk) #pyright: ignore [reportUnknownMemberType]
+ur_role = cast(Column, userRoles.c.role) #pyright: ignore [reportUnknownMemberType]
+ur_span = cast(Column, userRoles.c.span) #pyright: ignore [reportUnknownMemberType]
+ur_count = cast(Column, userRoles.c.count) #pyright: ignore [reportUnknownMemberType]
+ur_priority = cast(Column, userRoles.c.priority) #pyright: ignore [reportUnknownMemberType]
 Index("idx_userRoles", ur_userFk, ur_role, unique=True)
 
 user_action_history = Table("UserActionHistory", metadata,
@@ -189,9 +203,9 @@ user_action_history = Table("UserActionHistory", metadata,
 )
 
 uah = cast(TblCols, user_action_history.c) #pyright: ignore [reportUnknownMemberType]
-uah_userFk: Column = uah.userFk #pyright: ignore reportUnknownMemberType
-uah_action: Column = uah.action #pyright: ignore reportUnknownMemberType
-uah_timestamp: Column = uah.timestamp #pyright: ignore reportUnknownMemberType
+uah_userFk = cast(Column,uah.userFk) #pyright: ignore [reportUnknownMemberType]
+uah_action = cast(Column,uah.action) #pyright: ignore [reportUnknownMemberType]
+uah_timestamp = cast(Column,uah.timestamp) #pyright: ignore [reportUnknownMemberType]
 
 
 station_user_permissions = Table("StationUserPermissions", metadata,
@@ -205,13 +219,13 @@ station_user_permissions = Table("StationUserPermissions", metadata,
 	Column("creationTimestamp", Float, nullable=False)
 )
 stup = cast(TblCols, station_user_permissions.c) #pyright: ignore [reportUnknownMemberType]
-stup_stationFk: Column = stup.stationFk #pyright: ignore reportUnknownMemberType
-stup_pk: Column = stup.pk #pyright: ignore reportUnknownMemberType
-stup_userFk: Column = stup.userFk #pyright: ignore reportUnknownMemberType
-stup_role: Column = stup.role #pyright: ignore reportUnknownMemberType
-stup_span: Column = stup.span #pyright: ignore reportUnknownMemberType
-stup_count: Column = stup.count #pyright: ignore reportUnknownMemberType
-stup_priority: Column = stup.priority #pyright: ignore reportUnknownMemberType
+stup_stationFk = cast(Column, stup.stationFk) #pyright: ignore [reportUnknownMemberType]
+stup_pk = cast(Column, stup.pk) #pyright: ignore [reportUnknownMemberType]
+stup_userFk = cast(Column, stup.userFk) #pyright: ignore [reportUnknownMemberType]
+stup_role = cast(Column, stup.role) #pyright: ignore [reportUnknownMemberType]
+stup_span = cast(Column, stup.span) #pyright: ignore [reportUnknownMemberType]
+stup_count = cast(Column, stup.count) #pyright: ignore [reportUnknownMemberType]
+stup_priority = cast(Column, stup.priority) #pyright: ignore [reportUnknownMemberType]
 
 
 Index(
@@ -233,13 +247,13 @@ path_user_permissions = Table("PathUserPermissions", metadata,
 	Column("creationTimestamp", Float, nullable=False)
 )
 
-
-pup_userFk: Column = path_user_permissions.c.userFk #pyright: ignore reportUnknownMemberType
-pup_path: Column = path_user_permissions.c.path #pyright: ignore reportUnknownMemberType
-pup_role: Column = path_user_permissions.c.role #pyright: ignore reportUnknownMemberType
-pup_priority: Column = path_user_permissions.c.priority #pyright: ignore reportUnknownMemberType
-pup_span: Column = path_user_permissions.c.span #pyright: ignore reportUnknownMemberType
-pup_count: Column = path_user_permissions.c.count #pyright: ignore reportUnknownMemberType
+pup = cast(TblCols, path_user_permissions.c) #pyright: ignore [reportUnknownMemberType]
+pup_userFk: Column = cast(Column,pup.userFk) #pyright: ignore [reportUnknownMemberType]
+pup_path: Column = cast(Column,pup.path) #pyright: ignore [reportUnknownMemberType]
+pup_role: Column = cast(Column,pup.role) #pyright: ignore [reportUnknownMemberType]
+pup_priority: Column = cast(Column,pup.priority) #pyright: ignore [reportUnknownMemberType]
+pup_span: Column = cast(Column,pup.span) #pyright: ignore [reportUnknownMemberType]
+pup_count: Column = cast(Column,pup.count) #pyright: ignore [reportUnknownMemberType]
 
 Index(
 	"idx_pathPermissions",
@@ -264,23 +278,6 @@ sg_comment = cast(Column,sg.comment) #pyright: ignore [reportUnknownMemberType]
 sg_lyrics = cast(Column,sg.lyrics) #pyright: ignore [reportUnknownMemberType]
 sg_duration = cast(Column,sg.duration) #pyright: ignore [reportUnknownMemberType]
 sg_sampleRate = cast(Column,sg.sampleRate) #pyright: ignore [reportUnknownMemberType]
-
-ab = cast(TblCols, albums.c) #pyright: ignore [reportUnknownMemberType]
-ab_pk = cast(Column,ab.pk) #pyright: ignore [reportUnknownMemberType]
-ab_name = cast(Column,ab.name) #pyright: ignore [reportUnknownMemberType]
-ab_year = cast(Column,ab.year) #pyright: ignore [reportUnknownMemberType]
-ab_albumArtistFk = cast(Column,ab.albumArtistFk) #pyright: ignore [reportUnknownMemberType]
-
-ar = cast(TblCols, artists.c) #pyright: ignore [reportUnknownMemberType]
-ar_pk = cast(Column,ar.pk) #pyright: ignore [reportUnknownMemberType]
-ar_name = cast(Column,ar.name) #pyright: ignore [reportUnknownMemberType]
-
-
-st = cast(TblCols, stations.c) #pyright: ignore [reportUnknownMemberType]
-st_pk = cast(Column,st.pk) #pyright: ignore [reportUnknownMemberType]
-st_name = cast(Column,st.name) #pyright: ignore [reportUnknownMemberType]
-st_displayName = cast(Column,st.displayName) #pyright: ignore [reportUnknownMemberType]
-st_procId = cast(Column,st.procId) #pyright: ignore [reportUnknownMemberType]
 
 sgar = cast(TblCols, song_artist.c) #pyright: ignore [reportUnknownMemberType]
 sgar_pk = cast(Column,sgar.pk) #pyright: ignore [reportUnknownMemberType]

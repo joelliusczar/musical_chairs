@@ -6,7 +6,7 @@ handle: RadioHandle = None #pyright: ignore [reportGeneralTypeIssues]
 # Should return 1 if ok, and 0 if something went wrong.
 def ices_init():
 	global handle
-	handle = RadioHandle("<internal_station_name>")
+	handle = RadioHandle(<station_id>) #pyright: ignore
 	return handle.ices_init()
 
 # Function called to shutdown your python enviroment.

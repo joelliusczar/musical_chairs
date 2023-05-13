@@ -35,6 +35,7 @@ class UserRoleDef(Enum):
 	STATION_SKIP = f"{UserRoleDomain.Station.value}:skip"
 	USER_LIST = "user:list"
 	USER_EDIT = "user:edit"
+	USER_IMPERSONATE = "user:impersonate"
 	PATH_LIST = f"{UserRoleDomain.Path.value}:list"
 	PATH_EDIT = f"{UserRoleDomain.Path.value}:edit"
 	PATH_VIEW = f"{UserRoleDomain.Path.value}:view"

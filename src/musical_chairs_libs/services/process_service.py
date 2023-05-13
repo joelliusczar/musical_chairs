@@ -2,17 +2,22 @@ import os
 import platform
 import subprocess
 import random
-from typing import Optional, Iterable, Sequence, cast
-from musical_chairs_libs.dtos_and_utilities import check_name_safety,\
-	SearchNameString,\
+from typing import Optional, Iterable, cast, Union
+from musical_chairs_libs.dtos_and_utilities import (
+	check_name_safety,
 	StationInfo
-from sqlalchemy import select,\
-	func,\
+)
+from sqlalchemy import (
+	select,
+	func,
 	update
+)
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import Row
-from musical_chairs_libs.tables import\
-	stations as stations_tbl, st_pk, st_name, st_procId
+from musical_chairs_libs.tables import (
+	stations as stations_tbl, st_pk, st_name, st_procId, st_ownerFk,
+	users as users_tbl, u_username, u_pk
+)
 from .env_manager import EnvManager
 from .station_service import StationService
 
@@ -50,76 +55,60 @@ class ProcessService:
 		except:
 			pass
 
-	def set_station_proc(self, stationName: str) -> None:
+	def set_station_proc(self, stationId: int) -> None:
 		pid = self.get_pid()
 		stmt = update(stations_tbl)\
 			.values(procId = pid) \
-				.where(
-					func.format_name_for_search(st_name) ==\
-					str(SearchNameString.format_name_for_search(stationName))
-				)
+				.where(st_pk == stationId)
 		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
 	def unset_station_procs(
 		self,
 		procIds: Optional[Iterable[int]]=None,
-		stationIds: Optional[Iterable[int]]=None,
-		stationNames: Optional[Sequence[str]]=None,
-		stationName: Optional[str]=None
+		stationIds: Union[int,Iterable[int], None]=None,
 	) -> None:
 		stmt = update(stations_tbl)\
 			.values(procId = None)
 
 		if isinstance(procIds, Iterable):
 			stmt = stmt.where(st_procId.in_(procIds))
+		elif type(stationIds) == int:
+			stmt = stmt.where(st_pk == stationIds)
 		elif isinstance(stationIds, Iterable):
 			stmt = stmt.where(st_pk.in_(stationIds))
-		elif isinstance(stationNames, Iterable):
-			stmt = stmt\
-				.where(func.format_name_for_search(st_name).in_(
-						str(SearchNameString.format_name_for_search(s)) for s
-						in stationNames
-					))
-		elif stationName:
-			stmt = stmt\
-				.where(
-					func.format_name_for_search(st_name) ==\
-					str(SearchNameString.format_name_for_search(stationName))
-				)
 		else:
 			raise ValueError("procIds, stationIds, or stationNames must be provided.")
 		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
 	def enable_stations(self,
-		stationIds: Optional[Iterable[int]],
-		stationNames: Optional[Sequence[str]]
+		stationKeys: Union[list[int],str],
+		ownerKey: Union[int, str, None]
 	) -> None:
-		stations: list[StationInfo] = []
-		if stationNames and len(stationNames) == 1 and stationNames[0] == "*":
-			stations = list(self.station_service.get_stations())
-		else:
-			stations = list(self.station_service.get_stations(
-				stationIds=stationIds,
-				stationNames=stationNames
+		result: list[StationInfo] = []
+		if type(stationKeys) == str and stationKeys == "*":
+			result = list(self.station_service.get_stations(ownerKey=ownerKey))
+		elif isinstance(stationKeys, list):
+			result = list(self.station_service.get_stations(
+				stationKeys=stationKeys
 			))
-		for station in stations:
+		for station in result:
 			self._start_station_external_process(station.name)
 
 	def disable_stations(
 		self,
-		stationIds: Optional[Iterable[int]],
-		stationNames: Optional[Sequence[str]]=None
+		stationKeys: Union[list[int],str],
+		ownerKey: Union[int, str, None]
 	) -> None:
 		query = select(st_procId).where(st_procId.is_not(None))
-		if isinstance(stationIds, Iterable):
-			query = query.where(st_pk.in_(stationIds))
-		elif isinstance(stationNames, Iterable):
-			if len(stationNames) > 1 or stationNames[0] != "*":
-				query = query\
-					.where(func.format_name_for_search(st_name).in_(
-							str(SearchNameString.format_name_for_search(s)) for s
-							in stationNames
-						))
+		if type(stationKeys) == str and stationKeys == "*":
+			if type(ownerKey) == int:
+				query = query.where(st_ownerFk == ownerKey)
+			elif type(ownerKey) == str:
+				query = query.join(users_tbl, u_pk == st_ownerFk)\
+					.where(u_username == ownerKey)
+		elif isinstance(stationKeys, list):
+			query = query.where(st_pk.in_(stationKeys))
+
 		rows = self.conn.execute(query) #pyright: ignore reportUnknownMemberType
 		pids = [cast(int, row[st_procId]) for row in cast(Iterable[Row], rows)]
 		for pid in pids:

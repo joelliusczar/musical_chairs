@@ -12,7 +12,7 @@ class RadioHandle:
 
 	def __init__(
 		self,
-		stationName: str,
+		stationId: int,
 		envManager: Optional[EnvManager]=None
 	) -> None:
 		self.songnumber = -1
@@ -21,12 +21,12 @@ class RadioHandle:
 		if not envManager:
 			envManager = EnvManager()
 		self.env_manager = envManager
-		self.stationName = stationName
+		self.stationId = stationId
 
 	def ices_init(self) -> int:
 		conn = self.env_manager.get_configured_db_connection()
 		ProcessService(conn)\
-			.set_station_proc(stationName=self.stationName)
+			.set_station_proc(stationId=self.stationId)
 		conn.close()
 		print('Executing initialize() function..')
 		return 1
@@ -36,7 +36,7 @@ class RadioHandle:
 	def ices_shutdown(self) -> int:
 		conn = self.env_manager.get_configured_db_connection()
 		ProcessService(conn)\
-			.unset_station_procs(stationName=self.stationName)
+			.unset_station_procs(stationIds=self.stationId)
 		conn.close()
 		print(f"Station is shutting down on {self.display}")
 		print(self.songFullPath)
@@ -50,7 +50,7 @@ class RadioHandle:
 		conn = self.env_manager.get_configured_db_connection()
 		queueService = QueueService(conn)
 		(songPath, songName, album, artist) = \
-			queueService.pop_next_queued(stationName=self.stationName)
+			queueService.pop_next_queued(stationId=self.stationId)
 		conn.close()
 		if songName:
 			self.display = f"{songName} - {album} - {artist}"

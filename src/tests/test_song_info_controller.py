@@ -569,3 +569,4 @@ def test_more_restrictive_path(
 
 
 	assert putResponse.status_code == 200
+

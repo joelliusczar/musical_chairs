@@ -1,5 +1,5 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Iterator, Tuple, Optional, Iterable
+from typing import Iterator, Tuple, Optional, Iterable, Union
 from urllib import parse
 from fastapi import Depends, HTTPException, status, Cookie, Query
 from sqlalchemy.engine import Connection
@@ -23,7 +23,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_path_owner_roles,
 	PathsActionRule,
 	ChainedAbsorbentTrie,
-	normalize_opening_slash
+	normalize_opening_slash,
+	UserRoleDef,
+	StationInfo
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -95,6 +97,36 @@ def get_user_from_token_optional(
 	except ExpiredSignatureError:
 		raise build_expired_error()
 
+
+def get_owner_from_path(
+	ownerKey: Union[int, str],
+	accountsService: AccountsService = Depends(accounts_service)
+) -> Optional[AccountInfo]:
+	return accountsService.get_account_for_edit(ownerKey)
+
+def get_station_by_name_and_owner(
+	stationKey: Union[int, str],
+	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
+	stationService: StationService = Depends(station_service)
+) -> StationInfo:
+	if type(stationKey) == str and not owner:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"user with key {stationKey} not found")
+			]
+		)
+	#owner id is okay to be null if stationKey is an int
+	ownerId = owner.id if owner else None
+	station = next(stationService.get_stations(stationKey, ownerId), None)
+	if not station:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"station with key {stationKey} not found")
+			]
+		)
+	return station
+
+
 def get_user_from_token(
 	token: str,
 	accountsService: AccountsService
@@ -137,7 +169,62 @@ def get_user_with_simple_scopes(
 			raise build_wrong_permissions_error()
 	return user
 
+def get_user_with_rate_limited_scope(
+	securityScopes: SecurityScopes,
+	user: AccountInfo = Depends(get_current_user_simple),
+	userActionHistoryService: UserActionsHistoryService =
+		Depends(user_actions_history_service)
+) -> AccountInfo:
+	if user.isAdmin:
+		return user
+	for scope in securityScopes.scopes:
+		check_scope(
+			scope,
+			user,
+			sorted(user.roles, reverse=True),
+			userActionHistoryService
+		)
+	return user
 
+def impersonated_user_id(
+	impersonatedUserId: Optional[int],
+	user: AccountInfo = Depends(get_current_user_simple)
+) -> Optional[int]:
+	if user.isAdmin or any(r.conforms(UserRoleDef.USER_IMPERSONATE.value) \
+			for r in user.roles):
+		return impersonatedUserId
+	return None
+
+def check_scope(
+	scope: str,
+	user: AccountInfo,
+	rules: Iterable[ActionRule],
+	userActionHistoryService: UserActionsHistoryService
+):
+	bestRuleGenerator = (r for g in
+			groupby(
+				(r for r in rules if r.conforms(scope)),
+				lambda k: k.name
+			) for r in g[1]
+		)
+	selectedRule = next(
+		bestRuleGenerator,
+		None
+	)
+	if selectedRule:
+		try:
+			whenNext = userActionHistoryService.calc_when_user_can_next_do_action(
+				user.id,
+				selectedRule
+			)
+			if whenNext > 0:
+				currentTimestamp = get_datetime().timestamp()
+				timeleft = whenNext - currentTimestamp
+				raise build_too_many_requests_error(int(timeleft))
+		except IllegalOperationError:
+			raise build_wrong_permissions_error()
+	else:
+		raise build_wrong_permissions_error()
 
 def check_if_can_use_path(
 	scopes: Iterable[str],
@@ -158,30 +245,8 @@ def check_if_can_use_path(
 					]
 				)
 	for scope in scopes:
-		bestRuleGenerator = (r for g in
-			groupby(
-				(r for r in rules if r.conforms(scope)),
-				lambda k: k.name
-			) for r in g[1]
-		)
-		selectedRule = next(
-			bestRuleGenerator,
-			None
-		)
-		if selectedRule:
-			try:
-				whenNext = userActionHistoryService.calc_when_user_can_next_do_action(
-					user.id,
-					selectedRule
-				)
-				if whenNext > 0:
-					currentTimestamp = get_datetime().timestamp()
-					timeleft = whenNext - currentTimestamp
-					raise build_too_many_requests_error(int(timeleft))
-			except IllegalOperationError:
-				raise build_wrong_permissions_error()
-		else:
-			raise build_wrong_permissions_error()
+		check_scope(scope, user, rules, userActionHistoryService)
+
 
 def get_path_user(
 	securityScopes: SecurityScopes,
@@ -282,8 +347,7 @@ def get_multi_path_user(
 
 def get_station_user(
 	securityScopes: SecurityScopes,
-	stationId: Optional[int]=None,
-	stationName: Optional[str]=None,
+	station: StationInfo = Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_current_user_simple),
 	stationService: StationService = Depends(station_service)
 ) -> StationUserInfo:
@@ -294,7 +358,7 @@ def get_station_user(
 		raise build_wrong_permissions_error()
 	if user.isAdmin:
 		return StationUserInfo(**asdict(user))
-	stationUser = stationService.get_station_user(user, stationId, stationName)
+	stationUser = stationService.get_station_user(user, station.id)
 	rules = sorted(stationUser.roles, reverse=True)
 	for scope in scopes:
 		bestRuleGenerator = (r for g in
@@ -312,8 +376,7 @@ def get_station_user(
 				whenNext = stationService.calc_when_user_can_next_do_action(
 					user.id,
 					selectedRule,
-					stationId,
-					stationName
+					station.id
 				)
 				if whenNext > 0:
 					currentTimestamp = get_datetime().timestamp()
@@ -327,16 +390,14 @@ def get_station_user(
 
 
 def get_account_if_can_edit(
-	userId: Optional[int]=None,
-	username: Optional[str]=None,
+	userKey: Union[int, str],
 	currentUser: AccountInfo = Depends(get_current_user_simple),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	if userId != currentUser.id and username != currentUser.username and\
+	if userKey != currentUser.id and userKey != currentUser.username and\
 		not currentUser.isAdmin:
 		raise build_wrong_permissions_error()
-	prev = accountsService.get_account_for_edit(userId, username) \
-		if userId or username else None
+	prev = accountsService.get_account_for_edit(userKey) if userKey else None
 	if not prev:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,

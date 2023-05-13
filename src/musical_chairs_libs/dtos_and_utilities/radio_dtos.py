@@ -1,4 +1,4 @@
-from pydantic import validator, root_validator
+from pydantic import validator, root_validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
 from typing import\
@@ -91,7 +91,7 @@ class StationCreationInfo:
 @pydanticDataclass
 class ValidatedStationCreationInfo(StationCreationInfo):
 
-	_name_len = validator(
+	_name_len = validator( #pyright: ignore [reportUnknownVariableType]
 		"name",
 		allow_reuse=True
 	)(min_length_validator_factory(2, "Station name"))
@@ -145,7 +145,7 @@ class SongArtistTuple:
 	def __len__(self) -> int:
 		return 2
 
-	def __iter__(self) -> Iterator[Any]:
+	def __iter__(self) -> Iterator[int]:
 		yield self.songId
 		yield self.artistId
 

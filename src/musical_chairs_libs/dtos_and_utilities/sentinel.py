@@ -1,4 +1,4 @@
-
+from typing import Union, TypeVar
 
 class Sentinel:
 
@@ -13,3 +13,7 @@ class Sentinel:
 
 missing = Sentinel(False)
 found = Sentinel(True)
+
+T = TypeVar("T")
+
+MCOptional = Union[T, Sentinel]

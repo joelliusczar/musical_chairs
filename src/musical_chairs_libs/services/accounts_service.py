@@ -2,7 +2,16 @@
 import os
 from dataclasses import asdict
 from datetime import timedelta, datetime, timezone
-from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple, cast
+from typing import (
+	Any,
+	Iterable,
+	Iterator,
+	Optional,
+	Sequence,
+	Tuple,
+	cast,
+	Union
+)
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	SearchNameString,
@@ -292,16 +301,15 @@ class AccountsService:
 
 	def get_account_for_edit(
 		self,
-		userId: Optional[int],
-		username: Optional[str]=None
+		key: Union[int, str]
 	) -> Optional[AccountInfo]:
-		if not userId and not username:
+		if not key:
 			return None
 		query = select(u_pk.label("id"), u_username, u_displayName, u_email)
-		if userId:
-			query = query.where(u_pk == userId)
-		elif username:
-			query = query.where(u_username == username)
+		if type(key) == int:
+			query = query.where(u_pk == key)
+		elif type(key) == str:
+			query = query.where(u_username == key)
 		else:
 			raise ValueError("Either username or id must be provided")
 		row = self.conn.execute(query).fetchone()

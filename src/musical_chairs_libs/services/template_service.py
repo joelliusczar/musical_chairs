@@ -36,7 +36,8 @@ class TemplateService:
 		self,
 		internalName: str,
 		publicName: str,
-		sourcePassword: str
+		sourcePassword: str,
+		username: str
 	) -> str:
 		icesConfigTemplate = self._load_ices_config_template()
 		return icesConfigTemplate.replace(
@@ -44,28 +45,36 @@ class TemplateService:
 			f"<Password>{sourcePassword}</Password>"
 		).replace(
 			"<Module>internal_station_name</Module>",
-			f"<Module>{internalName}</Module>"
+			f"<Module>{username}_{internalName}</Module>"
 		).replace(
 			"<Mountpoint>/internal_station_name</Mountpoint>",
-			f"<Mountpoint>/{internalName}</Mountpoint>"
+			f"<Mountpoint>/{username}/{internalName}</Mountpoint>"
 		).replace(
 			"<Name>public_station_name</Name>",
 			f"<Name>{publicName}</Name>"
 		)
 
-	def _create_ices_python_module_content(self, internalName: str) -> str:
+	def _create_ices_python_module_content(self, stationId: int) -> str:
 		pythonModuleTemplate = self._load_ices_python_module_template()
-		return pythonModuleTemplate.replace("<internal_station_name>",internalName)
+		return pythonModuleTemplate.replace("<station_id>",str(stationId))
 
-	def create_station_files(self, internalName: str, publicName: str):
+	def create_station_files(
+		self,
+		stationId: int,
+		internalName: str,
+		publicName: str,
+		username: str
+	):
 		sourcePassword = self._extract_icecast_source_password()
 		configContent = self._create_ices_config_content(
 			internalName,
 			publicName,
-			sourcePassword
+			sourcePassword,
+			username
 		)
-		Path(f"{EnvManager.station_config_dir}/ices.{internalName}.conf")\
+		filename = f"ices.{username}_{internalName}.conf"
+		Path(f"{EnvManager.station_config_dir}/{filename}")\
 			.write_text(configContent)
-		pythonModuleContent = self._create_ices_python_module_content(internalName)
+		pythonModuleContent = self._create_ices_python_module_content(stationId)
 		Path(f"{EnvManager.station_module_dir}/{internalName}.py")\
 			.write_text(pythonModuleContent)

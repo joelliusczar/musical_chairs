@@ -82,13 +82,14 @@ class ProcessService:
 		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
 	def enable_stations(self,
-		stationKeys: Union[list[int],str],
-		owner: AccountInfo
+		stationKeys: list[int],
+		owner: AccountInfo,
+		includeAll: bool = False
 	) -> None:
 		result: list[StationInfo] = []
-		if type(stationKeys) == str and stationKeys == "*":
+		if includeAll:
 			result = list(self.station_service.get_stations(ownerKey=owner.id))
-		elif isinstance(stationKeys, list):
+		else:
 			result = list(self.station_service.get_stations(
 				stationKeys=stationKeys
 			))
@@ -97,17 +98,18 @@ class ProcessService:
 
 	def disable_stations(
 		self,
-		stationKeys: Union[list[int],str],
-		ownerKey: Union[int, str, None]
+		stationKeys: list[int],
+		ownerKey: Union[int, str, None],
+		includeAll: bool = False
 	) -> None:
 		query = select(st_procId).where(st_procId.is_not(None))
-		if type(stationKeys) == str and stationKeys == "*":
+		if includeAll:
 			if type(ownerKey) == int:
 				query = query.where(st_ownerFk == ownerKey)
 			elif type(ownerKey) == str:
 				query = query.join(users_tbl, u_pk == st_ownerFk)\
 					.where(u_username == ownerKey)
-		elif isinstance(stationKeys, list):
+		else:
 			query = query.where(st_pk.in_(stationKeys))
 
 		rows = self.conn.execute(query) #pyright: ignore reportUnknownMemberType

@@ -13,6 +13,11 @@ source radio_common
 . ./radio_common.sh
 ```
 
+Need to run this so that https will work
+```
+setup_ssl_cert_local_debug
+```
+
 ```
 # call func to setup unit test environment
 # required for vs code test runner

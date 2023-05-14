@@ -1,5 +1,5 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -33,7 +33,8 @@ from api_dependencies import (
 	get_owner_from_path,
 	get_station_by_name_and_owner,
 	get_current_user_simple,
-	get_user_with_rate_limited_scope
+	get_user_with_rate_limited_scope,
+	get_user_with_simple_scopes
 )
 
 
@@ -209,25 +210,24 @@ def update_station(
 
 @router.put("/enable/", status_code=status.HTTP_204_NO_CONTENT)
 def enable_stations(
-	stationKeys: Union[list[int],str] = Query(default=[]),
+	stationIds: list[int] = Query(default=[]),
+	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
-		get_station_user,
+		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
 	processService: ProcessService = Depends(process_service)
 ) -> None:
-	processService.enable_stations(stationKeys, user)
+	processService.enable_stations(stationIds, user)
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
 def disable_stations(
-	stationKeys: Union[list[int],str] = Query(default=[]),
+	stationIds: list[int] = Query(default=[]),
+	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
-		get_station_user,
+		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
 	processService: ProcessService = Depends(process_service)
 ) -> None:
-	if user.isAdmin and stationKeys == "**":
-		processService.disable_stations("*", None)
-	else:
-		processService.disable_stations(stationKeys, user.id)
+	processService.disable_stations(stationIds, user.id)

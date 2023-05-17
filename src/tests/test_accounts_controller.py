@@ -116,10 +116,10 @@ def test_login_success(fixture_api_test_client: TestClient):
 	response = client.post("/accounts/open", data=formData)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert len(data.keys()) == 7
+	assert len(data.keys()) == 8
 	assert "access_token" in data
 	assert data["token_type"] == "bearer"
-	assert len(data["roles"]) == 2
+	assert len(data["roles"]) == 3
 	assert data["lifetime"] ==  1800
 	assert data["email"] == "test6@test.com"
 
@@ -190,7 +190,7 @@ def test_update_account(fixture_api_test_client: TestClient):
 	headers = login_test_user("testUser_golf", client)
 	#update email success
 	response = client.put(
-		"/accounts?userId=7",
+		"/accounts/7",
 		headers=headers,
 		json={
 			"username": "testUser_golf",
@@ -203,7 +203,7 @@ def test_update_account(fixture_api_test_client: TestClient):
 
 	#try to update email without being logged in
 	response = client.put(
-		"/accounts?userId=7",
+		"/accounts/7",
 		json={
 			"username": "testUser_golf",
 			"email": "test_golf@test.com",
@@ -216,7 +216,7 @@ def test_update_account(fixture_api_test_client: TestClient):
 	#try to update email while logged in as wrong user
 	headers = login_test_user("testUser_foxtrot", client)
 	response = client.put(
-		"/accounts?userId=7",
+		"/accounts/7",
 		headers=headers,
 		json={
 			"username": "testUser_golf",
@@ -231,7 +231,7 @@ def test_update_account(fixture_api_test_client: TestClient):
 	#update email again success
 	headers = login_test_user(primary_user().username, client)
 	response = client.put(
-		"/accounts?userId=7",
+		"/accounts/7",
 		headers=headers,
 		json={
 			"username": "testUser_golf",
@@ -250,18 +250,29 @@ def test_change_roles(fixture_api_test_client: TestClient):
 	response = client.put(
 		"/accounts/update-roles/7",
 		headers=headers,
-		json=[UserRoleDef.USER_LIST.value]
+		json=[
+			{
+				"name": UserRoleDef.USER_LIST.value
+			}
+		]
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["roles"][0] == "name=user:list"
+	assert data["roles"][0] == {
+		"name": UserRoleDef.USER_LIST.value,
+		"span": 0,
+		"count": 0,
+		"priority": 0,
+		"id": None,
+		"domain": "site"
+		}
 
 def test_get_account_info(fixture_api_test_client: TestClient):
 	client = fixture_api_test_client
 	user = primary_user()
 	headers = login_test_user(user.username, client)
 	response = client.get(
-		f"/accounts/?userId={user.id}",
+		f"/accounts/{user.id}",
 		headers=headers
 	)
 	data = json.loads(response.content)
@@ -272,7 +283,7 @@ def test_get_account_info(fixture_api_test_client: TestClient):
 	assert data["email"] == user.email
 
 	response = client.get(
-		f"/accounts/?username={user.username}",
+		f"/accounts/{user.username}",
 		headers=headers
 	)
 	data = json.loads(response.content)

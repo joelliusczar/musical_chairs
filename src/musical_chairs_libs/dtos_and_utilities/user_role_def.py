@@ -3,17 +3,15 @@ from typing import (
 	Union,
 	Set,
 	Tuple,
-	Sequence,
-	Iterator,
-	Iterable,
 	Optional
 )
-from collections import Counter
 from .type_aliases import (
 	s2sDict,
 	simpleDict
 )
 from .simple_functions import role_dict
+
+
 
 class UserRoleDomain(Enum):
 	Site = "site"
@@ -71,26 +69,6 @@ class UserRoleDef(Enum):
 			mod = int(roleDict["mod"]) if "mod" in roleDict else -1
 			return (nameValue, mod)
 		return ("", 0)
-
-	@staticmethod
-	def remove_repeat_roles(roles: Sequence[str]) -> Iterator[str]:
-		if not roles or not len(roles):
-			return iter(())
-		roleDupChecker: dict[str, s2sDict] = {}
-		for role in roles:
-			roleDict = UserRoleDef.role_dict(role)
-
-			if roleDict["name"] in roleDupChecker:
-				previousRoleDict = roleDupChecker[roleDict["name"]]
-				if int(roleDict.get("span",0)) < int(previousRoleDict.get("span",0)):
-					roleDupChecker[roleDict["name"]] = roleDict
-			else:
-				roleDupChecker[roleDict["name"]] = roleDict
-		return (UserRoleDef.role_str(r) for r in roleDupChecker.values())
-
-	@staticmethod
-	def count_repeat_roles(roles: Iterable[str]) -> dict[str, int]:
-		return Counter(UserRoleDef.role_dict(r)['name'] for r in roles)
 
 	def modded_value(
 		self,

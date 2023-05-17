@@ -682,43 +682,53 @@ songArtistParamsAll = [*songArtistParams, *songArtistParams2]
 station_params = [
 	{ "pk": 1,
 		"name": "oscar_station",
-		"displayName": "Oscar the grouch"
+		"displayName": "Oscar the grouch",
+		"ownerFk": bravo_user_id
 	},
 	{ "pk": 2,
 		"name": "papa_station",
-		"displayName": "Come to papa"
+		"displayName": "Come to papa",
+		"ownerFk": bravo_user_id
 	},
 	{ "pk": 3,
 		"name": "romeo_station",
-		"displayName": "But soft, what yonder wind breaks"
+		"displayName": "But soft, what yonder wind breaks",
+		"ownerFk": bravo_user_id
 	},
 	{ "pk": 4,
 		"name": "sierra_station",
-		"displayName": "The greatest lie the devil ever told"
+		"displayName": "The greatest lie the devil ever told",
+		"ownerFk": bravo_user_id
 	},
 	{ "pk": 5,
 		"name": "tango_station",
-		"displayName": "Nuke the whales"
+		"displayName": "Nuke the whales",
+		"ownerFk": bravo_user_id
 	},
 	{ "pk": 6,
 		"name": "yankee_station",
-		"displayName": "Blurg the blergos"
+		"displayName": "Blurg the blergos",
+		"ownerFk": bravo_user_id
 	},
 	{ "pk": 7,
 		"name": "uniform_station",
-		"displayName": "Asshole at the wheel"
+		"displayName": "Asshole at the wheel",
+		"ownerFk": bravo_user_id
 	},
 	{ "pk": 8,
 		"name": "victor_station",
-		"displayName": "Fat, drunk, and stupid"
+		"displayName": "Fat, drunk, and stupid",
+		"ownerFk": bravo_user_id
 	},
 	{ "pk": 9,
 		"name": "whiskey_station",
-		"displayName": "Chris-cross apple sauce"
+		"displayName": "Chris-cross apple sauce",
+		"ownerFk": bravo_user_id
 	},
 	{ "pk": 10,
 		"name": "xray_station",
-		"displayName": "Pentagular"
+		"displayName": "Pentagular",
+		"ownerFk": bravo_user_id
 	}
 ]
 
@@ -1026,7 +1036,7 @@ def get_user_role_params(
 			"userFk": foxtrot_user_id,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
-			"span": 0,
+			"span": 15,
 			"count": 0,
 			"priority": None
 		},
@@ -1034,7 +1044,7 @@ def get_user_role_params(
 			"userFk": foxtrot_user_id,
 			"role": UserRoleDef.PATH_EDIT.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
-			"span": 0,
+			"span": 120,
 			"count": 0,
 			"priority": None
 		},
@@ -1048,7 +1058,7 @@ def get_user_role_params(
 		},
 		{
 			"userFk": golf_user_id,
-			"role": f"name={UserRoleDef.USER_LIST.value}",
+			"role": UserRoleDef.USER_LIST.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
 			"count": 0,

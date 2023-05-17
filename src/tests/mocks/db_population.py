@@ -223,8 +223,6 @@ def populate_path_permissions(
 
 #don't remember why I am using using funcs to return these global variables
 def get_initial_users() -> list[dict[Any, Any]]:
-	if users_params:
-		return users_params
 	userParams = get_user_params(
 		mock_ordered_date_list,
 		primary_user(),

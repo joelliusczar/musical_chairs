@@ -22,11 +22,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TableData,
 	AccountInfoBase,
 	build_error_obj,
-	PasswordInfo
+	PasswordInfo,
+	ActionRule
 )
 from api_dependencies import (
 	accounts_service,
-	get_current_user,
+	get_user_with_simple_scopes,
 	get_account_if_can_edit,
 	get_user_from_token,
 	get_user_from_token_optional
@@ -130,7 +131,7 @@ def create_new_account(
 	return accountsService.create_account(accountInfo)
 
 @router.get("/list", dependencies=[
-	Security(get_current_user, scopes=[UserRoleDef.USER_LIST.value])
+	Security(get_user_with_simple_scopes, scopes=[UserRoleDef.USER_LIST.value])
 ])
 def get_user_list(
 	page: int = 0,
@@ -141,7 +142,7 @@ def get_user_list(
 	totalRows = accountsService.get_accounts_count()
 	return TableData(totalRows=totalRows, items=accounts)
 
-@router.put("")
+@router.put("/{userKey}")
 def update_account(
 	updatedInfo: AccountInfoBase,
 	prev: AccountInfo = Depends(get_account_if_can_edit),
@@ -168,16 +169,16 @@ def update_password(
 		)
 
 
-@router.put("/update-roles/{userId}")
+@router.put("/update-roles/{userKey}")
 def update_roles(
-	roles: list[str],
+	roles: list[ActionRule],
 	prev: AccountInfo = Depends(get_account_if_can_edit),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
 	return AccountInfo(**{**asdict(prev), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
-@router.get("")
+@router.get("/{userKey}")
 def get_account(
 	accountInfo: AccountInfo = Depends(get_account_if_can_edit)
 ) -> AccountInfo:

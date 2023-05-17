@@ -89,7 +89,7 @@ def fixture_radio_handle(
 ) -> RadioHandle:
 	envMgr = fixture_env_manager_with_in_mem_db
 	radioHandle = RadioHandle(
-		"oscar_station",
+		1,
 		envManager=envMgr
 	)
 	return radioHandle

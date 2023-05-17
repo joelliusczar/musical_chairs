@@ -1,4 +1,4 @@
-#pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false, reportUnnecessaryComparison=false
+#pyright: reportMissingTypeStubs=false
 import os
 from dataclasses import asdict
 from datetime import timedelta, datetime, timezone
@@ -7,7 +7,6 @@ from typing import (
 	Iterable,
 	Iterator,
 	Optional,
-	Sequence,
 	Tuple,
 	cast,
 	Union
@@ -16,7 +15,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	SearchNameString,
 	SavedNameString,
-	UserRoleDef,
 	AccountCreationInfo,
 	get_datetime,
 	build_error_obj,
@@ -74,22 +72,22 @@ class AccountsService:
 			return (None, None)
 		query = select(u_pk, u_username, u_hashedPW, u_email, u_dirRoot)\
 			.select_from(users) \
-			.where((u_disabled != True) | (u_disabled == None))\
-			.where(u_hashedPW != None) \
+			.where((u_disabled != True) | (u_disabled.is_(None)))\
+			.where(u_hashedPW.is_not(None)) \
 			.where(func.format_name_for_save(u_username) \
 				== str(cleanedUserName)) \
 			.order_by(desc(u_creationTimestamp)) \
 			.limit(1)
-		row = self.conn.execute(query).fetchone()
+		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
 		if not row:
 			return (None, None)
-		pk = cast(int,row.pk) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-		hashedPw = cast(bytes, row.hashedPW) #pyright: ignore [reportGeneralTypeIssues]
+		pk = cast(int,row[u_pk])
+		hashedPw = cast(bytes, row[u_hashedPW])
 		accountInfo = AccountInfo(
 			id=cast(int,row[u_pk]),
 			username=cast(str,row[u_username]),
 			email=cast(str,row[u_email]),
-			roles=[*self.__get_roles(pk)],
+			roles=[*self.__get_roles__(pk)],
 			dirRoot=cast(str, row[u_dirRoot])
 		)
 		return (accountInfo, hashedPw)
@@ -116,56 +114,64 @@ class AccountsService:
 			raise AlreadyUsedError([
 				build_error_obj(f"{accountInfo.email} is already used.", "email")
 			])
-		hash = hashpw(accountInfo.password.encode())
+		hashed = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
 			username=SavedNameString.format_name_for_save(accountInfo.username),
 			displayName=SavedNameString.format_name_for_save(accountInfo.displayName),
-			hashedPW=hash,
+			hashedPW=hashed,
 			email=cleanedEmail.email,
 			creationTimestamp = self.get_datetime().timestamp(),
+			dirRoot = SavedNameString.format_name_for_save(accountInfo.username)
 		)
-		res = self.conn.execute(stmt)
-		insertedPk = cast(int, res.lastrowid)
-		insertedRows = self.save_roles(
-			insertedPk,
-			[UserRoleDef.STATION_REQUEST(span="60")]
-		)
+		res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		insertedPk = cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
+		# insertedRows = self.save_roles(
+		# 	insertedPk,
+		# 	[UserRoleDef.STATION_REQUEST.v]
+		# )
 		accountDict = accountInfo.scrubed_dict()
 		accountDict["id"] = insertedPk #pyright: ignore [reportGeneralTypeIssues]
-		accountDict["roles"] = insertedRows #pyright: ignore [reportGeneralTypeIssues]
+		# accountDict["roles"] = insertedRows #pyright: ignore [reportGeneralTypeIssues]
 		resultDto = AccountInfo(**accountDict)
 		return resultDto
 
-	def remove_roles_for_user(self, userId: int, roles: Iterable[str]) -> int:
+	def remove_roles_for_user(
+		self,
+		userId: int,
+		roles: Iterable[str]
+	) -> int:
 		if not userId:
 			return 0
 		roles = roles or []
 		delStmt = delete(userRoles).where(ur_userFk == userId)\
 			.where(ur_role.in_(roles))
-		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType]
+		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
 
 	def save_roles(
 		self,
-		userId: int,
-		roles: Sequence[str]
-	) -> Iterable[str]:
+		userId: Optional[int],
+		roles: Iterable[ActionRule]
+	) -> Iterable[ActionRule]:
 		if userId is None or not roles:
 			return []
-		uniqueRoles = set(UserRoleDef.remove_repeat_roles(roles))
-		existingRoles = set((r.name for r in self.__get_roles(userId)))
+		uniqueRoles = set(roles)
+		existingRoles = set(self.__get_roles__(userId))
 		outRoles = existingRoles - uniqueRoles
 		inRoles = uniqueRoles - existingRoles
-		self.remove_roles_for_user(userId, outRoles)
+		self.remove_roles_for_user(userId, (r.name for r in outRoles))
 		if not inRoles:
 			return uniqueRoles
 		roleParams = [{
 				"userFk": userId,
-				"role": r,
+				"role": r.name,
+				"span": r.span,
+				"count": r.count,
+				"priority": r.priority,
 				"creationTimestamp": self.get_datetime().timestamp()
 			} for r in inRoles
 		]
 		stmt = insert(userRoles)
-		self.conn.execute(stmt, roleParams)
+		self.conn.execute(stmt, roleParams) #pyright: ignore [reportUnknownMemberType]
 		return uniqueRoles
 
 
@@ -205,11 +211,11 @@ class AccountsService:
 			return None, 0
 		return user, expiration
 
-	def __get_roles(self, userId: int) -> Iterable[ActionRule]:
+	def __get_roles__(self, userId: int) -> Iterable[ActionRule]:
 		query = select(ur_role, ur_span, ur_count, ur_priority)\
 			.select_from(userRoles) \
 			.where(ur_userFk == userId)
-		rows = cast(Iterable[Row], self.conn.execute(query).fetchall())
+		rows = cast(Iterable[Row], self.conn.execute(query).fetchall()) #pyright: ignore [reportUnknownMemberType]
 		return (ActionRule(
 					cast(str, r[ur_role]),
 					cast(int, r[ur_span]),
@@ -227,8 +233,8 @@ class AccountsService:
 			.select_from(station_queue)\
 			.where(q_playedTimestamp.isnot(None))\
 			.where(q_requestedByUserFk == user.id)
-		lastRequestedInQueue = self.conn.execute(queueLatestQuery).scalar()
-		lastRequestedInHistory = self.conn.execute(queueLatestHistory).scalar()
+		lastRequestedInQueue = self.conn.execute(queueLatestQuery).scalar() #pyright: ignore [reportUnknownMemberType]
+		lastRequestedInHistory = self.conn.execute(queueLatestHistory).scalar() #pyright: ignore [reportUnknownMemberType]
 		lastRequested = max(
 			(lastRequestedInQueue or 0),
 			(lastRequestedInHistory or 0)
@@ -238,7 +244,7 @@ class AccountsService:
 	def _is_username_used(self, username: SearchNameString) -> bool:
 		queryAny: str = select(func.count(1)).select_from(users)\
 				.where(func.format_name_for_search(u_username) == str(username))
-		countRes = self.conn.execute(queryAny).scalar()
+		countRes = self.conn.execute(queryAny).scalar() #pyright: ignore [reportUnknownMemberType]
 		return countRes > 0 if countRes else False
 
 	def is_username_used(
@@ -259,7 +265,7 @@ class AccountsService:
 		emailStr = email.email #pyright: ignore reportUnknownMemberType
 		queryAny: str = select(func.count(1)).select_from(users)\
 				.where(func.lower(u_email) == emailStr)
-		countRes = self.conn.execute(queryAny).scalar()
+		countRes = self.conn.execute(queryAny).scalar() #pyright: ignore [reportUnknownMemberType]
 		return countRes > 0 if countRes else False
 
 	def is_email_used(
@@ -283,7 +289,7 @@ class AccountsService:
 
 	def get_accounts_count(self) -> int:
 		query = select(func.count(1)).select_from(users)
-		count = self.conn.execute(query).scalar() or 0
+		count = self.conn.execute(query).scalar() or 0 #pyright: ignore [reportUnknownMemberType]
 		return count
 
 	def get_account_list(
@@ -292,10 +298,14 @@ class AccountsService:
 		pageSize: Optional[int]=None
 	) -> Iterator[AccountInfo]:
 		offset = page * pageSize if pageSize else 0
-		query = select(u_pk.label("id"), u_username, u_displayName, u_email)\
-			.offset(offset)\
+		query = select(
+			u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
+			u_username,
+			u_displayName,
+			u_email
+		).offset(offset)\
 			.limit(pageSize)
-		records = self.conn.execute(query)
+		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield AccountInfo(**row) #pyright: ignore [reportUnknownArgumentType]
 
@@ -305,17 +315,22 @@ class AccountsService:
 	) -> Optional[AccountInfo]:
 		if not key:
 			return None
-		query = select(u_pk.label("id"), u_username, u_displayName, u_email)
+		query = select(
+			u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
+			u_username,
+			u_displayName,
+			u_email
+		)
 		if type(key) == int:
 			query = query.where(u_pk == key)
 		elif type(key) == str:
 			query = query.where(u_username == key)
 		else:
 			raise ValueError("Either username or id must be provided")
-		row = self.conn.execute(query).fetchone()
+		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
 		if not row:
 			return None
-		roles = [*self.__get_roles(cast(int,row["id"]))]
+		roles = [*self.__get_roles__(cast(int,row["id"]))]
 		return AccountInfo(
 			**row, #pyright: ignore [reportGeneralTypeIssues]
 			roles=roles,
@@ -338,7 +353,7 @@ class AccountsService:
 			displayName = updatedInfo.displayName,
 			email = updatedEmail
 		).where(u_pk == currentUser.id)
-		self.conn.execute(stmt)
+		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 		return AccountInfo(
 			**{**asdict(currentUser), #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 				"displayName": updatedInfo.displayName,
@@ -359,5 +374,5 @@ class AccountsService:
 			return False
 		hash = hashpw(passwordInfo.newPassword.encode())
 		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
-		self.conn.execute(stmt)
+		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 		return True

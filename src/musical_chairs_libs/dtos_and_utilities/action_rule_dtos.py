@@ -1,12 +1,13 @@
-from typing import (Any, Optional)
+from typing import (Any, Optional, Iterable, Iterator)
 from dataclasses import dataclass
 from .user_role_def import UserRoleDomain
+from itertools import groupby
 
 
 
 
 
-@dataclass()
+@dataclass(frozen=True)
 class ActionRule:
 	name: str=""
 	span: int=0
@@ -123,8 +124,15 @@ class ActionRule:
 		return self.name != other.name or\
 			self.span != other.span or self.count != other.count
 
+	@staticmethod
+	def filter_out_repeat_roles(
+		rules: Iterable["ActionRule"]
+	) -> Iterator["ActionRule"]:
+		sortedRules = sorted(rules)
+		yield from (next(g[1]) for g in groupby(sortedRules, key=lambda k: k.name))
 
-@dataclass()
+
+@dataclass(frozen=True)
 class PathsActionRule(ActionRule):
 	path: Optional[str]=None
 

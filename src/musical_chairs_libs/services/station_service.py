@@ -6,18 +6,22 @@ from typing import (
 	cast,
 	Iterable,
 	Union,
-	Tuple
+	Tuple,
+	overload,
+	Literal
 )
 from dataclasses import asdict
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.engine import Connection
+from sqlalchemy.sql.expression import Select
 from sqlalchemy import (
 	select,
 	func,
 	insert,
 	update,
-	or_
+	or_,
+	and_
 )
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
@@ -30,7 +34,7 @@ from musical_chairs_libs.tables import (
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	station_user_permissions as station_user_permissions_tbl, stup_pk,
 	stup_role, stup_stationFk, stup_userFk, stup_count, stup_span, stup_priority,
-	users as user_tbl, u_username, u_pk
+	users as user_tbl, u_username, u_pk,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
@@ -46,10 +50,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	IllegalOperationError,
 	UserRoleDef,
 	AlreadyUsedError,
-	UserRoleDomain
+	UserRoleDomain,
+	get_station_owner_rules
 )
 from .env_manager import EnvManager
 from .template_service import TemplateService
+from itertools import chain
 
 
 class StationService:
@@ -91,40 +97,142 @@ class StationService:
 		pk: Optional[int] = cast(int,row.pk) if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk
 
+	def __attach_user_joins__(
+		self,
+		query: Select,
+		ownerId: int
+	) -> Select:
+		query = query.add_columns(stup_role, stup_count, stup_span, stup_priority)
+		if type(ownerId) is int:
+			query = query.join(
+				station_user_permissions_tbl,
+				and_(stup_stationFk == st_pk, stup_userFk == ownerId), isouter=True
+			)
+		return query
+
+	def __row_to_station__(self, row: Row) -> StationInfo:
+		return StationInfo(
+			id=cast(int,row[st_pk]),
+			name=cast(str,row[st_name]),
+			ownerId=cast(int,row[st_ownerFk]),
+			displayName=cast(str,row[st_displayName]),
+			isRunning=bool(row[st_procId])
+		)
+
+	def __row_to_action_rule__(self, row: Row) -> ActionRule:
+		return ActionRule(
+			cast(str,row[stup_role]),
+			cast(int,row[stup_span]),
+			cast(int,row[stup_count]),
+			#if priortity is explict use that
+			#otherwise, prefer station specific rule vs non station specific rule
+			cast(int,row[stup_priority]) if row[stup_priority] \
+				else 1 if row[st_pk] else 0,
+			domain=UserRoleDomain.Station
+		)
+
+	def __generate_station_and_rules_from_rows__(
+		self,
+		rows: Iterable[Row],
+		ownerId: Optional[int]
+	) -> Iterator[Tuple[StationInfo, list[ActionRule]]]:
+		currentStation = None
+		for row in rows:
+			if not currentStation or currentStation[0].id != cast(int,row[st_pk]):
+				if currentStation:
+					if currentStation[0].ownerId == ownerId:
+						currentStation[1].extend(get_station_owner_rules())
+					yield currentStation
+				currentStation = (
+					self.__row_to_station__(row),
+					cast(list[ActionRule],[])
+				)
+				if row[stup_role]:
+					currentStation[1].append(self.__row_to_action_rule__(row))
+			else:
+				currentStation[1].append(self.__row_to_action_rule__(row))
+		if currentStation:
+			if currentStation[0].ownerId == ownerId:
+				currentStation[1].extend(get_station_owner_rules())
+			yield currentStation
+
+	def get_stations_and_rules(self,
+		ownerId: int,
+		stationKeys: Union[int,str, Iterable[int], None]=None
+	) -> Iterator[Tuple[StationInfo, list[ActionRule]]]:
+		yield from self.__get_stations_and_rules__(stationKeys, ownerId, True)
+
 	def get_stations(
 		self,
 		stationKeys: Union[int,str, Iterable[int], None]=None,
-		ownerKey: Union[int, str, None]=None
+		ownerId: Union[int, None]=None
 	) -> Iterator[StationInfo]:
+		yield from self.__get_stations_and_rules__(
+			stationKeys,
+			ownerId,
+			False
+		)
+
+	@overload
+	def __get_stations_and_rules__(
+		self,
+		stationKeys: Union[int,str, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+		includeRules: Literal[True]=True
+	) -> Iterator[Tuple[StationInfo, list[ActionRule]]]:
+		...
+
+	@overload
+	def __get_stations_and_rules__(
+		self,
+		stationKeys: Union[int,str, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+		includeRules: Literal[False]=False
+	) -> Iterator[StationInfo]:
+		...
+
+	def __get_stations_and_rules__(
+		self,
+		stationKeys: Union[int,str, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+		includeRules: bool=False
+	) -> Union[
+				Iterator[Tuple[StationInfo, list[ActionRule]]],
+				Iterator[StationInfo]
+			]:
 		query = select(
 			st_pk,
 			st_name,
 			st_displayName,
-			st_procId
+			st_procId,
+			st_ownerFk
 		).select_from(stations_tbl)
-		if type(ownerKey) == int:
-			query = query.where(st_ownerFk == ownerKey)
-		elif type(ownerKey) == str:
-			query = query.join(user_tbl, u_pk == st_ownerFk)\
-				.where(u_username == ownerKey)
+
+
+		if type(ownerId) == int:
+			query = self.__attach_user_joins__(query, ownerId)\
+				.where(or_(st_ownerFk == ownerId, stup_userFk == ownerId))
 		if type(stationKeys) == int:
 			query = query.where(st_pk == stationKeys)
 		elif isinstance(stationKeys, Iterable):
 			query = query.where(st_pk.in_(stationKeys))
-		elif type(stationKeys) is str and not ownerKey:
+		elif type(stationKeys) is str and not ownerId:
 			raise ValueError("user must be provided when using station name")
 		elif type(stationKeys) is str:
 			searchStr = SearchNameString.format_name_for_search(stationKeys)
 			query = query\
 				.where(func.format_name_for_search(st_name).like(f"%{searchStr}%"))
+		query = query.order_by(st_pk)
 		records = self.conn.execute(query)
-		for row in cast(Iterable[Row], records):
-			yield StationInfo(
-				id=cast(int,row[st_pk]),
-				name=cast(str,row[st_name]),
-				displayName=cast(str,row[st_displayName]),
-				isRunning=bool(row[st_procId])
+
+		if ownerId and includeRules:
+			yield from self.__generate_station_and_rules_from_rows__(
+				records,
+				ownerId
 			)
+		else:
+			for row in cast(Iterable[Row],records):
+				yield self.__row_to_station__(row)
 
 	def __attach_catalogue_joins(
 		self,
@@ -217,7 +325,7 @@ class StationService:
 		stationId: Optional[int]=None,
 		stationName: Optional[str]=None,
 	) -> Optional[StationInfo]:
-		query = select(st_pk, st_name, st_displayName)
+		query = select(st_pk, st_name, st_displayName, st_ownerFk)
 		if stationId:
 			query = query.where(st_pk == stationId)
 		elif stationName:
@@ -228,9 +336,10 @@ class StationService:
 		if not row:
 			return None
 		return StationInfo(
-			id=stationId or cast(int, row["pk"]),
-			name=cast(str, row["name"]),
-			displayName=cast(str, row["displayName"])
+			id=stationId or cast(int, row[st_pk]),
+			name=cast(str, row[st_name]),
+			displayName=cast(str, row[st_displayName]),
+			ownerId=cast(int, row[st_ownerFk])
 		)
 
 	def save_station(
@@ -252,6 +361,8 @@ class StationService:
 		)
 		if stationId:
 			stmt = stmt.where(st_pk == stationId)
+		else:
+			stmt = stmt.values(ownerFk = user.id)
 		try:
 			res = self.conn.execute(stmt)
 			affectedId = stationId if stationId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
@@ -273,6 +384,7 @@ class StationService:
 			id=affectedId,
 			name=str(savedName),
 			displayName=str(savedDisplayName),
+			ownerId=user.id
 		)
 
 	def __get_station_rules(
@@ -310,7 +422,6 @@ class StationService:
 					#if priortity is explict use that
 					#otherwise, prefer station specific rule vs non station specific rule
 					if row[stup_priority] else 1 if row[st_pk] else 0,
-				cast(int, row[stup_pk]),
 				UserRoleDomain.Station
 			) for row in records)
 		return fetchedStationId, generator
@@ -326,7 +437,8 @@ class StationService:
 			user.id,
 			stationKey
 		)
-		roles = [*rules_generator]
+		sortedRules = sorted(chain(user.roles, rules_generator), reverse=True)
+		roles = [*ActionRule.filter_out_repeat_roles(sortedRules)]
 		userDict = asdict(user)
 		userDict["roles"] = roles
 		return StationUserInfo(

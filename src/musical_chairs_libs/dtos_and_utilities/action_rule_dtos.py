@@ -15,7 +15,6 @@ class ActionRule:
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
 	priority: Optional[int]=0
-	id: Optional[int]=None
 	domain: UserRoleDomain=UserRoleDomain.Site
 
 	@property
@@ -39,7 +38,7 @@ class ActionRule:
 			return True
 		if other.noLimit:
 			return False
-		return abs(self.count / self.span) > (other.count / other.span)
+		return abs(self.count / self.span) < abs(other.count / other.span)
 
 	def __lt_help__(self, other: "ActionRule") -> bool:
 		if self.noLimit and other.noLimit:
@@ -48,7 +47,7 @@ class ActionRule:
 			return False
 		if other.noLimit:
 			return True
-		return abs(self.count / self.span) < (other.count / other.span)
+		return abs(self.count / self.span) > abs(other.count / other.span)
 
 	def __ge_help__(self, other: "ActionRule") -> bool:
 		if self.noLimit and other.noLimit:
@@ -57,7 +56,7 @@ class ActionRule:
 			return True
 		if other.noLimit:
 			return False
-		return abs(self.count / self.span) >= (other.count / other.span)
+		return abs(self.count / self.span) <= abs(other.count / other.span)
 
 	def __le_help__(self, other: "ActionRule") -> bool:
 		if self.noLimit and other.noLimit:
@@ -66,7 +65,7 @@ class ActionRule:
 			return False
 		if other.noLimit:
 			return True
-		return abs(self.count / self.span) <= (other.count / other.span)
+		return abs(self.count / self.span) >= abs(other.count / other.span)
 
 	def __gt__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:
@@ -128,8 +127,7 @@ class ActionRule:
 	def filter_out_repeat_roles(
 		rules: Iterable["ActionRule"]
 	) -> Iterator["ActionRule"]:
-		sortedRules = sorted(rules)
-		yield from (next(g[1]) for g in groupby(sortedRules, key=lambda k: k.name))
+		yield from (next(g[1]) for g in groupby(rules, key=lambda k: k.name))
 
 
 @dataclass(frozen=True)

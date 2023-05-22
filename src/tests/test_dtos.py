@@ -117,15 +117,15 @@ def test_action_rule_ordering():
 	r1 = ActionRule("alpha", priority=3, span=10, count=5)
 	r2 = ActionRule("alpha", priority=3, span=10, count=8)
 
-	assert not (r1 > r2)
-	assert (r1 < r2)
-	assert not (r1 >= r2)
-	assert (r1 <= r2)
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
 
-	assert (r2 > r1)
-	assert not (r2 < r1)
-	assert (r2 >= r1)
-	assert not (r2 <= r1)
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
 
 	r1 = ActionRule("alpha", priority=3, span=10, count=5)
 	r2 = ActionRule("alpha", priority=3, span=10, count=5)
@@ -205,6 +205,21 @@ def test_action_rule_ordering():
 	assert not (r2 >= r1)
 	assert (r2 <= r1)
 
+	r1 = ActionRule("alpha", priority=1, span=300, count=15)
+	r2 = ActionRule("alpha", priority=1, span=300, count=25)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	# s = sorted([r1, r2], reverse=True)
+	# pass
 
 
 def test_path_action_rule_ordering_no_path():
@@ -251,15 +266,15 @@ def test_path_action_rule_ordering_no_path():
 	r1 = PathsActionRule("alpha", priority=3, span=10, count=5)
 	r2 = PathsActionRule("alpha", priority=3, span=10, count=8)
 
-	assert not (r1 > r2)
-	assert (r1 < r2)
-	assert not (r1 >= r2)
-	assert (r1 <= r2)
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
 
-	assert (r2 > r1)
-	assert not (r2 < r1)
-	assert (r2 >= r1)
-	assert not (r2 <= r1)
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
 
 	r1 = PathsActionRule("alpha", priority=3, span=10, count=5)
 	r2 = PathsActionRule("alpha", priority=3, span=10, count=5)

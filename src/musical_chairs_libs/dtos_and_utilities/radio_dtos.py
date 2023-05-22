@@ -80,6 +80,7 @@ class Tag:
 class StationInfo:
 	id: int
 	name: str
+	ownerId: int
 	displayName: str=field(default="", hash=False, compare=False)
 	isRunning: bool=field(default=False, hash=False, compare=False)
 

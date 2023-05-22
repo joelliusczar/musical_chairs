@@ -101,10 +101,10 @@ def extra_validated_song(
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> ValidatedSongAboutInfo:
 	stationIds = {s.id for s in song.stations or []}
-	dbStations = {s.id for s in stationService.get_stations(
+	dbStations = {s[0].id for s in stationService.get_stations_and_rules(
 		stationKeys=stationIds,
-		ownerKey=user.id
-	)}
+		ownerId=user.id
+	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s[1])}
 	if stationIds - dbStations:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

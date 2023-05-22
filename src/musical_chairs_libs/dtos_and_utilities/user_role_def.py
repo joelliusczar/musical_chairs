@@ -21,16 +21,19 @@ class UserRoleDomain(Enum):
 	def conforms(self, candidate: str) -> bool:
 		return candidate.startswith(self.value)
 
+
 class UserRoleDef(Enum):
 	ADMIN = "admin"
 	SONG_EDIT = "song:edit"
 	SONG_DOWNLOAD = "song:download"
 	SONG_TREE_LIST = "songtree:list"
+	STATION_CREATE = f"{UserRoleDomain.Station.value}:create"
 	STATION_EDIT = f"{UserRoleDomain.Station.value}:edit"
 	STATION_DELETE = f"{UserRoleDomain.Station.value}:delete"
 	STATION_REQUEST = f"{UserRoleDomain.Station.value}:request"
 	STATION_FLIP = f"{UserRoleDomain.Station.value}:flip"
 	STATION_SKIP = f"{UserRoleDomain.Station.value}:skip"
+	STATION_ASSIGN = f"{UserRoleDomain.Station.value}:assign"
 	USER_LIST = "user:list"
 	USER_EDIT = "user:edit"
 	USER_IMPERSONATE = "user:impersonate"
@@ -44,6 +47,11 @@ class UserRoleDef(Enum):
 
 	def conforms(self, candidate: str) -> bool:
 		return candidate.startswith(self.nameValue)
+
+	@classmethod
+	@property
+	def default_owner_priority(cls) -> int:
+		return 2
 
 	@property
 	def nameValue(self):

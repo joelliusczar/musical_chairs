@@ -103,6 +103,7 @@ def get_owner_from_path(
 ) -> Optional[AccountInfo]:
 	return accountsService.get_account_for_edit(ownerKey)
 
+
 def get_station_by_name_and_owner(
 	stationKey: Union[int, str],
 	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
@@ -125,6 +126,28 @@ def get_station_by_name_and_owner(
 		)
 	return station
 
+def get_station_and_rules_by_name_and_owner(
+	stationKey: Union[int, str],
+	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
+	stationService: StationService = Depends(station_service)
+) -> Tuple[StationInfo, list[ActionRule]]:
+	if not owner:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"user not found")
+			]
+		)
+	stationAndRules = next(stationService.get_stations_and_rules(
+		owner.id,
+		stationKey
+	), None)
+	if not stationAndRules:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"station with key {stationKey} not found")
+			]
+		)
+	return stationAndRules
 
 def get_user_from_token(
 	token: str,
@@ -346,7 +369,8 @@ def get_multi_path_user(
 
 def get_station_user(
 	securityScopes: SecurityScopes,
-	station: StationInfo = Depends(get_station_by_name_and_owner),
+	stationAndRules: Tuple[StationInfo, list[ActionRule]]=\
+		Depends(get_station_and_rules_by_name_and_owner),
 	user: AccountInfo = Depends(get_current_user_simple),
 	stationService: StationService = Depends(station_service)
 ) -> StationUserInfo:
@@ -357,8 +381,8 @@ def get_station_user(
 		raise build_wrong_permissions_error()
 	if user.isAdmin:
 		return StationUserInfo(**asdict(user))
-	stationUser = stationService.get_station_user(user, station.id)
-	rules = sorted(stationUser.roles, reverse=True)
+	sortedRules = sorted(chain(user.roles, stationAndRules[1]), reverse=True)
+	rules = [*ActionRule.filter_out_repeat_roles(sortedRules)]
 	for scope in scopes:
 		bestRuleGenerator = (r for g in
 			groupby(
@@ -375,7 +399,7 @@ def get_station_user(
 				whenNext = stationService.calc_when_user_can_next_do_action(
 					user.id,
 					selectedRule,
-					station.id
+					stationAndRules[0].id
 				)
 				if whenNext > 0:
 					currentTimestamp = get_datetime().timestamp()
@@ -385,7 +409,12 @@ def get_station_user(
 				raise build_wrong_permissions_error()
 		else:
 			raise build_wrong_permissions_error()
-	return stationUser
+	userDict = asdict(user)
+	userDict["roles"] = rules
+	return StationUserInfo(
+		**userDict,
+		stationId=stationAndRules[0].id
+	)
 
 
 def get_account_if_can_edit(

@@ -729,6 +729,11 @@ station_params = [
 		"name": "xray_station",
 		"displayName": "Pentagular",
 		"ownerFk": bravo_user_id
+	},
+	{ "pk": 11,
+		"name": "zulu_station",
+		"displayName": "Hammer time",
+		"ownerFk": juliet_user_id
 	}
 ]
 
@@ -1088,7 +1093,7 @@ def get_station_permission_params(
 	return [
 		{
 			"pk":1,
-			"userFk": 11,
+			"userFk": kilo_user_id,
 			"stationFk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":0,
@@ -1098,7 +1103,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":2,
-			"userFk": 12,
+			"userFk": lima_user_id,
 			"stationFk": None,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":0,
@@ -1108,7 +1113,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":3,
-			"userFk": 13,
+			"userFk": mike_user_id,
 			"stationFk": None,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":0,
@@ -1118,7 +1123,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":4,
-			"userFk": 13,
+			"userFk": mike_user_id,
 			"stationFk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":0,
@@ -1128,7 +1133,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":5,
-			"userFk": 14,
+			"userFk": november_user_id,
 			"stationFk": None,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":300,
@@ -1138,7 +1143,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":6,
-			"userFk": 14,
+			"userFk": november_user_id,
 			"stationFk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":300,
@@ -1148,7 +1153,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":7,
-			"userFk": 15,
+			"userFk": oscar_user_id,
 			"stationFk": None,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":120,
@@ -1158,7 +1163,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":8,
-			"userFk": 15,
+			"userFk": oscar_user_id,
 			"stationFk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":60,
@@ -1168,7 +1173,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":9,
-			"userFk": 16,
+			"userFk": papa_user_id,
 			"stationFk": None,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":300,
@@ -1178,7 +1183,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":10,
-			"userFk": 16,
+			"userFk": papa_user_id,
 			"stationFk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":300,
@@ -1188,7 +1193,7 @@ def get_station_permission_params(
 		},
 		{
 			"pk":11,
-			"userFk": 17,
+			"userFk": quebec_user_id,
 			"stationFk": None,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":300,
@@ -1198,14 +1203,44 @@ def get_station_permission_params(
 		},
 		{
 			"pk":12,
-			"userFk": 17,
+			"userFk": quebec_user_id,
 			"stationFk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":300,
 			"count":25,
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
-		}
+		},
+		{
+			"pk":13,
+			"userFk": juliet_user_id,
+			"stationFk": 9,
+			"role": UserRoleDef.STATION_ASSIGN.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":14,
+			"userFk": juliet_user_id,
+			"stationFk": 5,
+			"role": UserRoleDef.STATION_ASSIGN.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":15,
+			"userFk": juliet_user_id,
+			"stationFk": 9,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
 	]
 
 def get_path_permission_params(

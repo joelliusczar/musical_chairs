@@ -9,7 +9,7 @@ from typing import (
 from pydantic import validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
-from .user_role_def import UserRoleDef
+from .user_role_def import UserRoleDef, UserRoleDomain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import (
 	get_duplicates,
@@ -21,28 +21,53 @@ from .action_rule_dtos import (ActionRule, PathsActionRule)
 from .absorbent_trie import AbsorbentTrie
 from itertools import chain
 
+def get_station_owner_rules() -> Iterator[ActionRule]:
+	#STATION_CREATE, STATION_FLIP, STATION_REQUEST, STATION_SKIP
+	# left out of here on purpose
+	# for STATION_FLIP, STATION_REQUEST, STATION_SKIP, we should have
+	#explicit rules with defined limts
+	yield ActionRule(
+		UserRoleDef.STATION_ASSIGN.value,
+		priority=UserRoleDef.default_owner_priority,
+		domain=UserRoleDomain.Station
+	)
+	yield ActionRule(
+		UserRoleDef.STATION_DELETE.value,
+		priority=UserRoleDef.default_owner_priority,
+		domain=UserRoleDomain.Station
+	)
+	yield ActionRule(
+		UserRoleDef.STATION_EDIT.value,
+		priority=UserRoleDef.default_owner_priority,
+		domain=UserRoleDomain.Station
+	)
+
 def get_path_owner_roles(ownerDir: Optional[str]) -> Iterator[PathsActionRule]:
 		if not ownerDir:
 			return
 		yield PathsActionRule(
 			UserRoleDef.PATH_LIST.value,
-			priority=2,
-			path=ownerDir
+			priority=UserRoleDef.default_owner_priority,
+			path=ownerDir,
+			domain=UserRoleDomain.Path
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_VIEW.value,
-			priority=2,
-			path=ownerDir
+			priority=UserRoleDef.default_owner_priority,
+			path=ownerDir,
+			domain=UserRoleDomain.Path
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_EDIT.value,
-			priority=2,
-			path=ownerDir
+			priority=UserRoleDef.default_owner_priority,
+			path=ownerDir,
+			domain=UserRoleDomain.Path
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_DOWNLOAD.value,
-			priority=2,
-			path=ownerDir
+			priority=UserRoleDef.default_owner_priority,
+			path=ownerDir,
+			domain=UserRoleDomain.Path
 		)
 
 @dataclass(frozen=True)

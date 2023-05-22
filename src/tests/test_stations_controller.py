@@ -21,7 +21,7 @@ def test_invalid_post_duplicate_name(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	headers = login_test_user("testUser_juliet", client)
+	julietHeaders = login_test_user("testUser_juliet", client)
 	testData: dict[str, Any] = {
 		"name": "oscar_station",
 		"displayName":"Oscar the grouch"
@@ -29,7 +29,22 @@ def test_invalid_post_duplicate_name(
 
 	response = client.post(
 		"stations",
-		headers=headers,
+		headers=julietHeaders,
+		json=testData
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 403
+
+	client = fixture_api_test_client
+	bravoHeaders = login_test_user("testUser_bravo", client)
+	testData: dict[str, Any] = {
+		"name": "oscar_station",
+		"displayName":"Oscar the grouch"
+	}
+
+	response = client.post(
+		"stations",
+		headers=bravoHeaders,
 		json=testData
 	)
 	data = json.loads(response.content)
@@ -48,7 +63,7 @@ def test_post_with_only_name(
 ):
 	client = fixture_api_test_client
 	initialStations = get_initial_stations()
-	headers = login_test_user("testUser_juliet", client)
+	headers = login_test_user("testUser_tango", client)
 	testData: dict[str, Any] = {
 		"name": "test_station",
 	}
@@ -63,7 +78,7 @@ def test_post_with_only_name(
 	nextId = data["id"]
 	assert nextId == len(initialStations) + 1
 
-	response = client.get("stations", params={ "id": nextId })
+	response = client.get(f"stations/20/{nextId}")
 	fetched = json.loads(response.content)
 	assert response.status_code == 200
 	assert fetched["name"] == "test_station"
@@ -73,8 +88,10 @@ def test_updating_unchanged(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
+	headers = login_test_user("testUser_bravo", client)
 	response = client.get(
 		"stations/check/?name=romeo_station&id=3",
+		headers=headers,
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
@@ -82,6 +99,7 @@ def test_updating_unchanged(
 
 	response = client.get(
 		"stations/check/?name=romeo_station&id=4",
+		headers=headers,
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
@@ -96,7 +114,7 @@ def test_request_song(
 	headers = login_test_user("testUser_kilo", client)
 
 	response = client.post(
-		"stations/romeo_station/request/36",
+		"stations/testUser_bravo/romeo_station/request/36",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -105,7 +123,7 @@ def test_request_song(
 	headers = login_test_user("testUser_lima", client)
 
 	response = client.post(
-		"stations/romeo_station/request/36",
+		"stations/testUser_bravo/romeo_station/request/36",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -113,7 +131,7 @@ def test_request_song(
 	headers = login_test_user("testUser_mike", client)
 
 	response = client.post(
-		"stations/romeo_station/request/36",
+		"stations/testUser_bravo/romeo_station/request/36",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -127,13 +145,13 @@ def test_request_song_only_one_staion_allowed(
 	headers = login_test_user("testUser_kilo", client)
 
 	response = client.post(
-		"stations/romeo_station/request/36",
+		"stations/testUser_bravo/romeo_station/request/36",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/papa_station/request/40",
+		"stations/testUser_bravo/papa_station/request/40",
 		headers=headers
 	)
 	assert response.status_code == 403
@@ -145,25 +163,25 @@ def test_request_song_any_station(
 	headers = login_test_user("testUser_mike", client)
 
 	response = client.post(
-		"stations/romeo_station/request/36",
+		"stations/2/romeo_station/request/36",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/papa_station/request/40",
+		"stations/2/papa_station/request/40",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/oscar_station/request/30",
+		"stations/2/oscar_station/request/30",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/sierra_station/request/15",
+		"stations/2/sierra_station/request/15",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -184,7 +202,7 @@ def test_request_song_timeout(
 	#5 t=m+3, s+7 [6]
 	for _ in datetimeProvider(5):
 		response = client.post(
-			"stations/romeo_station/request/36",
+			"stations/testUser_bravo/3/request/36",
 			headers=headers
 		)
 		assert response.status_code == 200
@@ -197,7 +215,7 @@ def test_request_song_timeout(
 	#10 t=m+4, s+59 [11]
 	for _ in datetimeProvider(5):
 		response = client.post(
-			"stations/romeo_station/request/36",
+			"stations/testUser_bravo/3/request/36",
 			headers=headers
 		)
 		assert response.status_code == 429
@@ -206,7 +224,7 @@ def test_request_song_timeout(
 
 	#12 t=m+5 [12]
 	response = client.post(
-			"stations/romeo_station/request/36",
+			"stations/testUser_bravo/3/request/36",
 			headers=headers
 	)
 	assert response.status_code == 200
@@ -215,7 +233,7 @@ def test_request_song_timeout(
 
 	#13 t=m+5, s+14 [13]
 	response = client.post(
-			"stations/romeo_station/request/36",
+			"stations/testUser_bravo/3/request/36",
 			headers=headers
 	)
 	assert response.status_code == 429

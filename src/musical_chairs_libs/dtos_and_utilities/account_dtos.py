@@ -171,12 +171,6 @@ class PasswordInfo:
 	oldPassword: str
 	newPassword: str
 
-
-@dataclass(frozen=True)
-class StationUserInfo(AccountInfo):
-	stationId: Optional[int]=None
-
-
 @dataclass(frozen=True)
 class UserHistoryActionItem:
 	userId: int

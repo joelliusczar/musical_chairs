@@ -104,7 +104,7 @@ def song_catalogue(
 	)
 	return TableData(totalRows=totalRows, items=songs)
 
-@router.post("/{ownerKey}/{stationName}/request/{songId}")
+@router.post("/{ownerKey}/{stationKey}/request/{songId}")
 def request_song(
 	songId: int,
 	station: StationInfo = Depends(get_station_by_name_and_owner),
@@ -177,7 +177,7 @@ def get_station(
 		)
 	return stationInfo
 
-@router.get("/{ownerKey}/{stationName}/")
+@router.get("/{ownerKey}/{stationKey}/")
 def get_station_for_edit(
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner)
 ) -> StationInfo:
@@ -189,7 +189,7 @@ def create_station(
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
 		get_user_with_rate_limited_scope,
-		scopes=[UserRoleDef.STATION_EDIT()]
+		scopes=[UserRoleDef.STATION_CREATE.value]
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station, user=user)

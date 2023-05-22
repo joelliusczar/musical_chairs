@@ -36,7 +36,7 @@ def test_get_stations_list(fixture_station_service: StationService):
 def test_get_stations_list_with_user(fixture_station_service: StationService):
 	stationService = fixture_station_service
 	data = sorted(
-		stationService.get_stations(None, ownerId=bravo_user_id),
+		stationService.get_stations_and_rules(bravo_user_id),
 		key=lambda s:s[0].id
 	)
 	assert len(data) == 10
@@ -62,7 +62,7 @@ def test_get_stations_list_with_user(fixture_station_service: StationService):
 	assert len(data[9][1]) == 3
 
 	data = sorted(
-		stationService.get_stations(None, ownerId=juliet_user_id),
+		stationService.get_stations_and_rules(juliet_user_id),
 		key=lambda s:s[0].id
 	)
 	assert len(data) == 3
@@ -142,47 +142,68 @@ def test_get_station_user_rule_selection(
 
 	user,_ = accountService.get_account_for_login("testUser_november")
 	assert user
-	stationUser = stationService.get_station_user(user, 3)
-	assert stationUser
-	assert len(stationUser.roles) == 1
-	assert stationUser.roles[0].name == UserRoleDef.STATION_REQUEST.value
-	assert stationUser.roles[0].priority == 1
-	assert stationUser.roles[0].count == 5
-	assert stationUser.roles[0].span == 300
-	stationUser = stationService.get_station_user(user,4)
-	assert stationUser
-	assert len(stationUser.roles) == 1
-	assert stationUser.roles[0].name == UserRoleDef.STATION_REQUEST.value
-	assert stationUser.roles[0].priority == 0
-	assert stationUser.roles[0].count == 10
-	assert stationUser.roles[0].span == 300
+	rules = sorted(stationService.get_station_rules(user.id, 3), reverse=True)
+	assert rules
+	assert len(rules) == 2
+	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[0].priority == 1
+	assert rules[0].count == 5
+	assert rules[0].span == 300
+
+	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[1].priority == 0
+	assert rules[1].count == 10
+	assert rules[1].span == 300
+	rules = sorted(stationService.get_station_rules(user.id,4), reverse=True)
+	assert rules
+	assert len(rules) == 1
+	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[0].priority == 0
+	assert rules[0].count == 10
+	assert rules[0].span == 300
 	user,_ = accountService.get_account_for_login("testUser_oscar")
 	assert user
-	stationUser = stationService.get_station_user(user,3)
-	assert stationUser
-	assert len(stationUser.roles) == 1
-	assert stationUser.roles[0].name == UserRoleDef.STATION_REQUEST.value
-	assert stationUser.roles[0].priority == 2
-	assert stationUser.roles[0].count == 5
-	assert stationUser.roles[0].span == 120
+	rules = sorted(stationService.get_station_rules(user.id,3), reverse=True)
+	assert rules
+	assert len(rules) == 2
+	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[0].priority == 2
+	assert rules[0].count == 5
+	assert rules[0].span == 120
+
+	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[1].priority == 1
+	assert rules[1].count == 5
+	assert rules[1].span == 60
 
 	user,_ = accountService.get_account_for_login("testUser_papa")
 	assert user
-	stationUser = stationService.get_station_user(user,3)
-	assert stationUser
-	assert len(stationUser.roles) == 1
-	assert stationUser.roles[0].name == UserRoleDef.STATION_REQUEST.value
-	assert stationUser.roles[0].priority == 1
-	assert stationUser.roles[0].count == 25
-	assert stationUser.roles[0].span == 300
+	rules = sorted(stationService.get_station_rules(user.id,3), reverse=True)
+	assert rules
+	assert len(rules) == 2
+	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[0].priority == 1
+	assert rules[0].count == 25
+	assert rules[0].span == 300
+
+	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[1].priority == 0
+	assert rules[1].count == 20
+	assert rules[1].span == 300
 
 	user,_ = accountService.get_account_for_login("testUser_quebec")
 	assert user
-	stationUser = stationService.get_station_user(user,3)
-	assert stationUser
-	assert len(stationUser.roles) == 1
-	assert stationUser.roles[0].domain == UserRoleDomain.Site
-	assert stationUser.roles[0].name == UserRoleDef.STATION_REQUEST.value
-	assert stationUser.roles[0].priority == 1
-	assert stationUser.roles[0].count == 15
-	assert stationUser.roles[0].span == 300
+	rules = sorted(stationService.get_station_rules(user.id,3), reverse=True)
+	assert rules
+	assert len(rules) == 2
+	assert rules[0].domain == UserRoleDomain.Station
+	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[0].priority == 1
+	assert rules[0].count == 25
+	assert rules[0].span == 300
+
+	assert rules[1].domain == UserRoleDomain.Station
+	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[1].priority == 0
+	assert rules[1].count == 20
+	assert rules[1].span == 300

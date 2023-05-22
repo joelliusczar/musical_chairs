@@ -29,6 +29,7 @@ papa_user_id = 16
 quebec_user_id = 17
 romeo_user_id = 18
 sierra_user_id = 19
+tango_user_id = 20
 
 artist_params = [
 	{
@@ -988,6 +989,16 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": None
+		},
+		{
+			"pk": tango_user_id,
+			"username": "testUser_tango",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test20@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		}
 	]
 	return users_params
@@ -1031,7 +1042,7 @@ def get_user_role_params(
 		},
 		{
 			"userFk": delta_user_id,
-			"role": UserRoleDef.SONG_EDIT.value,
+			"role": UserRoleDef.PATH_EDIT.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
 			"count": 0,
@@ -1071,7 +1082,7 @@ def get_user_role_params(
 		},
 		{
 			"userFk": juliet_user_id,
-			"role": UserRoleDef.STATION_EDIT(),
+			"role": UserRoleDef.STATION_EDIT.value,
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span": 0,
 			"count": 0,
@@ -1083,6 +1094,22 @@ def get_user_role_params(
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span":300,
 			"count":15,
+			"priority": None
+		},
+		{
+			"userFk": bravo_user_id,
+			"role": UserRoleDef.STATION_CREATE.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": None
+		},
+		{
+			"userFk": tango_user_id,
+			"role": UserRoleDef.STATION_CREATE.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
 			"priority": None
 		}
 	]

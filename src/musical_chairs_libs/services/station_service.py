@@ -10,7 +10,6 @@ from typing import (
 	overload,
 	Literal
 )
-from dataclasses import asdict
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.engine import Connection
@@ -45,7 +44,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	build_error_obj,
 	AccountInfo,
-	StationUserInfo,
 	ActionRule,
 	IllegalOperationError,
 	UserRoleDef,
@@ -55,7 +53,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from .env_manager import EnvManager
 from .template_service import TemplateService
-from itertools import chain
 
 
 class StationService:
@@ -214,7 +211,7 @@ class StationService:
 				.where(or_(st_ownerFk == ownerId, stup_userFk == ownerId))
 		if type(stationKeys) == int:
 			query = query.where(st_pk == stationKeys)
-		elif isinstance(stationKeys, Iterable):
+		elif isinstance(stationKeys, Iterable) and not isinstance(stationKeys, str):
 			query = query.where(st_pk.in_(stationKeys))
 		elif type(stationKeys) is str and not ownerId:
 			raise ValueError("user must be provided when using station name")
@@ -387,11 +384,11 @@ class StationService:
 			ownerId=user.id
 		)
 
-	def __get_station_rules(
+	def get_station_rules(
 		self,
 		userId: int,
 		stationKey: Union[int, str]
-	) -> Tuple[Optional[int],Iterator[ActionRule]]:
+	) -> Iterator[ActionRule]:
 		query = select(
 			st_pk,
 			stup_role,
@@ -407,44 +404,11 @@ class StationService:
 		elif type(stationKey) == str:
 			query = query.where(or_(st_name == stationKey, st_name.is_(None)))
 		else:
-			return None, iter([])
+			return iter([])
 		query = query.order_by(stup_role, st_pk)
 		records = self.conn.execute(query).fetchall()
-		fetchedStationId = next(
-			(cast(int, row[st_pk]) for row in records if row[st_pk]),
-			None
-		)
-		generator = (ActionRule(
-				cast(str, row[stup_role]),
-				cast(int, row[stup_span]),
-				cast(int, row[stup_count]),
-				cast(int,row[stup_priority])
-					#if priortity is explict use that
-					#otherwise, prefer station specific rule vs non station specific rule
-					if row[stup_priority] else 1 if row[st_pk] else 0,
-				UserRoleDomain.Station
-			) for row in records)
-		return fetchedStationId, generator
+		yield from (self.__row_to_action_rule__(row) for row in records)
 
-
-	def get_station_user(
-		self,
-		user: AccountInfo,
-		stationKey: Union[int, str]
-	) -> StationUserInfo:
-
-		fetchedStationId, rules_generator = self.__get_station_rules(
-			user.id,
-			stationKey
-		)
-		sortedRules = sorted(chain(user.roles, rules_generator), reverse=True)
-		roles = [*ActionRule.filter_out_repeat_roles(sortedRules)]
-		userDict = asdict(user)
-		userDict["roles"] = roles
-		return StationUserInfo(
-			**userDict,
-			stationId=fetchedStationId
-		)
 
 	def get_user_request_history(
 		self,

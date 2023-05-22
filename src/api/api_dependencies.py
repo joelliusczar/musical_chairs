@@ -15,7 +15,6 @@ from musical_chairs_libs.services import (
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	build_error_obj,
-	StationUserInfo,
 	UserRoleDomain,
 	IllegalOperationError,
 	ActionRule,
@@ -369,19 +368,23 @@ def get_multi_path_user(
 
 def get_station_user(
 	securityScopes: SecurityScopes,
-	stationAndRules: Tuple[StationInfo, list[ActionRule]]=\
-		Depends(get_station_and_rules_by_name_and_owner),
+	station: StationInfo=Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_current_user_simple),
 	stationService: StationService = Depends(station_service)
-) -> StationUserInfo:
+) -> AccountInfo:
 	scopes = (s for s in securityScopes.scopes \
 		if UserRoleDomain.Station.conforms(s)
 	)
 	if not scopes:
 		raise build_wrong_permissions_error()
 	if user.isAdmin:
-		return StationUserInfo(**asdict(user))
-	sortedRules = sorted(chain(user.roles, stationAndRules[1]), reverse=True)
+		return user
+	sortedRules = sorted(chain(
+			user.roles,
+			stationService.get_station_rules(user.id,station.id)
+		),
+		reverse=True
+	)
 	rules = [*ActionRule.filter_out_repeat_roles(sortedRules)]
 	for scope in scopes:
 		bestRuleGenerator = (r for g in
@@ -399,7 +402,7 @@ def get_station_user(
 				whenNext = stationService.calc_when_user_can_next_do_action(
 					user.id,
 					selectedRule,
-					stationAndRules[0].id
+					station.id
 				)
 				if whenNext > 0:
 					currentTimestamp = get_datetime().timestamp()
@@ -411,10 +414,7 @@ def get_station_user(
 			raise build_wrong_permissions_error()
 	userDict = asdict(user)
 	userDict["roles"] = rules
-	return StationUserInfo(
-		**userDict,
-		stationId=stationAndRules[0].id
-	)
+	return AccountInfo(**userDict)
 
 
 def get_account_if_can_edit(

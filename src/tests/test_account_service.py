@@ -203,39 +203,39 @@ def test_unique_roles():
 	assert result.name == UserRoleDef.STATION_REQUEST.value
 	with pytest.raises(StopIteration):
 		next(gen)
-	testRoles2 = [
+	testRoles2 = ActionRule.sorted([
 		ActionRule(UserRoleDef.STATION_REQUEST.value, span=5, count=1),
 		ActionRule(UserRoleDef.STATION_REQUEST.value, span=15, count=1)
-	]
+	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles2)
 	results = list(gen)
 	assert len(results) == 1
 	assert results[0].name == UserRoleDef.STATION_REQUEST.value
 	assert results[0].span == 15
-	testRoles3 = [
+	testRoles3 = ActionRule.sorted([
 		ActionRule(UserRoleDef.STATION_REQUEST.value),
 		ActionRule(UserRoleDef.STATION_REQUEST.value, span=15, count=1)
-	]
+	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles3)
 	results = list(gen)
 	assert len(results) == 1
 	assert results[0].name == UserRoleDef.STATION_REQUEST.value
 	assert results[0].span == 15
-	testRoles4 = [
+	testRoles4 = ActionRule.sorted([
 		ActionRule(UserRoleDef.STATION_REQUEST.value),
 		ActionRule(UserRoleDef.STATION_REQUEST.value, span=15, count=1),
 		ActionRule(UserRoleDef.SONG_EDIT.value, span=60, count=1),
 		ActionRule(UserRoleDef.SONG_EDIT.value, span=15, count=1),
 		ActionRule(UserRoleDef.USER_LIST.value)
-	]
+	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles4)
-	results = sorted(gen)
+	results = list(gen)
 	assert len(results) == 3
+	assert results[2].name == UserRoleDef.USER_LIST.value
 	assert results[0].name == UserRoleDef.SONG_EDIT.value
 	assert results[0].span == 60
 	assert results[1].name == UserRoleDef.STATION_REQUEST.value
 	assert results[1].span == 15
-	assert results[2].name == UserRoleDef.USER_LIST.value
 
 
 @pytest.mark.echo(True)

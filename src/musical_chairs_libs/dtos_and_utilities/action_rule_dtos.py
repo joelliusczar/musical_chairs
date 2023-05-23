@@ -1,7 +1,10 @@
+import sys
 from typing import (Any, Optional, Iterable, Iterator)
 from dataclasses import dataclass
 from .user_role_def import UserRoleDomain
 from itertools import groupby
+from operator import attrgetter
+
 
 
 
@@ -17,6 +20,19 @@ class ActionRule:
 	priority: Optional[int]=0
 	domain: UserRoleDomain=UserRoleDomain.Site
 
+	@staticmethod
+	def sorted(rules: Iterable["ActionRule"]) -> list["ActionRule"]:
+		s = sorted(rules, key=attrgetter("score"))
+		s.sort(key=attrgetter("priority"), reverse=True)
+		s.sort(key=attrgetter("name"))
+		return s
+
+	@property
+	def score(self) -> float:
+		if self.noLimit:
+			return sys.maxsize
+		return abs(self.count / self.span)
+
 	@property
 	def noLimit(self) -> bool:
 		return not self.span
@@ -31,42 +47,6 @@ class ActionRule:
 	def conforms(self, rule: str) -> bool:
 		return rule == self.name
 
-	def __gt_help__(self, other: "ActionRule") -> bool:
-		if self.noLimit and other.noLimit:
-			return False
-		if self.noLimit:
-			return True
-		if other.noLimit:
-			return False
-		return abs(self.count / self.span) < abs(other.count / other.span)
-
-	def __lt_help__(self, other: "ActionRule") -> bool:
-		if self.noLimit and other.noLimit:
-			return False
-		if self.noLimit:
-			return False
-		if other.noLimit:
-			return True
-		return abs(self.count / self.span) > abs(other.count / other.span)
-
-	def __ge_help__(self, other: "ActionRule") -> bool:
-		if self.noLimit and other.noLimit:
-			return True
-		if self.noLimit:
-			return True
-		if other.noLimit:
-			return False
-		return abs(self.count / self.span) <= abs(other.count / other.span)
-
-	def __le_help__(self, other: "ActionRule") -> bool:
-		if self.noLimit and other.noLimit:
-			return True
-		if self.noLimit:
-			return False
-		if other.noLimit:
-			return True
-		return abs(self.count / self.span) >= abs(other.count / other.span)
-
 	def __gt__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:
 			return True
@@ -76,7 +56,7 @@ class ActionRule:
 			return True
 		if (self.priority or 0) < (other.priority or 0):
 			return False
-		return self.__gt_help__(other)
+		return self.score > other.score
 
 	def __lt__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
@@ -87,7 +67,7 @@ class ActionRule:
 			return True
 		if (self.priority or 0) > (other.priority or 0):
 			return False
-		return self.__lt_help__(other)
+		return self.score < other.score
 
 	def __ge__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:
@@ -98,7 +78,7 @@ class ActionRule:
 			return True
 		if (self.priority or 0) < (other.priority or 0):
 			return False
-		return self.__ge_help__(other)
+		return self.score >= other.score
 
 	def __le__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
@@ -109,7 +89,7 @@ class ActionRule:
 			return True
 		if (self.priority or 0) > (other.priority or 0):
 			return False
-		return self.__le_help__(other)
+		return self.score <= other.score
 
 	def __eq__(self, other: Any) -> bool:
 		if not other:
@@ -163,7 +143,7 @@ class PathsActionRule(ActionRule):
 				return True
 		else:
 			return True
-		return self.__gt_help__(other)
+		return self.score > other.score
 
 	def __lt__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
@@ -181,7 +161,7 @@ class PathsActionRule(ActionRule):
 				return False
 		else:
 			return False
-		return self.__lt_help__(other)
+		return self.score < other.score
 
 	def __le__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
@@ -199,7 +179,7 @@ class PathsActionRule(ActionRule):
 				return False
 		else:
 			return False
-		return self.__le_help__(other)
+		return self.score <= other.score
 
 	def __ge__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:
@@ -217,7 +197,7 @@ class PathsActionRule(ActionRule):
 				return True
 		else:
 			return True
-		return self.__ge_help__(other)
+		return self.score >= other.score
 
 
 

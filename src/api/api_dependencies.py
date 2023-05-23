@@ -202,7 +202,7 @@ def get_user_with_rate_limited_scope(
 		check_scope(
 			scope,
 			user,
-			sorted(user.roles, reverse=True),
+			ActionRule.sorted(user.roles),
 			userActionHistoryService
 		)
 	return user
@@ -222,14 +222,9 @@ def check_scope(
 	rules: Iterable[ActionRule],
 	userActionHistoryService: UserActionsHistoryService
 ):
-	bestRuleGenerator = (r for g in
-			groupby(
-				(r for r in rules if r.conforms(scope)),
-				lambda k: k.name
-			) for r in g[1]
-		)
 	selectedRule = next(
-		bestRuleGenerator,
+		(r for r in ActionRule.filter_out_repeat_roles(rules) \
+			if r.conforms(scope)),
 		None
 	)
 	if selectedRule:
@@ -254,10 +249,9 @@ def check_if_can_use_path(
 	userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
 	userActionHistoryService: UserActionsHistoryService
 ):
-	rules = sorted(
+	rules = ActionRule.sorted(
 		(r for i in userPrefixTrie.values(normalize_opening_slash(prefix)) \
-			for r in i),
-		reverse=True
+			for r in i)
 	)
 	if not rules:
 		raise HTTPException(
@@ -281,16 +275,16 @@ def get_path_user(
 		return user
 	if not scopes:
 		raise build_wrong_permissions_error()
-	roles = sorted((r for r in chain(
+	rules = ActionRule.sorted((r for r in chain(
 		user.roles,
 		(p for p in songInfoService.get_paths_user_can_see(user.id)),
 		(p for p in get_path_owner_roles(user.dirRoot))
-	) if r.name in scopes), reverse=True)
-	roleNameSet = {r.name for r in roles}
+	) if r.name in scopes))
+	roleNameSet = {r.name for r in rules}
 	if any(s for s in scopes if s not in roleNameSet):
 		raise build_wrong_permissions_error()
 	userDict = asdict(user)
-	userDict["roles"] = roles
+	userDict["roles"] = rules
 	resultUser = AccountInfo(
 		**userDict,
 	)
@@ -379,12 +373,10 @@ def get_station_user(
 		raise build_wrong_permissions_error()
 	if user.isAdmin:
 		return user
-	sortedRules = sorted(chain(
+	sortedRules = ActionRule.sorted(chain(
 			user.roles,
 			stationService.get_station_rules(user.id,station.id)
-		),
-		reverse=True
-	)
+	))
 	rules = [*ActionRule.filter_out_repeat_roles(sortedRules)]
 	for scope in scopes:
 		bestRuleGenerator = (r for g in

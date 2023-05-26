@@ -126,11 +126,12 @@ export const useHasAnyRoles = (requiredRoles) => {
 	if(!requiredRoles || requiredRoles.length < 1) return true;
 	const { state: { data } } = useContext(AuthContext);
 	const userRoles = data?.roles;
-	if(userRoles?.some(r => conformsToRole(r, UserRoleDef.ADMIN))) {
+
+	if(userRoles?.some(r => conformsToRole(r.name, UserRoleDef.ADMIN))) {
 		return true;
 	}
 	for (const role of requiredRoles) {
-		if(userRoles?.some(r => conformsToRole(r, role))) {
+		if(userRoles?.some(r => conformsToRole(r.name, role))) {
 			return true;
 		}
 	}

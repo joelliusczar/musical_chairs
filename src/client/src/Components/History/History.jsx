@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchHistory } from "../../API_Calls/stationCalls";
 import {
 	Table,
@@ -32,9 +32,8 @@ import { getDownloadAddress } from "../../Helpers/url_helpers";
 export const History = () => {
 
 	const location = useLocation();
-	const queryObj = new URLSearchParams(location.search);
-	const stationNameFromQS = queryObj.get("name") || "";
-	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const pathVars = useParams();
+	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
@@ -73,27 +72,29 @@ export const History = () => {
 	};
 
 	useEffect(() => {
+		const stationTitle = `- ${pathVars.stationKey || ""}`;
 		document.title =
-			`Musical Chairs - History${`- ${stationNameFromQS || ""}`}`;
-	},[stationNameFromQS]);
+			`Musical Chairs - History${stationTitle}`;
+	},[pathVars.stationKey]);
 
 	useEffect(() => {
 		const fetch = async () => {
-			if (currentQueryStr === location.search) return;
+			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			const stationNameFromQS = queryObj.get("name");
-			if (!stationNameFromQS) return;
+			if (!pathVars.stationKey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			historyDispatch(dispatches.started());
 			try {
 				const data = await fetchHistory({
-					station: stationNameFromQS,
+					stationKey: pathVars.stationKey,
+					ownerKey: pathVars.ownerKey,
 					params: { page: page - 1, limit: limit } }
 				);
 				historyDispatch(dispatches.done(data));
-				setCurrentQueryStr(location.search);
+				setCurrentQueryStr(`${location.pathname}${location.search}`);
+
 			}
 			catch (err) {
 				historyDispatch(dispatches.failed(formatError(err)));
@@ -104,14 +105,17 @@ export const History = () => {
 	},[
 		historyDispatch,
 		fetchHistory,
+		pathVars.stationKey,
+		pathVars.ownerKey,
 		location.search,
+		location.pathname,
 		currentQueryStr,
 		setCurrentQueryStr,
 	]);
 
 	return (
 		<>
-			<h1>History: {stationNameFromQS}</h1>
+			<h1>History: {pathVars.stationKey}</h1>
 			<Box m={1}>
 				<StationSelect getPageUrl={getPageUrl} />
 			</Box>

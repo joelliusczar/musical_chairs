@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchQueue, removeSongFromQueue } from "../../API_Calls/stationCalls";
 import {
 	Table,
@@ -45,10 +45,10 @@ const queueInitialState = {
 export const Queue = () => {
 
 	const location = useLocation();
+	const pathVars = useParams();
 	const queryObj = new URLSearchParams(location.search);
-	const stationNameFromQS = queryObj.get("name") || "";
 	const { enqueueSnackbar } = useSnackbar();
-	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canSkipSongs = useHasAnyRoles([UserRoleDef.STATION_SKIP]);
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
@@ -99,7 +99,7 @@ export const Queue = () => {
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			const data = await removeSongFromQueue({
-				stationName: stationNameFromQS,
+				stationName: pathVars.stationKey,
 				songId: item?.id,
 				queuedTimestamp: item?.queuedTimestamp,
 				page: page - 1,
@@ -114,27 +114,28 @@ export const Queue = () => {
 	};
 
 	useEffect(() => {
-		document.title = `Musical Chairs - Queue${`- ${stationNameFromQS || ""}`}`;
-	},[stationNameFromQS]);
+		const stationTitle = `- ${pathVars.stationKey || ""}`;
+		document.title = `Musical Chairs - Queue${stationTitle}`;
+	},[pathVars.stationKey]);
 
 
 	useEffect(() => {
 		const fetch = async () => {
-			if (currentQueryStr === location.search) return;
+			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			const stationNameFromQS = queryObj.get("name");
-			if (!stationNameFromQS) return;
+			if (!pathVars.stationKey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			queueDispatch(dispatches.started());
 			try {
 				const data = await fetchQueue({
-					station: stationNameFromQS,
+					stationKey: pathVars.stationKey,
+					ownerKey: pathVars.ownerKey,
 					params: { page: page - 1, limit: limit } }
 				);
 				queueDispatch(dispatches.done(data));
-				setCurrentQueryStr(location.search);
+				setCurrentQueryStr(`${location.pathname}${location.search}`);
 			}
 			catch (err) {
 				queueDispatch(dispatches.failed(formatError(err)));
@@ -145,14 +146,17 @@ export const Queue = () => {
 	},[
 		queueDispatch,
 		fetchQueue,
+		pathVars.stationKey,
+		pathVars.ownerKey,
 		location.search,
+		location.pathname,
 		currentQueryStr,
 		setCurrentQueryStr,
 	]);
 
 	return (
 		<>
-			<h1>Queue: {stationNameFromQS}</h1>
+			<h1>Queue: {pathVars.stationKey}</h1>
 			<Box m={1}>
 				<StationSelect getPageUrl={getPageUrl} />
 			</Box>

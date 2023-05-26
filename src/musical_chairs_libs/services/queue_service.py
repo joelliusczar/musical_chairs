@@ -332,10 +332,11 @@ class QueueService:
 		offset = page * limit if limit else 0
 		query = select(
 			sg_pk.label("id"),
-			q_queuedTimestamp.label("playedTimestamp"),
+			q_queuedTimestamp.label("queuedTimestamp"),
 			sg_name.label("name"),
 			ab_name.label("album"),
-			ar_name.label("artist")
+			ar_name.label("artist"),
+			sg_path.label("path"),
 		).select_from(station_queue) \
 			.join(songs, q_songFk == sg_pk) \
 			.join(albums, sg_albumFk == ab_pk, isouter=True) \

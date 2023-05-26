@@ -838,7 +838,8 @@ setup_ssl_cert_local_debug() (
 	privateKeyFile=$(_get_debug_cert_path).private.key.pem &&
 	_clean_up_invalid_cert "${app_name}-localhost"
 	_setup_ssl_cert_local "${app_name}-localhost" 'localhost' \
-	"$publicKeyFile" "$privateKeyFile"
+		"$publicKeyFile" "$privateKeyFile" &&
+	setup_react_env_debug
 )
 
 setup_ssl_cert_nginx() (

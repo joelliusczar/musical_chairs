@@ -25,26 +25,45 @@ import {
 
 export function NavMenu() {
 
+	const currentUser = useCurrentUser();
+
 	const canOpenAccountList = useHasAnyRoles([
 		UserRoleDef.USER_EDIT,
 		UserRoleDef.USER_LIST,
 	]);
+
 	return (
 		<List>
-			<ListItem button component={NavLink} to={DomRoutes.queue} >
+			{currentUser.username && <ListItem
+				component={NavLink}
+				to={DomRoutes.queue({
+					ownerKey: currentUser.username,
+				})}
+			>
 				Queue
-			</ListItem>
-			<ListItem button component={NavLink} to={DomRoutes.history}>
+			</ListItem>}
+			{currentUser.username && <ListItem
+				component={NavLink}
+				to={DomRoutes.history({
+					ownerKey: currentUser.username,
+				})}
+			>
 				History
-			</ListItem>
-			<ListItem button component={NavLink} to={DomRoutes.stations}>
+			</ListItem>}
+			{currentUser.username && <ListItem
+				component={NavLink}
+				to={DomRoutes.stations({
+					ownerKey: currentUser.username,
+				})}>
 				Stations
-			</ListItem>
-			<ListItem button component={NavLink} to={DomRoutes.songTree}>
+			</ListItem>}
+			<ListItem
+				component={NavLink}
+				to={DomRoutes.songTree()}>
 				Song Directory
 			</ListItem>
 			{canOpenAccountList &&
-			<ListItem button component={NavLink} to={DomRoutes.accountsList}>
+			<ListItem component={NavLink} to={DomRoutes.accountsList()}>
 				Accounts List
 			</ListItem>}
 		</List>
@@ -58,37 +77,56 @@ export function AppRoutes() {
 
 	return (
 		<Switch>
-			<Route path={`${DomRoutes.queue}:station?`}>
+			<Route
+				path={`${DomRoutes.queue({
+					stationKey: ":stationKey?",
+					ownerKey: ":ownerKey",
+				})}`}
+			>
 				<Queue />
 			</Route>
-			<Route path={`${DomRoutes.history}:station?`}>
+			<Route
+				path={`${DomRoutes.history({
+					stationKey: ":stationKey?",
+					ownerKey: ":ownerKey",
+				})}`}
+			>
 				<History />
 			</Route>
-			<Route path={DomRoutes.stations}>
+			<Route
+				path={`${DomRoutes.stations({
+					ownerKey: ":ownerKey",
+				})}`}
+			>
 				<Stations />
 			</Route>
-			<Route path={`${DomRoutes.songCatalogue}:station?`}>
+			<Route
+				path={`${DomRoutes.songCatalogue({
+					stationKey: ":stationKey?",
+					ownerKey: ":ownerKey",
+				})}`}
+			>
 				<SongCatalogue />
 			</Route>
-			{!currentUser.username &&<Route path={DomRoutes.accountsNew}>
+			{!currentUser.username &&<Route path={DomRoutes.accountsNew()}>
 				<AccountsNew />
 			</Route>}
-			{!currentUser.username && <Route path={DomRoutes.accountsLogin} >
+			{!currentUser.username && <Route path={DomRoutes.accountsLogin()} >
 				<LoginForm
 					afterSubmit={() => urlHistory.push("")}
 				/>
 			</Route>}
-			{currentUser.username && <Route path={DomRoutes.accountsEdit} >
+			{currentUser.username && <Route path={DomRoutes.accountsEdit()} >
 				<AccountsEdit />
 			</Route>}
 			<PrivateRoute
 				scopes={[UserRoleDef.USER_LIST, UserRoleDef.USER_EDIT]}
-				path={DomRoutes.accountsList}
+				path={DomRoutes.accountsList()}
 			>
 				<AccountsList />
 			</PrivateRoute>
 			<PrivateRoute
-				path={`${DomRoutes.accountsRoles}:id`}
+				path={`${DomRoutes.accountsRoles()}:id`}
 				scopes={[UserRoleDef.ADMIN]}
 			>
 				<AccountsRoles />

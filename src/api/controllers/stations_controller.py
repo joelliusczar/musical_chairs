@@ -40,13 +40,18 @@ from api_dependencies import (
 
 router = APIRouter(prefix="/stations")
 
-@router.get("/list")
+@router.get("/{ownerKey}/list")
 def index(
+	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
 	stationService: StationService = Depends(station_service),
-	owner: Optional[AccountInfo] = Depends(get_owner_from_path)
 ) -> Dict[str, List[StationInfo]]:
+	if not owner:
+		raise HTTPException(
+			status_code = status.HTTP_404_NOT_FOUND,
+			detail = f"Station list not found"
+		)
 	stations = list(stationService.get_stations(None,
-		ownerId=owner.id if owner else None)
+		ownerId=owner.id)
 	)
 	return { "items": stations }
 
@@ -193,7 +198,7 @@ def create_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station, user=user)
-	return result or StationInfo(id=-1,name="", ownerId=user.id, displayName="")
+	return result or StationInfo(id=-1,name="", displayName="")
 
 @router.put("")
 def update_station(
@@ -206,7 +211,7 @@ def update_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station,user, id)
-	return result or StationInfo(id=-1,name="",ownerId=user.id,displayName="")
+	return result or StationInfo(id=-1,name="",displayName="")
 
 @router.put("/enable/", status_code=status.HTTP_204_NO_CONTENT)
 def enable_stations(

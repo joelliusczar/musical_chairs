@@ -18,6 +18,7 @@ import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
 import { formatError } from "../Helpers/error_formatter";
 import { fetchStations } from "../API_Calls/stationCalls";
 import { CallStatus } from "../constants";
+import { useCurrentUser } from "./AuthContext";
 
 const AppContext = createContext();
 
@@ -73,6 +74,8 @@ const sortedListReducerPaths = {
 
 export const AppContextProvider = (props) => {
 	const { children } = props;
+	const { username } = useCurrentUser();
+
 	const [albumsState, albumsDispatch] = useReducer(
 		waitingReducer(sortedListReducerPaths),
 		{...listDataInitialState}
@@ -89,6 +92,7 @@ export const AppContextProvider = (props) => {
 	);
 
 	useEffect(() => {
+		if (!username) return;
 		const fetch = async () => {
 			try {
 				albumsDispatch(dispatches.started());
@@ -100,13 +104,14 @@ export const AppContextProvider = (props) => {
 			}
 		};
 		fetch();
-	},[albumsDispatch]);
+	},[albumsDispatch, username]);
 
 	useEffect(() => {
+		if (!username) return;
 		const fetch = async () => {
 			try {
 				stationsDispatch(dispatches.started());
-				const data = await fetchStations();
+				const data = await fetchStations({ ownerKey: username });
 				stationsDispatch(dispatches.done(data));
 			}
 			catch(err) {
@@ -114,9 +119,10 @@ export const AppContextProvider = (props) => {
 			}
 		};
 		fetch();
-	}, [stationsDispatch]);
+	}, [stationsDispatch, username]);
 
 	useEffect(() => {
+		if (!username) return;
 		const fetch = async () => {
 			try {
 				artistDispatch(dispatches.started());
@@ -128,7 +134,7 @@ export const AppContextProvider = (props) => {
 			}
 		};
 		fetch();
-	}, [artistDispatch]);
+	}, [artistDispatch, username]);
 
 	const contextValue = useMemo(() => ({
 		albumsState,

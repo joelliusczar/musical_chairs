@@ -11,7 +11,7 @@ import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DomRoutes } from "../../constants";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { UserRoleDef } from "../../constants";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import {
@@ -51,6 +51,7 @@ export const Stations = () => {
 	);
 
 	const location = useLocation();
+	const pathVars = useParams();
 	const classes = useStyles();
 	const canEditStation = useHasAnyRoles([UserRoleDef.STATION_EDIT]);
 	const canEnableStation = useHasAnyRoles([UserRoleDef.STATION_FLIP]);
@@ -125,7 +126,7 @@ export const Stations = () => {
 		<Typography variant="h1">Stations</Typography>
 		{canEditStation && <Button
 			component={Link}
-			to={DomRoutes.stationsEdit}
+			to={DomRoutes.stationsEdit()}
 		>
 			Add New Station
 		</Button>}
@@ -191,7 +192,7 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										component={Link}
-										to={`${DomRoutes.stationsEdit}?id=${s.id}`}
+										to={`${DomRoutes.stationsEdit()}?id=${s.id}`}
 									>
 										Edit
 									</Button>}
@@ -202,7 +203,10 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										className={classes.buttons}
-										to={`${DomRoutes.songCatalogue}?name=${s.name}`}
+										to={`${DomRoutes.songCatalogue({
+											stationKey: s.name,
+											ownerKey: pathVars.ownerKey,
+										})}`}
 									>
 											Song Catalogue
 									</Button>
@@ -213,7 +217,10 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										className={classes.buttons}
-										to={`${DomRoutes.history}?name=${s.name}`}
+										to={`${DomRoutes.history({
+											stationKey: s.name,
+											ownerKey: pathVars.ownerKey,
+										})}`}
 									>
 											Song History
 									</Button>
@@ -224,7 +231,12 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										className={classes.buttons}
-										to={`${DomRoutes.queue}?name=${s.name}`}
+										to={`${DomRoutes.queue(
+											{
+												stationKey: s.name,
+												ownerKey: pathVars.ownerKey,
+											}
+										)}`}
 									>
 											Song Queue
 									</Button>

@@ -13,8 +13,7 @@ from api_dependencies import (
 	get_path_user,
 	get_multi_path_user,
 	get_user_with_simple_scopes,
-	get_path_user_and_check_optional_path,
-	get_current_user_simple
+	get_path_user_and_check_optional_path
 )
 
 from musical_chairs_libs.services import SongInfoService
@@ -167,7 +166,7 @@ def update_songs_multi(
 def get_all_artists(
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_current_user_simple,
+		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.PATH_VIEW.value]
 	)
 ) -> ListData[ArtistInfo]:

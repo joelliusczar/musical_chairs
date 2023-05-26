@@ -2,8 +2,8 @@ import webClient from "./api";
 import { buildArrayQueryStrFromObj } from "../Helpers/url_helpers";
 
 
-export const fetchStations = async () => {
-	const response = await webClient.get("stations/list");
+export const fetchStations = async ({ ownerKey }) => {
+	const response = await webClient.get(`stations/${ownerKey}/list`);
 	return response.data;
 };
 
@@ -36,22 +36,25 @@ export const saveStation = async ({ values, id}) => {
 	}
 };
 
-export const fetchSongCatalogue = async ({ station, params }) => {
-	const response = await webClient.get(`stations/${station}/catalogue/`, {
+export const fetchSongCatalogue = async ({ stationKey, params, ownerKey }) => {
+	const url = `stations/${ownerKey}/${stationKey}/catalogue/`;
+	const response = await webClient.get(url, {
 		params: params,
 	});
 	return response.data;
 };
 
-export const fetchQueue = async ({ station, params }) => {
-	const response = await webClient.get(`stations/${station}/queue/`, {
+export const fetchQueue = async ({ stationKey, params, ownerKey }) => {
+	const url = `stations/${ownerKey}/${stationKey}/queue/`;
+	const response = await webClient.get(url, {
 		params: params,
 	});
 	return response.data;
 };
 
-export const fetchHistory = async ({ station, params }) => {
-	const response = await webClient.get(`stations/${station}/history/`, {
+export const fetchHistory = async ({ stationKey, params, ownerKey }) => {
+	const url = `stations/${ownerKey}/${stationKey}/history/`;
+	const response = await webClient.get(url, {
 		params: params,
 	});
 	return response.data;

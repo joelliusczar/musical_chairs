@@ -3,7 +3,7 @@ import {
 	useStationData,
 } from "../../Context_Providers/AppContextProvider";
 import { MenuItem, TextField } from "@mui/material";
-import { useHistory, useLocation } from "react-router-dom";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { makeStyles } from "@mui/styles";
 
@@ -22,8 +22,8 @@ export const StationSelect = (props) => {
 
 	const urlHistory = useHistory();
 	const location = useLocation();
-	const queryObj = new URLSearchParams(location.search);
-	const stationNameFromQS = queryObj.get("name") || "";
+	const pathVars = useParams();
+
 
 	const classes = useStyles();
 
@@ -34,11 +34,14 @@ export const StationSelect = (props) => {
 			label="Stations"
 			onChange={(e) => {
 				urlHistory.replace(getPageUrl(
-					{ name: e.target.value },
+					{
+						stationKey: e.target.value,
+						ownerKey: pathVars.ownerKey,
+					},
 					location.search)
 				);
 			}}
-			value={stationNameFromQS?.toLowerCase() || ""}
+			value={pathVars.stationKey?.toLowerCase() || ""}
 		>
 			<MenuItem key="empty_station" value={""}>
 					Select a Station

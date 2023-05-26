@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
 	fetchSongCatalogue,
 	sendSongRequest,
@@ -40,10 +40,11 @@ export const SongCatalogue = () => {
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const location = useLocation();
+	const pathVars = useParams();
 	const queryObj = new URLSearchParams(location.search);
 	const stationNameFromQS = queryObj.get("name") || "";
 	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
-	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const { callStatus: catalogueCallStatus } = catalogueState;
@@ -93,27 +94,28 @@ export const SongCatalogue = () => {
 	};
 
 	useEffect(() => {
+		const stationTitle = `- ${pathVars.stationKey || ""}`;
 		document.title =
-			`Musical Chairs - Song Catalogue${`- ${stationNameFromQS || ""}`}`;
-	},[stationNameFromQS]);
+			`Musical Chairs - Song Catalogue${stationTitle}`;
+	},[pathVars.stationKey]);
 
 	useEffect(() => {
 		const fetch = async () => {
-			if (currentQueryStr === location.search) return;
+			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			const stationNameFromQS = queryObj.get("name");
-			if (!stationNameFromQS) return;
+			if (!pathVars.stationKey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			catalogueDispatch(dispatches.started());
 			try {
 				const data = await fetchSongCatalogue({
-					station: stationNameFromQS,
+					stationKey: pathVars.stationKey,
+					ownerKey: pathVars.ownerKey,
 					params: { page: page - 1, limit: limit } }
 				);
 				catalogueDispatch(dispatches.done(data));
-				setCurrentQueryStr(location.search);
+				setCurrentQueryStr(`${location.pathname}${location.search}`);
 			}
 			catch (err) {
 				catalogueDispatch(dispatches.failed(formatError(err)));
@@ -124,7 +126,10 @@ export const SongCatalogue = () => {
 	},[
 		catalogueDispatch,
 		fetchSongCatalogue,
+		pathVars.stationKey,
+		pathVars.ownerKey,
 		location.search,
+		location.pathname,
 		currentQueryStr,
 		setCurrentQueryStr,
 	]);
@@ -132,7 +137,7 @@ export const SongCatalogue = () => {
 
 	return (
 		<>
-			<h1>Song Catalogue: {stationNameFromQS}</h1>
+			<h1>Song Catalogue: {pathVars.stationKey}</h1>
 			<Box m={1}>
 				<StationSelect getPageUrl={getPageUrl} />
 			</Box>

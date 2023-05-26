@@ -83,7 +83,7 @@ def test_song_save(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	headers = login_test_user("testUser_foxtrot", client)
+	headers = login_test_user("testUser_india", client)
 	getResponseBefore = client.get(
 		f"song-info/songs/{1}",
 		headers=headers
@@ -153,11 +153,17 @@ def test_song_save(
 	)
 	assert not mismatches
 
+def test_song_save_with_unpermitted_stations():
+	raise NotImplementedError()
+
+def test_song_save_with_original_stations_no_station_permissions():
+	raise NotImplementedError()
+
 def test_song_save_no_roles(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	goodHeaders = login_test_user("testUser_foxtrot", client)
+	goodHeaders = login_test_user("testUser_india", client)
 	getResponseBefore = client.get(
 		f"song-info/songs/{1}",
 		headers=goodHeaders
@@ -173,7 +179,7 @@ def test_song_save_no_roles(
 		json=sendData
 	)
 
-	assert putResponse.status_code == 403
+	assert putResponse.status_code == 422
 
 def test_song_save_with_path_permission(
 	fixture_api_test_client: TestClient
@@ -269,7 +275,7 @@ def test_song_save_for_multi_edit(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	headers = login_test_user("testUser_foxtrot", client)
+	headers = login_test_user("testUser_india", client)
 
 	idList = "?itemIds=10&itemIds=4&itemIds=17&itemIds=11&itemIds=15"
 
@@ -397,7 +403,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	headers = login_test_user("testUser_foxtrot", client)
+	headers = login_test_user("testUser_india", client)
 
 	idList = "?itemIds=29&itemIds=28&itemIds=27"\
 		"&itemIds=26&itemIds=25&itemIds=24&itemIds=23"
@@ -559,7 +565,7 @@ def test_more_restrictive_path(
 
 	assert putResponse.status_code == 403
 
-	headers = login_test_user("testUser_foxtrot", client)
+	headers = login_test_user("testUser_india", client)
 
 	putResponse = client.put(
 		f"song-info/songs/{6}",

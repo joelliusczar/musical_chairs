@@ -34,9 +34,14 @@ from musical_chairs_libs.dtos_and_utilities import (
 	normalize_opening_slash
 )
 from sqlalchemy import select, insert, update, func, delete, union_all
-from sqlalchemy.sql.expression import Tuple as dbTuple, Select
+from sqlalchemy.sql.expression import (
+	Tuple as dbTuple,
+	Select
+)
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql import ColumnCollection as TblCols
+from sqlalchemy.sql.schema import Column
 from .env_manager import EnvManager
 from sqlalchemy.engine.row import Row
 from dataclasses import asdict, fields
@@ -47,7 +52,7 @@ from musical_chairs_libs.tables import (
 	artists as artists_tbl,
 	songs as songs_tbl,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
-	stations as stations_tbl, st_name, st_pk, st_displayName,
+	stations as stations_tbl, st_name, st_pk, st_displayName, st_ownerFk,
 	sg_pk, sg_name, sg_path,
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
@@ -192,19 +197,21 @@ class SongInfoService:
 		query = select(ab_pk).select_from(albums_tbl).where(ab_name == savedName)
 		if artistFk:
 			query = query.where(ab_albumArtistFk == artistFk)
-		row = self.conn.execute(query).fetchone() #pyright: ignore reportUnknownMemberType
+		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
 		if row:
-			pk: int = row[ab_pk] #pyright: ignore [reportGeneralTypeIssues]
+			pk = cast(int, row[ab_pk])
 			return pk
 		print(name)
 		stmt = insert(albums_tbl).values(
 			name = savedName,
 			albumArtistFk = artistFk,
 			year = year,
-			lastModifiedTimestamp = self.get_datetime().timestamp()
+			lastModifiedTimestamp = self.get_datetime().timestamp(),
+			ownerFk = 1,
+			lastModifiedByUserFk = 1
 		)
-		res = self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
-		insertedPk = cast(int, res.lastrowid) #pyright: ignore reportUnknownMemberType
+		res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		insertedPk = cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
 		return insertedPk
 
 	def get_song_refs(
@@ -277,7 +284,7 @@ class SongInfoService:
 		for r in records:
 			yield PathsActionRule(
 				cast(str,r[pup_role]),
-				priority=cast(int,r[pup_priority]),
+				priority=cast(int,r[pup_priority]) or 0,
 				span=cast(int,r[pup_span]) or 0,
 				count=cast(int,r[pup_count]) or 0,
 				domain=UserRoleDomain.Path,
@@ -333,19 +340,19 @@ class SongInfoService:
 		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		station: Union[int, str, None]=None,
+		stationKey: Union[int, str, None]=None,
 		songIds: Optional[Iterable[int]]=None
 	) -> Iterator[int]:
 		offset = page * pageSize if pageSize else 0
 		query = select(sg_pk).select_from(songs_tbl)
 		#add joins
-		if station:
+		if stationKey:
 			query = query.join(stations_songs_tbl, stsg_songFk == sg_pk)
-			if type(station) == int:
-				query = query.where(stsg_stationFk == station)
-			elif type(station) is str:
+			if type(stationKey) == int:
+				query = query.where(stsg_stationFk == stationKey)
+			elif type(stationKey) is str:
 				query = query.join(stations_tbl, stsg_stationFk == st_pk)
-				searchStr = SearchNameString.format_name_for_search(station)
+				searchStr = SearchNameString.format_name_for_search(stationKey)
 				query = query.join(stations_tbl, st_pk == stsg_stationFk).where(
 					func.format_name_for_search(st_name).like(f"%{searchStr}%")
 				)
@@ -562,7 +569,6 @@ class SongInfoService:
 			)
 			for row in cast(Iterable[Row],records))
 
-
 	def remove_songs_for_artists(
 		self,
 		songArtists: Iterable[Union[SongArtistTuple, Tuple[int, int]]],
@@ -659,6 +665,7 @@ class SongInfoService:
 		songDict.pop("station.id", None)
 		songDict.pop("station.name", None)
 		songDict.pop("station.displayName", None)
+		songDict.pop("station.ownerFk", None)
 		songDict.pop(sgar_isPrimaryArtist.description, None) #pyright: ignore reportUnknownMemberType
 		return songDict
 
@@ -666,32 +673,33 @@ class SongInfoService:
 		self,
 		songIds: Iterable[int]
 	) -> Select:
-		album_artist = artists_tbl.alias("AlbumArtist") #pyright: ignore reportUnknownMemberType
-		albumArtistId = album_artist.c.pk #pyright: ignore reportUnknownMemberType
+		album_artist = cast(TblCols,artists_tbl.alias("AlbumArtist")) #pyright: ignore [reportUnknownMemberType]
+		albumArtistId = cast(Column, album_artist.c.pk) #pyright: ignore [reportUnknownMemberType]
 		query = select(
-			sg_pk.label("id"), #pyright: ignore reportUnknownMemberType
-			sg_name.label("name"), #pyright: ignore reportUnknownMemberType
-			sg_path.label("path"), #pyright: ignore reportUnknownMemberType
-			sg_track.label("track"), #pyright: ignore reportUnknownMemberType
-			sg_disc.label("disc"), #pyright: ignore reportUnknownMemberType
-			sg_genre.label("genre"), #pyright: ignore reportUnknownMemberType
-			sg_explicit.label("explicit"), #pyright: ignore reportUnknownMemberType
-			sg_bitrate.label("bitrate"), #pyright: ignore reportUnknownMemberType
-			sg_comment.label("comment"), #pyright: ignore reportUnknownMemberType
-			sg_lyrics.label("lyrics"), #pyright: ignore reportUnknownMemberType
-			sg_duration.label("duration"), #pyright: ignore reportUnknownMemberType
-			sg_sampleRate.label("sampleRate"), #pyright: ignore reportUnknownMemberType
-			ab_pk.label("album.id"), #pyright: ignore reportUnknownMemberType
-			ab_name.label("album.name"), #pyright: ignore reportUnknownMemberType
-			ab_year.label("album.year"), #pyright: ignore reportUnknownMemberType
-			ab_albumArtistFk.label("album.albumArtistId"), #pyright: ignore reportUnknownMemberType
-			album_artist.c.name.label("album.albumArtist.name"), #pyright: ignore reportUnknownMemberType
+			sg_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
+			sg_name.label("name"), #pyright: ignore [reportUnknownMemberType]
+			sg_path.label("path"), #pyright: ignore [reportUnknownMemberType]
+			sg_track.label("track"), #pyright: ignore [reportUnknownMemberType]
+			sg_disc.label("disc"), #pyright: ignore [reportUnknownMemberType]
+			sg_genre.label("genre"), #pyright: ignore [reportUnknownMemberType]
+			sg_explicit.label("explicit"), #pyright: ignore [reportUnknownMemberType]
+			sg_bitrate.label("bitrate"), #pyright: ignore [reportUnknownMemberType]
+			sg_comment.label("comment"), #pyright: ignore [reportUnknownMemberType]
+			sg_lyrics.label("lyrics"), #pyright: ignore [reportUnknownMemberType]
+			sg_duration.label("duration"), #pyright: ignore [reportUnknownMemberType]
+			sg_sampleRate.label("sampleRate"), #pyright: ignore [reportUnknownMemberType]
+			ab_pk.label("album.id"), #pyright: ignore [reportUnknownMemberType]
+			ab_name.label("album.name"), #pyright: ignore [reportUnknownMemberType]
+			ab_year.label("album.year"), #pyright: ignore [reportUnknownMemberType]
+			ab_albumArtistFk.label("album.albumArtistId"), #pyright: ignore [reportUnknownMemberType]
+			album_artist.c.name.label("album.albumArtist.name"), #pyright: ignore [reportUnknownMemberType]
 			sgar_isPrimaryArtist,
-			ar_pk.label("artist.id"), #pyright: ignore reportUnknownMemberType
-			ar_name.label("artist.name"), #pyright: ignore reportUnknownMemberType
-			st_pk.label("station.id"), #pyright: ignore reportUnknownMemberType
-			st_name.label("station.name"), #pyright: ignore reportUnknownMemberType
-			st_displayName.label("station.displayName") #pyright: ignore reportUnknownMemberType
+			ar_pk.label("artist.id"), #pyright: ignore [reportUnknownMemberType]
+			ar_name.label("artist.name"), #pyright: ignore [reportUnknownMemberType]
+			st_pk.label("station.id"), #pyright: ignore [reportUnknownMemberType]
+			st_name.label("station.name"), #pyright: ignore [reportUnknownMemberType]
+			st_ownerFk.label("station.ownerFk"), #pyright: ignore [reportUnknownMemberType]
+			st_displayName.label("station.displayName") #pyright: ignore [reportUnknownMemberType]
 		).select_from(songs_tbl)\
 				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
 				.join(artists_tbl, ar_pk == sgar_artistFk, isouter=True)\
@@ -814,7 +822,6 @@ class SongInfoService:
 			fetched = self.get_songs_for_multi_edit(ids)
 			if fetched:
 				yield fetched
-
 
 	def get_songs_for_multi_edit(
 		self,

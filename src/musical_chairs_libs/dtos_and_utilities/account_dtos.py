@@ -104,6 +104,13 @@ class AccountInfoSecurity(AccountInfoBase):
 		pathTree = AbsorbentTrie[Any](normalize_opening_slash(p) for p in pathsGen)
 		yield from (p for p in pathTree.shortest_paths())
 
+	def has_roles(self, *roles: UserRoleDef) -> bool:
+		for role in roles:
+			if all(r.name != role.value or (r.name == role.value and r.blocked) \
+				for r in self.roles
+			):
+				return False
+		return True
 
 @dataclass(frozen=True)
 class AccountInfo(AccountInfoSecurity, IdItem):

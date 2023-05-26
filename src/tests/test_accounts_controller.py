@@ -263,7 +263,6 @@ def test_change_roles(fixture_api_test_client: TestClient):
 		"span": 0,
 		"count": 0,
 		"priority": 0,
-		"id": None,
 		"domain": "site"
 		}
 

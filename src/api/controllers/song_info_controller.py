@@ -5,19 +5,19 @@ from fastapi import (
 	Security,
 	HTTPException,
 	status,
-	Query
+	Query,
 )
 from fastapi.responses import FileResponse
 from api_dependencies import (
 	song_info_service,
-	station_service,
 	get_path_user,
 	get_multi_path_user,
 	get_user_with_simple_scopes,
 	get_path_user_and_check_optional_path,
 	get_current_user_simple
 )
-from musical_chairs_libs.services import SongInfoService, StationService
+
+from musical_chairs_libs.services import SongInfoService
 from musical_chairs_libs.dtos_and_utilities import (
 	SongTreeNode,
 	ListData,
@@ -30,7 +30,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
 	ValidatedSongAboutInfo
 )
+from song_validation import extra_validated_song
+
 router = APIRouter(prefix="/song-info")
+
 
 @router.get("/songs/ls")
 def song_ls(
@@ -94,55 +97,7 @@ def get_songs_for_multi_edit(
 		detail=[build_error_obj(f"No songs found", "id")]
 	)
 
-def extra_validated_song(
-	song: ValidatedSongAboutInfo,
-	user: AccountInfo = Depends(get_current_user_simple),
-	stationService: StationService = Depends(station_service),
-	songInfoService: SongInfoService = Depends(song_info_service),
-) -> ValidatedSongAboutInfo:
-	stationIds = {s.id for s in song.stations or []}
-	dbStations = {s[0].id for s in stationService.get_stations_and_rules(
-		stationKeys=stationIds,
-		ownerId=user.id
-	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s[1])}
-	if stationIds - dbStations:
-		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[
-				build_error_obj(
-					f"Stations associated with ids {str(stationIds)} do not exist",
-					"Stations"
-				)],
-		)
-	artistIds = {a.id for a in song.allArtists}
-	dbArtists = {a.id for a in songInfoService.get_artists(
-		artistKeys=artistIds,
-		userId=user.id
-	)}
-	if artistIds - dbArtists:
-		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[
-				build_error_obj(
-					f"Artists associated with ids {str(stationIds)} do not exist",
-					"artists"
-				)],
-		)
-	if song.album:
-		dbAlbum = next(songInfoService.get_albums(
-			albumKeys=song.album.id,
-			userId=user.id
-		), None)
-		if not dbAlbum:
-			raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[
-				build_error_obj(
-					f"Album associated with ids {str(song.album.id)} does not exist",
-					"artists"
-				)],
-		)
-	return song
+
 
 @router.get(
 	"/songs/download/{id}",
@@ -169,7 +124,10 @@ def download_song(
 @router.put("/songs/{itemId}")
 def update_song(
 	itemId: int,
-	song: ValidatedSongAboutInfo = Depends(extra_validated_song),
+	song: ValidatedSongAboutInfo = Security(
+		extra_validated_song,
+		scopes=[UserRoleDef.PATH_EDIT.value]
+	),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
 		get_path_user_and_check_optional_path,
@@ -187,7 +145,10 @@ def update_song(
 @router.put("/songs/multi/")
 def update_songs_multi(
 	itemIds: list[int] = Query(default=[]),
-	song: ValidatedSongAboutInfo = Depends(extra_validated_song),
+	song: ValidatedSongAboutInfo = Security(
+		extra_validated_song,
+		scopes=[UserRoleDef.PATH_EDIT.value]
+	),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
 		get_multi_path_user,

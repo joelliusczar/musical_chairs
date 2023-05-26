@@ -17,7 +17,7 @@ class ActionRule:
 	count: int=0
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
-	priority: Optional[int]=0
+	priority: int=0
 	domain: UserRoleDomain=UserRoleDomain.Site
 
 	@staticmethod

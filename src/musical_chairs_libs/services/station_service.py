@@ -111,7 +111,6 @@ class StationService:
 		return StationInfo(
 			id=cast(int,row[st_pk]),
 			name=cast(str,row[st_name]),
-			ownerId=cast(int,row[st_ownerFk]),
 			displayName=cast(str,row[st_displayName]),
 			isRunning=bool(row[st_procId])
 		)
@@ -132,31 +131,32 @@ class StationService:
 		self,
 		rows: Iterable[Row],
 		ownerId: Optional[int]
-	) -> Iterator[Tuple[StationInfo, list[ActionRule]]]:
+	) -> Iterator[Tuple[StationInfo, list[ActionRule], int]]:
 		currentStation = None
 		for row in rows:
 			if not currentStation or currentStation[0].id != cast(int,row[st_pk]):
 				if currentStation:
-					if currentStation[0].ownerId == ownerId:
+					if currentStation[2] == ownerId:
 						currentStation[1].extend(get_station_owner_rules())
 					yield currentStation
 				currentStation = (
 					self.__row_to_station__(row),
-					cast(list[ActionRule],[])
+					cast(list[ActionRule],[]),
+					cast(int,row[st_ownerFk])
 				)
 				if row[stup_role]:
 					currentStation[1].append(self.__row_to_action_rule__(row))
 			else:
 				currentStation[1].append(self.__row_to_action_rule__(row))
 		if currentStation:
-			if currentStation[0].ownerId == ownerId:
+			if currentStation[2] == ownerId:
 				currentStation[1].extend(get_station_owner_rules())
 			yield currentStation
 
 	def get_stations_and_rules(self,
 		ownerId: int,
 		stationKeys: Union[int,str, Iterable[int], None]=None
-	) -> Iterator[Tuple[StationInfo, list[ActionRule]]]:
+	) -> Iterator[Tuple[StationInfo, list[ActionRule], int]]:
 		yield from self.__get_stations_and_rules__(stationKeys, ownerId, True)
 
 	def get_stations(
@@ -176,7 +176,7 @@ class StationService:
 		stationKeys: Union[int,str, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
 		includeRules: Literal[True]=True
-	) -> Iterator[Tuple[StationInfo, list[ActionRule]]]:
+	) -> Iterator[Tuple[StationInfo, list[ActionRule], int]]:
 		...
 
 	@overload
@@ -194,7 +194,7 @@ class StationService:
 		ownerId: Union[int, None]=None,
 		includeRules: bool=False
 	) -> Union[
-				Iterator[Tuple[StationInfo, list[ActionRule]]],
+				Iterator[Tuple[StationInfo, list[ActionRule], int]],
 				Iterator[StationInfo]
 			]:
 		query = select(
@@ -336,7 +336,6 @@ class StationService:
 			id=stationId or cast(int, row[st_pk]),
 			name=cast(str, row[st_name]),
 			displayName=cast(str, row[st_displayName]),
-			ownerId=cast(int, row[st_ownerFk])
 		)
 
 	def save_station(
@@ -380,15 +379,33 @@ class StationService:
 		return StationInfo(
 			id=affectedId,
 			name=str(savedName),
-			displayName=str(savedDisplayName),
-			ownerId=user.id
+			displayName=str(savedDisplayName)
 		)
+
+	@overload
+	def get_station_rules(
+		self,
+		userId: int,
+		stationKeys: Union[int, str],
+		scopes: Union[str, Iterable[str], None]=None,
+	) -> Iterator[ActionRule]:
+		...
+
+	@overload
+	def get_station_rules(
+		self,
+		userId: int,
+		stationKeys: Iterable[int],
+		scopes: Union[str, Iterable[str], None]=None,
+	) -> Iterator[Tuple[ActionRule, int]]:
+		...
 
 	def get_station_rules(
 		self,
 		userId: int,
-		stationKey: Union[int, str]
-	) -> Iterator[ActionRule]:
+		stationKeys: Union[int, str, Iterable[int]],
+		scopes: Union[str, Iterable[str], None]=None,
+	) -> Union[Iterator[ActionRule], Iterator[Tuple[ActionRule, int]]]:
 		query = select(
 			st_pk,
 			stup_role,
@@ -399,15 +416,26 @@ class StationService:
 		).select_from(station_user_permissions_tbl)\
 			.join(stations_tbl, stup_stationFk == st_pk,isouter=True)\
 			.where(stup_userFk == userId)
-		if type(stationKey) == int:
-			query = query.where(or_(st_pk == stationKey, st_pk.is_(None)))
-		elif type(stationKey) == str:
-			query = query.where(or_(st_name == stationKey, st_name.is_(None)))
+		if type(stationKeys) is int:
+			query = query.where(or_(st_pk == stationKeys, st_pk.is_(None)))
+		elif isinstance(stationKeys, Iterable) and not type(stationKeys) is str:
+			query = query.where(or_(st_pk.in_(stationKeys), st_pk.is_(None)))
+		elif type(stationKeys) is str:
+			query = query.where(or_(st_name == stationKeys, st_name.is_(None)))
 		else:
 			return iter([])
+		if type(scopes) is str:
+			query = query.where(stup_role == scopes)
+		elif isinstance(scopes, Iterable):
+			query = query.where(stup_role.in_(scopes))
 		query = query.order_by(stup_role, st_pk)
 		records = self.conn.execute(query).fetchall()
-		yield from (self.__row_to_action_rule__(row) for row in records)
+		if isinstance(stationKeys, Iterable) and not type(stationKeys) is str:
+			yield from ((self.__row_to_action_rule__(row), cast(int, row[st_pk]))\
+				for row in records
+			)
+		else:
+			yield from (self.__row_to_action_rule__(row) for row in records)
 
 
 	def get_user_request_history(

@@ -96,7 +96,6 @@ def test_save_station(
 	assert fetched and fetched.id == result.id
 	assert fetched and fetched.name == "brand_new_station"
 	assert fetched and fetched.displayName == "Brand new station"
-	assert fetched and fetched.ownerId == juliet_user_id
 
 	testData = StationCreationInfo(
 		name = "brand_new_station_fake_tag",
@@ -121,7 +120,7 @@ def test_save_station(
 	fetched = stationService.get_station_for_edit(result.id)
 	assert fetched and fetched.name == "papa_station_update"
 	assert fetched and fetched.displayName == "Come to papa test"
-	assert fetched and fetched.ownerId == bravo_user_id
+
 
 	testData = StationCreationInfo(
 		name = "oscar_station",

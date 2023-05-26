@@ -125,29 +125,6 @@ def get_station_by_name_and_owner(
 		)
 	return station
 
-def get_station_and_rules_by_name_and_owner(
-	stationKey: Union[int, str],
-	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
-	stationService: StationService = Depends(station_service)
-) -> Tuple[StationInfo, list[ActionRule]]:
-	if not owner:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"user not found")
-			]
-		)
-	stationAndRules = next(stationService.get_stations_and_rules(
-		owner.id,
-		stationKey
-	), None)
-	if not stationAndRules:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"station with key {stationKey} not found")
-			]
-		)
-	return stationAndRules
-
 def get_user_from_token(
 	token: str,
 	accountsService: AccountsService
@@ -275,11 +252,11 @@ def get_path_user(
 		return user
 	if not scopes:
 		raise build_wrong_permissions_error()
-	rules = ActionRule.sorted((r for r in chain(
+	rules = ActionRule.sorted(r for r in chain(
 		user.roles,
 		(p for p in songInfoService.get_paths_user_can_see(user.id)),
 		(p for p in get_path_owner_roles(user.dirRoot))
-	) if r.name in scopes))
+	))
 	roleNameSet = {r.name for r in rules}
 	if any(s for s in scopes if s not in roleNameSet):
 		raise build_wrong_permissions_error()
@@ -366,16 +343,16 @@ def get_station_user(
 	user: AccountInfo = Depends(get_current_user_simple),
 	stationService: StationService = Depends(station_service)
 ) -> AccountInfo:
-	scopes = (s for s in securityScopes.scopes \
+	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Station.conforms(s)
-	)
+	]
 	if not scopes:
 		raise build_wrong_permissions_error()
 	if user.isAdmin:
 		return user
 	sortedRules = ActionRule.sorted(chain(
 			user.roles,
-			stationService.get_station_rules(user.id,station.id)
+			stationService.get_station_rules(user.id, station.id, scopes)
 	))
 	rules = [*ActionRule.filter_out_repeat_roles(sortedRules)]
 	for scope in scopes:

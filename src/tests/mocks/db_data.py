@@ -1111,6 +1111,30 @@ def get_user_role_params(
 			"span":0,
 			"count":0,
 			"priority": None
+		},
+		{
+			"userFk": india_user_id,
+			"role": UserRoleDef.PATH_EDIT.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": 1
+		},
+		{
+			"userFk": india_user_id,
+			"role": UserRoleDef.PATH_VIEW.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": 1
+		},
+		{
+			"userFk": india_user_id,
+			"role": UserRoleDef.STATION_ASSIGN.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": 1
 		}
 	]
 
@@ -1268,6 +1292,36 @@ def get_station_permission_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
+		# {
+		# 	"pk":16,
+		# 	"userFk": foxtrot_user_id,
+		# 	"stationFk": 2,
+		# 	"role": UserRoleDef.STATION_ASSIGN.value,
+		# 	"span":0,
+		# 	"count":0,
+		# 	"priority": None,
+		# 	"creationTimestamp": orderedTestDates[0].timestamp()
+		# },
+		# {
+		# 	"pk":17,
+		# 	"userFk": foxtrot_user_id,
+		# 	"stationFk": 7,
+		# 	"role": UserRoleDef.STATION_ASSIGN.value,
+		# 	"span":0,
+		# 	"count":0,
+		# 	"priority": None,
+		# 	"creationTimestamp": orderedTestDates[0].timestamp()
+		# },
+		# {
+		# 	"pk":18,
+		# 	"userFk": foxtrot_user_id,
+		# 	"stationFk": 10,
+		# 	"role": UserRoleDef.STATION_ASSIGN.value,
+		# 	"span":0,
+		# 	"count":0,
+		# 	"priority": None,
+		# 	"creationTimestamp": orderedTestDates[0].timestamp()
+		# },
 	]
 
 def get_path_permission_params(
@@ -1388,6 +1442,16 @@ def get_path_permission_params(
 			"pk":12,
 			"userFk": sierra_user_id,
 			"path": "/foo/goo/who_1",
+			"role": UserRoleDef.PATH_EDIT.value,
+			"span":1,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":13,
+			"userFk": foxtrot_user_id,
+			"path": "/foo/goo/boo",
 			"role": UserRoleDef.PATH_EDIT.value,
 			"span":1,
 			"count":0,

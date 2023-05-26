@@ -153,11 +153,40 @@ def test_song_save(
 	)
 	assert not mismatches
 
-def test_song_save_with_unpermitted_stations():
-	raise NotImplementedError()
+def test_song_save_with_unpermitted_stations(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_hotel", client)
+	getResponseBefore = client.get(
+		f"song-info/songs/{1}",
+		headers=headers
+	)
+	data = json.loads(getResponseBefore.content)
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "sierra_song_update_3"
 
-def test_song_save_with_original_stations_no_station_permissions():
-	raise NotImplementedError()
+	putResponse = client.put(
+		f"song-info/songs/{1}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 200
+	stations = sendData["stations"]
+	stations.append({
+		"id": 7,
+		"name": "uniform_station",
+		"displayName": "Asshole at the wheel"
+	})
+
+	putResponse = client.put(
+		f"song-info/songs/{1}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 422
 
 def test_song_save_no_roles(
 	fixture_api_test_client: TestClient
@@ -179,7 +208,7 @@ def test_song_save_no_roles(
 		json=sendData
 	)
 
-	assert putResponse.status_code == 422
+	assert putResponse.status_code == 403
 
 def test_song_save_with_path_permission(
 	fixture_api_test_client: TestClient

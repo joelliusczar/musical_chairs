@@ -841,7 +841,7 @@ def get_user_params(
 			"dirRoot": None
 		},
 		{
-			"pk": echo_user_id,
+			"pk": echo_user_id, #can't use. No password
 			"username": "testUser_echo",
 			"displayName": None,
 			"hashedPW": None,
@@ -1135,6 +1135,22 @@ def get_user_role_params(
 			"span":0,
 			"count":0,
 			"priority": 1
+		},
+		{
+			"userFk": hotel_user_id,
+			"role": UserRoleDef.PATH_VIEW.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": 1
+		},
+		{
+			"userFk": hotel_user_id,
+			"role": UserRoleDef.PATH_EDIT.value,
+			"creationTimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": 1
 		}
 	]
 
@@ -1287,6 +1303,16 @@ def get_station_permission_params(
 			"userFk": juliet_user_id,
 			"stationFk": 9,
 			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":16,
+			"userFk": hotel_user_id,
+			"stationFk": 9,
+			"role": UserRoleDef.STATION_ASSIGN.value,
 			"span":0,
 			"count":0,
 			"priority": None,

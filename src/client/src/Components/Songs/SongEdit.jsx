@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect } from "react";
+import React, { useReducer, useEffect, useMemo } from "react";
 import { Box, Typography, Button, Checkbox } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import * as Yup from "yup";
@@ -92,7 +92,7 @@ const schema = Yup.object().shape({
 			for (const artist of value) {
 				if (artist?.id === testContext.parent.primaryArtist?.id) {
 					return testContext.createError({
-						message: `Artist ${artist.name} has already been added` +
+						message: `Artist ${artist.name} has already been added ` +
 						"as primary artist",
 					});
 				}
@@ -116,11 +116,14 @@ export const SongEdit = () => {
 	const [state, dispatch] = useReducer(waitingReducer(), initialState);
 	const { callStatus } = state;
 	const location = useLocation();
-	const queryObj = new URLSearchParams(location.search);
-	const ids = queryObj.getAll("id").map(id => parseInt(id));
 	const classes = useStyles();
-	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+
+	const ids = useMemo(() => {
+		const queryObj = new URLSearchParams(location.search);
+		return queryObj.getAll("ids").map(id => parseInt(id));
+	},[location.search]);
 
 	const {
 		items: artists,

@@ -50,7 +50,7 @@ export const History = () => {
 
 		if (canEditSongs) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.songEdit}?id=${item.id}`,
+			link: `${DomRoutes.songEdit()}?id=${item.id}`,
 		});
 
 		if (canDownloadSongs) rowButtonOptions.push({

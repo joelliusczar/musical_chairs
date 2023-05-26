@@ -15,7 +15,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from api_dependencies import (
 	song_info_service,
 	station_service,
-	get_path_user,
+	get_path_user
 )
 
 
@@ -67,6 +67,8 @@ def __validate_song_stations(
 	stationService: StationService,
 	songInfoService: SongInfoService,
 ):
+	if not song.stations:
+		return
 	stationIds = {s.id for s in song.stations or []}
 	linkedStationIds = {s.stationId for s in \
 		songInfoService.get_station_songs(songIds=songIds)}
@@ -104,6 +106,8 @@ def __validate_song_artists(
 	user: AccountInfo,
 	songInfoService: SongInfoService,
 ):
+	if not song.allArtists:
+		return
 	artistIds = {a.id for a in song.allArtists}
 	dbArtists = {a.id for a in songInfoService.get_artists(
 		artistKeys=artistIds,

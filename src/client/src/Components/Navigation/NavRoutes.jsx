@@ -132,21 +132,21 @@ export function AppRoutes() {
 				<AccountsRoles />
 			</PrivateRoute>
 			<PrivateRoute
-				path={`${DomRoutes.stationsEdit}`}
+				path={`${DomRoutes.stationsEdit()}`}
 				scopes={[UserRoleDef.STATION_EDIT]}
 			>
 				<StationEdit />
 			</PrivateRoute>
 			<Route
-				path={`${DomRoutes.songEdit}`}
+				path={`${DomRoutes.songEdit()}`}
 			>
 				<SongEdit />
 			</Route>
 			<PrivateRoute
-				path={DomRoutes.songTree}
+				path={DomRoutes.songTree()}
 				scopes={[
 					UserRoleDef.SONG_TREE_LIST,
-					UserRoleDef.SONG_EDIT,
+					UserRoleDef.PATH_EDIT,
 					UserRoleDef.SONG_DOWNLOAD,
 				]}
 			>

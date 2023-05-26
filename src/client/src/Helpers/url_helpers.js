@@ -1,6 +1,6 @@
 import { apiAddress, baseAddress } from "../constants";
 
-export const buildArrayQueryStr = (arr, key) => {
+export const buildArrayQueryStr = (key, arr) => {
 	const queryObj = new URLSearchParams();
 	for (const item of arr) {
 		queryObj.append(key, item);

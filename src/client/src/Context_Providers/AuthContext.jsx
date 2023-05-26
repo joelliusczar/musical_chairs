@@ -35,7 +35,7 @@ const expireCookie = (name) => {
 };
 
 export const conformsToRole = (candidate, basis) => {
-	return candidate.startsWith(`name=${basis}`);
+	return candidate.startsWith(basis);
 };
 
 

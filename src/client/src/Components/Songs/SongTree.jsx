@@ -143,8 +143,8 @@ export const SongTree = withCacheProvider()(() => {
 	};
 
 	const getPageUrl = (ids) => {
-		const queryStr = buildArrayQueryStr(ids, "id");
-		return `${DomRoutes.songEdit}${queryStr}`;
+		const queryStr = buildArrayQueryStr("ids", ids);
+		return `${DomRoutes.songEdit()}${queryStr}`;
 	};
 
 	const selectedSongIds = getSelectedSongInfo();

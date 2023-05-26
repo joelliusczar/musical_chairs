@@ -68,7 +68,7 @@ export const Queue = () => {
 
 		if (canEditSongs) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.songEdit}?id=${item.id}`,
+			link: `${DomRoutes.songEdit()}?id=${item.id}`,
 		});
 
 		if (canSkipSongs) rowButtonOptions.push({

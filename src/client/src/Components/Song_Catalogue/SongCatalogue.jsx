@@ -41,8 +41,6 @@ export const SongCatalogue = () => {
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const location = useLocation();
 	const pathVars = useParams();
-	const queryObj = new URLSearchParams(location.search);
-	const stationNameFromQS = queryObj.get("name") || "";
 	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
@@ -52,7 +50,7 @@ export const SongCatalogue = () => {
 
 	const requestSong = async (songId) => {
 		try {
-			await sendSongRequest({station: stationNameFromQS, songId });
+			await sendSongRequest({stationKey: pathVars.stationKey, songId });
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
 		}
 		catch (err) {
@@ -72,7 +70,7 @@ export const SongCatalogue = () => {
 
 		if (canEditSongs) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.songEdit}?id=${item.id}`,
+			link: `${DomRoutes.songEdit()}?id=${item.id}`,
 		});
 
 		if (canDownloadSongs) rowButtonOptions.push({

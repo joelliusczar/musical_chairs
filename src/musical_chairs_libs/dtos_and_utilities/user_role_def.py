@@ -46,7 +46,7 @@ class UserRoleDef(Enum):
 		return self.modded_value(**kwargs)
 
 	def conforms(self, candidate: str) -> bool:
-		return candidate.startswith(self.nameValue)
+		return candidate.startswith(self.value)
 
 	@classmethod
 	@property
@@ -55,7 +55,7 @@ class UserRoleDef(Enum):
 
 	@property
 	def nameValue(self):
-		return f"name={self.value}"
+		return self.value
 
 	@staticmethod
 	def as_set() -> Set[str]:

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, MenuItem, Button, Chip } from "@mui/material";
+import { Box, Button, Chip } from "@mui/material";
 import { useParams } from "react-router-dom";
 import { useSnackbar } from "notistack";
 import { UserRoleDef } from "../../constants";
@@ -20,6 +20,30 @@ const inputField = {
 	margin: 2,
 };
 
+const tmpModOptions = ["0", "5", "10", "15", "30", "60", "1440"].map(value => ({
+	id: value,
+	name: value === "0" ? "": value,
+}));
+
+const roleDefs = Object.keys(UserRoleDef).map(key => ({
+	id: UserRoleDef[key],
+	name: UserRoleDef[key],
+}));
+roleDefs.unshift({
+	id: "",
+	name: "",
+});
+
+const defaultFormData = {
+	accountInfo: {
+		roles: [],
+	},
+	tmpRole: roleDefs[0],
+	tmpRoleMod: tmpModOptions[0],
+};
+
+
+
 export const AccountsRoles = () => {
 	const { id } = useParams();
 	const { enqueueSnackbar } = useSnackbar();
@@ -28,14 +52,11 @@ export const AccountsRoles = () => {
 	const [fetchError, setFetchError] = useState(null);
 	const currentUser = useCurrentUser();
 
+
+
+
 	const formMethods = useForm({
-		defaultValues: {
-			accountInfo: {
-				roles: [],
-			},
-			tmpRole: "",
-			tmpRoleMod: "",
-		},
+		defaultValues: defaultFormData,
 	});
 	const { handleSubmit, reset, setValue, watch } = formMethods;
 	const callSubmit = handleSubmit(async values => {
@@ -47,9 +68,8 @@ export const AccountsRoles = () => {
 			});
 			enqueueSnackbar("Save successful", { variant: "success"});
 			reset({
+				...defaultFormData,
 				accountInfo: data,
-				tmpRole: "",
-				tmpRoleMod: "",
 			});
 		}
 		catch(err) {
@@ -61,12 +81,22 @@ export const AccountsRoles = () => {
 	const addRole = () => {
 		const role = watchAll.tmpRole;
 		const mod = watchAll.tmpRoleMod;
-		const moddedRole = mod ? `${role}:${mod}` : role;
+		const moddedRole = {
+			name: role.name,
+			count: 1,
+			span: mod.id * 1,
+			priority: 0,
+		};
 		const idx = watchAll.accountInfo.roles
-			.findIndex(r => conformsToRole(r, role));
+			.findIndex(r => conformsToRole(r.name, role));
 		if(idx === -1) {
 			if(role === UserRoleDef.ADMIN) {
-				setValue("accountInfo.roles", [UserRoleDef.ADMIN]);
+				setValue("accountInfo.roles", [{
+					name: UserRoleDef.ADMIN,
+					count: 1,
+					span: 0,
+					priority: 0,
+				}]);
 				return;
 			}
 			const roles = [...watchAll.accountInfo.roles, moddedRole];
@@ -89,11 +119,10 @@ export const AccountsRoles = () => {
 			try {
 				if(!fetchStatus && id) {
 					setFetchStatus(CallStatus.loading);
-					const data = await fetchUser({ id });
+					const data = await fetchUser({ userKey: id });
 					reset({
+						...defaultFormData,
 						accountInfo: data,
-						tmpRole: "",
-						tmpRoleMod: "",
 					});
 				}
 			}
@@ -120,7 +149,7 @@ export const AccountsRoles = () => {
 						return (
 							<Chip
 								key={`role_${idx}`}
-								label={role}
+								label={role.name}
 								color="primary"
 								onDelete={() => removeRole(idx)}
 								sx={{ m: 1 }}
@@ -134,15 +163,11 @@ export const AccountsRoles = () => {
 						label="Roles"
 						sx={{ width: 195 }}
 						formMethods={formMethods}
-					>
-						{Object.keys(UserRoleDef).map((key) => {
-							return (
-								<MenuItem key={`role_${key}`} value={UserRoleDef[key]}>
-									{UserRoleDef[key]}
-								</MenuItem>
-							);
-						})}
-					</FormSelect>
+						options={roleDefs}
+						isOptionEqualToValue={(option, value) => {
+							return option.id === value.id;
+						}}
+					/>
 					{watchAll.tmpRole &&
 						watchAll.tmpRole !== UserRoleDef.ADMIN &&
 					<FormSelect
@@ -150,18 +175,11 @@ export const AccountsRoles = () => {
 						name="tmpRoleMod"
 						sx={{ width: 100 }}
 						formMethods={formMethods}
-					>
-						<MenuItem key={"mod_empty"} value={""}>
-							None
-						</MenuItem>
-						{["5", "10", "15", "30", "60", "1440"].map((value) => {
-							return (
-								<MenuItem key={`mod_${value}`} value={value}>
-									{value}
-								</MenuItem>
-							);
-						})}
-					</FormSelect>}
+						options={tmpModOptions}
+						isOptionEqualToValue={(option, value) => {
+							return option.id === value.id;
+						}}
+					/>}
 					<Button
 						disabled={!watchAll.tmpRole}
 						onClick={addRole}

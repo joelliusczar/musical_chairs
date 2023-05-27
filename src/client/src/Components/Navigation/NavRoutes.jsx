@@ -126,7 +126,7 @@ export function AppRoutes() {
 				<AccountsList />
 			</PrivateRoute>
 			<PrivateRoute
-				path={`${DomRoutes.accountsRoles()}:id`}
+				path={DomRoutes.accountsRoles({ userKey: ":id"})}
 				scopes={[UserRoleDef.ADMIN]}
 			>
 				<AccountsRoles />

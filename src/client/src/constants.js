@@ -30,7 +30,7 @@ export const DomRoutes = {
 	accountsNew: () => "/accounts/new",
 	accountsEdit: () => "/accounts/edit",
 	accountsLogin: () => "/accounts/login",
-	accountsRoles: () => "/accounts/roles/",
+	accountsRoles: ({ userKey }) => `/accounts/roles/${userKey}`,
 	accountsList: () => "/accounts/list",
 	notFound: () => "/not-found",
 };

@@ -63,7 +63,7 @@ FormSelect.propTypes = {
 	label: PropTypes.string,
 	formMethods: PropTypes.object,
 	options: PropTypes.arrayOf(PropTypes.shape({
-		id: PropTypes.number,
+		id: PropTypes.oneOfType([PropTypes.number,PropTypes.string]),
 		name: PropTypes.string,
 	})),
 	transform: PropTypes.shape({

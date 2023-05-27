@@ -87,7 +87,10 @@ class AccountInfoSecurity(AccountInfoBase):
 
 	@property
 	def isAdmin(self) -> bool:
-		return any(r.conforms(UserRoleDef.ADMIN.value) for r in self.roles)
+		return any(
+			UserRoleDef.ADMIN.conforms(r.name) and r.domain == UserRoleDomain.Site \
+				for r in self.roles
+		)
 
 	def get_permitted_paths(
 		self,

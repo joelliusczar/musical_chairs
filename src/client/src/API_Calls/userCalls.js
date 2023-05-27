@@ -59,13 +59,8 @@ export const checkValues = async ({ values }) => {
 	return response.data;
 };
 
-export const fetchUser = async ({ id, username }) => {
-	const response = await webClient.get("accounts", {
-		params: {
-			userId: id,
-			username,
-		},
-	});
+export const fetchUser = async ({ userKey }) => {
+	const response = await webClient.get(`accounts/${userKey}`);
 	return response.data;
 };
 

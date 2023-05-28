@@ -116,7 +116,12 @@ export function AppRoutes() {
 					afterSubmit={() => urlHistory.push("")}
 				/>
 			</Route>}
-			{currentUser.username && <Route path={DomRoutes.accountsEdit()} >
+			{currentUser.username &&
+			<Route
+				path={DomRoutes.accountsEdit({
+					userKey: ":userKey",
+				})}
+			>
 				<AccountsEdit />
 			</Route>}
 			<PrivateRoute

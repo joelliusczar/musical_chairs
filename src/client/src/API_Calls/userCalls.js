@@ -60,7 +60,7 @@ export const checkValues = async ({ values }) => {
 };
 
 export const fetchUser = async ({ userKey }) => {
-	const response = await webClient.get(`accounts/${userKey}`);
+	const response = await webClient.get(`accounts/account/${userKey}`);
 	return response.data;
 };
 
@@ -78,30 +78,19 @@ export const updateUserRoles = async ({ id, roles }) => {
 	return response.data;
 };
 
-export const updateAccountBasic = async ({ id, username, data }) => {
-	const response = await webClient.put("accounts", data, {
-		params: {
-			userId: id,
-			username,
-		},
-	});
+export const updateAccountBasic = async ({ userKey, data }) => {
+	const response = await webClient.put(`accounts/account/${userKey}`, data);
 	return response.data;
 };
 
 export const updatePassword = async ({
-	id,
-	username,
+	userKey,
 	oldPassword,
 	newPassword,
 }) => {
-	const response = await webClient.put("accounts/update-password/", {
+	const response = await webClient.put(`accounts/update-password/${userKey}`, {
 		oldPassword,
 		newPassword,
-	}, {
-		params: {
-			userId: id,
-			username,
-		},
 	});
 	return response.data;
 };

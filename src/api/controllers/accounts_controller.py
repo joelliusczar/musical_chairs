@@ -142,7 +142,7 @@ def get_user_list(
 	totalRows = accountsService.get_accounts_count()
 	return TableData(totalRows=totalRows, items=accounts)
 
-@router.put("/{userKey}")
+@router.put("/account/{userKey}")
 def update_account(
 	updatedInfo: AccountInfoBase,
 	prev: AccountInfo = Depends(get_account_if_can_edit),
@@ -151,7 +151,7 @@ def update_account(
 	return accountsService.update_account_general_changes(updatedInfo, prev)
 
 
-@router.put("/update-password/")
+@router.put("/update-password/{userKey}")
 def update_password(
 	passwordInfo: PasswordInfo,
 	currentUser: AccountInfo = Depends(get_account_if_can_edit),
@@ -178,7 +178,7 @@ def update_roles(
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
 	return AccountInfo(**{**asdict(prev), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
-@router.get("/{userKey}")
+@router.get("/account/{userKey}")
 def get_account(
 	accountInfo: AccountInfo = Depends(get_account_if_can_edit)
 ) -> AccountInfo:

@@ -30,7 +30,7 @@ export const DomRoutes = {
 	},
 	songTree: () => "/song-info/tree/",
 	accountsNew: () => "/accounts/new",
-	accountsEdit: () => "/accounts/edit",
+	accountsEdit: ({ userKey }) => `/accounts/edit/${userKey}`,
 	accountsLogin: () => "/accounts/login",
 	accountsRoles: ({ userKey }) => `/accounts/roles/${userKey}`,
 	accountsList: () => "/accounts/list",

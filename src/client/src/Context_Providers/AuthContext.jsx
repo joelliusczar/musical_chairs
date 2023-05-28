@@ -39,7 +39,7 @@ export const conformsToRole = (candidate, basis) => {
 };
 
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const AuthContextProvider = (props) => {
 	const { children } = props;

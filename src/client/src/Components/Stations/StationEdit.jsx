@@ -12,16 +12,19 @@ import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useHistory, useLocation } from "react-router-dom";
+import { useHistory, useParams } from "react-router-dom";
 import {
 	waitingReducer,
 	initialState,
 	dispatches,
 } from "../Shared/waitingReducer";
-import { DomRoutes } from "../../constants";
+import { DomRoutes, CallStatus } from "../../constants";
 import {
 	useStationData,
 } from "../../Context_Providers/AppContextProvider";
+import { useCurrentUser } from "../../Context_Providers/AuthContext";
+import { Loader } from "../Shared/Loader";
+
 
 const inputField = {
 	margin: 2,
@@ -50,39 +53,29 @@ const schema = Yup.object().shape({
 });
 
 export const StationEdit = (props) => {
-	const { onCancel, idKey, nameKey } = props;
+	const { onCancel } = props;
 	const { enqueueSnackbar } = useSnackbar();
 	const urlHistory = useHistory();
-	const location = useLocation();
-	const queryObj = new URLSearchParams(location.search);
-	const _idKey = idKey || "id";
-	const _nameKey = nameKey || "name";
-	const id = queryObj.get(_idKey);
-	const nameFromQueryStr = queryObj.get(_nameKey);
+	const pathVars = useParams();
+	const currentUser = useCurrentUser();
+
 	const [state, dispatch] = useReducer(waitingReducer(), initialState);
-	const { callStatus } = state;
+	const { callStatus, error } = state;
 	const {
 		add: addStation,
 		update: updateStation,
 	} = useStationData();
 
 	const getPageUrl = (params) => {
-		let queryStr = null;
-		if(queryObj) {
-			if(params.id) {
-				queryObj.set(_idKey, params.id);
-			}
-			if(params.name) {
-				queryObj.set(_nameKey, params.name);
-			}
-			queryStr = `?${queryObj.toString()}`;
-		}
-		return `${DomRoutes.stationsEdit}${queryStr}`;
+		return DomRoutes.stationsEdit({
+			ownerKey: pathVars.ownerKey || currentUser.username,
+			stationKey: params.name,
+		});
 	};
 
 	const _afterSubmit = (data) => {
 		reset(data);
-		urlHistory.replace(getPageUrl({ id: data.id }));
+		urlHistory.replace(getPageUrl({ name: data.name }));
 	};
 
 	const afterSubmit = props.afterSubmit || _afterSubmit;
@@ -95,7 +88,7 @@ export const StationEdit = (props) => {
 	const { handleSubmit, reset } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const stationId = id ? id : values.id ? values.id : null;
+			const stationId = values.id || null;
 			const data = await saveStation({ values, id: stationId });
 			afterSubmit(data);
 			if (stationId) {
@@ -115,14 +108,12 @@ export const StationEdit = (props) => {
 	useEffect(() => {
 		const fetch = async () => {
 			try {
-				if(id || nameFromQueryStr) {
+				if(pathVars.stationKey) {
 					if(!callStatus) {
 						dispatch(dispatches.started());
 						const data = await fetchStationForEdit({
-							params: {
-								id,
-								name: nameFromQueryStr,
-							},
+							ownerKey: pathVars.ownerKey,
+							stationKey: pathVars.stationKey,
 						});
 						reset(data);
 						dispatch(dispatches.done());
@@ -133,15 +124,23 @@ export const StationEdit = (props) => {
 				}
 			}
 			catch(err) {
+				enqueueSnackbar(formatError(err), { variant: "error"});
 				dispatch(dispatches.failed(formatError(err)));
 			}
 		};
 
 		fetch();
-	}, [dispatch, callStatus, id, nameFromQueryStr]);
+	}, [
+		dispatch,
+		callStatus,
+		pathVars.ownerKey,
+		pathVars.stationKey,
+	]);
+
+	const loadStatus = pathVars.stationKey ? callStatus: CallStatus.done;
 
 	return (
-		<>
+		<Loader status={loadStatus} error={error}>
 			<Box sx={inputField}>
 				<Typography variant="h1">
 					Create a station
@@ -169,15 +168,13 @@ export const StationEdit = (props) => {
 						Cancel
 				</Button>}
 			</Box>
-		</>
+		</Loader>
 	);
 };
 
 StationEdit.propTypes = {
 	afterSubmit: PropTypes.func,
 	onCancel: PropTypes.func,
-	idKey: PropTypes.string,
-	nameKey: PropTypes.string,
 };
 
 
@@ -205,7 +202,6 @@ export const StationNewModalOpener = (props) => {
 				<StationEdit
 					afterSubmit={itemCreated}
 					onCancel={closeModal}
-					idKey={"stationId"}
 				/>
 			</Dialog>
 		</>);

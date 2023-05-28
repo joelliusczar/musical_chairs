@@ -20,7 +20,9 @@ export const DomRoutes = {
 	history: ({ stationKey, ownerKey }) =>
 		`/stations/history/${ownerKey}/${stationKey ? `${stationKey}/` : ""}`,
 	stations: ({ ownerKey }) => `/stations/${ownerKey}/list/`,
-	stationsEdit: () => "/stations/edit/",
+	stationsEdit: ({ stationKey, ownerKey }) =>
+		`/stations/edit/${ownerKey}/${stationKey}`,
+	stationsAdd: () => "/stations/edit/",
 	songEdit: () => "/songs/edit/",
 	songCatalogue: ({ stationKey, ownerKey }) => {
 		const stationSegment = stationKey ? `${stationKey}/` : "";

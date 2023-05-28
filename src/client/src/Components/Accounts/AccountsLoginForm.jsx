@@ -40,7 +40,7 @@ export function LoginForm(props) {
 			<Typography variant="h1">Login</Typography>
 			<Link
 				onClick={onCancel}
-				to={`${DomRoutes.accountsNew}`}
+				to={`${DomRoutes.accountsNew()}`}
 			>
 				Create new account
 			</Link>

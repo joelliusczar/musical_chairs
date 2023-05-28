@@ -7,10 +7,8 @@ export const fetchStations = async ({ ownerKey }) => {
 	return response.data;
 };
 
-export const fetchStationForEdit = async ({ params }) => {
-	const response = await webClient.get("stations", {
-		params: params,
-	});
+export const fetchStationForEdit = async ({ ownerKey, stationKey }) => {
+	const response = await webClient.get(`stations/${ownerKey}/${stationKey}/`);
 	return response.data;
 };
 
@@ -23,11 +21,7 @@ export const checkValues = async ({ values }) => {
 
 export const saveStation = async ({ values, id}) => {
 	if(id) {
-		const response = await webClient.put("stations", values, {
-			params: {
-				id,
-			},
-		});
+		const response = await webClient.put(`/stations/${id}`, values);
 		return response.data;
 	}
 	else {

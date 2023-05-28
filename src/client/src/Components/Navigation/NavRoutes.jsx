@@ -132,8 +132,17 @@ export function AppRoutes() {
 				<AccountsRoles />
 			</PrivateRoute>
 			<PrivateRoute
-				path={`${DomRoutes.stationsEdit()}`}
+				path={`${DomRoutes.stationsEdit({
+					stationKey: ":stationKey?",
+					ownerKey: ":ownerKey",
+				})}`}
 				scopes={[UserRoleDef.STATION_EDIT]}
+			>
+				<StationEdit />
+			</PrivateRoute>
+			<PrivateRoute
+				path={`${DomRoutes.stationsAdd()}`}
+				scopes={[UserRoleDef.STATION_CREATE]}
 			>
 				<StationEdit />
 			</PrivateRoute>

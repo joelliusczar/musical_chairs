@@ -59,7 +59,7 @@ export function AccountsNew() {
 	const callSubmit = handleSubmit(async values => {
 		try {
 			await createAccount({ values });
-			urlHistory.push(DomRoutes.accountsLogin);
+			urlHistory.push(DomRoutes.accountsLogin());
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err){

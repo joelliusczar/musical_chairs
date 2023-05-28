@@ -126,7 +126,7 @@ export const Stations = () => {
 		<Typography variant="h1">Stations</Typography>
 		{canEditStation && <Button
 			component={Link}
-			to={DomRoutes.stationsEdit()}
+			to={DomRoutes.stationsAdd()}
 		>
 			Add New Station
 		</Button>}
@@ -192,7 +192,10 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										component={Link}
-										to={`${DomRoutes.stationsEdit()}?id=${s.id}`}
+										to={DomRoutes.stationsEdit({
+											stationKey: s.name,
+											ownerKey: pathVars.ownerKey,
+										})}
 									>
 										Edit
 									</Button>}

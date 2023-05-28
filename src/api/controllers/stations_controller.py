@@ -17,7 +17,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	TableData,
 	UserRoleDef,
-	build_error_obj,
 	ActionRule
 )
 from musical_chairs_libs.services import (
@@ -30,7 +29,7 @@ from api_dependencies import (
 	queue_service,
 	process_service,
 	get_station_user,
-	get_owner_from_path,
+	get_owner,
 	get_station_by_name_and_owner,
 	get_current_user_simple,
 	get_user_with_rate_limited_scope,
@@ -42,7 +41,7 @@ router = APIRouter(prefix="/stations")
 
 @router.get("/{ownerKey}/list")
 def index(
-	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
+	owner: Optional[AccountInfo] = Depends(get_owner),
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:
 	if not owner:
@@ -163,26 +162,8 @@ def is_phrase_used(
 		"name": stationService.is_stationName_used(id, name, user.id)
 	}
 
-def get_station(
-	id: Optional[int]=None,
-	name: Optional[str]=None,
-	stationService: StationService = Depends(station_service)
-) -> StationInfo:
-	stationInfo = stationService.get_station_for_edit(
-		stationId=id,
-		stationName=name
-	)
-	if stationInfo is None:
-		msg = f"{id or name or 'Station'} not found"
-		field = "id" if id else "name" \
-			if name else None
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(msg, field)]
-		)
-	return stationInfo
 
-@router.get("/{ownerKey}/{stationKey}/")
+@router.get("/{ownerKey}/{stationKey}")
 def get_station_for_edit(
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner)
 ) -> StationInfo:
@@ -200,17 +181,17 @@ def create_station(
 	result = stationService.save_station(station, user=user)
 	return result or StationInfo(id=-1,name="", displayName="")
 
-@router.put("")
+@router.put("/{stationKey}")
 def update_station(
-	id: int,
+	stationKey: int,
 	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
 		get_station_user,
-		scopes=[UserRoleDef.STATION_EDIT()]
+		scopes=[UserRoleDef.STATION_EDIT.value]
 	)
 ) -> StationInfo:
-	result = stationService.save_station(station,user, id)
+	result = stationService.save_station(station,user, stationKey)
 	return result or StationInfo(id=-1,name="",displayName="")
 
 @router.put("/enable/", status_code=status.HTTP_204_NO_CONTENT)

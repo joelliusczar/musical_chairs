@@ -1,7 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Iterator, Tuple, Optional, Iterable, Union
 from urllib import parse
-from fastapi import Depends, HTTPException, status, Cookie, Query
+from fastapi import Depends, HTTPException, status, Cookie, Query, Request
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
 	EnvManager,
@@ -96,16 +96,26 @@ def get_user_from_token_optional(
 	except ExpiredSignatureError:
 		raise build_expired_error()
 
-def get_owner_from_path(
-	ownerKey: Union[int, str],
+def get_owner(
+	request: Request,
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> Optional[AccountInfo]:
-	return accountsService.get_account_for_edit(ownerKey)
+	ownerKey = request.path_params.get("ownerKey", None)
+	if ownerKey:
+		owner = accountsService.get_account_for_edit(ownerKey)
+		if owner:
+			return owner
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"User with key {ownerKey} not found")
+			]
+		)
+	return None
 
 
 def get_station_by_name_and_owner(
 	stationKey: Union[int, str],
-	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
+	owner: Optional[AccountInfo] = Depends(get_owner),
 	stationService: StationService = Depends(station_service)
 ) -> StationInfo:
 	if type(stationKey) == str and not owner:

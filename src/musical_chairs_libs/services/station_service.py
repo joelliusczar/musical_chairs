@@ -319,21 +319,20 @@ class StationService:
 
 	def get_station_for_edit(
 		self,
-		stationId: Optional[int]=None,
-		stationName: Optional[str]=None,
+		stationKey: Union[int, str, None]
 	) -> Optional[StationInfo]:
 		query = select(st_pk, st_name, st_displayName, st_ownerFk)
-		if stationId:
-			query = query.where(st_pk == stationId)
-		elif stationName:
-			query = query.where(st_name == stationName)
+		if type(stationKey) is int:
+			query = query.where(st_pk == stationKey)
+		elif type(stationKey) is str:
+			query = query.where(st_name == stationKey)
 		else:
 			return None
 		row = self.conn.execute(query).fetchone()
 		if not row:
 			return None
 		return StationInfo(
-			id=stationId or cast(int, row[st_pk]),
+			id=cast(int, row[st_pk]),
 			name=cast(str, row[st_name]),
 			displayName=cast(str, row[st_displayName]),
 		)

@@ -17,8 +17,8 @@ import PropTypes from "prop-types";
 import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
 import { formatError } from "../Helpers/error_formatter";
 import { fetchStations } from "../API_Calls/stationCalls";
-import { CallStatus } from "../constants";
-import { useCurrentUser } from "./AuthContext";
+import { CallStatus, UserRoleDef } from "../constants";
+import { useCurrentUser, useHasAnyRoles } from "./AuthContext";
 
 const AppContext = createContext();
 
@@ -75,6 +75,7 @@ const sortedListReducerPaths = {
 export const AppContextProvider = (props) => {
 	const { children } = props;
 	const { username } = useCurrentUser();
+	const canGetAlbumsArtists = useHasAnyRoles([UserRoleDef.PATH_VIEW]);
 
 	const [albumsState, albumsDispatch] = useReducer(
 		waitingReducer(sortedListReducerPaths),
@@ -92,7 +93,7 @@ export const AppContextProvider = (props) => {
 	);
 
 	useEffect(() => {
-		if (!username) return;
+		if (!username || !canGetAlbumsArtists) return;
 		const fetch = async () => {
 			try {
 				albumsDispatch(dispatches.started());
@@ -122,7 +123,7 @@ export const AppContextProvider = (props) => {
 	}, [stationsDispatch, username]);
 
 	useEffect(() => {
-		if (!username) return;
+		if (!username || !canGetAlbumsArtists) return;
 		const fetch = async () => {
 			try {
 				artistDispatch(dispatches.started());

@@ -288,7 +288,7 @@ def get_path_user_and_check_optional_path(
 ) -> AccountInfo:
 	if user.isAdmin:
 		return user
-	if prefix == None:
+	if prefix is None:
 		if itemId:
 			prefix = next(songInfoService.get_song_path(itemId,False), "")
 	scopes = [s for s in securityScopes.scopes \

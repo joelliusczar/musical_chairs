@@ -27,10 +27,6 @@ users = Table("Users", metadata,
 	Column("isDisabled", Integer, nullable=True),
 	Column("creationTimestamp", Float, nullable=False)
 )
-_u_username = cast(Column,users.c.username) #pyright: ignore [reportUnknownMemberType]
-Index("idx_uniqueUsername", _u_username, unique=True)
-_u_email = cast(Column,users.c.email) #pyright: ignore [reportUnknownMemberType]
-Index("idx_uniqueEmail", _u_email, unique=True)
 
 u = cast(TblCols,users.c) #pyright: ignore [reportUnknownMemberType]
 u_pk = cast(Column,u.pk) #pyright: ignore [reportUnknownMemberType]
@@ -41,6 +37,10 @@ u_email = cast(Column,u.email) #pyright: ignore [reportUnknownMemberType]
 u_dirRoot = cast(Column,u.dirRoot) #pyright: ignore [reportUnknownMemberType]
 u_disabled = cast(Column,u.isDisabled) #pyright: ignore [reportUnknownMemberType]
 u_creationTimestamp = cast(Column,u.creationTimestamp) #pyright: ignore [reportUnknownMemberType]
+
+Index("idx_uniqueUsername", u_username, unique=True)
+Index("idx_uniqueEmail", u_email, unique=True)
+Index("idx_dirRoot", u_dirRoot, unique=True)
 
 artists = Table("Artists", metadata,
 	Column("pk", Integer, primary_key=True),

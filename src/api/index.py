@@ -75,7 +75,8 @@ def handle_already_used_values(
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
 				request.headers.get("origin", None)
-			)
+			),
+			"access-control-allow-credentials": "true"
 		}
 	)
 
@@ -90,7 +91,8 @@ def handle_invalid_email(
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
 				request.headers.get("origin", None)
-			)
+			),
+			"access-control-allow-credentials": "true"
 		}
 	)
 
@@ -110,7 +112,8 @@ def everything_else(
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
 				request.headers.get("origin", None)
-			)
+			),
+			"access-control-allow-credentials": "true"
 		}
 	)
 	return response

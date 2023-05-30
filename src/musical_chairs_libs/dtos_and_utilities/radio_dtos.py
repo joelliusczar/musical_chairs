@@ -82,6 +82,8 @@ class StationInfo:
 	name: str
 	displayName: str=field(default="", hash=False, compare=False)
 	isRunning: bool=field(default=False, hash=False, compare=False)
+	ownerId: Optional[int]=field(default=None, hash=False, compare=False)
+	requestSecurityLevel: int=field(default=0, hash=False, compare=False)
 
 @dataclass()
 class StationCreationInfo:

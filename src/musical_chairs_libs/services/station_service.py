@@ -24,7 +24,7 @@ from sqlalchemy import (
 )
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
-	st_ownerFk,
+	st_ownerFk, st_requestSecurityLevel,
 	songs, sg_pk, sg_name, sg_path, sg_albumFk,
 	station_queue, q_stationFk, q_requestedTimestamp, q_requestedByUserFk,
 	albums, ab_name, ab_pk,
@@ -49,7 +49,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	AlreadyUsedError,
 	UserRoleDomain,
-	get_station_owner_rules
+	get_station_owner_rules,
+	RulePriorityLevel
 )
 from .env_manager import EnvManager
 from .template_service import TemplateService
@@ -112,7 +113,9 @@ class StationService:
 			id=cast(int,row[st_pk]),
 			name=cast(str,row[st_name]),
 			displayName=cast(str,row[st_displayName]),
-			isRunning=bool(row[st_procId])
+			isRunning=bool(row[st_procId]),
+			ownerId=cast(int,row[st_ownerFk]),
+			requestSecurityLevel=cast(int,row[st_requestSecurityLevel]),
 		)
 
 	def __row_to_action_rule__(self, row: Row) -> ActionRule:
@@ -123,7 +126,8 @@ class StationService:
 			#if priortity is explict use that
 			#otherwise, prefer station specific rule vs non station specific rule
 			cast(int,row[stup_priority]) if row[stup_priority] \
-				else 1 if row[st_pk] else 0,
+				else RulePriorityLevel.STATION_PATH.value if row[st_pk] \
+					else RulePriorityLevel.ANY_STATION.value,
 			domain=UserRoleDomain.Station
 		)
 
@@ -131,32 +135,31 @@ class StationService:
 		self,
 		rows: Iterable[Row],
 		ownerId: Optional[int]
-	) -> Iterator[Tuple[StationInfo, list[ActionRule], int]]:
+	) -> Iterator[Tuple[StationInfo, list[ActionRule]]]:
 		currentStation = None
 		for row in rows:
 			if not currentStation or currentStation[0].id != cast(int,row[st_pk]):
 				if currentStation:
-					if currentStation[2] == ownerId:
+					if currentStation[0].ownerId == ownerId:
 						currentStation[1].extend(get_station_owner_rules())
 					yield currentStation
 				currentStation = (
 					self.__row_to_station__(row),
-					cast(list[ActionRule],[]),
-					cast(int,row[st_ownerFk])
+					cast(list[ActionRule],[])
 				)
 				if row[stup_role]:
 					currentStation[1].append(self.__row_to_action_rule__(row))
 			else:
 				currentStation[1].append(self.__row_to_action_rule__(row))
 		if currentStation:
-			if currentStation[2] == ownerId:
+			if currentStation[0].ownerId == ownerId:
 				currentStation[1].extend(get_station_owner_rules())
 			yield currentStation
 
 	def get_stations_and_rules(self,
 		ownerId: int,
 		stationKeys: Union[int,str, Iterable[int], None]=None
-	) -> Iterator[Tuple[StationInfo, list[ActionRule], int]]:
+	) -> Iterator[Tuple[StationInfo, list[ActionRule]]]:
 		yield from self.__get_stations_and_rules__(stationKeys, ownerId, True)
 
 	def get_stations(
@@ -176,7 +179,7 @@ class StationService:
 		stationKeys: Union[int,str, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
 		includeRules: Literal[True]=True
-	) -> Iterator[Tuple[StationInfo, list[ActionRule], int]]:
+	) -> Iterator[Tuple[StationInfo, list[ActionRule]]]:
 		...
 
 	@overload
@@ -194,7 +197,7 @@ class StationService:
 		ownerId: Union[int, None]=None,
 		includeRules: bool=False
 	) -> Union[
-				Iterator[Tuple[StationInfo, list[ActionRule], int]],
+				Iterator[Tuple[StationInfo, list[ActionRule]]],
 				Iterator[StationInfo]
 			]:
 		query = select(
@@ -202,7 +205,8 @@ class StationService:
 			st_name,
 			st_displayName,
 			st_procId,
-			st_ownerFk
+			st_ownerFk,
+			st_requestSecurityLevel
 		).select_from(stations_tbl)
 
 

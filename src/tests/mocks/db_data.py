@@ -1,6 +1,10 @@
 from datetime import datetime
 from typing import List, Any
-from musical_chairs_libs.dtos_and_utilities import AccountInfo, UserRoleDef
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	UserRoleDef,
+	RulePriorityLevel
+)
 try:
 	from .special_strings_reference import chinese1, irish1
 except:
@@ -1118,7 +1122,7 @@ def get_user_role_params(
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span":0,
 			"count":0,
-			"priority": 1
+			"priority": RulePriorityLevel.SITE.value + 1
 		},
 		{
 			"userFk": india_user_id,
@@ -1126,7 +1130,7 @@ def get_user_role_params(
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span":0,
 			"count":0,
-			"priority": 1
+			"priority": RulePriorityLevel.SITE.value + 1
 		},
 		{
 			"userFk": india_user_id,
@@ -1134,7 +1138,7 @@ def get_user_role_params(
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span":0,
 			"count":0,
-			"priority": 1
+			"priority": RulePriorityLevel.SITE.value + 1
 		},
 		{
 			"userFk": hotel_user_id,
@@ -1142,7 +1146,7 @@ def get_user_role_params(
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span":0,
 			"count":0,
-			"priority": 1
+			"priority": RulePriorityLevel.SITE.value + 1
 		},
 		{
 			"userFk": hotel_user_id,
@@ -1150,7 +1154,7 @@ def get_user_role_params(
 			"creationTimestamp": orderedTestDates[0].timestamp(),
 			"span":0,
 			"count":0,
-			"priority": 1
+			"priority": RulePriorityLevel.SITE.value + 1
 		}
 	]
 
@@ -1225,7 +1229,7 @@ def get_station_permission_params(
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":120,
 			"count":5,
-			"priority": 2,
+			"priority": RulePriorityLevel.STATION_PATH.value + 1,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
 		{

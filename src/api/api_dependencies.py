@@ -24,7 +24,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ChainedAbsorbentTrie,
 	normalize_opening_slash,
 	UserRoleDef,
-	StationInfo
+	StationInfo,
+	RulePriorityLevel
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -102,7 +103,11 @@ def get_owner(
 ) -> Optional[AccountInfo]:
 	ownerKey = request.path_params.get("ownerKey", None)
 	if ownerKey:
-		owner = accountsService.get_account_for_edit(ownerKey)
+		try:
+			ownerKey = int(ownerKey)
+			owner = accountsService.get_account_for_edit(ownerKey)
+		except:
+			owner = accountsService.get_account_for_edit(ownerKey)
 		if owner:
 			return owner
 		raise HTTPException(
@@ -345,6 +350,30 @@ def get_multi_path_user(
 		)
 	return user
 
+def __filter_station_request_rules__(
+	scopes: Iterable[str],
+	station: StationInfo,
+	rules: Iterable[ActionRule]
+) -> Iterator[ActionRule]:
+	if not station.requestSecurityLevel:
+		yield from rules
+		return
+	if not any(s == UserRoleDef.STATION_REQUEST.value for s in scopes):
+		yield from rules
+		return
+	for rule in rules:
+		if rule.name != UserRoleDef.STATION_REQUEST.value:
+			yield rule
+			continue
+		#shouldn't be any rules for other stations at this point
+		isStationRule = rule.domain == UserRoleDomain.Station
+		if station.requestSecurityLevel < RulePriorityLevel.STATION_PATH.value and isStationRule:
+			yield rule
+			continue
+		isSiteRule = rule.domain == UserRoleDomain.Site
+		if isSiteRule and rule.priority > station.requestSecurityLevel:
+			yield rule
+			continue
 
 
 def get_station_user(
@@ -364,7 +393,9 @@ def get_station_user(
 			user.roles,
 			stationService.get_station_rules(user.id, station.id, scopes)
 	))
-	rules = [*ActionRule.filter_out_repeat_roles(sortedRules)]
+	rules = [*ActionRule.filter_out_repeat_roles(
+		__filter_station_request_rules__(scopes, station, sortedRules)
+	)]
 	for scope in scopes:
 		bestRuleGenerator = (r for g in
 			groupby(

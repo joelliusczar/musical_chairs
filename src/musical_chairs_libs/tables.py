@@ -142,7 +142,8 @@ stations = Table("Stations", metadata,
 	Column("lastModifiedByUserFk", Integer, ForeignKey("Users.pk"), \
 		nullable=True),
 	Column("lastModifiedTimestamp", Float, nullable=True),
-  Column("ownerFk", Integer, ForeignKey("Users.pk"), nullable=False)
+  Column("ownerFk", Integer, ForeignKey("Users.pk"), nullable=False),
+  Column("requestSecurityLevel", Integer, nullable=True),
 )
 
 st = cast(TblCols, stations.c) #pyright: ignore [reportUnknownMemberType]
@@ -151,6 +152,7 @@ st_name = cast(Column,st.name) #pyright: ignore [reportUnknownMemberType]
 st_displayName = cast(Column,st.displayName) #pyright: ignore [reportUnknownMemberType]
 st_procId = cast(Column,st.procId) #pyright: ignore [reportUnknownMemberType]
 st_ownerFk = cast(Column,st.ownerFk) #pyright: ignore [reportUnknownMemberType]
+st_requestSecurityLevel = cast(Column,st.requestSecurityLevel) #pyright: ignore [reportUnknownMemberType]
 Index("idx_uniqueStationName", st_name, st_ownerFk, unique=True)
 
 stations_songs = Table("StationsSongs", metadata,

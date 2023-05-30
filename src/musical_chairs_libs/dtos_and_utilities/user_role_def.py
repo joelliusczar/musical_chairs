@@ -11,7 +11,13 @@ from .type_aliases import (
 )
 from .simple_functions import role_dict
 
-
+class RulePriorityLevel(Enum):
+	NONE = 0
+	SITE = 10
+	ANY_STATION = 20
+	STATION_PATH = 30
+	OWNER = 40
+	SUPER = 50
 
 class UserRoleDomain(Enum):
 	Site = "site"
@@ -47,11 +53,6 @@ class UserRoleDef(Enum):
 
 	def conforms(self, candidate: str) -> bool:
 		return candidate.startswith(self.value)
-
-	@classmethod
-	@property
-	def default_owner_priority(cls) -> int:
-		return 2
 
 	@property
 	def nameValue(self):

@@ -1,11 +1,9 @@
 import sys
 from typing import (Any, Optional, Iterable, Iterator)
 from dataclasses import dataclass
-from .user_role_def import UserRoleDomain
+from .user_role_def import UserRoleDomain, RulePriorityLevel
 from itertools import groupby
 from operator import attrgetter
-
-
 
 
 
@@ -17,7 +15,7 @@ class ActionRule:
 	count: int=0
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
-	priority: int=0
+	priority: int=RulePriorityLevel.NONE.value
 	domain: UserRoleDomain=UserRoleDomain.Site
 
 	@staticmethod

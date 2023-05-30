@@ -190,7 +190,7 @@ def test_update_account(fixture_api_test_client: TestClient):
 	headers = login_test_user("testUser_golf", client)
 	#update email success
 	response = client.put(
-		"/accounts/7",
+		"/accounts/account/7",
 		headers=headers,
 		json={
 			"username": "testUser_golf",
@@ -203,7 +203,7 @@ def test_update_account(fixture_api_test_client: TestClient):
 
 	#try to update email without being logged in
 	response = client.put(
-		"/accounts/7",
+		"/accounts/account/7",
 		json={
 			"username": "testUser_golf",
 			"email": "test_golf@test.com",
@@ -216,7 +216,7 @@ def test_update_account(fixture_api_test_client: TestClient):
 	#try to update email while logged in as wrong user
 	headers = login_test_user("testUser_foxtrot", client)
 	response = client.put(
-		"/accounts/7",
+		"/accounts/account/7",
 		headers=headers,
 		json={
 			"username": "testUser_golf",
@@ -231,7 +231,7 @@ def test_update_account(fixture_api_test_client: TestClient):
 	#update email again success
 	headers = login_test_user(primary_user().username, client)
 	response = client.put(
-		"/accounts/7",
+		"/accounts/account/7",
 		headers=headers,
 		json={
 			"username": "testUser_golf",
@@ -271,7 +271,7 @@ def test_get_account_info(fixture_api_test_client: TestClient):
 	user = primary_user()
 	headers = login_test_user(user.username, client)
 	response = client.get(
-		f"/accounts/{user.id}",
+		f"/accounts/account/{user.id}",
 		headers=headers
 	)
 	data = json.loads(response.content)
@@ -282,7 +282,7 @@ def test_get_account_info(fixture_api_test_client: TestClient):
 	assert data["email"] == user.email
 
 	response = client.get(
-		f"/accounts/{user.username}",
+		f"/accounts/account/{user.username}",
 		headers=headers
 	)
 	data = json.loads(response.content)

@@ -24,7 +24,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfoBase,
 	PasswordInfo,
 	ActionRule,
-	AlreadyUsedError
+	AlreadyUsedError,
+	RulePriorityLevel
 )
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
@@ -220,7 +221,7 @@ class AccountsService:
 					cast(str, r[ur_role]),
 					cast(int, r[ur_span]),
 					cast(int, r[ur_count]),
-					cast(int, r[ur_priority]) or 1
+					cast(int, r[ur_priority]) or RulePriorityLevel.SITE.value
 				) for r in rows)
 
 	def last_request_timestamp(self, user: AccountInfo) -> int:

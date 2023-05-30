@@ -9,7 +9,7 @@ from typing import (
 from pydantic import validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
-from .user_role_def import UserRoleDef, UserRoleDomain
+from .user_role_def import UserRoleDef, UserRoleDomain, RulePriorityLevel
 from .validation_functions import min_length_validator_factory
 from .simple_functions import (
 	get_duplicates,
@@ -28,17 +28,17 @@ def get_station_owner_rules() -> Iterator[ActionRule]:
 	#explicit rules with defined limts
 	yield ActionRule(
 		UserRoleDef.STATION_ASSIGN.value,
-		priority=UserRoleDef.default_owner_priority,
+		priority=RulePriorityLevel.OWNER.value,
 		domain=UserRoleDomain.Station
 	)
 	yield ActionRule(
 		UserRoleDef.STATION_DELETE.value,
-		priority=UserRoleDef.default_owner_priority,
+		priority=RulePriorityLevel.OWNER.value,
 		domain=UserRoleDomain.Station
 	)
 	yield ActionRule(
 		UserRoleDef.STATION_EDIT.value,
-		priority=UserRoleDef.default_owner_priority,
+		priority=RulePriorityLevel.OWNER.value,
 		domain=UserRoleDomain.Station
 	)
 
@@ -47,25 +47,25 @@ def get_path_owner_roles(ownerDir: Optional[str]) -> Iterator[PathsActionRule]:
 			return
 		yield PathsActionRule(
 			UserRoleDef.PATH_LIST.value,
-			priority=UserRoleDef.default_owner_priority,
+			priority=RulePriorityLevel.OWNER.value,
 			path=ownerDir,
 			domain=UserRoleDomain.Path
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_VIEW.value,
-			priority=UserRoleDef.default_owner_priority,
+			priority=RulePriorityLevel.OWNER.value,
 			path=ownerDir,
 			domain=UserRoleDomain.Path
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_EDIT.value,
-			priority=UserRoleDef.default_owner_priority,
+			priority=RulePriorityLevel.OWNER.value,
 			path=ownerDir,
 			domain=UserRoleDomain.Path
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_DOWNLOAD.value,
-			priority=UserRoleDef.default_owner_priority,
+			priority=RulePriorityLevel.OWNER.value,
 			path=ownerDir,
 			domain=UserRoleDomain.Path
 		)

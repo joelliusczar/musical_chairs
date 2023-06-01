@@ -265,6 +265,32 @@ Index(
 	unique=True
 )
 
+friend_user_permissions = Table("FriendUserPermissions", metadata,
+	Column("pk", Integer, primary_key=True),
+	Column("friendFk", Integer, ForeignKey("Users.pk"), nullable=False),
+	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
+	Column("role", String),
+	Column("span", Float, nullable=False),
+	Column("count", Float, nullable=False),
+	Column("priority", Integer),
+	Column("creationTimestamp", Float, nullable=False)
+)
+fup = cast(TblCols, friend_user_permissions.c) #pyright: ignore [reportUnknownMemberType]
+fup_friendFk = cast(Column, fup.friendFk) #pyright: ignore [reportUnknownMemberType]
+fup_pk = cast(Column, fup.pk) #pyright: ignore [reportUnknownMemberType]
+fup_userFk = cast(Column, fup.userFk) #pyright: ignore [reportUnknownMemberType]
+fup_role = cast(Column, fup.role) #pyright: ignore [reportUnknownMemberType]
+fup_span = cast(Column, fup.span) #pyright: ignore [reportUnknownMemberType]
+fup_count = cast(Column, fup.count) #pyright: ignore [reportUnknownMemberType]
+fup_priority = cast(Column, fup.priority) #pyright: ignore [reportUnknownMemberType]
+
+Index(
+	"idx_friendPermissions",
+	fup_friendFk,
+	fup_userFk,
+	fup_role,
+	unique=True
+)
 
 sg = cast(TblCols,songs.c) #pyright: ignore [reportUnknownMemberType]
 sg_pk = cast(Column,sg.pk) #pyright: ignore [reportUnknownMemberType]

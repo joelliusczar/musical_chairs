@@ -400,10 +400,14 @@ def test_get_artists_for_songs(
 
 
 def test_get_single_song_for_edit(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
 ):
 	songInfoService = fixture_song_info_service
-	songInfo = next(songInfoService.get_songs_for_edit([1]))
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([1], user))
 	assert songInfo
 
 	assert songInfo.path == "foo/goo/boo/sierra"
@@ -436,38 +440,54 @@ def test_get_single_song_for_edit(
 
 
 def test_get_song_for_edit_without_stations(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
 ):
 	songInfoService = fixture_song_info_service
-	songInfo = next(songInfoService.get_songs_for_edit([39]))
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([39], user))
 	assert songInfo
 	assert songInfo.name == "foxtrot2_song"
 	assert songInfo.stations != None and len(songInfo.stations) == 0
 
 def test_get_song_for_edit_without_artists(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
 ):
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
 	songInfoService = fixture_song_info_service
-	songInfo = next(songInfoService.get_songs_for_edit([58]))
+	songInfo = next(songInfoService.get_songs_for_edit([58], user))
 	assert songInfo
 	assert songInfo.name == "alpha4_song"
 	assert songInfo.artists != None and len(songInfo.artists) == 0
 
 def test_get_song_for_edit_without_album(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
 ):
 	songInfoService = fixture_song_info_service
-	songInfo = next(songInfoService.get_songs_for_edit([27]))
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([27], user))
 	assert songInfo
 	assert songInfo.name == "tango2_song"
 	assert songInfo.album == None
 
 
 def test_get_multiple_songs_for_edit(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
 ):
 	songInfoService = fixture_song_info_service
-	songInfoList = sorted(songInfoService.get_songs_for_edit([1, 17]),
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfoList = sorted(songInfoService.get_songs_for_edit([1, 17], user),
 		key=lambda s: s.id
 	)
 	assert songInfoList and len(songInfoList) == 2
@@ -535,19 +555,30 @@ def test_get_multiple_songs_for_edit(
 		assert sortedStations[1].displayName == "But soft, what yonder wind breaks"
 
 def test_get_multiple_songs_for_edit2(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
 ):
 	songInfoService = fixture_song_info_service
-	songInfoList = sorted(songInfoService.get_songs_for_edit([2, 3]),
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfoList = sorted(songInfoService.get_songs_for_edit([2, 3], user),
 		key=lambda s: s.id
 	)
 	assert len(songInfoList) == 2
 
 def test_get_duplicate_song(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
 ):
 	songInfoService = fixture_song_info_service
-	songInfoList = sorted(songInfoService.get_songs_for_edit([1, 1, 1, 1, 6]),
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfoList = sorted(songInfoService.get_songs_for_edit(
+			[1, 1, 1, 1, 6],
+			user
+		),
 		key=lambda s: s.id
 	)
 

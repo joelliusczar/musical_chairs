@@ -862,7 +862,7 @@ class SongInfoService:
 		removedFields: set[str] = set()
 		rules = None
 		for songInfo in self.get_songs_for_edit(songIds, user):
-			if not rules:
+			if rules is None: #empty set means no permissions. Don't overwrite
 				rules = set(songInfo.rules)
 			else:
 				# only keep the set of rules that are common to
@@ -882,6 +882,7 @@ class SongInfoService:
 		if commonSongInfo:
 			commonSongInfo["id"] = 0
 			commonSongInfo["path"] = ""
+			del commonSongInfo["rules"]
 			return SongEditInfo(
 				**commonSongInfo,
 				touched=touched,

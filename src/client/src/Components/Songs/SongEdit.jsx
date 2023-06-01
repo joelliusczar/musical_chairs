@@ -32,6 +32,7 @@ import { formatError } from "../../Helpers/error_formatter";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 
 const inputField = {
@@ -117,7 +118,6 @@ export const SongEdit = () => {
 	const { callStatus } = state;
 	const location = useLocation();
 	const classes = useStyles();
-	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const ids = useMemo(() => {
@@ -174,6 +174,10 @@ export const SongEdit = () => {
 		formState,
 	} = formMethods;
 
+	const songRules = watch("rules");
+	const canEditSongs = anyConformsToAnyRule(
+		songRules, [UserRoleDef.PATH_EDIT]
+	);
 	const multiSongTouchedField = watch("touched");
 
 	const handleMutliSongTouchedCheck = (name) => {

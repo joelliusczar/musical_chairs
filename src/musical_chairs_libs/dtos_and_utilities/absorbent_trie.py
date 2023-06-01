@@ -431,3 +431,6 @@ class ChainedAbsorbentTrie(Generic[T]):
 
 		def values(self, path: Optional[str]=None) -> Iterator[Iterable[T]]:
 			return (v for v in self.__absorbentTrie__.values(path) if v)
+
+		def valuesFlat(self, path: Optional[str]=None) -> Iterator[T]:
+			return (r for i in self.values(path) for r in i)

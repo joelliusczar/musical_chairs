@@ -191,7 +191,7 @@ class SongAboutInfo:
 
 @dataclass()
 class SongEditInfo(SongAboutInfo, SongPathInfo):
-	...
+	rules: list[ActionRule]=field(default_factory=list)
 
 
 

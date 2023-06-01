@@ -59,15 +59,16 @@ def history(
 	page: int = 0,
 	limit: int = 50,
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
+	user: AccountInfo = Depends(get_current_user_simple),
 	queueService: QueueService = Depends(queue_service)
 ) -> TableData[SongListDisplayItem]:
 	if not station:
 		return TableData(totalRows=0, items=[])
-	history = list(queueService \
-		.get_history_for_station(
+	history = list(queueService.get_history_for_station(
 			stationId=station.id,
 			page = page,
-			limit = limit
+			limit = limit,
+			user=user
 		))
 	totalRows = queueService.history_count(stationId=station.id)
 	return TableData(totalRows=totalRows, items=history)

@@ -75,7 +75,6 @@ const sortedListReducerPaths = {
 export const AppContextProvider = (props) => {
 	const { children } = props;
 	const { username } = useCurrentUser();
-	const canGetAlbumsArtists = useHasAnyRoles([UserRoleDef.PATH_VIEW]);
 
 	const [albumsState, albumsDispatch] = useReducer(
 		waitingReducer(sortedListReducerPaths),
@@ -93,7 +92,7 @@ export const AppContextProvider = (props) => {
 	);
 
 	useEffect(() => {
-		if (!username || !canGetAlbumsArtists) return;
+		if (!username) return;
 		const fetch = async () => {
 			try {
 				albumsDispatch(dispatches.started());
@@ -123,7 +122,7 @@ export const AppContextProvider = (props) => {
 	}, [stationsDispatch, username]);
 
 	useEffect(() => {
-		if (!username || !canGetAlbumsArtists) return;
+		if (!username) return;
 		const fetch = async () => {
 			try {
 				artistDispatch(dispatches.started());

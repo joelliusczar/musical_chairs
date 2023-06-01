@@ -29,9 +29,13 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationSongTuple,
 	SongArtistTuple,
 	AlreadyUsedError,
+	ActionRule,
 	PathsActionRule,
 	UserRoleDomain,
-	normalize_opening_slash
+	normalize_opening_slash,
+	AccountInfo,
+	ChainedAbsorbentTrie,
+	get_path_owner_roles
 )
 from sqlalchemy import select, insert, update, func, delete, union_all
 from sqlalchemy.sql.expression import (
@@ -290,6 +294,23 @@ class SongInfoService:
 				domain=UserRoleDomain.Path,
 				path=normalize_opening_slash(cast(str,r[pup_path]))
 			)
+
+	def get_rule_path_tree(
+		self,
+		user: AccountInfo
+	) -> ChainedAbsorbentTrie[ActionRule]:
+		rules = ActionRule.sorted(r for r in chain(
+			user.roles,
+			(p for p in self.get_paths_user_can_see(user.id)),
+			(p for p in get_path_owner_roles(user.dirRoot))
+		))
+
+		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
+			(p.path, p) for p in rules if isinstance(p, PathsActionRule) and p.path
+		)
+		pathRuleTree.add("", (r for r in user.roles \
+			if not isinstance(r, PathsActionRule) or not r.path))
+		return pathRuleTree
 
 	def __song_ls_query__(self, prefix: Optional[str]="") -> Select:
 		prefix = normalize_opening_slash(prefix, False)
@@ -669,7 +690,7 @@ class SongInfoService:
 		songDict.pop(sgar_isPrimaryArtist.description, None) #pyright: ignore reportUnknownMemberType
 		return songDict
 
-	def _get_query_for_songs_for_edit(
+	def __get_query_for_songs_for_edit__(
 		self,
 		songIds: Iterable[int]
 	) -> Select:
@@ -717,9 +738,11 @@ class SongInfoService:
 
 	def get_songs_for_edit(
 		self,
-		songIds: Iterable[int]
+		songIds: Iterable[int],
+		user: AccountInfo,
 	) -> Iterator[SongEditInfo]:
-		query = self._get_query_for_songs_for_edit(songIds)
+		rulePathTree = self.get_rule_path_tree(user)
+		query = self.__get_query_for_songs_for_edit__(songIds)
 		records = self.conn.execute(query).fetchall() #pyright: ignore [reportUnknownMemberType]
 		currentSongRow = None
 		artists: set[ArtistInfo] = set()
@@ -730,10 +753,12 @@ class SongInfoService:
 				currentSongRow = row
 			elif row["id"] != currentSongRow["id"]:
 				songDict = self._prepare_song_row_for_model(currentSongRow)
+				rules = [*rulePathTree.valuesFlat(songDict["path"])]
 				yield SongEditInfo(**songDict,
 					primaryArtist=primaryArtist,
 					artists=list(artists),
-					stations=list(stations)
+					stations=list(stations),
+					rules=rules
 				)
 				currentSongRow = row
 				artists =  set()
@@ -758,22 +783,24 @@ class SongInfoService:
 				))
 		if currentSongRow:
 			songDict = self._prepare_song_row_for_model(currentSongRow)
+			rules = [*rulePathTree.valuesFlat(songDict["path"])]
 			yield SongEditInfo(**songDict,
 					primaryArtist=primaryArtist,
 					artists=sorted(artists, key=lambda a: a.id if a else 0),
-					stations=sorted(stations, key=lambda t: t.id if t else 0)
+					stations=sorted(stations, key=lambda t: t.id if t else 0),
+					rules=rules
 				)
 
 	def save_songs(
 		self,
 		ids: Iterable[int],
 		songInfo: SongAboutInfo,
-		userId: Optional[int]=None
+		user: AccountInfo
 	) -> Iterator[SongEditInfo]:
 		if not ids:
 			return iter([])
 		if not songInfo:
-			return self.get_songs_for_edit(ids)
+			return self.get_songs_for_edit(ids, user)
 		if not songInfo.touched:
 			songInfo.touched = {f.name for f in fields(SongAboutInfo)}
 		ids = list(ids)
@@ -788,7 +815,7 @@ class SongInfoService:
 		songInfoDict.pop("covers", None)
 		songInfoDict.pop("touched", None)
 		songInfoDict["albumFk"] = songInfo.album.id if songInfo.album else None
-		songInfoDict["lastModifiedByUserFk"] = userId
+		songInfoDict["lastModifiedByUserFk"] = user.id
 		songInfoDict["lastModifiedTimestamp"] = self.get_datetime().timestamp()
 		if "album" in songInfo.touched:
 			songInfo.touched.add("albumFk")
@@ -807,32 +834,40 @@ class SongInfoService:
 						if "primaryArtist" in
 						songInfo.touched and songInfo.primaryArtist else ()
 				),
-				userId
+				user.id
 			)
 		if "stations" in songInfo.touched:
 			self.link_songs_with_stations(
 				(StationSongTuple(sid, t.id)
 					for t in (songInfo.stations or []) for sid in ids),
-				userId
+				user.id
 			)
 
 		if len(ids) < 2:
-			yield from self.get_songs_for_edit(ids)
+			yield from self.get_songs_for_edit(ids, user)
 		else:
-			fetched = self.get_songs_for_multi_edit(ids)
+			fetched = self.get_songs_for_multi_edit(ids, user)
 			if fetched:
 				yield fetched
 
 	def get_songs_for_multi_edit(
 		self,
-		songIds: Iterable[int]
+		songIds: Iterable[int],
+		user: AccountInfo
 	) -> Optional[SongEditInfo]:
 		if not songIds:
 			return None
 		commonSongInfo = None
 		touched = {f.name for f in fields(SongAboutInfo) }
 		removedFields: set[str] = set()
-		for songInfo in self.get_songs_for_edit(songIds):
+		rules = None
+		for songInfo in self.get_songs_for_edit(songIds, user):
+			if not rules:
+				rules = set(songInfo.rules)
+			else:
+				# only keep the set of rules that are common to
+				# each song
+				rules = rules & set(songInfo.rules)
 			songInfoDict = asdict(songInfo)
 			if not commonSongInfo:
 				commonSongInfo = songInfoDict
@@ -847,7 +882,11 @@ class SongInfoService:
 		if commonSongInfo:
 			commonSongInfo["id"] = 0
 			commonSongInfo["path"] = ""
-			return SongEditInfo(**commonSongInfo, touched=touched)
+			return SongEditInfo(
+				**commonSongInfo,
+				touched=touched,
+				rules=list(rules or [])
+			)
 		else:
 			return SongEditInfo(id=0, path="", touched=touched)
 

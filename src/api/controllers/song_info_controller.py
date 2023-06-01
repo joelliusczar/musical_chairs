@@ -13,7 +13,8 @@ from api_dependencies import (
 	get_path_user,
 	get_multi_path_user,
 	get_user_with_simple_scopes,
-	get_path_user_and_check_optional_path
+	get_path_user_and_check_optional_path,
+	get_current_user_simple
 )
 
 from musical_chairs_libs.services import SongInfoService
@@ -50,19 +51,21 @@ def song_ls(
 		return ListData(items=list(songInfoService.song_ls(prefixes)))
 
 
-@router.get("/songs/{itemId}", dependencies=[
-	Security(get_path_user, scopes=[UserRoleDef.PATH_VIEW.value])
-])
+@router.get("/songs/{itemId}")
 def get_song_for_edit(
-itemId: Union[int, str], #optional as str so I can send the correct status code
-	songInfoService: SongInfoService = Depends(song_info_service)
+	itemId: Union[int, str], #optional as str so I can send the correct status code
+	songInfoService: SongInfoService = Depends(song_info_service),
+	user: AccountInfo = Security(
+		get_path_user,
+		scopes=[UserRoleDef.PATH_VIEW.value]
+	)
 ) -> SongEditInfo:
 	if type(itemId) != int:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail=[build_error_obj(f"{itemId} not found", "id")]
 		)
-	songInfo = next(songInfoService.get_songs_for_edit([itemId]), None)
+	songInfo = next(songInfoService.get_songs_for_edit([itemId], user), None)
 	if songInfo:
 		return songInfo
 	raise HTTPException(
@@ -72,23 +75,27 @@ itemId: Union[int, str], #optional as str so I can send the correct status code
 
 #not sure if this will actually be used anywhere. It's mostly a testing
 #convenience
-@router.get("/songs/list/", dependencies=[
-	Security(get_multi_path_user, scopes=[UserRoleDef.PATH_VIEW.value])
-])
+@router.get("/songs/list/")
 def get_songs_list(
 	itemIds: list[int] = Query(default=[]),
-	songInfoService: SongInfoService = Depends(song_info_service)
+	songInfoService: SongInfoService = Depends(song_info_service),
+	user: AccountInfo = Security(
+		get_multi_path_user,
+		scopes=[UserRoleDef.PATH_VIEW.value]
+	)
 ) -> list[SongEditInfo]:
-	return list(songInfoService.get_songs_for_edit(itemIds))
+	return list(songInfoService.get_songs_for_edit(itemIds, user))
 
-@router.get("/songs/multi/", dependencies=[
-	Security(get_multi_path_user, scopes=[UserRoleDef.PATH_VIEW.value])
-])
+@router.get("/songs/multi/")
 def get_songs_for_multi_edit(
 	itemIds: list[int] = Query(default=[]),
-	songInfoService: SongInfoService = Depends(song_info_service)
+	songInfoService: SongInfoService = Depends(song_info_service),
+	user: AccountInfo = Security(
+		get_multi_path_user,
+		scopes=[UserRoleDef.PATH_VIEW.value]
+	)
 ) -> SongEditInfo:
-	songInfo = songInfoService.get_songs_for_multi_edit(itemIds)
+	songInfo = songInfoService.get_songs_for_multi_edit(itemIds, user)
 	if songInfo:
 		return songInfo
 	raise HTTPException(
@@ -133,7 +140,7 @@ def update_song(
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> SongEditInfo:
-	result = next(songInfoService.save_songs([itemId], song, userId=user.id), None)
+	result = next(songInfoService.save_songs([itemId], song, user=user), None)
 	if result:
 		return result
 	raise HTTPException(
@@ -154,7 +161,7 @@ def update_songs_multi(
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> SongEditInfo:
-	result = next(songInfoService.save_songs(itemIds, song, userId=user.id), None)
+	result = next(songInfoService.save_songs(itemIds, song, user=user), None)
 	if result:
 		return result
 	raise HTTPException(
@@ -166,8 +173,8 @@ def update_songs_multi(
 def get_all_artists(
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.PATH_VIEW.value]
+		get_current_user_simple,
+		scopes=[]
 	)
 ) -> ListData[ArtistInfo]:
 	return ListData(items=list(songInfoService.get_artists(userId=user.id)))
@@ -200,8 +207,8 @@ def create_album(
 def get_all_albums(
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.PATH_VIEW.value]
+		get_current_user_simple,
+		scopes=[]
 	)
 ) -> ListData[AlbumInfo]:
 	return ListData(items=list(songInfoService.get_albums(userId=user.id)))

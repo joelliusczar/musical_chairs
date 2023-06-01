@@ -16,6 +16,10 @@ import {
 } from "../Components/Shared/waitingReducer";
 import { UserRoleDef } from "../constants";
 import { formatError } from "../Helpers/error_formatter";
+import {
+	anyConformsToRule,
+	anyConformsToAnyRule,
+} from "../Helpers/rule_helpers";
 import { useSnackbar } from "notistack";
 
 const loggedOut = {
@@ -34,9 +38,7 @@ const expireCookie = (name) => {
 	document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;";
 };
 
-export const conformsToRole = (candidate, basis) => {
-	return candidate.startsWith(basis);
-};
+
 
 
 export const AuthContext = createContext();
@@ -127,13 +129,12 @@ export const useHasAnyRoles = (requiredRoles) => {
 	const { state: { data } } = useContext(AuthContext);
 	const userRoles = data?.roles;
 
-	if(userRoles?.some(r => conformsToRole(r.name, UserRoleDef.ADMIN))) {
+	if (anyConformsToRule(userRoles, UserRoleDef.ADMIN)) {
 		return true;
 	}
-	for (const role of requiredRoles) {
-		if(userRoles?.some(r => conformsToRole(r.name, role))) {
-			return true;
-		}
+
+	if (anyConformsToAnyRule(userRoles, requiredRoles)) {
+		return true;
 	}
 	return false;
 };

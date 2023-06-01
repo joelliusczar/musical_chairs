@@ -27,14 +27,15 @@ import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 
 export const History = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
-	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
-	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canEditAnySong = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
+	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 
@@ -47,13 +48,20 @@ export const History = () => {
 
 	const rowButton = (item, idx) => {
 		const rowButtonOptions = [];
-
-		if (canEditSongs) rowButtonOptions.push({
+		const canEditThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_EDIT]
+		);
+		const canDownloadThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_DOWNLOAD]
+		);
+		if (canEditAnySong || canEditThisSong) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.songEdit()}?id=${item.id}`,
+			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
 		});
 
-		if (canDownloadSongs) rowButtonOptions.push({
+		if (canDownloadAnySong || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
 			href: getDownloadAddress(item.id),
 		});
@@ -65,7 +73,7 @@ export const History = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.songEdit}?id=${item.id}`}
+				to={`${DomRoutes.songEdit()}?ids=${item.id}`}
 			>
 				View
 			</Button>);

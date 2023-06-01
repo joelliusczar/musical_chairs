@@ -8,12 +8,10 @@ import { NotFound } from "../Shared/RoutingErrors";
 import { updateUserRoles, fetchUser } from "../../API_Calls/userCalls";
 import { CallStatus } from "../../constants";
 import Loader from "../Shared/Loader";
-import {
-	useCurrentUser,
-	conformsToRole,
-} from "../../Context_Providers/AuthContext";
+import { useCurrentUser } from "../../Context_Providers/AuthContext";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
+import { conformsToRule } from "../../Helpers/rule_helpers";
 
 
 const inputField = {
@@ -88,7 +86,7 @@ export const AccountsRoles = () => {
 			priority: 0,
 		};
 		const idx = watchAll.accountInfo.roles
-			.findIndex(r => conformsToRole(r.name, role));
+			.findIndex(r => conformsToRule(r, role));
 		if(idx === -1) {
 			if(role === UserRoleDef.ADMIN) {
 				setValue("accountInfo.roles", [{

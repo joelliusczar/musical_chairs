@@ -88,7 +88,7 @@ export const Queue = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.songEdit}?id=${item.id}`}
+				to={`${DomRoutes.songEdit()}?id=${item.id}`}
 			>
 				View
 			</Button>);

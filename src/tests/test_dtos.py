@@ -7,7 +7,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ValidatedSongAboutInfo,
 	AlbumInfo,
 	ActionRule,
-	PathsActionRule
+	PathsActionRule,
+	UserRoleDomain
 )
 
 
@@ -501,3 +502,171 @@ def test_path_action_rule_ordering_with_path():
 	assert (r2 < r1)
 	assert not (r2 >= r1)
 	assert (r2 <= r1)
+
+
+def test_action_rule_hashing():
+	r1 = ActionRule("alpha")
+	r2 = ActionRule("alpha")
+
+	h1 = hash(r1)
+	h2 = hash(r2)
+
+	assert h1 == h2
+
+	r1 = ActionRule("alpha",span=5)
+	r2 = ActionRule("alpha")
+
+	h1 = hash(r1)
+	h2 = hash(r2)
+
+	assert h1 != h2
+
+	r1 = ActionRule("alpha",span=5)
+	r2 = ActionRule("alpha", span=5)
+
+	h1 = hash(r1)
+	h2 = hash(r2)
+
+	assert h1 == h2
+
+	r1 = ActionRule("alpha",span=5, count=7)
+	r2 = ActionRule("alpha", span=5)
+
+	h1 = hash(r1)
+	h2 = hash(r2)
+
+	assert h1 != h2
+
+	r1 = ActionRule("alpha",span=5, count=7)
+	r2 = ActionRule("alpha", span=5, count=7)
+
+	h1 = hash(r1)
+	h2 = hash(r2)
+
+	assert h1 == h2
+
+	r1 = ActionRule("alpha",span=5, count=7, priority=5)
+	r2 = ActionRule("alpha", span=5, count=7)
+
+	h1 = hash(r1)
+	h2 = hash(r2)
+
+	assert h1 != h2
+
+	r1 = ActionRule("alpha",span=5, count=7, priority=5)
+	r2 = ActionRule("alpha", span=5, count=7, priority=5)
+
+	h1 = hash(r1)
+	h2 = hash(r2)
+
+	assert h1 == h2
+
+	r1 = ActionRule(
+		"alpha",
+		span=5,
+		count=7,
+		priority=5,
+		domain=UserRoleDomain.Station
+	)
+	r2 = ActionRule("alpha", span=5, count=7, priority=5)
+
+	h1 = hash(r1)
+	h2 = hash(r2)
+
+	assert h1 != h2
+
+def test_action_rule_set():
+	r1 = ActionRule("alpha")
+	r2 = ActionRule("alpha")
+
+	s1: set[ActionRule] = set()
+	s1.add(r1)
+
+	assert not r1 is r2
+	assert r2 in s1
+
+	r2 = ActionRule("alpha", span=5)
+
+	assert r2 not in s1
+
+	s1.add(r2)
+
+	r3 = ActionRule("alpha", span=5)
+
+	assert not r3 is r1
+	assert not r3 is r2
+	assert r3 in s1
+
+	r4 = ActionRule("alpha", span=5, count=7)
+
+	assert r4 not in s1
+
+	s1.add(r4)
+
+	r5 = ActionRule("alpha", span=5, count=7)
+
+	assert not r5 is r1
+	assert not r5 is r2
+	assert not r5 is r4
+	assert r5 in s1
+
+	r6 = ActionRule("alpha", span=5, count=7, priority=5)
+	assert r6 not in s1
+
+	s1.add(r6)
+
+	r7 = ActionRule("alpha", span=5, count=7, priority=5)
+
+	assert not r7 is r1
+	assert not r7 is r2
+	assert not r7 is r4
+	assert not r7 is r6
+	assert r7 in s1
+
+	r8 = ActionRule(
+		"alpha",
+		span=5,
+		count=7,
+		priority=5,
+		domain=UserRoleDomain.Path
+	)
+
+	assert r8 not in s1
+	s1.add(r8)
+
+	r9 = ActionRule(
+		"alpha",
+		span=5,
+		count=7,
+		priority=5,
+		domain=UserRoleDomain.Path
+	)
+
+	assert not r9 is r8
+	assert r9 in s1
+
+	r10 = PathsActionRule("alpha")
+
+	assert r10 in s1
+
+	r11 = PathsActionRule("alpha", path="bravo")
+
+	assert r11 not in s1
+
+	s1.add(r11)
+
+	r12 = PathsActionRule("alpha", path="bravo")
+
+	assert not r12 is r11
+	assert r12 in s1
+
+	r13 = PathsActionRule("bravo")
+
+	assert r13 not in s1
+
+	s1.add(r13)
+
+	r14 = ActionRule("bravo")
+
+	assert not r14 is r13
+	assert r14 in s1

@@ -327,9 +327,14 @@ class QueueService:
 		self,
 		stationId: int,
 		page: int = 0,
-		limit: Optional[int]=50
+		limit: Optional[int]=50,
+		user: Optional[AccountInfo]=None
 	) -> Iterator[SongListDisplayItem]:
 		offset = page * limit if limit else 0
+		pathRuleTree = None
+		if user:
+			pathRuleTree = self.song_info_service.get_rule_path_tree(user)
+
 		query = select(
 			sg_pk.label("id"),
 			q_queuedTimestamp.label("queuedTimestamp"),
@@ -349,7 +354,10 @@ class QueueService:
 			.limit(limit)
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
-			yield SongListDisplayItem(**row) #pyright: ignore [reportUnknownArgumentType]
+			rules = []
+			if pathRuleTree:
+				rules = list(pathRuleTree.valuesFlat(cast(str, row["path"])))
+			yield SongListDisplayItem(**row, rules=rules) #pyright: ignore [reportUnknownArgumentType]
 
 	def history_count(
 		self,

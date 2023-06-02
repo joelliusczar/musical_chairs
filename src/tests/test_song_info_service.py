@@ -333,9 +333,13 @@ def test_get_albums(
 	assert len(allAlbums) == len(get_initial_albums())
 
 def test_get_artists(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
 ):
 	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
 	allArtists = list(songInfoService.get_artists())
 	assert allArtists
 	assert len(allArtists) == len(get_initial_artists())

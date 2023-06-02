@@ -18,10 +18,12 @@ from .account_dtos import ActionRule
 class ArtistInfo:
 	id: int
 	name: str
+	ownerId: int
 
 @dataclass(frozen=True)
 class AlbumCreationInfo:
 	name: str
+	ownerId: int
 	year: Optional[int]=None
 	albumArtist: Optional[ArtistInfo]=None
 

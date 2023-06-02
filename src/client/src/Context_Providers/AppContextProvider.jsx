@@ -17,8 +17,8 @@ import PropTypes from "prop-types";
 import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
 import { formatError } from "../Helpers/error_formatter";
 import { fetchStations } from "../API_Calls/stationCalls";
-import { CallStatus, UserRoleDef } from "../constants";
-import { useCurrentUser, useHasAnyRoles } from "./AuthContext";
+import { CallStatus } from "../constants";
+import { useCurrentUser } from "./AuthContext";
 
 const AppContext = createContext();
 

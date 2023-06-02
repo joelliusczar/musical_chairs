@@ -7,6 +7,7 @@ from .helpers import normalize_dict, mismatched_properties
 from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user
 )
+from .mocks.db_data import kilo_user_id
 
 
 
@@ -97,16 +98,19 @@ def test_song_save(
 		"id": 8,
 		"name": "shoo_album",
 		"year": 2003,
+		"ownerId": kilo_user_id,
 		"albumArtist": {
 			"id": 6,
-			"name": "foxtrot_artist"
+			"name": "foxtrot_artist",
+			"ownerId": kilo_user_id,
 		}
 	}
 	sendData["genre"] = "pop_update"
 	sendData["comment"] = "Kazoos make good swimmers update"
 	sendData["primaryArtist"] = {
 		"id": 10,
-		"name": "juliet_artist"
+		"name": "juliet_artist",
+		"ownerId": kilo_user_id,
 	}
 	sendData["stations"] = [
 		{ "id": 2,
@@ -131,9 +135,9 @@ def test_song_save(
 		}
 	]
 	sendData["artists"] = [
-		{ "id": 9, "name": "india_artist" },
-		{ "id": 13, "name": "november_artist" },
-		{ "id": 3, "name": "charlie_artist" }
+		{ "id": 9, "name": "india_artist", "ownerId": kilo_user_id },
+		{ "id": 13, "name": "november_artist", "ownerId": kilo_user_id },
+		{ "id": 3, "name": "charlie_artist", "ownerId": kilo_user_id }
 	]
 
 	putResponse = client.put(
@@ -275,7 +279,12 @@ def test_get_songs_for_multi_edit(
 	assert "album" in touched
 	assert data["primaryArtist"] == None
 	assert "primaryArtist" in touched
-	assert data["artists"] == [{ "id": 4, "name": "delta_artist"}]
+	assert data["artists"] == [{
+		"id": 4,
+		"name":
+		"delta_artist",
+		"ownerId": kilo_user_id
+	}]
 	assert "artists" in touched
 	assert data["covers"] == []
 	assert data["track"] == None
@@ -356,7 +365,7 @@ def test_song_save_for_multi_edit(
 
 	sendData = {
 		"album": {
-			"id": 12, "name": "garoo_album"
+			"id": 12, "name": "garoo_album", "ownerId": kilo_user_id
 		},
 		"stations": [
 			{
@@ -370,10 +379,15 @@ def test_song_save_for_multi_edit(
 				"displayName": "Fat, drunk, and stupid"
 			}
 		],
-		"primaryArtist": { "id": 14, "name": "oscar_artist" },
+		"primaryArtist": {
+			"id": 14,
+			"name":
+			"oscar_artist",
+			"ownerId": kilo_user_id
+		},
 		"artists": [
-			{ "id": 8, "name": "hotel_artist" },
-			{ "id": 1, "name": "alpha_artist" }
+			{ "id": 8, "name": "hotel_artist", "ownerId": kilo_user_id },
+			{ "id": 1, "name": "alpha_artist", "ownerId": kilo_user_id }
 		],
 		"touched": ["album", "stations", "primaryArtist", "artists"]
 	}
@@ -485,7 +499,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 
 	sendData = {
 		"album": {
-			"id": 12, "name": "garoo_album"
+			"id": 12, "name": "garoo_album","ownerId": kilo_user_id
 		},
 		"stations": [
 			{
@@ -500,7 +514,12 @@ def test_song_save_for_multi_edit_artist_to_primary(
 			},
 		],
 		"artists": [],
-		"primaryArtist": { "id": 5, "name": "foxtrot_artist" },
+		"primaryArtist": {
+			"id": 5,
+			"name":
+			"foxtrot_artist",
+			"ownerId": kilo_user_id
+		},
 		"touched": ["album", "stations", "primaryArtist", "artists"]
 	}
 

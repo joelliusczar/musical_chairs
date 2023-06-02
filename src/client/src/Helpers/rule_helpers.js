@@ -1,3 +1,5 @@
+import { UserRoleDef } from "../constants";
+
 export const conformsToRule = (candidate, basis) => {
 	return candidate?.name?.startsWith(basis);
 };
@@ -8,6 +10,9 @@ export const anyConformsToRule = (candidates, basis) => {
 
 export const anyConformsToAnyRule = (candidates, bases) => {
 	if (!bases) return true;
+	if (anyConformsToRule(candidates, UserRoleDef.ADMIN)) {
+		return true;
+	}
 	for (const rule of bases) {
 		if (anyConformsToRule(candidates, rule)) {
 			return true;

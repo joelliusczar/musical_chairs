@@ -269,7 +269,7 @@ def get_path_user(
 	rules = ActionRule.sorted(r for r in chain(
 		user.roles,
 		(p for p in songInfoService.get_paths_user_can_see(user.id)),
-		(p for p in get_path_owner_roles(user.dirRoot))
+		(p for p in get_path_owner_roles(normalize_opening_slash(user.dirRoot)))
 	))
 	roleNameSet = {r.name for r in rules}
 	if any(s for s in scopes if s not in roleNameSet):

@@ -19,10 +19,10 @@ import { formatError } from "../Helpers/error_formatter";
 import { fetchStations } from "../API_Calls/stationCalls";
 import { CallStatus } from "../constants";
 import { useCurrentUser } from "./AuthContext";
+import { nameSortFn } from "../Helpers/array_helpers";
 
 const AppContext = createContext();
 
-const nameSortFn = (a,b) => a.name > b.name ? 1 : a.name < b.name ? -1 : 0;
 
 const sortedListReducerPaths = {
 	[waitingTypes.done]: (state, payload) => {
@@ -164,14 +164,7 @@ AppContextProvider.propTypes = {
 	]).isRequired,
 };
 
-export const emptyValue = { id: 0, name: "" };
-
-export const useAlbumData = () => {
-	const {
-		albumsState: { data: { items }, error, callStatus },
-		albumsDispatch: dispatch,
-	} = useContext(AppContext);
-
+export const useIdMapper = (items) => {
 	const idMapper = useCallback((value) => {
 		if(!value) return value;
 		if(Array.isArray(value)) {
@@ -182,6 +175,16 @@ export const useAlbumData = () => {
 			return items.find(x => x.id === value.id) || null;
 		}
 	},[items]);
+	return idMapper;
+};
+
+export const emptyValue = { id: 0, name: "" };
+
+export const useAlbumData = () => {
+	const {
+		albumsState: { data: { items }, error, callStatus },
+		albumsDispatch: dispatch,
+	} = useContext(AppContext);
 
 	const add = useCallback(
 		(item) => dispatch(dispatches.add(item)),
@@ -199,7 +202,6 @@ export const useAlbumData = () => {
 		callStatus,
 		add,
 		update,
-		idMapper,
 	};
 };
 
@@ -209,17 +211,6 @@ export const useStationData = () => {
 		stationsDispatch: dispatch,
 	} = useContext(AppContext);
 
-	const idMapper = useCallback((value) => {
-		if(!value) return value;
-		if(Array.isArray(value)) {
-			return value.map((item) =>
-				items.find(x => x.id === item.id));
-		}
-		if (typeof(value) === "object") {
-			return items.find(x => x.id === value.id) || null;
-		}
-	},[items]);
-
 	const add = useCallback(
 		(item) => dispatch(dispatches.add(item)),
 		[dispatch]
@@ -236,7 +227,6 @@ export const useStationData = () => {
 		callStatus,
 		add,
 		update,
-		idMapper,
 	};
 };
 
@@ -246,17 +236,6 @@ export const useArtistData = () => {
 		artistDispatch: dispatch,
 	} = useContext(AppContext);
 
-	const idMapper = useCallback((value) => {
-		if(!value) return value;
-		if(Array.isArray(value)) {
-			return value.map((item) =>
-				items.find(x => x.id === item.id));
-		}
-		if (typeof(value) === "object") {
-			return items.find(x => x.id === value.id) || null;
-		}
-	},[items]);
-
 	const add = useCallback(
 		(item) => dispatch(dispatches.add(item)),
 		[dispatch]
@@ -273,6 +252,5 @@ export const useArtistData = () => {
 		callStatus,
 		add,
 		update,
-		idMapper,
 	};
 };

@@ -10,6 +10,7 @@ import {
 	useArtistData,
 	useAlbumData,
 	useStationData,
+	useIdMapper,
 } from "../../Context_Providers/AppContextProvider";
 import Loader from "../Shared/Loader";
 import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
@@ -33,6 +34,7 @@ import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import { nameSortFn } from "../../Helpers/array_helpers";
 
 
 const inputField = {
@@ -71,6 +73,12 @@ const touchedObjectToArr = (touchedObj) => {
 		}
 	}
 	return result;
+};
+
+const combineItems = (contextItems, fetchedItems) => {
+	const missing = fetchedItems
+		.filter(i => contextItems.every(c => c.id !== i.id) || !contextItems);
+	return [...contextItems, ...missing].sort(nameSortFn);
 };
 
 const schema = Yup.object().shape({
@@ -126,27 +134,24 @@ export const SongEdit = () => {
 	},[location.search]);
 
 	const {
-		items: artists,
+		items: contextArtists,
 		callStatus: artistCallStatus,
 		error: artistError,
 		add: addArtist,
-		idMapper: artistMapper,
 	} = useArtistData();
 
 	const {
-		items: albums,
+		items: contextAlbums,
 		callStatus: albumCallStatus,
 		error: albumError,
 		add: addAlbum,
-		idMapper: albumMapper,
 	} = useAlbumData();
 
 	const {
-		items: stations,
+		items: contextStations,
 		callStatus: stationCallStatus,
 		error: stationError,
 		add: addStation,
-		idMapper: stationMapper,
 	} = useStationData();
 
 	const formMethods = useForm({
@@ -277,6 +282,28 @@ export const SongEdit = () => {
 	},[formState, setValue, watch, ids]);
 
 	const songFilePath = watch("path");
+	const formArtists = watch("artists");
+	const primaryArtist = watch("primaryArtist");
+	const artists = useMemo(() => combineItems(
+		contextArtists,
+		[...formArtists, primaryArtist]
+	),[contextAlbums, formArtists, primaryArtist]);
+
+	const album = watch("album");
+	const albums = useMemo(() => combineItems(
+		contextAlbums,
+		[album]
+	),[contextAlbums, album]);
+
+	const formStations = watch("stations");
+	const stations = useMemo(() => combineItems(
+		contextStations,
+		formStations
+	),[contextStations, formStations]);
+
+	const artistMapper = useIdMapper(artists);
+	const albumMapper = useIdMapper(albums);
+	const stationMapper = useIdMapper(stations);
 
 	return (<Loader status={callStatus} error={state.error}>
 		<Box sx={inputField}>

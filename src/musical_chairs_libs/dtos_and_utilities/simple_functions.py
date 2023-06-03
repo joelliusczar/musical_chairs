@@ -80,9 +80,12 @@ def _kvpSplit(kvp: str) -> Tuple[str, str]:
 def role_dict(role: str) -> s2sDict:
 		return {p[0]:p[1] for p in (_kvpSplit(k) for k in role.split(";"))}
 
-def normalize_opening_slash(path: Optional[str], addSlash: bool=True) -> str:
-	if path == None:
-		raise ValueError("Path cannot be null")
+def normalize_opening_slash(
+	path: Optional[str],
+	addSlash: bool=True
+) -> Optional[str]:
+	if path is None:
+		return None
 	if addSlash:
 		if len(path) > 0 and path[0] == "/":
 			return path

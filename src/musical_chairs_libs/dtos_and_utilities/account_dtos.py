@@ -97,14 +97,13 @@ class AccountInfoSecurity(AccountInfoBase):
 		scopes: Union[str, Iterable[str]]
 	) -> Iterator[str]:
 		scopeSet = set([scopes] if type(scopes) == str else scopes)
-		pathsGen = (r.path for r in chain(
-			self.roles,
-			get_path_owner_roles(self.dirRoot)
-			) \
-				if isinstance(r, PathsActionRule) and r.name in scopeSet \
-					and r.path != None
+		pathsGen = (normalize_opening_slash(r.path) for r in chain(
+				self.roles,
+				get_path_owner_roles(normalize_opening_slash(self.dirRoot))
+			) if isinstance(r, PathsActionRule) and r.name in scopeSet \
+					and not r.path is None
 			)
-		pathTree = AbsorbentTrie[Any](normalize_opening_slash(p) for p in pathsGen)
+		pathTree = AbsorbentTrie[Any](p for p in pathsGen if not p is None)
 		yield from (p for p in pathTree.shortest_paths())
 
 	def has_roles(self, *roles: UserRoleDef) -> bool:

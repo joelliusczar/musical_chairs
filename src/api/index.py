@@ -3,6 +3,7 @@ import uvicorn #pyright: ignore [reportMissingTypeStubs]
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 import sys
 from typing import Any
+from traceback import TracebackException
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -102,7 +103,10 @@ def everything_else(
 	request: Request,
 	ex: Exception
 ) -> JSONResponse:
-	logging.logger.error(ex)
+	logging.debugLogger.debug(
+		"".join(TracebackException.from_exception(ex).format())
+	)
+	logging.logger.exception(ex)
 	response = JSONResponse(content=
 		{ "detail": [
 				build_error_obj("Onk! Caveman error! What do?")

@@ -23,13 +23,15 @@ class ArtistInfo:
 @dataclass(frozen=True)
 class AlbumCreationInfo:
 	name: str
-	ownerId: int
 	year: Optional[int]=None
 	albumArtist: Optional[ArtistInfo]=None
 
 @dataclass(frozen=True)
-class AlbumInfo(AlbumCreationInfo, IdItem):
-	...
+class AlbumInfo(IdItem):
+	name: str
+	ownerId: int
+	year: Optional[int]=None
+	albumArtist: Optional[ArtistInfo]=None
 
 @dataclass()
 class SongBase:

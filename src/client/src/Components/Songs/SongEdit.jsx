@@ -34,7 +34,9 @@ import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
-import { nameSortFn } from "../../Helpers/array_helpers";
+import {
+	useCombinedContextAndFormItems,
+} from "../../Helpers/array_helpers";
 
 
 const inputField = {
@@ -75,11 +77,6 @@ const touchedObjectToArr = (touchedObj) => {
 	return result;
 };
 
-const combineItems = (contextItems, fetchedItems) => {
-	const missing = fetchedItems
-		.filter(i => contextItems.every(c => c.id !== i.id) || !contextItems);
-	return [...contextItems, ...missing].sort(nameSortFn);
-};
 
 const schema = Yup.object().shape({
 	"primaryArtist": Yup.object().nullable().test(
@@ -284,22 +281,26 @@ export const SongEdit = () => {
 	const songFilePath = watch("path");
 	const formArtists = watch("artists");
 	const primaryArtist = watch("primaryArtist");
-	const artists = useMemo(() => combineItems(
+	const formAllArtists = useMemo(() =>
+		primaryArtist ? [...formArtists, primaryArtist] : formArtists,
+	[formArtists, primaryArtist]);
+	const artists = useCombinedContextAndFormItems(
 		contextArtists,
-		primaryArtist ? [...formArtists, primaryArtist] : formArtists
-	),[contextAlbums, formArtists, primaryArtist]);
+		formAllArtists
+	);
 
 	const album = watch("album");
-	const albums = useMemo(() => combineItems(
+	const albumAsArray = useMemo(() => [album],[album]);
+	const albums = useCombinedContextAndFormItems(
 		contextAlbums,
-		[album]
-	),[contextAlbums, album]);
+		albumAsArray
+	);
 
 	const formStations = watch("stations");
-	const stations = useMemo(() => combineItems(
+	const stations = useCombinedContextAndFormItems(
 		contextStations,
 		formStations
-	),[contextStations, formStations]);
+	);
 
 	const artistMapper = useIdMapper(artists);
 	const albumMapper = useIdMapper(albums);
@@ -390,7 +391,10 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					{canEditSongs && <Box sx={inputField}>
-						<AlbumNewModalOpener add={addAlbum} />
+						<AlbumNewModalOpener
+							add={addAlbum}
+							formArtists={formAllArtists}
+						/>
 					</Box>}
 				</Loader>
 			</Box>

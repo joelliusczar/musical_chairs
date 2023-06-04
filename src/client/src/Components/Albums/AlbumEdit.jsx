@@ -7,24 +7,27 @@ import { useSnackbar } from "notistack";
 import { saveAlbum } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
-import { useArtistData } from "../../Context_Providers/AppContextProvider";
+import {
+	useArtistData,
+	useIdMapper,
+} from "../../Context_Providers/AppContextProvider";
 import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
 import Loader from "../Shared/Loader";
+import { useCombinedContextAndFormItems } from "../../Helpers/array_helpers";
 
 const inputField = {
 	margin: 2,
 };
 
 export const AlbumEdit = (props) => {
-	const { afterSubmit, onCancel } = props;
+	const { afterSubmit, onCancel, formArtists } = props;
 	const { enqueueSnackbar } = useSnackbar();
 
 	const {
-		items: artists,
+		items: contextArtists,
 		callStatus: artistCallStatus,
 		error: artistError,
 		add: addArtist,
-		idMapper: artistMapper,
 	} = useArtistData();
 
 	const formMethods = useForm({
@@ -48,6 +51,12 @@ export const AlbumEdit = (props) => {
 			console.error(err);
 		}
 	});
+
+	const artists = useCombinedContextAndFormItems(
+		contextArtists,
+		formArtists
+	);
+	const artistMapper = useIdMapper(artists);
 
 	return (
 		<>
@@ -93,11 +102,15 @@ export const AlbumEdit = (props) => {
 AlbumEdit.propTypes = {
 	afterSubmit: PropTypes.func.isRequired,
 	onCancel: PropTypes.func,
+	formArtists: PropTypes.arrayOf(PropTypes.shape({
+		id: PropTypes.oneOfType([PropTypes.number,PropTypes.string]),
+		name: PropTypes.string,
+	})),
 };
 
 export const AlbumNewModalOpener = (props) => {
 
-	const { add } = props;
+	const { add, formArtists } = props;
 
 	const [itemNewOpen, setItemNewOpen ] = useState(false);
 
@@ -116,11 +129,19 @@ export const AlbumNewModalOpener = (props) => {
 				<Button onClick={() => setItemNewOpen(true)}>Add New Album</Button>
 			</Box>
 			<Dialog open={itemNewOpen} onClose={closeModal}>
-				<AlbumEdit afterSubmit={itemCreated} onCancel={closeModal} />
+				<AlbumEdit
+					afterSubmit={itemCreated}
+					onCancel={closeModal}
+					formArtists={formArtists}
+				/>
 			</Dialog>
 		</>);
 };
 
 AlbumNewModalOpener.propTypes = {
 	add: PropTypes.func,
+	formArtists: PropTypes.arrayOf(PropTypes.shape({
+		id: PropTypes.oneOfType([PropTypes.number,PropTypes.string]),
+		name: PropTypes.string,
+	})),
 };

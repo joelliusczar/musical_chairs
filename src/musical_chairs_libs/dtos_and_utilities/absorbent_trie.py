@@ -158,6 +158,23 @@ class AbsorbentTrie(Generic[T]):
 			else:
 				raise KeyError()
 
+	def matches(self, path: str) -> bool:
+		node = self
+		pathIdx = 0
+		if path:
+			while pathIdx < len(path):
+				if not len(node.__prefix_map__):
+					return True
+				prefix = path[pathIdx]
+				key = ord(prefix)
+				subTrie = node.__prefix_map__.get(key, None)
+				if subTrie is None:
+					return False
+				pathIdx += 1
+				node = subTrie
+		return True
+
+
 	def has_prefix_for(self, path: str) -> bool:
 		# nodes = [*self.__nodes_along_path(path)]
 		return any(True for n in self.__nodes_along_path(path) \
@@ -221,7 +238,6 @@ class AbsorbentTrie(Generic[T]):
 				if n.path_store != missing
 			)
 		return self.__line_order_values__()
-
 
 	def __repr__(self) -> str:
 		printValue = self.key or "<root>"
@@ -331,7 +347,10 @@ class AbsorbentTrie(Generic[T]):
 					charStack[stackPtr] = ""
 
 	def paths_start_with(self, path: str) -> Iterable[str]:
-		return self.__traverse_path_optimized__(path)
+		try:
+			yield from self.__traverse_path_optimized__(path)
+		except KeyError:
+			return
 
 	def closest_value_nodes(self) -> Iterator["AbsorbentTrie[T]"]:
 		stack: list["AbsorbentTrie[T]"] = [self]
@@ -355,6 +374,8 @@ class AbsorbentTrie(Generic[T]):
 
 	def shortest_paths(self) -> Iterator[str]:
 		depth = self.depth
+		if not depth:
+			return
 		resultSpace = [[""] * (depth)
 			for _ in range(sum(1 for _ in self.closest_value_nodes()))]
 		self.__traverse_optimized_helper__(depth, resultSpace, True)
@@ -427,7 +448,10 @@ class ChainedAbsorbentTrie(Generic[T]):
 			return self.__absorbentTrie__.depth
 
 		def paths_start_with(self, path: str) -> Iterable[str]:
-			return self.__absorbentTrie__.paths_start_with(path)
+			try:
+				return self.__absorbentTrie__.paths_start_with(path)
+			except KeyError:
+				return ()
 
 		def values(self, path: Optional[str]=None) -> Iterator[Iterable[T]]:
 			return (v for v in self.__absorbentTrie__.values(path) if v)

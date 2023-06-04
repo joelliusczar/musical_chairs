@@ -286,7 +286,7 @@ export const SongEdit = () => {
 	const primaryArtist = watch("primaryArtist");
 	const artists = useMemo(() => combineItems(
 		contextArtists,
-		[...formArtists, primaryArtist]
+		primaryArtist ? [...formArtists, primaryArtist] : formArtists
 	),[contextAlbums, formArtists, primaryArtist]);
 
 	const album = watch("album");

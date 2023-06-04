@@ -15,10 +15,10 @@ fooDirOwnerId = 11
 jazzDirOwnerId = 11
 blitzDirOwnerId = 11
 
-bravo_user_id = 2
+bravo_user_id = 2 #no path rules
 charlie_user_id = 3
 delta_user_id = 4
-echo_user_id = 5
+echo_user_id = 5 #can't use. No password
 foxtrot_user_id = 6
 golf_user_id = 7
 hotel_user_id = 8
@@ -31,9 +31,10 @@ november_user_id = 14
 oscar_user_id = 15
 papa_user_id = 16
 quebec_user_id = 17
-romeo_user_id = 18
+romeo_user_id = 18 #designated no roles user
 sierra_user_id = 19
 tango_user_id = 20
+uniform_user_id = 21
 
 artist_params = [
 	{
@@ -1003,6 +1004,16 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": None
+		},
+		{
+			"pk": uniform_user_id,
+			"username": "testUser_uniform",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test21@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		}
 	]
 	return users_params
@@ -1357,7 +1368,7 @@ def get_station_permission_params(
 def get_path_permission_params(
 	orderedTestDates: List[datetime]
 )  -> list[dict[Any, Any]]:
-	return [
+	pathPermissions = [
 		{
 			"pk":1,
 			"userFk": lima_user_id,
@@ -1453,7 +1464,7 @@ def get_path_permission_params(
 			"userFk": sierra_user_id,
 			"path": "/foo/goo/who_1",
 			"role": UserRoleDef.PATH_VIEW.value,
-			"span":1,
+			"span":0,
 			"count":0,
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
@@ -1488,5 +1499,26 @@ def get_path_permission_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
+		{
+			"pk":14,
+			"userFk": uniform_user_id,
+			"path": "/foo/d",
+			"role": UserRoleDef.PATH_LIST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":15,
+			"userFk": uniform_user_id,
+			"path": "/foo/b",
+			"role": UserRoleDef.PATH_LIST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		}
 	]
+	return pathPermissions
 

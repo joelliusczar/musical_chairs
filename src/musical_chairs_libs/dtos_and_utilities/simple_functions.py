@@ -93,3 +93,4 @@ def normalize_opening_slash(
 	if len(path) > 0 and path[0] != "/":
 			return path
 	return path[1:]
+

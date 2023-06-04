@@ -194,7 +194,6 @@ def test_when_song_can_be_added_with_admin(
 	result = None#accountService.time_til_user_can_make_request(fixture_primary_user)
 	assert result == 0
 
-
 def test_unique_roles():
 
 	testRoles1 = [ActionRule(UserRoleDef.STATION_REQUEST.value)]

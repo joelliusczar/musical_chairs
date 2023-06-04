@@ -39,16 +39,12 @@ router = APIRouter(prefix="/song-info")
 def song_ls(
 	prefix: Optional[str] = None,
 	user: AccountInfo = Security(
-		get_path_user_and_check_optional_path,
+		get_path_user,
 		scopes=[UserRoleDef.PATH_LIST.value]
 	),
 	songInfoService: SongInfoService = Depends(song_info_service)
 ) -> ListData[SongTreeNode]:
-	if prefix:
-		return ListData(items=list(songInfoService.song_ls(prefix)))
-	else:
-		prefixes = user.get_permitted_paths(UserRoleDef.PATH_LIST.value)
-		return ListData(items=list(songInfoService.song_ls(prefixes)))
+	return ListData(items=list(songInfoService.song_ls(user, prefix)))
 
 
 @router.get("/songs/{itemId}")
@@ -56,7 +52,7 @@ def get_song_for_edit(
 	itemId: Union[int, str], #optional as str so I can send the correct status code
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_path_user,
+		get_path_user_and_check_optional_path,
 		scopes=[UserRoleDef.PATH_VIEW.value]
 	)
 ) -> SongEditInfo:

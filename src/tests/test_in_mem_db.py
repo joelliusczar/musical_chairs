@@ -1,6 +1,7 @@
 #pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false
 #pyright: reportMissingTypeStubs=false
 import pytest
+from typing import cast, Callable
 from sqlalchemy import select
 from .constant_fixtures_for_test import *
 from .common_fixtures import\
@@ -9,10 +10,16 @@ from .common_fixtures import\
 from musical_chairs_libs.tables import artists
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
+from .mocks.db_data import *
+from .constant_fixtures_for_test import (
+	fixture_mock_password as fixture_mock_password,\
+	fixture_primary_user as fixture_primary_user,\
+	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
+)
 
 @pytest.mark.usefixtures("fixture_setup_in_mem_tbls")
 def test_in_mem_db(fixture_db_conn_in_mem: Connection) -> None:
-	a: ColumnCollection = artists.columns
+	a = cast(ColumnCollection, artists.columns)
 	query = select(artists).order_by(a.name)
 	res = fixture_db_conn_in_mem.execute(query).fetchall()
 	assert res[0].name == "alpha_artist"
@@ -29,3 +36,31 @@ def test_in_mem_db(fixture_db_conn_in_mem: Connection) -> None:
 	assert res[5].pk == 6
 	assert res[6].name == "golf_artist"
 	assert res[6].pk == 7
+
+def test_data_view(
+	fixture_mock_ordered_date_list: List[datetime],
+	fixture_primary_user: AccountInfo,
+	fixture_mock_password: bytes
+):
+	# this test exists as a convience to run queires on
+	# the test data
+	noop: Callable[[Any], Any] = lambda x: None
+	noop(song_params)
+	noop(artist_params)
+	noop(album_params)
+	users = get_user_params(
+		fixture_mock_ordered_date_list,
+		fixture_primary_user,
+		fixture_mock_password
+	)
+	noop(users)
+	userRoles = get_user_role_params(
+		fixture_mock_ordered_date_list,
+		fixture_primary_user
+	)
+	noop(userRoles)
+	stationRules = get_station_permission_params(fixture_mock_ordered_date_list)
+	noop(stationRules)
+	pathRules = get_path_permission_params(fixture_mock_ordered_date_list)
+	noop(pathRules)
+	pass

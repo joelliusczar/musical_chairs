@@ -42,30 +42,47 @@ def test_add_album(fixture_song_info_service: SongInfoService):
 	pk = songInfoService.get_or_save_album("who_1_album", 4)
 	assert pk == len(get_initial_artists()) + 1
 
-def test_song_ls(fixture_song_info_service: SongInfoService):
+def test_song_ls(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+):
 	songInfoService = fixture_song_info_service
-	paths = sorted(songInfoService.song_ls(), key=lambda d: d.path)
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_alpha") #random user
+	assert user
+	paths = sorted(songInfoService.song_ls(user), key=lambda d: d.path)
 	assert len(paths) == 3
 	assert paths[0].path == "blitz/"
 	assert paths[1].path == "foo/"
 	assert paths[2].path == "jazz/"
 
-	paths = sorted(songInfoService.song_ls("foo/"), key=lambda d: d.path)
+	paths = sorted(songInfoService.song_ls(user, "foo/"), key=lambda d: d.path)
 	assert len(paths) == 4
 	assert paths[0].path == "foo/bar/"
 	assert paths[1].path == "foo/dude/"
 	assert paths[2].path == "foo/goo/"
 	assert paths[3].path == "foo/rude/"
 
-def test_song_ls_multi(fixture_song_info_service: SongInfoService):
+def test_song_ls_user_with_paths(
+	fixture_song_info_service: SongInfoService,
+	fixture_path_user_factory: Callable[[str], AccountInfo]
+):
 	songInfoService = fixture_song_info_service
-	paths = list(sorted(songInfoService.song_ls(
-		["foo/b", "foo/d"]),
-		key=lambda d: d.path)
-	)
+	user = fixture_path_user_factory("testUser_uniform") #random user
+	paths = sorted(songInfoService.song_ls(user),key=lambda d: d.path)
+	# this is no longer expected behavior
+	# assert len(paths) == 2
+	# assert paths[0].path == "foo/bar/"
+	# assert paths[1].path == "foo/dude/"
+
+	assert len(paths) == 1
+	assert paths[0].path == "foo/"
+
+	paths = sorted(songInfoService.song_ls(user, "foo/"), key=lambda d: d.path)
 	assert len(paths) == 2
 	assert paths[0].path == "foo/bar/"
 	assert paths[1].path == "foo/dude/"
+
 
 def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service

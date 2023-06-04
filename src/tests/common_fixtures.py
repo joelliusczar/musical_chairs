@@ -1,7 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
 import os
-from typing import Iterator, List, Optional, Any
+from typing import Iterator, List, Optional, Any, Callable
 from datetime import datetime
 from musical_chairs_libs.services import (
 	EnvManager,
@@ -12,7 +12,12 @@ from musical_chairs_libs.services import (
 	TemplateService
 )
 from musical_chairs_libs.radio_handle import RadioHandle
-from musical_chairs_libs.dtos_and_utilities import AccountInfo
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	ActionRule,
+	get_path_owner_roles,
+	normalize_opening_slash
+)
 from sqlalchemy.engine import Connection
 from .mocks.mock_db_constructors import (
 	MockDbPopulateClosure,
@@ -25,7 +30,8 @@ from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user,\
 	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
 )
-
+from itertools import chain
+from dataclasses import asdict
 
 @pytest.fixture
 def fixture_db_conn_in_mem(
@@ -165,6 +171,30 @@ def fixture_datetime_iterator(
 		return provider
 	provider = MockDatetimeProvider(fixture_mock_ordered_date_list)
 	return provider
+
+@pytest.fixture
+def fixture_path_user_factory(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+) -> Callable[[str], AccountInfo]:
+
+	def path_user(username: str) -> AccountInfo:
+		songInfoService = fixture_song_info_service
+		accountService = fixture_account_service
+		user,_ = accountService.get_account_for_login(username)
+		assert user
+		rules = ActionRule.sorted(r for r in chain(
+			user.roles,
+			(p for p in songInfoService.get_paths_user_can_see(user.id)),
+			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirRoot)))
+		))
+		userDict = asdict(user)
+		userDict["roles"] = rules
+		resultUser = AccountInfo(
+			**userDict,
+		)
+		return resultUser
+	return path_user
 
 
 @pytest.fixture

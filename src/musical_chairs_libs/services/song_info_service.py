@@ -32,10 +32,13 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	PathsActionRule,
 	UserRoleDomain,
+	UserRoleDef,
+	RulePriorityLevel,
 	normalize_opening_slash,
 	AccountInfo,
 	ChainedAbsorbentTrie,
-	get_path_owner_roles
+	get_path_owner_roles,
+	AbsorbentTrie
 )
 from sqlalchemy import select, insert, update, func, delete, union_all
 from sqlalchemy.sql.expression import (
@@ -292,7 +295,8 @@ class SongInfoService:
 		for r in records:
 			yield PathsActionRule(
 				cast(str,r[pup_role]),
-				priority=cast(int,r[pup_priority]) or 0,
+				priority=cast(int,r[pup_priority]) \
+					or RulePriorityLevel.STATION_PATH.value,
 				span=cast(int,r[pup_span]) or 0,
 				count=cast(int,r[pup_count]) or 0,
 				domain=UserRoleDomain.Path,
@@ -330,10 +334,16 @@ class SongInfoService:
 
 	def __query_to_treeNodes__(
 		self,
-		query: Select
+		query: Select,
+		permittedPathsTree: AbsorbentTrie[Any]
 	) -> Iterator[SongTreeNode]:
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		for row in cast(Iterable[Row] ,records):
+			normalizedPrefix = normalize_opening_slash(cast(str,row["prefix"]))
+			if normalizedPrefix is None or \
+				not permittedPathsTree.matches(normalizedPrefix)\
+			:
+				continue
 			if row["control_path"] == row["prefix"]:
 				yield SongTreeNode(
 					path=cast(str, row["prefix"]),
@@ -349,17 +359,28 @@ class SongInfoService:
 
 	def song_ls(
 		self,
-		prefixes: Optional[Union[str, Iterable[str]]]=""
+		user: AccountInfo,
+		prefix: Optional[str]=None
 	) -> Iterator[SongTreeNode]:
-		if type(prefixes) == str:
-			query = self.__song_ls_query__(prefixes)
-			yield from self.__query_to_treeNodes__(query)
-		elif isinstance(prefixes, Iterable):
+		permittedPathTree = user.get_permitted_paths_tree(
+			UserRoleDef.PATH_LIST.value
+		)
+		if type(prefix) == str:
+			query = self.__song_ls_query__(prefix)
+			yield from self.__query_to_treeNodes__(query, permittedPathTree)
+		else:
+			prefixes = {
+				next((s for s in p.split("/") if s), "") if p else p for p in \
+				permittedPathTree.shortest_paths()
+			}
 			queryList: list[Select] = []
 			for p in prefixes:
 				queryList.append(self.__song_ls_query__(p))
 			if queryList:
-				yield from self.__query_to_treeNodes__(union_all(*queryList))
+				yield from self.__query_to_treeNodes__(
+					union_all(*queryList),
+					permittedPathTree
+				)
 
 	def get_songIds(
 		self,

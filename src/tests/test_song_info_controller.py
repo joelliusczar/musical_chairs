@@ -72,13 +72,42 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	data = json.loads(response.content)
 	items = sorted(data.get("items", []), key=lambda i: i["path"])
 	assert len(items) == 1
+	assert items[0]["path"] == "foo/"
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=foo/",
+		headers=headers_foo_goo_boo_user
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	assert len(items) == 1
+	assert items[0]["path"] == "foo/goo/"
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=foo/goo/",
+		headers=headers_foo_goo_boo_user
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	assert len(items) == 1
 	assert items[0]["path"] == "foo/goo/boo/"
 
 	response = client.get(
-		"/song-info/songs/ls?prefix=foo",
+		"/song-info/songs/ls?prefix=foo/goo/boo/",
 		headers=headers_foo_goo_boo_user
 	)
-	assert response.status_code == 404
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	assert len(items) == 5
+	assert items[0]["path"] == "foo/goo/boo/sierra"
+	assert items[1]["path"] == "foo/goo/boo/tango"
+	assert items[2]["path"] == "foo/goo/boo/uniform"
+	assert items[3]["path"] == "foo/goo/boo/victor"
+	assert items[4]["path"] == "foo/goo/boo/victor_2"
+
 
 def test_song_save(
 	fixture_api_test_client: TestClient

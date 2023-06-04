@@ -294,7 +294,7 @@ def get_path_user_and_check_optional_path(
 		return user
 	if prefix is None:
 		if itemId:
-			prefix = next(songInfoService.get_song_path(itemId,False), "")
+			prefix = next(songInfoService.get_song_path(itemId, False), "")
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]

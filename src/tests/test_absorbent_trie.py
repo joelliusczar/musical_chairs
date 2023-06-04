@@ -856,3 +856,19 @@ def test_values_with_path():
 	assert "x_a_x" in results
 	assert "x_art_x" in results
 	assert len(results) == 2
+
+def test_matches():
+	t = AbsorbentTrie[Any]()
+	t.add("test/Pop/Pop_A-F/Alphabet/")
+
+	assert t.matches("test")
+	assert t.matches("test/Pop")
+	assert t.matches("test/Pop/Pop_A-F")
+	assert t.matches("test/Pop/Pop_A-F/A")
+	assert not t.matches("test/Pop/Pop_A-F/AB")
+	assert t.matches("test/Pop/Pop_A-F/Alphabet")
+	assert t.matches("test/Pop/Pop_A-F/Alphabet/")
+	assert t.matches("test/Pop/Pop_A-F/Alphabet/A")
+	assert t.matches("test/Pop/Pop_A-F/Alphabet/AB")
+	assert t.matches("test/Pop/Pop_A-F/Alphabet/ABC")
+	assert not t.matches("test/Pop/Pop_A-F/Alphabetx")

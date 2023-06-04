@@ -10,8 +10,8 @@ from musical_chairs_libs.radio_handle import RadioHandle
 
 def test_construct_radio_handle():
 	envMgr = EnvManager()
-	RadioHandle("test")
-	RadioHandle("test2", envMgr)
+	RadioHandle(1)
+	RadioHandle(2, envMgr)
 
 def test_radio_init(fixture_radio_handle: RadioHandle):
 	num = fixture_radio_handle.ices_init()

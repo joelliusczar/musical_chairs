@@ -92,10 +92,10 @@ class AccountInfoSecurity(AccountInfoBase):
 				for r in self.roles
 		)
 
-	def get_permitted_paths(
+	def get_permitted_paths_tree(
 		self,
 		scopes: Union[str, Iterable[str]]
-	) -> Iterator[str]:
+	) -> AbsorbentTrie[Any]:
 		scopeSet = set([scopes] if type(scopes) == str else scopes)
 		pathsGen = (normalize_opening_slash(r.path) for r in chain(
 				self.roles,
@@ -104,6 +104,13 @@ class AccountInfoSecurity(AccountInfoBase):
 					and not r.path is None
 			)
 		pathTree = AbsorbentTrie[Any](p for p in pathsGen if not p is None)
+		return pathTree
+
+	def get_permitted_paths(
+		self,
+		scopes: Union[str, Iterable[str]]
+	) -> Iterator[str]:
+		pathTree = self.get_permitted_paths_tree(scopes)
 		yield from (p for p in pathTree.shortest_paths())
 
 	def has_roles(self, *roles: UserRoleDef) -> bool:

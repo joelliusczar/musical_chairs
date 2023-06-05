@@ -130,6 +130,20 @@ class SongInfoService:
 		insertedPk = cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
 		return insertedPk
 
+	def __get_artist_owner__(self, artistId: int) -> OwnerInfo:
+		query = select(ar_ownerFk, u_username, u_displayName)\
+			.select_from(artists_tbl)\
+			.join(user_tbl, u_pk == ar_ownerFk)\
+			.where(ab_pk == artistId)
+		data = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+		if not data:
+			return OwnerInfo(0,"", "")
+		return OwnerInfo(
+			cast(int, data[ar_ownerFk]),
+			cast(str, data[u_username]),
+			cast(str, data[u_displayName])
+		)
+
 	def save_artist(
 		self,
 		user: AccountInfo,
@@ -137,7 +151,7 @@ class SongInfoService:
 		artistId: Optional[int]=None
 	) -> ArtistInfo:
 		if not artistName and not artistId:
-			return ArtistInfo(id=-1, name="", owner=user)
+			raise ValueError("No artist info to save")
 		upsert = update if artistId else insert
 		savedName = SavedNameString(artistName)
 		stmt = upsert(artists_tbl).values(
@@ -145,21 +159,37 @@ class SongInfoService:
 			lastModifiedByUserFk = user.id,
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
+		owner = user
 		if artistId:
 			stmt = stmt.where(ar_pk == artistId)
+			owner = self.__get_artist_owner__(artistId)
 		else:
 			stmt = stmt.values(ownerFk = user.id)
 		try:
 			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 
 			affectedPk: int = artistId if artistId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
-			return ArtistInfo(id=affectedPk, name=str(savedName), owner=user)
+			return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
 					f"{artistName} is already used.", "name"
 				)]
 			)
+
+	def __get_album_owner__(self, albumId: int) -> OwnerInfo:
+		query = select(ab_ownerFk, u_username, u_displayName)\
+			.select_from(albums_tbl)\
+			.join(user_tbl, u_pk == ab_ownerFk)\
+			.where(ab_pk == albumId)
+		data = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+		if not data:
+			return OwnerInfo(0,"", "")
+		return OwnerInfo(
+			cast(int, data[ab_ownerFk]),
+			cast(str, data[u_username]),
+			cast(str, data[u_displayName])
+		)
 
 	def save_album(
 		self,
@@ -168,7 +198,7 @@ class SongInfoService:
 		albumId: Optional[int]=None
 	) -> AlbumInfo:
 		if not album and not albumId:
-			return AlbumInfo(id=-1, name="", owner=user)
+			raise ValueError("No album info to save")
 		upsert = update if albumId else insert
 		savedName = SavedNameString(album.name)
 		stmt = upsert(albums_tbl).values(
@@ -178,8 +208,10 @@ class SongInfoService:
 			lastModifiedByUserFk = user.id,
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
+		owner = user
 		if albumId:
 			stmt = stmt.where(ab_pk == albumId)
+			owner = self.__get_album_owner__(albumId)
 		else:
 			stmt = stmt.values(ownerFk = user.id)
 		try:
@@ -190,7 +222,7 @@ class SongInfoService:
 				user.id,
 				artistKeys=album.albumArtist.id
 			), None) if album.albumArtist else None
-			return AlbumInfo(affectedPk, str(savedName), user, album.year, artist)
+			return AlbumInfo(affectedPk, str(savedName), owner, album.year, artist)
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(

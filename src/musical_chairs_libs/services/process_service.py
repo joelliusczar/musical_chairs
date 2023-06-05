@@ -88,7 +88,7 @@ class ProcessService:
 	) -> None:
 		result: list[StationInfo] = []
 		if includeAll:
-			result = list(self.station_service.get_stations(ownerKey=owner.id))
+			result = list(self.station_service.get_stations(ownerId=owner.id))
 		else:
 			result = list(self.station_service.get_stations(
 				stationKeys=stationKeys

@@ -4,9 +4,11 @@ import pytest
 from typing import cast, Callable
 from sqlalchemy import select
 from .constant_fixtures_for_test import *
-from .common_fixtures import\
-	fixture_setup_in_mem_tbls as fixture_setup_in_mem_tbls, \
-	fixture_db_conn_in_mem as fixture_db_conn_in_mem
+from .common_fixtures import (
+	fixture_setup_in_mem_tbls as fixture_setup_in_mem_tbls,
+	fixture_db_conn_in_mem as fixture_db_conn_in_mem,
+	fixture_db_queryer as fixture_db_queryer
+)
 from musical_chairs_libs.tables import artists
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
@@ -63,4 +65,9 @@ def test_data_view(
 	noop(stationRules)
 	pathRules = get_path_permission_params(fixture_mock_ordered_date_list)
 	noop(pathRules)
+	pass
+
+def test_data_in_db(fixture_db_queryer: Callable[[str], None]):
+	# this test exists as a convience to run sql queires on
+	# the test data
 	pass

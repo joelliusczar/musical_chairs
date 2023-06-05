@@ -184,7 +184,7 @@ def create_artist(
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> ArtistInfo:
-	artistInfo = songInfoService.save_artist(user.id, artistName)
+	artistInfo = songInfoService.save_artist(user, artistName)
 	return artistInfo
 
 @router.post("/albums")
@@ -196,7 +196,7 @@ def create_album(
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> AlbumInfo:
-	albumInfo = songInfoService.save_album(album, userId=user.id)
+	albumInfo = songInfoService.save_album(album, user=user)
 	return albumInfo
 
 @router.get("/albums/list")

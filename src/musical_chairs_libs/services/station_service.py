@@ -33,7 +33,7 @@ from musical_chairs_libs.tables import (
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	station_user_permissions as station_user_permissions_tbl, stup_pk,
 	stup_role, stup_stationFk, stup_userFk, stup_count, stup_span, stup_priority,
-	users as user_tbl, u_username, u_pk,
+	users as user_tbl, u_username, u_pk, u_displayName
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
@@ -50,7 +50,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	UserRoleDomain,
 	get_station_owner_rules,
-	RulePriorityLevel
+	RulePriorityLevel,
+	OwnerInfo
 )
 from .env_manager import EnvManager
 from .template_service import TemplateService
@@ -114,7 +115,11 @@ class StationService:
 			name=cast(str,row[st_name]),
 			displayName=cast(str,row[st_displayName]),
 			isRunning=bool(row[st_procId]),
-			ownerId=cast(int,row[st_ownerFk]),
+			owner=OwnerInfo(
+				cast(int,row[st_ownerFk]),
+				cast(str,row[u_username]),
+				cast(str,row[u_displayName])
+			),
 			requestSecurityLevel=cast(int,row[st_requestSecurityLevel]),
 		)
 
@@ -140,7 +145,8 @@ class StationService:
 		for row in rows:
 			if not currentStation or currentStation[0].id != cast(int,row[st_pk]):
 				if currentStation:
-					if currentStation[0].ownerId == ownerId:
+					stationOwner = currentStation[0].owner
+					if stationOwner and stationOwner.id == ownerId:
 						currentStation[1].extend(get_station_owner_rules())
 					yield currentStation
 				currentStation = (
@@ -152,7 +158,8 @@ class StationService:
 			else:
 				currentStation[1].append(self.__row_to_action_rule__(row))
 		if currentStation:
-			if currentStation[0].ownerId == ownerId:
+			stationOwner = currentStation[0].owner
+			if stationOwner and stationOwner.id == ownerId:
 				currentStation[1].extend(get_station_owner_rules())
 			yield currentStation
 
@@ -206,8 +213,11 @@ class StationService:
 			st_displayName,
 			st_procId,
 			st_ownerFk,
+			u_username,
+			u_displayName,
 			st_requestSecurityLevel
-		).select_from(stations_tbl)
+		).select_from(stations_tbl)\
+		.join(user_tbl, st_ownerFk == u_pk, isouter=True)
 
 
 		if type(ownerId) == int:

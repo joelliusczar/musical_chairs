@@ -1,24 +1,26 @@
 from pydantic import validator, root_validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
-from typing import\
-	Iterator,\
-	Optional,\
-	Iterable,\
-	List,\
+from typing import (
+	Iterator,
+	Optional,
+	Iterable,
+	List,
 	Any
+)
 from itertools import chain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, check_name_safety
 from .generic_dtos import IdItem, TableData, T
-from .account_dtos import ActionRule
+from .account_dtos import OwnerType
+from .action_rule_dtos import ActionRule
 
 
 @dataclass(frozen=True)
 class ArtistInfo:
 	id: int
 	name: str
-	ownerId: int
+	owner: OwnerType
 
 @dataclass(frozen=True)
 class AlbumCreationInfo:
@@ -29,7 +31,7 @@ class AlbumCreationInfo:
 @dataclass(frozen=True)
 class AlbumInfo(IdItem):
 	name: str
-	ownerId: int
+	owner: OwnerType
 	year: Optional[int]=None
 	albumArtist: Optional[ArtistInfo]=None
 
@@ -86,7 +88,7 @@ class StationInfo:
 	name: str
 	displayName: str=field(default="", hash=False, compare=False)
 	isRunning: bool=field(default=False, hash=False, compare=False)
-	ownerId: Optional[int]=field(default=None, hash=False, compare=False)
+	owner: Optional[OwnerType]=field(default=None, hash=False, compare=False)
 	requestSecurityLevel: int=field(default=0, hash=False, compare=False)
 
 @dataclass()

@@ -135,6 +135,27 @@ artist_params = [
 		"lastModifiedByUserFk": fooDirOwnerId,
 		"lastModifiedTimestamp": 0,
 	},
+	{
+		"pk": 15,
+		"name": "papa_artist",
+		"ownerFk": november_user_id,
+		"lastModifiedByUserFk": fooDirOwnerId,
+		"lastModifiedTimestamp": 0,
+	},
+	{
+		"pk": 16,
+		"name": "romeo_artist",
+		"ownerFk": india_user_id,
+		"lastModifiedByUserFk": fooDirOwnerId,
+		"lastModifiedTimestamp": 0,
+	},
+	{
+		"pk": 17,
+		"name": "sierra_artist",
+		"ownerFk": hotel_user_id,
+		"lastModifiedByUserFk": fooDirOwnerId,
+		"lastModifiedTimestamp": 0,
+	},
 ]
 
 albumParams1 = [
@@ -242,18 +263,26 @@ albumParams3 = [
 		"ownerFk": blitzDirOwnerId,
 		"lastModifiedByUserFk": fooDirOwnerId,
 		"lastModifiedTimestamp": 0
-	},
+	}
 ]
 
 albumParams4 = [
 	{
 		"pk": 3,
 		"name": "juliet_album",
-		"albumArtistFk": 7,
+		"albumArtistFk": golf_user_id,
 		"ownerFk": fooDirOwnerId,
 		"lastModifiedByUserFk": fooDirOwnerId,
 		"lastModifiedTimestamp": 0
-	}
+	},
+	{
+		"pk": 14,
+		"name": "grunt_album",
+		"ownerFk": juliet_user_id,
+		"albumArtistFk": golf_user_id,
+		"lastModifiedByUserFk": fooDirOwnerId,
+		"lastModifiedTimestamp": 0
+	},
 ]
 
 album_params = [
@@ -624,6 +653,15 @@ song_params = [
 		"path": "jazz/lurk/toot/alpha4_song",
 		"albumFk": 7,
 	},
+	{ "pk": 59,
+		"path": "foo/goo/looga/alpha",
+		"name": "looga_alpha_song",
+		"albumFk": 14,
+		"track": 5,
+		"disc": 1,
+		"genre": "bam",
+		"comment": "hotdogs make good lava swimmers"
+	},
 ]
 
 songArtistParams = [
@@ -674,6 +712,8 @@ songArtistParams = [
 	{ "pk": 49, "songFk": 17, "artistFk": 2 },
 	{ "pk": 50, "songFk": 17, "artistFk": 11 },
 	{ "pk": 51, "songFk": 35, "artistFk": 12 },
+	{ "pk": 52, "songFk": 59, "artistFk": 16 },
+	{ "pk": 54, "songFk": 59, "artistFk": 17 },
 ]
 
 songArtistParams2 = [
@@ -681,6 +721,7 @@ songArtistParams2 = [
 	{ "pk": 42, "songFk": 42, "artistFk": 7, "isPrimaryArtist": 1 },
 	{ "pk": 43, "songFk": 41, "artistFk": 7, "isPrimaryArtist": 1 },
 	{ "pk": 44, "songFk": 1, "artistFk": 6, "isPrimaryArtist": 1 },
+	{ "pk": 53, "songFk": 59, "artistFk": 15, "isPrimaryArtist": 1 },
 ]
 
 songArtistParamsAll = [*songArtistParams, *songArtistParams2]
@@ -796,6 +837,8 @@ stationSongParams = [
 	{ "songFk": 45, "stationFk": 8 },
 	{ "songFk": 46, "stationFk": 8 },
 	{ "songFk": 47, "stationFk": 8 },
+	{ "songFk": 59, "stationFk": 10 },
+	{ "songFk": 59, "stationFk": 11 },
 ]
 
 def get_user_params(
@@ -888,7 +931,7 @@ def get_user_params(
 		{
 			"pk": india_user_id,
 			"username": "testUser_india",
-			"displayName": None,
+			"displayName": "IndiaDisplay",
 			"hashedPW": testPassword,
 			"email": "test9@test.com",
 			"isDisabled": False,
@@ -898,7 +941,7 @@ def get_user_params(
 		{
 			"pk": juliet_user_id,
 			"username": "testUser_juliet",
-			"displayName": None,
+			"displayName": "julietDisplay",
 			"hashedPW": testPassword,
 			"email": "test10@test.com",
 			"isDisabled": False,

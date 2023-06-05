@@ -33,14 +33,16 @@ def test_add_artists(fixture_song_info_service: SongInfoService):
 	pk = songInfoService.get_or_save_artist("hotel_artist")
 	assert pk == 8
 
-def test_add_album(fixture_song_info_service: SongInfoService):
+def test_add_album(
+	fixture_song_info_service: SongInfoService
+):
 	songInfoService = fixture_song_info_service
 	pk = songInfoService.get_or_save_album("who_1_album", 5)
 	assert pk == 10
 	pk = songInfoService.get_or_save_album("bat_album", 5)
-	assert pk == 14
+	assert pk == len(get_initial_albums()) + 1
 	pk = songInfoService.get_or_save_album("who_1_album", 4)
-	assert pk == len(get_initial_artists()) + 1
+	assert pk == len(get_initial_albums()) + 2
 
 def test_song_ls(
 	fixture_song_info_service: SongInfoService,
@@ -613,3 +615,41 @@ def test_get_user_paths(
 	songInfoService = fixture_song_info_service
 	results = list(songInfoService.get_paths_user_can_see(11))
 	assert results
+
+def test_get_song_with_owner_info(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_romeo") #random user
+	assert user
+	results = next(songInfoService.get_songs_for_edit([59], user))
+	album = results.album
+	assert album
+	albumOwner = album.owner
+	assert albumOwner.displayName == "julietDisplay"
+	albumArtist = album.albumArtist
+	assert albumArtist
+	albumArtistOwner = albumArtist.owner
+	assert albumArtistOwner
+	assert albumArtistOwner.username == "testUser_kilo"
+	primaryArtist = results.primaryArtist
+	assert primaryArtist
+	primaryArtistOwner = primaryArtist.owner
+	assert primaryArtistOwner
+	assert primaryArtistOwner.username == "testUser_november"
+	assert results.artists
+	assert len(results.artists) == 2
+	artsit0Owner = results.artists[0].owner
+	assert artsit0Owner.displayName == "IndiaDisplay"
+	artsit1Owner = results.artists[1].owner
+	assert artsit1Owner.username == "testUser_hotel"
+	assert results.stations
+	assert len(results.stations) == 2
+	station0Owner = results.stations[0].owner
+	assert station0Owner
+	assert station0Owner.username == "testUser_bravo"
+	station1Owner = results.stations[1].owner
+	assert station1Owner
+	assert station1Owner.displayName == "julietDisplay"

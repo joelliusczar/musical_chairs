@@ -38,7 +38,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ChainedAbsorbentTrie,
 	get_path_owner_roles,
-	AbsorbentTrie
+	AbsorbentTrie,
+	OwnerInfo
 )
 from sqlalchemy import select, insert, update, func, delete, union_all
 from sqlalchemy.sql.expression import (
@@ -66,7 +67,8 @@ from musical_chairs_libs.tables import (
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
-	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count
+	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count,
+	users as user_tbl, u_pk, u_username, u_displayName
 )
 
 
@@ -130,28 +132,28 @@ class SongInfoService:
 
 	def save_artist(
 		self,
-		userId: int,
+		user: AccountInfo,
 		artistName: str,
 		artistId: Optional[int]=None
 	) -> ArtistInfo:
 		if not artistName and not artistId:
-			return ArtistInfo(id=-1, name="", ownerId=userId)
+			return ArtistInfo(id=-1, name="", owner=user)
 		upsert = update if artistId else insert
 		savedName = SavedNameString(artistName)
 		stmt = upsert(artists_tbl).values(
 			name = str(savedName),
-			lastModifiedByUserFk = userId,
+			lastModifiedByUserFk = user.id,
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
 		if artistId:
 			stmt = stmt.where(ar_pk == artistId)
 		else:
-			stmt = stmt.values(ownerFk = userId)
+			stmt = stmt.values(ownerFk = user.id)
 		try:
 			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 
 			affectedPk: int = artistId if artistId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
-			return ArtistInfo(id=affectedPk, name=str(savedName), ownerId=userId)
+			return ArtistInfo(id=affectedPk, name=str(savedName), owner=user)
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
@@ -162,33 +164,33 @@ class SongInfoService:
 	def save_album(
 		self,
 		album: AlbumCreationInfo,
-		userId: int,
+		user: AccountInfo,
 		albumId: Optional[int]=None
 	) -> AlbumInfo:
 		if not album and not albumId:
-			return AlbumInfo(id=-1, name="", ownerId=userId)
+			return AlbumInfo(id=-1, name="", owner=user)
 		upsert = update if albumId else insert
 		savedName = SavedNameString(album.name)
 		stmt = upsert(albums_tbl).values(
 			name = str(savedName),
 			year = album.year,
 			albumArtistFk = album.albumArtist.id if album.albumArtist else None,
-			lastModifiedByUserFk = userId,
+			lastModifiedByUserFk = user.id,
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
 		if albumId:
 			stmt = stmt.where(ab_pk == albumId)
 		else:
-			stmt = stmt.values(ownerFk = userId)
+			stmt = stmt.values(ownerFk = user.id)
 		try:
 			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 
 			affectedPk: int = albumId if albumId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
 			artist = next(self.get_artists(
-				userId,
+				user.id,
 				artistKeys=album.albumArtist.id
 			), None) if album.albumArtist else None
-			return AlbumInfo(affectedPk, str(savedName), userId, album.year, artist)
+			return AlbumInfo(affectedPk, str(savedName), user, album.year, artist)
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
@@ -529,16 +531,26 @@ class SongInfoService:
 		albumKeys: Union[int, str, Iterable[int], None]=None,
 		userId: Optional[int]=None
 	) -> Iterator[AlbumInfo]:
+		album_owner = cast(TblCols, user_tbl.alias("albumOwner")) #pyright: ignore [reportUnknownMemberType]
+		albumOwnerId = cast(Column, album_owner.c.pk) #pyright: ignore [reportUnknownMemberType]
+		artist_owner = cast(TblCols,user_tbl.alias("artistOwner")) #pyright: ignore [reportUnknownMemberType]
+		artistOwnerId = cast(Column, artist_owner.c.pk) #pyright: ignore [reportUnknownMemberType]
 		query = select(
 			ab_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
 			ab_name.label("name"), #pyright: ignore [reportUnknownMemberType]
 			ab_year.label("year"), #pyright: ignore [reportUnknownMemberType]
 			ab_albumArtistFk.label("albumArtistId"), #pyright: ignore [reportUnknownMemberType]
-			ab_ownerFk.label("ownerId"), #pyright: ignore [reportUnknownMemberType]
+			ab_ownerFk.label("album.ownerId"), #pyright: ignore [reportUnknownMemberType]
+			album_owner.c.username.label("album.ownerName"), #pyright: ignore [reportUnknownMemberType]
+			album_owner.c.displayName.label("album.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
 			ar_name.label("artist.name"), #pyright: ignore [reportUnknownMemberType]
-			ar_ownerFk.label("artist.ownerId")  #pyright: ignore [reportUnknownMemberType]
+			ar_ownerFk.label("artist.ownerId"), #pyright: ignore [reportUnknownMemberType]
+			artist_owner.c.username.label("artist.ownerName"), #pyright: ignore [reportUnknownMemberType]
+			artist_owner.c.displayName.label("artist.ownerDisplayName") #pyright: ignore [reportUnknownMemberType]
 		).select_from(albums_tbl)\
-			.join(artists_tbl, ar_pk == ab_albumArtistFk, isouter=True)
+			.join(artists_tbl, ar_pk == ab_albumArtistFk, isouter=True) \
+			.join(album_owner, albumOwnerId == ab_ownerFk, isouter=True) \
+			.join(artist_owner, artistOwnerId == ar_ownerFk, isouter=True)
 		if type(albumKeys) == int:
 			query = query.where(ab_pk == albumKeys)
 		elif isinstance(albumKeys, Iterable):
@@ -555,12 +567,20 @@ class SongInfoService:
 		yield from (AlbumInfo(
 			cast(int,row["id"]),
 			cast(str,row["name"]),
-			cast(int,row["ownerId"]),
+			OwnerInfo(
+				cast(int,row["album.ownerId"]),
+				cast(str, row["album.ownerName"]),
+				cast(str, row["album.ownerDisplayName"])
+			),
 			cast(int,row["year"]),
 			ArtistInfo(
 				cast(int,row["albumArtistId"]),
 				cast(str,row["artist.name"]),
-				cast(int,row["artist.ownerId"]),
+				OwnerInfo(
+					cast(int,row["artist.ownerId"]),
+					cast(str, row["artist.ownerName"]),
+					cast(str, row["artist.ownerDisplayName"])
+				)
 			) if row["albumArtistId"] else None
 			) for row in cast(Iterable[Row], records))
 
@@ -571,10 +591,13 @@ class SongInfoService:
 		userId: Optional[int]=None
 	) -> Iterator[ArtistInfo]:
 		query = select(
-			ar_pk.label("id"), #pyright: ignore reportUnknownMemberType
-			ar_name.label("name"), #pyright: ignore reportUnknownMemberType
-			ar_ownerFk.label("ownerId") #pyright: ignore reportUnknownMemberType
-		)
+			ar_pk,
+			ar_name,
+			ar_ownerFk,
+			u_username,
+			u_displayName
+		)\
+		.join(user_tbl, u_pk == ar_ownerFk, isouter=True)
 		if type(artistKeys) == int:
 			query = query.where(ar_pk == artistKeys)
 		#check speficially if instance because [] is falsy
@@ -589,7 +612,16 @@ class SongInfoService:
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		yield from (ArtistInfo(**row) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+
+		yield from (ArtistInfo(
+			cast(int, row[ar_pk]),
+			cast(str, row[ar_name]),
+			OwnerInfo(
+				cast(int, row[ar_ownerFk]),
+				cast(str, row[u_username]),
+				cast(str, row[u_displayName])
+			)
+		)
 			for row in cast(Iterable[Row],records))
 
 	def get_song_artists(
@@ -700,16 +732,24 @@ class SongInfoService:
 		songDict: dict[Any, Any] = {**row}
 		albumArtistId = songDict.pop("album.albumArtistId", None)
 		albumArtistName = songDict.pop("album.albumArtist.name", "")
-		albumArtistOwnerId = songDict.pop("album.albumArtist.ownerId", 0)
+		albumArtistOwner = OwnerInfo(
+			songDict.pop("album.albumArtist.ownerId", 0),
+			songDict.pop("album.albumArtist.ownerName", ""),
+			songDict.pop("album.albumArtist.ownerDisplayName", ""),
+		)
 		album = AlbumInfo(
 			songDict.pop("album.id", None),
 			songDict.pop("album.name", None),
-			songDict.pop("album.ownerId", 0),
+			OwnerInfo(
+				songDict.pop("album.ownerId", 0),
+				songDict.pop("album.ownerName", ""),
+				songDict.pop("album.ownerDisplayName", ""),
+			),
 			songDict.pop("album.year", None),
 			ArtistInfo(
 				albumArtistId,
 				albumArtistName,
-				albumArtistOwnerId,
+				albumArtistOwner,
 			) if albumArtistId else None
 		)
 		if album.id:
@@ -717,10 +757,14 @@ class SongInfoService:
 		songDict.pop("artist.id", None)
 		songDict.pop("artist.name", None)
 		songDict.pop("artist.ownerId", None)
+		songDict.pop("artist.ownerName", None)
+		songDict.pop("artist.ownerDisplayName", None)
 		songDict.pop("station.id", None)
 		songDict.pop("station.name", None)
 		songDict.pop("station.displayName", None)
 		songDict.pop("station.ownerId", None)
+		songDict.pop("station.ownerName", None)
+		songDict.pop("station.ownerDisplayName", None)
 		songDict.pop(sgar_isPrimaryArtist.description, None) #pyright: ignore reportUnknownMemberType
 		return songDict
 
@@ -728,8 +772,17 @@ class SongInfoService:
 		self,
 		songIds: Iterable[int]
 	) -> Select:
-		album_artist = cast(TblCols,artists_tbl.alias("AlbumArtist")) #pyright: ignore [reportUnknownMemberType]
+		album_artist = cast(TblCols,artists_tbl.alias("albumArtist")) #pyright: ignore [reportUnknownMemberType]
 		albumArtistId = cast(Column, album_artist.c.pk) #pyright: ignore [reportUnknownMemberType]
+		albumArtistOwnerId = cast(Column, album_artist.c.ownerFk) #pyright: ignore [reportUnknownMemberType]
+		albumOwner = cast(TblCols, user_tbl.alias("albumOwner")) #pyright: ignore [reportUnknownMemberType]
+		albumOwnerId = cast(Column, albumOwner.c.pk) #pyright: ignore [reportUnknownMemberType]
+		albumArtistOwner = cast(TblCols,user_tbl.alias("albumArtistOwner")) #pyright: ignore [reportUnknownMemberType]
+		albumArtistOwnerUserId = cast(Column, albumArtistOwner.c.pk) #pyright: ignore [reportUnknownMemberType]
+		artistOwner = cast(TblCols, user_tbl.alias("artistOwner")) #pyright: ignore [reportUnknownMemberType]
+		artistOwnerId = cast(Column, artistOwner.c.pk) #pyright: ignore [reportUnknownMemberType]
+		stationOwner = cast(TblCols, user_tbl.alias("stationOwner")) #pyright: ignore [reportUnknownMemberType]
+		stationOwnerId = cast(Column, stationOwner.c.pk) #pyright: ignore [reportUnknownMemberType]
 		query = select(
 			sg_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
 			sg_name.label("name"), #pyright: ignore [reportUnknownMemberType]
@@ -746,17 +799,25 @@ class SongInfoService:
 			ab_pk.label("album.id"), #pyright: ignore [reportUnknownMemberType]
 			ab_name.label("album.name"), #pyright: ignore [reportUnknownMemberType]
 			ab_ownerFk.label("album.ownerId"), #pyright: ignore [reportUnknownMemberType]
+			albumOwner.c.username.label("album.ownerName"), #pyright: ignore [reportUnknownMemberType]
+			albumOwner.c.displayName.label("album.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
 			ab_year.label("album.year"), #pyright: ignore [reportUnknownMemberType]
 			ab_albumArtistFk.label("album.albumArtistId"), #pyright: ignore [reportUnknownMemberType]
 			album_artist.c.name.label("album.albumArtist.name"), #pyright: ignore [reportUnknownMemberType]
 			album_artist.c.ownerFk.label("album.albumArtist.ownerId"), #pyright: ignore [reportUnknownMemberType]
+			albumArtistOwner.c.username.label("album.albumArtist.ownerName"), #pyright: ignore [reportUnknownMemberType]
+			albumArtistOwner.c.displayName.label("album.albumArtist.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
 			sgar_isPrimaryArtist,
 			ar_pk.label("artist.id"), #pyright: ignore [reportUnknownMemberType]
 			ar_name.label("artist.name"), #pyright: ignore [reportUnknownMemberType]
 			ar_ownerFk.label("artist.ownerId"), #pyright: ignore [reportUnknownMemberType]
+			artistOwner.c.username.label("artist.ownerName"), #pyright: ignore [reportUnknownMemberType]
+			artistOwner.c.displayName.label("artist.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
 			st_pk.label("station.id"), #pyright: ignore [reportUnknownMemberType]
 			st_name.label("station.name"), #pyright: ignore [reportUnknownMemberType]
 			st_ownerFk.label("station.ownerId"), #pyright: ignore [reportUnknownMemberType]
+			stationOwner.c.username.label("station.ownerName"), #pyright: ignore [reportUnknownMemberType]
+			stationOwner.c.displayName.label("station.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
 			st_displayName.label("station.displayName") #pyright: ignore [reportUnknownMemberType]
 		).select_from(songs_tbl)\
 				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
@@ -764,11 +825,18 @@ class SongInfoService:
 				.join(albums_tbl, sg_albumFk == ab_pk, isouter=True)\
 				.join(stations_songs_tbl, sg_pk == stsg_songFk, isouter=True)\
 				.join(stations_tbl, stsg_stationFk ==  st_pk, isouter=True)\
+				.join(albumOwner, albumOwnerId == ab_ownerFk, isouter=True) \
+				.join(artistOwner, artistOwnerId ==  ar_ownerFk, isouter=True)\
+				.join(stationOwner, stationOwnerId == st_ownerFk, isouter=True)\
 				.join(
 					album_artist,
 					ab_albumArtistFk == albumArtistId,
 					isouter=True
 				)\
+				.join(albumArtistOwner,
+					albumArtistOwnerUserId == albumArtistOwnerId,
+					isouter=True
+				) \
 				.where(sg_pk.in_(songIds))\
 				.order_by(sg_pk)
 		return query
@@ -805,20 +873,33 @@ class SongInfoService:
 				primaryArtist = ArtistInfo(
 					cast(int, row["artist.id"]),
 					cast(str, row["artist.name"]),
-					cast(int, row["artist.ownerId"])
+					OwnerInfo(
+						cast(int, row["artist.ownerId"]),
+						cast(str, row["artist.ownerName"]),
+						cast(str, row["artist.ownerDisplayName"])
+					)
 				)
 			elif row["artist.id"]:
 				artists.add(ArtistInfo(
 						cast(int, row["artist.id"]),
 						cast(str, row["artist.name"]),
-						cast(int, row["artist.ownerId"])
+						OwnerInfo(
+							cast(int, row["artist.ownerId"]),
+							cast(str, row["artist.ownerName"]),
+							cast(str, row["artist.ownerDisplayName"])
+						)
 					)
 				)
 			if row["station.id"]:
 				stations.add(StationInfo(
 					cast(int, row["station.id"]),
 					cast(str, row["station.name"]),
-					cast(str, row["station.displayName"])
+					cast(str, row["station.displayName"]),
+					owner=OwnerInfo(
+						cast(int, row["station.ownerId"]),
+						cast(str, row["station.ownerName"]),
+						cast(str, row["station.ownerDisplayName"])
+					)
 				))
 		if currentSongRow:
 			songDict = self._prepare_song_row_for_model(currentSongRow)

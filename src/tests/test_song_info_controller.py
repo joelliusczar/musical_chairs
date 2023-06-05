@@ -127,11 +127,11 @@ def test_song_save(
 		"id": 8,
 		"name": "shoo_album",
 		"year": 2003,
-		"ownerId": kilo_user_id,
+		"owner": {"id":kilo_user_id },
 		"albumArtist": {
 			"id": 6,
 			"name": "foxtrot_artist",
-			"ownerId": kilo_user_id,
+			"owner": {"id":kilo_user_id },
 		}
 	}
 	sendData["genre"] = "pop_update"
@@ -139,34 +139,34 @@ def test_song_save(
 	sendData["primaryArtist"] = {
 		"id": 10,
 		"name": "juliet_artist",
-		"ownerId": kilo_user_id,
+		"owner": { "id": kilo_user_id},
 	}
 	sendData["stations"] = [
 		{ "id": 2,
 			"name": "papa_station",
 			"displayName": "Come to papa",
-			"ownerId": None,
+			"owner": None,
 			"requestSecurityLevel": 0
 		},
 		{
 			"id": 7,
 			"name": "uniform_station",
 			"displayName": "Asshole at the wheel",
-			"ownerId": None,
+			"owner": None,
 			"requestSecurityLevel": 0
 		},
 		{
 			"id": 10,
 			"name": "xray_station",
 			"displayName": "Pentagular",
-			"ownerId": None,
+			"owner": None,
 			"requestSecurityLevel": 0
 		}
 	]
 	sendData["artists"] = [
-		{ "id": 9, "name": "india_artist", "ownerId": kilo_user_id },
-		{ "id": 13, "name": "november_artist", "ownerId": kilo_user_id },
-		{ "id": 3, "name": "charlie_artist", "ownerId": kilo_user_id }
+		{ "id": 9, "name": "india_artist", "owner": { "id": kilo_user_id } },
+		{ "id": 13, "name": "november_artist", "owner": { "id": kilo_user_id } },
+		{ "id": 3, "name": "charlie_artist", "owner": { "id": kilo_user_id } }
 	]
 
 	putResponse = client.put(
@@ -186,6 +186,34 @@ def test_song_save(
 	data = json.loads(getResponseAfter.content)
 	for s in sendData["stations"]:
 		s["isRunning"] = False
+	sendData["album"]["owner"]["username"] = "testUser_kilo"
+	sendData["album"]["owner"]["displayName"] = None
+	sendData["album"]["albumArtist"]["owner"]["username"] = "testUser_kilo"
+	sendData["album"]["albumArtist"]["owner"]["displayName"] = None
+	sendData["primaryArtist"]["owner"]["username"] = "testUser_kilo"
+	sendData["primaryArtist"]["owner"]["displayName"] = None
+	sendData["artists"][0]["owner"]["username"] = "testUser_kilo"
+	sendData["artists"][0]["owner"]["displayName"] = None
+	sendData["artists"][1]["owner"]["username"] = "testUser_kilo"
+	sendData["artists"][1]["owner"]["displayName"] = None
+	sendData["artists"][2]["owner"]["username"] = "testUser_kilo"
+	sendData["artists"][2]["owner"]["displayName"] = None
+
+	sendData["stations"][0]["owner"] = {
+		"id": 2,
+		"username":"testUser_bravo",
+		"displayName": None
+	}
+	sendData["stations"][1]["owner"] = {
+		"id": 2,
+		"username":"testUser_bravo",
+		"displayName": None
+	}
+	sendData["stations"][2]["owner"] = {
+		"id": 2,
+		"username":"testUser_bravo",
+		"displayName": None
+	}
 	mismatches = mismatched_properties(
 		normalize_dict(data),
 		normalize_dict(sendData)
@@ -312,7 +340,11 @@ def test_get_songs_for_multi_edit(
 		"id": 4,
 		"name":
 		"delta_artist",
-		"ownerId": kilo_user_id
+		"owner": {
+			"id": kilo_user_id,
+			"username": "testUser_kilo",
+			"displayName": None
+		}
 	}]
 	assert "artists" in touched
 	assert data["covers"] == []
@@ -339,7 +371,7 @@ def test_get_songs_for_multi_edit(
 			"name": "oscar_station",
 			"displayName": "Oscar the grouch",
 			"isRunning": False,
-			"ownerId": None,
+			"owner": {"id": 2, "username": "testUser_bravo", "displayName": None},
 			"requestSecurityLevel": 0
 		}
 	]
@@ -394,7 +426,7 @@ def test_song_save_for_multi_edit(
 
 	sendData = {
 		"album": {
-			"id": 12, "name": "garoo_album", "ownerId": kilo_user_id
+			"id": 12, "name": "garoo_album", "owner": {"id": kilo_user_id }
 		},
 		"stations": [
 			{
@@ -412,11 +444,11 @@ def test_song_save_for_multi_edit(
 			"id": 14,
 			"name":
 			"oscar_artist",
-			"ownerId": kilo_user_id
+			"owner": {"id": kilo_user_id }
 		},
 		"artists": [
-			{ "id": 8, "name": "hotel_artist", "ownerId": kilo_user_id },
-			{ "id": 1, "name": "alpha_artist", "ownerId": kilo_user_id }
+			{ "id": 8, "name": "hotel_artist", "owner": {"id": kilo_user_id } },
+			{ "id": 1, "name": "alpha_artist", "owner": {"id": kilo_user_id } }
 		],
 		"touched": ["album", "stations", "primaryArtist", "artists"]
 	}
@@ -528,7 +560,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 
 	sendData = {
 		"album": {
-			"id": 12, "name": "garoo_album","ownerId": kilo_user_id
+			"id": 12, "name": "garoo_album","owner": { "id": kilo_user_id}
 		},
 		"stations": [
 			{
@@ -547,7 +579,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 			"id": 5,
 			"name":
 			"foxtrot_artist",
-			"ownerId": kilo_user_id
+			"owner": { "id": kilo_user_id}
 		},
 		"touched": ["album", "stations", "primaryArtist", "artists"]
 	}

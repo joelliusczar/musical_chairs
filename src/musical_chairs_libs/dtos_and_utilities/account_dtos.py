@@ -192,3 +192,11 @@ class UserHistoryActionItem:
 	userId: int
 	action: str
 	timestamp: float
+
+
+@dataclass(frozen=True)
+class OwnerInfo(IdItem):
+	username: Optional[str]=None
+	displayName: Optional[str]=None
+
+OwnerType = Union[OwnerInfo, AccountInfo]

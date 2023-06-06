@@ -49,6 +49,12 @@ export function FormSelect(props) {
 						variant="standard"
 					/>;
 				}}
+				componentsProps={{
+					popper: {
+						style: { minWidth: "fit-content" },
+						placement: "bottom-start",
+					},
+				}}
 				{...otherProps}
 			/>
 			{error && <FormHelperText error={true}>

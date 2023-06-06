@@ -1,10 +1,14 @@
 import React, { useReducer, useEffect, useMemo } from "react";
-import { Box, Typography, Button, Checkbox } from "@mui/material";
+import {
+	Box,
+	Typography,
+	Button,
+	Checkbox,
+} from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import * as Yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { FormSelect } from "../Shared/FormSelect";
 import { FormTextField } from "../Shared/FormTextField";
 import {
 	useArtistData,
@@ -37,6 +41,9 @@ import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	useCombinedContextAndFormItems,
 } from "../../Helpers/array_helpers";
+import { AlbumSelect } from "../Albums/AlbumSelect";
+import { ArtistSelect } from "../Artists/ArtistSelect";
+import { StationSelect } from "../Stations/StationSelect";
 
 
 const inputField = {
@@ -335,7 +342,7 @@ export const SongEdit = () => {
 						{ids?.length > 1 && <TouchedCheckbox
 							name="primaryArtist"
 						/>}
-						<FormSelect
+						<ArtistSelect
 							name="primaryArtist"
 							options={artists}
 							formMethods={formMethods}
@@ -351,7 +358,7 @@ export const SongEdit = () => {
 						{ids?.length > 1 && <TouchedCheckbox
 							name="artists"
 						/>}
-						<FormSelect
+						<ArtistSelect
 							name="artists"
 							options={artists}
 							formMethods={formMethods}
@@ -375,11 +382,8 @@ export const SongEdit = () => {
 						{ids?.length > 1 && <TouchedCheckbox
 							name="album"
 						/>}
-						<FormSelect
+						<AlbumSelect
 							name="album"
-							getOptionLabel={(option) => option ?
-								`${option.name}${option.albumArtist?.name ?
-									` - ${option.albumArtist?.name}` : ""}` : ""}
 							options={albums}
 							formMethods={formMethods}
 							label="Album"
@@ -404,7 +408,7 @@ export const SongEdit = () => {
 						{ids?.length > 1 && <TouchedCheckbox
 							name="stations"
 						/>}
-						<FormSelect
+						<StationSelect
 							name="stations"
 							options={stations}
 							formMethods={formMethods}

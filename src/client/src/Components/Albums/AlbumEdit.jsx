@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
-import { FormSelect } from "../Shared/FormSelect";
 import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
 import { saveAlbum } from "../../API_Calls/songInfoCalls";
@@ -14,6 +13,7 @@ import {
 import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
 import Loader from "../Shared/Loader";
 import { useCombinedContextAndFormItems } from "../../Helpers/array_helpers";
+import { ArtistSelect } from "../Artists/ArtistSelect";
 
 const inputField = {
 	margin: 2,
@@ -74,7 +74,7 @@ export const AlbumEdit = (props) => {
 			</Box>
 			<Loader status={artistCallStatus} artistError={artistError}>
 				<Box sx={inputField}>
-					<FormSelect
+					<ArtistSelect
 						name="albumArtist"
 						options={artists}
 						formMethods={formMethods}

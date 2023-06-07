@@ -75,7 +75,7 @@ export const History = () => {
 				component={Link}
 				to={`${DomRoutes.songEdit()}?ids=${item.id}`}
 			>
-				View
+				{(canEditAnySong || canEditThisSong) ? "Edit" : "View"}
 			</Button>);
 	};
 

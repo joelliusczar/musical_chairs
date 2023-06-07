@@ -55,6 +55,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from .env_manager import EnvManager
 from .template_service import TemplateService
+from .song_info_service import SongInfoService
 
 
 class StationService:
@@ -63,7 +64,8 @@ class StationService:
 		self,
 		conn: Optional[Connection]=None,
 		envManager: Optional[EnvManager]=None,
-		templateService: Optional[TemplateService]=None
+		templateService: Optional[TemplateService]=None,
+		songInfoService: Optional[SongInfoService]=None,
 	):
 		if not conn:
 			if not envManager:
@@ -71,8 +73,11 @@ class StationService:
 			conn = envManager.get_configured_db_connection()
 		if not templateService:
 			templateService = TemplateService()
+		if not songInfoService:
+			songInfoService = SongInfoService(conn)
 		self.conn = conn
 		self.template_service = templateService
+		self.song_info_service = songInfoService
 		self.__security_scope_lookup = {
 			UserRoleDef.STATION_REQUEST.value:
 				self.calc_when_user_can_next_request_song
@@ -275,9 +280,13 @@ class StationService:
 		self,
 		stationId: int,
 		page: int = 0,
-		limit: Optional[int]=None
+		limit: Optional[int]=None,
+		user: Optional[AccountInfo]=None
 	) -> Iterator[SongListDisplayItem]:
 		offset = page * limit if limit else 0
+		pathRuleTree = None
+		if user:
+			pathRuleTree = self.song_info_service.get_rule_path_tree(user)
 
 		baseQuery = select(
 			sg_pk,
@@ -291,13 +300,17 @@ class StationService:
 			.limit(limit)
 		records = self.conn.execute(query)
 		for row in records: #pyright: ignore [reportUnknownVariableType]
+			rules = []
+			if pathRuleTree:
+				rules = list(pathRuleTree.valuesFlat(cast(str, row[sg_path])))
 			yield SongListDisplayItem(
 				id=cast(int,row[sg_pk]),
 				path=cast(str, row[sg_path]),
 				name=cast(str, row[sg_name]),
 				album=cast(str, row["album"]),
 				artist=cast(str, row["artist"]),
-				queuedTimestamp=0
+				queuedTimestamp=0,
+				rules=rules
 			)
 
 	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:

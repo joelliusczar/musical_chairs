@@ -46,7 +46,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CurrentPlayingInfo,
 	get_datetime,
 	SearchNameString,
-	ActionRule,
 	StationInfo
 )
 from numpy.random import (
@@ -282,15 +281,24 @@ class QueueService:
 	def get_now_playing_and_queue(
 		self,
 		stationId: int,
+		user: Optional[AccountInfo]=None
 	) -> CurrentPlayingInfo:
-
-		queue = list(self.get_queue_for_station(stationId))
+		pathRuleTree = None
+		if user:
+			pathRuleTree = self.song_info_service.get_rule_path_tree(user)
+		queue = []
+		for song in self.get_queue_for_station(stationId):
+			if pathRuleTree:
+				song.rules = list(pathRuleTree.valuesFlat(song.path))
+			queue.append(song)
 		playing = next(self.get_history_for_station(stationId, limit=1), None)
+		if pathRuleTree and playing:
+				playing.rules = list(pathRuleTree.valuesFlat(playing.path))
 		return CurrentPlayingInfo(
 			nowPlaying=playing,
 			items=queue,
 			totalRows=self.queue_count(stationId),
-			requestRule=ActionRule("")
+			stationRules=[]
 		)
 
 	def _remove_song_from_queue(self,

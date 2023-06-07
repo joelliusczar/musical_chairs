@@ -16,8 +16,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem,
 	StationInfo,
 	TableData,
-	UserRoleDef,
-	ActionRule
+	UserRoleDef
 )
 from musical_chairs_libs.services import (
 	StationService,
@@ -76,6 +75,7 @@ def history(
 @router.get("/{ownerKey}/{stationKey}/queue/")
 def queue(
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
+	user: AccountInfo = Depends(get_current_user_simple),
 	queueService: QueueService = Depends(queue_service)
 ) -> CurrentPlayingInfo:
 	if not station:
@@ -83,15 +83,19 @@ def queue(
 			nowPlaying=None,
 			items=[],
 			totalRows=0,
-			requestRule=ActionRule("")
+			stationRules=[]
 		)
-	queue = queueService.get_now_playing_and_queue(stationId=station.id)
+	queue = queueService.get_now_playing_and_queue(
+		stationId=station.id,
+		user=user
+	)
 	return queue
 
 @router.get("/{ownerKey}/{stationKey}/catalogue/")
 def song_catalogue(
 	page: int = 0,
 	limit: int = 50,
+	user: AccountInfo = Depends(get_current_user_simple),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service)
 ) -> TableData[SongListDisplayItem]:
@@ -101,7 +105,8 @@ def song_catalogue(
 		stationService.get_station_song_catalogue(
 			stationId = station.id,
 			page = page,
-			limit = limit
+			limit = limit,
+			user=user
 		)
 	)
 	totalRows = stationService.song_catalogue_count(

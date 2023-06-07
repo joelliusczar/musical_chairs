@@ -71,7 +71,7 @@ class ScanningSongItem:
 
 @dataclass()
 class StationData(TableData[T]):
-	requestRule: ActionRule
+	stationRules: list[ActionRule]
 
 @dataclass()
 class CurrentPlayingInfo(StationData[SongListDisplayItem]):

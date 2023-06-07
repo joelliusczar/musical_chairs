@@ -15,7 +15,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ValidatedStationCreationInfo,
 	SongListDisplayItem,
 	StationInfo,
-	TableData,
+	StationTableData,
 	UserRoleDef
 )
 from musical_chairs_libs.services import (
@@ -59,24 +59,33 @@ def history(
 	limit: int = 50,
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_current_user_simple),
-	queueService: QueueService = Depends(queue_service)
-) -> TableData[SongListDisplayItem]:
+	queueService: QueueService = Depends(queue_service),
+	stationService: StationService = Depends(station_service)
+) -> StationTableData[SongListDisplayItem]:
 	if not station:
-		return TableData(totalRows=0, items=[])
+		return StationTableData(totalRows=0, items=[], stationRules=[])
 	history = list(queueService.get_history_for_station(
 			stationId=station.id,
 			page = page,
 			limit = limit,
 			user=user
 		))
+	rules = list(
+		stationService.get_station_rules(user.id, station.id)
+	)
 	totalRows = queueService.history_count(stationId=station.id)
-	return TableData(totalRows=totalRows, items=history)
+	return StationTableData(
+		totalRows=totalRows,
+		items=history,
+		stationRules=rules
+	)
 
 @router.get("/{ownerKey}/{stationKey}/queue/")
 def queue(
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_current_user_simple),
-	queueService: QueueService = Depends(queue_service)
+	queueService: QueueService = Depends(queue_service),
+	stationService: StationService = Depends(station_service)
 ) -> CurrentPlayingInfo:
 	if not station:
 		return CurrentPlayingInfo(
@@ -89,6 +98,9 @@ def queue(
 		stationId=station.id,
 		user=user
 	)
+	queue.stationRules = list(
+		stationService.get_station_rules(user.id, station.id)
+	)
 	return queue
 
 @router.get("/{ownerKey}/{stationKey}/catalogue/")
@@ -98,9 +110,9 @@ def song_catalogue(
 	user: AccountInfo = Depends(get_current_user_simple),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service)
-) -> TableData[SongListDisplayItem]:
+) -> StationTableData[SongListDisplayItem]:
 	if not station:
-		return TableData(totalRows=0, items=[])
+		return StationTableData(totalRows=0, items=[], stationRules=[])
 	songs = list(
 		stationService.get_station_song_catalogue(
 			stationId = station.id,
@@ -112,7 +124,10 @@ def song_catalogue(
 	totalRows = stationService.song_catalogue_count(
 		stationId = station.id
 	)
-	return TableData(totalRows=totalRows, items=songs)
+	rules = list(
+		stationService.get_station_rules(user.id, station.id)
+	)
+	return StationTableData(totalRows=totalRows, items=songs, stationRules=rules)
 
 @router.post("/{ownerKey}/{stationKey}/request/{songId}")
 def request_song(

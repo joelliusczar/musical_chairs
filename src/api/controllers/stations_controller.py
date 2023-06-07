@@ -218,3 +218,17 @@ def disable_stations(
 	processService: ProcessService = Depends(process_service)
 ) -> None:
 	processService.disable_stations(stationIds, user.id)
+
+@router.post("/{ownerKey}/{stationKey}/play_next",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[
+		Security(
+			get_user_with_simple_scopes,
+			scopes=[UserRoleDef.ADMIN.value]
+		)]
+)
+def play_next(
+	station: StationInfo = Depends(get_station_by_name_and_owner),
+	queueService: QueueService = Depends(queue_service)
+):
+	queueService.pop_next_queued(station.id)

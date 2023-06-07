@@ -297,7 +297,7 @@ export const SongEdit = () => {
 	);
 
 	const album = watch("album");
-	const albumAsArray = useMemo(() => [album],[album]);
+	const albumAsArray = useMemo(() => album ? [album] : [],[album]);
 	const albums = useCombinedContextAndFormItems(
 		contextAlbums,
 		albumAsArray

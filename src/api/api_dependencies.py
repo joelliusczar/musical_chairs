@@ -1,7 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 from typing import Iterator, Tuple, Optional, Iterable, Union
 from urllib import parse
-from fastapi import Depends, HTTPException, status, Cookie, Query, Request
+from fastapi import Depends, HTTPException, status, Query, Request
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
 	EnvManager,
@@ -97,10 +97,9 @@ def get_user_from_token_optional(
 		raise build_expired_error()
 
 def get_owner(
-	request: Request,
+	ownerKey: Union[int, str, None],
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> Optional[AccountInfo]:
-	ownerKey = request.path_params.get("ownerKey", None)
 	if ownerKey:
 		try:
 			ownerKey = int(ownerKey)
@@ -155,12 +154,13 @@ def get_user_from_token(
 
 
 def get_current_user_simple(
+	request: Request,
 	token: str = Depends(oauth2_scheme),
-	accountsService: AccountsService = Depends(accounts_service),
-	access_token: str = Cookie(default=None)
+	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
+	cookieToken = request.cookies.get("access_token", None)
 	user, _ = get_user_from_token(
-		token or parse.unquote(access_token or ""),
+		token or parse.unquote(cookieToken or ""),
 		accountsService
 	)
 	return user

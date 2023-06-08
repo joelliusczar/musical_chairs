@@ -33,6 +33,7 @@ class UserRoleDef(Enum):
 	SONG_EDIT = "song:edit"
 	SONG_DOWNLOAD = "song:download"
 	SONG_TREE_LIST = "songtree:list"
+	STATION_VIEW = f"{UserRoleDomain.Station.value}:view"
 	STATION_CREATE = f"{UserRoleDomain.Station.value}:create"
 	STATION_EDIT = f"{UserRoleDomain.Station.value}:edit"
 	STATION_DELETE = f"{UserRoleDomain.Station.value}:delete"

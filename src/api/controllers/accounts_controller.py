@@ -30,7 +30,7 @@ from api_dependencies import (
 	get_user_with_simple_scopes,
 	get_account_if_can_edit,
 	get_user_from_token,
-	get_user_from_token_optional
+	get_optional_user_from_token
 )
 
 
@@ -115,7 +115,7 @@ def login_with_cookie(
 def is_phrase_used(
 	username: str = "",
 	email: str = "",
-	loggedInUser: Optional[AccountInfo] = Depends(get_user_from_token_optional),
+	loggedInUser: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> dict[str, bool]:
 	return {

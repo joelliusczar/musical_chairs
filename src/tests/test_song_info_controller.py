@@ -146,21 +146,24 @@ def test_song_save(
 			"name": "papa_station",
 			"displayName": "Come to papa",
 			"owner": None,
-			"requestSecurityLevel": 0
+			"requestSecurityLevel": 0,
+			"viewSecurityLevel": 0
 		},
 		{
 			"id": 7,
 			"name": "uniform_station",
 			"displayName": "Asshole at the wheel",
 			"owner": None,
-			"requestSecurityLevel": 0
+			"requestSecurityLevel": 0,
+			"viewSecurityLevel": 0
 		},
 		{
 			"id": 10,
 			"name": "xray_station",
 			"displayName": "Pentagular",
 			"owner": None,
-			"requestSecurityLevel": 0
+			"requestSecurityLevel": 0,
+			"viewSecurityLevel": 0
 		}
 	]
 	sendData["artists"] = [
@@ -372,7 +375,8 @@ def test_get_songs_for_multi_edit(
 			"displayName": "Oscar the grouch",
 			"isRunning": False,
 			"owner": {"id": 2, "username": "testUser_bravo", "displayName": None},
-			"requestSecurityLevel": 0
+			"requestSecurityLevel": 0,
+			"viewSecurityLevel": 0
 		}
 	]
 	assert "stations" in touched

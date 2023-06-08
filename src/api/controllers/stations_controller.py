@@ -58,7 +58,7 @@ def history(
 	page: int = 0,
 	limit: int = 50,
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
-	user: AccountInfo = Depends(get_current_user_simple),
+	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
 	stationService: StationService = Depends(station_service)
 ) -> StationTableData[SongListDisplayItem]:
@@ -83,7 +83,7 @@ def history(
 @router.get("/{ownerKey}/{stationKey}/queue/")
 def queue(
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
-	user: AccountInfo = Depends(get_current_user_simple),
+	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
 	stationService: StationService = Depends(station_service)
 ) -> CurrentPlayingInfo:
@@ -107,7 +107,7 @@ def queue(
 def song_catalogue(
 	page: int = 0,
 	limit: int = 50,
-	user: AccountInfo = Depends(get_current_user_simple),
+	user: AccountInfo = Depends(get_station_user),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service)
 ) -> StationTableData[SongListDisplayItem]:

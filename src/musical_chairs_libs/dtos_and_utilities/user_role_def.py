@@ -11,13 +11,28 @@ from .type_aliases import (
 )
 from .simple_functions import role_dict
 
+class MinItemSecurityLevel(Enum):
+	#these values should align with RulePriorityLevel
+	PUBLIC = 0
+	# SITE permissions should be able to overpower ANY_USER level restrictions
+	ANY_USER = 9
+	# ANY_STATION should be able to overpower RULED_USER
+	RULED_USER = 19
+	FRIEND_USER = 29 # not used
+	# STATION_PATH should be able to overpower INVITED_USER
+	INVITED_USER = 39
+	OWENER_USER = 49
+	#only admins should be able to see these items
+	LOCKED = 59
+
 class RulePriorityLevel(Enum):
 	NONE = 0
-	SITE = 10
-	ANY_STATION = 20
-	STATION_PATH = 30
-	OWNER = 40
-	SUPER = 50
+	USER = 10
+	SITE = 20
+	FRIEND_STATION = 30
+	STATION_PATH = 40
+	OWNER = 50
+	SUPER = 60
 
 class UserRoleDomain(Enum):
 	Site = "site"

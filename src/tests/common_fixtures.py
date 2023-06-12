@@ -228,10 +228,10 @@ def datetime_monkey_patch(
 
 @pytest.fixture
 def fixture_db_queryer(
-	fixture_db_conn_in_mem: Connection
+	fixture_populated_db_conn_in_mem: Connection
 ) -> Callable[[str], None]:
 	def run_query(stmt: str):
-		res = fixture_db_conn_in_mem.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		res = fixture_populated_db_conn_in_mem.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 		print(res.fetchall())
 	return run_query
 

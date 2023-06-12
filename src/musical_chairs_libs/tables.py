@@ -214,7 +214,7 @@ uah_timestamp = cast(Column,uah.timestamp) #pyright: ignore [reportUnknownMember
 
 station_user_permissions = Table("StationUserPermissions", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=True),
+	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
 	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
 	Column("role", String),
 	Column("span", Float, nullable=False),

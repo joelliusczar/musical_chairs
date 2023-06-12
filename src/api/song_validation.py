@@ -31,10 +31,11 @@ def __get_station_id_set__(
 			stationKeys=stationKeys
 		)}
 	else:
-		return {s[0].id for s in stationService.get_stations_and_rules(
+		return {s.id for s in stationService.get_stations(
 		stationKeys=stationKeys,
-		ownerId=user.id
-	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s[1])}
+		user=user,
+		includeRules=True
+	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s.rules)}
 
 
 def get_song_ids(request: Request) -> Iterable[int]:

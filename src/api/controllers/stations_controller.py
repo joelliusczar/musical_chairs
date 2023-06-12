@@ -32,14 +32,24 @@ from api_dependencies import (
 	get_station_by_name_and_owner,
 	get_current_user_simple,
 	get_user_with_rate_limited_scope,
-	get_user_with_simple_scopes
+	get_user_with_simple_scopes,
+	get_optional_user_from_token
 )
 
 
 router = APIRouter(prefix="/stations")
 
+@router.get("/listAll")
+def list_all(
+	user: AccountInfo = Depends(get_optional_user_from_token),
+	stationService: StationService = Depends(station_service),
+):
+	stations = list(stationService.get_stations())
+	return { "items": stations }
+
 @router.get("/{ownerKey}/list")
-def index(
+def station_list(
+	user: AccountInfo = Depends(get_optional_user_from_token),
 	owner: Optional[AccountInfo] = Depends(get_owner),
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:

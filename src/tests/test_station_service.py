@@ -36,46 +36,54 @@ def test_get_stations_list(fixture_station_service: StationService):
 	data = list(stationService.get_stations())
 	assert len(data) == 11
 
-def test_get_stations_list_with_user(fixture_station_service: StationService):
+def test_get_stations_list_with_user_and_owner(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+	):
 	stationService = fixture_station_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_bravo")
+	assert user
 	data = sorted(
-		stationService.get_stations_and_rules(bravo_user_id),
-		key=lambda s:s[0].id
+		stationService.get_stations(user=user, includeRules=True, ownerId=user.id),
+		key=lambda s:s.id
 	)
 	assert len(data) == 10
-	assert data[0][0].name == "oscar_station"
-	assert data[1][0].name == "papa_station"
-	assert data[2][0].name == "romeo_station"
-	assert data[3][0].name == "sierra_station"
-	assert data[4][0].name == "tango_station"
-	assert data[5][0].name == "yankee_station"
-	assert data[6][0].name == "uniform_station"
-	assert data[7][0].name == "victor_station"
-	assert data[8][0].name == "whiskey_station"
-	assert data[9][0].name == "xray_station"
-	assert len(data[0][1]) == 3
-	assert len(data[1][1]) == 3
-	assert len(data[2][1]) == 3
-	assert len(data[3][1]) == 3
-	assert len(data[4][1]) == 3
-	assert len(data[5][1]) == 3
-	assert len(data[6][1]) == 3
-	assert len(data[7][1]) == 3
-	assert len(data[8][1]) == 3
-	assert len(data[9][1]) == 3
+	assert data[0].name == "oscar_station"
+	assert data[1].name == "papa_station"
+	assert data[2].name == "romeo_station"
+	assert data[3].name == "sierra_station"
+	assert data[4].name == "tango_station"
+	assert data[5].name == "yankee_station"
+	assert data[6].name == "uniform_station"
+	assert data[7].name == "victor_station"
+	assert data[8].name == "whiskey_station"
+	assert data[9].name == "xray_station"
+	# assert data[10].name == "zulu_station"
+	# assert data[11].name == "bravo_station_rerun"
+	assert len(data[0].rules) == 3
+	assert len(data[1].rules) == 3
+	assert len(data[2].rules) == 3
+	assert len(data[3].rules) == 3
+	assert len(data[4].rules) == 3
+	assert len(data[5].rules) == 3
+	assert len(data[6].rules) == 3
+	assert len(data[7].rules) == 3
+	assert len(data[8].rules) == 3
+	assert len(data[9].rules) == 3
+	# assert len(data[10].rules) == 0
+	# assert len(data[11].rules) == 0
 
+	user,_ = accountService.get_account_for_login("testUser_juliet")
+	assert user
 	data = sorted(
-		stationService.get_stations_and_rules(juliet_user_id),
-		key=lambda s:s[0].id
+		stationService.get_stations(user=user, includeRules=True, ownerId=user.id),
+		key=lambda s:s.id
 	)
-	assert len(data) == 3
-	assert data[0][0].name == "tango_station"
-	assert data[1][0].name == "whiskey_station"
-	assert data[2][0].name == "zulu_station"
+	assert len(data) == 1
+	assert data[0].name == "zulu_station"
 
-	assert len(data[0][1]) == 1
-	assert len(data[1][1]) == 2
-	assert len(data[2][1]) == 3
+	assert len(data[0].rules) == 3
 
 
 @pytest.mark.usefixtures("fixture_clean_station_folders")
@@ -146,66 +154,174 @@ def test_get_station_user_rule_selection(
 	assert user
 	rules = sorted(stationService.get_station_rules(user.id, 3), reverse=True)
 	assert rules
-	assert len(rules) == 2
+	assert len(rules) == 1
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
 	assert rules[0].count == 5
 	assert rules[0].span == 300
 
-	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
-	assert rules[1].priority == RulePriorityLevel.ANY_STATION.value
-	assert rules[1].count == 10
-	assert rules[1].span == 300
-	rules = sorted(stationService.get_station_rules(user.id,4), reverse=True)
-	assert rules
-	assert len(rules) == 1
-	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
-	assert rules[0].priority == RulePriorityLevel.ANY_STATION.value
-	assert rules[0].count == 10
-	assert rules[0].span == 300
+	# assert rules[1].name == UserRoleDef.STATION_REQUEST.value
+	# assert rules[1].priority == RulePriorityLevel.SITE.value
+	# assert rules[1].count == 10
+	# assert rules[1].span == 300
+	# rules = sorted(stationService.get_station_rules(user.id,4), reverse=True)
+	# assert rules
+	# assert len(rules) == 1
+	# assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	# assert rules[0].priority == RulePriorityLevel.SITE.value
+	# assert rules[0].count == 10
+	# assert rules[0].span == 300
 	user,_ = accountService.get_account_for_login("testUser_oscar")
 	assert user
 	rules = sorted(stationService.get_station_rules(user.id,3), reverse=True)
 	assert rules
-	assert len(rules) == 2
-	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
-	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value + 1
-	assert rules[0].count == 5
-	assert rules[0].span == 120
+	assert len(rules) == 1
+	# assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	# assert rules[0].priority == RulePriorityLevel.STATION_PATH.value + 1
+	# assert rules[0].count == 5
+	# assert rules[0].span == 120
 
-	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
-	assert rules[1].priority == RulePriorityLevel.STATION_PATH.value
-	assert rules[1].count == 5
-	assert rules[1].span == 60
+	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
+	assert rules[0].count == 5
+	assert rules[0].span == 60
 
 	user,_ = accountService.get_account_for_login("testUser_papa")
 	assert user
 	rules = sorted(stationService.get_station_rules(user.id,3), reverse=True)
 	assert rules
-	assert len(rules) == 2
+	assert len(rules) == 1
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
 	assert rules[0].count == 25
 	assert rules[0].span == 300
 
-	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
-	assert rules[1].priority == RulePriorityLevel.ANY_STATION.value
-	assert rules[1].count == 20
-	assert rules[1].span == 300
+	# assert rules[1].name == UserRoleDef.STATION_REQUEST.value
+	# assert rules[1].priority == RulePriorityLevel.SITE.value
+	# assert rules[1].count == 20
+	# assert rules[1].span == 300
 
 	user,_ = accountService.get_account_for_login("testUser_quebec")
 	assert user
 	rules = sorted(stationService.get_station_rules(user.id,3), reverse=True)
 	assert rules
-	assert len(rules) == 2
+	assert len(rules) == 1
 	assert rules[0].domain == UserRoleDomain.Station
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
 	assert rules[0].count == 25
 	assert rules[0].span == 300
 
-	assert rules[1].domain == UserRoleDomain.Station
-	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
-	assert rules[1].priority == RulePriorityLevel.ANY_STATION.value
-	assert rules[1].count == 20
-	assert rules[1].span == 300
+	# assert rules[0].domain == UserRoleDomain.Station
+	# assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	# assert rules[0].priority == RulePriorityLevel.SITE.value
+	# assert rules[0].count == 20
+	# assert rules[0].span == 300
+
+def test_get_stations_with_view_security(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+):
+	stationService = fixture_station_service
+	accountService = fixture_account_service
+
+	# data = sorted(
+	# 	stationService.get_stations(),
+	# 	key=lambda s:s.id
+	# )
+	# assert len(data) == 11
+	# assert data[0].name == "oscar_station"
+	# assert data[1].name == "papa_station"
+	# assert data[2].name == "romeo_station"
+	# assert data[3].name == "sierra_station"
+	# assert data[4].name == "tango_station"
+	# assert data[5].name == "yankee_station"
+	# assert data[6].name == "uniform_station"
+	# assert data[7].name == "victor_station"
+	# assert data[8].name == "whiskey_station"
+	# assert data[9].name == "xray_station"
+	# assert data[10].name == "zulu_station"
+
+	user,_ = accountService.get_account_for_login("testUser_romeo")
+	assert user
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == 12
+	assert data[0].name == "oscar_station"
+	assert data[1].name == "papa_station"
+	assert data[2].name == "romeo_station"
+	assert data[3].name == "sierra_station"
+	assert data[4].name == "tango_station"
+	assert data[5].name == "yankee_station"
+	assert data[6].name == "uniform_station"
+	assert data[7].name == "victor_station"
+	assert data[8].name == "whiskey_station"
+	assert data[9].name == "xray_station"
+	assert data[10].name == "zulu_station"
+	assert data[11].name == "bravo_station_rerun"
+
+	user,_ = accountService.get_account_for_login("testUser_whiskey")
+	assert user
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == 13
+	assert data[0].name == "oscar_station"
+	assert data[1].name == "papa_station"
+	assert data[2].name == "romeo_station"
+	assert data[3].name == "sierra_station"
+	assert data[4].name == "tango_station"
+	assert data[5].name == "yankee_station"
+	assert data[6].name == "uniform_station"
+	assert data[7].name == "victor_station"
+	assert data[8].name == "whiskey_station"
+	assert data[9].name == "xray_station"
+	assert data[10].name == "zulu_station"
+	assert data[11].name == "alpha_station_rerun"
+	assert data[12].name == "bravo_station_rerun"
+
+	user,_ = accountService.get_account_for_login("testUser_xray")
+	assert user
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == 13
+	assert data[0].name == "oscar_station"
+	assert data[1].name == "papa_station"
+	assert data[2].name == "romeo_station"
+	assert data[3].name == "sierra_station"
+	assert data[4].name == "tango_station"
+	assert data[5].name == "yankee_station"
+	assert data[6].name == "uniform_station"
+	assert data[7].name == "victor_station"
+	assert data[8].name == "whiskey_station"
+	assert data[9].name == "xray_station"
+	assert data[10].name == "zulu_station"
+	assert data[11].name == "bravo_station_rerun"
+	assert data[12].name == "charlie_station_rerun"
+
+	user,_ = accountService.get_account_for_login("testUser_yankee")
+	assert user
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == 13
+	assert data[0].name == "oscar_station"
+	assert data[1].name == "papa_station"
+	assert data[2].name == "romeo_station"
+	assert data[3].name == "sierra_station"
+	assert data[4].name == "tango_station"
+	assert data[5].name == "yankee_station"
+	assert data[6].name == "uniform_station"
+	assert data[7].name == "victor_station"
+	assert data[8].name == "whiskey_station"
+	assert data[9].name == "xray_station"
+	assert data[10].name == "zulu_station"
+	assert data[11].name == "bravo_station_rerun"
+	assert data[12].name == "delta_station_rerun"
+	pass

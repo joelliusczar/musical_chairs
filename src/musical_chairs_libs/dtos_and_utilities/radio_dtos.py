@@ -89,8 +89,11 @@ class StationInfo:
 	displayName: str=field(default="", hash=False, compare=False)
 	isRunning: bool=field(default=False, hash=False, compare=False)
 	owner: Optional[OwnerType]=field(default=None, hash=False, compare=False)
+	rules: list[ActionRule]=field(
+		default_factory=list, hash=False, compare=False
+	)
 	requestSecurityLevel: Optional[int]=field(
-		default=0, hash=False, compare=False
+		default=0, hash=False, compare=False,
 	)
 	viewSecurityLevel: Optional[int]=field(default=0, hash=False, compare=False)
 

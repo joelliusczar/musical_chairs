@@ -2,7 +2,7 @@ import sys
 from typing import (Any, Optional, Iterable, Iterator)
 from dataclasses import dataclass
 from .user_role_def import UserRoleDomain, RulePriorityLevel
-from itertools import groupby
+from itertools import groupby, chain
 from operator import attrgetter
 
 
@@ -24,6 +24,12 @@ class ActionRule:
 		s.sort(key=attrgetter("priority"), reverse=True)
 		s.sort(key=attrgetter("name"))
 		return s
+	
+	@staticmethod
+	def aggregate(*args: Iterable["ActionRule"]) -> list["ActionRule"]:
+		return ActionRule.sorted(r for r in chain(
+			*args
+		))
 
 	@property
 	def score(self) -> float:

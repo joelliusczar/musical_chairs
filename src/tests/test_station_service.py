@@ -160,26 +160,11 @@ def test_get_station_user_rule_selection(
 	assert rules[0].count == 5
 	assert rules[0].span == 300
 
-	# assert rules[1].name == UserRoleDef.STATION_REQUEST.value
-	# assert rules[1].priority == RulePriorityLevel.SITE.value
-	# assert rules[1].count == 10
-	# assert rules[1].span == 300
-	# rules = sorted(stationService.get_station_rules(user.id,4), reverse=True)
-	# assert rules
-	# assert len(rules) == 1
-	# assert rules[0].name == UserRoleDef.STATION_REQUEST.value
-	# assert rules[0].priority == RulePriorityLevel.SITE.value
-	# assert rules[0].count == 10
-	# assert rules[0].span == 300
 	user,_ = accountService.get_account_for_login("testUser_oscar")
 	assert user
 	rules = sorted(stationService.get_station_rules(user.id,3), reverse=True)
 	assert rules
 	assert len(rules) == 1
-	# assert rules[0].name == UserRoleDef.STATION_REQUEST.value
-	# assert rules[0].priority == RulePriorityLevel.STATION_PATH.value + 1
-	# assert rules[0].count == 5
-	# assert rules[0].span == 120
 
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
@@ -196,11 +181,6 @@ def test_get_station_user_rule_selection(
 	assert rules[0].count == 25
 	assert rules[0].span == 300
 
-	# assert rules[1].name == UserRoleDef.STATION_REQUEST.value
-	# assert rules[1].priority == RulePriorityLevel.SITE.value
-	# assert rules[1].count == 20
-	# assert rules[1].span == 300
-
 	user,_ = accountService.get_account_for_login("testUser_quebec")
 	assert user
 	rules = sorted(stationService.get_station_rules(user.id,3), reverse=True)
@@ -212,11 +192,7 @@ def test_get_station_user_rule_selection(
 	assert rules[0].count == 25
 	assert rules[0].span == 300
 
-	# assert rules[0].domain == UserRoleDomain.Station
-	# assert rules[0].name == UserRoleDef.STATION_REQUEST.value
-	# assert rules[0].priority == RulePriorityLevel.SITE.value
-	# assert rules[0].count == 20
-	# assert rules[0].span == 300
+
 
 def test_get_stations_with_view_security(
 	fixture_station_service: StationService,
@@ -225,22 +201,22 @@ def test_get_stations_with_view_security(
 	stationService = fixture_station_service
 	accountService = fixture_account_service
 
-	# data = sorted(
-	# 	stationService.get_stations(),
-	# 	key=lambda s:s.id
-	# )
-	# assert len(data) == 11
-	# assert data[0].name == "oscar_station"
-	# assert data[1].name == "papa_station"
-	# assert data[2].name == "romeo_station"
-	# assert data[3].name == "sierra_station"
-	# assert data[4].name == "tango_station"
-	# assert data[5].name == "yankee_station"
-	# assert data[6].name == "uniform_station"
-	# assert data[7].name == "victor_station"
-	# assert data[8].name == "whiskey_station"
-	# assert data[9].name == "xray_station"
-	# assert data[10].name == "zulu_station"
+	data = sorted(
+		stationService.get_stations(),
+		key=lambda s:s.id
+	)
+	assert len(data) == 11
+	assert data[0].name == "oscar_station"
+	assert data[1].name == "papa_station"
+	assert data[2].name == "romeo_station"
+	assert data[3].name == "sierra_station"
+	assert data[4].name == "tango_station"
+	assert data[5].name == "yankee_station"
+	assert data[6].name == "uniform_station"
+	assert data[7].name == "victor_station"
+	assert data[8].name == "whiskey_station"
+	assert data[9].name == "xray_station"
+	assert data[10].name == "zulu_station"
 
 	user,_ = accountService.get_account_for_login("testUser_romeo")
 	assert user

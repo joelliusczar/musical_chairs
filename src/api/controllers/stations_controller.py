@@ -16,7 +16,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem,
 	StationInfo,
 	StationTableData,
-	UserRoleDef
+	UserRoleDef,
+	ActionRule
 )
 from musical_chairs_libs.services import (
 	StationService,
@@ -80,8 +81,9 @@ def history(
 			limit = limit,
 			user=user
 		))
-	rules = list(
-		stationService.get_station_rules(user.id, station.id)
+	rules =  ActionRule.aggregate(
+		user.roles if user else (),
+		stationService.get_station_rules(user.id, station.id) if user else ()
 	)
 	totalRows = queueService.history_count(stationId=station.id)
 	return StationTableData(
@@ -108,8 +110,9 @@ def queue(
 		stationId=station.id,
 		user=user
 	)
-	queue.stationRules = list(
-		stationService.get_station_rules(user.id, station.id)
+	queue.stationRules = ActionRule.aggregate(
+		user.roles if user else (),
+		stationService.get_station_rules(user.id, station.id) if user else ()
 	)
 	return queue
 
@@ -134,8 +137,9 @@ def song_catalogue(
 	totalRows = stationService.song_catalogue_count(
 		stationId = station.id
 	)
-	rules = list(
-		stationService.get_station_rules(user.id, station.id)
+	rules = ActionRule.aggregate(
+		user.roles if user else (),
+		stationService.get_station_rules(user.id, station.id) if user else ()
 	)
 	return StationTableData(totalRows=totalRows, items=songs, stationRules=rules)
 

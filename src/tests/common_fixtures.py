@@ -30,7 +30,6 @@ from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user,\
 	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
 )
-from itertools import chain
 from dataclasses import asdict
 
 @pytest.fixture
@@ -183,11 +182,11 @@ def fixture_path_user_factory(
 		accountService = fixture_account_service
 		user,_ = accountService.get_account_for_login(username)
 		assert user
-		rules = ActionRule.sorted(r for r in chain(
+		rules = ActionRule.aggregate(
 			user.roles,
 			(p for p in songInfoService.get_paths_user_can_see(user.id)),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirRoot)))
-		))
+		)
 		userDict = asdict(user)
 		userDict["roles"] = rules
 		resultUser = AccountInfo(

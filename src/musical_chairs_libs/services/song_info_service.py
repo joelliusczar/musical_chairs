@@ -341,11 +341,11 @@ class SongInfoService:
 		self,
 		user: AccountInfo
 	) -> ChainedAbsorbentTrie[ActionRule]:
-		rules = ActionRule.sorted(r for r in chain(
+		rules = ActionRule.aggregate(
 			user.roles,
 			(p for p in self.get_paths_user_can_see(user.id)),
 			(p for p in get_path_owner_roles(user.dirRoot))
-		))
+		)
 
 		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
 			(p.path, p) for p in rules if isinstance(p, PathsActionRule) and p.path

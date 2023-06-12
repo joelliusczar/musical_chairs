@@ -1339,6 +1339,22 @@ def get_user_role_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
+		{
+			"userFk": oscar_user_id,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":120,
+			"count":5,
+			"priority": RulePriorityLevel.STATION_PATH.value + 1,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": papa_user_id,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":300,
+			"count":20,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
 	]
 
 def get_station_permission_params(
@@ -1355,26 +1371,6 @@ def get_station_permission_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
-		# {
-		# 	"pk":2,
-		# 	"userFk": lima_user_id,
-		# 	"stationFk": None,
-		# 	"role": UserRoleDef.STATION_REQUEST.value,
-		# 	"span":0,
-		# 	"count":0,
-		# 	"priority": None,
-		# 	"creationTimestamp": orderedTestDates[0].timestamp()
-		# },
-		# {
-		# 	"pk":3,
-		# 	"userFk": mike_user_id,
-		# 	"stationFk": None,
-		# 	"role": UserRoleDef.STATION_REQUEST.value,
-		# 	"span":0,
-		# 	"count":0,
-		# 	"priority": None,
-		# 	"creationTimestamp": orderedTestDates[0].timestamp()
-		# },
 		{
 			"pk":4,
 			"userFk": mike_user_id,
@@ -1385,16 +1381,6 @@ def get_station_permission_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
-		# {
-		# 	"pk":5,
-		# 	"userFk": november_user_id,
-		# 	"stationFk": None,
-		# 	"role": UserRoleDef.STATION_REQUEST.value,
-		# 	"span":300,
-		# 	"count":10,
-		# 	"priority": None,
-		# 	"creationTimestamp": orderedTestDates[0].timestamp()
-		# },
 		{
 			"pk":6,
 			"userFk": november_user_id,
@@ -1405,16 +1391,6 @@ def get_station_permission_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
-		# {
-		# 	"pk":7,
-		# 	"userFk": oscar_user_id,
-		# 	"stationFk": None,
-		# 	"role": UserRoleDef.STATION_REQUEST.value,
-		# 	"span":120,
-		# 	"count":5,
-		# 	"priority": RulePriorityLevel.STATION_PATH.value + 1,
-		# 	"creationTimestamp": orderedTestDates[0].timestamp()
-		# },
 		{
 			"pk":8,
 			"userFk": oscar_user_id,
@@ -1425,16 +1401,6 @@ def get_station_permission_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
-		# {
-		# 	"pk":9,
-		# 	"userFk": papa_user_id,
-		# 	"stationFk": None,
-		# 	"role": UserRoleDef.STATION_REQUEST.value,
-		# 	"span":300,
-		# 	"count":20,
-		# 	"priority": None,
-		# 	"creationTimestamp": orderedTestDates[0].timestamp()
-		# },
 		{
 			"pk":10,
 			"userFk": papa_user_id,
@@ -1445,16 +1411,6 @@ def get_station_permission_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
-		# {
-		# 	"pk":11,
-		# 	"userFk": quebec_user_id,
-		# 	"stationFk": None,
-		# 	"role": UserRoleDef.STATION_REQUEST.value,
-		# 	"span":300,
-		# 	"count":20,
-		# 	"priority": None,
-		# 	"creationTimestamp": orderedTestDates[0].timestamp()
-		# },
 		{
 			"pk":12,
 			"userFk": quebec_user_id,

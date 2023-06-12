@@ -13,7 +13,11 @@ from .common_fixtures import (
 	datetime_monkey_patch as datetime_monkey_patch
 )
 from .constant_fixtures_for_test import mock_ordered_date_list
-
+from musical_chairs_libs.dtos_and_utilities import (
+	UserRoleDef,
+	RulePriorityLevel,
+	UserRoleDomain
+)
 
 
 
@@ -238,3 +242,124 @@ def test_request_song_timeout(
 	)
 	assert response.status_code == 429
 
+def test_get_station_user_rule_selection(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_november", client)
+
+	response = client.get(
+		"stations/2/romeo_station/catalogue",
+		headers=headers
+	)
+
+	data = json.loads(response.content)
+	assert response.status_code == 200
+
+	assert len(data["stationRules"]) == 2
+
+	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationRules"][0]["priority"] \
+		== RulePriorityLevel.STATION_PATH.value
+	assert data["stationRules"][0]["domain"] == UserRoleDomain.Station.value
+	assert data["stationRules"][0]["count"] == 5
+	assert data["stationRules"][0]["span"] == 300
+
+	assert data["stationRules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationRules"][1]["priority"] == RulePriorityLevel.SITE.value
+	assert data["stationRules"][1]["domain"] == UserRoleDomain.Site.value
+	assert data["stationRules"][1]["count"] == 10
+	assert data["stationRules"][1]["span"] == 300
+
+	response = client.get(
+		"stations/2/4/catalogue",
+		headers=headers
+	)
+
+	data = json.loads(response.content)
+	assert response.status_code == 200
+
+	assert data["stationRules"]
+	assert len(data["stationRules"]) == 1
+	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationRules"][0]["priority"] == RulePriorityLevel.SITE.value
+	assert data["stationRules"][0]["domain"] == UserRoleDomain.Site.value
+	assert data["stationRules"][0]["count"] == 10
+	assert data["stationRules"][0]["span"] == 300
+
+	headers = login_test_user("testUser_oscar", client)
+
+	response = client.get(
+		"stations/2/3/catalogue",
+		headers=headers
+	)
+
+	data = json.loads(response.content)
+	assert response.status_code == 200
+
+	assert data["stationRules"]
+	assert len(data["stationRules"]) == 2
+	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationRules"][0]["priority"] \
+		== RulePriorityLevel.STATION_PATH.value + 1
+	assert data["stationRules"][0]["domain"] == UserRoleDomain.Site.value
+	assert data["stationRules"][0]["count"] == 5
+	assert data["stationRules"][0]["span"] == 120
+
+	assert data["stationRules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationRules"][1]["priority"] \
+		== RulePriorityLevel.STATION_PATH.value
+	assert data["stationRules"][1]["domain"] == UserRoleDomain.Station.value
+	assert data["stationRules"][1]["count"] == 5
+	assert data["stationRules"][1]["span"] == 60
+
+	headers = login_test_user("testUser_papa", client)
+
+	response = client.get(
+		"stations/2/3/catalogue",
+		headers=headers
+	)
+
+	data = json.loads(response.content)
+	assert response.status_code == 200
+
+	assert data["stationRules"]
+	assert len(data["stationRules"]) == 2
+	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationRules"][0]["priority"] \
+		== RulePriorityLevel.STATION_PATH.value
+	assert data["stationRules"][0]["domain"] == UserRoleDomain.Station.value
+	assert data["stationRules"][0]["count"] == 25
+	assert data["stationRules"][0]["span"] == 300
+
+	assert data["stationRules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationRules"][1]["priority"] == RulePriorityLevel.SITE.value
+	assert data["stationRules"][1]["domain"] == UserRoleDomain.Site.value
+	assert data["stationRules"][1]["count"] == 20
+	assert data["stationRules"][1]["span"] == 300
+
+	headers = login_test_user("testUser_quebec", client)
+
+	response = client.get(
+		"stations/2/3/catalogue",
+		headers=headers
+	)
+
+	data = json.loads(response.content)
+	assert response.status_code == 200
+
+	assert data["stationRules"]
+	assert len(data["stationRules"]) == 2
+	assert data["stationRules"][0]["domain"] == UserRoleDomain.Station.value
+	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationRules"][0]["priority"] \
+		== RulePriorityLevel.STATION_PATH.value
+	assert data["stationRules"][0]["domain"] == UserRoleDomain.Station.value
+	assert data["stationRules"][0]["count"] == 25
+	assert data["stationRules"][0]["span"] == 300
+
+	assert data["stationRules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationRules"][1]["priority"] == RulePriorityLevel.SITE.value
+	assert data["stationRules"][1]["domain"] == UserRoleDomain.Site.value
+	assert data["stationRules"][1]["count"] == 15
+	assert data["stationRules"][1]["span"] == 300

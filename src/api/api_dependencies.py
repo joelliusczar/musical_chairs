@@ -36,7 +36,7 @@ from api_error import (
 	build_wrong_permissions_error,
 	build_too_many_requests_error
 )
-from itertools import chain, groupby
+from itertools import groupby
 
 oauth2_scheme = OAuth2PasswordBearer(
 	tokenUrl="accounts/open",
@@ -271,11 +271,11 @@ def get_path_user(
 		return user
 	if not scopes:
 		raise build_wrong_permissions_error()
-	rules = ActionRule.sorted(r for r in chain(
+	rules = ActionRule.aggregate(
 		user.roles,
 		(p for p in songInfoService.get_paths_user_can_see(user.id)),
 		(p for p in get_path_owner_roles(normalize_opening_slash(user.dirRoot)))
-	))
+	)
 	roleNameSet = {r.name for r in rules}
 	if any(s for s in scopes if s not in roleNameSet):
 		raise build_wrong_permissions_error()
@@ -389,7 +389,7 @@ def get_station_user(
 		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
 	)
 	if not station.viewSecurityLevel and minScope:
-		return None
+		return user
 	if not user:
 		raise build_not_logged_in_error()
 	if user.isAdmin:
@@ -397,10 +397,10 @@ def get_station_user(
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Station.conforms(s)
 	]
-	sortedRules = ActionRule.sorted(chain(
-			user.roles,
-			stationService.get_station_rules(user.id, station.id, scopes)
-	))
+	sortedRules = ActionRule.aggregate(
+		user.roles,
+		stationService.get_station_rules(user.id, station.id, scopes)
+	)
 	stationFiltered = sortedRules
 	for pair in [
 		(UserRoleDef.STATION_REQUEST, "requestSecurityLevel"),

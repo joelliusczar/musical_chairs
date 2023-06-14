@@ -25,12 +25,13 @@ import {
 import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
-import { StationRouteSelect } from "../Shared/StationRouteSelect";
+import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 
 export const SongCatalogue = () => {
@@ -39,11 +40,17 @@ export const SongCatalogue = () => {
 		useReducer(waitingReducer(), pageableDataInitialState);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
+	const [selectedStation, setSelectedStation] = useState();
 	const location = useLocation();
 	const pathVars = useParams();
 	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
+	const canRequestSongsForStation = anyConformsToAnyRule(
+		catalogueState?.data?.stationRules,
+		[UserRoleDef.STATION_REQUEST]
+	);
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
-	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
+
 
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
@@ -63,17 +70,28 @@ export const SongCatalogue = () => {
 	const rowButton = (item, idx) => {
 		const rowButtonOptions = [];
 
-		if(canRequestSongs) rowButtonOptions.push({
+
+		if(canRequestSongs || canRequestSongsForStation) rowButtonOptions.push({
 			label: "Request",
 			onClick:() => requestSong(item.id),
 		});
 
-		if (canEditSongs) rowButtonOptions.push({
+		const canEditThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_EDIT]
+		);
+
+		if (canEditSongs || canEditThisSong) rowButtonOptions.push({
 			label: "Edit",
 			link: `${DomRoutes.songEdit()}?id=${item.id}`,
 		});
 
-		if (canDownloadSongs) rowButtonOptions.push({
+		const canDownloadThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_DOWNLOAD]
+		);
+
+		if (canDownloadSongs || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
 			href: getDownloadAddress(item.id),
 		});
@@ -87,15 +105,15 @@ export const SongCatalogue = () => {
 				component={Link}
 				to={`${DomRoutes.songEdit()}?id=${item.id}`}
 			>
-				View
+				{(canEditSongs || canEditThisSong) ? "Edit" : "View"}
 			</Button>);
 	};
 
 	useEffect(() => {
-		const stationTitle = `- ${pathVars.stationKey || ""}`;
+		const stationTitle = `- ${selectedStation?.displayName || ""}`;
 		document.title =
 			`Musical Chairs - Song Catalogue${stationTitle}`;
-	},[pathVars.stationKey]);
+	},[selectedStation]);
 
 	useEffect(() => {
 		const fetch = async () => {
@@ -135,9 +153,12 @@ export const SongCatalogue = () => {
 
 	return (
 		<>
-			<h1>Song Catalogue: {pathVars.stationKey}</h1>
+			<h1>Song Catalogue: {selectedStation?.displayName || ""}</h1>
 			<Box m={1}>
-				<StationRouteSelect getPageUrl={getPageUrl} />
+				<StationRouteSelect
+					getPageUrl={getPageUrl}
+					onChange={(s) => setSelectedStation(s)}
+				/>
 			</Box>
 			<Box m={1}>
 				<Loader

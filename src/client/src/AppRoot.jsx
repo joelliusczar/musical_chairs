@@ -37,10 +37,6 @@ function AppTrunk() {
 	const [menuAnchor, setMenuAnchor ] = useState(null);
 	const currentUser = useCurrentUser();
 
-	const openUserMenu = (e) => {
-		setMenuAnchor(e.currentTarget);
-	};
-
 	return (
 		<Box sx={{ display: "flex" }}>
 			<AppBar
@@ -57,14 +53,9 @@ function AppTrunk() {
 						Login
 					</Button> :
 						<>
-							<Button
-								color="inherit"
-								onClick={openUserMenu}
-							>
-								{currentUser.username}
-							</Button>
 							<UserMenu
 								anchorEl={menuAnchor}
+								btnLabel={currentUser.username}
 								closeMenu={() => setMenuAnchor(null)}
 							/>
 						</>

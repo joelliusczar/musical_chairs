@@ -1,19 +1,19 @@
 export const userKeyMatch = (key, owner) => {
-	if( typeof key === "number") {
-		return key === owner?.id;
+	if (key === owner?.id?.toString()) {
+		return true;
 	}
-	else if (typeof key === "string") {
-		return key === owner?.username;
+	if (key === owner?.username) {
+		return true;
 	}
 	return false;
 };
 
-export const keyMatch = (key, owner) => {
-	if( typeof key === "number") {
-		return key === owner?.id;
+export const keyMatch = (key, object) => {
+	if (key === object?.id?.toString()) {
+		return true;
 	}
-	else if (typeof key === "string") {
-		return key === owner?.name;
+	if (key === object?.name) {
+		return true;
 	}
 	return false;
 };

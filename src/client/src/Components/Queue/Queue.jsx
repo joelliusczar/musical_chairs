@@ -21,7 +21,7 @@ import {
 } from "../Shared/waitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
-import { StationRouteSelect } from "../Shared/StationRouteSelect";
+import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { NowPlaying } from "../Shared/NowPlaying";
 import { useSnackbar } from "notistack";
@@ -53,6 +53,7 @@ export const Queue = () => {
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
+	const [selectedStation, setSelectedStation] = useState();
 
 	const [queueState, queueDispatch] =
 		useReducer(waitingReducer(),
@@ -114,9 +115,9 @@ export const Queue = () => {
 	};
 
 	useEffect(() => {
-		const stationTitle = `- ${pathVars.stationKey || ""}`;
+		const stationTitle = `- ${selectedStation?.displayName || ""}`;
 		document.title = `Musical Chairs - Queue${stationTitle}`;
-	},[pathVars.stationKey]);
+	},[selectedStation]);
 
 
 	useEffect(() => {
@@ -156,9 +157,12 @@ export const Queue = () => {
 
 	return (
 		<>
-			<h1>Queue: {pathVars.stationKey}</h1>
+			<h1>Queue: {selectedStation?.displayName || ""}</h1>
 			<Box m={1}>
-				<StationRouteSelect getPageUrl={getPageUrl} />
+				<StationRouteSelect
+					getPageUrl={getPageUrl}
+					onChange={(s) => setSelectedStation(s)}
+				/>
 			</Box>
 			<Box m={1}>
 				<Loader

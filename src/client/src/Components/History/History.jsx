@@ -19,7 +19,7 @@ import {
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
-import { StationRouteSelect } from "../Shared/StationRouteSelect";
+import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { formatError } from "../../Helpers/error_formatter";
@@ -34,10 +34,11 @@ export const History = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
-	const canEditAnySong = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
+	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
+	const [selectedStation, setSelectedStation] = useState();
 
 	const [historyState, historyDispatch] =
 		useReducer(waitingReducer(), pageableDataInitialState);
@@ -56,7 +57,7 @@ export const History = () => {
 			item?.rules,
 			[UserRoleDef.PATH_DOWNLOAD]
 		);
-		if (canEditAnySong || canEditThisSong) rowButtonOptions.push({
+		if (canEditSongs || canEditThisSong) rowButtonOptions.push({
 			label: "Edit",
 			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
 		});
@@ -75,15 +76,15 @@ export const History = () => {
 				component={Link}
 				to={`${DomRoutes.songEdit()}?ids=${item.id}`}
 			>
-				{(canEditAnySong || canEditThisSong) ? "Edit" : "View"}
+				{(canEditSongs || canEditThisSong) ? "Edit" : "View"}
 			</Button>);
 	};
 
 	useEffect(() => {
-		const stationTitle = `- ${pathVars.stationKey || ""}`;
+		const stationTitle = `- ${selectedStation?.displayName || ""}`;
 		document.title =
 			`Musical Chairs - History${stationTitle}`;
-	},[pathVars.stationKey]);
+	},[selectedStation]);
 
 	useEffect(() => {
 		const fetch = async () => {
@@ -123,9 +124,12 @@ export const History = () => {
 
 	return (
 		<>
-			<h1>History: {pathVars.stationKey}</h1>
+			<h1>History: {selectedStation?.displayName || ""}</h1>
 			<Box m={1}>
-				<StationRouteSelect getPageUrl={getPageUrl} />
+				<StationRouteSelect
+					getPageUrl={getPageUrl}
+					onChange={(s) => setSelectedStation(s)}
+				/>
 			</Box>
 			<Box m={1}>
 				<Loader

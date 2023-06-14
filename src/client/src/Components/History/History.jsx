@@ -19,7 +19,7 @@ import {
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
-import { StationSelect } from "../Shared/StationSelect";
+import { StationRouteSelect } from "../Shared/StationRouteSelect";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { formatError } from "../../Helpers/error_formatter";
@@ -125,7 +125,7 @@ export const History = () => {
 		<>
 			<h1>History: {pathVars.stationKey}</h1>
 			<Box m={1}>
-				<StationSelect getPageUrl={getPageUrl} />
+				<StationRouteSelect getPageUrl={getPageUrl} />
 			</Box>
 			<Box m={1}>
 				<Loader

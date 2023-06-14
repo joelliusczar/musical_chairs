@@ -2,8 +2,12 @@ import webClient from "./api";
 import { buildArrayQueryStrFromObj } from "../Helpers/url_helpers";
 
 
-export const fetchStations = async ({ ownerKey }) => {
-	const response = await webClient.get(`stations/${ownerKey}/list`);
+export const fetchStations = async (params) => {
+	const response = await webClient.get("stations/list", {
+		params: {
+			ownerKey: params?.ownerKey || undefined,
+		},
+	});
 	return response.data;
 };
 

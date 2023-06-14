@@ -107,11 +107,10 @@ export const AppContextProvider = (props) => {
 	},[albumsDispatch, username]);
 
 	useEffect(() => {
-		if (!username) return;
 		const fetch = async () => {
 			try {
 				stationsDispatch(dispatches.started());
-				const data = await fetchStations({ ownerKey: username });
+				const data = await fetchStations();
 				stationsDispatch(dispatches.done(data));
 			}
 			catch(err) {

@@ -40,28 +40,16 @@ from api_dependencies import (
 
 router = APIRouter(prefix="/stations")
 
-@router.get("/listAll")
-def list_all(
-	user: AccountInfo = Depends(get_optional_user_from_token),
-	stationService: StationService = Depends(station_service),
-):
-	stations = list(stationService.get_stations())
-	return { "items": stations }
-
-@router.get("/{ownerKey}/list")
+@router.get("/list")
 def station_list(
 	user: AccountInfo = Depends(get_optional_user_from_token),
 	owner: Optional[AccountInfo] = Depends(get_owner),
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:
-	if not owner:
-		raise HTTPException(
-			status_code = status.HTTP_404_NOT_FOUND,
-			detail = f"Station list not found"
-		)
 	stations = list(stationService.get_stations(None,
-		ownerId=owner.id)
-	)
+		ownerId=owner.id if owner else None,
+		user=user
+	))
 	return { "items": stations }
 
 @router.get("/{ownerKey}/{stationKey}/history/")

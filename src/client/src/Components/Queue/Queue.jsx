@@ -21,7 +21,7 @@ import {
 } from "../Shared/waitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
-import { StationSelect } from "../Shared/StationSelect";
+import { StationRouteSelect } from "../Shared/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { NowPlaying } from "../Shared/NowPlaying";
 import { useSnackbar } from "notistack";
@@ -158,7 +158,7 @@ export const Queue = () => {
 		<>
 			<h1>Queue: {pathVars.stationKey}</h1>
 			<Box m={1}>
-				<StationSelect getPageUrl={getPageUrl} />
+				<StationRouteSelect getPageUrl={getPageUrl} />
 			</Box>
 			<Box m={1}>
 				<Loader

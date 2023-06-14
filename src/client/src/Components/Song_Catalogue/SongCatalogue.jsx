@@ -25,7 +25,7 @@ import {
 import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
-import { StationSelect } from "../Shared/StationSelect";
+import { StationRouteSelect } from "../Shared/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
@@ -137,7 +137,7 @@ export const SongCatalogue = () => {
 		<>
 			<h1>Song Catalogue: {pathVars.stationKey}</h1>
 			<Box m={1}>
-				<StationSelect getPageUrl={getPageUrl} />
+				<StationRouteSelect getPageUrl={getPageUrl} />
 			</Box>
 			<Box m={1}>
 				<Loader

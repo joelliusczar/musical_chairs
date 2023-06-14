@@ -59,6 +59,11 @@ export function NavMenu() {
 			</ListItem>}
 			<ListItem
 				component={NavLink}
+				to={DomRoutes.stations()}>
+				All Stations
+			</ListItem>
+			<ListItem
+				component={NavLink}
 				to={DomRoutes.songTree()}>
 				Song Directory
 			</ListItem>
@@ -95,7 +100,7 @@ export function AppRoutes() {
 			</Route>
 			<Route
 				path={`${DomRoutes.stations({
-					ownerKey: ":ownerKey",
+					ownerKey: ":ownerKey?",
 				})}`}
 			>
 				<Stations />

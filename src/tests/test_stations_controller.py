@@ -290,7 +290,7 @@ def test_get_station_user_rule_selection(
 	headers = login_test_user("testUser_oscar", client)
 
 	response = client.get(
-		"stations/2/3/catalogue",
+		"stations/testUser_bravo/3/catalogue",
 		headers=headers
 	)
 
@@ -341,7 +341,7 @@ def test_get_station_user_rule_selection(
 	headers = login_test_user("testUser_quebec", client)
 
 	response = client.get(
-		"stations/2/3/catalogue",
+		"stations/testUser_bravo/romeo_station/catalogue",
 		headers=headers
 	)
 

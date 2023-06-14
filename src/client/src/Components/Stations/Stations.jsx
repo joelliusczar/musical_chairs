@@ -28,6 +28,7 @@ import {
 } from "../Shared/waitingReducer";
 import { CallStatus } from "../../constants";
 import { YesNoControl } from "../Shared/YesNoControl";
+import { userKeyMatch } from "../../Helpers/compare_helpers";
 
 
 const useStyles = makeStyles(() => ({
@@ -40,7 +41,7 @@ const useStyles = makeStyles(() => ({
 export const Stations = () => {
 
 	const {
-		items: stations,
+		items: contextStations,
 		callStatus: stationCallStatus,
 		error: stationError,
 		update: updateStation,
@@ -118,6 +119,10 @@ export const Stations = () => {
 		setWaitConfirm(name);
 	};
 
+	const stations = contextStations && pathVars.ownerKey ?
+		contextStations.filter(s => userKeyMatch(pathVars.ownerKey,s.owner)) :
+		contextStations;
+
 	useEffect(() => {
 		document.title = "Musical Chairs - Stations";
 	},[location]);
@@ -194,7 +199,7 @@ export const Stations = () => {
 										component={Link}
 										to={DomRoutes.stationsEdit({
 											stationKey: s.name,
-											ownerKey: pathVars.ownerKey,
+											ownerKey: s.owner?.username,
 										})}
 									>
 										Edit
@@ -208,7 +213,7 @@ export const Stations = () => {
 										className={classes.buttons}
 										to={`${DomRoutes.songCatalogue({
 											stationKey: s.name,
-											ownerKey: pathVars.ownerKey,
+											ownerKey: s.owner?.username,
 										})}`}
 									>
 											Song Catalogue
@@ -222,7 +227,7 @@ export const Stations = () => {
 										className={classes.buttons}
 										to={`${DomRoutes.history({
 											stationKey: s.name,
-											ownerKey: pathVars.ownerKey,
+											ownerKey: s.owner?.username,
 										})}`}
 									>
 											Song History
@@ -237,7 +242,7 @@ export const Stations = () => {
 										to={`${DomRoutes.queue(
 											{
 												stationKey: s.name,
-												ownerKey: pathVars.ownerKey,
+												ownerKey: s.owner?.username,
 											}
 										)}`}
 									>

@@ -11,3 +11,13 @@ code {
 	font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
 		monospace;
 }
+
+
+.station-menu.MuiGrid-item{
+	flex-basis: min-content;
+	padding-right: 10px;
+}
+
+.station-menu.MuiGrid-container {
+	justify-content: space-between;
+}

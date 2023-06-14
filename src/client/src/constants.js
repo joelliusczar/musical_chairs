@@ -19,7 +19,7 @@ export const DomRoutes = {
 		`/stations/queue/${ownerKey}/${stationKey ? `${stationKey}/` : ""}`,
 	history: ({ stationKey, ownerKey }) =>
 		`/stations/history/${ownerKey}/${stationKey ? `${stationKey}/` : ""}`,
-	stations: ({ ownerKey }) => `/stations/${ownerKey}/list/`,
+	stations: (params) => `/stations/list/${params?.ownerKey || ""}`,
 	stationsEdit: ({ stationKey, ownerKey }) =>
 		`/stations/edit/${ownerKey}/${stationKey}`,
 	stationsAdd: () => "/stations/edit/",

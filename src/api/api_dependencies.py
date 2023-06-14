@@ -102,7 +102,7 @@ def get_optional_user_from_token(
 		return None
 
 def get_owner(
-	ownerKey: Union[int, str, None],
+	ownerKey: Union[int, str, None] = Query(None),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> Optional[AccountInfo]:
 	if ownerKey:
@@ -134,7 +134,7 @@ def get_station_by_name_and_owner(
 		)
 	#owner id is okay to be null if stationKey is an int
 	ownerId = owner.id if owner else None
-	station = next(stationService.get_stations(stationKey, ownerId), None)
+	station = next(stationService.get_stations(stationKey, ownerId=ownerId), None)
 	if not station:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -462,3 +462,4 @@ def get_account_if_can_edit(
 			detail=[build_error_obj("Account not found")],
 		)
 	return prev
+

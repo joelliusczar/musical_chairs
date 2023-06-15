@@ -125,7 +125,8 @@ def get_owner(
 def get_station_by_name_and_owner(
 	stationKey: Union[int, str],
 	owner: Optional[AccountInfo] = Depends(get_owner),
-	stationService: StationService = Depends(station_service)
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
 	if type(stationKey) == str and not owner:
 		raise HTTPException(
@@ -135,7 +136,11 @@ def get_station_by_name_and_owner(
 		)
 	#owner id is okay to be null if stationKey is an int
 	ownerId = owner.id if owner else None
-	station = next(stationService.get_stations(stationKey, ownerId=ownerId), None)
+	station = next(stationService.get_stations(
+		stationKey,
+		ownerId=ownerId,
+		user=user
+	),None)
 	if not station:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,

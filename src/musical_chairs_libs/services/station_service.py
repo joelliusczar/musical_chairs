@@ -12,7 +12,7 @@ from typing import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.engine import Connection
-from sqlalchemy.sql.expression import Select, CTE
+from sqlalchemy.sql.expression import Select, CTE, case
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
 from sqlalchemy import (
@@ -218,8 +218,9 @@ class StationService:
 				cast(str,row[u_username]),
 				cast(str,row[u_displayName])
 			),
-			requestSecurityLevel=cast(int,row[st_requestSecurityLevel]),
-			viewSecurityLevel=cast(int,row[st_viewSecurityLevel]),
+			requestSecurityLevel=cast(int,row["requestSecurityLevel"]),
+			viewSecurityLevel=cast(int,row[st_viewSecurityLevel]) \
+				or MinItemSecurityLevel.PUBLIC.value,
 		)
 
 	def __row_to_action_rule__(self, row: Row) -> ActionRule:
@@ -273,7 +274,14 @@ class StationService:
 			st_ownerFk,
 			u_username,
 			u_displayName,
-			st_requestSecurityLevel,
+			coalesce(
+				st_requestSecurityLevel,
+				case(
+					(st_viewSecurityLevel == MinItemSecurityLevel.PUBLIC.value, None),
+					else_=st_viewSecurityLevel
+				),
+				MinItemSecurityLevel.ANY_USER.value
+			).label("requestSecurityLevel"), #pyright: ignore [reportUnknownMemberType]
 			st_viewSecurityLevel
 		).select_from(stations_tbl)\
 		.join(user_tbl, st_ownerFk == u_pk, isouter=True)

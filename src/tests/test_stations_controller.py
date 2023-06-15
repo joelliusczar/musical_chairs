@@ -419,3 +419,164 @@ def test_post_with_invalid_security_levels(
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
+
+def test_get_station_for_edit_with_view_security(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+
+	response = client.get(
+		"stations/testUser_bravo/romeo_station",
+	)
+
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["id"] == 3
+	assert data["name"] == "romeo_station"
+	assert data["owner"]["username"] == "testUser_bravo"
+	assert data["requestSecurityLevel"] == MinItemSecurityLevel.ANY_USER.value
+	assert data["viewSecurityLevel"] == MinItemSecurityLevel.PUBLIC.value
+	assert data["rules"] == []
+
+	response = client.get(
+		"stations/testUser_victor/bravo_station_rerun",
+	)
+
+	assert response.status_code == 404
+
+	headers = login_test_user("testUser_romeo", client)
+
+	response = client.get(
+		"stations/testUser_bravo/romeo_station",
+		headers=headers,
+	)
+
+	assert response.status_code == 200
+
+	response = client.get(
+		"stations/testUser_victor/bravo_station_rerun",
+		headers=headers,
+	)
+
+	data = json.loads(response.content)
+	assert response.status_code == 200
+
+	assert data["id"] == 13
+	assert data["name"] == "bravo_station_rerun"
+	assert data["owner"]["username"] == "testUser_victor"
+	assert data["requestSecurityLevel"] == MinItemSecurityLevel.ANY_USER.value
+	assert data["viewSecurityLevel"] == MinItemSecurityLevel.ANY_USER.value
+	assert data["rules"] == []
+
+	response = client.get(
+		"stations/testUser_victor/alpha_station_rerun",
+		headers=headers,
+	)
+
+	assert response.status_code == 404
+
+	headers = login_test_user("testUser_whiskey", client)
+
+	response = client.get(
+		"stations/testUser_bravo/romeo_station",
+		headers=headers,
+	)
+	assert response.status_code == 200
+
+	response = client.get(
+		"stations/testUser_victor/bravo_station_rerun",
+		headers=headers,
+	)
+	assert response.status_code == 200
+
+	response = client.get(
+		"stations/testUser_victor/alpha_station_rerun",
+		headers=headers,
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["id"] == 12
+	assert data["name"] == "alpha_station_rerun"
+	assert data["owner"]["username"] == "testUser_victor"
+	assert data["requestSecurityLevel"] == MinItemSecurityLevel.RULED_USER.value
+	assert data["viewSecurityLevel"] == MinItemSecurityLevel.RULED_USER.value
+	assert data["rules"] == []
+
+	headers = login_test_user("testUser_xray", client)
+
+	response = client.get(
+		"stations/testUser_bravo/romeo_station",
+		headers=headers,
+	)
+	assert response.status_code == 200
+
+	response = client.get(
+		"stations/testUser_victor/bravo_station_rerun",
+		headers=headers,
+	)
+	assert response.status_code == 200
+
+	response = client.get(
+		"stations/testUser_victor/alpha_station_rerun",
+		headers=headers,
+	)
+
+	assert response.status_code == 404
+
+	response = client.get(
+		"stations/testUser_victor/charlie_station_rerun",
+		headers=headers,
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["id"] == 14
+	assert data["name"] == "charlie_station_rerun"
+	assert data["owner"]["username"] == "testUser_victor"
+	assert data["requestSecurityLevel"] == MinItemSecurityLevel.INVITED_USER.value
+	assert data["viewSecurityLevel"] == MinItemSecurityLevel.INVITED_USER.value
+	assert data["rules"] == []
+
+	headers = login_test_user("testUser_yankee", client)
+
+	response = client.get(
+		"stations/testUser_bravo/romeo_station",
+		headers=headers,
+	)
+	assert response.status_code == 200
+
+	response = client.get(
+		"stations/testUser_victor/bravo_station_rerun",
+		headers=headers,
+	)
+	assert response.status_code == 200
+
+	response = client.get(
+		"stations/testUser_victor/alpha_station_rerun",
+		headers=headers,
+	)
+	assert response.status_code == 404
+
+	response = client.get(
+		"stations/testUser_victor/charlie_station_rerun",
+		headers=headers,
+	)
+	assert response.status_code == 404
+
+	response = client.get(
+		"stations/testUser_victor/delta_station_rerun",
+		headers=headers,
+	)
+	assert response.status_code == 404
+
+	response = client.get(
+		"stations/testUser_yankee/delta_station_rerun",
+		headers=headers,
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["id"] == 15
+	assert data["name"] == "delta_station_rerun"
+	assert data["owner"]["username"] == "testUser_yankee"
+	assert data["requestSecurityLevel"] == MinItemSecurityLevel.OWENER_USER.value
+	assert data["viewSecurityLevel"] == MinItemSecurityLevel.OWENER_USER.value
+	assert data["rules"] == []

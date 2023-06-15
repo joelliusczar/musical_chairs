@@ -18,21 +18,49 @@ import {
 	initialState,
 	dispatches,
 } from "../Shared/waitingReducer";
-import { DomRoutes, CallStatus } from "../../constants";
+import {
+	DomRoutes,
+	CallStatus,
+	MinItemSecurityLevel,
+} from "../../constants";
 import {
 	useStationData,
 } from "../../Context_Providers/AppContextProvider";
 import { useCurrentUser } from "../../Context_Providers/AuthContext";
 import { Loader } from "../Shared/Loader";
+import { FormSelect } from "../Shared/FormSelect";
 
 
 const inputField = {
 	margin: 2,
 };
 
+const viewSecurityOptions = [
+	{
+		id: MinItemSecurityLevel.PUBLIC,
+		name: "Public",
+	},
+	{
+		id: MinItemSecurityLevel.ANY_USER,
+		name: "Any User",
+	},
+	{
+		id: MinItemSecurityLevel.INVITED_USER,
+		name: "Invited Users Only",
+	},
+	{
+		id: MinItemSecurityLevel.OWENER_USER,
+		name: "Private",
+	},
+];
+
+const requestSecurityOptions = viewSecurityOptions;
+
 const initialValues = {
 	name: "",
 	displayName: "",
+	viewSecurityLevel: viewSecurityOptions[0],
+	requestSecurityLevel: requestSecurityOptions[1],
 };
 
 const validatePhraseIsUnused = async (value, context) => {
@@ -50,7 +78,17 @@ const schema = Yup.object().shape({
 		(value) => `${value.path} is already used`,
 		validatePhraseIsUnused
 	),
+	requestSecurityLevel: Yup.object().required().test(
+		"requestSecurityLevel",
+		"Request Security cannot be public or lower than view security",
+		(value, context) => {
+			return value !== MinItemSecurityLevel.PUBLIC
+				&& value.id >= context.parent.viewSecurityLevel.id;
+		}
+	),
 });
+
+
 
 export const StationEdit = (props) => {
 	const { onCancel } = props;
@@ -58,6 +96,7 @@ export const StationEdit = (props) => {
 	const urlHistory = useHistory();
 	const pathVars = useParams();
 	const currentUser = useCurrentUser();
+
 
 	const [state, dispatch] = useReducer(waitingReducer(), initialState);
 	const { callStatus, error } = state;
@@ -85,11 +124,14 @@ export const StationEdit = (props) => {
 		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset } = formMethods;
+	const { handleSubmit, reset, watch } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const stationId = values.id || null;
-			const data = await saveStation({ values, id: stationId });
+			const {viewSecurityLevel, requestSecurityLevel, ...saveData} = values;
+			saveData.viewSecurityLevel = viewSecurityLevel.id;
+			saveData.requestSecurityLevel = requestSecurityLevel.id;
+			const data = await saveStation({ values: saveData, id: stationId });
 			afterSubmit(data);
 			if (stationId) {
 				updateStation(stationId, data);
@@ -115,6 +157,16 @@ export const StationEdit = (props) => {
 							ownerKey: pathVars.ownerKey,
 							stationKey: pathVars.stationKey,
 						});
+						const viewSecurityLevel = viewSecurityOptions
+							.filter(o => o.id === data.viewSecurityLevel);
+						const requestSecurityLevel = viewSecurityOptions
+							.filter(o => o.id === data.requestSecurityLevel);
+						data.viewSecurityLevel =
+							viewSecurityLevel.length ?
+								viewSecurityLevel[0] : viewSecurityOptions[0];
+						data.requestSecurityLevel =
+							requestSecurityLevel.length ?
+								requestSecurityLevel[0] : viewSecurityOptions[1];
 						reset(data);
 						dispatch(dispatches.done());
 					}
@@ -138,6 +190,15 @@ export const StationEdit = (props) => {
 	]);
 
 	const loadStatus = pathVars.stationKey ? callStatus: CallStatus.done;
+	const viewSecurityLevel = watch("viewSecurityLevel");
+	const bannedRequestLevels = viewSecurityOptions.filter(o =>
+		o.id < viewSecurityLevel.id || o.id === MinItemSecurityLevel.PUBLIC
+	).reduce((accumulator, current) => {
+		accumulator[current.id] = true;
+		return accumulator;
+	}, {});
+
+
 
 	return (
 		<Loader status={loadStatus} error={error}>
@@ -158,6 +219,33 @@ export const StationEdit = (props) => {
 					name="displayName"
 					label="Display Name"
 					formMethods={formMethods}
+				/>
+			</Box>
+			<Box sx={inputField}>
+				<FormSelect
+					name="viewSecurityLevel"
+					label="Who can see this radio station?"
+					sx={{ width: 250 }}
+					options={viewSecurityOptions}
+					formMethods={formMethods}
+					isOptionEqualToValue={(option, value) => {
+						return option.id === value.id;
+					}}
+					defaultValue={viewSecurityOptions[0]}
+				/>
+			</Box>
+			<Box sx={inputField}>
+				<FormSelect
+					name="requestSecurityLevel"
+					label="Who can request on this radio station?"
+					sx={{ width: 250 }}
+					options={viewSecurityOptions.slice(1)}
+					formMethods={formMethods}
+					isOptionEqualToValue={(option, value) => {
+						return option.id === value.id;
+					}}
+					defaultValue={viewSecurityOptions[1]}
+					getOptionDisabled={o => o.id in bannedRequestLevels}
 				/>
 			</Box>
 			<Box sx={inputField} >

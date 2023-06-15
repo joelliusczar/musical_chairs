@@ -63,3 +63,17 @@ export const UserRoleDef = {
 	PATH_VIEW: `${UserRoleDomain.PATH}:view`,
 	PATH_DOWNLOAD: `${UserRoleDomain.PATH}:download`,
 };
+
+export const MinItemSecurityLevel = {
+	PUBLIC: 0,
+	// SITE permissions should be able to overpower ANY_USER level restrictions
+	ANY_USER: 9,
+	// ANY_STATION should be able to overpower RULED_USER
+	RULED_USER: 19,
+	FRIEND_USER: 29, // not used
+	// STATION_PATH should be able to overpower INVITED_USER
+	INVITED_USER: 39,
+	OWENER_USER: 49,
+	//only admins should be able to see these items
+	LOCKED: 59,
+};

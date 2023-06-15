@@ -1536,7 +1536,7 @@ define_top_level_terms() {
 		web_root="$test_root"
 	fi
 
-	db_name='songs_db'
+	db_name='songs_db.sqlite'
 	export app_trunk="$proj_name"_dir
 	export app_root="$app_root"
 	export web_root="$web_root"

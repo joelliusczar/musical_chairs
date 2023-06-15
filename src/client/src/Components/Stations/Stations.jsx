@@ -54,7 +54,7 @@ export const Stations = () => {
 	const location = useLocation();
 	const pathVars = useParams();
 	const classes = useStyles();
-	const canEditStation = useHasAnyRoles([UserRoleDef.STATION_EDIT]);
+	const canCreateStation = useHasAnyRoles([UserRoleDef.STATION_CREATE]);
 	const canEnableStation = useHasAnyRoles([UserRoleDef.STATION_FLIP]);
 	const { enqueueSnackbar } = useSnackbar();
 	const [ waitConfirm, setWaitConfirm ] = useState("");
@@ -129,7 +129,7 @@ export const Stations = () => {
 
 	return (<>
 		<Typography variant="h1">Stations</Typography>
-		{canEditStation && <Button
+		{canCreateStation && <Button
 			component={Link}
 			to={DomRoutes.stationsAdd()}
 		>
@@ -193,7 +193,7 @@ export const Stations = () => {
 						<div>
 							<Grid container>
 								<Grid item>
-									{canEditStation && <Button
+									{canCreateStation && <Button
 										color="primary"
 										variant="contained"
 										component={Link}

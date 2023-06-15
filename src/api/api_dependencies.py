@@ -20,6 +20,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	get_datetime,
 	get_path_owner_roles,
+	get_station_owner_rules,
 	PathsActionRule,
 	ChainedAbsorbentTrie,
 	normalize_opening_slash,
@@ -399,6 +400,8 @@ def get_station_user(
 	]
 	sortedRules = ActionRule.aggregate(
 		user.roles,
+		get_station_owner_rules() \
+			if station.owner and user.id == station.owner.id else (),
 		stationService.get_station_rules(user.id, station.id, scopes)
 	)
 	stationFiltered = sortedRules

@@ -8,6 +8,7 @@ from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user
 )
 from .mocks.db_data import kilo_user_id
+from musical_chairs_libs.dtos_and_utilities import MinItemSecurityLevel
 
 
 
@@ -146,7 +147,7 @@ def test_song_save(
 			"name": "papa_station",
 			"displayName": "Come to papa",
 			"owner": None,
-			"requestSecurityLevel": 0,
+			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
 			"viewSecurityLevel": 0
 		},
 		{
@@ -154,7 +155,7 @@ def test_song_save(
 			"name": "uniform_station",
 			"displayName": "Asshole at the wheel",
 			"owner": None,
-			"requestSecurityLevel": 0,
+			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
 			"viewSecurityLevel": 0
 		},
 		{
@@ -162,7 +163,7 @@ def test_song_save(
 			"name": "xray_station",
 			"displayName": "Pentagular",
 			"owner": None,
-			"requestSecurityLevel": 0,
+			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
 			"viewSecurityLevel": 0
 		}
 	]
@@ -379,7 +380,7 @@ def test_get_songs_for_multi_edit(
 			"isRunning": False,
 			"owner": {"id": 2, "username": "testUser_bravo", "displayName": None},
 			"rules": [],
-			"requestSecurityLevel": 0,
+			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
 			"viewSecurityLevel": 0
 		}
 	]

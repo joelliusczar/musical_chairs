@@ -14,6 +14,7 @@ from .simple_functions import get_duplicates, check_name_safety
 from .generic_dtos import IdItem, TableData, T
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule
+from .user_role_def import MinItemSecurityLevel
 
 
 @dataclass(frozen=True)
@@ -93,7 +94,7 @@ class StationInfo:
 		default_factory=list, hash=False, compare=False
 	)
 	requestSecurityLevel: Optional[int]=field(
-		default=0, hash=False, compare=False,
+		default=MinItemSecurityLevel.ANY_USER.value, hash=False, compare=False,
 	)
 	viewSecurityLevel: Optional[int]=field(default=0, hash=False, compare=False)
 
@@ -101,6 +102,19 @@ class StationInfo:
 class StationCreationInfo:
 	name: str
 	displayName: Optional[str]=""
+	viewSecurityLevel: Optional[int]=field(default=0)
+	requestSecurityLevel: Optional[int]=field(
+		default=MinItemSecurityLevel.OWENER_USER.value
+	)
+
+	@validator("requestSecurityLevel")
+	def check_requestSecurityLevel(cls, v: int, values: dict[Any, Any]) -> int:
+		if v < values["viewSecurityLevel"] \
+			or v == MinItemSecurityLevel.PUBLIC.value:
+			raise ValueError(
+				"Request Security cannot be public or lower than view security"
+			)
+		return v
 
 @pydanticDataclass
 class ValidatedStationCreationInfo(StationCreationInfo):

@@ -438,7 +438,9 @@ class StationService:
 			name = str(savedName),
 			displayName = str(savedDisplayName),
 			lastModifiedByUserFk = user.id,
-			lastModifiedTimestamp = self.get_datetime().timestamp()
+			lastModifiedTimestamp = self.get_datetime().timestamp(),
+			viewSecurityLevel = station.viewSecurityLevel,
+			requestSecurityLevel = station.requestSecurityLevel
 		)
 		if stationId:
 			stmt = stmt.where(st_pk == stationId)

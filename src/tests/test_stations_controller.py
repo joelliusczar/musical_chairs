@@ -16,7 +16,8 @@ from .constant_fixtures_for_test import mock_ordered_date_list
 from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	RulePriorityLevel,
-	UserRoleDomain
+	UserRoleDomain,
+	MinItemSecurityLevel
 )
 
 
@@ -363,3 +364,58 @@ def test_get_station_user_rule_selection(
 	assert data["stationRules"][1]["domain"] == UserRoleDomain.Site.value
 	assert data["stationRules"][1]["count"] == 15
 	assert data["stationRules"][1]["span"] == 300
+
+@pytest.mark.usefixtures("fixture_clean_station_folders")
+def test_post_with_invalid_security_levels(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_tango", client)
+	testData: dict[str, Any] = {
+		"name": "test_station",
+		"viewSecurityLevel": MinItemSecurityLevel.OWENER_USER.value,
+		"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
+	}
+
+	response = client.post(
+		"stations",
+		headers=headers,
+		json=testData
+	)
+
+	data = json.loads(response.content)
+	assert response.status_code == 422
+	assert data["detail"][0]["msg"] \
+		== "Request Security cannot be public or lower than view security"
+	assert data["detail"][0]["field"] == "requestSecurityLevel"
+
+	testData: dict[str, Any] = {
+		"name": "test_station",
+		"viewSecurityLevel": MinItemSecurityLevel.PUBLIC.value,
+		"requestSecurityLevel": MinItemSecurityLevel.PUBLIC.value,
+	}
+
+	response = client.post(
+		"stations",
+		headers=headers,
+		json=testData
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 422
+	assert data["detail"][0]["msg"] \
+		== "Request Security cannot be public or lower than view security"
+	assert data["detail"][0]["field"] == "requestSecurityLevel"
+
+	testData: dict[str, Any] = {
+		"name": "test_station",
+		"viewSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
+		"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
+	}
+
+	response = client.post(
+		"stations",
+		headers=headers,
+		json=testData
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200

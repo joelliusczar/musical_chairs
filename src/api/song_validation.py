@@ -34,7 +34,6 @@ def __get_station_id_set__(
 		return {s.id for s in stationService.get_stations(
 		stationKeys=stationKeys,
 		user=user,
-		includeRules=True
 	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s.rules)}
 
 
@@ -73,12 +72,18 @@ def __validate_song_stations(
 	stationIds = {s.id for s in song.stations or []}
 	linkedStationIds = {s.stationId for s in \
 		songInfoService.get_station_songs(songIds=songIds)}
-	permittedStations = {s[1] for s in \
-		stationService.get_station_rules(
-			user.id,
+	stationService.get_stations(
+		stationIds,
+		user=user,
+		scopes=[UserRoleDef.STATION_ASSIGN.value]
+	)
+	permittedStations = {s.id for s in \
+			stationService.get_stations(
 			stationIds,
-			[UserRoleDef.STATION_ASSIGN.value]
-	) if not s[0].blocked} | linkedStationIds #if song is already linked, we will permit
+			user=user,
+			scopes=[UserRoleDef.STATION_ASSIGN.value]
+		) if not all(r.blocked for r in s.rules)
+	} | linkedStationIds #if song is already linked, we will permit
 	if not permittedStations:
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,

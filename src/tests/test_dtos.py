@@ -566,7 +566,7 @@ def test_action_rule_hashing():
 		span=5,
 		count=7,
 		priority=5,
-		domain=UserRoleDomain.Station
+		domain=UserRoleDomain.Station.value
 	)
 	r2 = ActionRule("alpha", span=5, count=7, priority=5)
 
@@ -628,7 +628,7 @@ def test_action_rule_set():
 		span=5,
 		count=7,
 		priority=5,
-		domain=UserRoleDomain.Path
+		domain=UserRoleDomain.Path.value
 	)
 
 	assert r8 not in s1
@@ -639,7 +639,7 @@ def test_action_rule_set():
 		span=5,
 		count=7,
 		priority=5,
-		domain=UserRoleDomain.Path
+		domain=UserRoleDomain.Path.value
 	)
 
 	assert not r9 is r8

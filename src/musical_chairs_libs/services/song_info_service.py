@@ -333,7 +333,7 @@ class SongInfoService:
 					or RulePriorityLevel.STATION_PATH.value,
 				span=cast(int,r[pup_span]) or 0,
 				count=cast(int,r[pup_count]) or 0,
-				domain=UserRoleDomain.Path,
+				domain=UserRoleDomain.Path.value,
 				path=normalize_opening_slash(cast(str,r[pup_path]))
 			)
 

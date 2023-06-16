@@ -407,7 +407,7 @@ def get_station_user(
 		user.roles,
 		get_station_owner_rules() \
 			if station.owner and user.id == station.owner.id else (),
-		stationService.get_station_rules(user.id, station.id, scopes)
+		station.rules
 	)
 	stationFiltered = sortedRules
 	for pair in [

@@ -450,8 +450,9 @@ def test_get_station_for_edit_with_view_security(
 		"stations/testUser_bravo/romeo_station",
 		headers=headers,
 	)
-
+	data = json.loads(response.content)
 	assert response.status_code == 200
+	assert data["rules"] == []
 
 	response = client.get(
 		"stations/testUser_victor/bravo_station_rerun",
@@ -481,13 +482,30 @@ def test_get_station_for_edit_with_view_security(
 		"stations/testUser_bravo/romeo_station",
 		headers=headers,
 	)
+	data = json.loads(response.content)
 	assert response.status_code == 200
+	assert data["rules"] == [{
+			"name": UserRoleDef.STATION_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.SITE.value,
+			"domain": "site"
+	}]
+
 
 	response = client.get(
 		"stations/testUser_victor/bravo_station_rerun",
 		headers=headers,
 	)
+	data = json.loads(response.content)
 	assert response.status_code == 200
+	assert data["rules"] == [{
+			"name": UserRoleDef.STATION_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.SITE.value,
+			"domain": "site"
+	}]
 
 	response = client.get(
 		"stations/testUser_victor/alpha_station_rerun",
@@ -500,7 +518,13 @@ def test_get_station_for_edit_with_view_security(
 	assert data["owner"]["username"] == "testUser_victor"
 	assert data["requestSecurityLevel"] == MinItemSecurityLevel.RULED_USER.value
 	assert data["viewSecurityLevel"] == MinItemSecurityLevel.RULED_USER.value
-	assert data["rules"] == []
+	assert data["rules"] == [{
+			"name": UserRoleDef.STATION_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.SITE.value,
+			"domain": "site"
+	}]
 
 	headers = login_test_user("testUser_xray", client)
 
@@ -508,13 +532,17 @@ def test_get_station_for_edit_with_view_security(
 		"stations/testUser_bravo/romeo_station",
 		headers=headers,
 	)
+	data = json.loads(response.content)
 	assert response.status_code == 200
+	assert data["rules"] == []
 
 	response = client.get(
 		"stations/testUser_victor/bravo_station_rerun",
 		headers=headers,
 	)
+	data = json.loads(response.content)
 	assert response.status_code == 200
+	assert data["rules"] == []
 
 	response = client.get(
 		"stations/testUser_victor/alpha_station_rerun",
@@ -534,7 +562,13 @@ def test_get_station_for_edit_with_view_security(
 	assert data["owner"]["username"] == "testUser_victor"
 	assert data["requestSecurityLevel"] == MinItemSecurityLevel.INVITED_USER.value
 	assert data["viewSecurityLevel"] == MinItemSecurityLevel.INVITED_USER.value
-	assert data["rules"] == []
+	assert data["rules"] == [{
+			"name": UserRoleDef.STATION_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.STATION_PATH.value,
+			"domain": "station"
+	}]
 
 	headers = login_test_user("testUser_yankee", client)
 
@@ -542,13 +576,17 @@ def test_get_station_for_edit_with_view_security(
 		"stations/testUser_bravo/romeo_station",
 		headers=headers,
 	)
+	data = json.loads(response.content)
 	assert response.status_code == 200
+	assert data["rules"] == []
 
 	response = client.get(
 		"stations/testUser_victor/bravo_station_rerun",
 		headers=headers,
 	)
+	data = json.loads(response.content)
 	assert response.status_code == 200
+	assert data["rules"] == []
 
 	response = client.get(
 		"stations/testUser_victor/alpha_station_rerun",
@@ -579,4 +617,33 @@ def test_get_station_for_edit_with_view_security(
 	assert data["owner"]["username"] == "testUser_yankee"
 	assert data["requestSecurityLevel"] == MinItemSecurityLevel.OWENER_USER.value
 	assert data["viewSecurityLevel"] == MinItemSecurityLevel.OWENER_USER.value
-	assert data["rules"] == []
+	assert sorted(data["rules"], key=lambda d: d["name"]) == [
+		{
+			"name": UserRoleDef.STATION_ASSIGN.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.OWNER.value,
+			"domain": "station"
+		},
+		{
+			"name": UserRoleDef.STATION_DELETE.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.OWNER.value,
+			"domain": "station"
+		},
+		{
+			"name": UserRoleDef.STATION_EDIT.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.OWNER.value,
+			"domain": "station"
+		},
+		{
+			"name": UserRoleDef.STATION_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.OWNER.value,
+			"domain": "station"
+		}
+	]

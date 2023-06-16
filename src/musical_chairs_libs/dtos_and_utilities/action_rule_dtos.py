@@ -16,7 +16,7 @@ class ActionRule:
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
 	priority: int=RulePriorityLevel.NONE.value
-	domain: UserRoleDomain=UserRoleDomain.Site
+	domain: str=UserRoleDomain.Site.value
 
 	@staticmethod
 	def sorted(rules: Iterable["ActionRule"]) -> list["ActionRule"]:
@@ -24,7 +24,7 @@ class ActionRule:
 		s.sort(key=attrgetter("priority"), reverse=True)
 		s.sort(key=attrgetter("name"))
 		return s
-	
+
 	@staticmethod
 	def aggregate(*args: Iterable["ActionRule"]) -> list["ActionRule"]:
 		return ActionRule.sorted(r for r in chain(

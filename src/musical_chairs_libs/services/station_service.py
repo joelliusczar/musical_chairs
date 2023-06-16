@@ -11,7 +11,7 @@ from typing import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.engine import Connection
-from sqlalchemy.sql.expression import Select, CTE, case
+from sqlalchemy.sql.expression import Select, CTE, case, true
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
 from sqlalchemy import (
@@ -128,14 +128,15 @@ class StationService:
 					RulePriorityLevel.SITE.value
 				).label("rule_priority"),
 				dbLiteral(UserRoleDomain.Site.value).label("rule_domain") #pyright: ignore [reportUnknownMemberType]
-			).where(ur_userFk == userId),
+			).where(ur_userFk == userId)\
+				.where(ur_role.like(f"{UserRoleDomain.Station.value}:%")),
 			select(
 				dbLiteral(None).label("rule_stationFk"), #pyright: ignore [reportUnknownMemberType]
-				dbLiteral("shim").label("rule_name"), #pyright: ignore [reportUnknownMemberType]
+				dbLiteral(UserRoleDef.STATION_VIEW.value).label("rule_name"), #pyright: ignore [reportUnknownMemberType]
 				dbLiteral(0).label("rule_count"), #pyright: ignore [reportUnknownMemberType]
 				dbLiteral(0).label("rule_span"), #pyright: ignore [reportUnknownMemberType]
 				dbLiteral(0).label("rule_priority"), #pyright: ignore [reportUnknownMemberType]
-				dbLiteral("").label("rule_domain") #pyright: ignore [reportUnknownMemberType]
+				dbLiteral("shim").label("rule_domain") #pyright: ignore [reportUnknownMemberType]
 			)
 		)
 
@@ -145,8 +146,6 @@ class StationService:
 		userId: int,
 		scopes: Optional[Collection[str]]=None
 	) -> Select:
-		if scopes is None:
-			scopes = (UserRoleDef.STATION_VIEW.value,"shim")
 		rulesQuery = self.__build_rules_query__(userId)
 		rulesSubquery = cast(CTE, rulesQuery.cte()) #pyright: ignore [reportUnknownMemberType]
 		canViewQuery= cast(CTE, select(
@@ -154,7 +153,7 @@ class StationService:
 			rulesSubquery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
 		).where(
-			rulesSubquery.c.rule_name.in_(scopes), #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
 		).cte())
 
 		topSiteRule = cast(CTE, select(
@@ -163,8 +162,9 @@ class StationService:
 				RulePriorityLevel.NONE.value
 			).label("max")
 		).where(
-			canViewQuery.c.rule_domain == UserRoleDomain.Site.value #pyright: ignore [reportUnknownMemberType]
-		).cte())
+			rulesSubquery.c.rule_domain == UserRoleDomain.Site.value #pyright: ignore [reportUnknownMemberType]
+		)\
+			.cte())
 
 		query = query.join( #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery,
@@ -175,7 +175,13 @@ class StationService:
 			)
 		).where(
 			or_(
-				st_pk.in_(select(canViewQuery.c.rule_stationFk).subquery()), #pyright: ignore [reportUnknownMemberType]
+				coalesce(
+					st_viewSecurityLevel,
+					MinItemSecurityLevel.INVITED_USER.value
+				) < select(coalesce(
+							func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
+							RulePriorityLevel.NONE.value
+						)).where(st_pk == canViewQuery.c.rule_stationFk).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
 				and_(
 					dbLiteral(UserRoleDomain.Site.value).in_( #pyright: ignore [reportUnknownMemberType]
 						select(canViewQuery.c.rule_domain).subquery() #pyright: ignore [reportUnknownMemberType]
@@ -196,8 +202,10 @@ class StationService:
 						MinItemSecurityLevel.OWENER_USER.value
 					) < RulePriorityLevel.OWNER.value
 				)
+			),
+		).where(
+				rulesSubquery.c.rule_name.in_(scopes) if scopes else true() #pyright: ignore [reportUnknownMemberType]
 			)
-		)
 
 		query = query.add_columns( #pyright: ignore [reportUnknownMemberType]
 			cast(Column, rulesSubquery.c.rule_name), #pyright: ignore [reportUnknownMemberType]
@@ -251,9 +259,9 @@ class StationService:
 						currentStation.rules.extend(get_station_owner_rules(scopes))
 					yield currentStation
 				currentStation = self.__row_to_station__(row)
-				if cast(str,row["rule_name"]) != "shim":
+				if cast(str,row["rule_domain"]) != "shim":
 					currentStation.rules.append(self.__row_to_action_rule__(row))
-			elif cast(str,row["rule_name"]) != "shim":
+			elif cast(str,row["rule_domain"]) != "shim":
 				currentStation.rules.append(self.__row_to_action_rule__(row))
 		if currentStation:
 			stationOwner = currentStation.owner
@@ -292,6 +300,8 @@ class StationService:
 		if user:
 			query = self.__attach_user_joins__(query, user.id, scopes)
 		else:
+			if scopes:
+				return
 			query = query.where( #pyright: ignore [reportUnknownMemberType]
 				coalesce(st_viewSecurityLevel, 0) == 0
 			)

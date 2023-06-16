@@ -41,6 +41,7 @@ whiskey_user_id = 23
 xray_user_id = 24
 yankee_user_id = 25
 zulu_user_id = 26
+alice_user_id = 27
 
 artist_params = [
 	{
@@ -1154,6 +1155,16 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": None
+		},
+		{
+			"pk": alice_user_id,
+			"username": "testUser_alice",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test27@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		}
 	]
 	return users_params
@@ -1355,6 +1366,14 @@ def get_user_role_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
+		{
+			"userFk": alice_user_id,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":300,
+			"count":20,
+			"priority": RulePriorityLevel.SITE.value - 2,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
 	]
 
 def get_station_permission_params(
@@ -1471,16 +1490,16 @@ def get_station_permission_params(
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
-		# {
-		# 	"pk":16,
-		# 	"userFk": foxtrot_user_id,
-		# 	"stationFk": 2,
-		# 	"role": UserRoleDef.STATION_ASSIGN.value,
-		# 	"span":0,
-		# 	"count":0,
-		# 	"priority": None,
-		# 	"creationTimestamp": orderedTestDates[0].timestamp()
-		# },
+		{
+			"pk":18,
+			"userFk": zulu_user_id,
+			"stationFk": 14,
+			"role": UserRoleDef.STATION_ASSIGN.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.STATION_PATH.value - 5,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
 		# {
 		# 	"pk":17,
 		# 	"userFk": foxtrot_user_id,

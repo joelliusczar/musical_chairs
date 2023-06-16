@@ -340,4 +340,115 @@ def test_get_stations_with_view_security(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
+	assert len(data) == 14
+
+
+def test_get_stations_with_scopes(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+):
+	stationService = fixture_station_service
+	accountService = fixture_account_service
+
+	#no user
+	data = sorted(
+		stationService.get_stations(
+			scopes=[UserRoleDef.STATION_ASSIGN.value]
+		),
+		key=lambda s:s.id
+	)
+	assert len(data) == 0
+
+	#user no roles
+	user,_ = accountService.get_account_for_login("testUser_romeo")
+	assert user
+	data = sorted(
+		stationService.get_stations(
+			user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == 12
+
+	data = sorted(
+		stationService.get_stations(
+			user=user,
+			scopes=[UserRoleDef.STATION_ASSIGN.value]
+		),
+		key=lambda s:s.id
+	)
+	assert len(data) == 0
+
+	user,_ = accountService.get_account_for_login("testUser_india")
+	assert user
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == 13
+
+	data = sorted(
+		stationService.get_stations(
+			user=user,
+			scopes=[UserRoleDef.STATION_ASSIGN.value]
+		),
+		key=lambda s:s.id
+	)
+	assert len(data) == 13
+	assert data[0].name == "oscar_station"
+	assert data[1].name == "papa_station"
+	assert data[2].name == "romeo_station"
+	assert data[3].name == "sierra_station"
+	assert data[4].name == "tango_station"
+	assert data[5].name == "yankee_station"
+	assert data[6].name == "uniform_station"
+	assert data[7].name == "victor_station"
+	assert data[8].name == "whiskey_station"
+	assert data[9].name == "xray_station"
+	assert data[10].name == "zulu_station"
+	assert data[11].name == "alpha_station_rerun"
+	assert data[12].name == "bravo_station_rerun"
+	for station in data:
+		assert len(station.rules) == 1
+
+	user,_ = accountService.get_account_for_login("testUser_hotel")
+	assert user
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == 12
+
+	data = sorted(
+		stationService.get_stations(
+			user=user,
+			scopes=[UserRoleDef.STATION_ASSIGN.value]
+		),
+		key=lambda s:s.id
+	)
+
+	assert len(data) == 1
+	assert len(data[0].rules) == 1
+
+def test_get_stations_with_odd_priority(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+):
+	stationService = fixture_station_service
+	accountService = fixture_account_service
+
+	user,_ = accountService.get_account_for_login("testUser_zulu")
+	assert user
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == 12
+
+	user,_ = accountService.get_account_for_login("testUser_alice")
+	assert user
+
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
 	assert len(data) == 12

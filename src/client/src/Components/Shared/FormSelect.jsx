@@ -54,6 +54,9 @@ export function FormSelect(props) {
 						style: { minWidth: "fit-content" },
 						placement: "bottom-start",
 					},
+					paper: {
+						style: { lineHeight: "unset" },
+					},
 				}}
 				{...otherProps}
 			/>

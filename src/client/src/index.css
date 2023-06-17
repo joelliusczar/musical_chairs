@@ -18,6 +18,14 @@ code {
 	padding-right: 10px;
 }
 
-.station-menu.MuiGrid-container {
+.station-menu.MuiGrid-container{
 	justify-content: space-between;
+}
+
+.app-form-select.form-select.MuiAutocomplete-option {
+	display: block;
+}
+
+.form-select.select-subtext, .form-select.select-subtext.MuiAutocomplete-paper {
+	line-height: unset;
 }

@@ -1,30 +1,28 @@
 import React from "react";
-import { Grid } from "@mui/material";
+import { Box, Typography, FormHelperText } from "@mui/material";
 import { FormSelect } from "../Shared/FormSelect";
 
 export const ArtistSelect = (props) => {
 
 	return (
 		<FormSelect
-			renderGroup={(renderProps) => {
-				return (<Grid container key={renderProps.key} >
-					<Grid container item>
-						<Grid item xs={6}>Artist</Grid>
-						<Grid item xs={6}>Owner</Grid>
-					</Grid>
-					<Grid container item>
-						{renderProps.children}
-					</Grid>
-				</Grid>);
-			}}
-			groupBy={() => ""}
 			renderOption={(renderProps, option) => {
 				if (option) {
+					const { className } = renderProps;
 					return (
-						<Grid container {...renderProps}>
-							<Grid item xs={6}>{option.name}</Grid>
-							<Grid item xs={6}>{option.owner?.username}</Grid>
-						</Grid>
+						<Box
+							{...renderProps}
+							className={`app-form-select form-select ${className}`}
+						>
+							<Box className="form-select select-subtext">
+								<Typography>{option.name}</Typography>
+							</Box>
+							<Box className="form-select select-subtext">
+								<FormHelperText className="form-select select-subtext">
+									Owner: {option.owner?.username}
+								</FormHelperText>
+							</Box>
+						</Box>
 					);
 				}
 				return (

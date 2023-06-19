@@ -1,29 +1,11 @@
 import { defaultWebClient as webClient } from "./api";
 
-
-const setupAuthExpirationAction = (logout, setResponseInterceptorKey) => {
-	setResponseInterceptorKey(previousKey => {
-		if(!previousKey) {
-			const responseInterceptorKey = webClient.interceptors.response.use(
-				null,
-				(err) => {
-					if ("x-authexpired" in (err?.response?.headers || {})) {
-						logout();
-					}
-					return Promise.reject(err);
-				});
-			return responseInterceptorKey;
-		}
-		return previousKey;
-	});
-};
+export { webClient };
 
 
 export const login = async ({
 	username,
 	password,
-	logout,
-	setResponseInterceptorKey,
 }) => {
 	const formData = new window.FormData();
 	formData.append("username", username);
@@ -34,16 +16,13 @@ export const login = async ({
 	);
 	webClient.defaults.headers.common["Authorization"] =
 	`Bearer ${response.data.access_token}`;
-	setupAuthExpirationAction(logout, setResponseInterceptorKey);
 	return response.data;
 };
 
-export const login_with_cookie = async (logout, setResponseInterceptorKey) => {
+export const login_with_cookie = async () => {
 	const response = await webClient.post("accounts/open_cookie");
 	webClient.defaults.headers.common["Authorization"] =
 		`Bearer ${response.data.access_token}`;
-	setupAuthExpirationAction(logout, setResponseInterceptorKey);
-
 	return response.data;
 };
 

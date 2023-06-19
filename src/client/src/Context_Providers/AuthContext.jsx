@@ -8,7 +8,7 @@ import React, {
 	useCallback,
 } from "react";
 import PropTypes from "prop-types";
-import { login, login_with_cookie } from "../API_Calls/userCalls";
+import { login, login_with_cookie, webClient } from "../API_Calls/userCalls";
 import {
 	waitingReducer,
 	initialState,
@@ -21,6 +21,9 @@ import {
 	anyConformsToAnyRule,
 } from "../Helpers/rule_helpers";
 import { useSnackbar } from "notistack";
+import { LoginModal } from "../Components/Accounts/AccountsLoginModal";
+import { BrowserRouter } from "react-router-dom";
+
 
 const loggedOut = {
 	username: "",
@@ -39,6 +42,12 @@ const expireCookie = (name) => {
 };
 
 
+const clearCookies = () => {
+	expireCookie("username");
+	expireCookie("displayName");
+	expireCookie("access_token");
+};
+
 
 
 export const AuthContext = createContext();
@@ -49,24 +58,79 @@ export const AuthContextProvider = (props) => {
 		waitingReducer(),
 		loggedOutState
 	);
-	const [ , setResponseInterceptorKey] = useState();
+
+	const [loginOpen, setLoginOpen ] = useState(false);
+	const [loginPromptCancelAction, setLoginPromptCancelAction] = useState();
+
 	const { enqueueSnackbar } = useSnackbar();
 	const loggedInUsername = state.data.username;
 
+	const partialLogout = useCallback(() => {
+		dispatch(dispatches.reset({
+			...loggedOutState.data,
+			username: loggedInUsername,
+		}));
+		clearCookies();
+		enqueueSnackbar("Logging out.");
+	},[dispatch, enqueueSnackbar, loggedInUsername]);
+
+
 	const logout = useCallback(() => {
 		dispatch(dispatches.reset(loggedOutState));
-		expireCookie("username");
-		expireCookie("displayName");
-		expireCookie("access_token");
+		clearCookies();
 		enqueueSnackbar("Logging out.");
 	},[dispatch, enqueueSnackbar]);
+
+	const openLoginPrompt = useCallback((onCancel) => {
+		setLoginOpen(true);
+		if (onCancel) {
+			setLoginPromptCancelAction(() => onCancel);
+		}
+		else {
+			setLoginPromptCancelAction(null);
+		}
+	},[setLoginOpen]);
+
+
+	const setupAuthExpirationAction = useCallback(() => {
+
+		//want closure references to be updating so we're clearing rather
+		//than reusing
+		webClient.interceptors.response.clear();
+
+		webClient.interceptors.response.use(
+			null,
+			(err) => {
+				if ("x-authexpired" in (err?.response?.headers || {})) {
+					partialLogout();
+					openLoginPrompt(logout);
+				}
+				return Promise.reject(err);
+			}
+		);
+
+	}, [partialLogout, openLoginPrompt, logout]);
+
+	useEffect(() => {
+		setupAuthExpirationAction();
+	},[setupAuthExpirationAction]);
+
 
 	const contextValue = useMemo(() => ({
 		state,
 		dispatch,
-		setResponseInterceptorKey,
+		setupAuthExpirationAction,
 		logout,
-	}), [state, setResponseInterceptorKey]);
+		partialLogout,
+		openLoginPrompt,
+	}), [
+		state,
+		dispatch,
+		setupAuthExpirationAction,
+		logout,
+		partialLogout,
+		openLoginPrompt,
+	]);
 
 	useEffect(() => {
 		if (loggedInUsername) return;
@@ -81,32 +145,37 @@ export const AuthContextProvider = (props) => {
 		);
 
 		if(!document.cookie) return;
-
 		dispatch(dispatches.assign({username, displayName}));
-		const asyncCall = async () => {
+		const loginCall = async () => {
 			try {
-				const data = await login_with_cookie(
-					logout,
-					setResponseInterceptorKey
-				);
+				const data = await login_with_cookie();
+				setupAuthExpirationAction();
 				dispatch(dispatches.done(data));
 			}
 			catch (err) {
 				enqueueSnackbar(formatError(err), { variant: "error" });
 			}
 		};
-		asyncCall();
+		loginCall();
 	},[
 		dispatch,
-		setResponseInterceptorKey,
-		logout,
+		setupAuthExpirationAction,
 		enqueueSnackbar,
 		loggedInUsername,
 	]);
 
 	return (
 		<AuthContext.Provider value={contextValue}>
-			{children}
+			<BrowserRouter basename="/">
+				<>
+					{children}
+				</>
+				<LoginModal
+					open={loginOpen}
+					setOpen={setLoginOpen}
+					onCancel={loginPromptCancelAction}
+				/>
+			</BrowserRouter>
 		</AuthContext.Provider>
 	);
 
@@ -142,7 +211,7 @@ export const useHasAnyRoles = (requiredRoles) => {
 export const useLogin = () => {
 	const {
 		dispatch,
-		setResponseInterceptorKey,
+		setupAuthExpirationAction,
 		logout,
 	} = useContext(AuthContext);
 
@@ -152,9 +221,8 @@ export const useLogin = () => {
 			const data = await login({
 				username,
 				password,
-				logout: logout,
-				setResponseInterceptorKey,
 			});
+			setupAuthExpirationAction();
 			dispatch(dispatches.done(data));
 		}
 		catch(err) {
@@ -163,4 +231,12 @@ export const useLogin = () => {
 		}
 	};
 	return [_login, logout];
+};
+
+export const useLoginPrompt = () => {
+	const {
+		openLoginPrompt,
+	} = useContext(AuthContext);
+
+	return openLoginPrompt;
 };

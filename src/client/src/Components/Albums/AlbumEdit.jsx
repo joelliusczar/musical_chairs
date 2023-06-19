@@ -33,10 +33,7 @@ export const AlbumEdit = (props) => {
 	const formMethods = useForm({
 		defaultValues: {
 			name: "",
-			albumArtist: {
-				id: 0,
-				name: "",
-			},
+			albumArtist: null,
 		},
 	});
 	const { handleSubmit } = formMethods;
@@ -128,7 +125,7 @@ export const AlbumNewModalOpener = (props) => {
 			<Box>
 				<Button onClick={() => setItemNewOpen(true)}>Add New Album</Button>
 			</Box>
-			<Dialog open={itemNewOpen} onClose={closeModal}>
+			<Dialog open={itemNewOpen} onClose={closeModal} scroll="body">
 				<AlbumEdit
 					afterSubmit={itemCreated}
 					onCancel={closeModal}

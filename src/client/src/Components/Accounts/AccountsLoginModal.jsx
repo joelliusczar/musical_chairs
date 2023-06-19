@@ -5,10 +5,11 @@ import PropTypes from "prop-types";
 
 export function LoginModal(props) {
 
-	const { open, setOpen } = props;
+	const { open, setOpen, onCancel } = props;
 
 	const closeModal = () => {
 		setOpen(false);
+		onCancel && onCancel();
 	};
 
 
@@ -22,4 +23,5 @@ export function LoginModal(props) {
 LoginModal.propTypes = {
 	open: PropTypes.bool.isRequired,
 	setOpen: PropTypes.func.isRequired,
+	onCancel: PropTypes.func,
 };

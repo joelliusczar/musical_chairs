@@ -286,7 +286,7 @@ export const StationNewModalOpener = (props) => {
 			<Box>
 				<Button onClick={() => setItemNewOpen(true)}>Add New Station</Button>
 			</Box>
-			<Dialog open={itemNewOpen} onClose={closeModal}>
+			<Dialog open={itemNewOpen} onClose={closeModal} scroll="body">
 				<StationEdit
 					afterSubmit={itemCreated}
 					onCancel={closeModal}

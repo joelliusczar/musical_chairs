@@ -11,7 +11,6 @@ import {
 	listDataInitialState,
 	dispatches,
 	waitingTypes,
-	globalStoreLogger,
 } from "../Components/Shared/waitingReducer";
 import PropTypes from "prop-types";
 import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
@@ -82,7 +81,7 @@ export const AppContextProvider = (props) => {
 	);
 
 	const [stationsState, stationsDispatch] = useReducer(
-		waitingReducer(sortedListReducerPaths, [(globalStoreLogger("Stations"))]),
+		waitingReducer(sortedListReducerPaths),
 		{...listDataInitialState}
 	);
 
@@ -118,7 +117,7 @@ export const AppContextProvider = (props) => {
 			}
 		};
 		fetch();
-	}, [stationsDispatch, username]);
+	}, [stationsDispatch]);
 
 	useEffect(() => {
 		if (!username) return;

@@ -5,16 +5,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_timespan_msg
 )
 
-def build_expired_error() -> HTTPException:
-	return HTTPException(
-		status_code=status.HTTP_401_UNAUTHORIZED,
-		detail=[build_error_obj("Credentials are expired")],
-		headers={
-			"WWW-Authenticate": "Bearer",
-			"X-AuthExpired": "true"
-		}
-	)
-
 def build_not_logged_in_error() -> HTTPException:
 	return HTTPException(
 		status_code=status.HTTP_401_UNAUTHORIZED,

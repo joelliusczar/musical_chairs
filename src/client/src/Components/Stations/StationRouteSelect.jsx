@@ -80,7 +80,7 @@ export const StationRouteSelect = (props) => {
 			select
 			SelectProps={{
 				renderValue: () => {
-					return selectedStation?.displayName || "";
+					return selectedStation?.displayName || selectedStation?.name || "";
 				},
 			}}
 			label="Stations"
@@ -118,7 +118,7 @@ export const StationRouteSelect = (props) => {
 						className="station-menu"
 					>
 						<Grid item xs={6} className="station-menu">
-							{s.displayName}
+							{s.displayName || s.name}
 							{/* <Typography noWrap >
 							</Typography> */}
 						</Grid>

@@ -26,7 +26,10 @@ import { UrlPagination } from "../Shared/UrlPagination";
 import { NowPlaying } from "../Shared/NowPlaying";
 import { useSnackbar } from "notistack";
 import { OptionsButton } from "../Shared/OptionsButton";
-import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import {
+	useHasAnyRoles,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 
@@ -61,6 +64,8 @@ export const Queue = () => {
 		);
 
 	const { callStatus: queueCallStatus } = queueState;
+
+	useAuthViewStateChange(queueDispatch);
 
 	const getPageUrl = urlBuilderFactory(DomRoutes.queue);
 

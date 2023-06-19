@@ -25,7 +25,8 @@ users = Table("Users", metadata,
 	Column("email", String, nullable=True),
 	Column("dirRoot", String, nullable=True),
 	Column("isDisabled", Integer, nullable=True),
-	Column("creationTimestamp", Float, nullable=False)
+	Column("creationTimestamp", Float, nullable=False),
+	Column("viewSecurityLevel", Integer, nullable=True),
 )
 
 u = cast(TblCols,users.c) #pyright: ignore [reportUnknownMemberType]

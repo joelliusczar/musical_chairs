@@ -29,6 +29,7 @@ export const pageableDataInitialState = {
 
 export const waitingTypes = {
 	started: "started",
+	restart: "restart",
 	done: "done",
 	failed: "failed",
 	reset: "reset",
@@ -41,6 +42,7 @@ export const waitingTypes = {
 
 export const dispatches = {
 	started: (payload) => ({ type: waitingTypes.started, payload: payload }),
+	restart: () => ({ type: waitingTypes.restart }),
 	done: (payload) => ({ type: waitingTypes.done, payload: payload }),
 	failed: (payload) => ({ type: waitingTypes.failed, payload: payload }),
 	reset: (payload) => ({ type: waitingTypes.reset, payload: payload }),
@@ -57,6 +59,11 @@ export const waitingReducerMap = {
 		({
 			...state,
 			callStatus: CallStatus.loading,
+		}),
+	[waitingTypes.restart]: (state) =>
+		({
+			...state,
+			callStatus: null,
 		}),
 	[waitingTypes.done]: (state, payload) =>
 		({

@@ -26,7 +26,10 @@ import {
 import {
 	useStationData,
 } from "../../Context_Providers/AppContextProvider";
-import { useCurrentUser } from "../../Context_Providers/AuthContext";
+import {
+	useCurrentUser,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 import { Loader } from "../Shared/Loader";
 import { FormSelect } from "../Shared/FormSelect";
 
@@ -146,6 +149,8 @@ export const StationEdit = (props) => {
 			console.error(err);
 		}
 	});
+
+	useAuthViewStateChange(dispatch);
 
 	useEffect(() => {
 		const fetch = async () => {

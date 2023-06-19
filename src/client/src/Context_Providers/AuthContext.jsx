@@ -240,3 +240,13 @@ export const useLoginPrompt = () => {
 
 	return openLoginPrompt;
 };
+
+export const useAuthViewStateChange = (dispatch) => {
+	const currentUser = useCurrentUser();
+
+	useEffect(() => {
+		if(currentUser.username) {
+			dispatch(dispatches.restart());
+		}
+	},[currentUser.username, dispatch]);
+};

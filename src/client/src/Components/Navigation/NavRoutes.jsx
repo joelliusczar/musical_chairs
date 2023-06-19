@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Route, Switch, NavLink, useHistory } from "react-router-dom";
 import { List, ListItem } from "@mui/material";
 import { Queue } from "../Queue/Queue";
@@ -79,6 +79,12 @@ export function AppRoutes() {
 
 	const urlHistory = useHistory();
 	const currentUser = useCurrentUser();
+
+	useEffect(() => {
+		if (!currentUser.username) {
+			urlHistory.push("/");
+		}
+	},[urlHistory, currentUser]);
 
 	return (
 		<Switch>

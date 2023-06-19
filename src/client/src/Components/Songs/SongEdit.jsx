@@ -34,7 +34,10 @@ import {
 	saveSongsEditsMulti,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
-import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import {
+	useHasAnyRoles,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
@@ -232,6 +235,8 @@ export const SongEdit = () => {
 		}
 	});
 
+	useAuthViewStateChange(dispatch);
+
 	useEffect(() => {
 		const fetch = async () => {
 			try {
@@ -298,6 +303,7 @@ export const SongEdit = () => {
 
 	const album = watch("album");
 	const albumAsArray = useMemo(() => album ? [album] : [],[album]);
+
 	const albums = useCombinedContextAndFormItems(
 		contextAlbums,
 		albumAsArray

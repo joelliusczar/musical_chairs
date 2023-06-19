@@ -28,7 +28,10 @@ import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
-import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import {
+	useHasAnyRoles,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
@@ -39,10 +42,14 @@ export const SongCatalogue = () => {
 	const [catalogueState, catalogueDispatch] =
 		useReducer(waitingReducer(), pageableDataInitialState);
 
+
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const [selectedStation, setSelectedStation] = useState();
 	const location = useLocation();
 	const pathVars = useParams();
+
+	useAuthViewStateChange(catalogueDispatch);
+
 	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
 	const canRequestSongsForStation = anyConformsToAnyRule(
 		catalogueState?.data?.stationRules,

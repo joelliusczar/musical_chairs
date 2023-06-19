@@ -23,7 +23,10 @@ import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { formatError } from "../../Helpers/error_formatter";
-import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import {
+	useHasAnyRoles,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
@@ -42,6 +45,8 @@ export const History = () => {
 
 	const [historyState, historyDispatch] =
 		useReducer(waitingReducer(), pageableDataInitialState);
+
+	useAuthViewStateChange(historyDispatch);
 
 	const { callStatus: historyCallStatus } = historyState;
 

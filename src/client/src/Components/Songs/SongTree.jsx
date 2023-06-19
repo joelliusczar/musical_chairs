@@ -19,6 +19,7 @@ import {
 	getDownloadAddress,
 } from "../../Helpers/url_helpers";
 import { useSnackbar } from "notistack";
+import { useAuthViewStateChange } from "../../Context_Providers/AuthContext";
 
 
 export const SongTreeNode = (props) => {
@@ -59,6 +60,8 @@ export const SongDirectory = (props) => {
 	const { callStatus } = state;
 	const { getCacheValue, setCacheValue } = useCache();
 
+	useAuthViewStateChange(dispatch);
+	
 	useEffect(() => {
 		const fetch = async () => {
 			try {

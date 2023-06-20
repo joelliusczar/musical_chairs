@@ -30,6 +30,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import Row
+from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
 	users, u_pk, u_username, u_hashedPW, u_email, u_dirRoot, u_disabled,
 	u_creationTimestamp, u_displayName,
@@ -295,6 +296,7 @@ class AccountsService:
 
 	def get_account_list(
 		self,
+		searchTerm: Optional[str]=None,
 		page: int = 0,
 		pageSize: Optional[int]=None
 	) -> Iterator[AccountInfo]:
@@ -304,8 +306,21 @@ class AccountsService:
 			u_username,
 			u_displayName,
 			u_email
-		).offset(offset)\
-			.limit(pageSize)
+		).offset(offset)
+
+		if searchTerm is not None:
+			normalizedStr = SearchNameString.format_name_for_search(searchTerm)\
+				.replace(" ","")
+			query = query.where(
+				func.replace(
+					func.format_name_for_search(
+						coalesce(u_displayName, u_username)
+					),
+					" ",""
+					)
+					.like(f"{normalizedStr}%")
+			)
+		query = query.limit(pageSize)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield AccountInfo(**row) #pyright: ignore [reportUnknownArgumentType]

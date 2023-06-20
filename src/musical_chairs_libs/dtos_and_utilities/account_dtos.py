@@ -22,6 +22,7 @@ from .action_rule_dtos import (ActionRule, PathsActionRule)
 from .absorbent_trie import AbsorbentTrie
 from itertools import chain
 
+
 def get_station_owner_rules(
 	scopes: Optional[Collection[str]]=None
 ) -> Iterator[ActionRule]:
@@ -81,6 +82,8 @@ def get_path_owner_roles(ownerDir: Optional[str]) -> Iterator[PathsActionRule]:
 			path=ownerDir,
 			domain=UserRoleDomain.Path.value
 		)
+
+
 
 @dataclass(frozen=True)
 class AccountInfoBase:
@@ -194,6 +197,29 @@ class AccountCreationInfo(AccountInfoSecurity):
 				raise ValueError(f"{role} is an illegal role")
 		return v
 
+	# @validator("username")
+	# def username_valid_chars(cls, v: str) -> str:
+	# 	if re.match(r"\d", v):
+	# 		raise ValueError("username cannot start with a number")
+	# 	if re.match(guidRegx, v):
+	# 		msg = "Hey asshole! Stop trying to make your username a guid!"
+	# 		raise ValueError(msg)
+	# 	if re.search(r"[ \u0000-\u001f\u007f]", v):
+	# 		raise ValueError("username contains illegal characters")
+
+	# 	return SavedNameString.format_name_for_save(v)
+
+	# @validator("displayName")
+	# def displayName_valid_chars(cls, v: str) -> str:
+
+	# 	if re.match(guidRegx, v):
+	# 		msg = "Hey asshole! Stop trying to make your username a guid!"
+	# 		raise ValueError(msg)
+	# 	cleaned = re.sub(r"[\n\t]+| +"," ", v)
+	# 	if re.search(r"[\u0000-\u001f\u007f]", cleaned):
+	# 		raise ValueError("username contains illegal characters")
+
+	# 	return SavedNameString.format_name_for_save(cleaned)
 
 @dataclass(frozen=True)
 class PasswordInfo:

@@ -16,6 +16,9 @@ from collections import Counter
 from .type_aliases import (s2sDict)
 
 
+guidRegx = \
+	r"[a-zA-Z\d]{8}-?[a-zA-Z\d]{4}-?[a-zA-Z\d]{4}-?[a-zA-Z\d]{4}-?[a-zA-Z\d]{12}"
+
 def get_datetime() -> datetime:
 	return datetime.now(timezone.utc)
 

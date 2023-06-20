@@ -367,3 +367,65 @@ def test_save_roles(
 		UserRoleDef.PATH_EDIT.value,span=120
 	)
 	assert fetched[1] == ActionRule(UserRoleDef.USER_LIST.value)
+
+@pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
+def test_get_ambiguous_key(
+	fixture_account_service_mock_current_time: AccountsService
+):
+	pass
+	# accountService = fixture_account_service_mock_current_time
+	# accountInfo = accountService.get_account_for_edit("7")
+	# assert accountInfo
+	# assert accountInfo.displayName == "seven"
+
+def test_user_search(
+	fixture_account_service_mock_current_time: AccountsService
+):
+	accountService = fixture_account_service_mock_current_time
+	res = sorted(
+		accountService.get_account_list("a"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 1
+	assert res[0].displayName == "Alice is my name"
+	res = sorted(
+		accountService.get_account_list("f"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 4
+	assert res[0].displayName == "\uFB00 ozotroz"
+	assert res[1].displayName == "Felix the man"
+	assert res[2].displayName == None
+	assert res[3].displayName == "Foxtrain chu"
+
+	res = sorted(
+		accountService.get_account_list("fo"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 2
+	assert res[0].displayName == None
+	assert res[1].displayName == "Foxtrain chu"
+
+	res = sorted(
+		accountService.get_account_list("fox"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 2
+	assert res[0].displayName == None
+	assert res[1].displayName == "Foxtrain chu"
+
+	res = sorted(
+		accountService.get_account_list("foxt"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 1
+	assert res[0].displayName == "Foxtrain chu"
+
+	res = sorted(
+		accountService.get_account_list("n"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 3
+	assert res[0].displayName == "\u006E\u0303ovoper"
+	assert res[1].displayName == "Ned Land of the Spear"
+	assert res[2].displayName == "Narloni"

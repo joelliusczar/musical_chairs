@@ -42,6 +42,19 @@ xray_user_id = 24
 yankee_user_id = 25
 zulu_user_id = 26
 alice_user_id = 27
+bertrand_user_id = 28
+carl_user_id = 29
+dan_user_id = 30
+felix_user_id = 31
+foxman_user_id = 32
+foxtrain_user_id = 33
+george_user_id = 34
+hamburger_user_id = 35
+horsetel_user_id = 36
+ingo_user_id = 37
+ned_land_user_id = 38
+narlon_user_id = 39
+number_user_id = 40
 
 artist_params = [
 	{
@@ -909,7 +922,7 @@ def get_user_params(
 		{
 			"pk": bravo_user_id,
 			"username": "testUser_bravo",
-			"displayName": None,
+			"displayName": "Bravo Test User",
 			"hashedPW": testPassword,
 			"email": "test2@test.com",
 			"isDisabled": False,
@@ -919,7 +932,7 @@ def get_user_params(
 		{
 			"pk": charlie_user_id,
 			"username": "testUser_charlie",
-			"displayName": None,
+			"displayName": "charlie the user of tests",
 			"hashedPW": None,
 			"email": "test3@test.com",
 			"isDisabled": False,
@@ -929,7 +942,7 @@ def get_user_params(
 		{
 			"pk": delta_user_id,
 			"username": "testUser_delta",
-			"displayName": None,
+			"displayName": "DELTA USER",
 			"hashedPW": testPassword,
 			"email": "test4@test.com",
 			"isDisabled": True,
@@ -939,7 +952,7 @@ def get_user_params(
 		{
 			"pk": echo_user_id, #can't use. No password
 			"username": "testUser_echo",
-			"displayName": None,
+			"displayName": "ECHO, ECHO",
 			"hashedPW": None,
 			"email": None,
 			"isDisabled": False,
@@ -949,7 +962,7 @@ def get_user_params(
 		{
 			"pk": foxtrot_user_id,
 			"username": "testUser_foxtrot",
-			"displayName": None,
+			"displayName": "\uFB00 ozotroz",
 			"hashedPW": testPassword,
 			"email": "test6@test.com",
 			"isDisabled": False,
@@ -1029,7 +1042,7 @@ def get_user_params(
 		{
 			"pk": november_user_id,
 			"username": "testUser_november",
-			"displayName": None,
+			"displayName": "\u006E\u0303ovoper",
 			"hashedPW": testPassword,
 			"email": "test14@test.com",
 			"isDisabled": False,
@@ -1159,9 +1172,139 @@ def get_user_params(
 		{
 			"pk": alice_user_id,
 			"username": "testUser_alice",
-			"displayName": None,
+			"displayName": "Alice is my name",
 			"hashedPW": testPassword,
 			"email": "test27@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": bertrand_user_id,
+			"username": "bertrand",
+			"displayName": "Bertrance",
+			"hashedPW": testPassword,
+			"email": "test28@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": carl_user_id,
+			"username": "carl",
+			"displayName": "Carl the Cactus",
+			"hashedPW": testPassword,
+			"email": "test29@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": dan_user_id,
+			"username": "dan",
+			"displayName": "Dookie Dan",
+			"hashedPW": testPassword,
+			"email": "test30@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": felix_user_id,
+			"username": "felix",
+			"displayName": "Felix the man",
+			"hashedPW": testPassword,
+			"email": "test31@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": foxman_user_id,
+			"username": "foxman",
+			"displayName": None,
+			"hashedPW": testPassword,
+			"email": "test32@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": foxtrain_user_id,
+			"username": "foxtrain",
+			"displayName": "Foxtrain chu",
+			"hashedPW": testPassword,
+			"email": "test33@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": george_user_id,
+			"username": "george",
+			"displayName": "George Costanza",
+			"hashedPW": testPassword,
+			"email": "test35@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": hamburger_user_id,
+			"username": "hamburger",
+			"displayName": "HamBurger",
+			"hashedPW": testPassword,
+			"email": "test36@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": horsetel_user_id,
+			"username": "horsetel",
+			"displayName": "horsetelophone",
+			"hashedPW": testPassword,
+			"email": "test37@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": ingo_user_id,
+			"username": "ingo",
+			"displayName": "Ingo      is a bad man",
+			"hashedPW": testPassword,
+			"email": "test38@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": ned_land_user_id,
+			"username": "ned_land",
+			"displayName": "Ned Land of the Spear",
+			"hashedPW": testPassword,
+			"email": "test39@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": narlon_user_id,
+			"username": "narlon",
+			"displayName": "Narloni",
+			"hashedPW": testPassword,
+			"email": "test40@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
+		},
+		{
+			"pk": number_user_id,
+			"username": "7",
+			"displayName": "seven",
+			"hashedPW": testPassword,
+			"email": "test41@test.com",
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": None

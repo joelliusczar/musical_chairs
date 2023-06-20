@@ -206,19 +206,19 @@ def test_song_save(
 	sendData["stations"][0]["owner"] = {
 		"id": 2,
 		"username":"testUser_bravo",
-		"displayName": None,
+		"displayName": "Bravo Test User",
 	}
 	sendData["stations"][0]["rules"] = []
 	sendData["stations"][1]["owner"] = {
 		"id": 2,
 		"username":"testUser_bravo",
-		"displayName": None,
+		"displayName": "Bravo Test User",
 	}
 	sendData["stations"][1]["rules"] = []
 	sendData["stations"][2]["owner"] = {
 		"id": 2,
 		"username":"testUser_bravo",
-		"displayName": None,
+		"displayName": "Bravo Test User",
 	}
 	sendData["stations"][2]["rules"] = []
 	mismatches = mismatched_properties(
@@ -378,7 +378,11 @@ def test_get_songs_for_multi_edit(
 			"name": "oscar_station",
 			"displayName": "Oscar the grouch",
 			"isRunning": False,
-			"owner": {"id": 2, "username": "testUser_bravo", "displayName": None},
+			"owner": {
+				"id": 2,
+				"username": "testUser_bravo",
+				"displayName": "Bravo Test User"
+			},
 			"rules": [],
 			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
 			"viewSecurityLevel": 0

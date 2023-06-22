@@ -17,7 +17,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	StationTableData,
 	UserRoleDef,
-	ActionRule
+	ActionRule,
+	TableData
 )
 from musical_chairs_libs.services import (
 	StationService,
@@ -250,3 +251,11 @@ def play_next(
 	queueService: QueueService = Depends(queue_service)
 ):
 	queueService.pop_next_queued(station.id)
+
+@router.get("/{ownerKey}/{stationKey}/user_list")
+def get_station_user_list(
+	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
+	stationService: StationService = Depends(station_service),
+) -> TableData[AccountInfo]:
+	stationUsers = list(stationService.get_station_users(stationInfo))
+	return TableData(stationUsers, len(stationUsers))

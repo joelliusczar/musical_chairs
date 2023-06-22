@@ -32,6 +32,7 @@ import {
 } from "../../Context_Providers/AuthContext";
 import { Loader } from "../Shared/Loader";
 import { FormSelect } from "../Shared/FormSelect";
+import { UserSearch } from "../Accounts/UserSearch";
 
 
 const inputField = {
@@ -252,6 +253,9 @@ export const StationEdit = (props) => {
 					defaultValue={viewSecurityOptions[1]}
 					getOptionDisabled={o => o.id in bannedRequestLevels}
 				/>
+			</Box>
+			<Box>
+
 			</Box>
 			<Box sx={inputField} >
 				<Button onClick={callSubmit}>

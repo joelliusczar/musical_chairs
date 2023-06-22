@@ -340,7 +340,7 @@ def test_get_stations_with_view_security(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 14
+	assert len(data) == 13
 
 
 def test_get_stations_with_scopes(
@@ -452,3 +452,56 @@ def test_get_stations_with_odd_priority(
 		key=lambda s:s.id
 	)
 	assert len(data) == 12
+
+def test_get_station_user_list(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+):
+	stationService = fixture_station_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("ingo")
+	assert user
+
+	station = next(stationService.get_stations(17, user=user))
+	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
+	assert len(result) == 4
+	assert result[0].username == "carl"
+	assert len(result[0].roles) == 1
+	assert result[0].roles[0].name == UserRoleDef.STATION_FLIP.value
+
+	assert result[1].username == "george"
+	assert len(result[1].roles) == 3
+	rules = sorted(result[1].roles, key=lambda r: r.name)
+	assert rules[0].name == UserRoleDef.STATION_FLIP.value
+	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[2].name == UserRoleDef.STATION_VIEW.value
+
+	assert result[2].username == "horsetel"
+	assert len(result[2].roles) == 1
+	rules = sorted(result[2].roles, key=lambda r: r.name)
+	assert rules[0].name == UserRoleDef.STATION_VIEW.value
+
+	assert result[3].username == "narlon"
+	assert len(result[3].roles) == 3
+	rules = sorted(result[3].roles, key=lambda r: r.name)
+	assert rules[0].name == UserRoleDef.STATION_ASSIGN.value
+	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[1].span == 5
+	assert rules[1].count == 300
+	assert rules[2].name == UserRoleDef.STATION_VIEW.value
+
+	station = next(stationService.get_stations(18, user=user))
+	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
+	assert len(result) == 1
+	assert result[0].username == "narlon"
+	assert len(result[0].roles) == 2
+	rules = sorted(result[0].roles, key=lambda r: r.name)
+	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
+	assert rules[0].span == 100
+	assert rules[0].count == 300
+	assert rules[1].name == UserRoleDef.STATION_VIEW.value
+
+	user,_ = accountService.get_account_for_login("testUser_victor")
+	station = next(stationService.get_stations(12, user=user))
+	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
+	assert len(result) == 0

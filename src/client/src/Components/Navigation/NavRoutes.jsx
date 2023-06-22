@@ -20,6 +20,7 @@ import {
 	useCurrentUser,
 	useHasAnyRoles,
 } from "../../Context_Providers/AuthContext";
+import { cookieToObject } from "../../Helpers/browser_helpers";
 
 
 
@@ -82,7 +83,10 @@ export function AppRoutes() {
 
 	useEffect(() => {
 		if (!currentUser.username) {
-			urlHistory.push("/");
+			const cookieObj = cookieToObject(document.cookie); 
+			if (!cookieObj["username"]) {
+				urlHistory.push("/");
+			}
 		}
 	},[urlHistory, currentUser]);
 
@@ -119,6 +123,14 @@ export function AppRoutes() {
 			>
 				<SongCatalogue />
 			</Route>
+			{currentUser.username && <Route
+				path={DomRoutes.stationUsers({
+					stationKey: ":stationKey",
+					ownerKey: ":ownerKey",
+				})}
+			>
+				<AccountsNew />
+			</Route>}
 			{!currentUser.username &&<Route path={DomRoutes.accountsNew()}>
 				<AccountsNew />
 			</Route>}

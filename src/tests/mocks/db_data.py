@@ -842,6 +842,18 @@ station_params = [
 		"displayName": "fucked six ways to Sunday",
 		"ownerFk": yankee_user_id,
 		"viewSecurityLevel": MinItemSecurityLevel.LOCKED.value
+	},
+	{ "pk": 17,
+		"name": "golf_station_rerun",
+		"displayName": "goliath bam bam",
+		"ownerFk": ingo_user_id,
+		"viewSecurityLevel": MinItemSecurityLevel.INVITED_USER.value
+	},
+	{ "pk": 18,
+		"name": "hotel_station_rerun",
+		"displayName": "hella cool radio station",
+		"ownerFk": ingo_user_id,
+		"viewSecurityLevel": MinItemSecurityLevel.INVITED_USER.value
 	}
 ]
 
@@ -1643,26 +1655,106 @@ def get_station_permission_params(
 			"priority": RulePriorityLevel.STATION_PATH.value - 5,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
-		# {
-		# 	"pk":17,
-		# 	"userFk": foxtrot_user_id,
-		# 	"stationFk": 7,
-		# 	"role": UserRoleDef.STATION_ASSIGN.value,
-		# 	"span":0,
-		# 	"count":0,
-		# 	"priority": None,
-		# 	"creationTimestamp": orderedTestDates[0].timestamp()
-		# },
-		# {
-		# 	"pk":18,
-		# 	"userFk": foxtrot_user_id,
-		# 	"stationFk": 10,
-		# 	"role": UserRoleDef.STATION_ASSIGN.value,
-		# 	"span":0,
-		# 	"count":0,
-		# 	"priority": None,
-		# 	"creationTimestamp": orderedTestDates[0].timestamp()
-		# },
+		{
+			"pk":19,
+			"userFk": narlon_user_id,
+			"stationFk": 17,
+			"role": UserRoleDef.STATION_ASSIGN.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":20,
+			"userFk": narlon_user_id,
+			"stationFk": 17,
+			"role": UserRoleDef.STATION_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":21,
+			"userFk": narlon_user_id,
+			"stationFk": 17,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":5,
+			"count":300,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":22,
+			"userFk": narlon_user_id,
+			"stationFk": 18,
+			"role": UserRoleDef.STATION_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":23,
+			"userFk": narlon_user_id,
+			"stationFk": 18,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":100,
+			"count":300,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":24,
+			"userFk": horsetel_user_id,
+			"stationFk": 17,
+			"role": UserRoleDef.STATION_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":25,
+			"userFk": george_user_id,
+			"stationFk": 17,
+			"role": UserRoleDef.STATION_VIEW.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":26,
+			"userFk": george_user_id,
+			"stationFk": 17,
+			"role": UserRoleDef.STATION_REQUEST.value,
+			"span":70,
+			"count":10,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":27,
+			"userFk": george_user_id,
+			"stationFk": 17,
+			"role": UserRoleDef.STATION_FLIP.value,
+			"span":70,
+			"count":10,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":28,
+			"userFk": carl_user_id,
+			"stationFk": 17,
+			"role": UserRoleDef.STATION_FLIP.value,
+			"span":70,
+			"count":10,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
 	]
 
 def get_path_permission_params(

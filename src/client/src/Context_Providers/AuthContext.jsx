@@ -23,6 +23,7 @@ import {
 import { useSnackbar } from "notistack";
 import { LoginModal } from "../Components/Accounts/AccountsLoginModal";
 import { BrowserRouter } from "react-router-dom";
+import { cookieToObject } from "../Helpers/browser_helpers";
 
 
 const loggedOut = {
@@ -134,15 +135,13 @@ export const AuthContextProvider = (props) => {
 
 	useEffect(() => {
 		if (loggedInUsername) return;
-		const kvps = document.cookie.split(";");
-		const username = decodeURIComponent(
-			kvps.find(kvp => kvp.startsWith("username"))?.split("=")[1] || ""
-		);
+		const cookieObj = cookieToObject(document.cookie);
+		const username = decodeURIComponent(cookieObj["username"] || "");
 
 		const displayName = decodeURIComponent(
-			kvps.find(kvp => kvp.startsWith("displayName"))
-				?.split("=")[1] || username
-		);
+			cookieObj["displayName"] || ""
+		) || username;
+
 
 		if(!document.cookie) return;
 		dispatch(dispatches.assign({username, displayName}));

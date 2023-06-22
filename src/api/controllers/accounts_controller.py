@@ -134,13 +134,34 @@ def create_new_account(
 	Security(get_user_with_simple_scopes, scopes=[UserRoleDef.USER_LIST.value])
 ])
 def get_user_list(
+	searchTerm: Optional[str]=None,
 	page: int = 0,
 	pageSize: Optional[int] = None,
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> TableData[AccountInfo]:
-	accounts = list(accountsService.get_account_list(page, pageSize))
+	accounts = list(accountsService.get_account_list(
+		searchTerm=searchTerm,
+		page=page,
+		pageSize=pageSize
+	))
 	totalRows = accountsService.get_accounts_count()
 	return TableData(totalRows=totalRows, items=accounts)
+
+@router.get("/search", dependencies=[
+	# Security(get_user_with_simple_scopes, scopes=[UserRoleDef.USER_LIST.value])
+])
+def search_users(
+	searchTerm: Optional[str]=None,
+	page: int = 0,
+	pageSize: Optional[int] = None,
+	accountsService: AccountsService = Depends(accounts_service)
+) -> list[AccountInfo]:
+	accounts = list(accountsService.get_account_list(
+		searchTerm=searchTerm,
+		page=page,
+		pageSize=pageSize
+	))
+	return accounts
 
 @router.put("/account/{userKey}")
 def update_account(
@@ -167,7 +188,6 @@ def update_password(
 					"Password"
 				)],
 		)
-
 
 @router.put("/update-roles/{userKey}")
 def update_roles(

@@ -23,6 +23,8 @@ export const DomRoutes = {
 	stationsEdit: ({ stationKey, ownerKey }) =>
 		`/stations/edit/${ownerKey}/${stationKey}`,
 	stationsAdd: () => "/stations/edit/",
+	stationUsers: ({ stationKey, ownerKey }) =>
+		`stations/users/${ownerKey}/${stationKey}`,
 	songEdit: () => "/songs/edit/",
 	songCatalogue: ({ stationKey, ownerKey }) => {
 		const stationSegment = stationKey ? `${stationKey}/` : "";

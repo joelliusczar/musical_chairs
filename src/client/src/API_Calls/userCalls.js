@@ -50,6 +50,13 @@ export const fetchUserList = async ({ params }) => {
 	return response.data;
 };
 
+export const searchUsers = async ({ params }) => {
+	const response = await webClient.get("accounts/search", {
+		params: params,
+	});
+	return response.data;
+};
+
 export const updateUserRoles = async ({ id, roles }) => {
 	const response = await webClient.put(`accounts/update-roles/${id}`,
 		roles

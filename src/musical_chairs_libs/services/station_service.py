@@ -21,7 +21,6 @@ from sqlalchemy import (
 	update,
 	or_,
 	and_,
-	union_all,
 	literal as dbLiteral  #pyright: ignore [reportUnknownVariableType]
 )
 from musical_chairs_libs.tables import (
@@ -34,9 +33,8 @@ from musical_chairs_libs.tables import (
 	song_artist, sgar_songFk, sgar_artistFk,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	station_user_permissions as station_user_permissions_tbl,
-	stup_role, stup_stationFk, stup_userFk, stup_count, stup_span, stup_priority,
-	users as user_tbl, u_username, u_pk, u_displayName,
-	ur_userFk, ur_role, ur_count, ur_span, ur_priority
+	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
+	u_disabled
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
@@ -55,7 +53,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_station_owner_rules,
 	RulePriorityLevel,
 	OwnerInfo,
-	MinItemSecurityLevel
+	MinItemSecurityLevel,
+	build_rules_query,
+	row_to_action_rule,
+	generate_user_and_rules_from_rows
 )
 from .env_manager import EnvManager
 from .template_service import TemplateService
@@ -105,56 +106,21 @@ class StationService:
 		pk: Optional[int] = cast(int,row[st_pk]) if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk
 
-	def __build_rules_query__(self, userId: int) -> Select:
-		return union_all(
-			select(
-				stup_stationFk.label("rule_stationFk"), #pyright: ignore [reportUnknownMemberType]
-				stup_role.label("rule_name"), #pyright: ignore [reportUnknownMemberType]
-				stup_count.label("rule_count"), #pyright: ignore [reportUnknownMemberType]
-				stup_span.label("rule_span"), #pyright: ignore [reportUnknownMemberType]
-				coalesce(
-					stup_priority, #pyright: ignore [reportUnknownMemberType]
-					RulePriorityLevel.STATION_PATH.value
-				).label("rule_priority"),
-				dbLiteral(UserRoleDomain.Station.value).label("rule_domain") #pyright: ignore [reportUnknownMemberType]
-			).where(stup_userFk == userId),
-			select(
-				dbLiteral(-1).label("rule_stationFk"), #pyright: ignore [reportUnknownMemberType]
-				ur_role.label("rule_name"), #pyright: ignore [reportUnknownMemberType]
-				ur_count.label("rule_count"), #pyright: ignore [reportUnknownMemberType]
-				ur_span.label("rule_span"), #pyright: ignore [reportUnknownMemberType]
-				coalesce(
-					ur_priority, #pyright: ignore [reportUnknownMemberType]
-					RulePriorityLevel.SITE.value
-				).label("rule_priority"),
-				dbLiteral(UserRoleDomain.Site.value).label("rule_domain") #pyright: ignore [reportUnknownMemberType]
-			).where(ur_userFk == userId)\
-				.where(ur_role.like(f"{UserRoleDomain.Station.value}:%")),
-			select(
-				dbLiteral(None).label("rule_stationFk"), #pyright: ignore [reportUnknownMemberType]
-				dbLiteral(UserRoleDef.STATION_VIEW.value).label("rule_name"), #pyright: ignore [reportUnknownMemberType]
-				dbLiteral(0).label("rule_count"), #pyright: ignore [reportUnknownMemberType]
-				dbLiteral(0).label("rule_span"), #pyright: ignore [reportUnknownMemberType]
-				dbLiteral(0).label("rule_priority"), #pyright: ignore [reportUnknownMemberType]
-				dbLiteral("shim").label("rule_domain") #pyright: ignore [reportUnknownMemberType]
-			)
-		)
-
 	def __attach_user_joins__(
 		self,
 		query: Select,
 		userId: int,
 		scopes: Optional[Collection[str]]=None
 	) -> Select:
-		rulesQuery = self.__build_rules_query__(userId)
-		rulesSubquery = cast(CTE, rulesQuery.cte()) #pyright: ignore [reportUnknownMemberType]
+		rulesQuery = build_rules_query(UserRoleDomain.Station, userId)
+		rulesSubquery = cast(CTE, rulesQuery.cte(name="rulesQuery")) #pyright: ignore [reportUnknownMemberType]
 		canViewQuery= cast(CTE, select(
 			rulesSubquery.c.rule_stationFk, #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
 		).where(
 			rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
-		).cte())
+		).cte(name="canViewQuery"))
 
 		topSiteRule = cast(CTE, select(
 			coalesce(
@@ -162,9 +128,9 @@ class StationService:
 				RulePriorityLevel.NONE.value
 			).label("max")
 		).where(
-			rulesSubquery.c.rule_domain == UserRoleDomain.Site.value #pyright: ignore [reportUnknownMemberType]
+			canViewQuery.c.rule_domain == UserRoleDomain.Site.value #pyright: ignore [reportUnknownMemberType]
 		)\
-			.cte())
+			.cte("topSiteRule"))
 
 		query = query.join( #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery,
@@ -183,9 +149,10 @@ class StationService:
 							RulePriorityLevel.NONE.value
 						)).where(st_pk == canViewQuery.c.rule_stationFk).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
 				and_(
-					dbLiteral(UserRoleDomain.Site.value).in_( #pyright: ignore [reportUnknownMemberType]
-						select(canViewQuery.c.rule_domain).subquery() #pyright: ignore [reportUnknownMemberType]
-					),
+					dbLiteral(UserRoleDomain.Site.value)
+						.in_( #pyright: ignore [reportUnknownMemberType]
+							select(canViewQuery.c.rule_domain) #pyright: ignore [reportUnknownMemberType]
+						),
 					coalesce(
 						st_viewSecurityLevel,
 						MinItemSecurityLevel.RULED_USER.value
@@ -232,18 +199,6 @@ class StationService:
 				or MinItemSecurityLevel.PUBLIC.value,
 		)
 
-	def __row_to_action_rule__(self, row: Row) -> ActionRule:
-		return ActionRule(
-			cast(str,row["rule_name"]),
-			cast(int,row["rule_span"]),
-			cast(int,row["rule_count"]),
-			#if priortity is explict use that
-			#otherwise, prefer station specific rule vs non station specific rule
-			cast(int,row["rule_priority"]) if row["rule_priority"] \
-				else RulePriorityLevel.STATION_PATH.value,
-			domain=cast(str, row["rule_domain"])
-		)
-
 	def __generate_station_and_rules_from_rows__(
 		self,
 		rows: Iterable[Row],
@@ -260,9 +215,9 @@ class StationService:
 					yield currentStation
 				currentStation = self.__row_to_station__(row)
 				if cast(str,row["rule_domain"]) != "shim":
-					currentStation.rules.append(self.__row_to_action_rule__(row))
+					currentStation.rules.append(row_to_action_rule(row))
 			elif cast(str,row["rule_domain"]) != "shim":
-				currentStation.rules.append(self.__row_to_action_rule__(row))
+				currentStation.rules.append(row_to_action_rule(row))
 		if currentStation:
 			stationOwner = currentStation.owner
 			if stationOwner and stationOwner.id == userId:
@@ -580,3 +535,59 @@ class StationService:
 		)
 		return calcWhenFn(userId, selectedRule, stationKey)
 
+	def get_station_users(
+		self,
+		station: StationInfo,
+	) -> Iterator[AccountInfo]:
+		rulesQuery = build_rules_query(UserRoleDomain.Station).cte() #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+		query = select(
+			u_pk,
+			u_username,
+			u_displayName,
+			u_email,
+			u_dirRoot,
+			rulesQuery.c.rule_userFk, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_name, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_count, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_span, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
+		).select_from(user_tbl).join(
+			rulesQuery,
+			and_(
+				rulesQuery.c.rule_userFk == u_pk,  #pyright: ignore [reportUnknownMemberType]
+				rulesQuery.c.rule_stationFk == station.id  #pyright: ignore [reportUnknownMemberType]
+			),
+			isouter=True
+		).where(or_(u_disabled.is_(None), u_disabled == False))\
+		.where(
+			coalesce(
+				rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+				RulePriorityLevel.SITE.value
+			) > MinItemSecurityLevel.INVITED_USER.value
+		)\
+		.order_by(u_username)
+		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
+		yield from generate_user_and_rules_from_rows(
+			records,
+			UserRoleDomain.Station,
+			station.owner.id if station.owner else None
+		)
+
+	def add_user_rule_to_station(
+		self,
+		addedUserId: int,
+		stationId: int,
+		rule: ActionRule
+	):
+		insert(station_user_permissions_tbl).values(
+			userFk = addedUserId,
+			stationFk = stationId,
+			role = rule.name,
+			span =rule.span,
+			count = rule.count,
+			priority = None,
+			creationTimestamp = self.get_datetime().timestamp()
+		)
+		stmt = insert(station_user_permissions_tbl)
+		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]

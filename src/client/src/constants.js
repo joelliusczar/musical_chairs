@@ -24,7 +24,7 @@ export const DomRoutes = {
 		`/stations/edit/${ownerKey}/${stationKey}`,
 	stationsAdd: () => "/stations/edit/",
 	stationUsers: ({ stationKey, ownerKey }) =>
-		`stations/users/${ownerKey}/${stationKey}`,
+		`/stations/users/${ownerKey}/${stationKey}`,
 	songEdit: () => "/songs/edit/",
 	songCatalogue: ({ stationKey, ownerKey }) => {
 		const stationSegment = stationKey ? `${stationKey}/` : "";
@@ -50,6 +50,7 @@ export const UserRoleDef = {
 	SONG_EDIT: "song:edit",
 	SONG_DOWNLOAD: "song:download",
 	SONG_TREE_LIST: "songtree:list",
+	STATION_VIEW: `${UserRoleDomain.STATION}:view`,
 	STATION_CREATE: `${UserRoleDomain.STATION}:create`,
 	STATION_EDIT: `${UserRoleDomain.STATION}:edit`,
 	STATION_DELETE: `${UserRoleDomain.STATION}:delete`,
@@ -57,6 +58,7 @@ export const UserRoleDef = {
 	STATION_FLIP: `${UserRoleDomain.STATION}:flip`,
 	STATION_SKIP: `${UserRoleDomain.STATION}:skip`,
 	STATION_ASSIGN: `${UserRoleDomain.STATION}:assign`,
+	STATION_USER_ASSIGN: `${UserRoleDomain.STATION}:userassign`,
 	USER_LIST: "user:list",
 	USER_EDIT: "user:edit",
 	USER_IMPERSONATE: "user:impersonate",

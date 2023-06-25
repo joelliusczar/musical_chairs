@@ -21,6 +21,9 @@ import {
 	useHasAnyRoles,
 } from "../../Context_Providers/AuthContext";
 import { cookieToObject } from "../../Helpers/browser_helpers";
+import {
+	StationUserRoleAssignmentTable,
+} from "../Stations/StationUserRoleAssigmentTable";
 
 
 
@@ -129,7 +132,7 @@ export function AppRoutes() {
 					ownerKey: ":ownerKey",
 				})}
 			>
-				<AccountsNew />
+				<StationUserRoleAssignmentTable />
 			</Route>}
 			{!currentUser.username &&<Route path={DomRoutes.accountsNew()}>
 				<AccountsNew />

@@ -6,6 +6,7 @@ import {
 	Button,
 	Grid,
 	Typography,
+	Box,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
@@ -29,6 +30,9 @@ import {
 import { CallStatus } from "../../constants";
 import { YesNoControl } from "../Shared/YesNoControl";
 import { userKeyMatch } from "../../Helpers/compare_helpers";
+import {
+	anyConformsToAnyRule,
+} from "../../Helpers/rule_helpers";
 
 
 const useStyles = makeStyles(() => ({
@@ -119,6 +123,22 @@ export const Stations = () => {
 		setWaitConfirm(name);
 	};
 
+	const canAssignUsersToStation = (station) => {
+		const canAssign = anyConformsToAnyRule(
+			station.rules,
+			[UserRoleDef.STATION_USER_ASSIGN]
+		);
+		return canAssign;
+	};
+
+	const canEditStation = (station) => {
+		const canAssign = anyConformsToAnyRule(
+			station.rules,
+			[UserRoleDef.STATION_EDIT]
+		);
+		return canAssign;
+	};
+
 	const stations = contextStations && pathVars.ownerKey ?
 		contextStations.filter(s => userKeyMatch(pathVars.ownerKey,s.owner)) :
 		contextStations;
@@ -190,21 +210,8 @@ export const Stations = () => {
 						</Typography>
 					</AccordionSummary>
 					<AccordionDetails>
-						<div>
+						<Box>
 							<Grid container>
-								<Grid item>
-									{canCreateStation && <Button
-										color="primary"
-										variant="contained"
-										component={Link}
-										to={DomRoutes.stationsEdit({
-											stationKey: s.name,
-											ownerKey: s.owner?.username,
-										})}
-									>
-										Edit
-									</Button>}
-								</Grid>
 								<Grid item>
 									<Button
 										component={Link}
@@ -249,8 +256,34 @@ export const Stations = () => {
 											Song Queue
 									</Button>
 								</Grid>
+								<Grid item>
+									{canEditStation(s) && <Button
+										color="primary"
+										variant="contained"
+										component={Link}
+										to={DomRoutes.stationsEdit({
+											stationKey: s.name,
+											ownerKey: s.owner?.username,
+										})}
+									>
+										Edit
+									</Button>}
+								</Grid>
+								<Grid item>
+									{canAssignUsersToStation(s) && <Button
+										color="primary"
+										variant="contained"
+										component={Link}
+										to={DomRoutes.stationUsers({
+											stationKey: s.name,
+											ownerKey: s.owner?.username,
+										})}
+									>
+										Assign Users
+									</Button>}
+								</Grid>
 							</Grid>
-						</div>
+						</Box>
 					</AccordionDetails>
 				</Accordion>);
 			}) : <Typography>No Stations have been added</Typography>}

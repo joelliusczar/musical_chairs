@@ -25,7 +25,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ChainedAbsorbentTrie,
 	normalize_opening_slash,
 	UserRoleDef,
-	StationInfo
+	StationInfo,
+	RulePriorityLevel
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -381,7 +382,7 @@ def __filter_station_rules__(
 			yield rule
 			continue
 		#shouldn't be any rules for other stations at this point
-		if secLevel < rule.priority:
+		if secLevel < (rule.priority or RulePriorityLevel.NONE.value):
 			yield rule
 			continue
 

@@ -15,7 +15,7 @@ import { userKeyMatch, keyMatch } from "../../Helpers/compare_helpers";
 
 export const StationRouteSelect = (props) => {
 
-	const { getPageUrl, onChange } = props;
+	const { getPageUrl, onChange, unrendered } = props;
 	const pathVars = useParams();
 	const urlHistory = useHistory();
 	const location = useLocation();
@@ -75,7 +75,7 @@ export const StationRouteSelect = (props) => {
 	const ownername = selectedStation?.owner?.username?.toLowerCase() || "";
 
 
-	return (stations?.length > 0 &&
+	return (stations?.length > 0 && !unrendered &&
 		<TextField
 			select
 			SelectProps={{
@@ -137,4 +137,5 @@ export const StationRouteSelect = (props) => {
 StationRouteSelect.propTypes = {
 	getPageUrl: PropTypes.func,
 	onChange: PropTypes.func,
+	unrendered: PropTypes.bool,
 };

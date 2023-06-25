@@ -18,7 +18,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationTableData,
 	UserRoleDef,
 	ActionRule,
-	TableData
+	TableData,
+	StationActionRule,
+	UserRoleDomain,
+	build_error_obj
 )
 from musical_chairs_libs.services import (
 	StationService,
@@ -259,3 +262,41 @@ def get_station_user_list(
 ) -> TableData[AccountInfo]:
 	stationUsers = list(stationService.get_station_users(stationInfo))
 	return TableData(stationUsers, len(stationUsers))
+
+def validate_station_rule(rule: StationActionRule) -> StationActionRule:
+	valid_name_set = UserRoleDef.as_set(UserRoleDomain.Station.value)
+	if rule.name not in valid_name_set:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				f"{rule.name} is not a valid rule for stations"
+			)],
+		)
+	return rule
+
+
+@router.post("/{ownerKey}/{stationKey}/user_role",
+	status_code=status.HTTP_204_NO_CONTENT
+)
+def add_user_rule(
+	userId: int,
+	rule: StationActionRule = Depends(validate_station_rule),
+	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
+	stationService: StationService = Depends(station_service),
+):
+	stationService.add_user_rule_to_station(userId, stationInfo.id, rule)
+
+@router.delete("/{ownerKey}/{stationKey}/user_role",
+	status_code=status.HTTP_204_NO_CONTENT
+)
+def remove_user_rule(
+	userId: int,
+	ruleName: str,
+	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
+	stationService: StationService = Depends(station_service),
+):
+	stationService.remove_user_rule_from_station(
+		userId,
+		stationInfo.id,
+		ruleName
+	)

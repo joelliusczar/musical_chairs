@@ -21,7 +21,8 @@ from sqlalchemy import (
 	update,
 	or_,
 	and_,
-	literal as dbLiteral  #pyright: ignore [reportUnknownVariableType]
+	literal as dbLiteral,  #pyright: ignore [reportUnknownVariableType]
+	delete
 )
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
@@ -32,7 +33,8 @@ from musical_chairs_libs.tables import (
 	artists, ar_name, ar_pk,
 	song_artist, sgar_songFk, sgar_artistFk,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
-	station_user_permissions as station_user_permissions_tbl,
+	station_user_permissions as station_user_permissions_tbl, stup_userFk,
+	stup_stationFk, stup_role,
 	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
 	u_disabled
 )
@@ -46,6 +48,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
 	AccountInfo,
 	ActionRule,
+	StationActionRule,
 	IllegalOperationError,
 	UserRoleDef,
 	AlreadyUsedError,
@@ -474,7 +477,7 @@ class StationService:
 		query = select(q_requestedTimestamp).select_from(station_queue)\
 			.where(q_requestedTimestamp >= fromTimestamp)\
 			.where(q_requestedByUserFk == userId)
-		if selectedRule.domain == UserRoleDomain.Station:
+		if isinstance(selectedRule, StationActionRule):
 			if type(stationKey) == int:
 				query = query.where(q_stationFk == stationKey)
 			elif type(stationKey) == str:
@@ -580,7 +583,7 @@ class StationService:
 		stationId: int,
 		rule: ActionRule
 	):
-		insert(station_user_permissions_tbl).values(
+		stmt = insert(station_user_permissions_tbl).values(
 			userFk = addedUserId,
 			stationFk = stationId,
 			role = rule.name,
@@ -589,5 +592,16 @@ class StationService:
 			priority = None,
 			creationTimestamp = self.get_datetime().timestamp()
 		)
-		stmt = insert(station_user_permissions_tbl)
 		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+
+	def remove_user_rule_from_station(
+		self,
+		userId: int,
+		stationId: int,
+		ruleName: str
+	):
+		delStmt = delete(station_user_permissions_tbl)\
+			.where(stup_userFk == userId)\
+			.where(stup_stationFk == stationId)\
+			.where(stup_role == ruleName)
+		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]

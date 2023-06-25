@@ -55,6 +55,7 @@ ingo_user_id = 37
 ned_land_user_id = 38
 narlon_user_id = 39
 number_user_id = 40
+oomdwell_user_id = 41
 
 artist_params = [
 	{
@@ -1320,6 +1321,16 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": None
+		},
+		{
+			"pk": oomdwell_user_id,
+			"username": "testUser_oomdwell",
+			"displayName": "Oomdwellmit",
+			"hashedPW": testPassword,
+			"email": "test42@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": None
 		}
 	]
 	return users_params
@@ -1752,6 +1763,16 @@ def get_station_permission_params(
 			"role": UserRoleDef.STATION_FLIP.value,
 			"span":70,
 			"count":10,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":29,
+			"userFk": oomdwell_user_id,
+			"stationFk": 11,
+			"role": UserRoleDef.STATION_USER_ASSIGN.value,
+			"span":0,
+			"count":0,
 			"priority": None,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},

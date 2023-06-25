@@ -89,3 +89,36 @@ export const disableStations = async ({ ids, names }) => {
 		.put(`stations/disable/${queryStr}`);
 	return response.data;
 };
+
+export const fetchStationUsers = async ({ stationKey, params, ownerKey }) => {
+	const url = `stations/${ownerKey}/${stationKey}/user_list/`;
+	const response = await webClient.get(url, {
+		params: params,
+	});
+	return response.data;
+};
+
+export const addStationUserRule = async ({
+	ownerKey,
+	stationKey,
+	params,
+	rule,
+}) => {
+	const url = `stations/${ownerKey}/${stationKey}/user_role/`;
+	const response = await webClient.post(url, rule, {
+		params: params,
+	});
+	return response.data;
+};
+
+export const removeStationUserRule = async ({
+	ownerKey,
+	stationKey,
+	params,
+}) => {
+	const url = `stations/${ownerKey}/${stationKey}/user_role/`;
+	const response = await webClient.delete(url, {
+		params: params,
+	});
+	return response.data;
+};

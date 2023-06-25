@@ -18,7 +18,10 @@ from .user_role_def import (
 	UserRoleDomain,
 	RulePriorityLevel,
 )
-from .action_rule_dtos import ActionRule
+from .action_rule_dtos import (
+	ActionRule,
+	action_rule_class_map,
+)
 from .account_dtos import AccountInfo, get_station_owner_rules
 
 __station_permissions_query__ = select(
@@ -109,15 +112,19 @@ def row_to_user(row: Row) -> AccountInfo:
 	)
 
 def row_to_action_rule(row: Row) -> ActionRule:
-	return ActionRule(
+	clsConstructor = action_rule_class_map.get(
+		cast(str, row["rule_domain"]),
+		ActionRule
+	)
+
+	return clsConstructor(
 		cast(str,row["rule_name"]),
 		cast(int,row["rule_span"]),
 		cast(int,row["rule_count"]),
 		#if priortity is explict use that
 		#otherwise, prefer station specific rule vs non station specific rule
 		cast(int,row["rule_priority"]) if row["rule_priority"] \
-			else RulePriorityLevel.STATION_PATH.value,
-		domain=cast(str, row["rule_domain"])
+			else RulePriorityLevel.STATION_PATH.value
 	)
 
 def generate_user_and_rules_from_rows(

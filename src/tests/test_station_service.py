@@ -2,8 +2,8 @@ import pytest
 from musical_chairs_libs.services import (
 	StationService,
 	AccountsService,
-	UserRoleDomain,
-	UserRoleDef
+	UserRoleDef,
+	StationActionRule
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationCreationInfo,
@@ -61,19 +61,20 @@ def test_get_stations_list_with_user_and_owner(
 	assert data[9].name == "xray_station"
 	# assert data[10].name == "zulu_station"
 	# assert data[11].name == "bravo_station_rerun"
-	assert len(data[0].rules) == 6
-	assert len(data[1].rules) == 6
-	assert len(data[2].rules) == 6
-	assert len(data[3].rules) == 6
-	assert len(data[4].rules) == 6
-	assert len(data[5].rules) == 6
-	assert len(data[6].rules) == 6
-	assert len(data[7].rules) == 6
-	assert len(data[8].rules) == 6
-	assert len(data[9].rules) == 6
+	assert len(data[0].rules) == 7
+	assert len(data[1].rules) == 7
+	assert len(data[2].rules) == 7
+	assert len(data[3].rules) == 7
+	assert len(data[4].rules) == 7
+	assert len(data[5].rules) == 7
+	assert len(data[6].rules) == 7
+	assert len(data[7].rules) == 7
+	assert len(data[8].rules) == 7
+	assert len(data[9].rules) == 7
 	# assert len(data[10].rules) == 0
 	# assert len(data[11].rules) == 0
 
+	#juliet doesn't have have the station create role
 	user,_ = accountService.get_account_for_login("testUser_juliet")
 	assert user
 	data = sorted(
@@ -83,7 +84,7 @@ def test_get_stations_list_with_user_and_owner(
 	assert len(data) == 1
 	assert data[0].name == "zulu_station"
 
-	assert len(data[0].rules) == 5
+	assert len(data[0].rules) == 6
 
 
 @pytest.mark.usefixtures("fixture_clean_station_folders")
@@ -158,12 +159,12 @@ def test_get_station_user_rule_selection(
 	assert len(rules) == 2
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
-	assert rules[0].domain == UserRoleDomain.Station.value
+	assert isinstance(rules[0], StationActionRule)
 	assert rules[0].count == 5
 	assert rules[0].span == 300
 	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[1].priority == RulePriorityLevel.SITE.value
-	assert rules[1].domain == UserRoleDomain.Site.value
+	assert not isinstance(rules[1], StationActionRule)
 	assert rules[1].count == 10
 	assert rules[1].span == 300
 
@@ -176,12 +177,12 @@ def test_get_station_user_rule_selection(
 
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value + 1
-	assert rules[0].domain == UserRoleDomain.Site.value
+	assert not isinstance(rules[0], StationActionRule)
 	assert rules[0].count == 5
 	assert rules[0].span == 120
 	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[1].priority == RulePriorityLevel.STATION_PATH.value
-	assert rules[1].domain == UserRoleDomain.Station.value
+	assert isinstance(rules[1],StationActionRule)
 	assert rules[1].count == 5
 	assert rules[1].span == 60
 
@@ -193,12 +194,12 @@ def test_get_station_user_rule_selection(
 	assert len(rules) == 2
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
-	assert rules[0].domain == UserRoleDomain.Station.value
+	assert isinstance(rules[0],StationActionRule)
 	assert rules[0].count == 25
 	assert rules[0].span == 300
 	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[1].priority == RulePriorityLevel.SITE.value
-	assert rules[1].domain == UserRoleDomain.Site.value
+	assert not isinstance(rules[1],StationActionRule)
 	assert rules[1].count == 20
 	assert rules[1].span == 300
 
@@ -208,13 +209,13 @@ def test_get_station_user_rule_selection(
 	rules = ActionRule.sorted(station.rules)
 	assert rules
 	assert len(rules) == 2
-	assert rules[0].domain == UserRoleDomain.Station.value
+	assert isinstance(rules[0],StationActionRule)
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
 	assert rules[0].count == 25
 	assert rules[0].span == 300
 
-	assert rules[1].domain == UserRoleDomain.Site.value
+	assert not isinstance(rules[1],StationActionRule)
 	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[1].priority == RulePriorityLevel.SITE.value
 	assert rules[1].count == 15

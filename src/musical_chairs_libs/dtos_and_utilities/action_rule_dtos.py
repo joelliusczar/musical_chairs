@@ -1,6 +1,6 @@
 import sys
 from typing import (Any, Optional, Iterable, Iterator)
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from .user_role_def import UserRoleDomain, RulePriorityLevel
 from itertools import groupby, chain
 from operator import attrgetter
@@ -8,15 +8,17 @@ from operator import attrgetter
 
 
 
-@dataclass(frozen=True)
+
+
+@dataclass(unsafe_hash=True)
 class ActionRule:
 	name: str=""
 	span: int=0
 	count: int=0
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
-	priority: int=RulePriorityLevel.NONE.value
-	domain: str=UserRoleDomain.Site.value
+	priority: Optional[int]=RulePriorityLevel.NONE.value
+	domain: str=field(default=UserRoleDomain.Site.value, init=False)
 
 	@staticmethod
 	def sorted(rules: Iterable["ActionRule"]) -> list["ActionRule"]:
@@ -30,6 +32,10 @@ class ActionRule:
 		return ActionRule.sorted(r for r in chain(
 			*args
 		))
+
+	@property
+	def priorityElse(self) -> int:
+		return self.priority or RulePriorityLevel.NONE.value
 
 	@property
 	def score(self) -> float:
@@ -47,7 +53,6 @@ class ActionRule:
 		#my comparison methods again
 		return not self.noLimit and not self.count
 
-
 	def conforms(self, rule: str) -> bool:
 		return rule == self.name
 
@@ -56,9 +61,9 @@ class ActionRule:
 			return True
 		if self.name < other.name:
 			return False
-		if (self.priority or 0) > (other.priority or 0):
+		if (self.priorityElse) > (other.priorityElse):
 			return True
-		if (self.priority or 0) < (other.priority or 0):
+		if (self.priorityElse) < (other.priorityElse):
 			return False
 		return self.score > other.score
 
@@ -67,9 +72,9 @@ class ActionRule:
 			return True
 		if self.name > other.name:
 			return False
-		if (self.priority or 0) < (other.priority or 0):
+		if (self.priorityElse) < (other.priorityElse):
 			return True
-		if (self.priority or 0) > (other.priority or 0):
+		if (self.priorityElse) > (other.priorityElse):
 			return False
 		return self.score < other.score
 
@@ -78,9 +83,9 @@ class ActionRule:
 			return True
 		if self.name < other.name:
 			return False
-		if (self.priority or 0) > (other.priority or 0):
+		if (self.priorityElse) > (other.priorityElse):
 			return True
-		if (self.priority or 0) < (other.priority or 0):
+		if (self.priorityElse) < (other.priorityElse):
 			return False
 		return self.score >= other.score
 
@@ -89,9 +94,9 @@ class ActionRule:
 			return True
 		if self.name > other.name:
 			return False
-		if (self.priority or 0) < (other.priority or 0):
+		if (self.priorityElse) < (other.priorityElse):
 			return True
-		if (self.priority or 0) > (other.priority or 0):
+		if (self.priorityElse) > (other.priorityElse):
 			return False
 		return self.score <= other.score
 
@@ -114,7 +119,16 @@ class ActionRule:
 		yield from (next(g[1]) for g in groupby(rules, key=lambda k: k.name))
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
+class StationActionRule(ActionRule):
+
+	def __post_init__(self):
+		self.domain = UserRoleDomain.Station.value
+
+
+
+
+@dataclass()
 class PathsActionRule(ActionRule):
 	path: Optional[str]=None
 
@@ -150,9 +164,9 @@ class PathsActionRule(ActionRule):
 			return True
 		if self.name < other.name:
 			return False
-		if (self.priority or 0) > (other.priority or 0):
+		if (self.priorityElse) > (other.priorityElse):
 			return True
-		if (self.priority or 0) < (other.priority or 0):
+		if (self.priorityElse) < (other.priorityElse):
 			return False
 		if isinstance(other, type(self)):
 			if self.is_parent_path(other.path):
@@ -168,9 +182,9 @@ class PathsActionRule(ActionRule):
 			return True
 		if self.name > other.name:
 			return False
-		if (self.priority or 0) < (other.priority or 0):
+		if (self.priorityElse) < (other.priorityElse):
 			return True
-		if (self.priority or 0) > (other.priority or 0):
+		if (self.priorityElse) > (other.priorityElse):
 			return False
 		if isinstance(other, type(self)):
 			if self.is_parent_path(other.path):
@@ -186,9 +200,9 @@ class PathsActionRule(ActionRule):
 			return True
 		if self.name > other.name:
 			return False
-		if (self.priority or 0) < (other.priority or 0):
+		if (self.priorityElse) < (other.priorityElse):
 			return True
-		if (self.priority or 0) > (other.priority or 0):
+		if (self.priorityElse) > (other.priorityElse):
 			return False
 		if isinstance(other, type(self)):
 			if self.is_parent_path(other.path):
@@ -204,9 +218,9 @@ class PathsActionRule(ActionRule):
 			return True
 		if self.name < other.name:
 			return False
-		if (self.priority or 0) > (other.priority or 0):
+		if (self.priorityElse) > (other.priorityElse):
 			return True
-		if (self.priority or 0) < (other.priority or 0):
+		if (self.priorityElse) < (other.priorityElse):
 			return False
 		if isinstance(other, type(self)):
 			if self.is_parent_path(other.path):
@@ -218,5 +232,8 @@ class PathsActionRule(ActionRule):
 		return self.score >= other.score
 
 
-
-
+action_rule_class_map = {
+	UserRoleDomain.Path.value: PathsActionRule,
+	UserRoleDomain.Station.value: StationActionRule,
+	UserRoleDomain.Site.value: ActionRule
+}

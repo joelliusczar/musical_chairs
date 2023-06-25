@@ -8,7 +8,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlbumInfo,
 	ActionRule,
 	PathsActionRule,
-	UserRoleDomain
+	StationActionRule,
 )
 
 
@@ -561,12 +561,11 @@ def test_action_rule_hashing():
 
 	assert h1 == h2
 
-	r1 = ActionRule(
+	r1 = StationActionRule(
 		"alpha",
 		span=5,
 		count=7,
-		priority=5,
-		domain=UserRoleDomain.Station.value
+		priority=5
 	)
 	r2 = ActionRule("alpha", span=5, count=7, priority=5)
 
@@ -623,23 +622,21 @@ def test_action_rule_set():
 	assert not r7 is r6
 	assert r7 in s1
 
-	r8 = ActionRule(
+	r8 = PathsActionRule(
 		"alpha",
 		span=5,
 		count=7,
 		priority=5,
-		domain=UserRoleDomain.Path.value
 	)
 
-	assert r8 not in s1
-	s1.add(r8)
+	assert r8 in s1
+	#s1.add(r8)
 
-	r9 = ActionRule(
+	r9 = PathsActionRule(
 		"alpha",
 		span=5,
 		count=7,
-		priority=5,
-		domain=UserRoleDomain.Path.value
+		priority=5
 	)
 
 	assert not r9 is r8
@@ -670,3 +667,4 @@ def test_action_rule_set():
 
 	assert not r14 is r13
 	assert r14 in s1
+

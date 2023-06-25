@@ -10,7 +10,7 @@ from typing import (
 from pydantic import validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
-from .user_role_def import UserRoleDef, UserRoleDomain, RulePriorityLevel
+from .user_role_def import UserRoleDef, RulePriorityLevel
 from .validation_functions import min_length_validator_factory
 from .simple_functions import (
 	get_duplicates,
@@ -18,7 +18,11 @@ from .simple_functions import (
 	normalize_opening_slash
 )
 from .generic_dtos import IdItem
-from .action_rule_dtos import (ActionRule, PathsActionRule)
+from .action_rule_dtos import (
+	ActionRule,
+	PathsActionRule,
+	StationActionRule,
+)
 from .absorbent_trie import AbsorbentTrie
 from itertools import chain
 
@@ -31,28 +35,29 @@ def get_station_owner_rules(
 	# for STATION_FLIP, STATION_REQUEST, STATION_SKIP, we should have
 	#explicit rules with defined limts
 	if not scopes or UserRoleDef.STATION_ASSIGN.value in scopes:
-		yield ActionRule(
+		yield StationActionRule(
 			UserRoleDef.STATION_ASSIGN.value,
 			priority=RulePriorityLevel.OWNER.value,
-			domain=UserRoleDomain.Station.value
 		)
 	if not scopes or UserRoleDef.STATION_DELETE.value in scopes:
-		yield ActionRule(
+		yield StationActionRule(
 			UserRoleDef.STATION_DELETE.value,
 			priority=RulePriorityLevel.OWNER.value,
-			domain=UserRoleDomain.Station.value
 		)
 	if not scopes or UserRoleDef.STATION_EDIT.value in scopes:
-		yield ActionRule(
+		yield StationActionRule(
 			UserRoleDef.STATION_EDIT.value,
 			priority=RulePriorityLevel.OWNER.value,
-			domain=UserRoleDomain.Station.value
 		)
 	if not scopes or UserRoleDef.STATION_VIEW.value in scopes:
-		yield ActionRule(
+		yield StationActionRule(
 			UserRoleDef.STATION_VIEW.value,
 			priority=RulePriorityLevel.OWNER.value,
-			domain=UserRoleDomain.Station.value
+		)
+	if not scopes or UserRoleDef.STATION_USER_ASSIGN.value in scopes:
+		yield StationActionRule(
+			UserRoleDef.STATION_USER_ASSIGN.value,
+			priority=RulePriorityLevel.OWNER.value,
 		)
 
 def get_path_owner_roles(ownerDir: Optional[str]) -> Iterator[PathsActionRule]:
@@ -62,25 +67,21 @@ def get_path_owner_roles(ownerDir: Optional[str]) -> Iterator[PathsActionRule]:
 			UserRoleDef.PATH_LIST.value,
 			priority=RulePriorityLevel.OWNER.value,
 			path=ownerDir,
-			domain=UserRoleDomain.Path.value
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_VIEW.value,
 			priority=RulePriorityLevel.OWNER.value,
 			path=ownerDir,
-			domain=UserRoleDomain.Path.value
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_EDIT.value,
 			priority=RulePriorityLevel.OWNER.value,
 			path=ownerDir,
-			domain=UserRoleDomain.Path.value
 		)
 		yield PathsActionRule(
 			UserRoleDef.PATH_DOWNLOAD.value,
 			priority=RulePriorityLevel.OWNER.value,
 			path=ownerDir,
-			domain=UserRoleDomain.Path.value
 		)
 
 
@@ -104,7 +105,6 @@ class AccountInfoSecurity(AccountInfoBase):
 	def isAdmin(self) -> bool:
 		return any(
 			UserRoleDef.ADMIN.conforms(r.name) \
-				and r.domain == UserRoleDomain.Site.value \
 				for r in self.roles
 		)
 

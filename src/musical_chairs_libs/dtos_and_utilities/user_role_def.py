@@ -56,6 +56,7 @@ class UserRoleDef(Enum):
 	STATION_FLIP = f"{UserRoleDomain.Station.value}:flip"
 	STATION_SKIP = f"{UserRoleDomain.Station.value}:skip"
 	STATION_ASSIGN = f"{UserRoleDomain.Station.value}:assign"
+	STATION_USER_ASSIGN = f"{UserRoleDomain.Station.value}:userassign"
 	USER_LIST = "user:list"
 	USER_EDIT = "user:edit"
 	USER_IMPERSONATE = "user:impersonate"
@@ -75,8 +76,9 @@ class UserRoleDef(Enum):
 		return self.value
 
 	@staticmethod
-	def as_set() -> Set[str]:
-		return {r.value for r in UserRoleDef}
+	def as_set(domain: Optional[str]=None) -> Set[str]:
+		return {r.value for r in UserRoleDef \
+			if not domain or r.value.startswith(domain)}
 
 	@staticmethod
 	def role_dict(role: str) -> s2sDict:

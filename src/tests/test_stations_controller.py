@@ -640,6 +640,13 @@ def test_get_station_for_edit_with_view_security(
 			"domain": "station"
 		},
 		{
+			"name": UserRoleDef.STATION_USER_ASSIGN.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.OWNER.value,
+			"domain": "station"
+		},
+		{
 			"name": UserRoleDef.STATION_VIEW.value,
 			"span":0,
 			"count":0,
@@ -647,3 +654,42 @@ def test_get_station_for_edit_with_view_security(
 			"domain": "station"
 		}
 	]
+
+
+def test_rule_adding_validation(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	#can request on station 3
+	headers = login_test_user("testUser_oomdwell", client)
+
+	rule = {
+		"name": UserRoleDef.STATION_VIEW.value,
+		"span": 0,
+		"count": 0,
+		"priority": None,
+	}
+	response = client.post(
+		f"stations/10/zulu_station/user_role?userId={28}",
+		headers=headers,
+		json=rule
+	)
+	assert response.status_code == 204
+
+	rule["name"] = "dumb_shit"
+
+	response = client.post(
+		f"stations/10/zulu_station/user_role?userId={28}",
+		headers=headers,
+		json=rule
+	)
+	assert response.status_code == 422
+
+	rule["name"] = UserRoleDef.PATH_EDIT.value
+
+	response = client.post(
+		f"stations/10/zulu_station/user_role?userId={28}",
+		headers=headers,
+		json=rule
+	)
+	assert response.status_code == 422

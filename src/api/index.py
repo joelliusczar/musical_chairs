@@ -45,7 +45,8 @@ def get_cors_origin_or_default(origin: str) -> str:
 
 def transForm_error(err: Any) -> dict[str, Any]:
 	msg = err["msg"]
-	field = err["loc"][1] if len(err["loc"]) > 1 else None
+	field = err["loc"][1] if len(err["loc"]) > 1 \
+		else err["loc"][0] if len(err["loc"]) > 0 else None
 	return build_error_obj(msg, field)
 
 @app.exception_handler(RequestValidationError) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]

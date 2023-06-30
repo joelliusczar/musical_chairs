@@ -19,9 +19,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	ActionRule,
 	TableData,
-	StationActionRule,
-	UserRoleDomain,
-	build_error_obj
+	StationActionRule
 )
 from musical_chairs_libs.services import (
 	StationService,
@@ -38,7 +36,12 @@ from api_dependencies import (
 	get_current_user_simple,
 	get_user_with_rate_limited_scope,
 	get_user_with_simple_scopes,
-	get_optional_user_from_token
+	get_optional_user_from_token,
+	get_subject_user
+)
+from station_validation import (
+	validate_station_rule,
+	validate_station_rule_for_remove
 )
 
 
@@ -255,7 +258,12 @@ def play_next(
 ):
 	queueService.pop_next_queued(station.id)
 
-@router.get("/{ownerKey}/{stationKey}/user_list")
+@router.get("/{ownerKey}/{stationKey}/user_list",dependencies=[
+	Security(
+		get_station_user,
+		scopes=[UserRoleDef.STATION_USER_LIST.value]
+	)
+])
 def get_station_user_list(
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service),
@@ -263,40 +271,43 @@ def get_station_user_list(
 	stationUsers = list(stationService.get_station_users(stationInfo))
 	return TableData(stationUsers, len(stationUsers))
 
-def validate_station_rule(rule: StationActionRule) -> StationActionRule:
-	valid_name_set = UserRoleDef.as_set(UserRoleDomain.Station.value)
-	if rule.name not in valid_name_set:
-		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[build_error_obj(
-				f"{rule.name} is not a valid rule for stations"
-			)],
-		)
-	return rule
+
 
 
 @router.post("/{ownerKey}/{stationKey}/user_role",
-	status_code=status.HTTP_204_NO_CONTENT
+	dependencies=[
+		Security(
+			get_station_user,
+			scopes=[UserRoleDef.STATION_USER_ASSIGN.value]
+		)
+	]
 )
 def add_user_rule(
-	userId: int,
+	user: AccountInfo = Depends(get_subject_user),
 	rule: StationActionRule = Depends(validate_station_rule),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service),
-):
-	stationService.add_user_rule_to_station(userId, stationInfo.id, rule)
+) -> StationActionRule:
+	return stationService.add_user_rule_to_station(user.id, stationInfo.id, rule)
+
 
 @router.delete("/{ownerKey}/{stationKey}/user_role",
-	status_code=status.HTTP_204_NO_CONTENT
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[
+		Security(
+			get_station_user,
+			scopes=[UserRoleDef.STATION_USER_ASSIGN.value]
+		)
+	]
 )
 def remove_user_rule(
-	userId: int,
-	ruleName: str,
+	user: AccountInfo = Depends(get_subject_user),
+	ruleName: Optional[str] = Depends(validate_station_rule_for_remove),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service),
 ):
 	stationService.remove_user_rule_from_station(
-		userId,
+		user.id,
 		stationInfo.id,
 		ruleName
 	)

@@ -61,16 +61,16 @@ def test_get_stations_list_with_user_and_owner(
 	assert data[9].name == "xray_station"
 	# assert data[10].name == "zulu_station"
 	# assert data[11].name == "bravo_station_rerun"
-	assert len(data[0].rules) == 7
-	assert len(data[1].rules) == 7
-	assert len(data[2].rules) == 7
-	assert len(data[3].rules) == 7
-	assert len(data[4].rules) == 7
-	assert len(data[5].rules) == 7
-	assert len(data[6].rules) == 7
-	assert len(data[7].rules) == 7
-	assert len(data[8].rules) == 7
-	assert len(data[9].rules) == 7
+	assert len(data[0].rules) == 8
+	assert len(data[1].rules) == 8
+	assert len(data[2].rules) == 8
+	assert len(data[3].rules) == 8
+	assert len(data[4].rules) == 8
+	assert len(data[5].rules) == 8
+	assert len(data[6].rules) == 8
+	assert len(data[7].rules) == 8
+	assert len(data[8].rules) == 8
+	assert len(data[9].rules) == 8
 	# assert len(data[10].rules) == 0
 	# assert len(data[11].rules) == 0
 
@@ -84,7 +84,7 @@ def test_get_stations_list_with_user_and_owner(
 	assert len(data) == 1
 	assert data[0].name == "zulu_station"
 
-	assert len(data[0].rules) == 6
+	assert len(data[0].rules) == 7
 
 
 @pytest.mark.usefixtures("fixture_clean_station_folders")
@@ -465,7 +465,7 @@ def test_get_station_user_list(
 
 	station = next(stationService.get_stations(17, user=user))
 	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
-	assert len(result) == 4
+	assert len(result) == 5
 	assert result[0].username == "carl"
 	assert len(result[0].roles) == 1
 	assert result[0].roles[0].name == UserRoleDef.STATION_FLIP.value
@@ -482,9 +482,19 @@ def test_get_station_user_list(
 	rules = sorted(result[2].roles, key=lambda r: r.name)
 	assert rules[0].name == UserRoleDef.STATION_VIEW.value
 
-	assert result[3].username == "narlon"
-	assert len(result[3].roles) == 3
+	assert result[3].username == "ingo"
+	assert len(result[3].roles) == 6
 	rules = sorted(result[3].roles, key=lambda r: r.name)
+	assert rules[0].name == UserRoleDef.STATION_ASSIGN.value
+	assert rules[1].name == UserRoleDef.STATION_DELETE.value
+	assert rules[2].name == UserRoleDef.STATION_EDIT.value
+	assert rules[3].name == UserRoleDef.STATION_USER_ASSIGN.value
+	assert rules[4].name == UserRoleDef.STATION_USER_LIST.value
+	assert rules[5].name == UserRoleDef.STATION_VIEW.value
+
+	assert result[4].username == "narlon"
+	assert len(result[4].roles) == 3
+	rules = sorted(result[4].roles, key=lambda r: r.name)
 	assert rules[0].name == UserRoleDef.STATION_ASSIGN.value
 	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[1].span == 5
@@ -493,10 +503,20 @@ def test_get_station_user_list(
 
 	station = next(stationService.get_stations(18, user=user))
 	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
-	assert len(result) == 1
-	assert result[0].username == "narlon"
-	assert len(result[0].roles) == 2
+	assert len(result) == 2
+	assert result[0].username == "ingo"
+	assert len(result[0].roles) == 6
 	rules = sorted(result[0].roles, key=lambda r: r.name)
+	assert rules[0].name == UserRoleDef.STATION_ASSIGN.value
+	assert rules[1].name == UserRoleDef.STATION_DELETE.value
+	assert rules[2].name == UserRoleDef.STATION_EDIT.value
+	assert rules[3].name == UserRoleDef.STATION_USER_ASSIGN.value
+	assert rules[4].name == UserRoleDef.STATION_USER_LIST.value
+	assert rules[5].name == UserRoleDef.STATION_VIEW.value
+
+	assert result[1].username == "narlon"
+	assert len(result[1].roles) == 2
+	rules = sorted(result[1].roles, key=lambda r: r.name)
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].span == 100
 	assert rules[0].count == 300
@@ -505,4 +525,13 @@ def test_get_station_user_list(
 	user,_ = accountService.get_account_for_login("testUser_victor")
 	station = next(stationService.get_stations(12, user=user))
 	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
-	assert len(result) == 0
+	assert len(result) == 1
+	assert result[0].username == "testUser_victor"
+	assert len(result[0].roles) == 6
+	rules = sorted(result[0].roles, key=lambda r: r.name)
+	assert rules[0].name == UserRoleDef.STATION_ASSIGN.value
+	assert rules[1].name == UserRoleDef.STATION_DELETE.value
+	assert rules[2].name == UserRoleDef.STATION_EDIT.value
+	assert rules[3].name == UserRoleDef.STATION_USER_ASSIGN.value
+	assert rules[4].name == UserRoleDef.STATION_USER_LIST.value
+	assert rules[5].name == UserRoleDef.STATION_VIEW.value

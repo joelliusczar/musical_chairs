@@ -57,6 +57,7 @@ class UserRoleDef(Enum):
 	STATION_SKIP = f"{UserRoleDomain.Station.value}:skip"
 	STATION_ASSIGN = f"{UserRoleDomain.Station.value}:assign"
 	STATION_USER_ASSIGN = f"{UserRoleDomain.Station.value}:userassign"
+	STATION_USER_LIST = f"{UserRoleDomain.Station.value}:userlist"
 	USER_LIST = "user:list"
 	USER_EDIT = "user:edit"
 	USER_IMPERSONATE = "user:impersonate"

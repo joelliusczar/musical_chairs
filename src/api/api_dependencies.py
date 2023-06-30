@@ -103,6 +103,23 @@ def get_optional_user_from_token(
 	except ExpiredSignatureError:
 		return None
 
+def get_subject_user(
+	subjectUserKey: Union[int, str] = Query(None),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> AccountInfo:
+		try:
+			subjectUserKey = int(subjectUserKey)
+			owner = accountsService.get_account_for_edit(subjectUserKey)
+		except:
+			owner = accountsService.get_account_for_edit(subjectUserKey)
+		if owner:
+			return owner
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"User with key {subjectUserKey} not found")
+			]
+		)
+
 def get_owner(
 	ownerKey: Union[int, str, None] = Query(None),
 	accountsService: AccountsService = Depends(accounts_service)
@@ -132,8 +149,9 @@ def get_station_by_name_and_owner(
 	if type(stationKey) == str and not owner:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"user with key {stationKey} not found")
-			]
+			detail=[build_error_obj(
+				f"owner for station with key {stationKey} not found"
+			)]
 		)
 	#owner id is okay to be null if stationKey is an int
 	ownerId = owner.id if owner else None

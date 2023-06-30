@@ -34,7 +34,11 @@ export const saveStation = async ({ values, id}) => {
 	}
 };
 
-export const fetchSongCatalogue = async ({ stationKey, params, ownerKey }) => {
+export const fetchSongCatalogue = async ({
+	stationKey,
+	params,
+	ownerKey,
+}) => {
 	const url = `stations/${ownerKey}/${stationKey}/catalogue/`;
 	const response = await webClient.get(url, {
 		params: params,
@@ -90,7 +94,11 @@ export const disableStations = async ({ ids, names }) => {
 	return response.data;
 };
 
-export const fetchStationUsers = async ({ stationKey, params, ownerKey }) => {
+export const fetchStationUsers = async ({
+	stationKey,
+	params,
+	ownerKey,
+}) => {
 	const url = `stations/${ownerKey}/${stationKey}/user_list/`;
 	const response = await webClient.get(url, {
 		params: params,

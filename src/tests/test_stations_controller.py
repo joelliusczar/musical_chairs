@@ -647,6 +647,13 @@ def test_get_station_for_edit_with_view_security(
 			"domain": "station"
 		},
 		{
+			"name": UserRoleDef.STATION_USER_LIST.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.OWNER.value,
+			"domain": "station"
+		},
+		{
 			"name": UserRoleDef.STATION_VIEW.value,
 			"span":0,
 			"count":0,
@@ -670,16 +677,21 @@ def test_rule_adding_validation(
 		"priority": None,
 	}
 	response = client.post(
-		f"stations/10/zulu_station/user_role?userId={28}",
+		f"stations/10/zulu_station/user_role?subjectUserKey={28}",
 		headers=headers,
 		json=rule
 	)
-	assert response.status_code == 204
+	data = json.loads(response.content)
+	assert response.status_code == 200
+	assert data["name"] == UserRoleDef.STATION_VIEW.value
+	assert data["span"] == 0
+	assert data["count"] == 0
+	assert data["priority"] == RulePriorityLevel.STATION_PATH.value
 
 	rule["name"] = "dumb_shit"
 
 	response = client.post(
-		f"stations/10/zulu_station/user_role?userId={28}",
+		f"stations/10/zulu_station/user_role?subjectUserKey={28}",
 		headers=headers,
 		json=rule
 	)
@@ -688,8 +700,26 @@ def test_rule_adding_validation(
 	rule["name"] = UserRoleDef.PATH_EDIT.value
 
 	response = client.post(
-		f"stations/10/zulu_station/user_role?userId={28}",
+		f"stations/10/zulu_station/user_role?subjectUserKey={28}",
 		headers=headers,
 		json=rule
 	)
 	assert response.status_code == 422
+
+	rule["name"] = UserRoleDef.STATION_REQUEST.value
+
+	response = client.post(
+		f"stations/2/1/user_role?subjectUserKey={28}",
+		headers=headers,
+		json=rule
+	)
+	assert response.status_code == 403
+
+	rule["name"] = UserRoleDef.PATH_EDIT.value
+
+	response = client.post(
+		f"stations/2/1/user_role?subjectUserKey={28}",
+		headers=headers,
+		json=rule
+	)
+	assert response.status_code == 403

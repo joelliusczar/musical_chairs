@@ -46,10 +46,12 @@ export const dispatches = {
 	done: (payload) => ({ type: waitingTypes.done, payload: payload }),
 	failed: (payload) => ({ type: waitingTypes.failed, payload: payload }),
 	reset: (payload) => ({ type: waitingTypes.reset, payload: payload }),
-	add: (payload) => ({ type: waitingTypes.add, payload: payload }),
+	add: (payload) =>
+		({ type: waitingTypes.add, payload: payload }),
 	update: (key, dataOrUpdater) =>
 		({ type: waitingTypes.update, payload: { key, dataOrUpdater } }),
-	remove: (payload) => ({ type: waitingTypes.remove, payload: payload }),
+	remove: (key) =>
+		({ type: waitingTypes.remove, payload: { key } }),
 	assign: (payload) => ({ type: waitingTypes.assign, payload: payload}),
 	read: (fn) => ({ type: waitingTypes.read, payload: fn}),
 };
@@ -184,3 +186,4 @@ export const keyedWaitingReducerMap = {
 		};
 	},
 };
+

@@ -127,7 +127,6 @@ class StationActionRule(ActionRule):
 
 
 
-
 @dataclass()
 class PathsActionRule(ActionRule):
 	path: Optional[str]=None

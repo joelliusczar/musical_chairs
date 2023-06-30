@@ -11,7 +11,7 @@ from typing import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.engine import Connection
-from sqlalchemy.sql.expression import Select, CTE, case, true
+from sqlalchemy.sql.expression import Select, CTE, case, true, false
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
 from sqlalchemy import (
@@ -541,6 +541,7 @@ class StationService:
 	def get_station_users(
 		self,
 		station: StationInfo,
+		userId: Optional[int]=None
 	) -> Iterator[AccountInfo]:
 		rulesQuery = build_rules_query(UserRoleDomain.Station).cte() #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
 		query = select(
@@ -557,19 +558,30 @@ class StationService:
 			rulesQuery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
 		).select_from(user_tbl).join(
 			rulesQuery,
-			and_(
-				rulesQuery.c.rule_userFk == u_pk,  #pyright: ignore [reportUnknownMemberType]
-				rulesQuery.c.rule_stationFk == station.id  #pyright: ignore [reportUnknownMemberType]
+			or_(
+				and_(
+					(u_pk == station.owner.id) if station.owner else false(),
+					rulesQuery.c.rule_userFk == 0 #pyright: ignore [reportUnknownMemberType]
+				),
+				and_(
+					rulesQuery.c.rule_userFk == u_pk,  #pyright: ignore [reportUnknownMemberType]
+					rulesQuery.c.rule_stationFk == station.id  #pyright: ignore [reportUnknownMemberType]
+				),
 			),
 			isouter=True
 		).where(or_(u_disabled.is_(None), u_disabled == False))\
 		.where(
-			coalesce(
-				rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-				RulePriorityLevel.SITE.value
-			) > MinItemSecurityLevel.INVITED_USER.value
-		)\
-		.order_by(u_username)
+			or_(
+				coalesce(
+					rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+					RulePriorityLevel.SITE.value
+				) > MinItemSecurityLevel.INVITED_USER.value,
+				(u_pk == station.owner.id) if station.owner else false()
+			)
+		)
+		if userId is not None:
+			query = query.where(u_pk == userId)
+		query = query.order_by(u_username)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		yield from generate_user_and_rules_from_rows(
 			records,
@@ -582,26 +594,33 @@ class StationService:
 		addedUserId: int,
 		stationId: int,
 		rule: ActionRule
-	):
+	) -> StationActionRule:
 		stmt = insert(station_user_permissions_tbl).values(
 			userFk = addedUserId,
 			stationFk = stationId,
 			role = rule.name,
-			span =rule.span,
+			span = rule.span,
 			count = rule.count,
 			priority = None,
 			creationTimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		return StationActionRule(
+			rule.name,
+			rule.span,
+			rule.count,
+			RulePriorityLevel.STATION_PATH.value
+		)
 
 	def remove_user_rule_from_station(
 		self,
 		userId: int,
 		stationId: int,
-		ruleName: str
+		ruleName: Optional[str]
 	):
 		delStmt = delete(station_user_permissions_tbl)\
 			.where(stup_userFk == userId)\
-			.where(stup_stationFk == stationId)\
-			.where(stup_role == ruleName)
+			.where(stup_stationFk == stationId)
+		if ruleName:
+			delStmt = delStmt.where(stup_role == ruleName)
 		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]

@@ -59,6 +59,11 @@ def get_station_owner_rules(
 			UserRoleDef.STATION_USER_ASSIGN.value,
 			priority=RulePriorityLevel.OWNER.value,
 		)
+	if not scopes or UserRoleDef.STATION_USER_LIST.value in scopes:
+		yield StationActionRule(
+			UserRoleDef.STATION_USER_LIST.value,
+			priority=RulePriorityLevel.OWNER.value,
+		)
 
 def get_path_owner_roles(ownerDir: Optional[str]) -> Iterator[PathsActionRule]:
 		if not ownerDir:

@@ -305,7 +305,8 @@ class AccountsService:
 			u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
 			u_username,
 			u_displayName,
-			u_email
+			u_email,
+			u_dirRoot
 		).offset(offset)
 
 		if searchTerm is not None:

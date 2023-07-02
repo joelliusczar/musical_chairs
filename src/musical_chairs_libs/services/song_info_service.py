@@ -37,8 +37,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ChainedAbsorbentTrie,
 	get_path_owner_roles,
-	AbsorbentTrie,
-	OwnerInfo
+	OwnerInfo,
+	UserRoleDomain
 )
 from sqlalchemy import select, insert, update, func, delete, union_all
 from sqlalchemy.sql.expression import (
@@ -348,8 +348,13 @@ class SongInfoService:
 		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
 			(p.path, p) for p in rules if isinstance(p, PathsActionRule) and p.path
 		)
+		#why is it empty string here but other places I've had to do "/"?
 		pathRuleTree.add("", (r for r in user.roles \
-			if not isinstance(r, PathsActionRule) or not r.path))
+			if type(r) == ActionRule \
+				and (UserRoleDomain.Path.conforms(r.name) \
+						or r.name == UserRoleDef.ADMIN.value
+				)
+		), shouldEmptyUpdateTree=False)
 		return pathRuleTree
 
 	def __song_ls_query__(self, prefix: Optional[str]="") -> Select:
@@ -367,7 +372,7 @@ class SongInfoService:
 	def __query_to_treeNodes__(
 		self,
 		query: Select,
-		permittedPathsTree: AbsorbentTrie[Any]
+		permittedPathsTree: ChainedAbsorbentTrie[Any]
 	) -> Iterator[SongTreeNode]:
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		for row in cast(Iterable[Row] ,records):

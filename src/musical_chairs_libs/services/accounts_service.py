@@ -25,7 +25,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PasswordInfo,
 	ActionRule,
 	AlreadyUsedError,
-	RulePriorityLevel
+	build_rules_query,
+	row_to_action_rule,
+	UserRoleDomain
 )
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
@@ -34,7 +36,7 @@ from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
 	users, u_pk, u_username, u_hashedPW, u_email, u_dirRoot, u_disabled,
 	u_creationTimestamp, u_displayName,
-	userRoles, ur_userFk, ur_role, ur_span, ur_count, ur_priority,
+	userRoles, ur_userFk, ur_role,
 	station_queue, q_requestedTimestamp, q_requestedByUserFk, q_playedTimestamp
 )
 from sqlalchemy import select, insert, desc, func, delete, update
@@ -214,16 +216,10 @@ class AccountsService:
 		return user, expiration
 
 	def __get_roles__(self, userId: int) -> Iterable[ActionRule]:
-		query = select(ur_role, ur_span, ur_count, ur_priority)\
-			.select_from(userRoles) \
-			.where(ur_userFk == userId)
-		rows = cast(Iterable[Row], self.conn.execute(query).fetchall()) #pyright: ignore [reportUnknownMemberType]
-		return (ActionRule(
-					cast(str, r[ur_role]),
-					cast(int, r[ur_span]),
-					cast(int, r[ur_count]),
-					cast(int, r[ur_priority]) or RulePriorityLevel.SITE.value
-				) for r in rows)
+		rulesQuery = build_rules_query(UserRoleDomain.Site, userId=userId) #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+		rows = cast(Iterable[Row], self.conn.execute(rulesQuery).fetchall()) #pyright: ignore [reportUnknownMemberType]
+
+		return (row_to_action_rule(r) for r in rows)
 
 	def last_request_timestamp(self, user: AccountInfo) -> int:
 		if not user:

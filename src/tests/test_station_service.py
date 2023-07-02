@@ -7,7 +7,8 @@ from musical_chairs_libs.services import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationCreationInfo,
-	RulePriorityLevel
+	RulePriorityLevel,
+	MinItemSecurityLevel
 )
 from .constant_fixtures_for_test import *
 from .common_fixtures import (
@@ -35,6 +36,26 @@ def test_get_stations_list(fixture_station_service: StationService):
 	stationService = fixture_station_service
 	data = list(stationService.get_stations())
 	assert len(data) == 11
+
+def test_get_stations_list_with_admin(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+	):
+	stationService = fixture_station_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_alpha")
+	assert user
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == len(get_initial_stations())
+	data = sorted(
+		stationService.get_stations(user=user, stationKeys=16),
+		key=lambda s:s.id
+	)
+	assert len(data) == 1
+	assert data[0].viewSecurityLevel == MinItemSecurityLevel.LOCKED.value
 
 def test_get_stations_list_with_user_and_owner(
 	fixture_station_service: StationService,

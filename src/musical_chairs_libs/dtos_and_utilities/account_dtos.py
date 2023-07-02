@@ -10,7 +10,7 @@ from typing import (
 from pydantic import validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
-from .user_role_def import UserRoleDef, RulePriorityLevel
+from .user_role_def import UserRoleDef, RulePriorityLevel, UserRoleDomain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import (
 	get_duplicates,
@@ -23,7 +23,7 @@ from .action_rule_dtos import (
 	PathsActionRule,
 	StationActionRule,
 )
-from .absorbent_trie import AbsorbentTrie
+from .absorbent_trie import ChainedAbsorbentTrie
 from itertools import chain
 
 
@@ -116,7 +116,7 @@ class AccountInfoSecurity(AccountInfoBase):
 	def get_permitted_paths_tree(
 		self,
 		scopes: Union[str, Iterable[str]]
-	) -> AbsorbentTrie[Any]:
+	) -> ChainedAbsorbentTrie[ActionRule]:
 		scopeSet = set([scopes] if type(scopes) == str else scopes)
 		pathsGen = (normalize_opening_slash(r.path) for r in chain(
 				self.roles,
@@ -124,7 +124,15 @@ class AccountInfoSecurity(AccountInfoBase):
 			) if isinstance(r, PathsActionRule) and r.name in scopeSet \
 					and not r.path is None
 			)
-		pathTree = AbsorbentTrie[Any](p for p in pathsGen if not p is None)
+		pathTree = ChainedAbsorbentTrie[ActionRule](
+			p for p in pathsGen if not p is None
+		)
+		pathTree.add("/", (r for r in self.roles \
+			if type(r) == ActionRule \
+				and (UserRoleDomain.Path.conforms(r.name) \
+						or r.name == UserRoleDef.ADMIN.value
+				)
+		), shouldEmptyUpdateTree=False)
 		return pathTree
 
 	def get_permitted_paths(

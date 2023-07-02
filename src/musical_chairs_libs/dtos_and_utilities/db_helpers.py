@@ -1,4 +1,4 @@
-from typing import Optional, Union, Literal, cast, Iterable, Iterator
+from typing import Optional, cast, Iterable, Iterator
 from sqlalchemy.sql.expression import Select, false
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
@@ -6,7 +6,9 @@ from sqlalchemy.engine.row import Row
 from sqlalchemy import (
 	select,
 	union_all,
-	literal as dbLiteral  #pyright: ignore [reportUnknownVariableType]
+	literal as dbLiteral,  #pyright: ignore [reportUnknownVariableType]
+	case,
+	or_
 )
 from musical_chairs_libs.tables import (
 	stup_role, stup_stationFk, stup_userFk, stup_count, stup_span, stup_priority,
@@ -37,10 +39,7 @@ __station_permissions_query__ = select(
 	stup_stationFk.label("rule_stationFk") #pyright: ignore [reportUnknownMemberType]
 )
 
-def __build_placeholder_select__(domain:Union[
-		Literal[UserRoleDomain.Station],
-		Literal[UserRoleDomain.Path]
-	]) -> Select:
+def __build_placeholder_select__(domain:UserRoleDomain) -> Select:
 	ruleNameCol = cast(Column, dbLiteral(UserRoleDef.STATION_VIEW.value) \
 		if domain == UserRoleDomain.Station \
 			else dbLiteral(UserRoleDef.PATH_VIEW.value))
@@ -56,10 +55,7 @@ def __build_placeholder_select__(domain:Union[
 	return query
 
 def build_rules_query(
-	domain:Union[
-		Literal[UserRoleDomain.Station],
-		Literal[UserRoleDomain.Path]
-	],
+	domain:UserRoleDomain,
 	userId: Optional[int]=None
 ) -> Select:
 
@@ -70,11 +66,14 @@ def build_rules_query(
 		ur_span.label("rule_span"), #pyright: ignore [reportUnknownMemberType]
 		coalesce(
 			ur_priority, #pyright: ignore [reportUnknownMemberType]
-			RulePriorityLevel.SITE.value
+			case(
+				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
+				else_=RulePriorityLevel.SITE.value
+			)
 		).label("rule_priority"),
 		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"), #pyright: ignore [reportUnknownMemberType]
-	).where(ur_userFk == userId)\
-		.where(ur_role.like(f"{domain.value}:%"))
+	).where(ur_userFk == userId)
+
 
 	placeholder_select = __build_placeholder_select__(domain)
 	domain_permissions_query =  placeholder_select.where(false()) #pyright: ignore [reportUnknownMemberType]
@@ -87,8 +86,15 @@ def build_rules_query(
 		)
 		user_rules_query = user_rules_query.add_columns( #pyright: ignore [reportUnknownMemberType]
 			dbLiteral(-1).label("rule_stationFk") #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+		).where(or_(
+				ur_role.like(f"{domain.value}:%"),
+				ur_role == UserRoleDef.ADMIN.value
+			),
 		)
 		domain_permissions_query = __station_permissions_query__
+	elif domain == UserRoleDomain.Site:
+		#don't want the shim if only selecting on userRoles
+		placeholder_select = placeholder_select.where(false()) #pyright: ignore [reportUnknownMemberType]
 
 	if userId is not None:
 		domain_permissions_query = \

@@ -56,6 +56,8 @@ ned_land_user_id = 38
 narlon_user_id = 39
 number_user_id = 40
 oomdwell_user_id = 41
+paul_bear_user_id = 42
+quirky_admin_user_id = 43
 
 artist_params = [
 	{
@@ -1331,6 +1333,26 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": None
+		},
+		{
+			"pk": paul_bear_user_id,
+			"username": "paulBear_testUser",
+			"displayName": "Paul Bear",
+			"hashedPW": testPassword,
+			"email": "test43@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": "paulBear_testUser"
+		},
+		{
+			"pk": quirky_admin_user_id,
+			"username": "quirkyAdmon_testUser",
+			"displayName": "Quirky Admin",
+			"hashedPW": testPassword,
+			"email": "test44@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": "quirkyAdmon_testUser"
 		}
 	]
 	return users_params
@@ -1540,6 +1562,22 @@ def get_user_role_params(
 			"priority": RulePriorityLevel.SITE.value - 2,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		},
+		{
+			"userFk": paul_bear_user_id,
+			"role": UserRoleDef.PATH_LIST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": quirky_admin_user_id,
+			"role": UserRoleDef.ADMIN.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		}
 	]
 
 def get_station_permission_params(

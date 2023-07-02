@@ -336,8 +336,13 @@ def get_path_user_and_check_optional_path(
 		userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
 			(p.path, p) for p in userPrefixes if p.path
 		)
+
 		userPrefixTrie.add("", (r for r in user.roles \
-			if not isinstance(r, PathsActionRule) or not r.path))
+			if type(r) == ActionRule \
+				and (UserRoleDomain.Path.conforms(r.name) \
+						or r.name == UserRoleDef.ADMIN.value
+				)
+		), shouldEmptyUpdateTree=False)
 		check_if_can_use_path(
 			scopes,
 			prefix,
@@ -364,7 +369,11 @@ def get_multi_path_user(
 			(p.path, p) for p in userPrefixes if p.path
 		)
 	userPrefixTrie.add("", (r for r in user.roles \
-			if not isinstance(r, PathsActionRule) or not r.path))
+		if type(r) == ActionRule \
+			and (UserRoleDomain.Path.conforms(r.name) \
+					or r.name == UserRoleDef.ADMIN.value
+			)
+	), shouldEmptyUpdateTree=False)
 	prefixes = songInfoService.get_song_path(itemIds, False)
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)

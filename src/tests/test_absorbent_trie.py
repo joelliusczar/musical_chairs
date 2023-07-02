@@ -872,3 +872,12 @@ def test_matches():
 	assert t.matches("test/Pop/Pop_A-F/Alphabet/AB")
 	assert t.matches("test/Pop/Pop_A-F/Alphabet/ABC")
 	assert not t.matches("test/Pop/Pop_A-F/Alphabetx")
+
+	t.add("test/Pop/Pop_A-F/Alpha")
+	assert t.matches("test/Pop/Pop_A-F/Alphabetx")
+	assert not t.matches("test/Pop/Pop_A-F/AB")
+
+	t.add("test")
+	assert t.matches("test/Pop/Pop_A-F/AB")
+	assert not t.matches("tesx")
+	assert t.matches("test/Pop/Pop_A-F/Alphabetx")

@@ -163,7 +163,7 @@ class AbsorbentTrie(Generic[T]):
 		pathIdx = 0
 		if path:
 			while pathIdx < len(path):
-				if not len(node.__prefix_map__):
+				if not len(node.__prefix_map__) or node.is_path_end:
 					return True
 				prefix = path[pathIdx]
 				key = ord(prefix)
@@ -397,11 +397,20 @@ class ChainedAbsorbentTrie(Generic[T]):
 			if paths:
 				self.extend(paths)
 
-		def add(self, path: str, value: chainedStoreValueType[T]=missing):
+		def add(
+				self,
+				path: str,
+				value: chainedStoreValueType[T]=missing,
+				shouldEmptyUpdateTree: bool=True
+			):
 			added = self.__absorbentTrie__.__node_at_path__(path, True)
 			if isinstance(added.path_store, Sentinel):
 				if isinstance(value, Iterable):
-					added.path_store = [*value]
+					collection = cast(list[T],[*value])
+					if not shouldEmptyUpdateTree:
+						if len(collection) == 0:
+							return
+					added.path_store = collection
 				else:
 					added.path_store = [value] if not isinstance(value, Sentinel) else []
 			else:
@@ -458,3 +467,9 @@ class ChainedAbsorbentTrie(Generic[T]):
 
 		def valuesFlat(self, path: Optional[str]=None) -> Iterator[T]:
 			return (r for i in self.values(path) for r in i)
+
+		def shortest_paths(self) -> Iterator[str]:
+			return self.__absorbentTrie__.shortest_paths()
+
+		def matches(self, path: str) -> bool:
+			return self.__absorbentTrie__.matches(path)

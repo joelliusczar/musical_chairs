@@ -38,6 +38,52 @@ def test_song_ls_hit(
 	items = data.get("items", [])
 	assert len(items) == 1
 
+def test_song_ls_with_site_path_permissions(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+
+	headers = login_test_user("paulBear_testUser", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 3
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 3
+
+
+	headers = login_test_user("quirkyAdmon_testUser", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 3
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 3
+
 def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 
 	client = fixture_api_test_client
@@ -109,6 +155,25 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	assert items[3]["path"] == "foo/goo/boo/victor"
 	assert items[4]["path"] == "foo/goo/boo/victor_2"
 
+def test_song_ls_with_station_permissions(fixture_api_test_client: TestClient):
+
+	client = fixture_api_test_client
+
+	headers = login_test_user("testUser_oomdwell", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 403
+
+	headers = login_test_user("testUser_alice", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 403
 
 def test_song_save(
 	fixture_api_test_client: TestClient

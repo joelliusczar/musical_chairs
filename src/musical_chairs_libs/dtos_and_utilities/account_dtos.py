@@ -127,9 +127,10 @@ class AccountInfoSecurity(AccountInfoBase):
 		pathTree = ChainedAbsorbentTrie[ActionRule](
 			p for p in pathsGen if not p is None
 		)
-		pathTree.add("/", (r for r in self.roles \
+		pathTree.add("", (r for r in self.roles \
 			if type(r) == ActionRule \
 				and (UserRoleDomain.Path.conforms(r.name) \
+						and r.name in scopeSet
 						or r.name == UserRoleDef.ADMIN.value
 				)
 		), shouldEmptyUpdateTree=False)

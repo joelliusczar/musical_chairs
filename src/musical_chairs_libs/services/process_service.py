@@ -2,7 +2,7 @@ import os
 import platform
 import subprocess
 import random
-from typing import Optional, Iterable, cast, Union
+from typing import Optional, Iterable, cast, Union, Iterator
 from musical_chairs_libs.dtos_and_utilities import (
 	check_name_safety,
 	StationInfo,
@@ -82,19 +82,31 @@ class ProcessService:
 		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
 	def enable_stations(self,
-		stationKeys: list[int],
+		stationIds: list[int],
 		owner: AccountInfo,
 		includeAll: bool = False
-	) -> None:
-		result: list[StationInfo] = []
+	) -> Iterator[StationInfo]:
+		stations: Iterator[StationInfo] = iter([])
 		if includeAll:
-			result = list(self.station_service.get_stations(ownerId=owner.id))
+			canBeEnabled = {s[0] for s in  \
+				self.station_service.get_station_song_counts(ownerId=owner.id) \
+				if s[1] > 0
+			}
+			stations = self.station_service.get_stations(
+				stationKeys=canBeEnabled,
+				ownerId=owner.id
+			)
 		else:
-			result = list(self.station_service.get_stations(
-				stationKeys=stationKeys
-			))
-		for station in result:
+			canBeEnabled = {s[0] for s in  \
+				self.station_service.get_station_song_counts(stationIds=stationIds) \
+				if s[1] > 0
+			}
+			stations = self.station_service.get_stations(
+				stationKeys=canBeEnabled
+			)
+		for station in stations:
 			self.__start_station_external_process__(station.name, owner.username)
+			yield station
 
 	def disable_stations(
 		self,

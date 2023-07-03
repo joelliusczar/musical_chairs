@@ -220,17 +220,17 @@ def update_station(
 	result = stationService.save_station(station,user, stationKey)
 	return result or StationInfo(id=-1,name="",displayName="")
 
-@router.put("/enable/", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/enable/")
 def enable_stations(
-	stationIds: list[int] = Query(default=[]),
+	stationId: list[int] = Query(default=[]),
 	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
 		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
 	processService: ProcessService = Depends(process_service)
-) -> None:
-	processService.enable_stations(stationIds, user)
+) -> list[StationInfo]:
+	return list(processService.enable_stations(stationId, user, includeAll))
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
 def disable_stations(
@@ -242,7 +242,7 @@ def disable_stations(
 	),
 	processService: ProcessService = Depends(process_service)
 ) -> None:
-	processService.disable_stations(stationIds, user.id)
+	processService.disable_stations(stationIds, user.id, includeAll)
 
 @router.post("/{ownerKey}/{stationKey}/play_next",
 	status_code=status.HTTP_204_NO_CONTENT,

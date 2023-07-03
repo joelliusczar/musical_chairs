@@ -7,7 +7,7 @@ from .helpers import normalize_dict, mismatched_properties
 from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user
 )
-from .mocks.db_data import kilo_user_id
+from .mocks.db_data import kilo_user_id, station_saver_user_id
 from musical_chairs_libs.dtos_and_utilities import MinItemSecurityLevel
 
 
@@ -83,6 +83,26 @@ def test_song_ls_with_site_path_permissions(
 	data = json.loads(response.content)
 	items = data.get("items", [])
 	assert len(items) == 3
+
+	headers = login_test_user("radicalPath_testUser", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 0
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 0
 
 def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 
@@ -382,6 +402,55 @@ def test_song_save_with_path_permission(
 		normalize_dict(sendData)
 	)
 	assert not mismatches
+
+def test_song_save_different_station_owner(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("stationSaver_testUser", client)
+	getResponseBefore = client.get(
+		f"song-info/songs/{51}",
+		headers=headers
+	)
+
+	assert getResponseBefore.status_code == 200
+	data = json.loads(getResponseBefore.content)
+	sendData = data
+	sendData["name"] = "Baseline update"
+
+	putResponse = client.put(
+		f"song-info/songs/{51}",
+		headers=headers,
+		json=sendData
+	)
+	assert putResponse.status_code == 200
+	data = json.loads(putResponse.content)
+	mismatches = mismatched_properties(
+		normalize_dict(data),
+		normalize_dict(sendData)
+	)
+	assert not mismatches
+	sendData = data
+	sendData["stations"].append({
+		"id": 19,
+		"name": "india_station_rerun",
+		"displayName": "bitchingly fast!",
+		"owner": {
+			"id": station_saver_user_id,
+			"username": "stationSaver_testUser",
+			"displayName": "Station Saver"
+		},
+		"isRunning": False,
+		"rules": [],
+		"requestSecurityLevel": MinItemSecurityLevel.INVITED_USER.value,
+		"viewSecurityLevel": MinItemSecurityLevel.INVITED_USER.value
+	})
+	putResponse = client.put(
+		f"song-info/songs/{51}",
+		headers=headers,
+		json=sendData
+	)
+	assert putResponse.status_code == 200
 
 def test_get_songs_for_multi_edit(
 	fixture_api_test_client: TestClient

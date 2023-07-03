@@ -72,11 +72,6 @@ def __validate_song_stations(
 	stationIds = {s.id for s in song.stations or []}
 	linkedStationIds = {s.stationId for s in \
 		songInfoService.get_station_songs(songIds=songIds)}
-	stationService.get_stations(
-		stationIds,
-		user=user,
-		scopes=[UserRoleDef.STATION_ASSIGN.value]
-	)
 	permittedStations = {s.id for s in \
 			stationService.get_stations(
 			stationIds,

@@ -1,6 +1,6 @@
 import sys
 from typing import (Any, Optional, Iterable, Iterator)
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from .user_role_def import UserRoleDomain, RulePriorityLevel
 from itertools import groupby, chain
 from operator import attrgetter
@@ -18,7 +18,22 @@ class ActionRule:
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
 	priority: Optional[int]=RulePriorityLevel.NONE.value
-	domain: str=field(default=UserRoleDomain.Site.value, init=False)
+	domain: str=UserRoleDomain.Site.value
+
+	def __init__(
+		self,
+		name: str="",
+		span: int=0,
+		count: int=0,
+		priority: Optional[int]=RulePriorityLevel.NONE.value,
+		domain: str=UserRoleDomain.Site.value
+	):
+		self.name = name
+		self.span = span
+		self.count = count
+		self.priority = priority
+		# domain is just provided to make json to dto happy
+
 
 	@staticmethod
 	def sorted(rules: Iterable["ActionRule"]) -> list["ActionRule"]:

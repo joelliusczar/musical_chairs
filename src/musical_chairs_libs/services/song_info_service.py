@@ -348,7 +348,6 @@ class SongInfoService:
 		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
 			(p.path, p) for p in rules if isinstance(p, PathsActionRule) and p.path
 		)
-		#why is it empty string here but other places I've had to do "/"?
 		pathRuleTree.add("", (r for r in user.roles \
 			if type(r) == ActionRule \
 				and (UserRoleDomain.Path.conforms(r.name) \

@@ -6,7 +6,8 @@ from typing import (
 	cast,
 	Iterable,
 	Union,
-	Collection
+	Collection,
+	Tuple
 )
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import Row
@@ -465,7 +466,6 @@ class StationService:
 			requestSecurityLevel=station.requestSecurityLevel
 		)
 
-
 	def get_user_request_history(
 		self,
 		userId: int,
@@ -624,3 +624,22 @@ class StationService:
 		if ruleName:
 			delStmt = delStmt.where(stup_role == ruleName)
 		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]
+
+	def get_station_song_counts(
+		self,
+		stationIds: Union[int, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+	) -> Iterator[Tuple[int, int]]:
+		query = select(stsg_stationFk, func.count(stsg_songFk))
+
+		if type(stationIds) == int:
+			query = query.where(stsg_stationFk == stationIds)
+		elif isinstance(stationIds, Iterable):
+			query = query.where(stsg_stationFk.in_(stationIds))
+
+		if type(ownerId) == int:
+			query = query.join(stations_tbl, st_pk == stsg_stationFk)\
+				.where(st_ownerFk == ownerId)
+		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
+		for row in cast(Iterable[Row], records):
+			yield cast(int,row[0]), cast(int,row[1])

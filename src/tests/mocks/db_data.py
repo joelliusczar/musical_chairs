@@ -58,6 +58,8 @@ number_user_id = 40
 oomdwell_user_id = 41
 paul_bear_user_id = 42
 quirky_admin_user_id = 43
+radical_path_user_id = 44
+station_saver_user_id = 45
 
 artist_params = [
 	{
@@ -857,6 +859,12 @@ station_params = [
 		"displayName": "hella cool radio station",
 		"ownerFk": ingo_user_id,
 		"viewSecurityLevel": MinItemSecurityLevel.INVITED_USER.value
+	},
+	{ "pk": 19,
+		"name": "india_station_rerun",
+		"displayName": "bitchingly fast!",
+		"ownerFk": station_saver_user_id,
+		"viewSecurityLevel": MinItemSecurityLevel.INVITED_USER.value
 	}
 ]
 
@@ -1353,6 +1361,26 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": "quirkyAdmon_testUser"
+		},
+		{
+			"pk": radical_path_user_id,
+			"username": "radicalPath_testUser",
+			"displayName": "Radical Path",
+			"hashedPW": testPassword,
+			"email": "test45@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": "radicalPath_testUser"
+		},
+		{
+			"pk": station_saver_user_id,
+			"username": "stationSaver_testUser",
+			"displayName": "Station Saver",
+			"hashedPW": testPassword,
+			"email": "test46@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": "stationSaver_testUser"
 		}
 	]
 	return users_params
@@ -1573,6 +1601,14 @@ def get_user_role_params(
 		{
 			"userFk": quirky_admin_user_id,
 			"role": UserRoleDef.ADMIN.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": radical_path_user_id,
+			"role": UserRoleDef.PATH_EDIT.value,
 			"span":0,
 			"count":0,
 			"priority": None,
@@ -1965,6 +2001,26 @@ def get_path_permission_params(
 			"userFk": uniform_user_id,
 			"path": "/foo/b",
 			"role": UserRoleDef.PATH_LIST.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":16,
+			"userFk": station_saver_user_id,
+			"path": "/foo/b",
+			"role": UserRoleDef.PATH_EDIT.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":17,
+			"userFk": station_saver_user_id,
+			"path": "/foo/b",
+			"role": UserRoleDef.PATH_VIEW.value,
 			"span":0,
 			"count":0,
 			"priority": None,

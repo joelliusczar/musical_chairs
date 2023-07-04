@@ -107,6 +107,21 @@ def test_get_stations_list_with_user_and_owner(
 
 	assert len(data[0].rules) == 7
 
+def test_get_stations_list_with_owner_and_scopes(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+	):
+	stationService = fixture_station_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("ingo")
+	assert user
+	result = next(stationService.get_stations(
+			17,
+			user=user,
+			scopes=[UserRoleDef.STATION_ASSIGN.value]
+		), None)
+	assert result
+
 
 @pytest.mark.usefixtures("fixture_clean_station_folders")
 def test_save_station(

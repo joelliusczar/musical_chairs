@@ -133,8 +133,9 @@ class StationService:
 			).label("max")
 		).where(
 			canViewQuery.c.rule_domain == UserRoleDomain.Site.value #pyright: ignore [reportUnknownMemberType]
-		)\
-			.cte("topSiteRule"))
+		).cte("topSiteRule"))
+
+		ownerScopeSet = set(get_station_owner_rules(scopes))
 
 		query = query.join( #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery,
@@ -175,7 +176,10 @@ class StationService:
 				)
 			),
 		).where(
-				rulesSubquery.c.rule_name.in_(scopes) if scopes else true() #pyright: ignore [reportUnknownMemberType]
+				or_(
+					rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
+					(st_ownerFk == userId) if scopes and ownerScopeSet else false()
+				)
 			)
 
 		query = query.add_columns( #pyright: ignore [reportUnknownMemberType]

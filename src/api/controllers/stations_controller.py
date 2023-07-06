@@ -225,7 +225,7 @@ def enable_stations(
 	stationId: list[int] = Query(default=[]),
 	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
+		get_station_user,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
 	processService: ProcessService = Depends(process_service)
@@ -234,7 +234,7 @@ def enable_stations(
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
 def disable_stations(
-	stationIds: list[int] = Query(default=[]),
+	stationKeys: list[int] = Query(default=[]),
 	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
 		get_user_with_simple_scopes,
@@ -242,7 +242,7 @@ def disable_stations(
 	),
 	processService: ProcessService = Depends(process_service)
 ) -> None:
-	processService.disable_stations(stationIds, user.id, includeAll)
+	processService.disable_stations(stationKeys, user.id, includeAll)
 
 @router.post("/{ownerKey}/{stationKey}/play_next",
 	status_code=status.HTTP_204_NO_CONTENT,
@@ -270,8 +270,6 @@ def get_station_user_list(
 ) -> TableData[AccountInfo]:
 	stationUsers = list(stationService.get_station_users(stationInfo))
 	return TableData(stationUsers, len(stationUsers))
-
-
 
 
 @router.post("/{ownerKey}/{stationKey}/user_role",

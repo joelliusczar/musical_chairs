@@ -1,5 +1,5 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Iterator, Tuple, Optional, Iterable, Union, cast
+from typing import Iterator, Tuple, Optional, Iterable, Union, Collection
 from urllib import parse
 from fastapi import Depends, HTTPException, status, Query, Request
 from sqlalchemy.engine import Connection
@@ -25,8 +25,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ChainedAbsorbentTrie,
 	normalize_opening_slash,
 	UserRoleDef,
-	StationInfo,
-	RulePriorityLevel
+	StationInfo
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -139,6 +138,17 @@ def get_owner(
 		)
 	return None
 
+def get_stations_by_ids(
+	stationIds: Iterable[int],
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	stationService: StationService = Depends(station_service),
+) -> Collection[StationInfo]:
+	if not stationIds:
+		return ()
+	return list(stationService.get_stations(
+		stationIds,
+		user=user
+	))
 
 def get_station_by_name_and_owner(
 	stationKey: Union[int, str],
@@ -389,29 +399,38 @@ def get_multi_path_user(
 	return user
 
 
-
-def __filter_station_rules__(
-	scopes: Iterable[str],
+def check_station_scope(
+	scope: str,
+	user: AccountInfo,
 	station: StationInfo,
 	rules: Iterable[ActionRule],
-	ruleDef: UserRoleDef,
-	stationAttr: str
-) -> Iterator[ActionRule]:
-	secLevel = cast(int, getattr(station, stationAttr)) or 0
-	if not secLevel:
-		yield from rules
-		return
-	if not any(s == ruleDef.value for s in scopes):
-		yield from rules
-		return
-	for rule in rules:
-		if rule.name != ruleDef.value:
-			yield rule
-			continue
-		#shouldn't be any rules for other stations at this point
-		if secLevel < (rule.priority or RulePriorityLevel.NONE.value):
-			yield rule
-			continue
+	stationService: StationService
+):
+	bestRuleGenerator = (r for g in
+		groupby(
+			(r for r in rules if r.conforms(scope)),
+			lambda k: k.name
+		) for r in g[1]
+	)
+	selectedRule = next(
+		bestRuleGenerator,
+		None
+	)
+	if selectedRule:
+		try:
+			whenNext = stationService.calc_when_user_can_next_do_action(
+				user.id,
+				selectedRule,
+				station.id
+			)
+			if whenNext > 0:
+				currentTimestamp = get_datetime().timestamp()
+				timeleft = whenNext - currentTimestamp
+				raise build_too_many_requests_error(int(timeleft))
+		except IllegalOperationError:
+			raise build_wrong_permissions_error()
+	else:
+		raise build_wrong_permissions_error()
 
 def get_station_user(
 	securityScopes: SecurityScopes,
@@ -437,50 +456,28 @@ def get_station_user(
 			if station.owner and user.id == station.owner.id else (),
 		station.rules
 	)
-	stationFiltered = sortedRules
-	for pair in [
-		(UserRoleDef.STATION_REQUEST, "requestSecurityLevel"),
-		(UserRoleDef.STATION_VIEW, "viewSecurityLevel")
-	]:
-		stationFiltered = __filter_station_rules__(
-			scopes,
-			station,
-			stationFiltered,
-			pair[0],
-			pair[1]
-		)
-	rules = [*ActionRule.filter_out_repeat_roles(
-		stationFiltered
-	)]
+	rules = sortedRules
 	for scope in scopes:
-		bestRuleGenerator = (r for g in
-			groupby(
-				(r for r in rules if r.conforms(scope)),
-				lambda k: k.name
-			) for r in g[1]
-		)
-		selectedRule = next(
-			bestRuleGenerator,
-			None
-		)
-		if selectedRule:
-			try:
-				whenNext = stationService.calc_when_user_can_next_do_action(
-					user.id,
-					selectedRule,
-					station.id
-				)
-				if whenNext > 0:
-					currentTimestamp = get_datetime().timestamp()
-					timeleft = whenNext - currentTimestamp
-					raise build_too_many_requests_error(int(timeleft))
-			except IllegalOperationError:
-				raise build_wrong_permissions_error()
-		else:
-			raise build_wrong_permissions_error()
+		check_station_scope(scope, user, station, rules, stationService)
 	userDict = asdict(user)
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
+
+def get_station_user_2(
+	securityScopes: SecurityScopes,
+	stations: Collection[StationInfo]=Depends(get_stations_by_ids),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	stationService: StationService = Depends(station_service)
+) -> Optional[AccountInfo]:
+	minScope = (not securityScopes.scopes or\
+		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
+	)
+	if not any(s.viewSecurityLeve for s in stations) and minScope:
+		return user
+	if not user:
+		raise build_not_logged_in_error()
+	if user.isAdmin:
+		return user
 
 
 def get_account_if_can_edit(

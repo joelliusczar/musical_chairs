@@ -2,7 +2,7 @@ import os
 import platform
 import subprocess
 import random
-from typing import Optional, Iterable, cast, Union, Iterator
+from typing import Optional, Iterable, cast, Union, Iterator, Collection
 from musical_chairs_libs.dtos_and_utilities import (
 	check_name_safety,
 	StationInfo,
@@ -82,35 +82,35 @@ class ProcessService:
 		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
 	def enable_stations(self,
-		stationIds: list[int],
+		stations: Collection[StationInfo],
 		owner: AccountInfo,
 		includeAll: bool = False
 	) -> Iterator[StationInfo]:
-		stations: Iterator[StationInfo] = iter([])
+		stationsEnabled: Iterator[StationInfo] = iter([])
 		if includeAll:
 			canBeEnabled = {s[0] for s in  \
 				self.station_service.get_station_song_counts(ownerId=owner.id) \
 				if s[1] > 0
 			}
-			stations = self.station_service.get_stations(
+			stationsEnabled = self.station_service.get_stations(
 				stationKeys=canBeEnabled,
 				ownerId=owner.id
 			)
 		else:
 			canBeEnabled = {s[0] for s in  \
-				self.station_service.get_station_song_counts(stationIds=stationIds) \
+				self.station_service.get_station_song_counts(
+					stationIds=(s.id for s in stations)
+				) \
 				if s[1] > 0
 			}
-			stations = self.station_service.get_stations(
-				stationKeys=canBeEnabled
-			)
-		for station in stations:
+			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
+		for station in stationsEnabled:
 			self.__start_station_external_process__(station.name, owner.username)
 			yield station
 
 	def disable_stations(
 		self,
-		stationKeys: list[int],
+		stationIds: Iterable[int],
 		ownerKey: Union[int, str, None],
 		includeAll: bool = False
 	) -> None:
@@ -122,7 +122,7 @@ class ProcessService:
 				query = query.join(users_tbl, u_pk == st_ownerFk)\
 					.where(u_username == ownerKey)
 		else:
-			query = query.where(st_pk.in_(stationKeys))
+			query = query.where(st_pk.in_(stationIds))
 
 		rows = self.conn.execute(query) #pyright: ignore reportUnknownMemberType
 		pids = [cast(int, row[st_procId]) for row in cast(Iterable[Row], rows)]
@@ -130,7 +130,7 @@ class ProcessService:
 			self.end_process(pid)
 		self.unset_station_procs(pids)
 
-	def _noop_startup(self, stationName: str) -> None:
+	def __noop_startup__(self, stationName: str) -> None:
 		pid = self.get_pid()
 		stmt = update(stations_tbl)\
 				.values(procId = pid) \
@@ -142,13 +142,14 @@ class ProcessService:
 		stationName: str,
 		ownerName: str
 	) -> None:
-		m = check_name_safety(f"{ownerName}_{stationName}")
+		filename_base = f"{ownerName}_{stationName}"
+		m = check_name_safety(filename_base)
 		if m:
 			raise RuntimeError("Invalid station name was used")
-		stationConf = f"{EnvManager.station_config_dir}/ices.{stationName}.conf"
+		stationConf = f"{EnvManager.station_config_dir}/ices.{filename_base}.conf"
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
 		if platform.system() == "Darwin":
-			return self._noop_startup(stationName)
+			return self.__noop_startup__(stationName)
 		subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
 

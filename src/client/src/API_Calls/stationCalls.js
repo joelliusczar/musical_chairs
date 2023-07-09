@@ -81,14 +81,14 @@ export const removeSongFromQueue = async (params) => {
 };
 
 export const enableStations = async ({ ids }) => {
-	const queryStr = buildArrayQueryStrFromObj({"id": ids});
+	const queryStr = buildArrayQueryStrFromObj({"stationIds": ids});
 	const response = await webClient
 		.put(`stations/enable/${queryStr}`);
 	return response.data;
 };
 
-export const disableStations = async ({ ids, names }) => {
-	const queryStr = buildArrayQueryStrFromObj({"id": ids, "name": names});
+export const disableStations = async ({ ids }) => {
+	const queryStr = buildArrayQueryStrFromObj({"stationIds": ids});
 	const response = await webClient
 		.put(`stations/disable/${queryStr}`);
 	return response.data;

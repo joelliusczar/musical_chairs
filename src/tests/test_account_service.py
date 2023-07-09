@@ -236,7 +236,6 @@ def test_unique_roles():
 	assert results[1].name == UserRoleDef.STATION_REQUEST.value
 	assert results[1].span == 15
 
-
 @pytest.mark.echo(True)
 def test_save_roles(
 	fixture_account_service_mock_current_time: AccountsService

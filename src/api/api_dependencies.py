@@ -19,7 +19,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	get_datetime,
 	get_path_owner_roles,
-	get_station_owner_rules,
 	PathsActionRule,
 	ChainedAbsorbentTrie,
 	normalize_opening_slash,
@@ -84,6 +83,32 @@ def user_actions_history_service(
 ) -> UserActionsHistoryService:
 	return UserActionsHistoryService(conn)
 
+def get_user_from_token(
+	token: str,
+	accountsService: AccountsService
+) -> Tuple[AccountInfo, float]:
+	if not token:
+		raise build_not_logged_in_error()
+	try:
+		user, expiration = accountsService.get_user_from_token(token)
+		if not user:
+			raise build_not_wrong_credentials_error()
+		return user, expiration
+	except ExpiredSignatureError:
+		raise build_expired_credentials_error()
+
+def get_current_user_simple(
+	request: Request,
+	token: str = Depends(oauth2_scheme),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> AccountInfo:
+	cookieToken = request.cookies.get("access_token", None)
+	user, _ = get_user_from_token(
+		token or parse.unquote(cookieToken or ""),
+		accountsService
+	)
+	return user
+
 def get_optional_user_from_token(
 	request: Request,
 	token: str = Depends(oauth2_scheme),
@@ -137,7 +162,7 @@ def get_owner(
 	return None
 
 def get_stations_by_ids(
-	stationIds: Iterable[int],
+	stationIds: list[int]=Query(default=[]),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	stationService: StationService = Depends(station_service),
 ) -> Collection[StationInfo]:
@@ -176,32 +201,6 @@ def get_station_by_name_and_owner(
 		)
 	return station
 
-def get_user_from_token(
-	token: str,
-	accountsService: AccountsService
-) -> Tuple[AccountInfo, float]:
-	if not token:
-		raise build_not_logged_in_error()
-	try:
-		user, expiration = accountsService.get_user_from_token(token)
-		if not user:
-			raise build_not_wrong_credentials_error()
-		return user, expiration
-	except ExpiredSignatureError:
-		raise build_expired_credentials_error()
-
-
-def get_current_user_simple(
-	request: Request,
-	token: str = Depends(oauth2_scheme),
-	accountsService: AccountsService = Depends(accounts_service)
-) -> AccountInfo:
-	cookieToken = request.cookies.get("access_token", None)
-	user, _ = get_user_from_token(
-		token or parse.unquote(cookieToken or ""),
-		accountsService
-	)
-	return user
 
 def get_current_user(
 	user: AccountInfo = Depends(get_current_user_simple)
@@ -415,9 +414,6 @@ def get_station_user(
 		if UserRoleDomain.Station.conforms(s)
 	}
 	rules = ActionRule.aggregate(
-		user.roles,
-		get_station_owner_rules() \
-			if station.owner and user.id == station.owner.id else (),
 		station.rules,
 		filter=lambda r: r.name in scopes
 	)
@@ -446,7 +442,8 @@ def get_station_user_2(
 	securityScopes: SecurityScopes,
 	stations: Collection[StationInfo]=Depends(get_stations_by_ids),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
-	stationService: StationService = Depends(station_service)
+	userActionHistoryService: UserActionsHistoryService=
+		Depends(user_actions_history_service)
 ) -> Optional[AccountInfo]:
 	minScope = (not securityScopes.scopes or\
 		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
@@ -457,7 +454,31 @@ def get_station_user_2(
 		raise build_not_logged_in_error()
 	if user.isAdmin:
 		return user
-
+	scopes = {s for s in securityScopes.scopes \
+		if UserRoleDomain.Station.conforms(s)
+	}
+	unpermittedStations = [s for s in stations
+		if not any(r.name in scopes for r in s.rules)
+	]
+	if unpermittedStations:
+		raise build_wrong_permissions_error()
+	timeoutLookup = \
+		userActionHistoryService\
+		.calc_lookup_for_when_user_can_next_do_station_action(
+			user.id,
+			stations
+		)
+	for station in stations:
+		for scope in scopes:
+			if station.id in timeoutLookup and scope in timeoutLookup[station.id]:
+				whenNext = timeoutLookup[station.id][scope]
+				if whenNext is None:
+					raise build_wrong_permissions_error()
+				if whenNext > 0:
+					currentTimestamp = get_datetime().timestamp()
+					timeleft = whenNext - currentTimestamp
+					raise build_too_many_requests_error(int(timeleft))
+	return user
 
 def get_account_if_can_edit(
 	userKey: Union[int, str],

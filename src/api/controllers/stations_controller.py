@@ -1,5 +1,5 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Collection
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -37,7 +37,9 @@ from api_dependencies import (
 	get_user_with_rate_limited_scope,
 	get_user_with_simple_scopes,
 	get_optional_user_from_token,
-	get_subject_user
+	get_subject_user,
+	get_station_user_2,
+	get_stations_by_ids
 )
 from station_validation import (
 	validate_station_rule,
@@ -222,27 +224,27 @@ def update_station(
 
 @router.put("/enable/")
 def enable_stations(
-	stationId: list[int] = Query(default=[]),
+	stations: Collection[StationInfo] = Depends(get_stations_by_ids),
 	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
-		get_station_user,
+		get_station_user_2,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
 	processService: ProcessService = Depends(process_service)
 ) -> list[StationInfo]:
-	return list(processService.enable_stations(stationId, user, includeAll))
+	return list(processService.enable_stations(stations, user, includeAll))
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
 def disable_stations(
-	stationKeys: list[int] = Query(default=[]),
+	stations: Collection[StationInfo] = Depends(get_stations_by_ids),
 	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
+		get_station_user_2,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
 	processService: ProcessService = Depends(process_service)
 ) -> None:
-	processService.disable_stations(stationKeys, user.id, includeAll)
+	processService.disable_stations((s.id for s in stations), user.id, includeAll)
 
 @router.post("/{ownerKey}/{stationKey}/play_next",
 	status_code=status.HTTP_204_NO_CONTENT,

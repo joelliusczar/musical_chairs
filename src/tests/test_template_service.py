@@ -10,7 +10,7 @@ from .common_fixtures import\
 
 def test_extract_source_password(fixture_template_service: TemplateService):
 	templateService = fixture_template_service
-	sourcePassword = templateService._extract_icecast_source_password()
+	sourcePassword = templateService.__extract_icecast_source_password__()
 	assert sourcePassword == "hackmeSource"
 
 @pytest.mark.usefixtures("fixture_clean_station_folders")

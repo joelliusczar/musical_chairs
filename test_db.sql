@@ -44,9 +44,13 @@ CREATE TABLE "UserRoles" (
 	FOREIGN KEY("userFk") REFERENCES "Users" (pk)
 );
 CREATE TABLE "UserActionHistory" (
-	"userFk" INTEGER NOT NULL, 
-	action VARCHAR, 
-	timestamp FLOAT NOT NULL, 
+	pk INTEGER NOT NULL, 
+	"userFk" INTEGER, 
+	action VARCHAR NOT NULL, 
+	timestamp FLOAT, 
+	"queuedTimestamp" FLOAT NOT NULL, 
+	"requestedTimestamp" FLOAT, 
+	PRIMARY KEY (pk), 
 	FOREIGN KEY("userFk") REFERENCES "Users" (pk)
 );
 CREATE TABLE "PathUserPermissions" (
@@ -155,15 +159,12 @@ CREATE TABLE "StationsSongs" (
 	FOREIGN KEY("lastModifiedByUserFk") REFERENCES "Users" (pk)
 );
 CREATE TABLE "StationQueue" (
+	"userActionHistoryFk" INTEGER NOT NULL, 
 	"stationFk" INTEGER NOT NULL, 
-	"songFk" INTEGER NOT NULL, 
-	"playedTimestamp" FLOAT, 
-	"queuedTimestamp" FLOAT, 
-	"requestedTimestamp" FLOAT, 
-	"requestedByUserFk" INTEGER, 
+	"songFk" INTEGER, 
+	FOREIGN KEY("userActionHistoryFk") REFERENCES "UserActionHistory" (pk), 
 	FOREIGN KEY("stationFk") REFERENCES "Stations" (pk), 
-	FOREIGN KEY("songFk") REFERENCES "Songs" (pk), 
-	FOREIGN KEY("requestedByUserFk") REFERENCES "Users" (pk)
+	FOREIGN KEY("songFk") REFERENCES "Songs" (pk)
 );
 
 CREATE UNIQUE INDEX "idx_uniqueUsername" ON "Users" (username);
@@ -440,51 +441,54 @@ INSERT INTO "Stations" (pk, name, "displayName", "ownerFk", "viewSecurityLevel")
 INSERT INTO "Stations" (pk, name, "displayName", "ownerFk", "viewSecurityLevel") VALUES (16, 'foxtrot_station_rerun', 'fucked six ways to Sunday', 25, 59);
 INSERT INTO "Stations" (pk, name, "displayName", "ownerFk", "viewSecurityLevel") VALUES (17, 'golf_station_rerun', 'goliath bam bam', 37, 39);
 INSERT INTO "Stations" (pk, name, "displayName", "ownerFk", "viewSecurityLevel") VALUES (18, 'hotel_station_rerun', 'hella cool radio station', 37, 39);
+INSERT INTO "Stations" (pk, name, "displayName", "ownerFk", "viewSecurityLevel") VALUES (19, 'india_station_rerun', 'bitchingly fast!', 45, 39);
 COMMIT;
 BEGIN;
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (1, 'testUser_alpha', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test@test.com', '', 0, 1622142780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (2, 'testUser_bravo', 'Bravo Test User', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test2@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (1, 'testUser_alpha', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test@test.com', '', 0, 1622142780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (2, 'testUser_bravo', 'Bravo Test User', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test2@test.com', NULL, 0, 1653678780.0);
 INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (3, 'testUser_charlie', 'charlie the user of tests', NULL, 'test3@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (4, 'testUser_delta', 'DELTA USER', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test4@test.com', NULL, 1, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (4, 'testUser_delta', 'DELTA USER', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test4@test.com', NULL, 1, 1653678780.0);
 INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (5, 'testUser_echo', 'ECHO, ECHO', NULL, NULL, NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (6, 'testUser_foxtrot', 'ﬀ ozotroz', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test6@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (7, 'testUser_golf', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test7@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (8, 'testUser_hotel', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test8@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (9, 'testUser_india', 'IndiaDisplay', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test9@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (10, 'testUser_juliet', 'julietDisplay', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test10@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (11, 'testUser_kilo', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test11@test.com', '/foo', 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (12, 'testUser_lima', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test12@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (13, 'testUser_mike', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test13@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (14, 'testUser_november', 'ñovoper', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test14@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (15, 'testUser_oscar', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test15@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (16, 'testUser_papa', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test16@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (17, 'testUser_quebec', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test17@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (18, 'testUser_romeo', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test18@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (19, 'testUser_sierra', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test19@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (20, 'testUser_tango', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test20@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (21, 'testUser_uniform', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test21@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (22, 'testUser_victor', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test22@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (23, 'testUser_whiskey', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test23@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (24, 'testUser_xray', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test24@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (25, 'testUser_yankee', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test25@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (26, 'testUser_zulu', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test26@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (27, 'testUser_alice', 'Alice is my name', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test27@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (28, 'bertrand', 'Bertrance', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test28@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (29, 'carl', 'Carl the Cactus', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test29@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (30, 'dan', 'Dookie Dan', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test30@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (31, 'felix', 'Felix the man', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test31@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (32, 'foxman', NULL, x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test32@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (33, 'foxtrain', 'Foxtrain chu', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test33@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (34, 'george', 'George Costanza', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test35@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (35, 'hamburger', 'HamBurger', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test36@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (36, 'horsetel', 'horsetelophone', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test37@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (37, 'ingo', 'Ingo      is a bad man', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test38@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (38, 'ned_land', 'Ned Land of the Spear', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test39@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (39, 'narlon', 'Narloni', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test40@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (40, '7', 'seven', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test41@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (41, 'testUser_oomdwell', 'Oomdwellmit', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test42@test.com', NULL, 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (42, 'paulBear_testUser', 'Paul Bear', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test43@test.com', 'paulBear_testUser', 0, 1653678780.0);
-INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (43, 'quirkyAdmon_testUser', 'Quirky Admin', x'24326224313224746f6a6b72315563597970472e334c71425a7275352e3267782e36427844655756556b6a6d622f6a53376967446e4a6441714f6636', 'test44@test.com', 'quirkyAdmon_testUser', 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (6, 'testUser_foxtrot', 'ﬀ ozotroz', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test6@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (7, 'testUser_golf', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test7@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (8, 'testUser_hotel', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test8@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (9, 'testUser_india', 'IndiaDisplay', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test9@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (10, 'testUser_juliet', 'julietDisplay', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test10@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (11, 'testUser_kilo', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test11@test.com', '/foo', 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (12, 'testUser_lima', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test12@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (13, 'testUser_mike', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test13@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (14, 'testUser_november', 'ñovoper', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test14@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (15, 'testUser_oscar', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test15@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (16, 'testUser_papa', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test16@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (17, 'testUser_quebec', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test17@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (18, 'testUser_romeo', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test18@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (19, 'testUser_sierra', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test19@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (20, 'testUser_tango', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test20@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (21, 'testUser_uniform', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test21@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (22, 'testUser_victor', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test22@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (23, 'testUser_whiskey', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test23@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (24, 'testUser_xray', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test24@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (25, 'testUser_yankee', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test25@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (26, 'testUser_zulu', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test26@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (27, 'testUser_alice', 'Alice is my name', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test27@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (28, 'bertrand', 'Bertrance', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test28@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (29, 'carl', 'Carl the Cactus', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test29@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (30, 'dan', 'Dookie Dan', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test30@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (31, 'felix', 'Felix the man', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test31@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (32, 'foxman', NULL, x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test32@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (33, 'foxtrain', 'Foxtrain chu', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test33@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (34, 'george', 'George Costanza', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test35@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (35, 'hamburger', 'HamBurger', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test36@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (36, 'horsetel', 'horsetelophone', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test37@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (37, 'ingo', 'Ingo      is a bad man', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test38@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (38, 'ned_land', 'Ned Land of the Spear', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test39@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (39, 'narlon', 'Narloni', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test40@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (40, '7', 'seven', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test41@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (41, 'testUser_oomdwell', 'Oomdwellmit', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test42@test.com', NULL, 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (42, 'paulBear_testUser', 'Paul Bear', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test43@test.com', 'paulBear_testUser', 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (43, 'quirkyAdmon_testUser', 'Quirky Admin', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test44@test.com', 'quirkyAdmon_testUser', 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (44, 'radicalPath_testUser', 'Radical Path', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test45@test.com', 'radicalPath_testUser', 0, 1653678780.0);
+INSERT INTO "Users" (pk, username, "displayName", "hashedPW", email, "dirRoot", "isDisabled", "creationTimestamp") VALUES (45, 'stationSaver_testUser', 'Station Saver', x'243262243132245a2e5a4a5164684b4c774c365777743169444a32494f7541684a2f65547347764661394e4d5242575059755148796f5a3576544961', 'test46@test.com', 'stationSaver_testUser', 0, 1653678780.0);
 COMMIT;
 BEGIN;
 INSERT INTO "UserRoles" ("userFk", role, span, count, priority, "creationTimestamp") VALUES (1, 'admin', 0.0, 0.0, NULL, 1622142780.0);
@@ -514,6 +518,7 @@ INSERT INTO "UserRoles" ("userFk", role, span, count, priority, "creationTimesta
 INSERT INTO "UserRoles" ("userFk", role, span, count, priority, "creationTimestamp") VALUES (27, 'station:request', 300.0, 20.0, 18, 1622142780.0);
 INSERT INTO "UserRoles" ("userFk", role, span, count, priority, "creationTimestamp") VALUES (42, 'path:list', 0.0, 0.0, NULL, 1622142780.0);
 INSERT INTO "UserRoles" ("userFk", role, span, count, priority, "creationTimestamp") VALUES (43, 'admin', 0.0, 0.0, NULL, 1622142780.0);
+INSERT INTO "UserRoles" ("userFk", role, span, count, priority, "creationTimestamp") VALUES (44, 'path:edit', 0.0, 0.0, NULL, 1622142780.0);
 COMMIT;
 BEGIN;
 INSERT INTO "StationUserPermissions" (pk, "stationFk", "userFk", role, span, count, priority, "creationTimestamp") VALUES (1, 3, 11, 'station:request', 0.0, 0.0, NULL, 1622142780.0);
@@ -556,4 +561,58 @@ INSERT INTO "PathUserPermissions" (pk, "userFk", path, role, span, count, priori
 INSERT INTO "PathUserPermissions" (pk, "userFk", path, role, span, count, priority, "creationTimestamp") VALUES (13, 6, '/foo/goo/boo', 'path:edit', 1.0, 0.0, NULL, 1622142780.0);
 INSERT INTO "PathUserPermissions" (pk, "userFk", path, role, span, count, priority, "creationTimestamp") VALUES (14, 21, '/foo/d', 'path:list', 0.0, 0.0, NULL, 1622142780.0);
 INSERT INTO "PathUserPermissions" (pk, "userFk", path, role, span, count, priority, "creationTimestamp") VALUES (15, 21, '/foo/b', 'path:list', 0.0, 0.0, NULL, 1622142780.0);
+INSERT INTO "PathUserPermissions" (pk, "userFk", path, role, span, count, priority, "creationTimestamp") VALUES (16, 45, '/foo/b', 'path:edit', 0.0, 0.0, NULL, 1622142780.0);
+INSERT INTO "PathUserPermissions" (pk, "userFk", path, role, span, count, priority, "creationTimestamp") VALUES (17, 45, '/foo/b', 'path:view', 0.0, 0.0, NULL, 1622142780.0);
+COMMIT;
+BEGIN;
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (1, 10, 'station:request', 1622142780.0, 1622142780.0, 1622142780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (2, 10, 'station:request', 1622143780.0, 1622143780.0, 1622143780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (3, 10, 'station:request', 1622144780.0, 1622144780.0, 1622144780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (4, 10, 'station:create', 1622145780.0, 1622145780.0, 1622145780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (5, 10, 'station:assign', 1622146780.0, 1622146780.0, 1622146780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (6, 10, 'station:assign', 1622147780.0, 1622147780.0, 1622147780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (7, 10, 'station:assign', 1622148780.0, 1622148780.0, 1622148780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (8, 10, 'station:flip', 1622149780.0, 1622149780.0, 1622149780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (9, 10, 'station:flip', 1622150780.0, 1622150780.0, 1622150780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (10, 10, 'station:flip', 1622151780.0, 1622151780.0, 1622151780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (11, 10, 'station:request', 1622152780.0, 1622152780.0, 1622152780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (12, 10, 'station:request', 1622153780.0, 1622153780.0, 1622153780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (13, 10, 'station:request', 1622154780.0, 1622154780.0, 1622154780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (14, 10, 'station:request', 1622155780.0, 1622155780.0, 1622155780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (15, 10, 'station:request', 1622156780.0, 1622156780.0, 1622156780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (16, 10, 'station:request', 1622157780.0, 1622157780.0, 1622157780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (17, 10, 'station:create', 1622158780.0, 1622158780.0, 1622158780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (18, 10, 'station:request', 1622160780.0, 1622160780.0, 1622160780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (19, 10, 'station:request', 1622161780.0, 1622161780.0, 1622161780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (20, 10, 'station:request', 1622162780.0, 1622162780.0, 1622162780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (21, 10, 'station:request', 1622163780.0, 1622163780.0, 1622163780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (22, 10, 'station:request', 1622164780.0, 1622164780.0, 1622164780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (23, 10, 'station:request', 1622165780.0, 1622165780.0, 1622165780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (24, 10, 'station:request', 1622166780.0, 1622166780.0, 1622166780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (25, 10, 'station:edit', 1622167780.0, 1622167780.0, 1622167780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (26, 10, 'station:flip', 1622168780.0, 1622168780.0, 1622168780.0);
+INSERT INTO "UserActionHistory" (pk, "userFk", action, timestamp, "queuedTimestamp", "requestedTimestamp") VALUES (27, 10, 'station:flip', 1622169780.0, 1622169780.0, 1622169780.0);
+COMMIT;
+BEGIN;
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (1, 2, 3);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (2, 2, 4);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (3, 2, 5);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (8, 5, NULL);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (9, 5, NULL);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (10, 5, NULL);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (11, 5, 5);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (12, 5, 6);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (13, 5, 7);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (14, 5, 8);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (15, 5, 9);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (16, 5, 10);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (18, 6, 10);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (19, 6, 11);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (20, 6, 12);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (21, 6, 13);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (22, 6, 14);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (23, 6, 15);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (24, 6, 16);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (25, 6, NULL);
+INSERT INTO "StationQueue" ("userActionHistoryFk", "stationFk", "songFk") VALUES (26, 6, NULL);
 COMMIT;

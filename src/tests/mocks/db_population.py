@@ -12,7 +12,9 @@ from musical_chairs_libs.tables import (
 	userRoles,
 	stations_songs,
 	station_user_permissions,
-	path_user_permissions
+	path_user_permissions,
+	user_action_history,
+	station_queue
 )
 from sqlalchemy import insert
 from .db_data import *
@@ -230,6 +232,20 @@ def get_initial_users() -> list[dict[Any, Any]]:
 	)
 	return userParams
 
+def populate_user_actions_history(
+	conn: Connection,
+	orderedTestDates: List[datetime]
+):
+	actionsHistoryParams = get_actions_history(orderedTestDates)
+	stmt = insert(user_action_history)
+	conn.execute(stmt, actionsHistoryParams) #pyright: ignore [reportUnknownMemberType]
+
+def populate_station_queue(
+	conn: Connection
+):
+	stationQueueParams = get_station_queue()
+	stmt = insert(station_queue)
+	conn.execute(stmt, stationQueueParams) #pyright: ignore [reportUnknownMemberType]
 
 def get_initial_stations() -> list[dict[Any, Any]]:
 	return station_params

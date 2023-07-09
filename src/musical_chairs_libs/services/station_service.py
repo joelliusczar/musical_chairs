@@ -29,7 +29,6 @@ from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
 	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel,
 	songs, sg_pk, sg_name, sg_path, sg_albumFk,
-	station_queue, q_stationFk, q_requestedTimestamp, q_requestedByUserFk,
 	albums, ab_name, ab_pk,
 	artists, ar_name, ar_pk,
 	song_artist, sgar_songFk, sgar_artistFk,
@@ -50,7 +49,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
 	StationActionRule,
-	IllegalOperationError,
 	UserRoleDef,
 	AlreadyUsedError,
 	UserRoleDomain,
@@ -87,10 +85,6 @@ class StationService:
 		self.conn = conn
 		self.template_service = templateService
 		self.song_info_service = songInfoService
-		self.__security_scope_lookup = {
-			UserRoleDef.STATION_REQUEST.value:
-				self.calc_when_user_can_next_request_song
-		}
 		self.get_datetime = get_datetime
 
 	def get_station_id(
@@ -220,6 +214,7 @@ class StationService:
 					stationOwner = currentStation.owner
 					if stationOwner and stationOwner.id == userId:
 						currentStation.rules.extend(get_station_owner_rules(scopes))
+					currentStation.rules = ActionRule.sorted(currentStation.rules)
 					yield currentStation
 				currentStation = self.__row_to_station__(row)
 				if cast(str,row["rule_domain"]) != "shim":
@@ -230,6 +225,7 @@ class StationService:
 			stationOwner = currentStation.owner
 			if stationOwner and stationOwner.id == userId:
 				currentStation.rules.extend(get_station_owner_rules(scopes))
+			currentStation.rules = ActionRule.sorted(currentStation.rules)
 			yield currentStation
 
 	def get_stations(
@@ -469,78 +465,6 @@ class StationService:
 			viewSecurityLevel=station.viewSecurityLevel,
 			requestSecurityLevel=station.requestSecurityLevel
 		)
-
-	def get_user_request_history(
-		self,
-		userId: int,
-		selectedRule: ActionRule,
-		stationKey: Union[int, str]
-	) -> Iterator[float]:
-		currentTimestamp = self.get_datetime().timestamp()
-		fromTimestamp = currentTimestamp - selectedRule.span
-		query = select(q_requestedTimestamp).select_from(station_queue)\
-			.where(q_requestedTimestamp >= fromTimestamp)\
-			.where(q_requestedByUserFk == userId)
-		if isinstance(selectedRule, StationActionRule):
-			if type(stationKey) == int:
-				query = query.where(q_stationFk == stationKey)
-			elif type(stationKey) == str:
-				query.join(stations_tbl, st_pk == q_stationFk)\
-					.where(func.format_name_for_search(st_name)
-						== SearchNameString.format_name_for_search(stationKey))
-			else:
-				raise ValueError("Either stationName or id must be provided")
-		query = query.order_by(q_requestedTimestamp)\
-			.limit(selectedRule.count)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		for row in cast(Iterable[Row], records):
-			yield cast(float,row[q_requestedTimestamp])
-
-	def __calc_when_user_can_noop(
-		self,
-		userId: int,
-		selectedRule: ActionRule,
-		stationKey: Union[int, str]
-	) -> float:
-		return 0
-
-	def calc_when_user_can_next_request_song(
-		self,
-		userId: int,
-		selectedRule: ActionRule,
-		stationKey: Union[int, str]
-	) -> float:
-		if selectedRule.noLimit:
-			return 0
-		if selectedRule.blocked:
-			raise IllegalOperationError(
-				f"{userId} cannot make requests on this station"
-			)
-		prevRequestTimestamps = [
-				r for r in
-				self.get_user_request_history(
-					userId,
-					selectedRule,
-					stationKey
-				)
-			]
-		if len(prevRequestTimestamps) == 0:
-			return 0
-		if len(prevRequestTimestamps) == selectedRule.count:
-			return prevRequestTimestamps[0] + selectedRule.span
-		return 0
-
-	def calc_when_user_can_next_do_action(
-		self,
-		userId: int,
-		selectedRule: ActionRule,
-		stationKey: Union[int, str]
-	) -> float:
-		calcWhenFn = self.__security_scope_lookup.get(
-			selectedRule.name,
-			self.__calc_when_user_can_noop
-		)
-		return calcWhenFn(userId, selectedRule, stationKey)
 
 	def get_station_users(
 		self,

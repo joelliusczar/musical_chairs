@@ -15,7 +15,9 @@ from .db_population import (
 	populate_users,
 	populate_user_roles,
 	populate_station_permissions,
-	populate_path_permissions
+	populate_path_permissions,
+	populate_user_actions_history,
+	populate_station_queue
 )
 
 class ConnectionConstructor(Protocol):
@@ -59,6 +61,8 @@ def setup_in_mem_tbls(
 	populate_user_roles(conn, orderedTestDates, primaryUser)
 	populate_station_permissions(conn, orderedTestDates)
 	populate_path_permissions(conn, orderedTestDates)
+	populate_user_actions_history(conn, orderedTestDates)
+	populate_station_queue(conn)
 
 def construct_mock_connection_constructor(
 	dbPopulate: MockDbPopulateClosure,

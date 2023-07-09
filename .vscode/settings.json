@@ -28,4 +28,5 @@
   "search.exclude": {
     "**/test_trash": true
   },
+  "editor.insertSpaces": false,
 }

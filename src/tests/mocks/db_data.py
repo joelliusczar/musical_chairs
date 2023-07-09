@@ -2029,3 +2029,334 @@ def get_path_permission_params(
 	]
 	return pathPermissions
 
+def get_actions_history(
+	orderedTestDates: List[datetime]
+) -> list[dict[Any, Any]]:
+
+	return [
+		{
+			"pk": 1,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp(),
+			"queuedTimestamp": orderedTestDates[0].timestamp(),
+			"requestedTimestamp":orderedTestDates[0].timestamp()
+		},
+		{
+			"pk": 2,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 1000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 1000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 1000
+		},
+		{
+			"pk": 3,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 2000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 2000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 2000
+		},
+		{
+			"pk": 4,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_CREATE.value,
+			"timestamp": orderedTestDates[0].timestamp() + 3000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 3000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 3000
+		},
+		{
+			"pk": 5,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_ASSIGN.value,
+			"timestamp": orderedTestDates[0].timestamp() + 4000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 4000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 4000
+		},
+		{
+			"pk": 6,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_ASSIGN.value,
+			"timestamp": orderedTestDates[0].timestamp() + 5000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 5000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 5000
+		},
+		{
+			"pk": 7,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_ASSIGN.value,
+			"timestamp": orderedTestDates[0].timestamp() + 6000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 6000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 6000
+		},
+		{
+			"pk": 8,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_FLIP.value,
+			"timestamp": orderedTestDates[0].timestamp() + 7000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 7000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 7000
+		},
+		{
+			"pk": 9,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_FLIP.value,
+			"timestamp": orderedTestDates[0].timestamp() + 8000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 8000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 8000
+		},
+		{
+			"pk": 10,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_FLIP.value,
+			"timestamp": orderedTestDates[0].timestamp() + 9000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 9000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 9000
+		},
+		{
+			"pk": 11,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 10000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 10000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 10000
+		},
+		{
+			"pk": 12,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 11000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 11000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 11000
+		},
+		{
+			"pk": 13,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 12000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 12000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 12000
+		},
+		{
+			"pk": 14,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 13000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 13000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 13000
+		},
+		{
+			"pk": 15,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 14000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 14000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 14000
+		},
+		{
+			"pk": 16,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 15000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 15000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 15000
+		},
+		{
+			"pk": 17,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_CREATE.value,
+			"timestamp": orderedTestDates[0].timestamp() + 16000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 16000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 16000
+		},
+		{
+			"pk": 18,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 18000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 18000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 18000
+		},
+		{
+			"pk": 19,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 19000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 19000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 19000
+		},
+		{
+			"pk": 20,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 20000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 20000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 20000
+		},
+		{
+			"pk": 21,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 21000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 21000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 21000
+		},
+		{
+			"pk": 22,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 22000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 22000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 22000
+		},
+		{
+			"pk": 23,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 23000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 23000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 23000
+		},
+		{
+			"pk": 24,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"timestamp": orderedTestDates[0].timestamp() + 24000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 24000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 24000
+		},
+		{
+			"pk": 25,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_EDIT.value,
+			"timestamp": orderedTestDates[0].timestamp() + 25000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 25000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 25000
+		},
+		{
+			"pk": 26,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_FLIP.value,
+			"timestamp": orderedTestDates[0].timestamp() + 26000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 26000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 26000
+		},
+		{
+			"pk": 27,
+			"userFk": juliet_user_id,
+			"action": UserRoleDef.STATION_FLIP.value,
+			"timestamp": orderedTestDates[0].timestamp() + 27000,
+			"queuedTimestamp": orderedTestDates[0].timestamp() + 27000,
+			"requestedTimestamp":orderedTestDates[0].timestamp() + 27000
+		},
+	]
+
+def get_station_queue() -> list[dict[Any, Any]]:
+	return [
+		{
+			"userActionHistoryFk": 1,
+			"stationFk": 2,
+			"songFk": 3,
+		},
+		{
+			"userActionHistoryFk": 2,
+			"stationFk": 2,
+			"songFk": 4,
+		},
+		{
+			"userActionHistoryFk": 3,
+			"stationFk": 2,
+			"songFk": 5,
+		},
+		{
+			"userActionHistoryFk": 8,
+			"stationFk": 5,
+			"songFk": None,
+		},
+		{
+			"userActionHistoryFk": 9,
+			"stationFk": 5,
+			"songFk": None,
+		},
+		{
+			"userActionHistoryFk": 10,
+			"stationFk": 5,
+			"songFk": None,
+		},
+		{
+			"userActionHistoryFk": 11,
+			"stationFk": 5,
+			"songFk": 5,
+		},
+		{
+			"userActionHistoryFk": 12,
+			"stationFk": 5,
+			"songFk": 6,
+		},
+		{
+			"userActionHistoryFk": 13,
+			"stationFk": 5,
+			"songFk": 7,
+		},
+		{
+			"userActionHistoryFk": 14,
+			"stationFk": 5,
+			"songFk": 8,
+		},
+		{
+			"userActionHistoryFk": 15,
+			"stationFk": 5,
+			"songFk": 9,
+		},
+		{
+			"userActionHistoryFk": 16,
+			"stationFk": 5,
+			"songFk": 10,
+		},
+		{
+			"userActionHistoryFk": 18,
+			"stationFk": 6,
+			"songFk": 10,
+		},
+		{
+			"userActionHistoryFk": 19,
+			"stationFk": 6,
+			"songFk": 11,
+		},
+		{
+			"userActionHistoryFk": 20,
+			"stationFk": 6,
+			"songFk": 12,
+		},
+		{
+			"userActionHistoryFk": 21,
+			"stationFk": 6,
+			"songFk": 13,
+		},
+		{
+			"userActionHistoryFk": 22,
+			"stationFk": 6,
+			"songFk": 14,
+		},
+		{
+			"userActionHistoryFk": 23,
+			"stationFk": 6,
+			"songFk": 15,
+		},
+		{
+			"userActionHistoryFk": 24,
+			"stationFk": 6,
+			"songFk": 16,
+		},
+		{
+			"userActionHistoryFk": 25,
+			"stationFk": 6,
+			"songFk": None,
+		},
+		{
+			"userActionHistoryFk": 26,
+			"stationFk": 6,
+			"songFk": None,
+		}
+	]

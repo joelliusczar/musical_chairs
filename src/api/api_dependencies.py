@@ -16,7 +16,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	build_error_obj,
 	UserRoleDomain,
-	IllegalOperationError,
 	ActionRule,
 	get_datetime,
 	get_path_owner_roles,
@@ -37,7 +36,6 @@ from api_error import (
 	build_wrong_permissions_error,
 	build_too_many_requests_error
 )
-from itertools import groupby
 
 oauth2_scheme = OAuth2PasswordBearer(
 	tokenUrl="accounts/open",
@@ -229,13 +227,24 @@ def get_user_with_rate_limited_scope(
 ) -> AccountInfo:
 	if user.isAdmin:
 		return user
-	for scope in securityScopes.scopes:
-		check_scope(
-			scope,
-			user,
-			ActionRule.sorted(user.roles),
-			userActionHistoryService
+	scopeSet = set(securityScopes.scopes)
+	rules = ActionRule.sorted((r for r in user.roles if r.name in scopeSet))
+	if not rules:
+		raise build_wrong_permissions_error()
+	timeoutLookup = \
+		userActionHistoryService.calc_lookup_for_when_user_can_next_do_action(
+			user.id,
+			rules
 		)
+	for scope in scopeSet:
+		if scope in timeoutLookup:
+			whenNext = timeoutLookup[scope]
+			if whenNext is None:
+				raise build_wrong_permissions_error()
+			if whenNext > 0:
+				currentTimestamp = get_datetime().timestamp()
+				timeleft = whenNext - currentTimestamp
+				raise build_too_many_requests_error(int(timeleft))
 	return user
 
 def impersonated_user_id(
@@ -247,32 +256,6 @@ def impersonated_user_id(
 		return impersonatedUserId
 	return None
 
-def check_scope(
-	scope: str,
-	user: AccountInfo,
-	rules: Iterable[ActionRule],
-	userActionHistoryService: UserActionsHistoryService
-):
-	selectedRule = next(
-		(r for r in ActionRule.filter_out_repeat_roles(rules) \
-			if r.conforms(scope)),
-		None
-	)
-	if selectedRule:
-		try:
-			whenNext = userActionHistoryService.calc_when_user_can_next_do_action(
-				user.id,
-				selectedRule
-			)
-			if whenNext > 0:
-				currentTimestamp = get_datetime().timestamp()
-				timeleft = whenNext - currentTimestamp
-				raise build_too_many_requests_error(int(timeleft))
-		except IllegalOperationError:
-			raise build_wrong_permissions_error()
-	else:
-		raise build_wrong_permissions_error()
-
 def check_if_can_use_path(
 	scopes: Iterable[str],
 	prefix: str,
@@ -280,9 +263,10 @@ def check_if_can_use_path(
 	userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
 	userActionHistoryService: UserActionsHistoryService
 ):
+	scopeSet = set(scopes)
 	rules = ActionRule.sorted(
 		(r for i in userPrefixTrie.values(normalize_opening_slash(prefix)) \
-			for r in i)
+			for r in i if r.name in scopeSet)
 	)
 	if not rules:
 		raise HTTPException(
@@ -290,8 +274,20 @@ def check_if_can_use_path(
 					detail=[build_error_obj(f"{prefix} not found")
 					]
 				)
-	for scope in scopes:
-		check_scope(scope, user, rules, userActionHistoryService)
+	timeoutLookup = \
+		userActionHistoryService.calc_lookup_for_when_user_can_next_do_action(
+			user.id,
+			rules
+		)
+	for scope in scopeSet:
+		if scope in timeoutLookup:
+			whenNext = timeoutLookup[scope]
+			if whenNext is None:
+				raise build_wrong_permissions_error()
+			if whenNext > 0:
+				currentTimestamp = get_datetime().timestamp()
+				timeleft = whenNext - currentTimestamp
+				raise build_too_many_requests_error(int(timeleft))
 
 
 def get_path_user(
@@ -399,44 +395,12 @@ def get_multi_path_user(
 	return user
 
 
-def check_station_scope(
-	scope: str,
-	user: AccountInfo,
-	station: StationInfo,
-	rules: Iterable[ActionRule],
-	stationService: StationService
-):
-	bestRuleGenerator = (r for g in
-		groupby(
-			(r for r in rules if r.conforms(scope)),
-			lambda k: k.name
-		) for r in g[1]
-	)
-	selectedRule = next(
-		bestRuleGenerator,
-		None
-	)
-	if selectedRule:
-		try:
-			whenNext = stationService.calc_when_user_can_next_do_action(
-				user.id,
-				selectedRule,
-				station.id
-			)
-			if whenNext > 0:
-				currentTimestamp = get_datetime().timestamp()
-				timeleft = whenNext - currentTimestamp
-				raise build_too_many_requests_error(int(timeleft))
-		except IllegalOperationError:
-			raise build_wrong_permissions_error()
-	else:
-		raise build_wrong_permissions_error()
-
 def get_station_user(
 	securityScopes: SecurityScopes,
 	station: StationInfo=Depends(get_station_by_name_and_owner),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
-	stationService: StationService = Depends(station_service)
+	userActionHistoryService: UserActionsHistoryService=
+		Depends(user_actions_history_service)
 ) -> Optional[AccountInfo]:
 	minScope = (not securityScopes.scopes or\
 		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
@@ -447,18 +411,33 @@ def get_station_user(
 		raise build_not_logged_in_error()
 	if user.isAdmin:
 		return user
-	scopes = [s for s in securityScopes.scopes \
+	scopes = {s for s in securityScopes.scopes \
 		if UserRoleDomain.Station.conforms(s)
-	]
-	sortedRules = ActionRule.aggregate(
+	}
+	rules = ActionRule.aggregate(
 		user.roles,
 		get_station_owner_rules() \
 			if station.owner and user.id == station.owner.id else (),
-		station.rules
+		station.rules,
+		filter=lambda r: r.name in scopes
 	)
-	rules = sortedRules
+	if not rules:
+		raise build_wrong_permissions_error()
+	timeoutLookup = \
+		userActionHistoryService\
+		.calc_lookup_for_when_user_can_next_do_station_action(
+			user.id,
+			(station,)
+		).get(station.id, {})
 	for scope in scopes:
-		check_station_scope(scope, user, station, rules, stationService)
+		if scope in timeoutLookup:
+			whenNext = timeoutLookup[scope]
+			if whenNext is None:
+				raise build_wrong_permissions_error()
+			if whenNext > 0:
+				currentTimestamp = get_datetime().timestamp()
+				timeleft = whenNext - currentTimestamp
+				raise build_too_many_requests_error(int(timeleft))
 	userDict = asdict(user)
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
@@ -472,7 +451,7 @@ def get_station_user_2(
 	minScope = (not securityScopes.scopes or\
 		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
 	)
-	if not any(s.viewSecurityLeve for s in stations) and minScope:
+	if not any(s.viewSecurityLevel for s in stations) and minScope:
 		return user
 	if not user:
 		raise build_not_logged_in_error()

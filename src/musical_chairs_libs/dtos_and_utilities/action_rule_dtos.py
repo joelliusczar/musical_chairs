@@ -1,5 +1,5 @@
 import sys
-from typing import (Any, Optional, Iterable, Iterator)
+from typing import (Any, Optional, Iterable, Iterator, Callable)
 from dataclasses import dataclass
 from .user_role_def import UserRoleDomain, RulePriorityLevel
 from itertools import groupby, chain
@@ -43,10 +43,13 @@ class ActionRule:
 		return s
 
 	@staticmethod
-	def aggregate(*args: Iterable["ActionRule"]) -> list["ActionRule"]:
+	def aggregate(
+		*args: Iterable["ActionRule"],
+		filter: Callable[["ActionRule"], bool]=lambda r: True
+	) -> list["ActionRule"]:
 		return ActionRule.sorted(r for r in chain(
 			*args
-		))
+		) if filter(r))
 
 	@property
 	def priorityElse(self) -> int:

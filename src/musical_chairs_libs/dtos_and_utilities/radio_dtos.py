@@ -83,7 +83,7 @@ class Tag:
 	id: int
 	name: str
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class StationInfo:
 	id: int
 	name: str

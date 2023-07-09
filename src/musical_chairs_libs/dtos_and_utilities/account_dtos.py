@@ -246,6 +246,10 @@ class UserHistoryActionItem:
 	action: str
 	timestamp: float
 
+@dataclass(frozen=True)
+class StationHistoryActionItem(UserHistoryActionItem):
+	stationId: int
+
 
 @dataclass(frozen=True)
 class OwnerInfo(IdItem):

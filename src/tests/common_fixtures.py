@@ -9,7 +9,8 @@ from musical_chairs_libs.services import (
 	AccountsService,
 	SongInfoService,
 	StationService,
-	TemplateService
+	TemplateService,
+	UserActionsHistoryService
 )
 from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos_and_utilities import (
@@ -131,6 +132,15 @@ def fixture_song_info_service(
 def fixture_template_service() -> TemplateService:
 	templateService = TemplateService()
 	return templateService
+
+@pytest.fixture
+def fixture_user_actions_history_service(
+	fixture_populated_db_conn_in_mem: Connection
+) -> UserActionsHistoryService:
+	userActionsHistoryService = UserActionsHistoryService(
+		fixture_populated_db_conn_in_mem
+	)
+	return userActionsHistoryService
 
 @pytest.fixture
 def fixture_setup_in_mem_tbls(

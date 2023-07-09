@@ -169,23 +169,6 @@ stsg_songFk = cast(Column, stations_songs.c.songFk) #pyright: ignore [reportUnkn
 stsg_stationFk= cast(Column, stations_songs.c.stationFk) #pyright: ignore [reportUnknownMemberType]
 Index("idx_stationsSongs", stsg_songFk, stsg_stationFk, unique=True)
 
-station_queue = Table("StationQueue", metadata,
-	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
-	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=False),
-	Column("playedTimestamp", Float),
-	Column("queuedTimestamp", Float),
-	Column("requestedTimestamp", Float),
-	Column("requestedByUserFk", Integer, ForeignKey("Users.pk"), nullable=True)
-)
-
-q = cast(TblCols, station_queue.c) #pyright: ignore [reportUnknownMemberType]
-q_songFk = cast(Column,q.songFk) #pyright: ignore [reportUnknownMemberType]
-q_stationFk = cast(Column,q.stationFk) #pyright: ignore [reportUnknownMemberType]
-q_queuedTimestamp: Column = q.queuedTimestamp #pyright: ignore [reportUnknownMemberType
-q_playedTimestamp: Column = q.playedTimestamp #pyright: ignore [reportUnknownMemberType
-q_requestedTimestamp: Column = q.requestedTimestamp #pyright: ignore [reportUnknownMemberType
-q_requestedByUserFk: Column = q.requestedByUserFk #pyright: ignore [reportUnknownMemberType
-
 userRoles = Table("UserRoles", metadata,
 	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
 	Column("role", String),
@@ -202,15 +185,39 @@ ur_priority = cast(Column, userRoles.c.priority) #pyright: ignore [reportUnknown
 Index("idx_userRoles", ur_userFk, ur_role, unique=True)
 
 user_action_history = Table("UserActionHistory", metadata,
-	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=False),
-	Column("action", String),
-	Column("timestamp", Float, nullable=False)
+	Column("pk", Integer, primary_key=True),
+	Column("userFk", Integer, ForeignKey("Users.pk"), nullable=True),
+	Column("action", String, nullable=False),
+	Column("timestamp", Float, nullable=True),
+	Column("queuedTimestamp", Float, nullable=False),
+	Column("requestedTimestamp", Float, nullable=True)
 )
 
 uah = cast(TblCols, user_action_history.c) #pyright: ignore [reportUnknownMemberType]
+uah_pk = cast(Column,uah.pk) #pyright: ignore [reportUnknownMemberType]
 uah_userFk = cast(Column,uah.userFk) #pyright: ignore [reportUnknownMemberType]
 uah_action = cast(Column,uah.action) #pyright: ignore [reportUnknownMemberType]
 uah_timestamp = cast(Column,uah.timestamp) #pyright: ignore [reportUnknownMemberType]
+uah_queuedTimestamp: Column = uah.queuedTimestamp #pyright: ignore [reportUnknownMemberType
+uah_requestedTimestamp: Column = uah.requestedTimestamp #pyright: ignore [reportUnknownMemberType
+
+station_queue = Table("StationQueue", metadata,
+  Column("userActionHistoryFk",
+		Integer,
+		ForeignKey("UserActionHistory.pk"),
+		nullable=False
+	),
+	Column("stationFk", Integer, ForeignKey("Stations.pk"), nullable=False),
+	Column("songFk", Integer, ForeignKey("Songs.pk"), nullable=True)
+)
+
+q = cast(TblCols, station_queue.c) #pyright: ignore [reportUnknownMemberType]
+q_userActionHistoryFk = cast(Column,q.userActionHistoryFk) #pyright: ignore [reportUnknownMemberType]
+q_songFk = cast(Column,q.songFk) #pyright: ignore [reportUnknownMemberType]
+q_stationFk = cast(Column,q.stationFk) #pyright: ignore [reportUnknownMemberType]
+
+
+
 
 
 station_user_permissions = Table("StationUserPermissions", metadata,

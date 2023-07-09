@@ -36,8 +36,7 @@ from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
 	users, u_pk, u_username, u_hashedPW, u_email, u_dirRoot, u_disabled,
 	u_creationTimestamp, u_displayName,
-	userRoles, ur_userFk, ur_role,
-	station_queue, q_requestedTimestamp, q_requestedByUserFk, q_playedTimestamp
+	userRoles, ur_userFk, ur_role
 )
 from sqlalchemy import select, insert, desc, func, delete, update
 from jose import jwt
@@ -221,23 +220,6 @@ class AccountsService:
 
 		return (row_to_action_rule(r) for r in rows)
 
-	def last_request_timestamp(self, user: AccountInfo) -> int:
-		if not user:
-			return 0
-		queueLatestQuery = select(func.max(q_requestedTimestamp))\
-			.select_from(station_queue)\
-			.where(q_requestedByUserFk == user.id)
-		queueLatestHistory = select(func.max(q_requestedTimestamp))\
-			.select_from(station_queue)\
-			.where(q_playedTimestamp.isnot(None))\
-			.where(q_requestedByUserFk == user.id)
-		lastRequestedInQueue = self.conn.execute(queueLatestQuery).scalar() #pyright: ignore [reportUnknownMemberType]
-		lastRequestedInHistory = self.conn.execute(queueLatestHistory).scalar() #pyright: ignore [reportUnknownMemberType]
-		lastRequested = max(
-			(lastRequestedInQueue or 0),
-			(lastRequestedInHistory or 0)
-		)
-		return lastRequested
 
 	def _is_username_used(self, username: SearchNameString) -> bool:
 		queryAny: str = select(func.count(1)).select_from(users)\

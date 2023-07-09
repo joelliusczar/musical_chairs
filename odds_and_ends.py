@@ -42,6 +42,8 @@ with redirect_stdout(buffer):
 	populate_user_roles(conn, mock_ordered_date_list, primary_user())
 	populate_station_permissions(conn, mock_ordered_date_list)
 	populate_path_permissions(conn, mock_ordered_date_list)
+	populate_user_actions_history(conn, mock_ordered_date_list)
+	populate_station_queue(conn)
 conn.close()
 contents = buffer.getvalue()
 contents = re.sub(r"(INSERT .+)\n", lambda m: f"{m.group(1)};\n", contents)

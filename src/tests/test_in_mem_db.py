@@ -1,6 +1,7 @@
 #pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false
 #pyright: reportMissingTypeStubs=false
 import pytest
+import sqlite3
 from typing import cast, Callable
 from sqlalchemy import select
 from .constant_fixtures_for_test import *
@@ -76,3 +77,8 @@ def test_data_in_db(
 	# the test data
 	# print(query.compile(compile_kwargs={"literal_binds": True}))
 	pass
+
+
+def test_sqlite_version():
+	print(sqlite3.sqlite_version_info)
+	# print(dir(alco))

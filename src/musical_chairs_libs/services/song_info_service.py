@@ -38,12 +38,25 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ChainedAbsorbentTrie,
 	get_path_owner_roles,
 	OwnerInfo,
-	UserRoleDomain
+	UserRoleDomain,
+	build_rules_query,
+	MinItemSecurityLevel,
+	generate_user_and_rules_from_rows
 )
-from sqlalchemy import select, insert, update, func, delete, union_all
+from sqlalchemy import (
+	select,
+	insert,
+	update,
+	func,
+	delete,
+	union_all,
+	or_,
+	and_
+)
+from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.expression import (
 	Tuple as dbTuple,
-	Select
+	Select,
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -67,7 +80,8 @@ from musical_chairs_libs.tables import (
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
 	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count,
-	users as user_tbl, u_pk, u_username, u_displayName
+	users as user_tbl, u_pk, u_username, u_displayName, u_email, u_dirRoot,
+	u_disabled
 )
 
 
@@ -1045,5 +1059,59 @@ class SongInfoService:
 		else:
 			return SongEditInfo(id=0, path="", touched=touched)
 
-
-
+	def get_path_users(
+		self,
+		prefix: str,
+		userId: Optional[int]=None,
+		owner: Optional[AccountInfo]=None
+	) -> Iterator[AccountInfo]:
+		rulesQuery = build_rules_query(UserRoleDomain.Path).cte() #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+		query = select(
+			u_pk,
+			u_username,
+			u_displayName,
+			u_email,
+			u_dirRoot,
+			rulesQuery.c.rule_userFk, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_name, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_count, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_span, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
+		).select_from(user_tbl).join(
+			rulesQuery,
+			or_(
+				and_(
+					func.substring(prefix, 0,func.length(u_dirRoot) + 1)  == u_dirRoot,
+					rulesQuery.c.rule_userFk == 0 #pyright: ignore [reportUnknownMemberType]
+				),
+				and_(
+					rulesQuery.c.rule_userFk == u_pk,  #pyright: ignore [reportUnknownMemberType]
+					func.substring(
+						prefix,
+						0,
+						func.length(rulesQuery.c.rule_path) + 1 #pyright: ignore [reportUnknownMemberType]
+					) == rulesQuery.c.rule_path #pyright: ignore [reportUnknownMemberType]
+				),
+			),
+			isouter=True
+		).where(or_(u_disabled.is_(None), u_disabled == False))\
+		.where(
+			or_(
+				coalesce(
+					rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+					RulePriorityLevel.SITE.value
+				) > MinItemSecurityLevel.INVITED_USER.value,
+				func.substring(prefix, 0,func.length(u_dirRoot) + 1) == u_dirRoot
+			)
+		)
+		if userId is not None:
+			query = query.where(u_pk == userId)
+		query = query.order_by(u_username)
+		records = self.conn.execute(query).fetchall() #pyright: ignore [reportUnknownMemberType]
+		yield from generate_user_and_rules_from_rows(
+			records,
+			UserRoleDomain.Path,
+			owner.id if owner else None,
+			prefix
+		)

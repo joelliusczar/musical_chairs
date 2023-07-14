@@ -60,6 +60,7 @@ paul_bear_user_id = 42
 quirky_admin_user_id = 43
 radical_path_user_id = 44
 station_saver_user_id = 45
+super_path_user_id = 46
 
 artist_params = [
 	{
@@ -1381,6 +1382,16 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": "stationSaver_testUser"
+		},
+		{
+			"pk": super_path_user_id,
+			"username": "superPath_testUser",
+			"displayName": "Super Pathouser",
+			"hashedPW": testPassword,
+			"email": "test47@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": "superPath_testUser"
 		}
 	]
 	return users_params
@@ -1612,6 +1623,14 @@ def get_user_role_params(
 			"span":0,
 			"count":0,
 			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": super_path_user_id,
+			"role": UserRoleDef.PATH_EDIT.value,
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.SUPER.value,
 			"creationTimestamp": orderedTestDates[0].timestamp()
 		}
 	]

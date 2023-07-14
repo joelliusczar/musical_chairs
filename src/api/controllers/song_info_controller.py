@@ -28,7 +28,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	SongEditInfo,
 	build_error_obj,
-	ValidatedSongAboutInfo
+	ValidatedSongAboutInfo,
+	TableData
 )
 from song_validation import extra_validated_song
 
@@ -210,3 +211,15 @@ def get_all_albums(
 	return ListData(items=list(songInfoService.get_albums(userId=user.id)))
 
 
+@router.get("/path/user_list",dependencies=[
+	Security(
+		get_path_user_and_check_optional_path,
+		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
+	)
+])
+def get_path_user_list(
+	prefix: str,
+	songInfoService: SongInfoService = Depends(song_info_service)
+) -> TableData[AccountInfo]:
+	pathUsers = list(songInfoService.get_path_users(prefix))
+	return TableData(pathUsers, len(pathUsers))

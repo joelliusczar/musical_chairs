@@ -84,11 +84,15 @@ def get_path_owner_roles(ownerDir: Optional[str]) -> Iterator[PathsActionRule]:
 			path=ownerDir,
 		)
 		yield PathsActionRule(
-			UserRoleDef.PATH_DOWNLOAD.value,
+			UserRoleDef.PATH_USER_LIST.value,
 			priority=RulePriorityLevel.OWNER.value,
 			path=ownerDir,
 		)
-
+		yield PathsActionRule(
+			UserRoleDef.PATH_USER_ASSIGN.value,
+			priority=RulePriorityLevel.OWNER.value,
+			path=ownerDir,
+		)
 
 
 @dataclass(frozen=True)

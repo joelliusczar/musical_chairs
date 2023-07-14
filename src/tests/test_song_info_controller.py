@@ -8,7 +8,10 @@ from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user
 )
 from .mocks.db_data import kilo_user_id, station_saver_user_id
-from musical_chairs_libs.dtos_and_utilities import MinItemSecurityLevel
+from musical_chairs_libs.dtos_and_utilities import (
+	MinItemSecurityLevel,
+	UserRoleDef
+)
 
 
 
@@ -840,3 +843,86 @@ def test_more_restrictive_path(
 
 	assert putResponse.status_code == 200
 
+def test_get_path_users(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_kilo", client)
+	getResponse = client.get(
+		"song-info/path/user_list?prefix=/foo/goo",
+		headers=headers
+	)
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	items = sorted(data["items"], key=lambda u: u["id"])
+	assert len(items) == 4
+	assert items[0]["username"] == "testUser_alpha"
+	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[1]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[2]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
+	assert rules[3]["name"] == UserRoleDef.PATH_USER_LIST.value
+	assert rules[4]["name"] == UserRoleDef.PATH_VIEW.value
+	assert items[1]["username"] == "testUser_kilo"
+	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[1]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[2]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
+	assert rules[3]["name"] == UserRoleDef.PATH_USER_LIST.value
+	assert rules[4]["name"] == UserRoleDef.PATH_VIEW.value
+	assert items[2]["username"] == "testUser_mike"
+	rules = sorted(items[2]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[1]["name"] == UserRoleDef.PATH_VIEW.value
+	assert items[3]["username"] == "testUser_sierra"
+	rules = sorted(items[3]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[1]["name"] == UserRoleDef.PATH_VIEW.value
+
+	getResponse = client.get(
+		"song-info/path/user_list?prefix=/foo/goo/boo",
+		headers=headers
+	)
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	items = sorted(data["items"], key=lambda u: u["id"])
+	assert len(items) == 5
+	assert items[0]["username"] == "testUser_alpha"
+	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+	assert items[1]["username"] == "testUser_foxtrot"
+	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 1
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+
+	assert items[2]["username"] == "testUser_kilo"
+	rules = sorted(items[2]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+
+	assert items[3]["username"] == "testUser_mike"
+	rules = sorted(items[3]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+
+	assert items[4]["username"] == "testUser_sierra"
+	rules = sorted(items[4]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+
+	getResponse = client.get(
+		"song-info/path/user_list?prefix=/foo/x",
+		headers=headers
+	)
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	items = sorted(data["items"], key=lambda u: u["id"])
+	assert len(items) == 2
+	assert items[0]["username"] == "testUser_alpha"
+	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+
+	assert items[1]["username"] == "testUser_kilo"
+	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5

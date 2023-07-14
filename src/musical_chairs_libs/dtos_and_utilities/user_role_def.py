@@ -64,6 +64,8 @@ class UserRoleDef(Enum):
 	PATH_LIST = f"{UserRoleDomain.Path.value}:list"
 	PATH_EDIT = f"{UserRoleDomain.Path.value}:edit"
 	PATH_VIEW = f"{UserRoleDomain.Path.value}:view"
+	PATH_USER_ASSIGN = f"{UserRoleDomain.Path.value}:userassign"
+	PATH_USER_LIST = f"{UserRoleDomain.Path.value}:userlist"
 	PATH_DOWNLOAD = f"{UserRoleDomain.Path.value}:download"
 
 	def __call__(self, **kwargs: Union[str, int]) -> str:

@@ -9,7 +9,8 @@ from typing import (
 	Iterable,
 	Iterator,
 	Optional,
-	Tuple
+	Tuple,
+	overload
 )
 from email_validator import ValidatedEmail
 from collections import Counter
@@ -82,6 +83,14 @@ def _kvpSplit(kvp: str) -> Tuple[str, str]:
 
 def role_dict(role: str) -> s2sDict:
 		return {p[0]:p[1] for p in (_kvpSplit(k) for k in role.split(";"))}
+
+@overload
+def normalize_opening_slash(path: str, addSlash: bool=True) -> str:
+	...
+
+@overload
+def normalize_opening_slash(path: None, addSlash: bool=True) -> None:
+	...
 
 def normalize_opening_slash(
 	path: Optional[str],

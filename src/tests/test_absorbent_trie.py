@@ -1,6 +1,9 @@
 import pytest
 from typing import Any
-from musical_chairs_libs.dtos_and_utilities import AbsorbentTrie
+from musical_chairs_libs.dtos_and_utilities import (
+	AbsorbentTrie,
+	ChainedAbsorbentTrie
+)
 from .helpers import get_sentences
 
 
@@ -829,6 +832,31 @@ def test_values():
 	assert artisanIdx < artisticIdx
 	assert artisanIdx < argumentIdx
 
+def test_values_with_one_default_value():
+	t = AbsorbentTrie[Any]()
+	inputs = [
+		"alpha",
+		"arts",
+		"art",
+		"artist",
+		"artistic",
+		"artisan",
+		"a",
+		"alpine",
+		"ant",
+		"arg",
+		"argument",
+		"argo",
+		"argon"
+	]
+	for w in inputs:
+		if w != "art":
+			t.add(w, f"x_{w}_x")
+		else:
+			t.add(w)
+	results = list(t.values())
+	assert len(results) == len(inputs)
+
 def test_values_with_path():
 	t = AbsorbentTrie[Any]()
 	t.extend((w, f"x_{w}_x") for w in [
@@ -857,6 +885,29 @@ def test_values_with_path():
 	assert "x_art_x" in results
 	assert len(results) == 2
 
+def test_values_map():
+	t = AbsorbentTrie[Any]()
+	inputs = [
+		"alpha",
+		"arts",
+		"art",
+		"artist",
+		"artistic",
+		"artisan",
+		"a",
+		"alpine",
+		"ant",
+		"arg",
+		"argument",
+		"argo",
+		"argon"
+	]
+	t.extend((w, f"x_{w}_x") for w in inputs)
+	result = t.values_map()
+	for w in inputs:
+		assert w in result
+		assert result[w] == f"x_{w}_x"
+
 def test_matches():
 	t = AbsorbentTrie[Any]()
 	t.add("test/Pop/Pop_A-F/Alphabet/")
@@ -881,3 +932,27 @@ def test_matches():
 	assert t.matches("test/Pop/Pop_A-F/AB")
 	assert not t.matches("tesx")
 	assert t.matches("test/Pop/Pop_A-F/Alphabetx")
+
+def test_chained_trie_init_with_duplicate_paths():
+	inputs = [
+		"alpha",
+		"arts",
+		"art",
+		"artist",
+		"artistic",
+		"artisan",
+		"a",
+		"alpine",
+		"ant",
+		"arg",
+		"alpine",
+		"argument",
+		"argo",
+		"argon"
+	]
+	t = ChainedAbsorbentTrie[Any]((w, f"x_{w}_{i}_x")
+		for i, w in enumerate(inputs)
+	)
+	dupResult = t.values_map()["alpine"]
+	assert dupResult
+	assert len(dupResult) == 2

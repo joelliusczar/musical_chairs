@@ -24,7 +24,9 @@ import { cookieToObject } from "../../Helpers/browser_helpers";
 import {
 	StationUserRoleAssignmentTable,
 } from "../Stations/StationUserRoleAssigmentTable";
-
+import {
+	PathUserRoleAssignmentTable,
+} from "../Songs/PathUserRoleAssigmentTable";
 
 
 export function NavMenu() {
@@ -134,6 +136,11 @@ export function AppRoutes() {
 			>
 				<StationUserRoleAssignmentTable />
 			</Route>}
+			{currentUser.username && <Route
+				path={DomRoutes.pathUsers()}
+			>
+				<PathUserRoleAssignmentTable />
+			</Route>}
 			{!currentUser.username &&<Route path={DomRoutes.accountsNew()}>
 				<AccountsNew />
 			</Route>}
@@ -184,7 +191,7 @@ export function AppRoutes() {
 			<PrivateRoute
 				path={DomRoutes.songTree()}
 				scopes={[
-					UserRoleDef.SONG_TREE_LIST,
+					UserRoleDef.PATH_LIST,
 					UserRoleDef.PATH_EDIT,
 					UserRoleDef.SONG_DOWNLOAD,
 				]}

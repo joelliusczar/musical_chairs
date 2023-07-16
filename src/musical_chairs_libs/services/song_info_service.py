@@ -385,13 +385,12 @@ class SongInfoService:
 	def __query_to_treeNodes__(
 		self,
 		query: Select,
-		permittedPathsTree: ChainedAbsorbentTrie[Any]
+		permittedPathsTree: ChainedAbsorbentTrie[ActionRule]
 	) -> Iterator[SongTreeNode]:
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		for row in cast(Iterable[Row] ,records):
 			normalizedPrefix = normalize_opening_slash(cast(str,row["prefix"]))
-			if normalizedPrefix is None or \
-				not permittedPathsTree.matches(normalizedPrefix)\
+			if not permittedPathsTree.matches(normalizedPrefix)\
 			:
 				continue
 			if row["control_path"] == row["prefix"]:
@@ -399,12 +398,18 @@ class SongInfoService:
 					path=cast(str, row["prefix"]),
 					totalChildCount=cast(int, row["totalChildCount"]),
 					id=cast(int, row["pk"]),
-					name=cast(str, row["name"])
+					name=cast(str, row["name"]),
+					rules=[r for p in
+						permittedPathsTree.values(normalizedPrefix) for r in p
+					]
 				)
 			else:
 				yield SongTreeNode(
 					path=cast(str, row["prefix"]),
-					totalChildCount=cast(int, row["totalChildCount"])
+					totalChildCount=cast(int, row["totalChildCount"]),
+					rules=[r for p in
+						permittedPathsTree.values(normalizedPrefix) for r in p
+					]
 				)
 
 	def song_ls(
@@ -412,9 +417,7 @@ class SongInfoService:
 		user: AccountInfo,
 		prefix: Optional[str]=None
 	) -> Iterator[SongTreeNode]:
-		permittedPathTree = user.get_permitted_paths_tree(
-			UserRoleDef.PATH_LIST.value
-		)
+		permittedPathTree = user.get_permitted_paths_tree()
 		if type(prefix) == str:
 			query = self.__song_ls_query__(prefix)
 			yield from self.__query_to_treeNodes__(query, permittedPathTree)

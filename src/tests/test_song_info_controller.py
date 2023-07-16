@@ -96,7 +96,7 @@ def test_song_ls_with_site_path_permissions(
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = data.get("items", [])
-	assert len(items) == 0
+	assert len(items) == 3
 
 	response = client.get(
 		"/song-info/songs/ls?prefix=",
@@ -105,7 +105,7 @@ def test_song_ls_with_site_path_permissions(
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = data.get("items", [])
-	assert len(items) == 0
+	assert len(items) == 3
 
 def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 
@@ -122,6 +122,9 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	items = sorted(data.get("items", []), key=lambda i: i["path"])
 	assert len(items) == 1
 	assert items[0]["path"] == "foo/"
+	rules = items[0]["rules"]
+	assert rules
+	assert len(rules) == 5
 
 
 	headers_no_owner = login_test_user("testUser_bravo", client)

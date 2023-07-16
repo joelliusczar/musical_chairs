@@ -30,6 +30,7 @@ export const DomRoutes = {
 		const stationSegment = stationKey ? `${stationKey}/` : "";
 		return `/stations/song-catalogue/${ownerKey}/${stationSegment}`;
 	},
+	pathUsers: () => "/song-info/users",
 	songTree: () => "/song-info/tree/",
 	accountsNew: () => "/accounts/new",
 	accountsEdit: ({ userKey }) => `/accounts/edit/${userKey}`,

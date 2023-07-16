@@ -4,7 +4,6 @@ from typing import (
 	Optional,
 	Iterator,
 	Union,
-	Iterable,
 	Collection
 )
 from pydantic import validator #pyright: ignore [reportUnknownVariableType]
@@ -24,7 +23,6 @@ from .action_rule_dtos import (
 	StationActionRule,
 )
 from .absorbent_trie import ChainedAbsorbentTrie
-from itertools import chain
 
 
 def get_station_owner_rules(
@@ -118,33 +116,25 @@ class AccountInfoSecurity(AccountInfoBase):
 		)
 
 	def get_permitted_paths_tree(
-		self,
-		scopes: Union[str, Iterable[str]]
+		self
 	) -> ChainedAbsorbentTrie[ActionRule]:
-		scopeSet = set([scopes] if type(scopes) == str else scopes)
-		pathsGen = (normalize_opening_slash(r.path) for r in chain(
-				self.roles,
-				get_path_owner_roles(normalize_opening_slash(self.dirRoot))
-			) if isinstance(r, PathsActionRule) and r.name in scopeSet \
-					and not r.path is None
-			)
 		pathTree = ChainedAbsorbentTrie[ActionRule](
-			p for p in pathsGen if not p is None
+			(normalize_opening_slash(r.path), r) for r in
+			self.roles if isinstance(r, PathsActionRule) \
+				and not r.path is None
 		)
 		pathTree.add("", (r for r in self.roles \
 			if type(r) == ActionRule \
 				and (UserRoleDomain.Path.conforms(r.name) \
-						and r.name in scopeSet
 						or r.name == UserRoleDef.ADMIN.value
 				)
 		), shouldEmptyUpdateTree=False)
 		return pathTree
 
 	def get_permitted_paths(
-		self,
-		scopes: Union[str, Iterable[str]]
+		self
 	) -> Iterator[str]:
-		pathTree = self.get_permitted_paths_tree(scopes)
+		pathTree = self.get_permitted_paths_tree()
 		yield from (p for p in pathTree.shortest_paths())
 
 	def has_roles(self, *roles: UserRoleDef) -> bool:

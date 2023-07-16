@@ -11,13 +11,12 @@ import {
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
 import {
-	fetchStationUsers,
-	addStationUserRule,
-	removeStationUserRule,
-} from "../../API_Calls/stationCalls";
-import { useParams } from "react-router-dom";
+	fetchPathUsers,
+	// addStationUserRule,
+	// removeStationUserRule,
+} from "../../API_Calls/songInfoCalls";
+import { useParams, useLocation } from "react-router-dom";
 import { formatError } from "../../Helpers/error_formatter";
-import { StationRouteSelect } from "./StationRouteSelect";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { useSnackbar } from "notistack";
@@ -84,7 +83,7 @@ const ruleUpdatePaths = {
 	},
 };
 
-export const StationUserRoleAssignmentTable = () => {
+export const PathUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useReducer(
 		waitingReducer(ruleUpdatePaths, [globalStoreLogger("station users")]),
@@ -97,7 +96,9 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const { callStatus } = state;
 
-	const getPageUrl = urlBuilderFactory(DomRoutes.stationUsers);
+	const getPageUrl = urlBuilderFactory(DomRoutes.pathUsers);
+	const location = useLocation();
+
 
 	const addUser = async (user) => {
 		try {
@@ -107,18 +108,18 @@ export const StationUserRoleAssignmentTable = () => {
 				count: 0,
 				priority: null,
 			};
-			const addedRule = await addStationUserRule({
-				stationKey: pathVars.stationKey,
-				ownerKey: pathVars.ownerKey,
-				rule,
-				params: {
-					subjectUserKey: user.id,
-				},
-			});
-			dispatch(dispatches.add({
-				...user,
-				roles: [...user.roles, addedRule],
-			}));
+			// const addedRule = await addStationUserRule({
+			// 	stationKey: pathVars.stationKey,
+			// 	ownerKey: pathVars.ownerKey,
+			// 	rule,
+			// 	params: {
+			// 		subjectUserKey: user.id,
+			// 	},
+			// });
+			// dispatch(dispatches.add({
+			// 	...user,
+			// 	roles: [...user.roles, addedRule],
+			// }));
 			enqueueSnackbar("User added!", { variant: "success"});
 		}
 		catch(err) {
@@ -142,10 +143,8 @@ export const StationUserRoleAssignmentTable = () => {
 			const limit = parseInt(queryObj.get("rows") || "50");
 			dispatch(dispatches.started());
 			try {
-				const data = await fetchStationUsers({
-					stationKey: pathVars.stationKey,
-					ownerKey: pathVars.ownerKey,
-					params: { page: page - 1, limit: limit } }
+				const data = await fetchPathUsers({
+					params: { page: page - 1, limit: limit, prefix: "" } }
 				);
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
@@ -159,9 +158,7 @@ export const StationUserRoleAssignmentTable = () => {
 		fetch();
 	},[
 		dispatch,
-		fetchStationUsers,
-		pathVars.stationKey,
-		pathVars.ownerKey,
+		fetchPathUsers,
 		location.search,
 		location.pathname,
 		currentQueryStr,
@@ -170,20 +167,20 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const addRole = async (rule, user) => {
 		try {
-			const addedRule = await addStationUserRule({
-				stationKey: pathVars.stationKey,
-				ownerKey: pathVars.ownerKey,
-				rule,
-				params: {
-					subjectUserKey: user.id,
-				},
-			});
-			dispatch(dispatches.update(
-				user.id,
-				{...user,
-					roles: [...user.roles, addedRule].sort(keyedSortFn("name")),
-				}
-			));
+			// const addedRule = await addStationUserRule({
+			// 	stationKey: pathVars.stationKey,
+			// 	ownerKey: pathVars.ownerKey,
+			// 	rule,
+			// 	params: {
+			// 		subjectUserKey: user.id,
+			// 	},
+			// });
+			// dispatch(dispatches.update(
+			// 	user.id,
+			// 	{...user,
+			// 		roles: [...user.roles, addedRule].sort(keyedSortFn("name")),
+			// 	}
+			// ));
 			enqueueSnackbar("User added!", { variant: "success"});
 		}
 		catch(err) {
@@ -193,28 +190,28 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const removeRole = async (role, user) => {
 		try {
-			await removeStationUserRule({
-				stationKey: pathVars.stationKey,
-				ownerKey: pathVars.ownerKey,
-				params: {
-					ruleName: role.name,
-					subjectUserKey: user.id,
-				},
-			});
-			const roles = [...user.roles];
-			const idx = roles.findIndex(r => r.name === role.name);
-			if (idx > -1 ) {
-				roles.splice(idx, 1);
-				dispatch(dispatches.update(
-					user.id,
-					{...user,
-						roles: roles,
-					}
-				));
-			}
-			else {
-				enqueueSnackbar("Local role not found?", { variant: "error"});
-			}
+			// await removeStationUserRule({
+			// 	stationKey: pathVars.stationKey,
+			// 	ownerKey: pathVars.ownerKey,
+			// 	params: {
+			// 		ruleName: role.name,
+			// 		subjectUserKey: user.id,
+			// 	},
+			// });
+			// const roles = [...user.roles];
+			// const idx = roles.findIndex(r => r.name === role.name);
+			// if (idx > -1 ) {
+			// 	roles.splice(idx, 1);
+			// 	dispatch(dispatches.update(
+			// 		user.id,
+			// 		{...user,
+			// 			roles: roles,
+			// 		}
+			// 	));
+			// }
+			// else {
+			// 	enqueueSnackbar("Local role not found?", { variant: "error"});
+			// }
 			enqueueSnackbar(`${role.name} removed!`, { variant: "success"});
 		}
 		catch(err) {
@@ -224,13 +221,13 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const removeUser = async (user) => {
 		try {
-			await removeStationUserRule({
-				stationKey: pathVars.stationKey,
-				ownerKey: pathVars.ownerKey,
-				params: {
-					subjectUserKey: user.id,
-				},
-			});
+			// await removeStationUserRule({
+			// 	stationKey: pathVars.stationKey,
+			// 	ownerKey: pathVars.ownerKey,
+			// 	params: {
+			// 		subjectUserKey: user.id,
+			// 	},
+			// });
 			dispatch(dispatches.remove(user.id));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});
 		}
@@ -247,11 +244,6 @@ export const StationUserRoleAssignmentTable = () => {
 				Users for station: {stationName}
 			</h1>
 			<Box m={1}>
-				<StationRouteSelect
-					getPageUrl={getPageUrl}
-					onChange={(s) => setSelectedStation(s)}
-					unrendered
-				/>
 			</Box>
 			<Loader
 				status={callStatus}
@@ -270,6 +262,6 @@ export const StationUserRoleAssignmentTable = () => {
 	);
 };
 
-StationUserRoleAssignmentTable.propTypes = {
+PathUserRoleAssignmentTable.propTypes = {
 };
 

@@ -21,6 +21,50 @@ keyValueIteratorList = list[Optional[Iterator[Tuple[int,"AbsorbentTrie[T]"]]]]
 storeValueType = Union[T, Sentinel]
 extendIterable = Union[Iterable[str], Iterable[Tuple[str, T]]]
 
+class LinkedListNode(Generic[T]):
+	__slots__ = (
+		"nextNode",
+		"value"
+	)
+
+	def __init__(
+		self,
+		value: T,
+		nextNode: Optional["LinkedListNode[T]"]=None
+	) -> None:
+		self.value = value
+		self.nextNode = nextNode
+
+	def __iter__(self) -> Iterator[T]:
+		current = self
+		while current:
+			yield current.value
+			current = current.nextNode
+
+	def __repr__(self) -> str:
+		return f"{self.value} - has next? {bool(self.nextNode)}"
+
+	def __str__(self) -> str:
+		return "".join(str(t) for t in self)
+
+	def __reversed__(self) -> Iterator[T]:
+		current = None
+
+		for n in self:
+			if not current:
+				current = LinkedListNode(n)
+			else:
+				nextNode = LinkedListNode(n)
+				nextNode.nextNode = current
+				current = nextNode
+		if not current:
+			return
+		for n in current:
+			yield n
+
+
+
+
 # if the added string is a substring of a string already
 # in the trie, nothing is added
 # conversely, if a string is added for which a substring
@@ -215,29 +259,34 @@ class AbsorbentTrie(Generic[T]):
 	def all_paths(self) -> Iterator[str]:
 		return self.__traverse_path_optimized__("")
 
-	def __line_order_values__(self) -> Iterator[Optional[T]]:
-		#stack: list["AbsorbentTrie[T]"] = [self]
-		# iterTracker: dict[int, Iterator["AbsorbentTrie[T]"]] = {}
-		queue = deque["AbsorbentTrie[T]"]()
-		queue.append(self)
+	def __line_order_values__(self) -> Iterator[Tuple[str, Optional[T]]]:
+		queue = deque[Tuple["AbsorbentTrie[T]", LinkedListNode[str]]]()
+		queue.append((self, LinkedListNode(self.key)))
 		while queue:
-			node = queue.popleft()
+			node, llnode = queue.popleft()
 			for child in node.__prefix_map__.values():
-				queue.append(child)
+				llnode2 = LinkedListNode(child.key, llnode)
+				queue.append((child, llnode2))
 			if node.path_store != missing:
+				path = "".join(c for c in reversed(llnode))
+
 				if type(node.path_store) == Sentinel:
-					return None
+					yield (path, None)
 				else:
-					yield cast(T, node.path_store)
+					yield (path, cast(T, node.path_store))
 
 	def values(self, path: Optional[str]=None) -> Iterator[Optional[T]]:
 		if path:
-			return (
+			yield from (
 				(n.path_store if not isinstance(n.path_store, Sentinel) else None) \
 				for n in self.__nodes_along_path(path) \
 				if n.path_store != missing
 			)
-		return self.__line_order_values__()
+			return
+		yield from (pair[1] for pair in self.__line_order_values__())
+
+	def values_map(self) -> dict[str, Optional[T]]:
+		return {pair[0]:pair[1] for pair in self.__line_order_values__()}
 
 	def __repr__(self) -> str:
 		printValue = self.key or "<root>"
@@ -375,6 +424,8 @@ class AbsorbentTrie(Generic[T]):
 	def shortest_paths(self) -> Iterator[str]:
 		depth = self.depth
 		if not depth:
+			if self.path_store != missing:
+				yield ""
 			return
 		resultSpace = [[""] * (depth)
 			for _ in range(sum(1 for _ in self.closest_value_nodes()))]
@@ -464,6 +515,9 @@ class ChainedAbsorbentTrie(Generic[T]):
 
 		def values(self, path: Optional[str]=None) -> Iterator[Iterable[T]]:
 			return (v for v in self.__absorbentTrie__.values(path) if v)
+
+		def values_map(self)-> dict[str, Optional[list[T]]]:
+			return self.__absorbentTrie__.values_map()
 
 		def valuesFlat(self, path: Optional[str]=None) -> Iterator[T]:
 			return (r for i in self.values(path) for r in i)

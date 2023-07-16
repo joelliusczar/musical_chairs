@@ -61,7 +61,6 @@ export const SongDirectory = (props) => {
 	const { getCacheValue, setCacheValue } = useCache();
 
 	useAuthViewStateChange(dispatch);
-	
 	useEffect(() => {
 		const fetch = async () => {
 			try {
@@ -120,18 +119,21 @@ SongDirectory.propTypes = {
 
 export const SongTree = withCacheProvider()(() => {
 	const [selectedNodes, setSelectedNodes] = useState([]);
+	const [selectedPrefix, setSelectedPrefix] = useState(null);
 	const { getCacheValue } = useCache();
 	const { enqueueSnackbar } = useSnackbar();
 
 	const onNodeSelect = (e, nodeIds) => {
-		if(nodeIds.lenth === 1) {
+		if(nodeIds.length === 1) {
 			if(selectedNodes[0] === nodeIds[0]) { //unselect
 				setSelectedNodes([]);
 			}
-			setSelectedNodes([...nodeIds]);
+			setSelectedPrefix(getCacheValue(nodeIds[0])?.path);
+			setSelectedNodes([nodeIds[0]]);
 		}
 		else {
 			if(nodeIds.length < 100) {
+				setSelectedPrefix(null);
 				setSelectedNodes([...nodeIds]);
 			}
 			else {
@@ -141,20 +143,31 @@ export const SongTree = withCacheProvider()(() => {
 		}
 	};
 
-	const getSelectedSongInfo = () => {
+	const getSelectedSongIds = () => {
 		return selectedNodes.map(s => getCacheValue(s)?.id).filter(n => !!n);
 	};
 
-	const getPageUrl = (ids) => {
+	const getSongEditUrl = (ids) => {
 		const queryStr = buildArrayQueryStr("ids", ids);
 		return `${DomRoutes.songEdit()}${queryStr}`;
 	};
 
-	const selectedSongIds = getSelectedSongInfo();
+	const getUserAssignUrl = () => {
+		return `${DomRoutes.pathUsers()}?prefix=${selectedPrefix}`;
+	};
+
+	const selectedSongIds = getSelectedSongIds();
+
+	const canAssignUsers = () => {
+		if (selectedPrefix !== null) {
+			return true;
+		}
+		return false;
+	};
 
 	return (
 		<>
-			{!!selectedSongIds.length &&
+			{(!!selectedSongIds.length || selectedPrefix !== null) &&
 			<AppBar
 				sx={{
 					top: (theme) => theme.spacing(6),
@@ -165,16 +178,22 @@ export const SongTree = withCacheProvider()(() => {
 				}}
 			>
 				<Toolbar variant="dense" sx={{ pb: 1, alignItems: "baseline"}}>
-					<Button
+					{!!selectedSongIds.length && <Button
 						component={Link}
-						to={getPageUrl(selectedSongIds)}
+						to={getSongEditUrl(selectedSongIds)}
 					>
 						Edit Song Info
-					</Button>
+					</Button>}
 					{selectedSongIds.length === 1 &&<Button
 						href={getDownloadAddress(selectedSongIds[0])}
 					>
 						Download song
+					</Button>}
+					{canAssignUsers() && <Button
+						component={Link}
+						to={getUserAssignUrl()}
+					>
+						Assign users
 					</Button>}
 				</Toolbar>
 			</AppBar>}

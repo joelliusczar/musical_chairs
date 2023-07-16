@@ -141,6 +141,9 @@ class SongTreeNode:
 	totalChildCount: int
 	id: Optional[int]=None
 	name: Optional[str]=None
+	rules: list[ActionRule]=field(
+		default_factory=list, hash=False, compare=False
+	)
 
 @dataclass()
 class SongArtistGrouping:

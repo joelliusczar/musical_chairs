@@ -12,7 +12,7 @@ import PropTypes from "prop-types";
 import { drawerWidth } from "../../style_config";
 import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
 import { Link } from "react-router-dom";
-import { DomRoutes } from "../../constants";
+import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
 import {
 	buildArrayQueryStr,
@@ -20,6 +20,7 @@ import {
 } from "../../Helpers/url_helpers";
 import { useSnackbar } from "notistack";
 import { useAuthViewStateChange } from "../../Context_Providers/AuthContext";
+import { normalizeOpeningSlash } from "../../Helpers/string_helpers";
 
 
 export const SongTreeNode = (props) => {
@@ -120,6 +121,7 @@ SongDirectory.propTypes = {
 export const SongTree = withCacheProvider()(() => {
 	const [selectedNodes, setSelectedNodes] = useState([]);
 	const [selectedPrefix, setSelectedPrefix] = useState(null);
+	const [selectedPrefixRules, setSelectedPrefixRules] = useState([]);
 	const { getCacheValue } = useCache();
 	const { enqueueSnackbar } = useSnackbar();
 
@@ -128,7 +130,9 @@ export const SongTree = withCacheProvider()(() => {
 			if(selectedNodes[0] === nodeIds[0]) { //unselect
 				setSelectedNodes([]);
 			}
-			setSelectedPrefix(getCacheValue(nodeIds[0])?.path);
+			const songNodeInfo = getCacheValue(nodeIds[0]);
+			setSelectedPrefixRules(songNodeInfo?.rules || []);
+			setSelectedPrefix(normalizeOpeningSlash(songNodeInfo?.path));
 			setSelectedNodes([nodeIds[0]]);
 		}
 		else {
@@ -160,14 +164,21 @@ export const SongTree = withCacheProvider()(() => {
 
 	const canAssignUsers = () => {
 		if (selectedPrefix !== null) {
-			return true;
+			const hasRule = selectedPrefixRules
+				.filter(r => r.name === UserRoleDef.PATH_USER_LIST)
+				.some(r =>
+					(r.path &&
+						selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
+					r.domain === UserRoleDomain.SITE
+				);
+			return hasRule;
 		}
 		return false;
 	};
 
 	return (
 		<>
-			{(!!selectedSongIds.length || selectedPrefix !== null) &&
+			{(!!selectedSongIds.length || selectedPrefixRules) &&
 			<AppBar
 				sx={{
 					top: (theme) => theme.spacing(6),

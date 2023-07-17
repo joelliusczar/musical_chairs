@@ -7,7 +7,8 @@ from musical_chairs_libs.tables import metadata
 from musical_chairs_libs.dtos_and_utilities import (
 	SearchNameString,
 	SavedNameString,
-	next_directory_level
+	next_directory_level,
+	normalize_opening_slash
 )
 
 
@@ -76,6 +77,12 @@ class EnvManager:
 			"next_directory_level",
 			2,
 			next_directory_level,
+			deterministic=True
+		)
+		conn.connection.connection.create_function( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues]
+			"normalize_opening_slash",
+			2,
+			normalize_opening_slash,
 			deterministic=True
 		)
 		return conn

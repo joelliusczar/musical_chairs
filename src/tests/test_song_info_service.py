@@ -53,10 +53,11 @@ def test_song_ls(
 	user,_ = accountService.get_account_for_login("testUser_alpha") #random user
 	assert user
 	paths = sorted(songInfoService.song_ls(user), key=lambda d: d.path)
-	assert len(paths) == 3
+	assert len(paths) == 4
 	assert paths[0].path == "blitz/"
 	assert paths[1].path == "foo/"
 	assert paths[2].path == "jazz/"
+	assert paths[3].path == "tossedSlash/"
 
 	paths = sorted(songInfoService.song_ls(user, "foo/"), key=lambda d: d.path)
 	assert len(paths) == 4

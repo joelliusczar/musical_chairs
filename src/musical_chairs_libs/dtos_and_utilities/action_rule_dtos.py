@@ -10,7 +10,7 @@ from operator import attrgetter
 
 
 
-@dataclass(unsafe_hash=True)
+@dataclass()
 class ActionRule:
 	name: str=""
 	span: int=0
@@ -130,6 +130,14 @@ class ActionRule:
 		return self.name != other.name or\
 			self.span != other.span or self.count != other.count
 
+	def __hash__(self) -> int:
+		return hash((
+			self.name,
+			self.span,
+			self.count,
+			self.priority
+		))
+
 	@staticmethod
 	def filter_out_repeat_roles(
 		rules: Iterable["ActionRule"]
@@ -148,6 +156,9 @@ class StationActionRule(ActionRule):
 @dataclass()
 class PathsActionRule(ActionRule):
 	path: Optional[str]=None
+
+	def __post_init__(self):
+		self.domain = UserRoleDomain.Path.value
 
 	def is_parent_path(self, path: Optional[str]) -> bool:
 		if not self.path or not path:

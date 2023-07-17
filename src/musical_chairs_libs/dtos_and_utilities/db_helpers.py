@@ -30,6 +30,7 @@ from .account_dtos import (
 	get_station_owner_rules,
 	get_path_owner_roles
 )
+from .simple_functions import normalize_opening_slash
 
 __station_permissions_query__ = select(
 	stup_userFk.label("rule_userFk"), #pyright: ignore [reportUnknownMemberType]
@@ -53,7 +54,7 @@ __path_permissions_query__ = select(
 		pup_priority, #pyright: ignore [reportUnknownMemberType]
 		RulePriorityLevel.STATION_PATH.value
 	).label("rule_priority"),
-	dbLiteral(UserRoleDomain.Station.value).label("rule_domain"), #pyright: ignore [reportUnknownMemberType]
+	dbLiteral(UserRoleDomain.Path.value).label("rule_domain"), #pyright: ignore [reportUnknownMemberType]
 	pup_path.label("rule_path") #pyright: ignore [reportUnknownMemberType]
 )
 
@@ -179,14 +180,20 @@ def generate_user_and_rules_from_rows(
 	prefix: Optional[str]=None
 ) -> Iterator[AccountInfo]:
 	currentUser = None
+	normalizedPrefix = normalize_opening_slash(prefix)
 	for row in rows:
 		if not currentUser or currentUser.id != cast(int,row["rule_userFk"]):
 			if currentUser:
 				if currentUser.id == ownerId and domain == UserRoleDomain.Station:
 					currentUser.roles.extend(get_station_owner_rules())
 				elif domain == UserRoleDomain.Path:
-					if prefix and currentUser.dirRoot is not None \
-						and prefix.startswith(currentUser.dirRoot):
+					if normalizedPrefix and currentUser.dirRoot is not None \
+						and normalizedPrefix.startswith(
+							normalize_opening_slash(
+								currentUser.dirRoot
+							)
+						)\
+					:
 						currentUser.roles.extend(get_path_owner_roles(prefix))
 				yield currentUser
 			currentUser = row_to_user(row)
@@ -198,7 +205,11 @@ def generate_user_and_rules_from_rows(
 		if currentUser.id == ownerId and domain == UserRoleDomain.Station:
 			currentUser.roles.extend(get_station_owner_rules())
 		elif domain == UserRoleDomain.Path:
-			if prefix and currentUser.dirRoot \
-				and prefix.startswith(currentUser.dirRoot):
+			if normalizedPrefix and currentUser.dirRoot \
+				and normalizedPrefix.startswith(
+					normalize_opening_slash(
+						currentUser.dirRoot)
+					)\
+			:
 				currentUser.roles.extend(get_path_owner_roles(prefix))
 		yield currentUser

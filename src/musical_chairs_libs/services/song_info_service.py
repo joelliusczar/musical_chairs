@@ -1068,6 +1068,8 @@ class SongInfoService:
 		userId: Optional[int]=None,
 		owner: Optional[AccountInfo]=None
 	) -> Iterator[AccountInfo]:
+		addSlash = True
+		normalizedPrefix = normalize_opening_slash(prefix)
 		rulesQuery = build_rules_query(UserRoleDomain.Path).cte() #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
 		query = select(
 			u_pk,
@@ -1085,16 +1087,24 @@ class SongInfoService:
 			rulesQuery,
 			or_(
 				and_(
-					func.substring(prefix, 0,func.length(u_dirRoot) + 1)  == u_dirRoot,
+					func.substring(
+						normalizedPrefix,
+						0,
+						func.length(
+							func.normalize_opening_slash(u_dirRoot, addSlash)
+						) + 1
+					) == func.normalize_opening_slash(u_dirRoot, addSlash),
 					rulesQuery.c.rule_userFk == 0 #pyright: ignore [reportUnknownMemberType]
 				),
 				and_(
 					rulesQuery.c.rule_userFk == u_pk,  #pyright: ignore [reportUnknownMemberType]
-					func.substring(
-						prefix,
-						0,
-						func.length(rulesQuery.c.rule_path) + 1 #pyright: ignore [reportUnknownMemberType]
-					) == rulesQuery.c.rule_path #pyright: ignore [reportUnknownMemberType]
+						func.substring(
+							normalizedPrefix,
+							0,
+							func.length(
+								func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash) #pyright: ignore [reportUnknownMemberType]
+							) + 1
+						) == func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash) #pyright: ignore [reportUnknownMemberType]
 				),
 			),
 			isouter=True
@@ -1105,7 +1115,13 @@ class SongInfoService:
 					rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
 					RulePriorityLevel.SITE.value
 				) > MinItemSecurityLevel.INVITED_USER.value,
-				func.substring(prefix, 0,func.length(u_dirRoot) + 1) == u_dirRoot
+					func.substring(
+						prefix,
+						0,
+						func.length(
+							func.normalize_opening_slash(u_dirRoot, addSlash)
+						) + 1
+					) == func.normalize_opening_slash(u_dirRoot, addSlash)
 			)
 		)
 		if userId is not None:

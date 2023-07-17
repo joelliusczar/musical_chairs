@@ -66,6 +66,8 @@ export const UserRoleDef = {
 	PATH_LIST: `${UserRoleDomain.PATH}:list`,
 	PATH_EDIT: `${UserRoleDomain.PATH}:edit`,
 	PATH_VIEW: `${UserRoleDomain.PATH}:view`,
+	PATH_USER_ASSIGN: `${UserRoleDomain.PATH}:userassign`,
+	PATH_USER_LIST: `${UserRoleDomain.PATH}:userlist`,
 	PATH_DOWNLOAD: `${UserRoleDomain.PATH}:download`,
 };
 

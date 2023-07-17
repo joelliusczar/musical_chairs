@@ -61,7 +61,7 @@ export const fetchSongTree = async ({ params }) => {
 };
 
 export const fetchPathUsers = async ({ params }) => {
-	const url = "/path/user_list";
+	const url = "song-info/path/user_list";
 	const response = await webClient.get(url, {
 		params: params,
 	});

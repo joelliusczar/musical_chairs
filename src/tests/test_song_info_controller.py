@@ -30,7 +30,7 @@ def test_song_ls_hit(
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = data.get("items", [])
-	assert len(items) == 3
+	assert len(items) == 4
 
 	response = client.get(
 		"/song-info/songs/ls?prefix=f",
@@ -55,7 +55,7 @@ def test_song_ls_with_site_path_permissions(
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = data.get("items", [])
-	assert len(items) == 3
+	assert len(items) == 4
 
 	response = client.get(
 		"/song-info/songs/ls?prefix=",
@@ -64,7 +64,7 @@ def test_song_ls_with_site_path_permissions(
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = data.get("items", [])
-	assert len(items) == 3
+	assert len(items) == 4
 
 
 	headers = login_test_user("quirkyAdmon_testUser", client)
@@ -76,7 +76,7 @@ def test_song_ls_with_site_path_permissions(
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = data.get("items", [])
-	assert len(items) == 3
+	assert len(items) == 4
 
 	response = client.get(
 		"/song-info/songs/ls?prefix=",
@@ -85,7 +85,7 @@ def test_song_ls_with_site_path_permissions(
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = data.get("items", [])
-	assert len(items) == 3
+	assert len(items) == 4
 
 	headers = login_test_user("radicalPath_testUser", client)
 
@@ -96,7 +96,7 @@ def test_song_ls_with_site_path_permissions(
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = data.get("items", [])
-	assert len(items) == 3
+	assert len(items) == 4
 
 	response = client.get(
 		"/song-info/songs/ls?prefix=",
@@ -105,7 +105,7 @@ def test_song_ls_with_site_path_permissions(
 	assert response.status_code == 200
 	data = json.loads(response.content)
 	items = data.get("items", [])
-	assert len(items) == 3
+	assert len(items) == 4
 
 def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 
@@ -893,7 +893,7 @@ def test_get_path_users(
 	data = json.loads(getResponse.content)
 	assert getResponse.status_code == 200
 	items = sorted(data["items"], key=lambda u: u["id"])
-	assert len(items) == 5
+	assert len(items) == 6
 	assert items[0]["username"] == "testUser_alpha"
 	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
 	assert len(rules) == 5
@@ -906,12 +906,19 @@ def test_get_path_users(
 	rules = sorted(items[2]["roles"], key=lambda r: r["name"])
 	assert len(rules) == 5
 
-	assert items[3]["username"] == "testUser_mike"
+	assert items[3]["username"] == "testUser_lima"
 	rules = sorted(items[3]["roles"], key=lambda r: r["name"])
 	assert len(rules) == 2
+	assert rules[0]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[1]["name"] == UserRoleDef.PATH_VIEW.value
 
-	assert items[4]["username"] == "testUser_sierra"
+
+	assert items[4]["username"] == "testUser_mike"
 	rules = sorted(items[4]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+
+	assert items[5]["username"] == "testUser_sierra"
+	rules = sorted(items[5]["roles"], key=lambda r: r["name"])
 	assert len(rules) == 2
 
 	getResponse = client.get(
@@ -927,5 +934,22 @@ def test_get_path_users(
 	assert len(rules) == 5
 
 	assert items[1]["username"] == "testUser_kilo"
+	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+
+	headers = login_test_user("tossedSlash_testUser", client)
+	getResponse = client.get(
+		"song-info/path/user_list?prefix=/tossedSlash/guess",
+		headers=headers
+	)
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	items = sorted(data["items"], key=lambda u: u["id"])
+	assert len(items) == 2
+	assert items[0]["username"] == "testUser_alpha"
+	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+
+	assert items[1]["username"] == "tossedSlash_testUser"
 	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
 	assert len(rules) == 5

@@ -15,7 +15,6 @@ import {
 	// addStationUserRule,
 	// removeStationUserRule,
 } from "../../API_Calls/songInfoCalls";
-import { useParams, useLocation } from "react-router-dom";
 import { formatError } from "../../Helpers/error_formatter";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
@@ -86,18 +85,17 @@ const ruleUpdatePaths = {
 export const PathUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useReducer(
-		waitingReducer(ruleUpdatePaths, [globalStoreLogger("station users")]),
+		waitingReducer(ruleUpdatePaths, [globalStoreLogger("path users")]),
 		pageableDataInitialState
 	);
-	const [selectedStation, setSelectedStation] = useState();
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
-	const pathVars = useParams();
 	const { enqueueSnackbar } = useSnackbar();
+	const queryObj = new URLSearchParams(location.search);
+	const prefix = queryObj.get("prefix");
 
 	const { callStatus } = state;
 
 	const getPageUrl = urlBuilderFactory(DomRoutes.pathUsers);
-	const location = useLocation();
 
 
 	const addUser = async (user) => {
@@ -128,23 +126,23 @@ export const PathUserRoleAssignmentTable = () => {
 	};
 
 	useEffect(() => {
-		const stationTitle = `- ${selectedStation?.displayName || ""}`;
 		document.title =
-			`Musical Chairs - Users for ${stationTitle}`;
-	},[selectedStation]);
+			`Musical Chairs - Users for ${prefix}`;
+	},[prefix]);
 
 	useEffect(() => {
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationKey) return;
+			const prefix = queryObj.get("prefix");
+			if (prefix === null) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			dispatch(dispatches.started());
 			try {
 				const data = await fetchPathUsers({
-					params: { page: page - 1, limit: limit, prefix: "" } }
+					params: { page: page - 1, limit: limit, prefix: prefix } }
 				);
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
@@ -236,12 +234,10 @@ export const PathUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const stationName =
-		selectedStation?.displayName || selectedStation?.name || "";
 	return (
 		<>
 			<h1>
-				Users for station: {stationName}
+				Users for path: {prefix}
 			</h1>
 			<Box m={1}>
 			</Box>

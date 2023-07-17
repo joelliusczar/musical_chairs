@@ -61,6 +61,8 @@ quirky_admin_user_id = 43
 radical_path_user_id = 44
 station_saver_user_id = 45
 super_path_user_id = 46
+tossed_slash_user_id = 47
+
 
 artist_params = [
 	{
@@ -688,6 +690,96 @@ song_params = [
 		"genre": "bam",
 		"comment": "hotdogs make good lava swimmers"
 	},
+	{ "pk": 60,
+		"path": "tossedSlash/goo/looga/alpha",
+		"name": "looga_alpha_song",
+		"genre": "bam",
+		"comment": "Banana Soup"
+	},
+	{ "pk": 61,
+		"path": "tossedSlash/goo/looga/bravo",
+		"name": "looga_bravo_song",
+		"genre": "bam",
+		"comment": "Banana Soup"
+	},
+	{ "pk": 62,
+		"path": "tossedSlash/guess/gold/jar",
+		"name": "jar_song",
+		"albumFk": 14,
+		"track": 5,
+		"disc": 1,
+		"genre": "bam",
+		"comment": "hotdogs make good lava swimmers"
+	},
+	{ "pk": 63,
+		"path": "tossedSlash/guess/gold/bar",
+		"name": "bar_song",
+		"albumFk": 14,
+		"track": 6,
+		"disc": 1,
+		"genre": "bam",
+		"comment": "hotdogs make good lava swimmers"
+	},
+	{ "pk": 64,
+		"path": "tossedSlash/guess/gold/run",
+		"name": "run_song",
+		"albumFk": 14,
+		"track": 7,
+		"disc": 1,
+		"genre": "bam",
+		"comment": "hotdogs make good lava swimmers"
+	},
+	{ "pk": 65,
+		"path": "tossedSlash/band/bun",
+		"name": "bun_song",
+		"albumFk": 14,
+		"track": 8,
+		"disc": 1,
+		"genre": "bam",
+		"comment": "hotdogs make good lava swimmers"
+	},
+	{ "pk": 66,
+		"path": "tossedSlash/band/hun",
+		"name": "hun_song",
+		"albumFk": 14,
+		"track": 8,
+		"disc": 1,
+		"genre": "bam",
+		"comment": "hotdogs make good lava swimmers"
+	},
+	{ "pk": 67,
+		"path": "tossedSlash/guess/silver/run",
+		"name": "run_song",
+		"albumFk": 14,
+		"track": 7,
+		"disc": 1,
+		"genre": "bam",
+		"comment": "hotdogs make good lava swimmers"
+	},
+	{ "pk": 68,
+		"path": "tossedSlash/guess/silver/plastic",
+		"name": "plastic_tune",
+		"albumFk": 12,
+		"track": 8,
+		"disc": 1,
+		"genre": "bam",
+	},
+	{ "pk": 69,
+		"path": "tossedSlash/guess/silver/salt",
+		"name": "salt_tune",
+		"albumFk": 12,
+		"track": 8,
+		"disc": 1,
+		"genre": "bam",
+	},
+	{ "pk": 70,
+		"path": "tossedSlash/guess/silver/green",
+		"name": "green_tune",
+		"albumFk": 12,
+		"track": 8,
+		"disc": 1,
+		"genre": "bam",
+	}
 ]
 
 songArtistParams = [
@@ -1392,6 +1484,16 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": "superPath_testUser"
+		},
+		{
+			"pk": tossed_slash_user_id,
+			"username": "tossedSlash_testUser",
+			"displayName": "Tossed Slash",
+			"hashedPW": testPassword,
+			"email": "test48@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": "tossedSlash"
 		}
 	]
 	return users_params

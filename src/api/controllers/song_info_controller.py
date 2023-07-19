@@ -14,7 +14,8 @@ from api_dependencies import (
 	get_multi_path_user,
 	get_user_with_simple_scopes,
 	get_path_user_and_check_optional_path,
-	get_current_user_simple
+	get_current_user_simple,
+	get_subject_user
 )
 
 from musical_chairs_libs.services import SongInfoService
@@ -29,10 +30,14 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongEditInfo,
 	build_error_obj,
 	ValidatedSongAboutInfo,
-	TableData
+	TableData,
+	PathsActionRule
 )
-from song_validation import extra_validated_song
-
+from song_validation import (
+	extra_validated_song,
+	validate_path_rule,
+	validate_path_rule_for_remove
+)
 router = APIRouter(prefix="/song-info")
 
 
@@ -214,7 +219,7 @@ def get_all_albums(
 @router.get("/path/user_list",dependencies=[
 	Security(
 		get_path_user_and_check_optional_path,
-		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
+		scopes=[UserRoleDef.PATH_USER_LIST.value]
 	)
 ])
 def get_path_user_list(
@@ -223,3 +228,40 @@ def get_path_user_list(
 ) -> TableData[AccountInfo]:
 	pathUsers = list(songInfoService.get_path_users(prefix))
 	return TableData(pathUsers, len(pathUsers))
+
+@router.post("/path/user_role",
+	dependencies=[
+		Security(
+			get_path_user_and_check_optional_path,
+			scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
+		)
+	]
+)
+def add_user_rule(
+	prefix: str,
+	user: AccountInfo = Depends(get_subject_user),
+	rule: PathsActionRule = Depends(validate_path_rule),
+	songInfoService: SongInfoService = Depends(song_info_service),
+) -> PathsActionRule:
+	return songInfoService.add_user_rule_to_path(user.id, prefix, rule)
+
+@router.delete("/path/user_role",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[
+		Security(
+			get_path_user_and_check_optional_path,
+			scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
+		)
+	]
+)
+def remove_user_rule(
+	prefix: str,
+	user: AccountInfo = Depends(get_subject_user),
+	ruleName: Optional[str] = Depends(validate_path_rule_for_remove),
+	songInfoService: SongInfoService = Depends(song_info_service),
+):
+	songInfoService.remove_user_rule_from_path(
+		user.id,
+		prefix,
+		ruleName
+	)

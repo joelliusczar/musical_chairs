@@ -1,4 +1,4 @@
-from typing import Union, Iterable
+from typing import Union, Iterable, Optional
 from fastapi import (
 	Depends,
 	HTTPException,
@@ -10,12 +10,17 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	UserRoleDef,
 	build_error_obj,
-	ValidatedSongAboutInfo
+	ValidatedSongAboutInfo,
+	PathsActionRule,
+	UserRoleDomain,
+	normalize_opening_slash,
+	get_path_owner_roles
 )
 from api_dependencies import (
 	song_info_service,
 	station_service,
-	get_path_user
+	get_path_user,
+	get_subject_user
 )
 
 
@@ -165,3 +170,77 @@ def extra_validated_song(
 	__validate_song_artists(song, user, songInfoService)
 	__validate_song_album(song, user, songInfoService)
 	return song
+
+def validate_path_rule(
+	rule: PathsActionRule,
+	prefix: str,
+	user: Optional[AccountInfo] = Depends(get_subject_user),
+) -> PathsActionRule:
+	if not user:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				"User is required"
+			)],
+		)
+	valid_name_set = UserRoleDef.as_set(UserRoleDomain.Path.value)
+	if rule.name not in valid_name_set:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				f"{rule.name} is not a valid rule for stations"
+			)],
+		)
+	normalizedPrefix = normalize_opening_slash(prefix)
+	if user.dirRoot and \
+		normalizedPrefix.startswith(normalize_opening_slash(user.dirRoot))\
+	:
+		if any(get_path_owner_roles(normalizedPrefix, (rule.name, ))):
+			raise HTTPException(
+				status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+				detail=[build_error_obj(
+					f"{rule.name} cannot be added to owner"
+				)],
+			)
+	return rule
+
+def validate_path_rule_for_remove(
+	prefix: str,
+	user: Optional[AccountInfo] = Depends(get_subject_user),
+	ruleName: Optional[str]=None
+) -> Optional[str]:
+	if not user:
+			raise HTTPException(
+				status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+				detail=[build_error_obj(
+					"User is required"
+				)],
+			)
+	normalizedPrefix = normalize_opening_slash(prefix)
+	isOwner = user.dirRoot and \
+		normalizedPrefix.startswith(normalize_opening_slash(user.dirRoot))
+	if not ruleName:
+		if isOwner:
+			raise HTTPException(
+				status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+				detail=[build_error_obj(
+					f"Cannot remove owner from station"
+				)],
+			)
+		return ruleName
+	if ruleName == UserRoleDef.STATION_VIEW.value:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				f"{ruleName} cannot be removed"
+			)],
+		)
+	if isOwner:
+		if any(get_path_owner_roles(normalizedPrefix, (ruleName, ))):
+			raise HTTPException(
+				status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+				detail=[build_error_obj(
+					f"{ruleName} cannot be removed from owner"
+				)],
+			)
+	return ruleName

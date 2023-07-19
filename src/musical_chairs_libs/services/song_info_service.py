@@ -79,6 +79,7 @@ from musical_chairs_libs.tables import (
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
+	path_user_permissions as path_user_permissions_tbl,
 	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count,
 	users as user_tbl, u_pk, u_username, u_displayName, u_email, u_dirRoot,
 	u_disabled
@@ -1134,3 +1135,40 @@ class SongInfoService:
 			owner.id if owner else None,
 			prefix
 		)
+
+	def add_user_rule_to_path(
+		self,
+		addedUserId: int,
+		prefix: str,
+		rule: ActionRule
+	) -> PathsActionRule:
+		stmt = insert(path_user_permissions_tbl).values(
+			userFk = addedUserId,
+			path = prefix,
+			role = rule.name,
+			span = rule.span,
+			count = rule.count,
+			priority = None,
+			creationTimestamp = self.get_datetime().timestamp()
+		)
+		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		return PathsActionRule(
+			rule.name,
+			rule.span,
+			rule.count,
+			RulePriorityLevel.STATION_PATH.value,
+			path=prefix
+		)
+
+	def remove_user_rule_from_path(
+		self,
+		userId: int,
+		prefix: str,
+		ruleName: Optional[str]
+	):
+		delStmt = delete(path_user_permissions_tbl)\
+			.where(pup_userFk == userId)\
+			.where(pup_path == prefix)
+		if ruleName:
+			delStmt = delStmt.where(pup_role == ruleName)
+		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]

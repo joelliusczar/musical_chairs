@@ -63,34 +63,42 @@ def get_station_owner_rules(
 			priority=RulePriorityLevel.OWNER.value,
 		)
 
-def get_path_owner_roles(ownerDir: Optional[str]) -> Iterator[PathsActionRule]:
+def get_path_owner_roles(
+	ownerDir: Optional[str],
+	scopes: Optional[Collection[str]]=None
+) -> Iterator[PathsActionRule]:
 		if not ownerDir:
 			return
-		yield PathsActionRule(
-			UserRoleDef.PATH_LIST.value,
-			priority=RulePriorityLevel.OWNER.value,
-			path=ownerDir,
-		)
-		yield PathsActionRule(
-			UserRoleDef.PATH_VIEW.value,
-			priority=RulePriorityLevel.OWNER.value,
-			path=ownerDir,
-		)
-		yield PathsActionRule(
-			UserRoleDef.PATH_EDIT.value,
-			priority=RulePriorityLevel.OWNER.value,
-			path=ownerDir,
-		)
-		yield PathsActionRule(
-			UserRoleDef.PATH_USER_LIST.value,
-			priority=RulePriorityLevel.OWNER.value,
-			path=ownerDir,
-		)
-		yield PathsActionRule(
-			UserRoleDef.PATH_USER_ASSIGN.value,
-			priority=RulePriorityLevel.OWNER.value,
-			path=ownerDir,
-		)
+		if not scopes or UserRoleDef.PATH_LIST.value in scopes:
+			yield PathsActionRule(
+				UserRoleDef.PATH_LIST.value,
+				priority=RulePriorityLevel.OWNER.value,
+				path=ownerDir,
+			)
+		if not scopes or UserRoleDef.PATH_VIEW.value in scopes:
+			yield PathsActionRule(
+				UserRoleDef.PATH_VIEW.value,
+				priority=RulePriorityLevel.OWNER.value,
+				path=ownerDir,
+			)
+		if not scopes or UserRoleDef.PATH_EDIT.value in scopes:
+			yield PathsActionRule(
+				UserRoleDef.PATH_EDIT.value,
+				priority=RulePriorityLevel.OWNER.value,
+				path=ownerDir,
+			)
+		if not scopes or UserRoleDef.PATH_USER_LIST.value in scopes:
+			yield PathsActionRule(
+				UserRoleDef.PATH_USER_LIST.value,
+				priority=RulePriorityLevel.OWNER.value,
+				path=ownerDir,
+			)
+		if not scopes or UserRoleDef.PATH_USER_ASSIGN.value in scopes:
+			yield PathsActionRule(
+				UserRoleDef.PATH_USER_ASSIGN.value,
+				priority=RulePriorityLevel.OWNER.value,
+				path=ownerDir,
+			)
 
 
 @dataclass(frozen=True)

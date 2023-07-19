@@ -184,7 +184,7 @@ export const StationUserRoleAssignmentTable = () => {
 					roles: [...user.roles, addedRule].sort(keyedSortFn("name")),
 				}
 			));
-			enqueueSnackbar("User added!", { variant: "success"});
+			enqueueSnackbar("Role added!", { variant: "success"});
 		}
 		catch(err) {
 			enqueueSnackbar(formatError(err), { variant: "error"});

@@ -12,24 +12,23 @@ import {
 import Loader from "../Shared/Loader";
 import {
 	fetchPathUsers,
-	// addStationUserRule,
-	// removeStationUserRule,
+	addPathUserRule,
+	removePathUserRule,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
-import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
-import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
+import { UserRoleDef, UserRoleDomain } from "../../constants";
 import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
 
 
-const stationRoles = Object.keys(UserRoleDef)
-	.map(k => UserRoleDef[k]).filter(v => v.startsWith(UserRoleDomain.STATION))
+const pathRoles = Object.keys(UserRoleDef)
+	.map(k => UserRoleDef[k]).filter(v => v.startsWith(UserRoleDomain.PATH))
 	.map(v => ({
 		id: v,
 		name: v,
 	}));
-stationRoles.unshift({
+pathRoles.unshift({
 	id: "",
 	name: "",
 });
@@ -95,29 +94,26 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const { callStatus } = state;
 
-	const getPageUrl = urlBuilderFactory(DomRoutes.pathUsers);
-
 
 	const addUser = async (user) => {
 		try {
 			const rule = {
-				name: UserRoleDef.STATION_VIEW,
+				name: UserRoleDef.PATH_VIEW,
 				span: 0,
 				count: 0,
 				priority: null,
 			};
-			// const addedRule = await addStationUserRule({
-			// 	stationKey: pathVars.stationKey,
-			// 	ownerKey: pathVars.ownerKey,
-			// 	rule,
-			// 	params: {
-			// 		subjectUserKey: user.id,
-			// 	},
-			// });
-			// dispatch(dispatches.add({
-			// 	...user,
-			// 	roles: [...user.roles, addedRule],
-			// }));
+			const addedRule = await addPathUserRule({
+				rule,
+				params: {
+					prefix,
+					subjectUserKey: user.id,
+				},
+			});
+			dispatch(dispatches.add({
+				...user,
+				roles: [...user.roles, addedRule],
+			}));
 			enqueueSnackbar("User added!", { variant: "success"});
 		}
 		catch(err) {
@@ -165,21 +161,20 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const addRole = async (rule, user) => {
 		try {
-			// const addedRule = await addStationUserRule({
-			// 	stationKey: pathVars.stationKey,
-			// 	ownerKey: pathVars.ownerKey,
-			// 	rule,
-			// 	params: {
-			// 		subjectUserKey: user.id,
-			// 	},
-			// });
-			// dispatch(dispatches.update(
-			// 	user.id,
-			// 	{...user,
-			// 		roles: [...user.roles, addedRule].sort(keyedSortFn("name")),
-			// 	}
-			// ));
-			enqueueSnackbar("User added!", { variant: "success"});
+			const addedRule = await addPathUserRule({
+				rule,
+				params: {
+					prefix,
+					subjectUserKey: user.id,
+				},
+			});
+			dispatch(dispatches.update(
+				user.id,
+				{...user,
+					roles: [...user.roles, addedRule].sort(keyedSortFn("name")),
+				}
+			));
+			enqueueSnackbar("Role added!", { variant: "success"});
 		}
 		catch(err) {
 			enqueueSnackbar(formatError(err), { variant: "error"});
@@ -188,28 +183,27 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const removeRole = async (role, user) => {
 		try {
-			// await removeStationUserRule({
-			// 	stationKey: pathVars.stationKey,
-			// 	ownerKey: pathVars.ownerKey,
-			// 	params: {
-			// 		ruleName: role.name,
-			// 		subjectUserKey: user.id,
-			// 	},
-			// });
-			// const roles = [...user.roles];
-			// const idx = roles.findIndex(r => r.name === role.name);
-			// if (idx > -1 ) {
-			// 	roles.splice(idx, 1);
-			// 	dispatch(dispatches.update(
-			// 		user.id,
-			// 		{...user,
-			// 			roles: roles,
-			// 		}
-			// 	));
-			// }
-			// else {
-			// 	enqueueSnackbar("Local role not found?", { variant: "error"});
-			// }
+			await removePathUserRule({
+				params: {
+					ruleName: role.name,
+					prefix,
+					subjectUserKey: user.id,
+				},
+			});
+			const roles = [...user.roles];
+			const idx = roles.findIndex(r => r.name === role.name);
+			if (idx > -1 ) {
+				roles.splice(idx, 1);
+				dispatch(dispatches.update(
+					user.id,
+					{...user,
+						roles: roles,
+					}
+				));
+			}
+			else {
+				enqueueSnackbar("Local role not found?", { variant: "error"});
+			}
 			enqueueSnackbar(`${role.name} removed!`, { variant: "success"});
 		}
 		catch(err) {
@@ -219,13 +213,12 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const removeUser = async (user) => {
 		try {
-			// await removeStationUserRule({
-			// 	stationKey: pathVars.stationKey,
-			// 	ownerKey: pathVars.ownerKey,
-			// 	params: {
-			// 		subjectUserKey: user.id,
-			// 	},
-			// });
+			await removePathUserRule({
+				params: {
+					prefix,
+					subjectUserKey: user.id,
+				},
+			});
 			dispatch(dispatches.remove(user.id));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});
 		}
@@ -251,7 +244,7 @@ export const PathUserRoleAssignmentTable = () => {
 					removeRole={removeRole}
 					removeUser={removeUser}
 					addRole={addRole}
-					availableRoles={stationRoles}
+					availableRoles={pathRoles}
 				/>
 			</Loader>
 		</>

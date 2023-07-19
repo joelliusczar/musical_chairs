@@ -67,3 +67,19 @@ export const fetchPathUsers = async ({ params }) => {
 	});
 	return response.data;
 };
+
+export const addPathUserRule = async ({ params, rule }) => {
+	const url = "song-info/path/user_role";
+	const response = await webClient.post(url, rule, {
+		params: params,
+	});
+	return response.data;
+};
+
+export const removePathUserRule = async ({ params }) => {
+	const url = "song-info/path/user_role";
+	const response = await webClient.delete(url, {
+		params: params,
+	});
+	return response.data;
+};

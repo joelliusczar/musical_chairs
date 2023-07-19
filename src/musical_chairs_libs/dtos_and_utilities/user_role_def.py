@@ -45,6 +45,8 @@ class UserRoleDomain(Enum):
 
 class UserRoleDef(Enum):
 	ADMIN = "admin"
+	SITE_USER_ASSIGN = f"{UserRoleDomain.Site.value}:userassign"
+	SITE_USER_LIST = f"{UserRoleDomain.Site.value}:userlist"
 	SONG_EDIT = "song:edit"
 	SONG_DOWNLOAD = "song:download"
 	SONG_TREE_LIST = "songtree:list"

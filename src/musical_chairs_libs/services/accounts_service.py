@@ -27,7 +27,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	build_rules_query,
 	row_to_action_rule,
-	UserRoleDomain
+	UserRoleDomain,
+	RulePriorityLevel,
+	MinItemSecurityLevel,
+	generate_user_and_rules_from_rows
 )
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
@@ -38,7 +41,7 @@ from musical_chairs_libs.tables import (
 	u_creationTimestamp, u_displayName,
 	userRoles, ur_userFk, ur_role
 )
-from sqlalchemy import select, insert, desc, func, delete, update
+from sqlalchemy import select, insert, desc, func, delete, update, or_
 from jose import jwt
 from email_validator import (
 	EmailNotValidError,
@@ -372,3 +375,74 @@ class AccountsService:
 		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
 		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 		return True
+
+	def get_site_rule_users(
+		self,
+		userId: Optional[int]=None,
+		owner: Optional[AccountInfo]=None
+	) -> Iterator[AccountInfo]:
+		rulesQuery = build_rules_query(UserRoleDomain.Site).cte() #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+		query = select(
+			u_pk,
+			u_username,
+			u_displayName,
+			u_email,
+			u_dirRoot,
+			rulesQuery.c.rule_userFk, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_name, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_count, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_span, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
+		).select_from(users).join(
+			rulesQuery,
+			rulesQuery.c.rule_userFk == u_pk,  #pyright: ignore [reportUnknownMemberType],
+			isouter=True
+		).where(or_(u_disabled.is_(None), u_disabled == False))\
+		.where(
+			coalesce(
+				rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+				RulePriorityLevel.USER.value
+			) > MinItemSecurityLevel.RULED_USER.value
+		)
+		if userId is not None:
+			query = query.where(u_pk == userId)
+		query = query.order_by(u_username)
+		records = self.conn.execute(query).fetchall() #pyright: ignore [reportUnknownMemberType]
+		yield from generate_user_and_rules_from_rows(
+			records,
+			UserRoleDomain.Path,
+			owner.id if owner else None
+		)
+
+	def add_user_rule(
+		self,
+		addedUserId: int,
+		rule: ActionRule
+	) -> ActionRule:
+		stmt = insert(userRoles).values(
+			userFk = addedUserId,
+			role = rule.name,
+			span = rule.span,
+			count = rule.count,
+			priority = None,
+			creationTimestamp = self.get_datetime().timestamp()
+		)
+		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		return ActionRule(
+			rule.name,
+			rule.span,
+			rule.count,
+			RulePriorityLevel.SITE.value
+		)
+
+	def remove_user_site_rule(
+		self,
+		userId: int,
+		ruleName: Optional[str]
+	):
+		delStmt = delete(userRoles)\
+			.where(ur_userFk == userId)
+		if ruleName:
+			delStmt = delStmt.where(ur_role == ruleName)
+		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]

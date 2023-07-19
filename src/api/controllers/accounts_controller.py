@@ -30,7 +30,8 @@ from api_dependencies import (
 	get_user_with_simple_scopes,
 	get_account_if_can_edit,
 	get_user_from_token,
-	get_optional_user_from_token
+	get_optional_user_from_token,
+	get_subject_user
 )
 
 
@@ -203,3 +204,79 @@ def get_account(
 	accountInfo: AccountInfo = Depends(get_account_if_can_edit)
 ) -> AccountInfo:
 	return accountInfo
+
+@router.get("/site-roles/user_list",dependencies=[
+	Security(
+		get_user_with_simple_scopes,
+		scopes=[UserRoleDef.SITE_USER_LIST.value]
+	)
+])
+def get_path_user_list(
+	accountsService: AccountsService = Depends(accounts_service)
+) -> TableData[AccountInfo]:
+	pathUsers = list(accountsService.get_site_rule_users())
+	return TableData(pathUsers, len(pathUsers))
+
+
+def validate_site_rule(
+	rule: ActionRule,
+	user: Optional[AccountInfo] = Depends(get_subject_user),
+) -> ActionRule:
+	if not user:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				"User is required"
+			)],
+		)
+	valid_name_set = UserRoleDef.as_set()
+	if rule.name not in valid_name_set:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				f"{rule.name} is not a valid rule for stations"
+			)],
+		)
+	return rule
+
+@router.post("/site-roles/user_role",
+	dependencies=[
+		Security(
+			get_user_with_simple_scopes,
+			scopes=[UserRoleDef.SITE_USER_ASSIGN.value]
+		)
+	]
+)
+def add_user_rule(
+	user: AccountInfo = Depends(get_subject_user),
+	rule: ActionRule = Depends(validate_site_rule),
+	accountsService: AccountsService = Depends(accounts_service),
+) -> ActionRule:
+	return accountsService.add_user_rule(user.id, rule)
+
+
+@router.delete("/site-roles/user_role",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[
+		Security(
+			get_user_with_simple_scopes,
+			scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
+		)
+	]
+)
+def remove_user_rule(
+	ruleName: str,
+	user: AccountInfo = Depends(get_subject_user),
+	accountsService: AccountsService = Depends(accounts_service),
+):
+	if not user:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				"User is required"
+			)],
+		)
+	accountsService.remove_user_site_rule(
+		user.id,
+		ruleName
+	)

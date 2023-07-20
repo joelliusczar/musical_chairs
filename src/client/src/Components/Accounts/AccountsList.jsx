@@ -94,7 +94,9 @@ export const AccountsList = () => {
 										<TableCell>
 											<Button
 												component={Link}
-												to={DomRoutes.accountsRoles({ userKey: item.id})}
+												to={DomRoutes.accountsRoles({
+													subjectUserKey: item.username,
+												})}
 											>
 												Roles
 											</Button>

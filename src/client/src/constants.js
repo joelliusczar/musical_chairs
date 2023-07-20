@@ -33,9 +33,9 @@ export const DomRoutes = {
 	pathUsers: () => "/song-info/users",
 	songTree: () => "/song-info/tree/",
 	accountsNew: () => "/accounts/new",
-	accountsEdit: ({ userKey }) => `/accounts/edit/${userKey}`,
+	accountsEdit: ({ subjectUserKey }) => `/accounts/edit/${subjectUserKey}`,
 	accountsLogin: () => "/accounts/login",
-	accountsRoles: ({ userKey }) => `/accounts/roles/${userKey}`,
+	accountsRoles: ({ subjectUserKey }) => `/users/roles/${subjectUserKey}`,
 	accountsList: () => "/accounts/list",
 	notFound: () => "/not-found",
 };
@@ -48,6 +48,9 @@ export const UserRoleDomain = {
 
 export const UserRoleDef = {
 	ADMIN: "admin",
+	SITE_USER_ASSIGN: `${UserRoleDomain.SITE}:userassign`,
+	SITE_USER_LIST: `${UserRoleDomain.SITE}:userlist`,
+	SITE_PLACEHOLDER: `${UserRoleDomain.SITE}:placeholder`,
 	SONG_EDIT: "song:edit",
 	SONG_DOWNLOAD: "song:download",
 	SONG_TREE_LIST: "songtree:list",

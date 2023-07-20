@@ -28,7 +28,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from api_dependencies import (
 	accounts_service,
 	get_user_with_simple_scopes,
-	get_account_if_can_edit,
+	get_account_if_has_scope,
 	get_user_from_token,
 	get_optional_user_from_token,
 	get_subject_user
@@ -164,19 +164,25 @@ def search_users(
 	))
 	return accounts
 
-@router.put("/account/{userKey}")
+@router.put("/account/{subjectUserKey}")
 def update_account(
 	updatedInfo: AccountInfoBase,
-	prev: AccountInfo = Depends(get_account_if_can_edit),
+	prev: AccountInfo = Security(
+		get_account_if_has_scope,
+		scopes=[UserRoleDef.USER_EDIT.value]
+	),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	return accountsService.update_account_general_changes(updatedInfo, prev)
 
 
-@router.put("/update-password/{userKey}")
+@router.put("/update-password/{subjectUserKey}")
 def update_password(
 	passwordInfo: PasswordInfo,
-	currentUser: AccountInfo = Depends(get_account_if_can_edit),
+	currentUser: AccountInfo = Security(
+		get_account_if_has_scope,
+		scopes=[UserRoleDef.USER_EDIT.value]
+	),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> bool:
 	if accountsService.update_password(passwordInfo, currentUser):
@@ -190,18 +196,24 @@ def update_password(
 				)],
 		)
 
-@router.put("/update-roles/{userKey}")
+@router.put("/update-roles/{subjectUserKey}")
 def update_roles(
 	roles: list[ActionRule],
-	prev: AccountInfo = Depends(get_account_if_can_edit),
+	prev: AccountInfo = Security(
+		get_account_if_has_scope,
+		scopes=[UserRoleDef.USER_EDIT.value]
+	),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
 	return AccountInfo(**{**asdict(prev), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
-@router.get("/account/{userKey}")
+@router.get("/account/{subjectUserKey}")
 def get_account(
-	accountInfo: AccountInfo = Depends(get_account_if_can_edit)
+	accountInfo: AccountInfo = Security(
+		get_account_if_has_scope,
+		scopes=[UserRoleDef.USER_EDIT.value]
+	)
 ) -> AccountInfo:
 	return accountInfo
 
@@ -239,7 +251,7 @@ def validate_site_rule(
 		)
 	return rule
 
-@router.post("/site-roles/user_role",
+@router.post("/site-roles/user_role/{subjectUserKey}",
 	dependencies=[
 		Security(
 			get_user_with_simple_scopes,
@@ -255,7 +267,7 @@ def add_user_rule(
 	return accountsService.add_user_rule(user.id, rule)
 
 
-@router.delete("/site-roles/user_role",
+@router.delete("/site-roles/user_role/{subjectUserKey}",
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[
 		Security(

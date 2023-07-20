@@ -9,7 +9,6 @@ import { AccountsNew } from "../Accounts/AccountsNew";
 import { AccountsEdit } from "../Accounts/AccountsEdit";
 import { LoginForm } from "../Accounts/AccountsLoginForm";
 import { AccountsList } from "../Accounts/AccountsList";
-import { AccountsRoles } from "../Accounts/AccountsRoles";
 import { StationEdit } from "../Stations/StationEdit";
 import { SongTree } from "../Songs/SongTree";
 import { SongEdit } from "../Songs/SongEdit";
@@ -27,6 +26,9 @@ import {
 import {
 	PathUserRoleAssignmentTable,
 } from "../Songs/PathUserRoleAssigmentTable";
+import {
+	SiteUserRoleAssignmentTable,
+} from "../Users/SiteUserRoleAssignmentTable";
 
 
 export function NavMenu() {
@@ -88,7 +90,7 @@ export function AppRoutes() {
 
 	useEffect(() => {
 		if (!currentUser.username) {
-			const cookieObj = cookieToObject(document.cookie); 
+			const cookieObj = cookieToObject(document.cookie);
 			if (!cookieObj["username"]) {
 				urlHistory.push("/");
 			}
@@ -152,7 +154,7 @@ export function AppRoutes() {
 			{currentUser.username &&
 			<Route
 				path={DomRoutes.accountsEdit({
-					userKey: ":userKey",
+					subjectUserKey: ":subjectUserKey",
 				})}
 			>
 				<AccountsEdit />
@@ -164,10 +166,10 @@ export function AppRoutes() {
 				<AccountsList />
 			</PrivateRoute>
 			<PrivateRoute
-				path={DomRoutes.accountsRoles({ userKey: ":id"})}
-				scopes={[UserRoleDef.ADMIN]}
+				path={DomRoutes.accountsRoles({ subjectUserKey: ":subjectUserKey"})}
+				scopes={[UserRoleDef.ADMIN, UserRoleDef.SITE_USER_ASSIGN]}
 			>
-				<AccountsRoles />
+				<SiteUserRoleAssignmentTable />
 			</PrivateRoute>
 			<Route
 				path={`${DomRoutes.stationsEdit({

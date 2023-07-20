@@ -429,6 +429,7 @@ class AccountsService:
 			creationTimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+
 		return ActionRule(
 			rule.name,
 			rule.span,

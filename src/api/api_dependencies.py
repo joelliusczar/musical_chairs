@@ -480,15 +480,20 @@ def get_station_user_2(
 					raise build_too_many_requests_error(int(timeleft))
 	return user
 
-def get_account_if_can_edit(
-	userKey: Union[int, str],
+def get_account_if_has_scope(
+	securityScopes: SecurityScopes,
+	subjectUserKey: Union[int, str],
 	currentUser: AccountInfo = Depends(get_current_user_simple),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	if userKey != currentUser.id and userKey != currentUser.username and\
-		not currentUser.isAdmin:
+	isCurrentUser = subjectUserKey == currentUser.id or\
+		subjectUserKey == currentUser.username
+	scopeSet = {s for s in securityScopes.scopes}
+	hasEditRole = currentUser.isAdmin or\
+		any(r.name in scopeSet for r in currentUser.roles)
+	if not isCurrentUser and not hasEditRole:
 		raise build_wrong_permissions_error()
-	prev = accountsService.get_account_for_edit(userKey) if userKey else None
+	prev = accountsService.get_account_for_edit(subjectUserKey) if subjectUserKey else None
 	if not prev:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,

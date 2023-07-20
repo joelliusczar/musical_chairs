@@ -29,11 +29,11 @@ export const UserRoleAssignmentTable = (props) => {
 
 	return (
 		<>
-			<Box m={1}>
+			{onUserSelect && <Box m={1}>
 				<UserSearchModalOpener
 					onConfirm={onUserSelect}
 				/>
-			</Box>
+			</Box>}
 			{!!users?.length && users.map((u, uidx) => {
 				return (
 					<Accordion
@@ -47,16 +47,16 @@ export const UserRoleAssignmentTable = (props) => {
 						>
 							<Box component="span">
 								{u.displayName || u.username}
-								<Button
+								{removeUser && <Button
 									onClick={() => removeUser(u)}
 								>
 									Remove
-								</Button>
+								</Button>}
 							</Box>
 						</AccordionSummary>
 						<AccordionDetails>
 							<>
-								{u.roles?.length && u.roles.map((r, ridx) => {
+								{!!u.roles?.length && u.roles.map((r, ridx) => {
 									return (<Box
 										key={`rule_${uidx}_${ridx}`}
 										className="role-item"
@@ -87,10 +87,10 @@ export const UserRoleAssignmentTable = (props) => {
 };
 
 UserRoleAssignmentTable.propTypes = {
-	onUserSelect: PropTypes.func.isRequired,
+	onUserSelect: PropTypes.func,
 	addRole: PropTypes.func.isRequired,
 	removeRole: PropTypes.func.isRequired,
-	removeUser: PropTypes.func.isRequired,
+	removeUser: PropTypes.func,
 	users: PropTypes.arrayOf(PropTypes.shape({
 		username: PropTypes.string,
 		displayName: PropTypes.string,

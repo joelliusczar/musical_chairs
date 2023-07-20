@@ -94,7 +94,7 @@ export_py_env_vars() {
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	export searchBase="$app_root"/"$content_home" &&
-	export dbName="$app_root"/"$sqlite_file" &&
+	export dbName="$app_root"/"$sqlite_trunk_filepath" &&
 	export templateDir="$app_root"/"$templates_dir_cl" &&
 	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
 	export stationConfigDir="$app_root"/"$ices_configs_dir" &&
@@ -535,7 +535,8 @@ setup_env_api_file() (
 	does_file_exist "$envFile" &&
 	perl -pi -e "s@^(searchBase=).*\$@\1'${app_root}/${content_home}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(dbName=).*\$@\1'${app_root}/${sqlite_file}'@" "$envFile" &&
+	perl -pi -e "s@^(dbName=).*\$@\1'${app_root}/${sqlite_trunk_filepath}'@" \
+		"$envFile" &&
 	perl -pi -e "s@^(templateDir=).*\$@\1'${app_root}/${templates_dir_cl}'@" \
 		"$envFile" &&
 	perl -pi -e \
@@ -564,10 +565,11 @@ copy_dir() (
 replace_db_file_if_needed() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
-	error_check_all_paths "$reference_src_db" "$app_root"/"$sqlite_file"  &&
-	if [ ! -e "$app_root"/"$sqlite_file" ] || [ -n "$clean_flag" ] \
+	error_check_all_paths "$reference_src_db" \
+		"$app_root"/"$sqlite_trunk_filepath"  &&
+	if [ ! -e "$app_root"/"$sqlite_trunk_filepath" ] || [ -n "$clean_flag" ] \
 	|| [ -n "$replace_db_flag" ]; then
-		cp -v "$reference_src_db" "$app_root"/"$sqlite_file" &&
+		cp -v "$reference_src_db" "$app_root"/"$sqlite_trunk_filepath" &&
 		return 0
 		echo 'Done copying db'
 	fi
@@ -1373,7 +1375,8 @@ setup_unit_test_env() (
 	setup_common_dirs
 
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
-	error_check_all_paths "$reference_src_db" "$app_root"/"$sqlite_file" &&
+	error_check_all_paths "$reference_src_db" \
+		"$app_root"/"$sqlite_trunk_filepath" &&
 	sync_requirement_list
 	setup_env_api_file
 	pyEnvPath="$app_root"/"$app_trunk"/"$py_env"
@@ -1536,7 +1539,7 @@ define_top_level_terms() {
 		web_root="$test_root"
 	fi
 
-	db_name='songs_db.sqlite'
+	sqlite_filename='songs_db.sqlite'
 	export app_trunk="$proj_name"_dir
 	export app_root="$app_root"
 	export web_root="$web_root"
@@ -1554,7 +1557,7 @@ define_app_dir_paths() {
 
 	export config_dir="$app_trunk"/config
 	export db_dir="$app_trunk"/db
-	export sqlite_file="$db_dir"/"$db_name"
+	export sqlite_trunk_filepath="$db_dir"/"$sqlite_filename"
 	export utest_env_dir="$test_root"/utest
 
 	# directories that should be cleaned upon changes
@@ -1618,7 +1621,7 @@ define_repo_paths() {
 	export lib_src="$src_path/$lib_name"
 	export templates_src="$workspace_abs_path/templates"
 	export reference_src="$workspace_abs_path/reference"
-	export reference_src_db="$reference_src/$db_name"
+	export reference_src_db="$reference_src/$sqlite_filename"
 	echo "source paths defined"
 }
 

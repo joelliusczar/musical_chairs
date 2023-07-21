@@ -60,3 +60,7 @@ Use debug launch profile Python: API
 ```
 ./deploy_to_server.sh setup_lvl=install
 ```
+
+## Testing new changes
+If need to test a new feature, we just run deploy_to_server while that branch
+is checked out in git

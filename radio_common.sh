@@ -1366,12 +1366,18 @@ setup_radio() (
 	echo "done setting up radio"
 )
 
+__create_fake_keys_file__() {
+	echo "mc_auth_key=$(openssl rand -hex 32)" > "$app_root"/keys/"$proj_name"
+}
+
+
 #assume install_setup.sh has been run
 setup_unit_test_env() (
 	echo "setting up test environment"
 	process_global_vars "$@" &&
 	export app_root="$test_root"
 
+	__create_fake_keys_file__
 	setup_common_dirs
 
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
@@ -1412,12 +1418,11 @@ run_unit_tests() (
 	export app_root="$test_root"
 	setup_unit_test_env &&
 	test_src="$src_path"/tests &&
-
 	export_py_env_vars &&
 	export PYTHONPATH="${src_path}:${src_path}/api" &&
-
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	pytest -s "$test_src" &&
+	cd "$test_src"
+	pytest -s "$@" &&
 	echo "done running unit tests"
 )
 
@@ -1509,6 +1514,7 @@ process_global_args() {
 }
 
 define_consts() {
+	[ -z "$constants_set" ] || return 0
 	export PACMAN_CONST='pacman'
 	export APT_CONST='apt-get'
 	export HOMEBREW_CONST='homebrew'
@@ -1520,6 +1526,7 @@ define_consts() {
 	export api_port='8033'
 	#done't try to change from home
 	export default_radio_repo_path="$HOME"/"$build_dir"/"$proj_name"
+	export constants_set='true'
 	echo "constants defined"
 }
 

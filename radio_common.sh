@@ -178,15 +178,15 @@ get_localhost_key_dir() (
 	esac
 )
 
-_get_remote_private_key() (
+__get_remote_private_key__() (
 	echo "/etc/ssl/private/${proj_name}.private.key.pem"
 )
 
-_get_remote_public_key() (
+__get_remote_public_key__() (
 	echo "/etc/ssl/certs/${proj_name}.public.key.pem"
 )
 
-_get_remote_intermediate_key() (
+__get_remote_intermediate_key__() (
 	echo "/etc/ssl/certs/${proj_name}.intermediate.key.pem"
 )
 
@@ -315,7 +315,7 @@ array_contains_equals() (
 )
 
 is_python_version_good() {
-	[ "$exp_name" = 'py3.8' ] && return 0
+	[ "$experiment_name" = 'py3.8' ] && return 0
 	set_python_version_const &&
 	[ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge 9 ]
 }
@@ -715,15 +715,15 @@ literal_to_regex() (
 	echo "$str" | sed 's/\*/\\*/g'
 )
 
-_get_keychain_osx() (
+__get_keychain_osx__() (
 	echo '/Library/Keychains/System.keychain'
 )
 
-_get_debug_cert_path() (
+__get_debug_cert_path__() (
 	echo $(get_localhost_key_dir)/"$proj_name"_localhost_debug
 )
 
-_get_local_nginx_cert_path() (
+__get_local_nginx_cert_path__() (
 	echo $(get_localhost_key_dir)/"$proj_name"_localhost_nginx
 )
 
@@ -741,7 +741,7 @@ extract_commonName_from_cert() (
 	| perl -ne 'print "$1\n" if m{CN=([^/]+)}'
 )
 
-_certs_matching_name_osx() (
+__certs_matching_name_osx__() (
 	commonName="$1"
 	pattern='(-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----)'
 	script=$(cat <<-scriptEOF
@@ -751,14 +751,15 @@ _certs_matching_name_osx() (
 	scriptEOF
 	)
 	security find-certificate -a -p -c "$commonName" \
-	$(_get_keychain_osx) | perl -0777 -ne "$script"
+	$(__get_keychain_osx__) | perl -0777 -ne "$script"
 )
 
-_certs_matching_name_exact() (
+__certs_matching_name_exact__() (
 	commonName="$1"
 	case $(uname) in
 		(Darwin*)
-			_certs_matching_name_osx "$commonName" | extract_commonName_from_cert \
+			__certs_matching_name_osx__ "$commonName" \
+			| extract_commonName_from_cert \
 			| input_match "$commonName"
 			;;
 		(*)
@@ -768,7 +769,7 @@ _certs_matching_name_exact() (
 	esac
 )
 
-_generate_local_ssl_cert_osx() (
+__generate_local_ssl_cert_osx__() (
 	commonName="$1"
 	domain="$2" &&
 	publicKeyFile="$3" &&
@@ -789,22 +790,23 @@ _generate_local_ssl_cert_osx() (
 	return "$err_code"
 )
 
-_install_local_cert_osx() (
+__install_local_cert_osx__() (
 	publicKeyFile="$1" &&
 	sudo security add-trusted-cert -p ssl -d -r trustRoot \
-	-k $(_get_keychain_osx) "$publicKeyFile"
+	-k $(__get_keychain_osx__) "$publicKeyFile"
 )
 
-_clean_up_invalid_cert() (
+__clean_up_invalid_cert__() (
 	commonName="$1" &&
 	case $(uname) in
 		(Darwin*)
-			_certs_matching_name_osx "$commonName" | while IFS= read -r -d '' cert; do
-				sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-				echo "$cert" | is_cert_expired &&
-				sudo security delete-certificate \
-					-Z "$sha256Value" -t $(_get_keychain_osx)
-			done
+			__certs_matching_name_osx__ "$commonName" \
+				| while IFS= read -r -d '' cert; do
+					sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+					echo "$cert" | is_cert_expired &&
+					sudo security delete-certificate \
+						-Z "$sha256Value" -t $(__get_keychain_osx__)
+				done
 			;;
 		(*)
 			return 0
@@ -813,7 +815,7 @@ _clean_up_invalid_cert() (
 	return 0
 )
 
-_setup_ssl_cert_local() (
+__setup_ssl_cert_local__() (
 	commonName="$1"
 	domain="$2" &&
 	publicKeyFile="$3" &&
@@ -821,9 +823,9 @@ _setup_ssl_cert_local() (
 
 	case $(uname) in
 		(Darwin*)
-			_generate_local_ssl_cert_osx "$commonName" "$domain" \
+			__generate_local_ssl_cert_osx__ "$commonName" "$domain" \
 			"$publicKeyFile" "$privateKeyFile" &&
-			_install_local_cert_osx "$publicKeyFile" ||
+			__install_local_cert_osx__ "$publicKeyFile" ||
 			return 1
 			;;
 		(*)
@@ -836,10 +838,10 @@ _setup_ssl_cert_local() (
 
 setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
-	publicKeyFile=$(_get_debug_cert_path).public.key.pem &&
-	privateKeyFile=$(_get_debug_cert_path).private.key.pem &&
-	_clean_up_invalid_cert "${app_name}-localhost"
-	_setup_ssl_cert_local "${app_name}-localhost" 'localhost' \
+	publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
+	privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
+	__clean_up_invalid_cert__ "${app_name}-localhost"
+	__setup_ssl_cert_local__ "${app_name}-localhost" 'localhost' \
 		"$publicKeyFile" "$privateKeyFile" &&
 	setup_react_env_debug
 )
@@ -849,19 +851,19 @@ setup_ssl_cert_nginx() (
 	domain=$(_get_domain_name "$app_env" 'omitPort') &&
 	case "$app_env" in
 		(local*)
-			publicKeyFile=$(_get_local_nginx_cert_path).public.key.pem &&
-			privateKeyFile=$(_get_local_nginx_cert_path).private.key.pem &&
+			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.pem &&
+			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
-			_clean_up_invalid_cert "$domain"
-			if [ -z $(_certs_matching_name_exact "$domain") ]; then
-				_setup_ssl_cert_local \
+			__clean_up_invalid_cert__ "$domain"
+			if [ -z $(__certs_matching_name_exact__ "$domain") ]; then
+				__setup_ssl_cert_local__ \
 				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
 			fi
 			;;
 		(*)
-			publicKeyFile=$(_get_remote_public_key) &&
-			privateKeyFile=$(_get_remote_private_key) &&
-			intermediateKeyFile=$(_get_remote_intermediate_key) &&
+			publicKeyFile=$(__get_remote_public_key__) &&
+			privateKeyFile=$(__get_remote_private_key__) &&
+			intermediateKeyFile=$(__get_remote_intermediate_key__) &&
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
 			cat "$publicKeyFile" | is_cert_expired ||
@@ -888,8 +890,8 @@ setup_react_env_debug() (
 	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
 	echo 'REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
 	echo 'HTTPS=true' >> "$envFile"
-	echo "SSL_CRT_FILE=$(_get_debug_cert_path).public.key.pem" >> "$envFile"
-	echo "SSL_KEY_FILE=$(_get_debug_cert_path).private.key.pem" >> "$envFile"
+	echo "SSL_CRT_FILE=$(__get_debug_cert_path__).public.key.pem" >> "$envFile"
+	echo "SSL_KEY_FILE=$(__get_debug_cert_path__).private.key.pem" >> "$envFile"
 )
 
 get_nginx_value() (
@@ -932,8 +934,8 @@ update_nginx_conf() (
 		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile" &&
 	case "$app_env" in
 		(local*)
-			publicKey=$(_get_local_nginx_cert_path).public.key.pem &&
-			privateKey=$(_get_local_nginx_cert_path).private.key.pem &&
+			publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
+			privateKey=$(__get_local_nginx_cert_path__).private.key.pem &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
@@ -949,15 +951,15 @@ update_nginx_conf() (
 
 				sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_public_key>@$(_get_remote_public_key)@" \
+				"s@<ssl_public_key>@$(__get_remote_public_key__)@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_private_key>@$(_get_remote_private_key)@" \
+				"s@<ssl_private_key>@$(__get_remote_private_key__)@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_intermediate>@$(_get_remote_intermediate_key)@" \
+				"s@<ssl_intermediate>@$(__get_remote_intermediate_key__)@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
@@ -1490,9 +1492,9 @@ process_global_args() {
 				global_args="${global_args} setup_lvl='${setup_lvl}'"
 				;;
 			#when I want to conditionally run with some experimental code
-			(exp_name=*)
-				export exp_name=${1#exp_name=}
-				global_args="${global_args} exp_name='${exp_name}'"
+			(experiment_name=*)
+				export experiment_name=${1#experiment_name=}
+				global_args="${global_args} experiment_name='${experiment_name}'"
 				;;
 			(skip=*)
 				export skip=${1#skip=}
@@ -1591,14 +1593,14 @@ define_web_server_paths() {
 	echo "web server paths defined"
 }
 
-_get_url_base() (
+__get_url_base__() (
 	echo "$proj_name" | tr -d _
 )
 
 _get_domain_name() (
 	envArg="$1"
 	omitPort="$2"
-	url_base=$(_get_url_base)
+	url_base=$(__get_url_base__)
 	case "$envArg" in
 		(local*)
 			if [ -n "$omitPort" ]; then
@@ -1614,7 +1616,7 @@ _get_domain_name() (
 	echo "${url_base}${url_suffix}"
 )
 
-_define_url() {
+__define_url__() {
 	echo "env: ${app_env}"
 	export server_name=$(_get_domain_name "$app_env")
 	export full_url="https://${server_name}"
@@ -1683,7 +1685,7 @@ process_global_vars() {
 
 	define_web_server_paths &&
 
-	_define_url &&
+	__define_url__ &&
 
 	define_repo_paths &&
 

@@ -882,7 +882,7 @@ print_ssl_cert_info() (
 			intermediateKeyFile=$(__get_remote_intermediate_key__) &&
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ]; then
-				cat "$publicKeyFile" | openssl x509 -checkend
+				cat "$publicKeyFile" | openssl x509 -enddate -subject -noout
 			fi
 			;;
 	esac

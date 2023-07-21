@@ -85,6 +85,7 @@ export const Stations = () => {
 			toggleDispatch(dispatches.done({ key: id }));
 			enqueueSnackbar(`${name} is being disabled`, { variant: "success"});
 			updateStation(id, p => ({...p, isRunning: false}));
+			setWaitConfirm("");
 		}
 		catch(err) {
 			const formattedError = formatError(err);
@@ -203,7 +204,7 @@ export const Stations = () => {
 						<Typography>
 							<Button
 								component="a"
-								href={getListenAddress(s.name)}
+								href={getListenAddress(s)}
 							>
 								Listen
 							</Button>

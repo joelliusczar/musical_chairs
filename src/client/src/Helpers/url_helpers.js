@@ -25,7 +25,8 @@ export const buildArrayQueryStrFromObj = (obj) => {
 	return `?${queryObj.toString()}`;
 };
 
-export const getListenAddress = (stationName) => {
+export const getListenAddress = (station) => {
+	const stationName = `${station.owner.username}_${station.name}`;
 	return `${baseAddress}/listen/stream/${stationName}`;
 };
 

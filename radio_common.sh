@@ -881,7 +881,7 @@ print_ssl_cert_info() (
 			privateKeyFile=$(__get_remote_private_key__) &&
 			intermediateKeyFile=$(__get_remote_intermediate_key__) &&
 
-			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ]; then
+			if [ ! -e "$publicKeyFile" ]; then
 				cat "$publicKeyFile" | openssl x509 -enddate -subject -noout
 			fi
 			;;

@@ -728,7 +728,7 @@ __get_local_nginx_cert_path__() (
 )
 
 is_cert_expired() (
-	! openssl x509 -checkend 3600 -noout
+	! openssl x509 -checkend 3600 -noout >/dev/null
 )
 
 extract_sha256_from_cert() (

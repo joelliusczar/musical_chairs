@@ -846,6 +846,48 @@ setup_ssl_cert_local_debug() (
 	setup_react_env_debug
 )
 
+print_ssl_cert_info() (
+	process_global_vars "$@" &&
+	domain=$(_get_domain_name "$app_env" 'omitPort') &&
+	case "$app_env" in
+		(local*)
+			isDebugServer=${1#is_debug_server=}
+			if [ -n "$isDebugServer" ]; then
+				domain="${domain}-localhost"
+			fi
+			case $(uname) in
+			(Darwin*)
+				echo "#### nginx info ####"
+				__certs_matching_name_osx__ "$domain" \
+					| while IFS= read -r -d '' cert; do
+						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+						echo "$cert" | openssl x509 -enddate -subject -noout
+					done
+				echo "#### debug server info ####"
+				echo "${domain}-localhost"
+				__certs_matching_name_osx__ "${app_name}-localhost" \
+					| while IFS= read -r -d '' cert; do
+						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+						echo "$cert" | openssl x509 -enddate -subject -noout
+					done
+				;;
+			(*)
+				echo 'Finding local certs is not setup for this OS'
+				;;
+		esac
+			;;
+		(*)
+			publicKeyFile=$(__get_remote_public_key__) &&
+			privateKeyFile=$(__get_remote_private_key__) &&
+			intermediateKeyFile=$(__get_remote_intermediate_key__) &&
+
+			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ]; then
+				cat "$publicKeyFile" | openssl x509 -checkend
+			fi
+			;;
+	esac
+)
+
 setup_ssl_cert_nginx() (
 	process_global_vars "$@" &&
 	domain=$(_get_domain_name "$app_env" 'omitPort') &&

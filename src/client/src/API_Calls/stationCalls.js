@@ -99,7 +99,7 @@ export const fetchStationUsers = async ({
 	params,
 	ownerKey,
 }) => {
-	const url = `stations/${ownerKey}/${stationKey}/user_list/`;
+	const url = `stations/${ownerKey}/${stationKey}/user_list`;
 	const response = await webClient.get(url, {
 		params: params,
 	});

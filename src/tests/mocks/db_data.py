@@ -62,6 +62,7 @@ radical_path_user_id = 44
 station_saver_user_id = 45
 super_path_user_id = 46
 tossed_slash_user_id = 47
+unruled_station_user_id = 48
 
 
 artist_params = [
@@ -958,6 +959,12 @@ station_params = [
 		"displayName": "bitchingly fast!",
 		"ownerFk": station_saver_user_id,
 		"viewSecurityLevel": MinItemSecurityLevel.INVITED_USER.value
+	},
+	{ "pk": 20,
+		"name": "juliet_station_rerun",
+		"displayName": "Neptune, how could you?",
+		"ownerFk": unruled_station_user_id,
+		"viewSecurityLevel": MinItemSecurityLevel.PUBLIC.value
 	}
 ]
 
@@ -1494,6 +1501,16 @@ def get_user_params(
 			"isDisabled": False,
 			"creationTimestamp": orderedTestDates[1].timestamp(),
 			"dirRoot": "tossedSlash"
+		},
+		{
+			"pk": unruled_station_user_id,
+			"username": "unruledStation_testUser",
+			"displayName": "Unruled Station User",
+			"hashedPW": testPassword,
+			"email": "test49@test.com",
+			"isDisabled": False,
+			"creationTimestamp": orderedTestDates[1].timestamp(),
+			"dirRoot": "unruledStation"
 		}
 	]
 	return users_params
@@ -1734,6 +1751,14 @@ def get_user_role_params(
 			"count":0,
 			"priority": RulePriorityLevel.SUPER.value,
 			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userFk": unruled_station_user_id,
+			"role": UserRoleDef.STATION_CREATE.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
 		}
 	]
 
@@ -1966,6 +1991,16 @@ def get_station_permission_params(
 			"userFk": oomdwell_user_id,
 			"stationFk": 11,
 			"role": UserRoleDef.STATION_USER_ASSIGN.value,
+			"span":0,
+			"count":0,
+			"priority": None,
+			"creationTimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"pk":30,
+			"userFk": unruled_station_user_id,
+			"stationFk": 20,
+			"role": UserRoleDef.STATION_FLIP.value,
 			"span":0,
 			"count":0,
 			"priority": None,

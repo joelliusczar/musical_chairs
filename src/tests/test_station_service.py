@@ -571,3 +571,25 @@ def test_get_station_user_list(
 	assert rules[3].name == UserRoleDef.STATION_USER_ASSIGN.value
 	assert rules[4].name == UserRoleDef.STATION_USER_LIST.value
 	assert rules[5].name == UserRoleDef.STATION_VIEW.value
+
+
+def test_get_station_user_list_station_no_users(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+):
+	stationService = fixture_station_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("unruledStation_testUser")
+	assert user
+
+	station = next(stationService.get_stations(20, user=user))
+	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
+	assert len(result) == 1
+	rules = sorted(result[0].roles, key=lambda r: r.name)
+	assert rules[0].name == UserRoleDef.STATION_ASSIGN.value
+	assert rules[1].name == UserRoleDef.STATION_DELETE.value
+	assert rules[2].name == UserRoleDef.STATION_EDIT.value
+	assert rules[3].name == UserRoleDef.STATION_FLIP.value
+	assert rules[4].name == UserRoleDef.STATION_USER_ASSIGN.value
+	assert rules[5].name == UserRoleDef.STATION_USER_LIST.value
+	assert rules[6].name == UserRoleDef.STATION_VIEW.value

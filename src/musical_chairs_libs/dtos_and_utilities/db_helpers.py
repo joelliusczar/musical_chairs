@@ -182,7 +182,7 @@ def generate_user_and_rules_from_rows(
 	currentUser = None
 	normalizedPrefix = normalize_opening_slash(prefix)
 	for row in rows:
-		if not currentUser or currentUser.id != cast(int,row["rule_userFk"]):
+		if not currentUser or currentUser.id != cast(int,row[u_pk]):
 			if currentUser:
 				if currentUser.id == ownerId and domain == UserRoleDomain.Station:
 					currentUser.roles.extend(get_station_owner_rules())

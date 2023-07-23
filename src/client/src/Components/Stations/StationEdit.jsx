@@ -203,13 +203,13 @@ export const StationEdit = (props) => {
 		return accumulator;
 	}, {});
 
-
+	const savedId = watch("id");
 
 	return (
 		<Loader status={loadStatus} error={error}>
 			<Box sx={inputField}>
 				<Typography variant="h1">
-					Create a station
+					{savedId ? "Edit" : "Create"} a station
 				</Typography>
 			</Box>
 			<Box sx={inputField}>

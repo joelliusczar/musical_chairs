@@ -964,7 +964,7 @@ station_params = [
 		"name": "juliet_station_rerun",
 		"displayName": "Neptune, how could you?",
 		"ownerFk": unruled_station_user_id,
-		"viewSecurityLevel": MinItemSecurityLevel.PUBLIC.value
+		"viewSecurityLevel": MinItemSecurityLevel.INVITED_USER.value
 	}
 ]
 

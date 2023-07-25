@@ -124,12 +124,19 @@ def everything_else(
 	return response
 
 if __name__ == "__main__":
-	privateKey = sys.argv[1]
-	publicKey = sys.argv[2]
-	uvicorn.run(
-		app, #pyright: ignore [reportGeneralTypeIssues]
-		host="0.0.0.0",
-		port=8032,
-		ssl_keyfile=privateKey,
-		ssl_certfile=publicKey
-	)
+	if len(sys.argv) > 2:
+		privateKey = sys.argv[1]
+		publicKey = sys.argv[2]
+		uvicorn.run(
+			app, #pyright: ignore [reportGeneralTypeIssues]
+			host="0.0.0.0",
+			port=8032,
+			ssl_keyfile=privateKey,
+			ssl_certfile=publicKey
+		)
+	else:
+		uvicorn.run(
+			app, #pyright: ignore [reportGeneralTypeIssues]
+			host="0.0.0.0",
+			port=8032
+		)

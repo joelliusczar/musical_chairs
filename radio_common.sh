@@ -102,6 +102,19 @@ export_py_env_vars() {
 	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
 }
 
+print_py_env_var_guesses() (
+	process_global_vars "$@" &&
+	set_env_path_var && #ensure that we can see mc-ices
+	export_py_env_vars &&
+	echo "searchBase=$searchBase"
+	echo "dbName=$dbName"
+	echo "templateDir=$templateDir"
+	echo "icecastConfLocation=$icecastConfLocation"
+	echo "stationConfigDir=$stationConfigDir"
+	echo "stationModuleDir=$stationModuleDir"
+	echo "RADIO_AUTH_SECRET_KEY=$RADIO_AUTH_SECRET_KEY"
+)
+
 get_pkg_mgr() {
 	define_consts >&2
 	case $(uname) in
@@ -956,10 +969,7 @@ get_nginx_conf_dir_include() (
 	done
 )
 
-update_nginx_conf() (
-	echo "updating nginx site conf"
-	appConfFile="$1"
-	error_check_all_paths "$templates_src" "$appConfFile" &&
+__copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
@@ -968,7 +978,14 @@ update_nginx_conf() (
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<server_name>@${server_name}@g" "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile" &&
+		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile"
+}
+
+update_nginx_conf() (
+	echo "updating nginx site conf"
+	appConfFile="$1"
+	error_check_all_paths "$templates_src" "$appConfFile" &&
+	__copy_and_update_nginx_template__ &&
 	case "$app_env" in
 		(local*)
 			publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
@@ -1328,6 +1345,14 @@ startup_api() (
 	--host 0.0.0.0 --port "$api_port" \
 	"index:app" </dev/null >api.out 2>&1 &)
 	echo "done starting up api. Access at $full_url"
+)
+
+
+startup_nginx_for_debug() (
+	process_global_vars "$@" &&
+	export api_port='8032'
+	setup_nginx_confs &&
+	restart_nginx
 )
 
 setup_api() (

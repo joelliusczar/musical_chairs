@@ -112,7 +112,7 @@ export const addStationUserRule = async ({
 	params,
 	rule,
 }) => {
-	const url = `stations/${ownerKey}/${stationKey}/user_role/`;
+	const url = `stations/${ownerKey}/${stationKey}/user_role`;
 	const response = await webClient.post(url, rule, {
 		params: params,
 	});
@@ -124,7 +124,7 @@ export const removeStationUserRule = async ({
 	stationKey,
 	params,
 }) => {
-	const url = `stations/${ownerKey}/${stationKey}/user_role/`;
+	const url = `stations/${ownerKey}/${stationKey}/user_role`;
 	const response = await webClient.delete(url, {
 		params: params,
 	});

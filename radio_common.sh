@@ -83,7 +83,12 @@ set_ices_version_const() {
 		| perl -ne 'print "$3\n" if /(\d+)\.(\d+)\.?(\d*)/')
 }
 
-set_env_path_var() {
+set_env_vars() {
+	process_global_vars &&
+	__set_env_path_var__
+}
+
+__set_env_path_var__() {
 	if perl -e "exit 1 if index('$PATH','${app_root}/${bin_dir}') != -1"; then
 		echo "Please add '${app_root}/${bin_dir}' to path"
 		export PATH="$PATH":"$app_root"/"$bin_dir"
@@ -104,7 +109,7 @@ export_py_env_vars() {
 
 print_py_env_var_guesses() (
 	process_global_vars "$@" &&
-	set_env_path_var && #ensure that we can see mc-ices
+	__set_env_path_var__ && #ensure that we can see mc-ices
 	export_py_env_vars &&
 	echo "searchBase=$searchBase"
 	echo "dbName=$dbName"
@@ -345,7 +350,7 @@ is_dir_empty() (
 )
 
 get_libs_dir() (
-	set_env_path_var >&2 #ensure that we can see mc-python
+	__set_env_path_var__ >&2 #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
 	packagePath="$py_env/lib/python$pyMajor.$pyMinor/site-packages/"
@@ -356,7 +361,7 @@ get_libs_dir() (
 # subshell () auto switches in use python version back at the end of function
 create_py_env_in_dir() (
 	echo "setting up py libs"
-	set_env_path_var #ensure that we can see mc-python
+	__set_env_path_var__ #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
 	pyEnvDir="$env_root"/"$py_env"
@@ -1138,7 +1143,7 @@ start_icecast_service() (
 
 install_ices() (
 	process_global_vars "$@" &&
-	set_env_path_var &&
+	__set_env_path_var__ &&
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 	|| [ -n "$ice_branch" ]; then
 		shutdown_all_stations &&
@@ -1315,7 +1320,7 @@ EOF
 
 startup_radio() (
 	process_global_vars "$@" &&
-	set_env_path_var && #ensure that we can see mc-ices
+	__set_env_path_var__ && #ensure that we can see mc-ices
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	link_to_music_files &&
@@ -1331,7 +1336,7 @@ startup_radio() (
 
 startup_api() (
 	process_global_vars "$@" &&
-	set_env_path_var && #ensure that we can see mc-ices
+	__set_env_path_var__ && #ensure that we can see mc-ices
 	if ! str_contains "$skip" "setup_api"; then
 		setup_api
 	fi &&

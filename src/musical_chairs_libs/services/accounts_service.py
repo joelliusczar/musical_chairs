@@ -1,34 +1,47 @@
-#pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
+#pyright: reportMissingTypeStubs=false
 import os
 from dataclasses import asdict
 from datetime import timedelta, datetime, timezone
-from typing import Any, Iterable, Iterator, Optional, Sequence, Tuple, cast
+from typing import (
+	Any,
+	Iterable,
+	Iterator,
+	Optional,
+	Tuple,
+	cast,
+	Union
+)
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	SearchNameString,
 	SavedNameString,
-	UserRoleDef,
 	AccountCreationInfo,
-	RoleInfo,
 	get_datetime,
 	build_error_obj,
 	hashpw,
 	checkpw,
 	validate_email,
 	AccountInfoBase,
-	PasswordInfo
+	PasswordInfo,
+	ActionRule,
+	AlreadyUsedError,
+	build_rules_query,
+	row_to_action_rule,
+	UserRoleDomain,
+	RulePriorityLevel,
+	MinItemSecurityLevel,
+	generate_user_and_rules_from_rows
 )
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
-from sqlalchemy.sql import ColumnCollection
 from sqlalchemy.engine.row import Row
+from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
-	users,
-	userRoles,
-	station_queue, q_requestedTimestamp, q_requestedByUserFk, q_playedTimestamp
+	users, u_pk, u_username, u_hashedPW, u_email, u_dirRoot, u_disabled,
+	u_creationTimestamp, u_displayName,
+	userRoles, ur_userFk, ur_role
 )
-from musical_chairs_libs.errors import AlreadyUsedError
-from sqlalchemy import select, insert, desc, func, delete, update
+from sqlalchemy import select, insert, desc, func, delete, update, or_
 from jose import jwt
 from email_validator import (
 	EmailNotValidError,
@@ -40,9 +53,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALGORITHM = "HS256"
 SECRET_KEY=os.environ["RADIO_AUTH_SECRET_KEY"]
 
-u: ColumnCollection = users.columns
-ur: ColumnCollection = userRoles.columns
-q: ColumnCollection = station_queue.columns
 
 class AccountsService:
 
@@ -66,24 +76,25 @@ class AccountsService:
 		cleanedUserName = SavedNameString(username)
 		if not cleanedUserName:
 			return (None, None)
-		query = select(u.pk, u.username, u.hashedPW, u.email)\
+		query = select(u_pk, u_username, u_hashedPW, u_email, u_dirRoot)\
 			.select_from(users) \
-			.where((u.isDisabled != True) | (u.isDisabled == None))\
-			.where(u.hashedPW != None) \
-			.where(func.format_name_for_save(u.username) \
+			.where((u_disabled != True) | (u_disabled.is_(None)))\
+			.where(u_hashedPW.is_not(None)) \
+			.where(func.format_name_for_save(u_username) \
 				== str(cleanedUserName)) \
-			.order_by(desc(u.creationTimestamp)) \
+			.order_by(desc(u_creationTimestamp)) \
 			.limit(1)
-		row = self.conn.execute(query).fetchone()
+		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
 		if not row:
 			return (None, None)
-		pk: int = row.pk #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-		hashedPw: bytes = row.hashedPW #pyright: ignore [reportGeneralTypeIssues]
+		pk = cast(int,row[u_pk])
+		hashedPw = cast(bytes, row[u_hashedPW])
 		accountInfo = AccountInfo(
-			id=pk, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			username=row.username, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			email=row.email, #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-			roles=[r.role for r in self._get_roles(pk)]
+			id=cast(int,row[u_pk]),
+			username=cast(str,row[u_username]),
+			email=cast(str,row[u_email]),
+			roles=[*self.__get_roles__(pk)],
+			dirRoot=cast(str, row[u_dirRoot])
 		)
 		return (accountInfo, hashedPw)
 
@@ -103,62 +114,76 @@ class AccountsService:
 		cleanedEmail: ValidatedEmail = validate_email(accountInfo.email)
 		if self._is_username_used(cleanedUsername):
 			raise AlreadyUsedError([
-				build_error_obj(f"{accountInfo.username} is already used.", "username")
+				build_error_obj(
+					f"{accountInfo.username} is already used.",
+					"body->username"
+				)
 			])
 		if self._is_email_used(cleanedEmail):
 			raise AlreadyUsedError([
-				build_error_obj(f"{accountInfo.email} is already used.", "email")
+				build_error_obj(
+					f"{accountInfo.email} is already used.",
+					"body->email"
+				)
 			])
-		hash = hashpw(accountInfo.password.encode())
+		hashed = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
 			username=SavedNameString.format_name_for_save(accountInfo.username),
 			displayName=SavedNameString.format_name_for_save(accountInfo.displayName),
-			hashedPW=hash,
+			hashedPW=hashed,
 			email=cleanedEmail.email,
 			creationTimestamp = self.get_datetime().timestamp(),
+			dirRoot = SavedNameString.format_name_for_save(accountInfo.username)
 		)
-		res = self.conn.execute(stmt)
-		insertedPk: int = res.lastrowid
-		insertedRows = self.save_roles(
-			insertedPk,
-			[UserRoleDef.STATION_REQUEST.modded_value("60")]
-		)
+		res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		insertedPk = cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
+		# insertedRows = self.save_roles(
+		# 	insertedPk,
+		# 	[UserRoleDef.STATION_REQUEST.v]
+		# )
 		accountDict = accountInfo.scrubed_dict()
 		accountDict["id"] = insertedPk #pyright: ignore [reportGeneralTypeIssues]
-		accountDict["roles"] = insertedRows #pyright: ignore [reportGeneralTypeIssues]
+		# accountDict["roles"] = insertedRows #pyright: ignore [reportGeneralTypeIssues]
 		resultDto = AccountInfo(**accountDict)
 		return resultDto
 
-	def remove_roles_for_user(self, userId: int, roles: Iterable[str]) -> int:
+	def remove_roles_for_user(
+		self,
+		userId: int,
+		roles: Iterable[str]
+	) -> int:
 		if not userId:
 			return 0
 		roles = roles or []
-		delStmt = delete(userRoles).where(ur.userFk == userId)\
-			.where(ur.role.in_(roles))
-		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType]
+		delStmt = delete(userRoles).where(ur_userFk == userId)\
+			.where(ur_role.in_(roles))
+		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
 
 	def save_roles(
 		self,
-		userId: int,
-		roles: Sequence[str]
-	) -> Iterable[str]:
+		userId: Optional[int],
+		roles: Iterable[ActionRule]
+	) -> Iterable[ActionRule]:
 		if userId is None or not roles:
 			return []
-		uniqueRoles = set(UserRoleDef.remove_repeat_roles(roles))
-		existingRoles = set((r.role for r in self._get_roles(userId)))
+		uniqueRoles = set(roles)
+		existingRoles = set(self.__get_roles__(userId))
 		outRoles = existingRoles - uniqueRoles
 		inRoles = uniqueRoles - existingRoles
-		self.remove_roles_for_user(userId, outRoles)
+		self.remove_roles_for_user(userId, (r.name for r in outRoles))
 		if not inRoles:
 			return uniqueRoles
 		roleParams = [{
 				"userFk": userId,
-				"role": r,
+				"role": r.name,
+				"span": r.span,
+				"count": r.count,
+				"priority": r.priority,
 				"creationTimestamp": self.get_datetime().timestamp()
 			} for r in inRoles
 		]
 		stmt = insert(userRoles)
-		self.conn.execute(stmt, roleParams)
+		self.conn.execute(stmt, roleParams) #pyright: ignore [reportUnknownMemberType]
 		return uniqueRoles
 
 
@@ -198,39 +223,17 @@ class AccountsService:
 			return None, 0
 		return user, expiration
 
-	def _get_roles(self, userId: int) -> Iterable[RoleInfo]:
-		query = select(ur.role, ur.creationTimestamp)\
-			.select_from(userRoles) \
-			.where(ur.userFk == userId)
-		rows: Iterable[Row] = self.conn.execute(query).fetchall()
-		return (RoleInfo(
-					userPk=userId,
-					role=r["role"],
-					creationTimestamp=r["creationTimestamp"]
-				) for r in rows)
+	def __get_roles__(self, userId: int) -> Iterable[ActionRule]:
+		rulesQuery = build_rules_query(UserRoleDomain.Site, userId=userId) #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+		rows = cast(Iterable[Row], self.conn.execute(rulesQuery).fetchall()) #pyright: ignore [reportUnknownMemberType]
 
-	def last_request_timestamp(self, user: AccountInfo) -> int:
-		if not user:
-			return 0
-		queueLatestQuery = select(func.max(q.requestedTimestamp))\
-			.select_from(station_queue)\
-			.where(q.requestedByUserFk == user.id)
-		queueLatestHistory = select(func.max(q_requestedTimestamp))\
-			.select_from(station_queue)\
-			.where(q_playedTimestamp.isnot(None))\
-			.where(q_requestedByUserFk == user.id)
-		lastRequestedInQueue = self.conn.execute(queueLatestQuery).scalar()
-		lastRequestedInHistory = self.conn.execute(queueLatestHistory).scalar()
-		lastRequested = max(
-			(lastRequestedInQueue or 0),
-			(lastRequestedInHistory or 0)
-		)
-		return lastRequested
+		return (row_to_action_rule(r) for r in rows)
+
 
 	def _is_username_used(self, username: SearchNameString) -> bool:
 		queryAny: str = select(func.count(1)).select_from(users)\
-				.where(func.format_name_for_search(u.username) == str(username))
-		countRes = self.conn.execute(queryAny).scalar()
+				.where(func.format_name_for_search(u_username) == str(username))
+		countRes = self.conn.execute(queryAny).scalar() #pyright: ignore [reportUnknownMemberType]
 		return countRes > 0 if countRes else False
 
 	def is_username_used(
@@ -250,8 +253,8 @@ class AccountsService:
 	def _is_email_used(self, email: ValidatedEmail) -> bool:
 		emailStr = email.email #pyright: ignore reportUnknownMemberType
 		queryAny: str = select(func.count(1)).select_from(users)\
-				.where(func.lower(u.email) == emailStr)
-		countRes = self.conn.execute(queryAny).scalar()
+				.where(func.lower(u_email) == emailStr)
+		countRes = self.conn.execute(queryAny).scalar() #pyright: ignore [reportUnknownMemberType]
 		return countRes > 0 if countRes else False
 
 	def is_email_used(
@@ -275,40 +278,64 @@ class AccountsService:
 
 	def get_accounts_count(self) -> int:
 		query = select(func.count(1)).select_from(users)
-		count = self.conn.execute(query).scalar() or 0
+		count = self.conn.execute(query).scalar() or 0 #pyright: ignore [reportUnknownMemberType]
 		return count
 
 	def get_account_list(
 		self,
+		searchTerm: Optional[str]=None,
 		page: int = 0,
 		pageSize: Optional[int]=None
 	) -> Iterator[AccountInfo]:
 		offset = page * pageSize if pageSize else 0
-		query = select(u.pk.label("id"), u.username, u.displayName, u.email)\
-			.offset(offset)\
-			.limit(pageSize)
-		records = self.conn.execute(query)
+		query = select(
+			u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
+			u_username,
+			u_displayName,
+			u_email,
+			u_dirRoot
+		).offset(offset)
+
+		if searchTerm is not None:
+			normalizedStr = SearchNameString.format_name_for_search(searchTerm)\
+				.replace(" ","")
+			query = query.where(
+				func.replace(
+					func.format_name_for_search(
+						coalesce(u_displayName, u_username)
+					),
+					" ",""
+					)
+					.like(f"{normalizedStr}%")
+			)
+		query = query.limit(pageSize)
+		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			yield AccountInfo(**row) #pyright: ignore [reportUnknownArgumentType]
 
 	def get_account_for_edit(
 		self,
-		userId: Optional[int],
-		username: Optional[str]=None
+		key: Union[int, str]
 	) -> Optional[AccountInfo]:
-		if not userId and not username:
+		if not key:
 			return None
-		query = select(u.pk.label("id"), u.username, u.displayName, u.email)
-		if userId:
-			query = query.where(u.pk == userId)
-		elif username:
-			query = query.where(u.username == username)
+		query = select(
+			u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
+			u_username,
+			u_displayName,
+			u_email,
+			u_dirRoot
+		)
+		if type(key) == int:
+			query = query.where(u_pk == key)
+		elif type(key) == str:
+			query = query.where(u_username == key)
 		else:
 			raise ValueError("Either username or id must be provided")
-		row = self.conn.execute(query).fetchone()
+		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
 		if not row:
 			return None
-		roles = [r.role for r in self._get_roles(row["id"])]
+		roles = [*self.__get_roles__(cast(int,row["id"]))]
 		return AccountInfo(
 			**row, #pyright: ignore [reportGeneralTypeIssues]
 			roles=roles,
@@ -325,13 +352,16 @@ class AccountsService:
 		updatedEmail = cast(str, validEmail.email)
 		if updatedEmail != currentUser.email and self._is_email_used(validEmail):
 			raise AlreadyUsedError([
-				build_error_obj(f"{updatedInfo.email} is already used.", "email")
+				build_error_obj(
+					f"{updatedInfo.email} is already used.",
+					"body->email"
+				)
 			])
 		stmt = update(users).values(
 			displayName = updatedInfo.displayName,
 			email = updatedEmail
-		).where(u.pk == currentUser.id)
-		self.conn.execute(stmt)
+		).where(u_pk == currentUser.id)
+		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 		return AccountInfo(
 			**{**asdict(currentUser), #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 				"displayName": updatedInfo.displayName,
@@ -351,6 +381,78 @@ class AccountsService:
 		if not authenticated:
 			return False
 		hash = hashpw(passwordInfo.newPassword.encode())
-		stmt = update(users).values(hashedPW = hash).where(u.pk == currentUser.id)
-		self.conn.execute(stmt)
+		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
+		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 		return True
+
+	def get_site_rule_users(
+		self,
+		userId: Optional[int]=None,
+		owner: Optional[AccountInfo]=None
+	) -> Iterator[AccountInfo]:
+		rulesQuery = build_rules_query(UserRoleDomain.Site).cte() #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+		query = select(
+			u_pk,
+			u_username,
+			u_displayName,
+			u_email,
+			u_dirRoot,
+			rulesQuery.c.rule_userFk, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_name, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_count, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_span, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
+		).select_from(users).join(
+			rulesQuery,
+			rulesQuery.c.rule_userFk == u_pk,  #pyright: ignore [reportUnknownMemberType],
+			isouter=True
+		).where(or_(u_disabled.is_(None), u_disabled == False))\
+		.where(
+			coalesce(
+				rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+				RulePriorityLevel.USER.value
+			) > MinItemSecurityLevel.RULED_USER.value
+		)
+		if userId is not None:
+			query = query.where(u_pk == userId)
+		query = query.order_by(u_username)
+		records = self.conn.execute(query).fetchall() #pyright: ignore [reportUnknownMemberType]
+		yield from generate_user_and_rules_from_rows(
+			records,
+			UserRoleDomain.Path,
+			owner.id if owner else None
+		)
+
+	def add_user_rule(
+		self,
+		addedUserId: int,
+		rule: ActionRule
+	) -> ActionRule:
+		stmt = insert(userRoles).values(
+			userFk = addedUserId,
+			role = rule.name,
+			span = rule.span,
+			count = rule.count,
+			priority = None,
+			creationTimestamp = self.get_datetime().timestamp()
+		)
+		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+
+		return ActionRule(
+			rule.name,
+			rule.span,
+			rule.count,
+			RulePriorityLevel.SITE.value
+		)
+
+	def remove_user_site_rule(
+		self,
+		userId: int,
+		ruleName: Optional[str]
+	):
+		delStmt = delete(userRoles)\
+			.where(ur_userFk == userId)
+		if ruleName:
+			delStmt = delStmt.where(ur_role == ruleName)
+		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]

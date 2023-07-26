@@ -1,7 +1,7 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Iterator, Tuple, Optional
+from typing import Iterator, Tuple, Optional, Iterable, Union, Collection
 from urllib import parse
-from fastapi import Depends, HTTPException, status, Cookie
+from fastapi import Depends, HTTPException, status, Query, Request
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
 	EnvManager,
@@ -9,17 +9,32 @@ from musical_chairs_libs.services import (
 	QueueService,
 	SongInfoService,
 	AccountsService,
-	ProcessService
+	ProcessService,
+	UserActionsHistoryService
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	build_error_obj,
-	seconds_to_tuple,
-	build_timespan_msg,
-	UserRoleDef
+	UserRoleDomain,
+	ActionRule,
+	get_datetime,
+	get_path_owner_roles,
+	PathsActionRule,
+	ChainedAbsorbentTrie,
+	normalize_opening_slash,
+	UserRoleDef,
+	StationInfo
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
+from dataclasses import asdict
+from api_error import (
+	build_not_logged_in_error,
+	build_not_wrong_credentials_error,
+	build_expired_credentials_error,
+	build_wrong_permissions_error,
+	build_too_many_requests_error
+)
 
 oauth2_scheme = OAuth2PasswordBearer(
 	tokenUrl="accounts/open",
@@ -63,142 +78,426 @@ def process_service(
 ) -> ProcessService:
 	return ProcessService(conn)
 
-def get_user_from_token_optional(
-	token: str = Depends(oauth2_scheme),
-	accountsService: AccountsService = Depends(accounts_service),
-) -> Optional[AccountInfo]:
-	try:
-		user, _ = accountsService.get_user_from_token(token)
-		return user
-	except ExpiredSignatureError:
-		raise HTTPException(
-				status_code=status.HTTP_401_UNAUTHORIZED,
-				detail=[build_error_obj("Credentials are expired")],
-				headers={
-					"WWW-Authenticate": "Bearer",
-					"X-AuthExpired": "true"
-				}
-			)
+def user_actions_history_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> UserActionsHistoryService:
+	return UserActionsHistoryService(conn)
 
 def get_user_from_token(
 	token: str,
 	accountsService: AccountsService
 ) -> Tuple[AccountInfo, float]:
 	if not token:
-		raise HTTPException(
-			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail=[build_error_obj("Not authenticated")],
-			headers={"WWW-Authenticate": "Bearer"}
-		)
+		raise build_not_logged_in_error()
 	try:
 		user, expiration = accountsService.get_user_from_token(token)
 		if not user:
-			raise HTTPException(
-				status_code=status.HTTP_401_UNAUTHORIZED,
-				detail=[build_error_obj("Could not validate credentials")],
-				headers={"WWW-Authenticate": "Bearer"}
-			)
+			raise build_not_wrong_credentials_error()
 		return user, expiration
 	except ExpiredSignatureError:
-		raise HTTPException(
-				status_code=status.HTTP_401_UNAUTHORIZED,
-				detail=[build_error_obj("Credentials are expired")],
-				headers={
-					"WWW-Authenticate": "Bearer",
-					"X-AuthExpired": "true"
-				}
-			)
-
+		raise build_expired_credentials_error()
 
 def get_current_user_simple(
+	request: Request,
 	token: str = Depends(oauth2_scheme),
-	accountsService: AccountsService = Depends(accounts_service),
-	access_token: str = Cookie(default=None)
+	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
+	cookieToken = request.cookies.get("access_token", None)
 	user, _ = get_user_from_token(
-		token or parse.unquote(access_token or ""),
+		token or parse.unquote(cookieToken or ""),
 		accountsService
 	)
 	return user
 
-def time_til_user_can_do_action(
-	user: AccountInfo,
-	role: UserRoleDef,
-	accountsService: AccountsService
-) -> int:
-	if not user:
-		return -1
-	if user.isAdmin:
-		return 0
-	requestRoles = [r for r in user.roles \
-		if r.startswith(role())]
-	if not any(requestRoles):
-		return -1
-	timeout = min([UserRoleDef.extract_role_segments(r)[1] for r \
-		in requestRoles]) * 60
-	lastRequestedTimestamp = 0
-	if role == UserRoleDef.STATION_REQUEST:
-		lastRequestedTimestamp = accountsService.last_request_timestamp(user)
-	timeLeft = lastRequestedTimestamp + timeout - accountsService\
-		.get_datetime().timestamp()
-	return int(timeLeft) if timeLeft > 0 else 0
+def get_optional_user_from_token(
+	request: Request,
+	token: str = Depends(oauth2_scheme),
+	accountsService: AccountsService = Depends(accounts_service),
+) -> Optional[AccountInfo]:
+	cookieToken = request.cookies.get("access_token", None)
+	if not token and not cookieToken:
+		return None
+	try:
+		user, _ = accountsService.get_user_from_token(
+			token or parse.unquote(cookieToken or "")
+		)
+		return user
+	except ExpiredSignatureError:
+		return None
+
+def get_subject_user(
+	subjectUserKey: Union[int, str] = Query(None),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> AccountInfo:
+		try:
+			subjectUserKey = int(subjectUserKey)
+			owner = accountsService.get_account_for_edit(subjectUserKey)
+		except:
+			owner = accountsService.get_account_for_edit(subjectUserKey)
+		if owner:
+			return owner
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"User with key {subjectUserKey} not found")
+			]
+		)
+
+def get_owner(
+	ownerKey: Union[int, str, None] = Query(None),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> Optional[AccountInfo]:
+	if ownerKey:
+		try:
+			ownerKey = int(ownerKey)
+			owner = accountsService.get_account_for_edit(ownerKey)
+		except:
+			owner = accountsService.get_account_for_edit(ownerKey)
+		if owner:
+			return owner
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"User with key {ownerKey} not found")
+			]
+		)
+	return None
+
+def get_stations_by_ids(
+	stationIds: list[int]=Query(default=[]),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	stationService: StationService = Depends(station_service),
+) -> Collection[StationInfo]:
+	if not stationIds:
+		return ()
+	return list(stationService.get_stations(
+		stationIds,
+		user=user
+	))
+
+def get_station_by_name_and_owner(
+	stationKey: Union[int, str],
+	owner: Optional[AccountInfo] = Depends(get_owner),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	stationService: StationService = Depends(station_service),
+) -> StationInfo:
+	if type(stationKey) == str and not owner:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(
+				f"owner for station with key {stationKey} not found"
+			)]
+		)
+	#owner id is okay to be null if stationKey is an int
+	ownerId = owner.id if owner else None
+	station = next(stationService.get_stations(
+		stationKey,
+		ownerId=ownerId,
+		user=user
+	),None)
+	if not station:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"station with key {stationKey} not found")
+			]
+		)
+	return station
 
 
 def get_current_user(
+	user: AccountInfo = Depends(get_current_user_simple)
+) -> AccountInfo:
+	return user
+
+def get_user_with_simple_scopes(
 	securityScopes: SecurityScopes,
-	user: AccountInfo = Depends(get_current_user_simple),
-	accountsService: AccountsService = Depends(accounts_service)
+	user: AccountInfo = Depends(get_current_user_simple)
 ) -> AccountInfo:
 	if user.isAdmin:
 		return user
-	roleMap = {r():r for r in UserRoleDef}
-	roleModSet = {UserRoleDef.extract_role_segments(r)[0] for r in user.roles}
 	for scope in securityScopes.scopes:
-		if scope in roleModSet:
-			timeleft = time_til_user_can_do_action(
-				user,
-				roleMap[scope],
-				accountsService
-			)
-			if timeleft:
-				raise HTTPException(
-					status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-					detail=[build_error_obj(
-						f"Please wait {build_timespan_msg(seconds_to_tuple(timeleft))} "
-						"before trying again")
+		if not any(r for r in user.roles if r.name == scope):
+			raise build_wrong_permissions_error()
+	return user
+
+def get_user_with_rate_limited_scope(
+	securityScopes: SecurityScopes,
+	user: AccountInfo = Depends(get_current_user_simple),
+	userActionHistoryService: UserActionsHistoryService =
+		Depends(user_actions_history_service)
+) -> AccountInfo:
+	if user.isAdmin:
+		return user
+	scopeSet = set(securityScopes.scopes)
+	rules = ActionRule.sorted((r for r in user.roles if r.name in scopeSet))
+	if not rules:
+		raise build_wrong_permissions_error()
+	timeoutLookup = \
+		userActionHistoryService.calc_lookup_for_when_user_can_next_do_action(
+			user.id,
+			rules
+		)
+	for scope in scopeSet:
+		if scope in timeoutLookup:
+			whenNext = timeoutLookup[scope]
+			if whenNext is None:
+				raise build_wrong_permissions_error()
+			if whenNext > 0:
+				currentTimestamp = get_datetime().timestamp()
+				timeleft = whenNext - currentTimestamp
+				raise build_too_many_requests_error(int(timeleft))
+	return user
+
+def impersonated_user_id(
+	impersonatedUserId: Optional[int],
+	user: AccountInfo = Depends(get_current_user_simple)
+) -> Optional[int]:
+	if user.isAdmin or any(r.conforms(UserRoleDef.USER_IMPERSONATE.value) \
+			for r in user.roles):
+		return impersonatedUserId
+	return None
+
+def check_if_can_use_path(
+	scopes: Iterable[str],
+	prefix: str,
+	user: AccountInfo,
+	userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
+	userActionHistoryService: UserActionsHistoryService
+):
+	scopeSet = set(scopes)
+	rules = ActionRule.sorted(
+		(r for i in userPrefixTrie.values(normalize_opening_slash(prefix)) \
+			for r in i if r.name in scopeSet)
+	)
+	if not rules:
+		raise HTTPException(
+					status_code=status.HTTP_404_NOT_FOUND,
+					detail=[build_error_obj(f"{prefix} not found")
 					]
 				)
-			break
-		raise HTTPException(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail=[build_error_obj(
-				"Insufficient permissions to perform that action"
-			)],
-			headers={"WWW-Authenticate": "Bearer"}
+	timeoutLookup = \
+		userActionHistoryService.calc_lookup_for_when_user_can_next_do_action(
+			user.id,
+			rules
+		)
+	for scope in scopeSet:
+		if scope in timeoutLookup:
+			whenNext = timeoutLookup[scope]
+			if whenNext is None:
+				raise build_wrong_permissions_error()
+			if whenNext > 0:
+				currentTimestamp = get_datetime().timestamp()
+				timeleft = whenNext - currentTimestamp
+				raise build_too_many_requests_error(int(timeleft))
+
+
+def get_path_user(
+	securityScopes: SecurityScopes,
+	user: AccountInfo = Depends(get_current_user_simple),
+	songInfoService: SongInfoService = Depends(song_info_service)
+) -> AccountInfo:
+	scopes = {s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	}
+	if user.isAdmin:
+		return user
+	if not scopes:
+		raise build_wrong_permissions_error()
+	rules = ActionRule.aggregate(
+		user.roles,
+		(p for p in songInfoService.get_paths_user_can_see(user.id)),
+		(p for p in get_path_owner_roles(normalize_opening_slash(user.dirRoot)))
+	)
+	roleNameSet = {r.name for r in rules}
+	if any(s for s in scopes if s not in roleNameSet):
+		raise build_wrong_permissions_error()
+	userDict = asdict(user)
+	userDict["roles"] = rules
+	resultUser = AccountInfo(
+		**userDict,
+	)
+	return resultUser
+
+def get_path_user_and_check_optional_path(
+	securityScopes: SecurityScopes,
+	prefix: Optional[str]=None,
+	itemId: Optional[int]=None,
+	user: AccountInfo = Depends(get_path_user),
+	songInfoService: SongInfoService = Depends(song_info_service),
+	userActionHistoryService: UserActionsHistoryService =
+		Depends(user_actions_history_service)
+) -> AccountInfo:
+	if user.isAdmin:
+		return user
+	if prefix is None:
+		if itemId:
+			prefix = next(songInfoService.get_song_path(itemId, False), "")
+	scopes = [s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	]
+	if prefix:
+		userPrefixes = (
+			r for r in user.roles if isinstance(r, PathsActionRule)
+		)
+
+		userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
+			(p.path, p) for p in userPrefixes if p.path
+		)
+
+		userPrefixTrie.add("", (r for r in user.roles \
+			if type(r) == ActionRule \
+				and (UserRoleDomain.Path.conforms(r.name) \
+						or r.name == UserRoleDef.ADMIN.value
+				)
+		), shouldEmptyUpdateTree=False)
+		check_if_can_use_path(
+			scopes,
+			prefix,
+			user,
+			userPrefixTrie,
+			userActionHistoryService
+		)
+	return user
+
+def get_multi_path_user(
+	securityScopes: SecurityScopes,
+	itemIds: list[int]=Query(default=[]),
+	user: AccountInfo=Depends(get_path_user),
+	songInfoService: SongInfoService = Depends(song_info_service),
+	userActionHistoryService: UserActionsHistoryService=
+		Depends(user_actions_history_service)
+) -> AccountInfo:
+	if user.isAdmin:
+		return user
+	userPrefixes = (
+		r for r in user.roles if isinstance(r, PathsActionRule)
+	)
+	userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
+			(p.path, p) for p in userPrefixes if p.path
+		)
+	userPrefixTrie.add("", (r for r in user.roles \
+		if type(r) == ActionRule \
+			and (UserRoleDomain.Path.conforms(r.name) \
+					or r.name == UserRoleDef.ADMIN.value
+			)
+	), shouldEmptyUpdateTree=False)
+	prefixes = songInfoService.get_song_path(itemIds, False)
+	scopes = [s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	]
+	for prefix in prefixes:
+		check_if_can_use_path(
+			scopes,
+			prefix,
+			user,
+			userPrefixTrie,
+			userActionHistoryService
 		)
 	return user
 
 
-def get_account_if_can_edit(
-	userId: Optional[int]=None,
-	username: Optional[str]=None,
+def get_station_user(
+	securityScopes: SecurityScopes,
+	station: StationInfo=Depends(get_station_by_name_and_owner),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	userActionHistoryService: UserActionsHistoryService=
+		Depends(user_actions_history_service)
+) -> Optional[AccountInfo]:
+	minScope = (not securityScopes.scopes or\
+		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
+	)
+	if not station.viewSecurityLevel and minScope:
+		return user
+	if not user:
+		raise build_not_logged_in_error()
+	if user.isAdmin:
+		return user
+	scopes = {s for s in securityScopes.scopes \
+		if UserRoleDomain.Station.conforms(s)
+	}
+	rules = ActionRule.aggregate(
+		station.rules,
+		filter=lambda r: r.name in scopes
+	)
+	if not rules:
+		raise build_wrong_permissions_error()
+	timeoutLookup = \
+		userActionHistoryService\
+		.calc_lookup_for_when_user_can_next_do_station_action(
+			user.id,
+			(station,)
+		).get(station.id, {})
+	for scope in scopes:
+		if scope in timeoutLookup:
+			whenNext = timeoutLookup[scope]
+			if whenNext is None:
+				raise build_wrong_permissions_error()
+			if whenNext > 0:
+				currentTimestamp = get_datetime().timestamp()
+				timeleft = whenNext - currentTimestamp
+				raise build_too_many_requests_error(int(timeleft))
+	userDict = asdict(user)
+	userDict["roles"] = rules
+	return AccountInfo(**userDict)
+
+def get_station_user_2(
+	securityScopes: SecurityScopes,
+	stations: Collection[StationInfo]=Depends(get_stations_by_ids),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	userActionHistoryService: UserActionsHistoryService=
+		Depends(user_actions_history_service)
+) -> Optional[AccountInfo]:
+	minScope = (not securityScopes.scopes or\
+		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
+	)
+	if not any(s.viewSecurityLevel for s in stations) and minScope:
+		return user
+	if not user:
+		raise build_not_logged_in_error()
+	if user.isAdmin:
+		return user
+	scopes = {s for s in securityScopes.scopes \
+		if UserRoleDomain.Station.conforms(s)
+	}
+	unpermittedStations = [s for s in stations
+		if not any(r.name in scopes for r in s.rules)
+	]
+	if unpermittedStations:
+		raise build_wrong_permissions_error()
+	timeoutLookup = \
+		userActionHistoryService\
+		.calc_lookup_for_when_user_can_next_do_station_action(
+			user.id,
+			stations
+		)
+	for station in stations:
+		for scope in scopes:
+			if station.id in timeoutLookup and scope in timeoutLookup[station.id]:
+				whenNext = timeoutLookup[station.id][scope]
+				if whenNext is None:
+					raise build_wrong_permissions_error()
+				if whenNext > 0:
+					currentTimestamp = get_datetime().timestamp()
+					timeleft = whenNext - currentTimestamp
+					raise build_too_many_requests_error(int(timeleft))
+	return user
+
+def get_account_if_has_scope(
+	securityScopes: SecurityScopes,
+	subjectUserKey: Union[int, str],
 	currentUser: AccountInfo = Depends(get_current_user_simple),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	if userId != currentUser.id and username != currentUser.username and\
-		not currentUser.isAdmin:
-		raise HTTPException(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail=[build_error_obj(
-				"Insufficient permissions to perform that action"
-			)],
-			headers={"WWW-Authenticate": "Bearer"}
-		)
-	prev = accountsService.get_account_for_edit(userId, username) \
-		if userId or username else None
+	isCurrentUser = subjectUserKey == currentUser.id or\
+		subjectUserKey == currentUser.username
+	scopeSet = {s for s in securityScopes.scopes}
+	hasEditRole = currentUser.isAdmin or\
+		any(r.name in scopeSet for r in currentUser.roles)
+	if not isCurrentUser and not hasEditRole:
+		raise build_wrong_permissions_error()
+	prev = accountsService.get_account_for_edit(subjectUserKey) if subjectUserKey else None
 	if not prev:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail=[build_error_obj("Account not found")],
 		)
 	return prev
+

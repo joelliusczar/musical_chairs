@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
 	fetchSongCatalogue,
 	sendSongRequest,
@@ -25,12 +25,16 @@ import {
 import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
-import { StationSelect } from "../Shared/StationSelect";
+import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
-import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import {
+	useHasAnyRoles,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 
 export const SongCatalogue = () => {
@@ -38,20 +42,29 @@ export const SongCatalogue = () => {
 	const [catalogueState, catalogueDispatch] =
 		useReducer(waitingReducer(), pageableDataInitialState);
 
+
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
+	const [selectedStation, setSelectedStation] = useState();
 	const location = useLocation();
-	const queryObj = new URLSearchParams(location.search);
-	const stationNameFromQS = queryObj.get("name") || "";
+	const pathVars = useParams();
+
+	useAuthViewStateChange(catalogueDispatch);
+
 	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
-	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
-	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canRequestSongsForStation = anyConformsToAnyRule(
+		catalogueState?.data?.stationRules,
+		[UserRoleDef.STATION_REQUEST]
+	);
+	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
+
 
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
 
 	const requestSong = async (songId) => {
 		try {
-			await sendSongRequest({station: stationNameFromQS, songId });
+			await sendSongRequest({stationKey: pathVars.stationKey, songId });
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
 		}
 		catch (err) {
@@ -64,17 +77,28 @@ export const SongCatalogue = () => {
 	const rowButton = (item, idx) => {
 		const rowButtonOptions = [];
 
-		if(canRequestSongs) rowButtonOptions.push({
+
+		if(canRequestSongs || canRequestSongsForStation) rowButtonOptions.push({
 			label: "Request",
 			onClick:() => requestSong(item.id),
 		});
 
-		if (canEditSongs) rowButtonOptions.push({
+		const canEditThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_EDIT]
+		);
+
+		if (canEditSongs || canEditThisSong) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.songEdit}?id=${item.id}`,
+			link: `${DomRoutes.songEdit()}?id=${item.id}`,
 		});
 
-		if (canDownloadSongs) rowButtonOptions.push({
+		const canDownloadThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_DOWNLOAD]
+		);
+
+		if (canDownloadSongs || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
 			href: getDownloadAddress(item.id),
 		});
@@ -86,34 +110,35 @@ export const SongCatalogue = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.songEdit}?id=${item.id}`}
+				to={`${DomRoutes.songEdit()}?id=${item.id}`}
 			>
-				View
+				{(canEditSongs || canEditThisSong) ? "Edit" : "View"}
 			</Button>);
 	};
 
 	useEffect(() => {
+		const stationTitle = `- ${selectedStation?.displayName || ""}`;
 		document.title =
-			`Musical Chairs - Song Catalogue${`- ${stationNameFromQS || ""}`}`;
-	},[stationNameFromQS]);
+			`Musical Chairs - Song Catalogue${stationTitle}`;
+	},[selectedStation]);
 
 	useEffect(() => {
 		const fetch = async () => {
-			if (currentQueryStr === location.search) return;
+			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			const stationNameFromQS = queryObj.get("name");
-			if (!stationNameFromQS) return;
+			if (!pathVars.stationKey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			catalogueDispatch(dispatches.started());
 			try {
 				const data = await fetchSongCatalogue({
-					station: stationNameFromQS,
+					stationKey: pathVars.stationKey,
+					ownerKey: pathVars.ownerKey,
 					params: { page: page - 1, limit: limit } }
 				);
 				catalogueDispatch(dispatches.done(data));
-				setCurrentQueryStr(location.search);
+				setCurrentQueryStr(`${location.pathname}${location.search}`);
 			}
 			catch (err) {
 				catalogueDispatch(dispatches.failed(formatError(err)));
@@ -124,7 +149,10 @@ export const SongCatalogue = () => {
 	},[
 		catalogueDispatch,
 		fetchSongCatalogue,
+		pathVars.stationKey,
+		pathVars.ownerKey,
 		location.search,
+		location.pathname,
 		currentQueryStr,
 		setCurrentQueryStr,
 	]);
@@ -132,9 +160,12 @@ export const SongCatalogue = () => {
 
 	return (
 		<>
-			<h1>Song Catalogue: {stationNameFromQS}</h1>
+			<h1>Song Catalogue: {selectedStation?.displayName || ""}</h1>
 			<Box m={1}>
-				<StationSelect getPageUrl={getPageUrl} />
+				<StationRouteSelect
+					getPageUrl={getPageUrl}
+					onChange={(s) => setSelectedStation(s)}
+				/>
 			</Box>
 			<Box m={1}>
 				<Loader

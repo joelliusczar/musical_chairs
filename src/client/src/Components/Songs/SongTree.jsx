@@ -12,13 +12,15 @@ import PropTypes from "prop-types";
 import { drawerWidth } from "../../style_config";
 import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
 import { Link } from "react-router-dom";
-import { DomRoutes } from "../../constants";
+import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
 import {
 	buildArrayQueryStr,
 	getDownloadAddress,
 } from "../../Helpers/url_helpers";
 import { useSnackbar } from "notistack";
+import { useAuthViewStateChange } from "../../Context_Providers/AuthContext";
+import { normalizeOpeningSlash } from "../../Helpers/string_helpers";
 
 
 export const SongTreeNode = (props) => {
@@ -59,6 +61,7 @@ export const SongDirectory = (props) => {
 	const { callStatus } = state;
 	const { getCacheValue, setCacheValue } = useCache();
 
+	useAuthViewStateChange(dispatch);
 	useEffect(() => {
 		const fetch = async () => {
 			try {
@@ -117,18 +120,24 @@ SongDirectory.propTypes = {
 
 export const SongTree = withCacheProvider()(() => {
 	const [selectedNodes, setSelectedNodes] = useState([]);
+	const [selectedPrefix, setSelectedPrefix] = useState(null);
+	const [selectedPrefixRules, setSelectedPrefixRules] = useState([]);
 	const { getCacheValue } = useCache();
 	const { enqueueSnackbar } = useSnackbar();
 
 	const onNodeSelect = (e, nodeIds) => {
-		if(nodeIds.lenth === 1) {
+		if(nodeIds.length === 1) {
 			if(selectedNodes[0] === nodeIds[0]) { //unselect
 				setSelectedNodes([]);
 			}
-			setSelectedNodes([...nodeIds]);
+			const songNodeInfo = getCacheValue(nodeIds[0]);
+			setSelectedPrefixRules(songNodeInfo?.rules || []);
+			setSelectedPrefix(normalizeOpeningSlash(songNodeInfo?.path));
+			setSelectedNodes([nodeIds[0]]);
 		}
 		else {
 			if(nodeIds.length < 100) {
+				setSelectedPrefix(null);
 				setSelectedNodes([...nodeIds]);
 			}
 			else {
@@ -138,20 +147,38 @@ export const SongTree = withCacheProvider()(() => {
 		}
 	};
 
-	const getSelectedSongInfo = () => {
+	const getSelectedSongIds = () => {
 		return selectedNodes.map(s => getCacheValue(s)?.id).filter(n => !!n);
 	};
 
-	const getPageUrl = (ids) => {
-		const queryStr = buildArrayQueryStr(ids, "id");
-		return `${DomRoutes.songEdit}${queryStr}`;
+	const getSongEditUrl = (ids) => {
+		const queryStr = buildArrayQueryStr("ids", ids);
+		return `${DomRoutes.songEdit()}${queryStr}`;
 	};
 
-	const selectedSongIds = getSelectedSongInfo();
+	const getUserAssignUrl = () => {
+		return `${DomRoutes.pathUsers()}?prefix=${selectedPrefix}`;
+	};
+
+	const selectedSongIds = getSelectedSongIds();
+
+	const canAssignUsers = () => {
+		if (selectedPrefix !== null) {
+			const hasRule = selectedPrefixRules
+				.filter(r => r.name === UserRoleDef.PATH_USER_LIST)
+				.some(r =>
+					(r.path &&
+						selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
+					r.domain === UserRoleDomain.SITE
+				);
+			return hasRule;
+		}
+		return false;
+	};
 
 	return (
 		<>
-			{!!selectedSongIds.length &&
+			{(!!selectedSongIds.length || selectedPrefixRules) &&
 			<AppBar
 				sx={{
 					top: (theme) => theme.spacing(6),
@@ -162,16 +189,22 @@ export const SongTree = withCacheProvider()(() => {
 				}}
 			>
 				<Toolbar variant="dense" sx={{ pb: 1, alignItems: "baseline"}}>
-					<Button
+					{!!selectedSongIds.length && <Button
 						component={Link}
-						to={getPageUrl(selectedSongIds)}
+						to={getSongEditUrl(selectedSongIds)}
 					>
 						Edit Song Info
-					</Button>
+					</Button>}
 					{selectedSongIds.length === 1 &&<Button
 						href={getDownloadAddress(selectedSongIds[0])}
 					>
 						Download song
+					</Button>}
+					{canAssignUsers() && <Button
+						component={Link}
+						to={getUserAssignUrl()}
+					>
+						Assign users
 					</Button>}
 				</Toolbar>
 			</AppBar>}

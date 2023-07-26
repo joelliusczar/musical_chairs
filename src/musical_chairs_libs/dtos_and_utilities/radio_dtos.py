@@ -1,22 +1,27 @@
-from pydantic import validator, root_validator
+from pydantic import validator, root_validator #pyright: ignore [reportUnknownVariableType]
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
-from typing import\
-	Iterator,\
-	Optional,\
-	Iterable,\
-	List,\
+from typing import (
+	Iterator,
+	Optional,
+	Iterable,
+	List,
 	Any
+)
 from itertools import chain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, check_name_safety
-from .generic_dtos import IdItem, TableData
+from .generic_dtos import IdItem, TableData, T
+from .account_dtos import OwnerType
+from .action_rule_dtos import ActionRule
+from .user_role_def import MinItemSecurityLevel
 
 
 @dataclass(frozen=True)
 class ArtistInfo:
 	id: int
 	name: str
+	owner: OwnerType
 
 @dataclass(frozen=True)
 class AlbumCreationInfo:
@@ -25,8 +30,11 @@ class AlbumCreationInfo:
 	albumArtist: Optional[ArtistInfo]=None
 
 @dataclass(frozen=True)
-class AlbumInfo(AlbumCreationInfo, IdItem):
-	...
+class AlbumInfo(IdItem):
+	name: str
+	owner: OwnerType
+	year: Optional[int]=None
+	albumArtist: Optional[ArtistInfo]=None
 
 @dataclass()
 class SongBase:
@@ -37,6 +45,12 @@ class SongBase:
 class SongListDisplayItem(SongBase):
 	album: Optional[str]
 	artist: Optional[str]
+	path: str
+	queuedTimestamp: float
+	requestedTimestamp: Optional[float]=None
+	playedTimestamp: Optional[float]=None
+	rules: list[ActionRule]=field(default_factory=list)
+
 
 @dataclass(frozen=True)
 class ScanningSongItem:
@@ -55,41 +69,57 @@ class ScanningSongItem:
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 
-@dataclass()
-class QueueItem(SongListDisplayItem):
-	path: str
-	queuedTimestamp: float
-	requestedTimestamp: Optional[float]=None
 
 @dataclass()
-class HistoryItem(SongListDisplayItem):
-	playedTimestamp: float
+class StationTableData(TableData[T]):
+	stationRules: list[ActionRule]
 
 @dataclass()
-class CurrentPlayingInfo(TableData[QueueItem]):
-	nowPlaying: Optional[HistoryItem]
+class CurrentPlayingInfo(StationTableData[SongListDisplayItem]):
+	nowPlaying: Optional[SongListDisplayItem]
 
 @dataclass(frozen=True)
 class Tag:
 	id: int
 	name: str
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class StationInfo:
 	id: int
 	name: str
 	displayName: str=field(default="", hash=False, compare=False)
 	isRunning: bool=field(default=False, hash=False, compare=False)
+	owner: Optional[OwnerType]=field(default=None, hash=False, compare=False)
+	rules: list[ActionRule]=field(
+		default_factory=list, hash=False, compare=False
+	)
+	requestSecurityLevel: Optional[int]=field(
+		default=MinItemSecurityLevel.ANY_USER.value, hash=False, compare=False,
+	)
+	viewSecurityLevel: Optional[int]=field(default=0, hash=False, compare=False)
 
 @dataclass()
 class StationCreationInfo:
 	name: str
 	displayName: Optional[str]=""
+	viewSecurityLevel: Optional[int]=field(default=0)
+	requestSecurityLevel: Optional[int]=field(
+		default=MinItemSecurityLevel.OWENER_USER.value
+	)
+
+	@validator("requestSecurityLevel")
+	def check_requestSecurityLevel(cls, v: int, values: dict[Any, Any]) -> int:
+		if v < values["viewSecurityLevel"] \
+			or v == MinItemSecurityLevel.PUBLIC.value:
+			raise ValueError(
+				"Request Security cannot be public or lower than view security"
+			)
+		return v
 
 @pydanticDataclass
 class ValidatedStationCreationInfo(StationCreationInfo):
 
-	_name_len = validator(
+	_name_len = validator( #pyright: ignore [reportUnknownVariableType]
 		"name",
 		allow_reuse=True
 	)(min_length_validator_factory(2, "Station name"))
@@ -111,6 +141,9 @@ class SongTreeNode:
 	totalChildCount: int
 	id: Optional[int]=None
 	name: Optional[str]=None
+	rules: list[ActionRule]=field(
+		default_factory=list, hash=False, compare=False
+	)
 
 @dataclass()
 class SongArtistGrouping:
@@ -143,7 +176,7 @@ class SongArtistTuple:
 	def __len__(self) -> int:
 		return 2
 
-	def __iter__(self) -> Iterator[Any]:
+	def __iter__(self) -> Iterator[int]:
 		yield self.songId
 		yield self.artistId
 
@@ -187,7 +220,7 @@ class SongAboutInfo:
 
 @dataclass()
 class SongEditInfo(SongAboutInfo, SongPathInfo):
-	...
+	rules: list[ActionRule]=field(default_factory=list)
 
 
 

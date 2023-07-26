@@ -16,6 +16,7 @@ export const OptionsButton = (props) => {
 	const [anchorEl, setAnchorEl] = useState(null);
 
 	const handleButtonClick = (e) => {
+		setAnchorEl(null);
 		options[selectedIndex].onClick && options[selectedIndex].onClick(e);
 	};
 
@@ -23,6 +24,7 @@ export const OptionsButton = (props) => {
 		setSelectedIndex(index);
 		setAnchorEl(null);
 	};
+
 
 	const linkConfig = options[selectedIndex].href ?
 		{ href: options[selectedIndex].href } :
@@ -50,6 +52,7 @@ export const OptionsButton = (props) => {
 				<Menu
 					open={!!anchorEl}
 					anchorEl={anchorEl}
+					onClose={() => setAnchorEl(null)}
 				>
 					{options.map((o, i) => {
 						return <MenuItem

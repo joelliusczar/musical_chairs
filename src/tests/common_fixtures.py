@@ -1,31 +1,37 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
 import os
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Any, Callable
 from datetime import datetime
-from musical_chairs_libs.services import\
-	EnvManager,\
-	QueueService,\
-	AccountsService,\
-	SongInfoService,\
-	StationService,\
-	TemplateService
-
+from musical_chairs_libs.services import (
+	EnvManager,
+	QueueService,
+	AccountsService,
+	SongInfoService,
+	StationService,
+	TemplateService,
+	UserActionsHistoryService
+)
 from musical_chairs_libs.radio_handle import RadioHandle
-from musical_chairs_libs.dtos_and_utilities import AccountInfo
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	ActionRule,
+	get_path_owner_roles,
+	normalize_opening_slash
+)
 from sqlalchemy.engine import Connection
-from .mocks.mock_db_constructors import\
-	MockDbPopulateClosure,\
-	setup_in_mem_tbls,\
+from .mocks.mock_db_constructors import (
+	MockDbPopulateClosure,
+	setup_in_mem_tbls,
 	construct_mock_connection_constructor
-
-from .constant_fixtures_for_test import\
+)
+from .mocks.mock_datetime_provider import MockDatetimeProvider
+from .constant_fixtures_for_test import (
 	fixture_mock_password as fixture_mock_password,\
 	fixture_primary_user as fixture_primary_user,\
 	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
-
-
-
+)
+from dataclasses import asdict
 
 @pytest.fixture
 def fixture_db_conn_in_mem(
@@ -89,7 +95,7 @@ def fixture_radio_handle(
 ) -> RadioHandle:
 	envMgr = fixture_env_manager_with_in_mem_db
 	radioHandle = RadioHandle(
-		"oscar_station",
+		1,
 		envManager=envMgr
 	)
 	return radioHandle
@@ -128,6 +134,15 @@ def fixture_template_service() -> TemplateService:
 	return templateService
 
 @pytest.fixture
+def fixture_user_actions_history_service(
+	fixture_populated_db_conn_in_mem: Connection
+) -> UserActionsHistoryService:
+	userActionsHistoryService = UserActionsHistoryService(
+		fixture_populated_db_conn_in_mem
+	)
+	return userActionsHistoryService
+
+@pytest.fixture
 def fixture_setup_in_mem_tbls(
 	fixture_db_conn_in_mem: Connection,
 	fixture_mock_ordered_date_list: List[datetime],
@@ -153,7 +168,81 @@ def fixture_clean_station_folders():
 		os.remove(file.path)
 
 
+@pytest.fixture
+def fixture_datetime_iterator(
+	fixture_mock_ordered_date_list: List[datetime],
+	request: pytest.FixtureRequest
+) -> MockDatetimeProvider:
+	requestTimestamps = request.node.get_closest_marker("testDatetimes")
+	if requestTimestamps:
+		datetimes = requestTimestamps.args[0]
+		provider = MockDatetimeProvider(datetimes)
+		return provider
+	provider = MockDatetimeProvider(fixture_mock_ordered_date_list)
+	return provider
 
+@pytest.fixture
+def fixture_path_user_factory(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+) -> Callable[[str], AccountInfo]:
+
+	def path_user(username: str) -> AccountInfo:
+		songInfoService = fixture_song_info_service
+		accountService = fixture_account_service
+		user,_ = accountService.get_account_for_login(username)
+		assert user
+		rules = ActionRule.aggregate(
+			user.roles,
+			(p for p in songInfoService.get_paths_user_can_see(user.id)),
+			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirRoot)))
+		)
+		userDict = asdict(user)
+		userDict["roles"] = rules
+		resultUser = AccountInfo(
+			**userDict,
+		)
+		return resultUser
+	return path_user
+
+
+@pytest.fixture
+def datetime_monkey_patch(
+	fixture_datetime_iterator: MockDatetimeProvider,
+	monkeypatch: pytest.MonkeyPatch
+) -> MockDatetimeProvider:
+
+	class MockDatetimeMeta(type):
+
+		def __instancecheck__(self, __instance: Any) -> bool:
+			if type(__instance) == datetime:
+				return True
+			return super().__instancecheck__(__instance)
+
+	class MockDatetime(datetime, metaclass=MockDatetimeMeta):
+
+		@classmethod
+		def now(cls, tz: Any=None) -> datetime:
+			dt = fixture_datetime_iterator()
+			return dt.astimezone(tz)
+
+		@classmethod
+		def utcnow(cls) -> datetime:
+			return fixture_datetime_iterator()
+	monkeypatch.setattr("musical_chairs_libs.dtos_and_utilities.simple_functions.datetime", MockDatetime)
+	monkeypatch.setattr("jose.jwt.datetime", MockDatetime)
+
+	return fixture_datetime_iterator
+
+
+@pytest.fixture
+def fixture_db_queryer(
+	fixture_populated_db_conn_in_mem: Connection
+) -> Callable[[str], None]:
+	def run_query(stmt: str):
+		res = fixture_populated_db_conn_in_mem.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		print(res.fetchall())
+	return run_query
 
 if __name__ == "__main__":
 	print(fixture_mock_ordered_date_list)

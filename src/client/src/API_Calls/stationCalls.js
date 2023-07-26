@@ -2,15 +2,17 @@ import webClient from "./api";
 import { buildArrayQueryStrFromObj } from "../Helpers/url_helpers";
 
 
-export const fetchStations = async () => {
-	const response = await webClient.get("stations/list");
+export const fetchStations = async (params) => {
+	const response = await webClient.get("stations/list", {
+		params: {
+			ownerKey: params?.ownerKey || undefined,
+		},
+	});
 	return response.data;
 };
 
-export const fetchStationForEdit = async ({ params }) => {
-	const response = await webClient.get("stations", {
-		params: params,
-	});
+export const fetchStationForEdit = async ({ ownerKey, stationKey }) => {
+	const response = await webClient.get(`stations/${ownerKey}/${stationKey}/`);
 	return response.data;
 };
 
@@ -23,11 +25,7 @@ export const checkValues = async ({ values }) => {
 
 export const saveStation = async ({ values, id}) => {
 	if(id) {
-		const response = await webClient.put("stations", values, {
-			params: {
-				id,
-			},
-		});
+		const response = await webClient.put(`/stations/${id}`, values);
 		return response.data;
 	}
 	else {
@@ -36,22 +34,29 @@ export const saveStation = async ({ values, id}) => {
 	}
 };
 
-export const fetchSongCatalogue = async ({ station, params }) => {
-	const response = await webClient.get(`stations/${station}/catalogue/`, {
+export const fetchSongCatalogue = async ({
+	stationKey,
+	params,
+	ownerKey,
+}) => {
+	const url = `stations/${ownerKey}/${stationKey}/catalogue/`;
+	const response = await webClient.get(url, {
 		params: params,
 	});
 	return response.data;
 };
 
-export const fetchQueue = async ({ station, params }) => {
-	const response = await webClient.get(`stations/${station}/queue/`, {
+export const fetchQueue = async ({ stationKey, params, ownerKey }) => {
+	const url = `stations/${ownerKey}/${stationKey}/queue/`;
+	const response = await webClient.get(url, {
 		params: params,
 	});
 	return response.data;
 };
 
-export const fetchHistory = async ({ station, params }) => {
-	const response = await webClient.get(`stations/${station}/history/`, {
+export const fetchHistory = async ({ stationKey, params, ownerKey }) => {
+	const url = `stations/${ownerKey}/${stationKey}/history/`;
+	const response = await webClient.get(url, {
 		params: params,
 	});
 	return response.data;
@@ -64,9 +69,14 @@ export const sendSongRequest = async ({ station, songId}) => {
 };
 
 export const removeSongFromQueue = async (params) => {
-	const { stationName, songId, queuedTimestamp } = params;
-	const response = await webClient
-		.delete(`stations/${stationName}/request/`, {
+	const {
+		ownerKey,
+		stationKey,
+		songId,
+		queuedTimestamp,
+	} = params;
+	const response = await webClient.delete(
+		`stations/${ownerKey}/${stationKey}/request`, {
 			params: {
 				id: songId,
 				queuedTimestamp,
@@ -76,15 +86,52 @@ export const removeSongFromQueue = async (params) => {
 };
 
 export const enableStations = async ({ ids }) => {
-	const queryStr = buildArrayQueryStrFromObj({"id": ids});
+	const queryStr = buildArrayQueryStrFromObj({"stationIds": ids});
 	const response = await webClient
 		.put(`stations/enable/${queryStr}`);
 	return response.data;
 };
 
-export const disableStations = async ({ ids, names }) => {
-	const queryStr = buildArrayQueryStrFromObj({"id": ids, "name": names});
+export const disableStations = async ({ ids }) => {
+	const queryStr = buildArrayQueryStrFromObj({"stationIds": ids});
 	const response = await webClient
 		.put(`stations/disable/${queryStr}`);
+	return response.data;
+};
+
+export const fetchStationUsers = async ({
+	stationKey,
+	params,
+	ownerKey,
+}) => {
+	const url = `stations/${ownerKey}/${stationKey}/user_list`;
+	const response = await webClient.get(url, {
+		params: params,
+	});
+	return response.data;
+};
+
+export const addStationUserRule = async ({
+	ownerKey,
+	stationKey,
+	params,
+	rule,
+}) => {
+	const url = `stations/${ownerKey}/${stationKey}/user_role`;
+	const response = await webClient.post(url, rule, {
+		params: params,
+	});
+	return response.data;
+};
+
+export const removeStationUserRule = async ({
+	ownerKey,
+	stationKey,
+	params,
+}) => {
+	const url = `stations/${ownerKey}/${stationKey}/user_role`;
+	const response = await webClient.delete(url, {
+		params: params,
+	});
 	return response.data;
 };

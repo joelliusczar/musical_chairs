@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { CircularProgress, Typography } from "@mui/material";
 import { CallStatus } from "../../constants";
 
-const Loader = ({status, children, error, defaultEmptyMessage}) => {
+export const Loader = ({status, children, error, defaultEmptyMessage}) => {
 
 	switch(status) {
 	case CallStatus.done:

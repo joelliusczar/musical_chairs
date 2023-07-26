@@ -12,24 +12,58 @@ import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useHistory, useLocation } from "react-router-dom";
+import { useHistory, useParams } from "react-router-dom";
 import {
 	waitingReducer,
 	initialState,
 	dispatches,
 } from "../Shared/waitingReducer";
-import { DomRoutes } from "../../constants";
+import {
+	DomRoutes,
+	CallStatus,
+	MinItemSecurityLevel,
+} from "../../constants";
 import {
 	useStationData,
 } from "../../Context_Providers/AppContextProvider";
+import {
+	useCurrentUser,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
+import { Loader } from "../Shared/Loader";
+import { FormSelect } from "../Shared/FormSelect";
+
 
 const inputField = {
 	margin: 2,
 };
 
+const viewSecurityOptions = [
+	{
+		id: MinItemSecurityLevel.PUBLIC,
+		name: "Public",
+	},
+	{
+		id: MinItemSecurityLevel.ANY_USER,
+		name: "Any User",
+	},
+	{
+		id: MinItemSecurityLevel.INVITED_USER,
+		name: "Invited Users Only",
+	},
+	{
+		id: MinItemSecurityLevel.OWENER_USER,
+		name: "Private",
+	},
+];
+
+const requestSecurityOptions = viewSecurityOptions;
+
 const initialValues = {
 	name: "",
 	displayName: "",
+	viewSecurityLevel: viewSecurityOptions[0],
+	requestSecurityLevel: requestSecurityOptions[1],
 };
 
 const validatePhraseIsUnused = async (value, context) => {
@@ -47,42 +81,43 @@ const schema = Yup.object().shape({
 		(value) => `${value.path} is already used`,
 		validatePhraseIsUnused
 	),
+	requestSecurityLevel: Yup.object().required().test(
+		"requestSecurityLevel",
+		"Request Security cannot be public or lower than view security",
+		(value, context) => {
+			return value !== MinItemSecurityLevel.PUBLIC
+				&& value.id >= context.parent.viewSecurityLevel.id;
+		}
+	),
 });
 
+
+
 export const StationEdit = (props) => {
-	const { onCancel, idKey, nameKey } = props;
+	const { onCancel } = props;
 	const { enqueueSnackbar } = useSnackbar();
 	const urlHistory = useHistory();
-	const location = useLocation();
-	const queryObj = new URLSearchParams(location.search);
-	const _idKey = idKey || "id";
-	const _nameKey = nameKey || "name";
-	const id = queryObj.get(_idKey);
-	const nameFromQueryStr = queryObj.get(_nameKey);
+	const pathVars = useParams();
+	const currentUser = useCurrentUser();
+
+
 	const [state, dispatch] = useReducer(waitingReducer(), initialState);
-	const { callStatus } = state;
+	const { callStatus, error } = state;
 	const {
 		add: addStation,
 		update: updateStation,
 	} = useStationData();
 
 	const getPageUrl = (params) => {
-		let queryStr = null;
-		if(queryObj) {
-			if(params.id) {
-				queryObj.set(_idKey, params.id);
-			}
-			if(params.name) {
-				queryObj.set(_nameKey, params.name);
-			}
-			queryStr = `?${queryObj.toString()}`;
-		}
-		return `${DomRoutes.stationsEdit}${queryStr}`;
+		return DomRoutes.stationsEdit({
+			ownerKey: pathVars.ownerKey || currentUser.username,
+			stationKey: params.name,
+		});
 	};
 
 	const _afterSubmit = (data) => {
 		reset(data);
-		urlHistory.replace(getPageUrl({ id: data.id }));
+		urlHistory.replace(getPageUrl({ name: data.name }));
 	};
 
 	const afterSubmit = props.afterSubmit || _afterSubmit;
@@ -92,11 +127,14 @@ export const StationEdit = (props) => {
 		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset } = formMethods;
+	const { handleSubmit, reset, watch } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const stationId = id ? id : values.id ? values.id : null;
-			const data = await saveStation({ values, id: stationId });
+			const stationId = values.id || null;
+			const {viewSecurityLevel, requestSecurityLevel, ...saveData} = values;
+			saveData.viewSecurityLevel = viewSecurityLevel.id;
+			saveData.requestSecurityLevel = requestSecurityLevel.id;
+			const data = await saveStation({ values: saveData, id: stationId });
 			afterSubmit(data);
 			if (stationId) {
 				updateStation(stationId, data);
@@ -112,18 +150,28 @@ export const StationEdit = (props) => {
 		}
 	});
 
+	useAuthViewStateChange(dispatch);
+
 	useEffect(() => {
 		const fetch = async () => {
 			try {
-				if(id || nameFromQueryStr) {
+				if(pathVars.stationKey) {
 					if(!callStatus) {
 						dispatch(dispatches.started());
 						const data = await fetchStationForEdit({
-							params: {
-								id,
-								name: nameFromQueryStr,
-							},
+							ownerKey: pathVars.ownerKey,
+							stationKey: pathVars.stationKey,
 						});
+						const viewSecurityLevel = viewSecurityOptions
+							.filter(o => o.id === data.viewSecurityLevel);
+						const requestSecurityLevel = viewSecurityOptions
+							.filter(o => o.id === data.requestSecurityLevel);
+						data.viewSecurityLevel =
+							viewSecurityLevel.length ?
+								viewSecurityLevel[0] : viewSecurityOptions[0];
+						data.requestSecurityLevel =
+							requestSecurityLevel.length ?
+								requestSecurityLevel[0] : viewSecurityOptions[1];
 						reset(data);
 						dispatch(dispatches.done());
 					}
@@ -133,18 +181,35 @@ export const StationEdit = (props) => {
 				}
 			}
 			catch(err) {
+				enqueueSnackbar(formatError(err), { variant: "error"});
 				dispatch(dispatches.failed(formatError(err)));
 			}
 		};
 
 		fetch();
-	}, [dispatch, callStatus, id, nameFromQueryStr]);
+	}, [
+		dispatch,
+		callStatus,
+		pathVars.ownerKey,
+		pathVars.stationKey,
+	]);
+
+	const loadStatus = pathVars.stationKey ? callStatus: CallStatus.done;
+	const viewSecurityLevel = watch("viewSecurityLevel");
+	const bannedRequestLevels = viewSecurityOptions.filter(o =>
+		o.id < viewSecurityLevel.id || o.id === MinItemSecurityLevel.PUBLIC
+	).reduce((accumulator, current) => {
+		accumulator[current.id] = true;
+		return accumulator;
+	}, {});
+
+	const savedId = watch("id");
 
 	return (
-		<>
+		<Loader status={loadStatus} error={error}>
 			<Box sx={inputField}>
 				<Typography variant="h1">
-					Create a station
+					{savedId ? "Edit" : "Create"} a station
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
@@ -161,6 +226,36 @@ export const StationEdit = (props) => {
 					formMethods={formMethods}
 				/>
 			</Box>
+			<Box sx={inputField}>
+				<FormSelect
+					name="viewSecurityLevel"
+					label="Who can see this radio station?"
+					sx={{ width: 250 }}
+					options={viewSecurityOptions}
+					formMethods={formMethods}
+					isOptionEqualToValue={(option, value) => {
+						return option.id === value.id;
+					}}
+					defaultValue={viewSecurityOptions[0]}
+				/>
+			</Box>
+			<Box sx={inputField}>
+				<FormSelect
+					name="requestSecurityLevel"
+					label="Who can request on this radio station?"
+					sx={{ width: 250 }}
+					options={viewSecurityOptions.slice(1)}
+					formMethods={formMethods}
+					isOptionEqualToValue={(option, value) => {
+						return option.id === value.id;
+					}}
+					defaultValue={viewSecurityOptions[1]}
+					getOptionDisabled={o => o.id in bannedRequestLevels}
+				/>
+			</Box>
+			<Box>
+
+			</Box>
 			<Box sx={inputField} >
 				<Button onClick={callSubmit}>
 					Submit
@@ -169,15 +264,13 @@ export const StationEdit = (props) => {
 						Cancel
 				</Button>}
 			</Box>
-		</>
+		</Loader>
 	);
 };
 
 StationEdit.propTypes = {
 	afterSubmit: PropTypes.func,
 	onCancel: PropTypes.func,
-	idKey: PropTypes.string,
-	nameKey: PropTypes.string,
 };
 
 
@@ -201,11 +294,10 @@ export const StationNewModalOpener = (props) => {
 			<Box>
 				<Button onClick={() => setItemNewOpen(true)}>Add New Station</Button>
 			</Box>
-			<Dialog open={itemNewOpen} onClose={closeModal}>
+			<Dialog open={itemNewOpen} onClose={closeModal} scroll="body">
 				<StationEdit
 					afterSubmit={itemCreated}
 					onCancel={closeModal}
-					idKey={"stationId"}
 				/>
 			</Dialog>
 		</>);

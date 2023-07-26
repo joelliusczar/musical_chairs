@@ -18,7 +18,7 @@ import {
 	initialState,
 	dispatches,
 } from "../Shared/waitingReducer";
-import { useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Loader from "../Shared/Loader";
 
 const inputField = {
@@ -50,10 +50,9 @@ const schema = Yup.object().shape({
 export const AccountsEdit = () => {
 	const { enqueueSnackbar } = useSnackbar();
 	const [state, dispatch] = useReducer(waitingReducer(), initialState);
-	const location = useLocation();
-	const queryObj = new URLSearchParams(location.search);
-	const id = parseInt(queryObj.get("id")) || undefined;
-	const username = queryObj.get("username");
+	const pathVars = useParams();
+
+
 
 	const passwordFormMethods = useForm({
 		defaultValues: {
@@ -67,7 +66,7 @@ export const AccountsEdit = () => {
 	const { handleSubmit: passwordHandleSubmit } = passwordFormMethods;
 	const passwordCallSubmit = passwordHandleSubmit(async values => {
 		try {
-			await updatePassword({id, username, ...values});
+			await updatePassword({userKey: pathVars.userKey, ...values});
 			enqueueSnackbar("Password updated successfully", { variant: "success"});
 		}
 		catch(err){
@@ -86,7 +85,7 @@ export const AccountsEdit = () => {
 	const { handleSubmit, reset, watch } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const data = await updateAccountBasic({id: values.id, data: values});
+			const data = await updateAccountBasic({userKey: values.id, data: values});
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -96,31 +95,40 @@ export const AccountsEdit = () => {
 	});
 
 	const _fetchUser = useCallback(async (params) => {
-		dispatch(dispatches.started());
-		const data = await fetchUser(params);
-		reset(data);
-		dispatch(dispatches.done());
+		try {
+			dispatch(dispatches.started());
+			const data = await fetchUser(params);
+			reset(data);
+			dispatch(dispatches.done());
+		}
+		catch (err) {
+			enqueueSnackbar(formatError(err), { variant: "error"});
+			dispatch(dispatches.failed(formatError(err)));
+		}
 	}, [dispatch, reset]);
 
 	useEffect(() => {
 		const [ formId, formUsername] = watch(["id", "username"]);
 		const fetch = async () => {
 			try {
-				if (id && id !== formId) {
-					_fetchUser({ id });
+				const key = pathVars.userKey;
+				const isNumKey = Number.isInteger(key) === "number";
+				const isStrKey = typeof key === "string";
+				const isDiffId = isNumKey && key !== formId;
+				const isDiffName = isStrKey && key != formUsername;
+				if (isDiffId || isDiffName) {
+					_fetchUser({ userKey: key });
 				}
-				else if (username && username != formUsername) {
-					_fetchUser({ username });
-				}
+
 			}
 			catch(err) {
 				dispatch(dispatches.failed(formatError(err)));
 			}
 		};
 		fetch();
-	},[dispatch, id, username, _fetchUser, watch]);
+	},[dispatch, pathVars.userKey, _fetchUser, watch]);
 
-	return (<>
+	return (<Loader status={state.callStatus} error={state.error}>
 		<Box sx={inputField}>
 			<Typography variant="h1">
 				Edit an account
@@ -157,28 +165,26 @@ export const AccountsEdit = () => {
 				</Button>
 			</Box>
 		</Box>
-		<Loader status={state.callStatus} error={state.error}>
-			<Box>
-				<Box sx={inputField}>
-					<FormTextField
-						name="displayName"
-						label="Display Name"
-						formMethods={formMethods}
-					/>
-				</Box>
-				<Box sx={inputField}>
-					<FormTextField
-						name="email"
-						label="Email"
-						formMethods={formMethods}
-					/>
-				</Box>
-				<Box sx={inputField} >
-					<Button onClick={callSubmit}>
-						Submit
-					</Button>
-				</Box>
+		<Box>
+			<Box sx={inputField}>
+				<FormTextField
+					name="displayName"
+					label="Display Name"
+					formMethods={formMethods}
+				/>
 			</Box>
-		</Loader>
-	</>);
+			<Box sx={inputField}>
+				<FormTextField
+					name="email"
+					label="Email"
+					formMethods={formMethods}
+				/>
+			</Box>
+			<Box sx={inputField} >
+				<Button onClick={callSubmit}>
+					Submit
+				</Button>
+			</Box>
+		</Box>
+	</Loader>);
 };

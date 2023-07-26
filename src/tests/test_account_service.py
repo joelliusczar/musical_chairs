@@ -7,8 +7,8 @@ from musical_chairs_libs.tables import station_queue
 from musical_chairs_libs.services import AccountsService
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
-	AccountCreationInfo,
-	UserRoleDef
+	UserRoleDef,
+	ActionRule
 )
 from .constant_fixtures_for_test import\
 	fixture_primary_user as fixture_primary_user
@@ -195,73 +195,46 @@ def test_when_song_can_be_added_with_admin(
 	assert result == 0
 
 def test_unique_roles():
-	with pytest.raises(StopIteration):
-		gen = UserRoleDef.remove_repeat_roles([])
-		next(gen)
-	testRoles1 = [UserRoleDef.STATION_REQUEST.value]
-	gen = UserRoleDef.remove_repeat_roles(testRoles1)
+
+	testRoles1 = [ActionRule(UserRoleDef.STATION_REQUEST.value)]
+	gen = ActionRule.filter_out_repeat_roles(testRoles1)
 	result = next(gen)
-	assert result == UserRoleDef.STATION_REQUEST.value
+	assert result.name == UserRoleDef.STATION_REQUEST.value
 	with pytest.raises(StopIteration):
 		next(gen)
-	testRoles2 = [
-		UserRoleDef.STATION_REQUEST.modded_value(5),
-		UserRoleDef.STATION_REQUEST.modded_value("15")
-	]
-	gen = UserRoleDef.remove_repeat_roles(testRoles2)
+	testRoles2 = ActionRule.sorted([
+		ActionRule(UserRoleDef.STATION_REQUEST.value, span=5, count=1),
+		ActionRule(UserRoleDef.STATION_REQUEST.value, span=15, count=1)
+	])
+	gen = ActionRule.filter_out_repeat_roles(testRoles2)
 	results = list(gen)
 	assert len(results) == 1
-	assert results[0] == f"{UserRoleDef.STATION_REQUEST.value}5"
-	testRoles3 = [
-		f"{UserRoleDef.STATION_REQUEST.value}",
-		f"{UserRoleDef.STATION_REQUEST.value}15"
-	]
-	gen = UserRoleDef.remove_repeat_roles(testRoles3)
+	assert results[0].name == UserRoleDef.STATION_REQUEST.value
+	assert results[0].span == 15
+	testRoles3 = ActionRule.sorted([
+		ActionRule(UserRoleDef.STATION_REQUEST.value),
+		ActionRule(UserRoleDef.STATION_REQUEST.value, span=15, count=1)
+	])
+	gen = ActionRule.filter_out_repeat_roles(testRoles3)
 	results = list(gen)
 	assert len(results) == 1
-	assert results[0] == UserRoleDef.STATION_REQUEST.modded_value()
-	testRoles4 = [
-		f"{UserRoleDef.STATION_REQUEST.value}",
-		f"{UserRoleDef.STATION_REQUEST.value}15",
-		f"{UserRoleDef.SONG_EDIT.value}60",
-		f"{UserRoleDef.SONG_EDIT.value}15",
-		f"{UserRoleDef.USER_LIST.value}"
-	]
-	gen = UserRoleDef.remove_repeat_roles(testRoles4)
-	results = sorted(list(gen))
+	assert results[0].name == UserRoleDef.STATION_REQUEST.value
+	assert results[0].span == 15
+	testRoles4 = ActionRule.sorted([
+		ActionRule(UserRoleDef.STATION_REQUEST.value),
+		ActionRule(UserRoleDef.STATION_REQUEST.value, span=15, count=1),
+		ActionRule(UserRoleDef.SONG_EDIT.value, span=60, count=1),
+		ActionRule(UserRoleDef.SONG_EDIT.value, span=15, count=1),
+		ActionRule(UserRoleDef.USER_LIST.value)
+	])
+	gen = ActionRule.filter_out_repeat_roles(testRoles4)
+	results = list(gen)
 	assert len(results) == 3
-	assert results[0] == UserRoleDef.SONG_EDIT.modded_value("15")
-	assert results[1] == UserRoleDef.STATION_REQUEST.modded_value()
-	assert results[2] == UserRoleDef.USER_LIST.modded_value("")
-
-
-def test_count_repeat_roles():
-	testRoles = [
-		UserRoleDef.STATION_REQUEST.value,
-		UserRoleDef.STATION_REQUEST.modded_value("15"),
-		UserRoleDef.SONG_EDIT.modded_value(60),
-		UserRoleDef.SONG_EDIT.modded_value(15),
-		UserRoleDef.USER_LIST.modded_value()
-	]
-	result = UserRoleDef.count_repeat_roles(testRoles)
-	assert len(result.items()) == 3
-	assert result[UserRoleDef.STATION_REQUEST.value] == 2
-	assert result[UserRoleDef.SONG_EDIT.value] == 2
-	assert result[UserRoleDef.USER_LIST.value] == 1
-
-def test_create_account(
-	fixture_account_service_mock_current_time: AccountsService
-):
-	accountService = fixture_account_service_mock_current_time
-	accountInfo = AccountCreationInfo(
-		username="testUser",
-		email="testPerson@gmail.com",
-		password="hello12",
-		displayName="Testeroni"
-	)
-	result = accountService.create_account(accountInfo)
-	assert result
-	assert len(result.roles) == 1
+	assert results[2].name == UserRoleDef.USER_LIST.value
+	assert results[0].name == UserRoleDef.SONG_EDIT.value
+	assert results[0].span == 60
+	assert results[1].name == UserRoleDef.STATION_REQUEST.value
+	assert results[1].span == 15
 
 @pytest.mark.echo(True)
 def test_save_roles(
@@ -269,64 +242,189 @@ def test_save_roles(
 ):
 	accountService = fixture_account_service_mock_current_time
 	accountInfo = accountService.get_account_for_edit(6)
-	assert accountInfo and len(accountInfo.roles) == 2
-	assert accountInfo and accountInfo.roles[0] == "song:edit:120"
-	assert accountInfo and accountInfo.roles[1] == "station:request:15"
+	assert accountInfo and len(accountInfo.roles) == 3
+	assert accountInfo and accountInfo.roles[0] == ActionRule(
+		UserRoleDef.PATH_EDIT.value,span=120
+	)
+	assert accountInfo and accountInfo.roles[1] == ActionRule(
+		UserRoleDef.PATH_VIEW.value
+	)
+	assert accountInfo and accountInfo.roles[2] == ActionRule(
+		UserRoleDef.STATION_REQUEST.value, span=15
+	)
 
 
-	result = list(sorted(accountService.save_roles(6, accountInfo.roles)))
-	assert len(result) == 2
-	assert result[0] == "song:edit:120"
-	assert result[1] == "station:request:15"
-	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
-	assert len(fetched) == 2
-	assert fetched[0] == "song:edit:120"
-	assert fetched[1] == "station:request:15"
-
-
-	nextSet = [*result, UserRoleDef.USER_LIST.value]
-	result = list(sorted(accountService.save_roles(6, nextSet)))
+	result = sorted(accountService.save_roles(6, accountInfo.roles))
 	assert len(result) == 3
-	assert result[0] == "song:edit:120"
-	assert result[1] == "station:request:15"
-	assert result[2] == "user:list:"
-	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
+	assert result[0] == ActionRule(
+		UserRoleDef.PATH_EDIT.value,span=120
+	)
+	assert accountInfo and accountInfo.roles[1] == ActionRule(
+		UserRoleDef.PATH_VIEW.value
+	)
+	assert result[2] == ActionRule(
+		UserRoleDef.STATION_REQUEST.value, span=15
+	)
+	fetched = sorted(accountService.__get_roles__(6))
 	assert len(fetched) == 3
-	assert fetched[0] == "song:edit:120"
-	assert fetched[1] == "station:request:15"
-	assert fetched[2] == "user:list:"
+	assert fetched[0] == ActionRule(
+		UserRoleDef.PATH_EDIT.value,span=120
+	)
+	assert fetched[1] == ActionRule(
+		UserRoleDef.PATH_VIEW.value
+	)
+	assert fetched[2] == ActionRule(
+		UserRoleDef.STATION_REQUEST.value, span=15
+	)
 
 
-	nextSet = [*result, UserRoleDef.USER_LIST.value]
+	nextSet = [*result, ActionRule(UserRoleDef.USER_LIST.value)]
 	result = list(sorted(accountService.save_roles(6, nextSet)))
-	assert len(result) == 3
-	assert result[0] == "song:edit:120"
-	assert result[1] == "station:request:15"
-	assert result[2] == "user:list:"
-	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
-	assert len(fetched) == 3
-	assert fetched[0] == "song:edit:120"
-	assert fetched[1] == "station:request:15"
-	assert fetched[2] == "user:list:"
+	assert len(result) == 4
+	assert result[0] == ActionRule(
+		UserRoleDef.PATH_EDIT.value,span=120
+	)
+	assert fetched[1] == ActionRule(
+		UserRoleDef.PATH_VIEW.value
+	)
+	assert result[2] == ActionRule(
+		UserRoleDef.STATION_REQUEST.value, span=15
+	)
+	assert result[3] == ActionRule(UserRoleDef.USER_LIST.value)
+	fetched = sorted(accountService.__get_roles__(6))
+	assert len(fetched) == 4
+	assert result[0] == ActionRule(
+		UserRoleDef.PATH_EDIT.value,span=120
+	)
+	assert fetched[1] == ActionRule(
+		UserRoleDef.PATH_VIEW.value
+	)
+	assert result[2] == ActionRule(
+		UserRoleDef.STATION_REQUEST.value, span=15
+	)
+	assert result[3] == ActionRule(UserRoleDef.USER_LIST.value)
 
 
-	nextSet = ["station:request:15", "user:list:"]
-	result = list(sorted(accountService.save_roles(6, nextSet)))
+	nextSet = [*result, ActionRule(UserRoleDef.USER_LIST.value)]
+	result = sorted(accountService.save_roles(6, nextSet))
+	assert len(result) == 4
+	assert result[0] == ActionRule(
+		UserRoleDef.PATH_EDIT.value,span=120
+	)
+	assert fetched[1] == ActionRule(
+		UserRoleDef.PATH_VIEW.value
+	)
+	assert result[2] == ActionRule(
+		UserRoleDef.STATION_REQUEST.value, span=15
+	)
+	assert result[3] == ActionRule(UserRoleDef.USER_LIST.value)
+	fetched = sorted(accountService.__get_roles__(6))
+	assert len(fetched) == 4
+	assert result[0] == ActionRule(
+		UserRoleDef.PATH_EDIT.value,span=120
+	)
+	assert fetched[1] == ActionRule(
+		UserRoleDef.PATH_VIEW.value
+	)
+	assert result[2] == ActionRule(
+		UserRoleDef.STATION_REQUEST.value, span=15
+	)
+	assert result[3] == ActionRule(UserRoleDef.USER_LIST.value)
+
+
+	nextSet = [
+		ActionRule(UserRoleDef.STATION_REQUEST.value, span=15),
+		ActionRule(UserRoleDef.USER_LIST.value)
+	]
+	result = sorted(accountService.save_roles(6, nextSet))
 	assert len(result) == 2
-	assert result[0] == "station:request:15"
-	assert result[1] == "user:list:"
-	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
+	assert result[0] == ActionRule(
+		UserRoleDef.STATION_REQUEST.value, span=15
+	)
+	assert result[1] == ActionRule(UserRoleDef.USER_LIST.value)
+	fetched = sorted(accountService.__get_roles__(6))
 	assert len(fetched) == 2
-	assert fetched[0] == "station:request:15"
-	assert fetched[1] == "user:list:"
+	assert fetched[0] == ActionRule(
+		UserRoleDef.STATION_REQUEST.value, span=15
+	)
+	assert fetched[1] == ActionRule(UserRoleDef.USER_LIST.value)
 
 
-	nextSet = ["user:list:", "song:edit:120"]
-	result = list(sorted(accountService.save_roles(6, nextSet)))
+	nextSet = [
+		ActionRule(UserRoleDef.USER_LIST.value),
+		ActionRule(UserRoleDef.PATH_EDIT.value,span=120)
+	]
+	result = sorted(accountService.save_roles(6, nextSet))
 	assert len(result) == 2
-	assert result[0] == "song:edit:120"
-	assert result[1] == "user:list:"
-	fetched = list(sorted((r.role for r in accountService._get_roles(6))))
+	assert result[0] == ActionRule(
+		UserRoleDef.PATH_EDIT.value,span=120
+	)
+	assert result[1] == ActionRule(UserRoleDef.USER_LIST.value)
+	fetched = sorted(accountService.__get_roles__(6))
 	assert len(fetched) == 2
-	assert fetched[0] == "song:edit:120"
-	assert fetched[1] == "user:list:"
+	assert fetched[0] == ActionRule(
+		UserRoleDef.PATH_EDIT.value,span=120
+	)
+	assert fetched[1] == ActionRule(UserRoleDef.USER_LIST.value)
+
+@pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
+def test_get_ambiguous_key(
+	fixture_account_service_mock_current_time: AccountsService
+):
+	pass
+	# accountService = fixture_account_service_mock_current_time
+	# accountInfo = accountService.get_account_for_edit("7")
+	# assert accountInfo
+	# assert accountInfo.displayName == "seven"
+
+def test_user_search(
+	fixture_account_service_mock_current_time: AccountsService
+):
+	accountService = fixture_account_service_mock_current_time
+	res = sorted(
+		accountService.get_account_list("a"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 1
+	assert res[0].displayName == "Alice is my name"
+	res = sorted(
+		accountService.get_account_list("f"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 4
+	assert res[0].displayName == "\uFB00 ozotroz"
+	assert res[1].displayName == "Felix the man"
+	assert res[2].displayName == None
+	assert res[3].displayName == "Foxtrain chu"
+
+	res = sorted(
+		accountService.get_account_list("fo"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 2
+	assert res[0].displayName == None
+	assert res[1].displayName == "Foxtrain chu"
+
+	res = sorted(
+		accountService.get_account_list("fox"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 2
+	assert res[0].displayName == None
+	assert res[1].displayName == "Foxtrain chu"
+
+	res = sorted(
+		accountService.get_account_list("foxt"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 1
+	assert res[0].displayName == "Foxtrain chu"
+
+	res = sorted(
+		accountService.get_account_list("n"),
+		key=lambda a: a.id
+	)
+	assert len(res) == 3
+	assert res[0].displayName == "\u006E\u0303ovoper"
+	assert res[1].displayName == "Ned Land of the Spear"
+	assert res[2].displayName == "Narloni"

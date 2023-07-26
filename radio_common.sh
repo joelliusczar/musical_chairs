@@ -83,7 +83,12 @@ set_ices_version_const() {
 		| perl -ne 'print "$3\n" if /(\d+)\.(\d+)\.?(\d*)/')
 }
 
-set_env_path_var() {
+set_env_vars() {
+	process_global_vars &&
+	__set_env_path_var__
+}
+
+__set_env_path_var__() {
 	if perl -e "exit 1 if index('$PATH','${app_root}/${bin_dir}') != -1"; then
 		echo "Please add '${app_root}/${bin_dir}' to path"
 		export PATH="$PATH":"$app_root"/"$bin_dir"
@@ -94,13 +99,26 @@ export_py_env_vars() {
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	export searchBase="$app_root"/"$content_home" &&
-	export dbName="$app_root"/"$sqlite_file" &&
+	export dbName="$app_root"/"$sqlite_trunk_filepath" &&
 	export templateDir="$app_root"/"$templates_dir_cl" &&
 	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
 	export stationConfigDir="$app_root"/"$ices_configs_dir" &&
 	export stationModuleDir="$app_root"/"$pyModules_dir"
 	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
 }
+
+print_py_env_var_guesses() (
+	process_global_vars "$@" &&
+	__set_env_path_var__ && #ensure that we can see mc-ices
+	export_py_env_vars &&
+	echo "searchBase=$searchBase"
+	echo "dbName=$dbName"
+	echo "templateDir=$templateDir"
+	echo "icecastConfLocation=$icecastConfLocation"
+	echo "stationConfigDir=$stationConfigDir"
+	echo "stationModuleDir=$stationModuleDir"
+	echo "RADIO_AUTH_SECRET_KEY=$RADIO_AUTH_SECRET_KEY"
+)
 
 get_pkg_mgr() {
 	define_consts >&2
@@ -178,15 +196,15 @@ get_localhost_key_dir() (
 	esac
 )
 
-_get_remote_private_key() (
+__get_remote_private_key__() (
 	echo "/etc/ssl/private/${proj_name}.private.key.pem"
 )
 
-_get_remote_public_key() (
+__get_remote_public_key__() (
 	echo "/etc/ssl/certs/${proj_name}.public.key.pem"
 )
 
-_get_remote_intermediate_key() (
+__get_remote_intermediate_key__() (
 	echo "/etc/ssl/certs/${proj_name}.intermediate.key.pem"
 )
 
@@ -315,7 +333,7 @@ array_contains_equals() (
 )
 
 is_python_version_good() {
-	[ "$exp_name" = 'py3.8' ] && return 0
+	[ "$experiment_name" = 'py3.8' ] && return 0
 	set_python_version_const &&
 	[ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge 9 ]
 }
@@ -327,11 +345,12 @@ is_ices_version_good() {
 
 is_dir_empty() (
 	target_dir="$1"
-	[ ! -d "$target_dir" ] || [ -z "$(ls -A ${target_dir})" ]
+	lsRes=$(ls -A $target_dir)
+	[ ! -d "$target_dir" ] || [ -z "$lsRes" ]
 )
 
 get_libs_dir() (
-	set_env_path_var >&2 #ensure that we can see mc-python
+	__set_env_path_var__ >&2 #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
 	packagePath="$py_env/lib/python$pyMajor.$pyMinor/site-packages/"
@@ -342,7 +361,7 @@ get_libs_dir() (
 # subshell () auto switches in use python version back at the end of function
 create_py_env_in_dir() (
 	echo "setting up py libs"
-	set_env_path_var #ensure that we can see mc-python
+	__set_env_path_var__ #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
 	pyEnvDir="$env_root"/"$py_env"
@@ -534,7 +553,8 @@ setup_env_api_file() (
 	does_file_exist "$envFile" &&
 	perl -pi -e "s@^(searchBase=).*\$@\1'${app_root}/${content_home}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(dbName=).*\$@\1'${app_root}/${sqlite_file}'@" "$envFile" &&
+	perl -pi -e "s@^(dbName=).*\$@\1'${app_root}/${sqlite_trunk_filepath}'@" \
+		"$envFile" &&
 	perl -pi -e "s@^(templateDir=).*\$@\1'${app_root}/${templates_dir_cl}'@" \
 		"$envFile" &&
 	perl -pi -e \
@@ -563,10 +583,11 @@ copy_dir() (
 replace_db_file_if_needed() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
-	error_check_all_paths "$reference_src_db" "$app_root"/"$sqlite_file"  &&
-	if [ ! -e "$app_root"/"$sqlite_file" ] || [ -n "$clean_flag" ] \
+	error_check_all_paths "$reference_src_db" \
+		"$app_root"/"$sqlite_trunk_filepath"  &&
+	if [ ! -e "$app_root"/"$sqlite_trunk_filepath" ] || [ -n "$clean_flag" ] \
 	|| [ -n "$replace_db_flag" ]; then
-		cp -v "$reference_src_db" "$app_root"/"$sqlite_file" &&
+		cp -v "$reference_src_db" "$app_root"/"$sqlite_trunk_filepath" &&
 		return 0
 		echo 'Done copying db'
 	fi
@@ -617,6 +638,15 @@ print_schema_scripts() (
 	EnvManager.print_expected_schema()
 	EOF
 	)
+)
+
+start_python() (
+	process_global_vars "$@" &&
+	sync_requirement_list &&
+	create_py_env_in_app_trunk &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	printf '\033c' &&
+	python
 )
 
 sync_utility_scripts() (
@@ -703,20 +733,20 @@ literal_to_regex() (
 	echo "$str" | sed 's/\*/\\*/g'
 )
 
-_get_keychain_osx() (
+__get_keychain_osx__() (
 	echo '/Library/Keychains/System.keychain'
 )
 
-_get_debug_cert_path() (
+__get_debug_cert_path__() (
 	echo $(get_localhost_key_dir)/"$proj_name"_localhost_debug
 )
 
-_get_local_nginx_cert_path() (
+__get_local_nginx_cert_path__() (
 	echo $(get_localhost_key_dir)/"$proj_name"_localhost_nginx
 )
 
 is_cert_expired() (
-	! openssl x509 -checkend 3600 -noout
+	! openssl x509 -checkend 3600 -noout >/dev/null
 )
 
 extract_sha256_from_cert() (
@@ -729,7 +759,7 @@ extract_commonName_from_cert() (
 	| perl -ne 'print "$1\n" if m{CN=([^/]+)}'
 )
 
-_certs_matching_name_osx() (
+__certs_matching_name_osx__() (
 	commonName="$1"
 	pattern='(-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----)'
 	script=$(cat <<-scriptEOF
@@ -739,14 +769,15 @@ _certs_matching_name_osx() (
 	scriptEOF
 	)
 	security find-certificate -a -p -c "$commonName" \
-	$(_get_keychain_osx) | perl -0777 -ne "$script"
+	$(__get_keychain_osx__) | perl -0777 -ne "$script"
 )
 
-_certs_matching_name_exact() (
+__certs_matching_name_exact__() (
 	commonName="$1"
 	case $(uname) in
 		(Darwin*)
-			_certs_matching_name_osx "$commonName" | extract_commonName_from_cert \
+			__certs_matching_name_osx__ "$commonName" \
+			| extract_commonName_from_cert \
 			| input_match "$commonName"
 			;;
 		(*)
@@ -756,7 +787,7 @@ _certs_matching_name_exact() (
 	esac
 )
 
-_generate_local_ssl_cert_osx() (
+__generate_local_ssl_cert_osx__() (
 	commonName="$1"
 	domain="$2" &&
 	publicKeyFile="$3" &&
@@ -777,22 +808,23 @@ _generate_local_ssl_cert_osx() (
 	return "$err_code"
 )
 
-_install_local_cert_osx() (
+__install_local_cert_osx__() (
 	publicKeyFile="$1" &&
 	sudo security add-trusted-cert -p ssl -d -r trustRoot \
-	-k $(_get_keychain_osx) "$publicKeyFile"
+	-k $(__get_keychain_osx__) "$publicKeyFile"
 )
 
-_clean_up_invalid_cert() (
+__clean_up_invalid_cert__() (
 	commonName="$1" &&
 	case $(uname) in
 		(Darwin*)
-			_certs_matching_name_osx "$commonName" | while IFS= read -r -d '' cert; do
-				sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-				echo "$cert" | is_cert_expired &&
-				sudo security delete-certificate \
-					-Z "$sha256Value" -t $(_get_keychain_osx)
-			done
+			__certs_matching_name_osx__ "$commonName" \
+				| while IFS= read -r -d '' cert; do
+					sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+					echo "$cert" | is_cert_expired &&
+					sudo security delete-certificate \
+						-Z "$sha256Value" -t $(__get_keychain_osx__)
+				done
 			;;
 		(*)
 			return 0
@@ -801,7 +833,7 @@ _clean_up_invalid_cert() (
 	return 0
 )
 
-_setup_ssl_cert_local() (
+__setup_ssl_cert_local__() (
 	commonName="$1"
 	domain="$2" &&
 	publicKeyFile="$3" &&
@@ -809,9 +841,9 @@ _setup_ssl_cert_local() (
 
 	case $(uname) in
 		(Darwin*)
-			_generate_local_ssl_cert_osx "$commonName" "$domain" \
+			__generate_local_ssl_cert_osx__ "$commonName" "$domain" \
 			"$publicKeyFile" "$privateKeyFile" &&
-			_install_local_cert_osx "$publicKeyFile" ||
+			__install_local_cert_osx__ "$publicKeyFile" ||
 			return 1
 			;;
 		(*)
@@ -824,11 +856,49 @@ _setup_ssl_cert_local() (
 
 setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
-	publicKeyFile=$(_get_debug_cert_path).public.key.pem &&
-	privateKeyFile=$(_get_debug_cert_path).private.key.pem &&
-	_clean_up_invalid_cert "${app_name}-localhost"
-	_setup_ssl_cert_local "${app_name}-localhost" 'localhost' \
-	"$publicKeyFile" "$privateKeyFile"
+	publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
+	privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
+	__clean_up_invalid_cert__ "${app_name}-localhost"
+	__setup_ssl_cert_local__ "${app_name}-localhost" 'localhost' \
+		"$publicKeyFile" "$privateKeyFile" &&
+	setup_react_env_debug
+)
+
+print_ssl_cert_info() (
+	process_global_vars "$@" &&
+	domain=$(_get_domain_name "$app_env" 'omitPort') &&
+	case "$app_env" in
+		(local*)
+			isDebugServer=${1#is_debug_server=}
+			if [ -n "$isDebugServer" ]; then
+				domain="${domain}-localhost"
+			fi
+			case $(uname) in
+			(Darwin*)
+				echo "#### nginx info ####"
+				__certs_matching_name_osx__ "$domain" \
+					| while IFS= read -r -d '' cert; do
+						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+						echo "$cert" | openssl x509 -enddate -subject -noout
+					done
+				echo "#### debug server info ####"
+				echo "${domain}-localhost"
+				__certs_matching_name_osx__ "${app_name}-localhost" \
+					| while IFS= read -r -d '' cert; do
+						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+						echo "$cert" | openssl x509 -enddate -subject -noout
+					done
+				;;
+			(*)
+				echo 'Finding local certs is not setup for this OS'
+				;;
+		esac
+			;;
+		(*)
+			publicKeyFile=$(__get_remote_public_key__) &&
+			cat "$publicKeyFile" | openssl x509 -enddate -subject -noout
+			;;
+	esac
 )
 
 setup_ssl_cert_nginx() (
@@ -836,19 +906,19 @@ setup_ssl_cert_nginx() (
 	domain=$(_get_domain_name "$app_env" 'omitPort') &&
 	case "$app_env" in
 		(local*)
-			publicKeyFile=$(_get_local_nginx_cert_path).public.key.pem &&
-			privateKeyFile=$(_get_local_nginx_cert_path).private.key.pem &&
+			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.pem &&
+			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
-			_clean_up_invalid_cert "$domain"
-			if [ -z $(_certs_matching_name_exact "$domain") ]; then
-				_setup_ssl_cert_local \
+			__clean_up_invalid_cert__ "$domain"
+			if [ -z $(__certs_matching_name_exact__ "$domain") ]; then
+				__setup_ssl_cert_local__ \
 				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
 			fi
 			;;
 		(*)
-			publicKeyFile=$(_get_remote_public_key) &&
-			privateKeyFile=$(_get_remote_private_key) &&
-			intermediateKeyFile=$(_get_remote_intermediate_key) &&
+			publicKeyFile=$(__get_remote_public_key__) &&
+			privateKeyFile=$(__get_remote_private_key__) &&
+			intermediateKeyFile=$(__get_remote_intermediate_key__) &&
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
 			cat "$publicKeyFile" | is_cert_expired ||
@@ -875,8 +945,8 @@ setup_react_env_debug() (
 	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
 	echo 'REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
 	echo 'HTTPS=true' >> "$envFile"
-	echo "SSL_CRT_FILE=$(_get_debug_cert_path).public.key.pem" >> "$envFile"
-	echo "SSL_KEY_FILE=$(_get_debug_cert_path).private.key.pem" >> "$envFile"
+	echo "SSL_CRT_FILE=$(__get_debug_cert_path__).public.key.pem" >> "$envFile"
+	echo "SSL_KEY_FILE=$(__get_debug_cert_path__).private.key.pem" >> "$envFile"
 )
 
 get_nginx_value() (
@@ -904,10 +974,7 @@ get_nginx_conf_dir_include() (
 	done
 )
 
-update_nginx_conf() (
-	echo "updating nginx site conf"
-	appConfFile="$1"
-	error_check_all_paths "$templates_src" "$appConfFile" &&
+__copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
@@ -916,11 +983,18 @@ update_nginx_conf() (
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<server_name>@${server_name}@g" "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile" &&
+		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile"
+}
+
+update_nginx_conf() (
+	echo "updating nginx site conf"
+	appConfFile="$1"
+	error_check_all_paths "$templates_src" "$appConfFile" &&
+	__copy_and_update_nginx_template__ &&
 	case "$app_env" in
 		(local*)
-			publicKey=$(_get_local_nginx_cert_path).public.key.pem &&
-			privateKey=$(_get_local_nginx_cert_path).private.key.pem &&
+			publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
+			privateKey=$(__get_local_nginx_cert_path__).private.key.pem &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
@@ -936,15 +1010,15 @@ update_nginx_conf() (
 
 				sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_public_key>@$(_get_remote_public_key)@" \
+				"s@<ssl_public_key>@$(__get_remote_public_key__)@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_private_key>@$(_get_remote_private_key)@" \
+				"s@<ssl_private_key>@$(__get_remote_private_key__)@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
-				"s@<ssl_intermediate>@$(_get_remote_intermediate_key)@" \
+				"s@<ssl_intermediate>@$(__get_remote_intermediate_key__)@" \
 				"$appConfFile" &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
@@ -1069,7 +1143,7 @@ start_icecast_service() (
 
 install_ices() (
 	process_global_vars "$@" &&
-	set_env_path_var &&
+	__set_env_path_var__ &&
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 	|| [ -n "$ice_branch" ]; then
 		shutdown_all_stations &&
@@ -1246,7 +1320,7 @@ EOF
 
 startup_radio() (
 	process_global_vars "$@" &&
-	set_env_path_var && #ensure that we can see mc-ices
+	__set_env_path_var__ && #ensure that we can see mc-ices
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	link_to_music_files &&
@@ -1262,7 +1336,7 @@ startup_radio() (
 
 startup_api() (
 	process_global_vars "$@" &&
-	set_env_path_var && #ensure that we can see mc-ices
+	__set_env_path_var__ && #ensure that we can see mc-ices
 	if ! str_contains "$skip" "setup_api"; then
 		setup_api
 	fi &&
@@ -1276,6 +1350,14 @@ startup_api() (
 	--host 0.0.0.0 --port "$api_port" \
 	"index:app" </dev/null >api.out 2>&1 &)
 	echo "done starting up api. Access at $full_url"
+)
+
+
+startup_nginx_for_debug() (
+	process_global_vars "$@" &&
+	export api_port='8032'
+	setup_nginx_confs &&
+	restart_nginx
 )
 
 setup_api() (
@@ -1353,16 +1435,23 @@ setup_radio() (
 	echo "done setting up radio"
 )
 
+__create_fake_keys_file__() {
+	echo "mc_auth_key=$(openssl rand -hex 32)" > "$app_root"/keys/"$proj_name"
+}
+
+
 #assume install_setup.sh has been run
 setup_unit_test_env() (
 	echo "setting up test environment"
 	process_global_vars "$@" &&
 	export app_root="$test_root"
 
+	__create_fake_keys_file__
 	setup_common_dirs
 
 	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
-	error_check_all_paths "$reference_src_db" "$app_root"/"$sqlite_file" &&
+	error_check_all_paths "$reference_src_db" \
+		"$app_root"/"$sqlite_trunk_filepath" &&
 	sync_requirement_list
 	setup_env_api_file
 	pyEnvPath="$app_root"/"$app_trunk"/"$py_env"
@@ -1398,12 +1487,11 @@ run_unit_tests() (
 	export app_root="$test_root"
 	setup_unit_test_env &&
 	test_src="$src_path"/tests &&
-
 	export_py_env_vars &&
 	export PYTHONPATH="${src_path}:${src_path}/api" &&
-
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	pytest -s "$test_src" &&
+	cd "$test_src"
+	pytest -s "$@" &&
 	echo "done running unit tests"
 )
 
@@ -1471,9 +1559,9 @@ process_global_args() {
 				global_args="${global_args} setup_lvl='${setup_lvl}'"
 				;;
 			#when I want to conditionally run with some experimental code
-			(exp_name=*)
-				export exp_name=${1#exp_name=}
-				global_args="${global_args} exp_name='${exp_name}'"
+			(experiment_name=*)
+				export experiment_name=${1#experiment_name=}
+				global_args="${global_args} experiment_name='${experiment_name}'"
 				;;
 			(skip=*)
 				export skip=${1#skip=}
@@ -1495,6 +1583,7 @@ process_global_args() {
 }
 
 define_consts() {
+	[ -z "$constants_set" ] || return 0
 	export PACMAN_CONST='pacman'
 	export APT_CONST='apt-get'
 	export HOMEBREW_CONST='homebrew'
@@ -1506,6 +1595,7 @@ define_consts() {
 	export api_port='8033'
 	#done't try to change from home
 	export default_radio_repo_path="$HOME"/"$build_dir"/"$proj_name"
+	export constants_set='true'
 	echo "constants defined"
 }
 
@@ -1525,7 +1615,7 @@ define_top_level_terms() {
 		web_root="$test_root"
 	fi
 
-	db_name='songs_db'
+	sqlite_filename='songs_db.sqlite'
 	export app_trunk="$proj_name"_dir
 	export app_root="$app_root"
 	export web_root="$web_root"
@@ -1543,7 +1633,7 @@ define_app_dir_paths() {
 
 	export config_dir="$app_trunk"/config
 	export db_dir="$app_trunk"/db
-	export sqlite_file="$db_dir"/"$db_name"
+	export sqlite_trunk_filepath="$db_dir"/"$sqlite_filename"
 	export utest_env_dir="$test_root"/utest
 
 	# directories that should be cleaned upon changes
@@ -1570,14 +1660,14 @@ define_web_server_paths() {
 	echo "web server paths defined"
 }
 
-_get_url_base() (
+__get_url_base__() (
 	echo "$proj_name" | tr -d _
 )
 
 _get_domain_name() (
 	envArg="$1"
 	omitPort="$2"
-	url_base=$(_get_url_base)
+	url_base=$(__get_url_base__)
 	case "$envArg" in
 		(local*)
 			if [ -n "$omitPort" ]; then
@@ -1593,7 +1683,7 @@ _get_domain_name() (
 	echo "${url_base}${url_suffix}"
 )
 
-_define_url() {
+__define_url__() {
 	echo "env: ${app_env}"
 	export server_name=$(_get_domain_name "$app_env")
 	export full_url="https://${server_name}"
@@ -1607,7 +1697,7 @@ define_repo_paths() {
 	export lib_src="$src_path/$lib_name"
 	export templates_src="$workspace_abs_path/templates"
 	export reference_src="$workspace_abs_path/reference"
-	export reference_src_db="$reference_src/$db_name"
+	export reference_src_db="$reference_src/$sqlite_filename"
 	echo "source paths defined"
 }
 
@@ -1662,7 +1752,7 @@ process_global_vars() {
 
 	define_web_server_paths &&
 
-	_define_url &&
+	__define_url__ &&
 
 	define_repo_paths &&
 

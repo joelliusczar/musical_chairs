@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchQueue, removeSongFromQueue } from "../../API_Calls/stationCalls";
 import {
 	Table,
@@ -21,14 +21,18 @@ import {
 } from "../Shared/waitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
-import { StationSelect } from "../Shared/StationSelect";
+import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { NowPlaying } from "../Shared/NowPlaying";
 import { useSnackbar } from "notistack";
 import { OptionsButton } from "../Shared/OptionsButton";
-import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import {
+	useHasAnyRoles,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 const queueInitialState = {
 	...pageableDataInitialState,
@@ -45,14 +49,16 @@ const queueInitialState = {
 export const Queue = () => {
 
 	const location = useLocation();
+	const pathVars = useParams();
 	const queryObj = new URLSearchParams(location.search);
-	const stationNameFromQS = queryObj.get("name") || "";
 	const { enqueueSnackbar } = useSnackbar();
-	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
+	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canSkipSongs = useHasAnyRoles([UserRoleDef.STATION_SKIP]);
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
+
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
+	const [selectedStation, setSelectedStation] = useState();
 
 	const [queueState, queueDispatch] =
 		useReducer(waitingReducer(),
@@ -60,23 +66,38 @@ export const Queue = () => {
 		);
 
 	const { callStatus: queueCallStatus } = queueState;
+	const canSkipSongsForStation = anyConformsToAnyRule(
+		queueState?.data?.stationRules,
+		[UserRoleDef.STATION_SKIP]
+	);
+
+	useAuthViewStateChange(queueDispatch);
 
 	const getPageUrl = urlBuilderFactory(DomRoutes.queue);
 
 	const rowButton = (item, idx) => {
 		const rowButtonOptions = [];
 
-		if (canEditSongs) rowButtonOptions.push({
-			label: "Edit",
-			link: `${DomRoutes.songEdit}?id=${item.id}`,
-		});
+		const canEditThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_EDIT]
+		);
 
-		if (canSkipSongs) rowButtonOptions.push({
+		if (canEditSongs || canEditThisSong) rowButtonOptions.push({
+			label: "Edit",
+			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
+		});
+		if (canSkipSongs || canSkipSongsForStation) rowButtonOptions.push({
 			label: "Skip",
 			onClick:() => handleRemoveSongFromQueue(item),
 		});
 
-		if (canDownloadSongs) rowButtonOptions.push({
+		const canDownloadThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_DOWNLOAD]
+		);
+
+		if (canDownloadSongs || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
 			href: getDownloadAddress(item.id),
 		});
@@ -88,7 +109,7 @@ export const Queue = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.songEdit}?id=${item.id}`}
+				to={`${DomRoutes.songEdit()}?id=${item.id}`}
 			>
 				View
 			</Button>);
@@ -99,7 +120,8 @@ export const Queue = () => {
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			const data = await removeSongFromQueue({
-				stationName: stationNameFromQS,
+				ownerKey: pathVars.ownerKey,
+				stationKey: pathVars.stationKey,
 				songId: item?.id,
 				queuedTimestamp: item?.queuedTimestamp,
 				page: page - 1,
@@ -114,27 +136,28 @@ export const Queue = () => {
 	};
 
 	useEffect(() => {
-		document.title = `Musical Chairs - Queue${`- ${stationNameFromQS || ""}`}`;
-	},[stationNameFromQS]);
+		const stationTitle = `- ${selectedStation?.displayName || ""}`;
+		document.title = `Musical Chairs - Queue${stationTitle}`;
+	},[selectedStation]);
 
 
 	useEffect(() => {
 		const fetch = async () => {
-			if (currentQueryStr === location.search) return;
+			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			const stationNameFromQS = queryObj.get("name");
-			if (!stationNameFromQS) return;
+			if (!pathVars.stationKey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			queueDispatch(dispatches.started());
 			try {
 				const data = await fetchQueue({
-					station: stationNameFromQS,
+					stationKey: pathVars.stationKey,
+					ownerKey: pathVars.ownerKey,
 					params: { page: page - 1, limit: limit } }
 				);
 				queueDispatch(dispatches.done(data));
-				setCurrentQueryStr(location.search);
+				setCurrentQueryStr(`${location.pathname}${location.search}`);
 			}
 			catch (err) {
 				queueDispatch(dispatches.failed(formatError(err)));
@@ -145,16 +168,22 @@ export const Queue = () => {
 	},[
 		queueDispatch,
 		fetchQueue,
+		pathVars.stationKey,
+		pathVars.ownerKey,
 		location.search,
+		location.pathname,
 		currentQueryStr,
 		setCurrentQueryStr,
 	]);
 
 	return (
 		<>
-			<h1>Queue: {stationNameFromQS}</h1>
+			<h1>Queue: {selectedStation?.displayName || ""}</h1>
 			<Box m={1}>
-				<StationSelect getPageUrl={getPageUrl} />
+				<StationRouteSelect
+					getPageUrl={getPageUrl}
+					onChange={(s) => setSelectedStation(s)}
+				/>
 			</Box>
 			<Box m={1}>
 				<Loader

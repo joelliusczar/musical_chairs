@@ -3,19 +3,22 @@ import re
 import bcrypt
 import email_validator #pyright: ignore reportUnknownMemberType
 from datetime import datetime, timezone
-from typing import Any, Hashable, Iterable, Iterator, Optional, Tuple
+from typing import (
+	Any,
+	Hashable,
+	Iterable,
+	Iterator,
+	Optional,
+	Tuple,
+	overload
+)
 from email_validator import ValidatedEmail
 from collections import Counter
+from .type_aliases import (s2sDict)
 
-class DatetimeGetter:
-	def __init__(self, currentDateTime: Optional[datetime]=None) -> None:
-		self.overrideDate = currentDateTime
 
-	def __call__(self) -> datetime:
-		if self.overrideDate:
-			return self.overrideDate
-		return datetime.now(timezone.utc)
-
+guidRegx = \
+	r"[a-zA-Z\d]{8}-?[a-zA-Z\d]{4}-?[a-zA-Z\d]{4}-?[a-zA-Z\d]{4}-?[a-zA-Z\d]{12}"
 
 def get_datetime() -> datetime:
 	return datetime.now(timezone.utc)
@@ -71,3 +74,35 @@ def check_name_safety(name: str) -> Optional[str]:
 		if m:
 			return m.group(0)
 		return None
+
+def _kvpSplit(kvp: str) -> Tuple[str, str]:
+	eqSplit = kvp.split("=")
+	if len(eqSplit) < 2:
+		return "name", kvp
+	return eqSplit[0], eqSplit[1]
+
+def role_dict(role: str) -> s2sDict:
+		return {p[0]:p[1] for p in (_kvpSplit(k) for k in role.split(";"))}
+
+@overload
+def normalize_opening_slash(path: str, addSlash: bool=True) -> str:
+	...
+
+@overload
+def normalize_opening_slash(path: None, addSlash: bool=True) -> None:
+	...
+
+def normalize_opening_slash(
+	path: Optional[str],
+	addSlash: bool=True
+) -> Optional[str]:
+	if path is None:
+		return None
+	if addSlash:
+		if len(path) > 0 and path[0] == "/":
+			return path
+		return f"/{path}"
+	if len(path) > 0 and path[0] != "/":
+			return path
+	return path[1:]
+

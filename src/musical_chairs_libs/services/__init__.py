@@ -5,4 +5,5 @@ from .song_info_service import *
 from .station_service import *
 from .template_service import *
 from .process_service import *
+from .user_actions_history_service import *
 

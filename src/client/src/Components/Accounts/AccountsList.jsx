@@ -12,7 +12,10 @@ import Loader from "../Shared/Loader";
 import { CallStatus, DomRoutes } from "../../constants";
 import { useLocation, Link } from "react-router-dom";
 import { fetchUserList } from "../../API_Calls/userCalls";
-import { useCurrentUser } from "../../Context_Providers/AuthContext";
+import {
+	useCurrentUser,
+	//useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 
 export const AccountsList = () => {
 	const [fetchStatus, setFetchStatus] = useState(null);
@@ -24,6 +27,12 @@ export const AccountsList = () => {
 	const location = useLocation();
 
 	const currentUser = useCurrentUser();
+
+	useEffect(() => {
+		if(currentUser.username) {
+			setFetchStatus(null);
+		}
+	},[currentUser.username, setFetchStatus]);
 
 	useEffect(() => {
 		document.title =
@@ -85,7 +94,9 @@ export const AccountsList = () => {
 										<TableCell>
 											<Button
 												component={Link}
-												to={`${DomRoutes.accountsRoles}${item.id}`}
+												to={DomRoutes.accountsRoles({
+													subjectUserKey: item.username,
+												})}
 											>
 												Roles
 											</Button>

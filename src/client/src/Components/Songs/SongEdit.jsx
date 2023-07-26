@@ -1,15 +1,20 @@
-import React, { useReducer, useEffect } from "react";
-import { Box, Typography, Button, Checkbox } from "@mui/material";
+import React, { useReducer, useEffect, useMemo } from "react";
+import {
+	Box,
+	Typography,
+	Button,
+	Checkbox,
+} from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import * as Yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { FormSelect } from "../Shared/FormSelect";
 import { FormTextField } from "../Shared/FormTextField";
 import {
 	useArtistData,
 	useAlbumData,
 	useStationData,
+	useIdMapper,
 } from "../../Context_Providers/AppContextProvider";
 import Loader from "../Shared/Loader";
 import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
@@ -29,9 +34,19 @@ import {
 	saveSongsEditsMulti,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
-import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import {
+	useHasAnyRoles,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import {
+	useCombinedContextAndFormItems,
+} from "../../Helpers/array_helpers";
+import { AlbumSelect } from "../Albums/AlbumSelect";
+import { ArtistSelect } from "../Artists/ArtistSelect";
+import { StationSelect } from "../Stations/StationSelect";
 
 
 const inputField = {
@@ -72,6 +87,7 @@ const touchedObjectToArr = (touchedObj) => {
 	return result;
 };
 
+
 const schema = Yup.object().shape({
 	"primaryArtist": Yup.object().nullable().test(
 		"primaryArtist",
@@ -92,7 +108,7 @@ const schema = Yup.object().shape({
 			for (const artist of value) {
 				if (artist?.id === testContext.parent.primaryArtist?.id) {
 					return testContext.createError({
-						message: `Artist ${artist.name} has already been added` +
+						message: `Artist ${artist.name} has already been added ` +
 						"as primary artist",
 					});
 				}
@@ -116,34 +132,33 @@ export const SongEdit = () => {
 	const [state, dispatch] = useReducer(waitingReducer(), initialState);
 	const { callStatus } = state;
 	const location = useLocation();
-	const queryObj = new URLSearchParams(location.search);
-	const ids = queryObj.getAll("id").map(id => parseInt(id));
 	const classes = useStyles();
-	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
+	const ids = useMemo(() => {
+		const queryObj = new URLSearchParams(location.search);
+		return queryObj.getAll("ids").map(id => parseInt(id));
+	},[location.search]);
+
 	const {
-		items: artists,
+		items: contextArtists,
 		callStatus: artistCallStatus,
 		error: artistError,
 		add: addArtist,
-		idMapper: artistMapper,
 	} = useArtistData();
 
 	const {
-		items: albums,
+		items: contextAlbums,
 		callStatus: albumCallStatus,
 		error: albumError,
 		add: addAlbum,
-		idMapper: albumMapper,
 	} = useAlbumData();
 
 	const {
-		items: stations,
+		items: contextStations,
 		callStatus: stationCallStatus,
 		error: stationError,
 		add: addStation,
-		idMapper: stationMapper,
 	} = useStationData();
 
 	const formMethods = useForm({
@@ -171,6 +186,10 @@ export const SongEdit = () => {
 		formState,
 	} = formMethods;
 
+	const songRules = watch("rules");
+	const canEditSongs = anyConformsToAnyRule(
+		songRules, [UserRoleDef.PATH_EDIT]
+	);
 	const multiSongTouchedField = watch("touched");
 
 	const handleMutliSongTouchedCheck = (name) => {
@@ -215,6 +234,8 @@ export const SongEdit = () => {
 			enqueueSnackbar(formatError(err), {variant: "error" });
 		}
 	});
+
+	useAuthViewStateChange(dispatch);
 
 	useEffect(() => {
 		const fetch = async () => {
@@ -270,6 +291,33 @@ export const SongEdit = () => {
 	},[formState, setValue, watch, ids]);
 
 	const songFilePath = watch("path");
+	const formArtists = watch("artists");
+	const primaryArtist = watch("primaryArtist");
+	const formAllArtists = useMemo(() =>
+		primaryArtist ? [...formArtists, primaryArtist] : formArtists,
+	[formArtists, primaryArtist]);
+	const artists = useCombinedContextAndFormItems(
+		contextArtists,
+		formAllArtists
+	);
+
+	const album = watch("album");
+	const albumAsArray = useMemo(() => album ? [album] : [],[album]);
+
+	const albums = useCombinedContextAndFormItems(
+		contextAlbums,
+		albumAsArray
+	);
+
+	const formStations = watch("stations");
+	const stations = useCombinedContextAndFormItems(
+		contextStations,
+		formStations
+	);
+
+	const artistMapper = useIdMapper(artists);
+	const albumMapper = useIdMapper(albums);
+	const stationMapper = useIdMapper(stations);
 
 	return (<Loader status={callStatus} error={state.error}>
 		<Box sx={inputField}>
@@ -300,7 +348,7 @@ export const SongEdit = () => {
 						{ids?.length > 1 && <TouchedCheckbox
 							name="primaryArtist"
 						/>}
-						<FormSelect
+						<ArtistSelect
 							name="primaryArtist"
 							options={artists}
 							formMethods={formMethods}
@@ -316,7 +364,7 @@ export const SongEdit = () => {
 						{ids?.length > 1 && <TouchedCheckbox
 							name="artists"
 						/>}
-						<FormSelect
+						<ArtistSelect
 							name="artists"
 							options={artists}
 							formMethods={formMethods}
@@ -340,11 +388,8 @@ export const SongEdit = () => {
 						{ids?.length > 1 && <TouchedCheckbox
 							name="album"
 						/>}
-						<FormSelect
+						<AlbumSelect
 							name="album"
-							getOptionLabel={(option) => option ?
-								`${option.name}${option.albumArtist?.name ?
-									` - ${option.albumArtist?.name}` : ""}` : ""}
 							options={albums}
 							formMethods={formMethods}
 							label="Album"
@@ -356,7 +401,10 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					{canEditSongs && <Box sx={inputField}>
-						<AlbumNewModalOpener add={addAlbum} />
+						<AlbumNewModalOpener
+							add={addAlbum}
+							formArtists={formAllArtists}
+						/>
 					</Box>}
 				</Loader>
 			</Box>
@@ -366,7 +414,7 @@ export const SongEdit = () => {
 						{ids?.length > 1 && <TouchedCheckbox
 							name="stations"
 						/>}
-						<FormSelect
+						<StationSelect
 							name="stations"
 							options={stations}
 							formMethods={formMethods}

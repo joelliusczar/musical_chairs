@@ -4,22 +4,208 @@ from .api_test_dependencies import\
 from .api_test_dependencies import *
 from fastapi.testclient import TestClient
 from .helpers import normalize_dict, mismatched_properties
+from .constant_fixtures_for_test import (
+	fixture_primary_user as fixture_primary_user
+)
+from .mocks.db_data import kilo_user_id, station_saver_user_id
+from musical_chairs_libs.dtos_and_utilities import (
+	MinItemSecurityLevel,
+	UserRoleDef
+)
 
 
 
 def test_song_ls_hit(
+	fixture_api_test_client: TestClient,
+	fixture_primary_user: AccountInfo,
+):
+	client = fixture_api_test_client
+
+	headers = login_test_user(fixture_primary_user.username, client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 4
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=f",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 1
+
+def test_song_ls_with_site_path_permissions(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
+
+	headers = login_test_user("paulBear_testUser", client)
+
 	response = client.get(
-		"/song-info/songs/tree")
+		"/song-info/songs/ls",
+		headers=headers
+	)
 	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 4
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 4
+
+
+	headers = login_test_user("quirkyAdmon_testUser", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 4
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 4
+
+	headers = login_test_user("radicalPath_testUser", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 4
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = data.get("items", [])
+	assert len(items) == 4
+
+def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
+
+	client = fixture_api_test_client
+
+	headers_foo_owner = login_test_user("testUser_kilo", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers_foo_owner
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	assert len(items) == 1
+	assert items[0]["path"] == "foo/"
+	rules = items[0]["rules"]
+	assert rules
+	assert len(rules) == 5
+
+
+	headers_no_owner = login_test_user("testUser_bravo", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers_no_owner
+	)
+	assert response.status_code == 403
+
+	headers_foo_goo_boo_user = login_test_user("testUser_lima", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers_foo_goo_boo_user
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	assert len(items) == 1
+	assert items[0]["path"] == "foo/"
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=foo/",
+		headers=headers_foo_goo_boo_user
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	assert len(items) == 1
+	assert items[0]["path"] == "foo/goo/"
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=foo/goo/",
+		headers=headers_foo_goo_boo_user
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	assert len(items) == 1
+	assert items[0]["path"] == "foo/goo/boo/"
+
+	response = client.get(
+		"/song-info/songs/ls?prefix=foo/goo/boo/",
+		headers=headers_foo_goo_boo_user
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	assert len(items) == 5
+	assert items[0]["path"] == "foo/goo/boo/sierra"
+	assert items[1]["path"] == "foo/goo/boo/tango"
+	assert items[2]["path"] == "foo/goo/boo/uniform"
+	assert items[3]["path"] == "foo/goo/boo/victor"
+	assert items[4]["path"] == "foo/goo/boo/victor_2"
+
+def test_song_ls_with_station_permissions(fixture_api_test_client: TestClient):
+
+	client = fixture_api_test_client
+
+	headers = login_test_user("testUser_oomdwell", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 403
+
+	headers = login_test_user("testUser_alice", client)
+
+	response = client.get(
+		"/song-info/songs/ls",
+		headers=headers
+	)
+	assert response.status_code == 403
 
 def test_song_save(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	headers = login_test_user("testUser_foxtrot", client)
+	headers = login_test_user("testUser_india", client)
 	getResponseBefore = client.get(
 		f"song-info/songs/{1}",
 		headers=headers
@@ -33,37 +219,49 @@ def test_song_save(
 		"id": 8,
 		"name": "shoo_album",
 		"year": 2003,
+		"owner": {"id":kilo_user_id },
 		"albumArtist": {
 			"id": 6,
-			"name": "foxtrot_artist"
+			"name": "foxtrot_artist",
+			"owner": {"id":kilo_user_id },
 		}
 	}
 	sendData["genre"] = "pop_update"
 	sendData["comment"] = "Kazoos make good swimmers update"
 	sendData["primaryArtist"] = {
 		"id": 10,
-		"name": "juliet_artist"
+		"name": "juliet_artist",
+		"owner": { "id": kilo_user_id},
 	}
 	sendData["stations"] = [
 		{ "id": 2,
 			"name": "papa_station",
-			"displayName": "Come to papa"
+			"displayName": "Come to papa",
+			"owner": None,
+			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
+			"viewSecurityLevel": 0
 		},
 		{
 			"id": 7,
 			"name": "uniform_station",
-			"displayName": "Asshole at the wheel"
+			"displayName": "Asshole at the wheel",
+			"owner": None,
+			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
+			"viewSecurityLevel": 0
 		},
 		{
 			"id": 10,
 			"name": "xray_station",
-			"displayName": "Pentagular"
+			"displayName": "Pentagular",
+			"owner": None,
+			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
+			"viewSecurityLevel": 0
 		}
 	]
 	sendData["artists"] = [
-		{ "id": 9, "name": "india_artist" },
-		{ "id": 13, "name": "november_artist" },
-		{ "id": 3, "name": "charlie_artist" }
+		{ "id": 9, "name": "india_artist", "owner": { "id": kilo_user_id } },
+		{ "id": 13, "name": "november_artist", "owner": { "id": kilo_user_id } },
+		{ "id": 3, "name": "charlie_artist", "owner": { "id": kilo_user_id } }
 	]
 
 	putResponse = client.put(
@@ -83,18 +281,193 @@ def test_song_save(
 	data = json.loads(getResponseAfter.content)
 	for s in sendData["stations"]:
 		s["isRunning"] = False
+	sendData["album"]["owner"]["username"] = "testUser_kilo"
+	sendData["album"]["owner"]["displayName"] = None
+	sendData["album"]["albumArtist"]["owner"]["username"] = "testUser_kilo"
+	sendData["album"]["albumArtist"]["owner"]["displayName"] = None
+	sendData["primaryArtist"]["owner"]["username"] = "testUser_kilo"
+	sendData["primaryArtist"]["owner"]["displayName"] = None
+	sendData["artists"][0]["owner"]["username"] = "testUser_kilo"
+	sendData["artists"][0]["owner"]["displayName"] = None
+	sendData["artists"][1]["owner"]["username"] = "testUser_kilo"
+	sendData["artists"][1]["owner"]["displayName"] = None
+	sendData["artists"][2]["owner"]["username"] = "testUser_kilo"
+	sendData["artists"][2]["owner"]["displayName"] = None
+
+	sendData["stations"][0]["owner"] = {
+		"id": 2,
+		"username":"testUser_bravo",
+		"displayName": "Bravo Test User",
+	}
+	sendData["stations"][0]["rules"] = []
+	sendData["stations"][1]["owner"] = {
+		"id": 2,
+		"username":"testUser_bravo",
+		"displayName": "Bravo Test User",
+	}
+	sendData["stations"][1]["rules"] = []
+	sendData["stations"][2]["owner"] = {
+		"id": 2,
+		"username":"testUser_bravo",
+		"displayName": "Bravo Test User",
+	}
+	sendData["stations"][2]["rules"] = []
 	mismatches = mismatched_properties(
 		normalize_dict(data),
 		normalize_dict(sendData)
 	)
 	assert not mismatches
 
+def test_song_save_with_unpermitted_stations(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_hotel", client)
+	getResponseBefore = client.get(
+		f"song-info/songs/{1}",
+		headers=headers
+	)
+	data = json.loads(getResponseBefore.content)
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "sierra_song_update_3"
+
+	putResponse = client.put(
+		f"song-info/songs/{1}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 200
+	stations = sendData["stations"]
+	stations.append({
+		"id": 7,
+		"name": "uniform_station",
+		"displayName": "Asshole at the wheel"
+	})
+
+	putResponse = client.put(
+		f"song-info/songs/{1}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 422
+
+def test_song_save_no_roles(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	goodHeaders = login_test_user("testUser_india", client)
+	getResponseBefore = client.get(
+		f"song-info/songs/{1}",
+		headers=goodHeaders
+	)
+	data = json.loads(getResponseBefore.content)
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "sierra_song_update_2"
+
+	headers = login_test_user("testUser_romeo", client)
+	putResponse = client.put(
+		f"song-info/songs/{1}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 403
+
+def test_song_save_with_path_permission(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_mike", client)
+	getResponseBefore = client.get(
+		f"song-info/songs/{1}",
+		headers=headers
+	)
+	data = json.loads(getResponseBefore.content)
+	assert getResponseBefore.status_code == 200
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "sierra_song_update_3"
+	putResponse = client.put(
+		f"song-info/songs/{1}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 200
+
+	getResponseAfter = client.get(
+		f"song-info/songs/{1}",
+		headers=headers
+	)
+
+	assert getResponseAfter.status_code == 200
+	data = json.loads(getResponseAfter.content)
+	mismatches = mismatched_properties(
+		normalize_dict(data),
+		normalize_dict(sendData)
+	)
+	assert not mismatches
+
+def test_song_save_different_station_owner(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("stationSaver_testUser", client)
+	getResponseBefore = client.get(
+		f"song-info/songs/{51}",
+		headers=headers
+	)
+
+	assert getResponseBefore.status_code == 200
+	data = json.loads(getResponseBefore.content)
+	sendData = data
+	sendData["name"] = "Baseline update"
+
+	putResponse = client.put(
+		f"song-info/songs/{51}",
+		headers=headers,
+		json=sendData
+	)
+	assert putResponse.status_code == 200
+	data = json.loads(putResponse.content)
+	mismatches = mismatched_properties(
+		normalize_dict(data),
+		normalize_dict(sendData)
+	)
+	assert not mismatches
+	sendData = data
+	sendData["stations"].append({
+		"id": 19,
+		"name": "india_station_rerun",
+		"displayName": "bitchingly fast!",
+		"owner": {
+			"id": station_saver_user_id,
+			"username": "stationSaver_testUser",
+			"displayName": "Station Saver"
+		},
+		"isRunning": False,
+		"rules": [],
+		"requestSecurityLevel": MinItemSecurityLevel.INVITED_USER.value,
+		"viewSecurityLevel": MinItemSecurityLevel.INVITED_USER.value
+	})
+	putResponse = client.put(
+		f"song-info/songs/{51}",
+		headers=headers,
+		json=sendData
+	)
+	assert putResponse.status_code == 200
+
 def test_get_songs_for_multi_edit(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
+
+	headers = login_test_user("testUser_lima", client)
+
 	response = client.get(
-		f"song-info/songs/multi/?id=2&id=3"
+		f"song-info/songs/multi/?itemIds=2&itemIds=3",
+		headers=headers
 	)
 
 	data = json.loads(response.content)
@@ -110,7 +483,16 @@ def test_get_songs_for_multi_edit(
 	assert "album" in touched
 	assert data["primaryArtist"] == None
 	assert "primaryArtist" in touched
-	assert data["artists"] == [{ "id": 4, "name": "delta_artist"}]
+	assert data["artists"] == [{
+		"id": 4,
+		"name":
+		"delta_artist",
+		"owner": {
+			"id": kilo_user_id,
+			"username": "testUser_kilo",
+			"displayName": None
+		}
+	}]
 	assert "artists" in touched
 	assert data["covers"] == []
 	assert data["track"] == None
@@ -135,7 +517,15 @@ def test_get_songs_for_multi_edit(
 		{ "id": 1,
 			"name": "oscar_station",
 			"displayName": "Oscar the grouch",
-			"isRunning": False
+			"isRunning": False,
+			"owner": {
+				"id": 2,
+				"username": "testUser_bravo",
+				"displayName": "Bravo Test User"
+			},
+			"rules": [],
+			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
+			"viewSecurityLevel": 0
 		}
 	]
 	assert "stations" in touched
@@ -145,9 +535,9 @@ def test_song_save_for_multi_edit(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	headers = login_test_user("testUser_foxtrot", client)
+	headers = login_test_user("testUser_india", client)
 
-	idList = "?id=10&id=4&id=17&id=11&id=15"
+	idList = "?itemIds=10&itemIds=4&itemIds=17&itemIds=11&itemIds=15"
 
 	getResponseBefore = client.get(
 		f"song-info/songs/list/{idList}",
@@ -189,7 +579,7 @@ def test_song_save_for_multi_edit(
 
 	sendData = {
 		"album": {
-			"id": 12, "name": "garoo_album"
+			"id": 12, "name": "garoo_album", "owner": {"id": kilo_user_id }
 		},
 		"stations": [
 			{
@@ -203,10 +593,15 @@ def test_song_save_for_multi_edit(
 				"displayName": "Fat, drunk, and stupid"
 			}
 		],
-		"primaryArtist": { "id": 14, "name": "oscar_artist" },
+		"primaryArtist": {
+			"id": 14,
+			"name":
+			"oscar_artist",
+			"owner": {"id": kilo_user_id }
+		},
 		"artists": [
-			{ "id": 8, "name": "hotel_artist" },
-			{ "id": 1, "name": "alpha_artist" }
+			{ "id": 8, "name": "hotel_artist", "owner": {"id": kilo_user_id } },
+			{ "id": 1, "name": "alpha_artist", "owner": {"id": kilo_user_id } }
 		],
 		"touched": ["album", "stations", "primaryArtist", "artists"]
 	}
@@ -269,17 +664,14 @@ def test_song_save_for_multi_edit(
 	data3_n = normalize_dict(data3)
 	assert data1_n == data3_n
 
-
-
-
-
 def test_song_save_for_multi_edit_artist_to_primary(
 	fixture_api_test_client: TestClient
 ):
 	client = fixture_api_test_client
-	headers = login_test_user("testUser_foxtrot", client)
+	headers = login_test_user("testUser_india", client)
 
-	idList = "?id=29&id=28&id=27&id=26&id=25&id=24&id=23"
+	idList = "?itemIds=29&itemIds=28&itemIds=27"\
+		"&itemIds=26&itemIds=25&itemIds=24&itemIds=23"
 
 	getResponseBefore = client.get(
 		f"song-info/songs/list/{idList}",
@@ -321,7 +713,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 
 	sendData = {
 		"album": {
-			"id": 12, "name": "garoo_album"
+			"id": 12, "name": "garoo_album","owner": { "id": kilo_user_id}
 		},
 		"stations": [
 			{
@@ -336,7 +728,12 @@ def test_song_save_for_multi_edit_artist_to_primary(
 			},
 		],
 		"artists": [],
-		"primaryArtist": { "id": 5, "name": "foxtrot_artist" },
+		"primaryArtist": {
+			"id": 5,
+			"name":
+			"foxtrot_artist",
+			"owner": { "id": kilo_user_id}
+		},
 		"touched": ["album", "stations", "primaryArtist", "artists"]
 	}
 
@@ -399,3 +796,160 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	data3_n = normalize_dict(data3)
 	assert data1_n == data3_n
 
+def test_more_restrictive_path(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_sierra", client)
+	getResponse = client.get(
+		f"song-info/songs/{5}",
+		headers=headers
+	)
+
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "victor_song_update"
+	putResponse = client.put(
+		f"song-info/songs/{5}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 200
+
+	getResponse = client.get(
+		f"song-info/songs/{6}",
+		headers=headers
+	)
+
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	sendData = copy.deepcopy(data)
+	sendData["name"] = "whiskey_song_update"
+	putResponse = client.put(
+		f"song-info/songs/{6}",
+		headers=headers,
+		json=sendData
+	)
+
+	assert putResponse.status_code == 403
+
+	headers = login_test_user("testUser_india", client)
+
+	putResponse = client.put(
+		f"song-info/songs/{6}",
+		headers=headers,
+		json=sendData
+	)
+
+
+	assert putResponse.status_code == 200
+
+def test_get_path_users(
+	fixture_api_test_client: TestClient
+):
+	client = fixture_api_test_client
+	headers = login_test_user("testUser_kilo", client)
+	getResponse = client.get(
+		"song-info/path/user_list?prefix=/foo/goo",
+		headers=headers
+	)
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	items = sorted(data["items"], key=lambda u: u["id"])
+	assert len(items) == 4
+	assert items[0]["username"] == "testUser_alpha"
+	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[1]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[2]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
+	assert rules[3]["name"] == UserRoleDef.PATH_USER_LIST.value
+	assert rules[4]["name"] == UserRoleDef.PATH_VIEW.value
+	assert items[1]["username"] == "testUser_kilo"
+	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[1]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[2]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
+	assert rules[3]["name"] == UserRoleDef.PATH_USER_LIST.value
+	assert rules[4]["name"] == UserRoleDef.PATH_VIEW.value
+	assert items[2]["username"] == "testUser_mike"
+	rules = sorted(items[2]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[1]["name"] == UserRoleDef.PATH_VIEW.value
+	assert items[3]["username"] == "testUser_sierra"
+	rules = sorted(items[3]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[1]["name"] == UserRoleDef.PATH_VIEW.value
+
+	getResponse = client.get(
+		"song-info/path/user_list?prefix=/foo/goo/boo",
+		headers=headers
+	)
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	items = sorted(data["items"], key=lambda u: u["id"])
+	assert len(items) == 6
+	assert items[0]["username"] == "testUser_alpha"
+	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+	assert items[1]["username"] == "testUser_foxtrot"
+	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 1
+	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
+
+	assert items[2]["username"] == "testUser_kilo"
+	rules = sorted(items[2]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+
+	assert items[3]["username"] == "testUser_lima"
+	rules = sorted(items[3]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+	assert rules[0]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[1]["name"] == UserRoleDef.PATH_VIEW.value
+
+
+	assert items[4]["username"] == "testUser_mike"
+	rules = sorted(items[4]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+
+	assert items[5]["username"] == "testUser_sierra"
+	rules = sorted(items[5]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 2
+
+	getResponse = client.get(
+		"song-info/path/user_list?prefix=/foo/x",
+		headers=headers
+	)
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	items = sorted(data["items"], key=lambda u: u["id"])
+	assert len(items) == 2
+	assert items[0]["username"] == "testUser_alpha"
+	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+
+	assert items[1]["username"] == "testUser_kilo"
+	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+
+	headers = login_test_user("tossedSlash_testUser", client)
+	getResponse = client.get(
+		"song-info/path/user_list?prefix=/tossedSlash/guess",
+		headers=headers
+	)
+	data = json.loads(getResponse.content)
+	assert getResponse.status_code == 200
+	items = sorted(data["items"], key=lambda u: u["id"])
+	assert len(items) == 2
+	assert items[0]["username"] == "testUser_alpha"
+	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5
+
+	assert items[1]["username"] == "tossedSlash_testUser"
+	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
+	assert len(rules) == 5

@@ -3,18 +3,22 @@ import uvicorn #pyright: ignore [reportMissingTypeStubs]
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 import sys
 from typing import Any
+from traceback import TracebackException
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
-from controllers import\
-	stations_controller,\
-	accounts_controller,\
+from controllers import (
+	stations_controller,
+	accounts_controller,
 	song_info_controller
-from musical_chairs_libs.dtos_and_utilities import build_error_obj
-from musical_chairs_libs.errors import AlreadyUsedError
+)
+from musical_chairs_libs.dtos_and_utilities import (
+	build_error_obj,
+	AlreadyUsedError
+)
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
 
@@ -41,7 +45,8 @@ def get_cors_origin_or_default(origin: str) -> str:
 
 def transForm_error(err: Any) -> dict[str, Any]:
 	msg = err["msg"]
-	field = err["loc"][1] if len(err["loc"]) > 1 else None
+	field = "->".join(f for f in err["loc"]) if len(err["loc"]) > 1 \
+		else err["loc"][0] if len(err["loc"]) > 0 else None
 	return build_error_obj(msg, field)
 
 @app.exception_handler(RequestValidationError) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]
@@ -72,7 +77,8 @@ def handle_already_used_values(
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
 				request.headers.get("origin", None)
-			)
+			),
+			"access-control-allow-credentials": "true"
 		}
 	)
 
@@ -87,7 +93,8 @@ def handle_invalid_email(
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
 				request.headers.get("origin", None)
-			)
+			),
+			"access-control-allow-credentials": "true"
 		}
 	)
 
@@ -97,7 +104,10 @@ def everything_else(
 	request: Request,
 	ex: Exception
 ) -> JSONResponse:
-	logging.logger.error(ex)
+	logging.debugLogger.debug(
+		"".join(TracebackException.from_exception(ex).format())
+	)
+	logging.logger.exception(ex)
 	response = JSONResponse(content=
 		{ "detail": [
 				build_error_obj("Onk! Caveman error! What do?")
@@ -107,18 +117,26 @@ def everything_else(
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
 				request.headers.get("origin", None)
-			)
+			),
+			"access-control-allow-credentials": "true"
 		}
 	)
 	return response
 
 if __name__ == "__main__":
-	privateKey = sys.argv[1]
-	publicKey = sys.argv[2]
-	uvicorn.run(
-		app, #pyright: ignore [reportGeneralTypeIssues]
-		host="0.0.0.0",
-		port=8032,
-		ssl_keyfile=privateKey,
-		ssl_certfile=publicKey
-	)
+	if len(sys.argv) > 2:
+		privateKey = sys.argv[1]
+		publicKey = sys.argv[2]
+		uvicorn.run(
+			app, #pyright: ignore [reportGeneralTypeIssues]
+			host="0.0.0.0",
+			port=8032,
+			ssl_keyfile=privateKey,
+			ssl_certfile=publicKey
+		)
+	else:
+		uvicorn.run(
+			app, #pyright: ignore [reportGeneralTypeIssues]
+			host="0.0.0.0",
+			port=8032
+		)

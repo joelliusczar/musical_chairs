@@ -33,6 +33,18 @@
       ]
     },
     {
+      "name": "Python: nginx API",
+      "type": "python",
+      "python": "${command:python.interpreterPath}",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/api/index.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
+      }
+    },
+    {
       "name": "Debug Unit Test",
       "type": "python",
       "request": "test",

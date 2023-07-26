@@ -77,7 +77,7 @@ if [ "$currentBranch" != main ]; then
 	echo "Using branch ${currentBranch}"
 	git checkout -t origin/"$currentBranch" || exit 1
 fi
-
+cd "$app_root"
 RemoteScriptEOF1
 } > clone_repo_fifo &
 

@@ -11,14 +11,13 @@ import {
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import { AppRoutes, NavMenu } from "./Components/Navigation/NavRoutes";
-import { BrowserRouter } from "react-router-dom";
 import { theme, drawerWidth } from "./style_config";
-import { LoginModal } from "./Components/Accounts/AccountsLoginModal";
 import { SnackbarProvider } from "notistack";
 import { UserMenu } from "./Components/Accounts/UserMenu";
 import {
 	AuthContextProvider,
 	useCurrentUser,
+	useLoginPrompt,
 } from "./Context_Providers/AuthContext";
 import {
 	AppContextProvider,
@@ -33,13 +32,9 @@ export const useStyles = makeStyles((theme) => ({
 
 function AppTrunk() {
 	const classes = useStyles();
-	const [loginOpen, setLoginOpen ] = useState(false);
 	const [menuAnchor, setMenuAnchor ] = useState(null);
 	const currentUser = useCurrentUser();
-
-	const openUserMenu = (e) => {
-		setMenuAnchor(e.currentTarget);
-	};
+	const openLoginPrompt = useLoginPrompt();
 
 	return (
 		<Box sx={{ display: "flex" }}>
@@ -52,19 +47,14 @@ function AppTrunk() {
 					<Typography variant="h1">Musical Chairs</Typography>
 					{!currentUser.username ? <Button
 						color="inherit"
-						onClick={() => setLoginOpen(true)}
+						onClick={() => openLoginPrompt()}
 					>
 						Login
 					</Button> :
 						<>
-							<Button
-								color="inherit"
-								onClick={openUserMenu}
-							>
-								{currentUser.username}
-							</Button>
 							<UserMenu
 								anchorEl={menuAnchor}
+								btnLabel={currentUser.username}
 								closeMenu={() => setMenuAnchor(null)}
 							/>
 						</>
@@ -91,7 +81,6 @@ function AppTrunk() {
 				<Box className={classes.offset} />
 				<AppRoutes />
 			</Box>
-			<LoginModal open={loginOpen} setOpen={setLoginOpen} />
 		</Box>
 	);
 }
@@ -104,15 +93,13 @@ function AppRoot() {
 			ref={notistackRef}
 			onClick={() => notistackRef.current.closeSnackbar()}
 		>
-			<AuthContextProvider>
-				<ThemeProvider theme={theme}>
-					<BrowserRouter basename="/">
-						<AppContextProvider>
-							<AppTrunk />
-						</AppContextProvider>
-					</BrowserRouter>
-				</ThemeProvider>
-			</AuthContextProvider>
+			<ThemeProvider theme={theme}>
+				<AuthContextProvider>
+					<AppContextProvider>
+						<AppTrunk />
+					</AppContextProvider>
+				</AuthContextProvider>
+			</ThemeProvider>
 		</SnackbarProvider>
 	);
 }

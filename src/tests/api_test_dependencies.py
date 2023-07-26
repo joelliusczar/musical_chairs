@@ -2,19 +2,22 @@ import json
 import pytest
 from typing import Any, Callable
 from fastapi.testclient import TestClient
-from .mocks.constant_values_defs import\
-	primary_user,\
+from .mocks.constant_values_defs import (
+	primary_user,
 	clear_mock_password
+)
 from musical_chairs_libs.services import EnvManager
-from .mocks.mock_db_constructors import\
-	MockDbPopulateClosure,\
-	db_populator_noop,\
+from .mocks.mock_db_constructors import (
+	MockDbPopulateClosure,
+	db_populator_noop,
 	construct_mock_connection_constructor
+)
 from sqlalchemy.engine import Connection
 from fastapi.testclient import TestClient
-from .common_fixtures import\
-	fixture_db_populate_factory as fixture_db_populate_factory,\
+from .common_fixtures import (
+	fixture_db_populate_factory as fixture_db_populate_factory,
 	fixture_db_conn_in_mem as fixture_db_conn_in_mem
+)
 from .common_fixtures import *
 from index import app
 

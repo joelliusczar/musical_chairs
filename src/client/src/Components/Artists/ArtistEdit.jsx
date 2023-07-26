@@ -84,7 +84,7 @@ export const ArtistNewModalOpener = (props) => {
 			<Box>
 				<Button onClick={() => setItemNewOpen(true)}>Add New Artist</Button>
 			</Box>
-			<Dialog open={itemNewOpen} onClose={closeModal}>
+			<Dialog open={itemNewOpen} onClose={closeModal} scroll="body">
 				<ArtistEdit afterSubmit={itemCreated} onCancel={closeModal} />
 			</Dialog>
 		</>);

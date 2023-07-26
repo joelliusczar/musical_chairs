@@ -7,7 +7,7 @@ export const fetchSongForEdit = async ({ id }) => {
 };
 
 export const fetchSongsForMultiEdit = async ({ ids }) => {
-	const queryStr = buildArrayQueryStr(ids, "id");
+	const queryStr = buildArrayQueryStr("itemIds", ids);
 	const response = await webClient.get(`/song-info/songs/multi/${queryStr}`);
 	return response.data;
 };
@@ -19,7 +19,7 @@ export const saveSongEdits = async ({ id, data }) => {
 };
 
 export const saveSongsEditsMulti = async ({ ids, data }) => {
-	const queryStr = buildArrayQueryStr(ids, "id");
+	const queryStr = buildArrayQueryStr("itemIds", ids);
 	const response = await webClient
 		.put(`/song-info/songs/multi/${queryStr}`, data);
 	return response.data;
@@ -54,7 +54,31 @@ export const saveAlbum = async ({ data }) => {
 };
 
 export const fetchSongTree = async ({ params }) => {
-	const response = await webClient.get("song-info/songs/tree", {
+	const response = await webClient.get("song-info/songs/ls", {
+		params: params,
+	});
+	return response.data;
+};
+
+export const fetchPathUsers = async ({ params }) => {
+	const url = "song-info/path/user_list";
+	const response = await webClient.get(url, {
+		params: params,
+	});
+	return response.data;
+};
+
+export const addPathUserRule = async ({ params, rule }) => {
+	const url = "song-info/path/user_role";
+	const response = await webClient.post(url, rule, {
+		params: params,
+	});
+	return response.data;
+};
+
+export const removePathUserRule = async ({ params }) => {
+	const url = "song-info/path/user_role";
+	const response = await webClient.delete(url, {
 		params: params,
 	});
 	return response.data;

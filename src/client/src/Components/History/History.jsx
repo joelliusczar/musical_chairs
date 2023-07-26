@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchHistory } from "../../API_Calls/stationCalls";
 import {
 	Table,
@@ -19,28 +19,34 @@ import {
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
-import { StationSelect } from "../Shared/StationSelect";
+import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { formatError } from "../../Helpers/error_formatter";
-import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import {
+	useHasAnyRoles,
+	useAuthViewStateChange,
+} from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 
 export const History = () => {
 
 	const location = useLocation();
-	const queryObj = new URLSearchParams(location.search);
-	const stationNameFromQS = queryObj.get("name") || "";
-	const canEditSongs = useHasAnyRoles([UserRoleDef.SONG_EDIT]);
-	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const pathVars = useParams();
+	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
+	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
+	const [selectedStation, setSelectedStation] = useState();
 
 	const [historyState, historyDispatch] =
 		useReducer(waitingReducer(), pageableDataInitialState);
+
+	useAuthViewStateChange(historyDispatch);
 
 	const { callStatus: historyCallStatus } = historyState;
 
@@ -48,13 +54,20 @@ export const History = () => {
 
 	const rowButton = (item, idx) => {
 		const rowButtonOptions = [];
-
-		if (canEditSongs) rowButtonOptions.push({
+		const canEditThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_EDIT]
+		);
+		const canDownloadThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_DOWNLOAD]
+		);
+		if (canEditSongs || canEditThisSong) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.songEdit}?id=${item.id}`,
+			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
 		});
 
-		if (canDownloadSongs) rowButtonOptions.push({
+		if (canDownloadAnySong || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
 			href: getDownloadAddress(item.id),
 		});
@@ -66,34 +79,36 @@ export const History = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.songEdit}?id=${item.id}`}
+				to={`${DomRoutes.songEdit()}?ids=${item.id}`}
 			>
-				View
+				{(canEditSongs || canEditThisSong) ? "Edit" : "View"}
 			</Button>);
 	};
 
 	useEffect(() => {
+		const stationTitle = `- ${selectedStation?.displayName || ""}`;
 		document.title =
-			`Musical Chairs - History${`- ${stationNameFromQS || ""}`}`;
-	},[stationNameFromQS]);
+			`Musical Chairs - History${stationTitle}`;
+	},[selectedStation]);
 
 	useEffect(() => {
 		const fetch = async () => {
-			if (currentQueryStr === location.search) return;
+			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			const stationNameFromQS = queryObj.get("name");
-			if (!stationNameFromQS) return;
+			if (!pathVars.stationKey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			historyDispatch(dispatches.started());
 			try {
 				const data = await fetchHistory({
-					station: stationNameFromQS,
+					stationKey: pathVars.stationKey,
+					ownerKey: pathVars.ownerKey,
 					params: { page: page - 1, limit: limit } }
 				);
 				historyDispatch(dispatches.done(data));
-				setCurrentQueryStr(location.search);
+				setCurrentQueryStr(`${location.pathname}${location.search}`);
+
 			}
 			catch (err) {
 				historyDispatch(dispatches.failed(formatError(err)));
@@ -104,16 +119,22 @@ export const History = () => {
 	},[
 		historyDispatch,
 		fetchHistory,
+		pathVars.stationKey,
+		pathVars.ownerKey,
 		location.search,
+		location.pathname,
 		currentQueryStr,
 		setCurrentQueryStr,
 	]);
 
 	return (
 		<>
-			<h1>History: {stationNameFromQS}</h1>
+			<h1>History: {selectedStation?.displayName || ""}</h1>
 			<Box m={1}>
-				<StationSelect getPageUrl={getPageUrl} />
+				<StationRouteSelect
+					getPageUrl={getPageUrl}
+					onChange={(s) => setSelectedStation(s)}
+				/>
 			</Box>
 			<Box m={1}>
 				<Loader

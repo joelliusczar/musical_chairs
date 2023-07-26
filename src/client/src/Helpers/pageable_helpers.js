@@ -1,4 +1,4 @@
-export const urlBuilderFactory = (pageName) => {
+export const urlBuilderFactory = (routeFn) => {
 	return (params, currentLocation) => {
 		const queryObj = new URLSearchParams(currentLocation);
 		if(params.page) {
@@ -17,7 +17,7 @@ export const urlBuilderFactory = (pageName) => {
 			queryObj.delete("name");
 		}
 		const queryStr = `?${queryObj.toString()}`;
-		return `${pageName}${queryStr}`;
+		return `${routeFn(params)}${queryStr}`;
 	};
 };
 

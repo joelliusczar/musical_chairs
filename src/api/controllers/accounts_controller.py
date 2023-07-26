@@ -22,14 +22,16 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TableData,
 	AccountInfoBase,
 	build_error_obj,
-	PasswordInfo
+	PasswordInfo,
+	ActionRule
 )
 from api_dependencies import (
 	accounts_service,
-	get_current_user,
-	get_account_if_can_edit,
+	get_user_with_simple_scopes,
+	get_account_if_has_scope,
 	get_user_from_token,
-	get_user_from_token_optional
+	get_optional_user_from_token,
+	get_subject_user
 )
 
 
@@ -114,7 +116,7 @@ def login_with_cookie(
 def is_phrase_used(
 	username: str = "",
 	email: str = "",
-	loggedInUser: Optional[AccountInfo] = Depends(get_user_from_token_optional),
+	loggedInUser: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> dict[str, bool]:
 	return {
@@ -130,30 +132,57 @@ def create_new_account(
 	return accountsService.create_account(accountInfo)
 
 @router.get("/list", dependencies=[
-	Security(get_current_user, scopes=[UserRoleDef.USER_LIST.value])
+	Security(get_user_with_simple_scopes, scopes=[UserRoleDef.USER_LIST.value])
 ])
 def get_user_list(
+	searchTerm: Optional[str]=None,
 	page: int = 0,
 	pageSize: Optional[int] = None,
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> TableData[AccountInfo]:
-	accounts = list(accountsService.get_account_list(page, pageSize))
+	accounts = list(accountsService.get_account_list(
+		searchTerm=searchTerm,
+		page=page,
+		pageSize=pageSize
+	))
 	totalRows = accountsService.get_accounts_count()
 	return TableData(totalRows=totalRows, items=accounts)
 
-@router.put("")
+@router.get("/search", dependencies=[
+	# Security(get_user_with_simple_scopes, scopes=[UserRoleDef.USER_LIST.value])
+])
+def search_users(
+	searchTerm: Optional[str]=None,
+	page: int = 0,
+	pageSize: Optional[int] = None,
+	accountsService: AccountsService = Depends(accounts_service)
+) -> list[AccountInfo]:
+	accounts = list(accountsService.get_account_list(
+		searchTerm=searchTerm,
+		page=page,
+		pageSize=pageSize
+	))
+	return accounts
+
+@router.put("/account/{subjectUserKey}")
 def update_account(
 	updatedInfo: AccountInfoBase,
-	prev: AccountInfo = Depends(get_account_if_can_edit),
+	prev: AccountInfo = Security(
+		get_account_if_has_scope,
+		scopes=[UserRoleDef.USER_EDIT.value]
+	),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	return accountsService.update_account_general_changes(updatedInfo, prev)
 
 
-@router.put("/update-password/")
+@router.put("/update-password/{subjectUserKey}")
 def update_password(
 	passwordInfo: PasswordInfo,
-	currentUser: AccountInfo = Depends(get_account_if_can_edit),
+	currentUser: AccountInfo = Security(
+		get_account_if_has_scope,
+		scopes=[UserRoleDef.USER_EDIT.value]
+	),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> bool:
 	if accountsService.update_password(passwordInfo, currentUser):
@@ -167,18 +196,99 @@ def update_password(
 				)],
 		)
 
-
-@router.put("/update-roles/{userId}")
+@router.put("/update-roles/{subjectUserKey}")
 def update_roles(
-	roles: list[str],
-	prev: AccountInfo = Depends(get_account_if_can_edit),
+	roles: list[ActionRule],
+	prev: AccountInfo = Security(
+		get_account_if_has_scope,
+		scopes=[UserRoleDef.USER_EDIT.value]
+	),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
 	return AccountInfo(**{**asdict(prev), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
-@router.get("")
+@router.get("/account/{subjectUserKey}")
 def get_account(
-	accountInfo: AccountInfo = Depends(get_account_if_can_edit)
+	accountInfo: AccountInfo = Security(
+		get_account_if_has_scope,
+		scopes=[UserRoleDef.USER_EDIT.value]
+	)
 ) -> AccountInfo:
 	return accountInfo
+
+@router.get("/site-roles/user_list",dependencies=[
+	Security(
+		get_user_with_simple_scopes,
+		scopes=[UserRoleDef.SITE_USER_LIST.value]
+	)
+])
+def get_path_user_list(
+	accountsService: AccountsService = Depends(accounts_service)
+) -> TableData[AccountInfo]:
+	pathUsers = list(accountsService.get_site_rule_users())
+	return TableData(pathUsers, len(pathUsers))
+
+
+def validate_site_rule(
+	rule: ActionRule,
+	user: Optional[AccountInfo] = Depends(get_subject_user),
+) -> ActionRule:
+	if not user:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				"User is required"
+			)],
+		)
+	valid_name_set = UserRoleDef.as_set()
+	if rule.name not in valid_name_set:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				f"{rule.name} is not a valid rule for stations"
+			)],
+		)
+	return rule
+
+@router.post("/site-roles/user_role/{subjectUserKey}",
+	dependencies=[
+		Security(
+			get_user_with_simple_scopes,
+			scopes=[UserRoleDef.SITE_USER_ASSIGN.value]
+		)
+	]
+)
+def add_user_rule(
+	user: AccountInfo = Depends(get_subject_user),
+	rule: ActionRule = Depends(validate_site_rule),
+	accountsService: AccountsService = Depends(accounts_service),
+) -> ActionRule:
+	return accountsService.add_user_rule(user.id, rule)
+
+
+@router.delete("/site-roles/user_role/{subjectUserKey}",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[
+		Security(
+			get_user_with_simple_scopes,
+			scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
+		)
+	]
+)
+def remove_user_rule(
+	ruleName: str,
+	user: AccountInfo = Depends(get_subject_user),
+	accountsService: AccountsService = Depends(accounts_service),
+):
+	if not user:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj(
+				"User is required"
+			)],
+		)
+	accountsService.remove_user_site_rule(
+		user.id,
+		ruleName
+	)

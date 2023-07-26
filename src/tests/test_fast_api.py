@@ -10,4 +10,5 @@ def test_open_api(
 	client = fixture_api_test_client
 	response = client.get(
 		"/openapi.json")
+	# data = json.loads(response.content)
 	assert response.status_code == 200

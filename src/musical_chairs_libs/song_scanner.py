@@ -1,20 +1,22 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 import os
 import re
-from typing import Callable, \
-	Iterator, \
-	Optional,\
+from typing import (
+	Callable,
+	Iterator,
+	Optional,
 	Iterable
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import Connection
-from sqlalchemy import \
-	insert
+from sqlalchemy import insert
 from tinytag import TinyTag
 from musical_chairs_libs.dtos_and_utilities import ScanningSongItem
-from musical_chairs_libs.services import\
-	EnvManager,\
-	SongInfoService,\
+from musical_chairs_libs.services import(
+	EnvManager,
+	SongInfoService,
 	StationService
+)
 
 from musical_chairs_libs.tables import songs
 

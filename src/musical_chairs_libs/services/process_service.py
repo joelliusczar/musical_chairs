@@ -2,17 +2,23 @@ import os
 import platform
 import subprocess
 import random
-from typing import Optional, Iterable, Sequence, cast
-from musical_chairs_libs.dtos_and_utilities import check_name_safety,\
-	SearchNameString,\
-	StationInfo
-from sqlalchemy import select,\
-	func,\
+from typing import Optional, Iterable, cast, Union, Iterator, Collection
+from musical_chairs_libs.dtos_and_utilities import (
+	check_name_safety,
+	StationInfo,
+	AccountInfo
+)
+from sqlalchemy import (
+	select,
+	func,
 	update
+)
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import Row
-from musical_chairs_libs.tables import\
-	stations as stations_tbl, st_pk, st_name, st_procId
+from musical_chairs_libs.tables import (
+	stations as stations_tbl, st_pk, st_name, st_procId, st_ownerFk,
+	users as users_tbl, u_username, u_pk
+)
 from .env_manager import EnvManager
 from .station_service import StationService
 
@@ -50,97 +56,100 @@ class ProcessService:
 		except:
 			pass
 
-	def set_station_proc(self, stationName: str) -> None:
+	def set_station_proc(self, stationId: int) -> None:
 		pid = self.get_pid()
 		stmt = update(stations_tbl)\
 			.values(procId = pid) \
-				.where(
-					func.format_name_for_search(st_name) ==\
-					str(SearchNameString.format_name_for_search(stationName))
-				)
+				.where(st_pk == stationId)
 		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
 	def unset_station_procs(
 		self,
 		procIds: Optional[Iterable[int]]=None,
-		stationIds: Optional[Iterable[int]]=None,
-		stationNames: Optional[Sequence[str]]=None,
-		stationName: Optional[str]=None
+		stationIds: Union[int,Iterable[int], None]=None,
 	) -> None:
 		stmt = update(stations_tbl)\
 			.values(procId = None)
 
 		if isinstance(procIds, Iterable):
 			stmt = stmt.where(st_procId.in_(procIds))
+		elif type(stationIds) == int:
+			stmt = stmt.where(st_pk == stationIds)
 		elif isinstance(stationIds, Iterable):
 			stmt = stmt.where(st_pk.in_(stationIds))
-		elif isinstance(stationNames, Iterable):
-			stmt = stmt\
-				.where(func.format_name_for_search(st_name).in_(
-						str(SearchNameString.format_name_for_search(s)) for s
-						in stationNames
-					))
-		elif stationName:
-			stmt = stmt\
-				.where(
-					func.format_name_for_search(st_name) ==\
-					str(SearchNameString.format_name_for_search(stationName))
-				)
 		else:
 			raise ValueError("procIds, stationIds, or stationNames must be provided.")
 		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
 	def enable_stations(self,
-		stationIds: Optional[Iterable[int]],
-		stationNames: Optional[Sequence[str]]
-	) -> None:
-		stations: list[StationInfo] = []
-		if stationNames and len(stationNames) == 1 and stationNames[0] == "*":
-			stations = list(self.station_service.get_stations())
+		stations: Collection[StationInfo],
+		owner: AccountInfo,
+		includeAll: bool = False
+	) -> Iterator[StationInfo]:
+		stationsEnabled: Iterator[StationInfo] = iter([])
+		if includeAll:
+			canBeEnabled = {s[0] for s in  \
+				self.station_service.get_station_song_counts(ownerId=owner.id) \
+				if s[1] > 0
+			}
+			stationsEnabled = self.station_service.get_stations(
+				stationKeys=canBeEnabled,
+				ownerId=owner.id
+			)
 		else:
-			stations = list(self.station_service.get_stations(
-				stationIds=stationIds,
-				stationNames=stationNames
-			))
-		for station in stations:
-			self._start_station_external_process(station.name)
+			canBeEnabled = {s[0] for s in  \
+				self.station_service.get_station_song_counts(
+					stationIds=(s.id for s in stations)
+				) \
+				if s[1] > 0
+			}
+			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
+		for station in stationsEnabled:
+			self.__start_station_external_process__(station.name, owner.username)
+			yield station
 
 	def disable_stations(
 		self,
-		stationIds: Optional[Iterable[int]],
-		stationNames: Optional[Sequence[str]]=None
+		stationIds: Iterable[int],
+		ownerKey: Union[int, str, None],
+		includeAll: bool = False
 	) -> None:
 		query = select(st_procId).where(st_procId.is_not(None))
-		if isinstance(stationIds, Iterable):
+		if includeAll:
+			if type(ownerKey) == int:
+				query = query.where(st_ownerFk == ownerKey)
+			elif type(ownerKey) == str:
+				query = query.join(users_tbl, u_pk == st_ownerFk)\
+					.where(u_username == ownerKey)
+		else:
 			query = query.where(st_pk.in_(stationIds))
-		elif isinstance(stationNames, Iterable):
-			if len(stationNames) > 1 or stationNames[0] != "*":
-				query = query\
-					.where(func.format_name_for_search(st_name).in_(
-							str(SearchNameString.format_name_for_search(s)) for s
-							in stationNames
-						))
+
 		rows = self.conn.execute(query) #pyright: ignore reportUnknownMemberType
 		pids = [cast(int, row[st_procId]) for row in cast(Iterable[Row], rows)]
 		for pid in pids:
 			self.end_process(pid)
 		self.unset_station_procs(pids)
 
-	def _noop_startup(self, stationName: str) -> None:
+	def __noop_startup__(self, stationName: str) -> None:
 		pid = self.get_pid()
 		stmt = update(stations_tbl)\
 				.values(procId = pid) \
 				.where(func.lower(st_name) == func.lower(stationName))
 		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
-	def _start_station_external_process(self, stationName: str) -> None:
-		m = check_name_safety(stationName)
+	def __start_station_external_process__(
+		self,
+		stationName: str,
+		ownerName: str
+	) -> None:
+		filename_base = f"{ownerName}_{stationName}"
+		m = check_name_safety(filename_base)
 		if m:
 			raise RuntimeError("Invalid station name was used")
-		stationConf = f"{EnvManager.station_config_dir}/ices.{stationName}.conf"
+		stationConf = f"{EnvManager.station_config_dir}/ices.{filename_base}.conf"
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
 		if platform.system() == "Darwin":
-			return self._noop_startup(stationName)
+			return self.__noop_startup__(stationName)
 		subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
 

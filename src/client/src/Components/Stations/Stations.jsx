@@ -6,12 +6,13 @@ import {
 	Button,
 	Grid,
 	Typography,
+	Box,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DomRoutes } from "../../constants";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { UserRoleDef } from "../../constants";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import {
@@ -28,6 +29,10 @@ import {
 } from "../Shared/waitingReducer";
 import { CallStatus } from "../../constants";
 import { YesNoControl } from "../Shared/YesNoControl";
+import { userKeyMatch } from "../../Helpers/compare_helpers";
+import {
+	anyConformsToAnyRule,
+} from "../../Helpers/rule_helpers";
 
 
 const useStyles = makeStyles(() => ({
@@ -40,7 +45,7 @@ const useStyles = makeStyles(() => ({
 export const Stations = () => {
 
 	const {
-		items: stations,
+		items: contextStations,
 		callStatus: stationCallStatus,
 		error: stationError,
 		update: updateStation,
@@ -51,8 +56,9 @@ export const Stations = () => {
 	);
 
 	const location = useLocation();
+	const pathVars = useParams();
 	const classes = useStyles();
-	const canEditStation = useHasAnyRoles([UserRoleDef.STATION_EDIT]);
+	const canCreateStation = useHasAnyRoles([UserRoleDef.STATION_CREATE]);
 	const canEnableStation = useHasAnyRoles([UserRoleDef.STATION_FLIP]);
 	const { enqueueSnackbar } = useSnackbar();
 	const [ waitConfirm, setWaitConfirm ] = useState("");
@@ -79,6 +85,7 @@ export const Stations = () => {
 			toggleDispatch(dispatches.done({ key: id }));
 			enqueueSnackbar(`${name} is being disabled`, { variant: "success"});
 			updateStation(id, p => ({...p, isRunning: false}));
+			setWaitConfirm("");
 		}
 		catch(err) {
 			const formattedError = formatError(err);
@@ -117,15 +124,35 @@ export const Stations = () => {
 		setWaitConfirm(name);
 	};
 
+	const canAssignUsersToStation = (station) => {
+		const canAssign = anyConformsToAnyRule(
+			station.rules,
+			[UserRoleDef.STATION_USER_ASSIGN]
+		);
+		return canAssign;
+	};
+
+	const canEditStation = (station) => {
+		const canAssign = anyConformsToAnyRule(
+			station.rules,
+			[UserRoleDef.STATION_EDIT]
+		);
+		return canAssign;
+	};
+
+	const stations = contextStations && pathVars.ownerKey ?
+		contextStations.filter(s => userKeyMatch(pathVars.ownerKey,s.owner)) :
+		contextStations;
+
 	useEffect(() => {
 		document.title = "Musical Chairs - Stations";
 	},[location]);
 
 	return (<>
 		<Typography variant="h1">Stations</Typography>
-		{canEditStation && <Button
+		{canCreateStation && <Button
 			component={Link}
-			to={DomRoutes.stationsEdit}
+			to={DomRoutes.stationsAdd()}
 		>
 			Add New Station
 		</Button>}
@@ -177,32 +204,25 @@ export const Stations = () => {
 						<Typography>
 							<Button
 								component="a"
-								href={getListenAddress(s.name)}
+								href={getListenAddress(s)}
 							>
 								Listen
 							</Button>
 						</Typography>
 					</AccordionSummary>
 					<AccordionDetails>
-						<div>
+						<Box>
 							<Grid container>
-								<Grid item>
-									{canEditStation && <Button
-										color="primary"
-										variant="contained"
-										component={Link}
-										to={`${DomRoutes.stationsEdit}?id=${s.id}`}
-									>
-										Edit
-									</Button>}
-								</Grid>
 								<Grid item>
 									<Button
 										component={Link}
 										color="primary"
 										variant="contained"
 										className={classes.buttons}
-										to={`${DomRoutes.songCatalogue}?name=${s.name}`}
+										to={`${DomRoutes.songCatalogue({
+											stationKey: s.name,
+											ownerKey: s.owner?.username,
+										})}`}
 									>
 											Song Catalogue
 									</Button>
@@ -213,7 +233,10 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										className={classes.buttons}
-										to={`${DomRoutes.history}?name=${s.name}`}
+										to={`${DomRoutes.history({
+											stationKey: s.name,
+											ownerKey: s.owner?.username,
+										})}`}
 									>
 											Song History
 									</Button>
@@ -224,13 +247,44 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										className={classes.buttons}
-										to={`${DomRoutes.queue}?name=${s.name}`}
+										to={`${DomRoutes.queue(
+											{
+												stationKey: s.name,
+												ownerKey: s.owner?.username,
+											}
+										)}`}
 									>
 											Song Queue
 									</Button>
 								</Grid>
+								<Grid item>
+									{canEditStation(s) && <Button
+										color="primary"
+										variant="contained"
+										component={Link}
+										to={DomRoutes.stationsEdit({
+											stationKey: s.name,
+											ownerKey: s.owner?.username,
+										})}
+									>
+										Edit
+									</Button>}
+								</Grid>
+								<Grid item>
+									{canAssignUsersToStation(s) && <Button
+										color="primary"
+										variant="contained"
+										component={Link}
+										to={DomRoutes.stationUsers({
+											stationKey: s.name,
+											ownerKey: s.owner?.username,
+										})}
+									>
+										Assign Users
+									</Button>}
+								</Grid>
 							</Grid>
-						</div>
+						</Box>
 					</AccordionDetails>
 				</Accordion>);
 			}) : <Typography>No Stations have been added</Typography>}

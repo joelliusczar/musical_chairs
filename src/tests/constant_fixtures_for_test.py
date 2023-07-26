@@ -20,4 +20,4 @@ def fixture_primary_user() -> AccountInfo:
 
 @pytest.fixture
 def fixture_mock_ordered_date_list() -> list[datetime]:
-	return mock_ordered_date_list()
+	return mock_ordered_date_list

@@ -11,3 +11,67 @@ code {
 	font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
 		monospace;
 }
+
+
+.station-menu.MuiGrid-item{
+	flex-basis: min-content;
+	padding-right: 10px;
+}
+
+.station-menu.MuiGrid-container{
+	justify-content: space-between;
+}
+
+.app-form-select.form-select.MuiAutocomplete-option {
+	display: block;
+}
+
+.form-select.select-subtext, .form-select.select-subtext.MuiAutocomplete-paper {
+	line-height: unset;	
+}
+
+.role-item {
+	margin: .5em;
+}
+
+.rule-name {
+	font-weight: bold;
+}
+
+.rule-body {
+	padding:.5em;
+}
+
+.rule-entry-body {
+	padding:1em;
+}
+
+.user-role-container {
+	width: 100%;
+}
+
+.rule-entry.MuiGrid-container{
+	align-items: flex-end;
+	margin-bottom: 1em;
+	justify-content: flex-start;
+}
+
+.rule-name-input.MuiGrid-container {
+	margin-bottom: 1em;
+}
+
+.small-number-input {
+	width: 3em;
+}
+
+.between-text {
+	margin: .5em;
+	display: inline-block;
+	vertical-align: top;
+}
+
+.rule-entry-first-text {
+	display: inline-block;
+	width: 5em;
+	margin: .5em;
+}

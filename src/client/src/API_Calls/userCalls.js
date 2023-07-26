@@ -1,29 +1,11 @@
 import { defaultWebClient as webClient } from "./api";
 
-
-const setupAuthExpirationAction = (logout, setResponseInterceptorKey) => {
-	setResponseInterceptorKey(previousKey => {
-		if(!previousKey) {
-			const responseInterceptorKey = webClient.interceptors.response.use(
-				null,
-				(err) => {
-					if ("x-authexpired" in (err?.response?.headers || {})) {
-						logout();
-					}
-					return Promise.reject(err);
-				});
-			return responseInterceptorKey;
-		}
-		return previousKey;
-	});
-};
+export { webClient };
 
 
 export const login = async ({
 	username,
 	password,
-	logout,
-	setResponseInterceptorKey,
 }) => {
 	const formData = new window.FormData();
 	formData.append("username", username);
@@ -34,16 +16,13 @@ export const login = async ({
 	);
 	webClient.defaults.headers.common["Authorization"] =
 	`Bearer ${response.data.access_token}`;
-	setupAuthExpirationAction(logout, setResponseInterceptorKey);
 	return response.data;
 };
 
-export const login_with_cookie = async (logout, setResponseInterceptorKey) => {
+export const login_with_cookie = async () => {
 	const response = await webClient.post("accounts/open_cookie");
 	webClient.defaults.headers.common["Authorization"] =
 		`Bearer ${response.data.access_token}`;
-	setupAuthExpirationAction(logout, setResponseInterceptorKey);
-
 	return response.data;
 };
 
@@ -59,18 +38,20 @@ export const checkValues = async ({ values }) => {
 	return response.data;
 };
 
-export const fetchUser = async ({ id, username }) => {
-	const response = await webClient.get("accounts", {
-		params: {
-			userId: id,
-			username,
-		},
-	});
+export const fetchUser = async ({ subjectUserKey }) => {
+	const response = await webClient.get(`accounts/account/${subjectUserKey}`);
 	return response.data;
 };
 
 export const fetchUserList = async ({ params }) => {
 	const response = await webClient.get("accounts/list", {
+		params: params,
+	});
+	return response.data;
+};
+
+export const searchUsers = async ({ params }) => {
+	const response = await webClient.get("accounts/search", {
 		params: params,
 	});
 	return response.data;
@@ -83,35 +64,50 @@ export const updateUserRoles = async ({ id, roles }) => {
 	return response.data;
 };
 
-export const updateAccountBasic = async ({ id, username, data }) => {
-	const response = await webClient.put("accounts", data, {
-		params: {
-			userId: id,
-			username,
-		},
-	});
+export const updateAccountBasic = async ({ subjectUserKey, data }) => {
+	const response = await webClient.put(
+		`accounts/account/${subjectUserKey}`,
+		data
+	);
 	return response.data;
 };
 
 export const updatePassword = async ({
-	id,
-	username,
+	subjectUserKey,
 	oldPassword,
 	newPassword,
 }) => {
-	const response = await webClient.put("accounts/update-password/", {
-		oldPassword,
-		newPassword,
-	}, {
-		params: {
-			userId: id,
-			username,
-		},
+	const response = await webClient.put(
+		`accounts/update-password/${subjectUserKey}`,
+		{
+			oldPassword,
+			newPassword,
+		}
+	);
+	return response.data;
+};
+
+export const fetchSiteRuleUsers = async ({ params }) => {
+	const url = "/site-roles/user_list";
+	const response = await webClient.get(url, {
+		params: params,
 	});
 	return response.data;
 };
 
+export const addSiteUserRule = async ({ subjectUserKey, rule }) => {
+	const url = `accounts/site-roles/user_role/${subjectUserKey}`;
+	const response = await webClient.post(url, rule);
+	return response.data;
+};
 
+export const removeSiteUserRule = async ({ subjectUserKey, params }) => {
+	const url = `accounts/site-roles/user_role/${subjectUserKey}`;
+	const response = await webClient.delete(url, {
+		params: params,
+	});
+	return response.data;
+};
 
 
 

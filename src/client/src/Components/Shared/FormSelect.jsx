@@ -49,6 +49,15 @@ export function FormSelect(props) {
 						variant="standard"
 					/>;
 				}}
+				componentsProps={{
+					popper: {
+						style: { minWidth: "fit-content" },
+						placement: "bottom-start",
+					},
+					paper: {
+						style: { lineHeight: "unset" },
+					},
+				}}
 				{...otherProps}
 			/>
 			{error && <FormHelperText error={true}>
@@ -63,7 +72,7 @@ FormSelect.propTypes = {
 	label: PropTypes.string,
 	formMethods: PropTypes.object,
 	options: PropTypes.arrayOf(PropTypes.shape({
-		id: PropTypes.number,
+		id: PropTypes.oneOfType([PropTypes.number,PropTypes.string]),
 		name: PropTypes.string,
 	})),
 	transform: PropTypes.shape({

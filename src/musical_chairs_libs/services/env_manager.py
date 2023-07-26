@@ -1,11 +1,15 @@
 import os
+from typing import Iterable, cast
 from sqlalchemy import create_engine #pyright: ignore [reportUnknownVariableType]
 from sqlalchemy.engine import Connection
+from sqlalchemy.engine.row import Row
 from musical_chairs_libs.tables import metadata
-from musical_chairs_libs.dtos_and_utilities import\
-	SearchNameString,\
-	SavedNameString,\
-	next_directory_level
+from musical_chairs_libs.dtos_and_utilities import (
+	SearchNameString,
+	SavedNameString,
+	next_directory_level,
+	normalize_opening_slash
+)
 
 
 class EnvManager:
@@ -75,6 +79,12 @@ class EnvManager:
 			next_directory_level,
 			deterministic=True
 		)
+		conn.connection.connection.create_function( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues]
+			"normalize_opening_slash",
+			2,
+			normalize_opening_slash,
+			deterministic=True
+		)
 		return conn
 
 	@classmethod
@@ -90,7 +100,9 @@ class EnvManager:
 		conn = cls.get_configured_db_connection(inMemory=True)
 		metadata.create_all(conn.engine)
 		result = conn.execute("SELECT sql FROM sqlite_master WHERE type='table';") #pyright: ignore [reportUnknownMemberType]
-		print("\n".join((r[0] for r in result.fetchall())))
+		result = (cast(str,r[0]) for r in cast(Iterable[Row],result.fetchall()))
+		print("\n".join(result))
 		result = conn.execute("SELECT sql FROM sqlite_master WHERE type='index';") #pyright: ignore [reportUnknownMemberType]
-		print("\n".join((r[0] for r in result.fetchall())))
+		result = (cast(str,r[0]) for r in cast(Iterable[Row],result.fetchall()))
+		print("\n".join(result))
 		conn.close()

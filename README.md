@@ -13,6 +13,11 @@ source radio_common
 . ./radio_common.sh
 ```
 
+Need to run this so that https will work
+```
+setup_ssl_cert_local_debug
+```
+
 ```
 # call func to setup unit test environment
 # required for vs code test runner
@@ -55,3 +60,7 @@ Use debug launch profile Python: API
 ```
 ./deploy_to_server.sh setup_lvl=install
 ```
+
+## Testing new changes
+If need to test a new feature, we just run deploy_to_server while that branch
+is checked out in git

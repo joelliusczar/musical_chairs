@@ -1,4 +1,5 @@
 #pyright: reportUnknownMemberType=false
+from typing import cast
 from sqlalchemy import select, func
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql import ColumnCollection
@@ -10,7 +11,7 @@ from .common_fixtures import *
 from .mocks.special_strings_reference import chinese1
 
 
-sg: ColumnCollection = songs.columns #pyright: ignore [reportUnknownMemberType]
+sg = cast(ColumnCollection,songs.columns) #pyright: ignore [reportUnknownMemberType]
 
 def test_iron_str(fixture_populated_db_conn_in_mem: Connection):
 	conn = fixture_populated_db_conn_in_mem

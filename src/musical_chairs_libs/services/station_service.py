@@ -58,7 +58,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	MinItemSecurityLevel,
 	build_rules_query,
 	row_to_action_rule,
-	generate_user_and_rules_from_rows
+	generate_user_and_rules_from_rows,
+	normalize_opening_slash
 )
 from .env_manager import EnvManager
 from .template_service import TemplateService
@@ -341,7 +342,9 @@ class StationService:
 		for row in records: #pyright: ignore [reportUnknownVariableType]
 			rules = []
 			if pathRuleTree:
-				rules = list(pathRuleTree.valuesFlat(cast(str, row[sg_path])))
+				rules = list(pathRuleTree.valuesFlat(
+					normalize_opening_slash(cast(str, row[sg_path])))
+				)
 			yield SongListDisplayItem(
 				id=cast(int,row[sg_pk]),
 				path=cast(str, row[sg_path]),

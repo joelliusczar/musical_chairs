@@ -41,7 +41,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDomain,
 	build_rules_query,
 	MinItemSecurityLevel,
-	generate_user_and_rules_from_rows
+	generate_user_and_rules_from_rows,
 )
 from sqlalchemy import (
 	select,
@@ -363,7 +363,8 @@ class SongInfoService:
 		)
 
 		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
-			(p.path, p) for p in rules if isinstance(p, PathsActionRule) and p.path
+			(normalize_opening_slash(p.path), p) for p in
+				rules if isinstance(p, PathsActionRule) and p.path
 		)
 		pathRuleTree.add("", (r for r in user.roles \
 			if type(r) == ActionRule \

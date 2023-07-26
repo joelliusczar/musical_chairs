@@ -154,13 +154,12 @@ def request_song(
 			detail = str(ex)
 		)
 
-@router.delete("/{ownerKey}/{stationName}/request/",
+@router.delete("/{ownerKey}/{stationKey}/request",
 	dependencies=[
 		Security(get_station_user, scopes=[UserRoleDef.STATION_SKIP.value])
 	]
 )
 def remove_song_from_queue(
-	stationName: str,
 	id: int,
 	queuedTimestamp: float,
 	station: StationInfo = Depends(get_station_by_name_and_owner),
@@ -175,7 +174,7 @@ def remove_song_from_queue(
 		return queue
 	raise HTTPException(
 			status_code = status.HTTP_404_NOT_FOUND,
-			detail = f"Song: {id} not found at {queuedTimestamp} on {stationName}"
+			detail = f"Song: {id} not found at {queuedTimestamp} on {station.name}"
 		)
 
 

@@ -32,6 +32,7 @@ import {
 } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 const queueInitialState = {
 	...pageableDataInitialState,
@@ -55,6 +56,7 @@ export const Queue = () => {
 	const canSkipSongs = useHasAnyRoles([UserRoleDef.STATION_SKIP]);
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
+
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const [selectedStation, setSelectedStation] = useState();
 
@@ -64,6 +66,10 @@ export const Queue = () => {
 		);
 
 	const { callStatus: queueCallStatus } = queueState;
+	const canSkipSongsForStation = anyConformsToAnyRule(
+		queueState?.data?.stationRules,
+		[UserRoleDef.STATION_SKIP]
+	);
 
 	useAuthViewStateChange(queueDispatch);
 
@@ -72,17 +78,26 @@ export const Queue = () => {
 	const rowButton = (item, idx) => {
 		const rowButtonOptions = [];
 
-		if (canEditSongs) rowButtonOptions.push({
-			label: "Edit",
-			link: `${DomRoutes.songEdit()}?id=${item.id}`,
-		});
+		const canEditThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_EDIT]
+		);
 
-		if (canSkipSongs) rowButtonOptions.push({
+		if (canEditSongs || canEditThisSong) rowButtonOptions.push({
+			label: "Edit",
+			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
+		});
+		if (canSkipSongs || canSkipSongsForStation) rowButtonOptions.push({
 			label: "Skip",
 			onClick:() => handleRemoveSongFromQueue(item),
 		});
 
-		if (canDownloadSongs) rowButtonOptions.push({
+		const canDownloadThisSong = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PATH_DOWNLOAD]
+		);
+
+		if (canDownloadSongs || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
 			href: getDownloadAddress(item.id),
 		});
@@ -105,7 +120,8 @@ export const Queue = () => {
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			const data = await removeSongFromQueue({
-				stationName: pathVars.stationKey,
+				ownerKey: pathVars.ownerKey,
+				stationKey: pathVars.stationKey,
 				songId: item?.id,
 				queuedTimestamp: item?.queuedTimestamp,
 				page: page - 1,

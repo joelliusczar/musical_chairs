@@ -69,9 +69,14 @@ export const sendSongRequest = async ({ station, songId}) => {
 };
 
 export const removeSongFromQueue = async (params) => {
-	const { stationName, songId, queuedTimestamp } = params;
-	const response = await webClient
-		.delete(`stations/${stationName}/request/`, {
+	const {
+		ownerKey,
+		stationKey,
+		songId,
+		queuedTimestamp,
+	} = params;
+	const response = await webClient.delete(
+		`stations/${ownerKey}/${stationKey}/request`, {
 			params: {
 				id: songId,
 				queuedTimestamp,

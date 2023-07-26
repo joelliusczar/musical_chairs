@@ -55,7 +55,7 @@ def test_invalid_post_duplicate_name(
 	data = json.loads(response.content)
 	assert response.status_code == 422
 	assert data["detail"][0]["msg"] == "oscar_station is already used."
-	assert data["detail"][0]["field"] == "name"
+	assert data["detail"][0]["field"] == "body->name"
 
 	testData = {
 			"name": "oscar_station",
@@ -387,7 +387,7 @@ def test_post_with_invalid_security_levels(
 	assert response.status_code == 422
 	assert data["detail"][0]["msg"] \
 		== "Request Security cannot be public or lower than view security"
-	assert data["detail"][0]["field"] == "requestSecurityLevel"
+	assert data["detail"][0]["field"] == "body->requestSecurityLevel"
 
 	testData: dict[str, Any] = {
 		"name": "test_station",
@@ -404,7 +404,7 @@ def test_post_with_invalid_security_levels(
 	assert response.status_code == 422
 	assert data["detail"][0]["msg"] \
 		== "Request Security cannot be public or lower than view security"
-	assert data["detail"][0]["field"] == "requestSecurityLevel"
+	assert data["detail"][0]["field"] == "body->requestSecurityLevel"
 
 	testData: dict[str, Any] = {
 		"name": "test_station",

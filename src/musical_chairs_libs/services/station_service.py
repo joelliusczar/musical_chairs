@@ -452,7 +452,7 @@ class StationService:
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
-					f"{savedName} is already used.", "name"
+					f"{savedName} is already used.", "body->name"
 				)]
 			)
 

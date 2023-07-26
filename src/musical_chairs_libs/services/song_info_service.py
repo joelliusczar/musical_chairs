@@ -187,7 +187,8 @@ class SongInfoService:
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
-					f"{artistName} is already used.", "name"
+					f"{artistName} is already used.",
+					"path->name"
 				)]
 			)
 
@@ -240,7 +241,8 @@ class SongInfoService:
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
-					f"{album.name} is already used for artist.", "name"
+					f"{album.name} is already used for artist.",
+					"body->name"
 				)]
 			)
 

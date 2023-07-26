@@ -114,11 +114,17 @@ class AccountsService:
 		cleanedEmail: ValidatedEmail = validate_email(accountInfo.email)
 		if self._is_username_used(cleanedUsername):
 			raise AlreadyUsedError([
-				build_error_obj(f"{accountInfo.username} is already used.", "username")
+				build_error_obj(
+					f"{accountInfo.username} is already used.",
+					"body->username"
+				)
 			])
 		if self._is_email_used(cleanedEmail):
 			raise AlreadyUsedError([
-				build_error_obj(f"{accountInfo.email} is already used.", "email")
+				build_error_obj(
+					f"{accountInfo.email} is already used.",
+					"body->email"
+				)
 			])
 		hashed = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
@@ -346,7 +352,10 @@ class AccountsService:
 		updatedEmail = cast(str, validEmail.email)
 		if updatedEmail != currentUser.email and self._is_email_used(validEmail):
 			raise AlreadyUsedError([
-				build_error_obj(f"{updatedInfo.email} is already used.", "email")
+				build_error_obj(
+					f"{updatedInfo.email} is already used.",
+					"body->email"
+				)
 			])
 		stmt = update(users).values(
 			displayName = updatedInfo.displayName,

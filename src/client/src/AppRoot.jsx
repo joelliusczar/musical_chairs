@@ -9,7 +9,6 @@ import {
 	Toolbar,
 	Button,
 } from "@mui/material";
-import { makeStyles } from "@mui/styles";
 import { AppRoutes, NavMenu } from "./Components/Navigation/NavRoutes";
 import { theme, drawerWidth } from "./style_config";
 import { SnackbarProvider } from "notistack";
@@ -23,15 +22,8 @@ import {
 	AppContextProvider,
 } from "./Context_Providers/AppContextProvider";
 
-export const useStyles = makeStyles((theme) => ({
-	drawerPaper: {
-		width: drawerWidth,
-	},
-	offset: theme.mixins.toolbar,
-}));
 
 function AppTrunk() {
-	const classes = useStyles();
 	const [menuAnchor, setMenuAnchor ] = useState(null);
 	const currentUser = useCurrentUser();
 	const openLoginPrompt = useLoginPrompt();
@@ -69,7 +61,7 @@ function AppTrunk() {
 					flexShrink: 0,
 				}}
 				classes={{
-					paper: classes.drawerPaper,
+					paper: "drawer",
 				}}
 			>
 				<NavMenu />
@@ -78,7 +70,7 @@ function AppTrunk() {
 				component="main"
 				sx={{ flexFlow: 1, p: 3}}
 			>
-				<Box className={classes.offset} />
+				<Toolbar />
 				<AppRoutes />
 			</Box>
 		</Box>

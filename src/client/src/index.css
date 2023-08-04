@@ -75,3 +75,16 @@ code {
 	width: 5em;
 	margin: .5em;
 }
+
+.station-button {
+	margin: .5rem;
+}
+
+.dropdown-field {
+	min-width: 195px;
+	display: inline-block;
+}
+
+.drawer {
+	width: 240px
+}

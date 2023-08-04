@@ -8,7 +8,6 @@ import {
 	Typography,
 	Box,
 } from "@mui/material";
-import { makeStyles } from "@mui/styles";
 import Loader from "../Shared/Loader";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DomRoutes } from "../../constants";
@@ -35,11 +34,6 @@ import {
 } from "../../Helpers/rule_helpers";
 
 
-const useStyles = makeStyles(() => ({
-	buttons: {
-		marginRight: 10,
-	},
-}));
 
 
 export const Stations = () => {
@@ -57,7 +51,6 @@ export const Stations = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
-	const classes = useStyles();
 	const canCreateStation = useHasAnyRoles([UserRoleDef.STATION_CREATE]);
 	const canEnableStation = useHasAnyRoles([UserRoleDef.STATION_FLIP]);
 	const { enqueueSnackbar } = useSnackbar();
@@ -218,7 +211,7 @@ export const Stations = () => {
 										component={Link}
 										color="primary"
 										variant="contained"
-										className={classes.buttons}
+										className="station-button"
 										to={`${DomRoutes.songCatalogue({
 											stationKey: s.name,
 											ownerKey: s.owner?.username,
@@ -232,7 +225,7 @@ export const Stations = () => {
 										component={Link}
 										color="primary"
 										variant="contained"
-										className={classes.buttons}
+										className="station-button"
 										to={`${DomRoutes.history({
 											stationKey: s.name,
 											ownerKey: s.owner?.username,
@@ -246,7 +239,7 @@ export const Stations = () => {
 										component={Link}
 										color="primary"
 										variant="contained"
-										className={classes.buttons}
+										className="station-button"
 										to={`${DomRoutes.queue(
 											{
 												stationKey: s.name,

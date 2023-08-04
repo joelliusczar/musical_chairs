@@ -5,7 +5,6 @@ import {
 	Button,
 	Checkbox,
 } from "@mui/material";
-import { makeStyles } from "@mui/styles";
 import * as Yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -53,12 +52,6 @@ const inputField = {
 	margin: 2,
 };
 
-const useStyles = makeStyles(() => ({
-	dropdownField: {
-		minWidth: 195,
-		display: "inline-block",
-	},
-}));
 
 const TouchTypes = {
 	set: "set",
@@ -132,7 +125,6 @@ export const SongEdit = () => {
 	const [state, dispatch] = useReducer(waitingReducer(), initialState);
 	const { callStatus } = state;
 	const location = useLocation();
-	const classes = useStyles();
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const ids = useMemo(() => {
@@ -354,7 +346,7 @@ export const SongEdit = () => {
 							formMethods={formMethods}
 							label="Primary Artist"
 							classes={{
-								root: classes.dropdownField,
+								root: "dropdown-field",
 							}}
 							transform={{input: artistMapper}}
 							disabled={!canEditSongs}
@@ -371,7 +363,7 @@ export const SongEdit = () => {
 							label="Artists"
 							transform={{input: artistMapper}}
 							classes={{
-								root: classes.dropdownField,
+								root: "dropdown-field",
 							}}
 							multiple
 							disabled={!canEditSongs}
@@ -395,7 +387,7 @@ export const SongEdit = () => {
 							label="Album"
 							transform={{input: albumMapper }}
 							classes={{
-								root: classes.dropdownField,
+								root: "dropdown-field",
 							}}
 							disabled={!canEditSongs}
 						/>
@@ -421,7 +413,7 @@ export const SongEdit = () => {
 							label="Stations"
 							transform={{input: stationMapper}}
 							classes={{
-								root: classes.dropdownField,
+								root: "dropdown-field",
 							}}
 							multiple
 							disabled={!canEditSongs}

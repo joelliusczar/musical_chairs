@@ -24,7 +24,7 @@ import { getListenAddress } from "../../Helpers/url_helpers";
 import {
 	waitingReducer,
 	dispatches,
-	keyedWaitingReducerMap,
+	KeyedWaitingReducerMap,
 } from "../Shared/waitingReducer";
 import { CallStatus } from "../../constants";
 import { YesNoControl } from "../Shared/YesNoControl";
@@ -32,7 +32,9 @@ import { userKeyMatch } from "../../Helpers/compare_helpers";
 import {
 	anyConformsToAnyRule,
 } from "../../Helpers/rule_helpers";
-
+import { StationInfo } from "../../Types/station_types";
+import { IdType } from "../../Types/generic_types";
+import { ClickEvent } from "../../Types/browser_types";
 
 
 
@@ -46,7 +48,7 @@ export const Stations = () => {
 	} = useStationData();
 
 	const [toggleState, toggleDispatch] = useReducer(
-		waitingReducer(keyedWaitingReducerMap), {}
+		waitingReducer(new KeyedWaitingReducerMap<StationInfo>()), {}
 	);
 
 	const location = useLocation();
@@ -59,7 +61,7 @@ export const Stations = () => {
 	const disableAllStations = async () => {
 		try {
 			toggleDispatch(dispatches.started({ key: "*" }));
-			await disableStations({ names: "*"});
+			await disableStations({ includeAll: true });
 			toggleDispatch(dispatches.done({ key: "*" }));
 			enqueueSnackbar("All stations are being disabled", { variant: "success"});
 		}
@@ -70,11 +72,15 @@ export const Stations = () => {
 		}
 	};
 
-	const handleDisableStation = async (e, id, name) => {
+	const handleDisableStation = async (
+		e: ClickEvent,
+		id: IdType,
+		name: string
+	) => {
 		e.stopPropagation();
 		try {
 			toggleDispatch(dispatches.started({ key: id }));
-			await disableStations({ ids: id});
+			await disableStations({ ids: [id]});
 			toggleDispatch(dispatches.done({ key: id }));
 			enqueueSnackbar(`${name} is being disabled`, { variant: "success"});
 			updateStation(id, p => ({...p, isRunning: false}));
@@ -87,7 +93,11 @@ export const Stations = () => {
 		}
 	};
 
-	const handleEnableStation = async (e, id, name) => {
+	const handleEnableStation = async (
+		e: ClickEvent,
+		id: IdType,
+		name: string
+	) => {
 		e.stopPropagation();
 		try {
 			toggleDispatch(dispatches.started({ key: id }));
@@ -103,8 +113,8 @@ export const Stations = () => {
 		}
 	};
 
-	const canToggleStation = (id) => {
-		if(toggleState[id]?.callStatus === CallStatus.loading ||
+	const canToggleStation = (id?: IdType) => {
+		if((!!id  && toggleState[id]?.callStatus === CallStatus.loading) ||
 			toggleState["*"]?.callStatus === CallStatus.loading
 		) {
 			return false;
@@ -112,12 +122,12 @@ export const Stations = () => {
 		return true;
 	};
 
-	const openDisableConfirm = (e, name) => {
+	const openDisableConfirm = (e: ClickEvent, name: string) => {
 		e.stopPropagation();
 		setWaitConfirm(name);
 	};
 
-	const canAssignUsersToStation = (station) => {
+	const canAssignUsersToStation = (station: StationInfo) => {
 		const canAssign = anyConformsToAnyRule(
 			station.rules,
 			[UserRoleDef.STATION_USER_ASSIGN]
@@ -125,7 +135,7 @@ export const Stations = () => {
 		return canAssign;
 	};
 
-	const canEditStation = (station) => {
+	const canEditStation = (station: StationInfo) => {
 		const canAssign = anyConformsToAnyRule(
 			station.rules,
 			[UserRoleDef.STATION_EDIT]
@@ -134,7 +144,10 @@ export const Stations = () => {
 	};
 
 	const stations = contextStations && pathVars.ownerKey ?
-		contextStations.filter(s => userKeyMatch(pathVars.ownerKey,s.owner)) :
+		contextStations.filter(s =>
+			!!s.owner && !!pathVars.ownerKey &&
+			userKeyMatch(pathVars.ownerKey, s.owner)
+		) :
 		contextStations;
 
 	useEffect(() => {
@@ -166,7 +179,7 @@ export const Stations = () => {
 			status={stationCallStatus}
 			error={stationError}
 		>
-			{stations?.length ? stations.map((s, idx) => {
+			{stations?.length ? stations.map((s: StationInfo, idx: number) => {
 				return (<Accordion
 					key={`station_${idx}`}
 					defaultExpanded={false}
@@ -214,7 +227,7 @@ export const Stations = () => {
 										className="station-button"
 										to={`${DomRoutes.songCatalogue({
 											stationKey: s.name,
-											ownerKey: s.owner?.username,
+											ownerKey: s.owner?.username || "",
 										})}`}
 									>
 											Song Catalogue
@@ -228,7 +241,7 @@ export const Stations = () => {
 										className="station-button"
 										to={`${DomRoutes.history({
 											stationKey: s.name,
-											ownerKey: s.owner?.username,
+											ownerKey: s.owner?.username || "",
 										})}`}
 									>
 											Song History
@@ -243,7 +256,7 @@ export const Stations = () => {
 										to={`${DomRoutes.queue(
 											{
 												stationKey: s.name,
-												ownerKey: s.owner?.username,
+												ownerKey: s.owner?.username || "",
 											}
 										)}`}
 									>
@@ -257,7 +270,7 @@ export const Stations = () => {
 										component={Link}
 										to={DomRoutes.stationsEdit({
 											stationKey: s.name,
-											ownerKey: s.owner?.username,
+											ownerKey: s.owner?.username || "",
 										})}
 									>
 										Edit
@@ -270,7 +283,7 @@ export const Stations = () => {
 										component={Link}
 										to={DomRoutes.stationUsers({
 											stationKey: s.name,
-											ownerKey: s.owner?.username,
+											ownerKey: s.owner?.username || "",
 										})}
 									>
 										Assign Users

@@ -22,7 +22,6 @@ import { StationNewModalOpener } from "../Stations/StationEdit";
 import { useLocation } from "react-router-dom";
 import {
 	waitingReducer,
-	initialState,
 	dispatches,
 } from "../Shared/waitingReducer";
 import { useSnackbar } from "notistack";
@@ -46,6 +45,13 @@ import {
 import { AlbumSelect } from "../Albums/AlbumSelect";
 import { ArtistSelect } from "../Artists/ArtistSelect";
 import { StationSelect } from "../Stations/StationSelect";
+import { InitialState } from "../../Types/reducer_types";
+import {
+	SongInfoForm,
+	TouchTypes,
+	TouchedObject
+} from "../../Types/song_info_types";
+import { Named } from "../../Types/generic_types";
 
 
 const inputField = {
@@ -53,14 +59,10 @@ const inputField = {
 };
 
 
-const TouchTypes = {
-	set: "set",
-	unset: "unset",
-	edited: "edited",
-};
 
-const createTouchedObject = (touchedArr) => {
-	const result = {};
+
+const createTouchedObject = (touchedArr: string[]) => {
+	const result: TouchedObject = {};
 	if (!touchedArr) return result;
 	for (const name of touchedArr) {
 		result[name] = TouchTypes.set;
@@ -68,8 +70,8 @@ const createTouchedObject = (touchedArr) => {
 	return result;
 };
 
-const touchedObjectToArr = (touchedObj) => {
-	const result = [];
+const touchedObjectToArr = (touchedObj: TouchedObject) => {
+	const result: string[] = [];
 	if (!touchedObj) return result;
 	for (const key in touchedObj) {
 		const value = touchedObj[key];
@@ -122,7 +124,10 @@ const schema = Yup.object().shape({
 export const SongEdit = () => {
 
 	const { enqueueSnackbar } = useSnackbar();
-	const [state, dispatch] = useReducer(waitingReducer(), initialState);
+	const [state, dispatch] = useReducer(
+		waitingReducer(),
+		new InitialState()
+	);
 	const { callStatus } = state;
 	const location = useLocation();
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
@@ -153,7 +158,7 @@ export const SongEdit = () => {
 		add: addStation,
 	} = useStationData();
 
-	const formMethods = useForm({
+	const formMethods = useForm<SongInfoForm>({
 		defaultValues: {
 			name: "",
 			artists: [],
@@ -184,7 +189,7 @@ export const SongEdit = () => {
 	);
 	const multiSongTouchedField = watch("touched");
 
-	const handleMutliSongTouchedCheck = (name) => {
+	const handleMutliSongTouchedCheck = (name: string) => {
 		const updTouched = {...multiSongTouchedField};
 		const value = multiSongTouchedField[name];
 		if (value === TouchTypes.edited || value === TouchTypes.set) {
@@ -196,7 +201,7 @@ export const SongEdit = () => {
 		setValue("touched", updTouched);
 	};
 
-	const isMultSongTouchedChecked = (name) => {
+	const isMultSongTouchedChecked = (name: string) => {
 		if (!multiSongTouchedField) return false;
 		const value = multiSongTouchedField[name];
 		if (value === TouchTypes.edited || value === TouchTypes.set) return true;
@@ -204,7 +209,7 @@ export const SongEdit = () => {
 	};
 
 	// eslint-disable-next-line react/prop-types
-	const TouchedCheckbox = ({ name }) => {
+	const TouchedCheckbox = ({ name }: Named) => {
 		return <Checkbox
 			name={name}
 			onChange={() => handleMutliSongTouchedCheck(name)}
@@ -215,10 +220,13 @@ export const SongEdit = () => {
 
 	const callSubmit = handleSubmit(async values => {
 		try {
-			values.touched = touchedObjectToArr(values.touched);
+			const valuesSavura = {
+				...values,
+				touched: touchedObjectToArr(values.touched)
+			};
 			const data = ids.length < 2 ?
-				await saveSongEdits({ id: ids[0], data: values }) :
-				await saveSongsEditsMulti({ ids, data: values });
+				await saveSongEdits({ id: ids[0], data: valuesSavura }) :
+				await saveSongsEditsMulti({ ids, data: valuesSavura });
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -230,29 +238,24 @@ export const SongEdit = () => {
 	useAuthViewStateChange(dispatch);
 
 	useEffect(() => {
+		if (ids.length === 0) {
+			dispatch(dispatches.failed("No song selected"));
+			return;
+		}
 		const fetch = async () => {
 			try {
-				if(ids.length == 1) {
-					if(!callStatus) {
-						dispatch(dispatches.started());
-						const data = await fetchSongForEdit({
-							id: ids[0],
-						});
-						reset(data);
-						dispatch(dispatches.done());
-					}
-				}
-				else if(ids.length > 1) {
-					if(!callStatus) {
-						dispatch(dispatches.started());
-						const data = await fetchSongsForMultiEdit({ ids });
-						data.touched = createTouchedObject(data.touched);
-						reset(data);
-						dispatch(dispatches.done());
-					}
-				}
-				else {
-					dispatch(dispatches.failed("No song selected"));
+				if (!callStatus) {
+					dispatch(dispatches.started());
+					const data = ids.length == 1 ?
+					await fetchSongForEdit({
+						id: ids[0],
+					}) :
+					await fetchSongsForMultiEdit({ ids });
+					reset({
+						...data,
+						touched: createTouchedObject(data.touched)
+					});
+					dispatch(dispatches.done());
 				}
 			}
 			catch(err) {

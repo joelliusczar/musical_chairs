@@ -5,8 +5,6 @@ import {
 import {
 	waitingReducer,
 	dispatches,
-	pageableDataInitialState,
-	waitingTypes,
 	globalStoreLogger,
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
@@ -18,11 +16,23 @@ import {
 import { useParams } from "react-router-dom";
 import { formatError } from "../../Helpers/error_formatter";
 import { StationRouteSelect } from "./StationRouteSelect";
-import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
+import { UrlBuilder } from "../../Helpers/pageable_helpers";
 import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
+import {
+	PageableListStore,
+	WaitingTypes,
+	PageableListDataShape,
+	InitialState
+} from "../../Types/reducer_types";
+import {
+	User,
+	ActionRule,
+	ActionRuleCreationInfo
+} from "../../Types/user_types";
+import { StationInfo } from "../../Types/station_types";
 
 
 const stationRoles = Object.keys(UserRoleDef)
@@ -38,7 +48,7 @@ stationRoles.unshift({
 
 
 const ruleUpdatePaths = {
-	[waitingTypes.add]: (state, payload) => {
+	[WaitingTypes.add]: (state: PageableListStore<User>, payload: User) => {
 		const items = [...state.data.items, payload]
 			.sort(keyedSortFn("username"));
 		return {
@@ -49,10 +59,13 @@ const ruleUpdatePaths = {
 			},
 		};
 	},
-	[waitingTypes.remove]: (state, payload) => {
+	[WaitingTypes.remove]: (
+		state: PageableListStore<User>,
+		payload: { key: number | string}
+	) => {
 		const { key } = payload;
 		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === (key * 1));
+		const idx = items.findIndex(x => x.id === parseInt(key as string));
 		items.splice(idx, 1);
 		return {
 			...state,
@@ -62,10 +75,16 @@ const ruleUpdatePaths = {
 			},
 		};
 	},
-	[waitingTypes.update]: (state, payload) => {
+	[WaitingTypes.updateItem]: (
+		state: PageableListStore<User>,
+		payload: {
+			key: string | number,
+			dataOrUpdater: User
+		}
+	) => {
 		const { key, dataOrUpdater: data } = payload;
 		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === (key * 1));
+		const idx = items.findIndex(x => x.id === parseInt(key as string));
 		if (idx > -1) {
 			items.splice(idx, 1, data);
 			const sortedItems = items.sort(keyedSortFn("username"));
@@ -88,18 +107,22 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useReducer(
 		waitingReducer(ruleUpdatePaths, [globalStoreLogger("station users")]),
-		pageableDataInitialState
+		new InitialState<PageableListDataShape<User>>({ items: [], totalRows: 0})
 	);
-	const [selectedStation, setSelectedStation] = useState();
+	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const pathVars = useParams();
 	const { enqueueSnackbar } = useSnackbar();
 
 	const { callStatus } = state;
 
-	const getPageUrl = urlBuilderFactory(DomRoutes.stationUsers);
+	const urlBuilder = new UrlBuilder(DomRoutes.stationUsers);
 
-	const addUser = async (user) => {
+	const addUser = async (user: User | null) => {
+		if (!user) {
+			console.error("provided user was null");
+			return;
+		}
 		try {
 			const rule = {
 				name: UserRoleDef.STATION_VIEW,
@@ -168,7 +191,7 @@ export const StationUserRoleAssignmentTable = () => {
 		setCurrentQueryStr,
 	]);
 
-	const addRole = async (rule, user) => {
+	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
 		try {
 			const addedRule = await addStationUserRule({
 				stationKey: pathVars.stationKey,
@@ -191,7 +214,7 @@ export const StationUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeRole = async (role, user) => {
+	const removeRole = async (role: ActionRule, user: User) => {
 		try {
 			await removeStationUserRule({
 				stationKey: pathVars.stationKey,
@@ -222,7 +245,7 @@ export const StationUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeUser = async (user) => {
+	const removeUser = async (user: User) => {
 		try {
 			await removeStationUserRule({
 				stationKey: pathVars.stationKey,
@@ -248,7 +271,7 @@ export const StationUserRoleAssignmentTable = () => {
 			</h1>
 			<Box m={1}>
 				<StationRouteSelect
-					getPageUrl={getPageUrl}
+					getPageUrl={urlBuilder.getOtherUrl}
 					onChange={(s) => setSelectedStation(s)}
 					unrendered
 				/>
@@ -272,4 +295,3 @@ export const StationUserRoleAssignmentTable = () => {
 
 StationUserRoleAssignmentTable.propTypes = {
 };
-

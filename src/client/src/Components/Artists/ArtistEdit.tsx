@@ -6,24 +6,30 @@ import { useSnackbar } from "notistack";
 import { saveArtist } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
+import { ArtistInfo } from "../../Types/song_info_types";
 
 const inputField = {
 	margin: 2,
 };
 
-export const ArtistEdit = (props) => {
+type ArtistEditProps = {
+	onCancel: (e: unknown) => void
+	afterSubmit: (a: ArtistInfo) => void
+};
+
+export const ArtistEdit = (props: ArtistEditProps) => {
 	const { afterSubmit, onCancel } = props;
 	const { enqueueSnackbar } = useSnackbar();
 
-	const formMethods = useForm({
+	const formMethods = useForm<ArtistInfo>({
 		defaultValues: {
-			artistName: "",
+			name: "",
 		},
 	});
 	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const artist = await saveArtist({ artistName: values.artistName });
+			const artist = await saveArtist({ name: values.name });
 			enqueueSnackbar("Save successful", { variant: "success"});
 			afterSubmit(artist);
 		}
@@ -41,8 +47,8 @@ export const ArtistEdit = (props) => {
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
-				<FormTextField
-					name="artistName"
+				<FormTextField<ArtistInfo>
+					name="name"
 					label="Name"
 					formMethods={formMethods}
 				/>
@@ -64,7 +70,11 @@ ArtistEdit.propTypes = {
 	onCancel: PropTypes.func,
 };
 
-export const ArtistNewModalOpener = (props) => {
+type ArtistNewModalOpener = {
+	add?: (a: ArtistInfo) => void;
+}
+
+export const ArtistNewModalOpener = (props: ArtistNewModalOpener) => {
 
 	const { add } = props;
 
@@ -74,7 +84,7 @@ export const ArtistNewModalOpener = (props) => {
 		setItemNewOpen(false);
 	};
 
-	const itemCreated = (item) => {
+	const itemCreated = (item: ArtistInfo) => {
 		add && add(item);
 		closeModal();
 	};

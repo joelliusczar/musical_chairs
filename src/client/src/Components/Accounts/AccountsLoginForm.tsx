@@ -8,7 +8,18 @@ import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
 import { useLogin } from "../../Context_Providers/AuthContext";
 
-export function LoginForm(props) {
+
+type LoginFormProps = {
+	afterSubmit: () => void,
+	onCancel: (e: unknown) => void
+};
+
+type LoginFormInitialValues = {
+	username: string,
+	password: string,
+};
+
+export function LoginForm(props: LoginFormProps) {
 
 	const { afterSubmit, onCancel } = props;
 	const { enqueueSnackbar } = useSnackbar();
@@ -45,14 +56,14 @@ export function LoginForm(props) {
 				Create new account
 			</Link>
 			<Box sx={{ m: 1}}>
-				<FormTextField
+				<FormTextField<LoginFormInitialValues>
 					label="User Name"
 					formMethods={formMethods}
 					name="username"
 				/>
 			</Box>
 			<Box sx={{ m: 1}}>
-				<FormTextField
+				<FormTextField<LoginFormInitialValues>
 					formMethods={formMethods}
 					label="Password"
 					name="password"
@@ -75,4 +86,3 @@ LoginForm.propTypes = {
 	afterSubmit: PropTypes.func.isRequired,
 	onCancel: PropTypes.func,
 };
-

@@ -3,7 +3,6 @@ import { Box, Button, AppBar, Toolbar } from "@mui/material";
 import { TreeView, TreeItem } from "@mui/lab";
 import {
 	waitingReducer,
-	listDataInitialState,
 	dispatches,
 } from "../Shared/waitingReducer";
 import { fetchSongTree } from "../../API_Calls/songInfoCalls";
@@ -21,11 +20,22 @@ import {
 import { useSnackbar } from "notistack";
 import { useAuthViewStateChange } from "../../Context_Providers/AuthContext";
 import { normalizeOpeningSlash } from "../../Helpers/string_helpers";
+import { InitialState, ListDataShape } from "../../Types/reducer_types";
+import { SongTreeNodeInfo } from "../../Types/song_info_types";
+import { IdType } from "../../Types/generic_types"
+import { ListData } from "../../Types/pageable_types";
+import { PathsActionRule } from "../../Types/user_types";
 
+type SongTreeNodeProps = {
+	children: React.ReactNode
+	prefix: string
+	songNodeInfo: SongTreeNodeInfo
+	nodeId: string
+};
 
-export const SongTreeNode = (props) => {
+export const SongTreeNode = (props: SongTreeNodeProps) => {
 	const { children, songNodeInfo, prefix, nodeId } = props;
-	const { setCacheValue } = useCache();
+	const { setCacheValue } = useCache<SongTreeNodeInfo | ListData<SongTreeNodeInfo>>();
 
 	useEffect(() => {
 		setCacheValue(nodeId, songNodeInfo);
@@ -55,11 +65,25 @@ SongTreeNode.propTypes = {
 	mapValueToNodeId: PropTypes.func,
 };
 
-export const SongDirectory = (props) => {
+type SongDirectoryProps = {
+	prefix: string
+	level: number
+	dirIdx: number
+};
+
+export const SongDirectory = (props: SongDirectoryProps) => {
 	const { prefix, level, dirIdx } = props;
-	const [state, dispatch] = useReducer(waitingReducer(), listDataInitialState);
+	const [state, dispatch] = useReducer(
+		waitingReducer<
+			SongTreeNodeInfo,
+			InitialState<ListDataShape<SongTreeNodeInfo>>
+		>(),
+		new InitialState<ListDataShape<SongTreeNodeInfo>>({ items: []})
+	);
 	const { callStatus } = state;
-	const { getCacheValue, setCacheValue } = useCache();
+	const { getCacheValue, setCacheValue } = useCache<
+		SongTreeNodeInfo | ListData<SongTreeNodeInfo>
+	>();
 
 	useAuthViewStateChange(dispatch);
 	useEffect(() => {
@@ -72,7 +96,7 @@ export const SongDirectory = (props) => {
 						dispatch(dispatches.done(cachedResults));
 					}
 					else {
-						const data = await fetchSongTree({ params: { prefix } });
+						const data = await fetchSongTree({ prefix });
 						setCacheValue(prefix, data);
 						dispatch(dispatches.done(data));
 					}
@@ -118,21 +142,29 @@ SongDirectory.propTypes = {
 	mapValueToNodeId: PropTypes.func,
 };
 
-export const SongTree = withCacheProvider()(() => {
-	const [selectedNodes, setSelectedNodes] = useState([]);
-	const [selectedPrefix, setSelectedPrefix] = useState(null);
-	const [selectedPrefixRules, setSelectedPrefixRules] = useState([]);
-	const { getCacheValue } = useCache();
+export const SongTree = withCacheProvider<
+	SongTreeNodeInfo | ListData<SongTreeNodeInfo>
+>()(
+	() => {
+	const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
+	const [selectedPrefix, setSelectedPrefix] = useState<string | null>(null);
+	const [selectedPrefixRules, setSelectedPrefixRules] =
+		useState<PathsActionRule[]>([]);
+	const { getCacheValue } = useCache<
+		SongTreeNodeInfo | ListData<SongTreeNodeInfo>
+	>();
 	const { enqueueSnackbar } = useSnackbar();
 
-	const onNodeSelect = (e, nodeIds) => {
+	const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
 		if(nodeIds.length === 1) {
 			if(selectedNodes[0] === nodeIds[0]) { //unselect
 				setSelectedNodes([]);
 			}
 			const songNodeInfo = getCacheValue(nodeIds[0]);
-			setSelectedPrefixRules(songNodeInfo?.rules || []);
-			setSelectedPrefix(normalizeOpeningSlash(songNodeInfo?.path));
+			if(songNodeInfo && "rules" in songNodeInfo && "path" in songNodeInfo) {
+				setSelectedPrefixRules(songNodeInfo?.rules || []);
+				setSelectedPrefix(normalizeOpeningSlash(songNodeInfo?.path));
+			}
 			setSelectedNodes([nodeIds[0]]);
 		}
 		else {
@@ -148,10 +180,16 @@ export const SongTree = withCacheProvider()(() => {
 	};
 
 	const getSelectedSongIds = () => {
-		return selectedNodes.map(s => getCacheValue(s)?.id).filter(n => !!n);
+		return selectedNodes.map(s => {
+			const value = getCacheValue(s);
+			if (value && "id" in value) {
+				return value?.id;
+			}
+			return null;
+		}).filter(n => !!n) as number[];
 	};
 
-	const getSongEditUrl = (ids) => {
+	const getSongEditUrl = (ids: IdType[]) => {
 		const queryStr = buildArrayQueryStr("ids", ids);
 		return `${DomRoutes.songEdit()}${queryStr}`;
 	};

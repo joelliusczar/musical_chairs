@@ -3,7 +3,13 @@ import { Dialog } from "@mui/material";
 import { LoginForm } from "./AccountsLoginForm";
 import PropTypes from "prop-types";
 
-export function LoginModal(props) {
+type LoginModalProps = {
+	open: boolean
+	setOpen: (state: boolean) => void
+	onCancel: (() => void) | null
+};
+
+export function LoginModal(props: LoginModalProps) {
 
 	const { open, setOpen, onCancel } = props;
 

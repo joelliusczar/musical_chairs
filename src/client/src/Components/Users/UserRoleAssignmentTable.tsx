@@ -11,11 +11,26 @@ import { UserSearchModalOpener } from "../Accounts/UserSearch";
 import { RoleView } from "./RoleView";
 import { RoleEntry } from "./RoleEntry";
 import PropTypes from "prop-types";
+import {
+	ActionRule,
+	User,
+	ActionRuleCreationInfo
+} from "../../Types/user_types";
+import { SelectItem } from "../../Types/generic_types";
 
 
+interface UserRoleAssignmentTableProps {
+	onUserSelect?: (selected: User | null) => void | Promise<void>
+	users: User[]
+	removeRole: (role: ActionRule, user: User) => void
+	removeUser: (user: User) => void
+	availableRoles: SelectItem[]
+	addRole: (role: ActionRuleCreationInfo, user: User) => void | Promise<void>
+}
 
-
-export const UserRoleAssignmentTable = (props) => {
+export const UserRoleAssignmentTable = (
+	props: UserRoleAssignmentTableProps
+) => {
 
 	const {
 		onUserSelect,
@@ -34,7 +49,7 @@ export const UserRoleAssignmentTable = (props) => {
 					onConfirm={onUserSelect}
 				/>
 			</Box>}
-			{!!users?.length && users.map((u, uidx) => {
+			{!!users?.length && users.map((u, uidx: number) => {
 				return (
 					<Accordion
 						className="user-role-container"
@@ -56,7 +71,10 @@ export const UserRoleAssignmentTable = (props) => {
 						</AccordionSummary>
 						<AccordionDetails>
 							<>
-								{!!u.roles?.length && u.roles.map((r, ridx) => {
+								{!!u.roles?.length && u.roles.map((
+									r: ActionRule,
+									ridx: Number
+								) => {
 									return (<Box
 										key={`rule_${uidx}_${ridx}`}
 										className="role-item"
@@ -106,4 +124,3 @@ UserRoleAssignmentTable.propTypes = {
 		name: PropTypes.string,
 	})).isRequired,
 };
-

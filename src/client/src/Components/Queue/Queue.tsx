@@ -16,11 +16,10 @@ import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
 	waitingReducer,
-	pageableDataInitialState,
 	dispatches,
 } from "../Shared/waitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
-import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
+import { UrlBuilder } from "../../Helpers/pageable_helpers";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { NowPlaying } from "../Shared/NowPlaying";
@@ -33,17 +32,14 @@ import {
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import {
+	NowPlayingInfo,
+	SongListDisplayItem,
+	CurrentPlayingInfo,
+	InitialQueueState,
+} from "../../Types/song_info_types";
+import { StationInfo } from "../../Types/station_types";
 
-const queueInitialState = {
-	...pageableDataInitialState,
-	data: {...pageableDataInitialState.data,
-		nowPlaying: {
-			name: "",
-			album: "",
-			artist: "",
-		},
-	},
-};
 
 
 export const Queue = () => {
@@ -58,11 +54,13 @@ export const Queue = () => {
 
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
-	const [selectedStation, setSelectedStation] = useState();
+	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
+
 
 	const [queueState, queueDispatch] =
-		useReducer(waitingReducer(),
-			queueInitialState
+		useReducer(
+			waitingReducer<CurrentPlayingInfo, InitialQueueState>(),
+			new InitialQueueState()
 		);
 
 	const { callStatus: queueCallStatus } = queueState;
@@ -73,9 +71,9 @@ export const Queue = () => {
 
 	useAuthViewStateChange(queueDispatch);
 
-	const getPageUrl = urlBuilderFactory(DomRoutes.queue);
+	const urlBuilder = new UrlBuilder(DomRoutes.queue);
 
-	const rowButton = (item, idx) => {
+	const rowButton = (item: SongListDisplayItem, idx: number) => {
 		const rowButtonOptions = [];
 
 		const canEditThisSong = anyConformsToAnyRule(
@@ -115,7 +113,7 @@ export const Queue = () => {
 			</Button>);
 	};
 
-	const handleRemoveSongFromQueue = async (item) => {
+	const handleRemoveSongFromQueue = async (item: SongListDisplayItem) => {
 		try {
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
@@ -145,7 +143,7 @@ export const Queue = () => {
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationKey) return;
+			if (!pathVars.stationKey || !pathVars.ownerKey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
@@ -154,8 +152,9 @@ export const Queue = () => {
 				const data = await fetchQueue({
 					stationKey: pathVars.stationKey,
 					ownerKey: pathVars.ownerKey,
-					params: { page: page - 1, limit: limit } }
-				);
+					page: page - 1,
+					limit: limit,
+				});
 				queueDispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 			}
@@ -181,7 +180,7 @@ export const Queue = () => {
 			<h1>Queue: {selectedStation?.displayName || ""}</h1>
 			<Box m={1}>
 				<StationRouteSelect
-					getPageUrl={getPageUrl}
+					getPageUrl={urlBuilder.getOtherUrl}
 					onChange={(s) => setSelectedStation(s)}
 				/>
 			</Box>
@@ -231,7 +230,7 @@ export const Queue = () => {
 						</TableContainer>
 						<Box sx={{ display: "flex" }}>
 							<UrlPagination
-								getPageUrl={getPageUrl}
+								getPageUrl={urlBuilder.getThisUrl}
 								totalRows={queueState.data?.totalRows}
 							/>
 						</Box>

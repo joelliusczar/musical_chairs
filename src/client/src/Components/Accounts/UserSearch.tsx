@@ -11,24 +11,37 @@ import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
 import { FormSelect } from "../Shared/FormSelect";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
+import { User } from "../../Types/user_types";
+import { ClickEvent, ChangeEvent } from "../../Types/browser_types";
+
+type UserSeachInitialValues = {
+	selectedUser: User | null
+}
+
+type UserSearchProps = {
+	formMethods: UseFormReturn<UserSeachInitialValues>
+	onCancel?: (e: ClickEvent) => void
+	onConfirm: (e: ClickEvent) => void
+}
 
 const inputField = {
 	margin: 2,
 };
 
 
-
-export const UserSearch = (props) => {
+export const UserSearch = (
+	props: UserSearchProps
+) => {
 
 	const { onCancel, formMethods, onConfirm } = props;
-	const searchCache = useRef({});
+	const searchCache = useRef<{[term: string]: User[]}>({});
 
-	const [options, setOptions] = useState([]);
+	const [options, setOptions] = useState<User[]>([]);
 	const [inputValue, setInputValue] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
 
-	const handleInputChange = (e, newValue) => {
+	const handleInputChange = (e: ChangeEvent, newValue: string) => {
 		setInputValue(newValue);
 	};
 
@@ -36,7 +49,7 @@ export const UserSearch = (props) => {
 		if (!inputValue) {
 			return;
 		}
-		const searchCall = debouncePromise(async (searchTerm) => {
+		const searchCall = debouncePromise(async (searchTerm: string) => {
 			try {
 				if (searchTerm in searchCache.current) {
 					setOptions(searchCache.current[searchTerm]);
@@ -63,7 +76,7 @@ export const UserSearch = (props) => {
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
-				<FormSelect
+				<FormSelect<User, UserSeachInitialValues>
 					name="selectedUser"
 					options={options}
 					getOptionLabel={(option) => option ? option.username : ""}
@@ -93,13 +106,17 @@ UserSearch.propTypes = {
 	formMethods: PropTypes.object.isRequired,
 };
 
-export const UserSearchModalOpener = (props) => {
+type UserSearchModalOpenerProps = {
+	onConfirm: (selected: User | null) => void
+}
+
+export const UserSearchModalOpener = (props: UserSearchModalOpenerProps) => {
 
 	const { onConfirm } = props;
 
 	const [userSearchOpen, setUserSearchOpen ] = useState(false);
 
-	const formMethods = useForm({
+	const formMethods = useForm<UserSeachInitialValues>({
 		defaultValues: { selectedUser: null },
 	});
 

@@ -8,9 +8,7 @@ import React, {
 } from "react";
 import {
 	waitingReducer,
-	listDataInitialState,
 	dispatches,
-	waitingTypes,
 } from "../Components/Shared/waitingReducer";
 import PropTypes from "prop-types";
 import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
@@ -19,12 +17,44 @@ import { fetchStations } from "../API_Calls/stationCalls";
 import { CallStatus } from "../constants";
 import { useCurrentUser } from "./AuthContext";
 import { nameSortFn } from "../Helpers/array_helpers";
+import {
+	ListStore,
+	ListDataShape,
+	KeyAndDataOrUpdater,
+	WaitingTypes,
+	DataOrUpdater,
+	InitialState,
+} from "../Types/reducer_types";
+import { IdItem, IdType, NamedIdItem } from "../Types/generic_types";
+import { StationInfo } from "../Types/station_types";
+import { AlbumInfo, ArtistInfo } from "../Types/song_info_types";
 
-const AppContext = createContext();
+const initialAlbumState =
+	new InitialState<ListDataShape<AlbumInfo>>({ items: []});
+const initialStationState =
+	new InitialState<ListDataShape<StationInfo>>({ items: []});
+const initialArtistState =
+	new InitialState<ListDataShape<ArtistInfo>>({ items: []});
+
+const AppContext = createContext<{
+	albumsState: InitialState<ListDataShape<AlbumInfo>>,
+	albumsDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
+	stationsState: InitialState<ListDataShape<StationInfo>>,
+	stationsDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
+	artistState: InitialState<ListDataShape<ArtistInfo>>,
+	artistDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
+}>({
+	albumsState: initialAlbumState,
+	albumsDispatch: ({ type: WaitingTypes, payload: any}) => {},
+	stationsState: initialStationState,
+	stationsDispatch: ({ type: WaitingTypes, payload: any}) => {},
+	artistState: initialArtistState,
+	artistDispatch: ({ type: WaitingTypes, payload: any}) => {},
+});
 
 
-const sortedListReducerPaths = {
-	[waitingTypes.done]: (state, payload) => {
+class SortedListReducerPaths<DataShape extends NamedIdItem> {
+	done(state: ListStore<DataShape>, payload: ListDataShape<DataShape>) {
 		const items = payload && payload.items ? payload.items
 			.sort(nameSortFn)
 			: [];
@@ -35,8 +65,8 @@ const sortedListReducerPaths = {
 			},
 			callStatus: CallStatus.done,
 		};
-	},
-	[waitingTypes.add]: (state, payload) => {
+	}
+	add(state: ListStore<DataShape>, payload: DataShape) {
 		const items = [...state.data.items, payload]
 			.sort(nameSortFn);
 		return {
@@ -45,11 +75,14 @@ const sortedListReducerPaths = {
 				items: items,
 			},
 		};
-	},
-	[waitingTypes.update]: (state, payload) => {
+	}
+	update(
+		state: ListStore<DataShape>,
+		payload: KeyAndDataOrUpdater<DataShape>
+	) {
 		const { key, dataOrUpdater } = payload;
 		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === (key * 1));
+		const idx = items.findIndex(x => x.id === (parseInt(key)));
 		if (idx > -1) {
 			if (typeof dataOrUpdater === "function") {
 				items.splice(idx, 1, dataOrUpdater(items[idx]));
@@ -68,26 +101,26 @@ const sortedListReducerPaths = {
 		else {
 			console.error("Item was not found in local store.");
 		}
-	},
+	}
 };
 
-export const AppContextProvider = (props) => {
+export const AppContextProvider = (props: { children: JSX.Element }) => {
 	const { children } = props;
 	const { username } = useCurrentUser();
 
 	const [albumsState, albumsDispatch] = useReducer(
-		waitingReducer(sortedListReducerPaths),
-		{...listDataInitialState}
+		waitingReducer(new SortedListReducerPaths<AlbumInfo>()),
+		initialAlbumState
 	);
 
 	const [stationsState, stationsDispatch] = useReducer(
-		waitingReducer(sortedListReducerPaths),
-		{...listDataInitialState}
+		waitingReducer(new SortedListReducerPaths<StationInfo>()),
+		initialStationState
 	);
 
 	const [artistState, artistDispatch] = useReducer(
-		waitingReducer(sortedListReducerPaths),
-		{...listDataInitialState}
+		waitingReducer(new SortedListReducerPaths<ArtistInfo>()),
+		initialArtistState
 	);
 
 	useEffect(() => {
@@ -162,8 +195,8 @@ AppContextProvider.propTypes = {
 	]).isRequired,
 };
 
-export const useIdMapper = (items) => {
-	const idMapper = useCallback((value) => {
+export const useIdMapper = <T extends IdItem>(items: T[]) => {
+	const idMapper = useCallback((value: T) => {
 		if(!value) return value;
 		if(Array.isArray(value)) {
 			return value.map((item) =>
@@ -185,12 +218,15 @@ export const useAlbumData = () => {
 	} = useContext(AppContext);
 
 	const add = useCallback(
-		(item) => dispatch(dispatches.add(item)),
+		(item: AlbumInfo) => dispatch(dispatches.add(item)),
 		[dispatch]
 	);
 
 	const update = useCallback(
-		(key, item) => dispatch(dispatches.update(key, item)),
+		(
+			key: IdType,
+			item: DataOrUpdater<AlbumInfo>
+		) => dispatch(dispatches.update(key, item)),
 		[dispatch]
 	);
 
@@ -210,12 +246,15 @@ export const useStationData = () => {
 	} = useContext(AppContext);
 
 	const add = useCallback(
-		(item) => dispatch(dispatches.add(item)),
+		(item: StationInfo) => dispatch(dispatches.add(item)),
 		[dispatch]
 	);
 
 	const update = useCallback(
-		(key, item) => dispatch(dispatches.update(key, item)),
+		(
+			key: IdType,
+			item: DataOrUpdater<StationInfo>
+		) => dispatch(dispatches.update(key, item)),
 		[dispatch]
 	);
 
@@ -235,12 +274,15 @@ export const useArtistData = () => {
 	} = useContext(AppContext);
 
 	const add = useCallback(
-		(item) => dispatch(dispatches.add(item)),
+		(item: ArtistInfo) => dispatch(dispatches.add(item)),
 		[dispatch]
 	);
 
 	const update = useCallback(
-		(key, item) => dispatch(dispatches.update(key, item)),
+		(
+			key: IdType,
+			item: DataOrUpdater<ArtistInfo>
+		) => dispatch(dispatches.update(key, item)),
 		[dispatch]
 	);
 

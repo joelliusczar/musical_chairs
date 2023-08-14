@@ -14,12 +14,20 @@ import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
 import Loader from "../Shared/Loader";
 import { useCombinedContextAndFormItems } from "../../Helpers/array_helpers";
 import { ArtistSelect } from "../Artists/ArtistSelect";
+import { AlbumInfo, ArtistInfo } from "../../Types/song_info_types";
 
 const inputField = {
 	margin: 2,
 };
 
-export const AlbumEdit = (props) => {
+type AlbumEditProps = {
+	onCancel: (e: unknown) => void
+	afterSubmit: (a: AlbumInfo) => void
+	formArtists: ArtistInfo[]
+};
+
+
+export const AlbumEdit = (props: AlbumEditProps) => {
 	const { afterSubmit, onCancel, formArtists } = props;
 	const { enqueueSnackbar } = useSnackbar();
 
@@ -30,7 +38,7 @@ export const AlbumEdit = (props) => {
 		add: addArtist,
 	} = useArtistData();
 
-	const formMethods = useForm({
+	const formMethods = useForm<AlbumInfo>({
 		defaultValues: {
 			name: "",
 			albumArtist: null,
@@ -63,15 +71,15 @@ export const AlbumEdit = (props) => {
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
-				<FormTextField
+				<FormTextField<AlbumInfo>
 					name="name"
 					label="Name"
 					formMethods={formMethods}
 				/>
 			</Box>
-			<Loader status={artistCallStatus} artistError={artistError}>
+			<Loader status={artistCallStatus} error={artistError}>
 				<Box sx={inputField}>
-					<ArtistSelect
+					<ArtistSelect<AlbumInfo>
 						name="albumArtist"
 						options={artists}
 						formMethods={formMethods}
@@ -105,7 +113,12 @@ AlbumEdit.propTypes = {
 	})),
 };
 
-export const AlbumNewModalOpener = (props) => {
+type AlbumNewModalOpenerProps = {
+	add?: (a: AlbumInfo) => void
+	formArtists: ArtistInfo[]
+};
+
+export const AlbumNewModalOpener = (props: AlbumNewModalOpenerProps) => {
 
 	const { add, formArtists } = props;
 
@@ -115,7 +128,7 @@ export const AlbumNewModalOpener = (props) => {
 		setItemNewOpen(false);
 	};
 
-	const itemCreated = (item) => {
+	const itemCreated = (item: AlbumInfo) => {
 		add && add(item);
 		closeModal();
 	};

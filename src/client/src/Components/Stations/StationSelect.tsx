@@ -1,12 +1,16 @@
 import React from "react";
 import { Box, Typography, FormHelperText } from "@mui/material";
-import { FormSelect } from "../Shared/FormSelect";
+import { FormSelect, FormSelectPropsDefault } from "../Shared/FormSelect";
+import { StationInfo } from "../../Types/station_types";
+import { FieldValues } from "react-hook-form";
 
-export const StationSelect = (props) => {
+export const StationSelect = <FormT extends FieldValues>(
+	props: FormSelectPropsDefault<StationInfo, FormT>
+) => {
 
 	return (
-		<FormSelect
-			renderOption={(renderProps, option) => {
+		<FormSelect<StationInfo, FormT>
+			renderOption={(renderProps: any, option) => {
 				if (option) {
 					const { className } = renderProps;
 					return (

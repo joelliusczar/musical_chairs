@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Route, Switch, NavLink, useHistory } from "react-router-dom";
+import { Route, Routes, NavLink, useNavigate } from "react-router-dom";
 import { List, ListItem } from "@mui/material";
 import { Queue } from "../Queue/Queue";
 import { History } from "../History/History";
@@ -85,72 +85,68 @@ export function NavMenu() {
 
 export function AppRoutes() {
 
-	const urlHistory = useHistory();
+	const navigate = useNavigate();
 	const currentUser = useCurrentUser();
 
 	useEffect(() => {
 		if (!currentUser.username) {
 			const cookieObj = cookieToObject(document.cookie);
 			if (!cookieObj["username"]) {
-				urlHistory.push("/");
+				navigate("/");
 			}
 		}
-	},[urlHistory, currentUser]);
+	},[navigate, currentUser]);
 
 	return (
-		<Switch>
+		<Routes>
 			<Route
 				path={`${DomRoutes.queue({
 					stationKey: ":stationKey?",
 					ownerKey: ":ownerKey",
 				})}`}
-			>
-				<Queue />
-			</Route>
+				element={<Queue />}
+			/>
 			<Route
 				path={`${DomRoutes.history({
 					stationKey: ":stationKey?",
 					ownerKey: ":ownerKey",
 				})}`}
-			>
-				<History />
-			</Route>
+				element={<History />}
+			/>
 			<Route
 				path={`${DomRoutes.stations({
 					ownerKey: ":ownerKey?",
 				})}`}
-			>
-				<Stations />
-			</Route>
+				element={<Stations />}
+			/>
 			<Route
 				path={`${DomRoutes.songCatalogue({
 					stationKey: ":stationKey?",
 					ownerKey: ":ownerKey",
 				})}`}
-			>
-				<SongCatalogue />
-			</Route>
+				element={<SongCatalogue />}
+			/>
 			{currentUser.username && <Route
 				path={DomRoutes.stationUsers({
 					stationKey: ":stationKey",
 					ownerKey: ":ownerKey",
 				})}
-			>
-				<StationUserRoleAssignmentTable />
-			</Route>}
+				element={<StationUserRoleAssignmentTable />}
+			/>}
 			{currentUser.username && <Route
 				path={DomRoutes.pathUsers()}
-			>
-				<PathUserRoleAssignmentTable />
-			</Route>}
-			{!currentUser.username &&<Route path={DomRoutes.accountsNew()}>
-				<AccountsNew />
-			</Route>}
-			{!currentUser.username && <Route path={DomRoutes.accountsLogin()} >
-				<LoginForm
-					afterSubmit={() => urlHistory.push("")}
-				/>
-			</Route>}
+				element={<PathUserRoleAssignmentTable />}
+			/>}
+			{!currentUser.username &&<Route
+				path={DomRoutes.accountsNew()}
+				element={<AccountsNew />}
+			/>}
+			{!currentUser.username && <Route
+				path={DomRoutes.accountsLogin()}
+				element={<LoginForm
+					afterSubmit={() => navigate("")}
+				/>}
+			/>}
 			{currentUser.username &&
 			<Route
 				path={DomRoutes.accountsEdit({
@@ -162,29 +158,25 @@ export function AppRoutes() {
 			<PrivateRoute
 				scopes={[UserRoleDef.USER_LIST, UserRoleDef.USER_EDIT]}
 				path={DomRoutes.accountsList()}
-			>
-				<AccountsList />
-			</PrivateRoute>
+				element={<AccountsList />}
+			/>
 			<PrivateRoute
 				path={DomRoutes.accountsRoles({ subjectUserKey: ":subjectUserKey"})}
 				scopes={[UserRoleDef.ADMIN, UserRoleDef.SITE_USER_ASSIGN]}
-			>
-				<SiteUserRoleAssignmentTable />
-			</PrivateRoute>
+				element={<SiteUserRoleAssignmentTable />}
+			/>
 			<Route
 				path={`${DomRoutes.stationsEdit({
 					stationKey: ":stationKey?",
 					ownerKey: ":ownerKey",
 				})}`}
-			>
-				<StationEdit />
-			</Route>
+				element={<StationEdit />}
+			/>
 			<PrivateRoute
 				path={`${DomRoutes.stationsAdd()}`}
 				scopes={[UserRoleDef.STATION_CREATE]}
-			>
-				<StationEdit />
-			</PrivateRoute>
+				element={<StationEdit />}
+			/>
 			<Route
 				path={`${DomRoutes.songEdit()}`}
 			>
@@ -197,15 +189,14 @@ export function AppRoutes() {
 					UserRoleDef.PATH_EDIT,
 					UserRoleDef.SONG_DOWNLOAD,
 				]}
-			>
-				<SongTree />
-			</PrivateRoute>
-			<Route exact path="/">
+				element={<SongTree />}
+			/>
+			<Route path="/">
 				<Stations />
 			</Route>
 			<Route>
 				<NotFound />
 			</Route>
-		</Switch>
+		</Routes>
 	);
 }

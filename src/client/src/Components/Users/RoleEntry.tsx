@@ -4,6 +4,19 @@ import { Paper, Button, Box } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { FormTextField } from "../Shared/FormTextField";
 import { FormSelect } from "../Shared/FormSelect";
+import { Named, SelectItem } from "../../Types/generic_types";
+import { ActionRuleCreationInfo } from "../../Types/user_types";
+
+type InitialValueTypes = {
+	role: {
+		id: string,
+		name: string,
+	},
+	days: number,
+	hours: number,
+	minutes: number,
+	count: number,
+};
 
 const initialValues = {
 	role: {
@@ -16,7 +29,13 @@ const initialValues = {
 	count: 0,
 };
 
-export const RoleEntry = (props) => {
+type RoleEntryProps = {
+	save: (rule: ActionRuleCreationInfo) => void,
+	cancel: () => void,
+	availableRoles: SelectItem[]
+};
+
+export const RoleEntry = (props: RoleEntryProps) => {
 
 	const { save, cancel, availableRoles } = props;
 
@@ -26,7 +45,7 @@ export const RoleEntry = (props) => {
 	const { handleSubmit, reset } = formMethods;
 	const callSubmit = handleSubmit(values => {
 
-		const span = values.minutes * 60 + values.hours * 60 * 60 
+		const span = values.minutes * 60 + values.hours * 60 * 60
 			+ values.days * 60 * 60 * 24;
 		save({
 			name: values.role.id,
@@ -47,6 +66,7 @@ export const RoleEntry = (props) => {
 				label="Role"
 				options={availableRoles}
 				formMethods={formMethods}
+				getOptionLabel={(option: Named) => option ? option.name : ""}
 				sx={{ width: 195 }}
 				isOptionEqualToValue={(option, value) => {
 					return option.id === value.id;
@@ -57,7 +77,7 @@ export const RoleEntry = (props) => {
 			<Box className="rule-entry-first-text">
 				This action can be invoked
 			</Box>
-			<FormTextField
+			<FormTextField<InitialValueTypes>
 				className="small-number-input"
 				name="count"
 				label="Count"
@@ -66,7 +86,7 @@ export const RoleEntry = (props) => {
 				formMethods={formMethods}
 			/>
 			<Box component="span" className="between-text">times per</Box>
-			<FormTextField
+			<FormTextField<InitialValueTypes>
 				className="small-number-input"
 				name="hours"
 				label="Hours"
@@ -76,7 +96,7 @@ export const RoleEntry = (props) => {
 			/>
 
 
-			<FormTextField
+			<FormTextField<InitialValueTypes>
 				className="small-number-input"
 				name="days"
 				label="Days"
@@ -84,7 +104,7 @@ export const RoleEntry = (props) => {
 				min="0"
 				formMethods={formMethods}
 			/>
-			<FormTextField
+			<FormTextField<InitialValueTypes>
 				className="small-number-input"
 				name="minutes"
 				label="Minutes"

@@ -6,31 +6,43 @@ import {
 	MenuItem,
 	TextField,
 	ListSubheader,
-	Grid,
+	Box,
 } from "@mui/material";
-import { useHistory, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import PropTypes from "prop-types";
+import { useSnackbar } from "notistack";
 import { userKeyMatch, keyMatch } from "../../Helpers/compare_helpers";
+import {
+	StationInfo,
+	RequiredStationParams
+} from "../../Types/station_types";
 
+type StationRouteSelectProps = {
+	getPageUrl: (params: RequiredStationParams, currentLocation: string) => string,
+	onChange?: (s: StationInfo | null) => void,
+	unrendered?: boolean
+};
 
-export const StationRouteSelect = (props) => {
+export const StationRouteSelect = (props: StationRouteSelectProps) => {
 
 	const { getPageUrl, onChange, unrendered } = props;
 	const pathVars = useParams();
-	const urlHistory = useHistory();
+	const navigate = useNavigate();
 	const location = useLocation();
+	const { enqueueSnackbar } = useSnackbar();
 
 	const {
 		items: contextStations,
 	} = useStationData();
 
 	const stations = useMemo(() => contextStations ?
-		contextStations.filter(s => userKeyMatch(pathVars.ownerKey,s.owner)) :
+		contextStations.filter(s =>
+			!!pathVars.ownerKey && userKeyMatch(pathVars.ownerKey,s.owner)) :
 		contextStations,
 	[contextStations, pathVars.ownerKey]
 	);
 
-	const pathToStation = (path) => {
+	const pathToStation = (path: string): StationInfo | null => {
 		const split = path.split("/");
 		const selectedStations = stations?.filter(
 			s => keyMatch(split[1], s) &&
@@ -68,7 +80,7 @@ export const StationRouteSelect = (props) => {
 	useEffect(() => {
 		const station = pathToStation(pathSuffix);
 		setSelectedStation(station);
-		onChange && onChange(station);
+		!!onChange && onChange(station);
 	},[setSelectedStation, pathSuffix, stations]);
 
 	const stationName = selectedStation?.name?.toLowerCase() || "";
@@ -86,25 +98,29 @@ export const StationRouteSelect = (props) => {
 			label="Stations"
 			onChange={(e) => {
 				const station = pathToStation(e.target.value);
-				onChange && onChange(station);
+				!!onChange && onChange(station);
 				setSelectedStation(station);
-				urlHistory.replace(getPageUrl(
+				if (!station || !station.owner) {
+					enqueueSnackbar("Invalid station selected.", {variant: "error" });
+					return;
+				}
+				navigate(getPageUrl(
 					{
 						ownerKey: station?.owner?.username?.toLowerCase(),
 						stationKey: station?.name?.toLowerCase(),
 					},
-					location.search)
-				);
+					location.search
+					),
+					{ replace: true}
+					);
 			}}
 			value={
 				`${ownername}/${stationName}`
 			}
 		>
 			<ListSubheader>
-				<Grid container className="station-menu">
-					<Grid item xs={6} className="station-menu">Station</Grid>
-					<Grid item xs={6} className="station-menu">Owner</Grid>
-				</Grid>
+					<Box className="station-menu">Station</Box>
+					<Box className="station-menu">Owner</Box>
 			</ListSubheader>
 			<MenuItem key="empty_station" value={"/"}>
 			</MenuItem>
@@ -113,20 +129,18 @@ export const StationRouteSelect = (props) => {
 					<MenuItem
 						key={s.name}
 						value={`${s.owner?.username}/${s.name?.toLowerCase()}`}
-						container
-						component={Grid}
 						className="station-menu"
 					>
-						<Grid item xs={6} className="station-menu">
+						<Box className="station-menu">
 							{s.displayName || s.name}
 							{/* <Typography noWrap >
 							</Typography> */}
-						</Grid>
-						<Grid item xs={6} className="station-menu">
+						</Box>
+						<Box className="station-menu">
 							{s.owner?.username}
 							{/* <Typography>
 							</Typography> */}
-						</Grid>
+						</Box>
 					</MenuItem>
 				);
 			})}

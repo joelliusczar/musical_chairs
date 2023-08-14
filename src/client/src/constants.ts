@@ -1,3 +1,7 @@
+import { OwnedStationParams } from "./Types/station_types";
+import { OwnerParams, SubjectUserParams } from "./Types/user_types";
+import { StringObject } from "./Types/generic_types";
+
 export const baseAddress = process.env.REACT_APP_BASE_ADDRESS;
 export const apiVersion = process.env.REACT_APP_API_VERSION;
 export const isDev = process.env.NODE_ENV === "development";
@@ -15,38 +19,41 @@ export const CallStatus = {
 };
 
 export const DomRoutes = {
-	queue: ({ stationKey, ownerKey }) =>
+	queue: ({ stationKey, ownerKey }: OwnedStationParams) =>
 		`/stations/queue/${ownerKey}/${stationKey ? `${stationKey}/` : ""}`,
-	history: ({ stationKey, ownerKey }) =>
+	history: ({ stationKey, ownerKey }: OwnedStationParams) =>
 		`/stations/history/${ownerKey}/${stationKey ? `${stationKey}/` : ""}`,
-	stations: (params) => `/stations/list/${params?.ownerKey || ""}`,
-	stationsEdit: ({ stationKey, ownerKey }) =>
+	stations: (params?: OwnerParams) =>
+	`/stations/list/${params?.ownerKey || ""}`,
+	stationsEdit: ({ stationKey, ownerKey }: OwnedStationParams) =>
 		`/stations/edit/${ownerKey}/${stationKey}`,
 	stationsAdd: () => "/stations/edit/",
-	stationUsers: ({ stationKey, ownerKey }) =>
+	stationUsers: ({ stationKey, ownerKey }: OwnedStationParams) =>
 		`/stations/users/${ownerKey}/${stationKey}`,
 	songEdit: () => "/songs/edit/",
-	songCatalogue: ({ stationKey, ownerKey }) => {
+	songCatalogue: ({ stationKey, ownerKey }: OwnedStationParams) => {
 		const stationSegment = stationKey ? `${stationKey}/` : "";
 		return `/stations/song-catalogue/${ownerKey}/${stationSegment}`;
 	},
 	pathUsers: () => "/song-info/users",
 	songTree: () => "/song-info/tree/",
 	accountsNew: () => "/accounts/new",
-	accountsEdit: ({ subjectUserKey }) => `/accounts/edit/${subjectUserKey}`,
+	accountsEdit: ({ subjectUserKey }: SubjectUserParams) =>
+		`/accounts/edit/${subjectUserKey}`,
 	accountsLogin: () => "/accounts/login",
-	accountsRoles: ({ subjectUserKey }) => `/users/roles/${subjectUserKey}`,
+	accountsRoles: ({ subjectUserKey }: SubjectUserParams) =>
+		`/users/roles/${subjectUserKey}`,
 	accountsList: () => "/accounts/list",
 	notFound: () => "/not-found",
 };
 
-export const UserRoleDomain = {
+export const UserRoleDomain: StringObject = {
 	SITE: "site",
 	STATION: "station",
 	PATH: "path",
 };
 
-export const UserRoleDef = {
+export const UserRoleDef: StringObject = {
 	ADMIN: "admin",
 	SITE_USER_ASSIGN: `${UserRoleDomain.SITE}:userassign`,
 	SITE_USER_LIST: `${UserRoleDomain.SITE}:userlist`,

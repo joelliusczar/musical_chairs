@@ -1,8 +1,12 @@
 import React from "react";
 import { FormHelperText, Typography, Box } from "@mui/material";
-import { FormSelect } from "../Shared/FormSelect";
+import { FormSelect, FormSelectPropsDefault } from "../Shared/FormSelect";
+import { FieldValues } from "react-hook-form";
+import { AlbumInfo } from "../../Types/song_info_types";
 
-export const AlbumSelect = (props) => {
+export const AlbumSelect = <FormT extends FieldValues>(
+	props: FormSelectPropsDefault<AlbumInfo, FormT>
+) => {
 
 	return (
 		<FormSelect

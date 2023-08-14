@@ -12,10 +12,9 @@ import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useHistory, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
 	waitingReducer,
-	initialState,
 	dispatches,
 } from "../Shared/waitingReducer";
 import {
@@ -32,6 +31,12 @@ import {
 } from "../../Context_Providers/AuthContext";
 import { Loader } from "../Shared/Loader";
 import { FormSelect } from "../Shared/FormSelect";
+import { InitialState } from "../../Types/reducer_types";
+import {
+	StationInfo,
+	FormStationInfo,
+} from "../../Types/station_types";
+import { NamedIdItem } from "../../Types/generic_types";
 
 
 const inputField = {
@@ -66,10 +71,14 @@ const initialValues = {
 	requestSecurityLevel: requestSecurityOptions[1],
 };
 
-const validatePhraseIsUnused = async (value, context) => {
+
+
+const validatePhraseIsUnused = async (
+	value: string | undefined,
+	context: Yup.TestContext<FormStationInfo>
+) => {
 	const id = context?.parent?.id;
-	const used = await checkValues({ values: {
-		id,
+	const used = await checkValues({ id, values: {
 		[context.path]: value,
 	}});
 	return !(context.path in used) || !used[context.path];
@@ -85,45 +94,51 @@ const schema = Yup.object().shape({
 		"requestSecurityLevel",
 		"Request Security cannot be public or lower than view security",
 		(value, context) => {
-			return value !== MinItemSecurityLevel.PUBLIC
+			return (value.id) !== MinItemSecurityLevel.PUBLIC
 				&& value.id >= context.parent.viewSecurityLevel.id;
 		}
 	),
 });
 
+type StationEditProps = {
+	onCancel: (e: unknown) => void
+	afterSubmit: (s: StationInfo) => void
+};
 
-
-export const StationEdit = (props) => {
+export const StationEdit = (props: StationEditProps) => {
 	const { onCancel } = props;
 	const { enqueueSnackbar } = useSnackbar();
-	const urlHistory = useHistory();
+	const navigate = useNavigate();
 	const pathVars = useParams();
 	const currentUser = useCurrentUser();
 
 
-	const [state, dispatch] = useReducer(waitingReducer(), initialState);
+	const [state, dispatch] = useReducer(
+		waitingReducer<FormStationInfo, InitialState<FormStationInfo>>(),
+		new InitialState<FormStationInfo>(initialValues)
+	);
 	const { callStatus, error } = state;
 	const {
 		add: addStation,
 		update: updateStation,
 	} = useStationData();
 
-	const getPageUrl = (params) => {
+	const getPageUrl = (params: { name: string }) => {
 		return DomRoutes.stationsEdit({
 			ownerKey: pathVars.ownerKey || currentUser.username,
 			stationKey: params.name,
 		});
 	};
 
-	const _afterSubmit = (data) => {
+	const _afterSubmit = (data: StationInfo) => {
 		reset(data);
-		urlHistory.replace(getPageUrl({ name: data.name }));
+		navigate(getPageUrl({ name: data.name }), { replace: true});
 	};
 
 	const afterSubmit = props.afterSubmit || _afterSubmit;
 
 
-	const formMethods = useForm({
+	const formMethods = useForm<FormStationInfo>({
 		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
@@ -131,7 +146,12 @@ export const StationEdit = (props) => {
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const stationId = values.id || null;
-			const {viewSecurityLevel, requestSecurityLevel, ...saveData} = values;
+			const {viewSecurityLevel, requestSecurityLevel} = values;
+			const saveData = {
+				...values,
+				viewSecurityLevel: viewSecurityLevel.id,
+				requestSecurityLevel: requestSecurityLevel.id
+			};
 			saveData.viewSecurityLevel = viewSecurityLevel.id;
 			saveData.requestSecurityLevel = requestSecurityLevel.id;
 			const data = await saveStation({ values: saveData, id: stationId });
@@ -155,7 +175,7 @@ export const StationEdit = (props) => {
 	useEffect(() => {
 		const fetch = async () => {
 			try {
-				if(pathVars.stationKey) {
+				if(pathVars.stationKey && pathVars.ownerKey) {
 					if(!callStatus) {
 						dispatch(dispatches.started());
 						const data = await fetchStationForEdit({
@@ -198,7 +218,7 @@ export const StationEdit = (props) => {
 	const viewSecurityLevel = watch("viewSecurityLevel");
 	const bannedRequestLevels = viewSecurityOptions.filter(o =>
 		o.id < viewSecurityLevel.id || o.id === MinItemSecurityLevel.PUBLIC
-	).reduce((accumulator, current) => {
+	).reduce<{[id: number]: boolean}>((accumulator, current) => {
 		accumulator[current.id] = true;
 		return accumulator;
 	}, {});
@@ -213,14 +233,14 @@ export const StationEdit = (props) => {
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
-				<FormTextField
+				<FormTextField<FormStationInfo>
 					name="name"
 					label="Name"
 					formMethods={formMethods}
 				/>
 			</Box>
 			<Box sx={inputField}>
-				<FormTextField
+				<FormTextField<FormStationInfo>
 					name="displayName"
 					label="Display Name"
 					formMethods={formMethods}
@@ -273,8 +293,12 @@ StationEdit.propTypes = {
 	onCancel: PropTypes.func,
 };
 
+type StationNewModalOpenerProps = {
+	add?: (s: StationInfo) => void;
+}
 
-export const StationNewModalOpener = (props) => {
+
+export const StationNewModalOpener = (props: StationNewModalOpenerProps) => {
 
 	const { add } = props;
 
@@ -284,7 +308,7 @@ export const StationNewModalOpener = (props) => {
 		setItemNewOpen(false);
 	};
 
-	const itemCreated = (item) => {
+	const itemCreated = (item: StationInfo) => {
 		add && add(item);
 		closeModal();
 	};

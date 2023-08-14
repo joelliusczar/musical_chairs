@@ -8,7 +8,7 @@ import {
 	useHasAnyRoles,
 	AuthContext,
 } from "../../Context_Providers/AuthContext";
-import { Loader } from "../Shared/Loader";
+import { Loader } from "./Loader";
 
 
 

@@ -18,7 +18,7 @@ import {
 import { formatError } from "../../Helpers/error_formatter";
 import { UserRoleDef } from "../../constants";
 import { useSnackbar } from "notistack";
-import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
+import { UserRoleAssignmentTable } from "./UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
 import { useParams } from "react-router-dom";
 

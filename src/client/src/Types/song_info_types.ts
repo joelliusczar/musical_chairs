@@ -1,0 +1,99 @@
+import { IdType, Named, NamedIdItem } from "./generic_types";
+import { PathsActionRule, ActionRule, User } from "./user_types";
+import { StationTableData } from "./station_types";
+import { VoidState } from "./reducer_types";
+import {
+	FieldValues,
+} from "react-hook-form";
+
+export interface ArtistInfo {
+	id: IdType
+	name: string
+	owner: User
+};
+
+export interface AlbumInfo {
+	id: IdType
+	name: string
+	year: number | null
+	albumArtist: ArtistInfo | null
+	owner: User
+
+}
+
+export interface NowPlayingInfo {
+	song: string
+	album: string
+	artist: string
+}
+
+export interface SongListDisplayItem extends NamedIdItem {
+	album: string | null
+	artist: string | null
+	path: string
+	queuedTimestamp: number
+	requestedTimestamp: number | null
+	playedTimestamp: number | null
+	rules: ActionRule[]
+}
+
+export interface CurrentPlayingInfo
+	extends StationTableData<SongListDisplayItem>
+{
+	nowPlaying: NowPlayingInfo | null
+}
+
+
+export class InitialQueueState extends VoidState {
+	data: CurrentPlayingInfo
+
+	constructor() {
+		super();
+		this.data = {
+			items: [],
+			totalRows: 0,
+			stationRules: [],
+			nowPlaying: {
+				song: "",
+				album: "",
+				artist: "",
+			},
+		}
+	}
+};
+
+export interface SongTreeNodeInfo {
+	path: string
+	totalChildCount: number
+	id: number | null
+	name: string | null
+	rules: PathsActionRule[]
+};
+
+export enum TouchTypes {
+	set = "set",
+	unset = "unset",
+	edited = "edited",
+};
+
+export type TouchedObject = {
+	[key: string]: TouchTypes
+};
+
+export interface SongInfoBase extends Named {
+	path: string
+	artists: NamedIdItem[]
+	primaryArtist: NamedIdItem
+	album: NamedIdItem
+	stations: NamedIdItem[]
+	genre: string
+}
+
+export interface SongInfoForm extends SongInfoBase, FieldValues {
+	rules: ActionRule[]
+	touched: TouchedObject
+};
+
+export interface SongInfoApiSavura extends SongInfoBase {
+	touched: string[]
+}

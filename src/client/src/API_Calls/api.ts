@@ -1,7 +1,7 @@
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
 import { apiAddress } from "../constants";
 
-export function constructWebClient() {
+export const constructWebClient = (): AxiosInstance => {
 	return axios.create({
 		baseURL: apiAddress,
 		withCredentials: true,

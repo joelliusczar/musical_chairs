@@ -1,4 +1,16 @@
+import { AxiosPromise } from "axios";
 import { defaultWebClient as webClient } from "./api";
+import {
+	LoginCredentials,
+	LoggedInUser,
+	UserCreationInfo,
+	User,
+	SubjectUserKeyItem,
+	RoledUser,
+	ExistenceCheckParams,
+	UserBase
+} from "../Types/user_types";
+import { PageableParams } from "../Types/pageable_types";
 
 export { webClient };
 
@@ -6,11 +18,11 @@ export { webClient };
 export const login = async ({
 	username,
 	password,
-}) => {
+}: LoginCredentials) => {
 	const formData = new window.FormData();
 	formData.append("username", username);
 	formData.append("password", password);
-	const response = await webClient.post(
+	const response = await webClient.post<LoggedInUser>(
 		"accounts/open",
 		formData
 	);
@@ -20,44 +32,48 @@ export const login = async ({
 };
 
 export const login_with_cookie = async () => {
-	const response = await webClient.post("accounts/open_cookie");
+	const response = await webClient.post<LoggedInUser>("accounts/open_cookie");
 	webClient.defaults.headers.common["Authorization"] =
 		`Bearer ${response.data.access_token}`;
 	return response.data;
 };
 
-export const createAccount = async ({ values }) => {
-	const response = await webClient.post("accounts/new", values);
+export const createAccount = async (
+	{ values }: { values: UserCreationInfo}
+) => {
+	const response = await webClient.post<User>("accounts/new", values);
 	return response.data;
 };
 
-export const checkValues = async ({ values }) => {
+export const checkValues = async (
+	{ values }: { values: ExistenceCheckParams}
+) => {
 	const response = await webClient.get("accounts/check", {
 		params: values,
 	});
 	return response.data;
 };
 
-export const fetchUser = async ({ subjectUserKey }) => {
+export const fetchUser = async ({ subjectUserKey }: SubjectUserKeyItem) => {
 	const response = await webClient.get(`accounts/account/${subjectUserKey}`);
 	return response.data;
 };
 
-export const fetchUserList = async ({ params }) => {
+export const fetchUserList = async ({ params }: { params: PageableParams}) => {
 	const response = await webClient.get("accounts/list", {
 		params: params,
 	});
 	return response.data;
 };
 
-export const searchUsers = async ({ params }) => {
+export const searchUsers = async ({ params }: { params: PageableParams}) => {
 	const response = await webClient.get("accounts/search", {
 		params: params,
 	});
 	return response.data;
 };
 
-export const updateUserRoles = async ({ id, roles }) => {
+export const updateUserRoles = async ({ id, roles }: RoledUser) => {
 	const response = await webClient.put(`accounts/update-roles/${id}`,
 		roles
 	);
@@ -108,6 +124,3 @@ export const removeSiteUserRule = async ({ subjectUserKey, params }) => {
 	});
 	return response.data;
 };
-
-
-

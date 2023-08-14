@@ -4,8 +4,17 @@ import {
 	FormHelperText,
 } from "@mui/material";
 import PropTypes from "prop-types";
+import { ClickEvent } from "../../Types/browser_types";
 
-export const YesNoControl = (props) => {
+interface YesNoControlProps {
+	message: string | undefined,
+	yesLabel?: string,
+	onYes: (e: ClickEvent) => void,
+	noLabel?: string,
+	onNo: (e: ClickEvent) => void
+};
+
+export const YesNoControl = (props: YesNoControlProps) => {
 	const {message, yesLabel, onYes, noLabel, onNo} = props;
 	return <>
 		<FormHelperText>{message || ""}</FormHelperText>

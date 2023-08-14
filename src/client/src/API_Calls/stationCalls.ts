@@ -1,8 +1,15 @@
 import webClient from "./api";
 import { buildArrayQueryStrFromObj } from "../Helpers/url_helpers";
+import { OwnerParam, KeyType, IdType, Named } from "../Types/generic_types"
+import {
+	RequiredStationParams,
+	StationCreationInfo,
+	StationInfo
+} from "../Types/station_types";
+import { CurrentPlayingInfo } from "../Types/song_info_types";
+import { Flags, StringObject } from "../Types/generic_types";
 
-
-export const fetchStations = async (params) => {
+export const fetchStations = async (params?: OwnerParam) => {
 	const response = await webClient.get("stations/list", {
 		params: {
 			ownerKey: params?.ownerKey || undefined,
@@ -11,25 +18,37 @@ export const fetchStations = async (params) => {
 	return response.data;
 };
 
-export const fetchStationForEdit = async ({ ownerKey, stationKey }) => {
+export const fetchStationForEdit = async (
+	{ ownerKey, stationKey }: { ownerKey: KeyType, stationKey: KeyType}
+) => {
 	const response = await webClient.get(`stations/${ownerKey}/${stationKey}/`);
 	return response.data;
 };
 
-export const checkValues = async ({ values }) => {
-	const response = await webClient.get("stations/check/", {
-		params: values,
+export const checkValues = async (
+	{ id, values }: { id: IdType, values: StringObject }
+) => {
+	const response = await webClient.get<Flags<StringObject>>("stations/check/", {
+		params: {
+			id,
+			...values
+		},
 	});
 	return response.data;
 };
 
-export const saveStation = async ({ values, id}) => {
+export const saveStation = async (
+	{ values, id}: { values: StationCreationInfo, id?: IdType | null }
+) => {
 	if(id) {
-		const response = await webClient.put(`/stations/${id}`, values);
+		const response = await webClient.put<StationInfo>(
+			`/stations/${id}`,
+			values
+		);
 		return response.data;
 	}
 	else {
-		const response = await webClient.post("stations", values);
+		const response = await webClient.post<StationInfo>("stations", values);
 		return response.data;
 	}
 };
@@ -38,7 +57,7 @@ export const fetchSongCatalogue = async ({
 	stationKey,
 	params,
 	ownerKey,
-}) => {
+}: RequiredStationParams) => {
 	const url = `stations/${ownerKey}/${stationKey}/catalogue/`;
 	const response = await webClient.get(url, {
 		params: params,
@@ -46,9 +65,11 @@ export const fetchSongCatalogue = async ({
 	return response.data;
 };
 
-export const fetchQueue = async ({ stationKey, params, ownerKey }) => {
+export const fetchQueue = async (
+	{ stationKey, ownerKey, ...params }: RequiredStationParams
+) => {
 	const url = `stations/${ownerKey}/${stationKey}/queue/`;
-	const response = await webClient.get(url, {
+	const response = await webClient.get<CurrentPlayingInfo>(url, {
 		params: params,
 	});
 	return response.data;
@@ -92,10 +113,12 @@ export const enableStations = async ({ ids }) => {
 	return response.data;
 };
 
-export const disableStations = async ({ ids }) => {
+export const disableStations = async (
+	{ ids=[] }: { ids?: number[], includeAll?: boolean }
+) => {
 	const queryStr = buildArrayQueryStrFromObj({"stationIds": ids});
 	const response = await webClient
-		.put(`stations/disable/${queryStr}`);
+		.put<void>(`stations/disable/${queryStr}`);
 	return response.data;
 };
 

@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { useHistory, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { MenuItem,
 	Select,
 	Pagination,
@@ -10,12 +10,25 @@ import {
 	getRowsCount,
 	getPageCount,
 } from "../../Helpers/pageable_helpers";
+import { PageableParams } from "../../Types/pageable_types";
 
-export const UrlPagination = (props) => {
+type CurrentPageParams = Pick<PageableParams, "page" | "rows"> |
+	Pick<PageableParams, "page">;
+
+type UrlPaginationProps = {
+	getPageUrl: (
+		params: CurrentPageParams,
+		currentLocation: string,
+		currentPathName: string,
+	) => string,
+	totalRows: number
+};
+
+export const UrlPagination = (props: UrlPaginationProps) => {
 
 	const { getPageUrl, totalRows } = props;
 
-	const urlHistory = useHistory();
+	const navigate = useNavigate();
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
 	const page = parseInt(queryObj.get("page") || "1");
@@ -27,11 +40,16 @@ export const UrlPagination = (props) => {
 				defaultValue={50}
 				label="Row Count"
 				onChange={(e) => {
-					urlHistory.replace(
+					navigate(
 						getPageUrl(
-							{ rows: e.target.value, page: 1 },
-							location.search
-						)
+							{
+								rows: !!e.target.value ? +e.target.value : null,
+								page: 1
+							},
+							location.search,
+							location.pathname
+						),
+						{ replace: true }
 					);
 				}}
 				renderValue={(v) => v || "Select Row Count"}
@@ -54,7 +72,8 @@ export const UrlPagination = (props) => {
 						component={Link}
 						to={getPageUrl(
 							{ page: item.page },
-							location.search
+							location.search,
+							location.pathname
 						)}
 						{...item} />);
 				} }

@@ -9,18 +9,51 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import { conflictWith } from "../../Helpers/prop_helpers";
+import { ClickEvent } from "../../Types/browser_types";
 
-export const OptionsButton = (props) => {
+interface OptionBase {
+	onClick?: (e: ClickEvent) => void | Promise<void>,
+	label?: string
+}
+
+interface LinkOption extends OptionBase {
+	link: string,
+	href?: undefined,
+};
+
+interface HrefOption extends OptionBase {
+	link?: undefined,
+	href: string,
+};
+
+interface ClickOnlyOption extends OptionBase {
+	onClick: (e: ClickEvent) => void | Promise<void>,
+	link?: undefined,
+	href?: undefined,
+};
+
+type OptionsButton = {
+	id: string,
+	options: (LinkOption | HrefOption | ClickOnlyOption)[]
+}
+
+export const OptionsButton = (props: OptionsButton) => {
 	const { options, id } = props;
 	const [selectedIndex, setSelectedIndex] = useState(0);
-	const [anchorEl, setAnchorEl] = useState(null);
+	const [anchorEl, setAnchorEl] = useState<
+		EventTarget & HTMLButtonElement | null
+	>(null);
 
-	const handleButtonClick = (e) => {
+	const handleButtonClick = (e: ClickEvent) => {
 		setAnchorEl(null);
-		options[selectedIndex].onClick && options[selectedIndex].onClick(e);
+		if (options.length > selectedIndex) {
+			return;
+		}
+		const option = options[selectedIndex];
+		option.onClick && option.onClick(e);
 	};
 
-	const handleMenuClick = (index) => {
+	const handleMenuClick = (index: number) => {
 		setSelectedIndex(index);
 		setAnchorEl(null);
 	};

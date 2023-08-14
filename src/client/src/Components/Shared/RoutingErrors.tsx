@@ -1,9 +1,13 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { Redirect } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { DomRoutes } from "../../constants";
 
-export const ErrorComponent = (props) => {
+type ErrorComponentTypes = {
+	message: string
+};
+
+export const ErrorComponent = (props: ErrorComponentTypes) => {
 	const { message } = props;
 	return (
 		<div>
@@ -17,7 +21,7 @@ ErrorComponent.propTypes = {
 };
 
 export const GoToNotFound  = () => {
-	return <Redirect to={`${DomRoutes.notFound()}`} />;
+	return <Navigate to={`${DomRoutes.notFound()}`} />;
 };
 
 export const NotFound = () => {
@@ -31,4 +35,3 @@ export const NoPermissions = () => {
 		message={"You do not have permission to view this page."}
 	/>);
 };
-

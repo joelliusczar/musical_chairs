@@ -11,7 +11,6 @@ import PropTypes from "prop-types";
 import { login, login_with_cookie, webClient } from "../API_Calls/userCalls";
 import {
 	waitingReducer,
-	initialState,
 	dispatches,
 } from "../Components/Shared/waitingReducer";
 import { UserRoleDef } from "../constants";
@@ -24,6 +23,8 @@ import { useSnackbar } from "notistack";
 import { LoginModal } from "../Components/Accounts/AccountsLoginModal";
 import { BrowserRouter } from "react-router-dom";
 import { cookieToObject } from "../Helpers/browser_helpers";
+import { LoggedInUser } from "../Types/user_types";
+import { WaitingTypes, InitialState } from "../Types/reducer_types";
 
 
 const loggedOut = {
@@ -33,12 +34,9 @@ const loggedOut = {
 	lifetime: 0,
 };
 
-const loggedOutState = {
-	...initialState,
-	data: loggedOut,
-};
+const loggedOutState = new InitialState<LoggedInUser>(loggedOut);
 
-const expireCookie = (name) => {
+const expireCookie = (name: string) => {
 	document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;";
 };
 
@@ -51,17 +49,32 @@ const clearCookies = () => {
 
 
 
-export const AuthContext = createContext();
+export const AuthContext = createContext<{
+	state: InitialState<LoggedInUser>,
+	dispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
+	setupAuthExpirationAction: () => void
+	logout: () => void,
+	partialLogout: () => void,
+	openLoginPrompt: (onCancel?: () => void) => void
+}>({
+	state: loggedOutState,
+	dispatch: ({ type: WaitingTypes, payload: any}) => {},
+	setupAuthExpirationAction: () => {},
+	logout: () => {},
+	partialLogout: () => {},
+	openLoginPrompt: () => {}
+});
 
-export const AuthContextProvider = (props) => {
+export const AuthContextProvider = (props: { children: JSX.Element }) => {
 	const { children } = props;
 	const [state, dispatch] = useReducer(
-		waitingReducer(),
+		waitingReducer<LoggedInUser, InitialState<LoggedInUser>>(),
 		loggedOutState
 	);
 
 	const [loginOpen, setLoginOpen ] = useState(false);
-	const [loginPromptCancelAction, setLoginPromptCancelAction] = useState();
+	const [loginPromptCancelAction, setLoginPromptCancelAction] =
+		useState<(() => void) | null>(null);
 
 	const { enqueueSnackbar } = useSnackbar();
 	const loggedInUsername = state.data.username;
@@ -82,7 +95,7 @@ export const AuthContextProvider = (props) => {
 		enqueueSnackbar("Logging out.");
 	},[dispatch, enqueueSnackbar]);
 
-	const openLoginPrompt = useCallback((onCancel) => {
+	const openLoginPrompt = useCallback((onCancel?: () => void) => {
 		setLoginOpen(true);
 		if (onCancel) {
 			setLoginPromptCancelAction(() => onCancel);
@@ -192,8 +205,8 @@ export const useCurrentUser = () => {
 	return data;
 };
 
-export const useHasAnyRoles = (requiredRoles) => {
-	if(!requiredRoles || requiredRoles.length < 1) return true;
+export const useHasAnyRoles = (requiredRoleNames: string[]) => {
+	if(!requiredRoleNames || requiredRoleNames.length < 1) return true;
 	const { state: { data } } = useContext(AuthContext);
 	const userRoles = data?.roles;
 
@@ -201,7 +214,7 @@ export const useHasAnyRoles = (requiredRoles) => {
 		return true;
 	}
 
-	if (anyConformsToAnyRule(userRoles, requiredRoles)) {
+	if (anyConformsToAnyRule(userRoles, requiredRoleNames)) {
 		return true;
 	}
 	return false;
@@ -214,7 +227,7 @@ export const useLogin = () => {
 		logout,
 	} = useContext(AuthContext);
 
-	const _login = async (username, password) => {
+	const _login = async (username: string, password: string) => {
 		try {
 			dispatch(dispatches.started());
 			const data = await login({

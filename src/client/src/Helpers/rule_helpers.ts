@@ -1,14 +1,21 @@
 import { UserRoleDef } from "../constants";
+import { ActionRule } from "../Types/user_types";
 
-export const conformsToRule = (candidate, basis) => {
+export const conformsToRule = (candidate: ActionRule, basis: string) => {
 	return candidate?.name?.startsWith(basis);
 };
 
-export const anyConformsToRule = (candidates, basis) => {
+export const anyConformsToRule = (
+	candidates: ActionRule[],
+	basis: string
+) => {
 	return candidates?.some(r => conformsToRule(r, basis));
 };
 
-export const anyConformsToAnyRule = (candidates, bases) => {
+export const anyConformsToAnyRule = (
+	candidates: ActionRule[],
+	bases: string[]
+) => {
 	if (!bases) return true;
 	if (anyConformsToRule(candidates, UserRoleDef.ADMIN)) {
 		return true;

@@ -1,6 +1,15 @@
-
-
-export const normalizeOpeningSlash = (path, addSlash=true) => {
+export function normalizeOpeningSlash(
+	path: string,
+	addSlash?: boolean
+): string;
+export function normalizeOpeningSlash(
+	path: null,
+	addSlash?: boolean
+): null;
+export function normalizeOpeningSlash(
+	path: string | null,
+	addSlash=true
+) {
 	if (path === null) {
 		return null;
 	}

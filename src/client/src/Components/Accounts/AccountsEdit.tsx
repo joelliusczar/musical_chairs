@@ -15,9 +15,9 @@ import {
 } from "../../API_Calls/userCalls";
 import {
 	waitingReducer,
-	initialState,
 	dispatches,
 } from "../Shared/waitingReducer";
+import { InitialState } from "../../Types/reducer_types";
 import { useParams } from "react-router-dom";
 import Loader from "../Shared/Loader";
 
@@ -49,7 +49,7 @@ const schema = Yup.object().shape({
 
 export const AccountsEdit = () => {
 	const { enqueueSnackbar } = useSnackbar();
-	const [state, dispatch] = useReducer(waitingReducer(), initialState);
+	const [state, dispatch] = useReducer(waitingReducer(), InitialState);
 	const pathVars = useParams();
 
 

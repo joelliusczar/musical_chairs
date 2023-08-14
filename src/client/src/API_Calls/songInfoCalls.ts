@@ -1,50 +1,77 @@
 import { defaultWebClient as webClient } from "./api";
 import { buildArrayQueryStr } from "../Helpers/url_helpers";
+import {
+	AlbumInfo,
+	ArtistInfo,
+	SongTreeNodeInfo,
+	SongInfoApiSavura,
+	SongInfoForm,
+} from "../Types/song_info_types";
+import { IdItem, IdType } from "../Types/generic_types";
+import { ListData } from "../Types/pageable_types";
 
-export const fetchSongForEdit = async ({ id }) => {
-	const response = await webClient.get(`/song-info/songs/${id}`);
+
+export const fetchSongForEdit = async ({ id }: { id: IdType}) => {
+	const response = await webClient.get<SongInfoApiSavura>(
+		`/song-info/songs/${id}`
+	);
 	return response.data;
 };
 
-export const fetchSongsForMultiEdit = async ({ ids }) => {
+export const fetchSongsForMultiEdit = async ({ ids }: { ids: IdType[]}) => {
 	const queryStr = buildArrayQueryStr("itemIds", ids);
-	const response = await webClient.get(`/song-info/songs/multi/${queryStr}`);
+	const response = await webClient.get<SongInfoApiSavura>(
+		`/song-info/songs/multi/${queryStr}`
+	);
 	return response.data;
 };
 
 
-export const saveSongEdits = async ({ id, data }) => {
-	const response = await webClient.put(`/song-info/songs/${id}`, data);
+export const saveSongEdits = async (
+	{ id, data }: { id: IdType, data: SongInfoApiSavura}
+) => {
+	const response = await webClient.put<SongInfoForm>(
+		`/song-info/songs/${id}`,
+		data
+	);
 	return response.data;
 };
 
-export const saveSongsEditsMulti = async ({ ids, data }) => {
+export const saveSongsEditsMulti = async (
+	{ ids, data }: { ids: IdType[], data: SongInfoApiSavura}
+) => {
 	const queryStr = buildArrayQueryStr("itemIds", ids);
 	const response = await webClient
-		.put(`/song-info/songs/multi/${queryStr}`, data);
+		.put<SongInfoForm>(`/song-info/songs/multi/${queryStr}`, data);
 	return response.data;
 };
 
-export const fetchArtistList = async ({ params }) => {
-	const response = await webClient.get("/song-info/artists/list", {
+export const fetchArtistList = async ({ params }: { params?: any}) => {
+	const response = await webClient.get<ArtistInfo[]>(
+		"/song-info/artists/list",
+		{
 		params: params,
 	});
 	return response.data;
 };
 
-export const fetchAlbumList = async ({ params }) => {
-	const response = await webClient.get("/song-info/albums/list", {
+export const fetchAlbumList = async ({ params }: { params?: any}) => {
+	const response = await webClient.get<AlbumInfo[]>("/song-info/albums/list", {
 		params: params,
 	});
 	return response.data;
 };
 
-export const saveArtist = async ({ artistName }) => {
-	const response = await webClient.post("/song-info/artists", null, {
-		params: {
-			artistName,
-		},
-	});
+export const saveArtist = async ({ name }: { name: string }) => {
+	const response = await webClient.post<ArtistInfo>(
+		"/song-info/artists",
+		null,
+		{
+			params: {
+				name,
+			},
+		}
+	);
 	return response.data;
 };
 
@@ -53,10 +80,15 @@ export const saveAlbum = async ({ data }) => {
 	return response.data;
 };
 
-export const fetchSongTree = async ({ params }) => {
-	const response = await webClient.get("song-info/songs/ls", {
-		params: params,
-	});
+export const fetchSongTree = async ({ prefix }: { prefix: string }) => {
+	const response = await webClient.get<ListData<SongTreeNodeInfo>>(
+		"song-info/songs/ls",
+		{
+			params: {
+				prefix
+			},
+		}
+	);
 	return response.data;
 };
 

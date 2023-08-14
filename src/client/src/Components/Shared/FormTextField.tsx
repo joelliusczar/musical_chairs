@@ -1,10 +1,25 @@
 import React from "react";
 import { TextField } from "@mui/material";
-import PropTypes from "prop-types";
-import { useController } from "react-hook-form";
+import {
+	useController,
+	UseFormReturn,
+	FieldValues,
+	FieldPath
+} from "react-hook-form";
 
+type FormTextFieldProps<FormT extends FieldValues> = {
+	formMethods: UseFormReturn<FormT>
+	name: FieldPath<FormT>
+	label: string
+	className?: string
+	type?: string
+	min?: string | number
+	disabled?: boolean
+};
 
-export function FormTextField(props) {
+export function FormTextField<FormT extends FieldValues>(
+	props: FormTextFieldProps<FormT>
+) {
 	const { name, label, formMethods, ...otherProps } = props;
 	const { control, register } = formMethods;
 
@@ -30,10 +45,3 @@ export function FormTextField(props) {
 		/>
 	);
 }
-
-FormTextField.propTypes = {
-	name: PropTypes.string.isRequired,
-	formMethods: PropTypes.object,
-	label: PropTypes.string,
-	disabled: PropTypes.bool,
-};

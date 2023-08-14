@@ -1,7 +1,6 @@
 import React, { useContext } from "react";
-import { Route, NavLink } from "react-router-dom";
+import { Route } from "react-router-dom";
 import PropTypes from "prop-types";
-import { ListItem } from "@mui/material";
 import { NoPermissions } from "./RoutingErrors";
 import {
 	useCurrentUser,
@@ -10,10 +9,15 @@ import {
 } from "../../Context_Providers/AuthContext";
 import { Loader } from "./Loader";
 
+type PrivateRouteTypes = {
+	path: string,
+	scopes: string[],
+	element: JSX.Element,
+	children?: JSX.Element | JSX.Element[]
+};
 
-
-export const PrivateRoute = (props) => {
-	const { scopes, children, ...routeProps } = props;
+export const PrivateRoute = (props: PrivateRouteTypes) => {
+	const { scopes, element, children, ...routeProps } = props;
 	const {
 		state: { error, callStatus },
 	} = useContext(AuthContext);
@@ -22,7 +26,10 @@ export const PrivateRoute = (props) => {
 	return (
 		<Loader status={callStatus} error={error}>
 			{currentUser.username && hasAnyRoles ?
-				<Route {...routeProps}>
+				<Route
+					element={element}
+					{...routeProps}
+				>
 					{children}
 				</Route> :
 				<NoPermissions />
@@ -33,30 +40,9 @@ export const PrivateRoute = (props) => {
 
 PrivateRoute.propTypes = {
 	scopes: PropTypes.arrayOf(PropTypes.string),
+	element: PropTypes.node.isRequired,
 	children: PropTypes.oneOfType([
 		PropTypes.arrayOf(PropTypes.node),
 		PropTypes.node,
-	]).isRequired,
-};
-
-export const PrivateNavLink = (props) => {
-	const { scopes, children, ...navLinkProps } = props;
-	const currentUser = useCurrentUser();
-	const hasAnyRoles = useHasAnyRoles(scopes);
-	return (
-		<>
-			{currentUser.username && hasAnyRoles &&
-			<ListItem button component={NavLink} {...navLinkProps}>
-				{children}
-			</ListItem>}
-		</>
-	);
-};
-
-PrivateNavLink.propTypes = {
-	scopes: PropTypes.arrayOf(PropTypes.string),
-	children: PropTypes.oneOfType([
-		PropTypes.arrayOf(PropTypes.node),
-		PropTypes.node,
-	]).isRequired,
+	]),
 };

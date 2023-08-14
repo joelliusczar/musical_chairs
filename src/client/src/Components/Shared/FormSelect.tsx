@@ -3,22 +3,129 @@ import {
 	Autocomplete,
 	TextField,
 	FormHelperText,
+	Theme,
+	SxProps,
+	AutocompleteFreeSoloValueMapping
 } from "@mui/material";
-import PropTypes from "prop-types";
-import { useController } from "react-hook-form";
+import {
+	useController,
+	UseFormReturn,
+	FieldValues,
+	FieldPath,
+} from "react-hook-form";
+import { Named, SelectItem } from "../../Types/generic_types";
+import { CustomEvent, ChangeEvent } from "../../Types/browser_types";
 
-const defaultTransform = {
-	input: (value) => value,
-	output: (e) => e,
+type TransformType<T> = {
+	input: (value: T) => T,
+	output: (
+		e: CustomEvent<T>
+	) => CustomEvent<T>
 };
 
-export function FormSelect(props) {
+const defaultTransformFactory =
+	<T,>(): TransformType<T> => ({
+	input: (value: T): T => value,
+	output: (
+		e
+	) => e,
+});
+
+type GetOptionsLabelType<
+	OptionT,
+	FreeSolo extends boolean | undefined = false
+> =
+	FreeSolo extends false | undefined ?
+	(option: OptionT) => string :
+	(option: OptionT | AutocompleteFreeSoloValueMapping<FreeSolo>) => string;
+
+interface FormSelectBaseProps<
+	T,
+	FormT extends FieldValues,
+	OptionT extends T = T,
+	Multiple extends boolean | undefined = false,
+	DisableClearable extends boolean | undefined = false,
+	FreeSolo extends boolean | undefined = false,
+> {
+	name: FieldPath<FormT>
+	label: string
+	formMethods: UseFormReturn<FormT>
+	transform?: TransformType<OptionT>
+	sx?: SxProps<Theme>
+	options: OptionT[]
+	isOptionEqualToValue?: (option: OptionT, value: OptionT) => boolean
+	getOptionLabel: GetOptionsLabelType<OptionT, FreeSolo>
+	filterOptions?: (option: OptionT[]) => OptionT[]
+	inputValue?: string
+	onInputChange?: (e: ChangeEvent, newValue: string) => void
+	freeSolo: FreeSolo,
+	// renderOption?: (renderProps: any, option: OptionT) => JSX.Element
+	// getOptionDisabled?: (option: OptionT) => boolean
+	[key: string]: any
+}
+
+
+export interface FormSelectPropsDefault
+<
+	T extends SelectItem,
+	FormT extends FieldValues,
+	OptionT extends T = T,
+	Multiple extends boolean | undefined = false,
+	DisableClearable extends boolean | undefined = false,
+	FreeSolo extends boolean | undefined = false,
+>
+extends FormSelectBaseProps<
+	T,
+	FormT,
+	OptionT,
+	Multiple,
+	DisableClearable,
+	FreeSolo
+> {};
+
+export interface FormSelectPropsUnconstained
+<
+	T,
+	FormT extends FieldValues,
+	OptionT extends T = T
+>
+extends FormSelectBaseProps<T, FormT, OptionT> {
+	getOptionLabel: (option: OptionT) => string
+};
+
+type SelectedPropTypes<
+	T,
+	FormT extends FieldValues,
+	OptionT extends T = T
+> = T extends SelectItem ?
+		FormSelectPropsDefault<T, FormT, OptionT> :
+	 	FormSelectPropsUnconstained<T, FormT, OptionT>
+
+export function FormSelect
+<T extends SelectItem,
+FormT extends FieldValues,
+OptionT extends T = T,
+Multiple extends boolean | undefined = false,
+DisableClearable extends boolean | undefined = false,
+FreeSolo extends boolean | undefined = false,
+>
+(props: FormSelectPropsDefault<
+	T,
+	FormT,
+	OptionT,
+	Multiple,
+	DisableClearable,
+	FreeSolo
+>)
+{
 	const {
 		name,
 		options,
 		label,
 		formMethods,
 		transform,
+		getOptionLabel,
+		freeSolo,
 		...otherProps
 	} = props;
 	const { control } = formMethods;
@@ -29,19 +136,32 @@ export function FormSelect(props) {
 			control,
 		});
 
-	const _transform = {...defaultTransform, ...(transform || {})};
+	const _getOptionLabel = (option: OptionT | AutocompleteFreeSoloValueMapping<FreeSolo>) => {
+				if (option && typeof option === "string") {
+					return option;
+				}
+				else if(typeof option === "object" && "name" in option) {
+					return option.name
+				}
+				return "";
+			};
+	const _transform = {
+		...defaultTransformFactory<OptionT>(),
+		...(transform || {})
+	};
 
 	return (
 		<>
-			<Autocomplete
+			<Autocomplete<OptionT, Multiple, DisableClearable, FreeSolo>
+				id={field.name}
 				options={options}
-				getOptionLabel={(option) => option ? option.name : ""}
-				name={field.name}
+				getOptionLabel={_getOptionLabel}
 				onChange={(e, value) => field.onChange(_transform.output({
-					target: { name: field.name, value: value},
+					target: { name: field.name, value: value} ,
 				}))}
 				onBlur={field.onBlur}
 				value={_transform.input(field.value)}
+				freeSolo={freeSolo}
 				renderInput={(params) => {
 					return <TextField
 						{...params}
@@ -66,18 +186,3 @@ export function FormSelect(props) {
 		</>
 	);
 }
-
-FormSelect.propTypes = {
-	name: PropTypes.string,
-	label: PropTypes.string,
-	formMethods: PropTypes.object,
-	options: PropTypes.arrayOf(PropTypes.shape({
-		id: PropTypes.oneOfType([PropTypes.number,PropTypes.string]),
-		name: PropTypes.string,
-	})),
-	transform: PropTypes.shape({
-		input: PropTypes.func,
-		output: PropTypes.func,
-	}),
-	disabled: PropTypes.bool,
-};

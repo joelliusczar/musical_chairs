@@ -1,17 +1,20 @@
 import compare from "just-compare";
 
-const divmod = (x, y) => {
+const divmod = (x: number, y: number) => {
 	return [Math.floor(x/y), x % y];
 };
 
-export const secondsToTuple = (seconds) => {
+export const secondsToTuple = (seconds: number)
+: [number, number, number, number] => {
 	const [m, s] = divmod(seconds, 60);
 	const [h, mRemainder] = divmod(m, 60);
 	const [d, hRemainder] = divmod(h, 24);
 	return [d, hRemainder, mRemainder, s];
 };
 
-export const buildTimespanMsg = (timeleft) => {
+export const buildTimespanMsg = (
+	timeleft: [number, number, number, number]
+) => {
 	const presentTimeFields = timeleft.map((t,i) => t > 0 ? i : null)
 		.filter(i => i !== null);
 	const days = timeleft[0] > 1 ? `${timeleft[0]} days` : "day";

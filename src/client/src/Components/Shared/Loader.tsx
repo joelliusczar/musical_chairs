@@ -3,7 +3,19 @@ import PropTypes from "prop-types";
 import { CircularProgress, Typography } from "@mui/material";
 import { CallStatus } from "../../constants";
 
-export const Loader = ({status, children, error, defaultEmptyMessage}) => {
+interface LoaderProps {
+	status: string | null,
+	children: JSX.Element | JSX.Element[],
+	error: string | null,
+	defaultEmptyMessage?: string | null
+}
+
+export const Loader = ({
+	status,
+	children,
+	error,
+	defaultEmptyMessage
+}: LoaderProps) => {
 
 	switch(status) {
 	case CallStatus.done:

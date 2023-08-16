@@ -3,15 +3,14 @@ import { Box, Typography, FormHelperText } from "@mui/material";
 import { FormSelect, FormSelectPropsSelected } from "../Shared/FormSelect";
 import { FieldValues } from "react-hook-form";
 import { ArtistInfo } from "../../Types/song_info_types";
-import { SelectItem, NamedIdItem } from "../../Types/generic_types";
+
 
 
 
 export const ArtistSelect = <FormT extends FieldValues>(
 	props: FormSelectPropsSelected<
-		NamedIdItem,
-		FormT,
-		ArtistInfo
+		ArtistInfo,
+		FormT
 	>
 ) => {
 

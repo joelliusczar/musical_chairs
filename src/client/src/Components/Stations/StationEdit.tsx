@@ -36,7 +36,7 @@ import {
 	StationInfo,
 	StationInfoForm,
 } from "../../Types/station_types";
-import { NamedIdItem } from "../../Types/generic_types";
+
 
 
 const inputField = {

@@ -49,17 +49,16 @@ const defaultTransformFactory =
 
 
 type GetOptionsLabelType<
-	OptionT,
+	T,
 	FreeSolo extends boolean | undefined = false
 > =
 	FreeSolo extends false | undefined ?
-	(option: OptionT) => string :
-	(option: OptionT | AutocompleteFreeSoloValueMapping<FreeSolo>) => string;
+	(option: T) => string :
+	(option: T | AutocompleteFreeSoloValueMapping<FreeSolo>) => string;
 
 interface FormSelectBaseProps<
 	T,
 	FormT extends FieldValues,
-	OptionT extends T = T,
 	Multiple extends boolean | undefined = false,
 	DisableClearable extends boolean | undefined = false,
 	FreeSolo extends boolean | undefined = false,
@@ -69,17 +68,17 @@ interface FormSelectBaseProps<
 	formMethods: UseFormReturn<FormT>
 	freeSolo?: FreeSolo,
 	transform?: Partial<
-		TransformType<OptionT, Multiple, DisableClearable, FreeSolo>
+		TransformType<T, Multiple, DisableClearable, FreeSolo>
 	>
 	sx?: SxProps<Theme>
-	options: OptionT[]
-	isOptionEqualToValue?: (option: OptionT, value: OptionT) => boolean
-	getOptionLabel?: GetOptionsLabelType<OptionT, FreeSolo>
-	filterOptions?: (option: OptionT[]) => OptionT[]
+	options: T[]
+	isOptionEqualToValue?: (option: T, value: T) => boolean
+	getOptionLabel?: GetOptionsLabelType<T, FreeSolo>
+	filterOptions?: (option: T[]) => T[]
 	inputValue?: string
 	onInputChange?: (e: ChangeEvent, newValue: string) => void
-	renderOption?: (renderProps: any, option: OptionT) => JSX.Element
-	getOptionDisabled?: (option: OptionT) => boolean
+	renderOption?: (renderProps: any, option: T) => JSX.Element
+	getOptionDisabled?: (option: T) => boolean
 	[key: string]: any
 }
 
@@ -88,7 +87,6 @@ export interface FormSelectPropsDefault
 <
 	T extends SelectItem,
 	FormT extends FieldValues,
-	OptionT extends T = T,
 	Multiple extends boolean | undefined = false,
 	DisableClearable extends boolean | undefined = false,
 	FreeSolo extends boolean | undefined = false,
@@ -96,7 +94,6 @@ export interface FormSelectPropsDefault
 extends FormSelectBaseProps<
 	T,
 	FormT,
-	OptionT,
 	Multiple,
 	DisableClearable,
 	FreeSolo
@@ -106,14 +103,12 @@ export interface FormSelectPropsUnconstained
 <
 	T,
 	FormT extends FieldValues,
-	OptionT extends T = T,
 	Multiple extends boolean | undefined = false,
 	DisableClearable extends boolean | undefined = false,
 	FreeSolo extends boolean | undefined = false,
 >
 extends FormSelectBaseProps<T,
 	FormT,
-	OptionT,
 	Multiple,
 	DisableClearable,
 	FreeSolo
@@ -123,7 +118,6 @@ extends FormSelectBaseProps<T,
 export type FormSelectPropsSelected<
 	T,
 	FormT extends FieldValues,
-	OptionT extends T = T,
 	Multiple extends boolean | undefined = false,
 	DisableClearable extends boolean | undefined = false,
 	FreeSolo extends boolean | undefined = false,
@@ -131,7 +125,6 @@ export type FormSelectPropsSelected<
 		FormSelectPropsDefault<
 			T,
 			FormT,
-			OptionT,
 			Multiple,
 			DisableClearable,
 			FreeSolo
@@ -139,7 +132,6 @@ export type FormSelectPropsSelected<
 	 	FormSelectPropsUnconstained<
 			T,
 			FormT,
-			OptionT,
 			Multiple,
 			DisableClearable,
 			FreeSolo
@@ -148,7 +140,6 @@ export type FormSelectPropsSelected<
 export function FormSelect
 <T,
 FormT extends FieldValues,
-OptionT extends T = T,
 Multiple extends boolean | undefined = false,
 DisableClearable extends boolean | undefined = false,
 FreeSolo extends boolean | undefined = false,
@@ -156,14 +147,13 @@ FreeSolo extends boolean | undefined = false,
 (props: FormSelectPropsSelected<
 	T,
 	FormT,
-	OptionT,
 	Multiple,
 	DisableClearable,
 	FreeSolo
 >)
 {
 	const _getOptionLabel = (
-		option: OptionT | AutocompleteFreeSoloValueMapping<FreeSolo>) => {
+		option: T | AutocompleteFreeSoloValueMapping<FreeSolo>) => {
 				if (option && typeof option === "string") {
 					return option;
 				}
@@ -192,13 +182,13 @@ FreeSolo extends boolean | undefined = false,
 
 	
 	const _transform = {
-		...defaultTransformFactory<OptionT, Multiple, DisableClearable, FreeSolo>(),
+		...defaultTransformFactory<T, Multiple, DisableClearable, FreeSolo>(),
 		...(transform || {})
 	};
 
 	return (
 		<>
-			<Autocomplete<OptionT, Multiple, DisableClearable, FreeSolo>
+			<Autocomplete<T, Multiple, DisableClearable, FreeSolo>
 				id={field.name}
 				options={options}
 				getOptionLabel={getOptionLabel as any || _getOptionLabel}

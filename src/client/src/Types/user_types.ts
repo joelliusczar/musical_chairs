@@ -32,7 +32,7 @@ export interface RoledUser extends IdItem, RoledEntity {};
 
 export interface User extends RoledUser {
 	username: string
-	displayName: string | null
+	displayName?: string | null
 };
 
 export interface LoggedInUser extends RoledEntity {

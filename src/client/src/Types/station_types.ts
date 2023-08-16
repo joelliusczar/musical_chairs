@@ -22,7 +22,7 @@ export interface StationInfo extends NamedIdItem {
 	rules: ActionRule[]
 };
 
-export interface FormStationInfo extends Named {
+export interface StationInfoForm extends Named {
 	id?: IdType
 	displayName: string | null
 	viewSecurityLevel: NamedIdItem

@@ -76,10 +76,18 @@ export const UserSearch = (
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
-				<FormSelect<User, UserSeachInitialValues>
+				<FormSelect
 					name="selectedUser"
 					options={options}
-					getOptionLabel={(option) => option ? option.username : ""}
+					getOptionLabel={(option) => {
+						if (option) {
+							if (typeof option === "string") {
+								return option;
+							}
+							return option.username;
+						}
+						return "";
+					}}
 					filterOptions={(x) => x}
 					inputValue={inputValue}
 					onInputChange={handleInputChange}

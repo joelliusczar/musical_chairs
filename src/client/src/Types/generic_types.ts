@@ -27,7 +27,7 @@ export interface NamedIdItem extends IdItem, Named {}
 
 export interface SelectItem extends Named {
 	id: IdType | number | string
-}
+};
 
 
 export interface Keyed {
@@ -48,3 +48,7 @@ export type SortCallbackFactory = (key: string) => SortCallback<{}>
 export type Flags<Type> = {
   [Property in keyof Type]: boolean;
 };
+
+export type SingleOrList<OutT, InT extends OutT | OutT[] | null> =
+	InT extends OutT[] ? OutT[] :
+  InT extends OutT ? OutT : null;

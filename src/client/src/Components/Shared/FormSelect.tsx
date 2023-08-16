@@ -67,6 +67,7 @@ interface FormSelectBaseProps<
 	name: FieldPath<FormT>
 	label: string
 	formMethods: UseFormReturn<FormT>
+	freeSolo?: FreeSolo,
 	transform?: Partial<
 		TransformType<OptionT, Multiple, DisableClearable, FreeSolo>
 	>
@@ -77,7 +78,6 @@ interface FormSelectBaseProps<
 	filterOptions?: (option: OptionT[]) => OptionT[]
 	inputValue?: string
 	onInputChange?: (e: ChangeEvent, newValue: string) => void
-	freeSolo?: FreeSolo,
 	renderOption?: (renderProps: any, option: OptionT) => JSX.Element
 	getOptionDisabled?: (option: OptionT) => boolean
 	[key: string]: any
@@ -118,7 +118,6 @@ extends FormSelectBaseProps<T,
 	DisableClearable,
 	FreeSolo
 > {
-	getOptionLabel: GetOptionsLabelType<OptionT, FreeSolo>
 };
 
 export type FormSelectPropsSelected<
@@ -147,7 +146,7 @@ export type FormSelectPropsSelected<
 		>
 
 export function FormSelect
-<T extends {},
+<T,
 FormT extends FieldValues,
 OptionT extends T = T,
 Multiple extends boolean | undefined = false,
@@ -163,13 +162,23 @@ FreeSolo extends boolean | undefined = false,
 	FreeSolo
 >)
 {
+	const _getOptionLabel = (
+		option: OptionT | AutocompleteFreeSoloValueMapping<FreeSolo>) => {
+				if (option && typeof option === "string") {
+					return option;
+				}
+				else if(!!option && typeof option === "object" && "name" in option) {
+					return option.name
+				}
+				return "";
+			};
 	const {
 		name,
 		options,
 		label,
 		formMethods,
 		transform,
-		getOptionLabel,
+		getOptionLabel = _getOptionLabel,
 		freeSolo,
 		...otherProps
 	} = props;
@@ -181,16 +190,7 @@ FreeSolo extends boolean | undefined = false,
 			control,
 		});
 
-	const _getOptionLabel = (
-		option: OptionT | AutocompleteFreeSoloValueMapping<FreeSolo>) => {
-				if (option && typeof option === "string") {
-					return option;
-				}
-				else if(typeof option === "object" && "name" in option) {
-					return option.name
-				}
-				return "";
-			};
+	
 	const _transform = {
 		...defaultTransformFactory<OptionT, Multiple, DisableClearable, FreeSolo>(),
 		...(transform || {})

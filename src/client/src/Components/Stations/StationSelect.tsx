@@ -9,7 +9,7 @@ export const StationSelect = <FormT extends FieldValues>(
 ) => {
 
 	return (
-		<FormSelect<StationInfo, FormT>
+		<FormSelect
 			renderOption={(renderProps: any, option) => {
 				if (option) {
 					const { className } = renderProps;

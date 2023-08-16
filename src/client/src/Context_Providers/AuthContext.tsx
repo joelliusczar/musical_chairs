@@ -24,7 +24,7 @@ import { LoginModal } from "../Components/Accounts/AccountsLoginModal";
 import { BrowserRouter } from "react-router-dom";
 import { cookieToObject } from "../Helpers/browser_helpers";
 import { LoggedInUser } from "../Types/user_types";
-import { WaitingTypes, InitialState } from "../Types/reducer_types";
+import { WaitingTypes, RequiredDataState } from "../Types/reducer_types";
 
 
 const loggedOut = {
@@ -34,7 +34,7 @@ const loggedOut = {
 	lifetime: 0,
 };
 
-const loggedOutState = new InitialState<LoggedInUser>(loggedOut);
+const loggedOutState = new RequiredDataState<LoggedInUser>(loggedOut);
 
 const expireCookie = (name: string) => {
 	document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;";
@@ -50,7 +50,7 @@ const clearCookies = () => {
 
 
 export const AuthContext = createContext<{
-	state: InitialState<LoggedInUser>,
+	state: RequiredDataState<LoggedInUser>,
 	dispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
 	setupAuthExpirationAction: () => void
 	logout: () => void,
@@ -68,7 +68,7 @@ export const AuthContext = createContext<{
 export const AuthContextProvider = (props: { children: JSX.Element }) => {
 	const { children } = props;
 	const [state, dispatch] = useReducer(
-		waitingReducer<LoggedInUser, InitialState<LoggedInUser>>(),
+		waitingReducer<LoggedInUser, RequiredDataState<LoggedInUser>>(),
 		loggedOutState
 	);
 
@@ -210,6 +210,9 @@ export const useHasAnyRoles = (requiredRoleNames: string[]) => {
 	const { state: { data } } = useContext(AuthContext);
 	const userRoles = data?.roles;
 
+	if (!userRoles) {
+		return false;
+	}
 	if (anyConformsToRule(userRoles, UserRoleDef.ADMIN)) {
 		return true;
 	}

@@ -209,8 +209,17 @@ export class VoidState {
 export class InitialState<DataShape=undefined> extends VoidState {
 	data?: DataShape
 
-	constructor(...data: DataShape extends undefined ? [] : [d: DataShape] ) {
+	constructor(data?: DataShape) {
 		super();
-		this.data = data[0]
+		this.data = data
+	}
+};
+
+export class RequiredDataState<DataShape> extends InitialState<DataShape> {
+	data: DataShape
+
+	constructor(data: DataShape) {
+		super(data);
+		this.data = data;
 	}
 };

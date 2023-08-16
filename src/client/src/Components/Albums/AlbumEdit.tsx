@@ -71,7 +71,7 @@ export const AlbumEdit = (props: AlbumEditProps) => {
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
-				<FormTextField<AlbumInfo>
+				<FormTextField
 					name="name"
 					label="Name"
 					formMethods={formMethods}
@@ -79,7 +79,7 @@ export const AlbumEdit = (props: AlbumEditProps) => {
 			</Box>
 			<Loader status={artistCallStatus} error={artistError}>
 				<Box sx={inputField}>
-					<ArtistSelect<AlbumInfo>
+					<ArtistSelect
 						name="albumArtist"
 						options={artists}
 						formMethods={formMethods}

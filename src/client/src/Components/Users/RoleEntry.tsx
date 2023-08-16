@@ -77,7 +77,7 @@ export const RoleEntry = (props: RoleEntryProps) => {
 			<Box className="rule-entry-first-text">
 				This action can be invoked
 			</Box>
-			<FormTextField<InitialValueTypes>
+			<FormTextField
 				className="small-number-input"
 				name="count"
 				label="Count"
@@ -86,7 +86,7 @@ export const RoleEntry = (props: RoleEntryProps) => {
 				formMethods={formMethods}
 			/>
 			<Box component="span" className="between-text">times per</Box>
-			<FormTextField<InitialValueTypes>
+			<FormTextField
 				className="small-number-input"
 				name="hours"
 				label="Hours"
@@ -96,7 +96,7 @@ export const RoleEntry = (props: RoleEntryProps) => {
 			/>
 
 
-			<FormTextField<InitialValueTypes>
+			<FormTextField
 				className="small-number-input"
 				name="days"
 				label="Days"
@@ -104,7 +104,7 @@ export const RoleEntry = (props: RoleEntryProps) => {
 				min="0"
 				formMethods={formMethods}
 			/>
-			<FormTextField<InitialValueTypes>
+			<FormTextField
 				className="small-number-input"
 				name="minutes"
 				label="Minutes"

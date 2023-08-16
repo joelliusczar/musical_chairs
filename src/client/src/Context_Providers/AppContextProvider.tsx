@@ -23,25 +23,30 @@ import {
 	KeyAndDataOrUpdater,
 	WaitingTypes,
 	DataOrUpdater,
-	InitialState,
+	RequiredDataState
 } from "../Types/reducer_types";
-import { IdItem, IdType, NamedIdItem } from "../Types/generic_types";
+import {
+	IdItem,
+	IdType,
+	NamedIdItem,
+	SingleOrList
+} from "../Types/generic_types";
 import { StationInfo } from "../Types/station_types";
 import { AlbumInfo, ArtistInfo } from "../Types/song_info_types";
 
 const initialAlbumState =
-	new InitialState<ListDataShape<AlbumInfo>>({ items: []});
+	new RequiredDataState<ListDataShape<AlbumInfo>>({ items: []});
 const initialStationState =
-	new InitialState<ListDataShape<StationInfo>>({ items: []});
+	new RequiredDataState<ListDataShape<StationInfo>>({ items: []});
 const initialArtistState =
-	new InitialState<ListDataShape<ArtistInfo>>({ items: []});
+	new RequiredDataState<ListDataShape<ArtistInfo>>({ items: []});
 
 const AppContext = createContext<{
-	albumsState: InitialState<ListDataShape<AlbumInfo>>,
+	albumsState: RequiredDataState<ListDataShape<AlbumInfo>>,
 	albumsDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
-	stationsState: InitialState<ListDataShape<StationInfo>>,
+	stationsState: RequiredDataState<ListDataShape<StationInfo>>,
 	stationsDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
-	artistState: InitialState<ListDataShape<ArtistInfo>>,
+	artistState: RequiredDataState<ListDataShape<ArtistInfo>>,
 	artistDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
 }>({
 	albumsState: initialAlbumState,
@@ -196,16 +201,22 @@ AppContextProvider.propTypes = {
 };
 
 export const useIdMapper = <T extends IdItem>(items: T[]) => {
-	const idMapper = useCallback((value: T) => {
-		if(!value) return value;
+	const idMapper =
+		<InT extends T | T[] | null,>(value: InT): SingleOrList<T, InT> => {
+		if(!value) return null as SingleOrList<T, InT>;
 		if(Array.isArray(value)) {
 			return value.map((item) =>
-				items.find(x => x.id === item.id));
+				items.find(x => x.id === item.id)
+			).filter(x => !!x) as SingleOrList<T, InT>;
 		}
 		if (typeof(value) === "object") {
-			return items.find(x => x.id === value.id) || null;
+			const matches = items.find(x => x.id === value.id) || null;
+      if (matches) {
+        return matches as SingleOrList<T, InT>;
+      }
 		}
-	},[items]);
+		return null as SingleOrList<T, InT>;
+	};
 	return idMapper;
 };
 

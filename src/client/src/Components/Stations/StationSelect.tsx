@@ -1,11 +1,11 @@
 import React from "react";
 import { Box, Typography, FormHelperText } from "@mui/material";
-import { FormSelect, FormSelectPropsDefault } from "../Shared/FormSelect";
+import { FormSelect, FormSelectPropsSelected } from "../Shared/FormSelect";
 import { StationInfo } from "../../Types/station_types";
 import { FieldValues } from "react-hook-form";
 
 export const StationSelect = <FormT extends FieldValues>(
-	props: FormSelectPropsDefault<StationInfo, FormT>
+	props: FormSelectPropsSelected<StationInfo, FormT>
 ) => {
 
 	return (

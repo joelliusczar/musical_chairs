@@ -51,7 +51,7 @@ import {
 	TouchTypes,
 	TouchedObject
 } from "../../Types/song_info_types";
-import { Named } from "../../Types/generic_types";
+import { Named, IdType } from "../../Types/generic_types";
 
 
 const inputField = {
@@ -87,8 +87,9 @@ const schema = Yup.object().shape({
 	"primaryArtist": Yup.object().nullable().test(
 		"primaryArtist",
 		"Primary Artist is already listed.",
-		(value, testContext) => {
-			if (testContext.parent.artists?.some(a => a?.id === value?.id)) {
+		(value, testContext: Yup.TestContext<Partial<SongInfoForm>>) => {
+			const parent = testContext.parent as SongInfoForm
+			if (parent.artists?.some(a => a?.id === value?.id)) {
 				return false;
 			}
 			return true;
@@ -99,7 +100,7 @@ const schema = Yup.object().shape({
 		"",
 		(value, testContext) => {
 			if (!value) return true;
-			const found = {};
+			const found: { [key: IdType]: true} = {};
 			for (const artist of value) {
 				if (artist?.id === testContext.parent.primaryArtist?.id) {
 					return testContext.createError({
@@ -338,7 +339,7 @@ export const SongEdit = () => {
 				/>
 			</Box>
 			<Box>
-				<Loader status={artistCallStatus} artistError={artistError}>
+				<Loader status={artistCallStatus} error={artistError}>
 					<Box sx={inputField}>
 						{ids?.length > 1 && <TouchedCheckbox
 							name="primaryArtist"
@@ -372,13 +373,15 @@ export const SongEdit = () => {
 							disabled={!canEditSongs}
 						/>
 					</Box>
-					{canEditSongs && <Box sx={inputField}>
-						<ArtistNewModalOpener add={addArtist} />
-					</Box>}
+					<>
+						{canEditSongs && <Box sx={inputField}>
+							<ArtistNewModalOpener add={addArtist} />
+						</Box>}
+					</>
 				</Loader>
 			</Box>
 			<Box>
-				<Loader status={albumCallStatus} artistError={albumError}>
+				<Loader status={albumCallStatus} error={albumError}>
 					<Box sx={inputField}>
 						{ids?.length > 1 && <TouchedCheckbox
 							name="album"
@@ -395,16 +398,18 @@ export const SongEdit = () => {
 							disabled={!canEditSongs}
 						/>
 					</Box>
-					{canEditSongs && <Box sx={inputField}>
-						<AlbumNewModalOpener
-							add={addAlbum}
-							formArtists={formAllArtists}
-						/>
-					</Box>}
+					<>
+						{canEditSongs && <Box sx={inputField}>
+							<AlbumNewModalOpener
+								add={addAlbum}
+								formArtists={formAllArtists}
+							/>
+						</Box>}
+					</>
 				</Loader>
 			</Box>
 			<Box>
-				<Loader status={stationCallStatus} artistError={stationError}>
+				<Loader status={stationCallStatus} error={stationError}>
 					<Box sx={inputField}>
 						{ids?.length > 1 && <TouchedCheckbox
 							name="stations"
@@ -422,9 +427,11 @@ export const SongEdit = () => {
 							disabled={!canEditSongs}
 						/>
 					</Box>
-					{canEditSongs && <Box sx={inputField}>
-						<StationNewModalOpener add={addStation} />
-					</Box>}
+					<>
+						{canEditSongs && <Box sx={inputField}>
+							<StationNewModalOpener add={addStation} />
+						</Box>}
+					</>
 				</Loader>
 			</Box>
 			<Box sx={inputField}>

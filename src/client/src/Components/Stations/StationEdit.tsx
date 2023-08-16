@@ -34,7 +34,7 @@ import { FormSelect } from "../Shared/FormSelect";
 import { InitialState } from "../../Types/reducer_types";
 import {
 	StationInfo,
-	FormStationInfo,
+	StationInfoForm,
 } from "../../Types/station_types";
 import { NamedIdItem } from "../../Types/generic_types";
 
@@ -75,9 +75,10 @@ const initialValues = {
 
 const validatePhraseIsUnused = async (
 	value: string | undefined,
-	context: Yup.TestContext<FormStationInfo>
+	context: Yup.TestContext<Partial<StationInfoForm>>
 ) => {
 	const id = context?.parent?.id;
+	if (!value) return true;
 	const used = await checkValues({ id, values: {
 		[context.path]: value,
 	}});
@@ -114,8 +115,8 @@ export const StationEdit = (props: StationEditProps) => {
 
 
 	const [state, dispatch] = useReducer(
-		waitingReducer<FormStationInfo, InitialState<FormStationInfo>>(),
-		new InitialState<FormStationInfo>(initialValues)
+		waitingReducer<StationInfoForm, InitialState<StationInfoForm>>(),
+		new InitialState<StationInfoForm>(initialValues)
 	);
 	const { callStatus, error } = state;
 	const {
@@ -138,7 +139,7 @@ export const StationEdit = (props: StationEditProps) => {
 	const afterSubmit = props.afterSubmit || _afterSubmit;
 
 
-	const formMethods = useForm<FormStationInfo>({
+	const formMethods = useForm<StationInfoForm>({
 		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
@@ -233,14 +234,14 @@ export const StationEdit = (props: StationEditProps) => {
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
-				<FormTextField<FormStationInfo>
+				<FormTextField
 					name="name"
 					label="Name"
 					formMethods={formMethods}
 				/>
 			</Box>
 			<Box sx={inputField}>
-				<FormTextField<FormStationInfo>
+				<FormTextField
 					name="displayName"
 					label="Display Name"
 					formMethods={formMethods}

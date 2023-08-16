@@ -4,7 +4,7 @@ export const h1Size = 34;
 export const fontDecSize = 2;
 export const drawerWidth = 240;
 
-const calcHeaderFontSize = (headerNum) => {
+const calcHeaderFontSize = (headerNum: number) => {
 	return h1Size - (headerNum - 1) * fontDecSize;
 };
 
@@ -30,4 +30,3 @@ export const theme = createTheme({
 		},
 	},
 });
-

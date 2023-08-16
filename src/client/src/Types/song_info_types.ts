@@ -1,6 +1,6 @@
 import { IdType, Named, NamedIdItem } from "./generic_types";
 import { PathsActionRule, ActionRule, User } from "./user_types";
-import { StationTableData } from "./station_types";
+import { StationTableData, StationInfo } from "./station_types";
 import { VoidState } from "./reducer_types";
 import {
 	FieldValues,
@@ -82,10 +82,10 @@ export type TouchedObject = {
 
 export interface SongInfoBase extends Named {
 	path: string
-	artists: NamedIdItem[]
-	primaryArtist: NamedIdItem
-	album: NamedIdItem
-	stations: NamedIdItem[]
+	artists: ArtistInfo[]
+	primaryArtist: ArtistInfo
+	album: AlbumInfo
+	stations: StationInfo[]
 	genre: string
 }
 

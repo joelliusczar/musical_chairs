@@ -20,7 +20,7 @@ import {
 import { useSnackbar } from "notistack";
 import { useAuthViewStateChange } from "../../Context_Providers/AuthContext";
 import { normalizeOpeningSlash } from "../../Helpers/string_helpers";
-import { InitialState, ListDataShape } from "../../Types/reducer_types";
+import { RequiredDataState, ListDataShape } from "../../Types/reducer_types";
 import { SongTreeNodeInfo } from "../../Types/song_info_types";
 import { IdType } from "../../Types/generic_types"
 import { ListData } from "../../Types/pageable_types";
@@ -76,9 +76,9 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 	const [state, dispatch] = useReducer(
 		waitingReducer<
 			SongTreeNodeInfo,
-			InitialState<ListDataShape<SongTreeNodeInfo>>
+			RequiredDataState<ListDataShape<SongTreeNodeInfo>>
 		>(),
-		new InitialState<ListDataShape<SongTreeNodeInfo>>({ items: []})
+		new RequiredDataState<ListDataShape<SongTreeNodeInfo>>({ items: []})
 	);
 	const { callStatus } = state;
 	const { getCacheValue, setCacheValue } = useCache<

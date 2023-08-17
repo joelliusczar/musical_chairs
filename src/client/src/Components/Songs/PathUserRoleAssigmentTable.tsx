@@ -5,8 +5,6 @@ import {
 import {
 	waitingReducer,
 	dispatches,
-	pageableDataInitialState,
-	waitingTypes,
 	globalStoreLogger,
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
@@ -20,6 +18,17 @@ import { UserRoleDef, UserRoleDomain } from "../../constants";
 import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
+import {
+	RequiredDataState,
+	PageableListDataShape,
+	PageableListStore,
+	WaitingTypes
+} from "../../Types/reducer_types";
+import {
+	User,
+	ActionRule,
+	ActionRuleCreationInfo
+} from "../../Types/user_types";
 
 
 const pathRoles = Object.keys(UserRoleDef)
@@ -35,7 +44,7 @@ pathRoles.unshift({
 
 
 const ruleUpdatePaths = {
-	[waitingTypes.add]: (state, payload) => {
+	[WaitingTypes.add]: (state: PageableListStore<User>, payload: User) => {
 		const items = [...state.data.items, payload]
 			.sort(keyedSortFn("username"));
 		return {
@@ -46,10 +55,13 @@ const ruleUpdatePaths = {
 			},
 		};
 	},
-	[waitingTypes.remove]: (state, payload) => {
+	[WaitingTypes.remove]: (
+		state: PageableListStore<User>,
+		payload: { key: number | string}
+	) => {
 		const { key } = payload;
 		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === (key * 1));
+		const idx = items.findIndex(x => x.id === (+key * 1));
 		items.splice(idx, 1);
 		return {
 			...state,
@@ -59,10 +71,16 @@ const ruleUpdatePaths = {
 			},
 		};
 	},
-	[waitingTypes.update]: (state, payload) => {
+	[WaitingTypes.updateItem]: (
+		state: PageableListStore<User>,
+		payload: {
+			key: string | number,
+			dataOrUpdater: User
+		}
+	) => {
 		const { key, dataOrUpdater: data } = payload;
 		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === (key * 1));
+		const idx = items.findIndex(x => x.id === (+key * 1));
 		if (idx > -1) {
 			items.splice(idx, 1, data);
 			const sortedItems = items.sort(keyedSortFn("username"));
@@ -85,7 +103,9 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useReducer(
 		waitingReducer(ruleUpdatePaths, [globalStoreLogger("path users")]),
-		pageableDataInitialState
+		new RequiredDataState<PageableListDataShape<User>>(
+			{ items: [], totalRows: 0}
+		)
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
@@ -95,7 +115,11 @@ export const PathUserRoleAssignmentTable = () => {
 	const { callStatus } = state;
 
 
-	const addUser = async (user) => {
+	const addUser = async (user: User| null) => {
+		if (!user) {
+			console.error("provided user was null");
+			return;
+		}
 		try {
 			const rule = {
 				name: UserRoleDef.PATH_VIEW,
@@ -159,7 +183,7 @@ export const PathUserRoleAssignmentTable = () => {
 		setCurrentQueryStr,
 	]);
 
-	const addRole = async (rule, user) => {
+	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
 		try {
 			const addedRule = await addPathUserRule({
 				rule,
@@ -181,7 +205,7 @@ export const PathUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeRole = async (role, user) => {
+	const removeRole = async (role: ActionRule, user: User) => {
 		try {
 			await removePathUserRule({
 				params: {
@@ -211,7 +235,7 @@ export const PathUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeUser = async (user) => {
+	const removeUser = async (user: User) => {
 		try {
 			await removePathUserRule({
 				params: {

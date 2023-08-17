@@ -25,7 +25,7 @@ import {
 	PageableListStore,
 	WaitingTypes,
 	PageableListDataShape,
-	InitialState
+	RequiredDataState
 } from "../../Types/reducer_types";
 import {
 	User,
@@ -107,7 +107,9 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useReducer(
 		waitingReducer(ruleUpdatePaths, [globalStoreLogger("station users")]),
-		new InitialState<PageableListDataShape<User>>({ items: [], totalRows: 0})
+		new RequiredDataState<PageableListDataShape<User>>(
+			{ items: [], totalRows: 0}
+		)
 	);
 	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 	const [currentQueryStr, setCurrentQueryStr] = useState("");

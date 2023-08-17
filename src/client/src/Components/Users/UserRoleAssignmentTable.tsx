@@ -23,7 +23,7 @@ interface UserRoleAssignmentTableProps {
 	onUserSelect?: (selected: User | null) => void | Promise<void>
 	users: User[]
 	removeRole: (role: ActionRule, user: User) => void
-	removeUser: (user: User) => void
+	removeUser?: (user: User) => void
 	availableRoles: SelectItem[]
 	addRole: (role: ActionRuleCreationInfo, user: User) => void | Promise<void>
 }
@@ -102,25 +102,4 @@ export const UserRoleAssignmentTable = (
 			})}
 		</>
 	);
-};
-
-UserRoleAssignmentTable.propTypes = {
-	onUserSelect: PropTypes.func,
-	addRole: PropTypes.func.isRequired,
-	removeRole: PropTypes.func.isRequired,
-	removeUser: PropTypes.func,
-	users: PropTypes.arrayOf(PropTypes.shape({
-		username: PropTypes.string,
-		displayName: PropTypes.string,
-		roles: PropTypes.arrayOf(PropTypes.shape({
-			name: PropTypes.string,
-			span: PropTypes.number,
-			count: PropTypes.number,
-			priority: PropTypes.number,
-		})),
-	})).isRequired,
-	availableRoles: PropTypes.arrayOf(PropTypes.shape({
-		id: PropTypes.oneOfType([PropTypes.number,PropTypes.string]),
-		name: PropTypes.string,
-	})).isRequired,
 };

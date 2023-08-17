@@ -5,8 +5,6 @@ import {
 import {
 	waitingReducer,
 	dispatches,
-	initialState,
-	waitingTypes,
 	globalStoreLogger,
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
@@ -21,6 +19,16 @@ import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "./UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
 import { useParams } from "react-router-dom";
+import {
+	WaitingTypes,
+	RequiredDataState,
+	SimpleStore,
+} from "../../Types/reducer_types";
+import {
+	User,
+	ActionRuleCreationInfo,
+	ActionRule,
+ } from "../../Types/user_types";
 
 const roles = Object.keys(UserRoleDef)
 	.map(k => UserRoleDef[k])
@@ -35,7 +43,7 @@ roles.unshift({
 
 
 const ruleUpdatePaths = {
-	[waitingTypes.add]: (state, payload) => {
+	[WaitingTypes.add]: (state: SimpleStore<User>, payload: ActionRule) => {
 		const roles = [...state.data.roles, payload]
 			.sort(keyedSortFn("username"));
 		return {
@@ -46,7 +54,10 @@ const ruleUpdatePaths = {
 			},
 		};
 	},
-	[waitingTypes.remove]: (state, payload) => {
+	[WaitingTypes.remove]: (
+		state: SimpleStore<User>,
+		payload: { key: number | string}
+	) => {
 		const { key } = payload;
 		const roles = [...state.data.roles];
 		const idx = roles.findIndex(r => r.name === key);
@@ -65,7 +76,9 @@ export const SiteUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useReducer(
 		waitingReducer(ruleUpdatePaths, [globalStoreLogger("path users")]),
-		initialState
+		new RequiredDataState<User>(
+			{ id: 0, username: "", roles: [], email: ""}
+		)
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
@@ -79,6 +92,10 @@ export const SiteUserRoleAssignmentTable = () => {
 	},[]);
 
 	useEffect(() => {
+		if (!subjectUserKey) {
+			enqueueSnackbar("No user selected", { variant: "error"});
+			return;
+		}
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 
@@ -90,7 +107,9 @@ export const SiteUserRoleAssignmentTable = () => {
 
 			}
 			catch (err) {
-				dispatch(dispatches.failed(formatError(err)));
+				const errMsg = formatError(err);
+				enqueueSnackbar(errMsg, { variant: "error"});
+				dispatch(dispatches.failed(errMsg));
 			}
 
 		};
@@ -105,7 +124,7 @@ export const SiteUserRoleAssignmentTable = () => {
 		setCurrentQueryStr,
 	]);
 
-	const addRole = async (rule, user) => {
+	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
 		try {
 			const addedRule = await addSiteUserRule({
 				subjectUserKey: user.id,
@@ -119,7 +138,7 @@ export const SiteUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeRole = async (role, user) => {
+	const removeRole = async (role: ActionRule, user: User) => {
 		try {
 			await removeSiteUserRule({
 				subjectUserKey: user.id,
@@ -127,7 +146,7 @@ export const SiteUserRoleAssignmentTable = () => {
 					ruleName: role.name,
 				},
 			});
-			dispatch(dispatches.remove(role));
+			dispatch(dispatches.remove(role.name));
 			enqueueSnackbar(`${role.name} removed!`, { variant: "success"});
 		}
 		catch(err) {

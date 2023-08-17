@@ -102,8 +102,8 @@ const schema = Yup.object().shape({
 });
 
 type StationEditProps = {
-	onCancel: (e: unknown) => void
-	afterSubmit: (s: StationInfo) => void
+	onCancel?: (e: unknown) => void
+	afterSubmit?: (s: StationInfo) => void
 };
 
 export const StationEdit = (props: StationEditProps) => {
@@ -289,10 +289,6 @@ export const StationEdit = (props: StationEditProps) => {
 	);
 };
 
-StationEdit.propTypes = {
-	afterSubmit: PropTypes.func,
-	onCancel: PropTypes.func,
-};
 
 type StationNewModalOpenerProps = {
 	add?: (s: StationInfo) => void;

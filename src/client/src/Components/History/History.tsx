@@ -14,13 +14,12 @@ import {
 } from "@mui/material";
 import {
 	waitingReducer,
-	pageableDataInitialState,
 	dispatches,
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
-import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
+import { UrlBuilder } from "../../Helpers/pageable_helpers";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { formatError } from "../../Helpers/error_formatter";
 import {
@@ -31,6 +30,9 @@ import { UserRoleDef } from "../../constants";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import { StationInfo } from "../../Types/station_types";
+import { RequiredDataState, PageableListDataShape } from "../../Types/reducer_types";
+import { SongListDisplayItem } from "../../Types/song_info_types";
 
 
 export const History = () => {
@@ -41,18 +43,28 @@ export const History = () => {
 	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
-	const [selectedStation, setSelectedStation] = useState();
+	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 
 	const [historyState, historyDispatch] =
-		useReducer(waitingReducer(), pageableDataInitialState);
+		useReducer(waitingReducer<
+			SongListDisplayItem,
+			RequiredDataState<PageableListDataShape<SongListDisplayItem>>
+		>(),
+		new RequiredDataState<PageableListDataShape<SongListDisplayItem>>(
+			{
+			 items: [],
+			 totalRows: 0
+			}
+		)
+	);
 
 	useAuthViewStateChange(historyDispatch);
 
 	const { callStatus: historyCallStatus } = historyState;
 
-	const getPageUrl = urlBuilderFactory(DomRoutes.history);
+	const getPageUrl = new UrlBuilder(DomRoutes.history);
 
-	const rowButton = (item, idx) => {
+	const rowButton = (item: SongListDisplayItem, idx: number) => {
 		const rowButtonOptions = [];
 		const canEditThisSong = anyConformsToAnyRule(
 			item?.rules,
@@ -132,7 +144,7 @@ export const History = () => {
 			<h1>History: {selectedStation?.displayName || ""}</h1>
 			<Box m={1}>
 				<StationRouteSelect
-					getPageUrl={getPageUrl}
+					getPageUrl={getPageUrl.getOtherUrl}
 					onChange={(s) => setSelectedStation(s)}
 				/>
 			</Box>
@@ -178,7 +190,7 @@ export const History = () => {
 						</TableContainer>
 						<Box sx={{ display: "flex" }}>
 							<UrlPagination
-								getPageUrl={getPageUrl}
+								getPageUrl={getPageUrl.getThisUrl}
 								totalRows={historyState.data?.totalRows}
 							/>
 						</Box>

@@ -55,8 +55,8 @@ export const saveStation = async (
 
 export const fetchSongCatalogue = async ({
 	stationKey,
-	params,
 	ownerKey,
+	...params
 }: RequiredStationParams) => {
 	const url = `stations/${ownerKey}/${stationKey}/catalogue/`;
 	const response = await webClient.get(url, {
@@ -83,9 +83,11 @@ export const fetchHistory = async ({ stationKey, params, ownerKey }) => {
 	return response.data;
 };
 
-export const sendSongRequest = async ({ station, songId}) => {
+export const sendSongRequest = async (
+	{ stationKey, songId}: {stationKey: KeyType, songId: IdType}
+) => {
 	const response = await webClient
-		.post(`stations/${station}/request/${songId}`);
+		.post(`stations/${stationKey}/request/${songId}`);
 	return response.data;
 };
 

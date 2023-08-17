@@ -11,7 +11,7 @@ import { useLogin } from "../../Context_Providers/AuthContext";
 
 type LoginFormProps = {
 	afterSubmit: () => void,
-	onCancel: (e: unknown) => void
+	onCancel?: (e: unknown) => void
 };
 
 type LoginFormInitialValues = {
@@ -50,7 +50,6 @@ export function LoginForm(props: LoginFormProps) {
 		<Box sx={{ p: 1 }}>
 			<Typography variant="h1">Login</Typography>
 			<Link
-				onClick={onCancel}
 				to={`${DomRoutes.accountsNew()}`}
 			>
 				Create new account
@@ -82,7 +81,3 @@ export function LoginForm(props: LoginFormProps) {
 	);
 }
 
-LoginForm.propTypes = {
-	afterSubmit: PropTypes.func.isRequired,
-	onCancel: PropTypes.func,
-};

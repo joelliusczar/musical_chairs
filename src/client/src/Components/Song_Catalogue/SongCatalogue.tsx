@@ -19,12 +19,11 @@ import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
 	waitingReducer,
-	pageableDataInitialState,
 	dispatches,
 } from "../Shared/waitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
-import { urlBuilderFactory } from "../../Helpers/pageable_helpers";
+import { UrlBuilder } from "../../Helpers/pageable_helpers";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
@@ -35,16 +34,30 @@ import {
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
-
+import { StationInfo, StationTableData } from "../../Types/station_types";
+import { RequiredDataState } from "../../Types/reducer_types";
+import { SongListDisplayItem } from "../../Types/song_info_types";
+import { IdType } from "../../Types/generic_types";
 
 export const SongCatalogue = () => {
 
 	const [catalogueState, catalogueDispatch] =
-		useReducer(waitingReducer(), pageableDataInitialState);
+	useReducer(waitingReducer<
+			SongListDisplayItem,
+			RequiredDataState<StationTableData<SongListDisplayItem>>
+		>(),
+		new RequiredDataState<StationTableData<SongListDisplayItem>>(
+			{
+				items: [],
+				totalRows: 0,
+				stationRules: []
+			}
+		)
+	);
 
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
-	const [selectedStation, setSelectedStation] = useState();
+	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 	const location = useLocation();
 	const pathVars = useParams();
 
@@ -62,7 +75,11 @@ export const SongCatalogue = () => {
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
 
-	const requestSong = async (songId) => {
+	const requestSong = async (songId: IdType) => {
+		if (!pathVars.stationKey) {
+			enqueueSnackbar("Station key is missing", {variant: "error" });
+			return;
+		}
 		try {
 			await sendSongRequest({stationKey: pathVars.stationKey, songId });
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
@@ -72,9 +89,9 @@ export const SongCatalogue = () => {
 		}
 	};
 
-	const getPageUrl = urlBuilderFactory(DomRoutes.songCatalogue);
+	const getPageUrl = new UrlBuilder(DomRoutes.songCatalogue);
 
-	const rowButton = (item, idx) => {
+	const rowButton = (item: SongListDisplayItem, idx: number) => {
 		const rowButtonOptions = [];
 
 
@@ -126,7 +143,7 @@ export const SongCatalogue = () => {
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationKey) return;
+			if (!pathVars.stationKey || !pathVars.ownerKey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
@@ -135,7 +152,9 @@ export const SongCatalogue = () => {
 				const data = await fetchSongCatalogue({
 					stationKey: pathVars.stationKey,
 					ownerKey: pathVars.ownerKey,
-					params: { page: page - 1, limit: limit } }
+					page: page - 1,
+					limit: limit
+				}
 				);
 				catalogueDispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
@@ -163,7 +182,7 @@ export const SongCatalogue = () => {
 			<h1>Song Catalogue: {selectedStation?.displayName || ""}</h1>
 			<Box m={1}>
 				<StationRouteSelect
-					getPageUrl={getPageUrl}
+					getPageUrl={getPageUrl.getOtherUrl}
 					onChange={(s) => setSelectedStation(s)}
 				/>
 			</Box>
@@ -207,7 +226,7 @@ export const SongCatalogue = () => {
 						</TableContainer>
 						<Box sx={{ display: "flex" }}>
 							<UrlPagination
-								getPageUrl={getPageUrl}
+								getPageUrl={getPageUrl.getThisUrl}
 								totalRows={catalogueState.data?.totalRows}
 							/>
 						</Box>

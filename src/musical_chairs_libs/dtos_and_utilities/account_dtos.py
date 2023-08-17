@@ -125,13 +125,13 @@ class AccountInfoSecurity(AccountInfoBase):
 
 	def get_permitted_paths_tree(
 		self
-	) -> ChainedAbsorbentTrie[ActionRule]:
-		pathTree = ChainedAbsorbentTrie[ActionRule](
+	) -> ChainedAbsorbentTrie[PathsActionRule]:
+		pathTree = ChainedAbsorbentTrie[PathsActionRule](
 			(normalize_opening_slash(r.path), r) for r in
 			self.roles if isinstance(r, PathsActionRule) \
 				and not r.path is None
 		)
-		pathTree.add("", (r for r in self.roles \
+		pathTree.add("", (r.to_path_rule("") for r in self.roles \
 			if type(r) == ActionRule \
 				and (UserRoleDomain.Path.conforms(r.name) \
 						or r.name == UserRoleDef.ADMIN.value

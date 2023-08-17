@@ -27,6 +27,8 @@ import { LoggedInUser } from "../Types/user_types";
 import { WaitingTypes, RequiredDataState } from "../Types/reducer_types";
 
 
+type loginFnType = (username: string, password: string) => void;
+
 const loggedOut = {
 	username: "",
 	roles: [],
@@ -223,7 +225,7 @@ export const useHasAnyRoles = (requiredRoleNames: string[]) => {
 	return false;
 };
 
-export const useLogin = () => {
+export const useLogin: () => [loginFnType, () => void] = () => {
 	const {
 		dispatch,
 		setupAuthExpirationAction,

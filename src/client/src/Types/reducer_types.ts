@@ -174,9 +174,6 @@ export type ReducerMods<DataShape, StoreType = SimpleStore<DataShape>> =
 		) => StoreType
 	}
 
-// export interface KeyedStore<DataShape> {
-// 	[key: string]: SimpleStore<DataShape>
-// };
 
 export type MiddlewareFn<StoreType> = (
 	accumulation: StoreType,
@@ -186,10 +183,6 @@ export type MiddlewareFn<StoreType> = (
 		payload: any
 	}
 ) => StoreType;
-
-// export type ReducerModFn<DataShape> = (
-// 	state: SimpleStore<DataShape>,
-// 	payload: DataShape | Error)  => SimpleStore<DataShape>;
 
 export type PayloadTypes<OuterDataShape, DataShape> =
 	OuterDataShape |

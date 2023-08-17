@@ -1,5 +1,5 @@
 import React from "react";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Box, Typography, Button } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { FormTextField } from "../Shared/FormTextField";
@@ -11,6 +11,7 @@ import { DomRoutes } from "../../constants";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { formatError } from "../../Helpers/error_formatter";
 import { validatePhraseIsUnused } from "../../Helpers/validation_helpers";
+import { UserCreationInfo } from "../../Types/user_types";
 
 
 const inputField = {
@@ -41,10 +42,10 @@ const schema = Yup.object().shape({
 
 export function AccountsNew() {
 	const { enqueueSnackbar } = useSnackbar();
-	const urlHistory = useHistory();
+	const navigate = useNavigate();
 
 
-	const formMethods = useForm({
+	const formMethods = useForm<UserCreationInfo>({
 		defaultValues: {
 			username: "",
 			displayName: "",
@@ -59,7 +60,7 @@ export function AccountsNew() {
 	const callSubmit = handleSubmit(async values => {
 		try {
 			await createAccount({ values });
-			urlHistory.push(DomRoutes.accountsLogin());
+			navigate(DomRoutes.accountsLogin());
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err){

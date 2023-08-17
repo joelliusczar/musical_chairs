@@ -41,7 +41,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDomain,
 	build_rules_query,
 	MinItemSecurityLevel,
-	generate_user_and_rules_from_rows,
+	generate_user_and_rules_from_rows
 )
 from sqlalchemy import (
 	select,
@@ -389,7 +389,7 @@ class SongInfoService:
 	def __query_to_treeNodes__(
 		self,
 		query: Select,
-		permittedPathsTree: ChainedAbsorbentTrie[ActionRule]
+		permittedPathsTree: ChainedAbsorbentTrie[PathsActionRule]
 	) -> Iterator[SongTreeNode]:
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		for row in cast(Iterable[Row] ,records):

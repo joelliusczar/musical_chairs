@@ -7,27 +7,40 @@ import {
 	useCurrentUser,
 	useLogin,
 } from "../../Context_Providers/AuthContext";
+import {
+	ButtonClickEvent,
+	ClickEvent,
+	AnchorE,
+	ListE
+} from "../../Types/browser_types";
 
-export const UserMenu = (props) => {
+type UserMenuProps = {
+	closeMenu: <EType>(e: ClickEvent<EType>) => void
+	btnLabel: string
+};
+
+export const UserMenu = (props: UserMenuProps) => {
 	const { closeMenu, btnLabel } = props;
 	const [, logout] = useLogin();
-	const [anchorEl, setAnchorEl ] = useState(null);
+	const [anchorEl, setAnchorEl ] = useState<
+		(EventTarget & HTMLButtonElement) | null
+	>(null);
 
 	const user = useCurrentUser();
 
 	const open = !!anchorEl;
 
-	const _closeMenu = (e) => {
+	const _closeMenu = <EType,>(e: ClickEvent<EType>) => {
 		closeMenu && closeMenu(e);
 		setAnchorEl(null);
 	};
 
-	const logoutClick = (e) => {
+	const logoutClick = (e: ClickEvent<ListE>) => {
 		_closeMenu(e);
 		logout();
 	};
 
-	const openUserMenu = (e) => {
+	const openUserMenu = (e: ButtonClickEvent) => {
 		setAnchorEl(e.currentTarget);
 	};
 
@@ -47,7 +60,7 @@ export const UserMenu = (props) => {
 				<MenuItem
 					component={Link}
 					to={DomRoutes.accountsEdit({
-						userKey: encodeURIComponent(user.username),
+						subjectUserKey: encodeURIComponent(user.username),
 					})}
 					onClick={_closeMenu}
 				>
@@ -57,10 +70,4 @@ export const UserMenu = (props) => {
 			</Menu>
 		</>
 	);
-};
-
-UserMenu.propTypes = {
-	anchorEl: PropTypes.object,
-	closeMenu: PropTypes.func,
-	btnLabel: PropTypes.string,
 };

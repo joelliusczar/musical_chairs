@@ -8,10 +8,10 @@ import {
 	SubjectUserKeyItem,
 	RoledUser,
 	ExistenceCheckParams,
-	UserBase
+	SubjectPasswordUpdate,
+	UserBasicUpdateApiParams
 } from "../Types/user_types";
-import { PageableParams } from "../Types/pageable_types";
-
+import { PageableParams, TableData } from "../Types/pageable_types";
 export { webClient };
 
 
@@ -55,14 +55,19 @@ export const checkValues = async (
 };
 
 export const fetchUser = async ({ subjectUserKey }: SubjectUserKeyItem) => {
-	const response = await webClient.get(`accounts/account/${subjectUserKey}`);
+	const response = await webClient.get<User>(
+		`accounts/account/${subjectUserKey}`
+	);
 	return response.data;
 };
 
 export const fetchUserList = async ({ params }: { params: PageableParams}) => {
-	const response = await webClient.get("accounts/list", {
-		params: params,
-	});
+	const response = await webClient.get<TableData<User>>(
+		"accounts/list",
+		{
+			params: params,
+		}
+	);
 	return response.data;
 };
 
@@ -80,7 +85,9 @@ export const updateUserRoles = async ({ id, roles }: RoledUser) => {
 	return response.data;
 };
 
-export const updateAccountBasic = async ({ subjectUserKey, data }) => {
+export const updateAccountBasic = async (
+		{ subjectUserKey, data }: UserBasicUpdateApiParams
+	) => {
 	const response = await webClient.put(
 		`accounts/account/${subjectUserKey}`,
 		data
@@ -92,7 +99,7 @@ export const updatePassword = async ({
 	subjectUserKey,
 	oldPassword,
 	newPassword,
-}) => {
+}: SubjectPasswordUpdate) => {
 	const response = await webClient.put(
 		`accounts/update-password/${subjectUserKey}`,
 		{

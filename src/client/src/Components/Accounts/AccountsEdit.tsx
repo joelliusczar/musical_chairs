@@ -20,6 +20,11 @@ import {
 import { InitialState } from "../../Types/reducer_types";
 import { useParams } from "react-router-dom";
 import Loader from "../Shared/Loader";
+import {
+	SubjectUserParams,
+	PasswordUpdate,
+	User
+} from "../../Types/user_types";
 
 const inputField = {
 	margin: 2,
@@ -49,12 +54,14 @@ const schema = Yup.object().shape({
 
 export const AccountsEdit = () => {
 	const { enqueueSnackbar } = useSnackbar();
-	const [state, dispatch] = useReducer(waitingReducer(), InitialState);
+	const [state, dispatch] = useReducer(waitingReducer(), new InitialState());
 	const pathVars = useParams();
 
 
 
-	const passwordFormMethods = useForm({
+	const passwordFormMethods = useForm<
+		PasswordUpdate & {passwordConfirm: string}
+	>({
 		defaultValues: {
 			oldPassword: "",
 			newPassword: "",
@@ -65,8 +72,12 @@ export const AccountsEdit = () => {
 	});
 	const { handleSubmit: passwordHandleSubmit } = passwordFormMethods;
 	const passwordCallSubmit = passwordHandleSubmit(async values => {
+		if (!pathVars.userKey) {
+			enqueueSnackbar("User is missing", { variant: "error"});
+			return;
+		}
 		try {
-			await updatePassword({userKey: pathVars.userKey, ...values});
+			await updatePassword({subjectUserKey: pathVars.userKey, ...values});
 			enqueueSnackbar("Password updated successfully", { variant: "success"});
 		}
 		catch(err){
@@ -74,7 +85,7 @@ export const AccountsEdit = () => {
 		}
 	});
 
-	const formMethods = useForm({
+	const formMethods = useForm<User>({
 		defaultValues: {
 			displayName: "",
 			email: "",
@@ -85,7 +96,7 @@ export const AccountsEdit = () => {
 	const { handleSubmit, reset, watch } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const data = await updateAccountBasic({userKey: values.id, data: values});
+			const data = await updateAccountBasic({subjectUserKey: values.id, data: values});
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -94,7 +105,7 @@ export const AccountsEdit = () => {
 		}
 	});
 
-	const _fetchUser = useCallback(async (params) => {
+	const _fetchUser = useCallback(async (params: SubjectUserParams) => {
 		try {
 			dispatch(dispatches.started());
 			const data = await fetchUser(params);
@@ -112,12 +123,12 @@ export const AccountsEdit = () => {
 		const fetch = async () => {
 			try {
 				const key = pathVars.userKey;
-				const isNumKey = Number.isInteger(key) === "number";
+				const isNumKey = Number.isInteger(key);
 				const isStrKey = typeof key === "string";
-				const isDiffId = isNumKey && key !== formId;
+				const isDiffId = isNumKey && parseInt(key || "") !== formId;
 				const isDiffName = isStrKey && key != formUsername;
-				if (isDiffId || isDiffName) {
-					_fetchUser({ userKey: key });
+				if (key && (isDiffId || isDiffName)) {
+					_fetchUser({ subjectUserKey: key });
 				}
 
 			}

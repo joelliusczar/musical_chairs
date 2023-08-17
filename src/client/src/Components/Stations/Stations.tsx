@@ -34,7 +34,7 @@ import {
 } from "../../Helpers/rule_helpers";
 import { StationInfo } from "../../Types/station_types";
 import { IdType } from "../../Types/generic_types";
-import { ClickEvent } from "../../Types/browser_types";
+import { ButtonClickEvent } from "../../Types/browser_types";
 
 
 
@@ -73,7 +73,7 @@ export const Stations = () => {
 	};
 
 	const handleDisableStation = async (
-		e: ClickEvent,
+		e: ButtonClickEvent,
 		id: IdType,
 		name: string
 	) => {
@@ -94,7 +94,7 @@ export const Stations = () => {
 	};
 
 	const handleEnableStation = async (
-		e: ClickEvent,
+		e: ButtonClickEvent,
 		id: IdType,
 		name: string
 	) => {
@@ -122,7 +122,7 @@ export const Stations = () => {
 		return true;
 	};
 
-	const openDisableConfirm = (e: ClickEvent, name: string) => {
+	const openDisableConfirm = (e: ButtonClickEvent, name: string) => {
 		e.stopPropagation();
 		setWaitConfirm(name);
 	};

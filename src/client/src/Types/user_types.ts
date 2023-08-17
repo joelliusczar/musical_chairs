@@ -30,10 +30,23 @@ export interface RoledEntity {
 
 export interface RoledUser extends IdItem, RoledEntity {};
 
-export interface User extends RoledUser {
+export interface UserBase extends IdItem {
 	username: string
-	displayName?: string | null
+	email: string
+	displayName?: string
+}
+
+export interface User extends UserBase, RoledUser {};
+
+export interface UserBasicUpdate {
+	email: string
+	displayName?: string
 };
+
+
+export interface UserBasicUpdateApiParams extends SubjectUserKeyItem {
+	data: UserBasicUpdate
+}
 
 export interface LoggedInUser extends RoledEntity {
 	username: string,
@@ -45,13 +58,21 @@ export interface LoginCredentials {
 	username: string,
 	password: string,
 };
-export interface UserBase extends User {
-	email: string
-	displayName: string | null
+
+export interface PasswordUpdate {
+	oldPassword: string,
+	newPassword: string,
 };
 
-export interface UserCreationInfo extends UserBase, RoledEntity{
+export interface SubjectPasswordUpdate
+	extends PasswordUpdate, SubjectUserParams {}
+
+
+export interface UserCreationInfo extends User, RoledEntity{
+	email: string
+	displayName?: string
 	password: string
+	passwordConfirm: string
 };
 
 export interface SubjectUserKeyItem {

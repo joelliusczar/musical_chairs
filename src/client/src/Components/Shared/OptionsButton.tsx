@@ -9,10 +9,10 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import { conflictWith } from "../../Helpers/prop_helpers";
-import { ClickEvent } from "../../Types/browser_types";
+import { ButtonClickEvent } from "../../Types/browser_types";
 
 interface OptionBase {
-	onClick?: (e: ClickEvent) => void | Promise<void>,
+	onClick?: (e: ButtonClickEvent) => void | Promise<void>,
 	label?: string
 }
 
@@ -27,7 +27,7 @@ interface HrefOption extends OptionBase {
 };
 
 interface ClickOnlyOption extends OptionBase {
-	onClick: (e: ClickEvent) => void | Promise<void>,
+	onClick: (e: ButtonClickEvent) => void | Promise<void>,
 	link?: undefined,
 	href?: undefined,
 };
@@ -44,7 +44,7 @@ export const OptionsButton = (props: OptionsButton) => {
 		EventTarget & HTMLButtonElement | null
 	>(null);
 
-	const handleButtonClick = (e: ClickEvent) => {
+	const handleButtonClick = (e: ButtonClickEvent) => {
 		setAnchorEl(null);
 		if (options.length > selectedIndex) {
 			return;

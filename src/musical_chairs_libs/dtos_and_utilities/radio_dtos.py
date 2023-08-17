@@ -13,7 +13,7 @@ from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, check_name_safety
 from .generic_dtos import IdItem, TableData, T
 from .account_dtos import OwnerType
-from .action_rule_dtos import ActionRule
+from .action_rule_dtos import ActionRule, PathsActionRule
 from .user_role_def import MinItemSecurityLevel
 
 
@@ -89,6 +89,7 @@ class StationInfo:
 	name: str
 	displayName: str=field(default="", hash=False, compare=False)
 	isRunning: bool=field(default=False, hash=False, compare=False)
+	#don't expect this to ever actually null
 	owner: Optional[OwnerType]=field(default=None, hash=False, compare=False)
 	rules: list[ActionRule]=field(
 		default_factory=list, hash=False, compare=False
@@ -141,7 +142,7 @@ class SongTreeNode:
 	totalChildCount: int
 	id: Optional[int]=None
 	name: Optional[str]=None
-	rules: list[ActionRule]=field(
+	rules: list[PathsActionRule]=field(
 		default_factory=list, hash=False, compare=False
 	)
 

@@ -1,6 +1,6 @@
 import webClient from "./api";
 import { buildArrayQueryStrFromObj } from "../Helpers/url_helpers";
-import { OwnerParam, KeyType, IdType, Named } from "../Types/generic_types"
+import { OwnerParam, KeyType, IdType } from "../Types/generic_types"
 import {
 	RequiredStationParams,
 	StationCreationInfo,

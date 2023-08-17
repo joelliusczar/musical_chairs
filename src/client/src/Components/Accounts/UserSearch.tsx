@@ -13,7 +13,7 @@ import { formatError } from "../../Helpers/error_formatter";
 import { FormSelect } from "../Shared/FormSelect";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { User } from "../../Types/user_types";
-import { ClickEvent, ChangeEvent } from "../../Types/browser_types";
+import { ButtonClickEvent, ChangeEvent } from "../../Types/browser_types";
 
 type UserSeachInitialValues = {
 	selectedUser: User | null
@@ -21,8 +21,8 @@ type UserSeachInitialValues = {
 
 type UserSearchProps = {
 	formMethods: UseFormReturn<UserSeachInitialValues>
-	onCancel?: (e: ClickEvent) => void
-	onConfirm: (e: ClickEvent) => void
+	onCancel?: (e: ButtonClickEvent) => void
+	onConfirm: (e: ButtonClickEvent) => void
 }
 
 const inputField = {

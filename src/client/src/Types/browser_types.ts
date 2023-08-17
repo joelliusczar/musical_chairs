@@ -1,6 +1,10 @@
 import React from "react";
 
-export type ClickEvent = React.MouseEvent<HTMLButtonElement, MouseEvent>;
+export type ButtonE = HTMLButtonElement;
+export type AnchorE = HTMLAnchorElement;
+export type ListE = HTMLLIElement;
+export type ClickEvent<EType> = React.MouseEvent<EType, MouseEvent>;
+export type ButtonClickEvent = React.MouseEvent<ButtonE, MouseEvent>;
 
 export type ChangeEvent = React.SyntheticEvent<Element, Event>;
 

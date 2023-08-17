@@ -16,11 +16,14 @@ import {
 	useCurrentUser,
 	//useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext";
+import { User } from "../../Types/user_types";
+import { TableData } from "../../Types/pageable_types";
+import {formatError } from "../../Helpers/error_formatter";
 
 export const AccountsList = () => {
-	const [fetchStatus, setFetchStatus] = useState(null);
-	const [fetchError, setFetchError] = useState(null);
-	const [tableData, setTableData] = useState({
+	const [fetchStatus, setFetchStatus] = useState<string | null>(null);
+	const [fetchError, setFetchError] = useState<string | null>(null);
+	const [tableData, setTableData] = useState<TableData<User>>({
 		items: [],
 		totalRows: 0,
 	});
@@ -48,8 +51,7 @@ export const AccountsList = () => {
 					const page = parseInt(queryObj.get("page") || "1");
 					const pageSize = parseInt(queryObj.get("rows") || "50");
 					const tableData = await fetchUserList({
-						params: { page: page - 1, pageSize: pageSize },
-						currentUser: currentUser,
+						params: { page: page - 1, pageSize: pageSize }
 					});
 					setFetchStatus(CallStatus.done);
 					setTableData(tableData);
@@ -57,7 +59,8 @@ export const AccountsList = () => {
 			}
 			catch(err) {
 				setFetchStatus(CallStatus.failed);
-				setFetchError(err.response.data.detail[0].msg);
+				formatError
+				setFetchError(formatError(err));
 			}
 		};
 		fetch();

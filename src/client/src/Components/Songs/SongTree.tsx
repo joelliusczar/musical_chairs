@@ -143,6 +143,7 @@ SongDirectory.propTypes = {
 };
 
 export const SongTree = withCacheProvider<
+	any,
 	SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 >()(
 	() => {

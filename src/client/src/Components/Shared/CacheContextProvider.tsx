@@ -70,13 +70,14 @@ export const useCache = <T,>(key?: KeyType) => {
 	return existingCaches[cacheKey];
 };
 
-export const withCacheProvider = <WrappedPropsType,>(key?: KeyType) => {
+export const withCacheProvider =
+	<WrappedPropsType,CachedPropTypes>(key?: KeyType) => {
 	const componentReceiver = (
 		WrappedComponent: ComponentType<WrappedPropsType>
 	) => {
 		const wrappingFn = (props: WrappedPropsType) => {
 			return (
-				<CacheContextProvider key={key}>
+				<CacheContextProvider<CachedPropTypes> key={key}>
 					<WrappedComponent {...props} cacheKey={key} />
 				</CacheContextProvider>
 			);

@@ -6,9 +6,16 @@ import {
 	SongTreeNodeInfo,
 	SongInfoApiSavura,
 	SongInfoForm,
+	AlbumCreationInfo,
 } from "../Types/song_info_types";
 import { IdType } from "../Types/generic_types";
-import { ListData } from "../Types/pageable_types";
+import { ListData, TableData, PageableParams } from "../Types/pageable_types";
+import {
+	User,
+	SubjectUserRoleAddition,
+	SubjectUserRoleDeletion,
+	PathsActionRule
+} from "../Types/user_types";
 
 
 export const fetchSongForEdit = async ({ id }: { id: IdType}) => {
@@ -47,7 +54,7 @@ export const saveSongsEditsMulti = async (
 };
 
 export const fetchArtistList = async ({ params }: { params?: any}) => {
-	const response = await webClient.get<ArtistInfo[]>(
+	const response = await webClient.get<ListData<ArtistInfo>>(
 		"/song-info/artists/list",
 		{
 		params: params,
@@ -56,8 +63,10 @@ export const fetchArtistList = async ({ params }: { params?: any}) => {
 };
 
 export const fetchAlbumList = async ({ params }: { params?: any}) => {
-	const response = await webClient.get<AlbumInfo[]>("/song-info/albums/list", {
-		params: params,
+	const response = await webClient.get<ListData<AlbumInfo>>(
+		"/song-info/albums/list",
+		{
+			params: params,
 	});
 	return response.data;
 };
@@ -75,8 +84,8 @@ export const saveArtist = async ({ name }: { name: string }) => {
 	return response.data;
 };
 
-export const saveAlbum = async ({ data }) => {
-	const response = await webClient.post("/song-info/albums", data);
+export const saveAlbum = async ({ data }: { data: AlbumCreationInfo}) => {
+	const response = await webClient.post<AlbumInfo>("/song-info/albums", data);
 	return response.data;
 };
 
@@ -92,25 +101,31 @@ export const fetchSongTree = async ({ prefix }: { prefix: string }) => {
 	return response.data;
 };
 
-export const fetchPathUsers = async ({ params }) => {
+export const fetchPathUsers = async (
+	params: PageableParams & { prefix: string}
+) => {
 	const url = "song-info/path/user_list";
-	const response = await webClient.get(url, {
+	const response = await webClient.get<TableData<User>>(url, {
 		params: params,
 	});
 	return response.data;
 };
 
-export const addPathUserRule = async ({ params, rule }) => {
+export const addPathUserRule = async (
+	{ rule, ...params }: SubjectUserRoleAddition & { prefix: string | null }
+) => {
 	const url = "song-info/path/user_role";
-	const response = await webClient.post(url, rule, {
+	const response = await webClient.post<PathsActionRule>(url, rule, {
 		params: params,
 	});
 	return response.data;
 };
 
-export const removePathUserRule = async ({ params }) => {
+export const removePathUserRule = async (
+	{ ...params }: SubjectUserRoleDeletion & { prefix: string | null }
+) => {
 	const url = "song-info/path/user_role";
-	const response = await webClient.delete(url, {
+	const response = await webClient.delete<void>(url, {
 		params: params,
 	});
 	return response.data;

@@ -85,7 +85,7 @@ export interface SubjectUserRoleAddition extends SubjectUserKeyItem {
 };
 
 export interface SubjectUserRoleDeletion extends SubjectUserKeyItem {
-	ruleName: string
+	ruleName?: string
 };
 
 export interface ExistenceCheckParams {

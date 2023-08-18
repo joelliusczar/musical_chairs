@@ -18,14 +18,19 @@ export interface AlbumInfo {
 	year: number | null
 	albumArtist: ArtistInfo | null
 	owner: User
+};
 
+export interface AlbumCreationInfo {
+	name: string
+	year?: number
+	albumArtist?: ArtistInfo
 }
 
 export interface NowPlayingInfo {
 	song: string
 	album: string
 	artist: string
-}
+};
 
 export interface SongListDisplayItem extends NamedIdItem {
 	album: string | null

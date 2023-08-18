@@ -129,10 +129,8 @@ export const PathUserRoleAssignmentTable = () => {
 			};
 			const addedRule = await addPathUserRule({
 				rule,
-				params: {
-					prefix,
-					subjectUserKey: user.id,
-				},
+				prefix,
+				subjectUserKey: user.id,
 			});
 			dispatch(dispatches.add({
 				...user,
@@ -162,8 +160,8 @@ export const PathUserRoleAssignmentTable = () => {
 			dispatch(dispatches.started());
 			try {
 				const data = await fetchPathUsers({
-					params: { page: page - 1, limit: limit, prefix: prefix } }
-				);
+					page: page - 1, limit: limit, prefix: prefix
+				});
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 
@@ -187,10 +185,8 @@ export const PathUserRoleAssignmentTable = () => {
 		try {
 			const addedRule = await addPathUserRule({
 				rule,
-				params: {
-					prefix,
-					subjectUserKey: user.id,
-				},
+				prefix,
+				subjectUserKey: user.id
 			});
 			dispatch(dispatches.update(
 				user.id,
@@ -208,11 +204,9 @@ export const PathUserRoleAssignmentTable = () => {
 	const removeRole = async (role: ActionRule, user: User) => {
 		try {
 			await removePathUserRule({
-				params: {
-					ruleName: role.name,
-					prefix,
-					subjectUserKey: user.id,
-				},
+				ruleName: role.name,
+				prefix,
+				subjectUserKey: user.id,
 			});
 			const roles = [...user.roles];
 			const idx = roles.findIndex(r => r.name === role.name);
@@ -238,10 +232,8 @@ export const PathUserRoleAssignmentTable = () => {
 	const removeUser = async (user: User) => {
 		try {
 			await removePathUserRule({
-				params: {
-					prefix,
-					subjectUserKey: user.id,
-				},
+				prefix,
+				subjectUserKey: user.id,
 			});
 			dispatch(dispatches.remove(user.id));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});

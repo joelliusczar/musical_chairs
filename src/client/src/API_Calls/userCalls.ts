@@ -9,9 +9,13 @@ import {
 	RoledUser,
 	ExistenceCheckParams,
 	SubjectPasswordUpdate,
-	UserBasicUpdateApiParams
+	UserBasicUpdateApiParams,
+	SubjectUserRoleAddition,
+	SubjectUserRoleDeletion,
+	ActionRule
 } from "../Types/user_types";
 import { PageableParams, TableData } from "../Types/pageable_types";
+import { Flags } from "../Types/generic_types";
 export { webClient };
 
 
@@ -48,8 +52,9 @@ export const createAccount = async (
 export const checkValues = async (
 	{ values }: { values: ExistenceCheckParams}
 ) => {
-	const response = await webClient.get("accounts/check", {
-		params: values,
+	const response = await webClient.get<Flags<ExistenceCheckParams>>(
+		"accounts/check", {
+			params: values,
 	});
 	return response.data;
 };
@@ -72,14 +77,14 @@ export const fetchUserList = async ({ params }: { params: PageableParams}) => {
 };
 
 export const searchUsers = async ({ params }: { params: PageableParams}) => {
-	const response = await webClient.get("accounts/search", {
+	const response = await webClient.get<User[]>("accounts/search", {
 		params: params,
 	});
 	return response.data;
 };
 
 export const updateUserRoles = async ({ id, roles }: RoledUser) => {
-	const response = await webClient.put(`accounts/update-roles/${id}`,
+	const response = await webClient.put<User>(`accounts/update-roles/${id}`,
 		roles
 	);
 	return response.data;
@@ -88,7 +93,7 @@ export const updateUserRoles = async ({ id, roles }: RoledUser) => {
 export const updateAccountBasic = async (
 		{ subjectUserKey, data }: UserBasicUpdateApiParams
 	) => {
-	const response = await webClient.put(
+	const response = await webClient.put<User>(
 		`accounts/account/${subjectUserKey}`,
 		data
 	);
@@ -100,7 +105,7 @@ export const updatePassword = async ({
 	oldPassword,
 	newPassword,
 }: SubjectPasswordUpdate) => {
-	const response = await webClient.put(
+	const response = await webClient.put<boolean>(
 		`accounts/update-password/${subjectUserKey}`,
 		{
 			oldPassword,
@@ -110,24 +115,25 @@ export const updatePassword = async ({
 	return response.data;
 };
 
-export const fetchSiteRuleUsers = async ({ params }) => {
-	const url = "/site-roles/user_list";
-	const response = await webClient.get(url, {
-		params: params,
-	});
+export const addSiteUserRule = async (
+	{
+		subjectUserKey,
+		rule
+	}: SubjectUserRoleAddition
+) => {
+	const url = `accounts/site-roles/user_role/${subjectUserKey}`;
+	const response = await webClient.post<ActionRule>(url, rule);
 	return response.data;
 };
 
-export const addSiteUserRule = async ({ subjectUserKey, rule }) => {
+export const removeSiteUserRule = async (
+	{ subjectUserKey, ruleName }: SubjectUserRoleDeletion
+	) => {
 	const url = `accounts/site-roles/user_role/${subjectUserKey}`;
-	const response = await webClient.post(url, rule);
-	return response.data;
-};
-
-export const removeSiteUserRule = async ({ subjectUserKey, params }) => {
-	const url = `accounts/site-roles/user_role/${subjectUserKey}`;
-	const response = await webClient.delete(url, {
-		params: params,
+	const response = await webClient.delete<void>(url, {
+		params: {
+			ruleName
+		},
 	});
 	return response.data;
 };

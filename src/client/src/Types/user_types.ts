@@ -45,7 +45,6 @@ export interface UserBasicUpdate {
 	displayName?: string
 };
 
-
 export interface UserBasicUpdateApiParams extends SubjectUserKeyItem {
 	data: UserBasicUpdate
 }
@@ -79,6 +78,14 @@ export interface UserCreationInfo extends User, RoledEntity{
 
 export interface SubjectUserKeyItem {
 	subjectUserKey: KeyType
+};
+
+export interface SubjectUserRoleAddition extends SubjectUserKeyItem {
+	rule: ActionRuleCreationInfo
+};
+
+export interface SubjectUserRoleDeletion extends SubjectUserKeyItem {
+	ruleName: string
 };
 
 export interface ExistenceCheckParams {

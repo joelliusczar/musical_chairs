@@ -142,9 +142,7 @@ export const SiteUserRoleAssignmentTable = () => {
 		try {
 			await removeSiteUserRule({
 				subjectUserKey: user.id,
-				params: {
-					ruleName: role.name,
-				},
+				ruleName: role.name,
 			});
 			dispatch(dispatches.remove(role.name));
 			enqueueSnackbar(`${role.name} removed!`, { variant: "success"});

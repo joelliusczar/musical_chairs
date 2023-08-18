@@ -141,7 +141,7 @@ export const waitingReducer = <DataShape, StoreType = InitialState<DataShape>>(
 (
 	(
 		state: StoreType,
-		action: { type: WaitingTypes, payload: any}
+		action: { type: WaitingTypes, payload?: any}
 	) => StoreType
 ) =>
 {
@@ -160,7 +160,7 @@ export const waitingReducer = <DataShape, StoreType = InitialState<DataShape>>(
 		state: StoreType,
 		action: {
 			type: WaitingTypes,
-			payload: any
+			payload?: any
 		}
 	) => {
 		if (action.type in reducerMap) {

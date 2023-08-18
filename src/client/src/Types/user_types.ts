@@ -1,9 +1,11 @@
 import { KeyType, IdItem } from "../Types/generic_types";
 import { PageableParams } from "./pageable_types";
 
-export interface OwnerParams extends PageableParams {
+export interface OwnerOnlyParam {
 	ownerKey: string | number
 }
+
+export interface OwnerParams extends PageableParams, OwnerOnlyParam {}
 
 export interface SubjectUserParams {
 	subjectUserKey: string | number

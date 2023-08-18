@@ -4,16 +4,32 @@ import { OwnerParam, KeyType, IdType } from "../Types/generic_types"
 import {
 	RequiredStationParams,
 	StationCreationInfo,
-	StationInfo
+	StationInfo,
+	StationTableData,
+	RequiredStationParamsOnly,
+	StationRuleAddition,
+	StationRuleDeletion
 } from "../Types/station_types";
-import { CurrentPlayingInfo } from "../Types/song_info_types";
+import {
+	CurrentPlayingInfo,
+	SongListDisplayItem
+} from "../Types/song_info_types";
 import { Flags, StringObject } from "../Types/generic_types";
+import { ListData, TableData } from "../Types/pageable_types";
+import {
+	User,
+	ActionRule,
+	SubjectUserParams,
+	ActionRuleCreationInfo
+} from "../Types/user_types";
 
 export const fetchStations = async (params?: OwnerParam) => {
-	const response = await webClient.get("stations/list", {
-		params: {
-			ownerKey: params?.ownerKey || undefined,
-		},
+	const response = await webClient.get<ListData<StationInfo>>(
+		"stations/list",
+		{
+			params: {
+				ownerKey: params?.ownerKey || undefined,
+			},
 	});
 	return response.data;
 };
@@ -21,7 +37,9 @@ export const fetchStations = async (params?: OwnerParam) => {
 export const fetchStationForEdit = async (
 	{ ownerKey, stationKey }: { ownerKey: KeyType, stationKey: KeyType}
 ) => {
-	const response = await webClient.get(`stations/${ownerKey}/${stationKey}/`);
+	const response = await webClient.get<StationInfo>(
+		`stations/${ownerKey}/${stationKey}/`
+	);
 	return response.data;
 };
 
@@ -59,9 +77,9 @@ export const fetchSongCatalogue = async ({
 	...params
 }: RequiredStationParams) => {
 	const url = `stations/${ownerKey}/${stationKey}/catalogue/`;
-	const response = await webClient.get(url, {
-		params: params,
-	});
+	const response = await webClient.get<
+		StationTableData<SongListDisplayItem>
+	>(url, { params: params });
 	return response.data;
 };
 
@@ -75,11 +93,13 @@ export const fetchQueue = async (
 	return response.data;
 };
 
-export const fetchHistory = async ({ stationKey, params, ownerKey }) => {
+export const fetchHistory = async (
+	{ stationKey, ownerKey, ...params }: RequiredStationParams
+) => {
 	const url = `stations/${ownerKey}/${stationKey}/history/`;
-	const response = await webClient.get(url, {
-		params: params,
-	});
+	const response = await webClient.get<
+		StationTableData<SongListDisplayItem>
+	>(url, { params: params });
 	return response.data;
 };
 
@@ -87,18 +107,20 @@ export const sendSongRequest = async (
 	{ stationKey, songId}: {stationKey: KeyType, songId: IdType}
 ) => {
 	const response = await webClient
-		.post(`stations/${stationKey}/request/${songId}`);
+		.post<void>(`stations/${stationKey}/request/${songId}`);
 	return response.data;
 };
 
-export const removeSongFromQueue = async (params) => {
+export const removeSongFromQueue = async (
+	params: RequiredStationParams & { songId: IdType, queuedTimestamp: number }
+) => {
 	const {
 		ownerKey,
 		stationKey,
 		songId,
 		queuedTimestamp,
 	} = params;
-	const response = await webClient.delete(
+	const response = await webClient.delete<void>(
 		`stations/${ownerKey}/${stationKey}/request`, {
 			params: {
 				id: songId,
@@ -108,10 +130,12 @@ export const removeSongFromQueue = async (params) => {
 	return response.data;
 };
 
-export const enableStations = async ({ ids }) => {
+export const enableStations = async (
+	{ ids }: { ids: IdType[] | IdType }
+) => {
 	const queryStr = buildArrayQueryStrFromObj({"stationIds": ids});
 	const response = await webClient
-		.put(`stations/enable/${queryStr}`);
+		.put<StationInfo[]>(`stations/enable/${queryStr}`);
 	return response.data;
 };
 
@@ -126,11 +150,11 @@ export const disableStations = async (
 
 export const fetchStationUsers = async ({
 	stationKey,
-	params,
 	ownerKey,
-}) => {
+	...params
+}: RequiredStationParams) => {
 	const url = `stations/${ownerKey}/${stationKey}/user_list`;
-	const response = await webClient.get(url, {
+	const response = await webClient.get<TableData<User>>(url, {
 		params: params,
 	});
 	return response.data;
@@ -139,12 +163,12 @@ export const fetchStationUsers = async ({
 export const addStationUserRule = async ({
 	ownerKey,
 	stationKey,
-	params,
+	subjectUserKey,
 	rule,
-}) => {
+}: StationRuleAddition ) => {
 	const url = `stations/${ownerKey}/${stationKey}/user_role`;
-	const response = await webClient.post(url, rule, {
-		params: params,
+	const response = await webClient.post<ActionRule>(url, rule, {
+		params: { subjectUserKey },
 	});
 	return response.data;
 };
@@ -152,11 +176,12 @@ export const addStationUserRule = async ({
 export const removeStationUserRule = async ({
 	ownerKey,
 	stationKey,
-	params,
-}) => {
+	subjectUserKey,
+	ruleName
+}: StationRuleDeletion) => {
 	const url = `stations/${ownerKey}/${stationKey}/user_role`;
 	const response = await webClient.delete(url, {
-		params: params,
+		params: { subjectUserKey, ruleName },
 	});
 	return response.data;
 };

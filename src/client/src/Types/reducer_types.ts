@@ -180,7 +180,7 @@ export type MiddlewareFn<StoreType> = (
 	state: StoreType,
 	action: {
 		type: string,
-		payload: any
+		payload?: any
 	}
 ) => StoreType;
 

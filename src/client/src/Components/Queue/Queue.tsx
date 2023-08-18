@@ -114,15 +114,15 @@ export const Queue = () => {
 
 	const handleRemoveSongFromQueue = async (item: SongListDisplayItem) => {
 		try {
-			const page = parseInt(queryObj.get("page") || "1");
-			const limit = parseInt(queryObj.get("rows") || "50");
+			if (!pathVars.ownerKey || !pathVars.stationKey) {
+				enqueueSnackbar("Station or user missing", {variant: "error" });
+				return;
+			}
 			const data = await removeSongFromQueue({
 				ownerKey: pathVars.ownerKey,
 				stationKey: pathVars.stationKey,
 				songId: item?.id,
-				queuedTimestamp: item?.queuedTimestamp,
-				page: page - 1,
-				limit: limit,
+				queuedTimestamp: item?.queuedTimestamp
 			});
 			queueDispatch(dispatches.done(data));
 			enqueueSnackbar("Song has been removed from queue");

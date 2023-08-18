@@ -32,7 +32,7 @@ import {
 	ActionRule,
 	ActionRuleCreationInfo
 } from "../../Types/user_types";
-import { StationInfo } from "../../Types/station_types";
+import { StationInfo, } from "../../Types/station_types";
 
 
 const stationRoles = Object.keys(UserRoleDef)
@@ -122,7 +122,11 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const addUser = async (user: User | null) => {
 		if (!user) {
-			console.error("provided user was null");
+			enqueueSnackbar("provided user was null", { variant: "error"});
+			return;
+		}
+		if (!pathVars.stationKey || !pathVars.ownerKey) {
+			enqueueSnackbar("user or station is missing", { variant: "error"});
 			return;
 		}
 		try {
@@ -136,9 +140,7 @@ export const StationUserRoleAssignmentTable = () => {
 				stationKey: pathVars.stationKey,
 				ownerKey: pathVars.ownerKey,
 				rule,
-				params: {
-					subjectUserKey: user.id,
-				},
+				subjectUserKey: user.id,
 			});
 			dispatch(dispatches.add({
 				...user,
@@ -161,7 +163,7 @@ export const StationUserRoleAssignmentTable = () => {
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationKey) return;
+			if (!pathVars.stationKey || !pathVars.ownerKey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
@@ -170,8 +172,8 @@ export const StationUserRoleAssignmentTable = () => {
 				const data = await fetchStationUsers({
 					stationKey: pathVars.stationKey,
 					ownerKey: pathVars.ownerKey,
-					params: { page: page - 1, limit: limit } }
-				);
+					page: page - 1, limit: limit
+				});
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 
@@ -194,14 +196,16 @@ export const StationUserRoleAssignmentTable = () => {
 	]);
 
 	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
+		if (!pathVars.stationKey || !pathVars.ownerKey) {
+			console.error("user or station is missing");
+			return;
+		}
 		try {
 			const addedRule = await addStationUserRule({
 				stationKey: pathVars.stationKey,
 				ownerKey: pathVars.ownerKey,
 				rule,
-				params: {
-					subjectUserKey: user.id,
-				},
+				subjectUserKey: user.id
 			});
 			dispatch(dispatches.update(
 				user.id,
@@ -217,14 +221,16 @@ export const StationUserRoleAssignmentTable = () => {
 	};
 
 	const removeRole = async (role: ActionRule, user: User) => {
+		if (!pathVars.stationKey || !pathVars.ownerKey) {
+			console.error("user or station is missing");
+			return;
+		}
 		try {
 			await removeStationUserRule({
 				stationKey: pathVars.stationKey,
 				ownerKey: pathVars.ownerKey,
-				params: {
-					ruleName: role.name,
-					subjectUserKey: user.id,
-				},
+				ruleName: role.name,
+				subjectUserKey: user.id,
 			});
 			const roles = [...user.roles];
 			const idx = roles.findIndex(r => r.name === role.name);
@@ -248,13 +254,15 @@ export const StationUserRoleAssignmentTable = () => {
 	};
 
 	const removeUser = async (user: User) => {
+		if (!pathVars.stationKey || !pathVars.ownerKey) {
+			console.error("user or station is missing");
+			return;
+		}
 		try {
 			await removeStationUserRule({
 				stationKey: pathVars.stationKey,
 				ownerKey: pathVars.ownerKey,
-				params: {
-					subjectUserKey: user.id,
-				},
+				subjectUserKey: user.id
 			});
 			dispatch(dispatches.remove(user.id));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});

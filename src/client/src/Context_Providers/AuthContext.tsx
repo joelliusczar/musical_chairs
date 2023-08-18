@@ -258,7 +258,9 @@ export const useLoginPrompt = () => {
 	return openLoginPrompt;
 };
 
-export const useAuthViewStateChange = (dispatch) => {
+export const useAuthViewStateChange = (
+	dispatch: (action:{ type: WaitingTypes, payload?: any }) => void
+) => {
 	const currentUser = useCurrentUser();
 
 	useEffect(() => {

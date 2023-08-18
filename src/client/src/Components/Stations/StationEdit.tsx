@@ -101,6 +101,21 @@ const schema = Yup.object().shape({
 	),
 });
 
+const stationInfoToFormData = (data: StationInfo) => {
+	const viewSecurityLevel = viewSecurityOptions
+		.filter(o => o.id === data.viewSecurityLevel);
+	const requestSecurityLevel = viewSecurityOptions
+		.filter(o => o.id === data.requestSecurityLevel);
+	const formData = {
+		...data,
+		viewSecurityLevel: viewSecurityLevel.length ?
+			viewSecurityLevel[0] : viewSecurityOptions[0],
+		requestSecurityLevel: requestSecurityLevel.length ?
+			requestSecurityLevel[0] : viewSecurityOptions[1]
+	};
+	return formData;
+}
+
 type StationEditProps = {
 	onCancel?: (e: unknown) => void
 	afterSubmit?: (s: StationInfo) => void
@@ -132,7 +147,7 @@ export const StationEdit = (props: StationEditProps) => {
 	};
 
 	const _afterSubmit = (data: StationInfo) => {
-		reset(data);
+		reset(stationInfoToFormData(data));
 		navigate(getPageUrl({ name: data.name }), { replace: true});
 	};
 
@@ -183,17 +198,8 @@ export const StationEdit = (props: StationEditProps) => {
 							ownerKey: pathVars.ownerKey,
 							stationKey: pathVars.stationKey,
 						});
-						const viewSecurityLevel = viewSecurityOptions
-							.filter(o => o.id === data.viewSecurityLevel);
-						const requestSecurityLevel = viewSecurityOptions
-							.filter(o => o.id === data.requestSecurityLevel);
-						data.viewSecurityLevel =
-							viewSecurityLevel.length ?
-								viewSecurityLevel[0] : viewSecurityOptions[0];
-						data.requestSecurityLevel =
-							requestSecurityLevel.length ?
-								requestSecurityLevel[0] : viewSecurityOptions[1];
-						reset(data);
+						const formData = stationInfoToFormData(data);
+						reset(formData);
 						dispatch(dispatches.done());
 					}
 				}
@@ -327,3 +333,5 @@ export const StationNewModalOpener = (props: StationNewModalOpenerProps) => {
 StationNewModalOpener.propTypes = {
 	add: PropTypes.func,
 };
+
+

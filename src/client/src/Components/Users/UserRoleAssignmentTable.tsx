@@ -10,7 +10,6 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { UserSearchModalOpener } from "../Accounts/UserSearch";
 import { RoleView } from "./RoleView";
 import { RoleEntry } from "./RoleEntry";
-import PropTypes from "prop-types";
 import {
 	ActionRule,
 	User,

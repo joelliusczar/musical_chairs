@@ -15,8 +15,8 @@ import {
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
-	waitingReducer,
 	dispatches,
+	useSongQueueTableWaitingReducer
 } from "../Shared/waitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { UrlBuilder } from "../../Helpers/pageable_helpers";
@@ -34,8 +34,6 @@ import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	SongListDisplayItem,
-	CurrentPlayingInfo,
-	InitialQueueState,
 } from "../../Types/song_info_types";
 import { StationInfo } from "../../Types/station_types";
 
@@ -45,7 +43,6 @@ export const Queue = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
-	const queryObj = new URLSearchParams(location.search);
 	const { enqueueSnackbar } = useSnackbar();
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canSkipSongs = useHasAnyRoles([UserRoleDef.STATION_SKIP]);
@@ -56,11 +53,7 @@ export const Queue = () => {
 	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 
 
-	const [queueState, queueDispatch] =
-		useReducer(
-			waitingReducer<CurrentPlayingInfo, InitialQueueState>(),
-			new InitialQueueState()
-		);
+	const [queueState, queueDispatch] = useSongQueueTableWaitingReducer();
 
 	const { callStatus: queueCallStatus } = queueState;
 	const canSkipSongsForStation = anyConformsToAnyRule(

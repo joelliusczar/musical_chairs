@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
 	Box,
 	Typography,
@@ -23,6 +23,7 @@ import { useLocation } from "react-router-dom";
 import {
 	waitingReducer,
 	dispatches,
+	useVoidWaitingReducer
 } from "../Shared/waitingReducer";
 import { useSnackbar } from "notistack";
 import {
@@ -125,10 +126,7 @@ const schema = Yup.object().shape({
 export const SongEdit = () => {
 
 	const { enqueueSnackbar } = useSnackbar();
-	const [state, dispatch] = useReducer(
-		waitingReducer(),
-		new InitialState()
-	);
+	const [state, dispatch] = useVoidWaitingReducer();
 	const { callStatus } = state;
 	const location = useLocation();
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useReducer } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
 	fetchSongCatalogue,
@@ -18,8 +18,8 @@ import {
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
-	waitingReducer,
 	dispatches,
+	useStationSongsWaitingReducer
 } from "../Shared/waitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
@@ -42,10 +42,7 @@ import { IdType } from "../../Types/generic_types";
 export const SongCatalogue = () => {
 
 	const [catalogueState, catalogueDispatch] =
-	useReducer(waitingReducer<
-			SongListDisplayItem,
-			RequiredDataState<StationTableData<SongListDisplayItem>>
-		>(),
+	useStationSongsWaitingReducer(
 		new RequiredDataState<StationTableData<SongListDisplayItem>>(
 			{
 				items: [],

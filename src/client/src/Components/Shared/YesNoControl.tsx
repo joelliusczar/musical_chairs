@@ -3,7 +3,6 @@ import {
 	Button,
 	FormHelperText,
 } from "@mui/material";
-import PropTypes from "prop-types";
 import { ButtonClickEvent } from "../../Types/browser_types";
 
 interface YesNoControlProps {
@@ -21,12 +20,4 @@ export const YesNoControl = (props: YesNoControlProps) => {
 		<Button onClick={onYes}>{yesLabel || "Yes"}</Button>
 		<Button onClick={onNo}>{noLabel || "No"}</Button>
 	</>;
-};
-
-YesNoControl.propTypes = {
-	message: PropTypes.string,
-	yesLabel: PropTypes.string,
-	onYes: PropTypes.func.isRequired,
-	noLabel: PropTypes.string,
-	onNo: PropTypes.func.isRequired,
 };

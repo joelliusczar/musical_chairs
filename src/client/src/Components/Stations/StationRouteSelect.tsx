@@ -9,7 +9,6 @@ import {
 	Box,
 } from "@mui/material";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
 import { userKeyMatch, keyMatch } from "../../Helpers/compare_helpers";
 import {
@@ -148,8 +147,3 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 	);
 };
 
-StationRouteSelect.propTypes = {
-	getPageUrl: PropTypes.func,
-	onChange: PropTypes.func,
-	unrendered: PropTypes.bool,
-};

@@ -25,6 +25,7 @@ import {
 	waitingReducer,
 	dispatches,
 	KeyedWaitingReducerMap,
+	useKeyedWaitingReducer
 } from "../Shared/waitingReducer";
 import { CallStatus } from "../../constants";
 import { YesNoControl } from "../Shared/YesNoControl";
@@ -47,9 +48,7 @@ export const Stations = () => {
 		update: updateStation,
 	} = useStationData();
 
-	const [toggleState, toggleDispatch] = useReducer(
-		waitingReducer(new KeyedWaitingReducerMap<StationInfo>()), {}
-	);
+	const [toggleState, toggleDispatch] = useKeyedWaitingReducer<StationInfo>({});
 
 	const location = useLocation();
 	const pathVars = useParams();

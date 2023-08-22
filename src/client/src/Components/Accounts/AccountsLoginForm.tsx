@@ -2,7 +2,6 @@ import React from "react";
 import { Box, Button, Typography } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { FormTextField } from "../Shared/FormTextField";
-import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";

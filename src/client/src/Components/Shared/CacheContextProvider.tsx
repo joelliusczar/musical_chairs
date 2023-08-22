@@ -7,7 +7,6 @@ import React,
 	useContext,
 	ComponentType
 } from "react";
-import PropTypes from "prop-types";
 import { KeyType } from "../../Types/generic_types";
 
 const defaultKey = "__mc_cache_default__";
@@ -56,13 +55,6 @@ export const CacheContextProvider = <T,>(props: CacheContextProviderProps) => {
 
 };
 
-CacheContextProvider.propTypes = {
-	children: PropTypes.oneOfType([
-		PropTypes.arrayOf(PropTypes.node),
-		PropTypes.node,
-	]).isRequired,
-	key: PropTypes.string,
-};
 
 export const useCache = <T,>(key?: KeyType) => {
 	const existingCaches = useContext<CacheContextType<T>>(CacheContext);

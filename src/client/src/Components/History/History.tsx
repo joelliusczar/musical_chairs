@@ -13,8 +13,8 @@ import {
 	Button,
 } from "@mui/material";
 import {
-	waitingReducer,
 	dispatches,
+	usePageableWaitingReducer
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
@@ -31,7 +31,10 @@ import { OptionsButton } from "../Shared/OptionsButton";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo } from "../../Types/station_types";
-import { RequiredDataState, PageableListDataShape } from "../../Types/reducer_types";
+import {
+	RequiredDataState,
+	PageableListDataShape
+} from "../../Types/reducer_types";
 import { SongListDisplayItem } from "../../Types/song_info_types";
 
 
@@ -46,10 +49,7 @@ export const History = () => {
 	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 
 	const [historyState, historyDispatch] =
-		useReducer(waitingReducer<
-			SongListDisplayItem,
-			RequiredDataState<PageableListDataShape<SongListDisplayItem>>
-		>(),
+		usePageableWaitingReducer(
 		new RequiredDataState<PageableListDataShape<SongListDisplayItem>>(
 			{
 			 items: [],

@@ -1,6 +1,5 @@
 import React, {
 	createContext,
-	useReducer,
 	useContext,
 	useMemo,
 	useState,
@@ -10,8 +9,8 @@ import React, {
 import PropTypes from "prop-types";
 import { login, login_with_cookie, webClient } from "../API_Calls/userCalls";
 import {
-	waitingReducer,
 	dispatches,
+	useDataWaitingReducer
 } from "../Components/Shared/waitingReducer";
 import { UserRoleDef } from "../constants";
 import { formatError } from "../Helpers/error_formatter";
@@ -24,7 +23,10 @@ import { LoginModal } from "../Components/Accounts/AccountsLoginModal";
 import { BrowserRouter } from "react-router-dom";
 import { cookieToObject } from "../Helpers/browser_helpers";
 import { LoggedInUser } from "../Types/user_types";
-import { WaitingTypes, RequiredDataState } from "../Types/reducer_types";
+import {
+	RequiredDataState,
+	ActionPayloadType
+} from "../Types/reducer_types";
 
 
 type loginFnType = (username: string, password: string) => void;
@@ -49,16 +51,17 @@ const clearCookies = () => {
 	expireCookie("access_token");
 };
 
-
-
-export const AuthContext = createContext<{
+type AuthContextType = {
 	state: RequiredDataState<LoggedInUser>,
-	dispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
+	dispatch: React.Dispatch<ActionPayloadType<LoggedInUser, LoggedInUser>>,
 	setupAuthExpirationAction: () => void
 	logout: () => void,
 	partialLogout: () => void,
 	openLoginPrompt: (onCancel?: () => void) => void
-}>({
+}
+
+
+export const AuthContext = createContext<AuthContextType>({
 	state: loggedOutState,
 	dispatch: ({ type: WaitingTypes, payload: any}) => {},
 	setupAuthExpirationAction: () => {},
@@ -69,8 +72,7 @@ export const AuthContext = createContext<{
 
 export const AuthContextProvider = (props: { children: JSX.Element }) => {
 	const { children } = props;
-	const [state, dispatch] = useReducer(
-		waitingReducer<LoggedInUser, RequiredDataState<LoggedInUser>>(),
+	const [state, dispatch] = useDataWaitingReducer(
 		loggedOutState
 	);
 
@@ -92,7 +94,7 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 
 
 	const logout = useCallback(() => {
-		dispatch(dispatches.reset(loggedOutState));
+		dispatch(dispatches.reset(loggedOutState.data));
 		clearCookies();
 		enqueueSnackbar("Logging out.");
 	},[dispatch, enqueueSnackbar]);
@@ -258,8 +260,8 @@ export const useLoginPrompt = () => {
 	return openLoginPrompt;
 };
 
-export const useAuthViewStateChange = (
-	dispatch: (action:{ type: WaitingTypes, payload?: any }) => void
+export const useAuthViewStateChange = <T, U=T>(
+	dispatch: (action:ActionPayloadType<T,U>) => void
 ) => {
 	const currentUser = useCurrentUser();
 

@@ -1,5 +1,4 @@
 import React from "react";
-import PropTypes from "prop-types";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { MenuItem,
 	Select,
@@ -80,9 +79,4 @@ export const UrlPagination = (props: UrlPaginationProps) => {
 				sx={{}} />
 		</>
 	);
-};
-
-UrlPagination.propTypes = {
-	getPageUrl: PropTypes.func,
-	totalRows: PropTypes.number,
 };

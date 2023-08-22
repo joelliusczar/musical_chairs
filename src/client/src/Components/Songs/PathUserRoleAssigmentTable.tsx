@@ -18,6 +18,7 @@ import { UserRoleDef, UserRoleDomain } from "../../constants";
 import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
+import { KeyType } from "../../Types/generic_types";
 import {
 	RequiredDataState,
 	PageableListDataShape,
@@ -57,7 +58,7 @@ const ruleUpdatePaths = {
 	},
 	[WaitingTypes.remove]: (
 		state: PageableListStore<User>,
-		payload: { key: number | string}
+		payload: { key: KeyType}
 	) => {
 		const { key } = payload;
 		const items = [...state.data.items];
@@ -102,7 +103,7 @@ const ruleUpdatePaths = {
 export const PathUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useReducer(
-		waitingReducer(ruleUpdatePaths, [globalStoreLogger("path users")]),
+		waitingReducer(ruleUpdatePaths,[globalStoreLogger("path users")]),
 		new RequiredDataState<PageableListDataShape<User>>(
 			{ items: [], totalRows: 0}
 		)

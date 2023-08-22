@@ -1,7 +1,6 @@
-import React, { useState, useReducer, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
-import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
 import {
 	saveStation,
@@ -14,8 +13,8 @@ import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-	waitingReducer,
 	dispatches,
+	useVoidWaitingReducer
 } from "../Shared/waitingReducer";
 import {
 	DomRoutes,
@@ -31,7 +30,6 @@ import {
 } from "../../Context_Providers/AuthContext";
 import { Loader } from "../Shared/Loader";
 import { FormSelect } from "../Shared/FormSelect";
-import { InitialState } from "../../Types/reducer_types";
 import {
 	StationInfo,
 	StationInfoForm,
@@ -129,10 +127,7 @@ export const StationEdit = (props: StationEditProps) => {
 	const currentUser = useCurrentUser();
 
 
-	const [state, dispatch] = useReducer(
-		waitingReducer<StationInfoForm, InitialState<StationInfoForm>>(),
-		new InitialState<StationInfoForm>(initialValues)
-	);
+	const [state, dispatch] = useVoidWaitingReducer();
 	const { callStatus, error } = state;
 	const {
 		add: addStation,
@@ -328,10 +323,6 @@ export const StationNewModalOpener = (props: StationNewModalOpenerProps) => {
 				/>
 			</Dialog>
 		</>);
-};
-
-StationNewModalOpener.propTypes = {
-	add: PropTypes.func,
 };
 
 

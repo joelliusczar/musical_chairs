@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useReducer } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Box,
 } from "@mui/material";
 import {
-	waitingReducer,
 	dispatches,
 	globalStoreLogger,
+	useDataWaitingReducer
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
 import {
@@ -74,11 +74,12 @@ const ruleUpdatePaths = {
 
 export const SiteUserRoleAssignmentTable = () => {
 
-	const [state, dispatch] = useReducer(
-		waitingReducer(ruleUpdatePaths, [globalStoreLogger("path users")]),
+	const [state, dispatch] = useDataWaitingReducer(
 		new RequiredDataState<User>(
 			{ id: 0, username: "", roles: [], email: ""}
-		)
+		),
+		ruleUpdatePaths,
+		[globalStoreLogger("path users")]
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
@@ -175,6 +176,4 @@ export const SiteUserRoleAssignmentTable = () => {
 	);
 };
 
-SiteUserRoleAssignmentTable.propTypes = {
-};
 

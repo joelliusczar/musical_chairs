@@ -2,12 +2,11 @@ import React, {useReducer, useEffect, useState } from "react";
 import { Box, Button, AppBar, Toolbar } from "@mui/material";
 import { TreeView, TreeItem } from "@mui/lab";
 import {
-	waitingReducer,
 	dispatches,
+	useListDataWaitingReducer
 } from "../Shared/waitingReducer";
 import { fetchSongTree } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
-import PropTypes from "prop-types";
 import { drawerWidth } from "../../style_config";
 import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
 import { Link } from "react-router-dom";
@@ -50,20 +49,7 @@ export const SongTreeNode = (props: SongTreeNodeProps) => {
 	);
 };
 
-SongTreeNode.propTypes = {
-	nodeId: PropTypes.string,
-	prefix: PropTypes.string,
-	children: PropTypes.oneOfType([
-		PropTypes.arrayOf(PropTypes.node),
-		PropTypes.node,
-	]).isRequired,
-	songNodeInfo: PropTypes.shape({
-		path: PropTypes.string,
-		id: PropTypes.number,
-		name: PropTypes.string,
-	}),
-	mapValueToNodeId: PropTypes.func,
-};
+
 
 type SongDirectoryProps = {
 	prefix: string
@@ -73,11 +59,7 @@ type SongDirectoryProps = {
 
 export const SongDirectory = (props: SongDirectoryProps) => {
 	const { prefix, level, dirIdx } = props;
-	const [state, dispatch] = useReducer(
-		waitingReducer<
-			SongTreeNodeInfo,
-			RequiredDataState<ListDataShape<SongTreeNodeInfo>>
-		>(),
+	const [state, dispatch] = useListDataWaitingReducer(
 		new RequiredDataState<ListDataShape<SongTreeNodeInfo>>({ items: []})
 	);
 	const { callStatus } = state;
@@ -132,14 +114,6 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 			})}
 		</Loader>
 	);
-};
-
-SongDirectory.propTypes = {
-	nodeId: PropTypes.string,
-	prefix: PropTypes.string,
-	level: PropTypes.number,
-	dirIdx: PropTypes.number,
-	mapValueToNodeId: PropTypes.func,
 };
 
 export const SongTree = withCacheProvider<

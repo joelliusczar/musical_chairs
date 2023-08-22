@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useReducer } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Box,
 } from "@mui/material";
 import {
-	waitingReducer,
 	dispatches,
-	globalStoreLogger,
+	usePageableWaitingReducer
 } from "../Shared/waitingReducer";
 import Loader from "../Shared/Loader";
 import {
@@ -105,8 +104,7 @@ const ruleUpdatePaths = {
 
 export const StationUserRoleAssignmentTable = () => {
 
-	const [state, dispatch] = useReducer(
-		waitingReducer(ruleUpdatePaths, [globalStoreLogger("station users")]),
+	const [state, dispatch] = usePageableWaitingReducer(
 		new RequiredDataState<PageableListDataShape<User>>(
 			{ items: [], totalRows: 0}
 		)

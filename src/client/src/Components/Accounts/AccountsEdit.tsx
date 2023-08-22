@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useCallback } from "react";
+import React, { useEffect, useCallback } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { useSnackbar } from "notistack";
 import { useForm } from "react-hook-form";
@@ -14,10 +14,9 @@ import {
 	updatePassword,
 } from "../../API_Calls/userCalls";
 import {
-	waitingReducer,
 	dispatches,
+	useVoidWaitingReducer
 } from "../Shared/waitingReducer";
-import { InitialState } from "../../Types/reducer_types";
 import { useParams } from "react-router-dom";
 import Loader from "../Shared/Loader";
 import {
@@ -54,7 +53,7 @@ const schema = Yup.object().shape({
 
 export const AccountsEdit = () => {
 	const { enqueueSnackbar } = useSnackbar();
-	const [state, dispatch] = useReducer(waitingReducer(), new InitialState());
+	const [state, dispatch] = useVoidWaitingReducer();
 	const pathVars = useParams();
 
 

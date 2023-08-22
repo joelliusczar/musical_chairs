@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Menu, MenuItem, Button} from "@mui/material";
-import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
 import {

@@ -14,8 +14,8 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate, useParams } from "react-router-dom";
 import {
 	dispatches,
-	useVoidWaitingReducer
-} from "../Shared/waitingReducer";
+} from "../../Reducers/waitingReducer";
+import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
 import {
 	DomRoutes,
 	CallStatus,

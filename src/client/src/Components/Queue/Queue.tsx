@@ -16,8 +16,8 @@ import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
 	dispatches,
-	useSongQueueTableWaitingReducer
-} from "../Shared/waitingReducer";
+} from "../../Reducers/waitingReducer";
+import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { UrlBuilder } from "../../Helpers/pageable_helpers";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
@@ -34,6 +34,7 @@ import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	SongListDisplayItem,
+	InitialQueueState
 } from "../../Types/song_info_types";
 import { StationInfo } from "../../Types/station_types";
 
@@ -53,7 +54,9 @@ export const Queue = () => {
 	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 
 
-	const [queueState, queueDispatch] = useSongQueueTableWaitingReducer();
+	const [queueState, queueDispatch] = useDataWaitingReducer(
+		new InitialQueueState()
+	);
 
 	const { callStatus: queueCallStatus } = queueState;
 	const canSkipSongsForStation = anyConformsToAnyRule(

@@ -14,9 +14,9 @@ import {
 	updatePassword,
 } from "../../API_Calls/userCalls";
 import {
-	dispatches,
-	useVoidWaitingReducer
-} from "../Shared/waitingReducer";
+	dispatches
+} from "../../Reducers/waitingReducer";
+import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer"
 import { useParams } from "react-router-dom";
 import Loader from "../Shared/Loader";
 import {

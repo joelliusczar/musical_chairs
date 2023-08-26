@@ -9,7 +9,6 @@ import {
 import {
 	ButtonClickEvent,
 	ClickEvent,
-	AnchorE,
 	ListE
 } from "../../Types/browser_types";
 

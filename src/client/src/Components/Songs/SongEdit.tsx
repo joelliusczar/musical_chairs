@@ -21,10 +21,9 @@ import { AlbumNewModalOpener } from "../Albums/AlbumEdit";
 import { StationNewModalOpener } from "../Stations/StationEdit";
 import { useLocation } from "react-router-dom";
 import {
-	waitingReducer,
 	dispatches,
-	useVoidWaitingReducer
-} from "../Shared/waitingReducer";
+} from "../../Reducers/waitingReducer";
+import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
 import { useSnackbar } from "notistack";
 import {
 	fetchSongForEdit,
@@ -46,7 +45,6 @@ import {
 import { AlbumSelect } from "../Albums/AlbumSelect";
 import { ArtistSelect } from "../Artists/ArtistSelect";
 import { StationSelect } from "../Stations/StationSelect";
-import { InitialState } from "../../Types/reducer_types";
 import {
 	SongInfoForm,
 	TouchTypes,

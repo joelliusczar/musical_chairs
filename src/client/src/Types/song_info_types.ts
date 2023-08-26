@@ -1,7 +1,7 @@
 import { IdType, Named, NamedIdItem } from "./generic_types";
 import { PathsActionRule, ActionRule, User } from "./user_types";
 import { StationTableData, StationInfo } from "./station_types";
-import { VoidState } from "./reducer_types";
+import { VoidStore } from "../Reducers/reducerStores";
 import {
 	FieldValues,
 } from "react-hook-form";
@@ -49,7 +49,7 @@ export interface CurrentPlayingInfo
 }
 
 
-export class InitialQueueState extends VoidState {
+export class InitialQueueState extends VoidStore {
 	data: CurrentPlayingInfo
 
 	constructor() {

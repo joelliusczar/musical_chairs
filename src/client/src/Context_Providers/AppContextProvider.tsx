@@ -7,40 +7,96 @@ import React, {
 } from "react";
 import {
 	dispatches,
-	useListDataWaitingReducer
-} from "../Components/Shared/waitingReducer";
+	useWaitingReducer
+} from "../Reducers/waitingReducer";
 import PropTypes from "prop-types";
 import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
 import { formatError } from "../Helpers/error_formatter";
 import { fetchStations } from "../API_Calls/stationCalls";
 import { useCurrentUser } from "./AuthContext";
+import { CallStatus } from "../constants";
 import {
 	ListDataShape,
 	WaitingTypes,
 	DataOrUpdater,
-	RequiredDataState
-} from "../Types/reducer_types";
+	ListStoreShape,
+	KeyAndDataOrUpdater
+} from "../Reducers/types/reducerTypes";
+import { RequiredDataStore } from "../Reducers/reducerStores";
 import {
 	IdItem,
 	IdType,
-	SingleOrList
+	SingleOrList,
+	NamedIdItem
 } from "../Types/generic_types";
 import { StationInfo } from "../Types/station_types";
 import { AlbumInfo, ArtistInfo } from "../Types/song_info_types";
+import { nameSortFn } from "../Helpers/array_helpers";
+
+class SortedListReducerPaths<DataShape extends NamedIdItem> {
+	done(state: ListStoreShape<DataShape>, payload?: ListDataShape<DataShape>) {
+		const items = payload && payload.items ? payload.items
+			.sort(nameSortFn)
+			: [];
+		return {
+			...state,
+			data: {
+				items: items,
+			},
+			callStatus: CallStatus.done,
+		};
+	}
+	add(state: ListStoreShape<DataShape>, payload: DataShape) {
+		const items = [...state.data.items, payload]
+			.sort(nameSortFn);
+		return {
+			...state,
+			data: {
+				items: items,
+			},
+		};
+	}
+	update(
+		state: ListStoreShape<DataShape>,
+		payload: KeyAndDataOrUpdater<DataShape>
+	) {
+		const { key, dataOrUpdater } = payload;
+		const items = [...state.data.items];
+		const idx = items.findIndex(x => x.id === (+key * 1));
+		if (idx > -1) {
+			if (typeof dataOrUpdater === "function") {
+				items.splice(idx, 1, dataOrUpdater(items[idx]));
+			}
+			else {
+				items.splice(idx, 1, dataOrUpdater);
+			}
+			const sortedItems = items.sort(nameSortFn);
+			return {
+				...state,
+				data: {
+					items: sortedItems,
+				},
+			};
+		}
+		else {
+			console.error("Item was not found in local store.");
+		}
+	}
+};
 
 const initialAlbumState =
-	new RequiredDataState<ListDataShape<AlbumInfo>>({ items: []});
+	new RequiredDataStore<ListDataShape<AlbumInfo>>({ items: []});
 const initialStationState =
-	new RequiredDataState<ListDataShape<StationInfo>>({ items: []});
+	new RequiredDataStore<ListDataShape<StationInfo>>({ items: []});
 const initialArtistState =
-	new RequiredDataState<ListDataShape<ArtistInfo>>({ items: []});
+	new RequiredDataStore<ListDataShape<ArtistInfo>>({ items: []});
 
 type AppContextType = {
-	albumsState: RequiredDataState<ListDataShape<AlbumInfo>>,
+	albumsState: RequiredDataStore<ListDataShape<AlbumInfo>>,
 	albumsDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
-	stationsState: RequiredDataState<ListDataShape<StationInfo>>,
+	stationsState: RequiredDataStore<ListDataShape<StationInfo>>,
 	stationsDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
-	artistState: RequiredDataState<ListDataShape<ArtistInfo>>,
+	artistState: RequiredDataStore<ListDataShape<ArtistInfo>>,
 	artistDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
 };
 
@@ -60,16 +116,19 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 	const { children } = props;
 	const { username } = useCurrentUser();
 
-	const [albumsState, albumsDispatch] = useListDataWaitingReducer(
-		initialAlbumState
+	const [albumsState, albumsDispatch] = useWaitingReducer(
+		initialAlbumState,
+		{ reducerMods: new SortedListReducerPaths()}
 	);
 
-	const [stationsState, stationsDispatch] = useListDataWaitingReducer(
-		initialStationState
+	const [stationsState, stationsDispatch] = useWaitingReducer(
+		initialStationState,
+		{ reducerMods: new SortedListReducerPaths()}
 	);
 
-	const [artistState, artistDispatch] = useListDataWaitingReducer(
-		initialArtistState
+	const [artistState, artistDispatch] = useWaitingReducer(
+		initialArtistState,
+		{ reducerMods: new SortedListReducerPaths()}
 	);
 
 	useEffect(() => {

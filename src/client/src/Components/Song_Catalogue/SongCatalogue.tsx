@@ -18,9 +18,11 @@ import {
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
-	dispatches,
-	useStationSongsWaitingReducer
-} from "../Shared/waitingReducer";
+	dispatches
+} from "../../Reducers/waitingReducer";
+import {
+	useDataWaitingReducer
+} from "../../Reducers/dataWaitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
 import { UrlBuilder } from "../../Helpers/pageable_helpers";
@@ -35,15 +37,14 @@ import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo, StationTableData } from "../../Types/station_types";
-import { RequiredDataState } from "../../Types/reducer_types";
 import { SongListDisplayItem } from "../../Types/song_info_types";
 import { IdType } from "../../Types/generic_types";
+import { RequiredDataStore } from "../../Reducers/reducerStores";
 
 export const SongCatalogue = () => {
 
-	const [catalogueState, catalogueDispatch] =
-	useStationSongsWaitingReducer(
-		new RequiredDataState<StationTableData<SongListDisplayItem>>(
+	const [catalogueState, catalogueDispatch] = useDataWaitingReducer(
+		new RequiredDataStore<StationTableData<SongListDisplayItem>>(
 			{
 				items: [],
 				totalRows: 0,

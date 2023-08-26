@@ -2,9 +2,8 @@ import React, {useReducer, useEffect, useState } from "react";
 import { Box, Button, AppBar, Toolbar } from "@mui/material";
 import { TreeView, TreeItem } from "@mui/lab";
 import {
-	dispatches,
-	useListDataWaitingReducer
-} from "../Shared/waitingReducer";
+	dispatches
+} from "../../Reducers/waitingReducer";
 import { fetchSongTree } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { drawerWidth } from "../../style_config";
@@ -19,11 +18,13 @@ import {
 import { useSnackbar } from "notistack";
 import { useAuthViewStateChange } from "../../Context_Providers/AuthContext";
 import { normalizeOpeningSlash } from "../../Helpers/string_helpers";
-import { RequiredDataState, ListDataShape } from "../../Types/reducer_types";
+import { ListDataShape } from "../../Reducers/types/reducerTypes";
 import { SongTreeNodeInfo } from "../../Types/song_info_types";
 import { IdType } from "../../Types/generic_types"
 import { ListData } from "../../Types/pageable_types";
 import { PathsActionRule } from "../../Types/user_types";
+import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
+import { RequiredDataStore } from "../../Reducers/reducerStores";
 
 type SongTreeNodeProps = {
 	children: React.ReactNode
@@ -59,8 +60,8 @@ type SongDirectoryProps = {
 
 export const SongDirectory = (props: SongDirectoryProps) => {
 	const { prefix, level, dirIdx } = props;
-	const [state, dispatch] = useListDataWaitingReducer(
-		new RequiredDataState<ListDataShape<SongTreeNodeInfo>>({ items: []})
+	const [state, dispatch] = useDataWaitingReducer(
+		new RequiredDataStore<ListDataShape<SongTreeNodeInfo>>({ items: []})
 	);
 	const { callStatus } = state;
 	const { getCacheValue, setCacheValue } = useCache<
@@ -75,7 +76,8 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 					dispatch(dispatches.started());
 					const cachedResults = getCacheValue(prefix);
 					if(cachedResults) {
-						dispatch(dispatches.done(cachedResults));
+						const x = dispatches.done(cachedResults);
+						dispatch(x);
 					}
 					else {
 						const data = await fetchSongTree({ prefix });

@@ -4,8 +4,8 @@ import {
 } from "@mui/material";
 import {
 	dispatches,
-	usePageableWaitingReducer
-} from "../Shared/waitingReducer";
+} from "../../Reducers/waitingReducer";
+import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import {
 	fetchStationUsers,
@@ -21,11 +21,12 @@ import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
 import {
-	PageableListStore,
+	PageableListStoreShape,
 	WaitingTypes,
 	PageableListDataShape,
-	RequiredDataState
-} from "../../Types/reducer_types";
+	DataOrUpdater
+} from "../../Reducers/types/reducerTypes";
+import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
 	User,
 	ActionRule,
@@ -47,7 +48,7 @@ stationRoles.unshift({
 
 
 const ruleUpdatePaths = {
-	[WaitingTypes.add]: (state: PageableListStore<User>, payload: User) => {
+	[WaitingTypes.add]: (state: PageableListStoreShape<User>, payload: User) => {
 		const items = [...state.data.items, payload]
 			.sort(keyedSortFn("username"));
 		return {
@@ -59,7 +60,7 @@ const ruleUpdatePaths = {
 		};
 	},
 	[WaitingTypes.remove]: (
-		state: PageableListStore<User>,
+		state: PageableListStoreShape<User>,
 		payload: { key: number | string}
 	) => {
 		const { key } = payload;
@@ -75,17 +76,22 @@ const ruleUpdatePaths = {
 		};
 	},
 	[WaitingTypes.updateItem]: (
-		state: PageableListStore<User>,
+		state: PageableListStoreShape<User>,
 		payload: {
 			key: string | number,
-			dataOrUpdater: User
+			dataOrUpdater: DataOrUpdater<User>
 		}
 	) => {
-		const { key, dataOrUpdater: data } = payload;
+		const { key, dataOrUpdater } = payload;
 		const items = [...state.data.items];
 		const idx = items.findIndex(x => x.id === parseInt(key as string));
 		if (idx > -1) {
-			items.splice(idx, 1, data);
+			if (typeof dataOrUpdater === "function") {
+				items.splice(idx, 1, dataOrUpdater(items[idx]));
+			}
+			else {
+				items.splice(idx, 1, dataOrUpdater);
+			}
 			const sortedItems = items.sort(keyedSortFn("username"));
 			return {
 				...state,
@@ -104,10 +110,11 @@ const ruleUpdatePaths = {
 
 export const StationUserRoleAssignmentTable = () => {
 
-	const [state, dispatch] = usePageableWaitingReducer(
-		new RequiredDataState<PageableListDataShape<User>>(
-			{ items: [], totalRows: 0}
-		)
+	const [state, dispatch] = useDataWaitingReducer(
+		new RequiredDataStore<PageableListDataShape<User>>(
+			{ items: [], totalRows: 0},
+		),
+		{reducerMods: ruleUpdatePaths}
 	);
 	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 	const [currentQueryStr, setCurrentQueryStr] = useState("");

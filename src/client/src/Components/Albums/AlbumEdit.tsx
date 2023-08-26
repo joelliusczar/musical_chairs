@@ -47,7 +47,11 @@ export const AlbumEdit = (props: AlbumEditProps) => {
 	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const album = await saveAlbum({ data: values });
+			const album = await saveAlbum({ data: {
+				name: values.name,
+				year: values.year || undefined,
+				albumArtist: values.albumArtist || undefined
+			} });
 			enqueueSnackbar("Save successful", { variant: "success"});
 			afterSubmit(album);
 		}

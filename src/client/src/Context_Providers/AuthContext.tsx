@@ -10,8 +10,10 @@ import PropTypes from "prop-types";
 import { login, login_with_cookie, webClient } from "../API_Calls/userCalls";
 import {
 	dispatches,
+} from "../Reducers/waitingReducer";
+import {
 	useDataWaitingReducer
-} from "../Components/Shared/waitingReducer";
+} from "../Reducers/dataWaitingReducer";
 import { UserRoleDef } from "../constants";
 import { formatError } from "../Helpers/error_formatter";
 import {
@@ -24,10 +26,9 @@ import { BrowserRouter } from "react-router-dom";
 import { cookieToObject } from "../Helpers/browser_helpers";
 import { LoggedInUser } from "../Types/user_types";
 import {
-	RequiredDataState,
-	ActionPayloadType
-} from "../Types/reducer_types";
-
+	ActionPayload,
+} from "../Reducers/types/reducerTypes";
+import { RequiredDataStore } from "../Reducers/reducerStores"
 
 type loginFnType = (username: string, password: string) => void;
 
@@ -38,7 +39,7 @@ const loggedOut = {
 	lifetime: 0,
 };
 
-const loggedOutState = new RequiredDataState<LoggedInUser>(loggedOut);
+const loggedOutState = new RequiredDataStore<LoggedInUser>(loggedOut);
 
 const expireCookie = (name: string) => {
 	document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;";
@@ -52,8 +53,8 @@ const clearCookies = () => {
 };
 
 type AuthContextType = {
-	state: RequiredDataState<LoggedInUser>,
-	dispatch: React.Dispatch<ActionPayloadType<LoggedInUser, LoggedInUser>>,
+	state: RequiredDataStore<LoggedInUser>,
+	dispatch: React.Dispatch<ActionPayload<LoggedInUser, LoggedInUser>>,
 	setupAuthExpirationAction: () => void
 	logout: () => void,
 	partialLogout: () => void,
@@ -261,7 +262,7 @@ export const useLoginPrompt = () => {
 };
 
 export const useAuthViewStateChange = <T, U=T>(
-	dispatch: (action:ActionPayloadType<T,U>) => void
+	dispatch: (action:ActionPayload<T,U>) => void
 ) => {
 	const currentUser = useCurrentUser();
 

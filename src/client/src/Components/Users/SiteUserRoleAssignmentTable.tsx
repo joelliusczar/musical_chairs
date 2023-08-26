@@ -4,9 +4,9 @@ import {
 } from "@mui/material";
 import {
 	dispatches,
-	globalStoreLogger,
-	useDataWaitingReducer
-} from "../Shared/waitingReducer";
+	globalStoreLogger
+} from "../../Reducers/waitingReducer";
+import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import {
 	addSiteUserRule,
@@ -21,9 +21,9 @@ import { keyedSortFn } from "../../Helpers/array_helpers";
 import { useParams } from "react-router-dom";
 import {
 	WaitingTypes,
-	RequiredDataState,
-	SimpleStore,
-} from "../../Types/reducer_types";
+	SimpleStoreShape,
+} from "../../Reducers/types/reducerTypes";
+import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
 	User,
 	ActionRuleCreationInfo,
@@ -43,7 +43,7 @@ roles.unshift({
 
 
 const ruleUpdatePaths = {
-	[WaitingTypes.add]: (state: SimpleStore<User>, payload: ActionRule) => {
+	[WaitingTypes.add]: (state: SimpleStoreShape<User>, payload: ActionRule) => {
 		const roles = [...state.data.roles, payload]
 			.sort(keyedSortFn("username"));
 		return {
@@ -55,7 +55,7 @@ const ruleUpdatePaths = {
 		};
 	},
 	[WaitingTypes.remove]: (
-		state: SimpleStore<User>,
+		state: SimpleStoreShape<User>,
 		payload: { key: number | string}
 	) => {
 		const { key } = payload;
@@ -75,11 +75,13 @@ const ruleUpdatePaths = {
 export const SiteUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useDataWaitingReducer(
-		new RequiredDataState<User>(
+		new RequiredDataStore<User>(
 			{ id: 0, username: "", roles: [], email: ""}
 		),
-		ruleUpdatePaths,
-		[globalStoreLogger("path users")]
+		{
+			reducerMods: ruleUpdatePaths,
+			middleware: [globalStoreLogger("path users")]
+		}
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();

@@ -12,7 +12,7 @@ import {
 	SubjectUserParams,
 	ActionRuleCreationInfo
 } from "../Types/user_types";
-import { PageableListDataShape, SimpleStore } from "./reducer_types"
+import { PageableListDataShape, SimpleStoreShape } from "../Reducers/types/reducerTypes"
 
 export interface OwnedStationParams extends OwnerParams {
 	stationKey?: KeyType
@@ -65,4 +65,4 @@ export interface StationTableData<T> extends PageableListDataShape<T> {
 };
 
 export type StationItemsStore<DataShape> =
-	SimpleStore<StationTableData<DataShape>>;
+	SimpleStoreShape<StationTableData<DataShape>>;

@@ -117,7 +117,7 @@ export const removeSongFromQueue = async (
 		songId,
 		queuedTimestamp,
 	} = params;
-	const response = await webClient.delete<void>(
+	const response = await webClient.delete<CurrentPlayingInfo>(
 		`stations/${ownerKey}/${stationKey}/request`, {
 			params: {
 				id: songId,

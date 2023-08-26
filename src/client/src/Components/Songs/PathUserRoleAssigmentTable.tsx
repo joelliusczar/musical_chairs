@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useReducer } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Box,
 } from "@mui/material";
@@ -6,7 +6,10 @@ import {
 	waitingReducer,
 	dispatches,
 	globalStoreLogger,
-} from "../Shared/waitingReducer";
+} from "../../Reducers/waitingReducer";
+import {
+	useDataWaitingReducer
+} from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import {
 	fetchPathUsers,
@@ -20,16 +23,17 @@ import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
 import { KeyType } from "../../Types/generic_types";
 import {
-	RequiredDataState,
 	PageableListDataShape,
-	PageableListStore,
-	WaitingTypes
-} from "../../Types/reducer_types";
+	PageableListStoreShape,
+	WaitingTypes,
+	DataOrUpdater
+} from "../../Reducers/types/reducerTypes";
 import {
 	User,
 	ActionRule,
 	ActionRuleCreationInfo
 } from "../../Types/user_types";
+import { RequiredDataStore } from "../../Reducers/reducerStores";
 
 
 const pathRoles = Object.keys(UserRoleDef)
@@ -45,7 +49,7 @@ pathRoles.unshift({
 
 
 const ruleUpdatePaths = {
-	[WaitingTypes.add]: (state: PageableListStore<User>, payload: User) => {
+	[WaitingTypes.add]: (state: PageableListStoreShape<User>, payload: User) => {
 		const items = [...state.data.items, payload]
 			.sort(keyedSortFn("username"));
 		return {
@@ -57,7 +61,7 @@ const ruleUpdatePaths = {
 		};
 	},
 	[WaitingTypes.remove]: (
-		state: PageableListStore<User>,
+		state: PageableListStoreShape<User>,
 		payload: { key: KeyType}
 	) => {
 		const { key } = payload;
@@ -73,17 +77,22 @@ const ruleUpdatePaths = {
 		};
 	},
 	[WaitingTypes.updateItem]: (
-		state: PageableListStore<User>,
+		state: PageableListStoreShape<User>,
 		payload: {
-			key: string | number,
-			dataOrUpdater: User
+			key: KeyType,
+			dataOrUpdater: DataOrUpdater<User>
 		}
 	) => {
-		const { key, dataOrUpdater: data } = payload;
+		const { key, dataOrUpdater } = payload;
 		const items = [...state.data.items];
 		const idx = items.findIndex(x => x.id === (+key * 1));
 		if (idx > -1) {
-			items.splice(idx, 1, data);
+			if (typeof dataOrUpdater === "function") {
+				items.splice(idx, 1, dataOrUpdater(items[idx]));
+			}
+			else {
+				items.splice(idx, 1, dataOrUpdater);
+			}
 			const sortedItems = items.sort(keyedSortFn("username"));
 			return {
 				...state,
@@ -102,11 +111,14 @@ const ruleUpdatePaths = {
 
 export const PathUserRoleAssignmentTable = () => {
 
-	const [state, dispatch] = useReducer(
-		waitingReducer(ruleUpdatePaths,[globalStoreLogger("path users")]),
-		new RequiredDataState<PageableListDataShape<User>>(
+	const [state, dispatch] = useDataWaitingReducer(
+		new RequiredDataStore<PageableListDataShape<User>>(
 			{ items: [], totalRows: 0}
-		)
+		),
+		{
+			reducerMods: ruleUpdatePaths,
+			middleware:[globalStoreLogger("path users")]
+		}
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();

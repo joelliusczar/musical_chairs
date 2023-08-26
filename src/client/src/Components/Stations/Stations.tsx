@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Accordion,
 	AccordionSummary,
@@ -10,9 +10,8 @@ import {
 } from "@mui/material";
 import Loader from "../Shared/Loader";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { DomRoutes } from "../../constants";
+import { DomRoutes, UserRoleDef } from "../../constants";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { UserRoleDef } from "../../constants";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import {
 	useStationData,
@@ -22,11 +21,11 @@ import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
 import { getListenAddress } from "../../Helpers/url_helpers";
 import {
-	waitingReducer,
 	dispatches,
-	KeyedWaitingReducerMap,
-	useKeyedWaitingReducer
-} from "../Shared/waitingReducer";
+} from "../../Reducers/waitingReducer";
+import {
+	useVoidKeyedWaitingReducer
+} from "../../Reducers/voidKeyedWaitingReducer";
 import { CallStatus } from "../../constants";
 import { YesNoControl } from "../Shared/YesNoControl";
 import { userKeyMatch } from "../../Helpers/compare_helpers";
@@ -39,6 +38,7 @@ import { ButtonClickEvent } from "../../Types/browser_types";
 
 
 
+
 export const Stations = () => {
 
 	const {
@@ -48,7 +48,7 @@ export const Stations = () => {
 		update: updateStation,
 	} = useStationData();
 
-	const [toggleState, toggleDispatch] = useKeyedWaitingReducer<StationInfo>({});
+	const [toggleState, toggleDispatch] = useVoidKeyedWaitingReducer({});
 
 	const location = useLocation();
 	const pathVars = useParams();

@@ -155,15 +155,23 @@ export function AppRoutes() {
 			>
 				<AccountsEdit />
 			</Route>}
-			<PrivateRoute
-				scopes={[UserRoleDef.USER_LIST, UserRoleDef.USER_EDIT]}
+			<Route
 				path={DomRoutes.accountsList()}
-				element={<AccountsList />}
+				element={
+					<PrivateRoute
+						scopes={[UserRoleDef.USER_LIST, UserRoleDef.USER_EDIT]}
+						element={<AccountsList />}
+					/>
+				}
 			/>
-			<PrivateRoute
+			<Route
 				path={DomRoutes.accountsRoles({ subjectUserKey: ":subjectUserKey"})}
-				scopes={[UserRoleDef.ADMIN, UserRoleDef.SITE_USER_ASSIGN]}
-				element={<SiteUserRoleAssignmentTable />}
+				element={
+					<PrivateRoute
+						element={<SiteUserRoleAssignmentTable />}
+						scopes={[UserRoleDef.ADMIN, UserRoleDef.SITE_USER_ASSIGN]}
+					/>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.stationsEdit({
@@ -172,31 +180,37 @@ export function AppRoutes() {
 				})}`}
 				element={<StationEdit />}
 			/>
-			<PrivateRoute
+			<Route
 				path={`${DomRoutes.stationsAdd()}`}
-				scopes={[UserRoleDef.STATION_CREATE]}
-				element={<StationEdit />}
+				element={
+					<PrivateRoute
+						element={<StationEdit />}
+						scopes={[UserRoleDef.STATION_CREATE]}
+					/>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.songEdit()}`}
-			>
-				<SongEdit />
-			</Route>
-			<PrivateRoute
-				path={DomRoutes.songTree()}
-				scopes={[
-					UserRoleDef.PATH_LIST,
-					UserRoleDef.PATH_EDIT,
-					UserRoleDef.SONG_DOWNLOAD,
-				]}
-				element={<SongTree />}
+				element={<SongEdit />}
 			/>
-			<Route path="/">
-				<Stations />
-			</Route>
-			<Route>
-				<NotFound />
-			</Route>
+			<Route
+				path={DomRoutes.songTree()}
+				element={
+					<PrivateRoute
+						element={<SongTree />}
+						scopes={[
+							UserRoleDef.PATH_LIST,
+							UserRoleDef.PATH_EDIT,
+							UserRoleDef.SONG_DOWNLOAD,
+						]}
+					/>
+				}
+			/>
+			<Route
+				path="/"
+				element={<Stations />}
+			/>
+			<Route path="*" element={<NotFound />} />
 		</Routes>
 	);
 }

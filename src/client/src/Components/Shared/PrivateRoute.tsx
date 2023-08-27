@@ -1,6 +1,4 @@
 import React, { useContext } from "react";
-import { Route } from "react-router-dom";
-import PropTypes from "prop-types";
 import { NoPermissions } from "./RoutingErrors";
 import {
 	useCurrentUser,
@@ -10,14 +8,12 @@ import {
 import { Loader } from "./Loader";
 
 type PrivateRouteTypes = {
-	path: string,
 	scopes: string[],
-	element: JSX.Element,
-	children?: JSX.Element | JSX.Element[]
+	element: JSX.Element
 };
 
 export const PrivateRoute = (props: PrivateRouteTypes) => {
-	const { scopes, element, children, ...routeProps } = props;
+	const { scopes, element } = props;
 	const {
 		state: { error, callStatus },
 	} = useContext(AuthContext);
@@ -26,23 +22,11 @@ export const PrivateRoute = (props: PrivateRouteTypes) => {
 	return (
 		<Loader status={callStatus} error={error}>
 			{currentUser.username && hasAnyRoles ?
-				<Route
-					element={element}
-					{...routeProps}
-				>
-					{children}
-				</Route> :
+				<>
+					{element}
+				</> :
 				<NoPermissions />
 			}
 		</Loader>
 	);
-};
-
-PrivateRoute.propTypes = {
-	scopes: PropTypes.arrayOf(PropTypes.string),
-	element: PropTypes.node.isRequired,
-	children: PropTypes.oneOfType([
-		PropTypes.arrayOf(PropTypes.node),
-		PropTypes.node,
-	]),
 };

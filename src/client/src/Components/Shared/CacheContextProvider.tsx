@@ -5,7 +5,7 @@ import React,
 	useCallback,
 	useMemo,
 	useContext,
-	ComponentType
+	ComponentType,
 } from "react";
 import { KeyType } from "../../Types/generic_types";
 
@@ -64,17 +64,17 @@ export const useCache = <T,>(key?: KeyType) => {
 
 export const withCacheProvider =
 	<WrappedPropsType,CachedPropTypes>(key?: KeyType) => {
-	const componentReceiver = (
-		WrappedComponent: ComponentType<WrappedPropsType>
-	) => {
-		const wrappingFn = (props: WrappedPropsType) => {
-			return (
-				<CacheContextProvider<CachedPropTypes> key={key}>
-					<WrappedComponent {...props} cacheKey={key} />
-				</CacheContextProvider>
-			);
+		const componentReceiver = (
+			WrappedComponent: ComponentType<WrappedPropsType>
+		) => {
+			const wrappingFn = (props: WrappedPropsType) => {
+				return (
+					<CacheContextProvider<CachedPropTypes> key={key}>
+						<WrappedComponent {...props} cacheKey={key} />
+					</CacheContextProvider>
+				);
+			};
+			return wrappingFn;
 		};
-		return wrappingFn;
+		return componentReceiver;
 	};
-	return componentReceiver;
-};

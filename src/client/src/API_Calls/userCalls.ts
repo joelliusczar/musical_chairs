@@ -12,7 +12,7 @@ import {
 	UserBasicUpdateApiParams,
 	SubjectUserRoleAddition,
 	SubjectUserRoleDeletion,
-	ActionRule
+	ActionRule,
 } from "../Types/user_types";
 import { PageableParams, TableData } from "../Types/pageable_types";
 import { Flags } from "../Types/generic_types";
@@ -55,7 +55,7 @@ export const checkValues = async (
 	const response = await webClient.get<Flags<ExistenceCheckParams>>(
 		"accounts/check", {
 			params: values,
-	});
+		});
 	return response.data;
 };
 
@@ -91,8 +91,8 @@ export const updateUserRoles = async ({ id, roles }: RoledUser) => {
 };
 
 export const updateAccountBasic = async (
-		{ subjectUserKey, data }: UserBasicUpdateApiParams
-	) => {
+	{ subjectUserKey, data }: UserBasicUpdateApiParams
+) => {
 	const response = await webClient.put<User>(
 		`accounts/account/${subjectUserKey}`,
 		data
@@ -118,7 +118,7 @@ export const updatePassword = async ({
 export const addSiteUserRule = async (
 	{
 		subjectUserKey,
-		rule
+		rule,
 	}: SubjectUserRoleAddition
 ) => {
 	const url = `accounts/site-roles/user_role/${subjectUserKey}`;
@@ -128,11 +128,11 @@ export const addSiteUserRule = async (
 
 export const removeSiteUserRule = async (
 	{ subjectUserKey, ruleName }: SubjectUserRoleDeletion
-	) => {
+) => {
 	const url = `accounts/site-roles/user_role/${subjectUserKey}`;
 	const response = await webClient.delete<void>(url, {
 		params: {
-			ruleName
+			ruleName,
 		},
 	});
 	return response.data;

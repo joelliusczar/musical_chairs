@@ -24,7 +24,7 @@ export const DomRoutes = {
 	history: ({ stationKey, ownerKey }: OwnedStationParams) =>
 		`/stations/history/${ownerKey}/${stationKey ? `${stationKey}/` : ""}`,
 	stations: (params?: OwnerParams) =>
-	`/stations/list/${params?.ownerKey || ""}`,
+		`/stations/list/${params?.ownerKey || ""}`,
 	stationsEdit: ({ stationKey, ownerKey }: OwnedStationParams) =>
 		`/stations/edit/${ownerKey}/${stationKey}`,
 	stationsAdd: () => "/stations/edit/",

@@ -70,11 +70,11 @@ ArtistEdit.propTypes = {
 	onCancel: PropTypes.func,
 };
 
-type ArtistNewModalOpener = {
+type ArtistNewModalOpenerProps = {
 	add?: (a: ArtistInfo) => void;
 }
 
-export const ArtistNewModalOpener = (props: ArtistNewModalOpener) => {
+export const ArtistNewModalOpener = (props: ArtistNewModalOpenerProps) => {
 
 	const { add } = props;
 
@@ -98,8 +98,4 @@ export const ArtistNewModalOpener = (props: ArtistNewModalOpener) => {
 				<ArtistEdit afterSubmit={itemCreated} onCancel={closeModal} />
 			</Dialog>
 		</>);
-};
-
-ArtistNewModalOpener.propTypes = {
-	add: PropTypes.func,
 };

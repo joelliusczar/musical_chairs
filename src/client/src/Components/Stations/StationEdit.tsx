@@ -109,10 +109,10 @@ const stationInfoToFormData = (data: StationInfo) => {
 		viewSecurityLevel: viewSecurityLevel.length ?
 			viewSecurityLevel[0] : viewSecurityOptions[0],
 		requestSecurityLevel: requestSecurityLevel.length ?
-			requestSecurityLevel[0] : viewSecurityOptions[1]
+			requestSecurityLevel[0] : viewSecurityOptions[1],
 	};
 	return formData;
-}
+};
 
 type StationEditProps = {
 	onCancel?: (e: unknown) => void
@@ -161,7 +161,7 @@ export const StationEdit = (props: StationEditProps) => {
 			const saveData = {
 				...values,
 				viewSecurityLevel: viewSecurityLevel.id,
-				requestSecurityLevel: requestSecurityLevel.id
+				requestSecurityLevel: requestSecurityLevel.id,
 			};
 			saveData.viewSecurityLevel = viewSecurityLevel.id;
 			saveData.requestSecurityLevel = requestSecurityLevel.id;

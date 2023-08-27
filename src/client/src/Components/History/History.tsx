@@ -13,7 +13,7 @@ import {
 	Button,
 } from "@mui/material";
 import {
-	dispatches
+	dispatches,
 } from "../../Reducers/waitingReducer";
 import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
@@ -32,7 +32,7 @@ import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo } from "../../Types/station_types";
 import {
-	PageableListDataShape
+	PageableListDataShape,
 } from "../../Reducers/types/reducerTypes";
 import { SongListDisplayItem } from "../../Types/song_info_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
@@ -50,13 +50,13 @@ export const History = () => {
 
 	const [historyState, historyDispatch] =
 		useDataWaitingReducer(
-		new RequiredDataStore<PageableListDataShape<SongListDisplayItem>>(
-			{
-			 items: [],
-			 totalRows: 0
-			}
-		)
-	);
+			new RequiredDataStore<PageableListDataShape<SongListDisplayItem>>(
+				{
+					items: [],
+					totalRows: 0,
+				}
+			)
+		);
 
 	useAuthViewStateChange(historyDispatch);
 
@@ -117,7 +117,7 @@ export const History = () => {
 					stationKey: pathVars.stationKey,
 					ownerKey: pathVars.ownerKey,
 					page: page - 1,
-					limit: limit
+					limit: limit,
 				});
 				historyDispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);

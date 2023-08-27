@@ -34,7 +34,7 @@ import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	SongListDisplayItem,
-	InitialQueueState
+	InitialQueueState,
 } from "../../Types/song_info_types";
 import { StationInfo } from "../../Types/station_types";
 
@@ -118,7 +118,7 @@ export const Queue = () => {
 				ownerKey: pathVars.ownerKey,
 				stationKey: pathVars.stationKey,
 				songId: item?.id,
-				queuedTimestamp: item?.queuedTimestamp
+				queuedTimestamp: item?.queuedTimestamp,
 			});
 			queueDispatch(dispatches.done(data));
 			enqueueSnackbar("Song has been removed from queue");

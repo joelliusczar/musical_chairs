@@ -14,7 +14,7 @@ import {
 	User,
 	SubjectUserRoleAddition,
 	SubjectUserRoleDeletion,
-	PathsActionRule
+	PathsActionRule,
 } from "../Types/user_types";
 
 
@@ -57,8 +57,8 @@ export const fetchArtistList = async ({ params }: { params?: any}) => {
 	const response = await webClient.get<ListData<ArtistInfo>>(
 		"/song-info/artists/list",
 		{
-		params: params,
-	});
+			params: params,
+		});
 	return response.data;
 };
 
@@ -67,7 +67,7 @@ export const fetchAlbumList = async ({ params }: { params?: any}) => {
 		"/song-info/albums/list",
 		{
 			params: params,
-	});
+		});
 	return response.data;
 };
 
@@ -94,7 +94,7 @@ export const fetchSongTree = async ({ prefix }: { prefix: string }) => {
 		"song-info/songs/ls",
 		{
 			params: {
-				prefix
+				prefix,
 			},
 		}
 	);

@@ -13,7 +13,7 @@ import { RoleEntry } from "./RoleEntry";
 import {
 	ActionRule,
 	User,
-	ActionRuleCreationInfo
+	ActionRuleCreationInfo,
 } from "../../Types/user_types";
 import { SelectItem } from "../../Types/generic_types";
 
@@ -24,7 +24,7 @@ interface UserRoleAssignmentTableProps {
 	removeRole: (role: ActionRule, user: User) => void
 	removeUser?: (user: User) => void
 	availableRoles: SelectItem[]
-	addRole: (role: ActionRuleCreationInfo, user: User) => void | Promise<void>
+	addRole: (role: ActionRuleCreationInfo, user: User) => void | Promise<void>,
 }
 
 export const UserRoleAssignmentTable = (

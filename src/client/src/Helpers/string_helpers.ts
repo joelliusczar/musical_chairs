@@ -23,4 +23,4 @@ export function normalizeOpeningSlash(
 		return path;
 	}
 	return path.substring(1);
-};
+}

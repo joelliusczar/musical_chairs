@@ -9,16 +9,7 @@ import {
 	MiddlewareFn,
 	ReducerPaths,
 	ActionPayload,
-	PageableListDataShape,
-	ListDataShape,
-	VoidStoreShape,
 } from "./types/reducerTypes";
-import { StationTableData } from "../Types/station_types";
-import {
-	InitialQueueState,
-	CurrentPlayingInfo
-} from "../Types/song_info_types";
-import { nameSortFn } from "../Helpers/array_helpers";
 import { RequiredDataStore } from "./reducerStores";
 
 
@@ -32,8 +23,8 @@ export const dispatches: Dispatches = {
 	failed: <T extends KeyAndData<string> | string>(payload: T) =>
 		({
 			type: WaitingTypes.failed,
-			payload: payload as T extends string ? string : KeyAndData<string>
-	}),
+			payload: payload as T extends string ? string : KeyAndData<string>,
+		}),
 	reset: (payload) => ({ type: WaitingTypes.reset, payload: payload }),
 	add: (payload) =>
 		({ type: WaitingTypes.add, payload: payload }),
@@ -49,10 +40,10 @@ export const dispatches: Dispatches = {
 export class WaitingReducerMap<T>
 {
 	started(state: SimpleStoreShape<T>): SimpleStoreShape<T> {
-			return {
-				...state,
+		return {
+			...state,
 			callStatus: CallStatus.loading,
-		}
+		};
 	}
 
 	restart(state: SimpleStoreShape<T>): SimpleStoreShape<T> {
@@ -115,9 +106,9 @@ export class WaitingReducerMap<T>
 				...state.data,
 				...payload,
 			},
-		}
+		};
 	}
-};
+}
 
 
 
@@ -188,7 +179,7 @@ export const useWaitingReducer = <T, StoreType = RequiredDataStore<T>, U=T>(
 		middleware?: MiddlewareFn<ActionPayload<T, U>, StoreType>[]
 	}
 ) => {
-	const { reducerMods, middleware } = (setup || {})
+	const { reducerMods, middleware } = (setup || {});
 
 	const reducer = waitingReducer<T,StoreType, U>({reducerMods, middleware});
 

@@ -2,7 +2,7 @@ import {
 	VoidStoreShape,
 	ReducerPaths,
 	MiddlewareFn,
-	ActionPayload
+	ActionPayload,
 } from "./types/reducerTypes";
 import { useWaitingReducer } from "./waitingReducer";
 import { VoidStore } from "./reducerStores";

@@ -14,15 +14,15 @@ import {
 	updatePassword,
 } from "../../API_Calls/userCalls";
 import {
-	dispatches
+	dispatches,
 } from "../../Reducers/waitingReducer";
-import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer"
+import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
 import { useParams } from "react-router-dom";
 import Loader from "../Shared/Loader";
 import {
 	SubjectUserParams,
 	PasswordUpdate,
-	User
+	User,
 } from "../../Types/user_types";
 
 const inputField = {
@@ -59,7 +59,7 @@ export const AccountsEdit = () => {
 
 
 	const passwordFormMethods = useForm<
-		PasswordUpdate & {passwordConfirm: string}
+		PasswordUpdate & { passwordConfirm: string }
 	>({
 		defaultValues: {
 			oldPassword: "",
@@ -95,7 +95,9 @@ export const AccountsEdit = () => {
 	const { handleSubmit, reset, watch } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const data = await updateAccountBasic({subjectUserKey: values.id, data: values});
+			const data = await updateAccountBasic(
+				{subjectUserKey: values.id, data: values}
+			);
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}

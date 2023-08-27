@@ -4,7 +4,7 @@ import {
 } from "@mui/material";
 import {
 	dispatches,
-	globalStoreLogger
+	globalStoreLogger,
 } from "../../Reducers/waitingReducer";
 import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
@@ -28,7 +28,7 @@ import {
 	User,
 	ActionRuleCreationInfo,
 	ActionRule,
- } from "../../Types/user_types";
+} from "../../Types/user_types";
 
 const roles = Object.keys(UserRoleDef)
 	.map(k => UserRoleDef[k])
@@ -80,7 +80,7 @@ export const SiteUserRoleAssignmentTable = () => {
 		),
 		{
 			reducerMods: ruleUpdatePaths,
-			middleware: [globalStoreLogger("path users")]
+			middleware: [globalStoreLogger("path users")],
 		}
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");

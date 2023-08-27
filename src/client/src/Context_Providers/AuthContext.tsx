@@ -12,7 +12,7 @@ import {
 	dispatches,
 } from "../Reducers/waitingReducer";
 import {
-	useDataWaitingReducer
+	useDataWaitingReducer,
 } from "../Reducers/dataWaitingReducer";
 import { UserRoleDef } from "../constants";
 import { formatError } from "../Helpers/error_formatter";
@@ -28,7 +28,7 @@ import { LoggedInUser } from "../Types/user_types";
 import {
 	ActionPayload,
 } from "../Reducers/types/reducerTypes";
-import { RequiredDataStore } from "../Reducers/reducerStores"
+import { RequiredDataStore } from "../Reducers/reducerStores";
 
 type loginFnType = (username: string, password: string) => void;
 
@@ -68,7 +68,7 @@ export const AuthContext = createContext<AuthContextType>({
 	setupAuthExpirationAction: () => {},
 	logout: () => {},
 	partialLogout: () => {},
-	openLoginPrompt: () => {}
+	openLoginPrompt: () => {},
 });
 
 export const AuthContextProvider = (props: { children: JSX.Element }) => {

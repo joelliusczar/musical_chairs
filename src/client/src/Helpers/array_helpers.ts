@@ -4,7 +4,7 @@ import {
 	NamedIdItem,
 	Keyed,
 	SortCallback,
-	SortCallbackFactory
+	SortCallbackFactory,
 } from "../Types/generic_types";
 
 export const nameSortFn: SortCallback<Named> = (a: Named,b: Named): number =>

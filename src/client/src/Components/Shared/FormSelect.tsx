@@ -6,7 +6,7 @@ import {
 	Theme,
 	SxProps,
 	AutocompleteFreeSoloValueMapping,
-	AutocompleteValue
+	AutocompleteValue,
 } from "@mui/material";
 import {
 	useController,
@@ -39,13 +39,13 @@ const defaultTransformFactory =
 		DisableClearable extends boolean | undefined = false,
 		FreeSolo extends boolean | undefined = false
 	>(): TransformType<T, Multiple, DisableClearable, FreeSolo> => ({
-	input: (
-		value: AutocompleteValue<T, Multiple, DisableClearable, FreeSolo>
-	): AutocompleteValue<T, Multiple, DisableClearable, FreeSolo> => value,
-	output: (
-		e
-	) => e,
-});
+		input: (
+			value: AutocompleteValue<T, Multiple, DisableClearable, FreeSolo>
+		): AutocompleteValue<T, Multiple, DisableClearable, FreeSolo> => value,
+		output: (
+			e
+		) => e,
+	});
 
 
 type GetOptionsLabelType<
@@ -97,7 +97,7 @@ extends FormSelectBaseProps<
 	Multiple,
 	DisableClearable,
 	FreeSolo
-> {};
+> {}
 
 export interface FormSelectPropsUnconstained
 <
@@ -113,7 +113,7 @@ extends FormSelectBaseProps<T,
 	DisableClearable,
 	FreeSolo
 > {
-};
+}
 
 export type FormSelectPropsSelected<
 	T,
@@ -129,7 +129,7 @@ export type FormSelectPropsSelected<
 			DisableClearable,
 			FreeSolo
 		> :
-	 	FormSelectPropsUnconstained<
+		FormSelectPropsUnconstained<
 			T,
 			FormT,
 			Multiple,
@@ -153,15 +153,16 @@ FreeSolo extends boolean | undefined = false,
 >)
 {
 	const _getOptionLabel = (
-		option: T | AutocompleteFreeSoloValueMapping<FreeSolo>) => {
-				if (option && typeof option === "string") {
-					return option;
-				}
-				else if(!!option && typeof option === "object" && "name" in option) {
-					return option.name
-				}
-				return "";
-			};
+		option: T | AutocompleteFreeSoloValueMapping<FreeSolo>
+	) => {
+		if (option && typeof option === "string") {
+			return option;
+		}
+		else if(!!option && typeof option === "object" && "name" in option) {
+			return option.name;
+		}
+		return "";
+	};
 	const {
 		name,
 		options,
@@ -180,10 +181,10 @@ FreeSolo extends boolean | undefined = false,
 			control,
 		});
 
-	
+
 	const _transform = {
 		...defaultTransformFactory<T, Multiple, DisableClearable, FreeSolo>(),
-		...(transform || {})
+		...(transform || {}),
 	};
 
 	return (

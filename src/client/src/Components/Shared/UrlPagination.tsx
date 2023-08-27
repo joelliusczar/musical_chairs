@@ -42,8 +42,8 @@ export const UrlPagination = (props: UrlPaginationProps) => {
 					navigate(
 						getPageUrl(
 							{
-								rows: !!e.target.value ? +e.target.value : null,
-								page: 1
+								rows: e.target.value ? +e.target.value : null,
+								page: 1,
 							},
 							location.search,
 							location.pathname

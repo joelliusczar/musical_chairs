@@ -9,7 +9,7 @@ import {
 import {
 	ButtonClickEvent,
 	ClickEvent,
-	ListE
+	ListE,
 } from "../../Types/browser_types";
 
 type UserMenuProps = {
@@ -22,7 +22,7 @@ export const UserMenu = (props: UserMenuProps) => {
 	const [, logout] = useLogin();
 	const [anchorEl, setAnchorEl ] = useState<
 		(EventTarget & HTMLButtonElement) | null
-	>(null);
+			>(null);
 
 	const user = useCurrentUser();
 

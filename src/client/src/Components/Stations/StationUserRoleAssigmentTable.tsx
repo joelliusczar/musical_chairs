@@ -24,15 +24,15 @@ import {
 	PageableListStoreShape,
 	WaitingTypes,
 	PageableListDataShape,
-	DataOrUpdater
+	DataOrUpdater,
 } from "../../Reducers/types/reducerTypes";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
 	User,
 	ActionRule,
-	ActionRuleCreationInfo
+	ActionRuleCreationInfo,
 } from "../../Types/user_types";
-import { StationInfo, } from "../../Types/station_types";
+import { StationInfo } from "../../Types/station_types";
 
 
 const stationRoles = Object.keys(UserRoleDef)
@@ -112,7 +112,7 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useDataWaitingReducer(
 		new RequiredDataStore<PageableListDataShape<User>>(
-			{ items: [], totalRows: 0},
+			{ items: [], totalRows: 0 }
 		),
 		{reducerMods: ruleUpdatePaths}
 	);
@@ -177,7 +177,8 @@ export const StationUserRoleAssignmentTable = () => {
 				const data = await fetchStationUsers({
 					stationKey: pathVars.stationKey,
 					ownerKey: pathVars.ownerKey,
-					page: page - 1, limit: limit
+					page: page - 1,
+					limit: limit,
 				});
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
@@ -210,7 +211,7 @@ export const StationUserRoleAssignmentTable = () => {
 				stationKey: pathVars.stationKey,
 				ownerKey: pathVars.ownerKey,
 				rule,
-				subjectUserKey: user.id
+				subjectUserKey: user.id,
 			});
 			dispatch(dispatches.update(
 				user.id,
@@ -267,7 +268,7 @@ export const StationUserRoleAssignmentTable = () => {
 			await removeStationUserRule({
 				stationKey: pathVars.stationKey,
 				ownerKey: pathVars.ownerKey,
-				subjectUserKey: user.id
+				subjectUserKey: user.id,
 			});
 			dispatch(dispatches.remove(user.id));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});

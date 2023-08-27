@@ -13,11 +13,14 @@ import { useSnackbar } from "notistack";
 import { userKeyMatch, keyMatch } from "../../Helpers/compare_helpers";
 import {
 	StationInfo,
-	RequiredStationParams
+	RequiredStationParams,
 } from "../../Types/station_types";
 
 type StationRouteSelectProps = {
-	getPageUrl: (params: RequiredStationParams, currentLocation: string) => string,
+	getPageUrl: (
+		params: RequiredStationParams,
+		currentLocation: string
+	) => string,
 	onChange?: (s: StationInfo | null) => void,
 	unrendered?: boolean
 };
@@ -109,17 +112,17 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 						stationKey: station?.name?.toLowerCase(),
 					},
 					location.search
-					),
-					{ replace: true}
-					);
+				),
+				{ replace: true}
+				);
 			}}
 			value={
 				`${ownername}/${stationName}`
 			}
 		>
 			<ListSubheader>
-					<Box className="station-menu">Station</Box>
-					<Box className="station-menu">Owner</Box>
+				<Box className="station-menu">Station</Box>
+				<Box className="station-menu">Owner</Box>
 			</ListSubheader>
 			<MenuItem key="empty_station" value={"/"}>
 			</MenuItem>

@@ -5,11 +5,11 @@ import {
 	KeyAndData,
 	KeyedStoreShape,
 	VoidStoreShape,
-	MiddlewareFn
+	MiddlewareFn,
 } from "./types/reducerTypes";
 import {
 	VoidKeyedActionPayload,
-	VoidKeyedUnionSelect
+	VoidKeyedUnionSelect,
 } from "./types/voidKeyedReducerTypes";
 
 export class VoidKeyedWaitingReducerPathsImpl {
@@ -72,7 +72,7 @@ export class VoidKeyedWaitingReducerPathsImpl {
 			},
 		};
 	}
-};
+}
 
 export const useVoidKeyedWaitingReducer = <T, U=T>(
 	initialState: KeyedStoreShape<VoidStoreShape>,

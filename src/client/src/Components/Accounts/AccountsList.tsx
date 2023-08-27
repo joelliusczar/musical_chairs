@@ -51,7 +51,7 @@ export const AccountsList = () => {
 					const page = parseInt(queryObj.get("page") || "1");
 					const pageSize = parseInt(queryObj.get("rows") || "50");
 					const tableData = await fetchUserList({
-						params: { page: page - 1, pageSize: pageSize }
+						params: { page: page - 1, pageSize: pageSize },
 					});
 					setFetchStatus(CallStatus.done);
 					setTableData(tableData);
@@ -59,7 +59,6 @@ export const AccountsList = () => {
 			}
 			catch(err) {
 				setFetchStatus(CallStatus.failed);
-				formatError
 				setFetchError(formatError(err));
 			}
 		};

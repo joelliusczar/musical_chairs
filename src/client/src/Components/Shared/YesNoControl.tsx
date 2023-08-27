@@ -11,7 +11,7 @@ interface YesNoControlProps {
 	onYes: (e: ButtonClickEvent) => void,
 	noLabel?: string,
 	onNo: (e: ButtonClickEvent) => void
-};
+}
 
 export const YesNoControl = (props: YesNoControlProps) => {
 	const {message, yesLabel, onYes, noLabel, onNo} = props;

@@ -10,7 +10,7 @@ import {
 	ActionRule,
 	OwnerOnlyParam,
 	SubjectUserParams,
-	ActionRuleCreationInfo
+	ActionRuleCreationInfo,
 } from "../Types/user_types";
 import { PageableListDataShape, SimpleStoreShape } from "../Reducers/types/reducerTypes"
 
@@ -20,7 +20,7 @@ export interface OwnedStationParams extends OwnerParams {
 
 export interface RequiredStationParams extends OwnedStationParams {
 	stationKey: KeyType
-};
+}
 
 export interface RequiredStationParamsOnly extends OwnerOnlyParam {
 	stationKey: KeyType
@@ -33,14 +33,14 @@ export interface StationInfo extends NamedIdItem {
 	rules: ActionRule[]
 	viewSecurityLevel: IdType
 	requestSecurityLevel: IdType
-};
+}
 
 export interface StationInfoForm extends Named {
 	id?: IdType
 	displayName: string | null
 	viewSecurityLevel: NamedIdItem
 	requestSecurityLevel: NamedIdItem
-};
+}
 
 export interface StationCreationInfo extends Named {
 	id?: IdType

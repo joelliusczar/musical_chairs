@@ -9,5 +9,5 @@ export const formatError = (err: unknown): string => {
 		return err.response.data.detail[0].msg;
 	}
 	console.error(err);
-	return "undocumented error has occured"
+	return "undocumented error has occured";
 };

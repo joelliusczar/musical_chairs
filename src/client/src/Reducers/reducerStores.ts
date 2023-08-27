@@ -2,7 +2,7 @@
 export class VoidStore {
 	callStatus: string | null = null
 	error: string | null = null
-};
+}
 
 
 export class RequiredDataStore<T> extends VoidStore {
@@ -12,4 +12,4 @@ export class RequiredDataStore<T> extends VoidStore {
 		super();
 		this.data = data;
 	}
-};
+}

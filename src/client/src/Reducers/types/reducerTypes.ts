@@ -13,7 +13,7 @@ export enum WaitingTypes {
 	updateItem = "updateItem", //implemented as needed
 	remove = "remove", //implemented as needed
 	assign = "assign", //implemented as needed
-};
+}
 
 export type ActionPayload<T, U=T> = {
 	type: WaitingTypes.started,
@@ -47,17 +47,17 @@ export type ActionPayload<T, U=T> = {
 	payload: {
 		key: KeyType,
 	}
-};
+}
 
 export interface ReducerAction<DataShape> {
 	type: WaitingTypes,
 	payload: DataShape
-};
+}
 
 export interface KeyAndData<T> {
 	key: KeyType,
 	data: T,
-};
+}
 
 export type DataOrUpdater<T> =
 	T | ((data: T) => T);
@@ -74,7 +74,7 @@ export type OptionalPayloadDispatch =
 
 export type EmptyPayloadDispatch = () => {
 	type: WaitingTypes,
-};
+}
 
 export type UpdateDispatch = <T>(
 	key: KeyType,
@@ -92,12 +92,12 @@ export type KeyedDispatch = (key: KeyType) => {
 	payload: {
 		key: KeyType,
 	},
-};
+}
 
 export type ReadDispatch = <T>(fn: (data: T) => void) => {
 	type: string,
 	payload: (data: T) => void
-};
+}
 
 export interface Dispatches {
 	started(): {
@@ -155,31 +155,31 @@ export interface Dispatches {
 		payload: Partial<T>
 	},
 	read: ReadDispatch,
-};
+}
 
 
 export interface VoidStoreShape {
 	callStatus: string | null,
 	error: string | null,
-};
+}
 
 export interface SimpleStoreShape<T> extends VoidStoreShape {
 	data: T
-};
+}
 
 export interface KeyedStoreShape<StoreType=SimpleStoreShape<any>> {
 	[key: KeyType]: StoreType
-};
+}
 
 export interface ListDataShape<T> {
 	items: T[],
-};
+}
 
 export interface PageableListDataShape<T>
 	extends ListDataShape<T>
 {
 		totalRows: number
-};
+}
 
 export type ListStoreShape<DataShape> =
 	SimpleStoreShape<ListDataShape<DataShape>>;

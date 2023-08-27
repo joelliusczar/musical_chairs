@@ -18,10 +18,10 @@ import {
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
-	dispatches
+	dispatches,
 } from "../../Reducers/waitingReducer";
 import {
-	useDataWaitingReducer
+	useDataWaitingReducer,
 } from "../../Reducers/dataWaitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
@@ -48,7 +48,7 @@ export const SongCatalogue = () => {
 			{
 				items: [],
 				totalRows: 0,
-				stationRules: []
+				stationRules: [],
 			}
 		)
 	);
@@ -151,7 +151,7 @@ export const SongCatalogue = () => {
 					stationKey: pathVars.stationKey,
 					ownerKey: pathVars.ownerKey,
 					page: page - 1,
-					limit: limit
+					limit: limit,
 				}
 				);
 				catalogueDispatch(dispatches.done(data));

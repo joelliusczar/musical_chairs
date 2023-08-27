@@ -1,12 +1,13 @@
 module.exports = {
+	"parser": "@typescript-eslint/parser",
 	"env": {
 		"browser": true,
 		"node": true,
 		"es2021": true,
 	},
 	"extends": [
-		"eslint:recommended",
 		"plugin:react/recommended",
+		"plugin:@typescript-eslint/recommended",
 	],
 	"parserOptions": {
 		"ecmaFeatures": {
@@ -16,9 +17,12 @@ module.exports = {
 		"sourceType": "module",
 	},
 	"plugins": [
+		"@typescript-eslint",
 		"react",
 	],
+	"root": true,
 	"rules": {
+		"no-undef": "off",
 		"indent": [
 			2,
 			"tab",

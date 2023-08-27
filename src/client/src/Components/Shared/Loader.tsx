@@ -7,14 +7,14 @@ interface LoaderProps {
 	status: string | null,
 	children: JSX.Element | JSX.Element[],
 	error: string | null,
-	defaultEmptyMessage?: string | null
+	defaultEmptyMessage?: string | null,
 }
 
 export const Loader = ({
 	status,
 	children,
 	error,
-	defaultEmptyMessage
+	defaultEmptyMessage,
 }: LoaderProps) => {
 
 	switch(status) {

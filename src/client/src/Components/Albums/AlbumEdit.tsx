@@ -10,7 +10,7 @@ import {
 	useArtistData,
 	useIdMapper,
 } from "../../Context_Providers/AppContextProvider";
-import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
+import { ArtistNewModalOpenerProps } from "../Artists/ArtistEdit";
 import Loader from "../Shared/Loader";
 import { useCombinedContextAndFormItems } from "../../Helpers/array_helpers";
 import { ArtistSelect } from "../Artists/ArtistSelect";
@@ -50,7 +50,7 @@ export const AlbumEdit = (props: AlbumEditProps) => {
 			const album = await saveAlbum({ data: {
 				name: values.name,
 				year: values.year || undefined,
-				albumArtist: values.albumArtist || undefined
+				albumArtist: values.albumArtist || undefined,
 			} });
 			enqueueSnackbar("Save successful", { variant: "success"});
 			afterSubmit(album);

@@ -4,7 +4,7 @@ import {
 	useController,
 	UseFormReturn,
 	FieldValues,
-	FieldPath
+	FieldPath,
 } from "react-hook-form";
 
 type FormTextFieldProps<FormT extends FieldValues> = {

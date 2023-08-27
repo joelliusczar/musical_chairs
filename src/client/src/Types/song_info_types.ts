@@ -10,7 +10,7 @@ export interface ArtistInfo {
 	id: IdType
 	name: string
 	owner: User
-};
+}
 
 export interface AlbumInfo {
 	id: IdType
@@ -18,7 +18,7 @@ export interface AlbumInfo {
 	year: number | null
 	albumArtist: ArtistInfo | null
 	owner: User
-};
+}
 
 export interface AlbumCreationInfo {
 	name: string
@@ -30,7 +30,7 @@ export interface NowPlayingInfo {
 	song: string
 	album: string
 	artist: string
-};
+}
 
 export interface SongListDisplayItem extends NamedIdItem {
 	album: string | null
@@ -63,9 +63,9 @@ export class InitialQueueState extends VoidStore {
 				album: "",
 				artist: "",
 			},
-		}
+		};
 	}
-};
+}
 
 export interface SongTreeNodeInfo {
 	path: string
@@ -73,13 +73,13 @@ export interface SongTreeNodeInfo {
 	id: number | null
 	name: string | null
 	rules: PathsActionRule[]
-};
+}
 
 export enum TouchTypes {
 	set = "set",
 	unset = "unset",
 	edited = "edited",
-};
+}
 
 export type TouchedObject = {
 	[key: string]: TouchTypes
@@ -97,7 +97,7 @@ export interface SongInfoBase extends Named {
 export interface SongInfoForm extends SongInfoBase, FieldValues {
 	rules: ActionRule[]
 	touched: TouchedObject
-};
+}
 
 export interface SongInfoApiSavura extends SongInfoBase {
 	touched: string[]

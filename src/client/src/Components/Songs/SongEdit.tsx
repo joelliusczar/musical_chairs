@@ -16,7 +16,7 @@ import {
 	useIdMapper,
 } from "../../Context_Providers/AppContextProvider";
 import Loader from "../Shared/Loader";
-import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
+import { ArtistNewModalOpenerProps } from "../Artists/ArtistEdit";
 import { AlbumNewModalOpener } from "../Albums/AlbumEdit";
 import { StationNewModalOpener } from "../Stations/StationEdit";
 import { useLocation } from "react-router-dom";
@@ -48,7 +48,7 @@ import { StationSelect } from "../Stations/StationSelect";
 import {
 	SongInfoForm,
 	TouchTypes,
-	TouchedObject
+	TouchedObject,
 } from "../../Types/song_info_types";
 import { Named, IdType } from "../../Types/generic_types";
 
@@ -87,7 +87,7 @@ const schema = Yup.object().shape({
 		"primaryArtist",
 		"Primary Artist is already listed.",
 		(value, testContext: Yup.TestContext<Partial<SongInfoForm>>) => {
-			const parent = testContext.parent as SongInfoForm
+			const parent = testContext.parent as SongInfoForm;
 			if (parent.artists?.some(a => a?.id === value?.id)) {
 				return false;
 			}
@@ -219,7 +219,7 @@ export const SongEdit = () => {
 		try {
 			const valuesSavura = {
 				...values,
-				touched: touchedObjectToArr(values.touched)
+				touched: touchedObjectToArr(values.touched),
 			};
 			const data = ids.length < 2 ?
 				await saveSongEdits({ id: ids[0], data: valuesSavura }) :
@@ -244,13 +244,13 @@ export const SongEdit = () => {
 				if (!callStatus) {
 					dispatch(dispatches.started());
 					const data = ids.length == 1 ?
-					await fetchSongForEdit({
-						id: ids[0],
-					}) :
-					await fetchSongsForMultiEdit({ ids });
+						await fetchSongForEdit({
+							id: ids[0],
+						}) :
+						await fetchSongsForMultiEdit({ ids });
 					reset({
 						...data,
-						touched: createTouchedObject(data.touched)
+						touched: createTouchedObject(data.touched),
 					});
 					dispatch(dispatches.done());
 				}

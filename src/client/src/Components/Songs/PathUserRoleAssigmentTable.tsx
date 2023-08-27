@@ -3,12 +3,11 @@ import {
 	Box,
 } from "@mui/material";
 import {
-	waitingReducer,
 	dispatches,
 	globalStoreLogger,
 } from "../../Reducers/waitingReducer";
 import {
-	useDataWaitingReducer
+	useDataWaitingReducer,
 } from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import {
@@ -26,12 +25,12 @@ import {
 	PageableListDataShape,
 	PageableListStoreShape,
 	WaitingTypes,
-	DataOrUpdater
+	DataOrUpdater,
 } from "../../Reducers/types/reducerTypes";
 import {
 	User,
 	ActionRule,
-	ActionRuleCreationInfo
+	ActionRuleCreationInfo,
 } from "../../Types/user_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 
@@ -117,7 +116,7 @@ export const PathUserRoleAssignmentTable = () => {
 		),
 		{
 			reducerMods: ruleUpdatePaths,
-			middleware:[globalStoreLogger("path users")]
+			middleware:[globalStoreLogger("path users")],
 		}
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
@@ -173,7 +172,7 @@ export const PathUserRoleAssignmentTable = () => {
 			dispatch(dispatches.started());
 			try {
 				const data = await fetchPathUsers({
-					page: page - 1, limit: limit, prefix: prefix
+					page: page - 1, limit: limit, prefix: prefix,
 				});
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
@@ -199,7 +198,7 @@ export const PathUserRoleAssignmentTable = () => {
 			const addedRule = await addPathUserRule({
 				rule,
 				prefix,
-				subjectUserKey: user.id
+				subjectUserKey: user.id,
 			});
 			dispatch(dispatches.update(
 				user.id,

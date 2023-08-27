@@ -1,17 +1,17 @@
 import webClient from "./api";
 import { buildArrayQueryStrFromObj } from "../Helpers/url_helpers";
-import { OwnerParam, KeyType, IdType } from "../Types/generic_types"
+import { OwnerParam, KeyType, IdType } from "../Types/generic_types";
 import {
 	RequiredStationParams,
 	StationCreationInfo,
 	StationInfo,
 	StationTableData,
 	StationRuleAddition,
-	StationRuleDeletion
+	StationRuleDeletion,
 } from "../Types/station_types";
 import {
 	CurrentPlayingInfo,
-	SongListDisplayItem
+	SongListDisplayItem,
 } from "../Types/song_info_types";
 import { Flags, StringObject } from "../Types/generic_types";
 import { ListData, TableData } from "../Types/pageable_types";
@@ -27,7 +27,7 @@ export const fetchStations = async (params?: OwnerParam) => {
 			params: {
 				ownerKey: params?.ownerKey || undefined,
 			},
-	});
+		});
 	return response.data;
 };
 
@@ -46,7 +46,7 @@ export const checkValues = async (
 	const response = await webClient.get<Flags<StringObject>>("stations/check/", {
 		params: {
 			id,
-			...values
+			...values,
 		},
 	});
 	return response.data;
@@ -174,7 +174,7 @@ export const removeStationUserRule = async ({
 	ownerKey,
 	stationKey,
 	subjectUserKey,
-	ruleName
+	ruleName,
 }: StationRuleDeletion) => {
 	const url = `stations/${ownerKey}/${stationKey}/user_role`;
 	const response = await webClient.delete(url, {

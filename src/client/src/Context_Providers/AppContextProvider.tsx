@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import {
 	dispatches,
-	useWaitingReducer
+	useWaitingReducer,
 } from "../Reducers/waitingReducer";
 import PropTypes from "prop-types";
 import { fetchAlbumList, fetchArtistList } from "../API_Calls/songInfoCalls";
@@ -20,14 +20,14 @@ import {
 	WaitingTypes,
 	DataOrUpdater,
 	ListStoreShape,
-	KeyAndDataOrUpdater
+	KeyAndDataOrUpdater,
 } from "../Reducers/types/reducerTypes";
 import { RequiredDataStore } from "../Reducers/reducerStores";
 import {
 	IdItem,
 	IdType,
 	SingleOrList,
-	NamedIdItem
+	NamedIdItem,
 } from "../Types/generic_types";
 import { StationInfo } from "../Types/station_types";
 import { AlbumInfo, ArtistInfo } from "../Types/song_info_types";
@@ -82,7 +82,7 @@ class SortedListReducerPaths<DataShape extends NamedIdItem> {
 			console.error("Item was not found in local store.");
 		}
 	}
-};
+}
 
 const initialAlbumState =
 	new RequiredDataStore<ListDataShape<AlbumInfo>>({ items: []});
@@ -206,20 +206,20 @@ AppContextProvider.propTypes = {
 export const useIdMapper = <T extends IdItem>(items: T[]) => {
 	const idMapper =
 		<InT extends T | T[] | null,>(value: InT): SingleOrList<T, InT> => {
-		if(!value) return null as SingleOrList<T, InT>;
-		if(Array.isArray(value)) {
-			return value.map((item) =>
-				items.find(x => x.id === item.id)
-			).filter(x => !!x) as SingleOrList<T, InT>;
-		}
-		if (typeof(value) === "object") {
-			const matches = items.find(x => x.id === value.id) || null;
-      if (matches) {
-        return matches as SingleOrList<T, InT>;
-      }
-		}
-		return null as SingleOrList<T, InT>;
-	};
+			if(!value) return null as SingleOrList<T, InT>;
+			if(Array.isArray(value)) {
+				return value.map((item) =>
+					items.find(x => x.id === item.id)
+				).filter(x => !!x) as SingleOrList<T, InT>;
+			}
+			if (typeof(value) === "object") {
+				const matches = items.find(x => x.id === value.id) || null;
+				if (matches) {
+					return matches as SingleOrList<T, InT>;
+				}
+			}
+			return null as SingleOrList<T, InT>;
+		};
 	return idMapper;
 };
 

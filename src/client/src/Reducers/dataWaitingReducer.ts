@@ -13,6 +13,6 @@ export const useDataWaitingReducer = <T, U=T>(
 		middleware?: MiddlewareFn<ActionPayload<T, U>, RequiredDataStore<T>>[]
 	}
 ) => {
-  const { reducerMods, middleware } = (setup || {});
+	const { reducerMods, middleware } = (setup || {});
 	return useWaitingReducer(initialState, {reducerMods, middleware});
 };

@@ -19,18 +19,18 @@ interface OptionBase {
 interface LinkOption extends OptionBase {
 	link: string,
 	href?: undefined,
-};
+}
 
 interface HrefOption extends OptionBase {
 	link?: undefined,
 	href: string,
-};
+}
 
 interface ClickOnlyOption extends OptionBase {
 	onClick: (e: ButtonClickEvent) => void | Promise<void>,
 	link?: undefined,
 	href?: undefined,
-};
+}
 
 type OptionsButton = {
 	id: string,

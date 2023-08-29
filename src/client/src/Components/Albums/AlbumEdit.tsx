@@ -10,7 +10,7 @@ import {
 	useArtistData,
 	useIdMapper,
 } from "../../Context_Providers/AppContextProvider";
-import { ArtistNewModalOpenerProps } from "../Artists/ArtistEdit";
+import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
 import Loader from "../Shared/Loader";
 import { useCombinedContextAndFormItems } from "../../Helpers/array_helpers";
 import { ArtistSelect } from "../Artists/ArtistSelect";

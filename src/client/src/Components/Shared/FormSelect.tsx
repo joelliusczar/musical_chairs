@@ -7,6 +7,8 @@ import {
 	SxProps,
 	AutocompleteFreeSoloValueMapping,
 	AutocompleteValue,
+	AutocompleteProps,
+	AutocompleteRenderInputParams,
 } from "@mui/material";
 import {
 	useController,
@@ -48,38 +50,31 @@ const defaultTransformFactory =
 	});
 
 
-type GetOptionsLabelType<
-	T,
-	FreeSolo extends boolean | undefined = false
-> =
-	FreeSolo extends false | undefined ?
-	(option: T) => string :
-	(option: T | AutocompleteFreeSoloValueMapping<FreeSolo>) => string;
-
 interface FormSelectBaseProps<
 	T,
 	FormT extends FieldValues,
 	Multiple extends boolean | undefined = false,
 	DisableClearable extends boolean | undefined = false,
 	FreeSolo extends boolean | undefined = false,
-> {
+> extends Partial<AutocompleteProps<T, Multiple, DisableClearable, FreeSolo>> {
 	name: FieldPath<FormT>
 	label: string
 	formMethods: UseFormReturn<FormT>
 	freeSolo?: FreeSolo,
+	multiple?: Multiple,
 	transform?: Partial<
 		TransformType<T, Multiple, DisableClearable, FreeSolo>
 	>
 	sx?: SxProps<Theme>
 	options: T[]
 	isOptionEqualToValue?: (option: T, value: T) => boolean
-	getOptionLabel?: GetOptionsLabelType<T, FreeSolo>
+	getOptionLabel?: (
+		option: T | AutocompleteFreeSoloValueMapping<FreeSolo>
+	) => string
 	filterOptions?: (option: T[]) => T[]
 	inputValue?: string
-	onInputChange?: (e: ChangeEvent, newValue: string) => void
-	renderOption?: (renderProps: any, option: T) => JSX.Element
-	getOptionDisabled?: (option: T) => boolean
-	[key: string]: any
+	onInputChange?: (e: ChangeEvent, newValue: string) => void,
+	renderInput?: (params: AutocompleteRenderInputParams) => React.ReactNode,
 }
 
 
@@ -159,9 +154,17 @@ FreeSolo extends boolean | undefined = false,
 			return option;
 		}
 		else if(!!option && typeof option === "object" && "name" in option) {
-			return option.name;
+			return option.name as string;
 		}
 		return "";
+	};
+
+	const _renderInput = (params: AutocompleteRenderInputParams) => {
+		return <TextField
+			{...params}
+			label={label}
+			variant="standard"
+		/>;
 	};
 	const {
 		name,
@@ -171,6 +174,7 @@ FreeSolo extends boolean | undefined = false,
 		transform,
 		getOptionLabel = _getOptionLabel,
 		freeSolo,
+		renderInput,
 		...otherProps
 	} = props;
 	const { control } = formMethods;
@@ -192,20 +196,15 @@ FreeSolo extends boolean | undefined = false,
 			<Autocomplete<T, Multiple, DisableClearable, FreeSolo>
 				id={field.name}
 				options={options}
-				getOptionLabel={getOptionLabel as any || _getOptionLabel}
+				getO
+				getOptionLabel={getOptionLabel || _getOptionLabel}
 				onChange={(e, value) => field.onChange(_transform.output({
 					target: { name: field.name, value: value} ,
 				}))}
 				onBlur={field.onBlur}
 				value={_transform.input(field.value)}
 				freeSolo={freeSolo}
-				renderInput={(params) => {
-					return <TextField
-						{...params}
-						label={label}
-						variant="standard"
-					/>;
-				}}
+				renderInput={renderInput || _renderInput}
 				componentsProps={{
 					popper: {
 						style: { minWidth: "fit-content" },

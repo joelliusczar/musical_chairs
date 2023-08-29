@@ -26,7 +26,7 @@ export type ActionPayload<T, U=T> = {
 	payload?: T
 } | {
 	type: WaitingTypes.failed,
-	payload: T extends KeyAndData<any> ? KeyAndData<string> : string
+	payload: string
 } | {
 	type: WaitingTypes.reset,
 	payload: T
@@ -49,10 +49,7 @@ export type ActionPayload<T, U=T> = {
 	}
 }
 
-export interface ReducerAction<DataShape> {
-	type: WaitingTypes,
-	payload: DataShape
-}
+export type ListActionPayload<T> = ActionPayload<ListDataShape<T>, T>
 
 export interface KeyAndData<T> {
 	key: KeyType,
@@ -65,38 +62,6 @@ export type DataOrUpdater<T> =
 export interface KeyAndDataOrUpdater<T> {
 	key: KeyType,
 	dataOrUpdater: DataOrUpdater<T>,
-}
-
-export type BasicDispatch = <T>(payload: T) => ReducerAction<T>;
-
-export type OptionalPayloadDispatch =
-	<T>(payload?: T) => ReducerAction<T | undefined>;
-
-export type EmptyPayloadDispatch = () => {
-	type: WaitingTypes,
-}
-
-export type UpdateDispatch = <T>(
-	key: KeyType,
-	dataOrUpdater: T | ((data: T) => T)
-) => {
-	type: WaitingTypes,
-	payload: {
-		key: KeyType,
-		dataOrUpdater: T | ((data: T) => T)
-	},
-};
-
-export type KeyedDispatch = (key: KeyType) => {
-	type: WaitingTypes,
-	payload: {
-		key: KeyType,
-	},
-}
-
-export type ReadDispatch = <T>(fn: (data: T) => void) => {
-	type: string,
-	payload: (data: T) => void
 }
 
 export interface Dispatches {
@@ -154,7 +119,10 @@ export interface Dispatches {
 		type: WaitingTypes.assign,
 		payload: Partial<T>
 	},
-	read: ReadDispatch,
+	read: <T>(fn: (data: T) => void) => {
+		type: WaitingTypes.read,
+		payload: (data: T) => void
+	},
 }
 
 
@@ -167,7 +135,7 @@ export interface SimpleStoreShape<T> extends VoidStoreShape {
 	data: T
 }
 
-export interface KeyedStoreShape<StoreType=SimpleStoreShape<any>> {
+export interface KeyedStoreShape<StoreType> {
 	[key: KeyType]: StoreType
 }
 
@@ -188,15 +156,6 @@ export type PageableListStoreShape<T> =
 
 
 
-export type AnyPayloadReducerFn<DataShape> = (
-	state: SimpleStoreShape<DataShape>,
-	action: {
-		type: string,
-		payload: any
-	}
-) => SimpleStoreShape<DataShape>;
-
-
 export type ReducerPaths<T, StoreType=SimpleStoreShape<T>, U=T> =
 	{
 	[key in WaitingTypes.started | WaitingTypes.restart]: (
@@ -212,7 +171,7 @@ export type ReducerPaths<T, StoreType=SimpleStoreShape<T>, U=T> =
 	{
 		[key in WaitingTypes.failed]: (
 			state: StoreType,
-			payload: T extends KeyAndData<any> ? KeyAndData<string> : string
+			payload: string
 		) => StoreType
 	} &
 	{
@@ -256,7 +215,6 @@ export type ReducerPaths<T, StoreType=SimpleStoreShape<T>, U=T> =
 			}
 		) => StoreType
 	};
-
 
 
 export type MiddlewareFn<ActionPayloadType, StoreType> = (

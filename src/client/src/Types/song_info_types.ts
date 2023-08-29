@@ -50,7 +50,7 @@ export interface CurrentPlayingInfo
 
 
 export class InitialQueueState extends VoidStore {
-	data: CurrentPlayingInfo
+	data: CurrentPlayingInfo;
 
 	constructor() {
 		super();

@@ -7,12 +7,15 @@ import { ArtistInfo } from "../../Types/song_info_types";
 
 
 
-export const ArtistSelect = <FormT extends FieldValues>(
-	props: FormSelectPropsSelected<
+export const ArtistSelect = <
+	FormT extends FieldValues,
+	Multiple extends boolean | undefined = false,
+>(props: FormSelectPropsSelected<
 		ArtistInfo,
-		FormT
+		FormT,
+		Multiple
 	>
-) => {
+	) => {
 
 	return (
 		<FormSelect
@@ -20,7 +23,7 @@ export const ArtistSelect = <FormT extends FieldValues>(
 				if (option) {
 					const { className } = renderProps;
 					return (
-						<Box
+						<li
 							{...renderProps}
 							className={`app-form-select form-select ${className}`}
 						>
@@ -32,7 +35,7 @@ export const ArtistSelect = <FormT extends FieldValues>(
 									Owner: {option.owner?.username}
 								</FormHelperText>
 							</Box>
-						</Box>
+						</li>
 					);
 				}
 				return (

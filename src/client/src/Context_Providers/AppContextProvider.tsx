@@ -17,10 +17,10 @@ import { useCurrentUser } from "./AuthContext";
 import { CallStatus } from "../constants";
 import {
 	ListDataShape,
-	WaitingTypes,
 	DataOrUpdater,
 	ListStoreShape,
 	KeyAndDataOrUpdater,
+	ActionPayload,
 } from "../Reducers/types/reducerTypes";
 import { RequiredDataStore } from "../Reducers/reducerStores";
 import {
@@ -35,6 +35,7 @@ import { nameSortFn } from "../Helpers/array_helpers";
 
 class SortedListReducerPaths<DataShape extends NamedIdItem> {
 	done(state: ListStoreShape<DataShape>, payload?: ListDataShape<DataShape>) {
+		console.log(payload);
 		const items = payload && payload.items ? payload.items
 			.sort(nameSortFn)
 			: [];
@@ -93,20 +94,26 @@ const initialArtistState =
 
 type AppContextType = {
 	albumsState: RequiredDataStore<ListDataShape<AlbumInfo>>,
-	albumsDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
+	albumsDispatch: React.Dispatch<
+		ActionPayload<ListDataShape<AlbumInfo>, AlbumInfo>
+	>,
 	stationsState: RequiredDataStore<ListDataShape<StationInfo>>,
-	stationsDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
+	stationsDispatch: React.Dispatch<
+		ActionPayload<ListDataShape<StationInfo>, StationInfo>
+	>,
 	artistState: RequiredDataStore<ListDataShape<ArtistInfo>>,
-	artistDispatch: React.Dispatch<{ type: WaitingTypes, payload: any}>,
+	artistDispatch: React.Dispatch<
+		ActionPayload<ListDataShape<ArtistInfo>, ArtistInfo>
+	>,
 };
 
 const AppContext = createContext<AppContextType>({
 	albumsState: initialAlbumState,
-	albumsDispatch: ({ type: WaitingTypes, payload: any}) => {},
+	albumsDispatch: ({ }) => {},
 	stationsState: initialStationState,
-	stationsDispatch: ({ type: WaitingTypes, payload: any}) => {},
+	stationsDispatch: ({ }) => {},
 	artistState: initialArtistState,
-	artistDispatch: ({ type: WaitingTypes, payload: any}) => {},
+	artistDispatch: ({ }) => {},
 });
 
 

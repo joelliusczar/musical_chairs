@@ -16,10 +16,16 @@ import { RequiredDataStore } from "./reducerStores";
 
 export const dispatches: Dispatches = {
 	started: <T,>(payload?: T) =>
-		({ type: WaitingTypes.started, payload: payload }) as any,
+		({
+			type: WaitingTypes.started,
+			payload: payload,
+		}) as { type: WaitingTypes.started, payload: T },
 	restart: () => ({ type: WaitingTypes.restart }),
 	done: <T,>(payload?: T) =>
-		({ type: WaitingTypes.done, payload: payload }) as any,
+		({
+			type: WaitingTypes.done,
+			payload: payload,
+		}) as { type: WaitingTypes.done, payload: T },
 	failed: <T extends KeyAndData<string> | string>(payload: T) =>
 		({
 			type: WaitingTypes.failed,
@@ -112,10 +118,13 @@ export class WaitingReducerMap<T>
 
 
 
-export const globalStoreLogger: <StoreType = RequiredDataStore<any>
->(name: string) => MiddlewareFn<any, StoreType> =
+export const globalStoreLogger =
 (name: string) =>
-	(result, state, action) => {
+	<StoreType>(
+		result: StoreType,
+		state: StoreType,
+		action: { type: unknown, payload?: unknown }
+	) => {
 
 		console.info(`${name} : ${action.type}`);
 		console.info("Previous: ", state);

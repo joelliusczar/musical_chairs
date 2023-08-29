@@ -10,11 +10,11 @@ export const StationSelect = <FormT extends FieldValues>(
 
 	return (
 		<FormSelect
-			renderOption={(renderProps: any, option) => {
+			renderOption={(renderProps, option) => {
 				if (option) {
 					const { className } = renderProps;
 					return (
-						<Box
+						<li
 							{...renderProps}
 							className={`app-form-select form-select ${className}`}
 						>
@@ -26,7 +26,7 @@ export const StationSelect = <FormT extends FieldValues>(
 									Owner: {option.owner?.username}
 								</FormHelperText>
 							</Box>
-						</Box>
+						</li>
 					);
 				}
 				return (

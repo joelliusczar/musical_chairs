@@ -14,7 +14,7 @@ export const AlbumSelect = <FormT extends FieldValues>(
 				if (option) {
 					const { className } = renderProps;
 					return (
-						<Box
+						<li
 							{...renderProps}
 							className={`app-form-select form-select ${className}`}
 						>
@@ -30,7 +30,7 @@ export const AlbumSelect = <FormT extends FieldValues>(
 									Owner: {option.owner?.username}
 								</FormHelperText>
 							</Box>
-						</Box>
+						</li>
 					);
 				}
 				return (

@@ -64,7 +64,7 @@ type AuthContextType = {
 
 export const AuthContext = createContext<AuthContextType>({
 	state: loggedOutState,
-	dispatch: ({ type: WaitingTypes, payload: any}) => {},
+	dispatch: ({}) => {},
 	setupAuthExpirationAction: () => {},
 	logout: () => {},
 	partialLogout: () => {},

@@ -13,7 +13,7 @@ export const nameSortFn: SortCallback<Named> = (a: Named,b: Named): number =>
 
 export const keyedSortFn: SortCallbackFactory =
 	(key: string) => ((a: Keyed,b: Keyed) =>
-		a[key] > b[key] ? 1 : a[key] < b[key] ? -1 : 0) as (a:{}, b:{}) => number;
+		a[key] > b[key] ? 1 : a[key] < b[key] ? -1 : 0);
 
 
 export const useCombinedContextAndFormItems = <T extends NamedIdItem>(

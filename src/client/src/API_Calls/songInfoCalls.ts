@@ -53,7 +53,7 @@ export const saveSongsEditsMulti = async (
 	return response.data;
 };
 
-export const fetchArtistList = async ({ params }: { params?: any}) => {
+export const fetchArtistList = async ({ params }: { params?: object}) => {
 	const response = await webClient.get<ListData<ArtistInfo>>(
 		"/song-info/artists/list",
 		{
@@ -62,7 +62,7 @@ export const fetchArtistList = async ({ params }: { params?: any}) => {
 	return response.data;
 };
 
-export const fetchAlbumList = async ({ params }: { params?: any}) => {
+export const fetchAlbumList = async ({ params }: { params?: object}) => {
 	const response = await webClient.get<ListData<AlbumInfo>>(
 		"/song-info/albums/list",
 		{

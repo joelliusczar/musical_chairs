@@ -11,7 +11,7 @@ import {
 import Loader from "../Shared/Loader";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DomRoutes, UserRoleDef } from "../../constants";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
 import {
 	useStationData,
@@ -50,7 +50,6 @@ export const Stations = () => {
 
 	const [toggleState, toggleDispatch] = useVoidKeyedWaitingReducer({});
 
-	const location = useLocation();
 	const pathVars = useParams();
 	const canCreateStation = useHasAnyRoles([UserRoleDef.STATION_CREATE]);
 	const canEnableStation = useHasAnyRoles([UserRoleDef.STATION_FLIP]);

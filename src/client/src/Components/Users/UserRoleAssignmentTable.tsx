@@ -72,7 +72,7 @@ export const UserRoleAssignmentTable = (
 							<>
 								{!!u.roles?.length && u.roles.map((
 									r: ActionRule,
-									ridx: Number
+									ridx: number
 								) => {
 									return (<Box
 										key={`rule_${uidx}_${ridx}`}

@@ -16,7 +16,7 @@ import {
 	useIdMapper,
 } from "../../Context_Providers/AppContextProvider";
 import Loader from "../Shared/Loader";
-import { ArtistNewModalOpenerProps } from "../Artists/ArtistEdit";
+import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
 import { AlbumNewModalOpener } from "../Albums/AlbumEdit";
 import { StationNewModalOpener } from "../Stations/StationEdit";
 import { useLocation } from "react-router-dom";

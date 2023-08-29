@@ -120,7 +120,7 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 };
 
 export const SongTree = withCacheProvider<
-	any,
+	object,
 	SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 >()(
 	() => {

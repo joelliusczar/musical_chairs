@@ -1,12 +1,12 @@
 
 export class VoidStore {
-	callStatus: string | null = null
-	error: string | null = null
+	callStatus: string | null = null;
+	error: string | null = null;
 }
 
 
 export class RequiredDataStore<T> extends VoidStore {
-	data: T
+	data: T;
 
 	constructor(data: T) {
 		super();

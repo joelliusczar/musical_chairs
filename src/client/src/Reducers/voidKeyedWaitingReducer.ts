@@ -6,6 +6,7 @@ import {
 	KeyedStoreShape,
 	VoidStoreShape,
 	MiddlewareFn,
+	AnonReducer,
 } from "./types/reducerTypes";
 import {
 	VoidKeyedActionPayload,
@@ -74,7 +75,7 @@ export class VoidKeyedWaitingReducerPathsImpl {
 	}
 }
 
-export const useVoidKeyedWaitingReducer = <T, U=T>(
+export const useVoidKeyedWaitingReducer = (
 	initialState: KeyedStoreShape<VoidStoreShape>,
 	reducerMods?: Partial<VoidKeyedUnionSelect>,
 	middleware?: MiddlewareFn<
@@ -97,9 +98,10 @@ export const useVoidKeyedWaitingReducer = <T, U=T>(
 		action: VoidKeyedActionPayload
 	) => {
 		if (action.type in reducerMap) {
-			const reducer = reducerMap[action.type];
+			const reducer =
+				reducerMap[action.type] as AnonReducer<KeyedStoreShape<VoidStoreShape>>;
 			if (reducer) {
-				const initialValue = reducer(state, action.payload as any);
+				const initialValue = reducer(state, action.payload);
 				return middleware!.reduce(
 					(accumulation, mFn) => mFn(accumulation, state, action),
 					initialValue

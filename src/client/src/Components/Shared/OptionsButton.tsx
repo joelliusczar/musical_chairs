@@ -6,9 +6,7 @@ import {
 	MenuItem,
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
-import { conflictWith } from "../../Helpers/prop_helpers";
 import { ButtonClickEvent } from "../../Types/browser_types";
 
 interface OptionBase {
@@ -101,14 +99,4 @@ export const OptionsButton = (props: OptionsButton) => {
 			</Button>
 		}
 	</>;
-};
-
-OptionsButton.propTypes = {
-	id: PropTypes.string.isRequired,
-	options: PropTypes.arrayOf(PropTypes.shape({
-		onClick: PropTypes.oneOfType([PropTypes.func]),
-		link: conflictWith("href", PropTypes.string),
-		href: conflictWith("link", PropTypes.string),
-		label: PropTypes.string,
-	})),
 };

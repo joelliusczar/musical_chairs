@@ -7,16 +7,6 @@ import { FormSelect } from "../Shared/FormSelect";
 import { Named, SelectItem } from "../../Types/generic_types";
 import { ActionRuleCreationInfo } from "../../Types/user_types";
 
-type InitialValueTypes = {
-	role: {
-		id: string,
-		name: string,
-	},
-	days: number,
-	hours: number,
-	minutes: number,
-	count: number,
-};
 
 const initialValues = {
 	role: {

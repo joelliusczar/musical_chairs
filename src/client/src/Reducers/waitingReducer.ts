@@ -9,6 +9,7 @@ import {
 	MiddlewareFn,
 	ReducerPaths,
 	ActionPayload,
+	AnonReducer,
 } from "./types/reducerTypes";
 import { RequiredDataStore } from "./reducerStores";
 
@@ -134,6 +135,7 @@ export const globalStoreLogger =
 	};
 
 
+
 export const waitingReducer = <T, StoreType=RequiredDataStore<T>, U=T>(
 	{ reducerMods, middleware }: {
 		reducerMods?: Partial<ReducerPaths<T, StoreType, U>>,
@@ -163,9 +165,9 @@ export const waitingReducer = <T, StoreType=RequiredDataStore<T>, U=T>(
 		action: ActionPayload<T, U>
 	) => {
 		if (action.type in reducerMap) {
-			const reducer = reducerMap[action.type];
+			const reducer = reducerMap[action.type] as AnonReducer<StoreType>;
 			if (reducer) {
-				const initialValue = reducer(state, action.payload as any);
+				const initialValue = reducer(state, action.payload);
 				return middleware!.reduce(
 					(accumulation, mFn) => mFn(accumulation, state, action),
 					initialValue

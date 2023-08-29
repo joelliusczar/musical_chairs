@@ -4,9 +4,12 @@ import { FormSelect, FormSelectPropsSelected } from "../Shared/FormSelect";
 import { StationInfo } from "../../Types/station_types";
 import { FieldValues } from "react-hook-form";
 
-export const StationSelect = <FormT extends FieldValues>(
-	props: FormSelectPropsSelected<StationInfo, FormT>
-) => {
+export const StationSelect = <
+	FormT extends FieldValues,
+	Multiple extends boolean | undefined = false,
+>(
+		props: FormSelectPropsSelected<StationInfo, FormT, Multiple>
+	) => {
 
 	return (
 		<FormSelect

@@ -224,3 +224,5 @@ export type MiddlewareFn<ActionPayloadType, StoreType> = (
 ) => StoreType;
 
 
+export type AnonReducer<StoreType> =
+	(state: StoreType, payload: unknown) => StoreType;

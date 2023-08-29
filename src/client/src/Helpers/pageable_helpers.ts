@@ -1,23 +1,18 @@
-import { boolean } from "yup";
 import { PageableParams } from "../Types/pageable_types";
 
 export class UrlBuilder<T extends PageableParams> {
 	routeFn: (routeParams: T) => string;
-	getOtherUrl: (params: T, currentLocation: string) => string
+	getOtherUrl: (params: T, currentLocation: string) => string;
 	getThisUrl: (
 		params: PageableParams,
 		currentLocation: string,
 		currentPathName: string
-	) => string
+	) => string;
 
 	constructor(routeFn: (routeParams: T) => string) {
 		this.routeFn = routeFn;
 		this.getOtherUrl = this.__getOtherUrl__.bind(this);
 		this.getThisUrl = this.__getThisUrl__.bind(this);
-	}
-
-	private __getBaseUrl__(params: T): string {
-		return this.routeFn(params);
 	}
 
 	private __buildQueryString__(

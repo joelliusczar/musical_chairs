@@ -10,7 +10,7 @@ import React,
 import { KeyType } from "../../Types/generic_types";
 
 const defaultKey = "__mc_cache_default__";
-const emptyCache = {};
+
 
 type CacheContextType<T> = {
 	[key: KeyType]: {
@@ -41,9 +41,9 @@ export const CacheContextProvider = <T,>(props: CacheContextProviderProps) => {
 
 	const existingCaches = useContext<CacheContextType<T>>(CacheContext);
 
-	const x = {...existingCaches};
+
 	const contextValue = useMemo(() => ({
-		// ...existingCaches,
+		...existingCaches,
 		[cacheKey]: { getCacheValue, setCacheValue},
 	}),[existingCaches, cacheKey, getCacheValue, setCacheValue]);
 

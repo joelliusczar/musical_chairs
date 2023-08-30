@@ -7,73 +7,71 @@ import {
 	VoidStoreShape,
 	MiddlewareFn,
 	AnonReducer,
+	WaitingTypes,
 } from "./types/reducerTypes";
 import {
 	VoidKeyedActionPayload,
 	VoidKeyedUnionSelect,
 } from "./types/voidKeyedReducerTypes";
 
-export class VoidKeyedWaitingReducerPathsImpl {
-	started(
-		state: KeyedStoreShape<VoidStoreShape>,
-		payload: { key: KeyType }
-	): KeyedStoreShape<VoidStoreShape>
-	{
-		const { key } = payload;
-		return {
-			...state,
-			[key]: {
-				...state[key],
-				callStatus: CallStatus.loading,
-			},
-		};
-	}
+export const constructVoidKeyedWaitingReducerPaths = () => {
+	return {
+		[WaitingTypes.started]: (
+			state: KeyedStoreShape<VoidStoreShape>,
+			payload: { key: KeyType }
+		) => {
+			const { key } = payload;
+			return {
+				...state,
+				[key]: {
+					...state[key],
+					callStatus: CallStatus.loading,
+				},
+			};
+		},
+		[WaitingTypes.done]: (
+			state: KeyedStoreShape<VoidStoreShape>,
+			payload: { key: KeyType }
+		) => {
+			const { key } = payload;
+			return {
+				...state,
+				[key]: {
+					...state[key],
+					callStatus: CallStatus.done,
+				},
+			};
+		},
+		[WaitingTypes.failed]: (
+			state: KeyedStoreShape<VoidStoreShape>,
+			payload: KeyAndData<string>
+		) => {
+			const { key, data } = payload;
+			return {
+				...state,
+				[key]: {
+					...state[key],
+					callStatus: CallStatus.failed,
+					error: data,
+				},
+			};
+		},
+		[WaitingTypes.reset]: (
+			state: KeyedStoreShape<VoidStoreShape>,
+			payload: { key: KeyType }
+		) => {
+			const { key } = payload;
+			return {
+				...state,
+				[key]: {
+					callStatus: null,
+					error: null,
+				},
+			};
+		},
+	};
+};
 
-	done(
-		state: KeyedStoreShape<VoidStoreShape>,
-		payload: { key: KeyType }
-	): KeyedStoreShape<VoidStoreShape>
-	{
-		const { key } = payload;
-		return {
-			...state,
-			[key]: {
-				...state[key],
-				callStatus: CallStatus.done,
-			},
-		};
-	}
-
-	failed(
-		state: KeyedStoreShape<VoidStoreShape>,
-		payload: KeyAndData<string>
-	): KeyedStoreShape<VoidStoreShape>
-	{
-		const { key, data } = payload;
-		return {
-			...state,
-			[key]: {
-				...state[key],
-				callStatus: CallStatus.failed,
-				error: data,
-			},
-		};
-	}
-
-	reset(
-		state: KeyedStoreShape<VoidStoreShape>,
-		payload: { key: KeyType }
-	): KeyedStoreShape<VoidStoreShape>{
-		const { key } = payload;
-		return {
-			...state,
-			[key]: {
-				callStatus: null,
-				error: null,
-			},
-		};
-	}
-}
 
 export const useVoidKeyedWaitingReducer = (
 	initialState: KeyedStoreShape<VoidStoreShape>,
@@ -83,7 +81,7 @@ export const useVoidKeyedWaitingReducer = (
 		KeyedStoreShape<VoidStoreShape>
 	>[]
 ) => {
-	const waitingReducerMap = new VoidKeyedWaitingReducerPathsImpl();
+	const waitingReducerMap = constructVoidKeyedWaitingReducerPaths();
 	const reducerMap = {
 		...waitingReducerMap,
 		...reducerMods,

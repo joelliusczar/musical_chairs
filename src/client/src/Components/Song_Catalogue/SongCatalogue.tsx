@@ -105,7 +105,7 @@ export const SongCatalogue = () => {
 
 		if (canEditSongs || canEditThisSong) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.songEdit()}?id=${item.id}`,
+			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
 		});
 
 		const canDownloadThisSong = anyConformsToAnyRule(
@@ -125,7 +125,7 @@ export const SongCatalogue = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.songEdit()}?id=${item.id}`}
+				to={`${DomRoutes.songEdit()}?ids=${item.id}`}
 			>
 				{(canEditSongs || canEditThisSong) ? "Edit" : "View"}
 			</Button>);
@@ -173,7 +173,6 @@ export const SongCatalogue = () => {
 		currentQueryStr,
 		setCurrentQueryStr,
 	]);
-
 
 	return (
 		<>

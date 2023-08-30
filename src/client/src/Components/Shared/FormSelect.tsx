@@ -196,7 +196,6 @@ FreeSolo extends boolean | undefined = false,
 			<Autocomplete<T, Multiple, DisableClearable, FreeSolo>
 				id={field.name}
 				options={options}
-				getO
 				getOptionLabel={getOptionLabel || _getOptionLabel}
 				onChange={(e, value) => field.onChange(_transform.output({
 					target: { name: field.name, value: value} ,

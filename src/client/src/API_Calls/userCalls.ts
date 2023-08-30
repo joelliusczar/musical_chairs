@@ -1,4 +1,3 @@
-import { AxiosPromise } from "axios";
 import { defaultWebClient as webClient } from "./api";
 import {
 	LoginCredentials,

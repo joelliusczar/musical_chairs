@@ -43,79 +43,59 @@ export const dispatches: Dispatches = {
 	read: (fn) => ({ type: WaitingTypes.read, payload: fn}),
 };
 
+export const constructWaitingReducerMap = <T>() => {
+	return {
+		[WaitingTypes.started]: (state: SimpleStoreShape<T>) =>
+			({
+				...state,
+				callStatus: CallStatus.loading,
+			}),
+		[WaitingTypes.restart]: (state: SimpleStoreShape<T>) =>
+			({
+				...state,
+				callStatus: null,
+			}),
+		[WaitingTypes.done]: (state: SimpleStoreShape<T>, payload: T) =>
+			({
+				...state,
+				callStatus: CallStatus.done,
+				data: payload,
+			}),
+		[WaitingTypes.failed]: (state: SimpleStoreShape<T>, payload: string) =>
+			({
+				...state,
+				callStatus: CallStatus.failed,
+				error: payload,
+			}),
+		[WaitingTypes.reset]: (_: unknown, payload: T) =>
+			({
+				callStatus: null,
+				data: payload,
+				error: null,
+			}),
+		[WaitingTypes.read]: (
+			state: SimpleStoreShape<T>,
+			payload: (state: SimpleStoreShape<T>) => void
+		) =>
+		{
+			const deepCopy = clone(state);
+			payload(deepCopy);
+			return state;
+		},
+		[WaitingTypes.assign]: (
+			state: SimpleStoreShape<T>,
+			payload: Partial<SimpleStoreShape<T>>
+		) =>
+			({
+				...state,
+				data: {
+					...state.data,
+					...payload,
+				},
+			}),
+	};
+};
 
-export class WaitingReducerMap<T>
-{
-	started(state: SimpleStoreShape<T>): SimpleStoreShape<T> {
-		return {
-			...state,
-			callStatus: CallStatus.loading,
-		};
-	}
-
-	restart(state: SimpleStoreShape<T>): SimpleStoreShape<T> {
-		return {
-			...state,
-			callStatus: null,
-		};
-	}
-
-	done(
-		state:SimpleStoreShape<T>,
-		payload: T
-	): SimpleStoreShape<T>
-	{
-		return {
-			...state,
-			callStatus: CallStatus.done,
-			data: payload,
-		};
-	}
-
-	failed(
-		state: SimpleStoreShape<T>,
-		payload: string
-	): SimpleStoreShape<T>
-	{
-		return {
-			...state,
-			callStatus: CallStatus.failed,
-			error: payload,
-		};
-	}
-
-	reset(_: unknown, payload: T): SimpleStoreShape<T> {
-		return {
-			callStatus: null,
-			data: payload,
-			error: null,
-		};
-	}
-
-	read(
-		state: SimpleStoreShape<T>,
-		payload: (state: SimpleStoreShape<T>) => void
-	): SimpleStoreShape<T>
-	{
-		const deepCopy = clone(state);
-		payload(deepCopy);
-		return state;
-	}
-
-	assign(
-		state: SimpleStoreShape<T>,
-		payload: Partial<SimpleStoreShape<T>>
-	): SimpleStoreShape<T>
-	{
-		return {
-			...state,
-			data: {
-				...state.data,
-				...payload,
-			},
-		};
-	}
-}
 
 
 
@@ -150,11 +130,12 @@ export const waitingReducer = <T, StoreType=RequiredDataStore<T>, U=T>(
 ) =>
 {
 
-	const waitingReducerMap = new WaitingReducerMap<T>();
+	const waitingReducerMap = constructWaitingReducerMap<T>();
 	const reducerMap = {
 		...waitingReducerMap,
 		...reducerMods,
 	} as ReducerPaths<T, StoreType, U>;
+
 
 	if (!Array.isArray(middleware)) {
 		middleware = [];

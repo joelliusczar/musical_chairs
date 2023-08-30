@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Route, Routes, NavLink, useNavigate } from "react-router-dom";
 import { List, ListItem } from "@mui/material";
 import { Queue } from "../Queue/Queue";
@@ -19,7 +19,6 @@ import {
 	useCurrentUser,
 	useHasAnyRoles,
 } from "../../Context_Providers/AuthContext";
-import { cookieToObject } from "../../Helpers/browser_helpers";
 import {
 	StationUserRoleAssignmentTable,
 } from "../Stations/StationUserRoleAssigmentTable";
@@ -85,23 +84,24 @@ export function NavMenu() {
 
 export function AppRoutes() {
 
-	const navigate = useNavigate();
+
 	const currentUser = useCurrentUser();
 
-	useEffect(() => {
-		if (!currentUser.username) {
-			const cookieObj = cookieToObject(document.cookie);
-			if (!cookieObj["username"]) {
-				navigate("/");
-			}
-		}
-	},[navigate, currentUser]);
+
+	const navigate = useNavigate();
+
 
 	return (
 		<Routes>
 			<Route
 				path={`${DomRoutes.queue({
-					stationKey: ":stationKey?",
+					stationKey: ":stationKey",
+					ownerKey: ":ownerKey",
+				})}`}
+				element={<Queue />}
+			/>
+			<Route
+				path={`${DomRoutes.queue({
 					ownerKey: ":ownerKey",
 				})}`}
 				element={<Queue />}
@@ -114,14 +114,24 @@ export function AppRoutes() {
 				element={<History />}
 			/>
 			<Route
+				path={`${DomRoutes.stations()}`}
+				element={<Stations />}
+			/>
+			<Route
 				path={`${DomRoutes.stations({
-					ownerKey: ":ownerKey?",
+					ownerKey: ":ownerKey",
 				})}`}
 				element={<Stations />}
 			/>
 			<Route
 				path={`${DomRoutes.songCatalogue({
-					stationKey: ":stationKey?",
+					stationKey: ":stationKey",
+					ownerKey: ":ownerKey",
+				})}`}
+				element={<SongCatalogue />}
+			/>
+			<Route
+				path={`${DomRoutes.songCatalogue({
 					ownerKey: ":ownerKey",
 				})}`}
 				element={<SongCatalogue />}
@@ -152,9 +162,8 @@ export function AppRoutes() {
 				path={DomRoutes.accountsEdit({
 					subjectUserKey: ":subjectUserKey",
 				})}
-			>
-				<AccountsEdit />
-			</Route>}
+				element={<AccountsEdit />}
+			/>}
 			<Route
 				path={DomRoutes.accountsList()}
 				element={
@@ -175,7 +184,13 @@ export function AppRoutes() {
 			/>
 			<Route
 				path={`${DomRoutes.stationsEdit({
-					stationKey: ":stationKey?",
+					ownerKey: ":ownerKey",
+				})}`}
+				element={<StationEdit />}
+			/>
+			<Route
+				path={`${DomRoutes.stationsEdit({
+					stationKey: ":stationKey",
 					ownerKey: ":ownerKey",
 				})}`}
 				element={<StationEdit />}

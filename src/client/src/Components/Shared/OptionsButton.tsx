@@ -44,7 +44,7 @@ export const OptionsButton = (props: OptionsButton) => {
 
 	const handleButtonClick = (e: ButtonClickEvent) => {
 		setAnchorEl(null);
-		if (options.length > selectedIndex) {
+		if (options.length < selectedIndex || selectedIndex < 0) {
 			return;
 		}
 		const option = options[selectedIndex];

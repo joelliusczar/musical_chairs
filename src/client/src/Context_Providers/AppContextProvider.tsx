@@ -21,6 +21,7 @@ import {
 	ListStoreShape,
 	KeyAndDataOrUpdater,
 	ActionPayload,
+	WaitingTypes,
 } from "../Reducers/types/reducerTypes";
 import { RequiredDataStore } from "../Reducers/reducerStores";
 import {
@@ -33,57 +34,69 @@ import { StationInfo } from "../Types/station_types";
 import { AlbumInfo, ArtistInfo } from "../Types/song_info_types";
 import { nameSortFn } from "../Helpers/array_helpers";
 
-class SortedListReducerPaths<DataShape extends NamedIdItem> {
-	done(state: ListStoreShape<DataShape>, payload?: ListDataShape<DataShape>) {
-		console.log(payload);
-		const items = payload && payload.items ? payload.items
-			.sort(nameSortFn)
-			: [];
+export const constructSortedListReducerPaths =
+	<DataShape extends NamedIdItem>() => {
 		return {
-			...state,
-			data: {
-				items: items,
+			[WaitingTypes.done]: (
+				state: ListStoreShape<DataShape>,
+				payload?: ListDataShape<DataShape>
+			) => {
+				const items = payload && payload.items ? payload.items
+					.sort(nameSortFn)
+					: [];
+				return {
+					...state,
+					data: {
+						items: items,
+					},
+					callStatus: CallStatus.done,
+				};
 			},
-			callStatus: CallStatus.done,
-		};
-	}
-	add(state: ListStoreShape<DataShape>, payload: DataShape) {
-		const items = [...state.data.items, payload]
-			.sort(nameSortFn);
-		return {
-			...state,
-			data: {
-				items: items,
+			[WaitingTypes.add]: (
+				state: ListStoreShape<DataShape>,
+				payload: DataShape
+			) => {
+				const items = [...state.data.items, payload]
+					.sort(nameSortFn);
+				return {
+					...state,
+					data: {
+						items: items,
+					},
+				};
+			},
+			[WaitingTypes.updateItem]:(
+				state: ListStoreShape<DataShape>,
+				payload: KeyAndDataOrUpdater<DataShape>
+			) => {
+				const { key, dataOrUpdater } = payload;
+				const items = [...state.data.items];
+				const idx = items.findIndex(x => x.id === (+key * 1));
+				if (idx > -1) {
+					if (typeof dataOrUpdater === "function") {
+						items.splice(idx, 1, dataOrUpdater(items[idx]));
+					}
+					else {
+						items.splice(idx, 1, dataOrUpdater);
+					}
+					const sortedItems = items.sort(nameSortFn);
+					return {
+						...state,
+						data: {
+							items: sortedItems,
+						},
+					};
+				}
+				else {
+					console.error("Item was not found in local store.");
+					return state;
+				}
 			},
 		};
-	}
-	update(
-		state: ListStoreShape<DataShape>,
-		payload: KeyAndDataOrUpdater<DataShape>
-	) {
-		const { key, dataOrUpdater } = payload;
-		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === (+key * 1));
-		if (idx > -1) {
-			if (typeof dataOrUpdater === "function") {
-				items.splice(idx, 1, dataOrUpdater(items[idx]));
-			}
-			else {
-				items.splice(idx, 1, dataOrUpdater);
-			}
-			const sortedItems = items.sort(nameSortFn);
-			return {
-				...state,
-				data: {
-					items: sortedItems,
-				},
-			};
-		}
-		else {
-			console.error("Item was not found in local store.");
-		}
-	}
-}
+
+	};
+
+
 
 const initialAlbumState =
 	new RequiredDataStore<ListDataShape<AlbumInfo>>({ items: []});
@@ -125,17 +138,17 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 
 	const [albumsState, albumsDispatch] = useWaitingReducer(
 		initialAlbumState,
-		{ reducerMods: new SortedListReducerPaths()}
+		{ reducerMods: constructSortedListReducerPaths()}
 	);
 
 	const [stationsState, stationsDispatch] = useWaitingReducer(
 		initialStationState,
-		{ reducerMods: new SortedListReducerPaths()}
+		{ reducerMods: constructSortedListReducerPaths()}
 	);
 
 	const [artistState, artistDispatch] = useWaitingReducer(
 		initialArtistState,
-		{ reducerMods: new SortedListReducerPaths()}
+		{ reducerMods: constructSortedListReducerPaths()}
 	);
 
 	useEffect(() => {

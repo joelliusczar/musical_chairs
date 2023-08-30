@@ -19,6 +19,7 @@ export const StationSelect = <
 					return (
 						<li
 							{...renderProps}
+							key={option.id}
 							className={`app-form-select form-select ${className}`}
 						>
 							<Box className="form-select select-subtext">

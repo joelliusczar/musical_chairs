@@ -1,12 +1,13 @@
 module.exports = {
+	"parser": "@typescript-eslint/parser",
 	"env": {
 		"browser": true,
 		"node": true,
 		"es2021": true,
 	},
 	"extends": [
-		"eslint:recommended",
 		"plugin:react/recommended",
+		"plugin:@typescript-eslint/recommended",
 	],
 	"parserOptions": {
 		"ecmaFeatures": {
@@ -16,9 +17,14 @@ module.exports = {
 		"sourceType": "module",
 	},
 	"plugins": [
+		"@typescript-eslint",
 		"react",
 	],
+	"root": true,
 	"rules": {
+		"no-undef": "off",
+		"no-unused-vars": "off",
+
 		"indent": [
 			2,
 			"tab",
@@ -44,7 +50,7 @@ module.exports = {
 				"imports": "always-multiline",
 			},
 		],
-		"no-unused-vars": ["warn"],
+		"@typescript-eslint/no-unused-vars": ["warn"],
 		"no-console": ["warn", { "allow": ["warn", "error", "info"]}],
 		"array-callback-return": "error",
 		"max-len": ["error", { "code": 80, "tabWidth": 2 }],

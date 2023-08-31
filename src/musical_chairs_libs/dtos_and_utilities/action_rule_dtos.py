@@ -138,6 +138,16 @@ class ActionRule:
 			self.priority
 		))
 
+	def to_path_rule(self, path: str) -> "PathsActionRule":
+		return PathsActionRule(
+			name=self.name,
+			span=self.span,
+			count=self.count,
+			priority=self.priority,
+			domain=self.domain,
+			path=path
+		)
+
 	@staticmethod
 	def filter_out_repeat_roles(
 		rules: Iterable["ActionRule"]

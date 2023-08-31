@@ -183,14 +183,14 @@ def get_all_artists(
 
 @router.post("/artists")
 def create_artist(
-	artistName: str,
+	name: str,
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
 		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> ArtistInfo:
-	artistInfo = songInfoService.save_artist(user, artistName)
+	artistInfo = songInfoService.save_artist(user, name)
 	return artistInfo
 
 @router.post("/albums")

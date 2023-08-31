@@ -9,24 +9,31 @@
     "@hookform/resolvers": "^2.9.7",
     "@mui/icons-material": "^5.8.0",
     "@mui/lab": "^5.0.0-alpha.87",
-    "@mui/material": "^5.10.4",
+    "@mui/material": "^5.14.3",
     "@testing-library/jest-dom": "^5.12.0",
     "@testing-library/react": "^11.2.6",
     "@testing-library/user-event": "^12.8.3",
-    "@types/react-router-dom": "^5.3.3",
+    "@types/debounce-promise": "^3.1.6",
+    "@types/react": "^18.2.17",
+    "@types/react-dom": "^18.2.7",
     "axios": "^1.4.0",
     "debounce-promise": "^3.1.2",
     "just-clone": "^6.2.0",
     "just-compare": "^2.3.0",
     "notistack": "^2.0.5",
-    "prop-types": "^15.7.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-hook-form": "^7.34.2",
-    "react-router-dom": "^5.2.0",
+    "react-router-dom": "^6.14.2",
     "react-scripts": "^5.0.0",
+    "typescript": "^5.1.6",
     "web-vitals": "^1.1.1",
     "yup": "^0.32.11"
+  },
+  "overrides": {
+    "react-scripts": {
+      "typescript": "^5"
+    }
   },
   "scripts": {
     "start": "react-scripts start",
@@ -55,8 +62,10 @@
     ]
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
     "env-cmd": "^10.1.0",
-    "eslint": "^7.25.0",
+    "eslint": "^8.48.0",
     "eslint-plugin-react": "^7.23.2"
   }
 }

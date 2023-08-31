@@ -54,14 +54,14 @@ export function LoginForm(props: LoginFormProps) {
 				Create new account
 			</Link>
 			<Box sx={{ m: 1}}>
-				<FormTextField<LoginFormInitialValues>
+				<FormTextField
 					label="User Name"
 					formMethods={formMethods}
 					name="username"
 				/>
 			</Box>
 			<Box sx={{ m: 1}}>
-				<FormTextField<LoginFormInitialValues>
+				<FormTextField
 					formMethods={formMethods}
 					label="Password"
 					name="password"

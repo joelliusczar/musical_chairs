@@ -1,15 +1,16 @@
-from typing import Optional, cast, Iterable, Iterator
-from sqlalchemy.sql.expression import Select, false
+from typing import Optional, cast, Iterable, Iterator, Tuple
+from sqlalchemy.sql.expression import Select, false, CompoundSelect
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
-from sqlalchemy.engine.row import Row
+from sqlalchemy.engine.row import RowMapping
 from sqlalchemy import (
 	select,
 	union_all,
-	literal as dbLiteral,  #pyright: ignore [reportUnknownVariableType]
+	literal as dbLiteral,
 	case,
 	or_
 )
+from sqlalchemy import Integer, String
 from musical_chairs_libs.tables import (
 	stup_role, stup_stationFk, stup_userFk, stup_count, stup_span, stup_priority,
 	ur_userFk, ur_role, ur_count, ur_span, ur_priority,
@@ -33,58 +34,62 @@ from .account_dtos import (
 from .simple_functions import normalize_opening_slash
 
 __station_permissions_query__ = select(
-	stup_userFk.label("rule_userFk"), #pyright: ignore [reportUnknownMemberType]
-	stup_role.label("rule_name"), #pyright: ignore [reportUnknownMemberType]
-	stup_count.label("rule_count"), #pyright: ignore [reportUnknownMemberType]
-	stup_span.label("rule_span"), #pyright: ignore [reportUnknownMemberType]
-	coalesce(
-		stup_priority, #pyright: ignore [reportUnknownMemberType]
+	stup_userFk.label("rule_userFk"),
+	stup_role.label("rule_name"),
+	stup_count.label("rule_count"),
+	stup_span.label("rule_span"),
+	coalesce[Integer](
+		stup_priority,
 		RulePriorityLevel.STATION_PATH.value
 	).label("rule_priority"),
-	dbLiteral(UserRoleDomain.Station.value).label("rule_domain"), #pyright: ignore [reportUnknownMemberType]
-	stup_stationFk.label("rule_stationFk") #pyright: ignore [reportUnknownMemberType]
+	dbLiteral(UserRoleDomain.Station.value).label("rule_domain"),
+	stup_stationFk.label("rule_stationFk")
 )
 
 __path_permissions_query__ = select(
-	pup_userFk.label("rule_userFk"), #pyright: ignore [reportUnknownMemberType]
-	pup_role.label("rule_name"), #pyright: ignore [reportUnknownMemberType]
-	pup_count.label("rule_count"), #pyright: ignore [reportUnknownMemberType]
-	pup_span.label("rule_span"), #pyright: ignore [reportUnknownMemberType]
-	coalesce(
-		pup_priority, #pyright: ignore [reportUnknownMemberType]
+	pup_userFk.label("rule_userFk"),
+	pup_role.label("rule_name"),
+	pup_count.label("rule_count"),
+	pup_span.label("rule_span"),
+	coalesce[Integer](
+		pup_priority,
 		RulePriorityLevel.STATION_PATH.value
 	).label("rule_priority"),
 	dbLiteral(UserRoleDomain.Path.value).label("rule_domain"), #pyright: ignore [reportUnknownMemberType]
 	pup_path.label("rule_path") #pyright: ignore [reportUnknownMemberType]
 )
 
-def __build_placeholder_select__(domain:UserRoleDomain) -> Select:
-	ruleNameCol = cast(Column, dbLiteral(UserRoleDef.STATION_VIEW.value) \
+def __build_placeholder_select__(
+	domain:UserRoleDomain
+) -> Select[Tuple[int, String, float, float, int, str]]:
+	ruleNameCol = cast(Column[String], dbLiteral(UserRoleDef.STATION_VIEW.value) \
 		if domain == UserRoleDomain.Station \
 			else dbLiteral(UserRoleDef.PATH_VIEW.value))
 	query = select(
 		dbLiteral(0).label("rule_userFk"), #pyright: ignore [reportUnknownMemberType]
 		ruleNameCol.label("rule_name"), #pyright: ignore [reportUnknownMemberType]
-		dbLiteral(0).label("rule_count"), #pyright: ignore [reportUnknownMemberType]
-		dbLiteral(0).label("rule_span"), #pyright: ignore [reportUnknownMemberType]
+		cast(Column[float],dbLiteral(0)).label("rule_count"), #pyright: ignore [reportUnknownMemberType]
+		cast(Column[float],dbLiteral(0)).label("rule_span"), #pyright: ignore [reportUnknownMemberType]
 		dbLiteral(0).label("rule_priority"), #pyright: ignore [reportUnknownMemberType]
 		dbLiteral("shim").label("rule_domain"), #pyright: ignore [reportUnknownMemberType]
 	)
 
 	return query
 
+#int, String, int, int, int, str]]:
+
 def build_rules_query(
 	domain:UserRoleDomain,
 	userId: Optional[int]=None
-) -> Select:
+) -> CompoundSelect:
 
 	user_rules_base_query = select(
-		ur_userFk.label("rule_userFk"), #pyright: ignore [reportUnknownMemberType]
-		ur_role.label("rule_name"), #pyright: ignore [reportUnknownMemberType]
-		ur_count.label("rule_count"), #pyright: ignore [reportUnknownMemberType]
-		ur_span.label("rule_span"), #pyright: ignore [reportUnknownMemberType]
-		coalesce(
-			ur_priority, #pyright: ignore [reportUnknownMemberType]
+		ur_userFk.label("rule_userFk"),
+		ur_role.label("rule_name"),
+		ur_count.label("rule_count"),
+		ur_span.label("rule_span"),
+		coalesce[Integer](
+			ur_priority,
 			case(
 				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
 				else_=RulePriorityLevel.SITE.value
@@ -148,7 +153,7 @@ def build_rules_query(
 	)
 	return query
 
-def row_to_user(row: Row) -> AccountInfo:
+def row_to_user(row: RowMapping) -> AccountInfo:
 	return AccountInfo(
 		id=cast(int,row[u_pk]),
 		username=cast(str,row[u_username]),
@@ -157,7 +162,7 @@ def row_to_user(row: Row) -> AccountInfo:
 		dirRoot=cast(str,row[u_dirRoot]),
 	)
 
-def row_to_action_rule(row: Row) -> ActionRule:
+def row_to_action_rule(row: RowMapping) -> ActionRule:
 	clsConstructor = action_rule_class_map.get(
 		cast(str, row["rule_domain"]),
 		ActionRule
@@ -174,7 +179,7 @@ def row_to_action_rule(row: Row) -> ActionRule:
 	)
 
 def generate_user_and_rules_from_rows(
-	rows: Iterable[Row],
+	rows: Iterable[RowMapping],
 	domain: UserRoleDomain,
 	ownerId: Optional[int]=None,
 	prefix: Optional[str]=None

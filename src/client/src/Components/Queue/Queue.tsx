@@ -169,7 +169,7 @@ export const Queue = () => {
 		currentQueryStr,
 		setCurrentQueryStr,
 	]);
-
+	console.log(queueState);
 	return (
 		<>
 			<h1>Queue: {selectedStation?.displayName || ""}</h1>

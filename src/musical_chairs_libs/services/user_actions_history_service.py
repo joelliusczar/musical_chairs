@@ -130,7 +130,7 @@ class UserActionsHistoryService:
 					cast(float,row[uah_requestedTimestamp]),
 					cast(int, row[q_stationFk])
 				)
-				for row in cast(Iterable[Row], records)
+				for row in records
 			)
 
 		else:
@@ -140,7 +140,7 @@ class UserActionsHistoryService:
 					cast(str,row[uah_action]),
 					cast(float,row[uah_requestedTimestamp])
 				)
-				for row in cast(Iterable[Row], records)
+				for row in records
 			)
 
 	def add_user_action_history_item(self, userId: int, action: str):

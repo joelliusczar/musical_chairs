@@ -1,8 +1,7 @@
 import os
-from typing import Iterable, cast
-from sqlalchemy import create_engine #pyright: ignore [reportUnknownVariableType]
+from typing import cast
+from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection
-from sqlalchemy.engine.row import Row
 from musical_chairs_libs.tables import metadata
 from musical_chairs_libs.dtos_and_utilities import (
 	SearchNameString,
@@ -99,10 +98,10 @@ class EnvManager:
 	def print_expected_schema(cls):
 		conn = cls.get_configured_db_connection(inMemory=True)
 		metadata.create_all(conn.engine)
-		result = conn.execute("SELECT sql FROM sqlite_master WHERE type='table';") #pyright: ignore [reportUnknownMemberType]
-		result = (cast(str,r[0]) for r in cast(Iterable[Row],result.fetchall()))
+		result = conn.exec_driver_sql("SELECT sql FROM sqlite_master WHERE type='table';")
+		result = (cast(str,r[0]) for r in result.fetchall())
 		print("\n".join(result))
-		result = conn.execute("SELECT sql FROM sqlite_master WHERE type='index';") #pyright: ignore [reportUnknownMemberType]
-		result = (cast(str,r[0]) for r in cast(Iterable[Row],result.fetchall()))
+		result = conn.exec_driver_sql("SELECT sql FROM sqlite_master WHERE type='index';") #pyright: ignore [reportUnknownMemberType]
+		result = (cast(str,r[0]) for r in result.fetchall())
 		print("\n".join(result))
 		conn.close()

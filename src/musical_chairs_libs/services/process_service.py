@@ -14,7 +14,6 @@ from sqlalchemy import (
 	update
 )
 from sqlalchemy.engine import Connection
-from sqlalchemy.engine.row import Row
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_procId, st_ownerFk,
 	users as users_tbl, u_username, u_pk
@@ -124,8 +123,8 @@ class ProcessService:
 		else:
 			query = query.where(st_pk.in_(stationIds))
 
-		rows = self.conn.execute(query) #pyright: ignore reportUnknownMemberType
-		pids = [cast(int, row[st_procId]) for row in cast(Iterable[Row], rows)]
+		rows = self.conn.execute(query)
+		pids = [cast(int, row[st_procId]) for row in rows]
 		for pid in pids:
 			self.end_process(pid)
 		self.unset_station_procs(pids)

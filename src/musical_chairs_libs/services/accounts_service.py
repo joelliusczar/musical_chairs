@@ -34,7 +34,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
-from sqlalchemy.engine.row import Row
 from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
 	users, u_pk, u_username, u_hashedPW, u_email, u_dirRoot, u_disabled,
@@ -135,8 +134,8 @@ class AccountsService:
 			creationTimestamp = self.get_datetime().timestamp(),
 			dirRoot = SavedNameString.format_name_for_save(accountInfo.username)
 		)
-		res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
-		insertedPk = cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
+		res = self.conn.execute(stmt)
+		insertedPk = res.lastrowid
 		# insertedRows = self.save_roles(
 		# 	insertedPk,
 		# 	[UserRoleDef.STATION_REQUEST.v]
@@ -224,17 +223,20 @@ class AccountsService:
 		return user, expiration
 
 	def __get_roles__(self, userId: int) -> Iterable[ActionRule]:
-		rulesQuery = build_rules_query(UserRoleDomain.Site, userId=userId) #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
-		rows = cast(Iterable[Row], self.conn.execute(rulesQuery).fetchall()) #pyright: ignore [reportUnknownMemberType]
+		rulesQuery = build_rules_query(UserRoleDomain.Site, userId=userId)
+		rows = self.conn.execute(rulesQuery).mappings().fetchall()
 
 		return (row_to_action_rule(r) for r in rows)
 
 
 	def _is_username_used(self, username: SearchNameString) -> bool:
-		queryAny: str = select(func.count(1)).select_from(users)\
+		queryAny = select(func.count(1)).select_from(users)\
 				.where(func.format_name_for_search(u_username) == str(username))
-		countRes = self.conn.execute(queryAny).scalar() #pyright: ignore [reportUnknownMemberType]
-		return countRes > 0 if countRes else False
+		try:
+			countRes = self.conn.execute(queryAny).scalar()
+			return countRes > 0 if countRes else False
+		except Exception as e:
+			return False
 
 	def is_username_used(
 		self,
@@ -251,10 +253,10 @@ class AccountsService:
 			self._is_username_used(cleanedUserName)
 
 	def _is_email_used(self, email: ValidatedEmail) -> bool:
-		emailStr = email.email #pyright: ignore reportUnknownMemberType
-		queryAny: str = select(func.count(1)).select_from(users)\
+		emailStr = cast(str, email.email)
+		queryAny = select(func.count(1)).select_from(users)\
 				.where(func.lower(u_email) == emailStr)
-		countRes = self.conn.execute(queryAny).scalar() #pyright: ignore [reportUnknownMemberType]
+		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
 	def is_email_used(
@@ -309,8 +311,8 @@ class AccountsService:
 					.like(f"{normalizedStr}%")
 			)
 		query = query.limit(pageSize)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		for row in records: #pyright: ignore [reportUnknownVariableType]
+		records = self.conn.execute(query).mappings()
+		for row in records:
 			yield AccountInfo(**row) #pyright: ignore [reportUnknownArgumentType]
 
 	def get_account_for_edit(
@@ -332,7 +334,7 @@ class AccountsService:
 			query = query.where(u_username == key)
 		else:
 			raise ValueError("Either username or id must be provided")
-		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+		row = self.conn.execute(query).mappings().fetchone() #pyright: ignore [reportUnknownMemberType]
 		if not row:
 			return None
 		roles = [*self.__get_roles__(cast(int,row["id"]))]
@@ -417,7 +419,7 @@ class AccountsService:
 		if userId is not None:
 			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
-		records = self.conn.execute(query).fetchall() #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query).mappings().fetchall() #pyright: ignore [reportUnknownMemberType]
 		yield from generate_user_and_rules_from_rows(
 			records,
 			UserRoleDomain.Path,

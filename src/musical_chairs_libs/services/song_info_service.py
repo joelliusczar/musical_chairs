@@ -51,19 +51,22 @@ from sqlalchemy import (
 	delete,
 	union_all,
 	or_,
-	and_
+	and_,
+	String,
+	Integer,
+	CompoundSelect
 )
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.expression import (
 	Tuple as dbTuple,
 	Select,
+	Update,
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import ColumnCollection as TblCols
 from sqlalchemy.sql.schema import Column
 from .env_manager import EnvManager
-from sqlalchemy.engine.row import Row
+from sqlalchemy.engine.row import RowMapping
 from dataclasses import asdict, fields
 from itertools import chain, groupby
 from musical_chairs_libs.tables import (
@@ -105,8 +108,8 @@ class SongInfoService:
 			sg_pk,
 			sg_name,
 			sg_path,
-			ab_name.label("album"), #pyright: ignore reportUnknownMemberType
-			ar_name.label("artist") #pyright: ignore reportUnknownMemberType
+			ab_name.label("album"),
+			ar_name.label("artist")
 		)\
 			.select_from(songs_tbl)\
 			.join(albums_tbl, sg_albumFk == ab_pk, isouter=True)\
@@ -114,7 +117,7 @@ class SongInfoService:
 			.join(artists_tbl, sgar_artistFk == ar_pk, isouter=True)\
 			.where(sg_pk == songPk)\
 			.limit(1)
-		row = self.conn.execute(query).fetchone() #pyright: ignore reportUnknownMemberType
+		row = self.conn.execute(query).mappings().fetchone()
 		if not row:
 			return None
 		return SongListDisplayItem(
@@ -140,8 +143,8 @@ class SongInfoService:
 			name = savedName,
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
-		res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
-		insertedPk = cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
+		res = self.conn.execute(stmt)
+		insertedPk = res.lastrowid
 		return insertedPk
 
 	def __get_artist_owner__(self, artistId: int) -> OwnerInfo:
@@ -174,15 +177,15 @@ class SongInfoService:
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
 		owner = user
-		if artistId:
+		if artistId and isinstance(stmt, Update):
 			stmt = stmt.where(ar_pk == artistId)
 			owner = self.__get_artist_owner__(artistId)
 		else:
 			stmt = stmt.values(ownerFk = user.id)
 		try:
-			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+			res = self.conn.execute(stmt)
 
-			affectedPk: int = artistId if artistId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
+			affectedPk: int = artistId if artistId else res.lastrowid
 			return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
 		except IntegrityError:
 			raise AlreadyUsedError(
@@ -224,15 +227,15 @@ class SongInfoService:
 			lastModifiedTimestamp = self.get_datetime().timestamp()
 		)
 		owner = user
-		if albumId:
+		if albumId and isinstance(stmt, Update):
 			stmt = stmt.where(ab_pk == albumId)
 			owner = self.__get_album_owner__(albumId)
 		else:
 			stmt = stmt.values(ownerFk = user.id)
 		try:
-			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+			res = self.conn.execute(stmt)
 
-			affectedPk: int = albumId if albumId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
+			affectedPk: int = albumId if albumId else res.lastrowid
 			artist = next(self.get_artists(
 				user.id,
 				artistKeys=album.albumArtist.id
@@ -258,7 +261,7 @@ class SongInfoService:
 		query = select(ab_pk).select_from(albums_tbl).where(ab_name == savedName)
 		if artistFk:
 			query = query.where(ab_albumArtistFk == artistFk)
-		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+		row = self.conn.execute(query).fetchone()
 		if row:
 			pk = cast(int, row[ab_pk])
 			return pk
@@ -271,8 +274,8 @@ class SongInfoService:
 			ownerFk = 1,
 			lastModifiedByUserFk = 1
 		)
-		res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
-		insertedPk = cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
+		res = self.conn.execute(stmt)
+		insertedPk = res.lastrowid
 		return insertedPk
 
 	def get_song_refs(
@@ -294,8 +297,8 @@ class SongInfoService:
 		if pageSize:
 			offset = page * pageSize
 			query = query.limit(pageSize).offset(offset)
-		records = self.conn.execute(query) #pyright: ignore reportUnknownMemberType
-		for row in cast(Iterable[Row], records):
+		records = self.conn.execute(query)
+		for row in records:
 			yield ScanningSongItem(
 					id=cast(int, row[sg_pk]),
 					path=cast(str,row[sg_path]),
@@ -320,11 +323,11 @@ class SongInfoService:
 					lastModifiedTimestamp = timestamp,
 					lastModifiedByUserFk = None
 				)
-		count = cast(int, self.conn.execute(songUpdate).rowcount) #pyright: ignore [reportUnknownMemberType]
+		count = self.conn.execute(songUpdate).rowcount
 		try:
 			songComposerInsert = insert(song_artist_tbl)\
 				.values(songFk = songInfo.id, artistFk = songInfo.artistId)
-			self.conn.execute(songComposerInsert) #pyright: ignore [reportUnknownMemberType]
+			self.conn.execute(songComposerInsert)
 		except IntegrityError: pass
 		try:
 			songComposerInsert = insert(song_artist_tbl)\
@@ -333,7 +336,7 @@ class SongInfoService:
 					artistFk = songInfo.composerId,
 					comment = "composer"
 				)
-			self.conn.execute(songComposerInsert) #pyright: ignore [reportUnknownMemberType]
+			self.conn.execute(songComposerInsert)
 		except IntegrityError: pass
 		return count
 
@@ -341,7 +344,7 @@ class SongInfoService:
 		query = select(pup_path, pup_role, pup_priority, pup_span, pup_count)\
 			.where(pup_userFk == userId)\
 			.order_by(pup_path)
-		records = cast(Iterable[Row], self.conn.execute(query)) #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query)
 		for r in records:
 			yield PathsActionRule(
 				cast(str,r[pup_role]),
@@ -374,10 +377,17 @@ class SongInfoService:
 		), shouldEmptyUpdateTree=False)
 		return pathRuleTree
 
-	def __song_ls_query__(self, prefix: Optional[str]="") -> Select:
+	def __song_ls_query__(
+		self,
+		prefix: Optional[str]=""
+	) -> Select[Tuple[str, str, int, int, str]]:
 		prefix = normalize_opening_slash(prefix, False)
 		query = select(
-				func.next_directory_level(sg_path, prefix).label("prefix"),
+				func.next_directory_level(
+					sg_path,
+					prefix,
+					type_=String
+				).label("prefix"),
 				func.min(sg_name).label("name"),
 				func.count(sg_pk).label("totalChildCount"),
 				func.max(sg_pk).label("pk"),
@@ -388,11 +398,11 @@ class SongInfoService:
 
 	def __query_to_treeNodes__(
 		self,
-		query: Select,
+		query: Union[Select[Tuple[str, str, int, int, str]], CompoundSelect],
 		permittedPathsTree: ChainedAbsorbentTrie[PathsActionRule]
 	) -> Iterator[SongTreeNode]:
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		for row in cast(Iterable[Row] ,records):
+		records = self.conn.execute(query).mappings()
+		for row in records:
 			normalizedPrefix = normalize_opening_slash(cast(str,row["prefix"]))
 			if not permittedPathsTree.matches(normalizedPrefix)\
 			:
@@ -430,7 +440,7 @@ class SongInfoService:
 				next((s for s in p.split("/") if s), "") if p else p for p in \
 				permittedPathTree.shortest_paths()
 			}
-			queryList: list[Select] = []
+			queryList: list[Select[Tuple[str, str, int, int, str]]] = []
 			for p in prefixes:
 				queryList.append(self.__song_ls_query__(p))
 			if queryList:
@@ -462,8 +472,8 @@ class SongInfoService:
 		if songIds:
 			query = query.where(sg_pk.in_(songIds))
 		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		yield from (cast(int, row["pk"]) for row in cast(Iterable[Row],records))
+		records = self.conn.execute(query).mappings()
+		yield from (cast(int, row["pk"]) for row in records)
 
 	@overload
 	def get_song_path(
@@ -489,7 +499,7 @@ class SongInfoService:
 			query = query.where(sg_pk.in_(itemIds))
 		else:
 			query = query.where(sg_pk == itemIds)
-		results = cast(Iterable[Row], self.conn.execute(query)) #pyright: ignore reportUnknownMemberType
+		results = self.conn.execute(query)
 		if useFullSystemPath:
 			yield from (f"{EnvManager.search_base}/{row[sg_path]}" \
 				for row in results
@@ -522,7 +532,7 @@ class SongInfoService:
 				cast(int, row[stsg_stationFk]),
 				True
 			)
-			for row in cast(Iterable[Row],records))
+			for row in records)
 
 	def remove_songs_for_stations(
 		self,
@@ -531,7 +541,7 @@ class SongInfoService:
 		stationSongs = stationSongs or []
 		delStmt = delete(stations_songs_tbl)\
 			.where(dbTuple(stsg_songFk, stsg_stationFk).in_(stationSongs))
-		return cast(int, self.conn.execute(delStmt).rowcount) #pyright: ignore [reportUnknownMemberType]
+		return self.conn.execute(delStmt).rowcount
 
 	def validate_stations_songs(
 		self,
@@ -544,11 +554,11 @@ class SongInfoService:
 			st_pk
 		).where(dbTuple(sg_pk, st_pk).in_(stationSongs))
 
-		records = self.conn.execute(query) #pyright: ignore reportUnknownMemberType
+		records = self.conn.execute(query)
 		yield from (StationSongTuple(
 			cast(int, row[sg_pk]),
 			cast(int, row[st_pk])
-		) for row in cast(Iterable[Row],records))
+		) for row in records)
 
 	def link_songs_with_stations(
 		self,
@@ -586,22 +596,22 @@ class SongInfoService:
 		albumKeys: Union[int, str, Iterable[int], None]=None,
 		userId: Optional[int]=None
 	) -> Iterator[AlbumInfo]:
-		album_owner = cast(TblCols, user_tbl.alias("albumOwner")) #pyright: ignore [reportUnknownMemberType]
-		albumOwnerId = cast(Column, album_owner.c.pk) #pyright: ignore [reportUnknownMemberType]
-		artist_owner = cast(TblCols,user_tbl.alias("artistOwner")) #pyright: ignore [reportUnknownMemberType]
-		artistOwnerId = cast(Column, artist_owner.c.pk) #pyright: ignore [reportUnknownMemberType]
+		album_owner = user_tbl.alias("albumOwner")
+		albumOwnerId = cast(Column[Integer], album_owner.c.pk)
+		artist_owner = user_tbl.alias("artistOwner")
+		artistOwnerId = cast(Column[Integer], artist_owner.c.pk)
 		query = select(
-			ab_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
-			ab_name.label("name"), #pyright: ignore [reportUnknownMemberType]
-			ab_year.label("year"), #pyright: ignore [reportUnknownMemberType]
-			ab_albumArtistFk.label("albumArtistId"), #pyright: ignore [reportUnknownMemberType]
-			ab_ownerFk.label("album.ownerId"), #pyright: ignore [reportUnknownMemberType]
-			album_owner.c.username.label("album.ownerName"), #pyright: ignore [reportUnknownMemberType]
-			album_owner.c.displayName.label("album.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
-			ar_name.label("artist.name"), #pyright: ignore [reportUnknownMemberType]
-			ar_ownerFk.label("artist.ownerId"), #pyright: ignore [reportUnknownMemberType]
-			artist_owner.c.username.label("artist.ownerName"), #pyright: ignore [reportUnknownMemberType]
-			artist_owner.c.displayName.label("artist.ownerDisplayName") #pyright: ignore [reportUnknownMemberType]
+			ab_pk.label("id"),
+			ab_name.label("name"),
+			ab_year.label("year"),
+			ab_albumArtistFk.label("albumArtistId"),
+			ab_ownerFk.label("album.ownerId"),
+			album_owner.c.username.label("album.ownerName"),
+			album_owner.c.displayName.label("album.ownerDisplayName"),
+			ar_name.label("artist.name"),
+			ar_ownerFk.label("artist.ownerId"),
+			artist_owner.c.username.label("artist.ownerName"),
+			artist_owner.c.displayName.label("artist.ownerDisplayName")
 		).select_from(albums_tbl)\
 			.join(artists_tbl, ar_pk == ab_albumArtistFk, isouter=True) \
 			.join(album_owner, albumOwnerId == ab_ownerFk, isouter=True) \
@@ -618,7 +628,7 @@ class SongInfoService:
 			query = query.where(ab_ownerFk == userId)
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query).mappings()
 		yield from (AlbumInfo(
 			cast(int,row["id"]),
 			cast(str,row["name"]),
@@ -637,7 +647,7 @@ class SongInfoService:
 					cast(str, row["artist.ownerDisplayName"])
 				)
 			) if row["albumArtistId"] else None
-			) for row in cast(Iterable[Row], records))
+			) for row in records)
 
 	def get_artists(self,
 		page: int = 0,
@@ -666,7 +676,7 @@ class SongInfoService:
 			query = query.where(ar_ownerFk == userId)
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query)
 
 		yield from (ArtistInfo(
 			cast(int, row[ar_pk]),
@@ -677,7 +687,7 @@ class SongInfoService:
 				cast(str, row[u_displayName])
 			)
 		)
-			for row in cast(Iterable[Row],records))
+			for row in records)
 
 	def get_song_artists(
 		self,
@@ -699,13 +709,13 @@ class SongInfoService:
 		elif isinstance(artistIds, Iterable):
 			query = query.where(sgar_artistFk.in_(artistIds))
 		query = query.order_by(sgar_songFk)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query)
 		yield from (SongArtistTuple(
 				cast(int, row[sgar_songFk]),
 				cast(int, row[sgar_artistFk]),
 				cast(bool, row[sgar_isPrimaryArtist])
 			)
-			for row in cast(Iterable[Row],records))
+			for row in records)
 
 	def remove_songs_for_artists(
 		self,
@@ -714,7 +724,7 @@ class SongInfoService:
 		songArtists = songArtists or []
 		delStmt = delete(song_artist_tbl)\
 			.where(dbTuple(sgar_songFk, sgar_artistFk).in_(songArtists))
-		count = cast(int, self.conn.execute(delStmt).rowcount) #pyright: ignore [reportUnknownMemberType]
+		count = self.conn.execute(delStmt).rowcount
 		return count
 
 	def validate_song_artists(
@@ -738,7 +748,7 @@ class SongInfoService:
 			cast(int, row[sg_pk]),
 			cast(int, row[ar_pk]),
 			isPrimaryArtist=cast(int, row[ar_pk]) == primaryArtistId
-		) for row in cast(Iterable[Row],records))
+		) for row in records)
 
 	def __are_all_primary_artist_single(
 		self,
@@ -783,7 +793,7 @@ class SongInfoService:
 			songIds={sa.songId for sa in uniquePairs}
 		)
 
-	def _prepare_song_row_for_model(self, row: Row) -> dict[str, Any]:
+	def _prepare_song_row_for_model(self, row: RowMapping) -> dict[str, Any]:
 		songDict: dict[Any, Any] = {**row}
 		albumArtistId = songDict.pop("album.albumArtistId", None)
 		albumArtistName = songDict.pop("album.albumArtist.name", "")
@@ -826,18 +836,18 @@ class SongInfoService:
 	def __get_query_for_songs_for_edit__(
 		self,
 		songIds: Iterable[int]
-	) -> Select:
-		album_artist = cast(TblCols,artists_tbl.alias("albumArtist")) #pyright: ignore [reportUnknownMemberType]
-		albumArtistId = cast(Column, album_artist.c.pk) #pyright: ignore [reportUnknownMemberType]
-		albumArtistOwnerId = cast(Column, album_artist.c.ownerFk) #pyright: ignore [reportUnknownMemberType]
-		albumOwner = cast(TblCols, user_tbl.alias("albumOwner")) #pyright: ignore [reportUnknownMemberType]
-		albumOwnerId = cast(Column, albumOwner.c.pk) #pyright: ignore [reportUnknownMemberType]
-		albumArtistOwner = cast(TblCols,user_tbl.alias("albumArtistOwner")) #pyright: ignore [reportUnknownMemberType]
-		albumArtistOwnerUserId = cast(Column, albumArtistOwner.c.pk) #pyright: ignore [reportUnknownMemberType]
-		artistOwner = cast(TblCols, user_tbl.alias("artistOwner")) #pyright: ignore [reportUnknownMemberType]
-		artistOwnerId = cast(Column, artistOwner.c.pk) #pyright: ignore [reportUnknownMemberType]
-		stationOwner = cast(TblCols, user_tbl.alias("stationOwner")) #pyright: ignore [reportUnknownMemberType]
-		stationOwnerId = cast(Column, stationOwner.c.pk) #pyright: ignore [reportUnknownMemberType]
+	) -> Select[Any]:
+		album_artist = artists_tbl.alias("albumArtist")
+		albumArtistId = cast(Column[Integer], album_artist.c.pk)
+		albumArtistOwnerId = cast(Column[Integer], album_artist.c.ownerFk)
+		albumOwner = user_tbl.alias("albumOwner")
+		albumOwnerId = cast(Column[Integer], albumOwner.c.pk)
+		albumArtistOwner = user_tbl.alias("albumArtistOwner")
+		albumArtistOwnerUserId = cast(Column[Integer], albumArtistOwner.c.pk)
+		artistOwner = user_tbl.alias("artistOwner")
+		artistOwnerId = cast(Column[Integer], artistOwner.c.pk)
+		stationOwner = user_tbl.alias("stationOwner")
+		stationOwnerId = cast(Column[Integer], stationOwner.c.pk)
 		query = select(
 			sg_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
 			sg_name.label("name"), #pyright: ignore [reportUnknownMemberType]
@@ -903,7 +913,7 @@ class SongInfoService:
 	) -> Iterator[SongEditInfo]:
 		rulePathTree = self.get_rule_path_tree(user)
 		query = self.__get_query_for_songs_for_edit__(songIds)
-		records = self.conn.execute(query).fetchall() #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query).mappings()
 		currentSongRow = None
 		artists: set[ArtistInfo] = set()
 		stations: set[StationInfo] = set()
@@ -1131,7 +1141,7 @@ class SongInfoService:
 		if userId is not None:
 			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
-		records = self.conn.execute(query).fetchall() #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query).mappings()
 		yield from generate_user_and_rules_from_rows(
 			records,
 			UserRoleDomain.Path,

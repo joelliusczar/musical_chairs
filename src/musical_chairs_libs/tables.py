@@ -240,6 +240,7 @@ q_userActionHistoryFk = cast(Column[Integer], q.userActionHistoryFk) #pyright: i
 q_songFk = cast(Column[Integer], q.songFk) #pyright: ignore [reportUnknownMemberType]
 q_stationFk = cast(Column[Integer], q.stationFk) #pyright: ignore [reportUnknownMemberType]
 
+Index("idx_stationQueueStations", q_stationFk)
 
 
 station_user_permissions = Table("StationUserPermissions", metadata,

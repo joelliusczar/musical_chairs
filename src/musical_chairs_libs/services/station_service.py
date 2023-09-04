@@ -284,7 +284,6 @@ class StationService:
 		).select_from(stations_tbl)\
 		.join(user_tbl, st_ownerFk == u_pk, isouter=True)
 
-
 		if user:
 			query = self.__attach_user_joins__(query, user.id, scopes)
 		else:
@@ -331,7 +330,6 @@ class StationService:
 			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
 			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
 			.where(st_pk == stationId)
-
 
 		return query
 

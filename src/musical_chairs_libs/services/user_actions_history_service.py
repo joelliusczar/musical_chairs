@@ -9,7 +9,6 @@ from typing import (
 )
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
-from sqlalchemy.engine.row import Row
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	UserHistoryActionItem,
@@ -99,7 +98,7 @@ class UserActionsHistoryService:
 		query = select(
 			uah_action,
 			uah_requestedTimestamp,
-			func.row_number().over(
+			func.row_number().over( #pyright: ignore [reportUnknownMemberType]
 				partition_by=[q_stationFk, uah_action] if stationIds else uah_action,
 				order_by=uah_requestedTimestamp
 			).label("rowNum")
@@ -121,14 +120,14 @@ class UserActionsHistoryService:
 		if limit is not None:
 			query = query.where(subquery.c.rowNum < limit)
 
-		records = self.conn.execute(query).fetchall() #pyright: ignore reportUnknownMemberType
+		records = self.conn.execute(query).mappings().fetchall()
 		if stationIds:
 			yield from (
 				StationHistoryActionItem(
 					userId,
-					cast(str,row[uah_action]),
-					cast(float,row[uah_requestedTimestamp]),
-					cast(int, row[q_stationFk])
+					cast(str,row["action"]),
+					cast(float,row["requestedTimestamp"]),
+					cast(int, row["stationFk"])
 				)
 				for row in records
 			)

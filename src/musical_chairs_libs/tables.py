@@ -217,13 +217,13 @@ user_action_history = Table("UserActionHistory", metadata,
 	Column("requestedTimestamp", Float[float], nullable=True)
 )
 
-uah = user_action_history.c #pyright: ignore [reportUnknownMemberType]
-uah_pk = cast(Column[Integer], uah.pk) #pyright: ignore [reportUnknownMemberType]
-uah_userFk = cast(Column[Optional[Integer]],uah.userFk) #pyright: ignore [reportUnknownMemberType]
-uah_action = cast(Column[String], uah.action) #pyright: ignore [reportUnknownMemberType]
-uah_timestamp = cast(Column[Optional[Float[float]]],uah.timestamp) #pyright: ignore [reportUnknownMemberType]
-uah_queuedTimestamp = cast(Column[Float[float]], uah.queuedTimestamp) #pyright: ignore [reportUnknownMemberType
-uah_requestedTimestamp = cast(Column[Float[float]], uah.requestedTimestamp) #pyright: ignore [reportUnknownMemberType
+uah = user_action_history.c
+uah_pk = cast(Column[Integer], uah.pk)
+uah_userFk = cast(Column[Optional[Integer]],uah.userFk)
+uah_action = cast(Column[String], uah.action)
+uah_timestamp = cast(Column[Optional[Float[float]]],uah.timestamp)
+uah_queuedTimestamp = cast(Column[Float[float]], uah.queuedTimestamp)
+uah_requestedTimestamp = cast(Column[Float[float]], uah.requestedTimestamp)
 
 station_queue = Table("StationQueue", metadata,
   Column("userActionHistoryFk",

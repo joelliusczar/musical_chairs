@@ -83,7 +83,7 @@ class AccountsService:
 				== str(cleanedUserName)) \
 			.order_by(desc(u_creationTimestamp)) \
 			.limit(1)
-		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+		row = self.conn.execute(query).mappings().fetchone()
 		if not row:
 			return (None, None)
 		pk = cast(int,row[u_pk])
@@ -232,11 +232,8 @@ class AccountsService:
 	def _is_username_used(self, username: SearchNameString) -> bool:
 		queryAny = select(func.count(1)).select_from(users)\
 				.where(func.format_name_for_search(u_username) == str(username))
-		try:
-			countRes = self.conn.execute(queryAny).scalar()
-			return countRes > 0 if countRes else False
-		except Exception as e:
-			return False
+		countRes = self.conn.execute(queryAny).scalar()
+		return countRes > 0 if countRes else False
 
 	def is_username_used(
 		self,
@@ -334,7 +331,7 @@ class AccountsService:
 			query = query.where(u_username == key)
 		else:
 			raise ValueError("Either username or id must be provided")
-		row = self.conn.execute(query).mappings().fetchone() #pyright: ignore [reportUnknownMemberType]
+		row = self.conn.execute(query).mappings().fetchone()
 		if not row:
 			return None
 		roles = [*self.__get_roles__(cast(int,row["id"]))]

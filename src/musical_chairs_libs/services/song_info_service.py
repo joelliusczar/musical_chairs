@@ -134,9 +134,9 @@ class SongInfoService:
 			return None
 		savedName = SavedNameString.format_name_for_save(name)
 		query = select(ar_pk).select_from(artists_tbl).where(ar_name == savedName)
-		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+		row = self.conn.execute(query).fetchone()
 		if row:
-			pk = cast(int, row[ar_pk])
+			pk = cast(int, row[0])
 			return pk
 		print(name)
 		stmt = insert(artists_tbl).values(
@@ -263,7 +263,7 @@ class SongInfoService:
 			query = query.where(ab_albumArtistFk == artistFk)
 		row = self.conn.execute(query).fetchone()
 		if row:
-			pk = cast(int, row[ab_pk])
+			pk = cast(int, row[0])
 			return pk
 		print(name)
 		stmt = insert(albums_tbl).values(
@@ -297,7 +297,7 @@ class SongInfoService:
 		if pageSize:
 			offset = page * pageSize
 			query = query.limit(pageSize).offset(offset)
-		records = self.conn.execute(query)
+		records = self.conn.execute(query).mappings()
 		for row in records:
 			yield ScanningSongItem(
 					id=cast(int, row[sg_pk]),
@@ -344,7 +344,7 @@ class SongInfoService:
 		query = select(pup_path, pup_role, pup_priority, pup_span, pup_count)\
 			.where(pup_userFk == userId)\
 			.order_by(pup_path)
-		records = self.conn.execute(query)
+		records = self.conn.execute(query).mappings()
 		for r in records:
 			yield PathsActionRule(
 				cast(str,r[pup_role]),
@@ -501,11 +501,11 @@ class SongInfoService:
 			query = query.where(sg_pk == itemIds)
 		results = self.conn.execute(query)
 		if useFullSystemPath:
-			yield from (f"{EnvManager.search_base}/{row[sg_path]}" \
+			yield from (f"{EnvManager.search_base}/{row[0]}" \
 				for row in results
 			)
 		else:
-			yield from (cast(str,row[sg_path]) for row in results)
+			yield from (cast(str,row[0]) for row in results)
 
 	def get_station_songs(
 		self,
@@ -513,8 +513,8 @@ class SongInfoService:
 		stationIds: Union[int, Iterable[int], None]=None,
 	) -> Iterable[StationSongTuple]:
 		query = select(
-			stsg_stationFk,
-			stsg_songFk
+			stsg_songFk,
+			stsg_stationFk
 		)
 
 		if type(songIds) == int:
@@ -528,8 +528,8 @@ class SongInfoService:
 		query = query.order_by(stsg_songFk)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		yield from (StationSongTuple(
-				cast(int, row[stsg_songFk]),
-				cast(int, row[stsg_stationFk]),
+				cast(int, row[0]),
+				cast(int, row[1]),
 				True
 			)
 			for row in records)
@@ -556,8 +556,8 @@ class SongInfoService:
 
 		records = self.conn.execute(query)
 		yield from (StationSongTuple(
-			cast(int, row[sg_pk]),
-			cast(int, row[st_pk])
+			cast(int, row[0]),
+			cast(int, row[1])
 		) for row in records)
 
 	def link_songs_with_stations(
@@ -585,7 +585,7 @@ class SongInfoService:
 			"lastModifiedTimestamp": self.get_datetime().timestamp()
 		} for p in inPairs]
 		stmt = insert(stations_songs_tbl)
-		self.conn.execute(stmt, params) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt, params)
 		return self.get_station_songs(
 			songIds={st.songId for st in uniquePairs}
 		)
@@ -676,7 +676,7 @@ class SongInfoService:
 			query = query.where(ar_ownerFk == userId)
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query)
+		records = self.conn.execute(query).mappings()
 
 		yield from (ArtistInfo(
 			cast(int, row[ar_pk]),
@@ -709,7 +709,7 @@ class SongInfoService:
 		elif isinstance(artistIds, Iterable):
 			query = query.where(sgar_artistFk.in_(artistIds))
 		query = query.order_by(sgar_songFk)
-		records = self.conn.execute(query)
+		records = self.conn.execute(query).mappings()
 		yield from (SongArtistTuple(
 				cast(int, row[sgar_songFk]),
 				cast(int, row[sgar_artistFk]),
@@ -743,11 +743,11 @@ class SongInfoService:
 			ar_pk
 		).where(dbTuple(sg_pk, ar_pk).in_(songArtistsSet))
 
-		records = self.conn.execute(query) #pyright: ignore reportUnknownMemberType
+		records = self.conn.execute(query)
 		yield from (SongArtistTuple(
-			cast(int, row[sg_pk]),
-			cast(int, row[ar_pk]),
-			isPrimaryArtist=cast(int, row[ar_pk]) == primaryArtistId
+			cast(int, row[0]),
+			cast(int, row[1]),
+			isPrimaryArtist=cast(int, row[1]) == primaryArtistId
 		) for row in records)
 
 	def __are_all_primary_artist_single(
@@ -1007,7 +1007,7 @@ class SongInfoService:
 		stmt = update(songs_tbl).values(
 			**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
 		).where(sg_pk.in_(ids))
-		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
+		self.conn.execute(stmt)
 		if "artists" in songInfo.touched or "primaryArtist" in songInfo.touched:
 			self.link_songs_with_artists(
 				chain(

@@ -106,7 +106,6 @@ def get_songs_for_multi_edit(
 	)
 
 
-
 @router.get(
 	"/songs/download/{id}",
 	dependencies=[

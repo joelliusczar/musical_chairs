@@ -2,7 +2,6 @@ import pytest
 from typing import (Protocol, Optional)
 from datetime import datetime
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.services import EnvManager
 from musical_chairs_libs.dtos_and_utilities import AccountInfo
 from musical_chairs_libs.tables import metadata
 from .db_population import (
@@ -24,8 +23,7 @@ class ConnectionConstructor(Protocol):
 	def __call__(
 		self,
 		echo: bool=False,
-		inMemory: bool=False,
-		checkSameThread: bool=True
+		inMemory: bool=False
 	) -> Connection:
 			...
 
@@ -37,11 +35,6 @@ class MockDbPopulateClosure(Protocol):
 	) -> None:
 		...
 
-def db_populator_noop(
-	conn: Connection,
-	request: Optional[pytest.FixtureRequest]=None
-):
-	pass
 
 def setup_in_mem_tbls(
 	conn: Connection,
@@ -63,24 +56,3 @@ def setup_in_mem_tbls(
 	populate_path_permissions(conn, orderedTestDates)
 	populate_user_actions_history(conn, orderedTestDates)
 	populate_station_queue(conn)
-
-def construct_mock_connection_constructor(
-	dbPopulate: MockDbPopulateClosure,
-	request: Optional[pytest.FixtureRequest] = None
-) -> ConnectionConstructor:
-
-	def get_mock_db_connection_constructor(
-		echo: bool=False,
-		inMemory: bool=False,
-		checkSameThread: bool=True
-	) -> Connection:
-		envMgr = EnvManager()
-		conn = envMgr.get_configured_db_connection(
-			echo=echo,
-			inMemory=True,
-			checkSameThread=checkSameThread
-		)
-		dbPopulate(conn, request)
-		return conn
-	return get_mock_db_connection_constructor
-

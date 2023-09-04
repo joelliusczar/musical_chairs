@@ -72,7 +72,7 @@ export function LoginForm(props: LoginFormProps) {
 				<Button onClick={callSubmit}>
 					Submit
 				</Button>
-				{onCancel &&<Button onClick={onCancel}>
+				{onCancel && <Button onClick={onCancel}>
 					Cancel
 				</Button>}
 			</Box>

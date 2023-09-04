@@ -7,9 +7,9 @@ from typing import (
 	Tuple,
 	Iterator,
 	cast,
-	Collection
+	Collection,
+	Sequence
 )
-from collections.abc import Iterable
 from sqlalchemy import (
 	select,
 	desc,
@@ -21,7 +21,7 @@ from sqlalchemy import (
 	union_all
 )
 from sqlalchemy.engine import Connection
-from sqlalchemy.engine.row import Row
+from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.sql.functions import coalesce
 from .env_manager import EnvManager
 from .station_service import StationService
@@ -97,7 +97,9 @@ class QueueService:
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 
-	def get_all_station_song_possibilities(self, stationPk: int) -> List[Row]:
+	def get_all_station_song_possibilities(
+		self, stationPk: int
+	) -> Sequence[RowMapping]:
 		query = select(sg_pk, sg_path) \
 			.select_from(stations) \
 			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
@@ -113,7 +115,7 @@ class QueueService:
 			.order_by(desc(func.max(uah_queuedTimestamp))) \
 			.order_by(desc(func.max(uah_timestamp)))
 
-		rows: List[Row] = self.conn.execute(query).fetchall()
+		rows = self.conn.execute(query).mappings().fetchall()
 		return rows
 
 	def get_random_songIds(
@@ -130,7 +132,7 @@ class QueueService:
 		return selection
 
 	def fil_up_queue(self, stationId: int, queueSize: int) -> None:
-		queryQueueSize: str = select(func.count(1)).select_from(station_queue)\
+		queryQueueSize = select(func.count(1)).select_from(station_queue)\
 			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
 			.where(uah_timestamp.is_(None))\
@@ -145,12 +147,12 @@ class QueueService:
 		insertedIds: list[int] = []
 		for _ in songIds:
 			historyInsert = insert(user_action_history_tbl)
-			insertedId = self.conn.execute(historyInsert, { #pyright: ignore [reportUnknownVariableType]
+			insertedId = self.conn.execute(historyInsert, {
 					"queuedTimestamp": timestamp,
 					"action": UserRoleDef.STATION_REQUEST.value,
 				}).inserted_primary_key
-			insertedIds.append(cast(int,insertedId[0]))
-		# historyInsert = insert(user_action_history_tbl)
+			if insertedId:
+				insertedIds.append(cast(int,insertedId[0]))
 		params = [{
 			"stationFk": stationId,
 			"songFk": s[0],
@@ -218,8 +220,8 @@ class QueueService:
 				.where(uah_timestamp.is_(None))\
 				.order_by(uah_queuedTimestamp)
 
-		records = self.conn.execute(query).fetchall()
-		for row in cast(Iterable[Row],records):
+		records = self.conn.execute(query).mappings().fetchall()
+		for row in records:
 			yield SongListDisplayItem(
 				id=cast(int,row[sg_pk]),
 				name=cast(str,row[sg_name]),
@@ -267,14 +269,16 @@ class QueueService:
 			userFk = userId,
 			action = UserRoleDef.STATION_REQUEST.value,
 		)
-		insertedPk = self.conn.execute(stmt).inserted_primary_key #pyright: ignore [reportUnknownVariableType]
-
-		stmt = insert(station_queue).values(
-			stationFk = stationId,
-			songFk = songId,
-			userActionHistoryFk = insertedPk[0]
-		)
-		return self.conn.execute(stmt).rowcount #pyright: ignore [reportUnknownVariableType]
+		insertedPk = self.conn.execute(stmt).inserted_primary_key
+		if insertedPk:
+			stmt = insert(station_queue).values(
+				stationFk = stationId,
+				songFk = songId,
+				userActionHistoryFk = insertedPk[0]
+			)
+			return self.conn.execute(stmt).rowcount
+		else:
+			return 0
 
 	def add_song_to_queue(self,
 		songId: int,
@@ -349,9 +353,9 @@ class QueueService:
 		userActionId = self.conn.execute(query).scalar_one()
 
 		stmt = delete(station_queue).where(q_userActionHistoryFk == userActionId)
-		delCount = cast(int, self.conn.execute(stmt).rowcount)
+		delCount = self.conn.execute(stmt).rowcount
 		stmt = delete(user_action_history_tbl).where(uah_pk == userActionId)
-		delCount += cast(int, self.conn.execute(stmt).rowcount)
+		delCount += self.conn.execute(stmt).rowcount
 		return delCount == 2
 
 	def remove_song_from_queue(self,
@@ -397,8 +401,8 @@ class QueueService:
 			.order_by(desc(uah_queuedTimestamp)) \
 			.offset(offset)\
 			.limit(limit)
-		records = self.conn.execute(query)
-		for row in records: #pyright: ignore [reportUnknownVariableType]
+		records = self.conn.execute(query).mappings()
+		for row in records:
 			rules = []
 			if pathRuleTree:
 				rules = list(pathRuleTree.valuesFlat(cast(str, row["path"])))

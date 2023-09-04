@@ -10,9 +10,9 @@ from typing import (
 	Tuple
 )
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.engine.row import Row
+from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.engine import Connection
-from sqlalchemy.sql.expression import Select, CTE, case, true, false
+from sqlalchemy.sql.expression import Select, case, true, false
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
 from sqlalchemy import (
@@ -23,7 +23,11 @@ from sqlalchemy import (
 	or_,
 	and_,
 	literal as dbLiteral,  #pyright: ignore [reportUnknownVariableType]
-	delete
+	delete,
+	String,
+	Integer,
+	Float,
+	Update
 )
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
@@ -107,28 +111,52 @@ class StationService:
 
 	def __attach_user_joins__(
 		self,
-		query: Select,
+		query: Select[
+			Tuple[
+				Integer,
+				String,
+				String,
+				Integer,
+				Integer,
+				String,
+				Union[String, None],
+				int,
+				Integer
+			]
+		],
 		userId: int,
 		scopes: Optional[Collection[str]]=None
-	) -> Select:
+	) -> Select[
+			Tuple[
+				Integer,
+				String,
+				String,
+				Integer,
+				Integer,
+				String,
+				Union[String, None],
+				int,
+				Integer
+			]
+		]:
 		rulesQuery = build_rules_query(UserRoleDomain.Station, userId)
-		rulesSubquery = cast(CTE, rulesQuery.cte(name="rulesQuery")) #pyright: ignore [reportUnknownMemberType]
-		canViewQuery= cast(CTE, select(
+		rulesSubquery = rulesQuery.cte(name="rulesQuery")
+		canViewQuery= select(
 			rulesSubquery.c.rule_stationFk, #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
 		).where(
 			rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
-		).cte(name="canViewQuery"))
+		).cte(name="canViewQuery")
 
-		topSiteRule = cast(CTE, select(
-			coalesce(
+		topSiteRule = select(
+			coalesce[int](
 				func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
 				RulePriorityLevel.NONE.value
 			).label("max")
 		).where(
 			canViewQuery.c.rule_domain == UserRoleDomain.Site.value #pyright: ignore [reportUnknownMemberType]
-		).cte("topSiteRule"))
+		).cte("topSiteRule")
 
 		ownerScopeSet = set(get_station_owner_rules(scopes))
 
@@ -144,7 +172,7 @@ class StationService:
 				coalesce(
 					st_viewSecurityLevel,
 					MinItemSecurityLevel.INVITED_USER.value
-				) < select(coalesce(
+				) < select(coalesce[int](
 							func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
 							RulePriorityLevel.NONE.value
 						)).where(st_pk == canViewQuery.c.rule_stationFk).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
@@ -177,16 +205,16 @@ class StationService:
 				)
 			)
 
-		query = query.add_columns( #pyright: ignore [reportUnknownMemberType]
-			cast(Column, rulesSubquery.c.rule_name), #pyright: ignore [reportUnknownMemberType]
-			cast(Column, rulesSubquery.c.rule_count), #pyright: ignore [reportUnknownMemberType]
-			cast(Column, rulesSubquery.c.rule_span), #pyright: ignore [reportUnknownMemberType]
-			cast(Column, rulesSubquery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
-			cast(Column, rulesSubquery.c.rule_domain) #pyright: ignore [reportUnknownMemberType]
+		query = query.add_columns(
+			cast(Column[String], rulesSubquery.c.rule_name),
+			cast(Column[Float[float]], rulesSubquery.c.rule_count),
+			cast(Column[Float[float]], rulesSubquery.c.rule_span),
+			cast(Column[Integer], rulesSubquery.c.rule_priority),
+			cast(Column[String], rulesSubquery.c.rule_domain)
 		)
 		return query
 
-	def __row_to_station__(self, row: Row) -> StationInfo:
+	def __row_to_station__(self, row: RowMapping) -> StationInfo:
 		return StationInfo(
 			id=cast(int,row[st_pk]),
 			name=cast(str,row[st_name]),
@@ -204,7 +232,7 @@ class StationService:
 
 	def __generate_station_and_rules_from_rows__(
 		self,
-		rows: Iterable[Row],
+		rows: Iterable[RowMapping],
 		userId: Optional[int],
 		scopes: Optional[Collection[str]]=None
 	) -> Iterator[StationInfo]:
@@ -244,7 +272,7 @@ class StationService:
 			st_ownerFk,
 			u_username,
 			u_displayName,
-			coalesce(
+			coalesce[int](
 				st_requestSecurityLevel,
 				case(
 					(st_viewSecurityLevel == MinItemSecurityLevel.PUBLIC.value, None),
@@ -255,7 +283,6 @@ class StationService:
 			st_viewSecurityLevel
 		).select_from(stations_tbl)\
 		.join(user_tbl, st_ownerFk == u_pk, isouter=True)
-
 
 		if user:
 			query = self.__attach_user_joins__(query, user.id, scopes)
@@ -278,7 +305,7 @@ class StationService:
 			query = query\
 				.where(func.format_name_for_search(st_name).like(f"%{searchStr}%")) #pyright: ignore [reportUnknownMemberType]
 		query = query.order_by(st_pk) #pyright: ignore [reportUnknownMemberType]
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query).mappings()
 
 		if user:
 			yield from self.__generate_station_and_rules_from_rows__(
@@ -287,7 +314,7 @@ class StationService:
 				scopes
 			)
 		else:
-			for row in cast(Iterable[Row],records):
+			for row in records:
 				yield self.__row_to_station__(row)
 
 	def __attach_catalogue_joins(
@@ -303,7 +330,6 @@ class StationService:
 			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
 			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
 			.where(st_pk == stationId)
-
 
 		return query
 
@@ -332,14 +358,14 @@ class StationService:
 			sg_pk,
 			sg_path,
 			sg_name,
-			ab_name.label("album"), #pyright: ignore [reportUnknownMemberType]
-			ar_name.label("artist"), #pyright: ignore [reportUnknownMemberType]
+			ab_name.label("album"),
+			ar_name.label("artist"),
 		)
 		query = self.__attach_catalogue_joins(baseQuery, stationId)\
 			.offset(offset)\
 			.limit(limit)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		for row in records: #pyright: ignore [reportUnknownVariableType]
+		records = self.conn.execute(query).mappings()
+		for row in records:
 			rules = []
 			if pathRuleTree:
 				rules = list(pathRuleTree.valuesFlat(
@@ -359,7 +385,7 @@ class StationService:
 		query = select(func.count(1)).select_from(stations_songs_tbl)\
 			.where(stsg_songFk == songId)\
 			.where(stsg_stationFk == stationId)
-		countRes = self.conn.execute(query).scalar() #pyright: ignore [reportUnknownMemberType]
+		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
 
 	def __is_stationName_used(
@@ -368,11 +394,11 @@ class StationService:
 		stationName: SavedNameString,
 		userId: int,
 	) -> bool:
-		queryAny: str = select(st_pk, st_name).select_from(stations_tbl)\
+		queryAny = select(st_pk, st_name).select_from(stations_tbl)\
 				.where(func.format_name_for_save(st_name) == str(stationName))\
 				.where(st_ownerFk == userId)\
 				.where(st_pk != id)
-		countRes = self.conn.execute(queryAny).scalar() #pyright: ignore [reportUnknownMemberType]
+		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
 	def is_stationName_used(
@@ -437,13 +463,13 @@ class StationService:
 			viewSecurityLevel = station.viewSecurityLevel,
 			requestSecurityLevel = station.requestSecurityLevel
 		)
-		if stationId:
+		if stationId and isinstance(stmt, Update):
 			stmt = stmt.where(st_pk == stationId)
 		else:
 			stmt = stmt.values(ownerFk = user.id)
 		try:
-			res = self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
-			affectedId = stationId if stationId else cast(int, res.lastrowid) #pyright: ignore [reportUnknownMemberType]
+			res = self.conn.execute(stmt)
+			affectedId = stationId if stationId else res.lastrowid
 			self.template_service.create_station_files(
 				affectedId,
 				str(savedName),
@@ -459,7 +485,7 @@ class StationService:
 				)]
 			)
 
-		affectedId: int = stationId if stationId else cast(int,res.lastrowid) #pyright: ignore [reportUnknownMemberType]
+		affectedId: int = stationId if stationId else res.lastrowid
 		return StationInfo(
 			id=affectedId,
 			name=str(savedName),
@@ -513,7 +539,7 @@ class StationService:
 		if userId is not None:
 			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query).mappings()
 		yield from generate_user_and_rules_from_rows(
 			records,
 			UserRoleDomain.Station,
@@ -571,6 +597,6 @@ class StationService:
 		if type(ownerId) == int:
 			query = query.join(stations_tbl, st_pk == stsg_stationFk)\
 				.where(st_ownerFk == ownerId)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		for row in cast(Iterable[Row], records):
+		records = self.conn.execute(query)
+		for row in records:
 			yield cast(int,row[0]), cast(int,row[1])

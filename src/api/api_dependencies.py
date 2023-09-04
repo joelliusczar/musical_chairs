@@ -47,7 +47,7 @@ def get_configured_db_connection(
 ) -> Iterator[Connection]:
 	if not envManager:
 		envManager = EnvManager()
-	conn = envManager.get_configured_db_connection(checkSameThread=False)
+	conn = envManager.get_configured_db_connection()
 	try:
 		yield conn
 	finally:

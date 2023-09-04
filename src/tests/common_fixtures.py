@@ -23,7 +23,6 @@ from sqlalchemy.engine import Connection
 from .mocks.mock_db_constructors import (
 	MockDbPopulateClosure,
 	setup_in_mem_tbls,
-	construct_mock_connection_constructor
 )
 from .mocks.mock_datetime_provider import MockDatetimeProvider
 from .constant_fixtures_for_test import (
@@ -47,6 +46,7 @@ def fixture_db_conn_in_mem(
 	try:
 		yield conn
 	finally:
+		#should dispose here
 		conn.close()
 
 @pytest.fixture
@@ -85,8 +85,18 @@ def fixture_env_manager_with_in_mem_db(
 	request: pytest.FixtureRequest
 ) -> EnvManager:
 	envMgr = EnvManager()
-	envMgr.get_configured_db_connection = \
-		construct_mock_connection_constructor(fixture_db_populate_factory, request)
+	def mock_db_connection_factory(
+		echo: bool=False,
+		inMemory: bool=False
+	) -> Connection:
+		envMgr = EnvManager()
+		conn = envMgr.get_configured_db_connection(
+			echo=echo,
+			inMemory=True,
+		)
+		fixture_db_populate_factory(conn, request)
+		return conn
+	envMgr.get_configured_db_connection = mock_db_connection_factory
 	return envMgr
 
 @pytest.fixture
@@ -240,7 +250,7 @@ def fixture_db_queryer(
 	fixture_populated_db_conn_in_mem: Connection
 ) -> Callable[[str], None]:
 	def run_query(stmt: str):
-		res = fixture_populated_db_conn_in_mem.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		res = fixture_populated_db_conn_in_mem.exec_driver_sql(stmt)
 		print(res.fetchall())
 	return run_query
 

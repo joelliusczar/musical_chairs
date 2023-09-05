@@ -17,7 +17,7 @@ from sqlalchemy import (
 	insert,
 	delete,
 	update,
-	literal, #pyright: ignore [reportUnknownVariableType]
+	literal,
 	union_all
 )
 from sqlalchemy.engine import Connection
@@ -138,7 +138,7 @@ class QueueService:
 			.where(uah_timestamp.is_(None))\
 			.where(q_stationFk == stationId)
 		countRes = self.conn.execute(queryQueueSize).scalar()
-		count: int = countRes if countRes else 0
+		count = countRes if countRes else 0
 		deficitSize = queueSize - count
 		if deficitSize < 1:
 			return
@@ -220,7 +220,7 @@ class QueueService:
 				.where(uah_timestamp.is_(None))\
 				.order_by(uah_queuedTimestamp)
 
-		records = self.conn.execute(query).mappings().fetchall()
+		records = self.conn.execute(query).mappings()
 		for row in records:
 			yield SongListDisplayItem(
 				id=cast(int,row[sg_pk]),

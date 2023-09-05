@@ -1374,6 +1374,20 @@ setup_api() (
 	echo "done setting up api"
 )
 
+create_swap_if_needed() (
+		case $(uname) in
+		(Linux*)
+			if [ ! -e /swapfile ]; then
+				sudo dd if=/dev/zero of=/swapfile bs=128M count=16 &&
+				sudo chmod 600 /swapfile &&
+				sudo mkswap /swapfile &&
+				sudo swapon /swapfile
+			fi
+			;;
+		(*) ;;
+	esac
+)
+
 setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&

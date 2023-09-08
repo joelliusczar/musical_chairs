@@ -24,12 +24,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 from musical_chairs_libs.services import (
 	StationService,
 	QueueService,
-	ProcessService
 )
 from api_dependencies import (
 	station_service,
 	queue_service,
-	process_service,
 	get_station_user,
 	get_owner,
 	get_station_by_name_and_owner,
@@ -229,9 +227,9 @@ def enable_stations(
 		get_station_user_2,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
-	processService: ProcessService = Depends(process_service)
+	stationService: StationService = Depends(station_service)
 ) -> list[StationInfo]:
-	return list(processService.enable_stations(stations, user, includeAll))
+	return list(stationService.enable_stations(stations, user, includeAll))
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
 def disable_stations(
@@ -241,9 +239,9 @@ def disable_stations(
 		get_station_user_2,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
-	processService: ProcessService = Depends(process_service)
+	stationService: StationService = Depends(station_service)
 ) -> None:
-	processService.disable_stations((s.id for s in stations), user.id, includeAll)
+	stationService.disable_stations((s.id for s in stations), user.id, includeAll)
 
 @router.post("/{ownerKey}/{stationKey}/play_next",
 	status_code=status.HTTP_204_NO_CONTENT,

@@ -1,10 +1,11 @@
 #pyright: reportMissingTypeStubs=false
 import os
 from typing import Optional
-from musical_chairs_libs.services import\
-	EnvManager,\
-	QueueService
-from musical_chairs_libs.services import ProcessService
+from musical_chairs_libs.services import (
+	EnvManager,
+	QueueService,
+	StationService
+)
 
 
 
@@ -25,7 +26,7 @@ class RadioHandle:
 
 	def ices_init(self) -> int:
 		conn = self.env_manager.get_configured_db_connection()
-		ProcessService(conn)\
+		StationService(conn)\
 			.set_station_proc(stationId=self.stationId)
 		conn.close()
 		print('Executing initialize() function..')
@@ -35,7 +36,7 @@ class RadioHandle:
 	# Return 1 if ok, 0 if something went wrong.
 	def ices_shutdown(self) -> int:
 		conn = self.env_manager.get_configured_db_connection()
-		ProcessService(conn)\
+		StationService(conn)\
 			.unset_station_procs(stationIds=self.stationId)
 		conn.close()
 		print(f"Station is shutting down on {self.display}")

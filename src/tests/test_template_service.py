@@ -1,6 +1,6 @@
 #pyright: reportPrivateUsage=false
 import pytest
-from musical_chairs_libs.services import TemplateService
+from musical_chairs_libs.services import TemplateService, EnvManager
 from .constant_fixtures_for_test import *
 from .common_fixtures import\
 	fixture_template_service as fixture_template_service,\
@@ -8,9 +8,12 @@ from .common_fixtures import\
 
 
 
-def test_extract_source_password(fixture_template_service: TemplateService):
-	templateService = fixture_template_service
-	sourcePassword = templateService.__extract_icecast_source_password__()
+def test_extract_source_password():
+
+	sourcePassword = EnvManager.read_config_value(
+		EnvManager.icecast_conf_location,
+		"source-password"
+	)
 	assert sourcePassword == "hackmeSource"
 
 @pytest.mark.usefixtures("fixture_clean_station_folders")

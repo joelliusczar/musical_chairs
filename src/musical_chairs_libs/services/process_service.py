@@ -2,142 +2,43 @@ import os
 import platform
 import subprocess
 import random
-from typing import Optional, Iterable, cast, Union, Iterator, Collection
+from enum import Enum
+from itertools import dropwhile, islice
+from typing import Optional
 from musical_chairs_libs.dtos_and_utilities import (
-	check_name_safety,
-	StationInfo,
-	AccountInfo
-)
-from sqlalchemy import (
-	select,
-	func,
-	update
-)
-from sqlalchemy.engine import Connection
-from musical_chairs_libs.tables import (
-	stations as stations_tbl, st_pk, st_name, st_procId, st_ownerFk,
-	users as users_tbl, u_username, u_pk
+	check_name_safety
 )
 from .env_manager import EnvManager
-from .station_service import StationService
+
+class PackageManagers(Enum):
+	APTGET = "apt-get"
+	PACMAN = "pacman"
+	HOMEBREW = "homebrew"
+
 
 class ProcessService:
 
-	def __init__(
-		self,
-		conn: Optional[Connection]=None,
-		envManager: Optional[EnvManager]=None,
-		stationService: Optional[StationService]=None,
-		noop_mode: bool=False
-	) -> None:
-		if not conn:
-			if not envManager:
-				envManager = EnvManager()
-			conn = envManager.get_configured_db_connection()
-		if not stationService:
-				stationService = StationService(conn)
-		if platform.system() == "Darwin":
-			noop_mode = True
-		self.noop_mode = noop_mode
-		self.conn = conn
-		self.station_service = stationService
+	@staticmethod
+	def noop_mode() -> bool:
+		return platform.system() == "Darwin"
 
-	def get_pid(self) -> int:
-		if self.noop_mode:
+	@staticmethod
+	def get_pid() -> int:
+		if ProcessService.noop_mode():
 			return random.randint(0, 1000)
 		return os.getpid()
 
-	def end_process(self, procId: int) -> None:
-		if self.noop_mode:
+	@staticmethod
+	def end_process(procId: int) -> None:
+		if ProcessService.noop_mode():
 			return
 		try:
 			os.kill(procId, 15)
 		except:
 			pass
 
-	def set_station_proc(self, stationId: int) -> None:
-		pid = self.get_pid()
-		stmt = update(stations_tbl)\
-			.values(procId = pid) \
-				.where(st_pk == stationId)
-		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
-
-	def unset_station_procs(
-		self,
-		procIds: Optional[Iterable[int]]=None,
-		stationIds: Union[int,Iterable[int], None]=None,
-	) -> None:
-		stmt = update(stations_tbl)\
-			.values(procId = None)
-
-		if isinstance(procIds, Iterable):
-			stmt = stmt.where(st_procId.in_(procIds))
-		elif type(stationIds) == int:
-			stmt = stmt.where(st_pk == stationIds)
-		elif isinstance(stationIds, Iterable):
-			stmt = stmt.where(st_pk.in_(stationIds))
-		else:
-			raise ValueError("procIds, stationIds, or stationNames must be provided.")
-		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
-
-	def enable_stations(self,
-		stations: Collection[StationInfo],
-		owner: AccountInfo,
-		includeAll: bool = False
-	) -> Iterator[StationInfo]:
-		stationsEnabled: Iterator[StationInfo] = iter([])
-		if includeAll:
-			canBeEnabled = {s[0] for s in  \
-				self.station_service.get_station_song_counts(ownerId=owner.id) \
-				if s[1] > 0
-			}
-			stationsEnabled = self.station_service.get_stations(
-				stationKeys=canBeEnabled,
-				ownerId=owner.id
-			)
-		else:
-			canBeEnabled = {s[0] for s in  \
-				self.station_service.get_station_song_counts(
-					stationIds=(s.id for s in stations)
-				) \
-				if s[1] > 0
-			}
-			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
-		for station in stationsEnabled:
-			self.__start_station_external_process__(station.name, owner.username)
-			yield station
-
-	def disable_stations(
-		self,
-		stationIds: Iterable[int],
-		ownerKey: Union[int, str, None],
-		includeAll: bool = False
-	) -> None:
-		query = select(st_procId).where(st_procId.is_not(None))
-		if includeAll:
-			if type(ownerKey) == int:
-				query = query.where(st_ownerFk == ownerKey)
-			elif type(ownerKey) == str:
-				query = query.join(users_tbl, u_pk == st_ownerFk)\
-					.where(u_username == ownerKey)
-		else:
-			query = query.where(st_pk.in_(stationIds))
-
-		rows = self.conn.execute(query)
-		pids = [cast(int, row[st_procId]) for row in rows]
-		for pid in pids:
-			self.end_process(pid)
-		self.unset_station_procs(pids)
-
-	def __noop_startup__(self, stationName: str) -> None:
-		pid = self.get_pid()
-		stmt = update(stations_tbl)\
-				.values(procId = pid) \
-				.where(func.lower(st_name) == func.lower(stationName))
-		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
-
-	def __start_station_external_process__(
-		self,
+	@staticmethod
+	def start_station_external_process(
 		stationName: str,
 		ownerName: str
 	) -> None:
@@ -146,9 +47,59 @@ class ProcessService:
 		if m:
 			raise RuntimeError("Invalid station name was used")
 		stationConf = f"{EnvManager.station_config_dir}/ices.{filename_base}.conf"
+		if ProcessService.noop_mode():
+			print(
+				"Noop mode. Won't search for station config"
+	 			" nor try to launch process"
+			)
+			return
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
-		if platform.system() == "Darwin":
-			return self.__noop_startup__(stationName)
 		subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
+
+	@staticmethod
+	def get_pkg_mgr() -> Optional[PackageManagers]:
+		if platform.system() == "Linux":
+			result = subprocess.run(["which", PackageManagers.PACMAN.value])
+			if result.returncode == 0:
+				return PackageManagers.PACMAN
+			result = subprocess.run(["which", PackageManagers.APTGET.value])
+			if result.returncode == 0:
+				return PackageManagers.APTGET
+		elif platform.system() == "Darwin":
+			return PackageManagers.HOMEBREW
+		return None
+
+	@staticmethod
+	def get_icecast_name() -> str:
+		packageManager = ProcessService.get_pkg_mgr()
+		if packageManager == PackageManagers.PACMAN:
+			return "icecast"
+		return "icecast2"
+
+	@staticmethod
+	def get_icecast_conf_location() -> str:
+		icecastName = ProcessService.get_icecast_name()
+		if platform.system() == "Linux":
+			result = subprocess.run(
+				["systemctl", "status", icecastName],
+				capture_output=True,
+				text=True
+			)
+			if result.returncode != 0:
+				raise RuntimeError(f"{icecastName} is not running at the moment")
+			relevantLine = next(islice(dropwhile(
+				lambda l: "CGroup" not in l,
+				result.stdout.split("\n")
+			), 1, 2)).split()
+			if relevantLine:
+				return relevantLine[-1]
+			else:
+				raise RuntimeError("Was unable to determine icecast config location")
+		elif platform.system() == "Darwin":
+			#we don't have icecast on the mac anyway so we'll just return the
+			#source code location
+			return f"{EnvManager.templates_dir}/icecast.xml"
+		err = "icecast logic has not been configured for this os"
+		raise NotImplementedError(err)
 

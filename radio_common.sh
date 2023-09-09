@@ -1224,7 +1224,7 @@ show_ices_station_log() (
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
 	logdir = EnvManager.read_config_value(
-		${logName},
+		"${logName}",
 		"BaseDirectory"
 	)
 	print(f"{logdir}/ices.log")

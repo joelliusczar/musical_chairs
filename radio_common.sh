@@ -95,7 +95,8 @@ __set_env_path_var__() {
 	fi
 }
 
-export_py_env_vars() {
+
+__export_py_env_vars__() {
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	export searchBase="$app_root"/"$content_home" &&
@@ -110,7 +111,7 @@ export_py_env_vars() {
 print_py_env_var_guesses() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
-	export_py_env_vars &&
+	__export_py_env_vars__ &&
 	echo "searchBase=$searchBase"
 	echo "dbName=$dbName"
 	echo "templateDir=$templateDir"
@@ -612,7 +613,7 @@ setup_db() (
 		fi
 	fi
 
-	export_py_env_vars &&
+	__export_py_env_vars__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
@@ -627,10 +628,25 @@ setup_db() (
 	echo 'done with db stuff'
 )
 
+__install_py_env__() {
+	sync_requirement_list &&
+	create_py_env_in_app_trunk
+}
+
+install_py_env() {
+	process_global_vars "$@" &&
+	__install_py_env__
+}
+
+__install_py_env_if_needed__() {
+	if [ ! -e "$app_root"/"$app_trunk"/"$py_env"/bin/activate ]; then
+		__install_py_env__
+	fi
+}
+
 print_schema_scripts() (
 	process_global_vars "$@" &&
-	sync_requirement_list &&
-	create_py_env_in_app_trunk &&
+	__install_py_env_if_needed__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	printf '\033c' &&
 	(python <<-EOF
@@ -642,10 +658,8 @@ print_schema_scripts() (
 
 start_python() (
 	process_global_vars "$@" &&
-	sync_requirement_list &&
-	create_py_env_in_app_trunk &&
+	__install_py_env_if_needed__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	printf '\033c' &&
 	python
 )
 
@@ -1172,6 +1186,56 @@ get_icecast_conf() (
 	esac
 )
 
+show_current_py_lib_files() (
+	process_global_vars "$@" >/dev/null 2>&1 &&
+	set_python_version_const >/dev/null 2>&1 &&
+	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${lib_name}"
+	echo "$app_root"/"$app_trunk"/"$py_env"/"$envDir"
+)
+
+show_icecast_log() (
+	process_global_vars "$@" >/dev/null 2>&1 &&
+	__export_py_env_vars__ >/dev/null 2>&1 &&
+	__install_py_env_if_needed__ >/dev/null 2>&1 &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate >/dev/null 2>&1 &&
+	(python <<-EOF
+	from musical_chairs_libs.services import ProcessService
+	from musical_chairs_libs.services import EnvManager
+	icecastConfLocation = ProcessService.get_icecast_conf_location()
+	logdir = EnvManager.read_config_value(
+		icecastConfLocation,
+		"logdir"
+	)
+	errorlog = EnvManager.read_config_value(
+		icecastConfLocation,
+		"errorlog"
+	)
+	print(f"{logdir}/{errorlog}")
+	EOF
+	)
+)
+
+show_ices_station_log() (
+	owner="$1"
+	shift
+	station="$1"
+	shift
+	process_global_vars "$@" >/dev/null 2>&1 &&
+	__export_py_env_vars__ >/dev/null 2>&1 &&
+	__install_py_env_if_needed__ >/dev/null 2>&1 &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate >/dev/null 2>&1 &&
+	logName="$app_root"/"$ices_configs_dir"/ices."$owner"_"$station".conf
+	(python <<-EOF
+	from musical_chairs_libs.services import EnvManager
+	logdir = EnvManager.read_config_value(
+		"${logName}",
+		"BaseDirectory"
+	)
+	print(f"{logdir}/ices.log")
+	EOF
+	)
+)
+
 update_icecast_conf() (
 	echo "updating icecast config"
 	icecastConfLocation="$1"
@@ -1206,12 +1270,6 @@ update_all_ices_confs() (
 	echo "done updating ices confs"
 )
 
-get_icecast_source_password() (
-	icecastConfLocation="$1"
-	sudo -S -p 'Pass required to read icecast config: ' \
-		grep '<source-password>' "$icecastConfLocation" \
-		| perl -ne 'print "$1\n" if />(\w+)/'
-)
 
 setup_icecast_confs() (
 	echo "setting up icecast/ices"
@@ -1230,44 +1288,12 @@ setup_icecast_confs() (
 	echo "done setting up icecast/ices"
 )
 
-create_ices_config() (
-	echo 'creating ices config'
-	internalName="$1"
-	publicName="$2"
-	sourcePassword="$3"
-	process_global_vars "$@" &&
-	station_conf="$app_root"/"$ices_configs_dir"/ices."$internalName".conf
-	error_check_all_paths "$app_root"/"$templates_dir_cl"/ices.conf \
-		"$station_conf" &&
-	cp "$app_root"/"$templates_dir_cl"/ices.conf "$station_conf" &&
-	perl -pi -e "s/icecast_password/$sourcePassword/ if /<Password>/" \
-		"$station_conf" &&
-	perl -pi -e "s/internal_station_name/$internalName/ if /<Module>/" \
-		"$station_conf" &&
-	perl -pi -e "s/public_station_name/$publicName/ if /<Name>/" \
-		"$station_conf" &&
-	perl -pi -e "s/internal_station_name/$internalName/ if /<Mountpoint>/" \
-		"$station_conf" &&
-	echo 'done creating ices config'
-)
-
-create_ices_py_module() (
-	echo 'creating ices module'
-	internalName="$1"
-	process_global_vars "$@" &&
-	station_module="$app_root"/"$pyModules_dir"/"$internalName".py &&
-	error_check_all_paths "$app_root"/"$templates_dir_cl"/template.py \
-		"$station_module"
-	cp "$app_root"/"$templates_dir_cl"/template.py "$station_module" &&
-	perl -pi -e "s/<internal_station_name>/$internalName/" "$station_module" &&
-	echo 'done creating ices module'
-)
 
 run_song_scan() (
 	process_global_vars "$@"
 	link_to_music_files &&
 	setup_radio &&
-	export_py_env_vars &&
+	__export_py_env_vars__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 
 	if [ -n "$shouldReplaceDb" ]; then
@@ -1297,7 +1323,7 @@ shutdown_all_stations() (
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
-	export_py_env_vars &&
+	__export_py_env_vars__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
@@ -1326,7 +1352,7 @@ startup_radio() (
 	link_to_music_files &&
 	setup_radio &&
 	export searchBase="$app_root"/"$content_home" &&
-	export_py_env_vars &&
+	__export_py_env_vars__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
 		[ ! -s "$conf" ] && continue
@@ -1340,7 +1366,7 @@ startup_api() (
 	if ! str_contains "$skip" "setup_api"; then
 		setup_api
 	fi &&
-	export_py_env_vars &&
+	__export_py_env_vars__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background with in a subshell so that it doesn't put
@@ -1501,7 +1527,7 @@ run_unit_tests() (
 	export app_root="$test_root"
 	setup_unit_test_env &&
 	test_src="$src_path"/tests &&
-	export_py_env_vars &&
+	__export_py_env_vars__ &&
 	export PYTHONPATH="${src_path}:${src_path}/api" &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
 	cd "$test_src"

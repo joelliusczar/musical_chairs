@@ -76,7 +76,7 @@ def accounts_service(
 def process_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> ProcessService:
-	return ProcessService(conn)
+	return ProcessService()
 
 def user_actions_history_service(
 	conn: Connection=Depends(get_configured_db_connection)

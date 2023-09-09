@@ -1,9 +1,12 @@
 from pathlib import Path
-import re
 from .env_manager import EnvManager
+from .process_service import ProcessService
 
 
 class TemplateService:
+
+	def __init__(self) -> None:
+		pass
 
 	def _load_ices_config_template(self) -> str:
 		templateDir = EnvManager.templates_dir
@@ -14,23 +17,6 @@ class TemplateService:
 		templateDir = EnvManager.templates_dir
 		txt = Path(f"{templateDir}/template.py").read_text()
 		return txt
-
-	def __extract_icecast_source_password__(self) -> str:
-		icecasetConfLocation = EnvManager.icecast_conf_location
-		passLines: list[str] = []
-		with open(icecasetConfLocation, "r") as icecast_config:
-			for line in icecast_config:
-				if "<source-password>" in line or passLines:
-					passLines.append(line)
-				if "</source-password>" in line:
-					break
-		segment = "".join(passLines)
-		match = re.search(r"<source-password>(\w+)</source-password>", segment)
-		if match:
-			g = match.groups()
-			return g[0]
-		return ""
-
 
 	def __create_ices_config_content__(
 		self,
@@ -65,7 +51,11 @@ class TemplateService:
 		publicName: str,
 		username: str
 	):
-		sourcePassword = self.__extract_icecast_source_password__()
+		icecastConfLocation = ProcessService.get_icecast_conf_location()
+		sourcePassword = EnvManager.read_config_value(
+			icecastConfLocation,
+			"source-password"
+		)
 		configContent = self.__create_ices_config_content__(
 			internalName,
 			publicName,

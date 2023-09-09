@@ -1,4 +1,5 @@
 import os
+import re
 from typing import cast
 from sqlalchemy import create_engine, StaticPool
 from sqlalchemy.engine import Connection
@@ -105,3 +106,19 @@ class EnvManager:
 		result = (cast(str,r[0]) for r in result.fetchall())
 		print("\n".join(result))
 		conn.close()
+
+	@staticmethod
+	def read_config_value(confLocation: str, key: str) -> str:
+		passLines: list[str] = []
+		with open(confLocation, "r") as configFile:
+			for line in configFile:
+				if f"<{key}>" in line or passLines:
+					passLines.append(line)
+				if f"</{key}>" in line:
+					break
+		segment = "".join(passLines)
+		match = re.search(rf"<{key}>([^<]+)</{key}>", segment)
+		if match:
+			g = match.groups()
+			return g[0]
+		return ""

@@ -68,6 +68,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from .env_manager import EnvManager
 from .template_service import TemplateService
 from .song_info_service import SongInfoService
+from .process_service import ProcessService
 
 
 class StationService:
@@ -600,3 +601,94 @@ class StationService:
 		records = self.conn.execute(query)
 		for row in records:
 			yield cast(int,row[0]), cast(int,row[1])
+
+	def set_station_proc(self, stationId: int) -> None:
+		pid = ProcessService.get_pid()
+		stmt = update(stations_tbl)\
+			.values(procId = pid) \
+				.where(st_pk == stationId)
+		self.conn.execute(stmt)
+
+
+	def unset_station_procs(
+		self,
+		procIds: Optional[Iterable[int]]=None,
+		stationIds: Union[int,Iterable[int], None]=None,
+	) -> None:
+		stmt = update(stations_tbl)\
+			.values(procId = None)
+
+		if isinstance(procIds, Iterable):
+			stmt = stmt.where(st_procId.in_(procIds))
+		elif type(stationIds) == int:
+			stmt = stmt.where(st_pk == stationIds)
+		elif isinstance(stationIds, Iterable):
+			stmt = stmt.where(st_pk.in_(stationIds))
+		else:
+			raise ValueError("procIds, stationIds, or stationNames must be provided.")
+		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
+
+
+	def __noop_startup__(self, stationName: str) -> None:
+		#for normal operations, this is handled in the ices process
+
+		pid = ProcessService.get_pid()
+		stmt = update(stations_tbl)\
+				.values(procId = pid) \
+				.where(func.lower(st_name) == func.lower(stationName))
+		self.conn.execute(stmt)
+
+	def enable_stations(self,
+		stations: Collection[StationInfo],
+		owner: AccountInfo,
+		includeAll: bool = False
+	) -> Iterator[StationInfo]:
+		stationsEnabled: Iterator[StationInfo] = iter([])
+		if includeAll:
+			canBeEnabled = {s[0] for s in  \
+				self.get_station_song_counts(ownerId=owner.id) \
+				if s[1] > 0
+			}
+			stationsEnabled = self.get_stations(
+				stationKeys=canBeEnabled,
+				ownerId=owner.id
+			)
+		else:
+			canBeEnabled = {s[0] for s in  \
+				self.get_station_song_counts(
+					stationIds=(s.id for s in stations)
+				) \
+				if s[1] > 0
+			}
+			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
+		for station in stationsEnabled:
+			if ProcessService.noop_mode():
+				self.__noop_startup__(station.name)
+			else:
+				ProcessService.start_station_external_process(
+					station.name,
+					owner.username
+				)
+			yield station
+
+	def disable_stations(
+		self,
+		stationIds: Iterable[int],
+		ownerKey: Union[int, str, None],
+		includeAll: bool = False
+	) -> None:
+		query = select(st_procId).where(st_procId.is_not(None))
+		if includeAll:
+			if type(ownerKey) == int:
+				query = query.where(st_ownerFk == ownerKey)
+			elif type(ownerKey) == str:
+				query = query.join(user_tbl, u_pk == st_ownerFk)\
+					.where(u_username == ownerKey)
+		else:
+			query = query.where(st_pk.in_(stationIds))
+
+		rows = self.conn.execute(query)
+		pids = [cast(int, row[st_procId]) for row in rows]
+		for pid in pids:
+			ProcessService.end_process(pid)
+		self.unset_station_procs(pids)

@@ -640,7 +640,8 @@ install_py_env() {
 
 __install_py_env_if_needed__() {
 	if [ ! -e "$app_root"/"$app_trunk"/"$py_env"/bin/activate ]; then
-		__install_py_env__
+		__install_py_env__ &&
+		printf '\033c'
 	fi
 }
 
@@ -648,7 +649,6 @@ print_schema_scripts() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	printf '\033c' &&
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
 	EnvManager.print_expected_schema()
@@ -660,7 +660,6 @@ start_python() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	printf '\033c' &&
 	python
 )
 
@@ -1192,7 +1191,6 @@ show_icecast_log() (
 	__export_py_env_vars__ &&
 	__install_py_env_if_needed__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	printf '\033c' &&
 	(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
 	from musical_chairs_libs.services import EnvManager
@@ -1219,7 +1217,6 @@ show_ices_station_log() (
 	__export_py_env_vars__ &&
 	__install_py_env_if_needed__ &&
 	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	printf '\033c' &&
 	logName="$app_root"/"$ices_configs_dir"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager

@@ -60,10 +60,16 @@ class ProcessService:
 	@staticmethod
 	def get_pkg_mgr() -> Optional[PackageManagers]:
 		if platform.system() == "Linux":
-			result = subprocess.run(["which", PackageManagers.PACMAN.value])
+			result = subprocess.run(
+				["which", PackageManagers.PACMAN.value],
+				stdout=subprocess.DEVNULL
+			)
 			if result.returncode == 0:
 				return PackageManagers.PACMAN
-			result = subprocess.run(["which", PackageManagers.APTGET.value])
+			result = subprocess.run(
+				["which", PackageManagers.APTGET.value],
+				stdout=subprocess.DEVNULL
+			)
 			if result.returncode == 0:
 				return PackageManagers.APTGET
 		elif platform.system() == "Darwin":

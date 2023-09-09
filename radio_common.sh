@@ -1210,6 +1210,28 @@ show_icecast_log() (
 	)
 )
 
+show_ices_station_log() (
+	owner="$1"
+	shift
+	station="$1"
+	shift
+	process_global_vars "$@" &&
+	__export_py_env_vars__ &&
+	__install_py_env_if_needed__ &&
+	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	printf '\033c' &&
+	logName="$app_root"/"$ices_configs_dir"/ices."$owner"_"$station".conf
+	(python <<-EOF
+	from musical_chairs_libs.services import EnvManager
+	logdir = EnvManager.read_config_value(
+		${logName},
+		"BaseDirectory"
+	)
+	print(f"{logdir}/ices.log")
+	EOF
+	)
+)
+
 update_icecast_conf() (
 	echo "updating icecast config"
 	icecastConfLocation="$1"

@@ -630,6 +630,8 @@ class StationService:
 
 
 	def __noop_startup__(self, stationName: str) -> None:
+		#for normal operations, this is handled in the ices process
+
 		pid = ProcessService.get_pid()
 		stmt = update(stations_tbl)\
 				.values(procId = pid) \

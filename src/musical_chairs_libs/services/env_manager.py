@@ -26,6 +26,11 @@ class EnvManager:
 
 	@classmethod
 	@property
+	def db_setup_pass(cls) -> str:
+		return os.environ.get("dbSetupPass", "")
+
+	@classmethod
+	@property
 	def templates_dir(cls) -> str:
 		return os.environ["templateDir"]
 
@@ -43,6 +48,12 @@ class EnvManager:
 	@property
 	def station_module_dir(cls) -> str:
 		return os.environ["stationModuleDir"]
+
+	@classmethod
+	@property
+	def test_mode(cls) -> bool:
+		return os.environ.get("testMode","false") == "true"
+
 
 	@classmethod
 	def get_configured_db_connection(

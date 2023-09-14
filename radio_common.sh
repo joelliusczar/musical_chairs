@@ -363,6 +363,7 @@ get_libs_dir() (
 create_py_env_in_dir() (
 	echo "setting up py libs"
 	__set_env_path_var__ #ensure that we can see mc-python
+	linked_app_python_if_not_linked
 	set_python_version_const || return "$?"
 	env_root="$1"
 	pyEnvDir="$env_root"/"$py_env"
@@ -491,6 +492,25 @@ get_bin_path() (
 		(*) which "$pkg" ;;
 	esac
 )
+
+linked_app_python_if_not_linked() {
+	if ! mc-python -V 2>/dev/null; then
+		if [ ! -e "$app_root"/"$bin_dir" ]; then
+			sudo_mkdir "$app_root"/"$bin_dir" || return "$?"
+		fi
+		case $(uname) in
+			(Darwin*)
+				ln -sf $(get_bin_path python@3.9) \
+					"$app_root"/"$bin_dir"/mc-python
+				;;
+			(*)
+				ln -sf $(get_bin_path python3) \
+					"$app_root"/"$bin_dir"/mc-python
+				;;
+		esac
+	fi
+	echo "done linking"
+}
 
 brew_is_installed() (
 	pkg="$1"
@@ -628,14 +648,38 @@ setup_db() (
 	echo 'done with db stuff'
 )
 
+start_db_service() (
+	echo 'starting database service'
+	icecastName="$1"
+	case $(uname) in
+		(Linux*)
+			if ! systemctl is-active --quiet mariadb; then
+				sudo -p 'enabling mariadb' 'systemctl enable mariadb'
+				sudo -p 'starting mariadb' 'systemctl start mariadb'
+			fi
+			;;
+		(Darwin*)
+			status=brew services list | grep mariadb | awk '{ print $2 }'
+			if [ status = 'none' ]; then
+				brew services start mariadb
+			fi
+			;;
+		(*) ;;
+	esac &&
+	echo 'done starting database service'
+)
+
 __install_py_env__() {
 	sync_requirement_list &&
 	create_py_env_in_app_trunk
 }
 
 install_py_env() {
+	unset_globals
 	process_global_vars "$@" &&
-	__install_py_env__
+	__export_py_env_vars__ &&
+	__install_py_env__ &&
+	echo "done installing py env"
 }
 
 __install_py_env_if_needed__() {
@@ -1284,7 +1328,7 @@ setup_icecast_confs() (
 	update_icecast_conf "$icecastConfLocation" \
 		"$sourcePassword" $(gen_pass) $(gen_pass) &&
 	update_all_ices_confs "$sourcePassword" &&
-	sudo -p "restaring ${icecastName}" systemctl restart "$icecastName" &&
+	sudo -p "restarting ${icecastName}" systemctl restart "$icecastName" &&
 	echo "done setting up icecast/ices"
 )
 
@@ -1348,7 +1392,6 @@ startup_radio() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
 	pkgMgrChoice=$(get_pkg_mgr) &&
-	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	link_to_music_files &&
 	setup_radio &&
 	export searchBase="$app_root"/"$content_home" &&
@@ -1555,6 +1598,7 @@ get_rc_candidate() {
 }
 
 process_global_args() {
+	#for if we need to pass the args to a remote script for example
 	global_args=''
 	while [ ! -z "$1" ]; do
 		case "$1" in
@@ -1611,9 +1655,9 @@ process_global_args() {
 				export ice_branch=${1#ice_branch=}
 				global_args="${global_args} ice_branch='${ice_branch}'"
 				;;
-			(mc_branch=*)
-				export mc_branch=${1#mc_branch=}
-				global_args="${global_args} mc_branch='${mc_branch}'"
+			(db_pass=*)
+				export db_pass=${1#db_pass=}
+				global_args="${global_args} db_pass='${db_pass}'"
 				;;
 			(*) ;;
 		esac
@@ -1648,7 +1692,7 @@ create_install_dir() {
 define_top_level_terms() {
 	app_root=${app_root:-"$HOME"}
 	export test_root="$workspace_abs_path/test_trash"
-
+	export app_root_0="$app_root"
 
 	if [ -n "$test_flag" ]; then
 		app_root="$test_root"
@@ -1804,9 +1848,63 @@ process_global_vars() {
 	export globals_set='globals'
 }
 
+unset_globals() {
+	unset APT_CONST
+	unset HOMEBREW_CONST
+	unset PACMAN_CONST
+	unset RADIO_AUTH_SECRET_KEY
+	unset REACT_APP_API_VERSION
+	unset REACT_APP_BASE_ADDRESS
+	unset api_port
+	unset api_src
+	unset app_api_path_cl
+	unset app_client_path_cl
+	unset app_name
+	unset app_root
+	unset app_root_0
+	unset app_trunk
+	unset bin_dir
+	unset build_dir
+	unset client_src
+	unset config_dir
+	unset constants_set
+	unset content_home
+	unset current_user
+	unset dbName
+	unset db_dir
+	unset default_radio_repo_path
+	unset full_url
+	unset globals_set
+	unset icecastConfLocation
+	unset ices_configs_dir
+	unset lib_name
+	unset lib_src
+	unset proj_name
+	unset pyModules_dir
+	unset py_env
+	unset reference_src
+	unset reference_src_db
+	unset searchBase
+	unset server_name
+	unset sqlite_trunk_filepath
+	unset src_path
+	unset stationConfigDir
+	unset stationModuleDir
+	unset templateDir
+	unset templates_dir_cl
+	unset templates_src
+	unset test_root
+	unset utest_env_dir
+	unset web_root
+}
+
 fn_ls() (
 	process_global_vars "$@" >/dev/null
 	perl -ne 'print "$1\n" if /^([a-zA-Z_0-9]+)\(\)/' \
 		"$workspace_abs_path"/radio_common.sh | sort
 )
 
+test_shell() (
+	#put functions to test in here so they don't pollute your shell
+	install_py_env test
+)

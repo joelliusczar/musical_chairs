@@ -69,13 +69,15 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 		(Darwin*)
 			#want to install python thru homebrew bc the default version on mac
 			#is below what we want
-			if ! brew_is_installed python3; then
-				install_package python3
+			if ! brew_is_installed python@3.9; then
+				install_package python@3.9
 			fi
+			pythonToLink='python@3.9'
 			;;
 		(*) ;;
 	esac &&
-	ln -sf $(get_bin_path "$pythonToLink") "$app_root"/"$bin_dir"/mc-python
+	ln -sf "$app_root_0"/$(get_bin_path "$pythonToLink") \
+		"$app_root"/"$bin_dir"/mc-python
 fi || show_err_and_exit "python install failed"
 
 mc-python -V >/dev/null 2>&1 || show_err_and_exit "mc-python not available"
@@ -115,6 +117,48 @@ if ! s3fs --version 2>/dev/null; then
 				install_package s3fs
 			;;
 	esac
+fi
+
+if [ ! -e "$HOME"/.vimrc ]; then
+	touch "$HOME"/.vimrc
+fi
+perl -pi -e "s/set nonumber/set number/" "$HOME"/.vimrc
+perl -pi -e "s/set expandtab/set noexpandtab/" "$HOME"/.vimrc
+perl -pi -e "s/set tabstop=\d+/set tabstop=2/" "$HOME"/.vimrc
+lineNum=$(perl -ne 'print "true" if /set number/' "$HOME"/.vimrc)
+noexpandtabs=$(perl -ne 'print "true" if /set noexpandtab/' "$HOME"/.vimrc)
+tabstop=$(perl -ne 'print "true" if /set tabstop=2/' "$HOME"/.vimrc)
+
+if [ "$lineNum" != 'true'; ]; then
+	echo 'set number' >> "$HOME"/.vimrc
+fi
+if [ "$noexpandtabs" != 'true'; ]; then
+	echo 'set noexpandtab' >> "$HOME"/.vimrc
+fi
+if [ "$tabstop" != 'true'; ]; then
+	echo 'set tabstop' >> "$HOME"/.vimrc
+fi
+
+if ! mariadb -V 2>/dev/null; then
+	if [ -n "$db_pass" ]; then
+		case $(uname) in
+			(Linux*)
+				if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+					install_package mariadb-server
+				fi
+				;;
+			(Darwin*)
+				install_package mariadb
+				;;
+			(*) ;;
+		esac &&
+		sudo -p 'Updating db root password' mysql -u root -e
+			"REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'mysql'@'localhost'" &&
+		sudo -p 'Updating db root password' mysql -u root -e \
+			"ALTER USER 'root'@'localhost' IDENTIFIED BY '${db_pass}';"
+	else
+		echo 'Need a password for root db account to install database'
+	fi
 fi
 
 if ! sqlite3 -version 2>/dev/null; then
@@ -176,3 +220,4 @@ echo "$S3_ACCESS_KEY_ID":"$S3_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
 chmod 600 "$HOME"/.passwd-s3fs
 
 output_env_vars
+

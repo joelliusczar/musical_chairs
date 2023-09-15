@@ -26,7 +26,7 @@ curl -V || show_err_and_exit "curl is somehow not installed"
 
 case $(uname) in
 	(Linux*)
-		if [ "$pkgMgrChoice" = "$APT_CONST" ] && [ "$exp_name" != 'py3.8' ]; then
+		if [ "$pkgMgrChoice" = "$APT_CONST" ] && [ "$expName" != 'py3.8' ]; then
 			sudo apt-get update
 		fi
 		;;
@@ -47,7 +47,7 @@ if ! perl -v 2>/dev/null; then
 	install_package perl
 fi
 
-[ ! -e "$app_root"/"$bin_dir" ] && mkdir -pv "$app_root"/"$bin_dir"
+[ ! -e "$appRoot"/"$binDir" ] && mkdir -pv "$appRoot"/"$binDir"
 
 set_env_path_var
 
@@ -76,16 +76,16 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 			;;
 		(*) ;;
 	esac &&
-	ln -sf "$app_root_0"/$(get_bin_path "$pythonToLink") \
-		"$app_root"/"$bin_dir"/mc-python
+	ln -sf $(get_bin_path "$pythonToLink") \
+		"$appRoot"/"$binDir"/mc-python
 fi || show_err_and_exit "python install failed"
 
 mc-python -V >/dev/null 2>&1 || show_err_and_exit "mc-python not available"
 
 if ! mc-python -m pip -V 2>/dev/null; then
-	curl -o "$app_root"/"$build_dir"/get-pip.py \
+	curl -o "$appRoot"/"$buildDir"/get-pip.py \
 		https://bootstrap.pypa.io/pip/get-pip.py &&
-	mc-python "$app_root"/"$build_dir"/get-pip.py ||
+	mc-python "$appRoot"/"$buildDir"/get-pip.py ||
 	show_err_and_exit "Couldn't install pip"
 fi
 
@@ -97,9 +97,9 @@ if ! mc-python -m  virtualenv --version 2>/dev/null; then
 fi
 
 if ! nvm --version 2>/dev/null; then
-	rc_script=$(get_rc_candidate)
-	touch "$rc_script" #create if doesn't exist
-	[ -f "$rc_script" ] ||
+	rcScript=$(get_rc_candidate)
+	touch "$rcScript" #create if doesn't exist
+	[ -f "$rcScript" ] ||
 	show_err_and_exit "Error: .bashrc is not a regular file"
 	curl -o- \
 		https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
@@ -140,7 +140,7 @@ if [ "$tabstop" != 'true'; ]; then
 fi
 
 if ! mariadb -V 2>/dev/null; then
-	if [ -n "$db_pass" ]; then
+	if [ -n "$dbPass" ]; then
 		case $(uname) in
 			(Linux*)
 				if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
@@ -155,7 +155,7 @@ if ! mariadb -V 2>/dev/null; then
 		sudo -p 'Updating db root password' mysql -u root -e
 			"REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'mysql'@'localhost'" &&
 		sudo -p 'Updating db root password' mysql -u root -e \
-			"SET PASSWORD FOR root@localhost = PASSWORD('${db_pass}');"
+			"SET PASSWORD FOR root@localhost = PASSWORD('${dbPass}');"
 	else
 		echo 'Need a password for root db account to install database'
 	fi
@@ -203,18 +203,18 @@ if ! nginx -v 2>/dev/null; then
 fi
 
 confDir=$(get_nginx_conf_dir_abs_path)
-echo "Checking for ${confDir}/${app_name}.conf"
-if [ ! -e "$confDir"/"$app_name".conf ]; then
+echo "Checking for ${confDir}/${appName}.conf"
+if [ ! -e "$confDir"/"$appName".conf ]; then
 	setup_nginx_confs &&
 	sudo -p 'copy nginx config' \
-		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf
+		cp "$templatesSrc"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
 
 sync_utility_scripts
 
-echo "mc_auth_key=${APP_AUTH_KEY}" > "$HOME"/keys/"$proj_name"
-echo "pb_secret=${PB_SECRET}" >> "$HOME"/keys/"$proj_name"
-echo "pb_api_key=${PB_API_KEY}" >> "$HOME"/keys/"$proj_name"
+echo "mc_auth_key=${APP_AUTH_KEY}" > "$HOME"/keys/"$projName"
+echo "pb_secret=${PB_SECRET}" >> "$HOME"/keys/"$projName"
+echo "pb_api_key=${PB_API_KEY}" >> "$HOME"/keys/"$projName"
 
 echo "$S3_ACCESS_KEY_ID":"$S3_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
 chmod 600 "$HOME"/.passwd-s3fs

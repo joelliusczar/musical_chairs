@@ -1,17 +1,17 @@
 #!/bin/sh
 
 if [ -e ./radio_common.sh ]; then
-	radio_common_path='./radio_common.sh'
+	radioCommonPath='./radio_common.sh'
 elif [ -e ../radio_common.sh]; then
-	radio_common_path='../radio_common.sh'
+	radioCommonPath='../radio_common.sh'
 elif [ -e "$HOME"/radio/radio_common.sh]; then
-	radio_common_path="$HOME"/radio/radio_common.sh
+	radioCommonPath="$HOME"/radio/radio_common.sh
 else
   echo "radio_common.sh not found"
   exit 1
 fi
 
-. "$radio_common_path"
+. "$radioCommonPath"
 
 process_global_vars "$@" ||
 show_err_and_exit "error with global variabls"
@@ -70,52 +70,52 @@ fi
 error_check_path "$(get_repo_path)" &&
 rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
-cd "$app_root"/"$build_dir" &&
-git clone "$radio_server_repo_url" "$proj_name" &&
-cd "$proj_name"  &&
+cd "$appRoot"/"$buildDir" &&
+git clone "$radioServerRepoUrl" "$projName" &&
+cd "$projName"  &&
 if [ "$currentBranch" != main ]; then
 	echo "Using branch ${currentBranch}"
 	git checkout -t origin/"$currentBranch" || exit 1
 fi
-cd "$app_root"
+cd "$appRoot"
 RemoteScriptEOF1
 } > clone_repo_fifo &
 
 #select which setup script to run
 { cat<<RemoteScriptEOF2
 
-export diag_flag="$diag_flag" &&
-export exp_name="$exp_name" &&
+export diagFlag="$diagFlag" &&
+export expName="$expName" &&
 export S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" &&
 export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
 export PB_SECRET=$(get_pb_secret)
 export PB_API_KEY=$(get_pb_api_key)
 export APP_AUTH_KEY=$(get_mc_auth_key)
 
-if [ "$setup_lvl" = 'api' ]; then
-	echo "$setup_lvl"
+if [ "$setupLvl" = 'api' ]; then
+	echo "$setupLvl"
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
 	startup_api
-elif [ "$setup_lvl" = 'client' ]; then
-	echo "$setup_lvl"
+elif [ "$setupLvl" = 'client' ]; then
+	echo "$setupLvl"
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
 	setup_client &&
 	echo "finished setup"
-elif [ "$setup_lvl" = 'radio' ]; then
-	echo "$setup_lvl"
+elif [ "$setupLvl" = 'radio' ]; then
+	echo "$setupLvl"
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
 	startup_radio
-elif [ "$setup_lvl" = 'install' ]; then
-	echo "$setup_lvl"
+elif [ "$setupLvl" = 'install' ]; then
+	echo "$setupLvl"
 	sh ./install_setup.sh &&
 	echo "finished setup"
 else
-	echo "$setup_lvl"
+	echo "$setupLvl"
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
 	echo "finished setup"
@@ -127,21 +127,19 @@ RemoteScriptEOF2
 #we need this section to also resolve its variables remotely on the server
 {
 cat<<'RemoteScriptEOF3'
-exit_code="$?"
+exitCode="$?"
 
-export ACCESS_KEY_ID=$(gen_pass)
-export SECRET_ACCESS_KEY=$(gen_pass)
 echo 'Done Server side'
-(exit "$exit_code")
+(exit "$exitCode")
 RemoteScriptEOF3
 } > remote_cleanup_fifo &
 
 {
 	cat<<RemoteScriptEOF4
-$(cat "$radio_common_path")
+$(cat "$radioCommonPath")
 scope() (
 
-	radio_server_repo_url="$radio_server_repo_url"
+	radioServerRepoUrl="$radioServerRepoUrl"
 	currentBranch="$(git branch --show-current 2>/dev/null)"
 
 	$(cat clone_repo_fifo)

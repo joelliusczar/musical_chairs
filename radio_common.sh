@@ -101,7 +101,7 @@ __export_py_env_vars__() {
 	export dbName="$appRoot"/"$sqliteTrunkFilepath" &&
 	export templateDir="$appRoot"/"$templatesDirCl" &&
 	export stationConfigDir="$appRoot"/"$icesConfigsDir" &&
-	export stationModuleDir="$appRoot"/"$pyModules_dir"
+	export stationModuleDir="$appRoot"/"$pyModulesDir"
 	export radioAuthSecretKey=$(get_mc_auth_key)
 }
 
@@ -359,7 +359,7 @@ get_libs_dir() (
 create_py_env_in_dir() (
 	echo "setting up py libs"
 	__set_env_path_var__ #ensure that we can see mc-python
-	linked_app_python_if_not_linked
+	link_app_python_if_not_linked
 	set_python_version_const || return "$?"
 	env_root="$1"
 	pyEnvDir="$env_root"/"$pyEnv"
@@ -389,7 +389,7 @@ create_py_env_in_app_trunk() (
 copy_lib_to_test() (
 	process_global_vars "$@" &&
 	copy_dir "$libSrc" \
-		"$(get_libs_dir "$utest_env_dir")"/"$libName"
+		"$(get_libs_dir "$utestEnvDir")"/"$libName"
 )
 
 error_check_path() (
@@ -490,7 +490,7 @@ get_bin_path() (
 	esac
 )
 
-linked_app_python_if_not_linked() {
+link_app_python_if_not_linked() {
 	if ! mc-python -V 2>/dev/null; then
 		if [ ! -e "$appRoot"/"$binDir" ]; then
 			sudo_mkdir "$appRoot"/"$binDir" || return "$?"
@@ -578,7 +578,7 @@ setup_env_api_file() (
 		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${icesConfigsDir}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModules_dir}'@" \
+		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModulesDir}'@" \
 		"$envFile" &&
 	echo 'done setting up .env file'
 )
@@ -1690,14 +1690,14 @@ create_install_dir() {
 define_top_level_terms() {
 	appRoot=${appRoot:-"$HOME"}
 	export testRoot="$workspaceAbsPath/test_trash"
-	export appRoot_0="$appRoot"
+	export appRoot0="$appRoot"
 
 	if [ -n "$testFlag" ]; then
 		appRoot="$testRoot"
 		webRoot="$testRoot"
 	fi
 
-	sqlite_filename='songs_db.sqlite'
+	sqliteFilename='songs_db.sqlite'
 	export appTrunk="$projName"_dir
 	export appRoot="$appRoot"
 	export webRoot="$webRoot"
@@ -1711,12 +1711,12 @@ define_top_level_terms() {
 
 define_app_dir_paths() {
 	export icesConfigsDir="$appTrunk"/ices_configs
-	export pyModules_dir="$appTrunk"/pyModules
+	export pyModulesDir="$appTrunk"/pyModules
 
 	export configDir="$appTrunk"/config
 	export dbDir="$appTrunk"/db
-	export sqliteTrunkFilepath="$dbDir"/"$sqlite_filename"
-	export utest_env_dir="$testRoot"/utest
+	export sqliteTrunkFilepath="$dbDir"/"$sqliteFilename"
+	export utestEnvDir="$testRoot"/utest
 
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
@@ -1749,20 +1749,20 @@ __get_url_base__() (
 _get_domain_name() (
 	envArg="$1"
 	omitPort="$2"
-	url_base=$(__get_url_base__)
+	urlBase=$(__get_url_base__)
 	case "$envArg" in
 		(local*)
 			if [ -n "$omitPort" ]; then
-				url_suffix='-local.radio.fm'
+				urlSuffix='-local.radio.fm'
 			else
-				url_suffix='-local.radio.fm:8080'
+				urlSuffix='-local.radio.fm:8080'
 			fi
 			;;
 		(*)
-			url_suffix='.radio.fm'
+			urlSuffix='.radio.fm'
 			;;
 	esac
-	echo "${url_base}${url_suffix}"
+	echo "${urlBase}${urlSuffix}"
 )
 
 __define_url__() {
@@ -1778,8 +1778,8 @@ define_repo_paths() {
 	export clientSrc="$srcPath/client"
 	export libSrc="$srcPath/$libName"
 	export templatesSrc="$workspaceAbsPath/templates"
-	export reference_src="$workspaceAbsPath/reference"
-	export referenceSrcDb="$reference_src/$sqlite_filename"
+	export referenceSrc="$workspaceAbsPath/reference"
+	export referenceSrcDb="$referenceSrc/$sqliteFilename"
 	echo "source paths defined"
 }
 
@@ -1788,8 +1788,8 @@ setup_common_dirs() {
 	mkdir -pv "$appRoot"/"$configDir"
 	[ -e "$appRoot"/"$icesConfigsDir" ] ||
 	mkdir -pv "$appRoot"/"$icesConfigsDir"
-	[ -e "$appRoot"/"$pyModules_dir" ] ||
-	mkdir -pv "$appRoot"/"$pyModules_dir"
+	[ -e "$appRoot"/"$pyModulesDir" ] ||
+	mkdir -pv "$appRoot"/"$pyModulesDir"
 	[ -e "$appRoot"/"$dbDir" ] ||
 	mkdir -pv "$appRoot"/"$dbDir"
 	[ -e "$appRoot"/keys ] ||
@@ -1859,7 +1859,7 @@ unset_globals() {
 	unset appClientPathCl
 	unset appName
 	unset appRoot
-	unset appRoot_0
+	unset appRoot0
 	unset appTrunk
 	unset binDir
 	unset buildDir
@@ -1877,9 +1877,9 @@ unset_globals() {
 	unset libName
 	unset libSrc
 	unset projName
-	unset pyModules_dir
+	unset pyModulesDir
 	unset pyEnv
-	unset reference_src
+	unset referenceSrc
 	unset referenceSrcDb
 	unset searchBase
 	unset serverName
@@ -1891,7 +1891,7 @@ unset_globals() {
 	unset templatesDirCl
 	unset templatesSrc
 	unset testRoot
-	unset utest_env_dir
+	unset utestEnvDir
 	unset webRoot
 }
 

@@ -98,7 +98,7 @@ __set_env_path_var__() {
 
 __export_py_env_vars__() {
 	export searchBase="$appRoot"/"$contentHome" &&
-	export dbName="$appRoot"/"$sqlite_trunk_filepath" &&
+	export dbName="$appRoot"/"$sqliteTrunkFilepath" &&
 	export templateDir="$appRoot"/"$templates_dir_cl" &&
 	export stationConfigDir="$appRoot"/"$ices_configs_dir" &&
 	export stationModuleDir="$appRoot"/"$pyModules_dir"
@@ -439,13 +439,13 @@ sudo_rm_dir() (
 )
 
 sudo_cp_contents() (
-	from_dir="$1"
-	to_dir="$2"
-	if [ -r "$from_dir" ] && [ -w "$to_dir" ]; then
-		cp -rv "$from_dir"/. "$to_dir"
+	_fromDir="$1"
+	_toDir="$2"
+	if [ -r "$_fromDir" ] && [ -w "$_toDir" ]; then
+		cp -rv "$_fromDir"/. "$_toDir"
 	else
 		sudo -p 'Pass required for copying files: ' \
-			cp -rv "$from_dir"/. "$to_dir"
+			cp -rv "$_fromDir"/. "$_toDir"
 	fi
 )
 
@@ -564,14 +564,14 @@ kill_process_using_port() (
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
-	envFile="$appRoot"/"$config_dir"/.env
-	error_check_all_paths "$templates_src"/.env_api "$envFile" &&
+	envFile="$appRoot"/"$configDir"/.env
+	error_check_all_paths "$templatesSrc"/.env_api "$envFile" &&
 	_pkgMgrChoice=$(get_pkg_mgr) &&
-	cp "$templates_src"/.env_api "$envFile" &&
+	cp "$templatesSrc"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
 	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${contentHome}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqlite_trunk_filepath}'@" \
+	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqliteTrunkFilepath}'@" \
 		"$envFile" &&
 	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templates_dir_cl}'@" \
 		"$envFile" &&
@@ -582,30 +582,30 @@ setup_env_api_file() (
 		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModules_dir}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(icecastConfLocation=).*\$@\1'${templates_src}/icecast.xml'@" \
+		"s@^(icecastConfLocation=).*\$@\1'${templatesSrc}/icecast.xml'@" \
 		"$envFile" &&
 	echo 'done setting up .env file'
 )
 
 copy_dir() (
-	from_dir="$1"
-	to_dir="$2"
-	echo "copying from ${from_dir} to ${to_dir}"
-	error_check_all_paths "$from_dir"/. "$to_dir" &&
-	empty_dir_contents "$to_dir" &&
-	sudo_cp_contents "$from_dir" "$to_dir" &&
-	unroot_dir "$to_dir" &&
-	echo "done copying dir from ${from_dir} to ${to_dir}"
+	_fromDir="$1"
+	_toDir="$2"
+	echo "copying from ${_fromDir} to ${_toDir}"
+	error_check_all_paths "$_fromDir"/. "$_toDir" &&
+	empty_dir_contents "$_toDir" &&
+	sudo_cp_contents "$_fromDir" "$_toDir" &&
+	unroot_dir "$_toDir" &&
+	echo "done copying dir from ${_fromDir} to ${_toDir}"
 )
 
 replace_db_file_if_needed() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
-	error_check_all_paths "$reference_src_db" \
-		"$appRoot"/"$sqlite_trunk_filepath"  &&
-	if [ ! -e "$appRoot"/"$sqlite_trunk_filepath" ] || [ -n "$clean_flag" ] \
+	error_check_all_paths "$referenceSrcDb" \
+		"$appRoot"/"$sqliteTrunkFilepath"  &&
+	if [ ! -e "$appRoot"/"$sqliteTrunkFilepath" ] || [ -n "$clean_flag" ] \
 	|| [ -n "$replace_db_flag" ]; then
-		cp -v "$reference_src_db" "$appRoot"/"$sqlite_trunk_filepath" &&
+		cp -v "$referenceSrcDb" "$appRoot"/"$sqliteTrunkFilepath" &&
 		return 0
 		echo 'Done copying db'
 	fi
@@ -1031,7 +1031,7 @@ get_nginx_conf_dir_include() (
 
 __copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
-		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
+		cp "$templatesSrc"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<appClientPathCl>@${webRoot}/${appClientPathCl}@" \
 		"$appConfFile" &&
@@ -1044,7 +1044,7 @@ __copy_and_update_nginx_template__() {
 update_nginx_conf() (
 	echo "updating nginx site conf"
 	appConfFile="$1"
-	error_check_all_paths "$templates_src" "$appConfFile" &&
+	error_check_all_paths "$templatesSrc" "$appConfFile" &&
 	__copy_and_update_nginx_template__ &&
 	case "$app_env" in
 		(local*)
@@ -1221,7 +1221,7 @@ get_icecast_conf() (
 		(Darwin*)
 			#we don't have icecast on the mac anyway so we'll just return the
 			#source code location
-			echo "$templates_src"/icecast.xml
+			echo "$templatesSrc"/icecast.xml
 			;;
 		*) ;;
 	esac
@@ -1432,7 +1432,7 @@ setup_api() (
 	kill_process_using_port "$apiPort" &&
 	sync_utility_scripts &&
 	sync_requirement_list &&
-	copy_dir "$templates_src" "$appRoot"/"$templates_dir_cl" &&
+	copy_dir "$templatesSrc" "$appRoot"/"$templates_dir_cl" &&
 	copy_dir "$apiSrc" "$webRoot"/"$appApiPathCl" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
@@ -1507,7 +1507,7 @@ setup_radio() (
 	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
-	copy_dir "$templates_src" "$appRoot"/"$templates_dir_cl" &&
+	copy_dir "$templatesSrc" "$appRoot"/"$templates_dir_cl" &&
 	replace_db_file_if_needed2 &&
 	_pkgMgrChoice=$(get_pkg_mgr) &&
 	_icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
@@ -1529,9 +1529,9 @@ setup_unit_test_env() (
 	__create_fake_keys_file__
 	setup_common_dirs
 
-	copy_dir "$templates_src" "$appRoot"/"$templates_dir_cl" &&
-	error_check_all_paths "$reference_src_db" \
-		"$appRoot"/"$sqlite_trunk_filepath" &&
+	copy_dir "$templatesSrc" "$appRoot"/"$templates_dir_cl" &&
+	error_check_all_paths "$referenceSrcDb" \
+		"$appRoot"/"$sqliteTrunkFilepath" &&
 	sync_requirement_list
 	setup_env_api_file
 	pyEnvPath="$appRoot"/"$appTrunk"/"$pyEnv"
@@ -1544,9 +1544,9 @@ setup_unit_test_env() (
 		create_py_env_in_app_trunk
 	fi
 	replace_db_file_if_needed2 &&
-	echo "$appRoot"/"$config_dir"/.env &&
+	echo "$appRoot"/"$configDir"/.env &&
 	echo "PYTHONPATH='${srcPath}:${srcPath}/api'" \
-		>> "$appRoot"/"$config_dir"/.env &&
+		>> "$appRoot"/"$configDir"/.env &&
 	echo "done setting up test environment"
 )
 
@@ -1712,9 +1712,9 @@ define_app_dir_paths() {
 	export ices_configs_dir="$appTrunk"/ices_configs
 	export pyModules_dir="$appTrunk"/pyModules
 
-	export config_dir="$appTrunk"/config
-	export db_dir="$appTrunk"/db
-	export sqlite_trunk_filepath="$db_dir"/"$sqlite_filename"
+	export configDir="$appTrunk"/config
+	export dbDir="$appTrunk"/db
+	export sqliteTrunkFilepath="$dbDir"/"$sqlite_filename"
 	export utest_env_dir="$test_root"/utest
 
 	# directories that should be cleaned upon changes
@@ -1776,21 +1776,21 @@ define_repo_paths() {
 	export apiSrc="$srcPath/api"
 	export client_src="$srcPath/client"
 	export lib_src="$srcPath/$lib_name"
-	export templates_src="$workspaceAbsPath/templates"
+	export templatesSrc="$workspaceAbsPath/templates"
 	export reference_src="$workspaceAbsPath/reference"
-	export reference_src_db="$reference_src/$sqlite_filename"
+	export referenceSrcDb="$reference_src/$sqlite_filename"
 	echo "source paths defined"
 }
 
 setup_common_dirs() {
-	[ -e "$appRoot"/"$config_dir" ] ||
-	mkdir -pv "$appRoot"/"$config_dir"
+	[ -e "$appRoot"/"$configDir" ] ||
+	mkdir -pv "$appRoot"/"$configDir"
 	[ -e "$appRoot"/"$ices_configs_dir" ] ||
 	mkdir -pv "$appRoot"/"$ices_configs_dir"
 	[ -e "$appRoot"/"$pyModules_dir" ] ||
 	mkdir -pv "$appRoot"/"$pyModules_dir"
-	[ -e "$appRoot"/"$db_dir" ] ||
-	mkdir -pv "$appRoot"/"$db_dir"
+	[ -e "$appRoot"/"$dbDir" ] ||
+	mkdir -pv "$appRoot"/"$dbDir"
 	[ -e "$appRoot"/keys ] ||
 	mkdir -pv "$appRoot"/keys
 }
@@ -1863,12 +1863,12 @@ unset_globals() {
 	unset binDir
 	unset buildDir
 	unset client_src
-	unset config_dir
+	unset configDir
 	unset constants_set
 	unset contentHome
 	unset currentUser
 	unset dbName
-	unset db_dir
+	unset dbDir
 	unset default_radio_repo_path
 	unset full_url
 	unset globalsSet
@@ -1880,16 +1880,16 @@ unset_globals() {
 	unset pyModules_dir
 	unset pyEnv
 	unset reference_src
-	unset reference_src_db
+	unset referenceSrcDb
 	unset searchBase
 	unset server_name
-	unset sqlite_trunk_filepath
+	unset sqliteTrunkFilepath
 	unset srcPath
 	unset stationConfigDir
 	unset stationModuleDir
 	unset templateDir
 	unset templates_dir_cl
-	unset templates_src
+	unset templatesSrc
 	unset test_root
 	unset utest_env_dir
 	unset webRoot

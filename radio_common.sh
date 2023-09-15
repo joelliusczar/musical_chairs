@@ -534,9 +534,9 @@ show_err_and_exit() {
 #needed this method because perl will still
 #exit 0 even if a file doesn't exist
 does_file_exist() (
-	candidate="$1"
-	if [ ! -e "$candidate" ]; then
-		echo "${candidate} does not exist"
+	_candidate="$1"
+	if [ ! -e "$_candidate" ]; then
+		echo "${_candidate} does not exist"
 		return 1
 	fi
 )
@@ -604,7 +604,7 @@ replace_db_file_if_needed() (
 	error_check_all_paths "$referenceSrcDb" \
 		"$appRoot"/"$sqliteTrunkFilepath"  &&
 	if [ ! -e "$appRoot"/"$sqliteTrunkFilepath" ] || [ -n "$clean_flag" ] \
-	|| [ -n "$replace_db_flag" ]; then
+	|| [ -n "$replaceDbFlag" ]; then
 		cp -v "$referenceSrcDb" "$appRoot"/"$sqliteTrunkFilepath" &&
 		return 0
 		echo 'Done copying db'
@@ -726,60 +726,63 @@ gen_pass() (
 )
 
 compare_dirs() (
-	src_dir="$1"
-	cpy_dir="$2"
-	error_check_all_paths "$src_dir" "$cpy_dir"
-	exit_code=0
-	if [ ! -e "$cpy_dir" ]; then
-		echo "$cpy_dir/ is not in place"
+	_srcDir="$1"
+	_cpyDir="$2"
+	error_check_all_paths "$_srcDir" "$_cpyDir"
+	_exitCode=0
+	if [ ! -e "$_cpyDir" ]; then
+		echo "$_cpyDir/ is not in place"
 		return 1
 	fi
-	rm -f src_fifo cpy_fifo cmp_fifo
-	mkfifo src_fifo cpy_fifo cmp_fifo
+	_srcFifo='src_fifo'
+	_cpyFifo='cpy_fifo'
+	_cmpFifo='cmp_fifo'
+	rm -f "$_srcFifo" "$_cpyFifo" "$_cmpFifo"
+	mkfifo "$_srcFifo" "$_cpyFifo" "$_cmpFifo"
 
-	src_res=$(find "$src_dir" | \
-		sed "s@${src_dir%/}/\{0,1\}@@" | sort)
-	cpy_res=$(find "${cpy_dir}" -not -path "${cpy_dir}/${pyEnv}/*" \
-		-and -not -path "${cpy_dir}/${pyEnv}" | \
-		sed "s@${cpy_dir%/}/\{0,1\}@@" | sort)
+	_srcRes=$(find "$_srcDir" | \
+		sed "s@${_srcDir%/}/\{0,1\}@@" | sort)
+	_cpyRes=$(find "${_cpyDir}" -not -path "${_cpyDir}/${pyEnv}/*" \
+		-and -not -path "${_cpyDir}/${pyEnv}" | \
+		sed "s@${_cpyDir%/}/\{0,1\}@@" | sort)
 
 	get_file_list() (
-		supress="$1"
-		echo "$src_res" > src_fifo &
-		echo "$cpy_res" > cpy_fifo &
-		[ -n "$supress" ] && comm "-${supress}" src_fifo cpy_fifo ||
-			comm src_fifo cpy_fifo
+		_supress="$1"
+		echo "$_srcRes" > "$_srcFifo" &
+		echo "$_cpyRes" > "$_cpyFifo" &
+		[ -n "$_supress" ] && comm "-${_supress}" "$_srcFifo" "$_cpyFifo" ||
+			comm "$_srcFifo" "$_cpyFifo"
 	)
 
-	in_both=$(get_file_list 12)
-	in_src=$(get_file_list 23)
-	in_cpy=$(get_file_list 13)
-	[ -n "$(echo "${in_cpy}" | xargs)" ] &&
+	_inBoth=$(get_file_list 12)
+	_inSrc=$(get_file_list 23)
+	_inCpy=$(get_file_list 13)
+	[ -n "$(echo "${_inCpy}" | xargs)" ] &&
 			{
-				echo "There are items that only exist in ${cpy_dir}"
-				exit_code=2
+				echo "There are items that only exist in ${_cpyDir}"
+				_exitCode=2
 			}
-	[ -n "$(echo "${in_src}" | xargs)" ] &&
+	[ -n "$(echo "${_inSrc}" | xargs)" ] &&
 			{
-				echo "There are items missing from the ${cpy_dir}"
-				exit_code=3
+				echo "There are items missing from the ${_cpyDir}"
+				_exitCode=3
 			}
-	if [ -n "$in_both" ]; then
-		exit_code=4
-		echo "$in_both" > cmp_fifo &
-		while read file_name; do
-			[ "${src_dir%/}/${file_name}" -nt "${cpy_dir%/}/${file_name}" ] &&
-				echo "${file_name} is outdated"
-		done <cmp_fifo
+	if [ -n "$_inBoth" ]; then
+		_exitCode=4
+		echo "$_inBoth" > "$_cmpFifo" &
+		while read _fileName; do
+			[ "${_srcDir%/}/${_fileName}" -nt "${_cpyDir%/}/${_fileName}" ] &&
+				echo "${_fileName} is outdated"
+		done <"$_cmpFifo"
 	fi
-	rm -f src_fifo cpy_fifo cmp_fifo
-	return "$exit_code"
+	rm -f "$_srcFifo" "$_cpyFifo" "$_cmpFifo"
+	return "$_exitCode"
 )
 
 is_newer_than_files() (
-	candidate="$1"
+	_candidate="$1"
 	dir_to_check="$2"
-	find "$dir_to_check" -newer "$candidate"
+	find "$dir_to_check" -newer "$_candidate"
 )
 
 literal_to_regex() (
@@ -1524,7 +1527,7 @@ __create_fake_keys_file__() {
 setup_unit_test_env() (
 	echo "setting up test environment"
 	process_global_vars "$@" &&
-	export appRoot="$test_root"
+	export appRoot="$testRoot"
 
 	__create_fake_keys_file__
 	setup_common_dirs
@@ -1564,7 +1567,7 @@ setup_all() (
 run_unit_tests() (
 	echo "running unit tests"
 	process_global_vars "$@"
-	export appRoot="$test_root"
+	export appRoot="$testRoot"
 	setup_unit_test_env &&
 	test_src="$srcPath"/tests &&
 	__export_py_env_vars__ &&
@@ -1577,7 +1580,7 @@ run_unit_tests() (
 
 debug_print() (
 	msg="$1"
-	if [ -n "$diag_flag" ]; then
+	if [ -n "$diagFlag" ]; then
 		echo "$msg" >> diag_out_"$include_count"
 	fi
 )
@@ -1610,7 +1613,7 @@ process_global_args() {
 				global_args="${global_args} replace='${replace}'"
 				;;
 			(replaceDb) #tells setup to replace sqlite3 db
-				export replace_db_flag='true'
+				export replaceDbFlag='true'
 				global_args="${global_args} replaceDb"
 				;;
 			(clean) #tells setup functions to delete files/dirs before installing
@@ -1619,7 +1622,7 @@ process_global_args() {
 				;;
 			#activates debug_print. Also tells deploy script to use the diag branch
 			(diag)
-				export diag_flag='true'
+				export diagFlag='true'
 				global_args="${global_args} diag"
 				echo '' > diag_out_"$include_count"
 				;;
@@ -1688,12 +1691,12 @@ create_install_dir() {
 
 define_top_level_terms() {
 	appRoot=${appRoot:-"$HOME"}
-	export test_root="$workspaceAbsPath/test_trash"
+	export testRoot="$workspaceAbsPath/test_trash"
 	export appRoot_0="$appRoot"
 
 	if [ -n "$test_flag" ]; then
-		appRoot="$test_root"
-		webRoot="$test_root"
+		appRoot="$testRoot"
+		webRoot="$testRoot"
 	fi
 
 	sqlite_filename='songs_db.sqlite'
@@ -1715,7 +1718,7 @@ define_app_dir_paths() {
 	export configDir="$appTrunk"/config
 	export dbDir="$appTrunk"/db
 	export sqliteTrunkFilepath="$dbDir"/"$sqlite_filename"
-	export utest_env_dir="$test_root"/utest
+	export utest_env_dir="$testRoot"/utest
 
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
@@ -1890,7 +1893,7 @@ unset_globals() {
 	unset templateDir
 	unset templatesDirCl
 	unset templatesSrc
-	unset test_root
+	unset testRoot
 	unset utest_env_dir
 	unset webRoot
 }

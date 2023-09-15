@@ -97,9 +97,9 @@ __set_env_path_var__() {
 
 
 __export_py_env_vars__() {
-	pkgMgrChoice=$(get_pkg_mgr) &&
-	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
-	export searchBase="$appRoot"/"$content_home" &&
+	_pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
+	export searchBase="$appRoot"/"$contentHome" &&
 	export dbName="$appRoot"/"$sqlite_trunk_filepath" &&
 	export templateDir="$appRoot"/"$templates_dir_cl" &&
 	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
@@ -144,8 +144,8 @@ get_pkg_mgr() {
 }
 
 get_icecast_name() (
-	pkgMgrChoice="$1"
-	case "$pkgMgrChoice" in
+	_pkgMgrChoice="$1"
+	case "$_pkgMgrChoice" in
     ("$PACMAN_CONST") echo 'icecast';;
     ("$APT_CONST") echo 'icecast2';;
     (*) echo 'icecast2';;
@@ -153,36 +153,36 @@ get_icecast_name() (
 )
 
 get_pb_api_key() (
-	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' "$appRoot"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' "$appRoot"/keys/"$projName"
 )
 
 get_pb_secret() (
-	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' "$appRoot"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' "$appRoot"/keys/"$projName"
 )
 
 get_s3_api_key() (
-	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' "$appRoot"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' "$appRoot"/keys/"$projName"
 )
 
 get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$appRoot"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$appRoot"/keys/"$projName"
 )
 
 get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$appRoot"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$appRoot"/keys/"$projName"
 )
 
 get_mc_auth_key() (
-	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$appRoot"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$appRoot"/keys/"$projName"
 )
 
 get_address() (
-	keyFile="$appRoot"/keys/"$proj_name"
+	keyFile="$appRoot"/keys/"$projName"
 	perl -ne 'print "$1\n" if /address6=root@([\w:]+)/' "$keyFile"
 )
 
 get_id_file() (
-	keyFile="$appRoot"/keys/"$proj_name"
+	keyFile="$appRoot"/keys/"$projName"
 	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
 )
 
@@ -198,15 +198,15 @@ get_localhost_key_dir() (
 )
 
 __get_remote_private_key__() (
-	echo "/etc/ssl/private/${proj_name}.private.key.pem"
+	echo "/etc/ssl/private/${projName}.private.key.pem"
 )
 
 __get_remote_public_key__() (
-	echo "/etc/ssl/certs/${proj_name}.public.key.pem"
+	echo "/etc/ssl/certs/${projName}.public.key.pem"
 )
 
 __get_remote_intermediate_key__() (
-	echo "/etc/ssl/certs/${proj_name}.intermediate.key.pem"
+	echo "/etc/ssl/certs/${projName}.intermediate.key.pem"
 )
 
 connect_sftp() (
@@ -263,17 +263,17 @@ s3_name() {
 kill_s3fs() {
 	process_global_vars "$@" &&
 	kill -9 $(ps -e | grep s3fs | awk '{ print $1 }')
-	fusermount -u "$appRoot"/"$content_home"
+	fusermount -u "$appRoot"/"$contentHome"
 }
 
 link_to_music_files() {
 	echo 'linking music files'
 	process_global_vars "$@" &&
-	if [ ! -e "$appRoot"/"$content_home"/Soundtrack ]; then
+	if [ ! -e "$appRoot"/"$contentHome"/Soundtrack ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
-			s3fs "$(s3_name)" "$appRoot"/"$content_home"/ \
+			s3fs "$(s3_name)" "$appRoot"/"$contentHome"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
-			[ -e "$appRoot"/"$content_home"/Soundtrack ]
+			[ -e "$appRoot"/"$contentHome"/Soundtrack ]
 		else
 			return 1
 		fi
@@ -415,29 +415,29 @@ error_check_all_paths() (
 )
 
 sudo_rm_contents() (
-	dir_to_empty="$1"
-	if [ -w "$dir_to_empty" ]; then
-		rm -rf "$dir_to_empty"/*
+	_dirEmptira="$1"
+	if [ -w "$_dirEmptira" ]; then
+		rm -rf "$_dirEmptira"/*
 	else
-		sudo -p "Password required for removing files from ${dir_to_empty}: " \
-			rm -rf "$dir_to_empty"/*
+		sudo -p "Password required for removing files from ${_dirEmptira}: " \
+			rm -rf "$_dirEmptira"/*
 	fi
 )
 
 rm_contents_if_exist() (
-	dir_to_empty="$1"
-	if ! is_dir_empty "$dir_to_empty"; then
-		sudo_rm_contents "$dir_to_empty"
+	_dirEmptira="$1"
+	if ! is_dir_empty "$_dirEmptira"; then
+		sudo_rm_contents "$_dirEmptira"
 	fi
 )
 
 sudo_rm_dir() (
-	dir_to_empty="$1"
-	if [ -w "$dir_to_empty" ]; then
-		rm -rf "$dir_to_empty"
+	_dirEmptira="$1"
+	if [ -w "$_dirEmptira" ]; then
+		rm -rf "$_dirEmptira"
 	else
-		sudo -p "Password required to remove ${dir_to_empty}: " \
-			rm -rf "$dir_to_empty"
+		sudo -p "Password required to remove ${_dirEmptira}: " \
+			rm -rf "$_dirEmptira"
 	fi
 )
 
@@ -453,43 +453,44 @@ sudo_cp_contents() (
 )
 
 sudo_mkdir() (
-	dir_to_make="$1"
-	mkdir -pv "$dir_to_make" ||
-	sudo -p "Password required for creating ${dir_to_make}: " \
-		mkdir -pv "$dir_to_make"
+	_dirMakera="$1"
+	mkdir -pv "$_dirMakera" ||
+	sudo -p "Password required for creating ${_dirMakera}: " \
+		mkdir -pv "$_dirMakera"
 )
 
 unroot_dir() (
-	unrooted_dir="$1"
-	if [ ! -w "$unrooted_dir" ]; then
-		sudo -p \
-			"Password required to change owner of ${unrooted_dir} to current user: " \
-			chown -R "$current_user": "$unrooted_dir"
+	_dirUnrootura="$1"
+	if [ ! -w "$_dirUnrootura" ]; then
+		prompt='Password required to change owner of'
+		prompt="${prompt} ${_dirUnrootura} to current user: "
+		sudo -p "$prompt" \
+			chown -R "$currentUser": "$_dirUnrootura"
 	fi
 )
 
 empty_dir_contents() (
-	dir_to_empty="$1"
-	echo "emptying '${dir_to_empty}'"
-	error_check_path "$dir_to_empty" &&
-	if [ -e "$dir_to_empty" ]; then
+	_dirEmptira="$1"
+	echo "emptying '${_dirEmptira}'"
+	error_check_path "$_dirEmptira" &&
+	if [ -e "$_dirEmptira" ]; then
 		rm_contents_if_exist || return "$?"
 	else
-		sudo_mkdir "$dir_to_empty" || return "$?"
+		sudo_mkdir "$_dirEmptira" || return "$?"
 	fi &&
-	unroot_dir "$dir_to_empty" &&
-	echo "done emptying '${dir_to_empty}'"
+	unroot_dir "$_dirEmptira" &&
+	echo "done emptying '${_dirEmptira}'"
 )
 
 get_bin_path() (
-	pkg="$1"
+	_pkg="$1"
 	case $(uname) in
 		(Darwin*)
-			brew info "$pkg" \
+			brew info "$_pkg" \
 			| grep -A1 'has been installed as' \
 			| awk 'END{ print $1 }'
 			;;
-		(*) which "$pkg" ;;
+		(*) which "$_pkg" ;;
 	esac
 )
 
@@ -513,12 +514,12 @@ linked_app_python_if_not_linked() {
 }
 
 brew_is_installed() (
-	pkg="$1"
-	echo "checking for $pkg"
+	_pkg="$1"
+	echo "checking for $_pkg"
 	case $(uname) in
 		(Darwin*)
-			brew info "$pkg" >/dev/null 2>&1 &&
-			! brew info "$pkg" | grep 'Not installed' >/dev/null
+			brew info "$_pkg" >/dev/null 2>&1 &&
+			! brew info "$_pkg" | grep 'Not installed' >/dev/null
 			;;
 		(*) return 0 ;;
 	esac
@@ -568,11 +569,11 @@ setup_env_api_file() (
 	echo 'setting up .env file'
 	envFile="$appRoot"/"$config_dir"/.env
 	error_check_all_paths "$templates_src"/.env_api "$envFile" &&
-	pkgMgrChoice=$(get_pkg_mgr) &&
-	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
+	_pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
 	cp "$templates_src"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
-	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${content_home}'@" \
+	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${contentHome}'@" \
 		"$envFile" &&
 	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqlite_trunk_filepath}'@" \
 		"$envFile" &&
@@ -629,7 +630,7 @@ setup_db() (
 			shutdown_all_stations
 		fi
 		if [ -n "$(pgrep 'uvicorn')" ]; then
-			kill_process_using_port "$api_port"
+			kill_process_using_port "$apiPort"
 		fi
 	fi
 
@@ -796,11 +797,11 @@ __get_keychain_osx__() (
 )
 
 __get_debug_cert_path__() (
-	echo $(get_localhost_key_dir)/"$proj_name"_localhost_debug
+	echo $(get_localhost_key_dir)/"$projName"_localhost_debug
 )
 
 __get_local_nginx_cert_path__() (
-	echo $(get_localhost_key_dir)/"$proj_name"_localhost_nginx
+	echo $(get_localhost_key_dir)/"$projName"_localhost_nginx
 )
 
 is_cert_expired() (
@@ -1036,12 +1037,12 @@ __copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<app_client_path_cl>@${web_root}/${app_client_path_cl}@" \
+		perl -pi -e "s@<app_client_path_cl>@${webRoot}/${app_client_path_cl}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<server_name>@${server_name}@g" "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<api_port>@${api_port}@" "$appConfFile"
+		perl -pi -e "s@<apiPort>@${apiPort}@" "$appConfFile"
 }
 
 update_nginx_conf() (
@@ -1205,7 +1206,7 @@ install_ices() (
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 	|| [ -n "$ice_branch" ]; then
 		shutdown_all_stations &&
-		folderPath="$appRoot"/"$build_dir"/"$proj_name"/compiled_dependencies
+		folderPath="$appRoot"/"$build_dir"/"$projName"/compiled_dependencies
 		sh "$folderPath"/build_ices.sh "$ice_branch"
 	fi
 )
@@ -1351,9 +1352,9 @@ run_song_scan() (
 	print("Starting")
 	EnvManager.setup_db_if_missing(echo = True)
 	songScanner = SongScanner()
-	inserted = songScanner.save_paths('${appRoot}/${content_home}')
+	inserted = songScanner.save_paths('${appRoot}/${contentHome}')
 	print(f"saving paths done: {inserted} inserted")
-	updated = songScanner.update_metadata('${appRoot}/${content_home}')
+	updated = songScanner.update_metadata('${appRoot}/${contentHome}')
 	print(f"updating songs done: {updated}")
 	EOF
 )
@@ -1391,10 +1392,10 @@ EOF
 startup_radio() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
-	pkgMgrChoice=$(get_pkg_mgr) &&
+	_pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
-	export searchBase="$appRoot"/"$content_home" &&
+	export searchBase="$appRoot"/"$contentHome" &&
 	__export_py_env_vars__ &&
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	for conf in "$appRoot"/"$ices_configs_dir"/*.conf; do
@@ -1415,8 +1416,8 @@ startup_api() (
 	#put uvicorn in background with in a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
-	(uvicorn --app-dir "$web_root"/"$app_api_path_cl" --root-path /api/v1 \
-	--host 0.0.0.0 --port "$api_port" \
+	(uvicorn --app-dir "$webRoot"/"$appApiPathCl" --root-path /api/v1 \
+	--host 0.0.0.0 --port "$apiPort" \
 	"index:app" </dev/null >api.out 2>&1 &)
 	echo "done starting up api. Access at $full_url"
 )
@@ -1424,7 +1425,7 @@ startup_api() (
 
 startup_nginx_for_debug() (
 	process_global_vars "$@" &&
-	export api_port='8032'
+	export apiPort='8032'
 	setup_nginx_confs &&
 	restart_nginx
 )
@@ -1432,11 +1433,11 @@ startup_nginx_for_debug() (
 setup_api() (
 	echo "setting up api"
 	process_global_vars "$@" &&
-	kill_process_using_port "$api_port" &&
+	kill_process_using_port "$apiPort" &&
 	sync_utility_scripts &&
 	sync_requirement_list &&
 	copy_dir "$templates_src" "$appRoot"/"$templates_dir_cl" &&
-	copy_dir "$api_src" "$web_root"/"$app_api_path_cl" &&
+	copy_dir "$apiSrc" "$webRoot"/"$appApiPathCl" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
 	setup_nginx_confs &&
@@ -1460,7 +1461,7 @@ create_swap_if_needed() (
 setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&
-	error_check_all_paths "$client_src"  "$web_root"/"$app_client_path_cl" &&
+	error_check_all_paths "$client_src"  "$webRoot"/"$app_client_path_cl" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -1469,7 +1470,7 @@ setup_client() (
 	fi &&
 	#check if web application folder exists, clear out if it does,
 	#delete otherwise
-	empty_dir_contents "$web_root"/"$app_client_path_cl" &&
+	empty_dir_contents "$webRoot"/"$app_client_path_cl" &&
 
 	export REACT_APP_API_VERSION=v1 &&
 	export REACT_APP_BASE_ADDRESS="$full_url" &&
@@ -1480,8 +1481,8 @@ setup_client() (
 	npm run --prefix "$client_src" build &&
 	#copy built code to new location
 	sudo -p 'Pass required for copying client files: ' \
-		cp -rv "$client_src"/build/. "$web_root"/"$app_client_path_cl" &&
-	unroot_dir "$web_root"/"$app_client_path_cl" &&
+		cp -rv "$client_src"/build/. "$webRoot"/"$app_client_path_cl" &&
+	unroot_dir "$webRoot"/"$app_client_path_cl" &&
 	echo "done setting up client"
 )
 
@@ -1512,14 +1513,14 @@ setup_radio() (
 	create_py_env_in_app_trunk &&
 	copy_dir "$templates_src" "$appRoot"/"$templates_dir_cl" &&
 	replace_db_file_if_needed2 &&
-	pkgMgrChoice=$(get_pkg_mgr) &&
-	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
+	_pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
 	setup_icecast_confs "$icecastName" &&
 	echo "done setting up radio"
 )
 
 __create_fake_keys_file__() {
-	echo "mc_auth_key=$(openssl rand -hex 32)" > "$appRoot"/keys/"$proj_name"
+	echo "mc_auth_key=$(openssl rand -hex 32)" > "$appRoot"/keys/"$projName"
 }
 
 
@@ -1603,7 +1604,7 @@ process_global_args() {
 	while [ ! -z "$1" ]; do
 		case "$1" in
 			#build out to test_trash rather than the normal directories
-			#sets appRoot and web_root without having to set them explicitly
+			#sets appRoot and webRoot without having to set them explicitly
 			(test)
 				export test_flag='test'
 				global_args="${global_args} test"
@@ -1634,9 +1635,9 @@ process_global_args() {
 				export appRoot=${1#appRoot=}
 				global_args="${global_args} appRoot='${appRoot}'"
 				;;
-			(web_root=*)
-				export web_root=${1#web_root=}
-				global_args="${global_args} web_root='${web_root}'"
+			(webRoot=*)
+				export webRoot=${1#webRoot=}
+				global_args="${global_args} webRoot='${webRoot}'"
 				;;
 			(setup_lvl=*) #affects which setup scripst to run
 				export setup_lvl=${1#setup_lvl=}
@@ -1671,14 +1672,14 @@ define_consts() {
 	export PACMAN_CONST='pacman'
 	export APT_CONST='apt-get'
 	export HOMEBREW_CONST='homebrew'
-	export current_user=$(whoami)
-	export proj_name='musical_chairs'
+	export currentUser=$(whoami)
+	export projName='musical_chairs'
 	export build_dir='builds'
-	export content_home='music/radio'
+	export contentHome='music/radio'
 	export bin_dir='.local/bin'
-	export api_port='8033'
+	export apiPort='8033'
 	#done't try to change from home
-	export default_radio_repo_path="$HOME"/"$build_dir"/"$proj_name"
+	export default_radio_repo_path="$HOME"/"$build_dir"/"$projName"
 	export constants_set='true'
 	echo "constants defined"
 }
@@ -1696,17 +1697,17 @@ define_top_level_terms() {
 
 	if [ -n "$test_flag" ]; then
 		appRoot="$test_root"
-		web_root="$test_root"
+		webRoot="$test_root"
 	fi
 
 	sqlite_filename='songs_db.sqlite'
-	export appTrunk="$proj_name"_dir
+	export appTrunk="$projName"_dir
 	export appRoot="$appRoot"
-	export web_root="$web_root"
+	export webRoot="$webRoot"
 
 
-	export lib_name="$proj_name"_libs
-	export app_name="$proj_name"_app
+	export lib_name="$projName"_libs
+	export app_name="$projName"_app
 
 	echo "top level terms defined"
 }
@@ -1730,22 +1731,22 @@ define_app_dir_paths() {
 define_web_server_paths() {
 	case $(uname) in
 		(Linux*)
-			export web_root=${web_root:-/srv}
+			export webRoot=${webRoot:-/srv}
 			;;
 		(Darwin*)
-			export web_root=${web_root:-/Library/WebServer}
+			export webRoot=${webRoot:-/Library/WebServer}
 			;;
 		(*) ;;
 	esac
 
-	export app_api_path_cl=api/"$app_name"
+	export appApiPathCl=api/"$app_name"
 	export app_client_path_cl=client/"$app_name"
 
 	echo "web server paths defined"
 }
 
 __get_url_base__() (
-	echo "$proj_name" | tr -d _
+	echo "$projName" | tr -d _
 )
 
 _get_domain_name() (
@@ -1776,7 +1777,7 @@ __define_url__() {
 
 define_repo_paths() {
 	export srcPath="$workspaceAbsPath/src"
-	export api_src="$srcPath/api"
+	export apiSrc="$srcPath/api"
 	export client_src="$srcPath/client"
 	export lib_src="$srcPath/$lib_name"
 	export templates_src="$workspaceAbsPath/templates"
@@ -1805,21 +1806,21 @@ setup_base_dirs() {
 
 	setup_common_dirs
 
-	[ -e "$appRoot"/"$content_home" ] ||
-	mkdir -pv "$appRoot"/"$content_home"
+	[ -e "$appRoot"/"$contentHome" ] ||
+	mkdir -pv "$appRoot"/"$contentHome"
 
 
-	[ -e "$web_root"/"$app_api_path_cl" ] ||
+	[ -e "$webRoot"/"$appApiPathCl" ] ||
 	{
 		sudo -p 'Pass required for creating web server directory: ' \
-			mkdir -pv "$web_root"/"$app_api_path_cl" ||
-		show_err_and_exit "Could not create ${web_root}/${app_api_path_cl}"
+			mkdir -pv "$webRoot"/"$appApiPathCl" ||
+		show_err_and_exit "Could not create ${webRoot}/${appApiPathCl}"
 	}
 }
 
 process_global_vars() {
 	process_global_args "$@" || return
-	[ -z "$globals_set" ] || return 0
+	[ -z "$globalsSet" ] || return 0
 
 	define_consts &&
 
@@ -1845,7 +1846,7 @@ process_global_vars() {
 
 	setup_base_dirs &&
 
-	export globals_set='globals'
+	export globalsSet='globals'
 }
 
 unset_globals() {
@@ -1855,9 +1856,9 @@ unset_globals() {
 	unset RADIO_AUTH_SECRET_KEY
 	unset REACT_APP_API_VERSION
 	unset REACT_APP_BASE_ADDRESS
-	unset api_port
-	unset api_src
-	unset app_api_path_cl
+	unset apiPort
+	unset apiSrc
+	unset appApiPathCl
 	unset app_client_path_cl
 	unset app_name
 	unset appRoot
@@ -1868,18 +1869,18 @@ unset_globals() {
 	unset client_src
 	unset config_dir
 	unset constants_set
-	unset content_home
-	unset current_user
+	unset contentHome
+	unset currentUser
 	unset dbName
 	unset db_dir
 	unset default_radio_repo_path
 	unset full_url
-	unset globals_set
+	unset globalsSet
 	unset icecastConfLocation
 	unset ices_configs_dir
 	unset lib_name
 	unset lib_src
-	unset proj_name
+	unset projName
 	unset pyModules_dir
 	unset pyEnv
 	unset reference_src
@@ -1895,7 +1896,7 @@ unset_globals() {
 	unset templates_src
 	unset test_root
 	unset utest_env_dir
-	unset web_root
+	unset webRoot
 }
 
 fn_ls() (

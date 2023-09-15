@@ -21,28 +21,28 @@ to_abs_path() (
 )
 
 get_repo_path() (
-	if [ -n "$radio_repo_path" ]; then
-		echo "$radio_repo_path"
+	if [ -n "$radioRepoPath" ]; then
+		echo "$radioRepoPath"
 	else
-		echo "$default_radio_repo_path"
+		echo "$defaultRadioRepoPath"
 	fi
 )
 
 install_package() (
-	pkgName="$1"
-	echo "Try to install --$pkgName--"
+	_pkgName="$1"
+	echo "Try to install --${_pkgName}--"
 	case $(uname) in
 		(Linux*)
 			if which pacman >/dev/null 2>&1; then
 				yes | sudo -p 'Pass required for pacman install: ' \
-					pacman -S "$pkgName"
+					pacman -S "$_pkgName"
 			elif which apt-get >/dev/null 2>&1; then
 				sudo -p 'Pass required for apt-get install: ' \
-					DEBIAN_FRONTEND=noninteractive apt-get -y install "$pkgName"
+					DEBIAN_FRONTEND=noninteractive apt-get -y install "$_pkgName"
 			fi
 			;;
 		(Darwin*)
-			yes | brew install "$pkgName"
+			yes | brew install "$_pkgName"
 			;;
 		(*)
 			;;
@@ -1039,7 +1039,7 @@ __copy_and_update_nginx_template__() {
 		perl -pi -e "s@<appClientPathCl>@${webRoot}/${appClientPathCl}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<server_name>@${server_name}@g" "$appConfFile" &&
+		perl -pi -e "s@<serverName>@${serverName}@g" "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<apiPort>@${apiPort}@" "$appConfFile"
 }
@@ -1088,46 +1088,46 @@ update_nginx_conf() (
 )
 
 get_abs_path_from_nginx_include() (
-	confDirInclude="$1"
-	confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
+	_confDirInclude="$1"
+	_confDir=$(echo "$_confDirInclude" | sed 's/include *//' | \
 		sed 's@/\*; *@@')
 	#test if already exists as absolute path
-	if [ -d  "$confDir" ]; then
-		echo "$confDir"
+	if [ -d  "$_confDir" ]; then
+		echo "$_confDir"
 		return
 	else
-		sites_folder_path=$(dirname $(get_nginx_value))
-		echo "sites_folder_path: $sites_folder_path" >&2
-		absPath="$sites_folder_path"/"$confDir"
-		if [ ! -d "$absPath" ]; then
-			if [ -e "$absPath" ]; then
-				echo "{$absPath} is a file, not a directory" 1>&2
+		_sitesFolderPath=$(dirname $(get_nginx_value))
+		echo "_sitesFolderPath: ${_sitesFolderPath}" >&2
+		_absPath="$_sitesFolderPath"/"$_confDir"
+		if [ ! -d "$_absPath" ]; then
+			if [ -e "$_absPath" ]; then
+				echo "{$_absPath} is a file, not a directory" 1>&2
 				return 1
 			fi
 			#Apparently nginx will look for includes with either an absolute path
 			#or path relative to the config
 			#some os'es are finicky about creating directories at the root lvl
 			#even with sudo, so we're not going to even try
-			#we'll just create missing dir in $sites_folder_path folder
+			#we'll just create missing dir in $_sitesFolderPath folder
 			sudo -p "Add nginx conf dir" \
-				mkdir -pv "$absPath"
+				mkdir -pv "$_absPath"
 		fi
-		echo "$absPath"
+		echo "$_absPath"
 	fi
 )
 
 get_nginx_conf_dir_abs_path() (
-	confDirInclude=$(get_nginx_conf_dir_include)
-	get_abs_path_from_nginx_include "$confDirInclude"
+	_confDirInclude=$(get_nginx_conf_dir_include)
+	get_abs_path_from_nginx_include "$_confDirInclude"
 )
 
 enable_nginx_include() (
 	echo "enabling nginx site confs"
-	confDirInclude="$1"
-	escaped_guess=$(literal_to_regex "$confDirInclude")
+	_confDirInclude="$1"
+	_escapedGuess=$(literal_to_regex "$_confDirInclude")
 	#uncomment line if necessary in config
-	sudo -p "Enable ${confDirInclude}" \
-		perl -pi -e "s/^[ \t]*#// if m@$escaped_guess@" "$(get_nginx_value)" &&
+	sudo -p "Enable ${_confDirInclude}" \
+		perl -pi -e "s/^[ \t]*#// if m@$_escapedGuess@" "$(get_nginx_value)" &&
 	echo "done enabling nginx site confs"
 )
 
@@ -1152,34 +1152,34 @@ restart_nginx() (
 
 print_nginx_conf_location() (
 	process_global_vars "$@" >/dev/null &&
-	confDirInclude=$(get_nginx_conf_dir_include) &&
-	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
-	echo "$confDir"/"$appName".conf
+	_confDirInclude=$(get_nginx_conf_dir_include) &&
+	_confDir=$(get_abs_path_from_nginx_include "$_confDirInclude") 2>/dev/null
+	echo "$_confDir"/"$appName".conf
 )
 
 print_cert_paths() (
 	process_global_vars "$@" >/dev/null &&
-	confDirInclude=$(get_nginx_conf_dir_include) &&
-	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
-	cat "$confDir"/"$appName".conf | perl -ne \
+	_confDirInclude=$(get_nginx_conf_dir_include) &&
+	_confDir=$(get_abs_path_from_nginx_include "$_confDirInclude") 2>/dev/null
+	cat "$_confDir"/"$appName".conf | perl -ne \
 	'print "$1\n" if /ssl_certificate ([^;]+)/'
-	cat "$confDir"/"$appName".conf | perl -ne \
+	cat "$_confDir"/"$appName".conf | perl -ne \
 	'print "$1\n" if /ssl_certificate_key ([^;]+)/'
-	cat "$confDir"/"$appName".conf | perl -ne \
+	cat "$_confDir"/"$appName".conf | perl -ne \
 	'print "$1\n" if /[^#]ssl_trusted_certificate ([^;]+)/'
 )
 
 setup_nginx_confs() (
 	echo 'setting up nginx confs'
 	process_global_vars "$@" &&
-	confDirInclude=$(get_nginx_conf_dir_include) &&
+	_confDirInclude=$(get_nginx_conf_dir_include) &&
 	#remove trailing path chars
-	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") &&
+	_confDir=$(get_abs_path_from_nginx_include "$_confDirInclude") &&
 	setup_ssl_cert_nginx &&
-	enable_nginx_include "$confDirInclude" &&
-	update_nginx_conf "$confDir"/"$appName".conf &&
+	enable_nginx_include "$_confDirInclude" &&
+	update_nginx_conf "$_confDir"/"$appName".conf &&
 	sudo -p 'Remove default nginx config' \
-		rm -f "$confDir"/default &&
+		rm -f "$_confDir"/default &&
 	restart_nginx &&
 	echo 'done setting up nginx confs'
 )
@@ -1418,7 +1418,7 @@ startup_api() (
 	(uvicorn --app-dir "$webRoot"/"$appApiPathCl" --root-path /api/v1 \
 	--host 0.0.0.0 --port "$apiPort" \
 	"index:app" </dev/null >api.out 2>&1 &)
-	echo "done starting up api. Access at $full_url"
+	echo "done starting up api. Access at ${fullUrl}"
 )
 
 
@@ -1472,7 +1472,7 @@ setup_client() (
 	empty_dir_contents "$webRoot"/"$appClientPathCl" &&
 
 	export REACT_APP_API_VERSION=v1 &&
-	export REACT_APP_BASE_ADDRESS="$full_url" &&
+	export REACT_APP_BASE_ADDRESS="$fullUrl" &&
 	#set up react then copy
 	#install packages
 	npm --prefix "$clientSrc" i &&
@@ -1498,7 +1498,7 @@ startup_full_web() (
 	process_global_vars "$@" &&
 	setup_client &&
 	startup_api &&
-	echo "done starting up full web. Access at $full_url"
+	echo "done starting up full web. Access at ${fullUrl}"
 )
 
 #assume install_setup.sh has been run
@@ -1599,75 +1599,75 @@ get_rc_candidate() {
 
 process_global_args() {
 	#for if we need to pass the args to a remote script for example
-	global_args=''
+	globalArgs=''
 	while [ ! -z "$1" ]; do
 		case "$1" in
 			#build out to test_trash rather than the normal directories
 			#sets appRoot and webRoot without having to set them explicitly
 			(test)
 				export test_flag='test'
-				global_args="${global_args} test"
+				globalArgs="${globalArgs} test"
 				;;
 			(replace=*)
 				export replace=${1#replace=}
-				global_args="${global_args} replace='${replace}'"
+				globalArgs="${globalArgs} replace='${replace}'"
 				;;
 			(replaceDb) #tells setup to replace sqlite3 db
 				export replaceDbFlag='true'
-				global_args="${global_args} replaceDb"
+				globalArgs="${globalArgs} replaceDb"
 				;;
 			(clean) #tells setup functions to delete files/dirs before installing
 				export clean_flag='clean'
-				global_args="${global_args} clean"
+				globalArgs="${globalArgs} clean"
 				;;
 			#activates debug_print. Also tells deploy script to use the diag branch
 			(diag)
 				export diagFlag='true'
-				global_args="${global_args} diag"
+				globalArgs="${globalArgs} diag"
 				echo '' > diag_out_"$include_count"
 				;;
 			(env=*) #affects which url to use
 				export app_env=${1#env=}
-				global_args="${global_args} env='${app_env}'"
+				globalArgs="${globalArgs} env='${app_env}'"
 				;;
 			(appRoot=*)
 				export appRoot=${1#appRoot=}
-				global_args="${global_args} appRoot='${appRoot}'"
+				globalArgs="${globalArgs} appRoot='${appRoot}'"
 				;;
 			(webRoot=*)
 				export webRoot=${1#webRoot=}
-				global_args="${global_args} webRoot='${webRoot}'"
+				globalArgs="${globalArgs} webRoot='${webRoot}'"
 				;;
 			(setup_lvl=*) #affects which setup scripst to run
 				export setup_lvl=${1#setup_lvl=}
-				global_args="${global_args} setup_lvl='${setup_lvl}'"
+				globalArgs="${globalArgs} setup_lvl='${setup_lvl}'"
 				;;
 			#when I want to conditionally run with some experimental code
 			(experiment_name=*)
 				export experiment_name=${1#experiment_name=}
-				global_args="${global_args} experiment_name='${experiment_name}'"
+				globalArgs="${globalArgs} experiment_name='${experiment_name}'"
 				;;
 			(skip=*)
 				export skip=${1#skip=}
-				global_args="${global_args} skip='${skip}'"
+				globalArgs="${globalArgs} skip='${skip}'"
 				;;
 			(ice_branch=*)
 				export ice_branch=${1#ice_branch=}
-				global_args="${global_args} ice_branch='${ice_branch}'"
+				globalArgs="${globalArgs} ice_branch='${ice_branch}'"
 				;;
 			(db_pass=*)
 				export db_pass=${1#db_pass=}
-				global_args="${global_args} db_pass='${db_pass}'"
+				globalArgs="${globalArgs} db_pass='${db_pass}'"
 				;;
 			(*) ;;
 		esac
 		shift
 	done
-	export global_args
+	export globalArgs
 }
 
 define_consts() {
-	[ -z "$constants_set" ] || return 0
+	[ -z "$constantsSet" ] || return 0
 	export PACMAN_CONST='pacman'
 	export APT_CONST='apt-get'
 	export HOMEBREW_CONST='homebrew'
@@ -1678,8 +1678,8 @@ define_consts() {
 	export binDir='.local/bin'
 	export apiPort='8033'
 	#done't try to change from home
-	export default_radio_repo_path="$HOME"/"$buildDir"/"$projName"
-	export constants_set='true'
+	export defaultRadioRepoPath="$HOME"/"$buildDir"/"$projName"
+	export constantsSet='true'
 	echo "constants defined"
 }
 
@@ -1769,8 +1769,8 @@ _get_domain_name() (
 
 __define_url__() {
 	echo "env: ${app_env}"
-	export server_name=$(_get_domain_name "$app_env")
-	export full_url="https://${server_name}"
+	export serverName=$(_get_domain_name "$app_env")
+	export fullUrl="https://${serverName}"
 	echo "url defined"
 }
 
@@ -1867,13 +1867,13 @@ unset_globals() {
 	unset buildDir
 	unset clientSrc
 	unset configDir
-	unset constants_set
+	unset constantsSet
 	unset contentHome
 	unset currentUser
 	unset dbName
 	unset dbDir
-	unset default_radio_repo_path
-	unset full_url
+	unset defaultRadioRepoPath
+	unset fullUrl
 	unset globalsSet
 	unset icecastConfLocation
 	unset icesConfigsDir
@@ -1885,7 +1885,7 @@ unset_globals() {
 	unset reference_src
 	unset referenceSrcDb
 	unset searchBase
-	unset server_name
+	unset serverName
 	unset sqliteTrunkFilepath
 	unset srcPath
 	unset stationConfigDir

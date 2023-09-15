@@ -112,7 +112,6 @@ print_py_env_var_guesses() (
 	echo "searchBase=$searchBase"
 	echo "dbName=$dbName"
 	echo "templateDir=$templateDir"
-	echo "icecastConfLocation=$icecastConfLocation"
 	echo "stationConfigDir=$stationConfigDir"
 	echo "stationModuleDir=$stationModuleDir"
 	echo "RADIO_AUTH_SECRET_KEY=$RADIO_AUTH_SECRET_KEY"
@@ -384,13 +383,13 @@ create_py_env_in_app_trunk() (
 	sync_requirement_list &&
 	create_py_env_in_dir "$appRoot"/"$appTrunk" &&
 	copy_dir "$libSrc" \
-		"$(get_libs_dir "$appRoot"/"$appTrunk")""$lib_name"
+		"$(get_libs_dir "$appRoot"/"$appTrunk")""$libName"
 )
 
 copy_lib_to_test() (
 	process_global_vars "$@" &&
 	copy_dir "$libSrc" \
-		"$(get_libs_dir "$utest_env_dir")"/"$lib_name"
+		"$(get_libs_dir "$utest_env_dir")"/"$libName"
 )
 
 error_check_path() (
@@ -580,9 +579,6 @@ setup_env_api_file() (
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModules_dir}'@" \
-		"$envFile" &&
-	perl -pi -e \
-		"s@^(icecastConfLocation=).*\$@\1'${templatesSrc}/icecast.xml'@" \
 		"$envFile" &&
 	echo 'done setting up .env file'
 )
@@ -1233,7 +1229,7 @@ get_icecast_conf() (
 show_current_py_lib_files() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	set_python_version_const >/dev/null 2>&1 &&
-	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${lib_name}"
+	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${libName}"
 	echo "$appRoot"/"$appTrunk"/"$pyEnv"/"$envDir"
 )
 
@@ -1282,34 +1278,34 @@ show_ices_station_log() (
 
 update_icecast_conf() (
 	echo "updating icecast config"
-	icecastConfLocation="$1"
-	sourcePassword="$2"
-	relayPassword="$3"
-	adminPassword="$4"
+	_icecastConfLocation="$1"
+	_sourcePassword="$2"
+	_relayPassword="$3"
+	_adminPassword="$4"
 
 	sudo -p 'Pass required for modifying icecast config: ' \
-		perl -pi -e "s/>\w*/>${sourcePassword}/ if /source-password/" \
-		"$icecastConfLocation" &&
+		perl -pi -e "s/>\w*/>${_sourcePassword}/ if /source-password/" \
+		"$_icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
-		perl -pi -e "s/>\w*/>${relayPassword}/ if /relay-password/" \
-		"$icecastConfLocation" &&
+		perl -pi -e "s/>\w*/>${_relayPassword}/ if /relay-password/" \
+		"$_icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
-		perl -pi -e "s/>\w*/>${adminPassword}/ if /admin-password/" \
-		"$icecastConfLocation" &&
+		perl -pi -e "s/>\w*/>${_adminPassword}/ if /admin-password/" \
+		"$_icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
 		perl -pi -e "s@^([ \t]*)<.*@\1<bind-address>::</bind-address>@" \
 		-e "if /<bind-address>/" \
-		"$icecastConfLocation" &&
+		"$_icecastConfLocation" &&
 	echo "done updating icecast config"
 )
 
 update_all_ices_confs() (
 	echo "updating ices confs"
-	sourcePassword="$1"
+	_sourcePassword="$1"
 	process_global_vars "$@"
 	for conf in "$appRoot"/"$icesConfigsDir"/*.conf; do
 		[ ! -s "$conf" ] && continue
-		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
+		perl -pi -e "s/>\w*/>${_sourcePassword}/ if /Password/" "$conf"
 	done &&
 	echo "done updating ices confs"
 )
@@ -1323,11 +1319,11 @@ setup_icecast_confs() (
 	#location from systemd. While icecast does have a custom config option
 	#I don't feel like editing the systemd service to make it happen
 	start_icecast_service "$_icecastName" &&
-	icecastConfLocation=$(get_icecast_conf "$_icecastName") &&
-	sourcePassword=$(gen_pass) &&
-	update_icecast_conf "$icecastConfLocation" \
-		"$sourcePassword" $(gen_pass) $(gen_pass) &&
-	update_all_ices_confs "$sourcePassword" &&
+	_icecastConfLocation=$(get_icecast_conf "$_icecastName") &&
+	_sourcePassword=$(gen_pass) &&
+	update_icecast_conf "$_icecastConfLocation" \
+		"$_sourcePassword" $(gen_pass) $(gen_pass) &&
+	update_all_ices_confs "$_sourcePassword" &&
 	sudo -p "restarting ${_icecastName}" systemctl restart "$_icecastName" &&
 	echo "done setting up icecast/ices"
 )
@@ -1605,7 +1601,7 @@ process_global_args() {
 			#build out to test_trash rather than the normal directories
 			#sets appRoot and webRoot without having to set them explicitly
 			(test)
-				export test_flag='test'
+				export testFlag='test'
 				globalArgs="${globalArgs} test"
 				;;
 			(replace=*)
@@ -1694,7 +1690,7 @@ define_top_level_terms() {
 	export testRoot="$workspaceAbsPath/test_trash"
 	export appRoot_0="$appRoot"
 
-	if [ -n "$test_flag" ]; then
+	if [ -n "$testFlag" ]; then
 		appRoot="$testRoot"
 		webRoot="$testRoot"
 	fi
@@ -1705,7 +1701,7 @@ define_top_level_terms() {
 	export webRoot="$webRoot"
 
 
-	export lib_name="$projName"_libs
+	export libName="$projName"_libs
 	export appName="$projName"_app
 
 	echo "top level terms defined"
@@ -1778,7 +1774,7 @@ define_repo_paths() {
 	export srcPath="$workspaceAbsPath/src"
 	export apiSrc="$srcPath/api"
 	export clientSrc="$srcPath/client"
-	export libSrc="$srcPath/$lib_name"
+	export libSrc="$srcPath/$libName"
 	export templatesSrc="$workspaceAbsPath/templates"
 	export reference_src="$workspaceAbsPath/reference"
 	export referenceSrcDb="$reference_src/$sqlite_filename"
@@ -1875,9 +1871,8 @@ unset_globals() {
 	unset defaultRadioRepoPath
 	unset fullUrl
 	unset globalsSet
-	unset icecastConfLocation
 	unset icesConfigsDir
-	unset lib_name
+	unset libName
 	unset libSrc
 	unset projName
 	unset pyModules_dir

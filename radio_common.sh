@@ -100,7 +100,7 @@ __export_py_env_vars__() {
 	export searchBase="$appRoot"/"$contentHome" &&
 	export dbName="$appRoot"/"$sqliteTrunkFilepath" &&
 	export templateDir="$appRoot"/"$templatesDirCl" &&
-	export stationConfigDir="$appRoot"/"$ices_configs_dir" &&
+	export stationConfigDir="$appRoot"/"$icesConfigsDir" &&
 	export stationModuleDir="$appRoot"/"$pyModules_dir"
 	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
 }
@@ -383,13 +383,13 @@ create_py_env_in_app_trunk() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
 	create_py_env_in_dir "$appRoot"/"$appTrunk" &&
-	copy_dir "$lib_src" \
+	copy_dir "$libSrc" \
 		"$(get_libs_dir "$appRoot"/"$appTrunk")""$lib_name"
 )
 
 copy_lib_to_test() (
 	process_global_vars "$@" &&
-	copy_dir "$lib_src" \
+	copy_dir "$libSrc" \
 		"$(get_libs_dir "$utest_env_dir")"/"$lib_name"
 )
 
@@ -576,7 +576,7 @@ setup_env_api_file() (
 	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templatesDirCl}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${ices_configs_dir}'@" \
+		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${icesConfigsDir}'@" \
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModules_dir}'@" \
@@ -995,7 +995,7 @@ setup_ssl_cert_nginx() (
 
 setup_react_env_debug() (
 	process_global_vars "$@" &&
-	envFile="$client_src"/.env.local
+	envFile="$clientSrc"/.env.local
 	echo "$envFile"
 	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
 	echo 'REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
@@ -1265,7 +1265,7 @@ show_ices_station_log() (
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
-	logName="$appRoot"/"$ices_configs_dir"/ices."$owner"_"$station".conf
+	logName="$appRoot"/"$icesConfigsDir"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
 	logdir = EnvManager.read_config_value(
@@ -1304,7 +1304,7 @@ update_all_ices_confs() (
 	echo "updating ices confs"
 	sourcePassword="$1"
 	process_global_vars "$@"
-	for conf in "$appRoot"/"$ices_configs_dir"/*.conf; do
+	for conf in "$appRoot"/"$icesConfigsDir"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
 	done &&
@@ -1394,7 +1394,7 @@ startup_radio() (
 	export searchBase="$appRoot"/"$contentHome" &&
 	__export_py_env_vars__ &&
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
-	for conf in "$appRoot"/"$ices_configs_dir"/*.conf; do
+	for conf in "$appRoot"/"$icesConfigsDir"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		mc-ices -c "$conf"
 	done
@@ -1457,7 +1457,7 @@ create_swap_if_needed() (
 setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&
-	error_check_all_paths "$client_src"  "$webRoot"/"$appClientPathCl" &&
+	error_check_all_paths "$clientSrc"  "$webRoot"/"$appClientPathCl" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -1472,12 +1472,12 @@ setup_client() (
 	export REACT_APP_BASE_ADDRESS="$full_url" &&
 	#set up react then copy
 	#install packages
-	npm --prefix "$client_src" i &&
+	npm --prefix "$clientSrc" i &&
 	#build code (transpile it)
-	npm run --prefix "$client_src" build &&
+	npm run --prefix "$clientSrc" build &&
 	#copy built code to new location
 	sudo -p 'Pass required for copying client files: ' \
-		cp -rv "$client_src"/build/. "$webRoot"/"$appClientPathCl" &&
+		cp -rv "$clientSrc"/build/. "$webRoot"/"$appClientPathCl" &&
 	unroot_dir "$webRoot"/"$appClientPathCl" &&
 	echo "done setting up client"
 )
@@ -1536,7 +1536,7 @@ setup_unit_test_env() (
 	setup_env_api_file
 	pyEnvPath="$appRoot"/"$appTrunk"/"$pyEnv"
 	#redirect stderr into stdout so that missing env will also trigger redeploy
-	srcChanges=$(find "$lib_src" -newer "$pyEnvPath" 2>&1)
+	srcChanges=$(find "$libSrc" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
 	[ "$workspaceAbsPath"/requirements.txt -nt "$pyEnvPath" ]
 	then
@@ -1709,7 +1709,7 @@ define_top_level_terms() {
 }
 
 define_app_dir_paths() {
-	export ices_configs_dir="$appTrunk"/ices_configs
+	export icesConfigsDir="$appTrunk"/ices_configs
 	export pyModules_dir="$appTrunk"/pyModules
 
 	export configDir="$appTrunk"/config
@@ -1774,8 +1774,8 @@ __define_url__() {
 define_repo_paths() {
 	export srcPath="$workspaceAbsPath/src"
 	export apiSrc="$srcPath/api"
-	export client_src="$srcPath/client"
-	export lib_src="$srcPath/$lib_name"
+	export clientSrc="$srcPath/client"
+	export libSrc="$srcPath/$lib_name"
 	export templatesSrc="$workspaceAbsPath/templates"
 	export reference_src="$workspaceAbsPath/reference"
 	export referenceSrcDb="$reference_src/$sqlite_filename"
@@ -1785,8 +1785,8 @@ define_repo_paths() {
 setup_common_dirs() {
 	[ -e "$appRoot"/"$configDir" ] ||
 	mkdir -pv "$appRoot"/"$configDir"
-	[ -e "$appRoot"/"$ices_configs_dir" ] ||
-	mkdir -pv "$appRoot"/"$ices_configs_dir"
+	[ -e "$appRoot"/"$icesConfigsDir" ] ||
+	mkdir -pv "$appRoot"/"$icesConfigsDir"
 	[ -e "$appRoot"/"$pyModules_dir" ] ||
 	mkdir -pv "$appRoot"/"$pyModules_dir"
 	[ -e "$appRoot"/"$dbDir" ] ||
@@ -1862,7 +1862,7 @@ unset_globals() {
 	unset appTrunk
 	unset binDir
 	unset buildDir
-	unset client_src
+	unset clientSrc
 	unset configDir
 	unset constants_set
 	unset contentHome
@@ -1873,9 +1873,9 @@ unset_globals() {
 	unset full_url
 	unset globalsSet
 	unset icecastConfLocation
-	unset ices_configs_dir
+	unset icesConfigsDir
 	unset lib_name
-	unset lib_src
+	unset libSrc
 	unset projName
 	unset pyModules_dir
 	unset pyEnv

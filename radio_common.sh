@@ -99,7 +99,7 @@ __set_env_path_var__() {
 __export_py_env_vars__() {
 	export searchBase="$appRoot"/"$contentHome" &&
 	export dbName="$appRoot"/"$sqliteTrunkFilepath" &&
-	export templateDir="$appRoot"/"$templates_dir_cl" &&
+	export templateDir="$appRoot"/"$templatesDirCl" &&
 	export stationConfigDir="$appRoot"/"$ices_configs_dir" &&
 	export stationModuleDir="$appRoot"/"$pyModules_dir"
 	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
@@ -573,7 +573,7 @@ setup_env_api_file() (
 		"$envFile" &&
 	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqliteTrunkFilepath}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templates_dir_cl}'@" \
+	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templatesDirCl}'@" \
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${ices_configs_dir}'@" \
@@ -1432,7 +1432,7 @@ setup_api() (
 	kill_process_using_port "$apiPort" &&
 	sync_utility_scripts &&
 	sync_requirement_list &&
-	copy_dir "$templatesSrc" "$appRoot"/"$templates_dir_cl" &&
+	copy_dir "$templatesSrc" "$appRoot"/"$templatesDirCl" &&
 	copy_dir "$apiSrc" "$webRoot"/"$appApiPathCl" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
@@ -1507,7 +1507,7 @@ setup_radio() (
 	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
-	copy_dir "$templatesSrc" "$appRoot"/"$templates_dir_cl" &&
+	copy_dir "$templatesSrc" "$appRoot"/"$templatesDirCl" &&
 	replace_db_file_if_needed2 &&
 	_pkgMgrChoice=$(get_pkg_mgr) &&
 	_icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
@@ -1529,7 +1529,7 @@ setup_unit_test_env() (
 	__create_fake_keys_file__
 	setup_common_dirs
 
-	copy_dir "$templatesSrc" "$appRoot"/"$templates_dir_cl" &&
+	copy_dir "$templatesSrc" "$appRoot"/"$templatesDirCl" &&
 	error_check_all_paths "$referenceSrcDb" \
 		"$appRoot"/"$sqliteTrunkFilepath" &&
 	sync_requirement_list
@@ -1719,7 +1719,7 @@ define_app_dir_paths() {
 
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
-	export templates_dir_cl="$appTrunk"/templates
+	export templatesDirCl="$appTrunk"/templates
 
 	echo "app dir paths defined and created"
 }
@@ -1888,7 +1888,7 @@ unset_globals() {
 	unset stationConfigDir
 	unset stationModuleDir
 	unset templateDir
-	unset templates_dir_cl
+	unset templatesDirCl
 	unset templatesSrc
 	unset test_root
 	unset utest_env_dir

@@ -89,9 +89,9 @@ set_env_vars() {
 }
 
 __set_env_path_var__() {
-	if perl -e "exit 1 if index('$PATH','${appRoot}/${bin_dir}') != -1"; then
-		echo "Please add '${appRoot}/${bin_dir}' to path"
-		export PATH="$PATH":"$appRoot"/"$bin_dir"
+	if perl -e "exit 1 if index('$PATH','${appRoot}/${binDir}') != -1"; then
+		echo "Please add '${appRoot}/${binDir}' to path"
+		export PATH="$PATH":"$appRoot"/"$binDir"
 	fi
 }
 
@@ -496,17 +496,17 @@ get_bin_path() (
 
 linked_app_python_if_not_linked() {
 	if ! mc-python -V 2>/dev/null; then
-		if [ ! -e "$appRoot"/"$bin_dir" ]; then
-			sudo_mkdir "$appRoot"/"$bin_dir" || return "$?"
+		if [ ! -e "$appRoot"/"$binDir" ]; then
+			sudo_mkdir "$appRoot"/"$binDir" || return "$?"
 		fi
 		case $(uname) in
 			(Darwin*)
 				ln -sf $(get_bin_path python@3.9) \
-					"$appRoot"/"$bin_dir"/mc-python
+					"$appRoot"/"$binDir"/mc-python
 				;;
 			(*)
 				ln -sf $(get_bin_path python3) \
-					"$appRoot"/"$bin_dir"/mc-python
+					"$appRoot"/"$binDir"/mc-python
 				;;
 		esac
 	fi
@@ -1676,7 +1676,7 @@ define_consts() {
 	export projName='musical_chairs'
 	export build_dir='builds'
 	export contentHome='music/radio'
-	export bin_dir='.local/bin'
+	export binDir='.local/bin'
 	export apiPort='8033'
 	#done't try to change from home
 	export default_radio_repo_path="$HOME"/"$build_dir"/"$projName"
@@ -1864,7 +1864,7 @@ unset_globals() {
 	unset appRoot
 	unset appRoot_0
 	unset appTrunk
-	unset bin_dir
+	unset binDir
 	unset build_dir
 	unset client_src
 	unset config_dir

@@ -52,7 +52,7 @@ install_package() (
 output_env_vars() (
 	export S3_ACCESS_KEY_ID=$(gen_pass)
 	export S3_SECRET_ACCESS_KEY=$(gen_pass)
-	printenv > "$app_root"/used_env_vars
+	printenv > "$appRoot"/used_env_vars
 )
 
 set_python_version_const() {
@@ -89,9 +89,9 @@ set_env_vars() {
 }
 
 __set_env_path_var__() {
-	if perl -e "exit 1 if index('$PATH','${app_root}/${bin_dir}') != -1"; then
-		echo "Please add '${app_root}/${bin_dir}' to path"
-		export PATH="$PATH":"$app_root"/"$bin_dir"
+	if perl -e "exit 1 if index('$PATH','${appRoot}/${bin_dir}') != -1"; then
+		echo "Please add '${appRoot}/${bin_dir}' to path"
+		export PATH="$PATH":"$appRoot"/"$bin_dir"
 	fi
 }
 
@@ -99,12 +99,12 @@ __set_env_path_var__() {
 __export_py_env_vars__() {
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
-	export searchBase="$app_root"/"$content_home" &&
-	export dbName="$app_root"/"$sqlite_trunk_filepath" &&
-	export templateDir="$app_root"/"$templates_dir_cl" &&
+	export searchBase="$appRoot"/"$content_home" &&
+	export dbName="$appRoot"/"$sqlite_trunk_filepath" &&
+	export templateDir="$appRoot"/"$templates_dir_cl" &&
 	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
-	export stationConfigDir="$app_root"/"$ices_configs_dir" &&
-	export stationModuleDir="$app_root"/"$pyModules_dir"
+	export stationConfigDir="$appRoot"/"$ices_configs_dir" &&
+	export stationModuleDir="$appRoot"/"$pyModules_dir"
 	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
 }
 
@@ -153,36 +153,36 @@ get_icecast_name() (
 )
 
 get_pb_api_key() (
-	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' "$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' "$appRoot"/keys/"$proj_name"
 )
 
 get_pb_secret() (
-	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' "$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' "$appRoot"/keys/"$proj_name"
 )
 
 get_s3_api_key() (
-	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' "$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' "$appRoot"/keys/"$proj_name"
 )
 
 get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$appRoot"/keys/"$proj_name"
 )
 
 get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$appRoot"/keys/"$proj_name"
 )
 
 get_mc_auth_key() (
-	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$app_root"/keys/"$proj_name"
+	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$appRoot"/keys/"$proj_name"
 )
 
 get_address() (
-	keyFile="$app_root"/keys/"$proj_name"
+	keyFile="$appRoot"/keys/"$proj_name"
 	perl -ne 'print "$1\n" if /address6=root@([\w:]+)/' "$keyFile"
 )
 
 get_id_file() (
-	keyFile="$app_root"/keys/"$proj_name"
+	keyFile="$appRoot"/keys/"$proj_name"
 	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
 )
 
@@ -263,17 +263,17 @@ s3_name() {
 kill_s3fs() {
 	process_global_vars "$@" &&
 	kill -9 $(ps -e | grep s3fs | awk '{ print $1 }')
-	fusermount -u "$app_root"/"$content_home"
+	fusermount -u "$appRoot"/"$content_home"
 }
 
 link_to_music_files() {
 	echo 'linking music files'
 	process_global_vars "$@" &&
-	if [ ! -e "$app_root"/"$content_home"/Soundtrack ]; then
+	if [ ! -e "$appRoot"/"$content_home"/Soundtrack ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
-			s3fs "$(s3_name)" "$app_root"/"$content_home"/ \
+			s3fs "$(s3_name)" "$appRoot"/"$content_home"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
-			[ -e "$app_root"/"$content_home"/Soundtrack ]
+			[ -e "$appRoot"/"$content_home"/Soundtrack ]
 		else
 			return 1
 		fi
@@ -378,16 +378,16 @@ create_py_env_in_dir() (
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
-	python -m pip install -r "$app_root"/"$app_trunk"/requirements.txt &&
+	python -m pip install -r "$appRoot"/"$app_trunk"/requirements.txt &&
 	echo "done setting up py libs"
 )
 
 create_py_env_in_app_trunk() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
-	create_py_env_in_dir "$app_root"/"$app_trunk" &&
+	create_py_env_in_dir "$appRoot"/"$app_trunk" &&
 	copy_dir "$lib_src" \
-		"$(get_libs_dir "$app_root"/"$app_trunk")""$lib_name"
+		"$(get_libs_dir "$appRoot"/"$app_trunk")""$lib_name"
 )
 
 copy_lib_to_test() (
@@ -495,17 +495,17 @@ get_bin_path() (
 
 linked_app_python_if_not_linked() {
 	if ! mc-python -V 2>/dev/null; then
-		if [ ! -e "$app_root"/"$bin_dir" ]; then
-			sudo_mkdir "$app_root"/"$bin_dir" || return "$?"
+		if [ ! -e "$appRoot"/"$bin_dir" ]; then
+			sudo_mkdir "$appRoot"/"$bin_dir" || return "$?"
 		fi
 		case $(uname) in
 			(Darwin*)
 				ln -sf $(get_bin_path python@3.9) \
-					"$app_root"/"$bin_dir"/mc-python
+					"$appRoot"/"$bin_dir"/mc-python
 				;;
 			(*)
 				ln -sf $(get_bin_path python3) \
-					"$app_root"/"$bin_dir"/mc-python
+					"$appRoot"/"$bin_dir"/mc-python
 				;;
 		esac
 	fi
@@ -566,23 +566,23 @@ kill_process_using_port() (
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
-	envFile="$app_root"/"$config_dir"/.env
+	envFile="$appRoot"/"$config_dir"/.env
 	error_check_all_paths "$templates_src"/.env_api "$envFile" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	cp "$templates_src"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
-	perl -pi -e "s@^(searchBase=).*\$@\1'${app_root}/${content_home}'@" \
+	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${content_home}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(dbName=).*\$@\1'${app_root}/${sqlite_trunk_filepath}'@" \
+	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqlite_trunk_filepath}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(templateDir=).*\$@\1'${app_root}/${templates_dir_cl}'@" \
-		"$envFile" &&
-	perl -pi -e \
-		"s@^(stationConfigDir=).*\$@\1'${app_root}/${ices_configs_dir}'@" \
+	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templates_dir_cl}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(stationModuleDir=).*\$@\1'${app_root}/${pyModules_dir}'@" \
+		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${ices_configs_dir}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModules_dir}'@" \
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(icecastConfLocation=).*\$@\1'${templates_src}/icecast.xml'@" \
@@ -605,10 +605,10 @@ replace_db_file_if_needed() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
 	error_check_all_paths "$reference_src_db" \
-		"$app_root"/"$sqlite_trunk_filepath"  &&
-	if [ ! -e "$app_root"/"$sqlite_trunk_filepath" ] || [ -n "$clean_flag" ] \
+		"$appRoot"/"$sqlite_trunk_filepath"  &&
+	if [ ! -e "$appRoot"/"$sqlite_trunk_filepath" ] || [ -n "$clean_flag" ] \
 	|| [ -n "$replace_db_flag" ]; then
-		cp -v "$reference_src_db" "$app_root"/"$sqlite_trunk_filepath" &&
+		cp -v "$reference_src_db" "$appRoot"/"$sqlite_trunk_filepath" &&
 		return 0
 		echo 'Done copying db'
 	fi
@@ -634,7 +634,7 @@ setup_db() (
 	fi
 
 	__export_py_env_vars__ &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
 	from musical_chairs_libs.services import EnvManager
@@ -683,7 +683,7 @@ install_py_env() {
 }
 
 __install_py_env_if_needed__() {
-	if [ ! -e "$app_root"/"$app_trunk"/"$py_env"/bin/activate ]; then
+	if [ ! -e "$appRoot"/"$app_trunk"/"$py_env"/bin/activate ]; then
 		__install_py_env__
 	fi
 }
@@ -691,7 +691,7 @@ __install_py_env_if_needed__() {
 print_schema_scripts() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate &&
 	printf '\033c' &&
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -703,24 +703,24 @@ print_schema_scripts() (
 start_python() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate &&
 	python
 )
 
 sync_utility_scripts() (
 	process_global_vars "$@" &&
-	cp "$workspace_abs_path"/radio_common.sh "$app_root"/radio_common.sh
+	cp "$workspace_abs_path"/radio_common.sh "$appRoot"/radio_common.sh
 )
 
 #copy python dependency file to the deployment directory
 sync_requirement_list() (
 	process_global_vars "$@" &&
 	error_check_all_paths "$workspace_abs_path"/requirements.txt \
-		"$app_root"/"$app_trunk"/requirements.txt "$app_root"/requirements.txt &&
+		"$appRoot"/"$app_trunk"/requirements.txt "$appRoot"/requirements.txt &&
 	#keep a copy in the parent radio directory
 	cp "$workspace_abs_path"/requirements.txt \
-		"$app_root"/"$app_trunk"/requirements.txt &&
-	cp "$workspace_abs_path"/requirements.txt "$app_root"/requirements.txt
+		"$appRoot"/"$app_trunk"/requirements.txt &&
+	cp "$workspace_abs_path"/requirements.txt "$appRoot"/requirements.txt
 )
 
 gen_pass() (
@@ -1205,7 +1205,7 @@ install_ices() (
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 	|| [ -n "$ice_branch" ]; then
 		shutdown_all_stations &&
-		folderPath="$app_root"/"$build_dir"/"$proj_name"/compiled_dependencies
+		folderPath="$appRoot"/"$build_dir"/"$proj_name"/compiled_dependencies
 		sh "$folderPath"/build_ices.sh "$ice_branch"
 	fi
 )
@@ -1234,14 +1234,14 @@ show_current_py_lib_files() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	set_python_version_const >/dev/null 2>&1 &&
 	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${lib_name}"
-	echo "$app_root"/"$app_trunk"/"$py_env"/"$envDir"
+	echo "$appRoot"/"$app_trunk"/"$py_env"/"$envDir"
 )
 
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate >/dev/null 2>&1 &&
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate >/dev/null 2>&1 &&
 	(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
 	from musical_chairs_libs.services import EnvManager
@@ -1267,8 +1267,8 @@ show_ices_station_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate >/dev/null 2>&1 &&
-	logName="$app_root"/"$ices_configs_dir"/ices."$owner"_"$station".conf
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate >/dev/null 2>&1 &&
+	logName="$appRoot"/"$ices_configs_dir"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
 	logdir = EnvManager.read_config_value(
@@ -1307,7 +1307,7 @@ update_all_ices_confs() (
 	echo "updating ices confs"
 	sourcePassword="$1"
 	process_global_vars "$@"
-	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
+	for conf in "$appRoot"/"$ices_configs_dir"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
 	done &&
@@ -1338,7 +1338,7 @@ run_song_scan() (
 	link_to_music_files &&
 	setup_radio &&
 	__export_py_env_vars__ &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate &&
 
 	if [ -n "$shouldReplaceDb" ]; then
 		sudo_rm_contents "$dbName" || return "$?"
@@ -1351,9 +1351,9 @@ run_song_scan() (
 	print("Starting")
 	EnvManager.setup_db_if_missing(echo = True)
 	songScanner = SongScanner()
-	inserted = songScanner.save_paths('${app_root}/${content_home}')
+	inserted = songScanner.save_paths('${appRoot}/${content_home}')
 	print(f"saving paths done: {inserted} inserted")
-	updated = songScanner.update_metadata('${app_root}/${content_home}')
+	updated = songScanner.update_metadata('${appRoot}/${content_home}')
 	print(f"updating songs done: {updated}")
 	EOF
 )
@@ -1363,12 +1363,12 @@ shutdown_all_stations() (
 	#gonna assume that the environment has been setup because if
 	#the environment hasn't been setup yet then no radio stations
 	#are running
-	if [ ! -s "$app_root"/"$app_trunk"/"$py_env"/bin/activate ]; then
+	if [ ! -s "$appRoot"/"$app_trunk"/"$py_env"/bin/activate ]; then
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
 	__export_py_env_vars__ &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
 try:
@@ -1394,10 +1394,10 @@ startup_radio() (
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
-	export searchBase="$app_root"/"$content_home" &&
+	export searchBase="$appRoot"/"$content_home" &&
 	__export_py_env_vars__ &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
-	for conf in "$app_root"/"$ices_configs_dir"/*.conf; do
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate &&
+	for conf in "$appRoot"/"$ices_configs_dir"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		mc-ices -c "$conf"
 	done
@@ -1410,7 +1410,7 @@ startup_api() (
 		setup_api
 	fi &&
 	__export_py_env_vars__ &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background with in a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
@@ -1435,7 +1435,7 @@ setup_api() (
 	kill_process_using_port "$api_port" &&
 	sync_utility_scripts &&
 	sync_requirement_list &&
-	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
+	copy_dir "$templates_src" "$appRoot"/"$templates_dir_cl" &&
 	copy_dir "$api_src" "$web_root"/"$app_api_path_cl" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
@@ -1510,7 +1510,7 @@ setup_radio() (
 	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
-	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
+	copy_dir "$templates_src" "$appRoot"/"$templates_dir_cl" &&
 	replace_db_file_if_needed2 &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -1519,7 +1519,7 @@ setup_radio() (
 )
 
 __create_fake_keys_file__() {
-	echo "mc_auth_key=$(openssl rand -hex 32)" > "$app_root"/keys/"$proj_name"
+	echo "mc_auth_key=$(openssl rand -hex 32)" > "$appRoot"/keys/"$proj_name"
 }
 
 
@@ -1527,17 +1527,17 @@ __create_fake_keys_file__() {
 setup_unit_test_env() (
 	echo "setting up test environment"
 	process_global_vars "$@" &&
-	export app_root="$test_root"
+	export appRoot="$test_root"
 
 	__create_fake_keys_file__
 	setup_common_dirs
 
-	copy_dir "$templates_src" "$app_root"/"$templates_dir_cl" &&
+	copy_dir "$templates_src" "$appRoot"/"$templates_dir_cl" &&
 	error_check_all_paths "$reference_src_db" \
-		"$app_root"/"$sqlite_trunk_filepath" &&
+		"$appRoot"/"$sqlite_trunk_filepath" &&
 	sync_requirement_list
 	setup_env_api_file
-	pyEnvPath="$app_root"/"$app_trunk"/"$py_env"
+	pyEnvPath="$appRoot"/"$app_trunk"/"$py_env"
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$lib_src" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
@@ -1547,9 +1547,9 @@ setup_unit_test_env() (
 		create_py_env_in_app_trunk
 	fi
 	replace_db_file_if_needed2 &&
-	echo "$app_root"/"$config_dir"/.env &&
+	echo "$appRoot"/"$config_dir"/.env &&
 	echo "PYTHONPATH='${src_path}:${src_path}/api'" \
-		>> "$app_root"/"$config_dir"/.env &&
+		>> "$appRoot"/"$config_dir"/.env &&
 	echo "done setting up test environment"
 )
 
@@ -1567,12 +1567,12 @@ setup_all() (
 run_unit_tests() (
 	echo "running unit tests"
 	process_global_vars "$@"
-	export app_root="$test_root"
+	export appRoot="$test_root"
 	setup_unit_test_env &&
 	test_src="$src_path"/tests &&
 	__export_py_env_vars__ &&
 	export PYTHONPATH="${src_path}:${src_path}/api" &&
-	. "$app_root"/"$app_trunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$app_trunk"/"$py_env"/bin/activate &&
 	cd "$test_src"
 	pytest -s "$@" &&
 	echo "done running unit tests"
@@ -1603,7 +1603,7 @@ process_global_args() {
 	while [ ! -z "$1" ]; do
 		case "$1" in
 			#build out to test_trash rather than the normal directories
-			#sets app_root and web_root without having to set them explicitly
+			#sets appRoot and web_root without having to set them explicitly
 			(test)
 				export test_flag='test'
 				global_args="${global_args} test"
@@ -1630,9 +1630,9 @@ process_global_args() {
 				export app_env=${1#env=}
 				global_args="${global_args} env='${app_env}'"
 				;;
-			(app_root=*)
-				export app_root=${1#app_root=}
-				global_args="${global_args} app_root='${app_root}'"
+			(appRoot=*)
+				export appRoot=${1#appRoot=}
+				global_args="${global_args} appRoot='${appRoot}'"
 				;;
 			(web_root=*)
 				export web_root=${1#web_root=}
@@ -1690,18 +1690,18 @@ create_install_dir() {
 }
 
 define_top_level_terms() {
-	app_root=${app_root:-"$HOME"}
+	appRoot=${appRoot:-"$HOME"}
 	export test_root="$workspace_abs_path/test_trash"
-	export app_root_0="$app_root"
+	export appRoot_0="$appRoot"
 
 	if [ -n "$test_flag" ]; then
-		app_root="$test_root"
+		appRoot="$test_root"
 		web_root="$test_root"
 	fi
 
 	sqlite_filename='songs_db.sqlite'
 	export app_trunk="$proj_name"_dir
-	export app_root="$app_root"
+	export appRoot="$appRoot"
 	export web_root="$web_root"
 
 
@@ -1786,27 +1786,27 @@ define_repo_paths() {
 }
 
 setup_common_dirs() {
-	[ -e "$app_root"/"$config_dir" ] ||
-	mkdir -pv "$app_root"/"$config_dir"
-	[ -e "$app_root"/"$ices_configs_dir" ] ||
-	mkdir -pv "$app_root"/"$ices_configs_dir"
-	[ -e "$app_root"/"$pyModules_dir" ] ||
-	mkdir -pv "$app_root"/"$pyModules_dir"
-	[ -e "$app_root"/"$db_dir" ] ||
-	mkdir -pv "$app_root"/"$db_dir"
-	[ -e "$app_root"/keys ] ||
-	mkdir -pv "$app_root"/keys
+	[ -e "$appRoot"/"$config_dir" ] ||
+	mkdir -pv "$appRoot"/"$config_dir"
+	[ -e "$appRoot"/"$ices_configs_dir" ] ||
+	mkdir -pv "$appRoot"/"$ices_configs_dir"
+	[ -e "$appRoot"/"$pyModules_dir" ] ||
+	mkdir -pv "$appRoot"/"$pyModules_dir"
+	[ -e "$appRoot"/"$db_dir" ] ||
+	mkdir -pv "$appRoot"/"$db_dir"
+	[ -e "$appRoot"/keys ] ||
+	mkdir -pv "$appRoot"/keys
 }
 
 setup_base_dirs() {
 
-	[ -e "$app_root"/"$app_trunk" ] ||
-	mkdir -pv "$app_root"/"$app_trunk"
+	[ -e "$appRoot"/"$app_trunk" ] ||
+	mkdir -pv "$appRoot"/"$app_trunk"
 
 	setup_common_dirs
 
-	[ -e "$app_root"/"$content_home" ] ||
-	mkdir -pv "$app_root"/"$content_home"
+	[ -e "$appRoot"/"$content_home" ] ||
+	mkdir -pv "$appRoot"/"$content_home"
 
 
 	[ -e "$web_root"/"$app_api_path_cl" ] ||
@@ -1860,8 +1860,8 @@ unset_globals() {
 	unset app_api_path_cl
 	unset app_client_path_cl
 	unset app_name
-	unset app_root
-	unset app_root_0
+	unset appRoot
+	unset appRoot_0
 	unset app_trunk
 	unset bin_dir
 	unset build_dir

@@ -354,7 +354,7 @@ get_libs_dir() (
 	__set_env_path_var__ >&2 #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
-	packagePath="$py_env/lib/python$pyMajor.$pyMinor/site-packages/"
+	packagePath="${pyEnv}/lib/python${pyMajor}.${pyMinor}/site-packages/"
 	echo "$env_root"/"$packagePath"
 )
 
@@ -366,7 +366,7 @@ create_py_env_in_dir() (
 	linked_app_python_if_not_linked
 	set_python_version_const || return "$?"
 	env_root="$1"
-	pyEnvDir="$env_root"/"$py_env"
+	pyEnvDir="$env_root"/"$pyEnv"
 	error_check_path "$pyEnvDir" &&
 	if [ -n "$clean_flag" ]; then
 		rm_contents_if_exist "$pyEnvDir" || return "$?"
@@ -634,7 +634,7 @@ setup_db() (
 	fi
 
 	__export_py_env_vars__ &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
 	from musical_chairs_libs.services import EnvManager
@@ -683,7 +683,7 @@ install_py_env() {
 }
 
 __install_py_env_if_needed__() {
-	if [ ! -e "$appRoot"/"$appTrunk"/"$py_env"/bin/activate ]; then
+	if [ ! -e "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate ]; then
 		__install_py_env__
 	fi
 }
@@ -691,7 +691,7 @@ __install_py_env_if_needed__() {
 print_schema_scripts() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	printf '\033c' &&
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -703,7 +703,7 @@ print_schema_scripts() (
 start_python() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	python
 )
 
@@ -742,8 +742,8 @@ compare_dirs() (
 
 	src_res=$(find "$src_dir" | \
 		sed "s@${src_dir%/}/\{0,1\}@@" | sort)
-	cpy_res=$(find "${cpy_dir}" -not -path "${cpy_dir}/${py_env}/*" \
-		-and -not -path "${cpy_dir}/${py_env}" | \
+	cpy_res=$(find "${cpy_dir}" -not -path "${cpy_dir}/${pyEnv}/*" \
+		-and -not -path "${cpy_dir}/${pyEnv}" | \
 		sed "s@${cpy_dir%/}/\{0,1\}@@" | sort)
 
 	get_file_list() (
@@ -1234,14 +1234,14 @@ show_current_py_lib_files() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	set_python_version_const >/dev/null 2>&1 &&
 	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${lib_name}"
-	echo "$appRoot"/"$appTrunk"/"$py_env"/"$envDir"
+	echo "$appRoot"/"$appTrunk"/"$pyEnv"/"$envDir"
 )
 
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate >/dev/null 2>&1 &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
 	(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
 	from musical_chairs_libs.services import EnvManager
@@ -1267,7 +1267,7 @@ show_ices_station_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate >/dev/null 2>&1 &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
 	logName="$appRoot"/"$ices_configs_dir"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -1338,7 +1338,7 @@ run_song_scan() (
 	link_to_music_files &&
 	setup_radio &&
 	__export_py_env_vars__ &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 
 	if [ -n "$shouldReplaceDb" ]; then
 		sudo_rm_contents "$dbName" || return "$?"
@@ -1363,12 +1363,12 @@ shutdown_all_stations() (
 	#gonna assume that the environment has been setup because if
 	#the environment hasn't been setup yet then no radio stations
 	#are running
-	if [ ! -s "$appRoot"/"$appTrunk"/"$py_env"/bin/activate ]; then
+	if [ ! -s "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate ]; then
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
 	__export_py_env_vars__ &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
 try:
@@ -1396,7 +1396,7 @@ startup_radio() (
 	setup_radio &&
 	export searchBase="$appRoot"/"$content_home" &&
 	__export_py_env_vars__ &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	for conf in "$appRoot"/"$ices_configs_dir"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		mc-ices -c "$conf"
@@ -1410,7 +1410,7 @@ startup_api() (
 		setup_api
 	fi &&
 	__export_py_env_vars__ &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background with in a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
@@ -1537,7 +1537,7 @@ setup_unit_test_env() (
 		"$appRoot"/"$sqlite_trunk_filepath" &&
 	sync_requirement_list
 	setup_env_api_file
-	pyEnvPath="$appRoot"/"$appTrunk"/"$py_env"
+	pyEnvPath="$appRoot"/"$appTrunk"/"$pyEnv"
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$lib_src" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
@@ -1572,7 +1572,7 @@ run_unit_tests() (
 	test_src="$srcPath"/tests &&
 	__export_py_env_vars__ &&
 	export PYTHONPATH="${srcPath}:${srcPath}/api" &&
-	. "$appRoot"/"$appTrunk"/"$py_env"/bin/activate &&
+	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	cd "$test_src"
 	pytest -s "$@" &&
 	echo "done running unit tests"
@@ -1841,7 +1841,7 @@ process_global_vars() {
 	define_repo_paths &&
 
 	#python environment names
-	export py_env='mc_env' &&
+	export pyEnv='mc_env' &&
 
 	setup_base_dirs &&
 
@@ -1881,7 +1881,7 @@ unset_globals() {
 	unset lib_src
 	unset proj_name
 	unset pyModules_dir
-	unset py_env
+	unset pyEnv
 	unset reference_src
 	unset reference_src_db
 	unset searchBase

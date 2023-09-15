@@ -1037,7 +1037,7 @@ __copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
 		cp "$templates_src"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<app_client_path_cl>@${webRoot}/${app_client_path_cl}@" \
+		perl -pi -e "s@<appClientPathCl>@${webRoot}/${appClientPathCl}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<server_name>@${server_name}@g" "$appConfFile" &&
@@ -1461,7 +1461,7 @@ create_swap_if_needed() (
 setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&
-	error_check_all_paths "$client_src"  "$webRoot"/"$app_client_path_cl" &&
+	error_check_all_paths "$client_src"  "$webRoot"/"$appClientPathCl" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -1470,7 +1470,7 @@ setup_client() (
 	fi &&
 	#check if web application folder exists, clear out if it does,
 	#delete otherwise
-	empty_dir_contents "$webRoot"/"$app_client_path_cl" &&
+	empty_dir_contents "$webRoot"/"$appClientPathCl" &&
 
 	export REACT_APP_API_VERSION=v1 &&
 	export REACT_APP_BASE_ADDRESS="$full_url" &&
@@ -1481,8 +1481,8 @@ setup_client() (
 	npm run --prefix "$client_src" build &&
 	#copy built code to new location
 	sudo -p 'Pass required for copying client files: ' \
-		cp -rv "$client_src"/build/. "$webRoot"/"$app_client_path_cl" &&
-	unroot_dir "$webRoot"/"$app_client_path_cl" &&
+		cp -rv "$client_src"/build/. "$webRoot"/"$appClientPathCl" &&
+	unroot_dir "$webRoot"/"$appClientPathCl" &&
 	echo "done setting up client"
 )
 
@@ -1740,7 +1740,7 @@ define_web_server_paths() {
 	esac
 
 	export appApiPathCl=api/"$app_name"
-	export app_client_path_cl=client/"$app_name"
+	export appClientPathCl=client/"$app_name"
 
 	echo "web server paths defined"
 }
@@ -1859,7 +1859,7 @@ unset_globals() {
 	unset apiPort
 	unset apiSrc
 	unset appApiPathCl
-	unset app_client_path_cl
+	unset appClientPathCl
 	unset app_name
 	unset appRoot
 	unset appRoot_0

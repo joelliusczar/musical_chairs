@@ -524,10 +524,10 @@ brew_is_installed() (
 #this needs to command group and not a subshell
 #else it will basically do nothing
 show_err_and_exit() {
-	err_code="$?"
+	_errCode="$?"
 	msg="$1"
 	[ ! -z "$msg" ] && echo "$msg"
-	exit "$err_code"
+	exit "$_errCode"
 }
 
 #needed this method because perl will still
@@ -814,7 +814,7 @@ extract_commonName_from_cert() (
 )
 
 __certs_matching_name_osx__() (
-	commonName="$1"
+	_commonName="$1"
 	pattern='(-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----)'
 	script=$(cat <<-scriptEOF
 	while(\$_ =~ /$pattern/g) {
@@ -822,17 +822,17 @@ __certs_matching_name_osx__() (
 	}
 	scriptEOF
 	)
-	security find-certificate -a -p -c "$commonName" \
+	security find-certificate -a -p -c "$_commonName" \
 	$(__get_keychain_osx__) | perl -0777 -ne "$script"
 )
 
 __certs_matching_name_exact__() (
-	commonName="$1"
+	_commonName="$1"
 	case $(uname) in
 		(Darwin*)
-			__certs_matching_name_osx__ "$commonName" \
+			__certs_matching_name_osx__ "$_commonName" \
 			| extract_commonName_from_cert \
-			| input_match "$commonName"
+			| input_match "$_commonName"
 			;;
 		(*)
 			echo "operating system not configured"
@@ -842,42 +842,42 @@ __certs_matching_name_exact__() (
 )
 
 __generate_local_ssl_cert_osx__() (
-	commonName="$1"
-	domain="$2" &&
-	publicKeyFile="$3" &&
-	privateKeyFile="$4" &&
+	_commonName="$1"
+	_domain="$2" &&
+	_publicKeyFile="$3" &&
+	_privateKeyFile="$4" &&
 	mkfifo cat_config_fifo
 	{
 	cat<<-OpenSSLConfig
 	$(cat '/System/Library/OpenSSL/openssl.cnf')
-	$(printf "[SAN]\nsubjectAltName=DNS:${domain},IP:127.0.0.1")
+	$(printf "[SAN]\nsubjectAltName=DNS:${_domain},IP:127.0.0.1")
 	OpenSSLConfig
 	} > cat_config_fifo &
 	openssl req -x509 -sha256 -new -nodes -newkey rsa:2048 -days 7 \
-	-subj "/C=US/ST=CA/O=fake/CN=${commonName}" -reqexts SAN -extensions SAN \
+	-subj "/C=US/ST=CA/O=fake/CN=${_commonName}" -reqexts SAN -extensions SAN \
 	-config cat_config_fifo \
-	-keyout "$privateKeyFile" -out "$publicKeyFile"
-	err_code="$?"
+	-keyout "$_privateKeyFile" -out "$_publicKeyFile"
+	_errCode="$?"
 	rm -f cat_config_fifo
-	return "$err_code"
+	return "$_errCode"
 )
 
 __install_local_cert_osx__() (
-	publicKeyFile="$1" &&
+	_publicKeyFile="$1" &&
 	sudo security add-trusted-cert -p ssl -d -r trustRoot \
-	-k $(__get_keychain_osx__) "$publicKeyFile"
+	-k $(__get_keychain_osx__) "$_publicKeyFile"
 )
 
 __clean_up_invalid_cert__() (
-	commonName="$1" &&
+	_commonName="$1" &&
 	case $(uname) in
 		(Darwin*)
-			__certs_matching_name_osx__ "$commonName" \
-				| while IFS= read -r -d '' cert; do
-					sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-					echo "$cert" | is_cert_expired &&
+			__certs_matching_name_osx__ "$_commonName" \
+				| while IFS= read -r -d '' _cert; do
+					_sha256Value=$(echo "$_cert" | extract_sha256_from_cert) &&
+					echo "$_cert" | is_cert_expired &&
 					sudo security delete-certificate \
-						-Z "$sha256Value" -t $(__get_keychain_osx__)
+						-Z "$_sha256Value" -t $(__get_keychain_osx__)
 				done
 			;;
 		(*)
@@ -888,16 +888,16 @@ __clean_up_invalid_cert__() (
 )
 
 __setup_ssl_cert_local__() (
-	commonName="$1"
-	domain="$2" &&
-	publicKeyFile="$3" &&
-	privateKeyFile="$4" &&
+	_commonName="$1"
+	_domain="$2" &&
+	_publicKeyFile="$3" &&
+	_privateKeyFile="$4" &&
 
 	case $(uname) in
 		(Darwin*)
-			__generate_local_ssl_cert_osx__ "$commonName" "$domain" \
-			"$publicKeyFile" "$privateKeyFile" &&
-			__install_local_cert_osx__ "$publicKeyFile" ||
+			__generate_local_ssl_cert_osx__ "$_commonName" "$_domain" \
+			"$_publicKeyFile" "$_privateKeyFile" &&
+			__install_local_cert_osx__ "$_publicKeyFile" ||
 			return 1
 			;;
 		(*)
@@ -910,37 +910,37 @@ __setup_ssl_cert_local__() (
 
 setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
-	publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
-	privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
+	_publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
+	_privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
 	__clean_up_invalid_cert__ "${appName}-localhost"
 	__setup_ssl_cert_local__ "${appName}-localhost" 'localhost' \
-		"$publicKeyFile" "$privateKeyFile" &&
+		"$_publicKeyFile" "$_privateKeyFile" &&
 	setup_react_env_debug
 )
 
 print_ssl_cert_info() (
 	process_global_vars "$@" &&
-	domain=$(_get_domain_name "$app_env" 'omitPort') &&
+	_domain=$(_get_domain_name "$app_env" 'omitPort') &&
 	case "$app_env" in
 		(local*)
 			isDebugServer=${1#is_debug_server=}
 			if [ -n "$isDebugServer" ]; then
-				domain="${domain}-localhost"
+				_domain="${_domain}-localhost"
 			fi
 			case $(uname) in
 			(Darwin*)
 				echo "#### nginx info ####"
-				__certs_matching_name_osx__ "$domain" \
-					| while IFS= read -r -d '' cert; do
-						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-						echo "$cert" | openssl x509 -enddate -subject -noout
+				__certs_matching_name_osx__ "$_domain" \
+					| while IFS= read -r -d '' _cert; do
+						_sha256Value=$(echo "$_cert" | extract_sha256_from_cert) &&
+						echo "$_cert" | openssl x509 -enddate -subject -noout
 					done
 				echo "#### debug server info ####"
-				echo "${domain}-localhost"
+				echo "${_domain}-localhost"
 				__certs_matching_name_osx__ "${appName}-localhost" \
-					| while IFS= read -r -d '' cert; do
-						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-						echo "$cert" | openssl x509 -enddate -subject -noout
+					| while IFS= read -r -d '' _cert; do
+						_sha256Value=$(echo "$_cert" | extract_sha256_from_cert) &&
+						echo "$_cert" | openssl x509 -enddate -subject -noout
 					done
 				;;
 			(*)
@@ -949,44 +949,44 @@ print_ssl_cert_info() (
 		esac
 			;;
 		(*)
-			publicKeyFile=$(__get_remote_public_key__) &&
-			cat "$publicKeyFile" | openssl x509 -enddate -subject -noout
+			_publicKeyFile=$(__get_remote_public_key__) &&
+			cat "$_publicKeyFile" | openssl x509 -enddate -subject -noout
 			;;
 	esac
 )
 
 setup_ssl_cert_nginx() (
 	process_global_vars "$@" &&
-	domain=$(_get_domain_name "$app_env" 'omitPort') &&
+	_domain=$(_get_domain_name "$app_env" 'omitPort') &&
 	case "$app_env" in
 		(local*)
-			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.pem &&
-			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
+			_publicKeyFile=$(__get_local_nginx_cert_path__).public.key.pem &&
+			_privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
-			__clean_up_invalid_cert__ "$domain"
-			if [ -z $(__certs_matching_name_exact__ "$domain") ]; then
+			__clean_up_invalid_cert__ "$_domain"
+			if [ -z $(__certs_matching_name_exact__ "$_domain") ]; then
 				__setup_ssl_cert_local__ \
-				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
+				"$_domain" "$_domain" "$_publicKeyFile" "$_privateKeyFile"
 			fi
 			;;
 		(*)
-			publicKeyFile=$(__get_remote_public_key__) &&
-			privateKeyFile=$(__get_remote_private_key__) &&
-			intermediateKeyFile=$(__get_remote_intermediate_key__) &&
+			_publicKeyFile=$(__get_remote_public_key__) &&
+			_privateKeyFile=$(__get_remote_private_key__) &&
+			_intermediateKeyFile=$(__get_remote_intermediate_key__) &&
 
-			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
-			cat "$publicKeyFile" | is_cert_expired ||
+			if [ ! -e "$_publicKeyFile" ] || [ ! -e "$_privateKeyFile" ] ||
+			cat "$_publicKeyFile" | is_cert_expired ||
 			str_contains "$replace" "ssl_certs"; then
 				echo "downloading new certs"
-				sslVars=$(get_ssl_vars)
-				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
-				perl -pe 'chomp if eof' > "$privateKeyFile" &&
-				echo "$sslVars" | \
+				_sslVars=$(get_ssl_vars)
+				echo "$_sslVars" | stdin_json_extract_value 'privatekey' | \
+				perl -pe 'chomp if eof' > "$_privateKeyFile" &&
+				echo "$_sslVars" | \
 				stdin_json_extract_value 'certificatechain' | \
-				perl -pe 'chomp if eof' > "$publicKeyFile" &&
-				echo "$sslVars" | \
+				perl -pe 'chomp if eof' > "$_publicKeyFile" &&
+				echo "$_sslVars" | \
 				stdin_json_extract_value 'intermediatecertificate' | \
-				perl -pe 'chomp if eof' > "$intermediateKeyFile"
+				perl -pe 'chomp if eof' > "$_intermediateKeyFile"
 			fi
 			;;
 	esac
@@ -1006,12 +1006,12 @@ setup_react_env_debug() (
 )
 
 get_nginx_value() (
-	key=${1:-'conf-path'}
+	_key=${1:-'conf-path'}
 	#break options into a list
 	#then isolate the option we're interested in
 	nginx -V 2>&1 | \
 		sed 's/ /\n/g' | \
-		sed -n "/--${key}/p" | \
+		sed -n "/--${_key}/p" | \
 		sed 's/.*=\(.*\)/\1/'
 )
 
@@ -1032,54 +1032,54 @@ get_nginx_conf_dir_include() (
 
 __copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
-		cp "$templatesSrc"/nginx_template.conf "$appConfFile" &&
-	sudo -p "update ${appConfFile}" \
+		cp "$templatesSrc"/nginx_template.conf "$_appConfFile" &&
+	sudo -p "update ${_appConfFile}" \
 		perl -pi -e "s@<appClientPathCl>@${webRoot}/${appClientPathCl}@" \
-		"$appConfFile" &&
-	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<serverName>@${serverName}@g" "$appConfFile" &&
-	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<apiPort>@${apiPort}@" "$appConfFile"
+		"$_appConfFile" &&
+	sudo -p "update ${_appConfFile}" \
+		perl -pi -e "s@<serverName>@${serverName}@g" "$_appConfFile" &&
+	sudo -p "update ${_appConfFile}" \
+		perl -pi -e "s@<apiPort>@${apiPort}@" "$_appConfFile"
 }
 
 update_nginx_conf() (
 	echo "updating nginx site conf"
-	appConfFile="$1"
-	error_check_all_paths "$templatesSrc" "$appConfFile" &&
+	_appConfFile="$1"
+	error_check_all_paths "$templatesSrc" "$_appConfFile" &&
 	__copy_and_update_nginx_template__ &&
 	case "$app_env" in
 		(local*)
-			publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
-			privateKey=$(__get_local_nginx_cert_path__).private.key.pem &&
-			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
-			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s@<ssl_public_key>@${publicKey}@" \
-				"$appConfFile" &&
-			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s@<ssl_private_key>@${privateKey}@" \
-				"$appConfFile"
+			_publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
+			_privateKey=$(__get_local_nginx_cert_path__).private.key.pem &&
+			sudo -p "update ${_appConfFile}" \
+				perl -pi -e "s/<listen>/8080 ssl/" "$_appConfFile" &&
+			sudo -p "update ${_appConfFile}" \
+				perl -pi -e "s@<ssl_public_key>@${_publicKey}@" \
+				"$_appConfFile" &&
+			sudo -p "update ${_appConfFile}" \
+				perl -pi -e "s@<ssl_private_key>@${_privateKey}@" \
+				"$_appConfFile"
 			;;
 		(*)
-			sudo -p "update ${appConfFile}" \
-				perl -pi -e "s/<listen>/[::]:443 ssl/" "$appConfFile" &&
+			sudo -p "update ${_appConfFile}" \
+				perl -pi -e "s/<listen>/[::]:443 ssl/" "$_appConfFile" &&
 
-				sudo -p "update ${appConfFile}" \
+				sudo -p "update ${_appConfFile}" \
 				perl -pi -e \
 				"s@<ssl_public_key>@$(__get_remote_public_key__)@" \
-				"$appConfFile" &&
-			sudo -p "update ${appConfFile}" \
+				"$_appConfFile" &&
+			sudo -p "update ${_appConfFile}" \
 				perl -pi -e \
 				"s@<ssl_private_key>@$(__get_remote_private_key__)@" \
-				"$appConfFile" &&
-			sudo -p "update ${appConfFile}" \
+				"$_appConfFile" &&
+			sudo -p "update ${_appConfFile}" \
 				perl -pi -e \
 				"s@<ssl_intermediate>@$(__get_remote_intermediate_key__)@" \
-				"$appConfFile" &&
-			sudo -p "update ${appConfFile}" \
+				"$_appConfFile" &&
+			sudo -p "update ${_appConfFile}" \
 				perl -pi -e \
 				's/#ssl_trusted_certificate/ssl_trusted_certificate/' \
-				"$appConfFile"
+				"$_appConfFile"
 			;;
 	esac &&
 	echo "done updating nginx site conf"

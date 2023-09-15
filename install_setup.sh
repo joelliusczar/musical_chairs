@@ -155,7 +155,7 @@ if ! mariadb -V 2>/dev/null; then
 		sudo -p 'Updating db root password' mysql -u root -e
 			"REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'mysql'@'localhost'" &&
 		sudo -p 'Updating db root password' mysql -u root -e \
-			"ALTER USER 'root'@'localhost' IDENTIFIED BY '${db_pass}';"
+			"SET PASSWORD FOR root@localhost = PASSWORD('${db_pass}');"
 	else
 		echo 'Need a password for root db account to install database'
 	fi

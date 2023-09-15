@@ -102,7 +102,7 @@ __export_py_env_vars__() {
 	export templateDir="$appRoot"/"$templatesDirCl" &&
 	export stationConfigDir="$appRoot"/"$icesConfigsDir" &&
 	export stationModuleDir="$appRoot"/"$pyModules_dir"
-	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
+	export radioAuthSecretKey=$(get_mc_auth_key)
 }
 
 print_py_env_var_guesses() (
@@ -114,7 +114,7 @@ print_py_env_var_guesses() (
 	echo "templateDir=$templateDir"
 	echo "stationConfigDir=$stationConfigDir"
 	echo "stationModuleDir=$stationModuleDir"
-	echo "RADIO_AUTH_SECRET_KEY=$RADIO_AUTH_SECRET_KEY"
+	echo "radioAuthSecretKey=$radioAuthSecretKey"
 )
 
 get_pkg_mgr() {
@@ -563,23 +563,23 @@ kill_process_using_port() (
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
-	envFile="$appRoot"/"$configDir"/.env
-	error_check_all_paths "$templatesSrc"/.env_api "$envFile" &&
+	_envFile="$appRoot"/"$configDir"/.env
+	error_check_all_paths "$templatesSrc"/.env_api "$_envFile" &&
 	_pkgMgrChoice=$(get_pkg_mgr) &&
-	cp "$templatesSrc"/.env_api "$envFile" &&
-	does_file_exist "$envFile" &&
+	cp "$templatesSrc"/.env_api "$_envFile" &&
+	does_file_exist "$_envFile" &&
 	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${contentHome}'@" \
-		"$envFile" &&
+		"$_envFile" &&
 	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqliteTrunkFilepath}'@" \
-		"$envFile" &&
+		"$_envFile" &&
 	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templatesDirCl}'@" \
-		"$envFile" &&
+		"$_envFile" &&
 	perl -pi -e \
 		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${icesConfigsDir}'@" \
-		"$envFile" &&
+		"$_envFile" &&
 	perl -pi -e \
 		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModules_dir}'@" \
-		"$envFile" &&
+		"$_envFile" &&
 	echo 'done setting up .env file'
 )
 
@@ -994,13 +994,15 @@ setup_ssl_cert_nginx() (
 
 setup_react_env_debug() (
 	process_global_vars "$@" &&
-	envFile="$clientSrc"/.env.local
-	echo "$envFile"
-	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
-	echo 'REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
-	echo 'HTTPS=true' >> "$envFile"
-	echo "SSL_CRT_FILE=$(__get_debug_cert_path__).public.key.pem" >> "$envFile"
-	echo "SSL_KEY_FILE=$(__get_debug_cert_path__).private.key.pem" >> "$envFile"
+	_envFile="$clientSrc"/.env.local
+	echo "$_envFile"
+	echo 'reactAppApiVersion=v1' > "$_envFile"
+	echo 'reactAppBaseAddress=https://localhost:8032' >> "$_envFile"
+	#HTTPS, SSL_CRT_FILE, and SSL_KEY_FILE are used by create-react-app
+	#when calling `npm start`
+	echo 'HTTPS=true' >> "$_envFile"
+	echo "SSL_CRT_FILE=$(__get_debug_cert_path__).public.key.pem" >> "$_envFile"
+	echo "SSL_KEY_FILE=$(__get_debug_cert_path__).private.key.pem" >> "$_envFile"
 )
 
 get_nginx_value() (
@@ -1014,14 +1016,14 @@ get_nginx_value() (
 )
 
 get_nginx_conf_dir_include() (
-	nginx_conf=$(get_nginx_value)
-	guesses=$(cat<<-'EOF'
+	_nginxConf=$(get_nginx_value)
+	_guesses=$(cat<<-'EOF'
 		include /etc/nginx/sites-enabled/*;
 		include servers/*;
 	EOF
 	)
-	echo "$guesses" | while read guess; do
-		if grep -F "$guess" "$nginx_conf" >/dev/null; then
+	echo "$_guesses" | while read guess; do
+		if grep -F "$guess" "$_nginxConf" >/dev/null; then
 			echo "$guess"
 			break
 		fi
@@ -1467,8 +1469,8 @@ setup_client() (
 	#delete otherwise
 	empty_dir_contents "$webRoot"/"$appClientPathCl" &&
 
-	export REACT_APP_API_VERSION=v1 &&
-	export REACT_APP_BASE_ADDRESS="$fullUrl" &&
+	export reactAppApiVersion=v1 &&
+	export reactAppBaseAddress="$fullUrl" &&
 	#set up react then copy
 	#install packages
 	npm --prefix "$clientSrc" i &&
@@ -1848,9 +1850,9 @@ unset_globals() {
 	unset APT_CONST
 	unset HOMEBREW_CONST
 	unset PACMAN_CONST
-	unset RADIO_AUTH_SECRET_KEY
-	unset REACT_APP_API_VERSION
-	unset REACT_APP_BASE_ADDRESS
+	unset radioAuthSecretKey
+	unset reactAppApiVersion
+	unset reactAppBaseAddress
 	unset apiPort
 	unset apiSrc
 	unset appApiPathCl

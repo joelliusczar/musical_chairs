@@ -2,8 +2,8 @@ import { OwnedStationParams } from "./Types/station_types";
 import { OwnerParams, SubjectUserParams } from "./Types/user_types";
 import { StringObject } from "./Types/generic_types";
 
-export const baseAddress = process.env.REACT_APP_BASE_ADDRESS;
-export const apiVersion = process.env.REACT_APP_API_VERSION;
+export const baseAddress = process.env.reactAppBaseAddress;
+export const apiVersion = process.env.reactAppApiVersion;
 export const isDev = process.env.NODE_ENV === "development";
 export const apiAddress = isDev ?
 	baseAddress : `${baseAddress}/api/${apiVersion}`;

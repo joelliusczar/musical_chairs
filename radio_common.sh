@@ -709,18 +709,18 @@ start_python() (
 
 sync_utility_scripts() (
 	process_global_vars "$@" &&
-	cp "$workspace_abs_path"/radio_common.sh "$appRoot"/radio_common.sh
+	cp "$workspaceAbsPath"/radio_common.sh "$appRoot"/radio_common.sh
 )
 
 #copy python dependency file to the deployment directory
 sync_requirement_list() (
 	process_global_vars "$@" &&
-	error_check_all_paths "$workspace_abs_path"/requirements.txt \
+	error_check_all_paths "$workspaceAbsPath"/requirements.txt \
 		"$appRoot"/"$appTrunk"/requirements.txt "$appRoot"/requirements.txt &&
 	#keep a copy in the parent radio directory
-	cp "$workspace_abs_path"/requirements.txt \
+	cp "$workspaceAbsPath"/requirements.txt \
 		"$appRoot"/"$appTrunk"/requirements.txt &&
-	cp "$workspace_abs_path"/requirements.txt "$appRoot"/requirements.txt
+	cp "$workspaceAbsPath"/requirements.txt "$appRoot"/requirements.txt
 )
 
 gen_pass() (
@@ -1541,7 +1541,7 @@ setup_unit_test_env() (
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$lib_src" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
-	[ "$workspace_abs_path"/requirements.txt -nt "$pyEnvPath" ]
+	[ "$workspaceAbsPath"/requirements.txt -nt "$pyEnvPath" ]
 	then
 		echo "changes?"
 		create_py_env_in_app_trunk
@@ -1691,7 +1691,7 @@ create_install_dir() {
 
 define_top_level_terms() {
 	appRoot=${appRoot:-"$HOME"}
-	export test_root="$workspace_abs_path/test_trash"
+	export test_root="$workspaceAbsPath/test_trash"
 	export appRoot_0="$appRoot"
 
 	if [ -n "$test_flag" ]; then
@@ -1775,12 +1775,12 @@ __define_url__() {
 }
 
 define_repo_paths() {
-	export srcPath="$workspace_abs_path/src"
+	export srcPath="$workspaceAbsPath/src"
 	export api_src="$srcPath/api"
 	export client_src="$srcPath/client"
 	export lib_src="$srcPath/$lib_name"
-	export templates_src="$workspace_abs_path/templates"
-	export reference_src="$workspace_abs_path/reference"
+	export templates_src="$workspaceAbsPath/templates"
+	export reference_src="$workspaceAbsPath/reference"
 	export reference_src_db="$reference_src/$sqlite_filename"
 	echo "source paths defined"
 }
@@ -1825,10 +1825,10 @@ process_global_vars() {
 
 	create_install_dir &&
 
-	workspace_abs_path=$(get_repo_path) &&
+	workspaceAbsPath=$(get_repo_path) &&
 	#put export on separate line so it doesn't turn a failure in the previous
 	#line into a success code
-	export workspace_abs_path &&
+	export workspaceAbsPath &&
 
 	define_top_level_terms &&
 
@@ -1901,7 +1901,7 @@ unset_globals() {
 fn_ls() (
 	process_global_vars "$@" >/dev/null
 	perl -ne 'print "$1\n" if /^([a-zA-Z_0-9]+)\(\)/' \
-		"$workspace_abs_path"/radio_common.sh | sort
+		"$workspaceAbsPath"/radio_common.sh | sort
 )
 
 test_shell() (

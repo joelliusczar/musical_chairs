@@ -917,8 +917,8 @@ setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
 	publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
 	privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
-	__clean_up_invalid_cert__ "${app_name}-localhost"
-	__setup_ssl_cert_local__ "${app_name}-localhost" 'localhost' \
+	__clean_up_invalid_cert__ "${appName}-localhost"
+	__setup_ssl_cert_local__ "${appName}-localhost" 'localhost' \
 		"$publicKeyFile" "$privateKeyFile" &&
 	setup_react_env_debug
 )
@@ -942,7 +942,7 @@ print_ssl_cert_info() (
 					done
 				echo "#### debug server info ####"
 				echo "${domain}-localhost"
-				__certs_matching_name_osx__ "${app_name}-localhost" \
+				__certs_matching_name_osx__ "${appName}-localhost" \
 					| while IFS= read -r -d '' cert; do
 						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
 						echo "$cert" | openssl x509 -enddate -subject -noout
@@ -1155,18 +1155,18 @@ print_nginx_conf_location() (
 	process_global_vars "$@" >/dev/null &&
 	confDirInclude=$(get_nginx_conf_dir_include) &&
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
-	echo "$confDir"/"$app_name".conf
+	echo "$confDir"/"$appName".conf
 )
 
 print_cert_paths() (
 	process_global_vars "$@" >/dev/null &&
 	confDirInclude=$(get_nginx_conf_dir_include) &&
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
-	cat "$confDir"/"$app_name".conf | perl -ne \
+	cat "$confDir"/"$appName".conf | perl -ne \
 	'print "$1\n" if /ssl_certificate ([^;]+)/'
-	cat "$confDir"/"$app_name".conf | perl -ne \
+	cat "$confDir"/"$appName".conf | perl -ne \
 	'print "$1\n" if /ssl_certificate_key ([^;]+)/'
-	cat "$confDir"/"$app_name".conf | perl -ne \
+	cat "$confDir"/"$appName".conf | perl -ne \
 	'print "$1\n" if /[^#]ssl_trusted_certificate ([^;]+)/'
 )
 
@@ -1178,7 +1178,7 @@ setup_nginx_confs() (
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") &&
 	setup_ssl_cert_nginx &&
 	enable_nginx_include "$confDirInclude" &&
-	update_nginx_conf "$confDir"/"$app_name".conf &&
+	update_nginx_conf "$confDir"/"$appName".conf &&
 	sudo -p 'Remove default nginx config' \
 		rm -f "$confDir"/default &&
 	restart_nginx &&
@@ -1707,7 +1707,7 @@ define_top_level_terms() {
 
 
 	export lib_name="$projName"_libs
-	export app_name="$projName"_app
+	export appName="$projName"_app
 
 	echo "top level terms defined"
 }
@@ -1739,8 +1739,8 @@ define_web_server_paths() {
 		(*) ;;
 	esac
 
-	export appApiPathCl=api/"$app_name"
-	export appClientPathCl=client/"$app_name"
+	export appApiPathCl=api/"$appName"
+	export appClientPathCl=client/"$appName"
 
 	echo "web server paths defined"
 }
@@ -1860,7 +1860,7 @@ unset_globals() {
 	unset apiSrc
 	unset appApiPathCl
 	unset appClientPathCl
-	unset app_name
+	unset appName
 	unset appRoot
 	unset appRoot_0
 	unset appTrunk

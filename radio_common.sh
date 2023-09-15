@@ -97,12 +97,9 @@ __set_env_path_var__() {
 
 
 __export_py_env_vars__() {
-	_pkgMgrChoice=$(get_pkg_mgr) &&
-	icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
 	export searchBase="$appRoot"/"$contentHome" &&
 	export dbName="$appRoot"/"$sqlite_trunk_filepath" &&
 	export templateDir="$appRoot"/"$templates_dir_cl" &&
-	export icecastConfLocation=$(get_icecast_conf "$icecastName") &&
 	export stationConfigDir="$appRoot"/"$ices_configs_dir" &&
 	export stationModuleDir="$appRoot"/"$pyModules_dir"
 	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
@@ -570,7 +567,6 @@ setup_env_api_file() (
 	envFile="$appRoot"/"$config_dir"/.env
 	error_check_all_paths "$templates_src"/.env_api "$envFile" &&
 	_pkgMgrChoice=$(get_pkg_mgr) &&
-	icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
 	cp "$templates_src"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
 	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${contentHome}'@" \
@@ -651,7 +647,7 @@ setup_db() (
 
 start_db_service() (
 	echo 'starting database service'
-	icecastName="$1"
+	_icecastName="$1"
 	case $(uname) in
 		(Linux*)
 			if ! systemctl is-active --quiet mariadb; then
@@ -1187,12 +1183,12 @@ setup_nginx_confs() (
 
 start_icecast_service() (
 	echo 'starting icecast service'
-	icecastName="$1"
+	_icecastName="$1"
 	case $(uname) in
 		(Linux*)
-			if ! systemctl is-active --quiet "$icecastName"; then
-				sudo -p "enabling ${icecastName}" systemctl enable "$icecastName"
-				sudo -p "starting ${icecastName}" systemctl start "$icecastName"
+			if ! systemctl is-active --quiet "$_icecastName"; then
+				sudo -p "enabling ${_icecastName}" systemctl enable "$_icecastName"
+				sudo -p "starting ${_icecastName}" systemctl start "$_icecastName"
 			fi
 			;;
 		(*) ;;
@@ -1206,20 +1202,20 @@ install_ices() (
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 	|| [ -n "$ice_branch" ]; then
 		shutdown_all_stations &&
-		folderPath="$appRoot"/"$build_dir"/"$projName"/compiled_dependencies
+		folderPath="$appRoot"/"$buildDir"/"$projName"/compiled_dependencies
 		sh "$folderPath"/build_ices.sh "$ice_branch"
 	fi
 )
 
 get_icecast_conf() (
-	icecastName="$1"
+	_icecastName="$1"
 	case $(uname) in
 		(Linux*)
-			if ! systemctl status "$icecastName" >/dev/null 2>&1; then
-					echo "$icecastName is not running at the moment"
+			if ! systemctl status "$_icecastName" >/dev/null 2>&1; then
+					echo "$_icecastName is not running at the moment"
 					exit 1
 			fi
-				systemctl status "$icecastName" | grep -A2 CGroup | \
+				systemctl status "$_icecastName" | grep -A2 CGroup | \
 					head -n2 | tail -n1 | awk '{ print $NF }'
 			;;
 		(Darwin*)
@@ -1318,18 +1314,18 @@ update_all_ices_confs() (
 
 setup_icecast_confs() (
 	echo "setting up icecast/ices"
-	icecastName="$1"
+	_icecastName="$1"
 	process_global_vars "$@" &&
 	#need to make sure that  icecast is running so we can get the config
 	#location from systemd. While icecast does have a custom config option
 	#I don't feel like editing the systemd service to make it happen
-	start_icecast_service "$icecastName" &&
-	icecastConfLocation=$(get_icecast_conf "$icecastName") &&
+	start_icecast_service "$_icecastName" &&
+	icecastConfLocation=$(get_icecast_conf "$_icecastName") &&
 	sourcePassword=$(gen_pass) &&
 	update_icecast_conf "$icecastConfLocation" \
 		"$sourcePassword" $(gen_pass) $(gen_pass) &&
 	update_all_ices_confs "$sourcePassword" &&
-	sudo -p "restarting ${icecastName}" systemctl restart "$icecastName" &&
+	sudo -p "restarting ${_icecastName}" systemctl restart "$_icecastName" &&
 	echo "done setting up icecast/ices"
 )
 
@@ -1514,8 +1510,8 @@ setup_radio() (
 	copy_dir "$templates_src" "$appRoot"/"$templates_dir_cl" &&
 	replace_db_file_if_needed2 &&
 	_pkgMgrChoice=$(get_pkg_mgr) &&
-	icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
-	setup_icecast_confs "$icecastName" &&
+	_icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
+	setup_icecast_confs "$_icecastName" &&
 	echo "done setting up radio"
 )
 
@@ -1674,12 +1670,12 @@ define_consts() {
 	export HOMEBREW_CONST='homebrew'
 	export currentUser=$(whoami)
 	export projName='musical_chairs'
-	export build_dir='builds'
+	export buildDir='builds'
 	export contentHome='music/radio'
 	export binDir='.local/bin'
 	export apiPort='8033'
 	#done't try to change from home
-	export default_radio_repo_path="$HOME"/"$build_dir"/"$projName"
+	export default_radio_repo_path="$HOME"/"$buildDir"/"$projName"
 	export constants_set='true'
 	echo "constants defined"
 }
@@ -1865,7 +1861,7 @@ unset_globals() {
 	unset appRoot_0
 	unset appTrunk
 	unset binDir
-	unset build_dir
+	unset buildDir
 	unset client_src
 	unset config_dir
 	unset constants_set

@@ -29,20 +29,20 @@ get_repo_path() (
 )
 
 install_package() (
-	_pkgName="$1"
-	echo "Try to install --${_pkgName}--"
+	pkgName="$1"
+	echo "Try to install --${pkgName}--"
 	case $(uname) in
 		(Linux*)
 			if which pacman >/dev/null 2>&1; then
 				yes | sudo -p 'Pass required for pacman install: ' \
-					pacman -S "$_pkgName"
+					pacman -S "$pkgName"
 			elif which apt-get >/dev/null 2>&1; then
 				sudo -p 'Pass required for apt-get install: ' \
-					DEBIAN_FRONTEND=noninteractive apt-get -y install "$_pkgName"
+					DEBIAN_FRONTEND=noninteractive apt-get -y install "$pkgName"
 			fi
 			;;
 		(Darwin*)
-			yes | brew install "$_pkgName"
+			yes | brew install "$pkgName"
 			;;
 		(*)
 			;;
@@ -140,8 +140,8 @@ get_pkg_mgr() {
 }
 
 get_icecast_name() (
-	_pkgMgrChoice="$1"
-	case "$_pkgMgrChoice" in
+	pkgMgrChoice="$1"
+	case "$pkgMgrChoice" in
     ("$PACMAN_CONST") echo 'icecast';;
     ("$APT_CONST") echo 'icecast2';;
     (*) echo 'icecast2';;
@@ -411,82 +411,82 @@ error_check_all_paths() (
 )
 
 sudo_rm_contents() (
-	_dirEmptira="$1"
-	if [ -w "$_dirEmptira" ]; then
-		rm -rf "$_dirEmptira"/*
+	dirEmptira="$1"
+	if [ -w "$dirEmptira" ]; then
+		rm -rf "$dirEmptira"/*
 	else
-		sudo -p "Password required for removing files from ${_dirEmptira}: " \
-			rm -rf "$_dirEmptira"/*
+		sudo -p "Password required for removing files from ${dirEmptira}: " \
+			rm -rf "$dirEmptira"/*
 	fi
 )
 
 rm_contents_if_exist() (
-	_dirEmptira="$1"
-	if ! is_dir_empty "$_dirEmptira"; then
-		sudo_rm_contents "$_dirEmptira"
+	dirEmptira="$1"
+	if ! is_dir_empty "$dirEmptira"; then
+		sudo_rm_contents "$dirEmptira"
 	fi
 )
 
 sudo_rm_dir() (
-	_dirEmptira="$1"
-	if [ -w "$_dirEmptira" ]; then
-		rm -rf "$_dirEmptira"
+	dirEmptira="$1"
+	if [ -w "$dirEmptira" ]; then
+		rm -rf "$dirEmptira"
 	else
-		sudo -p "Password required to remove ${_dirEmptira}: " \
-			rm -rf "$_dirEmptira"
+		sudo -p "Password required to remove ${dirEmptira}: " \
+			rm -rf "$dirEmptira"
 	fi
 )
 
 sudo_cp_contents() (
-	_fromDir="$1"
-	_toDir="$2"
-	if [ -r "$_fromDir" ] && [ -w "$_toDir" ]; then
-		cp -rv "$_fromDir"/. "$_toDir"
+	fromDir="$1"
+	toDir="$2"
+	if [ -r "$fromDir" ] && [ -w "$toDir" ]; then
+		cp -rv "$fromDir"/. "$toDir"
 	else
 		sudo -p 'Pass required for copying files: ' \
-			cp -rv "$_fromDir"/. "$_toDir"
+			cp -rv "$fromDir"/. "$toDir"
 	fi
 )
 
 sudo_mkdir() (
-	_dirMakera="$1"
-	mkdir -pv "$_dirMakera" ||
-	sudo -p "Password required for creating ${_dirMakera}: " \
-		mkdir -pv "$_dirMakera"
+	dirMakera="$1"
+	mkdir -pv "$dirMakera" ||
+	sudo -p "Password required for creating ${dirMakera}: " \
+		mkdir -pv "$dirMakera"
 )
 
 unroot_dir() (
-	_dirUnrootura="$1"
-	if [ ! -w "$_dirUnrootura" ]; then
+	dirUnrootura="$1"
+	if [ ! -w "$dirUnrootura" ]; then
 		prompt='Password required to change owner of'
-		prompt="${prompt} ${_dirUnrootura} to current user: "
+		prompt="${prompt} ${dirUnrootura} to current user: "
 		sudo -p "$prompt" \
-			chown -R "$currentUser": "$_dirUnrootura"
+			chown -R "$currentUser": "$dirUnrootura"
 	fi
 )
 
 empty_dir_contents() (
-	_dirEmptira="$1"
-	echo "emptying '${_dirEmptira}'"
-	error_check_path "$_dirEmptira" &&
-	if [ -e "$_dirEmptira" ]; then
+	dirEmptira="$1"
+	echo "emptying '${dirEmptira}'"
+	error_check_path "$dirEmptira" &&
+	if [ -e "$dirEmptira" ]; then
 		rm_contents_if_exist || return "$?"
 	else
-		sudo_mkdir "$_dirEmptira" || return "$?"
+		sudo_mkdir "$dirEmptira" || return "$?"
 	fi &&
-	unroot_dir "$_dirEmptira" &&
-	echo "done emptying '${_dirEmptira}'"
+	unroot_dir "$dirEmptira" &&
+	echo "done emptying '${dirEmptira}'"
 )
 
 get_bin_path() (
-	_pkg="$1"
+	pkg="$1"
 	case $(uname) in
 		(Darwin*)
-			brew info "$_pkg" \
+			brew info "$pkg" \
 			| grep -A1 'has been installed as' \
 			| awk 'END{ print $1 }'
 			;;
-		(*) which "$_pkg" ;;
+		(*) which "$pkg" ;;
 	esac
 )
 
@@ -510,12 +510,12 @@ linked_app_python_if_not_linked() {
 }
 
 brew_is_installed() (
-	_pkg="$1"
-	echo "checking for $_pkg"
+	pkg="$1"
+	echo "checking for $pkg"
 	case $(uname) in
 		(Darwin*)
-			brew info "$_pkg" >/dev/null 2>&1 &&
-			! brew info "$_pkg" | grep 'Not installed' >/dev/null
+			brew info "$pkg" >/dev/null 2>&1 &&
+			! brew info "$pkg" | grep 'Not installed' >/dev/null
 			;;
 		(*) return 0 ;;
 	esac
@@ -524,18 +524,18 @@ brew_is_installed() (
 #this needs to command group and not a subshell
 #else it will basically do nothing
 show_err_and_exit() {
-	_errCode="$?"
+	errCode="$?"
 	msg="$1"
 	[ ! -z "$msg" ] && echo "$msg"
-	exit "$_errCode"
+	exit "$errCode"
 }
 
 #needed this method because perl will still
 #exit 0 even if a file doesn't exist
 does_file_exist() (
-	_candidate="$1"
-	if [ ! -e "$_candidate" ]; then
-		echo "${_candidate} does not exist"
+	candidate="$1"
+	if [ ! -e "$candidate" ]; then
+		echo "${candidate} does not exist"
 		return 1
 	fi
 )
@@ -563,35 +563,35 @@ kill_process_using_port() (
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
-	_envFile="$appRoot"/"$configDir"/.env
-	error_check_all_paths "$templatesSrc"/.env_api "$_envFile" &&
-	_pkgMgrChoice=$(get_pkg_mgr) &&
-	cp "$templatesSrc"/.env_api "$_envFile" &&
-	does_file_exist "$_envFile" &&
+	envFile="$appRoot"/"$configDir"/.env
+	error_check_all_paths "$templatesSrc"/.env_api "$envFile" &&
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	cp "$templatesSrc"/.env_api "$envFile" &&
+	does_file_exist "$envFile" &&
 	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${contentHome}'@" \
-		"$_envFile" &&
+		"$envFile" &&
 	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqliteTrunkFilepath}'@" \
-		"$_envFile" &&
+		"$envFile" &&
 	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templatesDirCl}'@" \
-		"$_envFile" &&
+		"$envFile" &&
 	perl -pi -e \
 		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${icesConfigsDir}'@" \
-		"$_envFile" &&
+		"$envFile" &&
 	perl -pi -e \
 		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModules_dir}'@" \
-		"$_envFile" &&
+		"$envFile" &&
 	echo 'done setting up .env file'
 )
 
 copy_dir() (
-	_fromDir="$1"
-	_toDir="$2"
-	echo "copying from ${_fromDir} to ${_toDir}"
-	error_check_all_paths "$_fromDir"/. "$_toDir" &&
-	empty_dir_contents "$_toDir" &&
-	sudo_cp_contents "$_fromDir" "$_toDir" &&
-	unroot_dir "$_toDir" &&
-	echo "done copying dir from ${_fromDir} to ${_toDir}"
+	fromDir="$1"
+	toDir="$2"
+	echo "copying from ${fromDir} to ${toDir}"
+	error_check_all_paths "$fromDir"/. "$toDir" &&
+	empty_dir_contents "$toDir" &&
+	sudo_cp_contents "$fromDir" "$toDir" &&
+	unroot_dir "$toDir" &&
+	echo "done copying dir from ${fromDir} to ${toDir}"
 )
 
 replace_db_file_if_needed() (
@@ -643,7 +643,7 @@ setup_db() (
 
 start_db_service() (
 	echo 'starting database service'
-	_icecastName="$1"
+	icecastName="$1"
 	case $(uname) in
 		(Linux*)
 			if ! systemctl is-active --quiet mariadb; then
@@ -722,63 +722,63 @@ gen_pass() (
 )
 
 compare_dirs() (
-	_srcDir="$1"
-	_cpyDir="$2"
-	error_check_all_paths "$_srcDir" "$_cpyDir"
-	_exitCode=0
-	if [ ! -e "$_cpyDir" ]; then
-		echo "$_cpyDir/ is not in place"
+	srcDir="$1"
+	cpyDir="$2"
+	error_check_all_paths "$srcDir" "$cpyDir"
+	exitCode=0
+	if [ ! -e "$cpyDir" ]; then
+		echo "$cpyDir/ is not in place"
 		return 1
 	fi
-	_srcFifo='src_fifo'
-	_cpyFifo='cpy_fifo'
-	_cmpFifo='cmp_fifo'
-	rm -f "$_srcFifo" "$_cpyFifo" "$_cmpFifo"
-	mkfifo "$_srcFifo" "$_cpyFifo" "$_cmpFifo"
+	srcFifo='src_fifo'
+	cpyFifo='cpy_fifo'
+	cmpFifo='cmp_fifo'
+	rm -f "$srcFifo" "$cpyFifo" "$cmpFifo"
+	mkfifo "$srcFifo" "$cpyFifo" "$cmpFifo"
 
-	_srcRes=$(find "$_srcDir" | \
-		sed "s@${_srcDir%/}/\{0,1\}@@" | sort)
-	_cpyRes=$(find "${_cpyDir}" -not -path "${_cpyDir}/${pyEnv}/*" \
-		-and -not -path "${_cpyDir}/${pyEnv}" | \
-		sed "s@${_cpyDir%/}/\{0,1\}@@" | sort)
+	srcRes=$(find "$srcDir" | \
+		sed "s@${srcDir%/}/\{0,1\}@@" | sort)
+	cpyRes=$(find "${cpyDir}" -not -path "${cpyDir}/${pyEnv}/*" \
+		-and -not -path "${cpyDir}/${pyEnv}" | \
+		sed "s@${cpyDir%/}/\{0,1\}@@" | sort)
 
 	get_file_list() (
-		_supress="$1"
-		echo "$_srcRes" > "$_srcFifo" &
-		echo "$_cpyRes" > "$_cpyFifo" &
-		[ -n "$_supress" ] && comm "-${_supress}" "$_srcFifo" "$_cpyFifo" ||
-			comm "$_srcFifo" "$_cpyFifo"
+		supress="$1"
+		echo "$srcRes" > "$srcFifo" &
+		echo "$cpyRes" > "$cpyFifo" &
+		[ -n "$supress" ] && comm "-${supress}" "$srcFifo" "$cpyFifo" ||
+			comm "$srcFifo" "$cpyFifo"
 	)
 
-	_inBoth=$(get_file_list 12)
-	_inSrc=$(get_file_list 23)
-	_inCpy=$(get_file_list 13)
-	[ -n "$(echo "${_inCpy}" | xargs)" ] &&
+	inBoth=$(get_file_list 12)
+	inSrc=$(get_file_list 23)
+	inCpy=$(get_file_list 13)
+	[ -n "$(echo "${inCpy}" | xargs)" ] &&
 			{
-				echo "There are items that only exist in ${_cpyDir}"
-				_exitCode=2
+				echo "There are items that only exist in ${cpyDir}"
+				exitCode=2
 			}
-	[ -n "$(echo "${_inSrc}" | xargs)" ] &&
+	[ -n "$(echo "${inSrc}" | xargs)" ] &&
 			{
-				echo "There are items missing from the ${_cpyDir}"
-				_exitCode=3
+				echo "There are items missing from the ${cpyDir}"
+				exitCode=3
 			}
-	if [ -n "$_inBoth" ]; then
-		_exitCode=4
-		echo "$_inBoth" > "$_cmpFifo" &
-		while read _fileName; do
-			[ "${_srcDir%/}/${_fileName}" -nt "${_cpyDir%/}/${_fileName}" ] &&
-				echo "${_fileName} is outdated"
-		done <"$_cmpFifo"
+	if [ -n "$inBoth" ]; then
+		exitCode=4
+		echo "$inBoth" > "$cmpFifo" &
+		while read fileName; do
+			[ "${srcDir%/}/${fileName}" -nt "${cpyDir%/}/${fileName}" ] &&
+				echo "${fileName} is outdated"
+		done <"$cmpFifo"
 	fi
-	rm -f "$_srcFifo" "$_cpyFifo" "$_cmpFifo"
-	return "$_exitCode"
+	rm -f "$srcFifo" "$cpyFifo" "$cmpFifo"
+	return "$exitCode"
 )
 
 is_newer_than_files() (
-	_candidate="$1"
+	candidate="$1"
 	dir_to_check="$2"
-	find "$dir_to_check" -newer "$_candidate"
+	find "$dir_to_check" -newer "$candidate"
 )
 
 literal_to_regex() (
@@ -814,7 +814,7 @@ extract_commonName_from_cert() (
 )
 
 __certs_matching_name_osx__() (
-	_commonName="$1"
+	commonName="$1"
 	pattern='(-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----)'
 	script=$(cat <<-scriptEOF
 	while(\$_ =~ /$pattern/g) {
@@ -822,17 +822,17 @@ __certs_matching_name_osx__() (
 	}
 	scriptEOF
 	)
-	security find-certificate -a -p -c "$_commonName" \
+	security find-certificate -a -p -c "$commonName" \
 	$(__get_keychain_osx__) | perl -0777 -ne "$script"
 )
 
 __certs_matching_name_exact__() (
-	_commonName="$1"
+	commonName="$1"
 	case $(uname) in
 		(Darwin*)
-			__certs_matching_name_osx__ "$_commonName" \
+			__certs_matching_name_osx__ "$commonName" \
 			| extract_commonName_from_cert \
-			| input_match "$_commonName"
+			| input_match "$commonName"
 			;;
 		(*)
 			echo "operating system not configured"
@@ -842,42 +842,42 @@ __certs_matching_name_exact__() (
 )
 
 __generate_local_ssl_cert_osx__() (
-	_commonName="$1"
-	_domain="$2" &&
-	_publicKeyFile="$3" &&
-	_privateKeyFile="$4" &&
+	commonName="$1"
+	domain="$2" &&
+	publicKeyFile="$3" &&
+	privateKeyFile="$4" &&
 	mkfifo cat_config_fifo
 	{
 	cat<<-OpenSSLConfig
 	$(cat '/System/Library/OpenSSL/openssl.cnf')
-	$(printf "[SAN]\nsubjectAltName=DNS:${_domain},IP:127.0.0.1")
+	$(printf "[SAN]\nsubjectAltName=DNS:${domain},IP:127.0.0.1")
 	OpenSSLConfig
 	} > cat_config_fifo &
 	openssl req -x509 -sha256 -new -nodes -newkey rsa:2048 -days 7 \
-	-subj "/C=US/ST=CA/O=fake/CN=${_commonName}" -reqexts SAN -extensions SAN \
+	-subj "/C=US/ST=CA/O=fake/CN=${commonName}" -reqexts SAN -extensions SAN \
 	-config cat_config_fifo \
-	-keyout "$_privateKeyFile" -out "$_publicKeyFile"
-	_errCode="$?"
+	-keyout "$privateKeyFile" -out "$publicKeyFile"
+	errCode="$?"
 	rm -f cat_config_fifo
-	return "$_errCode"
+	return "$errCode"
 )
 
 __install_local_cert_osx__() (
-	_publicKeyFile="$1" &&
+	publicKeyFile="$1" &&
 	sudo security add-trusted-cert -p ssl -d -r trustRoot \
-	-k $(__get_keychain_osx__) "$_publicKeyFile"
+	-k $(__get_keychain_osx__) "$publicKeyFile"
 )
 
 __clean_up_invalid_cert__() (
-	_commonName="$1" &&
+	commonName="$1" &&
 	case $(uname) in
 		(Darwin*)
-			__certs_matching_name_osx__ "$_commonName" \
-				| while IFS= read -r -d '' _cert; do
-					_sha256Value=$(echo "$_cert" | extract_sha256_from_cert) &&
-					echo "$_cert" | is_cert_expired &&
+			__certs_matching_name_osx__ "$commonName" \
+				| while IFS= read -r -d '' cert; do
+					sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+					echo "$cert" | is_cert_expired &&
 					sudo security delete-certificate \
-						-Z "$_sha256Value" -t $(__get_keychain_osx__)
+						-Z "$sha256Value" -t $(__get_keychain_osx__)
 				done
 			;;
 		(*)
@@ -888,16 +888,16 @@ __clean_up_invalid_cert__() (
 )
 
 __setup_ssl_cert_local__() (
-	_commonName="$1"
-	_domain="$2" &&
-	_publicKeyFile="$3" &&
-	_privateKeyFile="$4" &&
+	commonName="$1"
+	domain="$2" &&
+	publicKeyFile="$3" &&
+	privateKeyFile="$4" &&
 
 	case $(uname) in
 		(Darwin*)
-			__generate_local_ssl_cert_osx__ "$_commonName" "$_domain" \
-			"$_publicKeyFile" "$_privateKeyFile" &&
-			__install_local_cert_osx__ "$_publicKeyFile" ||
+			__generate_local_ssl_cert_osx__ "$commonName" "$domain" \
+			"$publicKeyFile" "$privateKeyFile" &&
+			__install_local_cert_osx__ "$publicKeyFile" ||
 			return 1
 			;;
 		(*)
@@ -910,37 +910,37 @@ __setup_ssl_cert_local__() (
 
 setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
-	_publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
-	_privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
+	publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
+	privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
 	__clean_up_invalid_cert__ "${appName}-localhost"
 	__setup_ssl_cert_local__ "${appName}-localhost" 'localhost' \
-		"$_publicKeyFile" "$_privateKeyFile" &&
+		"$publicKeyFile" "$privateKeyFile" &&
 	setup_react_env_debug
 )
 
 print_ssl_cert_info() (
 	process_global_vars "$@" &&
-	_domain=$(_get_domain_name "$app_env" 'omitPort') &&
+	domain=$(_get_domain_name "$app_env" 'omitPort') &&
 	case "$app_env" in
 		(local*)
 			isDebugServer=${1#is_debug_server=}
 			if [ -n "$isDebugServer" ]; then
-				_domain="${_domain}-localhost"
+				domain="${domain}-localhost"
 			fi
 			case $(uname) in
 			(Darwin*)
 				echo "#### nginx info ####"
-				__certs_matching_name_osx__ "$_domain" \
-					| while IFS= read -r -d '' _cert; do
-						_sha256Value=$(echo "$_cert" | extract_sha256_from_cert) &&
-						echo "$_cert" | openssl x509 -enddate -subject -noout
+				__certs_matching_name_osx__ "$domain" \
+					| while IFS= read -r -d '' cert; do
+						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+						echo "$cert" | openssl x509 -enddate -subject -noout
 					done
 				echo "#### debug server info ####"
-				echo "${_domain}-localhost"
+				echo "${domain}-localhost"
 				__certs_matching_name_osx__ "${appName}-localhost" \
-					| while IFS= read -r -d '' _cert; do
-						_sha256Value=$(echo "$_cert" | extract_sha256_from_cert) &&
-						echo "$_cert" | openssl x509 -enddate -subject -noout
+					| while IFS= read -r -d '' cert; do
+						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+						echo "$cert" | openssl x509 -enddate -subject -noout
 					done
 				;;
 			(*)
@@ -949,44 +949,44 @@ print_ssl_cert_info() (
 		esac
 			;;
 		(*)
-			_publicKeyFile=$(__get_remote_public_key__) &&
-			cat "$_publicKeyFile" | openssl x509 -enddate -subject -noout
+			publicKeyFile=$(__get_remote_public_key__) &&
+			cat "$publicKeyFile" | openssl x509 -enddate -subject -noout
 			;;
 	esac
 )
 
 setup_ssl_cert_nginx() (
 	process_global_vars "$@" &&
-	_domain=$(_get_domain_name "$app_env" 'omitPort') &&
+	domain=$(_get_domain_name "$app_env" 'omitPort') &&
 	case "$app_env" in
 		(local*)
-			_publicKeyFile=$(__get_local_nginx_cert_path__).public.key.pem &&
-			_privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
+			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.pem &&
+			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
-			__clean_up_invalid_cert__ "$_domain"
-			if [ -z $(__certs_matching_name_exact__ "$_domain") ]; then
+			__clean_up_invalid_cert__ "$domain"
+			if [ -z $(__certs_matching_name_exact__ "$domain") ]; then
 				__setup_ssl_cert_local__ \
-				"$_domain" "$_domain" "$_publicKeyFile" "$_privateKeyFile"
+				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
 			fi
 			;;
 		(*)
-			_publicKeyFile=$(__get_remote_public_key__) &&
-			_privateKeyFile=$(__get_remote_private_key__) &&
-			_intermediateKeyFile=$(__get_remote_intermediate_key__) &&
+			publicKeyFile=$(__get_remote_public_key__) &&
+			privateKeyFile=$(__get_remote_private_key__) &&
+			intermediateKeyFile=$(__get_remote_intermediate_key__) &&
 
-			if [ ! -e "$_publicKeyFile" ] || [ ! -e "$_privateKeyFile" ] ||
-			cat "$_publicKeyFile" | is_cert_expired ||
+			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
+			cat "$publicKeyFile" | is_cert_expired ||
 			str_contains "$replace" "ssl_certs"; then
 				echo "downloading new certs"
-				_sslVars=$(get_ssl_vars)
-				echo "$_sslVars" | stdin_json_extract_value 'privatekey' | \
-				perl -pe 'chomp if eof' > "$_privateKeyFile" &&
-				echo "$_sslVars" | \
+				sslVars=$(get_ssl_vars)
+				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
+				perl -pe 'chomp if eof' > "$privateKeyFile" &&
+				echo "$sslVars" | \
 				stdin_json_extract_value 'certificatechain' | \
-				perl -pe 'chomp if eof' > "$_publicKeyFile" &&
-				echo "$_sslVars" | \
+				perl -pe 'chomp if eof' > "$publicKeyFile" &&
+				echo "$sslVars" | \
 				stdin_json_extract_value 'intermediatecertificate' | \
-				perl -pe 'chomp if eof' > "$_intermediateKeyFile"
+				perl -pe 'chomp if eof' > "$intermediateKeyFile"
 			fi
 			;;
 	esac
@@ -994,36 +994,36 @@ setup_ssl_cert_nginx() (
 
 setup_react_env_debug() (
 	process_global_vars "$@" &&
-	_envFile="$clientSrc"/.env.local
-	echo "$_envFile"
-	echo 'reactAppApiVersion=v1' > "$_envFile"
-	echo 'reactAppBaseAddress=https://localhost:8032' >> "$_envFile"
+	envFile="$clientSrc"/.env.local
+	echo "$envFile"
+	echo 'reactAppApiVersion=v1' > "$envFile"
+	echo 'reactAppBaseAddress=https://localhost:8032' >> "$envFile"
 	#HTTPS, SSL_CRT_FILE, and SSL_KEY_FILE are used by create-react-app
 	#when calling `npm start`
-	echo 'HTTPS=true' >> "$_envFile"
-	echo "SSL_CRT_FILE=$(__get_debug_cert_path__).public.key.pem" >> "$_envFile"
-	echo "SSL_KEY_FILE=$(__get_debug_cert_path__).private.key.pem" >> "$_envFile"
+	echo 'HTTPS=true' >> "$envFile"
+	echo "SSL_CRT_FILE=$(__get_debug_cert_path__).public.key.pem" >> "$envFile"
+	echo "SSL_KEY_FILE=$(__get_debug_cert_path__).private.key.pem" >> "$envFile"
 )
 
 get_nginx_value() (
-	_key=${1:-'conf-path'}
+	key=${1:-'conf-path'}
 	#break options into a list
 	#then isolate the option we're interested in
 	nginx -V 2>&1 | \
 		sed 's/ /\n/g' | \
-		sed -n "/--${_key}/p" | \
+		sed -n "/--${key}/p" | \
 		sed 's/.*=\(.*\)/\1/'
 )
 
 get_nginx_conf_dir_include() (
-	_nginxConf=$(get_nginx_value)
-	_guesses=$(cat<<-'EOF'
+	nginxConf=$(get_nginx_value)
+	guesses=$(cat<<-'EOF'
 		include /etc/nginx/sites-enabled/*;
 		include servers/*;
 	EOF
 	)
-	echo "$_guesses" | while read guess; do
-		if grep -F "$guess" "$_nginxConf" >/dev/null; then
+	echo "$guesses" | while read guess; do
+		if grep -F "$guess" "$nginxConf" >/dev/null; then
 			echo "$guess"
 			break
 		fi
@@ -1032,100 +1032,100 @@ get_nginx_conf_dir_include() (
 
 __copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
-		cp "$templatesSrc"/nginx_template.conf "$_appConfFile" &&
-	sudo -p "update ${_appConfFile}" \
+		cp "$templatesSrc"/nginx_template.conf "$appConfFile" &&
+	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<appClientPathCl>@${webRoot}/${appClientPathCl}@" \
-		"$_appConfFile" &&
-	sudo -p "update ${_appConfFile}" \
-		perl -pi -e "s@<serverName>@${serverName}@g" "$_appConfFile" &&
-	sudo -p "update ${_appConfFile}" \
-		perl -pi -e "s@<apiPort>@${apiPort}@" "$_appConfFile"
+		"$appConfFile" &&
+	sudo -p "update ${appConfFile}" \
+		perl -pi -e "s@<serverName>@${serverName}@g" "$appConfFile" &&
+	sudo -p "update ${appConfFile}" \
+		perl -pi -e "s@<apiPort>@${apiPort}@" "$appConfFile"
 }
 
 update_nginx_conf() (
 	echo "updating nginx site conf"
-	_appConfFile="$1"
-	error_check_all_paths "$templatesSrc" "$_appConfFile" &&
+	appConfFile="$1"
+	error_check_all_paths "$templatesSrc" "$appConfFile" &&
 	__copy_and_update_nginx_template__ &&
 	case "$app_env" in
 		(local*)
-			_publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
-			_privateKey=$(__get_local_nginx_cert_path__).private.key.pem &&
-			sudo -p "update ${_appConfFile}" \
-				perl -pi -e "s/<listen>/8080 ssl/" "$_appConfFile" &&
-			sudo -p "update ${_appConfFile}" \
-				perl -pi -e "s@<ssl_public_key>@${_publicKey}@" \
-				"$_appConfFile" &&
-			sudo -p "update ${_appConfFile}" \
-				perl -pi -e "s@<ssl_private_key>@${_privateKey}@" \
-				"$_appConfFile"
+			publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
+			privateKey=$(__get_local_nginx_cert_path__).private.key.pem &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s@<ssl_public_key>@${publicKey}@" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s@<ssl_private_key>@${privateKey}@" \
+				"$appConfFile"
 			;;
 		(*)
-			sudo -p "update ${_appConfFile}" \
-				perl -pi -e "s/<listen>/[::]:443 ssl/" "$_appConfFile" &&
+			sudo -p "update ${appConfFile}" \
+				perl -pi -e "s/<listen>/[::]:443 ssl/" "$appConfFile" &&
 
-				sudo -p "update ${_appConfFile}" \
+				sudo -p "update ${appConfFile}" \
 				perl -pi -e \
 				"s@<ssl_public_key>@$(__get_remote_public_key__)@" \
-				"$_appConfFile" &&
-			sudo -p "update ${_appConfFile}" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
 				"s@<ssl_private_key>@$(__get_remote_private_key__)@" \
-				"$_appConfFile" &&
-			sudo -p "update ${_appConfFile}" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
 				"s@<ssl_intermediate>@$(__get_remote_intermediate_key__)@" \
-				"$_appConfFile" &&
-			sudo -p "update ${_appConfFile}" \
+				"$appConfFile" &&
+			sudo -p "update ${appConfFile}" \
 				perl -pi -e \
 				's/#ssl_trusted_certificate/ssl_trusted_certificate/' \
-				"$_appConfFile"
+				"$appConfFile"
 			;;
 	esac &&
 	echo "done updating nginx site conf"
 )
 
 get_abs_path_from_nginx_include() (
-	_confDirInclude="$1"
-	_confDir=$(echo "$_confDirInclude" | sed 's/include *//' | \
+	confDirInclude="$1"
+	confDir=$(echo "$confDirInclude" | sed 's/include *//' | \
 		sed 's@/\*; *@@')
 	#test if already exists as absolute path
-	if [ -d  "$_confDir" ]; then
-		echo "$_confDir"
+	if [ -d  "$confDir" ]; then
+		echo "$confDir"
 		return
 	else
-		_sitesFolderPath=$(dirname $(get_nginx_value))
-		echo "_sitesFolderPath: ${_sitesFolderPath}" >&2
-		_absPath="$_sitesFolderPath"/"$_confDir"
-		if [ ! -d "$_absPath" ]; then
-			if [ -e "$_absPath" ]; then
-				echo "{$_absPath} is a file, not a directory" 1>&2
+		sitesFolderPath=$(dirname $(get_nginx_value))
+		echo "sitesFolderPath: ${sitesFolderPath}" >&2
+		absPath="$sitesFolderPath"/"$confDir"
+		if [ ! -d "$absPath" ]; then
+			if [ -e "$absPath" ]; then
+				echo "{$absPath} is a file, not a directory" 1>&2
 				return 1
 			fi
 			#Apparently nginx will look for includes with either an absolute path
 			#or path relative to the config
 			#some os'es are finicky about creating directories at the root lvl
 			#even with sudo, so we're not going to even try
-			#we'll just create missing dir in $_sitesFolderPath folder
+			#we'll just create missing dir in $sitesFolderPath folder
 			sudo -p "Add nginx conf dir" \
-				mkdir -pv "$_absPath"
+				mkdir -pv "$absPath"
 		fi
-		echo "$_absPath"
+		echo "$absPath"
 	fi
 )
 
 get_nginx_conf_dir_abs_path() (
-	_confDirInclude=$(get_nginx_conf_dir_include)
-	get_abs_path_from_nginx_include "$_confDirInclude"
+	confDirInclude=$(get_nginx_conf_dir_include)
+	get_abs_path_from_nginx_include "$confDirInclude"
 )
 
 enable_nginx_include() (
 	echo "enabling nginx site confs"
-	_confDirInclude="$1"
-	_escapedGuess=$(literal_to_regex "$_confDirInclude")
+	confDirInclude="$1"
+	escapedGuess=$(literal_to_regex "$confDirInclude")
 	#uncomment line if necessary in config
-	sudo -p "Enable ${_confDirInclude}" \
-		perl -pi -e "s/^[ \t]*#// if m@$_escapedGuess@" "$(get_nginx_value)" &&
+	sudo -p "Enable ${confDirInclude}" \
+		perl -pi -e "s/^[ \t]*#// if m@$escapedGuess@" "$(get_nginx_value)" &&
 	echo "done enabling nginx site confs"
 )
 
@@ -1150,46 +1150,46 @@ restart_nginx() (
 
 print_nginx_conf_location() (
 	process_global_vars "$@" >/dev/null &&
-	_confDirInclude=$(get_nginx_conf_dir_include) &&
-	_confDir=$(get_abs_path_from_nginx_include "$_confDirInclude") 2>/dev/null
-	echo "$_confDir"/"$appName".conf
+	confDirInclude=$(get_nginx_conf_dir_include) &&
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
+	echo "$confDir"/"$appName".conf
 )
 
 print_cert_paths() (
 	process_global_vars "$@" >/dev/null &&
-	_confDirInclude=$(get_nginx_conf_dir_include) &&
-	_confDir=$(get_abs_path_from_nginx_include "$_confDirInclude") 2>/dev/null
-	cat "$_confDir"/"$appName".conf | perl -ne \
+	confDirInclude=$(get_nginx_conf_dir_include) &&
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
+	cat "$confDir"/"$appName".conf | perl -ne \
 	'print "$1\n" if /ssl_certificate ([^;]+)/'
-	cat "$_confDir"/"$appName".conf | perl -ne \
+	cat "$confDir"/"$appName".conf | perl -ne \
 	'print "$1\n" if /ssl_certificate_key ([^;]+)/'
-	cat "$_confDir"/"$appName".conf | perl -ne \
+	cat "$confDir"/"$appName".conf | perl -ne \
 	'print "$1\n" if /[^#]ssl_trusted_certificate ([^;]+)/'
 )
 
 setup_nginx_confs() (
 	echo 'setting up nginx confs'
 	process_global_vars "$@" &&
-	_confDirInclude=$(get_nginx_conf_dir_include) &&
+	confDirInclude=$(get_nginx_conf_dir_include) &&
 	#remove trailing path chars
-	_confDir=$(get_abs_path_from_nginx_include "$_confDirInclude") &&
+	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") &&
 	setup_ssl_cert_nginx &&
-	enable_nginx_include "$_confDirInclude" &&
-	update_nginx_conf "$_confDir"/"$appName".conf &&
+	enable_nginx_include "$confDirInclude" &&
+	update_nginx_conf "$confDir"/"$appName".conf &&
 	sudo -p 'Remove default nginx config' \
-		rm -f "$_confDir"/default &&
+		rm -f "$confDir"/default &&
 	restart_nginx &&
 	echo 'done setting up nginx confs'
 )
 
 start_icecast_service() (
 	echo 'starting icecast service'
-	_icecastName="$1"
+	icecastName="$1"
 	case $(uname) in
 		(Linux*)
-			if ! systemctl is-active --quiet "$_icecastName"; then
-				sudo -p "enabling ${_icecastName}" systemctl enable "$_icecastName"
-				sudo -p "starting ${_icecastName}" systemctl start "$_icecastName"
+			if ! systemctl is-active --quiet "$icecastName"; then
+				sudo -p "enabling ${icecastName}" systemctl enable "$icecastName"
+				sudo -p "starting ${icecastName}" systemctl start "$icecastName"
 			fi
 			;;
 		(*) ;;
@@ -1209,14 +1209,14 @@ install_ices() (
 )
 
 get_icecast_conf() (
-	_icecastName="$1"
+	icecastName="$1"
 	case $(uname) in
 		(Linux*)
-			if ! systemctl status "$_icecastName" >/dev/null 2>&1; then
-					echo "$_icecastName is not running at the moment"
+			if ! systemctl status "$icecastName" >/dev/null 2>&1; then
+					echo "$icecastName is not running at the moment"
 					exit 1
 			fi
-				systemctl status "$_icecastName" | grep -A2 CGroup | \
+				systemctl status "$icecastName" | grep -A2 CGroup | \
 					head -n2 | tail -n1 | awk '{ print $NF }'
 			;;
 		(Darwin*)
@@ -1280,34 +1280,34 @@ show_ices_station_log() (
 
 update_icecast_conf() (
 	echo "updating icecast config"
-	_icecastConfLocation="$1"
-	_sourcePassword="$2"
-	_relayPassword="$3"
-	_adminPassword="$4"
+	icecastConfLocation="$1"
+	sourcePassword="$2"
+	relayPassword="$3"
+	adminPassword="$4"
 
 	sudo -p 'Pass required for modifying icecast config: ' \
-		perl -pi -e "s/>\w*/>${_sourcePassword}/ if /source-password/" \
-		"$_icecastConfLocation" &&
+		perl -pi -e "s/>\w*/>${sourcePassword}/ if /source-password/" \
+		"$icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
-		perl -pi -e "s/>\w*/>${_relayPassword}/ if /relay-password/" \
-		"$_icecastConfLocation" &&
+		perl -pi -e "s/>\w*/>${relayPassword}/ if /relay-password/" \
+		"$icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
-		perl -pi -e "s/>\w*/>${_adminPassword}/ if /admin-password/" \
-		"$_icecastConfLocation" &&
+		perl -pi -e "s/>\w*/>${adminPassword}/ if /admin-password/" \
+		"$icecastConfLocation" &&
 	sudo -p 'Pass required for modifying icecast config: ' \
 		perl -pi -e "s@^([ \t]*)<.*@\1<bind-address>::</bind-address>@" \
 		-e "if /<bind-address>/" \
-		"$_icecastConfLocation" &&
+		"$icecastConfLocation" &&
 	echo "done updating icecast config"
 )
 
 update_all_ices_confs() (
 	echo "updating ices confs"
-	_sourcePassword="$1"
+	sourcePassword="$1"
 	process_global_vars "$@"
 	for conf in "$appRoot"/"$icesConfigsDir"/*.conf; do
 		[ ! -s "$conf" ] && continue
-		perl -pi -e "s/>\w*/>${_sourcePassword}/ if /Password/" "$conf"
+		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
 	done &&
 	echo "done updating ices confs"
 )
@@ -1315,18 +1315,18 @@ update_all_ices_confs() (
 
 setup_icecast_confs() (
 	echo "setting up icecast/ices"
-	_icecastName="$1"
+	icecastName="$1"
 	process_global_vars "$@" &&
 	#need to make sure that  icecast is running so we can get the config
 	#location from systemd. While icecast does have a custom config option
 	#I don't feel like editing the systemd service to make it happen
-	start_icecast_service "$_icecastName" &&
-	_icecastConfLocation=$(get_icecast_conf "$_icecastName") &&
-	_sourcePassword=$(gen_pass) &&
-	update_icecast_conf "$_icecastConfLocation" \
-		"$_sourcePassword" $(gen_pass) $(gen_pass) &&
-	update_all_ices_confs "$_sourcePassword" &&
-	sudo -p "restarting ${_icecastName}" systemctl restart "$_icecastName" &&
+	start_icecast_service "$icecastName" &&
+	icecastConfLocation=$(get_icecast_conf "$icecastName") &&
+	sourcePassword=$(gen_pass) &&
+	update_icecast_conf "$icecastConfLocation" \
+		"$sourcePassword" $(gen_pass) $(gen_pass) &&
+	update_all_ices_confs "$sourcePassword" &&
+	sudo -p "restarting ${icecastName}" systemctl restart "$icecastName" &&
 	echo "done setting up icecast/ices"
 )
 
@@ -1389,7 +1389,7 @@ EOF
 startup_radio() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
-	_pkgMgrChoice=$(get_pkg_mgr) &&
+	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
 	export searchBase="$appRoot"/"$contentHome" &&
@@ -1510,9 +1510,9 @@ setup_radio() (
 	create_py_env_in_app_trunk &&
 	copy_dir "$templatesSrc" "$appRoot"/"$templatesDirCl" &&
 	replace_db_file_if_needed2 &&
-	_pkgMgrChoice=$(get_pkg_mgr) &&
-	_icecastName=$(get_icecast_name "$_pkgMgrChoice") &&
-	setup_icecast_confs "$_icecastName" &&
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
+	setup_icecast_confs "$icecastName" &&
 	echo "done setting up radio"
 )
 

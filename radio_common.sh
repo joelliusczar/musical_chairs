@@ -24,7 +24,7 @@ get_repo_path() (
 	if [ -n "$radioRepoPath" ]; then
 		echo "$radioRepoPath"
 	else
-		echo "$defaultRadioRepoPath"
+		echo "$MC_DEFAULT_RADIO_REPO_PATH"
 	fi
 )
 
@@ -89,19 +89,19 @@ set_env_vars() {
 }
 
 __set_env_path_var__() {
-	if perl -e "exit 1 if index('$PATH','${appRoot}/${binDir}') != -1"; then
-		echo "Please add '${appRoot}/${binDir}' to path"
-		export PATH="$PATH":"$appRoot"/"$binDir"
+	if perl -e "exit 1 if index('$PATH','${appRoot}/${MC_BIN_DIR}') != -1"; then
+		echo "Please add '${appRoot}/${MC_BIN_DIR}' to path"
+		export PATH="$PATH":"$appRoot"/"$MC_BIN_DIR"
 	fi
 }
 
 
 __export_py_env_vars__() {
-	export searchBase="$appRoot"/"$MC_CONTENT_HOME" &&
-	export dbName="$appRoot"/"$sqliteTrunkFilepath" &&
-	export templateDir="$appRoot"/"$templatesDirCl" &&
-	export stationConfigDir="$appRoot"/"$MC_ICES_CONFIGS_DIR" &&
-	export stationModuleDir="$appRoot"/"$pyModulesDir"
+	export MC_SEARCH_BASE="$appRoot"/"$MC_CONTENT_HOME" &&
+	export MC_DB_NAME="$appRoot"/"$MC_SQLITE_TRUNK_FILEPATH" &&
+	export MC_TEMPLATE_DIR="$appRoot"/"$MC_TEMPLATES_DIR_CL" &&
+	export MC_ICES_CONFIG_DRI="$appRoot"/"$MC_ICES_CONFIGS_DIR" &&
+	export MC_MODULE_DIR="$appRoot"/"$MC_PY_MODULE_DIR"
 	export MC_RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
 }
 
@@ -109,11 +109,11 @@ print_py_env_var_guesses() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
 	__export_py_env_vars__ &&
-	echo "searchBase=$searchBase"
-	echo "dbName=$dbName"
-	echo "templateDir=$templateDir"
-	echo "stationConfigDir=$stationConfigDir"
-	echo "stationModuleDir=$stationModuleDir"
+	echo "MC_SEARCH_BASE=$MC_SEARCH_BASE"
+	echo "MC_DB_NAME=$MC_DB_NAME"
+	echo "MC_TEMPLATE_DIR=$MC_TEMPLATE_DIR"
+	echo "MC_ICES_CONFIG_DRI=$MC_ICES_CONFIG_DRI"
+	echo "MC_MODULE_DIR=$MC_MODULE_DIR"
 	echo "MC_RADIO_AUTH_SECRET_KEY=$MC_RADIO_AUTH_SECRET_KEY"
 )
 
@@ -382,14 +382,14 @@ create_py_env_in_app_trunk() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
 	create_py_env_in_dir "$appRoot"/"$appTrunk" &&
-	copy_dir "$libSrc" \
-		"$(get_libs_dir "$appRoot"/"$appTrunk")""$libName"
+	copy_dir "$MC_LIB_SRC" \
+		"$(get_libs_dir "$appRoot"/"$appTrunk")""$MC_LIB_NAME"
 )
 
 copy_lib_to_test() (
 	process_global_vars "$@" &&
-	copy_dir "$libSrc" \
-		"$(get_libs_dir "$MC_UTEST_ENV_DIR")"/"$libName"
+	copy_dir "$MC_LIB_SRC" \
+		"$(get_libs_dir "$MC_UTEST_ENV_DIR")"/"$MC_LIB_NAME"
 )
 
 error_check_path() (
@@ -493,17 +493,17 @@ get_bin_path() (
 
 link_app_python_if_not_linked() {
 	if ! mc-python -V 2>/dev/null; then
-		if [ ! -e "$appRoot"/"$binDir" ]; then
-			sudo_mkdir "$appRoot"/"$binDir" || return "$?"
+		if [ ! -e "$appRoot"/"$MC_BIN_DIR" ]; then
+			sudo_mkdir "$appRoot"/"$MC_BIN_DIR" || return "$?"
 		fi
 		case $(uname) in
 			(Darwin*)
 				ln -sf $(get_bin_path python@3.9) \
-					"$appRoot"/"$binDir"/mc-python
+					"$appRoot"/"$MC_BIN_DIR"/mc-python
 				;;
 			(*)
 				ln -sf $(get_bin_path python3) \
-					"$appRoot"/"$binDir"/mc-python
+					"$appRoot"/"$MC_BIN_DIR"/mc-python
 				;;
 		esac
 	fi
@@ -564,22 +564,22 @@ kill_process_using_port() (
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
-	envFile="$appRoot"/"$CONFIG_DIR"/.env
+	envFile="$appRoot"/"$MC_CONFIG_DIR"/.env
 	error_check_all_paths "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	cp "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
-	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${MC_CONTENT_HOME}'@" \
+	perl -pi -e "s@^(MC_SEARCH_BASE=).*\$@\1'${appRoot}/${MC_CONTENT_HOME}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqliteTrunkFilepath}'@" \
+	perl -pi -e "s@^(MC_DB_NAME=).*\$@\1'${appRoot}/${MC_SQLITE_TRUNK_FILEPATH}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templatesDirCl}'@" \
-		"$envFile" &&
-	perl -pi -e \
-		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${MC_ICES_CONFIGS_DIR}'@" \
+	perl -pi -e "s@^(MC_TEMPLATE_DIR=).*\$@\1'${appRoot}/${MC_TEMPLATES_DIR_CL}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModulesDir}'@" \
+		"s@^(MC_ICES_CONFIG_DRI=).*\$@\1'${appRoot}/${MC_ICES_CONFIGS_DIR}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_MODULE_DIR=).*\$@\1'${appRoot}/${MC_PY_MODULE_DIR}'@" \
 		"$envFile" &&
 	echo 'done setting up .env file'
 )
@@ -598,11 +598,11 @@ copy_dir() (
 replace_db_file_if_needed() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
-	error_check_all_paths "$referenceSrcDb" \
-		"$appRoot"/"$sqliteTrunkFilepath"  &&
-	if [ ! -e "$appRoot"/"$sqliteTrunkFilepath" ] || [ -n "$clean_flag" ] \
+	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
+		"$appRoot"/"$MC_SQLITE_TRUNK_FILEPATH"  &&
+	if [ ! -e "$appRoot"/"$MC_SQLITE_TRUNK_FILEPATH" ] || [ -n "$clean_flag" ] \
 	|| [ -n "$replaceDbFlag" ]; then
-		cp -v "$referenceSrcDb" "$appRoot"/"$sqliteTrunkFilepath" &&
+		cp -v "$MC_REFERENCE_SRC_DB" "$appRoot"/"$MC_SQLITE_TRUNK_FILEPATH" &&
 		return 0
 		echo 'Done copying db'
 	fi
@@ -1232,7 +1232,7 @@ get_icecast_conf() (
 show_current_py_lib_files() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	set_python_version_const >/dev/null 2>&1 &&
-	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${libName}"
+	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${MC_LIB_NAME}"
 	echo "$appRoot"/"$appTrunk"/"$pyEnv"/"$envDir"
 )
 
@@ -1340,7 +1340,7 @@ run_song_scan() (
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 
 	if [ -n "$shouldReplaceDb" ]; then
-		sudo_rm_contents "$dbName" || return "$?"
+		sudo_rm_contents "$MC_DB_NAME" || return "$?"
 	fi &&
 	# #python_env
 	python  <<-EOF
@@ -1393,7 +1393,7 @@ startup_radio() (
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
-	export searchBase="$appRoot"/"$MC_CONTENT_HOME" &&
+	export MC_SEARCH_BASE="$appRoot"/"$MC_CONTENT_HOME" &&
 	__export_py_env_vars__ &&
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	for conf in "$appRoot"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
@@ -1434,7 +1434,7 @@ setup_api() (
 	kill_process_using_port "$MC_API_PORT" &&
 	sync_utility_scripts &&
 	sync_requirement_list &&
-	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$templatesDirCl" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$MC_TEMPLATES_DIR_CL" &&
 	copy_dir "$MC_API_SRC" "$webRoot"/"$MC_APP_API_PATH_CL" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
@@ -1509,7 +1509,7 @@ setup_radio() (
 	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
-	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$templatesDirCl" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$MC_TEMPLATES_DIR_CL" &&
 	replace_db_file_if_needed2 &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -1531,14 +1531,14 @@ setup_unit_test_env() (
 	__create_fake_keys_file__
 	setup_common_dirs
 
-	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$templatesDirCl" &&
-	error_check_all_paths "$referenceSrcDb" \
-		"$appRoot"/"$sqliteTrunkFilepath" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$MC_TEMPLATES_DIR_CL" &&
+	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
+		"$appRoot"/"$MC_SQLITE_TRUNK_FILEPATH" &&
 	sync_requirement_list
 	setup_env_api_file
 	pyEnvPath="$appRoot"/"$appTrunk"/"$pyEnv"
 	#redirect stderr into stdout so that missing env will also trigger redeploy
-	srcChanges=$(find "$libSrc" -newer "$pyEnvPath" 2>&1)
+	srcChanges=$(find "$MC_LIB_SRC" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
 	[ "$workspaceAbsPath"/requirements.txt -nt "$pyEnvPath" ]
 	then
@@ -1546,9 +1546,9 @@ setup_unit_test_env() (
 		create_py_env_in_app_trunk
 	fi
 	replace_db_file_if_needed2 &&
-	echo "$appRoot"/"$CONFIG_DIR"/.env &&
-	echo "PYTHONPATH='${srcPath}:${srcPath}/api'" \
-		>> "$appRoot"/"$CONFIG_DIR"/.env &&
+	echo "$appRoot"/"$MC_CONFIG_DIR"/.env &&
+	echo "PYTHONPATH='${MC_SRC_PATH}:${MC_SRC_PATH}/api'" \
+		>> "$appRoot"/"$MC_CONFIG_DIR"/.env &&
 	echo "done setting up test environment"
 )
 
@@ -1568,9 +1568,9 @@ run_unit_tests() (
 	process_global_vars "$@"
 	export appRoot="$MC_TEST_ROOT"
 	setup_unit_test_env &&
-	test_src="$srcPath"/tests &&
+	test_src="$MC_SRC_PATH"/tests &&
 	__export_py_env_vars__ &&
-	export PYTHONPATH="${srcPath}:${srcPath}/api" &&
+	export PYTHONPATH="${MC_SRC_PATH}:${MC_SRC_PATH}/api" &&
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
 	cd "$test_src"
 	pytest -s "$@" &&
@@ -1674,10 +1674,10 @@ define_consts() {
 	export projName='musical_chairs'
 	export MC_BUILD_DIR='builds'
 	export MC_CONTENT_HOME='music/radio'
-	export binDir='.local/bin'
+	export MC_BIN_DIR='.local/bin'
 	export MC_API_PORT='8033'
 	#done't try to change from home
-	export defaultRadioRepoPath="$HOME"/"$MC_BUILD_DIR"/"$projName"
+	export MC_DEFAULT_RADIO_REPO_PATH="$HOME"/"$MC_BUILD_DIR"/"$projName"
 	export __CONSTANTS_SET__='true'
 	echo "constants defined"
 }
@@ -1704,7 +1704,7 @@ define_top_level_terms() {
 	export webRoot="$webRoot"
 
 
-	export libName="$projName"_libs
+	export MC_LIB_NAME="$projName"_libs
 	export appName="$projName"_app
 
 	echo "top level terms defined"
@@ -1712,16 +1712,16 @@ define_top_level_terms() {
 
 define_app_dir_paths() {
 	export MC_ICES_CONFIGS_DIR="$appTrunk"/ices_configs
-	export pyModulesDir="$appTrunk"/pyModules
+	export MC_PY_MODULE_DIR="$appTrunk"/pyModules
 
-	export CONFIG_DIR="$appTrunk"/config
-	export dbDir="$appTrunk"/db
-	export sqliteTrunkFilepath="$dbDir"/"$sqliteFilename"
+	export MC_CONFIG_DIR="$appTrunk"/config
+	export MC_DB_DIR="$appTrunk"/db
+	export MC_SQLITE_TRUNK_FILEPATH="$MC_DB_DIR"/"$sqliteFilename"
 	export MC_UTEST_ENV_DIR="$MC_TEST_ROOT"/utest
 
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
-	export templatesDirCl="$appTrunk"/templates
+	export MC_TEMPLATES_DIR_CL="$appTrunk"/templates
 
 	echo "app dir paths defined and created"
 }
@@ -1774,25 +1774,25 @@ __define_url__() {
 }
 
 define_repo_paths() {
-	export srcPath="$workspaceAbsPath/src"
-	export MC_API_SRC="$srcPath/api"
-	export MC_CLIENT_SRC="$srcPath/client"
-	export libSrc="$srcPath/$libName"
+	export MC_SRC_PATH="$workspaceAbsPath/src"
+	export MC_API_SRC="$MC_SRC_PATH/api"
+	export MC_CLIENT_SRC="$MC_SRC_PATH/client"
+	export MC_LIB_SRC="$MC_SRC_PATH/$MC_LIB_NAME"
 	export MC_TEMPLATES_SRC="$workspaceAbsPath/templates"
-	export referenceSrc="$workspaceAbsPath/reference"
-	export referenceSrcDb="$referenceSrc/$sqliteFilename"
+	export MC_REFERENCE_SRC="$workspaceAbsPath/reference"
+	export MC_REFERENCE_SRC_DB="$MC_REFERENCE_SRC/$sqliteFilename"
 	echo "source paths defined"
 }
 
 setup_common_dirs() {
-	[ -e "$appRoot"/"$CONFIG_DIR" ] ||
-	mkdir -pv "$appRoot"/"$CONFIG_DIR"
+	[ -e "$appRoot"/"$MC_CONFIG_DIR" ] ||
+	mkdir -pv "$appRoot"/"$MC_CONFIG_DIR"
 	[ -e "$appRoot"/"$MC_ICES_CONFIGS_DIR" ] ||
 	mkdir -pv "$appRoot"/"$MC_ICES_CONFIGS_DIR"
-	[ -e "$appRoot"/"$pyModulesDir" ] ||
-	mkdir -pv "$appRoot"/"$pyModulesDir"
-	[ -e "$appRoot"/"$dbDir" ] ||
-	mkdir -pv "$appRoot"/"$dbDir"
+	[ -e "$appRoot"/"$MC_PY_MODULE_DIR" ] ||
+	mkdir -pv "$appRoot"/"$MC_PY_MODULE_DIR"
+	[ -e "$appRoot"/"$MC_DB_DIR" ] ||
+	mkdir -pv "$appRoot"/"$MC_DB_DIR"
 	[ -e "$appRoot"/keys ] ||
 	mkdir -pv "$appRoot"/keys
 }
@@ -1862,34 +1862,34 @@ unset_globals() {
 	unset appRoot
 	unset MC_APP_ROOT_0
 	unset appTrunk
-	unset binDir
+	unset MC_BIN_DIR
 	unset MC_BUILD_DIR
 	unset MC_CLIENT_SRC
-	unset CONFIG_DIR
+	unset MC_CONFIG_DIR
 	unset __CONSTANTS_SET__
 	unset MC_CONTENT_HOME
 	unset MC_CURRENT_USER
-	unset dbName
-	unset dbDir
-	unset defaultRadioRepoPath
+	unset MC_DB_NAME
+	unset MC_DB_DIR
+	unset MC_DEFAULT_RADIO_REPO_PATH
 	unset MC_FULL_URL
 	unset __GLOBALS_SET__
 	unset MC_ICES_CONFIGS_DIR
-	unset libName
-	unset libSrc
+	unset MC_LIB_NAME
+	unset MC_LIB_SRC
 	unset projName
-	unset pyModulesDir
+	unset MC_PY_MODULE_DIR
 	unset pyEnv
-	unset referenceSrc
-	unset referenceSrcDb
-	unset searchBase
+	unset MC_REFERENCE_SRC
+	unset MC_REFERENCE_SRC_DB
+	unset MC_SEARCH_BASE
 	unset SERVER_NAME
-	unset sqliteTrunkFilepath
-	unset srcPath
-	unset stationConfigDir
-	unset stationModuleDir
-	unset templateDir
-	unset templatesDirCl
+	unset MC_SQLITE_TRUNK_FILEPATH
+	unset MC_SRC_PATH
+	unset MC_ICES_CONFIG_DRI
+	unset MC_MODULE_DIR
+	unset MC_TEMPLATE_DIR
+	unset MC_TEMPLATES_DIR_CL
 	unset MC_TEMPLATES_SRC
 	unset MC_TEST_ROOT
 	unset MC_UTEST_ENV_DIR

@@ -17,12 +17,12 @@ class EnvManager:
 	@classmethod
 	@property
 	def search_base(cls) -> str:
-		return os.environ["searchBase"]
+		return os.environ["MC_SEARCH_BASE"]
 
 	@classmethod
 	@property
 	def db_name(cls) -> str:
-		return os.environ["dbName"]
+		return os.environ["MC_DB_NAME"]
 
 	@classmethod
 	@property
@@ -32,22 +32,17 @@ class EnvManager:
 	@classmethod
 	@property
 	def templates_dir(cls) -> str:
-		return os.environ["templateDir"]
-
-	@classmethod
-	@property
-	def icecast_conf_location(cls) -> str:
-		return os.environ["icecastConfLocation"]
+		return os.environ["MC_TEMPLATE_DIR"]
 
 	@classmethod
 	@property
 	def station_config_dir(cls) -> str:
-		return os.environ["stationConfigDir"]
+		return os.environ["MC_ICES_CONFIG_DRI"]
 
 	@classmethod
 	@property
 	def station_module_dir(cls) -> str:
-		return os.environ["stationModuleDir"]
+		return os.environ["MC_MODULE_DIR"]
 
 	@classmethod
 	@property

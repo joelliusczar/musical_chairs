@@ -47,7 +47,7 @@ if ! perl -v 2>/dev/null; then
 	install_package perl
 fi
 
-[ ! -e "$appRoot"/"$MC_BIN_DIR" ] && mkdir -pv "$appRoot"/"$MC_BIN_DIR"
+[ ! -e "$MC_APP_ROOT"/"$MC_BIN_DIR" ] && mkdir -pv "$MC_APP_ROOT"/"$MC_BIN_DIR"
 
 set_env_path_var
 
@@ -77,15 +77,15 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 		(*) ;;
 	esac &&
 	ln -sf $(get_bin_path "$pythonToLink") \
-		"$appRoot"/"$MC_BIN_DIR"/mc-python
+		"$MC_APP_ROOT"/"$MC_BIN_DIR"/mc-python
 fi || show_err_and_exit "python install failed"
 
 mc-python -V >/dev/null 2>&1 || show_err_and_exit "mc-python not available"
 
 if ! mc-python -m pip -V 2>/dev/null; then
-	curl -o "$appRoot"/"$MC_BUILD_DIR"/get-pip.py \
+	curl -o "$MC_APP_ROOT"/"$MC_BUILD_DIR"/get-pip.py \
 		https://bootstrap.pypa.io/pip/get-pip.py &&
-	mc-python "$appRoot"/"$MC_BUILD_DIR"/get-pip.py ||
+	mc-python "$MC_APP_ROOT"/"$MC_BUILD_DIR"/get-pip.py ||
 	show_err_and_exit "Couldn't install pip"
 fi
 

@@ -75,7 +75,7 @@ case $(uname) in
 		echo "libshout is not installed"
 		;;
 	Linux*) 
-		if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 			libtool --version >/dev/null >/dev/null 2>&1 ||
 			echo "libtool is not installed"
 		fi
@@ -92,7 +92,7 @@ echo "pyMajor is not set"
 [ -n "$pyMinor" ] ||
 echo "pyMinor is not set"
 
-if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 	dpkg -s libxml2-dev >/dev/null 2>&1 ||
 	echo "libxml2-dev is not installed"
 	dpkg -s libogg-dev >/dev/null 2>&1 ||
@@ -123,10 +123,10 @@ echo "${app_root}/${app_trunk} does not exist"
 
 case $(uname) in
 	Linux*)
-		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
+		if [ "$pkgMgrChoice" = "$MC_PACMAN_CONST" ]; then
 			icecast -v >/dev/null 2>&1 ||
 			echo "$icecast is not installed"
-		elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+		elif [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 			icecast2 -v >/dev/null 2>&1 ||
 			echo "$icecast2 is not installed"
 		fi

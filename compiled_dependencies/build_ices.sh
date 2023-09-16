@@ -40,7 +40,7 @@ case $(uname) in
 		fi
 		;;
 	(Linux*)
-		if [ "$pkgMgrChoice" = "$APT_CONST" ] \
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ] \
 		&& ! libtool --version 2>/dev/null; then
 			install_package libtool-bin ||
 			show_err_and_exit "Couldn't install libtool"

@@ -13,7 +13,7 @@ fi
 
 pkgMgrChoice=$(get_pkg_mgr)
 
-if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 	if ! dpkg -s build-essential >/dev/null 2>&1; then
 		install_package build-essential
 	fi &&

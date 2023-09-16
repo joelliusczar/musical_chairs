@@ -26,7 +26,7 @@ curl -V || show_err_and_exit "curl is somehow not installed"
 
 case $(uname) in
 	(Linux*)
-		if [ "$pkgMgrChoice" = "$APT_CONST" ] && [ "$expName" != 'py3.8' ]; then
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ] && [ "$expName" != 'py3.8' ]; then
 			sudo apt-get update
 		fi
 		;;
@@ -83,9 +83,9 @@ fi || show_err_and_exit "python install failed"
 mc-python -V >/dev/null 2>&1 || show_err_and_exit "mc-python not available"
 
 if ! mc-python -m pip -V 2>/dev/null; then
-	curl -o "$appRoot"/"$BUILD_DIR"/get-pip.py \
+	curl -o "$appRoot"/"$MC_BUILD_DIR"/get-pip.py \
 		https://bootstrap.pypa.io/pip/get-pip.py &&
-	mc-python "$appRoot"/"$BUILD_DIR"/get-pip.py ||
+	mc-python "$appRoot"/"$MC_BUILD_DIR"/get-pip.py ||
 	show_err_and_exit "Couldn't install pip"
 fi
 
@@ -143,7 +143,7 @@ if ! mariadb -V 2>/dev/null; then
 	if [ -n "$dbPass" ]; then
 		case $(uname) in
 			(Linux*)
-				if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+				if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 					install_package mariadb-server
 				fi
 				;;
@@ -171,12 +171,12 @@ fi
 
 case $(uname) in
 	(Linux*)
-		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
+		if [ "$pkgMgrChoice" = "$MC_PACMAN_CONST" ]; then
 			if ! icecast -v 2>/dev/null; then
 				yes 'no' | install_package icecast &&
 				setup_icecast_confs icecast
 			fi
-		elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+		elif [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 			if ! icecast2 -v 2>/dev/null; then
 				install_package icecast2 &&
 				setup_icecast_confs icecast2
@@ -194,7 +194,7 @@ if ! nginx -v 2>/dev/null; then
 			install_package nginx
 			;;
 		(Linux*)
-			if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+			if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 				install_package nginx-full
 			fi
 			;;
@@ -207,7 +207,7 @@ echo "Checking for ${confDir}/${appName}.conf"
 if [ ! -e "$confDir"/"$appName".conf ]; then
 	setup_nginx_confs &&
 	sudo -p 'copy nginx config' \
-		cp "$templatesSrc"/nginx_evil.conf "$confDir"/nginx_evil.conf
+		cp "$MC_TEMPLATES_SRC"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
 
 sync_utility_scripts

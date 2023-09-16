@@ -97,12 +97,12 @@ __set_env_path_var__() {
 
 
 __export_py_env_vars__() {
-	export searchBase="$appRoot"/"$CONTENT_HOME" &&
+	export searchBase="$appRoot"/"$MC_CONTENT_HOME" &&
 	export dbName="$appRoot"/"$sqliteTrunkFilepath" &&
 	export templateDir="$appRoot"/"$templatesDirCl" &&
-	export stationConfigDir="$appRoot"/"$ICES_CONFIGS_DIR" &&
+	export stationConfigDir="$appRoot"/"$MC_ICES_CONFIGS_DIR" &&
 	export stationModuleDir="$appRoot"/"$pyModulesDir"
-	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
+	export MC_RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
 }
 
 print_py_env_var_guesses() (
@@ -114,7 +114,7 @@ print_py_env_var_guesses() (
 	echo "templateDir=$templateDir"
 	echo "stationConfigDir=$stationConfigDir"
 	echo "stationModuleDir=$stationModuleDir"
-	echo "RADIO_AUTH_SECRET_KEY=$RADIO_AUTH_SECRET_KEY"
+	echo "MC_RADIO_AUTH_SECRET_KEY=$MC_RADIO_AUTH_SECRET_KEY"
 )
 
 get_pkg_mgr() {
@@ -122,15 +122,15 @@ get_pkg_mgr() {
 	case $(uname) in
 		(Linux*)
 			if  which pacman >/dev/null 2>&1; then
-				echo "$PACMAN_CONST"
+				echo "$MC_PACMAN_CONST"
 				return 0
 			elif which apt-get >/dev/null 2>&1; then
-				echo "$APT_CONST"
+				echo "$MC_APT_CONST"
 				return 0
 			fi
 			;;
 		(Darwin*)
-			echo "$HOMEBREW_CONST"
+			echo "$MC_HOMEBREW_CONST"
 			return 0
 			;;
 		(*)
@@ -142,8 +142,8 @@ get_pkg_mgr() {
 get_icecast_name() (
 	pkgMgrChoice="$1"
 	case "$pkgMgrChoice" in
-    ("$PACMAN_CONST") echo 'icecast';;
-    ("$APT_CONST") echo 'icecast2';;
+    ("$MC_PACMAN_CONST") echo 'icecast';;
+    ("$MC_APT_CONST") echo 'icecast2';;
     (*) echo 'icecast2';;
 	esac
 )
@@ -259,17 +259,17 @@ s3_name() {
 kill_s3fs() {
 	process_global_vars "$@" &&
 	kill -9 $(ps -e | grep s3fs | awk '{ print $1 }')
-	fusermount -u "$appRoot"/"$CONTENT_HOME"
+	fusermount -u "$appRoot"/"$MC_CONTENT_HOME"
 }
 
 link_to_music_files() {
 	echo 'linking music files'
 	process_global_vars "$@" &&
-	if [ ! -e "$appRoot"/"$CONTENT_HOME"/Soundtrack ]; then
+	if [ ! -e "$appRoot"/"$MC_CONTENT_HOME"/Soundtrack ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
-			s3fs "$(s3_name)" "$appRoot"/"$CONTENT_HOME"/ \
+			s3fs "$(s3_name)" "$appRoot"/"$MC_CONTENT_HOME"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
-			[ -e "$appRoot"/"$CONTENT_HOME"/Soundtrack ]
+			[ -e "$appRoot"/"$MC_CONTENT_HOME"/Soundtrack ]
 		else
 			return 1
 		fi
@@ -389,7 +389,7 @@ create_py_env_in_app_trunk() (
 copy_lib_to_test() (
 	process_global_vars "$@" &&
 	copy_dir "$libSrc" \
-		"$(get_libs_dir "$utestEnvDir")"/"$libName"
+		"$(get_libs_dir "$MC_UTEST_ENV_DIR")"/"$libName"
 )
 
 error_check_path() (
@@ -462,7 +462,7 @@ unroot_dir() (
 		prompt='Password required to change owner of'
 		prompt="${prompt} ${dirUnrootura} to current user: "
 		sudo -p "$prompt" \
-			chown -R "$CURRENT_USER": "$dirUnrootura"
+			chown -R "$MC_CURRENT_USER": "$dirUnrootura"
 	fi
 )
 
@@ -565,18 +565,18 @@ kill_process_using_port() (
 setup_env_api_file() (
 	echo 'setting up .env file'
 	envFile="$appRoot"/"$CONFIG_DIR"/.env
-	error_check_all_paths "$templatesSrc"/.env_api "$envFile" &&
+	error_check_all_paths "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
-	cp "$templatesSrc"/.env_api "$envFile" &&
+	cp "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
-	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${CONTENT_HOME}'@" \
+	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${MC_CONTENT_HOME}'@" \
 		"$envFile" &&
 	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqliteTrunkFilepath}'@" \
 		"$envFile" &&
 	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templatesDirCl}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${ICES_CONFIGS_DIR}'@" \
+		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${MC_ICES_CONFIGS_DIR}'@" \
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModulesDir}'@" \
@@ -623,7 +623,7 @@ setup_db() (
 			shutdown_all_stations
 		fi
 		if [ -n "$(pgrep 'uvicorn')" ]; then
-			kill_process_using_port "$API_PORT"
+			kill_process_using_port "$MC_API_PORT"
 		fi
 	fi
 
@@ -995,10 +995,10 @@ setup_ssl_cert_nginx() (
 
 setup_react_env_debug() (
 	process_global_vars "$@" &&
-	envFile="$CLIENT_SRC"/.env.local
+	envFile="$MC_CLIENT_SRC"/.env.local
 	echo "$envFile"
-	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
-	echo 'REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
+	echo 'MC_REACT_APP_API_VERSION=v1' > "$envFile"
+	echo 'MC_REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
 	#HTTPS, SSL_CRT_FILE, and SSL_KEY_FILE are used by create-react-app
 	#when calling `npm start`
 	echo 'HTTPS=true' >> "$envFile"
@@ -1033,20 +1033,20 @@ get_nginx_conf_dir_include() (
 
 __copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
-		cp "$templatesSrc"/nginx_template.conf "$appConfFile" &&
+		cp "$MC_TEMPLATES_SRC"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<APP_CLIENT_PATH_CL>@${webRoot}/${APP_CLIENT_PATH_CL}@" \
+		perl -pi -e "s@<MC_APP_CLIENT_PATH_CL>@${webRoot}/${MC_APP_CLIENT_PATH_CL}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<SERVER_NAME>@${SERVER_NAME}@g" "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<API_PORT>@${API_PORT}@" "$appConfFile"
+		perl -pi -e "s@<MC_API_PORT>@${MC_API_PORT}@" "$appConfFile"
 }
 
 update_nginx_conf() (
 	echo "updating nginx site conf"
 	appConfFile="$1"
-	error_check_all_paths "$templatesSrc" "$appConfFile" &&
+	error_check_all_paths "$MC_TEMPLATES_SRC" "$appConfFile" &&
 	__copy_and_update_nginx_template__ &&
 	case "$app_env" in
 		(local*)
@@ -1204,7 +1204,7 @@ install_ices() (
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 	|| [ -n "$ice_branch" ]; then
 		shutdown_all_stations &&
-		folderPath="$appRoot"/"$BUILD_DIR"/"$projName"/compiled_dependencies
+		folderPath="$appRoot"/"$MC_BUILD_DIR"/"$projName"/compiled_dependencies
 		sh "$folderPath"/build_ices.sh "$ice_branch"
 	fi
 )
@@ -1223,7 +1223,7 @@ get_icecast_conf() (
 		(Darwin*)
 			#we don't have icecast on the mac anyway so we'll just return the
 			#source code location
-			echo "$templatesSrc"/icecast.xml
+			echo "$MC_TEMPLATES_SRC"/icecast.xml
 			;;
 		*) ;;
 	esac
@@ -1267,7 +1267,7 @@ show_ices_station_log() (
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
-	logName="$appRoot"/"$ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
+	logName="$appRoot"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
 	logdir = EnvManager.read_config_value(
@@ -1306,7 +1306,7 @@ update_all_ices_confs() (
 	echo "updating ices confs"
 	sourcePassword="$1"
 	process_global_vars "$@"
-	for conf in "$appRoot"/"$ICES_CONFIGS_DIR"/*.conf; do
+	for conf in "$appRoot"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
 	done &&
@@ -1350,9 +1350,9 @@ run_song_scan() (
 	print("Starting")
 	EnvManager.setup_db_if_missing(echo = True)
 	songScanner = SongScanner()
-	inserted = songScanner.save_paths('${appRoot}/${CONTENT_HOME}')
+	inserted = songScanner.save_paths('${appRoot}/${MC_CONTENT_HOME}')
 	print(f"saving paths done: {inserted} inserted")
-	updated = songScanner.update_metadata('${appRoot}/${CONTENT_HOME}')
+	updated = songScanner.update_metadata('${appRoot}/${MC_CONTENT_HOME}')
 	print(f"updating songs done: {updated}")
 	EOF
 )
@@ -1393,10 +1393,10 @@ startup_radio() (
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
-	export searchBase="$appRoot"/"$CONTENT_HOME" &&
+	export searchBase="$appRoot"/"$MC_CONTENT_HOME" &&
 	__export_py_env_vars__ &&
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
-	for conf in "$appRoot"/"$ICES_CONFIGS_DIR"/*.conf; do
+	for conf in "$appRoot"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		mc-ices -c "$conf"
 	done
@@ -1414,16 +1414,16 @@ startup_api() (
 	#put uvicorn in background with in a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
-	(uvicorn --app-dir "$webRoot"/"$APP_API_PATH_CL" --root-path /api/v1 \
-	--host 0.0.0.0 --port "$API_PORT" \
+	(uvicorn --app-dir "$webRoot"/"$MC_APP_API_PATH_CL" --root-path /api/v1 \
+	--host 0.0.0.0 --port "$MC_API_PORT" \
 	"index:app" </dev/null >api.out 2>&1 &)
-	echo "done starting up api. Access at ${fullUrl}"
+	echo "done starting up api. Access at ${MC_FULL_URL}"
 )
 
 
 startup_nginx_for_debug() (
 	process_global_vars "$@" &&
-	export API_PORT='8032'
+	export MC_API_PORT='8032'
 	setup_nginx_confs &&
 	restart_nginx
 )
@@ -1431,11 +1431,11 @@ startup_nginx_for_debug() (
 setup_api() (
 	echo "setting up api"
 	process_global_vars "$@" &&
-	kill_process_using_port "$API_PORT" &&
+	kill_process_using_port "$MC_API_PORT" &&
 	sync_utility_scripts &&
 	sync_requirement_list &&
-	copy_dir "$templatesSrc" "$appRoot"/"$templatesDirCl" &&
-	copy_dir "$API_SRC" "$webRoot"/"$APP_API_PATH_CL" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$templatesDirCl" &&
+	copy_dir "$MC_API_SRC" "$webRoot"/"$MC_APP_API_PATH_CL" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
 	setup_nginx_confs &&
@@ -1459,7 +1459,7 @@ create_swap_if_needed() (
 setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&
-	error_check_all_paths "$CLIENT_SRC"  "$webRoot"/"$APP_CLIENT_PATH_CL" &&
+	error_check_all_paths "$MC_CLIENT_SRC"  "$webRoot"/"$MC_APP_CLIENT_PATH_CL" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -1468,19 +1468,19 @@ setup_client() (
 	fi &&
 	#check if web application folder exists, clear out if it does,
 	#delete otherwise
-	empty_dir_contents "$webRoot"/"$APP_CLIENT_PATH_CL" &&
+	empty_dir_contents "$webRoot"/"$MC_APP_CLIENT_PATH_CL" &&
 
-	export REACT_APP_API_VERSION=v1 &&
-	export REACT_APP_BASE_ADDRESS="$fullUrl" &&
+	export MC_REACT_APP_API_VERSION=v1 &&
+	export MC_REACT_APP_BASE_ADDRESS="$MC_FULL_URL" &&
 	#set up react then copy
 	#install packages
-	npm --prefix "$CLIENT_SRC" i &&
+	npm --prefix "$MC_CLIENT_SRC" i &&
 	#build code (transpile it)
-	npm run --prefix "$CLIENT_SRC" build &&
+	npm run --prefix "$MC_CLIENT_SRC" build &&
 	#copy built code to new location
 	sudo -p 'Pass required for copying client files: ' \
-		cp -rv "$CLIENT_SRC"/build/. "$webRoot"/"$APP_CLIENT_PATH_CL" &&
-	unroot_dir "$webRoot"/"$APP_CLIENT_PATH_CL" &&
+		cp -rv "$MC_CLIENT_SRC"/build/. "$webRoot"/"$MC_APP_CLIENT_PATH_CL" &&
+	unroot_dir "$webRoot"/"$MC_APP_CLIENT_PATH_CL" &&
 	echo "done setting up client"
 )
 
@@ -1497,7 +1497,7 @@ startup_full_web() (
 	process_global_vars "$@" &&
 	setup_client &&
 	startup_api &&
-	echo "done starting up full web. Access at ${fullUrl}"
+	echo "done starting up full web. Access at ${MC_FULL_URL}"
 )
 
 #assume install_setup.sh has been run
@@ -1509,7 +1509,7 @@ setup_radio() (
 	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
-	copy_dir "$templatesSrc" "$appRoot"/"$templatesDirCl" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$templatesDirCl" &&
 	replace_db_file_if_needed2 &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -1526,12 +1526,12 @@ __create_fake_keys_file__() {
 setup_unit_test_env() (
 	echo "setting up test environment"
 	process_global_vars "$@" &&
-	export appRoot="$testRoot"
+	export appRoot="$MC_TEST_ROOT"
 
 	__create_fake_keys_file__
 	setup_common_dirs
 
-	copy_dir "$templatesSrc" "$appRoot"/"$templatesDirCl" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$templatesDirCl" &&
 	error_check_all_paths "$referenceSrcDb" \
 		"$appRoot"/"$sqliteTrunkFilepath" &&
 	sync_requirement_list
@@ -1566,7 +1566,7 @@ setup_all() (
 run_unit_tests() (
 	echo "running unit tests"
 	process_global_vars "$@"
-	export appRoot="$testRoot"
+	export appRoot="$MC_TEST_ROOT"
 	setup_unit_test_env &&
 	test_src="$srcPath"/tests &&
 	__export_py_env_vars__ &&
@@ -1666,19 +1666,19 @@ process_global_args() {
 }
 
 define_consts() {
-	[ -z "$CONSTANTS_SET" ] || return 0
-	export PACMAN_CONST='pacman'
-	export APT_CONST='apt-get'
-	export HOMEBREW_CONST='homebrew'
-	export CURRENT_USER=$(whoami)
+	[ -z "$__CONSTANTS_SET__" ] || return 0
+	export MC_PACMAN_CONST='pacman'
+	export MC_APT_CONST='apt-get'
+	export MC_HOMEBREW_CONST='homebrew'
+	export MC_CURRENT_USER=$(whoami)
 	export projName='musical_chairs'
-	export BUILD_DIR='builds'
-	export CONTENT_HOME='music/radio'
+	export MC_BUILD_DIR='builds'
+	export MC_CONTENT_HOME='music/radio'
 	export binDir='.local/bin'
-	export API_PORT='8033'
+	export MC_API_PORT='8033'
 	#done't try to change from home
-	export defaultRadioRepoPath="$HOME"/"$BUILD_DIR"/"$projName"
-	export CONSTANTS_SET='true'
+	export defaultRadioRepoPath="$HOME"/"$MC_BUILD_DIR"/"$projName"
+	export __CONSTANTS_SET__='true'
 	echo "constants defined"
 }
 
@@ -1690,12 +1690,12 @@ create_install_dir() {
 
 define_top_level_terms() {
 	appRoot=${appRoot:-"$HOME"}
-	export testRoot="$workspaceAbsPath/test_trash"
-	export APP_ROOT_0="$appRoot"
+	export MC_TEST_ROOT="$workspaceAbsPath/test_trash"
+	export MC_APP_ROOT_0="$appRoot"
 
 	if [ -n "$testFlag" ]; then
-		appRoot="$testRoot"
-		webRoot="$testRoot"
+		appRoot="$MC_TEST_ROOT"
+		webRoot="$MC_TEST_ROOT"
 	fi
 
 	sqliteFilename='songs_db.sqlite'
@@ -1711,13 +1711,13 @@ define_top_level_terms() {
 }
 
 define_app_dir_paths() {
-	export ICES_CONFIGS_DIR="$appTrunk"/ices_configs
+	export MC_ICES_CONFIGS_DIR="$appTrunk"/ices_configs
 	export pyModulesDir="$appTrunk"/pyModules
 
 	export CONFIG_DIR="$appTrunk"/config
 	export dbDir="$appTrunk"/db
 	export sqliteTrunkFilepath="$dbDir"/"$sqliteFilename"
-	export utestEnvDir="$testRoot"/utest
+	export MC_UTEST_ENV_DIR="$MC_TEST_ROOT"/utest
 
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
@@ -1737,8 +1737,8 @@ define_web_server_paths() {
 		(*) ;;
 	esac
 
-	export APP_API_PATH_CL=api/"$appName"
-	export APP_CLIENT_PATH_CL=client/"$appName"
+	export MC_APP_API_PATH_CL=api/"$appName"
+	export MC_APP_CLIENT_PATH_CL=client/"$appName"
 
 	echo "web server paths defined"
 }
@@ -1769,16 +1769,16 @@ _get_domain_name() (
 __define_url__() {
 	echo "env: ${app_env}"
 	export SERVER_NAME=$(_get_domain_name "$app_env")
-	export fullUrl="https://${SERVER_NAME}"
+	export MC_FULL_URL="https://${SERVER_NAME}"
 	echo "url defined"
 }
 
 define_repo_paths() {
 	export srcPath="$workspaceAbsPath/src"
-	export API_SRC="$srcPath/api"
-	export CLIENT_SRC="$srcPath/client"
+	export MC_API_SRC="$srcPath/api"
+	export MC_CLIENT_SRC="$srcPath/client"
 	export libSrc="$srcPath/$libName"
-	export templatesSrc="$workspaceAbsPath/templates"
+	export MC_TEMPLATES_SRC="$workspaceAbsPath/templates"
 	export referenceSrc="$workspaceAbsPath/reference"
 	export referenceSrcDb="$referenceSrc/$sqliteFilename"
 	echo "source paths defined"
@@ -1787,8 +1787,8 @@ define_repo_paths() {
 setup_common_dirs() {
 	[ -e "$appRoot"/"$CONFIG_DIR" ] ||
 	mkdir -pv "$appRoot"/"$CONFIG_DIR"
-	[ -e "$appRoot"/"$ICES_CONFIGS_DIR" ] ||
-	mkdir -pv "$appRoot"/"$ICES_CONFIGS_DIR"
+	[ -e "$appRoot"/"$MC_ICES_CONFIGS_DIR" ] ||
+	mkdir -pv "$appRoot"/"$MC_ICES_CONFIGS_DIR"
 	[ -e "$appRoot"/"$pyModulesDir" ] ||
 	mkdir -pv "$appRoot"/"$pyModulesDir"
 	[ -e "$appRoot"/"$dbDir" ] ||
@@ -1804,21 +1804,21 @@ setup_base_dirs() {
 
 	setup_common_dirs
 
-	[ -e "$appRoot"/"$CONTENT_HOME" ] ||
-	mkdir -pv "$appRoot"/"$CONTENT_HOME"
+	[ -e "$appRoot"/"$MC_CONTENT_HOME" ] ||
+	mkdir -pv "$appRoot"/"$MC_CONTENT_HOME"
 
 
-	[ -e "$webRoot"/"$APP_API_PATH_CL" ] ||
+	[ -e "$webRoot"/"$MC_APP_API_PATH_CL" ] ||
 	{
 		sudo -p 'Pass required for creating web server directory: ' \
-			mkdir -pv "$webRoot"/"$APP_API_PATH_CL" ||
-		show_err_and_exit "Could not create ${webRoot}/${APP_API_PATH_CL}"
+			mkdir -pv "$webRoot"/"$MC_APP_API_PATH_CL" ||
+		show_err_and_exit "Could not create ${webRoot}/${MC_APP_API_PATH_CL}"
 	}
 }
 
 process_global_vars() {
 	process_global_args "$@" || return
-	[ -z "$GLOBALS_SET" ] || return 0
+	[ -z "$__GLOBALS_SET__" ] || return 0
 
 	define_consts &&
 
@@ -1844,37 +1844,37 @@ process_global_vars() {
 
 	setup_base_dirs &&
 
-	export GLOBALS_SET='globals'
+	export __GLOBALS_SET__='globals'
 }
 
 unset_globals() {
-	unset APT_CONST
-	unset HOMEBREW_CONST
-	unset PACMAN_CONST
-	unset RADIO_AUTH_SECRET_KEY
-	unset REACT_APP_API_VERSION
-	unset REACT_APP_BASE_ADDRESS
-	unset API_PORT
-	unset API_SRC
-	unset APP_API_PATH_CL
-	unset APP_CLIENT_PATH_CL
+	unset MC_APT_CONST
+	unset MC_HOMEBREW_CONST
+	unset MC_PACMAN_CONST
+	unset MC_RADIO_AUTH_SECRET_KEY
+	unset MC_REACT_APP_API_VERSION
+	unset MC_REACT_APP_BASE_ADDRESS
+	unset MC_API_PORT
+	unset MC_API_SRC
+	unset MC_APP_API_PATH_CL
+	unset MC_APP_CLIENT_PATH_CL
 	unset appName
 	unset appRoot
-	unset APP_ROOT_0
+	unset MC_APP_ROOT_0
 	unset appTrunk
 	unset binDir
-	unset BUILD_DIR
-	unset CLIENT_SRC
+	unset MC_BUILD_DIR
+	unset MC_CLIENT_SRC
 	unset CONFIG_DIR
-	unset CONSTANTS_SET
-	unset CONTENT_HOME
-	unset CURRENT_USER
+	unset __CONSTANTS_SET__
+	unset MC_CONTENT_HOME
+	unset MC_CURRENT_USER
 	unset dbName
 	unset dbDir
 	unset defaultRadioRepoPath
-	unset fullUrl
-	unset GLOBALS_SET
-	unset ICES_CONFIGS_DIR
+	unset MC_FULL_URL
+	unset __GLOBALS_SET__
+	unset MC_ICES_CONFIGS_DIR
 	unset libName
 	unset libSrc
 	unset projName
@@ -1890,9 +1890,9 @@ unset_globals() {
 	unset stationModuleDir
 	unset templateDir
 	unset templatesDirCl
-	unset templatesSrc
-	unset testRoot
-	unset utestEnvDir
+	unset MC_TEMPLATES_SRC
+	unset MC_TEST_ROOT
+	unset MC_UTEST_ENV_DIR
 	unset webRoot
 }
 

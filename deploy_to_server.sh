@@ -71,8 +71,8 @@ error_check_path "$(get_repo_path)" &&
 rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$MC_APP_ROOT"/"$MC_BUILD_DIR" &&
-git clone "$radioServerRepoUrl" "$projName" &&
-cd "$projName"  &&
+git clone "$radioServerRepoUrl" "$MC_PROJ_NAME" &&
+cd "$MC_PROJ_NAME"  &&
 if [ "$currentBranch" != main ]; then
 	echo "Using branch ${currentBranch}"
 	git checkout -t origin/"$currentBranch" || exit 1

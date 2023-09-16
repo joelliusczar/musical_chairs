@@ -149,36 +149,36 @@ get_icecast_name() (
 )
 
 get_pb_api_key() (
-	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' "$MC_APP_ROOT"/keys/"$projName"
+	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_pb_secret() (
-	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' "$MC_APP_ROOT"/keys/"$projName"
+	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_api_key() (
-	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' "$MC_APP_ROOT"/keys/"$projName"
+	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$MC_APP_ROOT"/keys/"$projName"
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$MC_APP_ROOT"/keys/"$projName"
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_mc_auth_key() (
-	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$MC_APP_ROOT"/keys/"$projName"
+	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_address() (
-	keyFile="$MC_APP_ROOT"/keys/"$projName"
+	keyFile="$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 	perl -ne 'print "$1\n" if /address6=root@([\w:]+)/' "$keyFile"
 )
 
 get_id_file() (
-	keyFile="$MC_APP_ROOT"/keys/"$projName"
+	keyFile="$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
 )
 
@@ -194,15 +194,15 @@ get_localhost_key_dir() (
 )
 
 __get_remote_private_key__() (
-	echo "/etc/ssl/private/${projName}.private.key.pem"
+	echo "/etc/ssl/private/${MC_PROJ_NAME}.private.key.pem"
 )
 
 __get_remote_public_key__() (
-	echo "/etc/ssl/certs/${projName}.public.key.pem"
+	echo "/etc/ssl/certs/${MC_PROJ_NAME}.public.key.pem"
 )
 
 __get_remote_intermediate_key__() (
-	echo "/etc/ssl/certs/${projName}.intermediate.key.pem"
+	echo "/etc/ssl/certs/${MC_PROJ_NAME}.intermediate.key.pem"
 )
 
 connect_sftp() (
@@ -793,11 +793,11 @@ __get_keychain_osx__() (
 )
 
 __get_debug_cert_path__() (
-	echo $(get_localhost_key_dir)/"$projName"_localhost_debug
+	echo $(get_localhost_key_dir)/"$MC_PROJ_NAME"_localhost_debug
 )
 
 __get_local_nginx_cert_path__() (
-	echo $(get_localhost_key_dir)/"$projName"_localhost_nginx
+	echo $(get_localhost_key_dir)/"$MC_PROJ_NAME"_localhost_nginx
 )
 
 is_cert_expired() (
@@ -1204,7 +1204,7 @@ install_ices() (
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 	|| [ -n "$ice_branch" ]; then
 		shutdown_all_stations &&
-		folderPath="$MC_APP_ROOT"/"$MC_BUILD_DIR"/"$projName"/compiled_dependencies
+		folderPath="$MC_APP_ROOT"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"/compiled_dependencies
 		sh "$folderPath"/build_ices.sh "$ice_branch"
 	fi
 )
@@ -1518,7 +1518,7 @@ setup_radio() (
 )
 
 __create_fake_keys_file__() {
-	echo "mc_auth_key=$(openssl rand -hex 32)" > "$MC_APP_ROOT"/keys/"$projName"
+	echo "mc_auth_key=$(openssl rand -hex 32)" > "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 }
 
 
@@ -1663,13 +1663,13 @@ define_consts() {
 	export MC_APT_CONST='apt-get'
 	export MC_HOMEBREW_CONST='homebrew'
 	export MC_CURRENT_USER=$(whoami)
-	export projName='musical_chairs'
+	export MC_PROJ_NAME='musical_chairs'
 	export MC_BUILD_DIR='builds'
 	export MC_CONTENT_HOME='music/radio'
 	export MC_BIN_DIR='.local/bin'
 	export MC_API_PORT='8033'
 	#done't try to change from home
-	export MC_DEFAULT_RADIO_REPO_PATH="$HOME"/"$MC_BUILD_DIR"/"$projName"
+	export MC_DEFAULT_RADIO_REPO_PATH="$HOME"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"
 	export __CONSTANTS_SET__='true'
 	echo "constants defined"
 }
@@ -1691,13 +1691,13 @@ define_top_level_terms() {
 	fi
 
 	sqliteFilename='songs_db.sqlite'
-	export MC_APP_TRUNK="$projName"_dir
+	export MC_APP_TRUNK="$MC_PROJ_NAME"_dir
 	export MC_APP_ROOT="$MC_APP_ROOT"
 	export MC_WEB_ROOT="$MC_WEB_ROOT"
 
 
-	export MC_LIB_NAME="$projName"_libs
-	export MC_APP_NAME="$projName"_app
+	export MC_LIB_NAME="$MC_PROJ_NAME"_libs
+	export MC_APP_NAME="$MC_PROJ_NAME"_app
 
 	echo "top level terms defined"
 }
@@ -1736,7 +1736,7 @@ define_web_server_paths() {
 }
 
 __get_url_base__() (
-	echo "$projName" | tr -d _
+	echo "$MC_PROJ_NAME" | tr -d _
 )
 
 _get_domain_name() (
@@ -1869,7 +1869,7 @@ unset_globals() {
 	unset MC_ICES_CONFIGS_DIR
 	unset MC_LIB_NAME
 	unset MC_LIB_SRC
-	unset projName
+	unset MC_PROJ_NAME
 	unset MC_PY_MODULE_DIR
 	unset pyEnv
 	unset MC_REFERENCE_SRC

@@ -1035,7 +1035,7 @@ __copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
 		cp "$MC_TEMPLATES_SRC"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<MC_APP_CLIENT_PATH_CL>@${webRoot}/${MC_APP_CLIENT_PATH_CL}@" \
+		perl -pi -e "s@<MC_APP_CLIENT_PATH_CL>@${MC_WEB_ROOT}/${MC_APP_CLIENT_PATH_CL}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<SERVER_NAME>@${SERVER_NAME}@g" "$appConfFile" &&
@@ -1414,7 +1414,7 @@ startup_api() (
 	#put uvicorn in background with in a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
-	(uvicorn --app-dir "$webRoot"/"$MC_APP_API_PATH_CL" --root-path /api/v1 \
+	(uvicorn --app-dir "$MC_WEB_ROOT"/"$MC_APP_API_PATH_CL" --root-path /api/v1 \
 	--host 0.0.0.0 --port "$MC_API_PORT" \
 	"index:app" </dev/null >api.out 2>&1 &)
 	echo "done starting up api. Access at ${MC_FULL_URL}"
@@ -1435,7 +1435,7 @@ setup_api() (
 	sync_utility_scripts &&
 	sync_requirement_list &&
 	copy_dir "$MC_TEMPLATES_SRC" "$appRoot"/"$MC_TEMPLATES_DIR_CL" &&
-	copy_dir "$MC_API_SRC" "$webRoot"/"$MC_APP_API_PATH_CL" &&
+	copy_dir "$MC_API_SRC" "$MC_WEB_ROOT"/"$MC_APP_API_PATH_CL" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
 	setup_nginx_confs &&
@@ -1459,7 +1459,7 @@ create_swap_if_needed() (
 setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&
-	error_check_all_paths "$MC_CLIENT_SRC"  "$webRoot"/"$MC_APP_CLIENT_PATH_CL" &&
+	error_check_all_paths "$MC_CLIENT_SRC"  "$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -1468,7 +1468,7 @@ setup_client() (
 	fi &&
 	#check if web application folder exists, clear out if it does,
 	#delete otherwise
-	empty_dir_contents "$webRoot"/"$MC_APP_CLIENT_PATH_CL" &&
+	empty_dir_contents "$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
 
 	export MC_REACT_APP_API_VERSION=v1 &&
 	export MC_REACT_APP_BASE_ADDRESS="$MC_FULL_URL" &&
@@ -1479,8 +1479,8 @@ setup_client() (
 	npm run --prefix "$MC_CLIENT_SRC" build &&
 	#copy built code to new location
 	sudo -p 'Pass required for copying client files: ' \
-		cp -rv "$MC_CLIENT_SRC"/build/. "$webRoot"/"$MC_APP_CLIENT_PATH_CL" &&
-	unroot_dir "$webRoot"/"$MC_APP_CLIENT_PATH_CL" &&
+		cp -rv "$MC_CLIENT_SRC"/build/. "$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
+	unroot_dir "$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
 	echo "done setting up client"
 )
 
@@ -1602,7 +1602,7 @@ process_global_args() {
 	while [ ! -z "$1" ]; do
 		case "$1" in
 			#build out to test_trash rather than the normal directories
-			#sets appRoot and webRoot without having to set them explicitly
+			#sets appRoot and MC_WEB_ROOT without having to set them explicitly
 			(test)
 				export testFlag='test'
 				globalArgs="${globalArgs} test"
@@ -1632,10 +1632,6 @@ process_global_args() {
 			(appRoot=*)
 				export appRoot=${1#appRoot=}
 				globalArgs="${globalArgs} appRoot='${appRoot}'"
-				;;
-			(webRoot=*)
-				export webRoot=${1#webRoot=}
-				globalArgs="${globalArgs} webRoot='${webRoot}'"
 				;;
 			(setup_lvl=*) #affects which setup scripst to run
 				export setup_lvl=${1#setup_lvl=}
@@ -1695,13 +1691,13 @@ define_top_level_terms() {
 
 	if [ -n "$testFlag" ]; then
 		appRoot="$MC_TEST_ROOT"
-		webRoot="$MC_TEST_ROOT"
+		MC_WEB_ROOT="$MC_TEST_ROOT"
 	fi
 
 	sqliteFilename='songs_db.sqlite'
 	export appTrunk="$projName"_dir
 	export appRoot="$appRoot"
-	export webRoot="$webRoot"
+	export MC_WEB_ROOT="$MC_WEB_ROOT"
 
 
 	export MC_LIB_NAME="$projName"_libs
@@ -1729,10 +1725,10 @@ define_app_dir_paths() {
 define_web_server_paths() {
 	case $(uname) in
 		(Linux*)
-			export webRoot=${webRoot:-/srv}
+			export MC_WEB_ROOT=${MC_WEB_ROOT:-/srv}
 			;;
 		(Darwin*)
-			export webRoot=${webRoot:-/Library/WebServer}
+			export MC_WEB_ROOT=${MC_WEB_ROOT:-/Library/WebServer}
 			;;
 		(*) ;;
 	esac
@@ -1808,11 +1804,11 @@ setup_base_dirs() {
 	mkdir -pv "$appRoot"/"$MC_CONTENT_HOME"
 
 
-	[ -e "$webRoot"/"$MC_APP_API_PATH_CL" ] ||
+	[ -e "$MC_WEB_ROOT"/"$MC_APP_API_PATH_CL" ] ||
 	{
 		sudo -p 'Pass required for creating web server directory: ' \
-			mkdir -pv "$webRoot"/"$MC_APP_API_PATH_CL" ||
-		show_err_and_exit "Could not create ${webRoot}/${MC_APP_API_PATH_CL}"
+			mkdir -pv "$MC_WEB_ROOT"/"$MC_APP_API_PATH_CL" ||
+		show_err_and_exit "Could not create ${MC_WEB_ROOT}/${MC_APP_API_PATH_CL}"
 	}
 }
 
@@ -1893,7 +1889,7 @@ unset_globals() {
 	unset MC_TEMPLATES_SRC
 	unset MC_TEST_ROOT
 	unset MC_UTEST_ENV_DIR
-	unset webRoot
+	unset MC_WEB_ROOT
 }
 
 fn_ls() (

@@ -350,7 +350,7 @@ get_libs_dir() (
 	__set_env_path_var__ >&2 #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
-	packagePath="${pyEnv}/lib/python${pyMajor}.${pyMinor}/site-packages/"
+	packagePath="${MC_PY_ENV}/lib/python${pyMajor}.${pyMinor}/site-packages/"
 	echo "$env_root"/"$packagePath"
 )
 
@@ -362,7 +362,7 @@ create_py_env_in_dir() (
 	link_app_python_if_not_linked
 	set_python_version_const || return "$?"
 	env_root="$1"
-	pyEnvDir="$env_root"/"$pyEnv"
+	pyEnvDir="$env_root"/"$MC_PY_ENV"
 	error_check_path "$pyEnvDir" &&
 	if [ -n "$clean_flag" ]; then
 		rm_contents_if_exist "$pyEnvDir" || return "$?"
@@ -628,7 +628,7 @@ setup_db() (
 	fi
 
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
 	from musical_chairs_libs.services import EnvManager
@@ -677,7 +677,7 @@ install_py_env() {
 }
 
 __install_py_env_if_needed__() {
-	if [ ! -e "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate ]; then
+	if [ ! -e "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
 		__install_py_env__
 	fi
 }
@@ -685,7 +685,7 @@ __install_py_env_if_needed__() {
 print_schema_scripts() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	printf '\033c' &&
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -697,7 +697,7 @@ print_schema_scripts() (
 start_python() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	python
 )
 
@@ -739,8 +739,8 @@ compare_dirs() (
 
 	srcRes=$(find "$srcDir" | \
 		sed "s@${srcDir%/}/\{0,1\}@@" | sort)
-	cpyRes=$(find "${cpyDir}" -not -path "${cpyDir}/${pyEnv}/*" \
-		-and -not -path "${cpyDir}/${pyEnv}" | \
+	cpyRes=$(find "${cpyDir}" -not -path "${cpyDir}/${MC_PY_ENV}/*" \
+		-and -not -path "${cpyDir}/${MC_PY_ENV}" | \
 		sed "s@${cpyDir%/}/\{0,1\}@@" | sort)
 
 	get_file_list() (
@@ -1233,14 +1233,14 @@ show_current_py_lib_files() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	set_python_version_const >/dev/null 2>&1 &&
 	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${MC_LIB_NAME}"
-	echo "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/"$envDir"
+	echo "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/"$envDir"
 )
 
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
 	(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
 	from musical_chairs_libs.services import EnvManager
@@ -1266,7 +1266,7 @@ show_ices_station_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
 	logName="$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -1337,7 +1337,7 @@ run_song_scan() (
 	link_to_music_files &&
 	setup_radio &&
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 
 	if [ -n "$shouldReplaceDb" ]; then
 		sudo_rm_contents "$MC_DB_NAME" || return "$?"
@@ -1362,12 +1362,12 @@ shutdown_all_stations() (
 	#gonna assume that the environment has been setup because if
 	#the environment hasn't been setup yet then no radio stations
 	#are running
-	if [ ! -s "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate ]; then
+	if [ ! -s "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
 try:
@@ -1395,7 +1395,7 @@ startup_radio() (
 	setup_radio &&
 	export MC_SEARCH_BASE="$MC_APP_ROOT"/"$MC_CONTENT_HOME" &&
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	for conf in "$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		mc-ices -c "$conf"
@@ -1409,7 +1409,7 @@ startup_api() (
 		setup_api
 	fi &&
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background with in a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
@@ -1536,7 +1536,7 @@ setup_unit_test_env() (
 		"$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH" &&
 	sync_requirement_list
 	setup_env_api_file
-	pyEnvPath="$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"
+	pyEnvPath="$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$MC_LIB_SRC" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
@@ -1571,7 +1571,7 @@ run_unit_tests() (
 	test_src="$MC_SRC_PATH"/tests &&
 	__export_py_env_vars__ &&
 	export PYTHONPATH="${MC_SRC_PATH}:${MC_SRC_PATH}/api" &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	cd "$test_src"
 	pytest -s "$@" &&
 	echo "done running unit tests"
@@ -1832,7 +1832,7 @@ process_global_vars() {
 	define_repo_paths &&
 
 	#python environment names
-	export pyEnv='mc_env' &&
+	export MC_PY_ENV='mc_env' &&
 
 	setup_base_dirs &&
 
@@ -1871,7 +1871,7 @@ unset_globals() {
 	unset MC_LIB_SRC
 	unset MC_PROJ_NAME
 	unset MC_PY_MODULE_DIR
-	unset pyEnv
+	unset MC_PY_ENV
 	unset MC_REFERENCE_SRC
 	unset MC_REFERENCE_SRC_DB
 	unset MC_SEARCH_BASE

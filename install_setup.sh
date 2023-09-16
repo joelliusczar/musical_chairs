@@ -83,9 +83,9 @@ fi || show_err_and_exit "python install failed"
 mc-python -V >/dev/null 2>&1 || show_err_and_exit "mc-python not available"
 
 if ! mc-python -m pip -V 2>/dev/null; then
-	curl -o "$appRoot"/"$buildDir"/get-pip.py \
+	curl -o "$appRoot"/"$BUILD_DIR"/get-pip.py \
 		https://bootstrap.pypa.io/pip/get-pip.py &&
-	mc-python "$appRoot"/"$buildDir"/get-pip.py ||
+	mc-python "$appRoot"/"$BUILD_DIR"/get-pip.py ||
 	show_err_and_exit "Couldn't install pip"
 fi
 

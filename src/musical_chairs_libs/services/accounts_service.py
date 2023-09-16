@@ -50,7 +50,7 @@ from email_validator import (
 
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALGORITHM = "HS256"
-SECRET_KEY=os.environ["radioAuthSecretKey"]
+SECRET_KEY=os.environ["RADIO_AUTH_SECRET_KEY"]
 
 
 class AccountsService:

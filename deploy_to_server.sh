@@ -70,7 +70,7 @@ fi
 error_check_path "$(get_repo_path)" &&
 rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
-cd "$appRoot"/"$buildDir" &&
+cd "$appRoot"/"$BUILD_DIR" &&
 git clone "$radioServerRepoUrl" "$projName" &&
 cd "$projName"  &&
 if [ "$currentBranch" != main ]; then

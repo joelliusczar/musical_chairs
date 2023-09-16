@@ -97,12 +97,12 @@ __set_env_path_var__() {
 
 
 __export_py_env_vars__() {
-	export searchBase="$appRoot"/"$contentHome" &&
+	export searchBase="$appRoot"/"$CONTENT_HOME" &&
 	export dbName="$appRoot"/"$sqliteTrunkFilepath" &&
 	export templateDir="$appRoot"/"$templatesDirCl" &&
-	export stationConfigDir="$appRoot"/"$icesConfigsDir" &&
+	export stationConfigDir="$appRoot"/"$ICES_CONFIGS_DIR" &&
 	export stationModuleDir="$appRoot"/"$pyModulesDir"
-	export radioAuthSecretKey=$(get_mc_auth_key)
+	export RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
 }
 
 print_py_env_var_guesses() (
@@ -114,7 +114,7 @@ print_py_env_var_guesses() (
 	echo "templateDir=$templateDir"
 	echo "stationConfigDir=$stationConfigDir"
 	echo "stationModuleDir=$stationModuleDir"
-	echo "radioAuthSecretKey=$radioAuthSecretKey"
+	echo "RADIO_AUTH_SECRET_KEY=$RADIO_AUTH_SECRET_KEY"
 )
 
 get_pkg_mgr() {
@@ -259,17 +259,17 @@ s3_name() {
 kill_s3fs() {
 	process_global_vars "$@" &&
 	kill -9 $(ps -e | grep s3fs | awk '{ print $1 }')
-	fusermount -u "$appRoot"/"$contentHome"
+	fusermount -u "$appRoot"/"$CONTENT_HOME"
 }
 
 link_to_music_files() {
 	echo 'linking music files'
 	process_global_vars "$@" &&
-	if [ ! -e "$appRoot"/"$contentHome"/Soundtrack ]; then
+	if [ ! -e "$appRoot"/"$CONTENT_HOME"/Soundtrack ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
-			s3fs "$(s3_name)" "$appRoot"/"$contentHome"/ \
+			s3fs "$(s3_name)" "$appRoot"/"$CONTENT_HOME"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
-			[ -e "$appRoot"/"$contentHome"/Soundtrack ]
+			[ -e "$appRoot"/"$CONTENT_HOME"/Soundtrack ]
 		else
 			return 1
 		fi
@@ -455,13 +455,14 @@ sudo_mkdir() (
 		mkdir -pv "$dirMakera"
 )
 
+
 unroot_dir() (
 	dirUnrootura="$1"
 	if [ ! -w "$dirUnrootura" ]; then
 		prompt='Password required to change owner of'
 		prompt="${prompt} ${dirUnrootura} to current user: "
 		sudo -p "$prompt" \
-			chown -R "$currentUser": "$dirUnrootura"
+			chown -R "$CURRENT_USER": "$dirUnrootura"
 	fi
 )
 
@@ -563,19 +564,19 @@ kill_process_using_port() (
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
-	envFile="$appRoot"/"$configDir"/.env
+	envFile="$appRoot"/"$CONFIG_DIR"/.env
 	error_check_all_paths "$templatesSrc"/.env_api "$envFile" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	cp "$templatesSrc"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
-	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${contentHome}'@" \
+	perl -pi -e "s@^(searchBase=).*\$@\1'${appRoot}/${CONTENT_HOME}'@" \
 		"$envFile" &&
 	perl -pi -e "s@^(dbName=).*\$@\1'${appRoot}/${sqliteTrunkFilepath}'@" \
 		"$envFile" &&
 	perl -pi -e "s@^(templateDir=).*\$@\1'${appRoot}/${templatesDirCl}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${icesConfigsDir}'@" \
+		"s@^(stationConfigDir=).*\$@\1'${appRoot}/${ICES_CONFIGS_DIR}'@" \
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(stationModuleDir=).*\$@\1'${appRoot}/${pyModulesDir}'@" \
@@ -622,7 +623,7 @@ setup_db() (
 			shutdown_all_stations
 		fi
 		if [ -n "$(pgrep 'uvicorn')" ]; then
-			kill_process_using_port "$apiPort"
+			kill_process_using_port "$API_PORT"
 		fi
 	fi
 
@@ -994,10 +995,10 @@ setup_ssl_cert_nginx() (
 
 setup_react_env_debug() (
 	process_global_vars "$@" &&
-	envFile="$clientSrc"/.env.local
+	envFile="$CLIENT_SRC"/.env.local
 	echo "$envFile"
-	echo 'reactAppApiVersion=v1' > "$envFile"
-	echo 'reactAppBaseAddress=https://localhost:8032' >> "$envFile"
+	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
+	echo 'REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
 	#HTTPS, SSL_CRT_FILE, and SSL_KEY_FILE are used by create-react-app
 	#when calling `npm start`
 	echo 'HTTPS=true' >> "$envFile"
@@ -1034,12 +1035,12 @@ __copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
 		cp "$templatesSrc"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<appClientPathCl>@${webRoot}/${appClientPathCl}@" \
+		perl -pi -e "s@<APP_CLIENT_PATH_CL>@${webRoot}/${APP_CLIENT_PATH_CL}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<serverName>@${serverName}@g" "$appConfFile" &&
+		perl -pi -e "s@<SERVER_NAME>@${SERVER_NAME}@g" "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<apiPort>@${apiPort}@" "$appConfFile"
+		perl -pi -e "s@<API_PORT>@${API_PORT}@" "$appConfFile"
 }
 
 update_nginx_conf() (
@@ -1203,7 +1204,7 @@ install_ices() (
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 	|| [ -n "$ice_branch" ]; then
 		shutdown_all_stations &&
-		folderPath="$appRoot"/"$buildDir"/"$projName"/compiled_dependencies
+		folderPath="$appRoot"/"$BUILD_DIR"/"$projName"/compiled_dependencies
 		sh "$folderPath"/build_ices.sh "$ice_branch"
 	fi
 )
@@ -1266,7 +1267,7 @@ show_ices_station_log() (
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
-	logName="$appRoot"/"$icesConfigsDir"/ices."$owner"_"$station".conf
+	logName="$appRoot"/"$ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
 	logdir = EnvManager.read_config_value(
@@ -1305,7 +1306,7 @@ update_all_ices_confs() (
 	echo "updating ices confs"
 	sourcePassword="$1"
 	process_global_vars "$@"
-	for conf in "$appRoot"/"$icesConfigsDir"/*.conf; do
+	for conf in "$appRoot"/"$ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
 	done &&
@@ -1349,9 +1350,9 @@ run_song_scan() (
 	print("Starting")
 	EnvManager.setup_db_if_missing(echo = True)
 	songScanner = SongScanner()
-	inserted = songScanner.save_paths('${appRoot}/${contentHome}')
+	inserted = songScanner.save_paths('${appRoot}/${CONTENT_HOME}')
 	print(f"saving paths done: {inserted} inserted")
-	updated = songScanner.update_metadata('${appRoot}/${contentHome}')
+	updated = songScanner.update_metadata('${appRoot}/${CONTENT_HOME}')
 	print(f"updating songs done: {updated}")
 	EOF
 )
@@ -1392,10 +1393,10 @@ startup_radio() (
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
-	export searchBase="$appRoot"/"$contentHome" &&
+	export searchBase="$appRoot"/"$CONTENT_HOME" &&
 	__export_py_env_vars__ &&
 	. "$appRoot"/"$appTrunk"/"$pyEnv"/bin/activate &&
-	for conf in "$appRoot"/"$icesConfigsDir"/*.conf; do
+	for conf in "$appRoot"/"$ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		mc-ices -c "$conf"
 	done
@@ -1413,8 +1414,8 @@ startup_api() (
 	#put uvicorn in background with in a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
-	(uvicorn --app-dir "$webRoot"/"$appApiPathCl" --root-path /api/v1 \
-	--host 0.0.0.0 --port "$apiPort" \
+	(uvicorn --app-dir "$webRoot"/"$APP_API_PATH_CL" --root-path /api/v1 \
+	--host 0.0.0.0 --port "$API_PORT" \
 	"index:app" </dev/null >api.out 2>&1 &)
 	echo "done starting up api. Access at ${fullUrl}"
 )
@@ -1422,7 +1423,7 @@ startup_api() (
 
 startup_nginx_for_debug() (
 	process_global_vars "$@" &&
-	export apiPort='8032'
+	export API_PORT='8032'
 	setup_nginx_confs &&
 	restart_nginx
 )
@@ -1430,11 +1431,11 @@ startup_nginx_for_debug() (
 setup_api() (
 	echo "setting up api"
 	process_global_vars "$@" &&
-	kill_process_using_port "$apiPort" &&
+	kill_process_using_port "$API_PORT" &&
 	sync_utility_scripts &&
 	sync_requirement_list &&
 	copy_dir "$templatesSrc" "$appRoot"/"$templatesDirCl" &&
-	copy_dir "$apiSrc" "$webRoot"/"$appApiPathCl" &&
+	copy_dir "$API_SRC" "$webRoot"/"$APP_API_PATH_CL" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
 	setup_nginx_confs &&
@@ -1458,7 +1459,7 @@ create_swap_if_needed() (
 setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&
-	error_check_all_paths "$clientSrc"  "$webRoot"/"$appClientPathCl" &&
+	error_check_all_paths "$CLIENT_SRC"  "$webRoot"/"$APP_CLIENT_PATH_CL" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -1467,19 +1468,19 @@ setup_client() (
 	fi &&
 	#check if web application folder exists, clear out if it does,
 	#delete otherwise
-	empty_dir_contents "$webRoot"/"$appClientPathCl" &&
+	empty_dir_contents "$webRoot"/"$APP_CLIENT_PATH_CL" &&
 
-	export reactAppApiVersion=v1 &&
-	export reactAppBaseAddress="$fullUrl" &&
+	export REACT_APP_API_VERSION=v1 &&
+	export REACT_APP_BASE_ADDRESS="$fullUrl" &&
 	#set up react then copy
 	#install packages
-	npm --prefix "$clientSrc" i &&
+	npm --prefix "$CLIENT_SRC" i &&
 	#build code (transpile it)
-	npm run --prefix "$clientSrc" build &&
+	npm run --prefix "$CLIENT_SRC" build &&
 	#copy built code to new location
 	sudo -p 'Pass required for copying client files: ' \
-		cp -rv "$clientSrc"/build/. "$webRoot"/"$appClientPathCl" &&
-	unroot_dir "$webRoot"/"$appClientPathCl" &&
+		cp -rv "$CLIENT_SRC"/build/. "$webRoot"/"$APP_CLIENT_PATH_CL" &&
+	unroot_dir "$webRoot"/"$APP_CLIENT_PATH_CL" &&
 	echo "done setting up client"
 )
 
@@ -1545,9 +1546,9 @@ setup_unit_test_env() (
 		create_py_env_in_app_trunk
 	fi
 	replace_db_file_if_needed2 &&
-	echo "$appRoot"/"$configDir"/.env &&
+	echo "$appRoot"/"$CONFIG_DIR"/.env &&
 	echo "PYTHONPATH='${srcPath}:${srcPath}/api'" \
-		>> "$appRoot"/"$configDir"/.env &&
+		>> "$appRoot"/"$CONFIG_DIR"/.env &&
 	echo "done setting up test environment"
 )
 
@@ -1665,19 +1666,19 @@ process_global_args() {
 }
 
 define_consts() {
-	[ -z "$constantsSet" ] || return 0
+	[ -z "$CONSTANTS_SET" ] || return 0
 	export PACMAN_CONST='pacman'
 	export APT_CONST='apt-get'
 	export HOMEBREW_CONST='homebrew'
-	export currentUser=$(whoami)
+	export CURRENT_USER=$(whoami)
 	export projName='musical_chairs'
-	export buildDir='builds'
-	export contentHome='music/radio'
+	export BUILD_DIR='builds'
+	export CONTENT_HOME='music/radio'
 	export binDir='.local/bin'
-	export apiPort='8033'
+	export API_PORT='8033'
 	#done't try to change from home
-	export defaultRadioRepoPath="$HOME"/"$buildDir"/"$projName"
-	export constantsSet='true'
+	export defaultRadioRepoPath="$HOME"/"$BUILD_DIR"/"$projName"
+	export CONSTANTS_SET='true'
 	echo "constants defined"
 }
 
@@ -1690,7 +1691,7 @@ create_install_dir() {
 define_top_level_terms() {
 	appRoot=${appRoot:-"$HOME"}
 	export testRoot="$workspaceAbsPath/test_trash"
-	export appRoot0="$appRoot"
+	export APP_ROOT_0="$appRoot"
 
 	if [ -n "$testFlag" ]; then
 		appRoot="$testRoot"
@@ -1710,10 +1711,10 @@ define_top_level_terms() {
 }
 
 define_app_dir_paths() {
-	export icesConfigsDir="$appTrunk"/ices_configs
+	export ICES_CONFIGS_DIR="$appTrunk"/ices_configs
 	export pyModulesDir="$appTrunk"/pyModules
 
-	export configDir="$appTrunk"/config
+	export CONFIG_DIR="$appTrunk"/config
 	export dbDir="$appTrunk"/db
 	export sqliteTrunkFilepath="$dbDir"/"$sqliteFilename"
 	export utestEnvDir="$testRoot"/utest
@@ -1736,8 +1737,8 @@ define_web_server_paths() {
 		(*) ;;
 	esac
 
-	export appApiPathCl=api/"$appName"
-	export appClientPathCl=client/"$appName"
+	export APP_API_PATH_CL=api/"$appName"
+	export APP_CLIENT_PATH_CL=client/"$appName"
 
 	echo "web server paths defined"
 }
@@ -1767,15 +1768,15 @@ _get_domain_name() (
 
 __define_url__() {
 	echo "env: ${app_env}"
-	export serverName=$(_get_domain_name "$app_env")
-	export fullUrl="https://${serverName}"
+	export SERVER_NAME=$(_get_domain_name "$app_env")
+	export fullUrl="https://${SERVER_NAME}"
 	echo "url defined"
 }
 
 define_repo_paths() {
 	export srcPath="$workspaceAbsPath/src"
-	export apiSrc="$srcPath/api"
-	export clientSrc="$srcPath/client"
+	export API_SRC="$srcPath/api"
+	export CLIENT_SRC="$srcPath/client"
 	export libSrc="$srcPath/$libName"
 	export templatesSrc="$workspaceAbsPath/templates"
 	export referenceSrc="$workspaceAbsPath/reference"
@@ -1784,10 +1785,10 @@ define_repo_paths() {
 }
 
 setup_common_dirs() {
-	[ -e "$appRoot"/"$configDir" ] ||
-	mkdir -pv "$appRoot"/"$configDir"
-	[ -e "$appRoot"/"$icesConfigsDir" ] ||
-	mkdir -pv "$appRoot"/"$icesConfigsDir"
+	[ -e "$appRoot"/"$CONFIG_DIR" ] ||
+	mkdir -pv "$appRoot"/"$CONFIG_DIR"
+	[ -e "$appRoot"/"$ICES_CONFIGS_DIR" ] ||
+	mkdir -pv "$appRoot"/"$ICES_CONFIGS_DIR"
 	[ -e "$appRoot"/"$pyModulesDir" ] ||
 	mkdir -pv "$appRoot"/"$pyModulesDir"
 	[ -e "$appRoot"/"$dbDir" ] ||
@@ -1803,21 +1804,21 @@ setup_base_dirs() {
 
 	setup_common_dirs
 
-	[ -e "$appRoot"/"$contentHome" ] ||
-	mkdir -pv "$appRoot"/"$contentHome"
+	[ -e "$appRoot"/"$CONTENT_HOME" ] ||
+	mkdir -pv "$appRoot"/"$CONTENT_HOME"
 
 
-	[ -e "$webRoot"/"$appApiPathCl" ] ||
+	[ -e "$webRoot"/"$APP_API_PATH_CL" ] ||
 	{
 		sudo -p 'Pass required for creating web server directory: ' \
-			mkdir -pv "$webRoot"/"$appApiPathCl" ||
-		show_err_and_exit "Could not create ${webRoot}/${appApiPathCl}"
+			mkdir -pv "$webRoot"/"$APP_API_PATH_CL" ||
+		show_err_and_exit "Could not create ${webRoot}/${APP_API_PATH_CL}"
 	}
 }
 
 process_global_vars() {
 	process_global_args "$@" || return
-	[ -z "$globalsSet" ] || return 0
+	[ -z "$GLOBALS_SET" ] || return 0
 
 	define_consts &&
 
@@ -1843,37 +1844,37 @@ process_global_vars() {
 
 	setup_base_dirs &&
 
-	export globalsSet='globals'
+	export GLOBALS_SET='globals'
 }
 
 unset_globals() {
 	unset APT_CONST
 	unset HOMEBREW_CONST
 	unset PACMAN_CONST
-	unset radioAuthSecretKey
-	unset reactAppApiVersion
-	unset reactAppBaseAddress
-	unset apiPort
-	unset apiSrc
-	unset appApiPathCl
-	unset appClientPathCl
+	unset RADIO_AUTH_SECRET_KEY
+	unset REACT_APP_API_VERSION
+	unset REACT_APP_BASE_ADDRESS
+	unset API_PORT
+	unset API_SRC
+	unset APP_API_PATH_CL
+	unset APP_CLIENT_PATH_CL
 	unset appName
 	unset appRoot
-	unset appRoot0
+	unset APP_ROOT_0
 	unset appTrunk
 	unset binDir
-	unset buildDir
-	unset clientSrc
-	unset configDir
-	unset constantsSet
-	unset contentHome
-	unset currentUser
+	unset BUILD_DIR
+	unset CLIENT_SRC
+	unset CONFIG_DIR
+	unset CONSTANTS_SET
+	unset CONTENT_HOME
+	unset CURRENT_USER
 	unset dbName
 	unset dbDir
 	unset defaultRadioRepoPath
 	unset fullUrl
-	unset globalsSet
-	unset icesConfigsDir
+	unset GLOBALS_SET
+	unset ICES_CONFIGS_DIR
 	unset libName
 	unset libSrc
 	unset projName
@@ -1882,7 +1883,7 @@ unset_globals() {
 	unset referenceSrc
 	unset referenceSrcDb
 	unset searchBase
-	unset serverName
+	unset SERVER_NAME
 	unset sqliteTrunkFilepath
 	unset srcPath
 	unset stationConfigDir

@@ -374,16 +374,16 @@ create_py_env_in_dir() (
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
-	python -m pip install -r "$MC_APP_ROOT"/"$appTrunk"/requirements.txt &&
+	python -m pip install -r "$MC_APP_ROOT"/"$MC_APP_TRUNK"/requirements.txt &&
 	echo "done setting up py libs"
 )
 
 create_py_env_in_app_trunk() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
-	create_py_env_in_dir "$MC_APP_ROOT"/"$appTrunk" &&
+	create_py_env_in_dir "$MC_APP_ROOT"/"$MC_APP_TRUNK" &&
 	copy_dir "$MC_LIB_SRC" \
-		"$(get_libs_dir "$MC_APP_ROOT"/"$appTrunk")""$MC_LIB_NAME"
+		"$(get_libs_dir "$MC_APP_ROOT"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
 )
 
 copy_lib_to_test() (
@@ -628,7 +628,7 @@ setup_db() (
 	fi
 
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
 	from musical_chairs_libs.services import EnvManager
@@ -677,7 +677,7 @@ install_py_env() {
 }
 
 __install_py_env_if_needed__() {
-	if [ ! -e "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate ]; then
+	if [ ! -e "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate ]; then
 		__install_py_env__
 	fi
 }
@@ -685,7 +685,7 @@ __install_py_env_if_needed__() {
 print_schema_scripts() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
 	printf '\033c' &&
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -697,7 +697,7 @@ print_schema_scripts() (
 start_python() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
 	python
 )
 
@@ -710,10 +710,10 @@ sync_utility_scripts() (
 sync_requirement_list() (
 	process_global_vars "$@" &&
 	error_check_all_paths "$workspaceAbsPath"/requirements.txt \
-		"$MC_APP_ROOT"/"$appTrunk"/requirements.txt "$MC_APP_ROOT"/requirements.txt &&
+		"$MC_APP_ROOT"/"$MC_APP_TRUNK"/requirements.txt "$MC_APP_ROOT"/requirements.txt &&
 	#keep a copy in the parent radio directory
 	cp "$workspaceAbsPath"/requirements.txt \
-		"$MC_APP_ROOT"/"$appTrunk"/requirements.txt &&
+		"$MC_APP_ROOT"/"$MC_APP_TRUNK"/requirements.txt &&
 	cp "$workspaceAbsPath"/requirements.txt "$MC_APP_ROOT"/requirements.txt
 )
 
@@ -1233,14 +1233,14 @@ show_current_py_lib_files() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	set_python_version_const >/dev/null 2>&1 &&
 	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${MC_LIB_NAME}"
-	echo "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/"$envDir"
+	echo "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/"$envDir"
 )
 
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
 	(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
 	from musical_chairs_libs.services import EnvManager
@@ -1266,7 +1266,7 @@ show_ices_station_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate >/dev/null 2>&1 &&
 	logName="$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -1337,7 +1337,7 @@ run_song_scan() (
 	link_to_music_files &&
 	setup_radio &&
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
 
 	if [ -n "$shouldReplaceDb" ]; then
 		sudo_rm_contents "$MC_DB_NAME" || return "$?"
@@ -1362,12 +1362,12 @@ shutdown_all_stations() (
 	#gonna assume that the environment has been setup because if
 	#the environment hasn't been setup yet then no radio stations
 	#are running
-	if [ ! -s "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate ]; then
+	if [ ! -s "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate ]; then
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
 try:
@@ -1395,7 +1395,7 @@ startup_radio() (
 	setup_radio &&
 	export MC_SEARCH_BASE="$MC_APP_ROOT"/"$MC_CONTENT_HOME" &&
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
 	for conf in "$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		mc-ices -c "$conf"
@@ -1409,7 +1409,7 @@ startup_api() (
 		setup_api
 	fi &&
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background with in a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
@@ -1536,7 +1536,7 @@ setup_unit_test_env() (
 		"$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH" &&
 	sync_requirement_list
 	setup_env_api_file
-	pyEnvPath="$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"
+	pyEnvPath="$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$MC_LIB_SRC" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
@@ -1571,7 +1571,7 @@ run_unit_tests() (
 	test_src="$MC_SRC_PATH"/tests &&
 	__export_py_env_vars__ &&
 	export PYTHONPATH="${MC_SRC_PATH}:${MC_SRC_PATH}/api" &&
-	. "$MC_APP_ROOT"/"$appTrunk"/"$pyEnv"/bin/activate &&
+	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$pyEnv"/bin/activate &&
 	cd "$test_src"
 	pytest -s "$@" &&
 	echo "done running unit tests"
@@ -1691,7 +1691,7 @@ define_top_level_terms() {
 	fi
 
 	sqliteFilename='songs_db.sqlite'
-	export appTrunk="$projName"_dir
+	export MC_APP_TRUNK="$projName"_dir
 	export MC_APP_ROOT="$MC_APP_ROOT"
 	export MC_WEB_ROOT="$MC_WEB_ROOT"
 
@@ -1703,17 +1703,17 @@ define_top_level_terms() {
 }
 
 define_app_dir_paths() {
-	export MC_ICES_CONFIGS_DIR="$appTrunk"/ices_configs
-	export MC_PY_MODULE_DIR="$appTrunk"/pyModules
+	export MC_ICES_CONFIGS_DIR="$MC_APP_TRUNK"/ices_configs
+	export MC_PY_MODULE_DIR="$MC_APP_TRUNK"/pyModules
 
-	export MC_CONFIG_DIR="$appTrunk"/config
-	export MC_DB_DIR="$appTrunk"/db
+	export MC_CONFIG_DIR="$MC_APP_TRUNK"/config
+	export MC_DB_DIR="$MC_APP_TRUNK"/db
 	export MC_SQLITE_TRUNK_FILEPATH="$MC_DB_DIR"/"$sqliteFilename"
 	export MC_UTEST_ENV_DIR="$MC_TEST_ROOT"/utest
 
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
-	export MC_TEMPLATES_DIR_CL="$appTrunk"/templates
+	export MC_TEMPLATES_DIR_CL="$MC_APP_TRUNK"/templates
 
 	echo "app dir paths defined and created"
 }
@@ -1791,8 +1791,8 @@ setup_common_dirs() {
 
 setup_base_dirs() {
 
-	[ -e "$MC_APP_ROOT"/"$appTrunk" ] ||
-	mkdir -pv "$MC_APP_ROOT"/"$appTrunk"
+	[ -e "$MC_APP_ROOT"/"$MC_APP_TRUNK" ] ||
+	mkdir -pv "$MC_APP_ROOT"/"$MC_APP_TRUNK"
 
 	setup_common_dirs
 
@@ -1853,7 +1853,7 @@ unset_globals() {
 	unset appName
 	unset MC_APP_ROOT
 	unset MC_APP_ROOT_0
-	unset appTrunk
+	unset MC_APP_TRUNK
 	unset MC_BIN_DIR
 	unset MC_BUILD_DIR
 	unset MC_CLIENT_SRC

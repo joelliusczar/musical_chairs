@@ -27,7 +27,7 @@ class EnvManager:
 	@classmethod
 	@property
 	def db_setup_pass(cls) -> str:
-		return os.environ.get("dbSetupPass", "")
+		return os.environ.get("__DB_SETUP_PASS__", "")
 
 	@classmethod
 	@property
@@ -47,7 +47,7 @@ class EnvManager:
 	@classmethod
 	@property
 	def test_mode(cls) -> bool:
-		return os.environ.get("testMode","false") == "true"
+		return os.environ.get("__TEST_MODE__","false") == "true"
 
 
 	@classmethod

@@ -50,9 +50,9 @@ if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 		install_package libbz2-dev
 	fi &&
 	(
-		python_build_dir="$app_root"/"$build_home"/python
-		empty_dir_contents "$python_build_dir"
-		cd "$python_build_dir"
+		pythonBuildDir="$MC_APP_ROOT"/"$MC_BUILD_DIR"/python
+		empty_dir_contents "$pythonBuildDir"
+		cd "$pythonBuildDir"
 		verNum='3.9.1'
 		curl -o Python-"$verNum".tgz \
 			https://www.python.org/ftp/python/"$verNum"/Python-"$verNum".tgz

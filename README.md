@@ -42,9 +42,9 @@ Next run the start up full web function
 startup_full_web
 ```
 
-If testing and database has been modified, also include `replaceDb`
+If testing and database has been modified
 ```
-startup_full_web replaceDb
+startup_full_web replace='sqlite_file'
 ```
 
 ## end nginx process

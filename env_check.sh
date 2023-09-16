@@ -21,8 +21,8 @@ echo "No package manager set"
 perl -v >/dev/null 2>&1 ||
 echo "Perl is not installed"
 
-[ -e "$app_root"/"$bin_dir" ] || 
-echo "${app_root}/${bin_dir} does not exist"
+[ -e "$MC_MC_APP_ROOT"/"$bin_dir" ] || 
+echo "${MC_MC_APP_ROOT}/${bin_dir} does not exist"
 
 case $(uname) in
 	Darwin*)
@@ -115,11 +115,11 @@ if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 	echo "python3-distutils is not installed"
 fi
 
-[ -e "$app_root"/"$build_home" ] ||
-echo "${app_root}/${build_home} does not exist"
+[ -e "$MC_APP_ROOT"/"$build_home" ] ||
+echo "${MC_APP_ROOT}/${build_home} does not exist"
 
-[ -e "$app_root"/"$app_trunk" ] ||
-echo "${app_root}/${app_trunk} does not exist"
+[ -e "$MC_APP_ROOT"/"$app_trunk" ] ||
+echo "${MC_APP_ROOT}/${app_trunk} does not exist"
 
 case $(uname) in
 	Linux*)
@@ -137,17 +137,17 @@ esac
 mc-ices -V >/dev/null 2>&1 ||
 echo "mc-ices is not installed"
 
-[ -e "$app_root"/"$app_trunk"/radio_common.sh ] ||
+[ -e "$MC_APP_ROOT"/"$app_trunk"/radio_common.sh ] ||
 echo "radio_common.sh is not in place"
-[ -e "$app_root"/"$app_trunk"/requirements.txt ] ||
+[ -e "$MC_APP_ROOT"/"$app_trunk"/requirements.txt ] ||
 echo "requirements.txt is not in place"
 
 
 
-[ -e "$app_root"/"$app_trunk"/"$py_env" ] ||
+[ -e "$MC_APP_ROOT"/"$app_trunk"/"$py_env" ] ||
 echo "${app_trunk}/${py_env} is not in place"
 
-compare_dirs "$templates_src" "$app_root"/"$templates_dir_cl"
+compare_dirs "$templates_src" "$MC_APP_ROOT"/"$templates_dir_cl"
 compare_dirs "$api_src" "$web_root"/"$app_api_path_cl"
 
 [ -e "$web_root"/"$app_api_path_cl"/"$py_env" ] ||
@@ -156,8 +156,8 @@ compare_dirs "$client_src"/build \
  "$web_root"/"$app_client_path_cl"
 
 
-[ -e "$app_root"/"$sqlite_file" ] || 
-echo "${app_root}/${sqlite_file} is not in place"
+[ -e "$MC_APP_ROOT"/"$sqlite_file" ] || 
+echo "${MC_APP_ROOT}/${sqlite_file} is not in place"
 
 nginx -v 2>/dev/null || 
 echo "nginx is not installed"

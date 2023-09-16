@@ -89,33 +89,28 @@ case $(uname) in
 		;;
 	*) ;;
 esac
-ices_build_dir="$app_root"/"$build_dir"/ices
+icesBuildDir="$MC_APP_ROOT"/"$MC_BUILD_DIR"/ices
 (
-	name_prefix='mc-'
-	sudo_rm_dir "$ices_build_dir"
-	cd "$app_root"/"$build_dir"
+	namePrefix='mc-'
+	sudo_rm_dir "$icesBuildDir"
+	cd "$MC_APP_ROOT"/"$MC_BUILD_DIR"
 	git clone https://github.com/joelliusczar/ices0.git ices
 	cd ices
-	if [ "$exp_name" = "dbg_ices" ]; then
-		git checkout debuging
-		name_prefix='dbg-'
-	else
-		if [ -n "$ice_branch" ]; then
-			echo "Using branch ${ice_branch}"
-			git checkout -t origin/"$ice_branch" || exit 1
-		fi
+	if [ -n "$__ICES_BRANCH__" ]; then
+		echo "Using branch ${__ICES_BRANCH__}"
+		git checkout -t origin/"$__ICES_BRANCH__" || exit 1
 	fi
 	aclocal &&
 	autoreconf -fi &&
 	automake --add-missing &&
-	./configure --prefix="$app_root"/.local \
+	./configure --prefix="$MC_APP_ROOT"/.local \
 		--with-python=$(which mc-python) \
-		--with-moddir="$app_root"/"$pyModules_dir" \
-		--program-prefix="$name_prefix" &&
+		--with-moddir="$MC_APP_ROOT"/"$pyModules_dir" \
+		--program-prefix="$namePrefix" &&
 	make &&
 	make install &&
-	cd "$app_root"/"$build_dir" &&
+	cd "$MC_APP_ROOT"/"$MC_BUILD_DIR" &&
 	if [ "$skip_option" != clean ]; then
-		sudo_rm_dir "$ices_build_dir"
+		sudo_rm_dir "$icesBuildDir"
 	fi
 )

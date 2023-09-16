@@ -5,9 +5,9 @@
 [ -f "$HOME"/.zprofile ] && . "$HOME"/.zprofile
 [ -f "$HOME"/.zshrc ] && . "$HOME"/.zshrc
 
-include_count=${include_count:-0}
-include_count=$((include_count + 1))
-export include_count
+__INCLUDE_COUNT__=${__INCLUDE_COUNT__:-0}
+__INCLUDE_COUNT__=$((__INCLUDE_COUNT__ + 1))
+export __INCLUDE_COUNT__
 
 to_abs_path() (
 	target_path="$1"
@@ -21,8 +21,8 @@ to_abs_path() (
 )
 
 get_repo_path() (
-	if [ -n "$radioRepoPath" ]; then
-		echo "$radioRepoPath"
+	if [ -n "$MC_RADIO_REPO_PATH" ]; then
+		echo "$MC_RADIO_REPO_PATH"
 	else
 		echo "$MC_DEFAULT_RADIO_REPO_PATH"
 	fi
@@ -89,7 +89,8 @@ set_env_vars() {
 }
 
 __set_env_path_var__() {
-	if perl -e "exit 1 if index('$PATH','${MC_APP_ROOT}/${MC_BIN_DIR}') != -1"; then
+	if perl -e "exit 1 if index('$PATH','${MC_APP_ROOT}/${MC_BIN_DIR}') != -1";
+	then
 		echo "Please add '${MC_APP_ROOT}/${MC_BIN_DIR}' to path"
 		export PATH="$PATH":"$MC_APP_ROOT"/"$MC_BIN_DIR"
 	fi
@@ -149,27 +150,33 @@ get_icecast_name() (
 )
 
 get_pb_api_key() (
-	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' \
+		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_pb_secret() (
-	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' \
+		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_api_key() (
-	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' \
+		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' \
+		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' \
+		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_mc_auth_key() (
-	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' \
+		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
 )
 
 get_address() (
@@ -330,7 +337,7 @@ array_contains_equals() (
 )
 
 is_python_version_good() {
-	[ "$experiment_name" = 'py3.8' ] && return 0
+	[ "$__EXPERIMENT_NAME__" = 'py3.8' ] && return 0
 	set_python_version_const &&
 	[ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge 9 ]
 }
@@ -364,9 +371,6 @@ create_py_env_in_dir() (
 	env_root="$1"
 	pyEnvDir="$env_root"/"$MC_PY_ENV"
 	error_check_path "$pyEnvDir" &&
-	if [ -n "$clean_flag" ]; then
-		rm_contents_if_exist "$pyEnvDir" || return "$?"
-	fi &&
 	mc-python -m virtualenv "$pyEnvDir" &&
 	. "$pyEnvDir"/bin/activate &&
 	#this is to make some of my newer than checks work
@@ -569,11 +573,14 @@ setup_env_api_file() (
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	cp "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
-	perl -pi -e "s@^(MC_SEARCH_BASE=).*\$@\1'${MC_APP_ROOT}/${MC_CONTENT_HOME}'@" \
+	perl -pi -e \
+		"s@^(MC_SEARCH_BASE=).*\$@\1'${MC_APP_ROOT}/${MC_CONTENT_HOME}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(MC_DB_NAME=).*\$@\1'${MC_APP_ROOT}/${MC_SQLITE_TRUNK_FILEPATH}'@" \
+	perl -pi -e \
+		"s@^(MC_DB_NAME=).*\$@\1'${MC_APP_ROOT}/${MC_SQLITE_TRUNK_FILEPATH}'@" \
 		"$envFile" &&
-	perl -pi -e "s@^(MC_TEMPLATE_DIR=).*\$@\1'${MC_APP_ROOT}/${MC_TEMPLATES_DIR_CL}'@" \
+	perl -pi -e \
+		"s@^(MC_TEMPLATE_DIR=).*\$@\1'${MC_APP_ROOT}/${MC_TEMPLATES_DIR_CL}'@" \
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(MC_ICES_CONFIG_DRI=).*\$@\1'${MC_APP_ROOT}/${MC_ICES_CONFIGS_DIR}'@" \
@@ -600,8 +607,9 @@ replace_db_file_if_needed() (
 	process_global_vars "$@" &&
 	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
 		"$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH"  &&
-	if [ ! -e "$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH" ] || [ -n "$clean_flag" ] \
-	|| [ -n "$replaceDbFlag" ]; then
+	if [ ! -e "$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH" ] \
+	|| [ -n "$__CLEAN_FLAG" ] \
+	|| str_contains "$__REPLACE__" "sqlite_file"; then
 		cp -v "$MC_REFERENCE_SRC_DB" "$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH" &&
 		return 0
 		echo 'Done copying db'
@@ -703,18 +711,19 @@ start_python() (
 
 sync_utility_scripts() (
 	process_global_vars "$@" &&
-	cp "$workspaceAbsPath"/radio_common.sh "$MC_APP_ROOT"/radio_common.sh
+	cp "$MC_WORKSPACE_ABS_PATH"/radio_common.sh "$MC_APP_ROOT"/radio_common.sh
 )
 
 #copy python dependency file to the deployment directory
 sync_requirement_list() (
 	process_global_vars "$@" &&
-	error_check_all_paths "$workspaceAbsPath"/requirements.txt \
-		"$MC_APP_ROOT"/"$MC_APP_TRUNK"/requirements.txt "$MC_APP_ROOT"/requirements.txt &&
+	error_check_all_paths "$MC_WORKSPACE_ABS_PATH"/requirements.txt \
+		"$MC_APP_ROOT"/"$MC_APP_TRUNK"/requirements.txt \
+		"$MC_APP_ROOT"/requirements.txt &&
 	#keep a copy in the parent radio directory
-	cp "$workspaceAbsPath"/requirements.txt \
+	cp "$MC_WORKSPACE_ABS_PATH"/requirements.txt \
 		"$MC_APP_ROOT"/"$MC_APP_TRUNK"/requirements.txt &&
-	cp "$workspaceAbsPath"/requirements.txt "$MC_APP_ROOT"/requirements.txt
+	cp "$MC_WORKSPACE_ABS_PATH"/requirements.txt "$MC_APP_ROOT"/requirements.txt
 )
 
 gen_pass() (
@@ -921,8 +930,8 @@ setup_ssl_cert_local_debug() (
 
 print_ssl_cert_info() (
 	process_global_vars "$@" &&
-	domain=$(_get_domain_name "$app_env" 'omitPort') &&
-	case "$app_env" in
+	domain=$(_get_domain_name "$MC_APP_ENV" 'omitPort') &&
+	case "$MC_APP_ENV" in
 		(local*)
 			isDebugServer=${1#is_debug_server=}
 			if [ -n "$isDebugServer" ]; then
@@ -958,8 +967,8 @@ print_ssl_cert_info() (
 
 setup_ssl_cert_nginx() (
 	process_global_vars "$@" &&
-	domain=$(_get_domain_name "$app_env" 'omitPort') &&
-	case "$app_env" in
+	domain=$(_get_domain_name "$MC_APP_ENV" 'omitPort') &&
+	case "$MC_APP_ENV" in
 		(local*)
 			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.pem &&
 			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
@@ -977,7 +986,7 @@ setup_ssl_cert_nginx() (
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
 			cat "$publicKeyFile" | is_cert_expired ||
-			str_contains "$replace" "ssl_certs"; then
+			str_contains "$__REPLACE__" "ssl_certs"; then
 				echo "downloading new certs"
 				sslVars=$(get_ssl_vars)
 				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
@@ -1035,8 +1044,9 @@ __copy_and_update_nginx_template__() {
 	sudo -p 'copy nginx config' \
 		cp "$MC_TEMPLATES_SRC"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<MC_APP_CLIENT_PATH_CL>@${MC_WEB_ROOT}/${MC_APP_CLIENT_PATH_CL}@" \
-		"$appConfFile" &&
+		perl -pi -e \
+			"s@<MC_APP_CLIENT_PATH_CL>@${MC_WEB_ROOT}/${MC_APP_CLIENT_PATH_CL}@" \
+			"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<MC_SERVER_NAME>@${MC_SERVER_NAME}@g" "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
@@ -1048,7 +1058,7 @@ update_nginx_conf() (
 	appConfFile="$1"
 	error_check_all_paths "$MC_TEMPLATES_SRC" "$appConfFile" &&
 	__copy_and_update_nginx_template__ &&
-	case "$app_env" in
+	case "$MC_APP_ENV" in
 		(local*)
 			publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
 			privateKey=$(__get_local_nginx_cert_path__).private.key.pem &&
@@ -1202,10 +1212,11 @@ install_ices() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ &&
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
-	|| [ -n "$ice_branch" ]; then
+	|| [ -n "$__ICES_BRANCH__" ]; then
 		shutdown_all_stations &&
-		folderPath="$MC_APP_ROOT"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"/compiled_dependencies
-		sh "$folderPath"/build_ices.sh "$ice_branch"
+		projDir="$MC_APP_ROOT"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
+		folderPath="$projDir"/compiled_dependencies
+		sh "$folderPath"/build_ices.sh "$__ICES_BRANCH__"
 	fi
 )
 
@@ -1405,7 +1416,7 @@ startup_radio() (
 startup_api() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
-	if ! str_contains "$skip" "setup_api"; then
+	if ! str_contains "$__SKIP__" "setup_api"; then
 		setup_api
 	fi &&
 	__export_py_env_vars__ &&
@@ -1459,7 +1470,8 @@ create_swap_if_needed() (
 setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&
-	error_check_all_paths "$MC_CLIENT_SRC"  "$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
+	error_check_all_paths "$MC_CLIENT_SRC" \
+		"$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -1540,7 +1552,7 @@ setup_unit_test_env() (
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$MC_LIB_SRC" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
-	[ "$workspaceAbsPath"/requirements.txt -nt "$pyEnvPath" ]
+	[ "$MC_WORKSPACE_ABS_PATH"/requirements.txt -nt "$pyEnvPath" ]
 	then
 		echo "changes?"
 		create_py_env_in_app_trunk
@@ -1579,8 +1591,8 @@ run_unit_tests() (
 
 debug_print() (
 	msg="$1"
-	if [ -n "$diagFlag" ]; then
-		echo "$msg" >> diag_out_"$include_count"
+	if [ -n "$__DIAG_FLAG__" ]; then
+		echo "$msg" >> diag_out_"$__INCLUDE_COUNT__"
 	fi
 )
 
@@ -1598,63 +1610,55 @@ get_rc_candidate() {
 
 process_global_args() {
 	#for if we need to pass the args to a remote script for example
-	globalArgs=''
+	__GLOBAL_ARGS__=''
 	while [ ! -z "$1" ]; do
 		case "$1" in
 			#build out to test_trash rather than the normal directories
 			#sets MC_APP_ROOT and MC_WEB_ROOT without having to set them explicitly
 			(test)
-				export testFlag='test'
-				globalArgs="${globalArgs} test"
+				export __TEST_FLAG__='test'
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} test"
 				;;
 			(replace=*)
-				export replace=${1#replace=}
-				globalArgs="${globalArgs} replace='${replace}'"
-				;;
-			(replaceDb) #tells setup to replace sqlite3 db
-				export replaceDbFlag='true'
-				globalArgs="${globalArgs} replaceDb"
+				export __REPLACE__=${1#replace=}
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} replace='${__REPLACE__}'"
 				;;
 			(clean) #tells setup functions to delete files/dirs before installing
-				export clean_flag='clean'
-				globalArgs="${globalArgs} clean"
+				export __CLEAN_FLAG='clean'
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} clean"
 				;;
 			#activates debug_print. Also tells deploy script to use the diag branch
 			(diag)
-				export diagFlag='true'
-				globalArgs="${globalArgs} diag"
-				echo '' > diag_out_"$include_count"
+				export __DIAG_FLAG__='true'
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} diag"
+				echo '' > diag_out_"$__INCLUDE_COUNT__"
 				;;
-			(env=*) #affects which url to use
-				export app_env=${1#env=}
-				globalArgs="${globalArgs} env='${app_env}'"
-				;;
-			(setup_lvl=*) #affects which setup scripst to run
-				export setup_lvl=${1#setup_lvl=}
-				globalArgs="${globalArgs} setup_lvl='${setup_lvl}'"
+			(setuplvl=*) #affects which setup scripst to run
+				export __SETUP_LVL__=${1#setuplvl=}
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} setuplvl='${__SETUP_LVL__}'"
 				;;
 			#when I want to conditionally run with some experimental code
-			(experiment_name=*)
-				export experiment_name=${1#experiment_name=}
-				globalArgs="${globalArgs} experiment_name='${experiment_name}'"
+			(experiment=*)
+				export __EXPERIMENT_NAME__=${1#experiment=}
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} experiment='${__EXPERIMENT_NAME__}'"
 				;;
 			(skip=*)
-				export skip=${1#skip=}
-				globalArgs="${globalArgs} skip='${skip}'"
+				export __SKIP__=${1#skip=}
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} skip='${__SKIP__}'"
 				;;
-			(ice_branch=*)
-				export ice_branch=${1#ice_branch=}
-				globalArgs="${globalArgs} ice_branch='${ice_branch}'"
+			(icebranch=*)
+				export __ICES_BRANCH__=${1#icebranch=}
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} icebranch='${__ICES_BRANCH__}'"
 				;;
-			(db_pass=*)
-				export db_pass=${1#db_pass=}
-				globalArgs="${globalArgs} db_pass='${db_pass}'"
+			(dbsetuppass=*)
+				export __DB_SETUP_PASS__=${1#dbsetuppass=}
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} dbsetuppass='${__DB_SETUP_PASS__}'"
 				;;
 			(*) ;;
 		esac
 		shift
 	done
-	export globalArgs
+	export __GLOBAL_ARGS__
 }
 
 define_consts() {
@@ -1682,10 +1686,10 @@ create_install_dir() {
 
 define_top_level_terms() {
 	MC_APP_ROOT=${MC_APP_ROOT:-"$HOME"}
-	export MC_TEST_ROOT="$workspaceAbsPath/test_trash"
+	export MC_TEST_ROOT="$MC_WORKSPACE_ABS_PATH/test_trash"
 	export MC_APP_ROOT_0="$MC_APP_ROOT"
 
-	if [ -n "$testFlag" ]; then
+	if [ -n "$__TEST_FLAG__" ]; then
 		MC_APP_ROOT="$MC_TEST_ROOT"
 		MC_WEB_ROOT="$MC_TEST_ROOT"
 	fi
@@ -1759,19 +1763,19 @@ _get_domain_name() (
 )
 
 __define_url__() {
-	echo "env: ${app_env}"
-	export MC_SERVER_NAME=$(_get_domain_name "$app_env")
+	echo "env: ${MC_APP_ENV}"
+	export MC_SERVER_NAME=$(_get_domain_name "$MC_APP_ENV")
 	export MC_FULL_URL="https://${MC_SERVER_NAME}"
 	echo "url defined"
 }
 
 define_repo_paths() {
-	export MC_SRC_PATH="$workspaceAbsPath/src"
+	export MC_SRC_PATH="$MC_WORKSPACE_ABS_PATH/src"
 	export MC_API_SRC="$MC_SRC_PATH/api"
 	export MC_CLIENT_SRC="$MC_SRC_PATH/client"
 	export MC_LIB_SRC="$MC_SRC_PATH/$MC_LIB_NAME"
-	export MC_TEMPLATES_SRC="$workspaceAbsPath/templates"
-	export MC_REFERENCE_SRC="$workspaceAbsPath/reference"
+	export MC_TEMPLATES_SRC="$MC_WORKSPACE_ABS_PATH/templates"
+	export MC_REFERENCE_SRC="$MC_WORKSPACE_ABS_PATH/reference"
 	export MC_REFERENCE_SRC_DB="$MC_REFERENCE_SRC/$sqliteFilename"
 	echo "source paths defined"
 }
@@ -1816,10 +1820,10 @@ process_global_vars() {
 
 	create_install_dir &&
 
-	workspaceAbsPath=$(get_repo_path) &&
+	MC_WORKSPACE_ABS_PATH=$(get_repo_path) &&
 	#put export on separate line so it doesn't turn a failure in the previous
 	#line into a success code
-	export workspaceAbsPath &&
+	export MC_WORKSPACE_ABS_PATH &&
 
 	define_top_level_terms &&
 
@@ -1891,7 +1895,7 @@ unset_globals() {
 fn_ls() (
 	process_global_vars "$@" >/dev/null
 	perl -ne 'print "$1\n" if /^([a-zA-Z_0-9]+)\(\)/' \
-		"$workspaceAbsPath"/radio_common.sh | sort
+		"$MC_WORKSPACE_ABS_PATH"/radio_common.sh | sort
 )
 
 test_shell() (

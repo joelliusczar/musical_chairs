@@ -71,7 +71,7 @@ error_check_path "$(get_repo_path)" &&
 rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$MC_APP_ROOT"/"$MC_BUILD_DIR" &&
-git clone "$radioServerRepoUrl" "$MC_PROJ_NAME" &&
+git clone "$MC_RADIO_SERVER_REPO_URL" "$MC_PROJ_NAME" &&
 cd "$MC_PROJ_NAME"  &&
 if [ "$currentBranch" != main ]; then
 	echo "Using branch ${currentBranch}"
@@ -84,7 +84,7 @@ RemoteScriptEOF1
 #select which setup script to run
 { cat<<RemoteScriptEOF2
 
-export diagFlag="$diagFlag" &&
+
 export expName="$expName" &&
 export S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" &&
 export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
@@ -92,30 +92,30 @@ export PB_SECRET=$(get_pb_secret)
 export PB_API_KEY=$(get_pb_api_key)
 export APP_AUTH_KEY=$(get_mc_auth_key)
 
-if [ "$setupLvl" = 'api' ]; then
-	echo "$setupLvl"
+if [ "$__SETUP_LVL__" = 'api' ]; then
+	echo "$__SETUP_LVL__"
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
 	startup_api
-elif [ "$setupLvl" = 'client' ]; then
-	echo "$setupLvl"
+elif [ "$__SETUP_LVL__" = 'client' ]; then
+	echo "$__SETUP_LVL__"
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
 	setup_client &&
 	echo "finished setup"
-elif [ "$setupLvl" = 'radio' ]; then
-	echo "$setupLvl"
+elif [ "$__SETUP_LVL__" = 'radio' ]; then
+	echo "$__SETUP_LVL__"
 	(exit "$unitTestSuccess") &&
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
 	startup_radio
-elif [ "$setupLvl" = 'install' ]; then
-	echo "$setupLvl"
+elif [ "$__SETUP_LVL__" = 'install' ]; then
+	echo "$__SETUP_LVL__"
 	sh ./install_setup.sh &&
 	echo "finished setup"
 else
-	echo "$setupLvl"
+	echo "$__SETUP_LVL__"
 	. ./radio_common.sh &&
 	sync_utility_scripts &&
 	echo "finished setup"
@@ -139,7 +139,7 @@ RemoteScriptEOF3
 $(cat "$radioCommonPath")
 scope() (
 
-	radioServerRepoUrl="$radioServerRepoUrl"
+	MC_RADIO_SERVER_REPO_URL="$MC_RADIO_SERVER_REPO_URL"
 	currentBranch="$(git branch --show-current 2>/dev/null)"
 
 	$(cat clone_repo_fifo)
@@ -156,7 +156,7 @@ RemoteScriptEOF4
 } > remote_script_fifo &
 
 
-ssh -i "$radio_key_file" "$radio_server_ssh_address" \
+ssh -i "$MC_SERVER_KEY_FILE" "$MC_SERVER_SSH_ADDRESS" \
 	'bash -s' < remote_script_fifo &&
 echo "All done" || echo "Onk!"
 

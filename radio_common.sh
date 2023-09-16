@@ -52,7 +52,7 @@ install_package() (
 output_env_vars() (
 	export S3_ACCESS_KEY_ID=$(gen_pass)
 	export S3_SECRET_ACCESS_KEY=$(gen_pass)
-	printenv > "$MC_APP_ROOT"/used_env_vars
+	printenv > "$(get_app_root)"/used_env_vars
 )
 
 set_python_version_const() {
@@ -89,20 +89,20 @@ set_env_vars() {
 }
 
 __set_env_path_var__() {
-	if perl -e "exit 1 if index('$PATH','${MC_APP_ROOT}/${MC_BIN_DIR}') != -1";
+	if perl -e "exit 1 if index('$PATH','$(get_app_root)/${MC_BIN_DIR}') != -1";
 	then
-		echo "Please add '${MC_APP_ROOT}/${MC_BIN_DIR}' to path"
-		export PATH="$PATH":"$MC_APP_ROOT"/"$MC_BIN_DIR"
+		echo "Please add '$(get_app_root)/${MC_BIN_DIR}' to path"
+		export PATH="$PATH":"$(get_app_root)"/"$MC_BIN_DIR"
 	fi
 }
 
 
 __export_py_env_vars__() {
-	export MC_SEARCH_BASE="$MC_APP_ROOT"/"$MC_CONTENT_HOME" &&
-	export MC_DB_NAME="$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH" &&
-	export MC_TEMPLATE_DIR="$MC_APP_ROOT"/"$MC_TEMPLATES_DIR_CL" &&
-	export MC_ICES_CONFIG_DRI="$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR" &&
-	export MC_MODULE_DIR="$MC_APP_ROOT"/"$MC_PY_MODULE_DIR"
+	export MC_SEARCH_BASE="$(get_app_root)"/"$MC_CONTENT_HOME" &&
+	export MC_DB_NAME="$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH" &&
+	export MC_TEMPLATE_DIR="$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
+	export MC_ICES_CONFIG_DRI="$(get_app_root)"/"$MC_ICES_CONFIGS_DIR" &&
+	export MC_MODULE_DIR="$(get_app_root)"/"$MC_PY_MODULE_DIR"
 	export MC_RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
 }
 
@@ -151,41 +151,41 @@ get_icecast_name() (
 
 get_pb_api_key() (
 	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' \
-		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_pb_secret() (
 	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' \
-		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_api_key() (
 	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' \
-		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_secret() (
 	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' \
-		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_secret() (
 	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' \
-		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_mc_auth_key() (
 	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' \
-		"$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_address() (
-	keyFile="$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+	keyFile="$(get_app_root)"/keys/"$MC_PROJ_NAME"
 	perl -ne 'print "$1\n" if /address6=root@([\w:]+)/' "$keyFile"
 )
 
 get_id_file() (
-	keyFile="$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+	keyFile="$(get_app_root)"/keys/"$MC_PROJ_NAME"
 	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
 )
 
@@ -266,17 +266,17 @@ s3_name() {
 kill_s3fs() {
 	process_global_vars "$@" &&
 	kill -9 $(ps -e | grep s3fs | awk '{ print $1 }')
-	fusermount -u "$MC_APP_ROOT"/"$MC_CONTENT_HOME"
+	fusermount -u "$(get_app_root)"/"$MC_CONTENT_HOME"
 }
 
 link_to_music_files() {
 	echo 'linking music files'
 	process_global_vars "$@" &&
-	if [ ! -e "$MC_APP_ROOT"/"$MC_CONTENT_HOME"/Soundtrack ]; then
+	if [ ! -e "$(get_app_root)"/"$MC_CONTENT_HOME"/Soundtrack ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
-			s3fs "$(s3_name)" "$MC_APP_ROOT"/"$MC_CONTENT_HOME"/ \
+			s3fs "$(s3_name)" "$(get_app_root)"/"$MC_CONTENT_HOME"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
-			[ -e "$MC_APP_ROOT"/"$MC_CONTENT_HOME"/Soundtrack ]
+			[ -e "$(get_app_root)"/"$MC_CONTENT_HOME"/Soundtrack ]
 		else
 			return 1
 		fi
@@ -378,16 +378,16 @@ create_py_env_in_dir() (
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
-	python -m pip install -r "$MC_APP_ROOT"/"$MC_APP_TRUNK"/requirements.txt &&
+	python -m pip install -r "$(get_app_root)"/"$MC_APP_TRUNK"/requirements.txt &&
 	echo "done setting up py libs"
 )
 
 create_py_env_in_app_trunk() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
-	create_py_env_in_dir "$MC_APP_ROOT"/"$MC_APP_TRUNK" &&
+	create_py_env_in_dir "$(get_app_root)"/"$MC_APP_TRUNK" &&
 	copy_dir "$MC_LIB_SRC" \
-		"$(get_libs_dir "$MC_APP_ROOT"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
+		"$(get_libs_dir "$(get_app_root)"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
 )
 
 copy_lib_to_test() (
@@ -497,17 +497,17 @@ get_bin_path() (
 
 link_app_python_if_not_linked() {
 	if ! mc-python -V 2>/dev/null; then
-		if [ ! -e "$MC_APP_ROOT"/"$MC_BIN_DIR" ]; then
-			sudo_mkdir "$MC_APP_ROOT"/"$MC_BIN_DIR" || return "$?"
+		if [ ! -e "$(get_app_root)"/"$MC_BIN_DIR" ]; then
+			sudo_mkdir "$(get_app_root)"/"$MC_BIN_DIR" || return "$?"
 		fi
 		case $(uname) in
 			(Darwin*)
 				ln -sf $(get_bin_path python@3.9) \
-					"$MC_APP_ROOT"/"$MC_BIN_DIR"/mc-python
+					"$(get_app_root)"/"$MC_BIN_DIR"/mc-python
 				;;
 			(*)
 				ln -sf $(get_bin_path python3) \
-					"$MC_APP_ROOT"/"$MC_BIN_DIR"/mc-python
+					"$(get_app_root)"/"$MC_BIN_DIR"/mc-python
 				;;
 		esac
 	fi
@@ -568,25 +568,25 @@ kill_process_using_port() (
 #this may seem useless but we need it for test runner to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
-	envFile="$MC_APP_ROOT"/"$MC_CONFIG_DIR"/.env
+	envFile="$(get_app_root)"/"$MC_CONFIG_DIR"/.env
 	error_check_all_paths "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	cp "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
 	perl -pi -e \
-		"s@^(MC_SEARCH_BASE=).*\$@\1'${MC_APP_ROOT}/${MC_CONTENT_HOME}'@" \
+		"s@^(MC_SEARCH_BASE=).*\$@\1'$(get_app_root)/${MC_CONTENT_HOME}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(MC_DB_NAME=).*\$@\1'${MC_APP_ROOT}/${MC_SQLITE_TRUNK_FILEPATH}'@" \
+		"s@^(MC_DB_NAME=).*\$@\1'$(get_app_root)/${MC_SQLITE_TRUNK_FILEPATH}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(MC_TEMPLATE_DIR=).*\$@\1'${MC_APP_ROOT}/${MC_TEMPLATES_DIR_CL}'@" \
+		"s@^(MC_TEMPLATE_DIR=).*\$@\1'$(get_app_root)/${MC_TEMPLATES_DIR_CL}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(MC_ICES_CONFIG_DRI=).*\$@\1'${MC_APP_ROOT}/${MC_ICES_CONFIGS_DIR}'@" \
+		"s@^(MC_ICES_CONFIG_DRI=).*\$@\1'$(get_app_root)/${MC_ICES_CONFIGS_DIR}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(MC_MODULE_DIR=).*\$@\1'${MC_APP_ROOT}/${MC_PY_MODULE_DIR}'@" \
+		"s@^(MC_MODULE_DIR=).*\$@\1'$(get_app_root)/${MC_PY_MODULE_DIR}'@" \
 		"$envFile" &&
 	echo 'done setting up .env file'
 )
@@ -606,11 +606,11 @@ replace_db_file_if_needed() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
 	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
-		"$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH"  &&
-	if [ ! -e "$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH" ] \
+		"$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH"  &&
+	if [ ! -e "$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH" ] \
 	|| [ -n "$__CLEAN_FLAG" ] \
 	|| str_contains "$__REPLACE__" "sqlite_file"; then
-		cp -v "$MC_REFERENCE_SRC_DB" "$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH" &&
+		cp -v "$MC_REFERENCE_SRC_DB" "$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH" &&
 		return 0
 		echo 'Done copying db'
 	fi
@@ -636,7 +636,7 @@ setup_db() (
 	fi
 
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
 	from musical_chairs_libs.services import EnvManager
@@ -685,7 +685,7 @@ install_py_env() {
 }
 
 __install_py_env_if_needed__() {
-	if [ ! -e "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
+	if [ ! -e "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
 		__install_py_env__
 	fi
 }
@@ -693,7 +693,7 @@ __install_py_env_if_needed__() {
 print_schema_scripts() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	printf '\033c' &&
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -705,25 +705,25 @@ print_schema_scripts() (
 start_python() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	python
 )
 
 sync_utility_scripts() (
 	process_global_vars "$@" &&
-	cp "$MC_WORKSPACE_ABS_PATH"/radio_common.sh "$MC_APP_ROOT"/radio_common.sh
+	cp "$MC_WORKSPACE_ABS_PATH"/radio_common.sh "$(get_app_root)"/radio_common.sh
 )
 
 #copy python dependency file to the deployment directory
 sync_requirement_list() (
 	process_global_vars "$@" &&
 	error_check_all_paths "$MC_WORKSPACE_ABS_PATH"/requirements.txt \
-		"$MC_APP_ROOT"/"$MC_APP_TRUNK"/requirements.txt \
-		"$MC_APP_ROOT"/requirements.txt &&
+		"$(get_app_root)"/"$MC_APP_TRUNK"/requirements.txt \
+		"$(get_app_root)"/requirements.txt &&
 	#keep a copy in the parent radio directory
 	cp "$MC_WORKSPACE_ABS_PATH"/requirements.txt \
-		"$MC_APP_ROOT"/"$MC_APP_TRUNK"/requirements.txt &&
-	cp "$MC_WORKSPACE_ABS_PATH"/requirements.txt "$MC_APP_ROOT"/requirements.txt
+		"$(get_app_root)"/"$MC_APP_TRUNK"/requirements.txt &&
+	cp "$MC_WORKSPACE_ABS_PATH"/requirements.txt "$(get_app_root)"/requirements.txt
 )
 
 gen_pass() (
@@ -1045,7 +1045,7 @@ __copy_and_update_nginx_template__() {
 		cp "$MC_TEMPLATES_SRC"/nginx_template.conf "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e \
-			"s@<MC_APP_CLIENT_PATH_CL>@${MC_WEB_ROOT}/${MC_APP_CLIENT_PATH_CL}@" \
+			"s@<MC_APP_CLIENT_PATH_CL>@$(get_web_root)/${MC_APP_CLIENT_PATH_CL}@" \
 			"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<MC_SERVER_NAME>@${MC_SERVER_NAME}@g" "$appConfFile" &&
@@ -1214,7 +1214,7 @@ install_ices() (
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
 	|| [ -n "$__ICES_BRANCH__" ]; then
 		shutdown_all_stations &&
-		projDir="$MC_APP_ROOT"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
+		projDir="$(get_app_root)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
 		folderPath="$projDir"/compiled_dependencies
 		sh "$folderPath"/build_ices.sh "$__ICES_BRANCH__"
 	fi
@@ -1244,14 +1244,14 @@ show_current_py_lib_files() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	set_python_version_const >/dev/null 2>&1 &&
 	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${MC_LIB_NAME}"
-	echo "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/"$envDir"
+	echo "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/"$envDir"
 )
 
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
 	(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
 	from musical_chairs_libs.services import EnvManager
@@ -1277,8 +1277,8 @@ show_ices_station_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
-	logName="$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
+	logName="$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
 	logdir = EnvManager.read_config_value(
@@ -1317,7 +1317,7 @@ update_all_ices_confs() (
 	echo "updating ices confs"
 	sourcePassword="$1"
 	process_global_vars "$@"
-	for conf in "$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
+	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
 	done &&
@@ -1348,7 +1348,7 @@ run_song_scan() (
 	link_to_music_files &&
 	setup_radio &&
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 
 	if [ -n "$shouldReplaceDb" ]; then
 		sudo_rm_contents "$MC_DB_NAME" || return "$?"
@@ -1361,9 +1361,9 @@ run_song_scan() (
 	print("Starting")
 	EnvManager.setup_db_if_missing(echo = True)
 	songScanner = SongScanner()
-	inserted = songScanner.save_paths('${MC_APP_ROOT}/${MC_CONTENT_HOME}')
+	inserted = songScanner.save_paths('$(get_app_root)/${MC_CONTENT_HOME}')
 	print(f"saving paths done: {inserted} inserted")
-	updated = songScanner.update_metadata('${MC_APP_ROOT}/${MC_CONTENT_HOME}')
+	updated = songScanner.update_metadata('$(get_app_root)/${MC_CONTENT_HOME}')
 	print(f"updating songs done: {updated}")
 	EOF
 )
@@ -1373,12 +1373,12 @@ shutdown_all_stations() (
 	#gonna assume that the environment has been setup because if
 	#the environment hasn't been setup yet then no radio stations
 	#are running
-	if [ ! -s "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
+	if [ ! -s "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
 try:
@@ -1404,10 +1404,10 @@ startup_radio() (
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
-	export MC_SEARCH_BASE="$MC_APP_ROOT"/"$MC_CONTENT_HOME" &&
+	export MC_SEARCH_BASE="$(get_app_root)"/"$MC_CONTENT_HOME" &&
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
-	for conf in "$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		mc-ices -c "$conf"
 	done
@@ -1420,12 +1420,12 @@ startup_api() (
 		setup_api
 	fi &&
 	__export_py_env_vars__ &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# see #python_env
-	#put uvicorn in background with in a subshell so that it doesn't put
+	#put uvicorn in background within a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
-	(uvicorn --app-dir "$MC_WEB_ROOT"/"$MC_APP_API_PATH_CL" --root-path /api/v1 \
+	(uvicorn --app-dir "$(get_web_root)"/"$MC_APP_API_PATH_CL" --root-path /api/v1 \
 	--host 0.0.0.0 --port "$MC_API_PORT" \
 	"index:app" </dev/null >api.out 2>&1 &)
 	echo "done starting up api. Access at ${MC_FULL_URL}"
@@ -1445,8 +1445,8 @@ setup_api() (
 	kill_process_using_port "$MC_API_PORT" &&
 	sync_utility_scripts &&
 	sync_requirement_list &&
-	copy_dir "$MC_TEMPLATES_SRC" "$MC_APP_ROOT"/"$MC_TEMPLATES_DIR_CL" &&
-	copy_dir "$MC_API_SRC" "$MC_WEB_ROOT"/"$MC_APP_API_PATH_CL" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_API_SRC" "$(get_web_root)"/"$MC_APP_API_PATH_CL" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
 	setup_nginx_confs &&
@@ -1471,7 +1471,7 @@ setup_client() (
 	echo "setting up client"
 	process_global_vars "$@" &&
 	error_check_all_paths "$MC_CLIENT_SRC" \
-		"$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
+		"$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
 	#in theory, this should be sourced by .bashrc
 	#but sometimes there's an interactive check that ends the sourcing early
 	if [ -z "$NVM_DIR" ]; then
@@ -1480,7 +1480,7 @@ setup_client() (
 	fi &&
 	#check if web application folder exists, clear out if it does,
 	#delete otherwise
-	empty_dir_contents "$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
+	empty_dir_contents "$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
 
 	export MC_REACT_APP_API_VERSION=v1 &&
 	export MC_REACT_APP_BASE_ADDRESS="$MC_FULL_URL" &&
@@ -1491,8 +1491,8 @@ setup_client() (
 	npm run --prefix "$MC_CLIENT_SRC" build &&
 	#copy built code to new location
 	sudo -p 'Pass required for copying client files: ' \
-		cp -rv "$MC_CLIENT_SRC"/build/. "$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
-	unroot_dir "$MC_WEB_ROOT"/"$MC_APP_CLIENT_PATH_CL" &&
+		cp -rv "$MC_CLIENT_SRC"/build/. "$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
+	unroot_dir "$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
 	echo "done setting up client"
 )
 
@@ -1521,7 +1521,7 @@ setup_radio() (
 	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
-	copy_dir "$MC_TEMPLATES_SRC" "$MC_APP_ROOT"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
 	replace_db_file_if_needed2 &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -1530,25 +1530,25 @@ setup_radio() (
 )
 
 __create_fake_keys_file__() {
-	echo "mc_auth_key=$(openssl rand -hex 32)" > "$MC_APP_ROOT"/keys/"$MC_PROJ_NAME"
+	echo "mc_auth_key=$(openssl rand -hex 32)" > "$(get_app_root)"/keys/"$MC_PROJ_NAME"
 }
 
 
 #assume install_setup.sh has been run
 setup_unit_test_env() (
-	echo "setting up test environment"
+	echo 'setting up test environment'
 	process_global_vars "$@" &&
-	export MC_APP_ROOT="$MC_TEST_ROOT"
+	export __TEST_FLAG__='test'
 
 	__create_fake_keys_file__
 	setup_common_dirs
 
-	copy_dir "$MC_TEMPLATES_SRC" "$MC_APP_ROOT"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
 	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
-		"$MC_APP_ROOT"/"$MC_SQLITE_TRUNK_FILEPATH" &&
+		"$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH" &&
 	sync_requirement_list
 	setup_env_api_file
-	pyEnvPath="$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"
+	pyEnvPath="$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$MC_LIB_SRC" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
@@ -1558,9 +1558,9 @@ setup_unit_test_env() (
 		create_py_env_in_app_trunk
 	fi
 	replace_db_file_if_needed2 &&
-	echo "$MC_APP_ROOT"/"$MC_CONFIG_DIR"/.env &&
+	echo "$(get_app_root)"/"$MC_CONFIG_DIR"/.env &&
 	echo "PYTHONPATH='${MC_SRC_PATH}:${MC_SRC_PATH}/api'" \
-		>> "$MC_APP_ROOT"/"$MC_CONFIG_DIR"/.env &&
+		>> "$(get_app_root)"/"$MC_CONFIG_DIR"/.env &&
 	echo "done setting up test environment"
 )
 
@@ -1578,12 +1578,12 @@ setup_all() (
 run_unit_tests() (
 	echo "running unit tests"
 	process_global_vars "$@"
-	export MC_APP_ROOT="$MC_TEST_ROOT"
+	export __TEST_FLAG__='test'
 	setup_unit_test_env &&
 	test_src="$MC_SRC_PATH"/tests &&
 	__export_py_env_vars__ &&
 	export PYTHONPATH="${MC_SRC_PATH}:${MC_SRC_PATH}/api" &&
-	. "$MC_APP_ROOT"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	cd "$test_src"
 	pytest -s "$@" &&
 	echo "done running unit tests"
@@ -1607,6 +1607,32 @@ get_rc_candidate() {
 		(*) ;;
 	esac
 }
+
+get_app_root() (
+	if [ -n "$__TEST_FLAG__" ]; then
+		echo "$MC_TEST_ROOT"
+		return
+	fi
+	echo "$MC_APP_ROOT"
+)
+
+get_web_root() (
+	if [ -n "$__TEST_FLAG__" ]; then
+		echo "$MC_TEST_ROOT"
+		return
+	fi
+	case $(uname) in
+		(Linux*)
+			echo "${MC_WEB_ROOT:-/srv}"
+			return
+			;;
+		(Darwin*)
+			echo "${MC_WEB_ROOT:-/Library/WebServer}"
+			return
+			;;
+		(*) ;;
+	esac
+)
 
 process_global_args() {
 	#for if we need to pass the args to a remote script for example
@@ -1687,12 +1713,6 @@ create_install_dir() {
 define_top_level_terms() {
 	MC_APP_ROOT=${MC_APP_ROOT:-"$HOME"}
 	export MC_TEST_ROOT="$MC_WORKSPACE_ABS_PATH/test_trash"
-	export MC_APP_ROOT_0="$MC_APP_ROOT"
-
-	if [ -n "$__TEST_FLAG__" ]; then
-		MC_APP_ROOT="$MC_TEST_ROOT"
-		MC_WEB_ROOT="$MC_TEST_ROOT"
-	fi
 
 	sqliteFilename='songs_db.sqlite'
 	export MC_APP_TRUNK="$MC_PROJ_NAME"_dir
@@ -1719,24 +1739,10 @@ define_app_dir_paths() {
 	# suffixed with 'cl' for 'clean'
 	export MC_TEMPLATES_DIR_CL="$MC_APP_TRUNK"/templates
 
-	echo "app dir paths defined and created"
-}
-
-define_web_server_paths() {
-	case $(uname) in
-		(Linux*)
-			export MC_WEB_ROOT=${MC_WEB_ROOT:-/srv}
-			;;
-		(Darwin*)
-			export MC_WEB_ROOT=${MC_WEB_ROOT:-/Library/WebServer}
-			;;
-		(*) ;;
-	esac
-
 	export MC_APP_API_PATH_CL=api/"$MC_APP_NAME"
 	export MC_APP_CLIENT_PATH_CL=client/"$MC_APP_NAME"
 
-	echo "web server paths defined"
+	echo "app dir paths defined and created"
 }
 
 __get_url_base__() (
@@ -1781,34 +1787,34 @@ define_repo_paths() {
 }
 
 setup_common_dirs() {
-	[ -e "$MC_APP_ROOT"/"$MC_CONFIG_DIR" ] ||
-	mkdir -pv "$MC_APP_ROOT"/"$MC_CONFIG_DIR"
-	[ -e "$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR" ] ||
-	mkdir -pv "$MC_APP_ROOT"/"$MC_ICES_CONFIGS_DIR"
-	[ -e "$MC_APP_ROOT"/"$MC_PY_MODULE_DIR" ] ||
-	mkdir -pv "$MC_APP_ROOT"/"$MC_PY_MODULE_DIR"
-	[ -e "$MC_APP_ROOT"/"$MC_DB_DIR" ] ||
-	mkdir -pv "$MC_APP_ROOT"/"$MC_DB_DIR"
-	[ -e "$MC_APP_ROOT"/keys ] ||
-	mkdir -pv "$MC_APP_ROOT"/keys
+	[ -e "$(get_app_root)"/"$MC_CONFIG_DIR" ] ||
+	mkdir -pv "$(get_app_root)"/"$MC_CONFIG_DIR"
+	[ -e "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR" ] ||
+	mkdir -pv "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"
+	[ -e "$(get_app_root)"/"$MC_PY_MODULE_DIR" ] ||
+	mkdir -pv "$(get_app_root)"/"$MC_PY_MODULE_DIR"
+	[ -e "$(get_app_root)"/"$MC_DB_DIR" ] ||
+	mkdir -pv "$(get_app_root)"/"$MC_DB_DIR"
+	[ -e "$(get_app_root)"/keys ] ||
+	mkdir -pv "$(get_app_root)"/keys
 }
 
 setup_base_dirs() {
 
-	[ -e "$MC_APP_ROOT"/"$MC_APP_TRUNK" ] ||
-	mkdir -pv "$MC_APP_ROOT"/"$MC_APP_TRUNK"
+	[ -e "$(get_app_root)"/"$MC_APP_TRUNK" ] ||
+	mkdir -pv "$(get_app_root)"/"$MC_APP_TRUNK"
 
 	setup_common_dirs
 
-	[ -e "$MC_APP_ROOT"/"$MC_CONTENT_HOME" ] ||
-	mkdir -pv "$MC_APP_ROOT"/"$MC_CONTENT_HOME"
+	[ -e "$(get_app_root)"/"$MC_CONTENT_HOME" ] ||
+	mkdir -pv "$(get_app_root)"/"$MC_CONTENT_HOME"
 
 
-	[ -e "$MC_WEB_ROOT"/"$MC_APP_API_PATH_CL" ] ||
+	[ -e "$(get_web_root)"/"$MC_APP_API_PATH_CL" ] ||
 	{
 		sudo -p 'Pass required for creating web server directory: ' \
-			mkdir -pv "$MC_WEB_ROOT"/"$MC_APP_API_PATH_CL" ||
-		show_err_and_exit "Could not create ${MC_WEB_ROOT}/${MC_APP_API_PATH_CL}"
+			mkdir -pv "$(get_web_root)"/"$MC_APP_API_PATH_CL" ||
+		show_err_and_exit "Could not create $(get_web_root)/${MC_APP_API_PATH_CL}"
 	}
 }
 
@@ -1828,8 +1834,6 @@ process_global_vars() {
 	define_top_level_terms &&
 
 	define_app_dir_paths &&
-
-	define_web_server_paths &&
 
 	__define_url__ &&
 
@@ -1856,7 +1860,6 @@ unset_globals() {
 	unset MC_APP_CLIENT_PATH_CL
 	unset MC_APP_NAME
 	unset MC_APP_ROOT
-	unset MC_APP_ROOT_0
 	unset MC_APP_TRUNK
 	unset MC_BIN_DIR
 	unset MC_BUILD_DIR

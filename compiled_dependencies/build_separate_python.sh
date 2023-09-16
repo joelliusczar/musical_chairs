@@ -50,7 +50,7 @@ if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 		install_package libbz2-dev
 	fi &&
 	(
-		pythonBuildDir="$MC_APP_ROOT"/"$MC_BUILD_DIR"/python
+		pythonBuildDir="$(get_app_root)"/"$MC_BUILD_DIR"/python
 		empty_dir_contents "$pythonBuildDir"
 		cd "$pythonBuildDir"
 		verNum='3.9.1'

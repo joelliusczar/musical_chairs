@@ -24,7 +24,9 @@ get_repo_path() (
 	if [ -n "$MC_RADIO_REPO_PATH" ]; then
 		echo "$MC_RADIO_REPO_PATH"
 	else
-		echo "$MC_DEFAULT_RADIO_REPO_PATH"
+		echo "using backup repo path" > 2
+		#done't try to change from home
+		echo "$HOME"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"
 	fi
 )
 
@@ -419,7 +421,7 @@ sudo_rm_contents() (
 	if [ -w "$dirEmptira" ]; then
 		rm -rf "$dirEmptira"/*
 	else
-		sudo -p "Password required for removing files from ${dirEmptira}: " \
+		sudo -p "Password required to remove files from ${dirEmptira}: " \
 			rm -rf "$dirEmptira"/*
 	fi
 )
@@ -447,7 +449,7 @@ sudo_cp_contents() (
 	if [ -r "$fromDir" ] && [ -w "$toDir" ]; then
 		cp -rv "$fromDir"/. "$toDir"
 	else
-		sudo -p 'Pass required for copying files: ' \
+		sudo -p 'Pass required to copy files: ' \
 			cp -rv "$fromDir"/. "$toDir"
 	fi
 )
@@ -455,7 +457,7 @@ sudo_cp_contents() (
 sudo_mkdir() (
 	dirMakera="$1"
 	mkdir -pv "$dirMakera" ||
-	sudo -p "Password required for creating ${dirMakera}: " \
+	sudo -p "Password required to create ${dirMakera}: " \
 		mkdir -pv "$dirMakera"
 )
 
@@ -516,7 +518,7 @@ link_app_python_if_not_linked() {
 
 brew_is_installed() (
 	pkg="$1"
-	echo "checking for $pkg"
+	echo "checking about $pkg"
 	case $(uname) in
 		(Darwin*)
 			brew info "$pkg" >/dev/null 2>&1 &&
@@ -565,7 +567,7 @@ kill_process_using_port() (
 	echo "Hopefully process using is done ${portNum}"
 )
 
-#this may seem useless but we need it for test runner to read .env
+#this may seem useless but we need it so that test runner can read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
 	envFile="$(get_app_root)"/"$MC_CONFIG_DIR"/.env
@@ -711,19 +713,19 @@ start_python() (
 
 sync_utility_scripts() (
 	process_global_vars "$@" &&
-	cp "$MC_WORKSPACE_ABS_PATH"/radio_common.sh "$(get_app_root)"/radio_common.sh
+	cp "$(get_repo_path)"/radio_common.sh "$(get_app_root)"/radio_common.sh
 )
 
 #copy python dependency file to the deployment directory
 sync_requirement_list() (
 	process_global_vars "$@" &&
-	error_check_all_paths "$MC_WORKSPACE_ABS_PATH"/requirements.txt \
+	error_check_all_paths "$(get_repo_path)"/requirements.txt \
 		"$(get_app_root)"/"$MC_APP_TRUNK"/requirements.txt \
 		"$(get_app_root)"/requirements.txt &&
 	#keep a copy in the parent radio directory
-	cp "$MC_WORKSPACE_ABS_PATH"/requirements.txt \
+	cp "$(get_repo_path)"/requirements.txt \
 		"$(get_app_root)"/"$MC_APP_TRUNK"/requirements.txt &&
-	cp "$MC_WORKSPACE_ABS_PATH"/requirements.txt "$(get_app_root)"/requirements.txt
+	cp "$(get_repo_path)"/requirements.txt "$(get_app_root)"/requirements.txt
 )
 
 gen_pass() (
@@ -882,6 +884,8 @@ __clean_up_invalid_cert__() (
 	commonName="$1" &&
 	case $(uname) in
 		(Darwin*)
+			#d: delimiter
+			#r: backslash not escape
 			__certs_matching_name_osx__ "$commonName" \
 				| while IFS= read -r -d '' cert; do
 					sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
@@ -954,7 +958,7 @@ print_ssl_cert_info() (
 					done
 				;;
 			(*)
-				echo 'Finding local certs is not setup for this OS'
+				echo 'Finding local certs is not setup on this OS'
 				;;
 		esac
 			;;
@@ -1297,16 +1301,16 @@ update_icecast_conf() (
 	relayPassword="$3"
 	adminPassword="$4"
 
-	sudo -p 'Pass required for modifying icecast config: ' \
+	sudo -p 'Pass required to modify icecast config: ' \
 		perl -pi -e "s/>\w*/>${sourcePassword}/ if /source-password/" \
 		"$icecastConfLocation" &&
-	sudo -p 'Pass required for modifying icecast config: ' \
+	sudo -p 'Pass required to modify icecast config: ' \
 		perl -pi -e "s/>\w*/>${relayPassword}/ if /relay-password/" \
 		"$icecastConfLocation" &&
-	sudo -p 'Pass required for modifying icecast config: ' \
+	sudo -p 'Pass required to modify icecast config: ' \
 		perl -pi -e "s/>\w*/>${adminPassword}/ if /admin-password/" \
 		"$icecastConfLocation" &&
-	sudo -p 'Pass required for modifying icecast config: ' \
+	sudo -p 'Pass required to modify icecast config: ' \
 		perl -pi -e "s@^([ \t]*)<.*@\1<bind-address>::</bind-address>@" \
 		-e "if /<bind-address>/" \
 		"$icecastConfLocation" &&
@@ -1490,7 +1494,7 @@ setup_client() (
 	#build code (transpile it)
 	npm run --prefix "$MC_CLIENT_SRC" build &&
 	#copy built code to new location
-	sudo -p 'Pass required for copying client files: ' \
+	sudo -p 'Pass required to copy client files: ' \
 		cp -rv "$MC_CLIENT_SRC"/build/. "$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
 	unroot_dir "$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
 	echo "done setting up client"
@@ -1552,7 +1556,7 @@ setup_unit_test_env() (
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$MC_LIB_SRC" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
-	[ "$MC_WORKSPACE_ABS_PATH"/requirements.txt -nt "$pyEnvPath" ]
+	[ "$(get_repo_path)"/requirements.txt -nt "$pyEnvPath" ]
 	then
 		echo "changes?"
 		create_py_env_in_app_trunk
@@ -1635,7 +1639,7 @@ get_web_root() (
 )
 
 process_global_args() {
-	#for if we need to pass the args to a remote script for example
+	#in case need to pass the args to a remote script. example
 	__GLOBAL_ARGS__=''
 	while [ ! -z "$1" ]; do
 		case "$1" in
@@ -1698,8 +1702,6 @@ define_consts() {
 	export MC_CONTENT_HOME='music/radio'
 	export MC_BIN_DIR='.local/bin'
 	export MC_API_PORT='8033'
-	#done't try to change from home
-	export MC_DEFAULT_RADIO_REPO_PATH="$HOME"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"
 	export __CONSTANTS_SET__='true'
 	echo "constants defined"
 }
@@ -1712,7 +1714,7 @@ create_install_dir() {
 
 define_top_level_terms() {
 	MC_APP_ROOT=${MC_APP_ROOT:-"$HOME"}
-	export MC_TEST_ROOT="$MC_WORKSPACE_ABS_PATH/test_trash"
+	export MC_TEST_ROOT="$(get_repo_path)/test_trash"
 
 	sqliteFilename='songs_db.sqlite'
 	export MC_APP_TRUNK="$MC_PROJ_NAME"_dir
@@ -1776,12 +1778,12 @@ __define_url__() {
 }
 
 define_repo_paths() {
-	export MC_SRC_PATH="$MC_WORKSPACE_ABS_PATH/src"
+	export MC_SRC_PATH="$(get_repo_path)/src"
 	export MC_API_SRC="$MC_SRC_PATH/api"
 	export MC_CLIENT_SRC="$MC_SRC_PATH/client"
 	export MC_LIB_SRC="$MC_SRC_PATH/$MC_LIB_NAME"
-	export MC_TEMPLATES_SRC="$MC_WORKSPACE_ABS_PATH/templates"
-	export MC_REFERENCE_SRC="$MC_WORKSPACE_ABS_PATH/reference"
+	export MC_TEMPLATES_SRC="$(get_repo_path)/templates"
+	export MC_REFERENCE_SRC="$(get_repo_path)/reference"
 	export MC_REFERENCE_SRC_DB="$MC_REFERENCE_SRC/$sqliteFilename"
 	echo "source paths defined"
 }
@@ -1812,7 +1814,7 @@ setup_base_dirs() {
 
 	[ -e "$(get_web_root)"/"$MC_APP_API_PATH_CL" ] ||
 	{
-		sudo -p 'Pass required for creating web server directory: ' \
+		sudo -p 'Pass required to create web server directory: ' \
 			mkdir -pv "$(get_web_root)"/"$MC_APP_API_PATH_CL" ||
 		show_err_and_exit "Could not create $(get_web_root)/${MC_APP_API_PATH_CL}"
 	}
@@ -1825,11 +1827,6 @@ process_global_vars() {
 	define_consts &&
 
 	create_install_dir &&
-
-	MC_WORKSPACE_ABS_PATH=$(get_repo_path) &&
-	#put export on separate line so it doesn't turn a failure in the previous
-	#line into a success code
-	export MC_WORKSPACE_ABS_PATH &&
 
 	define_top_level_terms &&
 
@@ -1848,57 +1845,26 @@ process_global_vars() {
 }
 
 unset_globals() {
-	unset MC_APT_CONST
-	unset MC_HOMEBREW_CONST
-	unset MC_PACMAN_CONST
-	unset MC_RADIO_AUTH_SECRET_KEY
-	unset MC_REACT_APP_API_VERSION
-	unset MC_REACT_APP_BASE_ADDRESS
-	unset MC_API_PORT
-	unset MC_API_SRC
-	unset MC_APP_API_PATH_CL
-	unset MC_APP_CLIENT_PATH_CL
-	unset MC_APP_NAME
-	unset MC_APP_ROOT
-	unset MC_APP_TRUNK
-	unset MC_BIN_DIR
-	unset MC_BUILD_DIR
-	unset MC_CLIENT_SRC
-	unset MC_CONFIG_DIR
-	unset __CONSTANTS_SET__
-	unset MC_CONTENT_HOME
-	unset MC_CURRENT_USER
-	unset MC_DB_NAME
-	unset MC_DB_DIR
-	unset MC_DEFAULT_RADIO_REPO_PATH
-	unset MC_FULL_URL
-	unset __GLOBALS_SET__
-	unset MC_ICES_CONFIGS_DIR
-	unset MC_LIB_NAME
-	unset MC_LIB_SRC
-	unset MC_PROJ_NAME
-	unset MC_PY_MODULE_DIR
-	unset MC_PY_ENV
-	unset MC_REFERENCE_SRC
-	unset MC_REFERENCE_SRC_DB
-	unset MC_SEARCH_BASE
-	unset MC_SERVER_NAME
-	unset MC_SQLITE_TRUNK_FILEPATH
-	unset MC_SRC_PATH
-	unset MC_ICES_CONFIG_DRI
-	unset MC_MODULE_DIR
-	unset MC_TEMPLATE_DIR
-	unset MC_TEMPLATES_DIR_CL
-	unset MC_TEMPLATES_SRC
-	unset MC_TEST_ROOT
-	unset MC_UTEST_ENV_DIR
-	unset MC_WEB_ROOT
+	cat "$(get_repo_path)"/radio_common.sh | grep export \
+		| sed -n -e 's/^\t*export \([a-zA-Z0-9_]\{1,\}\)=.*/\1/p' | sort -u \
+		| while read constant; do
+				case "$constant" in
+					(MC_*)
+						unset "$constant"
+						;;
+					(__*)
+						unset "$constant"
+						;;
+					(*)
+						;;
+					esac
+			done
 }
 
 fn_ls() (
 	process_global_vars "$@" >/dev/null
 	perl -ne 'print "$1\n" if /^([a-zA-Z_0-9]+)\(\)/' \
-		"$MC_WORKSPACE_ABS_PATH"/radio_common.sh | sort
+		"$(get_repo_path)"/radio_common.sh | sort
 )
 
 test_shell() (

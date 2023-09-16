@@ -19,7 +19,7 @@ class DbSetupService:
 			conn.exec_driver_sql(f"CREATE DATABASE {dbName}")
 
 	@staticmethod
-	def create_api_user():
+	def create_api_user(userPass: str):
 		dbPass = EnvManager.db_setup_pass
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")

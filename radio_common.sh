@@ -99,25 +99,13 @@ __set_env_path_var__() {
 }
 
 
-__export_py_env_vars__() {
-	export MC_SEARCH_BASE="$(get_app_root)"/"$MC_CONTENT_HOME" &&
-	export MC_DB_NAME="$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH" &&
-	export MC_TEMPLATE_DIR="$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
-	export MC_ICES_CONFIG_DRI="$(get_app_root)"/"$MC_ICES_CONFIGS_DIR" &&
-	export MC_MODULE_DIR="$(get_app_root)"/"$MC_PY_MODULE_DIR"
-	export MC_RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key)
-}
-
 print_py_env_var_guesses() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
-	__export_py_env_vars__ &&
-	echo "MC_SEARCH_BASE=$MC_SEARCH_BASE"
-	echo "MC_DB_NAME=$MC_DB_NAME"
-	echo "MC_TEMPLATE_DIR=$MC_TEMPLATE_DIR"
-	echo "MC_ICES_CONFIG_DRI=$MC_ICES_CONFIG_DRI"
-	echo "MC_MODULE_DIR=$MC_MODULE_DIR"
-	echo "MC_RADIO_AUTH_SECRET_KEY=$MC_RADIO_AUTH_SECRET_KEY"
+	echo "MC_CONTENT_HOME=$MC_CONTENT_HOME"
+	echo "MC_TEMPLATES_DIR_CL=$MC_TEMPLATES_DIR_CL"
+	echo "MC_ICES_CONFIGS_DIR=$MC_ICES_CONFIGS_DIR"
+	echo "MC_PY_MODULE_DIR=$MC_PY_MODULE_DIR"
 )
 
 get_pkg_mgr() {
@@ -567,7 +555,7 @@ kill_process_using_port() (
 	echo "Hopefully process using is done ${portNum}"
 )
 
-#this may seem useless but we need it so that test runner can read .env
+#test runner needs to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
 	envFile="$(get_app_root)"/"$MC_CONFIG_DIR"/.env
@@ -576,19 +564,19 @@ setup_env_api_file() (
 	cp "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
 	does_file_exist "$envFile" &&
 	perl -pi -e \
-		"s@^(MC_SEARCH_BASE=).*\$@\1'$(get_app_root)/${MC_CONTENT_HOME}'@" \
+		"s@^(MC_CONTENT_HOME=).*\$@\1'${MC_CONTENT_HOME}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(MC_DB_NAME=).*\$@\1'$(get_app_root)/${MC_SQLITE_TRUNK_FILEPATH}'@" \
+		"s@^(MC_SQLITE_FILEPATH=).*\$@\1'${MC_SQLITE_FILEPATH}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(MC_TEMPLATE_DIR=).*\$@\1'$(get_app_root)/${MC_TEMPLATES_DIR_CL}'@" \
+		"s@^(MC_TEMPLATES_DIR_CL=).*\$@\1'${MC_TEMPLATES_DIR_CL}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(MC_ICES_CONFIG_DRI=).*\$@\1'$(get_app_root)/${MC_ICES_CONFIGS_DIR}'@" \
+		"s@^(MC_ICES_CONFIGS_DIR=).*\$@\1'${MC_ICES_CONFIGS_DIR}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(MC_MODULE_DIR=).*\$@\1'$(get_app_root)/${MC_PY_MODULE_DIR}'@" \
+		"s@^(MC_PY_MODULE_DIR=).*\$@\1'${MC_PY_MODULE_DIR}'@" \
 		"$envFile" &&
 	echo 'done setting up .env file'
 )
@@ -608,11 +596,11 @@ replace_db_file_if_needed() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
 	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
-		"$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH"  &&
-	if [ ! -e "$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH" ] \
+		"$(get_app_root)"/"$MC_SQLITE_FILEPATH"  &&
+	if [ ! -e "$(get_app_root)"/"$MC_SQLITE_FILEPATH" ] \
 	|| [ -n "$__CLEAN_FLAG" ] \
 	|| str_contains "$__REPLACE__" "sqlite_file"; then
-		cp -v "$MC_REFERENCE_SRC_DB" "$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH" &&
+		cp -v "$MC_REFERENCE_SRC_DB" "$(get_app_root)"/"$MC_SQLITE_FILEPATH" &&
 		return 0
 		echo 'Done copying db'
 	fi
@@ -637,7 +625,6 @@ setup_db() (
 		fi
 	fi
 
-	__export_py_env_vars__ &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
@@ -681,7 +668,6 @@ __install_py_env__() {
 install_py_env() {
 	unset_globals
 	process_global_vars "$@" &&
-	__export_py_env_vars__ &&
 	__install_py_env__ &&
 	echo "done installing py env"
 }
@@ -1058,7 +1044,7 @@ __copy_and_update_nginx_template__() {
 }
 
 update_nginx_conf() (
-	echo "updating nginx site conf"
+	echo 'updating nginx site conf'
 	appConfFile="$1"
 	error_check_all_paths "$MC_TEMPLATES_SRC" "$appConfFile" &&
 	__copy_and_update_nginx_template__ &&
@@ -1097,7 +1083,7 @@ update_nginx_conf() (
 				"$appConfFile"
 			;;
 	esac &&
-	echo "done updating nginx site conf"
+	echo 'done updating nginx site conf'
 )
 
 get_abs_path_from_nginx_include() (
@@ -1135,13 +1121,13 @@ get_nginx_conf_dir_abs_path() (
 )
 
 enable_nginx_include() (
-	echo "enabling nginx site confs"
+	echo 'enabling nginx site confs'
 	confDirInclude="$1"
 	escapedGuess=$(literal_to_regex "$confDirInclude")
 	#uncomment line if necessary in config
 	sudo -p "Enable ${confDirInclude}" \
 		perl -pi -e "s/^[ \t]*#// if m@$escapedGuess@" "$(get_nginx_value)" &&
-	echo "done enabling nginx site confs"
+	echo 'done enabling nginx site confs'
 )
 
 restart_nginx() (
@@ -1253,7 +1239,6 @@ show_current_py_lib_files() (
 
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
-	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
 	(python <<-EOF
@@ -1279,7 +1264,6 @@ show_ices_station_log() (
 	station="$1"
 	shift
 	process_global_vars "$@" >/dev/null 2>&1 &&
-	__export_py_env_vars__ >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
 	logName="$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
@@ -1351,11 +1335,10 @@ run_song_scan() (
 	process_global_vars "$@"
 	link_to_music_files &&
 	setup_radio &&
-	__export_py_env_vars__ &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 
-	if [ -n "$shouldReplaceDb" ]; then
-		sudo_rm_contents "$MC_DB_NAME" || return "$?"
+	if str_contains "$__REPLACE__" "sqlite_file"; then
+		sudo_rm_contents "$(get_app_root)"/"$MC_SQLITE_FILEPATH" || return "$?"
 	fi &&
 	# #python_env
 	python  <<-EOF
@@ -1381,7 +1364,6 @@ shutdown_all_stations() (
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
-	__export_py_env_vars__ &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
@@ -1408,8 +1390,6 @@ startup_radio() (
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
-	export MC_SEARCH_BASE="$(get_app_root)"/"$MC_CONTENT_HOME" &&
-	__export_py_env_vars__ &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
@@ -1423,7 +1403,7 @@ startup_api() (
 	if ! str_contains "$__SKIP__" "setup_api"; then
 		setup_api
 	fi &&
-	__export_py_env_vars__ &&
+	export MC_RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background within a subshell so that it doesn't put
@@ -1542,14 +1522,14 @@ __create_fake_keys_file__() {
 setup_unit_test_env() (
 	echo 'setting up test environment'
 	process_global_vars "$@" &&
-	export __TEST_FLAG__='test'
+	export __TEST_FLAG__='true'
 
 	__create_fake_keys_file__
 	setup_common_dirs
 
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
 	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
-		"$(get_app_root)"/"$MC_SQLITE_TRUNK_FILEPATH" &&
+		"$(get_app_root)"/"$MC_SQLITE_FILEPATH" &&
 	sync_requirement_list
 	setup_env_api_file
 	pyEnvPath="$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"
@@ -1582,10 +1562,10 @@ setup_all() (
 run_unit_tests() (
 	echo "running unit tests"
 	process_global_vars "$@"
-	export __TEST_FLAG__='test'
+	export __TEST_FLAG__='true'
 	setup_unit_test_env &&
 	test_src="$MC_SRC_PATH"/tests &&
-	__export_py_env_vars__ &&
+	export MC_RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
 	export PYTHONPATH="${MC_SRC_PATH}:${MC_SRC_PATH}/api" &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	cd "$test_src"
@@ -1646,7 +1626,7 @@ process_global_args() {
 			#build out to test_trash rather than the normal directories
 			#sets MC_APP_ROOT and MC_WEB_ROOT without having to set them explicitly
 			(test)
-				export __TEST_FLAG__='test'
+				export __TEST_FLAG__='true'
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} test"
 				;;
 			(replace=*)
@@ -1734,7 +1714,7 @@ define_app_dir_paths() {
 
 	export MC_CONFIG_DIR="$MC_APP_TRUNK"/config
 	export MC_DB_DIR="$MC_APP_TRUNK"/db
-	export MC_SQLITE_TRUNK_FILEPATH="$MC_DB_DIR"/"$sqliteFilename"
+	export MC_SQLITE_FILEPATH="$MC_DB_DIR"/"$sqliteFilename"
 	export MC_UTEST_ENV_DIR="$MC_TEST_ROOT"/utest
 
 	# directories that should be cleaned upon changes
@@ -1850,9 +1830,11 @@ unset_globals() {
 		| while read constant; do
 				case "$constant" in
 					(MC_*)
+						echo "unsetting ${constant}"
 						unset "$constant"
 						;;
 					(__*)
+						echo "unsetting ${constant}"
 						unset "$constant"
 						;;
 					(*)

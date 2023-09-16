@@ -16,13 +16,22 @@ class EnvManager:
 
 	@classmethod
 	@property
+	def app_root(cls) -> str:
+		if EnvManager.test_flag:
+			return os.environ["MC_TEST_ROOT"]
+		return os.environ["MC_APP_ROOT"]
+
+	@classmethod
+	@property
 	def search_base(cls) -> str:
-		return os.environ["MC_SEARCH_BASE"]
+		contentHome = os.environ["MC_CONTENT_HOME"]
+		return f"{EnvManager.app_root}/{contentHome}"
 
 	@classmethod
 	@property
 	def db_name(cls) -> str:
-		return os.environ["MC_DB_NAME"]
+		sqliteFile = os.environ["MC_SQLITE_FILEPATH"]
+		return f"{EnvManager.app_root}/{sqliteFile}"
 
 	@classmethod
 	@property
@@ -32,22 +41,25 @@ class EnvManager:
 	@classmethod
 	@property
 	def templates_dir(cls) -> str:
-		return os.environ["MC_TEMPLATE_DIR"]
+		templateDir = os.environ["MC_TEMPLATES_DIR_CL"]
+		return f"{EnvManager.app_root}/{templateDir}"
 
 	@classmethod
 	@property
 	def station_config_dir(cls) -> str:
-		return os.environ["MC_ICES_CONFIG_DRI"]
+		configDir = os.environ["MC_ICES_CONFIGS_DIR"]
+		return f"{EnvManager.app_root}/{configDir}"
 
 	@classmethod
 	@property
 	def station_module_dir(cls) -> str:
-		return os.environ["MC_MODULE_DIR"]
+		moduleDir = os.environ["MC_PY_MODULE_DIR"]
+		return f"{EnvManager.app_root}/{moduleDir}"
 
 	@classmethod
 	@property
-	def test_mode(cls) -> bool:
-		return os.environ.get("__TEST_MODE__","false") == "true"
+	def test_flag(cls) -> bool:
+		return os.environ.get("__TEST_FLAG__","false") == "true"
 
 
 	@classmethod

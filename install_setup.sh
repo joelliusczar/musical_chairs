@@ -203,8 +203,8 @@ if ! nginx -v 2>/dev/null; then
 fi
 
 confDir=$(get_nginx_conf_dir_abs_path)
-echo "Checking for ${confDir}/${appName}.conf"
-if [ ! -e "$confDir"/"$appName".conf ]; then
+echo "Checking for ${confDir}/${MC_APP_NAME}.conf"
+if [ ! -e "$confDir"/"$MC_APP_NAME".conf ]; then
 	setup_nginx_confs &&
 	sudo -p 'copy nginx config' \
 		cp "$MC_TEMPLATES_SRC"/nginx_evil.conf "$confDir"/nginx_evil.conf

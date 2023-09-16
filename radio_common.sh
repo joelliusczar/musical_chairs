@@ -913,8 +913,8 @@ setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
 	publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
 	privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
-	__clean_up_invalid_cert__ "${appName}-localhost"
-	__setup_ssl_cert_local__ "${appName}-localhost" 'localhost' \
+	__clean_up_invalid_cert__ "${MC_APP_NAME}-localhost"
+	__setup_ssl_cert_local__ "${MC_APP_NAME}-localhost" 'localhost' \
 		"$publicKeyFile" "$privateKeyFile" &&
 	setup_react_env_debug
 )
@@ -938,7 +938,7 @@ print_ssl_cert_info() (
 					done
 				echo "#### debug server info ####"
 				echo "${domain}-localhost"
-				__certs_matching_name_osx__ "${appName}-localhost" \
+				__certs_matching_name_osx__ "${MC_APP_NAME}-localhost" \
 					| while IFS= read -r -d '' cert; do
 						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
 						echo "$cert" | openssl x509 -enddate -subject -noout
@@ -1038,7 +1038,7 @@ __copy_and_update_nginx_template__() {
 		perl -pi -e "s@<MC_APP_CLIENT_PATH_CL>@${MC_WEB_ROOT}/${MC_APP_CLIENT_PATH_CL}@" \
 		"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
-		perl -pi -e "s@<SERVER_NAME>@${SERVER_NAME}@g" "$appConfFile" &&
+		perl -pi -e "s@<MC_SERVER_NAME>@${MC_SERVER_NAME}@g" "$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e "s@<MC_API_PORT>@${MC_API_PORT}@" "$appConfFile"
 }
@@ -1153,18 +1153,18 @@ print_nginx_conf_location() (
 	process_global_vars "$@" >/dev/null &&
 	confDirInclude=$(get_nginx_conf_dir_include) &&
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
-	echo "$confDir"/"$appName".conf
+	echo "$confDir"/"$MC_APP_NAME".conf
 )
 
 print_cert_paths() (
 	process_global_vars "$@" >/dev/null &&
 	confDirInclude=$(get_nginx_conf_dir_include) &&
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
-	cat "$confDir"/"$appName".conf | perl -ne \
+	cat "$confDir"/"$MC_APP_NAME".conf | perl -ne \
 	'print "$1\n" if /ssl_certificate ([^;]+)/'
-	cat "$confDir"/"$appName".conf | perl -ne \
+	cat "$confDir"/"$MC_APP_NAME".conf | perl -ne \
 	'print "$1\n" if /ssl_certificate_key ([^;]+)/'
-	cat "$confDir"/"$appName".conf | perl -ne \
+	cat "$confDir"/"$MC_APP_NAME".conf | perl -ne \
 	'print "$1\n" if /[^#]ssl_trusted_certificate ([^;]+)/'
 )
 
@@ -1176,7 +1176,7 @@ setup_nginx_confs() (
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") &&
 	setup_ssl_cert_nginx &&
 	enable_nginx_include "$confDirInclude" &&
-	update_nginx_conf "$confDir"/"$appName".conf &&
+	update_nginx_conf "$confDir"/"$MC_APP_NAME".conf &&
 	sudo -p 'Remove default nginx config' \
 		rm -f "$confDir"/default &&
 	restart_nginx &&
@@ -1697,7 +1697,7 @@ define_top_level_terms() {
 
 
 	export MC_LIB_NAME="$projName"_libs
-	export appName="$projName"_app
+	export MC_APP_NAME="$projName"_app
 
 	echo "top level terms defined"
 }
@@ -1729,8 +1729,8 @@ define_web_server_paths() {
 		(*) ;;
 	esac
 
-	export MC_APP_API_PATH_CL=api/"$appName"
-	export MC_APP_CLIENT_PATH_CL=client/"$appName"
+	export MC_APP_API_PATH_CL=api/"$MC_APP_NAME"
+	export MC_APP_CLIENT_PATH_CL=client/"$MC_APP_NAME"
 
 	echo "web server paths defined"
 }
@@ -1760,8 +1760,8 @@ _get_domain_name() (
 
 __define_url__() {
 	echo "env: ${app_env}"
-	export SERVER_NAME=$(_get_domain_name "$app_env")
-	export MC_FULL_URL="https://${SERVER_NAME}"
+	export MC_SERVER_NAME=$(_get_domain_name "$app_env")
+	export MC_FULL_URL="https://${MC_SERVER_NAME}"
 	echo "url defined"
 }
 
@@ -1850,7 +1850,7 @@ unset_globals() {
 	unset MC_API_SRC
 	unset MC_APP_API_PATH_CL
 	unset MC_APP_CLIENT_PATH_CL
-	unset appName
+	unset MC_APP_NAME
 	unset MC_APP_ROOT
 	unset MC_APP_ROOT_0
 	unset MC_APP_TRUNK
@@ -1875,7 +1875,7 @@ unset_globals() {
 	unset MC_REFERENCE_SRC
 	unset MC_REFERENCE_SRC_DB
 	unset MC_SEARCH_BASE
-	unset SERVER_NAME
+	unset MC_SERVER_NAME
 	unset MC_SQLITE_TRUNK_FILEPATH
 	unset MC_SRC_PATH
 	unset MC_ICES_CONFIG_DRI

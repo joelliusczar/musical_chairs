@@ -104,6 +104,7 @@ print_py_env_var_guesses() (
 	__set_env_path_var__ && #ensure that we can see mc-ices
 	echo "MC_CONTENT_HOME=$MC_CONTENT_HOME"
 	echo "MC_TEMPLATES_DIR_CL=$MC_TEMPLATES_DIR_CL"
+	echo "MC_SQL_SCRIPTS_DIR_CL"="$MC_SQL_SCRIPTS_DIR_CL"
 	echo "MC_ICES_CONFIGS_DIR=$MC_ICES_CONFIGS_DIR"
 	echo "MC_PY_MODULE_DIR=$MC_PY_MODULE_DIR"
 )
@@ -571,6 +572,9 @@ setup_env_api_file() (
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(MC_TEMPLATES_DIR_CL=).*\$@\1'${MC_TEMPLATES_DIR_CL}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_SQL_SCRIPTS_DIR_CL=).*\$@\1'${MC_SQL_SCRIPTS_DIR_CL}'@" \
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(MC_ICES_CONFIGS_DIR=).*\$@\1'${MC_ICES_CONFIGS_DIR}'@" \
@@ -1430,6 +1434,7 @@ setup_api() (
 	sync_utility_scripts &&
 	sync_requirement_list &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	copy_dir "$MC_API_SRC" "$(get_web_root)"/"$MC_APP_API_PATH_CL" &&
 	create_py_env_in_app_trunk &&
 	replace_db_file_if_needed2 &&
@@ -1506,6 +1511,7 @@ setup_radio() (
 
 	create_py_env_in_app_trunk &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	replace_db_file_if_needed2 &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -1528,6 +1534,7 @@ setup_unit_test_env() (
 	setup_common_dirs
 
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
 		"$(get_app_root)"/"$MC_SQLITE_FILEPATH" &&
 	sync_requirement_list
@@ -1720,7 +1727,7 @@ define_app_dir_paths() {
 	# directories that should be cleaned upon changes
 	# suffixed with 'cl' for 'clean'
 	export MC_TEMPLATES_DIR_CL="$MC_APP_TRUNK"/templates
-
+	export MC_SQL_SCRIPTS_DIR_CL="$MC_APP_TRUNK"/sql_scripts
 	export MC_APP_API_PATH_CL=api/"$MC_APP_NAME"
 	export MC_APP_CLIENT_PATH_CL=client/"$MC_APP_NAME"
 
@@ -1763,6 +1770,7 @@ define_repo_paths() {
 	export MC_CLIENT_SRC="$MC_SRC_PATH/client"
 	export MC_LIB_SRC="$MC_SRC_PATH/$MC_LIB_NAME"
 	export MC_TEMPLATES_SRC="$(get_repo_path)/templates"
+	export MC_SQL_SCRIPTS_SRC="$(get_repo_path)/sql_scripts"
 	export MC_REFERENCE_SRC="$(get_repo_path)/reference"
 	export MC_REFERENCE_SRC_DB="$MC_REFERENCE_SRC/$sqliteFilename"
 	echo "source paths defined"

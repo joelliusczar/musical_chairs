@@ -58,6 +58,12 @@ class EnvManager:
 
 	@classmethod
 	@property
+	def sql_script_dir(cls) -> str:
+		moduleDir = os.environ["MC_SQL_SCRIPTS_DIR_CL"]
+		return f"{EnvManager.app_root}/{moduleDir}"
+
+	@classmethod
+	@property
 	def test_flag(cls) -> bool:
 		return os.environ.get("__TEST_FLAG__","false") == "true"
 

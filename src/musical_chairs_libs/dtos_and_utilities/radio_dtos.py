@@ -10,7 +10,7 @@ from typing import (
 )
 from itertools import chain
 from .validation_functions import min_length_validator_factory
-from .simple_functions import get_duplicates, check_name_safety
+from .simple_functions import get_duplicates, get_non_simple_chars
 from .generic_dtos import IdItem, TableData, T
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule, PathsActionRule
@@ -130,7 +130,7 @@ class ValidatedStationCreationInfo(StationCreationInfo):
 		if not v:
 			return ""
 
-		m = check_name_safety(v)
+		m = get_non_simple_chars(v)
 		if m:
 			raise ValueError(f"Illegal character used in station name: {m}")
 		return v

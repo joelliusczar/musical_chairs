@@ -71,7 +71,7 @@ error_check_path "$(get_repo_path)" &&
 rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
 cd "$(get_app_root)"/"$MC_BUILD_DIR" &&
-git clone "$MC_RADIO_SERVER_REPO_URL" "$MC_PROJ_NAME" &&
+git clone "$MC_REPO_URL" "$MC_PROJ_NAME" &&
 cd "$MC_PROJ_NAME"  &&
 if [ "$currentBranch" != main ]; then
 	echo "Using branch ${currentBranch}"
@@ -139,7 +139,7 @@ RemoteScriptEOF3
 $(cat "$radioCommonPath")
 scope() (
 
-	MC_RADIO_SERVER_REPO_URL="$MC_RADIO_SERVER_REPO_URL"
+	MC_REPO_URL="$MC_REPO_URL"
 	currentBranch="$(git branch --show-current 2>/dev/null)"
 
 	$(cat clone_repo_fifo)

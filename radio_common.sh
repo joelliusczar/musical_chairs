@@ -21,8 +21,8 @@ to_abs_path() (
 )
 
 get_repo_path() (
-	if [ -n "$MC_RADIO_REPO_PATH" ]; then
-		echo "$MC_RADIO_REPO_PATH"
+	if [ -n "$MC_LOCAL_REPO_PATH" ]; then
+		echo "$MC_LOCAL_REPO_PATH"
 	else
 		echo "using backup repo path" > 2
 		#done't try to change from home
@@ -292,31 +292,15 @@ str_contains() (
 	return 1
 )
 
+#the array needs to be passed in unquoted. 
+#example
+# array_contains "$findMe" $arrayOfSpaceSeparatedWords
 array_contains() (
 	searchValue="$1"
 	shift
 	while [ ! -z "$1" ]; do
 		case $1 in
 			"$searchValue")
-				echo "$1"
-				return 0
-				;;
-			*)
-			;;
-		esac
-		shift
-	done
-	return 1
-)
-
-array_contains_equals() (
-	searchValue="$1"
-	shift
-	while [ ! -z "$1" ]; do
-		case $1 in
-			"$searchValue"=*)
-				result=${1#"$searchValue"=}
-				echo "$result"
 				return 0
 				;;
 			*)
@@ -1026,6 +1010,7 @@ get_nginx_conf_dir_include() (
 		include servers/*;
 	EOF
 	)
+	#determine which one of these locations is referenced in the nginx config
 	echo "$guesses" | while read guess; do
 		if grep -F "$guess" "$nginxConf" >/dev/null; then
 			echo "$guess"
@@ -1407,7 +1392,7 @@ startup_api() (
 	if ! str_contains "$__SKIP__" "setup_api"; then
 		setup_api
 	fi &&
-	export MC_RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
+	export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background within a subshell so that it doesn't put
@@ -1572,7 +1557,7 @@ run_unit_tests() (
 	export __TEST_FLAG__='true'
 	setup_unit_test_env &&
 	test_src="$MC_SRC_PATH"/tests &&
-	export MC_RADIO_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
+	export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
 	export PYTHONPATH="${MC_SRC_PATH}:${MC_SRC_PATH}/api" &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	cd "$test_src"
@@ -1703,7 +1688,7 @@ define_top_level_terms() {
 	MC_APP_ROOT=${MC_APP_ROOT:-"$HOME"}
 	export MC_TEST_ROOT="$(get_repo_path)/test_trash"
 
-	sqliteFilename='songs_db.sqlite'
+	export sqliteFilename='songs_db.sqlite'
 	export MC_APP_TRUNK="$MC_PROJ_NAME"_dir
 	export MC_APP_ROOT="$MC_APP_ROOT"
 	export MC_WEB_ROOT="$MC_WEB_ROOT"
@@ -1833,11 +1818,22 @@ process_global_vars() {
 }
 
 unset_globals() {
+	exceptions=$(tr '\n' ' '<<-'EOF'
+		MC_APP_ENV
+		MC_AUTH_SECRET_KEY
+		MC_LOCAL_REPO_PATH
+		MC_REPO_URL
+		MC_SERVER_KEY_FILE
+		MC_SERVER_SSH_ADDRESS
+	EOF
+	)
 	cat "$(get_repo_path)"/radio_common.sh | grep export \
 		| sed -n -e 's/^\t*export \([a-zA-Z0-9_]\{1,\}\)=.*/\1/p' | sort -u \
 		| while read constant; do
 				case "$constant" in
 					(MC_*)
+						#exceptions is unquoted on purpose
+						array_contains "$contant" $exceptions && continue
 						echo "unsetting ${constant}"
 						unset "$constant"
 						;;

@@ -6,7 +6,7 @@ from enum import Enum
 from itertools import dropwhile, islice
 from typing import Optional
 from musical_chairs_libs.dtos_and_utilities import (
-	check_name_safety
+	get_non_simple_chars
 )
 from .env_manager import EnvManager
 
@@ -43,7 +43,7 @@ class ProcessService:
 		ownerName: str
 	) -> None:
 		filename_base = f"{ownerName}_{stationName}"
-		m = check_name_safety(filename_base)
+		m = get_non_simple_chars(filename_base)
 		if m:
 			raise RuntimeError("Invalid station name was used")
 		stationConf = f"{EnvManager.station_config_dir}/ices.{filename_base}.conf"

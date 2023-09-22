@@ -40,6 +40,21 @@ class EnvManager:
 
 	@classmethod
 	@property
+	def db_pass_api(cls) -> str:
+		return os.environ.get("MC_DB_PASS_API", "")
+
+	@classmethod
+	@property
+	def db_pass_radio(cls) -> str:
+		return os.environ.get("MC_DB_PASS_RADIO", "")
+
+	@classmethod
+	@property
+	def db_pass_owner(cls) -> str:
+		return os.environ.get("MC_DB_PASS_OWNER", "")
+
+	@classmethod
+	@property
 	def templates_dir(cls) -> str:
 		templateDir = os.environ["MC_TEMPLATES_DIR_CL"]
 		return f"{EnvManager.app_root}/{templateDir}"

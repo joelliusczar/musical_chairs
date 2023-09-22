@@ -1,4 +1,5 @@
 from typing import Optional, cast, Iterable, Iterator, Tuple
+from enum import Enum
 from sqlalchemy.sql.expression import Select, false, CompoundSelect
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
@@ -32,6 +33,11 @@ from .account_dtos import (
 	get_path_owner_roles
 )
 from .simple_functions import normalize_opening_slash
+
+class DbUsers(Enum):
+	OWNER_USER = "mc_owner"
+	API_USER = "api_user"
+	RADIO_USER = "radio_user"
 
 __station_permissions_query__ = select(
 	stup_userFk.label("rule_userFk"),

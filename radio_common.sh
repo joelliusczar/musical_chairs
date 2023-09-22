@@ -275,12 +275,25 @@ link_to_music_files() {
 	echo 'music files should exist now'
 }
 
+#geared for having a bunch of values piped to it
 input_match() (
 	matchFor="$1"
 	while read nextValue; do
 		[ "$nextValue" = "$matchFor" ] && echo 't'
 	done
 )
+
+enable_wordsplitting() {
+	if [ -n "$ZSH_VERSION" ]; then
+		setopt shwordsplit
+	fi
+}
+
+disable_wordsplitting() {
+	if [ -n "$ZSH_VERSION" ]; then
+		unsetopt shwordsplit
+	fi
+}
 
 str_contains() (
 	haystackStr="$1"
@@ -292,7 +305,7 @@ str_contains() (
 	return 1
 )
 
-#the array needs to be passed in unquoted. 
+#the array needs to be passed in unquoted.
 #example
 # array_contains "$findMe" $arrayOfSpaceSeparatedWords
 array_contains() (
@@ -646,6 +659,18 @@ start_db_service() (
 		(*) ;;
 	esac &&
 	echo 'done starting database service'
+)
+
+setup_db_user_api() (
+	process_global_vars "$@" &&
+	__install_py_env_if_needed__ &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	printf '\033c' &&
+	(python <<-EOF
+	from musical_chairs_libs.services import DbSetupService
+	DbSetupService.create_app_users()
+	EOF
+	)
 )
 
 __install_py_env__() {
@@ -1508,6 +1533,38 @@ __create_fake_keys_file__() {
 	echo "mc_auth_key=$(openssl rand -hex 32)" > "$(get_app_root)"/keys/"$MC_PROJ_NAME"
 }
 
+regen_file_reference_file() (
+	process_global_vars "$@" &&
+	outputFile="$MC_LIB_SRC"/dtos_and_utilities/file_reference.py
+	printf '####### This file is generated. #######\n' > "$outputFile"
+	printf '# edit regen_file_reference_file #\n' >> "$outputFile"
+	printf '# in radio_common.sh and rerun\n' >> "$outputFile"
+	printf 'from enum import Enum\n\n' >> "$outputFile"
+	printf 'class SqlScripts(Enum):\n' >> "$outputFile"
+	pyScript=$(cat <<-END
+		import sys, hashlib
+		print(hashlib.md5(sys.stdin.read().encode("utf-8")).hexdigest())
+	END
+	)
+	for script in "$MC_SQL_SCRIPTS_SRC"/*.sql; do
+		enumName=$(basename "$script" '.sql' | \
+			sed -e 's/[0-9]*.\(.*\)/\1/' | \
+			perl -pe 'chomp if eof' | \
+			tr '[:punct:][:space:]' '_' | \
+			tr '[:lower:]' '[:upper:]'
+		)
+		fileName=$(basename "$script")
+		hashValue=$(cat "$script" | python3 -c "$pyScript")
+		printf "\t${enumName} = (\"${fileName}\", \"${hashValue}\")\n" \
+			>> "$outputFile"
+	done
+	printf '\n\t@property\n' >> "$outputFile"
+	printf '\tdef file_name(self) -> str:\n' >> "$outputFile"
+	printf '\t\treturn self.value[0]\n\n' >> "$outputFile"
+	printf '\t@property\n' >> "$outputFile"
+	printf '\tdef checksum(self) -> str:\n' >> "$outputFile"
+	printf '\t\treturn self.value[1]\n' >> "$outputFile"
+)
 
 #assume install_setup.sh has been run
 setup_unit_test_env() (
@@ -1818,22 +1875,30 @@ process_global_vars() {
 }
 
 unset_globals() {
+	enable_wordsplitting
 	exceptions=$(tr '\n' ' '<<-'EOF'
 		MC_APP_ENV
 		MC_AUTH_SECRET_KEY
+		MC_DB_PASS_API
+		MC_DB_PASS_OWNER
+		MC_DB_PASS_RADIO
 		MC_LOCAL_REPO_PATH
 		MC_REPO_URL
 		MC_SERVER_KEY_FILE
 		MC_SERVER_SSH_ADDRESS
+		__DB_SETUP_PASS__=
 	EOF
 	)
 	cat "$(get_repo_path)"/radio_common.sh | grep export \
 		| sed -n -e 's/^\t*export \([a-zA-Z0-9_]\{1,\}\)=.*/\1/p' | sort -u \
 		| while read constant; do
+				#exceptions is unquoted on purpose
+				if array_contains "$constant" $exceptions; then
+					echo "leaving $constant"
+					continue
+				fi
 				case "$constant" in
 					(MC_*)
-						#exceptions is unquoted on purpose
-						array_contains "$contant" $exceptions && continue
 						echo "unsetting ${constant}"
 						unset "$constant"
 						;;
@@ -1845,6 +1910,7 @@ unset_globals() {
 						;;
 					esac
 			done
+	disable_wordsplitting
 }
 
 fn_ls() (

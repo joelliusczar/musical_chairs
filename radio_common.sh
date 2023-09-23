@@ -661,6 +661,46 @@ start_db_service() (
 	echo 'done starting database service'
 )
 
+revoke_default_db_accounts() (
+	sudo -p 'disabling mysql user' mysql -u root -e \
+		"REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'mysql'@'localhost'"
+)
+
+set_db_root_initial_password() (
+	if [ -n "$__DB_SETUP_PASS__" ]; then
+		sudo -p 'Updating db root password' mysql -u root -e \
+			"SET PASSWORD FOR root@localhost = PASSWORD('${__DB_SETUP_PASS__}');"
+	else
+		echo 'Need a password for root db account'
+		return 1
+	fi
+)
+
+
+setup_database() (
+	echo 'initial db setup'
+	process_global_vars "$@" &&
+	__install_py_env_if_needed__ &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	printf '\033c' &&
+	rootHash=$(mysql -srN -e \
+		"SELECT password FROM mysql.user WHERE user = 'root' LIMIT 1"
+	)
+	if [ -z "$rootHash" ] || [ "$rootHash" = 'invalid' ]; then
+		set_db_root_initial_password
+	fi &&
+	(python <<-EOF
+	from musical_chairs_libs.services import DbRootConnectionService
+	with DbRootConnectionService() as rootConnService:
+		rootConnService.create_db("musical_chairs_db")
+		rootConnService.create_owner()
+		rootConnService.create_app_users()
+		rootConnService.grant_owner_roles("musical_chairs_db")
+	EOF
+	)
+
+)
+
 setup_db_user_api() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&

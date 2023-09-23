@@ -34,10 +34,9 @@ class DbRootConnectionService:
 	def create_db(self, dbName: str):
 		if not is_name_safe(dbName):
 			raise RuntimeError("Invalid name was used")
-		self.conn.exec_driver_sql(f"CREATE DATABASE {dbName}")
+		self.conn.exec_driver_sql(f"CREATE DATABASE IF NOT EXISTS {dbName}")
 
 	def create_db_user(self, username: str, userPass: str):
-
 		if not is_name_safe(username):
 			raise RuntimeError("Invalid username was used")
 		self.conn.exec_driver_sql(
@@ -50,18 +49,29 @@ class DbRootConnectionService:
 		dbPass = EnvManager.db_pass_api
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
-		self.create_db_user(DbUsers.API_USER.value, dbPass)
+		self.create_db_user(
+			f"'DbUsers.API_USER.value'@'localhost'",
+			dbPass
+		)
 
 		dbPass = EnvManager.db_pass_radio
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
-		self.create_db_user(DbUsers.RADIO_USER.value, dbPass)
+		self.create_db_user(
+			f"'DbUsers.RADIO_USER.value'@'localhost'",
+			dbPass
+		)
 
-	def create_owner(self, dbName: str):
+	def create_owner(self):
 		dbPass = EnvManager.db_pass_owner
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
-		self.create_db_user(DbUsers.OWNER_USER.value, dbPass)
+		self.create_db_user(
+			f"'DbUsers.OWNER_USER.value'@'localhost'",
+			dbPass
+		)
+
+	def grant_owner_roles(self, dbName: str):
 		if not is_name_safe(dbName):
 			raise RuntimeError("Invalid name was used")
 		self.conn.exec_driver_sql(
@@ -69,14 +79,30 @@ class DbRootConnectionService:
 			f"'{DbUsers.OWNER_USER.value}'@'localhost' WITH GRANT OPTION"
 		)
 
+	#this method can only be used on test databases
+	def drop_database(self, dbName: str):
+		if not dbName.startswith("TEST_"):
+			raise RuntimeError("only test databases can be removed")
+		if not is_name_safe(dbName):
+			raise RuntimeError("Invalid name was used")
+		self.conn.exec_driver_sql(f"DROP DATABASE IF EXISTS {dbName}")
+
+	def revoke_all_roles(self):
+		self.conn.exec_driver_sql(
+			f"REVOKE ALL PRIVILEGES, GRANT OPTION "
+			f"FROM '{DbUsers.API_USER.value}'@,'localhost' "
+			f"'{DbUsers.RADIO_USER.value}'@'localhost', "
+			f"'{DbUsers.OWNER_USER.value}'@'localhost'"
+		)
+
 class DbOwnerConnectionService:
 
 	def __init__(self, dbName: str) -> None:
 		self.dbName = dbName
-		self.conn = self.conn = self.get_root_connection()
+		self.conn = self.conn = self.get_owner_connection()
 
-	def get_root_connection(self) -> Connection:
-		dbPass = EnvManager.db_setup_pass
+	def get_owner_connection(self) -> Connection:
+		dbPass = EnvManager.db_pass_owner
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
 		owner = DbUsers.OWNER_USER.value
@@ -105,8 +131,3 @@ class DbOwnerConnectionService:
 			.replace("<apiUser>", DbUsers.RADIO_USER.value)
 		self.conn.exec_driver_sql(script)
 
-	def revoke_all_roles(self):
-		self.conn.exec_driver_sql(
-			f"REVOKE ALL PRIVILEGES, GRANT OPTION "
-			f"FROM {DbUsers.API_USER.value}, {DbUsers.RADIO_USER.value}"
-		)

@@ -341,7 +341,7 @@ is_dir_empty() (
 	[ ! -d "$target_dir" ] || [ -z "$lsRes" ]
 )
 
-get_libs_dir() (
+get_libs_dest_dir() (
 	__set_env_path_var__ >&2 #ensure that we can see mc-python
 	set_python_version_const || return "$?"
 	env_root="$1"
@@ -370,18 +370,27 @@ create_py_env_in_dir() (
 	echo "done setting up py libs"
 )
 
+__replace_lib_files__() {
+	copy_dir "$MC_LIB_SRC" \
+		"$(get_libs_dest_dir "$(get_app_root)"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
+}
+
+replace_lib_files() (
+	process_global_vars "$@" &&
+	__replace_lib_files__
+)
+
 create_py_env_in_app_trunk() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
 	create_py_env_in_dir "$(get_app_root)"/"$MC_APP_TRUNK" &&
-	copy_dir "$MC_LIB_SRC" \
-		"$(get_libs_dir "$(get_app_root)"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
+	__replace_lib_files__
 )
 
 copy_lib_to_test() (
 	process_global_vars "$@" &&
 	copy_dir "$MC_LIB_SRC" \
-		"$(get_libs_dir "$MC_UTEST_ENV_DIR")"/"$MC_LIB_NAME"
+		"$(get_libs_dest_dir "$MC_UTEST_ENV_DIR")"/"$MC_LIB_NAME"
 )
 
 error_check_path() (
@@ -680,6 +689,7 @@ set_db_root_initial_password() (
 setup_database() (
 	echo 'initial db setup'
 	process_global_vars "$@" &&
+	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	__install_py_env_if_needed__ &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	printf '\033c' &&
@@ -689,14 +699,23 @@ setup_database() (
 	if [ -z "$rootHash" ] || [ "$rootHash" = 'invalid' ]; then
 		set_db_root_initial_password
 	fi &&
-	(python <<-EOF
-	from musical_chairs_libs.services import DbRootConnectionService
-	with DbRootConnectionService() as rootConnService:
-		rootConnService.create_db("musical_chairs_db")
-		rootConnService.create_owner()
-		rootConnService.create_app_users()
-		rootConnService.grant_owner_roles("musical_chairs_db")
-	EOF
+	(python <<EOF
+from musical_chairs_libs.services import (
+	DbRootConnectionService,
+	DbOwnerConnectionService
+)
+dbName="musical_chairs_db"
+with DbRootConnectionService() as rootConnService:
+	rootConnService.create_db(dbName)
+	rootConnService.create_owner()
+	rootConnService.create_app_users()
+	rootConnService.grant_owner_roles(dbName)
+
+with DbOwnerConnectionService(dbName, echo=True) as ownerConnService:
+	ownerConnService.create_tables()
+	ownerConnService.grant_api_roles()
+	ownerConnService.grant_radio_roles()
+EOF
 	)
 
 )
@@ -1926,7 +1945,7 @@ unset_globals() {
 		MC_REPO_URL
 		MC_SERVER_KEY_FILE
 		MC_SERVER_SSH_ADDRESS
-		__DB_SETUP_PASS__=
+		__DB_SETUP_PASS__
 	EOF
 	)
 	cat "$(get_repo_path)"/radio_common.sh | grep export \

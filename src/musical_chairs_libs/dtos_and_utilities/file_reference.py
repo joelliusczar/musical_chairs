@@ -4,8 +4,8 @@
 from enum import Enum
 
 class SqlScripts(Enum):
-	GRANT_API = ("1.grant_api.sql", "a702d64bb28732a43e066a74436a07ce")
-	GRANT_RADIO = ("2.grant_radio.sql", "5fadbff579330252b89b7e31b831c616")
+	GRANT_API = ("1.grant_api.sql", "90d1c67e87696c293f35422345031cc3")
+	GRANT_RADIO = ("2.grant_radio.sql", "6343c805d18243903058480d29fb1a75")
 
 	@property
 	def file_name(self) -> str:
@@ -14,4 +14,3 @@ class SqlScripts(Enum):
 	@property
 	def checksum(self) -> str:
 		return self.value[1]
-

@@ -39,6 +39,14 @@ class DbUsers(Enum):
 	API_USER = "api_user"
 	RADIO_USER = "radio_user"
 
+	def format_user(self, host:str="localhost") -> str:
+		return f"'{self.value}'@'{host}'"
+
+	def __call__(self, host:Optional[str]=None) -> str:
+		if host:
+			return self.format_user(host)
+		return self.value
+
 __station_permissions_query__ = select(
 	stup_userFk.label("rule_userFk"),
 	stup_role.label("rule_name"),

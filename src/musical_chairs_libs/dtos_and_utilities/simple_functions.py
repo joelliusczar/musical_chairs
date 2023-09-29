@@ -70,7 +70,7 @@ def next_directory_level(path: str, prefix: Optional[str]="") -> str:
 	return ""
 
 def get_non_simple_chars(name: str) -> Optional[str]:
-		m = re.search(r"\W", name)
+		m = re.search(r"[^a-zA-Z0-9_]", name)
 		if m:
 			return m.group(0)
 		return None

@@ -8,6 +8,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	DbUsers,
 	SqlScripts
 )
+from musical_chairs_libs.tables import metadata
+#https://github.com/PyMySQL/PyMySQL/issues/590
+from pymysql.constants import CLIENT
 
 """
 This class will mostly exist for the sake of unit tests
@@ -36,11 +39,13 @@ class DbRootConnectionService:
 			raise RuntimeError("Invalid name was used")
 		self.conn.exec_driver_sql(f"CREATE DATABASE IF NOT EXISTS {dbName}")
 
-	def create_db_user(self, username: str, userPass: str):
+	def create_db_user(self, username: str, host: str, userPass: str):
 		if not is_name_safe(username):
 			raise RuntimeError("Invalid username was used")
+		if not is_name_safe(host):
+			raise RuntimeError("Invalid host was used")
 		self.conn.exec_driver_sql(
-			f"CREATE USER IF NOT EXISTS {username} "
+			f"CREATE USER IF NOT EXISTS '{username}'@'{host}' "
 			f"IDENTIFIED BY %(userPass)s",
 			{ "userPass": userPass}
 		)
@@ -50,7 +55,8 @@ class DbRootConnectionService:
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
 		self.create_db_user(
-			f"'DbUsers.API_USER.value'@'localhost'",
+			DbUsers.API_USER.value,
+			"localhost",
 			dbPass
 		)
 
@@ -58,7 +64,8 @@ class DbRootConnectionService:
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
 		self.create_db_user(
-			f"'DbUsers.RADIO_USER.value'@'localhost'",
+			DbUsers.RADIO_USER.value,
+			"localhost",
 			dbPass
 		)
 
@@ -67,17 +74,24 @@ class DbRootConnectionService:
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
 		self.create_db_user(
-			f"'DbUsers.OWNER_USER.value'@'localhost'",
+			DbUsers.OWNER_USER.value,
+			"localhost",
 			dbPass
 		)
 
 	def grant_owner_roles(self, dbName: str):
 		if not is_name_safe(dbName):
 			raise RuntimeError("Invalid name was used")
+		user = DbUsers.OWNER_USER(host="localhost")
 		self.conn.exec_driver_sql(
 			f"GRANT ALL PRIVILEGES ON {dbName}.* to "
-			f"'{DbUsers.OWNER_USER.value}'@'localhost' WITH GRANT OPTION"
+			f"{user} WITH GRANT OPTION"
 		)
+		self.conn.exec_driver_sql(
+			f"GRANT RELOAD ON *.* to "
+			f"{user}"
+		)
+		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
 	#this method can only be used on test databases
 	def drop_database(self, dbName: str):
@@ -90,23 +104,32 @@ class DbRootConnectionService:
 	def revoke_all_roles(self):
 		self.conn.exec_driver_sql(
 			f"REVOKE ALL PRIVILEGES, GRANT OPTION "
-			f"FROM '{DbUsers.API_USER.value}'@,'localhost' "
-			f"'{DbUsers.RADIO_USER.value}'@'localhost', "
-			f"'{DbUsers.OWNER_USER.value}'@'localhost'"
+			f"FROM {DbUsers.API_USER.format_user()} "
+			f"{DbUsers.RADIO_USER.format_user()}, "
+			f"{DbUsers.OWNER_USER.format_user()}"
 		)
 
 class DbOwnerConnectionService:
 
-	def __init__(self, dbName: str) -> None:
+	def __init__(self, dbName: str, echo: bool=False) -> None:
 		self.dbName = dbName
+		self.echo = echo
 		self.conn = self.conn = self.get_owner_connection()
 
 	def get_owner_connection(self) -> Connection:
 		dbPass = EnvManager.db_pass_owner
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
+		if not is_name_safe(self.dbName):
+			raise RuntimeError("Invalid name was used")
 		owner = DbUsers.OWNER_USER.value
-		engine = create_engine(f"mysql+pymysql://{owner}:{dbPass}@localhost")
+		engine = create_engine(
+			f"mysql+pymysql://{owner}:{dbPass}@localhost/{self.dbName}",
+			echo=self.echo,
+			connect_args={
+				"client_flag": CLIENT.MULTI_STATEMENTS
+			}
+		)
 		return engine.connect()
 
 	def __enter__(self) -> "DbOwnerConnectionService":
@@ -120,14 +143,19 @@ class DbOwnerConnectionService:
 		if not is_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
 		script = template.replace("<dbName>", self.dbName)\
-			.replace("<apiUser>", DbUsers.API_USER.value)
+			.replace("<apiUser>", DbUsers.API_USER("localhost"))
 		self.conn.exec_driver_sql(script)
+		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
 	def grant_radio_roles(self):
 		template = TemplateService.load_sql_script_content(SqlScripts.GRANT_RADIO)
 		if not is_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
 		script = template.replace("<dbName>", self.dbName)\
-			.replace("<apiUser>", DbUsers.RADIO_USER.value)
-		self.conn.exec_driver_sql(script)
+			.replace("<radioUser>", DbUsers.RADIO_USER("localhost"))
+		cursor = self.conn.engine.raw_connection().cursor()
+		cursor.execute(script)
+		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
+	def create_tables(self):
+		metadata.create_all(self.conn.engine)

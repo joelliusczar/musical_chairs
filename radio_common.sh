@@ -692,7 +692,6 @@ setup_database() (
 	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	__install_py_env_if_needed__ &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
-	printf '\033c' &&
 	rootHash=$(mysql -srN -e \
 		"SELECT password FROM mysql.user WHERE user = 'root' LIMIT 1"
 	)
@@ -720,15 +719,23 @@ EOF
 
 )
 
-setup_db_user_api() (
-	process_global_vars "$@" &&
-	__install_py_env_if_needed__ &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
-	printf '\033c' &&
-	(python <<-EOF
-	from musical_chairs_libs.services import DbSetupService
-	DbSetupService.create_app_users()
-	EOF
+teardown_database() (
+	echo 'tearing down db'
+	process_global_vars "$@" >/dev/null 2>&1 &&
+	__install_py_env_if_needed__ >/dev/null 2>&1 &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate \
+		>/dev/null 2>&1 &&
+	(python <<EOF
+from musical_chairs_libs.services import (
+	DbRootConnectionService,
+	DbOwnerConnectionService
+)
+
+with DbRootConnectionService() as rootConnService:
+	rootConnService.drop_all_users()
+	#rootConnService.drop_database("test_musical_chairs_db")
+
+EOF
 	)
 )
 

@@ -95,7 +95,7 @@ class DbRootConnectionService:
 
 	#this method can only be used on test databases
 	def drop_database(self, dbName: str):
-		if not dbName.startswith("TEST_"):
+		if not dbName.startswith("test_"):
 			raise RuntimeError("only test databases can be removed")
 		if not is_name_safe(dbName):
 			raise RuntimeError("Invalid name was used")
@@ -104,10 +104,17 @@ class DbRootConnectionService:
 	def revoke_all_roles(self):
 		self.conn.exec_driver_sql(
 			f"REVOKE ALL PRIVILEGES, GRANT OPTION "
-			f"FROM {DbUsers.API_USER.format_user()} "
+			f"FROM {DbUsers.API_USER.format_user()}, "
 			f"{DbUsers.RADIO_USER.format_user()}, "
 			f"{DbUsers.OWNER_USER.format_user()}"
 		)
+
+	def drop_user(self, user: DbUsers):
+		self.conn.exec_driver_sql(f"DROP USER IF EXISTS {user.format_user()}")
+
+	def drop_all_users(self):
+		for user in DbUsers:
+			self.drop_user(user)
 
 class DbOwnerConnectionService:
 

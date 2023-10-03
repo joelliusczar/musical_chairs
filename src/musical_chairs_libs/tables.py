@@ -24,7 +24,6 @@ metadata = MetaData()
 
 users = Table("users", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("username", String(50), nullable=False),
 	Column("displayname", String(50), nullable=True),
 	Column("hashedpw", LargeBinary, nullable=True),
@@ -51,7 +50,6 @@ Index("idx_dirroot", u_dirRoot, unique=True)
 
 artists = Table("artists", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("name", String(200), nullable=False),
 	Column("lastmodifiedbyuserfk", Uuid[UUID], ForeignKey("users.pk"),\
 		nullable=False),
@@ -69,7 +67,6 @@ Index("idx_uniqueartistsname", ar_name, ar_ownerFk, unique=True)
 
 albums = Table("albums", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("name", String(200), nullable=False),
 	Column("albumartistfk", Uuid[UUID], ForeignKey("artists.pk"), nullable=True),
 	Column("year", Integer, nullable=True),
@@ -96,7 +93,6 @@ Index(
 
 songs = Table("songs", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("path", String(2000), nullable=False),
 	Column("name", String(200), nullable=True),
 	Column("albumfk", Uuid[UUID], ForeignKey("albums.pk"), nullable=True),
@@ -135,7 +131,6 @@ Index("idx_uniquesongpath", sg_path, unique=True)
 
 song_artist = Table("songsartists", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("songfk", Uuid[UUID], ForeignKey("songs.pk"), nullable=False),
 	Column("artistfk", Uuid[UUID], ForeignKey("artists.pk"), nullable=False),
 	Column("isprimaryartist", Boolean, nullable=True),
@@ -156,7 +151,6 @@ Index("idx_songsartists", sgar_songFk, sgar_artistFk, unique=True)
 
 song_covers = Table("songcovers", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("songfk", Uuid[UUID], ForeignKey("songs.pk"), nullable=False),
 	Column("coversongfk", Uuid[UUID], ForeignKey("songs.pk"), nullable=False),
 	Column("lastmodifiedbyuserfk", Uuid[UUID], ForeignKey("users.pk"), \
@@ -169,7 +163,6 @@ Index("idx_songcovers", _sc_songFk, _sc_coverSongFk, unique=True)
 
 stations = Table("stations", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("name", String(100), nullable=False),
 	Column("displayname", String(500), nullable=True),
 	Column("procid", Integer, nullable=True),
@@ -222,7 +215,6 @@ Index("idx_userroles", ur_userFk, ur_role, unique=True)
 
 user_action_history = Table("useractionhistory", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("userfk", Uuid[UUID], ForeignKey("users.pk"), nullable=True),
 	Column("action", String(50), nullable=False),
 	Column("timestamp", Double[float], nullable=True),
@@ -258,7 +250,6 @@ Index("idx_stationqueuestations", q_stationFk)
 
 station_user_permissions = Table("stationuserpermissions", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("stationfk", Uuid[UUID], ForeignKey("stations.pk"), nullable=False),
 	Column("userfk", Uuid[UUID], ForeignKey("users.pk"), nullable=False),
 	Column("role", String(50)),
@@ -288,7 +279,6 @@ Index(
 
 path_user_permissions = Table("pathuserpermissions", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("userfk", Uuid[UUID], ForeignKey("users.pk"), nullable=False),
 	Column("path", Text, nullable=False),
 	Column("role", String(50), nullable=False),
@@ -306,22 +296,22 @@ pup_priority = cast(Column[Integer], pup.priority)
 pup_span = cast(Column[Float[float]], pup.span)
 pup_count = cast(Column[Float[float]], pup.count)
 
-Index(
-	"idx_pathuserpermissions_userfk",
-	pup_userFk
-)
+#moving these to their own script
+# Index(
+# 	"idx_pathuserpermissions_userfk",
+# 	pup_userFk
+# )
 
-Index(
-	"idx_pathpermissions",
-	pup_userFk,
-	pup_path,
-	pup_role,
-	unique=True
-)
+# Index(
+# 	"idx_pathpermissions",
+# 	pup_userFk,
+# 	pup_path,
+# 	pup_role,
+# 	unique=True
+# )
 
 friend_user_permissions = Table("frienduserpermissions", metadata,
 	Column("pk", Uuid[UUID], primary_key=True),
-	Column("localpk", Integer, nullable=False, autoincrement=True),
 	Column("friendfk", Uuid[UUID], ForeignKey("users.pk"), nullable=False),
 	Column("userfk", Uuid[UUID], ForeignKey("users.pk"), nullable=False),
 	Column("role", String(50)),

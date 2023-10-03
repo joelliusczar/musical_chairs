@@ -12,7 +12,6 @@ from .mocks.mock_db_constructors import (
 from sqlalchemy.engine import Connection
 from fastapi.testclient import TestClient
 from .common_fixtures import (
-	fixture_db_populate_factory as fixture_db_populate_factory,
 	fixture_db_conn_in_mem as fixture_db_conn_in_mem
 )
 from .common_fixtures import *

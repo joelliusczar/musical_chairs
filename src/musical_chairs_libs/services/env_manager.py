@@ -8,7 +8,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SearchNameString,
 	SavedNameString,
 	next_directory_level,
-	normalize_opening_slash
+	normalize_opening_slash,
+	DbUsers
 )
 
 
@@ -81,6 +82,21 @@ class EnvManager:
 	@property
 	def test_flag(cls) -> bool:
 		return os.environ.get("__TEST_FLAG__","false") == "true"
+
+	@classmethod
+	def get_configured_api_connection(
+		cls,
+		dbName: str,
+		echo: bool=False
+	) -> Connection:
+		dbPass = EnvManager.db_pass_api
+		if not dbPass:
+			raise RuntimeError("The system is not configured correctly for that.")
+		engine = create_engine(
+			f"mysql+pymysql://{DbUsers.API_USER()}:{dbPass}@localhost/{dbName}",
+			echo=echo,
+		)
+		return engine.connect()
 
 
 	@classmethod

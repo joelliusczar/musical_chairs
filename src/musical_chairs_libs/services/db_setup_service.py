@@ -121,7 +121,7 @@ class DbOwnerConnectionService:
 	def __init__(self, dbName: str, echo: bool=False) -> None:
 		self.dbName = dbName
 		self.echo = echo
-		self.conn = self.conn = self.get_owner_connection()
+		self.conn = self.get_owner_connection()
 
 	def get_owner_connection(self) -> Connection:
 		dbPass = EnvManager.db_pass_owner
@@ -166,3 +166,13 @@ class DbOwnerConnectionService:
 
 	def create_tables(self):
 		metadata.create_all(self.conn.engine)
+
+	def add_path_permission_index(self):
+		template = TemplateService.load_sql_script_content(
+			SqlScripts.PATH_USER_INDEXES
+		)
+		if not is_name_safe(self.dbName):
+			raise RuntimeError("Invalid name was used")
+		script = template.replace("<dbName>", self.dbName)
+		cursor = self.conn.engine.raw_connection().cursor()
+		cursor.execute(script)

@@ -588,6 +588,21 @@ setup_env_api_file() (
 	perl -pi -e \
 		"s@^(MC_PY_MODULE_DIR=).*\$@\1'${MC_PY_MODULE_DIR}'@" \
 		"$envFile" &&
+	perl -pi -e \
+		"s@^(__DB_SETUP_PASS__=).*\$@\1'${__DB_SETUP_PASS__}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_DB_PASS_OWNER=).*\$@\1'${MC_DB_PASS_OWNER}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_DB_PASS_API=).*\$@\1'${MC_DB_PASS_API}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_DB_PASS_RADIO=).*\$@\1'${MC_DB_PASS_RADIO}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_TEST_ROOT=).*\$@\1'${MC_TEST_ROOT}'@" \
+		"$envFile" &&
 	echo 'done setting up .env file'
 )
 
@@ -712,6 +727,7 @@ with DbRootConnectionService() as rootConnService:
 
 with DbOwnerConnectionService(dbName, echo=True) as ownerConnService:
 	ownerConnService.create_tables()
+	ownerConnService.add_path_permission_index()
 	ownerConnService.grant_api_roles()
 	ownerConnService.grant_radio_roles()
 EOF
@@ -1621,7 +1637,8 @@ regen_file_reference_file() (
 		)
 		fileName=$(basename "$script")
 		hashValue=$(cat "$script" | python3 -c "$pyScript")
-		printf "\t${enumName} = (\"${fileName}\", \"${hashValue}\")\n" \
+		printf \
+		"\t${enumName} = (\n\t\t\"${fileName}\",\n\t\t\"${hashValue}\"\n\t)\n" \
 			>> "$outputFile"
 	done
 	printf '\n\t@property\n' >> "$outputFile"

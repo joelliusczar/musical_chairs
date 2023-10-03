@@ -1,6 +1,7 @@
-from typing import Iterator, Any
 import pytest
 import bcrypt
+from typing import Iterator, Any
+
 
 side_effect_check = None
 
@@ -125,3 +126,9 @@ def testKeyMatchingLogic():
 	print(res)
 	pass
 
+@pytest.fixture
+def read_request(request: pytest.FixtureRequest) -> int:
+	return 0
+
+def test_read_request(read_request: int):
+	print(read_request)

@@ -32,14 +32,14 @@ blitzDirOwnerId = 11
 
 def populate_artists(conn: Connection):
 	stmt = insert(artists)
-	conn.execute(stmt, artist_params) #pyright: ignore [reportUnknownMemberType]
+	conn.execute(stmt, artist_params)
 
 def populate_albums(conn: Connection):
 	stmt = insert(albums)
-	conn.execute(stmt, albumParams1) #pyright: ignore [reportUnknownMemberType]
-	conn.execute(stmt, albumParams2) #pyright: ignore [reportUnknownMemberType]
-	conn.execute(stmt, albumParams3) #pyright: ignore [reportUnknownMemberType]
-	conn.execute(stmt, albumParams4) #pyright: ignore [reportUnknownMemberType]
+	conn.execute(stmt, albumParams1)
+	conn.execute(stmt, albumParams2)
+	conn.execute(stmt, albumParams3)
+	conn.execute(stmt, albumParams4)
 
 def populate_songs(conn: Connection):
 	stmt = insert(songs)
@@ -196,7 +196,7 @@ def populate_users(
 ):
 	userParams = get_user_params(orderedTestDates, primaryUser, testPassword)
 	stmt = insert(users)
-	conn.execute(stmt, userParams) #pyright: ignore [reportUnknownMemberType]
+	conn.execute(stmt, userParams)
 
 def populate_user_roles(
 	conn: Connection,

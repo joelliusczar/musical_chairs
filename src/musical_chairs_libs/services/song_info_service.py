@@ -156,9 +156,9 @@ class SongInfoService:
 		if not data:
 			return OwnerInfo(0,"", "")
 		return OwnerInfo(
-			cast(int, data[ar_ownerFk]),
-			cast(str, data[u_username]),
-			cast(str, data[u_displayName])
+			data[ar_ownerFk],
+			data[u_username],
+			data[u_displayName]
 		)
 
 	def save_artist(
@@ -204,9 +204,9 @@ class SongInfoService:
 		if not data:
 			return OwnerInfo(0,"", "")
 		return OwnerInfo(
-			cast(int, data[ab_ownerFk]),
-			cast(str, data[u_username]),
-			cast(str, data[u_displayName])
+			data[ab_ownerFk],
+			data[u_username],
+			data[u_displayName]
 		)
 
 	def save_album(
@@ -235,9 +235,9 @@ class SongInfoService:
 		try:
 			res = self.conn.execute(stmt)
 
-			affectedPk: int = albumId if albumId else res.lastrowid
+			affectedPk = albumId if albumId else res.lastrowid
 			artist = next(self.get_artists(
-				user.id,
+				userId=user.id,
 				artistKeys=album.albumArtist.id
 			), None) if album.albumArtist else None
 			return AlbumInfo(affectedPk, str(savedName), owner, album.year, artist)
@@ -630,21 +630,21 @@ class SongInfoService:
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query).mappings()
 		yield from (AlbumInfo(
-			cast(int,row["id"]),
-			cast(str,row["name"]),
+			row["id"],
+			row["name"],
 			OwnerInfo(
-				cast(int,row["album.ownerId"]),
-				cast(str, row["album.ownerName"]),
-				cast(str, row["album.ownerDisplayName"])
+				row["album.ownerId"],
+				row["album.ownerName"],
+				row["album.ownerDisplayName"]
 			),
-			cast(int,row["year"]),
+			row["year"],
 			ArtistInfo(
-				cast(int,row["albumArtistId"]),
-				cast(str,row["artist.name"]),
+				row["albumArtistId"],
+				row["artist.name"],
 				OwnerInfo(
-					cast(int,row["artist.ownerId"]),
-					cast(str, row["artist.ownerName"]),
-					cast(str, row["artist.ownerDisplayName"])
+					row["artist.ownerId"],
+					row["artist.ownerName"],
+					row["artist.ownerDisplayName"]
 				)
 			) if row["albumArtistId"] else None
 			) for row in records)
@@ -679,12 +679,12 @@ class SongInfoService:
 		records = self.conn.execute(query).mappings()
 
 		yield from (ArtistInfo(
-			cast(int, row[ar_pk]),
-			cast(str, row[ar_name]),
+			row[ar_pk],
+			row[ar_name],
 			OwnerInfo(
-				cast(int, row[ar_ownerFk]),
-				cast(str, row[u_username]),
-				cast(str, row[u_displayName])
+				row[ar_ownerFk],
+				row[u_username],
+				row[u_displayName]
 			)
 		)
 			for row in records)
@@ -711,9 +711,9 @@ class SongInfoService:
 		query = query.order_by(sgar_songFk)
 		records = self.conn.execute(query).mappings()
 		yield from (SongArtistTuple(
-				cast(int, row[sgar_songFk]),
-				cast(int, row[sgar_artistFk]),
-				cast(bool, row[sgar_isPrimaryArtist])
+				row[sgar_songFk],
+				row[sgar_artistFk],
+				row[sgar_isPrimaryArtist]
 			)
 			for row in records)
 
@@ -745,8 +745,8 @@ class SongInfoService:
 
 		records = self.conn.execute(query)
 		yield from (SongArtistTuple(
-			cast(int, row[0]),
-			cast(int, row[1]),
+			row[0],
+			row[1],
 			isPrimaryArtist=cast(int, row[1]) == primaryArtistId
 		) for row in records)
 
@@ -849,41 +849,41 @@ class SongInfoService:
 		stationOwner = user_tbl.alias("stationOwner")
 		stationOwnerId = cast(Column[Integer], stationOwner.c.pk)
 		query = select(
-			sg_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
-			sg_name.label("name"), #pyright: ignore [reportUnknownMemberType]
-			sg_path.label("path"), #pyright: ignore [reportUnknownMemberType]
-			sg_track.label("track"), #pyright: ignore [reportUnknownMemberType]
-			sg_disc.label("disc"), #pyright: ignore [reportUnknownMemberType]
-			sg_genre.label("genre"), #pyright: ignore [reportUnknownMemberType]
-			sg_explicit.label("explicit"), #pyright: ignore [reportUnknownMemberType]
-			sg_bitrate.label("bitrate"), #pyright: ignore [reportUnknownMemberType]
-			sg_comment.label("comment"), #pyright: ignore [reportUnknownMemberType]
-			sg_lyrics.label("lyrics"), #pyright: ignore [reportUnknownMemberType]
-			sg_duration.label("duration"), #pyright: ignore [reportUnknownMemberType]
-			sg_sampleRate.label("sampleRate"), #pyright: ignore [reportUnknownMemberType]
-			ab_pk.label("album.id"), #pyright: ignore [reportUnknownMemberType]
-			ab_name.label("album.name"), #pyright: ignore [reportUnknownMemberType]
-			ab_ownerFk.label("album.ownerId"), #pyright: ignore [reportUnknownMemberType]
-			albumOwner.c.username.label("album.ownerName"), #pyright: ignore [reportUnknownMemberType]
-			albumOwner.c.displayName.label("album.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
-			ab_year.label("album.year"), #pyright: ignore [reportUnknownMemberType]
-			ab_albumArtistFk.label("album.albumArtistId"), #pyright: ignore [reportUnknownMemberType]
-			album_artist.c.name.label("album.albumArtist.name"), #pyright: ignore [reportUnknownMemberType]
-			album_artist.c.ownerFk.label("album.albumArtist.ownerId"), #pyright: ignore [reportUnknownMemberType]
-			albumArtistOwner.c.username.label("album.albumArtist.ownerName"), #pyright: ignore [reportUnknownMemberType]
-			albumArtistOwner.c.displayName.label("album.albumArtist.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
+			sg_pk.label("id"),
+			sg_name.label("name"),
+			sg_path.label("path"),
+			sg_track.label("track"),
+			sg_disc.label("disc"),
+			sg_genre.label("genre"),
+			sg_explicit.label("explicit"),
+			sg_bitrate.label("bitrate"),
+			sg_comment.label("comment"),
+			sg_lyrics.label("lyrics"),
+			sg_duration.label("duration"),
+			sg_sampleRate.label("sampleRate"),
+			ab_pk.label("album.id"),
+			ab_name.label("album.name"),
+			ab_ownerFk.label("album.ownerId"),
+			albumOwner.c.username.label("album.ownerName"),
+			albumOwner.c.displayName.label("album.ownerDisplayName"),
+			ab_year.label("album.year"),
+			ab_albumArtistFk.label("album.albumArtistId"),
+			album_artist.c.name.label("album.albumArtist.name"),
+			album_artist.c.ownerFk.label("album.albumArtist.ownerId"),
+			albumArtistOwner.c.username.label("album.albumArtist.ownerName"),
+			albumArtistOwner.c.displayName.label("album.albumArtist.ownerDisplayName"),
 			sgar_isPrimaryArtist,
-			ar_pk.label("artist.id"), #pyright: ignore [reportUnknownMemberType]
-			ar_name.label("artist.name"), #pyright: ignore [reportUnknownMemberType]
-			ar_ownerFk.label("artist.ownerId"), #pyright: ignore [reportUnknownMemberType]
-			artistOwner.c.username.label("artist.ownerName"), #pyright: ignore [reportUnknownMemberType]
-			artistOwner.c.displayName.label("artist.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
-			st_pk.label("station.id"), #pyright: ignore [reportUnknownMemberType]
-			st_name.label("station.name"), #pyright: ignore [reportUnknownMemberType]
-			st_ownerFk.label("station.ownerId"), #pyright: ignore [reportUnknownMemberType]
-			stationOwner.c.username.label("station.ownerName"), #pyright: ignore [reportUnknownMemberType]
-			stationOwner.c.displayName.label("station.ownerDisplayName"), #pyright: ignore [reportUnknownMemberType]
-			st_displayName.label("station.displayName") #pyright: ignore [reportUnknownMemberType]
+			ar_pk.label("artist.id"),
+			ar_name.label("artist.name"),
+			ar_ownerFk.label("artist.ownerId"),
+			artistOwner.c.username.label("artist.ownerName"),
+			artistOwner.c.displayName.label("artist.ownerDisplayName"),
+			st_pk.label("station.id"),
+			st_name.label("station.name"),
+			st_ownerFk.label("station.ownerId"),
+			stationOwner.c.username.label("station.ownerName"),
+			stationOwner.c.displayName.label("station.ownerDisplayName"),
+			st_displayName.label("station.displayName")
 		).select_from(songs_tbl)\
 				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
 				.join(artists_tbl, ar_pk == sgar_artistFk, isouter=True)\
@@ -936,34 +936,34 @@ class SongInfoService:
 				primaryArtist = None
 			if row[sgar_isPrimaryArtist]:
 				primaryArtist = ArtistInfo(
-					cast(int, row["artist.id"]),
-					cast(str, row["artist.name"]),
+					row["artist.id"],
+					row["artist.name"],
 					OwnerInfo(
-						cast(int, row["artist.ownerId"]),
-						cast(str, row["artist.ownerName"]),
-						cast(str, row["artist.ownerDisplayName"])
+						row["artist.ownerId"],
+						row["artist.ownerName"],
+						row["artist.ownerDisplayName"]
 					)
 				)
 			elif row["artist.id"]:
 				artists.add(ArtistInfo(
-						cast(int, row["artist.id"]),
-						cast(str, row["artist.name"]),
+						row["artist.id"],
+						row["artist.name"],
 						OwnerInfo(
-							cast(int, row["artist.ownerId"]),
-							cast(str, row["artist.ownerName"]),
-							cast(str, row["artist.ownerDisplayName"])
+							row["artist.ownerId"],
+							row["artist.ownerName"],
+							row["artist.ownerDisplayName"]
 						)
 					)
 				)
 			if row["station.id"]:
 				stations.add(StationInfo(
-					cast(int, row["station.id"]),
-					cast(str, row["station.name"]),
-					cast(str, row["station.displayName"]),
+					row["station.id"],
+					row["station.name"],
+					row["station.displayName"],
 					owner=OwnerInfo(
-						cast(int, row["station.ownerId"]),
-						cast(str, row["station.ownerName"]),
-						cast(str, row["station.ownerDisplayName"])
+						row["station.ownerId"],
+						row["station.ownerName"],
+						row["station.ownerDisplayName"]
 					)
 				))
 		if currentSongRow:
@@ -1091,12 +1091,12 @@ class SongInfoService:
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userFk, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_name, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_count, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_span, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_userFk,
+			rulesQuery.c.rule_name,
+			rulesQuery.c.rule_count,
+			rulesQuery.c.rule_span,
+			rulesQuery.c.rule_priority,
+			rulesQuery.c.rule_domain
 		).select_from(user_tbl).join(
 			rulesQuery,
 			or_(
@@ -1108,17 +1108,17 @@ class SongInfoService:
 							func.normalize_opening_slash(u_dirRoot, addSlash)
 						) + 1
 					) == func.normalize_opening_slash(u_dirRoot, addSlash),
-					rulesQuery.c.rule_userFk == 0 #pyright: ignore [reportUnknownMemberType]
+					rulesQuery.c.rule_userFk == 0
 				),
 				and_(
-					rulesQuery.c.rule_userFk == u_pk,  #pyright: ignore [reportUnknownMemberType]
+					rulesQuery.c.rule_userFk == u_pk,
 						func.substring(
 							normalizedPrefix,
 							0,
 							func.length(
-								func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash) #pyright: ignore [reportUnknownMemberType]
+								func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
 							) + 1
-						) == func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash) #pyright: ignore [reportUnknownMemberType]
+						) == func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
 				),
 			),
 			isouter=True
@@ -1126,7 +1126,7 @@ class SongInfoService:
 		.where(
 			or_(
 				coalesce(
-					rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+					rulesQuery.c.rule_priority,
 					RulePriorityLevel.SITE.value
 				) > MinItemSecurityLevel.INVITED_USER.value,
 					func.substring(
@@ -1164,7 +1164,7 @@ class SongInfoService:
 			priority = None,
 			creationTimestamp = self.get_datetime().timestamp()
 		)
-		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt)
 		return PathsActionRule(
 			rule.name,
 			rule.span,

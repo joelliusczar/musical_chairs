@@ -47,17 +47,17 @@ def populate_songs(conn: Connection):
 	songParams1 = list(filter(lambda s: \
 		'name' in s and \
 		'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		'track' in s and \
 		'disc' in s and \
 		'genre' in s and \
 		'bitrate' in s and \
 		'comment' in s, song_params))
-	conn.execute(stmt, songParams1) #pyright: ignore [reportUnknownMemberType]
+	conn.execute(stmt, songParams1)
 	songParams2 = list(filter(lambda s: \
 		'name' in s and \
 		not 'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		'track' in s and \
 		'disc' in s and \
 		'genre' in s and \
@@ -67,7 +67,7 @@ def populate_songs(conn: Connection):
 	songParams3 = list(filter(lambda s: \
 		'name' in s and \
 		not 'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		'track' in s and \
 		'disc' in s and \
 		'genre' in s and \
@@ -77,7 +77,7 @@ def populate_songs(conn: Connection):
 	songParams4 = list(filter(lambda s: \
 		'name' in s and \
 		not 'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		'track' in s and \
 		'disc' in s and \
 		'genre' in s and \
@@ -87,7 +87,7 @@ def populate_songs(conn: Connection):
 	songParams5 = list(filter(lambda s: \
 		'name' in s and \
 		not 'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		'track' in s and \
 		'disc' in s and \
 		not 'genre' in s and \
@@ -97,7 +97,7 @@ def populate_songs(conn: Connection):
 	songParams6 = list(filter(lambda s: \
 		'name' in s and \
 		not 'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		'track' in s and \
 		not 'disc' in s and \
 		not 'genre' in s and \
@@ -107,7 +107,7 @@ def populate_songs(conn: Connection):
 	songParams7 = list(filter(lambda s: \
 		'name' in s and \
 		not 'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		not 'track' in s and \
 		not 'disc' in s and \
 		not 'genre' in s and \
@@ -117,7 +117,7 @@ def populate_songs(conn: Connection):
 	songParams8 = list(filter(lambda s: \
 		'name' in s and \
 		not 'explicit' in s and \
-		not 'albumFk' in s and \
+		not 'albumfk' in s and \
 		not 'track' in s and \
 		not 'disc' in s and \
 		not 'genre' in s and \
@@ -127,7 +127,7 @@ def populate_songs(conn: Connection):
 	songParams9 = list(filter(lambda s: \
 		'name' in s and \
 		'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		not 'track' in s and \
 		not 'disc' in s and \
 		'genre' in s and \
@@ -137,7 +137,7 @@ def populate_songs(conn: Connection):
 	songParams10 = list(filter(lambda s: \
 		'name' in s and \
 		'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		'track' in s and \
 		not 'disc' in s and \
 		not 'genre' in s and \
@@ -147,7 +147,7 @@ def populate_songs(conn: Connection):
 	songParams11 = list(filter(lambda s: \
 		'name' in s and \
 		'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		'track' in s and \
 		not 'disc' in s and \
 		not 'genre' in s and \
@@ -157,7 +157,7 @@ def populate_songs(conn: Connection):
 	songParams12 = list(filter(lambda s: \
 		'name' in s and \
 		not 'explicit' in s and \
-		'albumFk' in s and \
+		'albumfk' in s and \
 		'track' in s and \
 		not 'disc' in s and \
 		not 'genre' in s and \
@@ -167,7 +167,7 @@ def populate_songs(conn: Connection):
 	songParams13 = list(filter(lambda s: \
 		not 'name' in s and \
 		not 'explicit' in s and \
-		not 'albumFk' in s and \
+		not 'albumfk' in s and \
 		not 'track' in s and \
 		not 'disc' in s and \
 		not 'genre' in s and \

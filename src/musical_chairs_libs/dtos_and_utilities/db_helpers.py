@@ -169,23 +169,23 @@ def build_rules_query(
 
 def row_to_user(row: RowMapping) -> AccountInfo:
 	return AccountInfo(
-		id=cast(int,row[u_pk]),
-		username=cast(str,row[u_username]),
-		displayName=cast(str,row[u_displayName]),
-		email=cast(str,row[u_email]),
-		dirRoot=cast(str,row[u_dirRoot]),
+		id=row[u_pk],
+		username=row[u_username],
+		displayName=row[u_displayName],
+		email=row[u_email],
+		dirRoot=row[u_dirRoot],
 	)
 
 def row_to_action_rule(row: RowMapping) -> ActionRule:
 	clsConstructor = action_rule_class_map.get(
-		cast(str, row["rule_domain"]),
+		row["rule_domain"],
 		ActionRule
 	)
 
 	return clsConstructor(
-		cast(str,row["rule_name"]),
-		cast(int,row["rule_span"]),
-		cast(int,row["rule_count"]),
+		row["rule_name"],
+		row["rule_span"],
+		row["rule_count"],
 		#if priortity is explict use that
 		#otherwise, prefer station specific rule vs non station specific rule
 		cast(int,row["rule_priority"]) if row["rule_priority"] \
@@ -216,9 +216,9 @@ def generate_user_and_rules_from_rows(
 						currentUser.roles.extend(get_path_owner_roles(prefix))
 				yield currentUser
 			currentUser = row_to_user(row)
-			if cast(str,row["rule_domain"]) != "shim":
+			if row["rule_domain"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
-		elif cast(str,row["rule_domain"]) != "shim":
+		elif row["rule_domain"] != "shim":
 			currentUser.roles.append(row_to_action_rule(row))
 	if currentUser:
 		if currentUser.id == ownerId and domain == UserRoleDomain.Station:

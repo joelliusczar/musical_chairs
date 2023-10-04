@@ -1,7 +1,7 @@
 from uuid import UUID
 
 artist_guids = [
-	UUID('db749f66-e978-417d-a45b-febf0ca117d3'),
+	UUID(int=0),
 	UUID('0ffbb5a2-418f-4a64-bd16-81e027f7e916'),
 	UUID('5eb7994e-2f17-4cdc-8bec-ecfecdcabb7d'),
 	UUID('97da529f-c08e-41f8-81f8-8ab161c43139'),
@@ -22,7 +22,7 @@ artist_guids = [
 ]
 
 album_guids = [
-	UUID('f86aa5d7-183b-44ec-9ea9-d4001d2b9fbc'),
+	UUID(int=0),
 	UUID('0a5cfa39-9fb0-4796-bf62-ff7bb087f01c'),
 	UUID('6069f4cd-f6ff-4f55-a951-3a3f6f8dbc0f'),
 	UUID('62ebf698-03c4-444d-9c51-1630a0b84873'),
@@ -40,7 +40,7 @@ album_guids = [
 ]
 
 song_guids = [
-	UUID('2c0391c6-c107-47d3-b4c8-f69a2e053401'),
+	UUID(int=0),
 	UUID('d33502fe-d1ea-41f0-aaa1-2937054769b3'),
 	UUID('06f48318-cf70-4121-a22f-fc582e1ab0a2'),
 	UUID('646363ce-ddff-425a-8bd2-e34438b58e22'),
@@ -114,7 +114,7 @@ song_guids = [
 ]
 
 song_artist_guids = [
-	UUID('e48290bf-d1ed-4de7-9dab-9cec387e3679'),
+	UUID(int=0),
 	UUID('1e569931-6087-467f-8b9a-54c57e57a4b4'),
 	UUID('fdaffde5-103a-4271-a20f-c8635848ff82'),
 	UUID('198e2e2d-0db6-4200-ac63-af2195546396'),
@@ -172,7 +172,7 @@ song_artist_guids = [
 ]
 
 station_guids = [
-	UUID('54112257-ea9a-421c-8520-cd5d4182343a'),
+	UUID(int=0),
 	UUID('2073b3a5-afb9-47c4-9552-dbda34344fd8'),
 	UUID('23719ab7-98da-402d-9d37-18e57dd88259'),
 	UUID('ad317f62-93a1-4fac-8077-1abb22a226a3'),
@@ -196,7 +196,7 @@ station_guids = [
 ]
 
 user_guids = [
-	UUID('ae14c76e-be1f-4b03-871e-bd2fb98d9a0e'),
+	UUID(int=0),
 	UUID('ecbd9c5b-0173-4889-a259-0e3e39f6c22e'),
 	UUID('f2079de5-efc7-4207-920a-0ed853635cab'),
 	UUID('06c8eb07-2b9e-48c5-afb5-cb239fc47f26'),
@@ -248,7 +248,7 @@ user_guids = [
 ]
 
 station_user_permission_guid = [
-	UUID('567eb70e-216a-4a36-a105-4ce06a480258'),
+	UUID(int=0),
 	UUID('46e86035-200a-4b09-9798-2677aa159658'),
 	UUID('37592705-a767-42fb-aff0-4f18c24fe26f'),
 	UUID('2cf9c335-1969-40f9-a296-50e5a4e5b2ac'),
@@ -282,7 +282,7 @@ station_user_permission_guid = [
 ]
 
 path_user_permission_guids = [
-	UUID('860329cb-80ee-4b37-8345-4aaf35672f24'),
+	UUID(int=0),
 	UUID('40def152-2b05-4e15-9d99-98a8cad847a4'),
 	UUID('632ccb3c-6786-4d28-be76-fc482c973319'),
 	UUID('f2609f4a-7a4b-4831-85e1-06ca476c06ca'),
@@ -303,7 +303,7 @@ path_user_permission_guids = [
 ]
 
 user_action_history_guids = [
-	UUID('f42210c4-d010-490b-884c-ebab56b75fc5'),
+	UUID(int=0),
 	UUID('6db1800a-17d8-4901-8c6e-25ab7ca64881'),
 	UUID('218312da-5941-4aec-a246-b315c34abee3'),
 	UUID('c37dcddf-97dc-4ad9-9d28-cbbb6cce521a'),

@@ -302,7 +302,7 @@ albumParams4 = [
 	{
 		"pk": test_guids.album_guids[3],
 		"name": "juliet_album",
-		"albumartistfk": golf_user_id,
+		"albumartistfk": test_guids.artist_guids[7],
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
@@ -311,7 +311,7 @@ albumParams4 = [
 		"pk": test_guids.album_guids[14],
 		"name": "grunt_album",
 		"ownerfk": juliet_user_id,
-		"albumartistfk": golf_user_id,
+		"albumartistfk": test_guids.artist_guids[7],
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
@@ -1036,7 +1036,7 @@ def get_user_params(
 	global users_params
 	users_params = [
 		{
-			"pk": test_guids.user_guids[0],
+			"pk": primaryUser.id,
 			"username": primaryUser.username,
 			"displayname": None,
 			"hashedpw": testPassword,

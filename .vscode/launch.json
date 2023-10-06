@@ -11,6 +11,7 @@
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
+      "preLaunchTask": "Set unit test env",
       "justMyCode": false,
       "env": {
         "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
@@ -47,6 +48,7 @@
     {
       "name": "Debug Unit Test",
       "type": "python",
+      "preLaunchTask": "Set unit test env",
       "request": "test",
       "justMyCode": true,
   },

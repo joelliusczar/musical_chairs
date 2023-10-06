@@ -12,6 +12,9 @@ from musical_chairs_libs.tables import metadata
 #https://github.com/PyMySQL/PyMySQL/issues/590
 from pymysql.constants import CLIENT
 
+def is_db_name_safe(dbName: str) -> bool:
+	return is_name_safe(dbName, maxLen=100)
+
 """
 This class will mostly exist for the sake of unit tests
 """
@@ -35,7 +38,7 @@ class DbRootConnectionService:
 			self.conn.close()
 
 	def create_db(self, dbName: str):
-		if not is_name_safe(dbName):
+		if not is_db_name_safe(dbName):
 			raise RuntimeError("Invalid name was used")
 		self.conn.exec_driver_sql(f"CREATE DATABASE IF NOT EXISTS {dbName}")
 
@@ -80,7 +83,7 @@ class DbRootConnectionService:
 		)
 
 	def grant_owner_roles(self, dbName: str):
-		if not is_name_safe(dbName):
+		if not is_db_name_safe(dbName):
 			raise RuntimeError("Invalid name was used")
 		user = DbUsers.OWNER_USER(host="localhost")
 		self.conn.exec_driver_sql(
@@ -97,8 +100,8 @@ class DbRootConnectionService:
 	def drop_database(self, dbName: str):
 		if not dbName.startswith("test_"):
 			raise RuntimeError("only test databases can be removed")
-		if not is_name_safe(dbName):
-			raise RuntimeError("Invalid name was used")
+		if not is_db_name_safe(dbName):
+			raise RuntimeError("Invalid name was used:")
 		self.conn.exec_driver_sql(f"DROP DATABASE IF EXISTS {dbName}")
 
 	def revoke_all_roles(self):
@@ -127,14 +130,14 @@ class DbOwnerConnectionService:
 		dbPass = EnvManager.db_pass_owner
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
-		if not is_name_safe(self.dbName):
+		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
 		owner = DbUsers.OWNER_USER.value
 		engine = create_engine(
 			f"mysql+pymysql://{owner}:{dbPass}@localhost/{self.dbName}",
 			echo=self.echo,
 			connect_args={
-				"client_flag": CLIENT.MULTI_STATEMENTS
+				"client_flag": CLIENT.MULTI_STATEMENTS | CLIENT.MULTI_RESULTS
 			}
 		)
 		return engine.connect()
@@ -147,7 +150,7 @@ class DbOwnerConnectionService:
 
 	def grant_api_roles(self):
 		template = TemplateService.load_sql_script_content(SqlScripts.GRANT_API)
-		if not is_name_safe(self.dbName):
+		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
 		script = template.replace("<dbName>", self.dbName)\
 			.replace("<apiUser>", DbUsers.API_USER("localhost"))
@@ -156,12 +159,11 @@ class DbOwnerConnectionService:
 
 	def grant_radio_roles(self):
 		template = TemplateService.load_sql_script_content(SqlScripts.GRANT_RADIO)
-		if not is_name_safe(self.dbName):
+		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
 		script = template.replace("<dbName>", self.dbName)\
 			.replace("<radioUser>", DbUsers.RADIO_USER("localhost"))
-		cursor = self.conn.engine.raw_connection().cursor()
-		cursor.execute(script)
+		self.conn.exec_driver_sql(script)
 		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
 	def create_tables(self):
@@ -171,8 +173,13 @@ class DbOwnerConnectionService:
 		template = TemplateService.load_sql_script_content(
 			SqlScripts.PATH_USER_INDEXES
 		)
-		if not is_name_safe(self.dbName):
+		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
 		script = template.replace("<dbName>", self.dbName)
-		cursor = self.conn.engine.raw_connection().cursor()
-		cursor.execute(script)
+		self.conn.exec_driver_sql(script)
+
+	def add_next_directory_level_func(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.NEXT_DIRECTORY_LEVEL
+		).replace("<apiUser>", DbUsers.API_USER("localhost"))
+		self.conn.exec_driver_sql(script)

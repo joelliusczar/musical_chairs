@@ -79,7 +79,7 @@ class AccountsService:
 			.select_from(users) \
 			.where((u_disabled != True) | (u_disabled.is_(None)))\
 			.where(u_hashedPW.is_not(None)) \
-			.where(func.format_name_for_save(u_username) \
+			.where(u_username \
 				== str(cleanedUserName)) \
 			.order_by(desc(u_creationTimestamp)) \
 			.limit(1)

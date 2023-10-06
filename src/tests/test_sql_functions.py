@@ -1,4 +1,5 @@
 #pyright: reportUnknownMemberType=false
+import pytest
 from sqlalchemy import select, func
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import songs
@@ -22,3 +23,53 @@ def test_iron_str(fixture_db_conn_in_mem: Connection):
 		assert record.ironedStr == "mu hei jiang si"
 	else:
 		assert False
+
+@pytest.mark.populateFnName("fixture_db_empty_populate_factory")
+def test_next_directory_level(fixture_db_conn_in_mem: Connection):
+	conn = fixture_db_conn_in_mem
+	path = "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
+		"01._Come_Together_-_The_Beatles.flac"
+	query = select(func.next_directory_level(path, ""))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/"
+
+	query = select(func.next_directory_level(path, "P"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/"
+	query = select(func.next_directory_level(path, "Pop"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/"
+	query = select(func.next_directory_level(path, "Pop/"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/"
+	query = select(func.next_directory_level(path, "Pop/Pop"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/"
+	query = select(func.next_directory_level(path, "Pop/Pop_A-"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/"
+	query = select(func.next_directory_level(path, "Pop/Pop_A-F"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/"
+	query = select(func.next_directory_level(path, "Pop/Pop_A-F/"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/Beatles,_The/"
+	query = select(func.next_directory_level(path, "Pop/Pop_A-F/Beatles,_The/"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"
+	query = select(
+		func.next_directory_level(path, "Pop/Pop_A-F/Beatles,_The/Abbey_Road/")
+	)
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
+		"01._Come_Together_-_The_Beatles.flac"

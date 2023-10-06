@@ -371,6 +371,7 @@ create_py_env_in_dir() (
 )
 
 __replace_lib_files__() {
+	regen_file_reference_file &&
 	copy_dir "$MC_LIB_SRC" \
 		"$(get_libs_dest_dir "$(get_app_root)"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
 }
@@ -718,7 +719,7 @@ from musical_chairs_libs.services import (
 	DbRootConnectionService,
 	DbOwnerConnectionService
 )
-dbName="musical_chairs_db"
+dbName="test_musical_chairs_db"
 with DbRootConnectionService() as rootConnService:
 	rootConnService.create_db(dbName)
 	rootConnService.create_owner()
@@ -730,6 +731,7 @@ with DbOwnerConnectionService(dbName, echo=True) as ownerConnService:
 	ownerConnService.add_path_permission_index()
 	ownerConnService.grant_api_roles()
 	ownerConnService.grant_radio_roles()
+	ownerConnService.add_next_directory_level_func()
 EOF
 	)
 
@@ -749,7 +751,7 @@ from musical_chairs_libs.services import (
 
 with DbRootConnectionService() as rootConnService:
 	rootConnService.drop_all_users()
-	#rootConnService.drop_database("test_musical_chairs_db")
+	rootConnService.drop_database("test_musical_chairs_db")
 
 EOF
 	)
@@ -1647,6 +1649,13 @@ regen_file_reference_file() (
 	printf '\t@property\n' >> "$outputFile"
 	printf '\tdef checksum(self) -> str:\n' >> "$outputFile"
 	printf '\t\treturn self.value[1]\n' >> "$outputFile"
+)
+
+replace_sql_script() (
+	process_global_vars "$@" &&
+	export __TEST_FLAG__='true'
+	setup_common_dirs
+	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 )
 
 #assume install_setup.sh has been run

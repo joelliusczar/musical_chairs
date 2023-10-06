@@ -7,182 +7,180 @@ from musical_chairs_libs.dtos_and_utilities import (
 	MinItemSecurityLevel
 )
 try:
-	from . import test_guids
 	from .special_strings_reference import chinese1, irish1
 except:
 	#for if I try to import file from interactive
-	import test_guids
 	from special_strings_reference import chinese1, irish1
 
 
-fooDirOwnerId = test_guids.user_guids[11]
-jazzDirOwnerId = test_guids.user_guids[11]
-blitzDirOwnerId = test_guids.user_guids[11]
+fooDirOwnerId = 11
+jazzDirOwnerId = 11
+blitzDirOwnerId = 11
 
-bravo_user_id = test_guids.user_guids[2] #no path rules
-charlie_user_id = test_guids.user_guids[3]
-delta_user_id = test_guids.user_guids[4]
-echo_user_id = test_guids.user_guids[5] #can't use. No password
-foxtrot_user_id = test_guids.user_guids[6]
-golf_user_id = test_guids.user_guids[7]
-hotel_user_id = test_guids.user_guids[8]
-india_user_id = test_guids.user_guids[9]
-juliet_user_id = test_guids.user_guids[10]
-kilo_user_id = test_guids.user_guids[11]
-lima_user_id = test_guids.user_guids[12]
-mike_user_id = test_guids.user_guids[13]
-november_user_id = test_guids.user_guids[14]
-oscar_user_id = test_guids.user_guids[15]
-papa_user_id = test_guids.user_guids[16]
-quebec_user_id = test_guids.user_guids[17]
-romeo_user_id = test_guids.user_guids[18] #designated no roles user
-sierra_user_id = test_guids.user_guids[19]
-tango_user_id = test_guids.user_guids[20]
-uniform_user_id = test_guids.user_guids[21]
-victor_user_id = test_guids.user_guids[22]
-whiskey_user_id = test_guids.user_guids[23]
-xray_user_id = test_guids.user_guids[24]
-yankee_user_id = test_guids.user_guids[25]
-zulu_user_id = test_guids.user_guids[26]
-alice_user_id = test_guids.user_guids[27]
-bertrand_user_id = test_guids.user_guids[28]
-carl_user_id = test_guids.user_guids[29]
-dan_user_id = test_guids.user_guids[30]
-felix_user_id = test_guids.user_guids[31]
-foxman_user_id = test_guids.user_guids[32]
-foxtrain_user_id = test_guids.user_guids[33]
-george_user_id = test_guids.user_guids[34]
-hamburger_user_id = test_guids.user_guids[35]
-horsetel_user_id = test_guids.user_guids[36]
-ingo_user_id = test_guids.user_guids[37]
-ned_land_user_id = test_guids.user_guids[38]
-narlon_user_id = test_guids.user_guids[39]
-number_user_id = test_guids.user_guids[40]
-oomdwell_user_id = test_guids.user_guids[41]
-paul_bear_user_id = test_guids.user_guids[42]
-quirky_admin_user_id = test_guids.user_guids[43]
-radical_path_user_id = test_guids.user_guids[44]
-station_saver_user_id = test_guids.user_guids[45]
-super_path_user_id = test_guids.user_guids[46]
-tossed_slash_user_id = test_guids.user_guids[47]
-unruled_station_user_id = test_guids.user_guids[48]
+bravo_user_id = 2 #no path rules
+charlie_user_id = 3
+delta_user_id = 4
+echo_user_id = 5 #can't use. No password
+foxtrot_user_id = 6
+golf_user_id = 7
+hotel_user_id = 8
+india_user_id = 9
+juliet_user_id = 10
+kilo_user_id = 11
+lima_user_id = 12
+mike_user_id = 13
+november_user_id = 14
+oscar_user_id = 15
+papa_user_id = 16
+quebec_user_id = 17
+romeo_user_id = 18 #designated no roles user
+sierra_user_id = 19
+tango_user_id = 20
+uniform_user_id = 21
+victor_user_id = 22
+whiskey_user_id = 23
+xray_user_id = 24
+yankee_user_id = 25
+zulu_user_id = 26
+alice_user_id = 27
+bertrand_user_id = 28
+carl_user_id = 29
+dan_user_id = 30
+felix_user_id = 31
+foxman_user_id = 32
+foxtrain_user_id = 33
+george_user_id = 34
+hamburger_user_id = 35
+horsetel_user_id = 36
+ingo_user_id = 37
+ned_land_user_id = 38
+narlon_user_id = 39
+number_user_id = 40
+oomdwell_user_id = 41
+paul_bear_user_id = 42
+quirky_admin_user_id = 43
+radical_path_user_id = 44
+station_saver_user_id = 45
+super_path_user_id = 46
+tossed_slash_user_id = 47
+unruled_station_user_id = 48
 
 
 artist_params = [
 	{
-		"pk": test_guids.artist_guids[1],
+		"pk": 1,
 		"name": "alpha_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[2],
+		"pk": 2,
 		"name": "bravo_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[3],
+		"pk": 3,
 		"name": "charlie_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[4],
+		"pk": 4,
 		"name": "delta_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[5],
+		"pk": 5,
 		"name": "echo_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[6],
+		"pk": 6,
 		"name": "foxtrot_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[7],
+		"pk": 7,
 		"name": "golf_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[8],
+		"pk": 8,
 		"name": "hotel_artist",
 		"ownerfk": jazzDirOwnerId,
 		"lastmodifiedbyuserfk": jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[9],
+		"pk": 9,
 		"name": "india_artist",
 		"ownerfk": jazzDirOwnerId,
 		"lastmodifiedbyuserfk": jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[10],
+		"pk": 10,
 		"name": "juliet_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[11],
+		"pk": 11,
 		"name": "kilo_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[12],
+		"pk": 12,
 		"name": "lima_artist",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[13],
+		"pk": 13,
 		"name": "november_artist",
 		"ownerfk": blitzDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[14],
+		"pk": 14,
 		"name": "oscar_artist",
 		"ownerfk": blitzDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[15],
+		"pk": 15,
 		"name": "papa_artist",
 		"ownerfk": november_user_id,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[16],
+		"pk": 16,
 		"name": "romeo_artist",
 		"ownerfk": india_user_id,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
 	{
-		"pk": test_guids.artist_guids[17],
+		"pk": 17,
 		"name": "sierra_artist",
 		"ownerfk": hotel_user_id,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
@@ -192,54 +190,54 @@ artist_params = [
 
 albumParams1 = [
 	{
-		"pk": test_guids.album_guids[1],
+		"pk": 1,
 		"name": "broo_album",
-		"albumartistfk": test_guids.artist_guids[7],
+		"albumartistfk": 7,
 		"year": 2001,
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[2],
+		"pk": 2,
 		"name": "moo_album",
-		"albumartistfk": test_guids.artist_guids[7],
+		"albumartistfk": 7,
 		"year": 2003,
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[8],
+		"pk": 8,
 		"name": "shoo_album",
-		"albumartistfk": test_guids.artist_guids[6],
+		"albumartistfk": 6,
 		"year": 2003,
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[9],
+		"pk": 9,
 		"name": "who_2_album",
-		"albumartistfk": test_guids.artist_guids[6],
+		"albumartistfk": 6,
 		"year": 2001,
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[10],
+		"pk": 10,
 		"name": "who_1_album",
-		"albumartistfk": test_guids.artist_guids[5],
+		"albumartistfk": 5,
 		"year": 2001,
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[11],
+		"pk": 11,
 		"name": "boo_album",
-		"albumartistfk": test_guids.artist_guids[4],
+		"albumartistfk": 4,
 		"year": 2001,
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
@@ -249,7 +247,7 @@ albumParams1 = [
 
 albumParams2 = [
 	{
-		"pk": test_guids.album_guids[4],
+		"pk": 4,
 		"name": "soo_album",
 		"year": 2004,
 		"ownerfk": fooDirOwnerId,
@@ -257,7 +255,7 @@ albumParams2 = [
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[7],
+		"pk": 7,
 		"name": "koo_album",
 		"year": 2010,
 		"ownerfk": fooDirOwnerId,
@@ -265,7 +263,7 @@ albumParams2 = [
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[13],
+		"pk": 13,
 		"name": "koo_album",
 		"year": 2010,
 		"ownerfk": jazzDirOwnerId,
@@ -276,21 +274,21 @@ albumParams2 = [
 
 albumParams3 = [
 	{
-		"pk": test_guids.album_guids[5],
+		"pk": 5,
 		"name": "doo_album",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[6],
+		"pk": 6,
 		"name": "roo_album",
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[12],
+		"pk": 12,
 		"name": "garoo_album",
 		"ownerfk": blitzDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
@@ -300,18 +298,18 @@ albumParams3 = [
 
 albumParams4 = [
 	{
-		"pk": test_guids.album_guids[3],
+		"pk": 3,
 		"name": "juliet_album",
-		"albumartistfk": test_guids.artist_guids[7],
+		"albumartistfk": 7,
 		"ownerfk": fooDirOwnerId,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
 	{
-		"pk": test_guids.album_guids[14],
+		"pk": 14,
 		"name": "grunt_album",
 		"ownerfk": juliet_user_id,
-		"albumartistfk": test_guids.artist_guids[7],
+		"albumartistfk": 7,
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0
 	},
@@ -325,10 +323,10 @@ album_params = [
 ]
 
 song_params = [
-	{ "pk": test_guids.song_guids[1],
+	{ "pk": 1,
 		"path": "foo/goo/boo/sierra",
 		"name": "sierra_song",
-		"albumfk": test_guids.album_guids[11],
+		"albumfk": 11,
 		"track": 1,
 		"disc": 1,
 		"genre": "pop",
@@ -336,10 +334,10 @@ song_params = [
 		"bitrate": 144,
 		"comment": "Kazoos make good swimmers"
 	},
-	{ "pk": test_guids.song_guids[2],
+	{ "pk": 2,
 		"path": "foo/goo/boo/tango",
 		"name": "tango_song",
-		"albumfk": test_guids.album_guids[11],
+		"albumfk": 11,
 		"track": 2,
 		"disc": 1,
 		"genre": "pop",
@@ -347,10 +345,10 @@ song_params = [
 		"bitrate": 144,
 		"comment": "Kazoos make good swimmers"
 	},
-	{ "pk": test_guids.song_guids[3],
+	{ "pk": 3,
 		"path": "foo/goo/boo/uniform",
 		"name": "uniform_song",
-		"albumfk": test_guids.album_guids[11],
+		"albumfk": 11,
 		"track": 3,
 		"disc": 1,
 		"genre": "pop",
@@ -358,428 +356,428 @@ song_params = [
 		"bitrate": 144,
 		"comment": "Kazoos make good parrallel parkers"
 	},
-	{ "pk": test_guids.song_guids[4],
+	{ "pk": 4,
 		"path": "foo/goo/boo/victor",
 		"name": "victor_song",
-		"albumfk": test_guids.album_guids[11],
+		"albumfk": 11,
 		"track": 4,
 		"disc": 1,
 		"genre": "pop",
 		"bitrate": 144,
 		"comment": "Kazoos make bad swimmers"
 	},
-	{ "pk": test_guids.song_guids[5],
+	{ "pk": 5,
 		"path": "foo/goo/boo/victor_2",
 		"name": "victor_song",
-		"albumfk": test_guids.album_guids[11],
+		"albumfk": 11,
 		"track": 5,
 		"disc": 1,
 		"genre": "pop",
 		"bitrate": 144,
 		"comment": "Kazoos make good hood rats"
 	},
-	{ "pk": test_guids.song_guids[6],
+	{ "pk": 6,
 		"path": "foo/goo/who_1/whiskey",
 		"name": "whiskey_song",
-		"albumfk": test_guids.album_guids[10],
+		"albumfk": 10,
 		"track": 1,
 		"disc": 1,
 		"genre": "pop",
 		"comment": "Kazoos make good swimmers"
 	},
-	{ "pk": test_guids.song_guids[7],
+	{ "pk": 7,
 		"path": "foo/goo/who_1/xray",
 		"name": "xray_song",
-		"albumfk": test_guids.album_guids[10],
+		"albumfk": 10,
 		"track": 2,
 		"disc": 1,
 		"genre": "pop",
 		"comment": "Kazoos make good swimmers"
 	},
-	{ "pk": test_guids.song_guids[8],
+	{ "pk": 8,
 		"path": "foo/goo/who_1/yankee",
 		"name": "yankee_song",
-		"albumfk": test_guids.album_guids[10],
+		"albumfk": 10,
 		"track": 3,
 		"disc": 1,
 		"genre": "pop",
 		"comment": "guitars make good swimmers"
 	},
-	{ "pk": test_guids.song_guids[9],
+	{ "pk": 9,
 		"path": "foo/goo/who_1/zulu",
 		"name": "zulu_song",
-		"albumfk": test_guids.album_guids[10],
+		"albumfk": 10,
 		"track": 4,
 		"disc": 1,
 		"genre": "pop",
 		"comment": "Kazoos make good swimmers"
 	},
-	{ "pk": test_guids.song_guids[10],
+	{ "pk": 10,
 		"path": "foo/goo/who_1/alpha",
 		"name": "alpha_song",
-		"albumfk": test_guids.album_guids[10],
+		"albumfk": 10,
 		"track": 5,
 		"disc": 1,
 		"genre": "pop",
 		"comment": "hotdogs make good lava swimmers"
 	},
-	{ "pk": test_guids.song_guids[11],
+	{ "pk": 11,
 		"path": "foo/goo/who_2/bravo",
 		"name": "bravo_song",
-		"albumfk": test_guids.album_guids[9],
+		"albumfk": 9,
 		"track": 1,
 		"disc": 2,
 		"genre": "pop",
 		"comment": "hamburgers make flat swimmers"
 	},
-	{ "pk": test_guids.song_guids[12],
+	{ "pk": 12,
 		"path": "foo/goo/who_2/charlie",
 		"name": "charlie_song",
-		"albumfk": test_guids.album_guids[9],
+		"albumfk": 9,
 		"track": 2,
 		"disc": 2,
 		"genre": "pop",
 		"comment": "Kazoos make good swimmers"
 	},
-	{ "pk": test_guids.song_guids[13],
+	{ "pk": 13,
 		"path": "foo/goo/who_2/delta",
 		"name": "delta_song",
-		"albumfk": test_guids.album_guids[9],
+		"albumfk": 9,
 		"track": 3,
 		"disc": 2,
 		"genre": "pop",
 		"comment": "Kazoos make good swimmers"
 	},
-	{ "pk": test_guids.song_guids[14],
+	{ "pk": 14,
 		"path": "foo/goo/who_2/foxtrot",
 		"name": "foxtrot_song",
-		"albumfk": test_guids.album_guids[9],
+		"albumfk": 9,
 		"track": 4,
 		"disc": 2,
 		"genre": "pop",
 	},
-	{ "pk": test_guids.song_guids[15],
+	{ "pk": 15,
 		"path": "foo/goo/who_2/golf",
 		"name": "golf_song",
-		"albumfk": test_guids.album_guids[9],
+		"albumfk": 9,
 		"track": 5,
 		"disc": 2,
 		"genre": "pop",
 	},
-	{ "pk": test_guids.song_guids[16],
+	{ "pk": 16,
 		"path": "foo/goo/shoo/hotel",
 		"name": "hotel_song",
-		"albumfk": test_guids.album_guids[8],
+		"albumfk": 8,
 		"track": 1,
 		"disc": 1,
 	},
-	{ "pk": test_guids.song_guids[17],
+	{ "pk": 17,
 		"path": "foo/goo/shoo/india",
 		"name": "india_song",
-		"albumfk": test_guids.album_guids[8],
+		"albumfk": 8,
 		"track": 2,
 		"disc": 1,
 	},
-	{ "pk": test_guids.song_guids[18],
+	{ "pk": 18,
 		"path": "foo/goo/shoo/juliet",
 		"name": "juliet_song",
-		"albumfk": test_guids.album_guids[8],
+		"albumfk": 8,
 		"track": 3,
 		"disc": 1,
 	},
-	{ "pk": test_guids.song_guids[19],
+	{ "pk": 19,
 		"path": "foo/goo/shoo/kilo",
 		"name": "kilo_song",
-		"albumfk": test_guids.album_guids[8],
+		"albumfk": 8,
 		"track": 4,
 		"disc": 1,
 	},
-	{ "pk": test_guids.song_guids[20],
+	{ "pk": 20,
 		"path": "foo/goo/koo/lima",
 		"name": "lima_song",
-		"albumfk": test_guids.album_guids[7],
+		"albumfk": 7,
 		"track": 1,
 	},
-	{ "pk": test_guids.song_guids[21],
+	{ "pk": 21,
 		"path": "foo/goo/koo/mike",
 		"name": "mike_song",
-		"albumfk": test_guids.album_guids[7],
+		"albumfk": 7,
 		"track": 2,
 	},
-	{ "pk": test_guids.song_guids[22],
+	{ "pk": 22,
 		"path": "foo/goo/koo/november",
 		"name": "november_song",
-		"albumfk": test_guids.album_guids[7],
+		"albumfk": 7,
 		"track": 3,
 	},
-	{ "pk": test_guids.song_guids[23],
+	{ "pk": 23,
 		"path": "foo/goo/roo/oscar",
 		"name": "oscar_song",
-		"albumfk": test_guids.album_guids[6],
+		"albumfk": 6,
 	},
-	{ "pk": test_guids.song_guids[24],
+	{ "pk": 24,
 		"path": "foo/goo/roo/papa",
 		"name": "papa_song",
-		"albumfk": test_guids.album_guids[6],
+		"albumfk": 6,
 	},
-	{ "pk": test_guids.song_guids[25],
+	{ "pk": 25,
 		"path": "foo/goo/roo/romeo",
 		"name": "romeo_song",
-		"albumfk": test_guids.album_guids[6],
+		"albumfk": 6,
 	},
-	{ "pk": test_guids.song_guids[26],
+	{ "pk": 26,
 		"path": "foo/goo/roo/sierra2",
 		"name": "sierra2_song",
-		"albumfk": test_guids.album_guids[6],
+		"albumfk": 6,
 	},
-	{ "pk": test_guids.song_guids[27],
+	{ "pk": 27,
 		"path": "foo/goo/roo/tango2",
 		"name": "tango2_song",
 	},
-	{ "pk": test_guids.song_guids[28],
+	{ "pk": 28,
 		"path": "foo/goo/roo/uniform2",
 		"name": "uniform2_song",
 	},
-	{ "pk": test_guids.song_guids[29],
+	{ "pk": 29,
 		"path": "foo/goo/roo/victor2",
 		"name": "victor2_song",
-		"albumfk": test_guids.album_guids[4],
+		"albumfk": 4,
 	},
-	{ "pk": test_guids.song_guids[30],
+	{ "pk": 30,
 		"path": "foo/goo/roo/whiskey2",
 		"name": "whiskey2_song",
 	},
-	{ "pk": test_guids.song_guids[31],
+	{ "pk": 31,
 		"path": "foo/goo/roo/xray2",
 		"name": "xray2_song",
 	},
-	{ "pk": test_guids.song_guids[32],
+	{ "pk": 32,
 		"path": "foo/goo/doo/yankee2",
 		"name": "yankee2_song",
-		"albumfk": test_guids.album_guids[5],
+		"albumfk": 5,
 		"genre": "bop",
 		"explicit": 0,
 		"bitrate": 121,
 	},
-	{ "pk": test_guids.song_guids[33],
+	{ "pk": 33,
 		"path": "foo/goo/doo/zulu2",
 		"name": "zulu2_song",
-		"albumfk": test_guids.album_guids[5],
+		"albumfk": 5,
 		"genre": "bop",
 		"explicit": 1,
 		"bitrate": 121,
 	},
-	{ "pk": test_guids.song_guids[34],
+	{ "pk": 34,
 		"path": "foo/goo/soo/alpha2",
 		"name": "alpha2_song",
-		"albumfk": test_guids.album_guids[4],
+		"albumfk": 4,
 		"track": 1,
 		"explicit": 1,
 		"bitrate": 121,
 	},
-	{ "pk": test_guids.song_guids[35],
+	{ "pk": 35,
 		"path": "foo/goo/soo/bravo2",
 		"name": "bravo2_song",
-		"albumfk": test_guids.album_guids[4],
+		"albumfk": 4,
 		"track": 2,
 		"explicit": 1,
 	},
-	{ "pk": test_guids.song_guids[36],
+	{ "pk": 36,
 		"path": "foo/goo/soo/charlie2",
 		"name": "charlie2_song",
-		"albumfk": test_guids.album_guids[4],
+		"albumfk": 4,
 		"track": 3,
 		"comment": "Boot 'n' scoot"
 	},
-	{ "pk": test_guids.song_guids[37],
+	{ "pk": 37,
 		"path": "foo/goo/moo/delta2",
 		"name": "delta2_song",
-		"albumfk": test_guids.album_guids[2],
+		"albumfk": 2,
 		"track": 1,
 	},
-	{ "pk": test_guids.song_guids[38],
+	{ "pk": 38,
 		"path": "foo/goo/moo/echo2",
 		"name": "echo2_song",
-		"albumfk": test_guids.album_guids[2],
+		"albumfk": 2,
 		"track": 2,
 	},
-	{ "pk": test_guids.song_guids[39],
+	{ "pk": 39,
 		"path": "foo/goo/moo/foxtrot2",
 		"name": "foxtrot2_song",
-		"albumfk": test_guids.album_guids[2],
+		"albumfk": 2,
 		"track": 3,
 	},
-	{ "pk": test_guids.song_guids[40],
+	{ "pk": 40,
 		"path": "foo/goo/moo/golf2",
 		"name": "golf2_song",
-		"albumfk": test_guids.album_guids[2],
+		"albumfk": 2,
 		"track": 4,
 	},
-	{ "pk": test_guids.song_guids[41],
+	{ "pk": 41,
 		"path": "foo/goo/broo/hotel2",
 		"name": "hotel2_song",
-		"albumfk": test_guids.album_guids[1],
+		"albumfk": 1,
 	},
-	{ "pk": test_guids.song_guids[42],
+	{ "pk": 42,
 		"path": "foo/goo/broo/india2",
 		"name": "india2_song",
-		"albumfk": test_guids.album_guids[1],
+		"albumfk": 1,
 	},
-	{ "pk": test_guids.song_guids[43],
+	{ "pk": 43,
 		"path": "foo/goo/broo/juliet2",
 		"name": "juliet2_song",
-		"albumfk": test_guids.album_guids[1],
+		"albumfk": 1,
 	},
-	{ "pk": test_guids.song_guids[44],
+	{ "pk": 44,
 		"path": "foo/rude/bog/kilo2",
 	},
-	{ "pk": test_guids.song_guids[45],
+	{ "pk": 45,
 		"path": "foo/rude/bog/lima2",
 	},
-	{ "pk": test_guids.song_guids[46],
+	{ "pk": 46,
 		"path": "foo/rude/rog/mike2",
 	},
-	{ "pk": test_guids.song_guids[47],
+	{ "pk": 47,
 		"path": "foo/rude/rog/november2",
 	},
-	{ "pk": test_guids.song_guids[48],
+	{ "pk": 48,
 		"path": "foo/rude/rog/oscar2",
 	},
-	{ "pk": test_guids.song_guids[49],
+	{ "pk": 49,
 		"path": "foo/dude/dog/papa2",
 	},
-	{ "pk": test_guids.song_guids[50],
+	{ "pk": 50,
 		"path": "foo/bar/baz/romeo2",
 		"name": chinese1,
 	},
-	{ "pk": test_guids.song_guids[51],
+	{ "pk": 51,
 		"path": "foo/bar/baz/sierra3",
 		"name": irish1,
 	},
-	{ "pk": test_guids.song_guids[52],
+	{ "pk": 52,
 		"name": "tango3",
 		"path": "jazz/rude/rog/tango3",
 	},
-	{ "pk": test_guids.song_guids[53],
+	{ "pk": 53,
 		"name": "uniform3",
 		"path": "jazz/rude/rog/uniform3",
 	},
-	{ "pk": test_guids.song_guids[54],
+	{ "pk": 54,
 		"name": "victor3",
 		"path": "jazz/cat/kitten/victor3",
 	},
-	{ "pk": test_guids.song_guids[55],
+	{ "pk": 55,
 		"name": "whiskey3",
 		"path": "blitz/mar/wall/whiskey3",
 	},
-	{ "pk": test_guids.song_guids[56],
+	{ "pk": 56,
 		"name": "xray3",
 		"path": "blitz/mar/wall/xray3",
 	},
-	{ "pk": test_guids.song_guids[57],
+	{ "pk": 57,
 		"name": "zulu3",
 		"path": "blitz/rhino/rhina/zulu3",
 	},
-	{ "pk": test_guids.song_guids[58],
+	{ "pk": 58,
 		"name": "alpha4_song",
 		"path": "jazz/lurk/toot/alpha4_song",
-		"albumfk": test_guids.album_guids[7],
+		"albumfk": 7,
 	},
-	{ "pk": test_guids.song_guids[59],
+	{ "pk": 59,
 		"path": "foo/goo/looga/alpha",
 		"name": "looga_alpha_song",
-		"albumfk": test_guids.album_guids[14],
+		"albumfk": 14,
 		"track": 5,
 		"disc": 1,
 		"genre": "bam",
 		"comment": "hotdogs make good lava swimmers"
 	},
-	{ "pk": test_guids.song_guids[60],
+	{ "pk": 60,
 		"path": "tossedSlash/goo/looga/alpha",
 		"name": "looga_alpha_song",
 		"genre": "bam",
 		"comment": "Banana Soup"
 	},
-	{ "pk": test_guids.song_guids[61],
+	{ "pk": 61,
 		"path": "tossedSlash/goo/looga/bravo",
 		"name": "looga_bravo_song",
 		"genre": "bam",
 		"comment": "Banana Soup"
 	},
-	{ "pk": test_guids.song_guids[62],
+	{ "pk": 62,
 		"path": "tossedSlash/guess/gold/jar",
 		"name": "jar_song",
-		"albumfk": test_guids.album_guids[14],
+		"albumfk": 14,
 		"track": 5,
 		"disc": 1,
 		"genre": "bam",
 		"comment": "hotdogs make good lava swimmers"
 	},
-	{ "pk": test_guids.song_guids[63],
+	{ "pk": 63,
 		"path": "tossedSlash/guess/gold/bar",
 		"name": "bar_song",
-		"albumfk": test_guids.album_guids[14],
+		"albumfk": 14,
 		"track": 6,
 		"disc": 1,
 		"genre": "bam",
 		"comment": "hotdogs make good lava swimmers"
 	},
-	{ "pk": test_guids.song_guids[64],
+	{ "pk": 64,
 		"path": "tossedSlash/guess/gold/run",
 		"name": "run_song",
-		"albumfk": test_guids.album_guids[14],
+		"albumfk": 14,
 		"track": 7,
 		"disc": 1,
 		"genre": "bam",
 		"comment": "hotdogs make good lava swimmers"
 	},
-	{ "pk": test_guids.song_guids[65],
+	{ "pk": 65,
 		"path": "tossedSlash/band/bun",
 		"name": "bun_song",
-		"albumfk": test_guids.album_guids[14],
+		"albumfk": 14,
 		"track": 8,
 		"disc": 1,
 		"genre": "bam",
 		"comment": "hotdogs make good lava swimmers"
 	},
-	{ "pk": test_guids.song_guids[66],
+	{ "pk": 66,
 		"path": "tossedSlash/band/hun",
 		"name": "hun_song",
-		"albumfk": test_guids.album_guids[14],
+		"albumfk": 14,
 		"track": 8,
 		"disc": 1,
 		"genre": "bam",
 		"comment": "hotdogs make good lava swimmers"
 	},
-	{ "pk": test_guids.song_guids[67],
+	{ "pk": 67,
 		"path": "tossedSlash/guess/silver/run",
 		"name": "run_song",
-		"albumfk": test_guids.album_guids[14],
+		"albumfk": 14,
 		"track": 7,
 		"disc": 1,
 		"genre": "bam",
 		"comment": "hotdogs make good lava swimmers"
 	},
-	{ "pk": test_guids.song_guids[68],
+	{ "pk": 68,
 		"path": "tossedSlash/guess/silver/plastic",
 		"name": "plastic_tune",
-		"albumfk": test_guids.album_guids[12],
+		"albumfk": 12,
 		"track": 8,
 		"disc": 1,
 		"genre": "bam",
 	},
-	{ "pk": test_guids.song_guids[69],
+	{ "pk": 69,
 		"path": "tossedSlash/guess/silver/salt",
 		"name": "salt_tune",
-		"albumfk": test_guids.album_guids[12],
+		"albumfk": 12,
 		"track": 8,
 		"disc": 1,
 		"genre": "bam",
 	},
-	{ "pk": test_guids.song_guids[70],
+	{ "pk": 70,
 		"path": "tossedSlash/guess/silver/green",
 		"name": "green_tune",
-		"albumfk": test_guids.album_guids[12],
+		"albumfk": 12,
 		"track": 8,
 		"disc": 1,
 		"genre": "bam",
@@ -787,183 +785,183 @@ song_params = [
 ]
 
 songArtistParams = [
-	{ "pk": test_guids.song_artist_guids[1], "songfk": test_guids.song_guids[40], "artistfk": test_guids.artist_guids[7] },
-	{ "pk": test_guids.song_artist_guids[2], "songfk": test_guids.song_guids[39], "artistfk": test_guids.artist_guids[7] },
-	{ "pk": test_guids.song_artist_guids[3], "songfk": test_guids.song_guids[38], "artistfk": test_guids.artist_guids[7] },
-	{ "pk": test_guids.song_artist_guids[4], "songfk": test_guids.song_guids[37], "artistfk": test_guids.artist_guids[7] },
-	{ "pk": test_guids.song_artist_guids[5], "songfk": test_guids.song_guids[36], "artistfk": test_guids.artist_guids[2] },
-	{ "pk": test_guids.song_artist_guids[6], "songfk": test_guids.song_guids[35], "artistfk": test_guids.artist_guids[1] },
-	{ "pk": test_guids.song_artist_guids[7], "songfk": test_guids.song_guids[34], "artistfk": test_guids.artist_guids[3] },
-	{ "pk": test_guids.song_artist_guids[8], "songfk": test_guids.song_guids[33], "artistfk": test_guids.artist_guids[4] },
-	{ "pk": test_guids.song_artist_guids[9], "songfk": test_guids.song_guids[32], "artistfk": test_guids.artist_guids[4] },
-	{ "pk": test_guids.song_artist_guids[10], "songfk": test_guids.song_guids[31], "artistfk": test_guids.artist_guids[5] },
-	{ "pk": test_guids.song_artist_guids[11], "songfk": test_guids.song_guids[30], "artistfk": test_guids.artist_guids[5] },
-	{ "pk": test_guids.song_artist_guids[12], "songfk": test_guids.song_guids[29], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[13], "songfk": test_guids.song_guids[28], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[14], "songfk": test_guids.song_guids[27], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[15], "songfk": test_guids.song_guids[26], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[16], "songfk": test_guids.song_guids[25], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[17], "songfk": test_guids.song_guids[24], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[18], "songfk": test_guids.song_guids[23], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[19], "songfk": test_guids.song_guids[22], "artistfk": test_guids.artist_guids[2] },
-	{ "pk": test_guids.song_artist_guids[20], "songfk": test_guids.song_guids[21], "artistfk": test_guids.artist_guids[2] },
-	{ "pk": test_guids.song_artist_guids[21], "songfk": test_guids.song_guids[20], "artistfk": test_guids.artist_guids[2] },
-	{ "pk": test_guids.song_artist_guids[22], "songfk": test_guids.song_guids[19], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[23], "songfk": test_guids.song_guids[18], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[24], "songfk": test_guids.song_guids[17], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[25], "songfk": test_guids.song_guids[16], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[26], "songfk": test_guids.song_guids[15], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[27], "songfk": test_guids.song_guids[14], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[28], "songfk": test_guids.song_guids[13], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[29], "songfk": test_guids.song_guids[12], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[30], "songfk": test_guids.song_guids[11], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[31], "songfk": test_guids.song_guids[10], "artistfk": test_guids.artist_guids[5] },
-	{ "pk": test_guids.song_artist_guids[32], "songfk": test_guids.song_guids[9], "artistfk": test_guids.artist_guids[5] },
-	{ "pk": test_guids.song_artist_guids[33], "songfk": test_guids.song_guids[8], "artistfk": test_guids.artist_guids[5] },
-	{ "pk": test_guids.song_artist_guids[34], "songfk": test_guids.song_guids[7], "artistfk": test_guids.artist_guids[5] },
-	{ "pk": test_guids.song_artist_guids[35], "songfk": test_guids.song_guids[6], "artistfk": test_guids.artist_guids[5] },
-	{ "pk": test_guids.song_artist_guids[36], "songfk": test_guids.song_guids[5], "artistfk": test_guids.artist_guids[4] },
-	{ "pk": test_guids.song_artist_guids[37], "songfk": test_guids.song_guids[4], "artistfk": test_guids.artist_guids[4] },
-	{ "pk": test_guids.song_artist_guids[38], "songfk": test_guids.song_guids[3], "artistfk": test_guids.artist_guids[4] },
-	{ "pk": test_guids.song_artist_guids[39], "songfk": test_guids.song_guids[2], "artistfk": test_guids.artist_guids[4] },
-	{ "pk": test_guids.song_artist_guids[40], "songfk": test_guids.song_guids[1], "artistfk": test_guids.artist_guids[4] },
-	{ "pk": test_guids.song_artist_guids[45], "songfk": test_guids.song_guids[21], "artistfk": test_guids.artist_guids[4] },
-	{ "pk": test_guids.song_artist_guids[46], "songfk": test_guids.song_guids[21], "artistfk": test_guids.artist_guids[6] },
-	{ "pk": test_guids.song_artist_guids[47], "songfk": test_guids.song_guids[17], "artistfk": test_guids.artist_guids[10] },
-	{ "pk": test_guids.song_artist_guids[48], "songfk": test_guids.song_guids[17], "artistfk": test_guids.artist_guids[5] },
-	{ "pk": test_guids.song_artist_guids[49], "songfk": test_guids.song_guids[17], "artistfk": test_guids.artist_guids[2] },
-	{ "pk": test_guids.song_artist_guids[50], "songfk": test_guids.song_guids[17], "artistfk": test_guids.artist_guids[11] },
-	{ "pk": test_guids.song_artist_guids[51], "songfk": test_guids.song_guids[35], "artistfk": test_guids.artist_guids[12] },
-	{ "pk": test_guids.song_artist_guids[52], "songfk": test_guids.song_guids[59], "artistfk": test_guids.artist_guids[16] },
-	{ "pk": test_guids.song_artist_guids[54], "songfk": test_guids.song_guids[59], "artistfk": test_guids.artist_guids[17] },
+	{ "pk": 1, "songfk": 40, "artistfk": 7 },
+	{ "pk": 2, "songfk": 39, "artistfk": 7 },
+	{ "pk": 3, "songfk": 38, "artistfk": 7 },
+	{ "pk": 4, "songfk": 37, "artistfk": 7 },
+	{ "pk": 5, "songfk": 36, "artistfk": 2 },
+	{ "pk": 6, "songfk": 35, "artistfk": 1 },
+	{ "pk": 7, "songfk": 34, "artistfk": 3 },
+	{ "pk": 8, "songfk": 33, "artistfk": 4 },
+	{ "pk": 9, "songfk": 32, "artistfk": 4 },
+	{ "pk": 10, "songfk": 31, "artistfk": 5 },
+	{ "pk": 11, "songfk": 30, "artistfk": 5 },
+	{ "pk": 12, "songfk": 29, "artistfk": 6 },
+	{ "pk": 13, "songfk": 28, "artistfk": 6 },
+	{ "pk": 14, "songfk": 27, "artistfk": 6 },
+	{ "pk": 15, "songfk": 26, "artistfk": 6 },
+	{ "pk": 16, "songfk": 25, "artistfk": 6 },
+	{ "pk": 17, "songfk": 24, "artistfk": 6 },
+	{ "pk": 18, "songfk": 23, "artistfk": 6 },
+	{ "pk": 19, "songfk": 22, "artistfk": 2 },
+	{ "pk": 20, "songfk": 21, "artistfk": 2 },
+	{ "pk": 21, "songfk": 20, "artistfk": 2 },
+	{ "pk": 22, "songfk": 19, "artistfk": 6 },
+	{ "pk": 23, "songfk": 18, "artistfk": 6 },
+	{ "pk": 24, "songfk": 17, "artistfk": 6 },
+	{ "pk": 25, "songfk": 16, "artistfk": 6 },
+	{ "pk": 26, "songfk": 15, "artistfk": 6 },
+	{ "pk": 27, "songfk": 14, "artistfk": 6 },
+	{ "pk": 28, "songfk": 13, "artistfk": 6 },
+	{ "pk": 29, "songfk": 12, "artistfk": 6 },
+	{ "pk": 30, "songfk": 11, "artistfk": 6 },
+	{ "pk": 31, "songfk": 10, "artistfk": 5 },
+	{ "pk": 32, "songfk": 9, "artistfk": 5 },
+	{ "pk": 33, "songfk": 8, "artistfk": 5 },
+	{ "pk": 34, "songfk": 7, "artistfk": 5 },
+	{ "pk": 35, "songfk": 6, "artistfk": 5 },
+	{ "pk": 36, "songfk": 5, "artistfk": 4 },
+	{ "pk": 37, "songfk": 4, "artistfk": 4 },
+	{ "pk": 38, "songfk": 3, "artistfk": 4 },
+	{ "pk": 39, "songfk": 2, "artistfk": 4 },
+	{ "pk": 40, "songfk": 1, "artistfk": 4 },
+	{ "pk": 45, "songfk": 21, "artistfk": 4 },
+	{ "pk": 46, "songfk": 21, "artistfk": 6 },
+	{ "pk": 47, "songfk": 17, "artistfk": 10 },
+	{ "pk": 48, "songfk": 17, "artistfk": 5 },
+	{ "pk": 49, "songfk": 17, "artistfk": 2 },
+	{ "pk": 50, "songfk": 17, "artistfk": 11 },
+	{ "pk": 51, "songfk": 35, "artistfk": 12 },
+	{ "pk": 52, "songfk": 59, "artistfk": 16 },
+	{ "pk": 54, "songfk": 59, "artistfk": 17 },
 ]
 
 songArtistParams2 = [
-	{ "pk": test_guids.song_artist_guids[41], "songfk": test_guids.song_guids[43], "artistfk": test_guids.artist_guids[7], "isprimaryartist": 1 },
-	{ "pk": test_guids.song_artist_guids[42], "songfk": test_guids.song_guids[42], "artistfk": test_guids.artist_guids[7], "isprimaryartist": 1 },
-	{ "pk": test_guids.song_artist_guids[43], "songfk": test_guids.song_guids[41], "artistfk": test_guids.artist_guids[7], "isprimaryartist": 1 },
-	{ "pk": test_guids.song_artist_guids[44], "songfk": test_guids.song_guids[1], "artistfk": test_guids.artist_guids[6], "isprimaryartist": 1 },
-	{ "pk": test_guids.song_artist_guids[53], "songfk": test_guids.song_guids[59], "artistfk": test_guids.artist_guids[15], "isprimaryartist": 1 },
+	{ "pk": 41, "songfk": 43, "artistfk": 7, "isprimaryartist": 1 },
+	{ "pk": 42, "songfk": 42, "artistfk": 7, "isprimaryartist": 1 },
+	{ "pk": 43, "songfk": 41, "artistfk": 7, "isprimaryartist": 1 },
+	{ "pk": 44, "songfk": 1, "artistfk": 6, "isprimaryartist": 1 },
+	{ "pk": 53, "songfk": 59, "artistfk": 15, "isprimaryartist": 1 },
 ]
 
 songArtistParamsAll = [*songArtistParams, *songArtistParams2]
 
 station_params = [
-	{ "pk": test_guids.station_guids[1],
+	{ "pk": 1,
 		"name": "oscar_station",
 		"displayname": "Oscar the grouch",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[2],
+	{ "pk": 2,
 		"name": "papa_station",
 		"displayname": "Come to papa",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[3],
+	{ "pk": 3,
 		"name": "romeo_station",
 		"displayname": "But soft, what yonder wind breaks",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[4],
+	{ "pk": 4,
 		"name": "sierra_station",
 		"displayname": "The greatest lie the devil ever told",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[5],
+	{ "pk": 5,
 		"name": "tango_station",
 		"displayname": "Nuke the whales",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[6],
+	{ "pk": 6,
 		"name": "yankee_station",
 		"displayname": "Blurg the blergos",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[7],
+	{ "pk": 7,
 		"name": "uniform_station",
 		"displayname": "Asshole at the wheel",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[8],
+	{ "pk": 8,
 		"name": "victor_station",
 		"displayname": "Fat, drunk, and stupid",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[9],
+	{ "pk": 9,
 		"name": "whiskey_station",
 		"displayname": "Chris-cross apple sauce",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[10],
+	{ "pk": 10,
 		"name": "xray_station",
 		"displayname": "Pentagular",
 		"ownerfk": bravo_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[11],
+	{ "pk": 11,
 		"name": "zulu_station",
 		"displayname": "Hammer time",
 		"ownerfk": juliet_user_id,
 		"viewsecuritylevel": None
 	},
-	{ "pk": test_guids.station_guids[12],
+	{ "pk": 12,
 		"name": "alpha_station_rerun",
 		"displayname": "We rerun again and again",
 		"ownerfk": victor_user_id,
 		"viewsecuritylevel": MinItemSecurityLevel.RULED_USER.value
 	},
-	{ "pk": test_guids.station_guids[13],
+	{ "pk": 13,
 		"name": "bravo_station_rerun",
 		"displayname": "We rerun again and again",
 		"ownerfk": victor_user_id,
 		"viewsecuritylevel": MinItemSecurityLevel.ANY_USER.value
 	},
-	{ "pk": test_guids.station_guids[14],
+	{ "pk": 14,
 		"name": "charlie_station_rerun",
 		"displayname": "The Wide World of Sports",
 		"ownerfk": victor_user_id,
 		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value
 	},
-	{ "pk": test_guids.station_guids[15],
+	{ "pk": 15,
 		"name": "delta_station_rerun",
 		"displayname": "Dookie Dan strikes again",
 		"ownerfk": yankee_user_id,
 		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value
 	},
-	{ "pk": test_guids.station_guids[16],
+	{ "pk": 16,
 		"name": "foxtrot_station_rerun",
 		"displayname": "fucked six ways to Sunday",
 		"ownerfk": yankee_user_id,
 		"viewsecuritylevel": MinItemSecurityLevel.LOCKED.value
 	},
-	{ "pk": test_guids.station_guids[17],
+	{ "pk": 17,
 		"name": "golf_station_rerun",
 		"displayname": "goliath bam bam",
 		"ownerfk": ingo_user_id,
 		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value
 	},
-	{ "pk": test_guids.station_guids[18],
+	{ "pk": 18,
 		"name": "hotel_station_rerun",
 		"displayname": "hella cool radio station",
 		"ownerfk": ingo_user_id,
 		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value
 	},
-	{ "pk": test_guids.station_guids[19],
+	{ "pk": 19,
 		"name": "india_station_rerun",
 		"displayname": "bitchingly fast!",
 		"ownerfk": station_saver_user_id,
 		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value
 	},
-	{ "pk": test_guids.station_guids[20],
+	{ "pk": 20,
 		"name": "juliet_station_rerun",
 		"displayname": "Neptune, how could you?",
 		"ownerfk": unruled_station_user_id,
@@ -972,60 +970,60 @@ station_params = [
 ]
 
 stationSongParams = [
-	{ "songfk": test_guids.song_guids[43], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[43], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[43], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[41], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[40], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[38], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[37], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[36], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[35], "stationfk": test_guids.station_guids[4] },
-	{ "songfk": test_guids.song_guids[34], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[33], "stationfk": test_guids.station_guids[4] },
-	{ "songfk": test_guids.song_guids[32], "stationfk": test_guids.station_guids[4] },
-	{ "songfk": test_guids.song_guids[31], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[30], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[29], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[28], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[27], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[26], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[25], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[24], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[23], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[22], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[21], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[20], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[19], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[18], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[17], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[17], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[16], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[15], "stationfk": test_guids.station_guids[4] },
-	{ "songfk": test_guids.song_guids[15], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[14], "stationfk": test_guids.station_guids[4] },
-	{ "songfk": test_guids.song_guids[13], "stationfk": test_guids.station_guids[4] },
-	{ "songfk": test_guids.song_guids[12], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[11], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[10], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[9], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[8], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[7], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[6], "stationfk": test_guids.station_guids[3] },
-	{ "songfk": test_guids.song_guids[5], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[4], "stationfk": test_guids.station_guids[4] },
-	{ "songfk": test_guids.song_guids[3], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[2], "stationfk": test_guids.station_guids[1] },
-	{ "songfk": test_guids.song_guids[1], "stationfk": test_guids.station_guids[2] },
-	{ "songfk": test_guids.song_guids[1], "stationfk": test_guids.station_guids[6] },
-	{ "songfk": test_guids.song_guids[4], "stationfk": test_guids.station_guids[6] },
-	{ "songfk": test_guids.song_guids[50], "stationfk": test_guids.station_guids[6] },
-	{ "songfk": test_guids.song_guids[44], "stationfk": test_guids.station_guids[8] },
-	{ "songfk": test_guids.song_guids[45], "stationfk": test_guids.station_guids[8] },
-	{ "songfk": test_guids.song_guids[46], "stationfk": test_guids.station_guids[8] },
-	{ "songfk": test_guids.song_guids[47], "stationfk": test_guids.station_guids[8] },
-	{ "songfk": test_guids.song_guids[59], "stationfk": test_guids.station_guids[10] },
-	{ "songfk": test_guids.song_guids[59], "stationfk": test_guids.station_guids[11] },
+	{ "songfk": 43, "stationfk": 1 },
+	{ "songfk": 43, "stationfk": 2 },
+	{ "songfk": 43, "stationfk": 3 },
+	{ "songfk": 41, "stationfk": 2 },
+	{ "songfk": 40, "stationfk": 2 },
+	{ "songfk": 38, "stationfk": 2 },
+	{ "songfk": 37, "stationfk": 2 },
+	{ "songfk": 36, "stationfk": 3 },
+	{ "songfk": 35, "stationfk": 4 },
+	{ "songfk": 34, "stationfk": 3 },
+	{ "songfk": 33, "stationfk": 4 },
+	{ "songfk": 32, "stationfk": 4 },
+	{ "songfk": 31, "stationfk": 2 },
+	{ "songfk": 30, "stationfk": 1 },
+	{ "songfk": 29, "stationfk": 1 },
+	{ "songfk": 28, "stationfk": 1 },
+	{ "songfk": 27, "stationfk": 3 },
+	{ "songfk": 26, "stationfk": 3 },
+	{ "songfk": 25, "stationfk": 3 },
+	{ "songfk": 24, "stationfk": 3 },
+	{ "songfk": 23, "stationfk": 1 },
+	{ "songfk": 22, "stationfk": 2 },
+	{ "songfk": 21, "stationfk": 1 },
+	{ "songfk": 20, "stationfk": 2 },
+	{ "songfk": 19, "stationfk": 1 },
+	{ "songfk": 18, "stationfk": 1 },
+	{ "songfk": 17, "stationfk": 1 },
+	{ "songfk": 17, "stationfk": 3 },
+	{ "songfk": 16, "stationfk": 3 },
+	{ "songfk": 15, "stationfk": 4 },
+	{ "songfk": 15, "stationfk": 1 },
+	{ "songfk": 14, "stationfk": 4 },
+	{ "songfk": 13, "stationfk": 4 },
+	{ "songfk": 12, "stationfk": 1 },
+	{ "songfk": 11, "stationfk": 3 },
+	{ "songfk": 10, "stationfk": 2 },
+	{ "songfk": 9, "stationfk": 1 },
+	{ "songfk": 8, "stationfk": 2 },
+	{ "songfk": 7, "stationfk": 1 },
+	{ "songfk": 6, "stationfk": 3 },
+	{ "songfk": 5, "stationfk": 2 },
+	{ "songfk": 4, "stationfk": 4 },
+	{ "songfk": 3, "stationfk": 1 },
+	{ "songfk": 2, "stationfk": 1 },
+	{ "songfk": 1, "stationfk": 2 },
+	{ "songfk": 1, "stationfk": 6 },
+	{ "songfk": 4, "stationfk": 6 },
+	{ "songfk": 50, "stationfk": 6 },
+	{ "songfk": 44, "stationfk": 8 },
+	{ "songfk": 45, "stationfk": 8 },
+	{ "songfk": 46, "stationfk": 8 },
+	{ "songfk": 47, "stationfk": 8 },
+	{ "songfk": 59, "stationfk": 10 },
+	{ "songfk": 59, "stationfk": 11 },
 ]
 
 def get_user_params(
@@ -1770,9 +1768,9 @@ def get_station_permission_params(
 ) -> list[dict[Any, Any]]:
 	return [
 		{
-			"pk":test_guids.station_user_permission_guid[1],
+			"pk":1,
 			"userfk": kilo_user_id,
-			"stationfk": test_guids.station_guids[3],
+			"stationfk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":0,
 			"count":0,
@@ -1780,9 +1778,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[4],
+			"pk":4,
 			"userfk": mike_user_id,
-			"stationfk": test_guids.station_guids[3],
+			"stationfk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":0,
 			"count":0,
@@ -1790,9 +1788,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[6],
+			"pk":6,
 			"userfk": november_user_id,
-			"stationfk": test_guids.station_guids[3],
+			"stationfk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":300,
 			"count":5,
@@ -1800,9 +1798,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[8],
+			"pk":8,
 			"userfk": oscar_user_id,
-			"stationfk": test_guids.station_guids[3],
+			"stationfk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":60,
 			"count":5,
@@ -1810,9 +1808,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[10],
+			"pk":10,
 			"userfk": papa_user_id,
-			"stationfk": test_guids.station_guids[3],
+			"stationfk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":300,
 			"count":25,
@@ -1820,9 +1818,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[12],
+			"pk":12,
 			"userfk": quebec_user_id,
-			"stationfk": test_guids.station_guids[3],
+			"stationfk": 3,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":300,
 			"count":25,
@@ -1830,9 +1828,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[13],
+			"pk":13,
 			"userfk": juliet_user_id,
-			"stationfk": test_guids.station_guids[9],
+			"stationfk": 9,
 			"role": UserRoleDef.STATION_ASSIGN.value,
 			"span":0,
 			"count":0,
@@ -1840,9 +1838,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[14],
+			"pk":14,
 			"userfk": juliet_user_id,
-			"stationfk": test_guids.station_guids[5],
+			"stationfk": 5,
 			"role": UserRoleDef.STATION_ASSIGN.value,
 			"span":0,
 			"count":0,
@@ -1850,9 +1848,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[15],
+			"pk":15,
 			"userfk": juliet_user_id,
-			"stationfk": test_guids.station_guids[9],
+			"stationfk": 9,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":0,
 			"count":0,
@@ -1860,9 +1858,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[16],
+			"pk":16,
 			"userfk": hotel_user_id,
-			"stationfk": test_guids.station_guids[9],
+			"stationfk": 9,
 			"role": UserRoleDef.STATION_ASSIGN.value,
 			"span":0,
 			"count":0,
@@ -1870,9 +1868,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[17],
+			"pk":17,
 			"userfk": xray_user_id,
-			"stationfk": test_guids.station_guids[14],
+			"stationfk": 14,
 			"role": UserRoleDef.STATION_VIEW.value,
 			"span":0,
 			"count":0,
@@ -1880,9 +1878,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[18],
+			"pk":18,
 			"userfk": zulu_user_id,
-			"stationfk": test_guids.station_guids[14],
+			"stationfk": 14,
 			"role": UserRoleDef.STATION_ASSIGN.value,
 			"span":0,
 			"count":0,
@@ -1890,9 +1888,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[19],
+			"pk":19,
 			"userfk": narlon_user_id,
-			"stationfk": test_guids.station_guids[17],
+			"stationfk": 17,
 			"role": UserRoleDef.STATION_ASSIGN.value,
 			"span":0,
 			"count":0,
@@ -1900,9 +1898,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[20],
+			"pk":20,
 			"userfk": narlon_user_id,
-			"stationfk": test_guids.station_guids[17],
+			"stationfk": 17,
 			"role": UserRoleDef.STATION_VIEW.value,
 			"span":0,
 			"count":0,
@@ -1910,9 +1908,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[21],
+			"pk":21,
 			"userfk": narlon_user_id,
-			"stationfk": test_guids.station_guids[17],
+			"stationfk": 17,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":5,
 			"count":300,
@@ -1920,9 +1918,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[22],
+			"pk":22,
 			"userfk": narlon_user_id,
-			"stationfk": test_guids.station_guids[18],
+			"stationfk": 18,
 			"role": UserRoleDef.STATION_VIEW.value,
 			"span":0,
 			"count":0,
@@ -1930,9 +1928,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[23],
+			"pk":23,
 			"userfk": narlon_user_id,
-			"stationfk": test_guids.station_guids[18],
+			"stationfk": 18,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":100,
 			"count":300,
@@ -1940,9 +1938,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[24],
+			"pk":24,
 			"userfk": horsetel_user_id,
-			"stationfk": test_guids.station_guids[17],
+			"stationfk": 17,
 			"role": UserRoleDef.STATION_VIEW.value,
 			"span":0,
 			"count":0,
@@ -1950,9 +1948,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[25],
+			"pk":25,
 			"userfk": george_user_id,
-			"stationfk": test_guids.station_guids[17],
+			"stationfk": 17,
 			"role": UserRoleDef.STATION_VIEW.value,
 			"span":0,
 			"count":0,
@@ -1960,9 +1958,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[26],
+			"pk":26,
 			"userfk": george_user_id,
-			"stationfk": test_guids.station_guids[17],
+			"stationfk": 17,
 			"role": UserRoleDef.STATION_REQUEST.value,
 			"span":70,
 			"count":10,
@@ -1970,9 +1968,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[27],
+			"pk":27,
 			"userfk": george_user_id,
-			"stationfk": test_guids.station_guids[17],
+			"stationfk": 17,
 			"role": UserRoleDef.STATION_FLIP.value,
 			"span":70,
 			"count":10,
@@ -1980,9 +1978,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[28],
+			"pk":28,
 			"userfk": carl_user_id,
-			"stationfk": test_guids.station_guids[17],
+			"stationfk": 17,
 			"role": UserRoleDef.STATION_FLIP.value,
 			"span":70,
 			"count":10,
@@ -1990,9 +1988,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[29],
+			"pk":29,
 			"userfk": oomdwell_user_id,
-			"stationfk": test_guids.station_guids[11],
+			"stationfk": 11,
 			"role": UserRoleDef.STATION_USER_ASSIGN.value,
 			"span":0,
 			"count":0,
@@ -2000,9 +1998,9 @@ def get_station_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.station_user_permission_guid[30],
+			"pk":30,
 			"userfk": unruled_station_user_id,
-			"stationfk": test_guids.station_guids[20],
+			"stationfk": 20,
 			"role": UserRoleDef.STATION_FLIP.value,
 			"span":0,
 			"count":0,
@@ -2016,7 +2014,7 @@ def get_path_permission_params(
 )  -> list[dict[Any, Any]]:
 	pathPermissions = [
 		{
-			"pk":test_guids.path_user_permission_guids[1],
+			"pk":1,
 			"userfk": lima_user_id,
 			"path": "foo/goo/boo",
 			"role": UserRoleDef.PATH_LIST.value,
@@ -2026,7 +2024,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[2],
+			"pk":2,
 			"userfk": kilo_user_id,
 			"path": "foo/goo/shoo",
 			"role": UserRoleDef.PATH_LIST.value,
@@ -2036,7 +2034,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[3],
+			"pk":3,
 			"userfk": kilo_user_id,
 			"path": "foo/goo/moo",
 			"role": UserRoleDef.PATH_LIST.value,
@@ -2046,7 +2044,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[4],
+			"pk":4,
 			"userfk": kilo_user_id,
 			"path": "foo/goo/shoo",
 			"role": UserRoleDef.PATH_EDIT.value,
@@ -2056,7 +2054,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[5],
+			"pk":5,
 			"userfk": kilo_user_id,
 			"path": "foo/goo/shoo",
 			"role": UserRoleDef.PATH_DOWNLOAD.value,
@@ -2066,7 +2064,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[6],
+			"pk":6,
 			"userfk": lima_user_id,
 			"path": "foo/goo/boo",
 			"role": UserRoleDef.PATH_VIEW.value,
@@ -2076,7 +2074,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[7],
+			"pk":7,
 			"userfk": mike_user_id,
 			"path": "/foo/goo",
 			"role": UserRoleDef.PATH_EDIT.value,
@@ -2086,7 +2084,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[8],
+			"pk":8,
 			"userfk": mike_user_id,
 			"path": "/foo/goo",
 			"role": UserRoleDef.PATH_VIEW.value,
@@ -2096,7 +2094,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[9],
+			"pk":9,
 			"userfk": sierra_user_id,
 			"path": "/foo/goo",
 			"role": UserRoleDef.PATH_VIEW.value,
@@ -2106,7 +2104,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[10],
+			"pk":10,
 			"userfk": sierra_user_id,
 			"path": "/foo/goo/who_1",
 			"role": UserRoleDef.PATH_VIEW.value,
@@ -2116,7 +2114,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[11],
+			"pk":11,
 			"userfk": sierra_user_id,
 			"path": "/foo/goo",
 			"role": UserRoleDef.PATH_EDIT.value,
@@ -2126,7 +2124,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[12],
+			"pk":12,
 			"userfk": sierra_user_id,
 			"path": "/foo/goo/who_1",
 			"role": UserRoleDef.PATH_EDIT.value,
@@ -2136,7 +2134,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[13],
+			"pk":13,
 			"userfk": foxtrot_user_id,
 			"path": "/foo/goo/boo",
 			"role": UserRoleDef.PATH_EDIT.value,
@@ -2146,7 +2144,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[14],
+			"pk":14,
 			"userfk": uniform_user_id,
 			"path": "/foo/d",
 			"role": UserRoleDef.PATH_LIST.value,
@@ -2156,7 +2154,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[15],
+			"pk":15,
 			"userfk": uniform_user_id,
 			"path": "/foo/b",
 			"role": UserRoleDef.PATH_LIST.value,
@@ -2166,7 +2164,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[16],
+			"pk":16,
 			"userfk": station_saver_user_id,
 			"path": "/foo/b",
 			"role": UserRoleDef.PATH_EDIT.value,
@@ -2176,7 +2174,7 @@ def get_path_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 		{
-			"pk":test_guids.path_user_permission_guids[17],
+			"pk":17,
 			"userfk": station_saver_user_id,
 			"path": "/foo/b",
 			"role": UserRoleDef.PATH_VIEW.value,
@@ -2194,7 +2192,7 @@ def get_actions_history(
 
 	return [
 		{
-			"pk": test_guids.user_action_history_guids[1],
+			"pk": 1,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp(),
@@ -2202,7 +2200,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp()
 		},
 		{
-			"pk": test_guids.user_action_history_guids[2],
+			"pk": 2,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 1000,
@@ -2210,7 +2208,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 1000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[3],
+			"pk": 3,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 2000,
@@ -2218,7 +2216,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 2000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[4],
+			"pk": 4,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_CREATE.value,
 			"timestamp": orderedTestDates[0].timestamp() + 3000,
@@ -2226,7 +2224,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 3000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[5],
+			"pk": 5,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_ASSIGN.value,
 			"timestamp": orderedTestDates[0].timestamp() + 4000,
@@ -2234,7 +2232,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 4000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[6],
+			"pk": 6,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_ASSIGN.value,
 			"timestamp": orderedTestDates[0].timestamp() + 5000,
@@ -2242,7 +2240,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 5000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[7],
+			"pk": 7,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_ASSIGN.value,
 			"timestamp": orderedTestDates[0].timestamp() + 6000,
@@ -2250,7 +2248,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 6000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[8],
+			"pk": 8,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_FLIP.value,
 			"timestamp": orderedTestDates[0].timestamp() + 7000,
@@ -2258,7 +2256,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 7000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[9],
+			"pk": 9,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_FLIP.value,
 			"timestamp": orderedTestDates[0].timestamp() + 8000,
@@ -2266,7 +2264,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 8000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[10],
+			"pk": 10,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_FLIP.value,
 			"timestamp": orderedTestDates[0].timestamp() + 9000,
@@ -2274,7 +2272,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 9000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[11],
+			"pk": 11,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 10000,
@@ -2282,7 +2280,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 10000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[12],
+			"pk": 12,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 11000,
@@ -2290,7 +2288,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 11000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[13],
+			"pk": 13,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 12000,
@@ -2298,7 +2296,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 12000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[14],
+			"pk": 14,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 13000,
@@ -2306,7 +2304,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 13000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[15],
+			"pk": 15,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 14000,
@@ -2314,7 +2312,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 14000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[16],
+			"pk": 16,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 15000,
@@ -2322,7 +2320,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 15000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[17],
+			"pk": 17,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_CREATE.value,
 			"timestamp": orderedTestDates[0].timestamp() + 16000,
@@ -2330,7 +2328,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 16000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[18],
+			"pk": 18,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 18000,
@@ -2338,7 +2336,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 18000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[19],
+			"pk": 19,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 19000,
@@ -2346,7 +2344,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 19000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[20],
+			"pk": 20,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 20000,
@@ -2354,7 +2352,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 20000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[21],
+			"pk": 21,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 21000,
@@ -2362,7 +2360,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 21000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[22],
+			"pk": 22,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 22000,
@@ -2370,7 +2368,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 22000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[23],
+			"pk": 23,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 23000,
@@ -2378,7 +2376,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 23000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[24],
+			"pk": 24,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_REQUEST.value,
 			"timestamp": orderedTestDates[0].timestamp() + 24000,
@@ -2386,7 +2384,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 24000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[25],
+			"pk": 25,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_EDIT.value,
 			"timestamp": orderedTestDates[0].timestamp() + 25000,
@@ -2394,7 +2392,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 25000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[26],
+			"pk": 26,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_FLIP.value,
 			"timestamp": orderedTestDates[0].timestamp() + 26000,
@@ -2402,7 +2400,7 @@ def get_actions_history(
 			"requestedtimestamp":orderedTestDates[0].timestamp() + 26000
 		},
 		{
-			"pk": test_guids.user_action_history_guids[27],
+			"pk": 27,
 			"userfk": juliet_user_id,
 			"action": UserRoleDef.STATION_FLIP.value,
 			"timestamp": orderedTestDates[0].timestamp() + 27000,
@@ -2414,108 +2412,108 @@ def get_actions_history(
 def get_station_queue() -> list[dict[Any, Any]]:
 	return [
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[1],
-			"stationfk": test_guids.station_guids[2],
-			"songfk": test_guids.song_guids[3],
+			"useractionhistoryfk": 1,
+			"stationfk": 2,
+			"songfk": 3,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[2],
-			"stationfk": test_guids.station_guids[2],
-			"songfk": test_guids.song_guids[4],
+			"useractionhistoryfk": 2,
+			"stationfk": 2,
+			"songfk": 4,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[3],
-			"stationfk": test_guids.station_guids[2],
-			"songfk": test_guids.song_guids[5],
+			"useractionhistoryfk": 3,
+			"stationfk": 2,
+			"songfk": 5,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[8],
-			"stationfk": test_guids.station_guids[5],
+			"useractionhistoryfk": 8,
+			"stationfk": 5,
 			"songfk": None,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[9],
-			"stationfk": test_guids.station_guids[5],
+			"useractionhistoryfk": 9,
+			"stationfk": 5,
 			"songfk": None,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[10],
-			"stationfk": test_guids.station_guids[5],
+			"useractionhistoryfk": 10,
+			"stationfk": 5,
 			"songfk": None,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[11],
-			"stationfk": test_guids.station_guids[5],
-			"songfk": test_guids.song_guids[5],
+			"useractionhistoryfk": 11,
+			"stationfk": 5,
+			"songfk": 5,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[12],
-			"stationfk": test_guids.station_guids[5],
-			"songfk": test_guids.song_guids[6],
+			"useractionhistoryfk": 12,
+			"stationfk": 5,
+			"songfk": 6,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[13],
-			"stationfk": test_guids.station_guids[5],
-			"songfk": test_guids.song_guids[7],
+			"useractionhistoryfk": 13,
+			"stationfk": 5,
+			"songfk": 7,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[14],
-			"stationfk": test_guids.station_guids[5],
-			"songfk": test_guids.song_guids[8],
+			"useractionhistoryfk": 14,
+			"stationfk": 5,
+			"songfk": 8,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[15],
-			"stationfk": test_guids.station_guids[5],
-			"songfk": test_guids.song_guids[9],
+			"useractionhistoryfk": 15,
+			"stationfk": 5,
+			"songfk": 9,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[16],
-			"stationfk": test_guids.station_guids[5],
-			"songfk": test_guids.song_guids[10],
+			"useractionhistoryfk": 16,
+			"stationfk": 5,
+			"songfk": 10,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[18],
-			"stationfk": test_guids.station_guids[6],
-			"songfk": test_guids.song_guids[10],
+			"useractionhistoryfk": 18,
+			"stationfk": 6,
+			"songfk": 10,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[19],
-			"stationfk": test_guids.station_guids[6],
-			"songfk": test_guids.song_guids[11],
+			"useractionhistoryfk": 19,
+			"stationfk": 6,
+			"songfk": 11,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[20],
-			"stationfk": test_guids.station_guids[6],
-			"songfk": test_guids.song_guids[12],
+			"useractionhistoryfk": 20,
+			"stationfk": 6,
+			"songfk": 12,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[21],
-			"stationfk": test_guids.station_guids[6],
-			"songfk": test_guids.song_guids[13],
+			"useractionhistoryfk": 21,
+			"stationfk": 6,
+			"songfk": 13,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[22],
-			"stationfk": test_guids.station_guids[6],
-			"songfk": test_guids.song_guids[14],
+			"useractionhistoryfk": 22,
+			"stationfk": 6,
+			"songfk": 14,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[23],
-			"stationfk": test_guids.station_guids[6],
-			"songfk": test_guids.song_guids[15],
+			"useractionhistoryfk": 23,
+			"stationfk": 6,
+			"songfk": 15,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[24],
-			"stationfk": test_guids.station_guids[6],
-			"songfk": test_guids.song_guids[16],
+			"useractionhistoryfk": 24,
+			"stationfk": 6,
+			"songfk": 16,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[25],
-			"stationfk": test_guids.station_guids[6],
+			"useractionhistoryfk": 25,
+			"stationfk": 6,
 			"songfk": None,
 		},
 		{
-			"useractionhistoryfk": test_guids.user_action_history_guids[26],
-			"stationfk": test_guids.station_guids[6],
+			"useractionhistoryfk": 26,
+			"stationfk": 6,
 			"songfk": None,
 		}
 	]

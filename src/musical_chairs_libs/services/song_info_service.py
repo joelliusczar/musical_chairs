@@ -268,11 +268,11 @@ class SongInfoService:
 		print(name)
 		stmt = insert(albums_tbl).values(
 			name = savedName,
-			albumArtistFk = artistFk,
+			albumartistfk = artistFk,
 			year = year,
-			lastModifiedTimestamp = self.get_datetime().timestamp(),
-			ownerFk = 1,
-			lastModifiedByUserFk = 1
+			lastmodifiedtimestamp = self.get_datetime().timestamp(),
+			ownerfk = 1,
+			lastmodifiedbyuserfk = 1
 		)
 		res = self.conn.execute(stmt)
 		insertedPk = res.lastrowid
@@ -300,9 +300,9 @@ class SongInfoService:
 		records = self.conn.execute(query).mappings()
 		for row in records:
 			yield ScanningSongItem(
-					id=cast(int, row[sg_pk]),
-					path=cast(str,row[sg_path]),
-					name=SavedNameString.format_name_for_save(cast(str,row[sg_name]))
+					id=row[sg_pk],
+					path=row[sg_path],
+					name=SavedNameString.format_name_for_save(row[sg_name])
 				)
 
 	def update_song_info(self, songInfo: ScanningSongItem) -> int:
@@ -579,10 +579,10 @@ class SongInfoService:
 		if not inPairs: #if no songs - stations have been linked
 			return existingPairs - outPairs
 		params = [{
-			"songFk": p.songId,
-			"stationFk": p.stationId,
-			"lastModifiedByUserFk": userId,
-			"lastModifiedTimestamp": self.get_datetime().timestamp()
+			"songfk": p.songId,
+			"stationfk": p.stationId,
+			"lastmodifiedbyuserfk": userId,
+			"lastmodifiedtimestamp": self.get_datetime().timestamp()
 		} for p in inPairs]
 		stmt = insert(stations_songs_tbl)
 		self.conn.execute(stmt, params)

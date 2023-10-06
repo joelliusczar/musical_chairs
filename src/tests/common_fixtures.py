@@ -49,6 +49,7 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 		ownerConnService.add_path_permission_index()
 		ownerConnService.grant_api_roles()
 		ownerConnService.grant_radio_roles()
+		ownerConnService.add_next_directory_level_func()
 	try:
 		yield dbName
 	finally:
@@ -57,38 +58,48 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 			rootConnService.drop_database(dbName)
 
 @pytest.fixture
-def fixture_db_populate(
+def fixture_db_populate_factory(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str,
 	fixture_mock_ordered_date_list: List[datetime],
 	fixture_primary_user: AccountInfo,
 	fixture_mock_password: bytes
-) -> str:
-	dbName = fixture_setup_db
-	with DbOwnerConnectionService(dbName) as ownerConnService:
-		conn = ownerConnService.conn
-		setup_in_mem_tbls(
-			conn,
-			request,
-			fixture_mock_ordered_date_list,
-			fixture_primary_user,
-			fixture_mock_password,
-		)
-	return dbName
+) -> Callable[[], None]:
+	def populate_fn():
+		dbName = fixture_setup_db
+		with DbOwnerConnectionService(dbName) as ownerConnService:
+			conn = ownerConnService.conn
+			setup_in_mem_tbls(
+				conn,
+				request,
+				fixture_mock_ordered_date_list,
+				fixture_primary_user,
+				fixture_mock_password,
+			)
+	return populate_fn
+
+@pytest.fixture
+def fixture_db_empty_populate_factory() -> Callable[[], None]:
+	def populate_fn():
+		pass
+	return populate_fn
+
 
 @pytest.fixture
 def fixture_db_conn_in_mem(
 	request: pytest.FixtureRequest,
-	fixture_db_populate: str
+	fixture_setup_db: str,
 ) -> Iterator[Connection]:
 	requestEcho = request.node.get_closest_marker("echo")
+	requestPopulateFnName = request.node.get_closest_marker("populateFnName")
 
-	if requestEcho is None:
-		echo = False
-	else:
-		echo = requestEcho.args[0]
+	echo = requestEcho.args[0] if not requestEcho is None else False
+	populateFnName = requestPopulateFnName.args[0] \
+		if not requestPopulateFnName is None else "fixture_db_populate_factory"
+	populateFn = request.getfixturevalue(populateFnName)
+	populateFn()
 	envManager = EnvManager()
-	dbName=fixture_db_populate
+	dbName=fixture_setup_db
 	conn = envManager.get_configured_api_connection(dbName, echo=echo)
 	try:
 		yield conn

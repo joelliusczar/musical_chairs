@@ -148,15 +148,15 @@ class QueueService:
 		for _ in songIds:
 			historyInsert = insert(user_action_history_tbl)
 			insertedId = self.conn.execute(historyInsert, {
-					"queuedTimestamp": timestamp,
+					"queuedtimestamp": timestamp,
 					"action": UserRoleDef.STATION_REQUEST.value,
 				}).inserted_primary_key
 			if insertedId:
 				insertedIds.append(cast(int,insertedId[0]))
 		params = [{
-			"stationFk": stationId,
-			"songFk": s[0],
-			"userActionHistoryFk": s[1]
+			"stationfk": stationId,
+			"songfk": s[0],
+			"useractionhistoryfk": s[1]
 		} for s in zip(songIds,insertedIds)]
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
@@ -223,12 +223,12 @@ class QueueService:
 		records = self.conn.execute(query).mappings()
 		for row in records:
 			yield SongListDisplayItem(
-				id=cast(int,row[sg_pk]),
-				name=cast(str,row[sg_name]),
-				album=cast(str,row["album"]),
-				artist=cast(str,row["artist"]),
-				path=cast(str,row[sg_path]),
-				queuedTimestamp=cast(float,row[uah_queuedTimestamp])
+				id=row[sg_pk],
+				name=row[sg_name],
+				album=row["album"],
+				artist=row["artist"],
+				path=row[sg_path],
+				queuedTimestamp=row[uah_queuedTimestamp]
 			)
 
 	def pop_next_queued(
@@ -264,17 +264,17 @@ class QueueService:
 		timestamp = self.get_datetime().timestamp()
 
 		stmt = insert(user_action_history_tbl).values(
-			queuedTimestamp = timestamp,
-			requestedTimestamp = timestamp,
-			userFk = userId,
+			queuedtimestamp = timestamp,
+			requestedtimestamp = timestamp,
+			userfk = userId,
 			action = UserRoleDef.STATION_REQUEST.value,
 		)
 		insertedPk = self.conn.execute(stmt).inserted_primary_key
 		if insertedPk:
 			stmt = insert(station_queue).values(
-				stationFk = stationId,
-				songFk = songId,
-				userActionHistoryFk = insertedPk[0]
+				stationfk = stationId,
+				songfk = songId,
+				useractionhistoryfk = insertedPk[0]
 			)
 			return self.conn.execute(stmt).rowcount
 		else:
@@ -385,7 +385,7 @@ class QueueService:
 
 		query = select(
 			sg_pk.label("id"),
-			uah_queuedTimestamp.label("queuedTimestamp"),
+			uah_queuedTimestamp.label("queuedtimestamp"),
 			sg_name.label("name"),
 			ab_name.label("album"),
 			ar_name.label("artist"),

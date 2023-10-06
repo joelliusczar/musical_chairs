@@ -64,10 +64,12 @@ class ScanningSongItem:
 	disc: Optional[int]=None
 	genre: Optional[str]=None
 	bitrate: Optional[float]=None
-	sampleRate: Optional[float]=None
+	samplerate: Optional[float]=None
 	comment: Optional[str]=None
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
+
+
 
 
 @dataclass()
@@ -87,30 +89,30 @@ class Tag:
 class StationInfo:
 	id: int
 	name: str
-	displayName: str=field(default="", hash=False, compare=False)
+	displayname: str=field(default="", hash=False, compare=False)
 	isRunning: bool=field(default=False, hash=False, compare=False)
 	#don't expect this to ever actually null
 	owner: Optional[OwnerType]=field(default=None, hash=False, compare=False)
 	rules: list[ActionRule]=field(
 		default_factory=list, hash=False, compare=False
 	)
-	requestSecurityLevel: Optional[int]=field(
+	requestsecuritylevel: Optional[int]=field(
 		default=MinItemSecurityLevel.ANY_USER.value, hash=False, compare=False,
 	)
-	viewSecurityLevel: Optional[int]=field(default=0, hash=False, compare=False)
+	viewsecuritylevel: Optional[int]=field(default=0, hash=False, compare=False)
 
 @dataclass()
 class StationCreationInfo:
 	name: str
 	displayName: Optional[str]=""
-	viewSecurityLevel: Optional[int]=field(default=0)
-	requestSecurityLevel: Optional[int]=field(
+	viewsecuritylevel: Optional[int]=field(default=0)
+	requestsecuritylevel: Optional[int]=field(
 		default=MinItemSecurityLevel.OWENER_USER.value
 	)
 
-	@validator("requestSecurityLevel")
+	@validator("requestsecuritylevel")
 	def check_requestSecurityLevel(cls, v: int, values: dict[Any, Any]) -> int:
-		if v < values["viewSecurityLevel"] \
+		if v < values["viewsecuritylevel"] \
 			or v == MinItemSecurityLevel.PUBLIC.value:
 			raise ValueError(
 				"Request Security cannot be public or lower than view security"
@@ -205,7 +207,7 @@ class SongAboutInfo:
 	disc: Optional[int]=None
 	genre: Optional[str]=None
 	bitrate: Optional[float]=None
-	sampleRate: Optional[float]=None
+	samplerate: Optional[float]=None
 	comment: Optional[str]=None
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None

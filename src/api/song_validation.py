@@ -192,8 +192,8 @@ def validate_path_rule(
 			)],
 		)
 	normalizedPrefix = normalize_opening_slash(prefix)
-	if user.dirRoot and \
-		normalizedPrefix.startswith(normalize_opening_slash(user.dirRoot))\
+	if user.dirroot and \
+		normalizedPrefix.startswith(normalize_opening_slash(user.dirroot))\
 	:
 		if any(get_path_owner_roles(normalizedPrefix, (rule.name, ))):
 			raise HTTPException(
@@ -217,8 +217,8 @@ def validate_path_rule_for_remove(
 				)],
 			)
 	normalizedPrefix = normalize_opening_slash(prefix)
-	isOwner = user.dirRoot and \
-		normalizedPrefix.startswith(normalize_opening_slash(user.dirRoot))
+	isOwner = user.dirroot and \
+		normalizedPrefix.startswith(normalize_opening_slash(user.dirroot))
 	if not ruleName:
 		if isOwner:
 			raise HTTPException(

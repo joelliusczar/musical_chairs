@@ -105,16 +105,16 @@ def get_path_owner_roles(
 class AccountInfoBase:
 	username: str
 	email: str
-	displayName: Optional[str]=""
+	displayname: Optional[str]=""
 
 @dataclass(frozen=True)
 class AccountInfoSecurity(AccountInfoBase):
 	roles: List[Union[ActionRule, PathsActionRule]]=field(default_factory=list)
-	dirRoot: Optional[str]=None
+	dirroot: Optional[str]=None
 
 	@property
 	def preferredName(self) -> str:
-		return self.displayName or self.username
+		return self.displayname or self.username
 
 	@property
 	def isAdmin(self) -> bool:
@@ -181,7 +181,7 @@ class AccountCreationInfo(AccountInfoSecurity):
 		return {
 			"username": self.username,
 			"email": self.email,
-			"displayName": self.displayName,
+			"displayName": self.displayname,
 			"roles": self.roles
 		}
 
@@ -256,6 +256,6 @@ class StationHistoryActionItem(UserHistoryActionItem):
 @dataclass(frozen=True)
 class OwnerInfo(IdItem):
 	username: Optional[str]=None
-	displayName: Optional[str]=None
+	displayname: Optional[str]=None
 
 OwnerType = Union[OwnerInfo, AccountInfo]

@@ -170,6 +170,7 @@ stations = Table("stations", metadata,
   Column("ownerfk", Integer, ForeignKey("users.pk"), nullable=False),
   Column("requestsecuritylevel", Integer, nullable=True),
   Column("viewsecuritylevel", Integer, nullable=True),
+
 )
 
 st = stations.c

@@ -304,7 +304,7 @@ def get_path_user(
 	rules = ActionRule.aggregate(
 		user.roles,
 		(p for p in songInfoService.get_paths_user_can_see(user.id)),
-		(p for p in get_path_owner_roles(normalize_opening_slash(user.dirRoot)))
+		(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 	)
 	roleNameSet = {r.name for r in rules}
 	if any(s for s in scopes if s not in roleNameSet):
@@ -404,7 +404,7 @@ def get_station_user(
 	minScope = (not securityScopes.scopes or\
 		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
 	)
-	if not station.viewSecurityLevel and minScope:
+	if not station.viewsecuritylevel and minScope:
 		return user
 	if not user:
 		raise build_not_logged_in_error()
@@ -448,7 +448,7 @@ def get_station_user_2(
 	minScope = (not securityScopes.scopes or\
 		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
 	)
-	if not any(s.viewSecurityLevel for s in stations) and minScope:
+	if not any(s.viewsecuritylevel for s in stations) and minScope:
 		return user
 	if not user:
 		raise build_not_logged_in_error()

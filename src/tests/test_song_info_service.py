@@ -456,11 +456,11 @@ def test_get_single_song_for_edit(
 	if songInfo.stations:
 		assert sortedStations[0].id == 2
 		assert sortedStations[0].name == "papa_station"
-		assert sortedStations[0].displayName == "Come to papa"
+		assert sortedStations[0].displayname == "Come to papa"
 
 		assert sortedStations[1].id == 6
 		assert sortedStations[1].name == "yankee_station"
-		assert sortedStations[1].displayName == "Blurg the blergos"
+		assert sortedStations[1].displayname == "Blurg the blergos"
 
 
 def test_get_song_for_edit_without_stations(
@@ -538,11 +538,11 @@ def test_get_multiple_songs_for_edit(
 	if songInfo.stations:
 		assert sortedStations[0].id == 2
 		assert sortedStations[0].name == "papa_station"
-		assert sortedStations[0].displayName == "Come to papa"
+		assert sortedStations[0].displayname == "Come to papa"
 
 		assert sortedStations[1].id == 6
 		assert sortedStations[1].name == "yankee_station"
-		assert sortedStations[1].displayName == "Blurg the blergos"
+		assert sortedStations[1].displayname == "Blurg the blergos"
 
 	songInfo = songInfoList[1]
 	assert songInfo.path == "foo/goo/shoo/india"
@@ -572,11 +572,11 @@ def test_get_multiple_songs_for_edit(
 	if songInfo.stations:
 		assert sortedStations[0].id == 1
 		assert sortedStations[0].name == "oscar_station"
-		assert sortedStations[0].displayName == "Oscar the grouch"
+		assert sortedStations[0].displayname == "Oscar the grouch"
 
 		assert sortedStations[1].id == 3
 		assert sortedStations[1].name == "romeo_station"
-		assert sortedStations[1].displayName == "But soft, what yonder wind breaks"
+		assert sortedStations[1].displayname == "But soft, what yonder wind breaks"
 
 def test_get_multiple_songs_for_edit2(
 	fixture_song_info_service: SongInfoService,
@@ -629,7 +629,7 @@ def test_get_song_with_owner_info(
 	album = results.album
 	assert album
 	albumOwner = album.owner
-	assert albumOwner.displayName == "julietDisplay"
+	assert albumOwner.displayname == "julietDisplay"
 	albumArtist = album.albumArtist
 	assert albumArtist
 	albumArtistOwner = albumArtist.owner
@@ -643,7 +643,7 @@ def test_get_song_with_owner_info(
 	assert results.artists
 	assert len(results.artists) == 2
 	artsit0Owner = results.artists[0].owner
-	assert artsit0Owner.displayName == "IndiaDisplay"
+	assert artsit0Owner.displayname == "IndiaDisplay"
 	artsit1Owner = results.artists[1].owner
 	assert artsit1Owner.username == "testUser_hotel"
 	assert results.stations
@@ -653,4 +653,4 @@ def test_get_song_with_owner_info(
 	assert station0Owner.username == "testUser_bravo"
 	station1Owner = results.stations[1].owner
 	assert station1Owner
-	assert station1Owner.displayName == "julietDisplay"
+	assert station1Owner.displayname == "julietDisplay"

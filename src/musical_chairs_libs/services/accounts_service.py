@@ -93,7 +93,7 @@ class AccountsService:
 			username=cast(str,row[u_username]),
 			email=cast(str,row[u_email]),
 			roles=[*self.__get_roles__(pk)],
-			dirRoot=cast(str, row[u_dirRoot])
+			dirroot=cast(str, row[u_dirRoot])
 		)
 		return (accountInfo, hashedPw)
 
@@ -128,7 +128,7 @@ class AccountsService:
 		hashed = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
 			username=SavedNameString.format_name_for_save(accountInfo.username),
-			displayName=SavedNameString.format_name_for_save(accountInfo.displayName),
+			displayName=SavedNameString.format_name_for_save(accountInfo.displayname),
 			hashedPW=hashed,
 			email=cleanedEmail.email,
 			creationTimestamp = self.get_datetime().timestamp(),
@@ -173,12 +173,12 @@ class AccountsService:
 		if not inRoles:
 			return uniqueRoles
 		roleParams = [{
-				"userFk": userId,
+				"userfk": userId,
 				"role": r.name,
 				"span": r.span,
 				"count": r.count,
 				"priority": r.priority,
-				"creationTimestamp": self.get_datetime().timestamp()
+				"creationtimestamp": self.get_datetime().timestamp()
 			} for r in inRoles
 		]
 		stmt = insert(userRoles)
@@ -229,9 +229,9 @@ class AccountsService:
 		return (row_to_action_rule(r) for r in rows)
 
 
-	def _is_username_used(self, username: SearchNameString) -> bool:
+	def _is_username_used(self, username: str) -> bool:
 		queryAny = select(func.count(1)).select_from(users)\
-				.where(func.format_name_for_search(u_username) == str(username))
+				.where(u_username == username)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
@@ -240,14 +240,13 @@ class AccountsService:
 		username: str,
 		loggedInUser: Optional[AccountInfo]=None
 	) -> bool:
-		cleanedUserName = SearchNameString(username)
-		if not cleanedUserName:
+		if not username:
 			#if absent, assume we're not checking this right now
 			#to avoid false negatives
 			return True
 		loggedInUsername = loggedInUser.username if loggedInUser else None
-		return loggedInUsername != cleanedUserName and\
-			self._is_username_used(cleanedUserName)
+		return loggedInUsername != username and\
+			self._is_username_used(username)
 
 	def _is_email_used(self, email: ValidatedEmail) -> bool:
 		emailStr = cast(str, email.email)
@@ -296,15 +295,9 @@ class AccountsService:
 		).offset(offset)
 
 		if searchTerm is not None:
-			normalizedStr = SearchNameString.format_name_for_search(searchTerm)\
-				.replace(" ","")
+			normalizedStr = searchTerm.replace(" ","")
 			query = query.where(
-				func.replace(
-					func.format_name_for_search(
-						coalesce(u_displayName, u_username)
-					),
-					" ",""
-					)
+				func.replace(coalesce(u_displayName, u_username)," ","")
 					.like(f"{normalizedStr}%")
 			)
 		query = query.limit(pageSize)
@@ -357,13 +350,13 @@ class AccountsService:
 				)
 			])
 		stmt = update(users).values(
-			displayName = updatedInfo.displayName,
+			displayName = updatedInfo.displayname,
 			email = updatedEmail
 		).where(u_pk == currentUser.id)
 		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 		return AccountInfo(
 			**{**asdict(currentUser), #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-				"displayName": updatedInfo.displayName,
+				"displayName": updatedInfo.displayname,
 				"email": updatedEmail
 			}
 		)
@@ -381,7 +374,7 @@ class AccountsService:
 			return False
 		hash = hashpw(passwordInfo.newPassword.encode())
 		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
-		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt)
 		return True
 
 	def get_site_rule_users(
@@ -389,34 +382,34 @@ class AccountsService:
 		userId: Optional[int]=None,
 		owner: Optional[AccountInfo]=None
 	) -> Iterator[AccountInfo]:
-		rulesQuery = build_rules_query(UserRoleDomain.Site).cte() #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+		rulesQuery = build_rules_query(UserRoleDomain.Site).cte()
 		query = select(
 			u_pk,
 			u_username,
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userFk, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_name, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_count, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_span, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_userfk,
+			rulesQuery.c.rule_name,
+			rulesQuery.c.rule_count,
+			rulesQuery.c.rule_span,
+			rulesQuery.c.rule_priority,
+			rulesQuery.c.rule_domain
 		).select_from(users).join(
 			rulesQuery,
-			rulesQuery.c.rule_userFk == u_pk,  #pyright: ignore [reportUnknownMemberType],
+			rulesQuery.c.rule_userFk == u_pk,
 			isouter=True
 		).where(or_(u_disabled.is_(None), u_disabled == False))\
 		.where(
 			coalesce(
-				rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+				rulesQuery.c.rule_priority,
 				RulePriorityLevel.USER.value
 			) > MinItemSecurityLevel.RULED_USER.value
 		)
 		if userId is not None:
 			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
-		records = self.conn.execute(query).mappings().fetchall() #pyright: ignore [reportUnknownMemberType]
+		records = self.conn.execute(query).mappings().fetchall()
 		yield from generate_user_and_rules_from_rows(
 			records,
 			UserRoleDomain.Path,
@@ -429,12 +422,12 @@ class AccountsService:
 		rule: ActionRule
 	) -> ActionRule:
 		stmt = insert(userRoles).values(
-			userFk = addedUserId,
+			userfk = addedUserId,
 			role = rule.name,
 			span = rule.span,
 			count = rule.count,
 			priority = None,
-			creationTimestamp = self.get_datetime().timestamp()
+			creationtimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 

@@ -48,7 +48,7 @@ class DbUsers(Enum):
 		return self.value
 
 __station_permissions_query__ = select(
-	stup_userFk.label("rule_userFk"),
+	stup_userFk.label("rule_userfk"),
 	stup_role.label("rule_name"),
 	stup_count.label("rule_count"),
 	stup_span.label("rule_span"),
@@ -57,11 +57,11 @@ __station_permissions_query__ = select(
 		RulePriorityLevel.STATION_PATH.value
 	).label("rule_priority"),
 	dbLiteral(UserRoleDomain.Station.value).label("rule_domain"),
-	stup_stationFk.label("rule_stationFk")
+	stup_stationFk.label("rule_stationfk")
 )
 
 __path_permissions_query__ = select(
-	pup_userFk.label("rule_userFk"),
+	pup_userFk.label("rule_userfk"),
 	pup_role.label("rule_name"),
 	pup_count.label("rule_count"),
 	pup_span.label("rule_span"),
@@ -80,7 +80,7 @@ def __build_placeholder_select__(
 		if domain == UserRoleDomain.Station \
 			else dbLiteral(UserRoleDef.PATH_VIEW.value))
 	query = select(
-		dbLiteral(0).label("rule_userFk"), #pyright: ignore [reportUnknownMemberType]
+		dbLiteral(0).label("rule_userfk"), #pyright: ignore [reportUnknownMemberType]
 		ruleNameCol.label("rule_name"), #pyright: ignore [reportUnknownMemberType]
 		cast(Column[float],dbLiteral(0)).label("rule_count"), #pyright: ignore [reportUnknownMemberType]
 		cast(Column[float],dbLiteral(0)).label("rule_span"), #pyright: ignore [reportUnknownMemberType]
@@ -98,7 +98,7 @@ def build_rules_query(
 ) -> CompoundSelect:
 
 	user_rules_base_query = select(
-		ur_userFk.label("rule_userFk"),
+		ur_userFk.label("rule_userfk"),
 		ur_role.label("rule_name"),
 		ur_count.label("rule_count"),
 		ur_span.label("rule_span"),
@@ -171,9 +171,9 @@ def row_to_user(row: RowMapping) -> AccountInfo:
 	return AccountInfo(
 		id=row[u_pk],
 		username=row[u_username],
-		displayName=row[u_displayName],
+		displayname=row[u_displayName],
 		email=row[u_email],
-		dirRoot=row[u_dirRoot],
+		dirroot=row[u_dirRoot],
 	)
 
 def row_to_action_rule(row: RowMapping) -> ActionRule:
@@ -206,10 +206,10 @@ def generate_user_and_rules_from_rows(
 				if currentUser.id == ownerId and domain == UserRoleDomain.Station:
 					currentUser.roles.extend(get_station_owner_rules())
 				elif domain == UserRoleDomain.Path:
-					if normalizedPrefix and currentUser.dirRoot is not None \
+					if normalizedPrefix and currentUser.dirroot is not None \
 						and normalizedPrefix.startswith(
 							normalize_opening_slash(
-								currentUser.dirRoot
+								currentUser.dirroot
 							)
 						)\
 					:
@@ -224,10 +224,10 @@ def generate_user_and_rules_from_rows(
 		if currentUser.id == ownerId and domain == UserRoleDomain.Station:
 			currentUser.roles.extend(get_station_owner_rules())
 		elif domain == UserRoleDomain.Path:
-			if normalizedPrefix and currentUser.dirRoot \
+			if normalizedPrefix and currentUser.dirroot \
 				and normalizedPrefix.startswith(
 					normalize_opening_slash(
-						currentUser.dirRoot)
+						currentUser.dirroot)
 					)\
 			:
 				currentUser.roles.extend(get_path_owner_roles(prefix))

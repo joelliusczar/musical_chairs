@@ -181,7 +181,7 @@ class SongInfoService:
 			stmt = stmt.where(ar_pk == artistId)
 			owner = self.__get_artist_owner__(artistId)
 		else:
-			stmt = stmt.values(ownerFk = user.id)
+			stmt = stmt.values(ownerfk = user.id)
 		try:
 			res = self.conn.execute(stmt)
 
@@ -200,7 +200,7 @@ class SongInfoService:
 			.select_from(albums_tbl)\
 			.join(user_tbl, u_pk == ab_ownerFk)\
 			.where(ab_pk == albumId)
-		data = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+		data = self.conn.execute(query).fetchone()
 		if not data:
 			return OwnerInfo(0,"", "")
 		return OwnerInfo(
@@ -222,16 +222,16 @@ class SongInfoService:
 		stmt = upsert(albums_tbl).values(
 			name = str(savedName),
 			year = album.year,
-			albumArtistFk = album.albumArtist.id if album.albumArtist else None,
-			lastModifiedByUserFk = user.id,
-			lastModifiedTimestamp = self.get_datetime().timestamp()
+			albumartistfk = album.albumArtist.id if album.albumArtist else None,
+			lastmodifiedbyuserfk = user.id,
+			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
 		owner = user
 		if albumId and isinstance(stmt, Update):
 			stmt = stmt.where(ab_pk == albumId)
 			owner = self.__get_album_owner__(albumId)
 		else:
-			stmt = stmt.values(ownerFk = user.id)
+			stmt = stmt.values(ownerfk = user.id)
 		try:
 			res = self.conn.execute(stmt)
 
@@ -312,16 +312,16 @@ class SongInfoService:
 				.where(sg_pk == songInfo.id) \
 				.values(
 					name = savedName,
-					albumFk = songInfo.albumId,
+					albumfk = songInfo.albumId,
 					track = songInfo.track,
 					disc = songInfo.disc,
 					bitrate = songInfo.bitrate,
 					comment = songInfo.comment,
 					genre = songInfo.genre,
 					duration = songInfo.duration,
-					sampleRate = songInfo.sampleRate,
-					lastModifiedTimestamp = timestamp,
-					lastModifiedByUserFk = None
+					samplerate = songInfo.samplerate,
+					lastmodifiedtimestamp = timestamp,
+					lastmodifiedbyuserfk = None
 				)
 		count = self.conn.execute(songUpdate).rowcount
 		try:
@@ -362,7 +362,7 @@ class SongInfoService:
 		rules = ActionRule.aggregate(
 			user.roles,
 			(p for p in self.get_paths_user_can_see(user.id)),
-			(p for p in get_path_owner_roles(user.dirRoot))
+			(p for p in get_path_owner_roles(user.dirroot))
 		)
 
 		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
@@ -465,9 +465,8 @@ class SongInfoService:
 				query = query.where(stsg_stationFk == stationKey)
 			elif type(stationKey) is str:
 				query = query.join(stations_tbl, stsg_stationFk == st_pk)
-				searchStr = SearchNameString.format_name_for_search(stationKey)
 				query = query.join(stations_tbl, st_pk == stsg_stationFk).where(
-					func.format_name_for_search(st_name).like(f"%{searchStr}%")
+					st_name.like(f"%{stationKey}%")
 				)
 		if songIds:
 			query = query.where(sg_pk.in_(songIds))
@@ -596,22 +595,22 @@ class SongInfoService:
 		albumKeys: Union[int, str, Iterable[int], None]=None,
 		userId: Optional[int]=None
 	) -> Iterator[AlbumInfo]:
-		album_owner = user_tbl.alias("albumOwner")
+		album_owner = user_tbl.alias("albumowner")
 		albumOwnerId = cast(Column[Integer], album_owner.c.pk)
-		artist_owner = user_tbl.alias("artistOwner")
+		artist_owner = user_tbl.alias("artistowner")
 		artistOwnerId = cast(Column[Integer], artist_owner.c.pk)
 		query = select(
 			ab_pk.label("id"),
 			ab_name.label("name"),
 			ab_year.label("year"),
-			ab_albumArtistFk.label("albumArtistId"),
-			ab_ownerFk.label("album.ownerId"),
-			album_owner.c.username.label("album.ownerName"),
-			album_owner.c.displayName.label("album.ownerDisplayName"),
+			ab_albumArtistFk.label("albumartistid"),
+			ab_ownerFk.label("album.ownerid"),
+			album_owner.c.username.label("album.ownername"),
+			album_owner.c.displayname.label("album.ownerdisplayname"),
 			ar_name.label("artist.name"),
-			ar_ownerFk.label("artist.ownerId"),
-			artist_owner.c.username.label("artist.ownerName"),
-			artist_owner.c.displayName.label("artist.ownerDisplayName")
+			ar_ownerFk.label("artist.ownerid"),
+			artist_owner.c.username.label("artist.ownername"),
+			artist_owner.c.displayname.label("artist.ownerdisplayname")
 		).select_from(albums_tbl)\
 			.join(artists_tbl, ar_pk == ab_albumArtistFk, isouter=True) \
 			.join(album_owner, albumOwnerId == ab_ownerFk, isouter=True) \
@@ -623,7 +622,7 @@ class SongInfoService:
 		elif type(albumKeys) is str:
 			searchStr = SearchNameString.format_name_for_search(albumKeys)
 			query = query\
-				.where(func.format_name_for_search(ab_name).like(f"%{searchStr}%"))
+				.where(ab_name.like(f"%{searchStr}%"))
 		if userId:
 			query = query.where(ab_ownerFk == userId)
 		offset = page * pageSize if pageSize else 0
@@ -633,20 +632,20 @@ class SongInfoService:
 			row["id"],
 			row["name"],
 			OwnerInfo(
-				row["album.ownerId"],
-				row["album.ownerName"],
-				row["album.ownerDisplayName"]
+				row["album.ownerid"],
+				row["album.ownername"],
+				row["album.ownerdisplayname"]
 			),
 			row["year"],
 			ArtistInfo(
-				row["albumArtistId"],
+				row["albumartistid"],
 				row["artist.name"],
 				OwnerInfo(
-					row["artist.ownerId"],
-					row["artist.ownerName"],
-					row["artist.ownerDisplayName"]
+					row["artist.ownerid"],
+					row["artist.ownername"],
+					row["artist.ownerdisplayname"]
 				)
-			) if row["albumArtistId"] else None
+			) if row["albumartistid"] else None
 			) for row in records)
 
 	def get_artists(self,
@@ -669,9 +668,8 @@ class SongInfoService:
 		elif isinstance(artistKeys, Iterable) :
 			query = query.where(ar_pk.in_(artistKeys))
 		elif type(artistKeys) is str:
-			searchStr = SearchNameString.format_name_for_search(artistKeys)
 			query = query\
-				.where(func.format_name_for_search(ar_name).like(f"%{searchStr}%"))
+				.where(ar_name.like(f"%{artistKeys}%"))
 		if userId:
 			query = query.where(ar_ownerFk == userId)
 		offset = page * pageSize if pageSize else 0
@@ -795,20 +793,20 @@ class SongInfoService:
 
 	def _prepare_song_row_for_model(self, row: RowMapping) -> dict[str, Any]:
 		songDict: dict[Any, Any] = {**row}
-		albumArtistId = songDict.pop("album.albumArtistId", None)
-		albumArtistName = songDict.pop("album.albumArtist.name", "")
+		albumArtistId = songDict.pop("album.albumartistid", None)
+		albumArtistName = songDict.pop("album.albumartist.name", "")
 		albumArtistOwner = OwnerInfo(
-			songDict.pop("album.albumArtist.ownerId", 0),
-			songDict.pop("album.albumArtist.ownerName", ""),
-			songDict.pop("album.albumArtist.ownerDisplayName", ""),
+			songDict.pop("album.albumartist.ownerid", 0),
+			songDict.pop("album.albumartist.ownername", ""),
+			songDict.pop("album.albumartist.ownerdisplayname", ""),
 		)
 		album = AlbumInfo(
 			songDict.pop("album.id", None),
 			songDict.pop("album.name", None),
 			OwnerInfo(
-				songDict.pop("album.ownerId", 0),
-				songDict.pop("album.ownerName", ""),
-				songDict.pop("album.ownerDisplayName", ""),
+				songDict.pop("album.ownerid", 0),
+				songDict.pop("album.ownername", ""),
+				songDict.pop("album.ownerdisplayname", ""),
 			),
 			songDict.pop("album.year", None),
 			ArtistInfo(
@@ -821,15 +819,15 @@ class SongInfoService:
 			songDict["album"] = album
 		songDict.pop("artist.id", None)
 		songDict.pop("artist.name", None)
-		songDict.pop("artist.ownerId", None)
-		songDict.pop("artist.ownerName", None)
-		songDict.pop("artist.ownerDisplayName", None)
+		songDict.pop("artist.ownerid", None)
+		songDict.pop("artist.ownername", None)
+		songDict.pop("artist.ownerdisplayname", None)
 		songDict.pop("station.id", None)
 		songDict.pop("station.name", None)
-		songDict.pop("station.displayName", None)
-		songDict.pop("station.ownerId", None)
-		songDict.pop("station.ownerName", None)
-		songDict.pop("station.ownerDisplayName", None)
+		songDict.pop("station.displayname", None)
+		songDict.pop("station.ownerid", None)
+		songDict.pop("station.ownername", None)
+		songDict.pop("station.ownerdisplayname", None)
 		songDict.pop(sgar_isPrimaryArtist.description, None) #pyright: ignore reportUnknownMemberType
 		return songDict
 
@@ -837,17 +835,17 @@ class SongInfoService:
 		self,
 		songIds: Iterable[int]
 	) -> Select[Any]:
-		album_artist = artists_tbl.alias("albumArtist")
-		albumArtistId = cast(Column[Integer], album_artist.c.pk)
-		albumArtistOwnerId = cast(Column[Integer], album_artist.c.ownerFk)
-		albumOwner = user_tbl.alias("albumOwner")
-		albumOwnerId = cast(Column[Integer], albumOwner.c.pk)
-		albumArtistOwner = user_tbl.alias("albumArtistOwner")
-		albumArtistOwnerUserId = cast(Column[Integer], albumArtistOwner.c.pk)
-		artistOwner = user_tbl.alias("artistOwner")
-		artistOwnerId = cast(Column[Integer], artistOwner.c.pk)
-		stationOwner = user_tbl.alias("stationOwner")
-		stationOwnerId = cast(Column[Integer], stationOwner.c.pk)
+		album_artist = artists_tbl.alias("albumartist")
+		albumArtistId = album_artist.c.pk
+		albumArtistOwnerId = album_artist.c.ownerfk
+		albumOwner = user_tbl.alias("albumowner")
+		albumOwnerId = albumOwner.c.pk
+		albumArtistOwner = user_tbl.alias("albumartistowner")
+		albumArtistOwnerUserId = albumArtistOwner.c.pk
+		artistOwner = user_tbl.alias("artistowner")
+		artistOwnerId = artistOwner.c.pk
+		stationOwner = user_tbl.alias("stationowner")
+		stationOwnerId = stationOwner.c.pk
 		query = select(
 			sg_pk.label("id"),
 			sg_name.label("name"),
@@ -860,30 +858,30 @@ class SongInfoService:
 			sg_comment.label("comment"),
 			sg_lyrics.label("lyrics"),
 			sg_duration.label("duration"),
-			sg_sampleRate.label("sampleRate"),
+			sg_sampleRate.label("samplerate"),
 			ab_pk.label("album.id"),
 			ab_name.label("album.name"),
-			ab_ownerFk.label("album.ownerId"),
-			albumOwner.c.username.label("album.ownerName"),
-			albumOwner.c.displayName.label("album.ownerDisplayName"),
+			ab_ownerFk.label("album.ownerid"),
+			albumOwner.c.username.label("album.ownername"),
+			albumOwner.c.displayname.label("album.ownerdisplayname"),
 			ab_year.label("album.year"),
-			ab_albumArtistFk.label("album.albumArtistId"),
-			album_artist.c.name.label("album.albumArtist.name"),
-			album_artist.c.ownerFk.label("album.albumArtist.ownerId"),
-			albumArtistOwner.c.username.label("album.albumArtist.ownerName"),
-			albumArtistOwner.c.displayName.label("album.albumArtist.ownerDisplayName"),
+			ab_albumArtistFk.label("album.albumartistid"),
+			album_artist.c.name.label("album.albumartist.name"),
+			album_artist.c.ownerfk.label("album.albumartist.ownerid"),
+			albumArtistOwner.c.username.label("album.albumartist.ownername"),
+			albumArtistOwner.c.displayname.label("album.albumartist.ownerdisplayname"),
 			sgar_isPrimaryArtist,
 			ar_pk.label("artist.id"),
 			ar_name.label("artist.name"),
-			ar_ownerFk.label("artist.ownerId"),
-			artistOwner.c.username.label("artist.ownerName"),
-			artistOwner.c.displayName.label("artist.ownerDisplayName"),
+			ar_ownerFk.label("artist.ownerid"),
+			artistOwner.c.username.label("artist.ownername"),
+			artistOwner.c.displayname.label("artist.ownerdisplayname"),
 			st_pk.label("station.id"),
 			st_name.label("station.name"),
-			st_ownerFk.label("station.ownerId"),
-			stationOwner.c.username.label("station.ownerName"),
-			stationOwner.c.displayName.label("station.ownerDisplayName"),
-			st_displayName.label("station.displayName")
+			st_ownerFk.label("station.ownerid"),
+			stationOwner.c.username.label("station.ownername"),
+			stationOwner.c.displayname.label("station.ownerdisplayname"),
+			st_displayName.label("station.displayname")
 		).select_from(songs_tbl)\
 				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
 				.join(artists_tbl, ar_pk == sgar_artistFk, isouter=True)\
@@ -939,9 +937,9 @@ class SongInfoService:
 					row["artist.id"],
 					row["artist.name"],
 					OwnerInfo(
-						row["artist.ownerId"],
-						row["artist.ownerName"],
-						row["artist.ownerDisplayName"]
+						row["artist.ownerid"],
+						row["artist.ownername"],
+						row["artist.ownerdisplayname"]
 					)
 				)
 			elif row["artist.id"]:
@@ -949,9 +947,9 @@ class SongInfoService:
 						row["artist.id"],
 						row["artist.name"],
 						OwnerInfo(
-							row["artist.ownerId"],
-							row["artist.ownerName"],
-							row["artist.ownerDisplayName"]
+							row["artist.ownerid"],
+							row["artist.ownername"],
+							row["artist.ownerdisplayname"]
 						)
 					)
 				)
@@ -959,11 +957,11 @@ class SongInfoService:
 				stations.add(StationInfo(
 					row["station.id"],
 					row["station.name"],
-					row["station.displayName"],
+					row["station.displayname"],
 					owner=OwnerInfo(
-						row["station.ownerId"],
-						row["station.ownerName"],
-						row["station.ownerDisplayName"]
+						row["station.ownerid"],
+						row["station.ownername"],
+						row["station.ownerdisplayname"]
 					)
 				))
 		if currentSongRow:
@@ -992,23 +990,23 @@ class SongInfoService:
 		songInfo.name = str(SavedNameString(songInfo.name))
 		songInfoDict = asdict(songInfo)
 		songInfoDict.pop("artists", None)
-		songInfoDict.pop("primaryArtist", None)
+		songInfoDict.pop("primaryartist", None)
 		songInfoDict.pop("tags", None)
 		songInfoDict.pop("id", None)
 		songInfoDict.pop("album", None)
 		songInfoDict.pop("stations", None)
 		songInfoDict.pop("covers", None)
 		songInfoDict.pop("touched", None)
-		songInfoDict["albumFk"] = songInfo.album.id if songInfo.album else None
-		songInfoDict["lastModifiedByUserFk"] = user.id
-		songInfoDict["lastModifiedTimestamp"] = self.get_datetime().timestamp()
+		songInfoDict["albumfk"] = songInfo.album.id if songInfo.album else None
+		songInfoDict["lastmodifiedbyuserfk"] = user.id
+		songInfoDict["lastmodifiedtimestamp"] = self.get_datetime().timestamp()
 		if "album" in songInfo.touched:
 			songInfo.touched.add("albumFk")
 		stmt = update(songs_tbl).values(
 			**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
 		).where(sg_pk.in_(ids))
 		self.conn.execute(stmt)
-		if "artists" in songInfo.touched or "primaryArtist" in songInfo.touched:
+		if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
 			self.link_songs_with_artists(
 				chain(
 					(SongArtistTuple(sid, a.id) for a in songInfo.artists or []
@@ -1016,7 +1014,7 @@ class SongInfoService:
 					) if "artists" in songInfo.touched else (),
 					#we can't use allArtists here bc we need the primaryArtist selection
 					(SongArtistTuple(sid, songInfo.primaryArtist.id, True) for sid in ids)
-						if "primaryArtist" in
+						if "primaryartist" in
 						songInfo.touched and songInfo.primaryArtist else ()
 				),
 				user.id

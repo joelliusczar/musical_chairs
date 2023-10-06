@@ -35,8 +35,9 @@ from dataclasses import asdict
 
 @pytest.fixture
 def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
-	testName = request.node.name
-	dbName=f"test_{testName}_musical_chairs_db"
+	#some tests were failing because db name was too long
+	testId = abs(hash(request.node.name))
+	dbName=f"test_{testId}_musical_chairs_db"
 	with DbRootConnectionService() as rootConnService:
 		rootConnService.drop_database(dbName)
 		rootConnService.create_db(dbName)
@@ -196,7 +197,7 @@ def fixture_path_user_factory(
 		rules = ActionRule.aggregate(
 			user.roles,
 			(p for p in songInfoService.get_paths_user_can_see(user.id)),
-			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirRoot)))
+			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 		userDict = asdict(user)
 		userDict["roles"] = rules

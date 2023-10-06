@@ -204,7 +204,7 @@ def create_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station, user=user)
-	return result or StationInfo(id=-1,name="", displayName="")
+	return result or StationInfo(id=-1,name="", displayname="")
 
 @router.put("/{stationKey}")
 def update_station(
@@ -217,7 +217,7 @@ def update_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station,user, stationKey)
-	return result or StationInfo(id=-1,name="",displayName="")
+	return result or StationInfo(id=-1,name="",displayname="")
 
 @router.put("/enable/")
 def enable_stations(

@@ -101,7 +101,7 @@ class UserActionsHistoryService:
 			func.row_number().over( #pyright: ignore [reportUnknownMemberType]
 				partition_by=[q_stationFk, uah_action] if stationIds else uah_action,
 				order_by=uah_requestedTimestamp
-			).label("rowNum")
+			).label("rownum")
 		)\
 		.select_from(user_action_history)\
 		.where(uah_requestedTimestamp >= fromTimestamp)\
@@ -118,7 +118,7 @@ class UserActionsHistoryService:
 		subquery = query.subquery()
 		query = select(*subquery.c)
 		if limit is not None:
-			query = query.where(subquery.c.rowNum < limit)
+			query = query.where(subquery.c.rownum < limit)
 
 		records = self.conn.execute(query).mappings().fetchall()
 		if stationIds:
@@ -126,8 +126,8 @@ class UserActionsHistoryService:
 				StationHistoryActionItem(
 					userId,
 					cast(str,row["action"]),
-					cast(float,row["requestedTimestamp"]),
-					cast(int, row["stationFk"])
+					cast(float,row["requestedtimestamp"]),
+					cast(int, row["stationfk"])
 				)
 				for row in records
 			)

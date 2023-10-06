@@ -48,7 +48,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem,
 	CurrentPlayingInfo,
 	get_datetime,
-	SearchNameString,
 	StationInfo,
 	UserRoleDef
 )
@@ -307,8 +306,7 @@ class QueueService:
 			query = query.where(q_stationFk == stationId)
 		elif stationName:
 			query.join(stations, st_pk == q_stationFk)\
-				.where(func.format_name_for_search(st_name)
-					== SearchNameString.format_name_for_search(stationName))
+				.where(st_name == stationName)
 		else:
 			raise ValueError("Either stationName or id must be provided")
 		query = query.where(uah_timestamp.is_(None))

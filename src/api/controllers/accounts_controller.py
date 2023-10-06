@@ -71,7 +71,7 @@ def login(
 	)
 	response.set_cookie(
 		key="displayName",
-		value=parse.quote(user.displayName or user.username),
+		value=parse.quote(user.displayname or user.username),
 		max_age=tokenLifetime
 	)
 	return AuthenticatedAccount(
@@ -80,7 +80,7 @@ def login(
 		username=user.username,
 		roles=user.roles,
 		lifetime=tokenLifetime,
-		displayName=user.displayName,
+		displayname=user.displayname,
 		email=user.email
 	)
 
@@ -98,7 +98,7 @@ def login_with_cookie(
 			username=user.username,
 			roles=user.roles,
 			lifetime=expiration,
-			displayName=user.displayName,
+			displayname=user.displayname,
 			email=user.email
 		)
 	except:
@@ -108,7 +108,7 @@ def login_with_cookie(
 			username="",
 			roles=[],
 			lifetime=0,
-			displayName="",
+			displayname="",
 			email=""
 		)
 

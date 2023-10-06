@@ -55,7 +55,7 @@ def test_get_stations_list_with_admin(
 		key=lambda s:s.id
 	)
 	assert len(data) == 1
-	assert data[0].viewSecurityLevel == MinItemSecurityLevel.LOCKED.value
+	assert data[0].viewsecuritylevel == MinItemSecurityLevel.LOCKED.value
 
 def test_get_stations_list_with_user_and_owner(
 	fixture_station_service: StationService,
@@ -143,7 +143,7 @@ def test_save_station(
 	fetched = next(stationService.get_stations(result.id))
 	assert fetched.id == result.id
 	assert fetched.name == "brand_new_station"
-	assert fetched.displayName == "Brand new station"
+	assert fetched.displayname == "Brand new station"
 
 	testData = StationCreationInfo(
 		name = "brand_new_station_fake_tag",
@@ -167,7 +167,7 @@ def test_save_station(
 	assert result and result.id == 2
 	fetched = next(stationService.get_stations(result.id))
 	assert fetched and fetched.name == "papa_station_update"
-	assert fetched and fetched.displayName == "Come to papa test"
+	assert fetched and fetched.displayname == "Come to papa test"
 
 
 	testData = StationCreationInfo(
@@ -178,7 +178,7 @@ def test_save_station(
 	assert result and result.id == 1
 	fetched = next(stationService.get_stations(result.id))
 	assert fetched and fetched.name == "oscar_station"
-	assert fetched and fetched.displayName == "Oscar the grouch"
+	assert fetched and fetched.displayname == "Oscar the grouch"
 
 def test_get_station_user_rule_selection(
 	fixture_station_service: StationService,

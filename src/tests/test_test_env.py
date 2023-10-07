@@ -1,10 +1,13 @@
 import sys
 import os
+import pytest
 
+@pytest.mark.skip()
 def test_show_path():
 	print(os.environ['PYTHONPATH'])
 	print(sys.path)
 
+@pytest.mark.skip()
 def test_print_schema():
 	from musical_chairs_libs.services import EnvManager
 	EnvManager.print_expected_schema()

@@ -1,7 +1,7 @@
 from typing import Any
 from .env_manager import EnvManager
 from .template_service import TemplateService
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, NullPool
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
 	is_name_safe,
@@ -27,15 +27,19 @@ class DbRootConnectionService:
 		dbPass = EnvManager.db_setup_pass
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
-		engineAsRoot = create_engine(f"mysql+pymysql://root:{dbPass}@localhost")
+		engineAsRoot = create_engine(
+			f"mysql+pymysql://root:{dbPass}@localhost",
+			#not fully sure why this was needed, but mariadb/sqlalchemy/somebody
+			#was holding onto connections and this was fucking up unit tests
+			poolclass=NullPool
+		)
 		return engineAsRoot.connect()
 
 	def __enter__(self) -> "DbRootConnectionService":
 		return self
 
 	def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
-		if self.conn:
-			self.conn.close()
+		self.conn.close()
 
 	def create_db(self, dbName: str):
 		if not is_db_name_safe(dbName):
@@ -138,7 +142,8 @@ class DbOwnerConnectionService:
 			echo=self.echo,
 			connect_args={
 				"client_flag": CLIENT.MULTI_STATEMENTS | CLIENT.MULTI_RESULTS
-			}
+			},
+			poolclass=NullPool
 		)
 		return engine.connect()
 

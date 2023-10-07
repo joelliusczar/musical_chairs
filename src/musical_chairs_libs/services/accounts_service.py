@@ -395,7 +395,7 @@ class AccountsService:
 			rulesQuery.c.rule_domain
 		).select_from(users).join(
 			rulesQuery,
-			rulesQuery.c.rule_userFk == u_pk,
+			rulesQuery.c.rule_userfk == u_pk,
 			isouter=True
 		).where(or_(u_disabled.is_(None), u_disabled == False))\
 		.where(

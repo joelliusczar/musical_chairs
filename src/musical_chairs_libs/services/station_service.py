@@ -499,29 +499,29 @@ class StationService:
 		station: StationInfo,
 		userId: Optional[int]=None
 	) -> Iterator[AccountInfo]:
-		rulesQuery = build_rules_query(UserRoleDomain.Station).cte() #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+		rulesQuery = build_rules_query(UserRoleDomain.Station).cte()
 		query = select(
 			u_pk,
 			u_username,
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userFk, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_name, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_count, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_span, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
-			rulesQuery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
+			rulesQuery.c.rule_userfk,
+			rulesQuery.c.rule_name,
+			rulesQuery.c.rule_count,
+			rulesQuery.c.rule_span,
+			rulesQuery.c.rule_priority,
+			rulesQuery.c.rule_domain
 		).select_from(user_tbl).join(
 			rulesQuery,
 			or_(
 				and_(
 					(u_pk == station.owner.id) if station.owner else false(),
-					rulesQuery.c.rule_userFk == 0 #pyright: ignore [reportUnknownMemberType]
+					rulesQuery.c.rule_userfk == 0
 				),
 				and_(
-					rulesQuery.c.rule_userfk == u_pk,  #pyright: ignore [reportUnknownMemberType]
-					rulesQuery.c.rule_stationfk == station.id  #pyright: ignore [reportUnknownMemberType]
+					rulesQuery.c.rule_userfk == u_pk,
+					rulesQuery.c.rule_stationfk == station.id
 				),
 			),
 			isouter=True
@@ -529,7 +529,7 @@ class StationService:
 		.where(
 			or_(
 				coalesce(
-					rulesQuery.c.rule_priority, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+					rulesQuery.c.rule_priority,
 					RulePriorityLevel.SITE.value
 				) > MinItemSecurityLevel.INVITED_USER.value,
 				(u_pk == station.owner.id) if station.owner else false()

@@ -58,9 +58,9 @@ export const checkValues = async (
 	return response.data;
 };
 
-export const fetchUser = async ({ subjectUserKey }: SubjectUserKeyItem) => {
+export const fetchUser = async ({ subjectuserkey }: SubjectUserKeyItem) => {
 	const response = await webClient.get<User>(
-		`accounts/account/${subjectUserKey}`
+		`accounts/account/${subjectuserkey}`
 	);
 	return response.data;
 };
@@ -90,25 +90,25 @@ export const updateUserRoles = async ({ id, roles }: RoledUser) => {
 };
 
 export const updateAccountBasic = async (
-	{ subjectUserKey, data }: UserBasicUpdateApiParams
+	{ subjectuserkey, data }: UserBasicUpdateApiParams
 ) => {
 	const response = await webClient.put<User>(
-		`accounts/account/${subjectUserKey}`,
+		`accounts/account/${subjectuserkey}`,
 		data
 	);
 	return response.data;
 };
 
 export const updatePassword = async ({
-	subjectUserKey,
-	oldPassword,
-	newPassword,
+	subjectuserkey,
+	oldpassword,
+	newpassword,
 }: SubjectPasswordUpdate) => {
 	const response = await webClient.put<boolean>(
-		`accounts/update-password/${subjectUserKey}`,
+		`accounts/update-password/${subjectuserkey}`,
 		{
-			oldPassword,
-			newPassword,
+			oldpassword,
+			newpassword,
 		}
 	);
 	return response.data;
@@ -116,22 +116,22 @@ export const updatePassword = async ({
 
 export const addSiteUserRule = async (
 	{
-		subjectUserKey,
+		subjectuserkey,
 		rule,
 	}: SubjectUserRoleAddition
 ) => {
-	const url = `accounts/site-roles/user_role/${subjectUserKey}`;
+	const url = `accounts/site-roles/user_role/${subjectuserkey}`;
 	const response = await webClient.post<ActionRule>(url, rule);
 	return response.data;
 };
 
 export const removeSiteUserRule = async (
-	{ subjectUserKey, ruleName }: SubjectUserRoleDeletion
+	{ subjectuserkey, rulename }: SubjectUserRoleDeletion
 ) => {
-	const url = `accounts/site-roles/user_role/${subjectUserKey}`;
+	const url = `accounts/site-roles/user_role/${subjectuserkey}`;
 	const response = await webClient.delete<void>(url, {
 		params: {
-			ruleName,
+			rulename,
 		},
 	});
 	return response.data;

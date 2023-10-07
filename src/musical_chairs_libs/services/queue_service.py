@@ -330,10 +330,10 @@ class QueueService:
 		if pathRuleTree and playing:
 				playing.rules = list(pathRuleTree.valuesFlat(playing.path))
 		return CurrentPlayingInfo(
-			nowPlaying=playing,
+			nowplaying=playing,
 			items=queue,
-			totalRows=self.queue_count(stationId),
-			stationRules=[]
+			totalrows=self.queue_count(stationId),
+			stationrules=[]
 		)
 
 	def _remove_song_from_queue(self,

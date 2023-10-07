@@ -44,7 +44,7 @@ export function NavMenu() {
 			{currentUser.username && <ListItem
 				component={NavLink}
 				to={DomRoutes.queue({
-					ownerKey: currentUser.username,
+					ownerkey: currentUser.username,
 				})}
 			>
 				Queue
@@ -52,7 +52,7 @@ export function NavMenu() {
 			{currentUser.username && <ListItem
 				component={NavLink}
 				to={DomRoutes.history({
-					ownerKey: currentUser.username,
+					ownerkey: currentUser.username,
 				})}
 			>
 				History
@@ -60,7 +60,7 @@ export function NavMenu() {
 			{currentUser.username && <ListItem
 				component={NavLink}
 				to={DomRoutes.stations({
-					ownerKey: currentUser.username,
+					ownerkey: currentUser.username,
 				})}>
 				Stations
 			</ListItem>}
@@ -95,21 +95,21 @@ export function AppRoutes() {
 		<Routes>
 			<Route
 				path={`${DomRoutes.queue({
-					stationKey: ":stationKey",
-					ownerKey: ":ownerKey",
+					stationkey: ":stationkey",
+					ownerkey: ":ownerkey",
 				})}`}
 				element={<Queue />}
 			/>
 			<Route
 				path={`${DomRoutes.queue({
-					ownerKey: ":ownerKey",
+					ownerkey: ":ownerkey",
 				})}`}
 				element={<Queue />}
 			/>
 			<Route
 				path={`${DomRoutes.history({
-					stationKey: ":stationKey?",
-					ownerKey: ":ownerKey",
+					stationkey: ":stationkey?",
+					ownerkey: ":ownerkey",
 				})}`}
 				element={<History />}
 			/>
@@ -119,27 +119,27 @@ export function AppRoutes() {
 			/>
 			<Route
 				path={`${DomRoutes.stations({
-					ownerKey: ":ownerKey",
+					ownerkey: ":ownerkey",
 				})}`}
 				element={<Stations />}
 			/>
 			<Route
 				path={`${DomRoutes.songCatalogue({
-					stationKey: ":stationKey",
-					ownerKey: ":ownerKey",
+					stationkey: ":stationkey",
+					ownerkey: ":ownerkey",
 				})}`}
 				element={<SongCatalogue />}
 			/>
 			<Route
 				path={`${DomRoutes.songCatalogue({
-					ownerKey: ":ownerKey",
+					ownerkey: ":ownerkey",
 				})}`}
 				element={<SongCatalogue />}
 			/>
 			{currentUser.username && <Route
 				path={DomRoutes.stationUsers({
-					stationKey: ":stationKey",
-					ownerKey: ":ownerKey",
+					stationkey: ":stationkey",
+					ownerkey: ":ownerkey",
 				})}
 				element={<StationUserRoleAssignmentTable />}
 			/>}
@@ -160,7 +160,7 @@ export function AppRoutes() {
 			{currentUser.username &&
 			<Route
 				path={DomRoutes.accountsEdit({
-					subjectUserKey: ":subjectUserKey",
+					subjectuserkey: ":subjectuserkey",
 				})}
 				element={<AccountsEdit />}
 			/>}
@@ -174,7 +174,7 @@ export function AppRoutes() {
 				}
 			/>
 			<Route
-				path={DomRoutes.accountsRoles({ subjectUserKey: ":subjectUserKey"})}
+				path={DomRoutes.accountsRoles({ subjectuserkey: ":subjectuserkey"})}
 				element={
 					<PrivateRoute
 						element={<SiteUserRoleAssignmentTable />}
@@ -184,14 +184,14 @@ export function AppRoutes() {
 			/>
 			<Route
 				path={`${DomRoutes.stationsEdit({
-					ownerKey: ":ownerKey",
+					ownerkey: ":ownerkey",
 				})}`}
 				element={<StationEdit />}
 			/>
 			<Route
 				path={`${DomRoutes.stationsEdit({
-					stationKey: ":stationKey",
-					ownerKey: ":ownerKey",
+					stationkey: ":stationkey",
+					ownerkey: ":ownerkey",
 				})}`}
 				element={<StationEdit />}
 			/>

@@ -112,7 +112,7 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useDataWaitingReducer(
 		new RequiredDataStore<PageableListDataShape<User>>(
-			{ items: [], totalRows: 0}
+			{ items: [], totalrows: 0}
 		),
 		{
 			reducerMods: ruleUpdatePaths,
@@ -142,7 +142,7 @@ export const PathUserRoleAssignmentTable = () => {
 			const addedRule = await addPathUserRule({
 				rule,
 				prefix,
-				subjectUserKey: user.id,
+				subjectuserkey: user.id,
 			});
 			dispatch(dispatches.add({
 				...user,
@@ -198,7 +198,7 @@ export const PathUserRoleAssignmentTable = () => {
 			const addedRule = await addPathUserRule({
 				rule,
 				prefix,
-				subjectUserKey: user.id,
+				subjectuserkey: user.id,
 			});
 			dispatch(dispatches.update(
 				user.id,
@@ -216,9 +216,9 @@ export const PathUserRoleAssignmentTable = () => {
 	const removeRole = async (role: ActionRule, user: User) => {
 		try {
 			await removePathUserRule({
-				ruleName: role.name,
+				rulename: role.name,
 				prefix,
-				subjectUserKey: user.id,
+				subjectuserkey: user.id,
 			});
 			const roles = [...user.roles];
 			const idx = roles.findIndex(r => r.name === role.name);
@@ -245,7 +245,7 @@ export const PathUserRoleAssignmentTable = () => {
 		try {
 			await removePathUserRule({
 				prefix,
-				subjectUserKey: user.id,
+				subjectuserkey: user.id,
 			});
 			dispatch(dispatches.remove(user.id));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});

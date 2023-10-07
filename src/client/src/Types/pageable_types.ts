@@ -5,7 +5,7 @@ export interface ListData<T> {
 }
 
 export interface TableData<T> extends ListData<T> {
-	totalRows: number
+	totalrows: number
 }
 
 export interface PageableParams {

@@ -257,20 +257,20 @@ def test_get_station_user_rule_selection(
 	data = json.loads(response.content)
 	assert response.status_code == 200
 
-	assert len(data["stationRules"]) == 2
+	assert len(data["stationrules"]) == 2
 
-	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
-	assert data["stationRules"][0]["priority"] \
+	assert data["stationrules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationrules"][0]["priority"] \
 		== RulePriorityLevel.STATION_PATH.value
-	assert data["stationRules"][0]["domain"] == UserRoleDomain.Station.value
-	assert data["stationRules"][0]["count"] == 5
-	assert data["stationRules"][0]["span"] == 300
+	assert data["stationrules"][0]["domain"] == UserRoleDomain.Station.value
+	assert data["stationrules"][0]["count"] == 5
+	assert data["stationrules"][0]["span"] == 300
 
-	assert data["stationRules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
-	assert data["stationRules"][1]["priority"] == RulePriorityLevel.SITE.value
-	assert data["stationRules"][1]["domain"] == UserRoleDomain.Site.value
-	assert data["stationRules"][1]["count"] == 10
-	assert data["stationRules"][1]["span"] == 300
+	assert data["stationrules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationrules"][1]["priority"] == RulePriorityLevel.SITE.value
+	assert data["stationrules"][1]["domain"] == UserRoleDomain.Site.value
+	assert data["stationrules"][1]["count"] == 10
+	assert data["stationrules"][1]["span"] == 300
 
 	response = client.get(
 		"stations/2/4/catalogue",
@@ -280,13 +280,13 @@ def test_get_station_user_rule_selection(
 	data = json.loads(response.content)
 	assert response.status_code == 200
 
-	assert data["stationRules"]
-	assert len(data["stationRules"]) == 1
-	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
-	assert data["stationRules"][0]["priority"] == RulePriorityLevel.SITE.value
-	assert data["stationRules"][0]["domain"] == UserRoleDomain.Site.value
-	assert data["stationRules"][0]["count"] == 10
-	assert data["stationRules"][0]["span"] == 300
+	assert data["stationrules"]
+	assert len(data["stationrules"]) == 1
+	assert data["stationrules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationrules"][0]["priority"] == RulePriorityLevel.SITE.value
+	assert data["stationrules"][0]["domain"] == UserRoleDomain.Site.value
+	assert data["stationrules"][0]["count"] == 10
+	assert data["stationrules"][0]["span"] == 300
 
 	headers = login_test_user("testUser_oscar", client)
 
@@ -298,21 +298,21 @@ def test_get_station_user_rule_selection(
 	data = json.loads(response.content)
 	assert response.status_code == 200
 
-	assert data["stationRules"]
-	assert len(data["stationRules"]) == 2
-	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
-	assert data["stationRules"][0]["priority"] \
+	assert data["stationrules"]
+	assert len(data["stationrules"]) == 2
+	assert data["stationrules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationrules"][0]["priority"] \
 		== RulePriorityLevel.STATION_PATH.value + 1
-	assert data["stationRules"][0]["domain"] == UserRoleDomain.Site.value
-	assert data["stationRules"][0]["count"] == 5
-	assert data["stationRules"][0]["span"] == 120
+	assert data["stationrules"][0]["domain"] == UserRoleDomain.Site.value
+	assert data["stationrules"][0]["count"] == 5
+	assert data["stationrules"][0]["span"] == 120
 
-	assert data["stationRules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
-	assert data["stationRules"][1]["priority"] \
+	assert data["stationrules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationrules"][1]["priority"] \
 		== RulePriorityLevel.STATION_PATH.value
-	assert data["stationRules"][1]["domain"] == UserRoleDomain.Station.value
-	assert data["stationRules"][1]["count"] == 5
-	assert data["stationRules"][1]["span"] == 60
+	assert data["stationrules"][1]["domain"] == UserRoleDomain.Station.value
+	assert data["stationrules"][1]["count"] == 5
+	assert data["stationrules"][1]["span"] == 60
 
 	headers = login_test_user("testUser_papa", client)
 
@@ -324,20 +324,20 @@ def test_get_station_user_rule_selection(
 	data = json.loads(response.content)
 	assert response.status_code == 200
 
-	assert data["stationRules"]
-	assert len(data["stationRules"]) == 2
-	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
-	assert data["stationRules"][0]["priority"] \
+	assert data["stationrules"]
+	assert len(data["stationrules"]) == 2
+	assert data["stationrules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationrules"][0]["priority"] \
 		== RulePriorityLevel.STATION_PATH.value
-	assert data["stationRules"][0]["domain"] == UserRoleDomain.Station.value
-	assert data["stationRules"][0]["count"] == 25
-	assert data["stationRules"][0]["span"] == 300
+	assert data["stationrules"][0]["domain"] == UserRoleDomain.Station.value
+	assert data["stationrules"][0]["count"] == 25
+	assert data["stationrules"][0]["span"] == 300
 
-	assert data["stationRules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
-	assert data["stationRules"][1]["priority"] == RulePriorityLevel.SITE.value
-	assert data["stationRules"][1]["domain"] == UserRoleDomain.Site.value
-	assert data["stationRules"][1]["count"] == 20
-	assert data["stationRules"][1]["span"] == 300
+	assert data["stationrules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationrules"][1]["priority"] == RulePriorityLevel.SITE.value
+	assert data["stationrules"][1]["domain"] == UserRoleDomain.Site.value
+	assert data["stationrules"][1]["count"] == 20
+	assert data["stationrules"][1]["span"] == 300
 
 	headers = login_test_user("testUser_quebec", client)
 
@@ -349,21 +349,21 @@ def test_get_station_user_rule_selection(
 	data = json.loads(response.content)
 	assert response.status_code == 200
 
-	assert data["stationRules"]
-	assert len(data["stationRules"]) == 2
-	assert data["stationRules"][0]["domain"] == UserRoleDomain.Station.value
-	assert data["stationRules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
-	assert data["stationRules"][0]["priority"] \
+	assert data["stationrules"]
+	assert len(data["stationrules"]) == 2
+	assert data["stationrules"][0]["domain"] == UserRoleDomain.Station.value
+	assert data["stationrules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationrules"][0]["priority"] \
 		== RulePriorityLevel.STATION_PATH.value
-	assert data["stationRules"][0]["domain"] == UserRoleDomain.Station.value
-	assert data["stationRules"][0]["count"] == 25
-	assert data["stationRules"][0]["span"] == 300
+	assert data["stationrules"][0]["domain"] == UserRoleDomain.Station.value
+	assert data["stationrules"][0]["count"] == 25
+	assert data["stationrules"][0]["span"] == 300
 
-	assert data["stationRules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
-	assert data["stationRules"][1]["priority"] == RulePriorityLevel.SITE.value
-	assert data["stationRules"][1]["domain"] == UserRoleDomain.Site.value
-	assert data["stationRules"][1]["count"] == 15
-	assert data["stationRules"][1]["span"] == 300
+	assert data["stationrules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
+	assert data["stationrules"][1]["priority"] == RulePriorityLevel.SITE.value
+	assert data["stationrules"][1]["domain"] == UserRoleDomain.Site.value
+	assert data["stationrules"][1]["count"] == 15
+	assert data["stationrules"][1]["span"] == 300
 
 @pytest.mark.usefixtures("fixture_clean_station_folders")
 def test_post_with_invalid_security_levels(
@@ -677,7 +677,7 @@ def test_rule_adding_validation(
 		"priority": None,
 	}
 	response = client.post(
-		f"stations/10/zulu_station/user_role?subjectUserKey={28}",
+		f"stations/10/zulu_station/user_role?subjectuserkey={28}",
 		headers=headers,
 		json=rule
 	)
@@ -691,7 +691,7 @@ def test_rule_adding_validation(
 	rule["name"] = "dumb_shit"
 
 	response = client.post(
-		f"stations/10/zulu_station/user_role?subjectUserKey={28}",
+		f"stations/10/zulu_station/user_role?subjectuserkey={28}",
 		headers=headers,
 		json=rule
 	)
@@ -700,7 +700,7 @@ def test_rule_adding_validation(
 	rule["name"] = UserRoleDef.PATH_EDIT.value
 
 	response = client.post(
-		f"stations/10/zulu_station/user_role?subjectUserKey={28}",
+		f"stations/10/zulu_station/user_role?subjectuserkey={28}",
 		headers=headers,
 		json=rule
 	)
@@ -709,7 +709,7 @@ def test_rule_adding_validation(
 	rule["name"] = UserRoleDef.STATION_REQUEST.value
 
 	response = client.post(
-		f"stations/2/1/user_role?subjectUserKey={28}",
+		f"stations/2/1/user_role?subjectuserkey={28}",
 		headers=headers,
 		json=rule
 	)
@@ -718,7 +718,7 @@ def test_rule_adding_validation(
 	rule["name"] = UserRoleDef.PATH_EDIT.value
 
 	response = client.post(
-		f"stations/2/1/user_role?subjectUserKey={28}",
+		f"stations/2/1/user_role?subjectuserkey={28}",
 		headers=headers,
 		json=rule
 	)

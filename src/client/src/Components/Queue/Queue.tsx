@@ -60,7 +60,7 @@ export const Queue = () => {
 
 	const { callStatus: queueCallStatus } = queueState;
 	const canSkipSongsForStation = anyConformsToAnyRule(
-		queueState?.data?.stationRules,
+		queueState?.data?.stationrules,
 		[UserRoleDef.STATION_SKIP]
 	);
 
@@ -110,15 +110,15 @@ export const Queue = () => {
 
 	const handleRemoveSongFromQueue = async (item: SongListDisplayItem) => {
 		try {
-			if (!pathVars.ownerKey || !pathVars.stationKey) {
+			if (!pathVars.ownerkey || !pathVars.stationkey) {
 				enqueueSnackbar("Station or user missing", {variant: "error" });
 				return;
 			}
 			const data = await removeSongFromQueue({
-				ownerKey: pathVars.ownerKey,
-				stationKey: pathVars.stationKey,
-				songId: item?.id,
-				queuedTimestamp: item?.queuedTimestamp,
+				ownerkey: pathVars.ownerkey,
+				stationkey: pathVars.stationkey,
+				songid: item?.id,
+				queuedtimestamp: item?.queuedTimestamp,
 			});
 			queueDispatch(dispatches.done(data));
 			enqueueSnackbar("Song has been removed from queue");
@@ -129,7 +129,7 @@ export const Queue = () => {
 	};
 
 	useEffect(() => {
-		const stationTitle = `- ${selectedStation?.displayName || ""}`;
+		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title = `Musical Chairs - Queue${stationTitle}`;
 	},[selectedStation]);
 
@@ -138,15 +138,15 @@ export const Queue = () => {
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationKey || !pathVars.ownerKey) return;
+			if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			queueDispatch(dispatches.started());
 			try {
 				const data = await fetchQueue({
-					stationKey: pathVars.stationKey,
-					ownerKey: pathVars.ownerKey,
+					stationkey: pathVars.stationkey,
+					ownerkey: pathVars.ownerkey,
 					page: page - 1,
 					limit: limit,
 				});
@@ -172,7 +172,7 @@ export const Queue = () => {
 
 	return (
 		<>
-			<h1>Queue: {selectedStation?.displayName || ""}</h1>
+			<h1>Queue: {selectedStation?.displayname || ""}</h1>
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={urlBuilder.getOtherUrl}
@@ -185,7 +185,7 @@ export const Queue = () => {
 					error={queueState.error}
 				>
 					<Typography>Now Playing</Typography>
-					<NowPlaying nowPlaying={queueState?.data?.nowPlaying}/>
+					<NowPlaying nowPlaying={queueState?.data?.nowplaying}/>
 					{queueState?.data?.items?.length > 0 ? <>
 						<TableContainer>
 							<Table size="small">
@@ -226,7 +226,7 @@ export const Queue = () => {
 						<Box sx={{ display: "flex" }}>
 							<UrlPagination
 								getPageUrl={urlBuilder.getThisUrl}
-								totalRows={queueState.data?.totalRows}
+								totalRows={queueState.data?.totalrows}
 							/>
 						</Box>
 					</> :

@@ -83,8 +83,8 @@ const touchedObjectToArr = (touchedObj: TouchedObject) => {
 
 
 const schema = Yup.object().shape({
-	"primaryArtist": Yup.object().nullable().test(
-		"primaryArtist",
+	"primaryartist": Yup.object().nullable().test(
+		"primaryartist",
 		"Primary Artist is already listed.",
 		(value, testContext: Yup.TestContext<Partial<SongInfoForm>>) => {
 			const parent = testContext.parent as SongInfoForm;
@@ -101,7 +101,7 @@ const schema = Yup.object().shape({
 			if (!value) return true;
 			const found: { [key: IdType]: true} = {};
 			for (const artist of value) {
-				if (artist?.id === testContext.parent.primaryArtist?.id) {
+				if (artist?.id === testContext.parent.primaryartist?.id) {
 					return testContext.createError({
 						message: `Artist ${artist.name} has already been added ` +
 						"as primary artist",
@@ -159,7 +159,7 @@ export const SongEdit = () => {
 		defaultValues: {
 			name: "",
 			artists: [],
-			primaryArtist: {
+			primaryartist: {
 				id: 0,
 				name: "",
 			},
@@ -284,7 +284,7 @@ export const SongEdit = () => {
 
 	const songFilePath = watch("path");
 	const formArtists = watch("artists");
-	const primaryArtist = watch("primaryArtist");
+	const primaryArtist = watch("primaryartist");
 	const formAllArtists = useMemo(() =>
 		primaryArtist ? [...formArtists, primaryArtist] : formArtists,
 	[formArtists, primaryArtist]);
@@ -338,10 +338,10 @@ export const SongEdit = () => {
 				<Loader status={artistCallStatus} error={artistError}>
 					<Box sx={inputField}>
 						{ids?.length > 1 && <TouchedCheckbox
-							name="primaryArtist"
+							name="primaryartist"
 						/>}
 						<ArtistSelect
-							name="primaryArtist"
+							name="primaryartist"
 							options={artists}
 							formMethods={formMethods}
 							label="Primary Artist"

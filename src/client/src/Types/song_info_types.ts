@@ -16,14 +16,14 @@ export interface AlbumInfo {
 	id: IdType
 	name: string
 	year: number | null
-	albumArtist: ArtistInfo | null
+	albumartist: ArtistInfo | null
 	owner: User
 }
 
 export interface AlbumCreationInfo {
 	name: string
 	year?: number
-	albumArtist?: ArtistInfo
+	albumartist?: ArtistInfo
 }
 
 export interface NowPlayingInfo {
@@ -45,7 +45,7 @@ export interface SongListDisplayItem extends NamedIdItem {
 export interface CurrentPlayingInfo
 	extends StationTableData<SongListDisplayItem>
 {
-	nowPlaying: NowPlayingInfo | null
+	nowplaying: NowPlayingInfo | null
 }
 
 
@@ -56,9 +56,9 @@ export class InitialQueueState extends VoidStore {
 		super();
 		this.data = {
 			items: [],
-			totalRows: 0,
-			stationRules: [],
-			nowPlaying: {
+			totalrows: 0,
+			stationrules: [],
+			nowplaying: {
 				song: "",
 				album: "",
 				artist: "",

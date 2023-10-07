@@ -69,7 +69,7 @@ def history(
 	stationService: StationService = Depends(station_service)
 ) -> StationTableData[SongListDisplayItem]:
 	if not station:
-		return StationTableData(totalRows=0, items=[], stationRules=[])
+		return StationTableData(totalrows=0, items=[], stationrules=[])
 	history = list(queueService.get_history_for_station(
 			stationId=station.id,
 			page = page,
@@ -81,9 +81,9 @@ def history(
 	)
 	totalRows = queueService.history_count(stationId=station.id)
 	return StationTableData(
-		totalRows=totalRows,
+		totalrows=totalRows,
 		items=history,
-		stationRules=rules
+		stationrules=rules
 	)
 
 @router.get("/{ownerKey}/{stationKey}/queue/")
@@ -94,16 +94,16 @@ def queue(
 ) -> CurrentPlayingInfo:
 	if not station:
 		return CurrentPlayingInfo(
-			nowPlaying=None,
+			nowplaying=None,
 			items=[],
-			totalRows=0,
-			stationRules=[]
+			totalrows=0,
+			stationrules=[]
 		)
 	queue = queueService.get_now_playing_and_queue(
 		stationId=station.id,
 		user=user
 	)
-	queue.stationRules = ActionRule.sorted(
+	queue.stationrules = ActionRule.sorted(
 		station.rules
 	)
 	return queue
@@ -117,7 +117,7 @@ def song_catalogue(
 	stationService: StationService = Depends(station_service)
 ) -> StationTableData[SongListDisplayItem]:
 	if not station:
-		return StationTableData(totalRows=0, items=[], stationRules=[])
+		return StationTableData(totalrows=0, items=[], stationrules=[])
 	songs = list(
 		stationService.get_station_song_catalogue(
 			stationId = station.id,
@@ -132,7 +132,7 @@ def song_catalogue(
 	rules = ActionRule.sorted(
 		station.rules
 	)
-	return StationTableData(totalRows=totalRows, items=songs, stationRules=rules)
+	return StationTableData(totalrows=totalRows, items=songs, stationrules=rules)
 
 @router.post("/{ownerKey}/{stationKey}/request/{songId}")
 def request_song(

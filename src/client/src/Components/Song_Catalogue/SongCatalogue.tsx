@@ -47,8 +47,8 @@ export const SongCatalogue = () => {
 		new RequiredDataStore<StationTableData<SongListDisplayItem>>(
 			{
 				items: [],
-				totalRows: 0,
-				stationRules: [],
+				totalrows: 0,
+				stationrules: [],
 			}
 		)
 	);
@@ -63,7 +63,7 @@ export const SongCatalogue = () => {
 
 	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
 	const canRequestSongsForStation = anyConformsToAnyRule(
-		catalogueState?.data?.stationRules,
+		catalogueState?.data?.stationrules,
 		[UserRoleDef.STATION_REQUEST]
 	);
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
@@ -74,12 +74,12 @@ export const SongCatalogue = () => {
 	const { enqueueSnackbar } = useSnackbar();
 
 	const requestSong = async (songId: IdType) => {
-		if (!pathVars.stationKey) {
+		if (!pathVars.stationkey) {
 			enqueueSnackbar("Station key is missing", {variant: "error" });
 			return;
 		}
 		try {
-			await sendSongRequest({stationKey: pathVars.stationKey, songId });
+			await sendSongRequest({stationkey: pathVars.stationkey, songid: songId });
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
 		}
 		catch (err) {
@@ -132,7 +132,7 @@ export const SongCatalogue = () => {
 	};
 
 	useEffect(() => {
-		const stationTitle = `- ${selectedStation?.displayName || ""}`;
+		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
 			`Musical Chairs - Song Catalogue${stationTitle}`;
 	},[selectedStation]);
@@ -141,15 +141,15 @@ export const SongCatalogue = () => {
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationKey || !pathVars.ownerKey) return;
+			if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			catalogueDispatch(dispatches.started());
 			try {
 				const data = await fetchSongCatalogue({
-					stationKey: pathVars.stationKey,
-					ownerKey: pathVars.ownerKey,
+					stationkey: pathVars.stationkey,
+					ownerkey: pathVars.ownerkey,
 					page: page - 1,
 					limit: limit,
 				}
@@ -176,7 +176,7 @@ export const SongCatalogue = () => {
 
 	return (
 		<>
-			<h1>Song Catalogue: {selectedStation?.displayName || ""}</h1>
+			<h1>Song Catalogue: {selectedStation?.displayname || ""}</h1>
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
@@ -224,7 +224,7 @@ export const SongCatalogue = () => {
 						<Box sx={{ display: "flex" }}>
 							<UrlPagination
 								getPageUrl={getPageUrl.getThisUrl}
-								totalRows={catalogueState.data?.totalRows}
+								totalRows={catalogueState.data?.totalrows}
 							/>
 						</Box>
 					</>:

@@ -94,7 +94,7 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 			select
 			SelectProps={{
 				renderValue: () => {
-					return selectedStation?.displayName || selectedStation?.name || "";
+					return selectedStation?.displayname || selectedStation?.name || "";
 				},
 			}}
 			label="Stations"
@@ -108,8 +108,8 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 				}
 				navigate(getPageUrl(
 					{
-						ownerKey: station?.owner?.username?.toLowerCase(),
-						stationKey: station?.name?.toLowerCase(),
+						ownerkey: station?.owner?.username?.toLowerCase(),
+						stationkey: station?.name?.toLowerCase(),
 					},
 					location.search
 				),
@@ -134,7 +134,7 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 						className="station-menu"
 					>
 						<Box className="station-menu">
-							{s.displayName || s.name}
+							{s.displayname || s.name}
 							{/* <Typography noWrap >
 							</Typography> */}
 						</Box>

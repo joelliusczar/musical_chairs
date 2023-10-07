@@ -239,8 +239,8 @@ class AccountCreationInfo(AccountInfoSecurity):
 
 @dataclass(frozen=True)
 class PasswordInfo:
-	oldPassword: str
-	newPassword: str
+	oldpassword: str
+	newpassword: str
 
 @dataclass(frozen=True)
 class UserHistoryActionItem:
@@ -250,7 +250,7 @@ class UserHistoryActionItem:
 
 @dataclass(frozen=True)
 class StationHistoryActionItem(UserHistoryActionItem):
-	stationId: int
+	stationid: int
 
 
 @dataclass(frozen=True)

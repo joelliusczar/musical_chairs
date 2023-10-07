@@ -74,11 +74,11 @@ class ScanningSongItem:
 
 @dataclass()
 class StationTableData(TableData[T]):
-	stationRules: list[ActionRule]
+	stationrules: list[ActionRule]
 
 @dataclass()
 class CurrentPlayingInfo(StationTableData[SongListDisplayItem]):
-	nowPlaying: Optional[SongListDisplayItem]
+	nowplaying: Optional[SongListDisplayItem]
 
 @dataclass(frozen=True)
 class Tag:

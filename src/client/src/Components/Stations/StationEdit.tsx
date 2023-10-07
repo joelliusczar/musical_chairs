@@ -64,9 +64,9 @@ const requestSecurityOptions = viewSecurityOptions;
 
 const initialValues = {
 	name: "",
-	displayName: "",
-	viewSecurityLevel: viewSecurityOptions[0],
-	requestSecurityLevel: requestSecurityOptions[1],
+	displayname: "",
+	viewsecuritylevel: viewSecurityOptions[0],
+	requestsecuritylevel: requestSecurityOptions[1],
 };
 
 
@@ -89,8 +89,8 @@ const schema = Yup.object().shape({
 		(value) => `${value.path} is already used`,
 		validatePhraseIsUnused
 	),
-	requestSecurityLevel: Yup.object().required().test(
-		"requestSecurityLevel",
+	requestsecuritylevel: Yup.object().required().test(
+		"requestsecuritylevel",
 		"Request Security cannot be public or lower than view security",
 		(value, context) => {
 			return (value.id) !== MinItemSecurityLevel.PUBLIC
@@ -101,14 +101,14 @@ const schema = Yup.object().shape({
 
 const stationInfoToFormData = (data: StationInfo) => {
 	const viewSecurityLevel = viewSecurityOptions
-		.filter(o => o.id === data.viewSecurityLevel);
+		.filter(o => o.id === data.viewsecuritylevel);
 	const requestSecurityLevel = viewSecurityOptions
-		.filter(o => o.id === data.requestSecurityLevel);
+		.filter(o => o.id === data.requestsecuritylevel);
 	const formData = {
 		...data,
-		viewSecurityLevel: viewSecurityLevel.length ?
+		viewsecuritylevel: viewSecurityLevel.length ?
 			viewSecurityLevel[0] : viewSecurityOptions[0],
-		requestSecurityLevel: requestSecurityLevel.length ?
+		requestsecuritylevel: requestSecurityLevel.length ?
 			requestSecurityLevel[0] : viewSecurityOptions[1],
 	};
 	return formData;
@@ -136,8 +136,8 @@ export const StationEdit = (props: StationEditProps) => {
 
 	const getPageUrl = (params: { name: string }) => {
 		return DomRoutes.stationsEdit({
-			ownerKey: pathVars.ownerKey || currentUser.username,
-			stationKey: params.name,
+			ownerkey: pathVars.ownerkey || currentUser.username,
+			stationkey: params.name,
 		});
 	};
 
@@ -157,14 +157,14 @@ export const StationEdit = (props: StationEditProps) => {
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const stationId = values.id || null;
-			const {viewSecurityLevel, requestSecurityLevel} = values;
+			const {viewsecuritylevel, requestsecuritylevel } = values;
 			const saveData = {
 				...values,
-				viewSecurityLevel: viewSecurityLevel.id,
-				requestSecurityLevel: requestSecurityLevel.id,
+				viewsecuritylevel: viewsecuritylevel.id,
+				requestsecuritylevel: requestsecuritylevel.id,
 			};
-			saveData.viewSecurityLevel = viewSecurityLevel.id;
-			saveData.requestSecurityLevel = requestSecurityLevel.id;
+			saveData.viewsecuritylevel = viewsecuritylevel.id;
+			saveData.requestsecuritylevel = requestsecuritylevel.id;
 			const data = await saveStation({ values: saveData, id: stationId });
 			afterSubmit(data);
 			if (stationId) {
@@ -217,7 +217,7 @@ export const StationEdit = (props: StationEditProps) => {
 	]);
 
 	const loadStatus = pathVars.stationKey ? callStatus: CallStatus.done;
-	const viewSecurityLevel = watch("viewSecurityLevel");
+	const viewSecurityLevel = watch("viewsecuritylevel");
 	const bannedRequestLevels = viewSecurityOptions.filter(o =>
 		o.id < viewSecurityLevel.id || o.id === MinItemSecurityLevel.PUBLIC
 	).reduce<{[id: number]: boolean}>((accumulator, current) => {
@@ -243,14 +243,14 @@ export const StationEdit = (props: StationEditProps) => {
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="displayName"
+					name="displayname"
 					label="Display Name"
 					formMethods={formMethods}
 				/>
 			</Box>
 			<Box sx={inputField}>
 				<FormSelect
-					name="viewSecurityLevel"
+					name="viewsecuritylevel"
 					label="Who can see this radio station?"
 					sx={{ width: 250 }}
 					options={viewSecurityOptions}
@@ -263,7 +263,7 @@ export const StationEdit = (props: StationEditProps) => {
 			</Box>
 			<Box sx={inputField}>
 				<FormSelect
-					name="requestSecurityLevel"
+					name="requestsecuritylevel"
 					label="Who can request on this radio station?"
 					sx={{ width: 250 }}
 					options={viewSecurityOptions.slice(1)}

@@ -81,7 +81,7 @@ export const Stations = () => {
 			await disableStations({ ids: [id]});
 			toggleDispatch(dispatches.done({ key: id }));
 			enqueueSnackbar(`${name} is being disabled`, { variant: "success"});
-			updateStation(id, p => ({...p, isRunning: false}));
+			updateStation(id, p => ({...p, isrunning: false}));
 			setWaitConfirm("");
 		}
 		catch(err) {
@@ -102,7 +102,7 @@ export const Stations = () => {
 			await enableStations({ ids: id});
 			toggleDispatch(dispatches.done({ key: id }));
 			enqueueSnackbar(`${name} is being enabled`, { variant: "success"});
-			updateStation(id, p => ({...p, isRunning: true}));
+			updateStation(id, p => ({...p, isrunning: true}));
 		}
 		catch(err) {
 			const formattedError = formatError(err);
@@ -187,21 +187,21 @@ export const Stations = () => {
 						expandIcon={<ExpandMoreIcon />}
 					>
 						<Typography>
-							{s.displayName || s.name} -
+							{s.displayname || s.name} -
 							{waitConfirm === s.name ?
 								<YesNoControl
-									message={`Disable ${s.displayName}?`}
+									message={`Disable ${s.displayname}?`}
 									onYes={(e) => handleDisableStation(e, s.id, s.name)}
 									onNo={() => setWaitConfirm("")}
 								/> :
 								<Button
-									onClick={e => s.isRunning ?
+									onClick={e => s.isrunning ?
 										openDisableConfirm(e, s.name) :
 										handleEnableStation(e, s.id, s.name)
 									}
 									disabled={!canToggleStation(s.id)}
 								>
-									{s.isRunning ? "Online!": "Offline"}
+									{s.isrunning ? "Online!": "Offline"}
 								</Button>
 							}
 						</Typography>
@@ -224,8 +224,8 @@ export const Stations = () => {
 										variant="contained"
 										className="station-button"
 										to={`${DomRoutes.songCatalogue({
-											stationKey: s.name,
-											ownerKey: s.owner?.username || "",
+											stationkey: s.name,
+											ownerkey: s.owner?.username || "",
 										})}`}
 									>
 											Song Catalogue
@@ -238,8 +238,8 @@ export const Stations = () => {
 										variant="contained"
 										className="station-button"
 										to={`${DomRoutes.history({
-											stationKey: s.name,
-											ownerKey: s.owner?.username || "",
+											stationkey: s.name,
+											ownerkey: s.owner?.username || "",
 										})}`}
 									>
 											Song History
@@ -253,8 +253,8 @@ export const Stations = () => {
 										className="station-button"
 										to={`${DomRoutes.queue(
 											{
-												stationKey: s.name,
-												ownerKey: s.owner?.username || "",
+												stationkey: s.name,
+												ownerkey: s.owner?.username || "",
 											}
 										)}`}
 									>
@@ -267,8 +267,8 @@ export const Stations = () => {
 										variant="contained"
 										component={Link}
 										to={DomRoutes.stationsEdit({
-											stationKey: s.name,
-											ownerKey: s.owner?.username || "",
+											stationkey: s.name,
+											ownerkey: s.owner?.username || "",
 										})}
 									>
 										Edit
@@ -280,8 +280,8 @@ export const Stations = () => {
 										variant="contained"
 										component={Link}
 										to={DomRoutes.stationUsers({
-											stationKey: s.name,
-											ownerKey: s.owner?.username || "",
+											stationkey: s.name,
+											ownerkey: s.owner?.username || "",
 										})}
 									>
 										Assign Users

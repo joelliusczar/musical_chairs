@@ -13,10 +13,6 @@ type LoginFormProps = {
 	onCancel?: (e: unknown) => void
 };
 
-type LoginFormInitialValues = {
-	username: string,
-	password: string,
-};
 
 export function LoginForm(props: LoginFormProps) {
 

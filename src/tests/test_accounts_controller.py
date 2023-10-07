@@ -174,7 +174,7 @@ def test_get_account_list(fixture_api_test_client: TestClient):
 	response = client.get("/accounts/list", headers=headers)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["totalRows"] ==len(initialUsers)
+	assert data["totalrows"] ==len(initialUsers)
 	assert len(data["items"]) ==len(initialUsers)
 
 	headers = login_test_user("testUser_hotel", client)

@@ -2,13 +2,13 @@ import { KeyType, IdItem } from "../Types/generic_types";
 import { PageableParams } from "./pageable_types";
 
 export interface OwnerOnlyParam {
-	ownerKey: string | number
+	ownerkey: string | number
 }
 
 export interface OwnerParams extends PageableParams, OwnerOnlyParam {}
 
 export interface SubjectUserParams {
-	subjectUserKey: string | number
+	subjectuserkey: string | number
 };
 
 export interface ActionRuleCreationInfo {
@@ -35,14 +35,14 @@ export interface RoledUser extends IdItem, RoledEntity {};
 export interface UserBase extends IdItem {
 	username: string
 	email: string
-	displayName?: string
+	displayname?: string
 }
 
 export interface User extends UserBase, RoledUser {};
 
 export interface UserBasicUpdate {
 	email: string
-	displayName?: string
+	displayname?: string
 };
 
 export interface UserBasicUpdateApiParams extends SubjectUserKeyItem {
@@ -61,8 +61,8 @@ export interface LoginCredentials {
 };
 
 export interface PasswordUpdate {
-	oldPassword: string,
-	newPassword: string,
+	oldpassword: string,
+	newpassword: string,
 };
 
 export interface SubjectPasswordUpdate
@@ -71,13 +71,13 @@ export interface SubjectPasswordUpdate
 
 export interface UserCreationInfo extends User, RoledEntity{
 	email: string
-	displayName?: string
+	displayname?: string
 	password: string
-	passwordConfirm: string
+	passwordconfirm: string
 };
 
 export interface SubjectUserKeyItem {
-	subjectUserKey: KeyType
+	subjectuserkey: KeyType
 };
 
 export interface SubjectUserRoleAddition extends SubjectUserKeyItem {
@@ -85,7 +85,7 @@ export interface SubjectUserRoleAddition extends SubjectUserKeyItem {
 };
 
 export interface SubjectUserRoleDeletion extends SubjectUserKeyItem {
-	ruleName?: string
+	rulename?: string
 };
 
 export interface ExistenceCheckParams {

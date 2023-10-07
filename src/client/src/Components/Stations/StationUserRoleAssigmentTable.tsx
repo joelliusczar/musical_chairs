@@ -112,7 +112,7 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useDataWaitingReducer(
 		new RequiredDataStore<PageableListDataShape<User>>(
-			{ items: [], totalRows: 0 }
+			{ items: [], totalrows: 0 }
 		),
 		{reducerMods: ruleUpdatePaths}
 	);
@@ -130,7 +130,7 @@ export const StationUserRoleAssignmentTable = () => {
 			enqueueSnackbar("provided user was null", { variant: "error"});
 			return;
 		}
-		if (!pathVars.stationKey || !pathVars.ownerKey) {
+		if (!pathVars.stationkey || !pathVars.ownerkey) {
 			enqueueSnackbar("user or station is missing", { variant: "error"});
 			return;
 		}
@@ -142,10 +142,10 @@ export const StationUserRoleAssignmentTable = () => {
 				priority: null,
 			};
 			const addedRule = await addStationUserRule({
-				stationKey: pathVars.stationKey,
-				ownerKey: pathVars.ownerKey,
+				stationkey: pathVars.stationkey,
+				ownerkey: pathVars.ownerkey,
 				rule,
-				subjectUserKey: user.id,
+				subjectuserkey: user.id,
 			});
 			dispatch(dispatches.add({
 				...user,
@@ -159,7 +159,7 @@ export const StationUserRoleAssignmentTable = () => {
 	};
 
 	useEffect(() => {
-		const stationTitle = `- ${selectedStation?.displayName || ""}`;
+		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
 			`Musical Chairs - Users for ${stationTitle}`;
 	},[selectedStation]);
@@ -168,15 +168,15 @@ export const StationUserRoleAssignmentTable = () => {
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationKey || !pathVars.ownerKey) return;
+			if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			dispatch(dispatches.started());
 			try {
 				const data = await fetchStationUsers({
-					stationKey: pathVars.stationKey,
-					ownerKey: pathVars.ownerKey,
+					stationkey: pathVars.stationkey,
+					ownerkey: pathVars.ownerkey,
 					page: page - 1,
 					limit: limit,
 				});
@@ -202,16 +202,16 @@ export const StationUserRoleAssignmentTable = () => {
 	]);
 
 	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
-		if (!pathVars.stationKey || !pathVars.ownerKey) {
+		if (!pathVars.stationkey || !pathVars.ownerkey) {
 			console.error("user or station is missing");
 			return;
 		}
 		try {
 			const addedRule = await addStationUserRule({
-				stationKey: pathVars.stationKey,
-				ownerKey: pathVars.ownerKey,
+				stationkey: pathVars.stationkey,
+				ownerkey: pathVars.ownerkey,
 				rule,
-				subjectUserKey: user.id,
+				subjectuserkey: user.id,
 			});
 			dispatch(dispatches.update(
 				user.id,
@@ -233,10 +233,10 @@ export const StationUserRoleAssignmentTable = () => {
 		}
 		try {
 			await removeStationUserRule({
-				stationKey: pathVars.stationKey,
-				ownerKey: pathVars.ownerKey,
-				ruleName: role.name,
-				subjectUserKey: user.id,
+				stationkey: pathVars.stationKey,
+				ownerkey: pathVars.ownerKey,
+				rulename: role.name,
+				subjectuserkey: user.id,
 			});
 			const roles = [...user.roles];
 			const idx = roles.findIndex(r => r.name === role.name);
@@ -260,15 +260,15 @@ export const StationUserRoleAssignmentTable = () => {
 	};
 
 	const removeUser = async (user: User) => {
-		if (!pathVars.stationKey || !pathVars.ownerKey) {
+		if (!pathVars.stationkey || !pathVars.ownerkey) {
 			console.error("user or station is missing");
 			return;
 		}
 		try {
 			await removeStationUserRule({
-				stationKey: pathVars.stationKey,
-				ownerKey: pathVars.ownerKey,
-				subjectUserKey: user.id,
+				stationkey: pathVars.stationkey,
+				ownerkey: pathVars.ownerkey,
+				subjectuserkey: user.id,
 			});
 			dispatch(dispatches.remove(user.id));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});
@@ -279,7 +279,7 @@ export const StationUserRoleAssignmentTable = () => {
 	};
 
 	const stationName =
-		selectedStation?.displayName || selectedStation?.name || "";
+		selectedStation?.displayname || selectedStation?.name || "";
 	return (
 		<>
 			<h1>

@@ -58,7 +58,7 @@ export const UserMenu = (props: UserMenuProps) => {
 				<MenuItem
 					component={Link}
 					to={DomRoutes.accountsEdit({
-						subjectUserKey: encodeURIComponent(user.username),
+						subjectuserkey: encodeURIComponent(user.username),
 					})}
 					onClick={_closeMenu}
 				>

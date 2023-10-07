@@ -13,7 +13,7 @@ class ListData(Generic[T]):
 
 @dataclass()
 class TableData(ListData[T]):
-	totalRows: int
+	totalrows: int
 
 
 # class ErrorInfo(BaseModel):

@@ -366,11 +366,11 @@ class AccountsService:
 	) -> bool:
 		authenticated = self.authenticate_user(
 			currentUser.username,
-			passwordInfo.oldPassword.encode()
+			passwordInfo.oldpassword.encode()
 		)
 		if not authenticated:
 			return False
-		hash = hashpw(passwordInfo.newPassword.encode())
+		hash = hashpw(passwordInfo.newpassword.encode())
 		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
 		return True

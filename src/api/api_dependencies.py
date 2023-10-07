@@ -126,19 +126,19 @@ def get_optional_user_from_token(
 		return None
 
 def get_subject_user(
-	subjectUserKey: Union[int, str] = Query(None),
+	subjectuserkey: Union[int, str] = Query(None),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 		try:
-			subjectUserKey = int(subjectUserKey)
-			owner = accountsService.get_account_for_edit(subjectUserKey)
+			subjectuserkey = int(subjectuserkey)
+			owner = accountsService.get_account_for_edit(subjectuserkey)
 		except:
-			owner = accountsService.get_account_for_edit(subjectUserKey)
+			owner = accountsService.get_account_for_edit(subjectuserkey)
 		if owner:
 			return owner
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"User with key {subjectUserKey} not found")
+			detail=[build_error_obj(f"User with key {subjectuserkey} not found")
 			]
 		)
 
@@ -162,14 +162,14 @@ def get_owner(
 	return None
 
 def get_stations_by_ids(
-	stationIds: list[int]=Query(default=[]),
+	stationids: list[int]=Query(default=[]),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	stationService: StationService = Depends(station_service),
 ) -> Collection[StationInfo]:
-	if not stationIds:
+	if not stationids:
 		return ()
 	return list(stationService.get_stations(
-		stationIds,
+		stationids,
 		user=user
 	))
 
@@ -482,18 +482,18 @@ def get_station_user_2(
 
 def get_account_if_has_scope(
 	securityScopes: SecurityScopes,
-	subjectUserKey: Union[int, str],
+	subjectuserkey: Union[int, str],
 	currentUser: AccountInfo = Depends(get_current_user_simple),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	isCurrentUser = subjectUserKey == currentUser.id or\
-		subjectUserKey == currentUser.username
+	isCurrentUser = subjectuserkey == currentUser.id or\
+		subjectuserkey == currentUser.username
 	scopeSet = {s for s in securityScopes.scopes}
 	hasEditRole = currentUser.isadmin or\
 		any(r.name in scopeSet for r in currentUser.roles)
 	if not isCurrentUser and not hasEditRole:
 		raise build_wrong_permissions_error()
-	prev = accountsService.get_account_for_edit(subjectUserKey) if subjectUserKey else None
+	prev = accountsService.get_account_for_edit(subjectuserkey) if subjectuserkey else None
 	if not prev:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,

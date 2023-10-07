@@ -146,7 +146,7 @@ export interface ListDataShape<T> {
 export interface PageableListDataShape<T>
 	extends ListDataShape<T>
 {
-		totalRows: number
+		totalrows: number
 }
 
 export type ListStoreShape<DataShape> =

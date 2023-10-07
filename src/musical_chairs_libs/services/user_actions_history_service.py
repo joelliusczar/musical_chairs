@@ -208,7 +208,7 @@ class UserActionsHistoryService:
 					)
 			} for s in groupby(
 			actionGen,
-			key=lambda k: k.stationId
+			key=lambda k: k.stationid
 		)}
 		result = {s.id: {
 				r.name:__when_next_can_do__(

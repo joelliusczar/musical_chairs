@@ -25,8 +25,8 @@ export const AlbumSelect = <FormT extends FieldValues>(
 							</Box>
 							<Box className="form-select select-subtext">
 								<FormHelperText className="form-select select-subtext">
-									Artist: {option.albumArtist?.name ?
-										option.albumArtist?.name: ""}
+									Artist: {option.albumartist?.name ?
+										option.albumartist?.name: ""}
 								</FormHelperText>
 								<FormHelperText className="form-select select-subtext">
 									Owner: {option.owner?.username}

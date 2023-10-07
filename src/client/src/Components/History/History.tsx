@@ -53,7 +53,7 @@ export const History = () => {
 			new RequiredDataStore<PageableListDataShape<SongListDisplayItem>>(
 				{
 					items: [],
-					totalRows: 0,
+					totalrows: 0,
 				}
 			)
 		);
@@ -98,7 +98,7 @@ export const History = () => {
 	};
 
 	useEffect(() => {
-		const stationTitle = `- ${selectedStation?.displayName || ""}`;
+		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
 			`Musical Chairs - History${stationTitle}`;
 	},[selectedStation]);
@@ -114,8 +114,8 @@ export const History = () => {
 			historyDispatch(dispatches.started());
 			try {
 				const data = await fetchHistory({
-					stationKey: pathVars.stationKey,
-					ownerKey: pathVars.ownerKey,
+					stationkey: pathVars.stationKey,
+					ownerkey: pathVars.ownerKey,
 					page: page - 1,
 					limit: limit,
 				});
@@ -142,7 +142,7 @@ export const History = () => {
 
 	return (
 		<>
-			<h1>History: {selectedStation?.displayName || ""}</h1>
+			<h1>History: {selectedStation?.displayname || ""}</h1>
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
@@ -192,7 +192,7 @@ export const History = () => {
 						<Box sx={{ display: "flex" }}>
 							<UrlPagination
 								getPageUrl={getPageUrl.getThisUrl}
-								totalRows={historyState.data?.totalRows}
+								totalRows={historyState.data?.totalrows}
 							/>
 						</Box>
 					</>:

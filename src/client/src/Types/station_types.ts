@@ -2,7 +2,7 @@ import {
 	NamedIdItem,
 	KeyType,
 	Named,
-	IdType
+	IdType,
 } from "./generic_types";
 import {
 	OwnerParams,
@@ -12,41 +12,44 @@ import {
 	SubjectUserParams,
 	ActionRuleCreationInfo,
 } from "../Types/user_types";
-import { PageableListDataShape, SimpleStoreShape } from "../Reducers/types/reducerTypes"
+import {
+	PageableListDataShape,
+	SimpleStoreShape,
+} from "../Reducers/types/reducerTypes";
 
 export interface OwnedStationParams extends OwnerParams {
-	stationKey?: KeyType
+	stationkey?: KeyType
 }
 
 export interface RequiredStationParams extends OwnedStationParams {
-	stationKey: KeyType
+	stationkey: KeyType
 }
 
 export interface RequiredStationParamsOnly extends OwnerOnlyParam {
-	stationKey: KeyType
+	stationkey: KeyType
 }
 
 export interface StationInfo extends NamedIdItem {
-	displayName: string | null
-	isRunning: boolean
+	displayname: string | null
+	isrunning: boolean
 	owner: User | null
 	rules: ActionRule[]
-	viewSecurityLevel: IdType
-	requestSecurityLevel: IdType
+	viewsecuritylevel: IdType
+	requestsecuritylevel: IdType
 }
 
 export interface StationInfoForm extends Named {
 	id?: IdType
-	displayName: string | null
-	viewSecurityLevel: NamedIdItem
-	requestSecurityLevel: NamedIdItem
+	displayname: string | null
+	viewsecuritylevel: NamedIdItem
+	requestsecuritylevel: NamedIdItem
 }
 
 export interface StationCreationInfo extends Named {
 	id?: IdType
-	displayName: string | null
-	viewSecurityLevel: IdType | number | string
-	requestSecurityLevel: IdType | number | string
+	displayname: string | null
+	viewsecuritylevel: IdType | number | string
+	requestsecuritylevel: IdType | number | string
 };
 
 export interface StationRuleUpdateParams
@@ -57,11 +60,11 @@ export interface StationRuleAddition extends StationRuleUpdateParams {
 };
 
 export interface StationRuleDeletion extends StationRuleUpdateParams {
-	ruleName?: string
+	rulename?: string
 };
 
 export interface StationTableData<T> extends PageableListDataShape<T> {
-	stationRules: ActionRule[]
+	stationrules: ActionRule[]
 };
 
 export type StationItemsStore<DataShape> =

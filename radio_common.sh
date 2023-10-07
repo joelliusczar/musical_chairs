@@ -719,7 +719,7 @@ from musical_chairs_libs.services import (
 	DbRootConnectionService,
 	DbOwnerConnectionService
 )
-dbName="test_musical_chairs_db"
+dbName="musical_chairs_db"
 with DbRootConnectionService() as rootConnService:
 	rootConnService.create_db(dbName)
 	rootConnService.create_owner()
@@ -752,7 +752,7 @@ from musical_chairs_libs.services import (
 
 with DbRootConnectionService() as rootConnService:
 	rootConnService.drop_all_users()
-	rootConnService.drop_database("test_musical_chairs_db")
+	rootConnService.drop_database("musical_chairs_db")
 
 EOF
 	)

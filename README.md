@@ -52,7 +52,7 @@ If we need to test stuff locally some more but there is an instance running on
 nginx, we can try to kill it by calling `kill_process_using_port 8032`
 
 ## VSCode debug
-Use debug launch profile Python: API
+Use debug launch profile "Python: API"
 
 # Deploying to server
 

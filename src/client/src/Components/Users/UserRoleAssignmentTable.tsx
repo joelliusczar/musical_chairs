@@ -60,7 +60,7 @@ export const UserRoleAssignmentTable = (
 							expandIcon={<ExpandMoreIcon />}
 						>
 							<Box component="span">
-								{u.displayName || u.username}
+								{u.displayname || u.username}
 								{removeUser && <Button
 									onClick={() => removeUser(u)}
 								>

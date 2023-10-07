@@ -47,7 +47,7 @@ def get_configured_db_connection(
 ) -> Iterator[Connection]:
 	if not envManager:
 		envManager = EnvManager()
-	conn = envManager.get_configured_db_connection()
+	conn = envManager.get_configured_api_connection("musical_chairs_db")
 	try:
 		yield conn
 	finally:

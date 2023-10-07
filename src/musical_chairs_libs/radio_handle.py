@@ -37,7 +37,7 @@ class RadioHandle:
 	# Function called to shutdown your python enviroment.
 	# Return 1 if ok, 0 if something went wrong.
 	def ices_shutdown(self) -> int:
-		conn = self.env_manager.get_configured_db_connection()
+		conn = self.env_manager.get_configured_radio_connection(self.dbName)
 		StationService(conn)\
 			.unset_station_procs(stationIds=self.stationId)
 		conn.close()
@@ -50,7 +50,7 @@ class RadioHandle:
 	# Should return a string.
 	def ices_get_next(self) -> str:
 		searchBase = self.env_manager.search_base
-		conn = self.env_manager.get_configured_db_connection()
+		conn = self.env_manager.get_configured_radio_connection(self.dbName)
 		queueService = QueueService(conn)
 		(songPath, songName, album, artist) = \
 			queueService.pop_next_queued(stationId=self.stationId)

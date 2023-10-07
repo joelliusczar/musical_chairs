@@ -31,7 +31,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	MinItemSecurityLevel,
 	generate_user_and_rules_from_rows
 )
-from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
@@ -55,13 +54,10 @@ SECRET_KEY=os.environ["MC_AUTH_SECRET_KEY"]
 class AccountsService:
 
 	def __init__(self,
-		conn: Optional[Connection]=None,
-		envManager: Optional[EnvManager]=None
+		conn: Optional[Connection]=None
 	) -> None:
 		if not conn:
-			if not envManager:
-				envManager = EnvManager()
-			conn = envManager.get_configured_db_connection()
+			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self._system_user: Optional[AccountInfo] = None
 		self.get_datetime = get_datetime

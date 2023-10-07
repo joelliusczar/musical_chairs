@@ -7,7 +7,6 @@ from typing import (
 	overload,
 	Collection
 )
-from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
@@ -52,13 +51,10 @@ def __when_next_can_do__(
 class UserActionsHistoryService:
 
 	def __init__(self,
-		conn: Optional[Connection]=None,
-		envManager: Optional[EnvManager]=None
+		conn: Optional[Connection]=None
 	) -> None:
 		if not conn:
-			if not envManager:
-				envManager = EnvManager()
-			conn = envManager.get_configured_db_connection()
+			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
 

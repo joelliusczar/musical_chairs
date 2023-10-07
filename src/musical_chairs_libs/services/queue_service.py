@@ -23,7 +23,6 @@ from sqlalchemy import (
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.sql.functions import coalesce
-from .env_manager import EnvManager
 from .station_service import StationService
 from .accounts_service import AccountsService
 from .song_info_service import SongInfoService
@@ -75,16 +74,13 @@ class QueueService:
 		accountService: Optional[AccountsService]=None,
 		songInfoService: Optional[SongInfoService]=None,
 		choiceSelector: Optional[Callable[[List[Any], int], Collection[Any]]]=None,
-		envManager: Optional[EnvManager]=None
 	) -> None:
 			if not conn:
-				if not envManager:
-					envManager = EnvManager()
-				conn = envManager.get_configured_db_connection()
+				raise RuntimeError("No connection provided")
 			if not stationService:
 				stationService = StationService(conn)
 			if not accountService:
-				accountService = AccountsService(conn, envManager)
+				accountService = AccountsService(conn)
 			if not songInfoService:
 				songInfoService = SongInfoService(conn)
 			if not choiceSelector:

@@ -64,7 +64,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	generate_user_and_rules_from_rows,
 	normalize_opening_slash
 )
-from .env_manager import EnvManager
 from .template_service import TemplateService
 from .song_info_service import SongInfoService
 from .process_service import ProcessService
@@ -75,14 +74,11 @@ class StationService:
 	def __init__(
 		self,
 		conn: Optional[Connection]=None,
-		envManager: Optional[EnvManager]=None,
 		templateService: Optional[TemplateService]=None,
 		songInfoService: Optional[SongInfoService]=None,
 	):
 		if not conn:
-			if not envManager:
-				envManager = EnvManager()
-			conn = envManager.get_configured_db_connection()
+			raise RuntimeError("No connection provided")
 		if not templateService:
 			templateService = TemplateService()
 		if not songInfoService:

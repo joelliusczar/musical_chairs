@@ -1,6 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
 import os
+import hashlib
 from typing import Iterator, List, Any, Callable
 from datetime import datetime
 from musical_chairs_libs.services import (
@@ -36,7 +37,7 @@ from dataclasses import asdict
 @pytest.fixture
 def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 	#some tests were failing because db name was too long
-	testId = abs(hash(request.node.name))
+	testId =  hashlib.md5(request.node.name.encode("utf-8")).hexdigest()
 	dbName=f"test_{testId}_musical_chairs_db"
 	with DbRootConnectionService() as rootConnService:
 		rootConnService.drop_database(dbName)
@@ -51,6 +52,7 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 		ownerConnService.grant_api_roles()
 		ownerConnService.grant_radio_roles()
 		ownerConnService.add_next_directory_level_func()
+		ownerConnService.add_normalize_opening_slash()
 	try:
 		yield dbName
 	finally:
@@ -108,16 +110,18 @@ def fixture_db_conn_in_mem(
 		#should dispose here
 		conn.close()
 
+@pytest.fixture
+def fixture_populated_db_name(
+	request: pytest.FixtureRequest,
+	fixture_setup_db: str
+) -> str:
+	request.getfixturevalue("fixture_db_conn_in_mem")
+	return fixture_setup_db
+
 
 @pytest.fixture
-def fixture_radio_handle(
-	fixture_env_manager_with_in_mem_db: EnvManager
-) -> RadioHandle:
-	envMgr = fixture_env_manager_with_in_mem_db
-	radioHandle = RadioHandle(
-		1,
-		envManager=envMgr
-	)
+def fixture_radio_handle(fixture_populated_db_name: str) -> RadioHandle:
+	radioHandle = RadioHandle(1, fixture_populated_db_name)
 	return radioHandle
 
 

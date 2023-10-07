@@ -29,7 +29,7 @@ def test_invalid_post_duplicate_name(
 	julietHeaders = login_test_user("testUser_juliet", client)
 	testData: dict[str, Any] = {
 		"name": "oscar_station",
-		"displayName":"Oscar the grouch"
+		"displayname":"Oscar the grouch"
 	}
 
 	response = client.post(
@@ -44,7 +44,7 @@ def test_invalid_post_duplicate_name(
 	bravoHeaders = login_test_user("testUser_bravo", client)
 	testData: dict[str, Any] = {
 		"name": "oscar_station",
-		"displayName":"Oscar the grouch"
+		"displayname":"Oscar the grouch"
 	}
 
 	response = client.post(
@@ -58,8 +58,8 @@ def test_invalid_post_duplicate_name(
 	assert data["detail"][0]["field"] == "body->name"
 
 	testData = {
-			"name": "oscar_station",
-			"displayName":"Oscar the grouch"
+		"name": "oscar_station",
+		"displayname":"Oscar the grouch"
 	}
 
 @pytest.mark.usefixtures("fixture_clean_station_folders")
@@ -87,7 +87,7 @@ def test_post_with_only_name(
 	fetched = json.loads(response.content)
 	assert response.status_code == 200
 	assert fetched["name"] == "test_station"
-	assert fetched["displayName"] == ""
+	assert fetched["displayname"] == ""
 
 def test_updating_unchanged(
 	fixture_api_test_client: TestClient
@@ -373,8 +373,8 @@ def test_post_with_invalid_security_levels(
 	headers = login_test_user("testUser_tango", client)
 	testData: dict[str, Any] = {
 		"name": "test_station",
-		"viewSecurityLevel": MinItemSecurityLevel.OWENER_USER.value,
-		"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
+		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value,
+		"requestsecuritylevel": MinItemSecurityLevel.ANY_USER.value,
 	}
 
 	response = client.post(
@@ -387,12 +387,12 @@ def test_post_with_invalid_security_levels(
 	assert response.status_code == 422
 	assert data["detail"][0]["msg"] \
 		== "Request Security cannot be public or lower than view security"
-	assert data["detail"][0]["field"] == "body->requestSecurityLevel"
+	assert data["detail"][0]["field"] == "body->requestsecuritylevel"
 
 	testData: dict[str, Any] = {
 		"name": "test_station",
-		"viewSecurityLevel": MinItemSecurityLevel.PUBLIC.value,
-		"requestSecurityLevel": MinItemSecurityLevel.PUBLIC.value,
+		"viewsecuritylevel": MinItemSecurityLevel.PUBLIC.value,
+		"requestsecuritylevel": MinItemSecurityLevel.PUBLIC.value,
 	}
 
 	response = client.post(
@@ -404,12 +404,12 @@ def test_post_with_invalid_security_levels(
 	assert response.status_code == 422
 	assert data["detail"][0]["msg"] \
 		== "Request Security cannot be public or lower than view security"
-	assert data["detail"][0]["field"] == "body->requestSecurityLevel"
+	assert data["detail"][0]["field"] == "body->requestsecuritylevel"
 
 	testData: dict[str, Any] = {
 		"name": "test_station",
 		"viewSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
-		"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
+		"requestsecuritylevel": MinItemSecurityLevel.ANY_USER.value,
 	}
 
 	response = client.post(
@@ -434,8 +434,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 3
 	assert data["name"] == "romeo_station"
 	assert data["owner"]["username"] == "testUser_bravo"
-	assert data["requestSecurityLevel"] == MinItemSecurityLevel.ANY_USER.value
-	assert data["viewSecurityLevel"] == MinItemSecurityLevel.PUBLIC.value
+	assert data["requestsecuritylevel"] == MinItemSecurityLevel.ANY_USER.value
+	assert data["viewsecuritylevel"] == MinItemSecurityLevel.PUBLIC.value
 	assert data["rules"] == []
 
 	response = client.get(
@@ -465,8 +465,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 13
 	assert data["name"] == "bravo_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
-	assert data["requestSecurityLevel"] == MinItemSecurityLevel.ANY_USER.value
-	assert data["viewSecurityLevel"] == MinItemSecurityLevel.ANY_USER.value
+	assert data["requestsecuritylevel"] == MinItemSecurityLevel.ANY_USER.value
+	assert data["viewsecuritylevel"] == MinItemSecurityLevel.ANY_USER.value
 	assert data["rules"] == []
 
 	response = client.get(
@@ -516,8 +516,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 12
 	assert data["name"] == "alpha_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
-	assert data["requestSecurityLevel"] == MinItemSecurityLevel.RULED_USER.value
-	assert data["viewSecurityLevel"] == MinItemSecurityLevel.RULED_USER.value
+	assert data["requestsecuritylevel"] == MinItemSecurityLevel.RULED_USER.value
+	assert data["viewsecuritylevel"] == MinItemSecurityLevel.RULED_USER.value
 	assert data["rules"] == [{
 			"name": UserRoleDef.STATION_VIEW.value,
 			"span":0,
@@ -560,8 +560,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 14
 	assert data["name"] == "charlie_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
-	assert data["requestSecurityLevel"] == MinItemSecurityLevel.INVITED_USER.value
-	assert data["viewSecurityLevel"] == MinItemSecurityLevel.INVITED_USER.value
+	assert data["requestsecuritylevel"] == MinItemSecurityLevel.INVITED_USER.value
+	assert data["viewsecuritylevel"] == MinItemSecurityLevel.INVITED_USER.value
 	assert data["rules"] == [{
 			"name": UserRoleDef.STATION_VIEW.value,
 			"span":0,
@@ -615,8 +615,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 15
 	assert data["name"] == "delta_station_rerun"
 	assert data["owner"]["username"] == "testUser_yankee"
-	assert data["requestSecurityLevel"] == MinItemSecurityLevel.OWENER_USER.value
-	assert data["viewSecurityLevel"] == MinItemSecurityLevel.OWENER_USER.value
+	assert data["requestsecuritylevel"] == MinItemSecurityLevel.OWENER_USER.value
+	assert data["viewsecuritylevel"] == MinItemSecurityLevel.OWENER_USER.value
 	assert sorted(data["rules"], key=lambda d: d["name"]) == [
 		{
 			"name": UserRoleDef.STATION_ASSIGN.value,

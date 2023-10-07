@@ -14,8 +14,10 @@ class RadioHandle:
 	def __init__(
 		self,
 		stationId: int,
+		dbName: str,
 		envManager: Optional[EnvManager]=None
 	) -> None:
+		self.dbName = dbName
 		self.songnumber = -1
 		self.songFullPath = ""
 		self.display = ""
@@ -25,7 +27,7 @@ class RadioHandle:
 		self.stationId = stationId
 
 	def ices_init(self) -> int:
-		conn = self.env_manager.get_configured_db_connection()
+		conn = self.env_manager.get_configured_radio_connection(self.dbName)
 		StationService(conn)\
 			.set_station_proc(stationId=self.stationId)
 		conn.close()

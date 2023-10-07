@@ -192,8 +192,8 @@ class QueueService:
 	) -> Iterator[SongListDisplayItem]:
 		primaryArtistGroupQuery = select(
 			func.max(sgar_pk).label("pk"),
-			func.max(sgar_isPrimaryArtist).label("isPrimary"),
-			sgar_songFk.label("songFk")
+			func.max(sgar_isPrimaryArtist).label("isprimary"),
+			sgar_songFk.label("songfk")
 		).group_by(sgar_songFk)
 		#have a default row for songs without any songArtists to match against
 		defaultRow = select(literal(-1), literal(None), literal(None))

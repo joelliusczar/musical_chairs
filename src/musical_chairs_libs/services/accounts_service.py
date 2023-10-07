@@ -13,7 +13,6 @@ from typing import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
-	SearchNameString,
 	SavedNameString,
 	AccountCreationInfo,
 	get_datetime,
@@ -109,9 +108,8 @@ class AccountsService:
 		return None
 
 	def create_account(self, accountInfo: AccountCreationInfo) -> AccountInfo:
-		cleanedUsername = SearchNameString(accountInfo.username)
 		cleanedEmail: ValidatedEmail = validate_email(accountInfo.email)
-		if self._is_username_used(cleanedUsername):
+		if self._is_username_used(accountInfo.username):
 			raise AlreadyUsedError([
 				build_error_obj(
 					f"{accountInfo.username} is already used.",
@@ -128,11 +126,11 @@ class AccountsService:
 		hashed = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
 			username=SavedNameString.format_name_for_save(accountInfo.username),
-			displayName=SavedNameString.format_name_for_save(accountInfo.displayname),
-			hashedPW=hashed,
+			displayname=SavedNameString.format_name_for_save(accountInfo.displayname),
+			hashedpw=hashed,
 			email=cleanedEmail.email,
-			creationTimestamp = self.get_datetime().timestamp(),
-			dirRoot = SavedNameString.format_name_for_save(accountInfo.username)
+			creationtimestamp = self.get_datetime().timestamp(),
+			dirroot = SavedNameString.format_name_for_save(accountInfo.username)
 		)
 		res = self.conn.execute(stmt)
 		insertedPk = res.lastrowid
@@ -350,13 +348,13 @@ class AccountsService:
 				)
 			])
 		stmt = update(users).values(
-			displayName = updatedInfo.displayname,
+			displayname = updatedInfo.displayname,
 			email = updatedEmail
 		).where(u_pk == currentUser.id)
 		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
 		return AccountInfo(
 			**{**asdict(currentUser), #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
-				"displayName": updatedInfo.displayname,
+				"displayname": updatedInfo.displayname,
 				"email": updatedEmail
 			}
 		)

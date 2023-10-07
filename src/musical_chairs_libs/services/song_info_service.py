@@ -222,7 +222,7 @@ class SongInfoService:
 		stmt = upsert(albums_tbl).values(
 			name = str(savedName),
 			year = album.year,
-			albumartistfk = album.albumArtist.id if album.albumArtist else None,
+			albumartistfk = album.albumartist.id if album.albumartist else None,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
@@ -238,8 +238,8 @@ class SongInfoService:
 			affectedPk = albumId if albumId else res.lastrowid
 			artist = next(self.get_artists(
 				userId=user.id,
-				artistKeys=album.albumArtist.id
-			), None) if album.albumArtist else None
+				artistKeys=album.albumartist.id
+			), None) if album.albumartist else None
 			return AlbumInfo(affectedPk, str(savedName), owner, album.year, artist)
 		except IntegrityError:
 			raise AlreadyUsedError(
@@ -326,14 +326,14 @@ class SongInfoService:
 		count = self.conn.execute(songUpdate).rowcount
 		try:
 			songComposerInsert = insert(song_artist_tbl)\
-				.values(songFk = songInfo.id, artistFk = songInfo.artistId)
+				.values(songfk = songInfo.id, artistFk = songInfo.artistId)
 			self.conn.execute(songComposerInsert)
 		except IntegrityError: pass
 		try:
 			songComposerInsert = insert(song_artist_tbl)\
 				.values(
-					songFk = songInfo.id,
-					artistFk = songInfo.composerId,
+					songfk = songInfo.id,
+					artistfk = songInfo.composerId,
 					comment = "composer"
 				)
 			self.conn.execute(songComposerInsert)
@@ -570,7 +570,7 @@ class SongInfoService:
 		if not uniquePairs:
 			return []
 		existingPairs = set(self.get_station_songs(
-			songIds={st.songId for st in uniquePairs}
+			songIds={st.songid for st in uniquePairs}
 		))
 		outPairs = existingPairs - uniquePairs
 		inPairs = uniquePairs - existingPairs
@@ -578,15 +578,15 @@ class SongInfoService:
 		if not inPairs: #if no songs - stations have been linked
 			return existingPairs - outPairs
 		params = [{
-			"songfk": p.songId,
-			"stationfk": p.stationId,
+			"songfk": p.songid,
+			"stationfk": p.stationid,
 			"lastmodifiedbyuserfk": userId,
 			"lastmodifiedtimestamp": self.get_datetime().timestamp()
 		} for p in inPairs]
 		stmt = insert(stations_songs_tbl)
 		self.conn.execute(stmt, params)
 		return self.get_station_songs(
-			songIds={st.songId for st in uniquePairs}
+			songIds={st.songid for st in uniquePairs}
 		)
 
 	def get_albums(self,
@@ -733,7 +733,7 @@ class SongInfoService:
 			return iter([])
 		songArtistsSet = set(songArtists)
 		primaryArtistId = next(
-			(sa.artistId for sa in songArtistsSet if sa.isPrimaryArtist),
+			(sa.artistid for sa in songArtistsSet if sa.isprimaryartist),
 			-1
 		)
 		query = select(
@@ -745,17 +745,17 @@ class SongInfoService:
 		yield from (SongArtistTuple(
 			row[0],
 			row[1],
-			isPrimaryArtist=cast(int, row[1]) == primaryArtistId
+			isprimaryartist=cast(int, row[1]) == primaryArtistId
 		) for row in records)
 
 	def __are_all_primary_artist_single(
 		self,
 		songArtists: Iterable[SongArtistTuple]
 	) -> bool:
-		songKey: Callable[[SongArtistTuple],int] = lambda a: a.songId
+		songKey: Callable[[SongArtistTuple],int] = lambda a: a.songid
 		artistsGroups = groupby(sorted(songArtists, key=songKey), key=songKey)
 		for _, g in artistsGroups:
-			if len([sa for sa in g if sa.isPrimaryArtist]) > 1:
+			if len([sa for sa in g if sa.isprimaryartist]) > 1:
 				return False
 		return True
 
@@ -771,7 +771,7 @@ class SongInfoService:
 		if not self.__are_all_primary_artist_single(uniquePairs):
 			raise ValueError("Only one artist can be the primary artist")
 		existingPairs = set(self.get_song_artists(
-			songIds={sa.songId for sa in uniquePairs}
+			songIds={sa.songid for sa in uniquePairs}
 		))
 		outPairs = existingPairs - uniquePairs
 		inPairs = uniquePairs - existingPairs
@@ -779,16 +779,16 @@ class SongInfoService:
 		if not inPairs: #if no songs - artist have been linked
 			return existingPairs - outPairs
 		params = [{
-			"songFk": p.songId,
-			"artistFk": p.artistId,
-			"isPrimaryArtist": p.isPrimaryArtist,
-			"lastModifiedByUserFk": userId,
-			"lastModifiedTimestamp": self.get_datetime().timestamp()
+			"songfk": p.songid,
+			"artistfk": p.artistid,
+			"isprimaryartist": p.isprimaryartist,
+			"lastmodifiedbyuserfk": userId,
+			"lastmodifiedtimestamp": self.get_datetime().timestamp()
 		} for p in inPairs]
 		stmt = insert(song_artist_tbl)
 		self.conn.execute(stmt, params) #pyright: ignore [reportUnknownMemberType]
 		return self.get_song_artists(
-			songIds={sa.songId for sa in uniquePairs}
+			songIds={sa.songid for sa in uniquePairs}
 		)
 
 	def _prepare_song_row_for_model(self, row: RowMapping) -> dict[str, Any]:
@@ -923,7 +923,7 @@ class SongInfoService:
 				songDict = self._prepare_song_row_for_model(currentSongRow)
 				rules = [*rulePathTree.valuesFlat(songDict["path"])]
 				yield SongEditInfo(**songDict,
-					primaryArtist=primaryArtist,
+					primaryartist=primaryArtist,
 					artists=list(artists),
 					stations=list(stations),
 					rules=rules
@@ -968,7 +968,7 @@ class SongInfoService:
 			songDict = self._prepare_song_row_for_model(currentSongRow)
 			rules = [*rulePathTree.valuesFlat(songDict["path"])]
 			yield SongEditInfo(**songDict,
-					primaryArtist=primaryArtist,
+					primaryartist=primaryArtist,
 					artists=sorted(artists, key=lambda a: a.id if a else 0),
 					stations=sorted(stations, key=lambda t: t.id if t else 0),
 					rules=rules
@@ -1001,7 +1001,7 @@ class SongInfoService:
 		songInfoDict["lastmodifiedbyuserfk"] = user.id
 		songInfoDict["lastmodifiedtimestamp"] = self.get_datetime().timestamp()
 		if "album" in songInfo.touched:
-			songInfo.touched.add("albumFk")
+			songInfo.touched.add("albumfk")
 		stmt = update(songs_tbl).values(
 			**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
 		).where(sg_pk.in_(ids))
@@ -1012,10 +1012,10 @@ class SongInfoService:
 					(SongArtistTuple(sid, a.id) for a in songInfo.artists or []
 						for sid in ids
 					) if "artists" in songInfo.touched else (),
-					#we can't use allArtists here bc we need the primaryArtist selection
-					(SongArtistTuple(sid, songInfo.primaryArtist.id, True) for sid in ids)
+					#we can't use allArtists here bc we need the primaryartist selection
+					(SongArtistTuple(sid, songInfo.primaryartist.id, True) for sid in ids)
 						if "primaryartist" in
-						songInfo.touched and songInfo.primaryArtist else ()
+						songInfo.touched and songInfo.primaryartist else ()
 				),
 				user.id
 			)
@@ -1082,14 +1082,14 @@ class SongInfoService:
 	) -> Iterator[AccountInfo]:
 		addSlash = True
 		normalizedPrefix = normalize_opening_slash(prefix)
-		rulesQuery = build_rules_query(UserRoleDomain.Path).cte() #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+		rulesQuery = build_rules_query(UserRoleDomain.Path).cte()
 		query = select(
 			u_pk,
 			u_username,
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userFk,
+			rulesQuery.c.rule_userfk,
 			rulesQuery.c.rule_name,
 			rulesQuery.c.rule_count,
 			rulesQuery.c.rule_span,
@@ -1101,26 +1101,26 @@ class SongInfoService:
 				and_(
 					func.substring(
 						normalizedPrefix,
-						0,
+						1,
 						func.length(
 							func.normalize_opening_slash(u_dirRoot, addSlash)
-						) + 1
+						)
 					) == func.normalize_opening_slash(u_dirRoot, addSlash),
-					rulesQuery.c.rule_userFk == 0
+					rulesQuery.c.rule_userfk == 0
 				),
 				and_(
-					rulesQuery.c.rule_userFk == u_pk,
+					rulesQuery.c.rule_userfk == u_pk,
 						func.substring(
 							normalizedPrefix,
-							0,
+							1,
 							func.length(
 								func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
-							) + 1
+							)
 						) == func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
 				),
 			),
 			isouter=True
-		).where(or_(u_disabled.is_(None), u_disabled == False))\
+		).where(or_(u_disabled.is_(None), u_disabled == 0))\
 		.where(
 			or_(
 				coalesce(
@@ -1129,10 +1129,10 @@ class SongInfoService:
 				) > MinItemSecurityLevel.INVITED_USER.value,
 					func.substring(
 						prefix,
-						0,
+						1,
 						func.length(
 							func.normalize_opening_slash(u_dirRoot, addSlash)
-						) + 1
+						)
 					) == func.normalize_opening_slash(u_dirRoot, addSlash)
 			)
 		)

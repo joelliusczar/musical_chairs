@@ -211,7 +211,7 @@ def get_user_with_simple_scopes(
 	securityScopes: SecurityScopes,
 	user: AccountInfo = Depends(get_current_user_simple)
 ) -> AccountInfo:
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	for scope in securityScopes.scopes:
 		if not any(r for r in user.roles if r.name == scope):
@@ -224,7 +224,7 @@ def get_user_with_rate_limited_scope(
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	scopeSet = set(securityScopes.scopes)
 	rules = ActionRule.sorted((r for r in user.roles if r.name in scopeSet))
@@ -250,7 +250,7 @@ def impersonated_user_id(
 	impersonatedUserId: Optional[int],
 	user: AccountInfo = Depends(get_current_user_simple)
 ) -> Optional[int]:
-	if user.isAdmin or any(r.conforms(UserRoleDef.USER_IMPERSONATE.value) \
+	if user.isadmin or any(r.conforms(UserRoleDef.USER_IMPERSONATE.value) \
 			for r in user.roles):
 		return impersonatedUserId
 	return None
@@ -297,7 +297,7 @@ def get_path_user(
 	scopes = {s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	}
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	if not scopes:
 		raise build_wrong_permissions_error()
@@ -325,7 +325,7 @@ def get_path_user_and_check_optional_path(
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	if prefix is None:
 		if itemId:
@@ -365,7 +365,7 @@ def get_multi_path_user(
 	userActionHistoryService: UserActionsHistoryService=
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	userPrefixes = (
 		r for r in user.roles if isinstance(r, PathsActionRule)
@@ -408,7 +408,7 @@ def get_station_user(
 		return user
 	if not user:
 		raise build_not_logged_in_error()
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	scopes = {s for s in securityScopes.scopes \
 		if UserRoleDomain.Station.conforms(s)
@@ -452,7 +452,7 @@ def get_station_user_2(
 		return user
 	if not user:
 		raise build_not_logged_in_error()
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	scopes = {s for s in securityScopes.scopes \
 		if UserRoleDomain.Station.conforms(s)
@@ -489,7 +489,7 @@ def get_account_if_has_scope(
 	isCurrentUser = subjectUserKey == currentUser.id or\
 		subjectUserKey == currentUser.username
 	scopeSet = {s for s in securityScopes.scopes}
-	hasEditRole = currentUser.isAdmin or\
+	hasEditRole = currentUser.isadmin or\
 		any(r.name in scopeSet for r in currentUser.roles)
 	if not isCurrentUser and not hasEditRole:
 		raise build_wrong_permissions_error()

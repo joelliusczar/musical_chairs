@@ -219,7 +219,7 @@ class StationService:
 			id=row[st_pk],
 			name=row[st_name],
 			displayname=row[st_displayName],
-			isRunning=bool(row[st_procId]),
+			isrunning=bool(row[st_procId]),
 			owner=OwnerInfo(
 				row[st_ownerFk],
 				row[u_username],
@@ -394,7 +394,7 @@ class StationService:
 		userId: int,
 	) -> bool:
 		queryAny = select(st_pk, st_name).select_from(stations_tbl)\
-				.where(func.format_name_for_save(st_name) == str(stationName))\
+				.where(st_name == str(stationName))\
 				.where(st_ownerFk == userId)\
 				.where(st_pk != id)
 		countRes = self.conn.execute(queryAny).scalar()
@@ -453,7 +453,7 @@ class StationService:
 			return next(self.get_stations(stationId), None)
 		upsert = update if stationId else insert
 		savedName = SavedNameString(station.name)
-		savedDisplayName = SavedNameString(station.displayName)
+		savedDisplayName = SavedNameString(station.displayname)
 		stmt = upsert(stations_tbl).values(
 			name = str(savedName),
 			displayname = str(savedDisplayName),
@@ -603,7 +603,7 @@ class StationService:
 	def set_station_proc(self, stationId: int) -> None:
 		pid = ProcessService.get_pid()
 		stmt = update(stations_tbl)\
-			.values(procId = pid) \
+			.values(procid = pid) \
 				.where(st_pk == stationId)
 		self.conn.execute(stmt)
 
@@ -614,7 +614,7 @@ class StationService:
 		stationIds: Union[int,Iterable[int], None]=None,
 	) -> None:
 		stmt = update(stations_tbl)\
-			.values(procId = None)
+			.values(procid = None)
 
 		if isinstance(procIds, Iterable):
 			stmt = stmt.where(st_procId.in_(procIds))
@@ -632,7 +632,7 @@ class StationService:
 
 		pid = ProcessService.get_pid()
 		stmt = update(stations_tbl)\
-				.values(procId = pid) \
+				.values(procid = pid) \
 				.where(func.lower(st_name) == func.lower(stationName))
 		self.conn.execute(stmt)
 

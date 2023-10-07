@@ -27,14 +27,14 @@ class ArtistInfo:
 class AlbumCreationInfo:
 	name: str
 	year: Optional[int]=None
-	albumArtist: Optional[ArtistInfo]=None
+	albumartist: Optional[ArtistInfo]=None
 
 @dataclass(frozen=True)
 class AlbumInfo(IdItem):
 	name: str
 	owner: OwnerType
 	year: Optional[int]=None
-	albumArtist: Optional[ArtistInfo]=None
+	albumartist: Optional[ArtistInfo]=None
 
 @dataclass()
 class SongBase:
@@ -90,7 +90,7 @@ class StationInfo:
 	id: int
 	name: str
 	displayname: str=field(default="", hash=False, compare=False)
-	isRunning: bool=field(default=False, hash=False, compare=False)
+	isrunning: bool=field(default=False, hash=False, compare=False)
 	#don't expect this to ever actually null
 	owner: Optional[OwnerType]=field(default=None, hash=False, compare=False)
 	rules: list[ActionRule]=field(
@@ -104,7 +104,7 @@ class StationInfo:
 @dataclass()
 class StationCreationInfo:
 	name: str
-	displayName: Optional[str]=""
+	displayname: Optional[str]=""
 	viewsecuritylevel: Optional[int]=field(default=0)
 	requestsecuritylevel: Optional[int]=field(
 		default=MinItemSecurityLevel.OWENER_USER.value
@@ -158,34 +158,34 @@ class SongArtistGrouping:
 
 @dataclass(frozen=True)
 class StationSongTuple:
-	songId: int
-	stationId: int
-	isLinked: bool=field(default=False, hash=False, compare=False)
+	songid: int
+	stationid: int
+	islinked: bool=field(default=False, hash=False, compare=False)
 
 	def __len__(self) -> int:
 		return 2
 
 	def __iter__(self) -> Iterator[Any]:
-		yield self.songId
-		yield self.stationId
+		yield self.songid
+		yield self.stationid
 
 @dataclass(frozen=True)
 class SongArtistTuple:
-	songId: int
-	artistId: int
-	isPrimaryArtist: bool=False
-	isLinked: bool=field(default=False, hash=False, compare=False)
+	songid: int
+	artistid: int
+	isprimaryartist: bool=False
+	islinked: bool=field(default=False, hash=False, compare=False)
 
 	def __len__(self) -> int:
 		return 2
 
 	def __iter__(self) -> Iterator[int]:
-		yield self.songId
-		yield self.artistId
+		yield self.songid
+		yield self.artistid
 
 @dataclass()
 class SongTagGrouping:
-	songId: int
+	songid: int
 	tags: List[Tag]=field(default_factory=list)
 
 	def __iter__(self) -> Iterator[Tag]:
@@ -200,7 +200,7 @@ class SongPathInfo:
 class SongAboutInfo:
 	name: Optional[str]=None
 	album: Optional[AlbumInfo]=None
-	primaryArtist: Optional[ArtistInfo]=None
+	primaryartist: Optional[ArtistInfo]=None
 	artists: Optional[list[ArtistInfo]]=field(default_factory=list)
 	covers: Optional[list[int]]=field(default_factory=list)
 	track: Optional[int]=None
@@ -217,8 +217,8 @@ class SongAboutInfo:
 
 	@property
 	def allArtists(self) -> Iterable[ArtistInfo]:
-		if self.primaryArtist:
-			yield self.primaryArtist
+		if self.primaryartist:
+			yield self.primaryartist
 		yield from (a for a in self.artists or [])
 
 @dataclass()
@@ -246,7 +246,7 @@ class ValidatedSongAboutInfo(SongAboutInfo):
 	@root_validator
 	def root_validator(cls, values: dict[Any, Any]) -> Any:
 		artists = values.get("artists", [])
-		primaryArtist = values.get("primaryArtist", None)
+		primaryArtist = values.get("primaryartist", None)
 
 		duplicate = next(get_duplicates(
 			a.id for a in chain(artists, (primaryArtist,) if primaryArtist else ())),

@@ -70,7 +70,7 @@ def login(
 		max_age=tokenLifetime
 	)
 	response.set_cookie(
-		key="displayName",
+		key="displayname",
 		value=parse.quote(user.displayname or user.username),
 		max_age=tokenLifetime
 	)

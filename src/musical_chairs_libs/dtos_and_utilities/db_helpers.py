@@ -69,8 +69,8 @@ __path_permissions_query__ = select(
 		pup_priority,
 		RulePriorityLevel.STATION_PATH.value
 	).label("rule_priority"),
-	dbLiteral(UserRoleDomain.Path.value).label("rule_domain"), #pyright: ignore [reportUnknownMemberType]
-	pup_path.label("rule_path") #pyright: ignore [reportUnknownMemberType]
+	dbLiteral(UserRoleDomain.Path.value).label("rule_domain"),
+	pup_path.label("rule_path")
 )
 
 def __build_placeholder_select__(
@@ -80,12 +80,12 @@ def __build_placeholder_select__(
 		if domain == UserRoleDomain.Station \
 			else dbLiteral(UserRoleDef.PATH_VIEW.value))
 	query = select(
-		dbLiteral(0).label("rule_userfk"), #pyright: ignore [reportUnknownMemberType]
-		ruleNameCol.label("rule_name"), #pyright: ignore [reportUnknownMemberType]
-		cast(Column[float],dbLiteral(0)).label("rule_count"), #pyright: ignore [reportUnknownMemberType]
-		cast(Column[float],dbLiteral(0)).label("rule_span"), #pyright: ignore [reportUnknownMemberType]
-		dbLiteral(0).label("rule_priority"), #pyright: ignore [reportUnknownMemberType]
-		dbLiteral("shim").label("rule_domain"), #pyright: ignore [reportUnknownMemberType]
+		dbLiteral(0).label("rule_userfk"),
+		ruleNameCol.label("rule_name"),
+		cast(Column[float],dbLiteral(0)).label("rule_count"),
+		cast(Column[float],dbLiteral(0)).label("rule_span"),
+		dbLiteral(0).label("rule_priority"),
+		dbLiteral("shim").label("rule_domain"),
 	)
 
 	return query
@@ -109,55 +109,55 @@ def build_rules_query(
 				else_=RulePriorityLevel.SITE.value
 			)
 		).label("rule_priority"),
-		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"), #pyright: ignore [reportUnknownMemberType]
+		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
 	).where(ur_userFk == userId)
 
 
 	placeholder_select = __build_placeholder_select__(domain)
-	domain_permissions_query =  placeholder_select.where(false()) #pyright: ignore [reportUnknownMemberType]
-	path_permissions_query = placeholder_select.where(false()) #pyright: ignore [reportUnknownMemberType]
+	domain_permissions_query =  placeholder_select.where(false())
+	path_permissions_query = placeholder_select.where(false())
 	user_rules_query = user_rules_base_query \
-		if userId else placeholder_select.where(false()) #pyright: ignore [reportUnknownMemberType]
+		if userId else placeholder_select.where(false())
 
 	if domain == UserRoleDomain.Station:
-		placeholder_select = placeholder_select.add_columns( #pyright: ignore [reportUnknownMemberType]
-			dbLiteral(None).label("rule_stationFk") #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+		placeholder_select = placeholder_select.add_columns(
+			dbLiteral(None).label("rule_stationfk")
 		)
-		user_rules_query = user_rules_query.add_columns( #pyright: ignore [reportUnknownMemberType]
-			dbLiteral(-1).label("rule_stationFk") #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+		user_rules_query = user_rules_query.add_columns(
+			dbLiteral(-1).label("rule_stationfk")
 		).where(or_(
 				ur_role.like(f"{domain.value}:%"),
 				ur_role == UserRoleDef.ADMIN.value
 			),
 		)
 		domain_permissions_query = __station_permissions_query__
-		path_permissions_query = path_permissions_query.add_columns( #pyright: ignore [reportUnknownMemberType]
-			dbLiteral(None).label("rule_stationFk") #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+		path_permissions_query = path_permissions_query.add_columns(
+			dbLiteral(None).label("rule_stationfk")
 		)
 	elif domain == UserRoleDomain.Site:
 		#don't want the shim if only selecting on userRoles
-		placeholder_select = placeholder_select.where(false()) #pyright: ignore [reportUnknownMemberType]
+		placeholder_select = placeholder_select.where(false())
 	elif domain == UserRoleDomain.Path:
-		placeholder_select = placeholder_select.add_columns( #pyright: ignore [reportUnknownMemberType]
-			dbLiteral(None).label("rule_path") #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+		placeholder_select = placeholder_select.add_columns(
+			dbLiteral(None).label("rule_path")
 		)
-		user_rules_query = user_rules_query.add_columns( #pyright: ignore [reportUnknownMemberType]
-			dbLiteral(None).label("rule_path") #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-		).where(or_(
+		user_rules_query = user_rules_query.add_columns(
+			dbLiteral(None).label("rule_path")
+		).where(or_( #this part is only applies if there is a user id
 				ur_role.like(f"{domain.value}:%"),
 				ur_role == UserRoleDef.ADMIN.value
 			),
 		)
 		path_permissions_query = __path_permissions_query__
-		domain_permissions_query = domain_permissions_query.add_columns( #pyright: ignore [reportUnknownMemberType]
-			dbLiteral(None).label("rule_path") #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+		domain_permissions_query = domain_permissions_query.add_columns(
+			dbLiteral(None).label("rule_path")
 		)
 
 	if userId is not None:
 		domain_permissions_query = \
-			domain_permissions_query.where(stup_userFk == userId) #pyright: ignore [reportUnknownMemberType]
+			domain_permissions_query.where(stup_userFk == userId)
 		path_permissions_query =\
-			path_permissions_query.where(pup_userFk == userId) #pyright: ignore [reportUnknownMemberType]
+			path_permissions_query.where(pup_userFk == userId)
 
 	query = union_all(
 		domain_permissions_query,

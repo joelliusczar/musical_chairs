@@ -131,7 +131,7 @@ def test_save_station(
 	stationService = fixture_station_service
 	testData = StationCreationInfo(
 		name = "brand_new_station",
-		displayName="Brand new station"
+		displayname="Brand new station"
 	)
 	julietUser = AccountInfo(
 		id = juliet_user_id,
@@ -147,7 +147,7 @@ def test_save_station(
 
 	testData = StationCreationInfo(
 		name = "brand_new_station_fake_tag",
-		displayName="Brand new station with bad tag"
+		displayname="Brand new station with bad tag"
 	)
 	result = stationService.save_station(testData, julietUser)
 	assert result and result.id == len(get_initial_stations()) + 2
@@ -156,7 +156,7 @@ def test_save_station(
 
 	testData = StationCreationInfo(
 		name = "papa_station_update",
-		displayName="Come to papa test"
+		displayname="Come to papa test"
 	)
 	bravoUser = AccountInfo(
 		id = bravo_user_id,
@@ -172,7 +172,7 @@ def test_save_station(
 
 	testData = StationCreationInfo(
 		name = "oscar_station",
-		displayName="Oscar the grouch"
+		displayname="Oscar the grouch"
 	)
 	result = stationService.save_station(testData, fixture_primary_user, 1)
 	assert result and result.id == 1

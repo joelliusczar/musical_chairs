@@ -17,7 +17,7 @@ def test_create_account_success(fixture_api_test_client: TestClient):
 		"username": "testUser",
 		"email": "testPerson@gmail.com",
 		"password": "hello12",
-		"displayName": "Testeroni"
+		"displayname": "Testeroni"
 	}
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
@@ -38,7 +38,7 @@ def test_create_account_fail_username(fixture_api_test_client: TestClient):
 		"username": usedName,
 		"email": "testPerson@gmail.com",
 		"password": "hello12",
-		"displayName": "Testeroni"
+		"displayname": "Testeroni"
 	}
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
@@ -66,7 +66,7 @@ def test_create_account_fail_password(fixture_api_test_client: TestClient):
 		"username": "testUser",
 		"email": "testPerson@gmail.com",
 		"password": "hello",
-		"displayName": "Testeroni"
+		"displayname": "Testeroni"
 	}
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
@@ -82,7 +82,7 @@ def test_create_account_fail_email(fixture_api_test_client: TestClient):
 		"username": "testUser",
 		"email": "testPerson",
 		"password": "hello12",
-		"displayName": "Testeroni"
+		"displayname": "Testeroni"
 	}
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
@@ -236,13 +236,13 @@ def test_update_account(fixture_api_test_client: TestClient):
 		json={
 			"username": "testUser_golf",
 			"email": "test_golf_again@test.com",
-			"displayName": "Golf-Test-User"
+			"displayname": "Golf-Test-User"
 		}
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	assert data["email"] == "test_golf_again@test.com"
-	assert data["displayName"] == "Golf-Test-User"
+	assert data["displayname"] == "Golf-Test-User"
 
 def test_change_roles(fixture_api_test_client: TestClient):
 	client = fixture_api_test_client
@@ -278,7 +278,7 @@ def test_get_account_info(fixture_api_test_client: TestClient):
 	assert response.status_code == 200
 	assert data["id"] == user.id
 	assert data["username"] == user.username
-	assert data["displayName"] == None
+	assert data["displayname"] == None
 	assert data["email"] == user.email
 
 	response = client.get(
@@ -289,5 +289,5 @@ def test_get_account_info(fixture_api_test_client: TestClient):
 	assert response.status_code == 200
 	assert data["id"] == user.id
 	assert data["username"] == user.username
-	assert data["displayName"] == None
+	assert data["displayname"] == None
 	assert data["email"] == user.email

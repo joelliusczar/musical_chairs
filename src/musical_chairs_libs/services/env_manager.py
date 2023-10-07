@@ -98,6 +98,21 @@ class EnvManager:
 		)
 		return engine.connect()
 
+	@classmethod
+	def get_configured_radio_connection(
+		cls,
+		dbName: str,
+		echo: bool=False
+	) -> Connection:
+		dbPass = EnvManager.db_pass_radio
+		if not dbPass:
+			raise RuntimeError("The system is not configured correctly for that.")
+		engine = create_engine(
+			f"mysql+pymysql://{DbUsers.RADIO_USER()}:{dbPass}@localhost/{dbName}",
+			echo=echo,
+		)
+		return engine.connect()
+
 
 	@classmethod
 	def get_configured_db_connection(

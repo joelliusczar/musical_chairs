@@ -10,7 +10,7 @@ class SqlScripts(Enum):
 	)
 	GRANT_RADIO = (
 		"2.grant_radio.sql",
-		"6343c805d18243903058480d29fb1a75"
+		"4cbdc955359cbdbb9055f420bbf37912"
 	)
 	PATH_USER_INDEXES = (
 		"3.path_user_indexes.sql",
@@ -19,6 +19,10 @@ class SqlScripts(Enum):
 	NEXT_DIRECTORY_LEVEL = (
 		"4.next_directory_level.sql",
 		"385d3947b221f220e4a59b51b197f42a"
+	)
+	NORMALIZE_OPENING_SLASH = (
+		"5.normalize_opening_slash.sql",
+		"d2946254f45be36bdb565f398034c5a1"
 	)
 
 	@property

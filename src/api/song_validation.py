@@ -75,7 +75,7 @@ def __validate_song_stations(
 	if not song.stations:
 		return
 	stationIds = {s.id for s in song.stations or []}
-	linkedStationIds = {s.stationId for s in \
+	linkedStationIds = {s.stationid for s in \
 		songInfoService.get_station_songs(songIds=songIds)}
 	permittedStations = {s.id for s in \
 			stationService.get_stations(

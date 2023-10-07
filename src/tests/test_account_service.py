@@ -375,7 +375,7 @@ def test_get_ambiguous_key(
 	# accountService = fixture_account_service_mock_current_time
 	# accountInfo = accountService.get_account_for_edit("7")
 	# assert accountInfo
-	# assert accountInfo.displayName == "seven"
+	# assert accountInfo.displayname == "seven"
 
 def test_user_search(
 	fixture_account_service_mock_current_time: AccountsService

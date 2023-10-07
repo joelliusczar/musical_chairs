@@ -117,7 +117,7 @@ class AccountInfoSecurity(AccountInfoBase):
 		return self.displayname or self.username
 
 	@property
-	def isAdmin(self) -> bool:
+	def isadmin(self) -> bool:
 		return any(
 			UserRoleDef.ADMIN.conforms(r.name) \
 				for r in self.roles
@@ -181,7 +181,7 @@ class AccountCreationInfo(AccountInfoSecurity):
 		return {
 			"username": self.username,
 			"email": self.email,
-			"displayName": self.displayname,
+			"displayname": self.displayname,
 			"roles": self.roles
 		}
 
@@ -225,7 +225,7 @@ class AccountCreationInfo(AccountInfoSecurity):
 
 	# 	return SavedNameString.format_name_for_save(v)
 
-	# @validator("displayName")
+	# @validator("displayname")
 	# def displayName_valid_chars(cls, v: str) -> str:
 
 	# 	if re.match(guidRegx, v):
@@ -244,7 +244,7 @@ class PasswordInfo:
 
 @dataclass(frozen=True)
 class UserHistoryActionItem:
-	userId: int
+	userid: int
 	action: str
 	timestamp: float
 

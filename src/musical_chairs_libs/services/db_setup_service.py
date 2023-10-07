@@ -183,3 +183,9 @@ class DbOwnerConnectionService:
 			SqlScripts.NEXT_DIRECTORY_LEVEL
 		).replace("<apiUser>", DbUsers.API_USER("localhost"))
 		self.conn.exec_driver_sql(script)
+
+	def add_normalize_opening_slash(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.NORMALIZE_OPENING_SLASH
+		).replace("<apiUser>", DbUsers.API_USER("localhost"))
+		self.conn.exec_driver_sql(script)

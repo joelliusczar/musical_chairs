@@ -1671,7 +1671,7 @@ replace_sql_script() (
 	process_global_vars "$@" &&
 	export __TEST_FLAG__='true'
 	setup_common_dirs
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
+	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL"
 )
 
 #assume install_setup.sh has been run

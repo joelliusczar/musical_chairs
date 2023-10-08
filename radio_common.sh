@@ -151,22 +151,17 @@ get_pb_secret() (
 )
 
 get_s3_api_key() (
-	perl -ne 'print "$1\n" if /s3_api_key=(\w+)/' \
+	perl -ne 'print "$1\n" if /S3_ACCESS_KEY_ID=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
-)
-
-get_s3_secret() (
-	perl -ne 'print "$1\n" if /s3_secret=(\w+)/' \
+	perl -ne 'print "$1\n" if /S3_SECRET_ACCESS_KEY=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_mc_auth_key() (
-	perl -ne 'print "$1\n" if /mc_auth_key=(\w+)/' \
+	perl -ne 'print "$1\n" if /MC_AUTH_SECRET_KEY=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
@@ -178,6 +173,26 @@ get_address() (
 get_id_file() (
 	keyFile="$(get_app_root)"/keys/"$MC_PROJ_NAME"
 	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
+)
+
+get_db_setup_key() (
+	perl -ne 'print "$1\n" if /__DB_SETUP_PASS__=(\w+)/' \
+		"$(get_app_root)"/keys/"$M	C_PROJ_NAME"
+)
+
+get_db_owner_key() (
+	perl -ne 'print "$1\n" if /MC_DB_PASS_OWNER=(\w+)/' \
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+)
+
+get_api_user_key() (
+	perl -ne 'print "$1\n" if /MC_DB_PASS_API=(\w+)/' \
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+)
+
+get_radio_user_key() (
+	perl -ne 'print "$1\n" if /MC_DB_PASS_RADIO=(\w+)/' \
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_localhost_key_dir() (
@@ -1532,7 +1547,7 @@ setup_api() (
 	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	copy_dir "$MC_API_SRC" "$(get_web_root)"/"$MC_APP_API_PATH_CL" &&
 	create_py_env_in_app_trunk &&
-	replace_db_file_if_needed2 &&
+	setup_database &&
 	setup_nginx_confs &&
 	echo "done setting up api"
 )
@@ -1607,7 +1622,7 @@ setup_radio() (
 	create_py_env_in_app_trunk &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
 	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
-	replace_db_file_if_needed2 &&
+	setup_database &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	setup_icecast_confs "$icecastName" &&

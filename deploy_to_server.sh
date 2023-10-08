@@ -91,6 +91,10 @@ export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
 export PB_SECRET=$(get_pb_secret)
 export PB_API_KEY=$(get_pb_api_key)
 export APP_AUTH_KEY=$(get_mc_auth_key)
+export __DB_SETUP_PASS__="$(get_db_setup_key)"
+export MC_DB_PASS_OWNER="$(get_db_owner_key)"
+export MC_DB_PASS_API="$(get_api_user_key)"
+export MC_DB_PASS_RADIO="$(get_radio_user_key)"
 
 if [ "$__SETUP_LVL__" = 'api' ]; then
 	echo "$__SETUP_LVL__"

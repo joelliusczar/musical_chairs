@@ -177,7 +177,7 @@ get_id_file() (
 
 get_db_setup_key() (
 	perl -ne 'print "$1\n" if /__DB_SETUP_PASS__=(\w+)/' \
-		"$(get_app_root)"/keys/"$M	C_PROJ_NAME"
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 get_db_owner_key() (

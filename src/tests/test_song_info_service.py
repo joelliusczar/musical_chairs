@@ -448,7 +448,7 @@ def test_get_single_song_for_edit(
 		assert songInfo.primaryartist.id == 6
 		assert songInfo.primaryartist.name == "foxtrot_artist"
 	assert not songInfo.covers or len(songInfo.covers) == 0
-	assert songInfo.track == 1
+	assert songInfo.track == "1"
 	assert songInfo.disc == 1
 	assert songInfo.genre == "pop"
 	assert songInfo.stations and len(songInfo.stations) == 2
@@ -530,7 +530,7 @@ def test_get_multiple_songs_for_edit(
 		assert songInfo.primaryartist.id == 6
 		assert songInfo.primaryartist.name == "foxtrot_artist"
 	assert not songInfo.covers or len(songInfo.covers) == 0
-	assert songInfo.track == 1
+	assert songInfo.track == "1"
 	assert songInfo.disc == 1
 	assert songInfo.genre == "pop"
 	assert songInfo.stations and len(songInfo.stations) == 2
@@ -564,7 +564,7 @@ def test_get_multiple_songs_for_edit(
 	assert sortedArtists[4].name == "kilo_artist"
 	assert not songInfo.primaryartist
 	assert not songInfo.covers or len(songInfo.covers) == 0
-	assert songInfo.track == 2
+	assert songInfo.track == "2"
 	assert songInfo.disc == 1
 	assert not songInfo.genre
 	assert songInfo.stations and len(songInfo.stations) == 2

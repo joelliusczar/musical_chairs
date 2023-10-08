@@ -6,7 +6,7 @@ from enum import Enum
 class SqlScripts(Enum):
 	GRANT_API = (
 		"1.grant_api.sql",
-		"ad1c3e4900a58495fefb555708eeff79"
+		"dd79707fb19fbe3dc63cbc6018ecde0d"
 	)
 	GRANT_RADIO = (
 		"2.grant_radio.sql",

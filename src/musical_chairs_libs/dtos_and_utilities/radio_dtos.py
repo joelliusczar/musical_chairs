@@ -60,7 +60,7 @@ class ScanningSongItem:
 	albumId: Optional[int]=None
 	artistId: Optional[int]=None
 	composerId: Optional[int]=None
-	track: Optional[int]=None
+	track: Optional[str]=None
 	disc: Optional[int]=None
 	genre: Optional[str]=None
 	bitrate: Optional[float]=None
@@ -203,7 +203,7 @@ class SongAboutInfo:
 	primaryartist: Optional[ArtistInfo]=None
 	artists: Optional[list[ArtistInfo]]=field(default_factory=list)
 	covers: Optional[list[int]]=field(default_factory=list)
-	track: Optional[int]=None
+	track: Optional[str]=None
 	disc: Optional[int]=None
 	genre: Optional[str]=None
 	bitrate: Optional[float]=None

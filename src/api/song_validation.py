@@ -46,11 +46,11 @@ def get_song_ids(request: Request) -> Iterable[int]:
 	result: set[int] = set()
 	fieldName = ""
 	try:
-		fieldName = "itemId"
+		fieldName = "itemid"
 		itemId = request.path_params.get(fieldName, None)
 		if not itemId is None:
 			result.add(int(itemId))
-		fieldName = "itemIds"
+		fieldName = "itemids"
 		itemIds = request.query_params.getlist(fieldName)
 		result.update(itemIds)
 

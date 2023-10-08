@@ -37,12 +37,8 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 		items: contextStations,
 	} = useStationData();
 
-	const stations = useMemo(() => contextStations ?
-		contextStations.filter(s =>
-			!!pathVars.ownerkey && userKeyMatch(pathVars.ownerkey,s.owner)) :
-		contextStations,
-	[contextStations, pathVars.ownerkey]
-	);
+
+	const stations = contextStations;
 
 	const pathToStation = (path: string): StationInfo | null => {
 		const split = path.split("/");

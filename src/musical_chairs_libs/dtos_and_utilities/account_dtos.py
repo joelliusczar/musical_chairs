@@ -146,6 +146,8 @@ class AccountInfoSecurity(AccountInfoBase):
 		yield from (p for p in pathTree.shortest_paths())
 
 	def has_roles(self, *roles: UserRoleDef) -> bool:
+		if self.isadmin:
+			return True
 		for role in roles:
 			if all(r.name != role.value or (r.name == role.value and r.blocked) \
 				for r in self.roles

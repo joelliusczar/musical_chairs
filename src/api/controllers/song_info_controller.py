@@ -128,9 +128,9 @@ def download_song(
 		detail=[build_error_obj(f"{id} not found", "id")]
 	)
 
-@router.put("/songs/{itemId}")
+@router.put("/songs/{itemid}")
 def update_song(
-	itemId: int,
+	itemid: int,
 	song: ValidatedSongAboutInfo = Security(
 		extra_validated_song,
 		scopes=[UserRoleDef.PATH_EDIT.value]
@@ -141,12 +141,12 @@ def update_song(
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> SongEditInfo:
-	result = next(songInfoService.save_songs([itemId], song, user=user), None)
+	result = next(songInfoService.save_songs([itemid], song, user=user), None)
 	if result:
 		return result
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
-		detail=[build_error_obj(f"{itemId} not found", "id")]
+		detail=[build_error_obj(f"{itemid} not found", "id")]
 	)
 
 @router.put("/songs/multi/")

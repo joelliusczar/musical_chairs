@@ -107,15 +107,15 @@ export const History = () => {
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationKey || !pathVars.ownerKey) return;
+			if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			historyDispatch(dispatches.started());
 			try {
 				const data = await fetchHistory({
-					stationkey: pathVars.stationKey,
-					ownerkey: pathVars.ownerKey,
+					stationkey: pathVars.stationkey,
+					ownerkey: pathVars.ownerkey,
 					page: page - 1,
 					limit: limit,
 				});
@@ -132,8 +132,8 @@ export const History = () => {
 	},[
 		historyDispatch,
 		fetchHistory,
-		pathVars.stationKey,
-		pathVars.ownerKey,
+		pathVars.stationkey,
+		pathVars.ownerkey,
 		location.search,
 		location.pathname,
 		currentQueryStr,

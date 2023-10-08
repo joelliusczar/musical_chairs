@@ -48,7 +48,7 @@ Index("idx_dirroot", u_dirRoot, unique=True)
 
 artists = Table("artists", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("name", String(200), nullable=False),
+	Column("name", String(300), nullable=False),
 	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"),\
 		nullable=False),
 	Column("lastmodifiedtimestamp", Double[float], nullable=False),
@@ -94,7 +94,7 @@ songs = Table("songs", metadata,
 	Column("path", String(2000), nullable=False),
 	Column("name", String(200), nullable=True),
 	Column("albumfk", Integer, ForeignKey("albums.pk"), nullable=True),
-	Column("track", Integer, nullable=True),
+	Column("track", String(20), nullable=True),
 	Column("disc", Integer, nullable=True),
 	Column("genre", String(50), nullable=True),
 	Column("explicit", Boolean, nullable=True),

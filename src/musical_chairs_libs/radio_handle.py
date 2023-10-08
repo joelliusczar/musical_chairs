@@ -30,6 +30,7 @@ class RadioHandle:
 		conn = self.env_manager.get_configured_radio_connection(self.dbName)
 		StationService(conn)\
 			.set_station_proc(stationId=self.stationId)
+		conn.commit()
 		conn.close()
 		print('Executing initialize() function..')
 		return 1
@@ -40,6 +41,7 @@ class RadioHandle:
 		conn = self.env_manager.get_configured_radio_connection(self.dbName)
 		StationService(conn)\
 			.unset_station_procs(stationIds=self.stationId)
+		conn.commit()
 		conn.close()
 		print(f"Station is shutting down on {self.display}")
 		print(self.songFullPath)

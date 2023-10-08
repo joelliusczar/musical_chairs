@@ -143,20 +143,20 @@ def get_subject_user(
 		)
 
 def get_owner(
-	ownerKey: Union[int, str, None] = Query(None),
+	ownerkey: Union[int, str, None] = Query(None),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> Optional[AccountInfo]:
-	if ownerKey:
+	if ownerkey:
 		try:
-			ownerKey = int(ownerKey)
-			owner = accountsService.get_account_for_edit(ownerKey)
+			ownerkey = int(ownerkey)
+			owner = accountsService.get_account_for_edit(ownerkey)
 		except:
-			owner = accountsService.get_account_for_edit(ownerKey)
+			owner = accountsService.get_account_for_edit(ownerkey)
 		if owner:
 			return owner
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"User with key {ownerKey} not found")
+			detail=[build_error_obj(f"User with key {ownerkey} not found")
 			]
 		)
 	return None
@@ -174,29 +174,29 @@ def get_stations_by_ids(
 	))
 
 def get_station_by_name_and_owner(
-	stationKey: Union[int, str],
+	stationkey: Union[int, str],
 	owner: Optional[AccountInfo] = Depends(get_owner),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
-	if type(stationKey) == str and not owner:
+	if type(stationkey) == str and not owner:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail=[build_error_obj(
-				f"owner for station with key {stationKey} not found"
+				f"owner for station with key {stationkey} not found"
 			)]
 		)
 	#owner id is okay to be null if stationKey is an int
 	ownerId = owner.id if owner else None
 	station = next(stationService.get_stations(
-		stationKey,
+		stationkey,
 		ownerId=ownerId,
 		user=user
 	),None)
 	if not station:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"station with key {stationKey} not found")
+			detail=[build_error_obj(f"station with key {stationkey} not found")
 			]
 		)
 	return station
@@ -247,12 +247,12 @@ def get_user_with_rate_limited_scope(
 	return user
 
 def impersonated_user_id(
-	impersonatedUserId: Optional[int],
+	impersonateduserid: Optional[int],
 	user: AccountInfo = Depends(get_current_user_simple)
 ) -> Optional[int]:
 	if user.isadmin or any(r.conforms(UserRoleDef.USER_IMPERSONATE.value) \
 			for r in user.roles):
-		return impersonatedUserId
+		return impersonateduserid
 	return None
 
 def check_if_can_use_path(
@@ -319,7 +319,7 @@ def get_path_user(
 def get_path_user_and_check_optional_path(
 	securityScopes: SecurityScopes,
 	prefix: Optional[str]=None,
-	itemId: Optional[int]=None,
+	itemid: Optional[int]=None,
 	user: AccountInfo = Depends(get_path_user),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	userActionHistoryService: UserActionsHistoryService =
@@ -328,8 +328,8 @@ def get_path_user_and_check_optional_path(
 	if user.isadmin:
 		return user
 	if prefix is None:
-		if itemId:
-			prefix = next(songInfoService.get_song_path(itemId, False), "")
+		if itemid:
+			prefix = next(songInfoService.get_song_path(itemid, False), "")
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]
@@ -359,7 +359,7 @@ def get_path_user_and_check_optional_path(
 
 def get_multi_path_user(
 	securityScopes: SecurityScopes,
-	itemIds: list[int]=Query(default=[]),
+	itemids: list[int]=Query(default=[]),
 	user: AccountInfo=Depends(get_path_user),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	userActionHistoryService: UserActionsHistoryService=
@@ -379,7 +379,7 @@ def get_multi_path_user(
 					or r.name == UserRoleDef.ADMIN.value
 			)
 	), shouldEmptyUpdateTree=False)
-	prefixes = songInfoService.get_song_path(itemIds, False)
+	prefixes = songInfoService.get_song_path(itemids, False)
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]

@@ -193,8 +193,8 @@ export const StationUserRoleAssignmentTable = () => {
 	},[
 		dispatch,
 		fetchStationUsers,
-		pathVars.stationKey,
-		pathVars.ownerKey,
+		pathVars.stationkey,
+		pathVars.ownerkey,
 		location.search,
 		location.pathname,
 		currentQueryStr,
@@ -227,14 +227,14 @@ export const StationUserRoleAssignmentTable = () => {
 	};
 
 	const removeRole = async (role: ActionRule, user: User) => {
-		if (!pathVars.stationKey || !pathVars.ownerKey) {
+		if (!pathVars.stationkey || !pathVars.ownerkey) {
 			console.error("user or station is missing");
 			return;
 		}
 		try {
 			await removeStationUserRule({
-				stationkey: pathVars.stationKey,
-				ownerkey: pathVars.ownerKey,
+				stationkey: pathVars.stationkey,
+				ownerkey: pathVars.ownerkey,
 				rulename: role.name,
 				subjectuserkey: user.id,
 			});

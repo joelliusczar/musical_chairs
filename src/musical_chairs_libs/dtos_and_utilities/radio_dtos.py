@@ -46,9 +46,9 @@ class SongListDisplayItem(SongBase):
 	album: Optional[str]
 	artist: Optional[str]
 	path: str
-	queuedTimestamp: float
-	requestedTimestamp: Optional[float]=None
-	playedTimestamp: Optional[float]=None
+	queuedtimestamp: float
+	requestedtimestamp: Optional[float]=None
+	playedtimestamp: Optional[float]=None
 	rules: list[ActionRule]=field(default_factory=list)
 
 

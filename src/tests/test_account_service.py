@@ -30,9 +30,9 @@ def _insert_row_into_history(conn: Connection, userPk: int):
 			tzinfo=timezone.utc
 		).timestamp()
 	historyParams = [{
-			"stationFk": 1,
-			"songFk": 15,
-			"playedTimestamp": datetime(
+			"stationfk": 1,
+			"songfk": 15,
+			"playedtimestamp": datetime(
 				year=2022,
 				month=5,
 				day=27,
@@ -40,9 +40,9 @@ def _insert_row_into_history(conn: Connection, userPk: int):
 				minute=20,
 				tzinfo=timezone.utc
 			).timestamp(),
-			"queuedTimestamp": queuedTimestamp,
-			"requestedTimestamp": queuedTimestamp,
-			"requestedByUserFk": userPk
+			"queuedtimestamp": queuedTimestamp,
+			"requestedtimestamp": queuedTimestamp,
+			"requestedbyuserfk": userPk
 		}
 	]
 	stmt = insert(station_queue)
@@ -118,11 +118,11 @@ def _insert_row_into_queue(conn: Connection, userPk: int):
 			tzinfo=timezone.utc
 		).timestamp()
 	queueParams = [{
-			"stationFk": 1,
-			"songFk": 15,
-			"queuedTimestamp": queuedTimestamp,
-			"requestedTimestamp": queuedTimestamp,
-			"requestedByUserFk": userPk
+			"stationfk": 1,
+			"songfk": 15,
+			"queuedtimestamp": queuedTimestamp,
+			"requestedtimestamp": queuedTimestamp,
+			"requestedbyuserfk": userPk
 		}
 	]
 	stmt = insert(station_queue)

@@ -74,12 +74,15 @@ export const SongCatalogue = () => {
 	const { enqueueSnackbar } = useSnackbar();
 
 	const requestSong = async (songId: IdType) => {
-		if (!pathVars.stationkey) {
-			enqueueSnackbar("Station key is missing", {variant: "error" });
+		if (!pathVars.stationkey || !pathVars.ownerkey ) {
+			enqueueSnackbar("A key is missing", {variant: "error" });
 			return;
 		}
 		try {
-			await sendSongRequest({stationkey: pathVars.stationkey, songid: songId });
+			await sendSongRequest({
+				stationkey: pathVars.stationkey,
+				ownerkey: pathVars.ownerkey,
+				songid: songId });
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
 		}
 		catch (err) {
@@ -166,8 +169,8 @@ export const SongCatalogue = () => {
 	},[
 		catalogueDispatch,
 		fetchSongCatalogue,
-		pathVars.stationKey,
-		pathVars.ownerKey,
+		pathVars.stationkey,
+		pathVars.ownerkey,
 		location.search,
 		location.pathname,
 		currentQueryStr,

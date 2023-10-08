@@ -39,9 +39,9 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 
 	const stations = useMemo(() => contextStations ?
 		contextStations.filter(s =>
-			!!pathVars.ownerKey && userKeyMatch(pathVars.ownerKey,s.owner)) :
+			!!pathVars.ownerkey && userKeyMatch(pathVars.ownerkey,s.owner)) :
 		contextStations,
-	[contextStations, pathVars.ownerKey]
+	[contextStations, pathVars.ownerkey]
 	);
 
 	const pathToStation = (path: string): StationInfo | null => {
@@ -71,8 +71,8 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 	};
 
 	const pathSuffix = useMemo(() =>
-		`${pathVars.ownerKey}/${pathVars.stationKey?.toLowerCase()}`,
-	[pathVars.ownerKey,pathVars.stationKey]
+		`${pathVars.ownerkey}/${pathVars.stationkey?.toLowerCase()}`,
+	[pathVars.ownerkey,pathVars.stationkey]
 	);
 
 	const [selectedStation, setSelectedStation] = useState(pathToStation(

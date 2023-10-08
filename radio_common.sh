@@ -1094,8 +1094,8 @@ setup_react_env_debug() (
 	process_global_vars "$@" &&
 	envFile="$MC_CLIENT_SRC"/.env.local
 	echo "$envFile"
-	echo 'MC_REACT_APP_API_VERSION=v1' > "$envFile"
-	echo 'MC_REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
+	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
+	echo 'REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
 	#HTTPS, SSL_CRT_FILE, and SSL_KEY_FILE are used by create-react-app
 	#when calling `npm start`
 	echo 'HTTPS=true' >> "$envFile"
@@ -1567,7 +1567,7 @@ setup_client() (
 	empty_dir_contents "$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
 
 	export MC_REACT_APP_API_VERSION=v1 &&
-	export MC_REACT_APP_BASE_ADDRESS="$MC_FULL_URL" &&
+	export REACT_APP_BASE_ADDRESS="$MC_FULL_URL" &&
 	#set up react then copy
 	#install packages
 	npm --prefix "$MC_CLIENT_SRC" i &&

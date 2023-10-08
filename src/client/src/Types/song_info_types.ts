@@ -36,9 +36,9 @@ export interface SongListDisplayItem extends NamedIdItem {
 	album: string | null
 	artist: string | null
 	path: string
-	queuedTimestamp: number
-	requestedTimestamp: number | null
-	playedTimestamp: number | null
+	queuedtimestamp: number
+	requestedtimestamp: number | null
+	playedtimestamp: number | null
 	rules: ActionRule[]
 }
 
@@ -88,7 +88,7 @@ export type TouchedObject = {
 export interface SongInfoBase extends Named {
 	path: string
 	artists: ArtistInfo[]
-	primaryArtist: ArtistInfo
+	primaryartist: ArtistInfo
 	album: AlbumInfo
 	stations: StationInfo[]
 	genre: string

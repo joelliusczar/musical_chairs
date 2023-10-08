@@ -123,7 +123,7 @@ class SongInfoService:
 			name=cast(str,row[sg_name]),
 			album=cast(str,row["album"]),
 			artist=cast(str,row["artist"]),
-			queuedTimestamp=0
+			queuedtimestamp=0
 		)
 
 	def get_or_save_artist(self, name: Optional[str]) -> Optional[int]:
@@ -142,6 +142,7 @@ class SongInfoService:
 		)
 		res = self.conn.execute(stmt)
 		insertedPk = res.lastrowid
+		self.conn.commit()
 		return insertedPk
 
 	def __get_artist_owner__(self, artistId: int) -> OwnerInfo:
@@ -183,6 +184,7 @@ class SongInfoService:
 			res = self.conn.execute(stmt)
 
 			affectedPk: int = artistId if artistId else res.lastrowid
+			self.conn.commit()
 			return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
 		except IntegrityError:
 			raise AlreadyUsedError(
@@ -237,6 +239,7 @@ class SongInfoService:
 				userId=user.id,
 				artistKeys=album.albumartist.id
 			), None) if album.albumartist else None
+			self.conn.commit()
 			return AlbumInfo(affectedPk, str(savedName), owner, album.year, artist)
 		except IntegrityError:
 			raise AlreadyUsedError(
@@ -334,6 +337,7 @@ class SongInfoService:
 					comment = "composer"
 				)
 			self.conn.execute(songComposerInsert)
+			self.conn.commit()
 		except IntegrityError: pass
 		return count
 
@@ -783,7 +787,7 @@ class SongInfoService:
 			"lastmodifiedtimestamp": self.get_datetime().timestamp()
 		} for p in inPairs]
 		stmt = insert(song_artist_tbl)
-		self.conn.execute(stmt, params) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt, params)
 		return self.get_song_artists(
 			songIds={sa.songid for sa in uniquePairs}
 		)
@@ -1022,7 +1026,7 @@ class SongInfoService:
 					for t in (songInfo.stations or []) for sid in ids),
 				user.id
 			)
-
+		self.conn.commit()
 		if len(ids) < 2:
 			yield from self.get_songs_for_edit(ids, user)
 		else:
@@ -1160,6 +1164,7 @@ class SongInfoService:
 			creationTimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt)
+		self.conn.commit()
 		return PathsActionRule(
 			rule.name,
 			rule.span,

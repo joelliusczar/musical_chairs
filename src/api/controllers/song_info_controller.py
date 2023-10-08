@@ -256,11 +256,11 @@ def add_user_rule(
 def remove_user_rule(
 	prefix: str,
 	user: AccountInfo = Depends(get_subject_user),
-	ruleName: Optional[str] = Depends(validate_path_rule_for_remove),
+	rulename: Optional[str] = Depends(validate_path_rule_for_remove),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ):
 	songInfoService.remove_user_rule_from_path(
 		user.id,
 		prefix,
-		ruleName
+		rulename
 	)

@@ -118,7 +118,7 @@ export const Queue = () => {
 				ownerkey: pathVars.ownerkey,
 				stationkey: pathVars.stationkey,
 				songid: item?.id,
-				queuedtimestamp: item?.queuedTimestamp,
+				queuedtimestamp: item?.queuedtimestamp,
 			});
 			queueDispatch(dispatches.done(data));
 			enqueueSnackbar("Song has been removed from queue");
@@ -162,8 +162,8 @@ export const Queue = () => {
 	},[
 		queueDispatch,
 		fetchQueue,
-		pathVars.stationKey,
-		pathVars.ownerKey,
+		pathVars.stationkey,
+		pathVars.ownerkey,
 		location.search,
 		location.pathname,
 		currentQueryStr,

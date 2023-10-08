@@ -25,17 +25,17 @@ export const fetchStations = async (params?: OwnerParam) => {
 		"stations/list",
 		{
 			params: {
-				ownerKey: params?.ownerKey || undefined,
+				ownerkey: params?.ownerkey || undefined,
 			},
 		});
 	return response.data;
 };
 
 export const fetchStationForEdit = async (
-	{ ownerKey, stationKey }: { ownerKey: KeyType, stationKey: KeyType}
+	{ ownerkey, stationkey }: { ownerkey: KeyType, stationkey: KeyType}
 ) => {
 	const response = await webClient.get<StationInfo>(
-		`stations/${ownerKey}/${stationKey}/`
+		`stations/${ownerkey}/${stationkey}/`
 	);
 	return response.data;
 };
@@ -101,10 +101,10 @@ export const fetchHistory = async (
 };
 
 export const sendSongRequest = async (
-	{ stationkey, songid}: {stationkey: KeyType, songid: IdType}
+	{ stationkey, ownerkey, songid}: RequiredStationParams & {songid: IdType}
 ) => {
 	const response = await webClient
-		.post<void>(`stations/${stationkey}/request/${songid}`);
+		.post<void>(`stations/${ownerkey}/${stationkey}/request/${songid}`);
 	return response.data;
 };
 

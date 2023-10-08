@@ -141,10 +141,10 @@ export const Stations = () => {
 		return canAssign;
 	};
 
-	const stations = contextStations && pathVars.ownerKey ?
+	const stations = contextStations && pathVars.ownerkey ?
 		contextStations.filter(s =>
-			!!s.owner && !!pathVars.ownerKey &&
-			userKeyMatch(pathVars.ownerKey, s.owner)
+			!!s.owner && !!pathVars.ownerkey &&
+			userKeyMatch(pathVars.ownerkey, s.owner)
 		) :
 		contextStations;
 

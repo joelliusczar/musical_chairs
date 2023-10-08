@@ -138,6 +138,7 @@ class AccountsService:
 		accountDict["id"] = insertedPk #pyright: ignore [reportGeneralTypeIssues]
 		# accountDict["roles"] = insertedRows #pyright: ignore [reportGeneralTypeIssues]
 		resultDto = AccountInfo(**accountDict)
+		self.conn.commit()
 		return resultDto
 
 	def remove_roles_for_user(
@@ -150,7 +151,7 @@ class AccountsService:
 		roles = roles or []
 		delStmt = delete(userRoles).where(ur_userFk == userId)\
 			.where(ur_role.in_(roles))
-		return self.conn.execute(delStmt).rowcount #pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
+		return self.conn.execute(delStmt).rowcount
 
 	def save_roles(
 		self,
@@ -176,7 +177,8 @@ class AccountsService:
 			} for r in inRoles
 		]
 		stmt = insert(userRoles)
-		self.conn.execute(stmt, roleParams) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt, roleParams)
+		self.conn.commit()
 		return uniqueRoles
 
 
@@ -347,9 +349,10 @@ class AccountsService:
 			displayname = updatedInfo.displayname,
 			email = updatedEmail
 		).where(u_pk == currentUser.id)
-		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt)
+		self.conn.commit()
 		return AccountInfo(
-			**{**asdict(currentUser), #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+			**{**asdict(currentUser), #pyright: ignore [reportGeneralTypeIssues]
 				"displayname": updatedInfo.displayname,
 				"email": updatedEmail
 			}
@@ -369,6 +372,7 @@ class AccountsService:
 		hash = hashpw(passwordInfo.newpassword.encode())
 		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
+		self.conn.commit()
 		return True
 
 	def get_site_rule_users(
@@ -423,7 +427,8 @@ class AccountsService:
 			priority = None,
 			creationtimestamp = self.get_datetime().timestamp()
 		)
-		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt)
+		self.conn.commit()
 
 		return ActionRule(
 			rule.name,
@@ -441,4 +446,5 @@ class AccountsService:
 			.where(ur_userFk == userId)
 		if ruleName:
 			delStmt = delStmt.where(ur_role == ruleName)
-		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(delStmt)
+		self.conn.commit()

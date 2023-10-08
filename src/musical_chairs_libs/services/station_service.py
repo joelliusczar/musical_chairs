@@ -372,7 +372,7 @@ class StationService:
 				name=cast(str, row[sg_name]),
 				album=cast(str, row["album"]),
 				artist=cast(str, row["artist"]),
-				queuedTimestamp=0,
+				queuedtimestamp=0,
 				rules=rules
 			)
 
@@ -473,6 +473,7 @@ class StationService:
 			)
 			if not stationId:
 				self.__create_initial_owner_rules__(affectedId, user.id)
+			self.conn.commit()
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
@@ -556,7 +557,8 @@ class StationService:
 			priority = None,
 			creationtimestamp = self.get_datetime().timestamp()
 		)
-		self.conn.execute(stmt) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt)
+		self.conn.commit()
 		return StationActionRule(
 			rule.name,
 			rule.span,
@@ -620,7 +622,7 @@ class StationService:
 			stmt = stmt.where(st_pk.in_(stationIds))
 		else:
 			raise ValueError("procIds, stationIds, or stationNames must be provided.")
-		self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
+		self.conn.execute(stmt)
 
 
 	def __noop_startup__(self, stationName: str) -> None:
@@ -664,6 +666,7 @@ class StationService:
 					owner.username
 				)
 			yield station
+		self.conn.commit()
 
 	def disable_stations(
 		self,
@@ -686,3 +689,4 @@ class StationService:
 		for pid in pids:
 			ProcessService.end_process(pid)
 		self.unset_station_procs(pids)
+		self.conn.commit()

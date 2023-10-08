@@ -94,7 +94,7 @@ const schema = Yup.object().shape({
 		"Request Security cannot be public or lower than view security",
 		(value, context) => {
 			return (value.id) !== MinItemSecurityLevel.PUBLIC
-				&& value.id >= context.parent.viewSecurityLevel.id;
+				&& value.id >= context.parent.viewsecuritylevel.id;
 		}
 	),
 });
@@ -186,12 +186,12 @@ export const StationEdit = (props: StationEditProps) => {
 	useEffect(() => {
 		const fetch = async () => {
 			try {
-				if(pathVars.stationKey && pathVars.ownerKey) {
+				if(pathVars.stationkey && pathVars.ownerkey) {
 					if(!callStatus) {
 						dispatch(dispatches.started());
 						const data = await fetchStationForEdit({
-							ownerKey: pathVars.ownerKey,
-							stationKey: pathVars.stationKey,
+							ownerkey: pathVars.ownerkey,
+							stationkey: pathVars.stationkey,
 						});
 						const formData = stationInfoToFormData(data);
 						reset(formData);
@@ -212,11 +212,11 @@ export const StationEdit = (props: StationEditProps) => {
 	}, [
 		dispatch,
 		callStatus,
-		pathVars.ownerKey,
-		pathVars.stationKey,
+		pathVars.ownerkey,
+		pathVars.stationkey,
 	]);
 
-	const loadStatus = pathVars.stationKey ? callStatus: CallStatus.done;
+	const loadStatus = pathVars.stationkey ? callStatus: CallStatus.done;
 	const viewSecurityLevel = watch("viewsecuritylevel");
 	const bannedRequestLevels = viewSecurityOptions.filter(o =>
 		o.id < viewSecurityLevel.id || o.id === MinItemSecurityLevel.PUBLIC

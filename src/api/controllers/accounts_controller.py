@@ -277,7 +277,7 @@ def add_user_rule(
 	]
 )
 def remove_user_rule(
-	ruleName: str,
+	rulename: str,
 	user: AccountInfo = Depends(get_subject_user),
 	accountsService: AccountsService = Depends(accounts_service),
 ):
@@ -290,5 +290,5 @@ def remove_user_rule(
 		)
 	accountsService.remove_user_site_rule(
 		user.id,
-		ruleName
+		rulename
 	)

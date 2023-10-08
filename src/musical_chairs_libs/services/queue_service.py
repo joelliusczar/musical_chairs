@@ -223,7 +223,7 @@ class QueueService:
 				album=row["album"],
 				artist=row["artist"],
 				path=row[sg_path],
-				queuedTimestamp=row[uah_queuedTimestamp]
+				queuedtimestamp=row[uah_queuedTimestamp]
 			)
 
 	def pop_next_queued(
@@ -240,9 +240,10 @@ class QueueService:
 		self.move_from_queue_to_history(
 			stationId,
 			queueItem.id,
-			queueItem.queuedTimestamp
+			queueItem.queuedtimestamp
 		)
 		self.fil_up_queue(stationId, queueSize)
+		self.conn.commit()
 		return (
 			queueItem.path,
 			queueItem.name,
@@ -288,6 +289,7 @@ class QueueService:
 				station.id
 			):
 			self._add_song_to_queue(songId, station.id, user.id)
+			self.conn.commit()
 			return
 		raise LookupError(f"{songName} cannot be added to {station.name}")
 

@@ -1,10 +1,10 @@
 #!/bin/sh
-
+echo "top of install script"
 if [ -e ./radio_common.sh ]; then
 	. ./radio_common.sh
-elif [ -e ../radio_common.sh]; then
+elif [ -e ../radio_common.sh ]; then
 	. ../radio_common.sh
-elif [ -e "$HOME"/radio/radio_common.sh]; then
+elif [ -e "$HOME"/radio/radio_common.sh ]; then
 	. "$HOME"/radio/radio_common.sh
 else
   echo "radio_common.sh not found"
@@ -49,7 +49,11 @@ fi
 
 [ ! -e "$get_app_root"/"$MC_BIN_DIR" ] && mkdir -pv "$get_app_root"/"$MC_BIN_DIR"
 
-set_env_path_var
+set_env_path_var || {
+	#not using show_err_and_exit at this point because its existence is suspect
+	echo "set_env_path_var error"
+	exit 1
+}
 
 output_env_vars
 

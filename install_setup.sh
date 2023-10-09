@@ -141,7 +141,7 @@ if [ "$noexpandtabs" != 'true' ]; then
 	echo 'set noexpandtab' >> "$HOME"/.vimrc
 fi
 if [ "$tabstop" != 'true' ]; then
-	echo 'set tabstop' >> "$HOME"/.vimrc
+	echo 'set tabstop=2' >> "$HOME"/.vimrc
 fi
 
 if ! mariadb -V 2>/dev/null; then

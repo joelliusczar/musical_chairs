@@ -45,9 +45,7 @@ function AppTrunk() {
 					</Button> :
 						<>
 							<UserMenu
-								anchorEl={menuAnchor}
 								btnLabel={currentUser.username}
-								closeMenu={() => setMenuAnchor(null)}
 							/>
 						</>
 					}
@@ -78,12 +76,12 @@ function AppTrunk() {
 }
 
 function AppRoot() {
-	const notistackRef = createRef();
+	const notistackRef = createRef<SnackbarProvider>();
 
 	return (
 		<SnackbarProvider
 			ref={notistackRef}
-			onClick={() => notistackRef.current.closeSnackbar()}
+			onClick={() => notistackRef?.current?.closeSnackbar()}
 		>
 			<ThemeProvider theme={theme}>
 				<AuthContextProvider>

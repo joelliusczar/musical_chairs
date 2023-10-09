@@ -13,7 +13,7 @@ import {
 } from "../../Types/browser_types";
 
 type UserMenuProps = {
-	closeMenu: <EType>(e: ClickEvent<EType>) => void
+	closeMenu?: <EType>(e: ClickEvent<EType>) => void
 	btnLabel: string
 };
 

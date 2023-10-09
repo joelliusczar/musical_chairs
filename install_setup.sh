@@ -47,7 +47,8 @@ if ! perl -v 2>/dev/null; then
 	install_package perl
 fi
 
-[ ! -e "$get_app_root"/"$MC_BIN_DIR" ] && mkdir -pv "$get_app_root"/"$MC_BIN_DIR"
+[ ! -e "$get_app_root"/"$MC_BIN_DIR" ] &&
+	mkdir -pv "$get_app_root"/"$MC_BIN_DIR"
 
 set_env_vars || {
 	#not using show_err_and_exit at this point because its existence is suspect
@@ -133,13 +134,13 @@ lineNum=$(perl -ne 'print "true" if /set number/' "$HOME"/.vimrc)
 noexpandtabs=$(perl -ne 'print "true" if /set noexpandtab/' "$HOME"/.vimrc)
 tabstop=$(perl -ne 'print "true" if /set tabstop=2/' "$HOME"/.vimrc)
 
-if [ "$lineNum" != 'true'; ]; then
+if [ "$lineNum" != 'true' ]; then
 	echo 'set number' >> "$HOME"/.vimrc
 fi
-if [ "$noexpandtabs" != 'true'; ]; then
+if [ "$noexpandtabs" != 'true' ]; then
 	echo 'set noexpandtab' >> "$HOME"/.vimrc
 fi
-if [ "$tabstop" != 'true'; ]; then
+if [ "$tabstop" != 'true' ]; then
 	echo 'set tabstop' >> "$HOME"/.vimrc
 fi
 
@@ -172,6 +173,7 @@ fi
 if ! git --version 2>/dev/null; then
 	install_package git
 fi
+
 
 case $(uname) in
 	(Linux*)

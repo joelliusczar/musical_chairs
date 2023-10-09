@@ -6,7 +6,7 @@ handle: RadioHandle = None #pyright: ignore [reportGeneralTypeIssues]
 # Should return 1 if ok, and 0 if something went wrong.
 def ices_init():
 	global handle
-	handle = RadioHandle(<station_id>) #pyright: ignore
+	handle = RadioHandle(<station_id>, <dbName>) #pyright: ignore
 	return handle.ices_init()
 
 # Function called to shutdown your python enviroment.

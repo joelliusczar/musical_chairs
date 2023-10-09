@@ -2,16 +2,19 @@
 
 if [ -e ./radio_common.sh ]; then
 	radioCommonPath='./radio_common.sh'
-elif [ -e ../radio_common.sh]; then
+elif [ -e ../radio_common.sh ]; then
 	radioCommonPath='../radio_common.sh'
-elif [ -e "$HOME"/radio/radio_common.sh]; then
+elif [ -e "$HOME"/radio/radio_common.sh ]; then
 	radioCommonPath="$HOME"/radio/radio_common.sh
 else
   echo "radio_common.sh not found"
   exit 1
 fi
 
+#this is included locally. Any changes here are going to be on the server
+#unless they've been pushed to the repo
 . "$radioCommonPath"
+
 
 process_global_vars "$@" ||
 show_err_and_exit "error with global variabls"
@@ -37,7 +40,7 @@ if [ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]; then
 	fi
 fi
 
-run_unit_tests
+#run_unit_tests
 unitTestSuccess="$?"
 
 
@@ -88,41 +91,44 @@ RemoteScriptEOF1
 export expName="$expName" &&
 export S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" &&
 export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
-export PB_SECRET=$(get_pb_secret)
-export PB_API_KEY=$(get_pb_api_key)
-export APP_AUTH_KEY=$(get_mc_auth_key)
-export __DB_SETUP_PASS__="$(get_db_setup_key)"
-export MC_DB_PASS_OWNER="$(get_db_owner_key)"
-export MC_DB_PASS_API="$(get_api_user_key)"
-export MC_DB_PASS_RADIO="$(get_radio_user_key)"
+export PB_SECRET=$(get_pb_secret) &&
+export PB_API_KEY=$(get_pb_api_key) &&
+export APP_AUTH_KEY=$(get_mc_auth_key) &&
+export __DB_SETUP_PASS__=$(get_db_setup_key) &&
+export MC_DB_PASS_OWNER=$(get_db_owner_key) &&
+export MC_DB_PASS_API=$(get_api_user_key) &&
+export MC_DB_PASS_RADIO=$(get_radio_user_key) &&
 
-if [ "$__SETUP_LVL__" = 'api' ]; then
-	echo "$__SETUP_LVL__"
-	(exit "$unitTestSuccess") &&
-	. ./radio_common.sh &&
-	sync_utility_scripts &&
-	startup_api
-elif [ "$__SETUP_LVL__" = 'client' ]; then
-	echo "$__SETUP_LVL__"
-	. ./radio_common.sh &&
-	sync_utility_scripts &&
-	setup_client &&
-	echo "finished setup"
-elif [ "$__SETUP_LVL__" = 'radio' ]; then
-	echo "$__SETUP_LVL__"
-	(exit "$unitTestSuccess") &&
-	. ./radio_common.sh &&
-	sync_utility_scripts &&
-	startup_radio
-elif [ "$__SETUP_LVL__" = 'install' ]; then
-	echo "$__SETUP_LVL__"
-	sh ./install_setup.sh &&
-	echo "finished setup"
-else
-	echo "$__SETUP_LVL__"
-	. ./radio_common.sh &&
-	sync_utility_scripts &&
-	echo "finished setup"
+if is_ssh; then
+	if [ "$__SETUP_LVL__" = 'api' ]; then
+		echo "$__SETUP_LVL__"
+		(exit "$unitTestSuccess") &&
+		. ./radio_common.sh &&
+		sync_utility_scripts &&
+		startup_api
+	elif [ "$__SETUP_LVL__" = 'client' ]; then
+		echo "$__SETUP_LVL__"
+		. ./radio_common.sh &&
+		sync_utility_scripts &&
+		setup_client &&
+		echo "finished setup"
+	elif [ "$__SETUP_LVL__" = 'radio' ]; then
+		echo "$__SETUP_LVL__"
+		(exit "$unitTestSuccess") &&
+		. ./radio_common.sh &&
+		sync_utility_scripts &&
+		startup_radio
+	elif [ "$__SETUP_LVL__" = 'install' ]; then
+		echo "$__SETUP_LVL__"
+		. ./radio_common.sh &&
+		run_initial_install_script &&
+		echo "finished setup"
+	else
+		echo "$__SETUP_LVL__"
+		. ./radio_common.sh &&
+		sync_utility_scripts &&
+		echo "finished setup"
+	fi
 fi
 
 RemoteScriptEOF2

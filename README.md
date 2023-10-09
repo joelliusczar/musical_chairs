@@ -58,7 +58,7 @@ Use debug launch profile "Python: API"
 
 ## Fresh Server
 ```
-./deploy_to_server.sh setupLvl=install
+./deploy_to_server.sh setuplvl=install
 ```
 
 ## Testing new changes

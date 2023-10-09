@@ -832,6 +832,15 @@ gen_pass() (
 	LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$pass_len"
 )
 
+is_ssh() (
+	[ -n "$SSH_CONNECTION" ]
+)
+
+run_initial_install_script() (
+	process_global_vars "$@" &&
+	sh $(get_repo_path)//install_setup.sh
+)
+
 compare_dirs() (
 	srcDir="$1"
 	cpyDir="$2"

@@ -13,10 +13,10 @@ export default defineConfig(({ mode }) => {
 	return {
 		server: {
 			port: 3000,
-			https: {
+			https: mode === "development" ? {
 				key: fs.readFileSync(env.VITE_SSL_PRIVATE),
 				cert: fs.readFileSync(env.VITE_SSL_PUBLIC),
-			},
+			} : {},
 		},
 		plugins: [
 			react(),

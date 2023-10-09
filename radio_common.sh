@@ -727,7 +727,7 @@ setup_database() (
 	rootHash=$(mysql -srN -e \
 		"SELECT password FROM mysql.user WHERE user = 'root' LIMIT 1" 2>&1
 	)
-	redacted=$(echo "$rootHash" | sed s/\*[A-F0-9]\{40\}/<suppresed>/)
+	redacted=$(echo "$rootHash" | sed -e 's/\*[A-F0-9]\{40\}/<suppresed>/')
 	echo "root hash: ${redacted}"
 	if [ -z "$rootHash" ] || [ "$rootHash" = 'invalid' ]; then
 		set_db_root_initial_password

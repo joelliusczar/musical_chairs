@@ -278,7 +278,7 @@ kill_s3fs() {
 link_to_music_files() {
 	echo 'linking music files'
 	process_global_vars "$@" &&
-	if [ ! -e "$(get_app_root)"/"$MC_CONTENT_HOME"/Soundtrack ]; then
+	if [ -z  "$(ls -A "$(get_app_root)"/"$MC_CONTENT_HOME")" ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
 			s3fs "$(s3_name)" "$(get_app_root)"/"$MC_CONTENT_HOME"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg

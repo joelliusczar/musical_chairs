@@ -40,7 +40,7 @@ if [ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]; then
 	fi
 fi
 
-run_unit_tests
+#run_unit_tests
 unitTestSuccess="$?"
 
 

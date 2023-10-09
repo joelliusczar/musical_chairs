@@ -43,7 +43,8 @@ export interface DontCareMap {
 }
 
 export type SortCallback<T> = (a:T, b:T) => number;
-export type SortCallbackFactory = (key: string) => SortCallback<Keyed>
+export type SortCallbackFactory = 
+<T, K extends keyof T>(key: K) => SortCallback<T>
 
 export type Flags<Type> = {
   [Property in keyof Type]: boolean;

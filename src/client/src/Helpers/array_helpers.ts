@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import {
 	Named,
 	NamedIdItem,
-	Keyed,
 	SortCallback,
 	SortCallbackFactory,
 } from "../Types/generic_types";
@@ -12,7 +11,7 @@ export const nameSortFn: SortCallback<Named> = (a: Named,b: Named): number =>
 
 
 export const keyedSortFn: SortCallbackFactory =
-	(key: string) => ((a: Keyed,b: Keyed) =>
+	<T, K extends keyof T>(key: K) => ((a: T,b: T) =>
 		a[key] > b[key] ? 1 : a[key] < b[key] ? -1 : 0);
 
 

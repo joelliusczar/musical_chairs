@@ -45,7 +45,7 @@ roles.unshift({
 const ruleUpdatePaths = {
 	[WaitingTypes.add]: (state: SimpleStoreShape<User>, payload: ActionRule) => {
 		const roles = [...state.data.roles, payload]
-			.sort(keyedSortFn("username"));
+			.sort(keyedSortFn("name"));
 		return {
 			...state,
 			data: {

@@ -723,9 +723,12 @@ setup_database() (
 	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	__install_py_env_if_needed__ &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	#going to allow an error as a valid result by redirecting error to out
 	rootHash=$(mysql -srN -e \
-		"SELECT password FROM mysql.user WHERE user = 'root' LIMIT 1"
+		"SELECT password FROM mysql.user WHERE user = 'root' LIMIT 1" 2>&1
 	)
+	redacted=$(echo "$rootHash" | sed s/\*[A-F0-9]\{40\}/<suppresed>/)
+	echo "root hash: ${redacted}"
 	if [ -z "$rootHash" ] || [ "$rootHash" = 'invalid' ]; then
 		set_db_root_initial_password
 	fi &&

@@ -1121,13 +1121,14 @@ setup_react_env_debug() (
 	process_global_vars "$@" &&
 	envFile="$MC_CLIENT_SRC"/.env.local
 	echo "$envFile"
-	echo 'REACT_APP_API_VERSION=v1' > "$envFile"
-	echo 'REACT_APP_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
-	#HTTPS, SSL_CRT_FILE, and SSL_KEY_FILE are used by create-react-app
+	echo 'VITE_API_VERSION=v1' > "$envFile"
+	echo 'VITE_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
+	#VITE_SSL_PUBLIC, and SSL_KEY_FILE are used by create-react-app
 	#when calling `npm start`
-	echo 'HTTPS=true' >> "$envFile"
-	echo "SSL_CRT_FILE=$(__get_debug_cert_path__).public.key.pem" >> "$envFile"
-	echo "SSL_KEY_FILE=$(__get_debug_cert_path__).private.key.pem" >> "$envFile"
+	echo "VITE_SSL_PUBLIC=$(__get_debug_cert_path__).public.key.pem" \
+		>> "$envFile"
+	echo "VITE_SSL_PRIVATE=$(__get_debug_cert_path__).private.key.pem" \
+		>> "$envFile"
 )
 
 get_nginx_value() (
@@ -1568,7 +1569,7 @@ create_swap_if_needed() (
 		case $(uname) in
 		(Linux*)
 			if [ ! -e /swapfile ]; then
-				sudo dd if=/dev/zero of=/swapfile bs=128M count=16 &&
+				sudo dd if=/dev/zero of=/swapfile bs=128M count=24 &&
 				sudo chmod 600 /swapfile &&
 				sudo mkswap /swapfile &&
 				sudo swapon /swapfile
@@ -1593,8 +1594,8 @@ setup_client() (
 	#delete otherwise
 	empty_dir_contents "$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
 
-	export MC_REACT_APP_API_VERSION=v1 &&
-	export REACT_APP_BASE_ADDRESS="$MC_FULL_URL" &&
+	export VITE_API_VERSION=v1 &&
+	export VITE_BASE_ADDRESS="$MC_FULL_URL" &&
 	#set up react then copy
 	#install packages
 	npm --prefix "$MC_CLIENT_SRC" i &&
@@ -1602,7 +1603,8 @@ setup_client() (
 	npm run --prefix "$MC_CLIENT_SRC" build &&
 	#copy built code to new location
 	sudo -p 'Pass required to copy client files: ' \
-		cp -rv "$MC_CLIENT_SRC"/build/. "$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
+		cp -rv "$MC_CLIENT_SRC"/build/. \
+			"$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
 	unroot_dir "$(get_web_root)"/"$MC_APP_CLIENT_PATH_CL" &&
 	echo "done setting up client"
 )

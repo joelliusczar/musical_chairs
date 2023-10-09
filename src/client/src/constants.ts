@@ -2,11 +2,11 @@ import { OwnedStationParams } from "./Types/station_types";
 import { OwnerParams, SubjectUserParams } from "./Types/user_types";
 import { StringObject } from "./Types/generic_types";
 
-//these vars need to be prefixed REACT
-export const baseAddress = process.env.REACT_APP_BASE_ADDRESS;
-export const apiVersion = process.env.REACT_APP_API_VERSION;
-export const isDev = process.env.NODE_ENV === "development";
-export const apiAddress = isDev ?
+
+//these vars need to be prefixed VITE
+export const baseAddress = import.meta.env.VITE_BASE_ADDRESS;
+export const apiVersion = import.meta.env.VITE_API_VERSION;
+export const apiAddress = import.meta.env.DEV ?
 	baseAddress : `${baseAddress}/api/${apiVersion}`;
 
 

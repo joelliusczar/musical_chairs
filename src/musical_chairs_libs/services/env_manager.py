@@ -90,7 +90,8 @@ class EnvManager:
 			f"mysql+pymysql://{DbUsers.API_USER()}:{dbPass}@localhost/{dbName}",
 			echo=echo,
 		)
-		return engine.connect()
+		conn = engine.connect()
+		return conn
 
 	@classmethod
 	def get_configured_radio_connection(

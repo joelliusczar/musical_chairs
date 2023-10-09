@@ -86,7 +86,7 @@ set_ices_version_const() {
 }
 
 set_env_vars() {
-	process_global_vars &&
+	process_global_vars "$@" &&
 	__set_env_path_var__
 }
 

@@ -49,7 +49,7 @@ fi
 
 [ ! -e "$get_app_root"/"$MC_BIN_DIR" ] && mkdir -pv "$get_app_root"/"$MC_BIN_DIR"
 
-set_env_path_var || {
+set_env_vars || {
 	#not using show_err_and_exit at this point because its existence is suspect
 	echo "set_env_path_var error"
 	exit 1

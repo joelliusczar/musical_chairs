@@ -3,7 +3,6 @@ from typing import (Protocol, Optional)
 from datetime import datetime
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import AccountInfo
-from musical_chairs_libs.tables import metadata
 from .db_population import (
 	populate_artists,
 	populate_albums,
@@ -43,16 +42,16 @@ def setup_in_mem_tbls(
 	primaryUser: AccountInfo,
 	testPassword: bytes,
 ) -> None:
-	metadata.create_all(conn.engine)
+	populate_users(conn, orderedTestDates, primaryUser, testPassword)
 	populate_artists(conn)
 	populate_albums(conn)
 	populate_songs(conn)
 	populate_songs_artists(conn)
-	populate_stations_songs(conn)
 	populate_stations(conn)
-	populate_users(conn, orderedTestDates, primaryUser, testPassword)
+	populate_stations_songs(conn)
 	populate_user_roles(conn, orderedTestDates, primaryUser)
 	populate_station_permissions(conn, orderedTestDates)
 	populate_path_permissions(conn, orderedTestDates)
 	populate_user_actions_history(conn, orderedTestDates)
 	populate_station_queue(conn)
+	conn.commit()

@@ -53,7 +53,7 @@ export const History = () => {
 			new RequiredDataStore<PageableListDataShape<SongListDisplayItem>>(
 				{
 					items: [],
-					totalRows: 0,
+					totalrows: 0,
 				}
 			)
 		);
@@ -98,7 +98,7 @@ export const History = () => {
 	};
 
 	useEffect(() => {
-		const stationTitle = `- ${selectedStation?.displayName || ""}`;
+		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
 			`Musical Chairs - History${stationTitle}`;
 	},[selectedStation]);
@@ -107,15 +107,15 @@ export const History = () => {
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationKey || !pathVars.ownerKey) return;
+			if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
 			const page = parseInt(queryObj.get("page") || "1");
 			const limit = parseInt(queryObj.get("rows") || "50");
 			historyDispatch(dispatches.started());
 			try {
 				const data = await fetchHistory({
-					stationKey: pathVars.stationKey,
-					ownerKey: pathVars.ownerKey,
+					stationkey: pathVars.stationkey,
+					ownerkey: pathVars.ownerkey,
 					page: page - 1,
 					limit: limit,
 				});
@@ -132,8 +132,8 @@ export const History = () => {
 	},[
 		historyDispatch,
 		fetchHistory,
-		pathVars.stationKey,
-		pathVars.ownerKey,
+		pathVars.stationkey,
+		pathVars.ownerkey,
 		location.search,
 		location.pathname,
 		currentQueryStr,
@@ -142,7 +142,7 @@ export const History = () => {
 
 	return (
 		<>
-			<h1>History: {selectedStation?.displayName || ""}</h1>
+			<h1>History: {selectedStation?.displayname || ""}</h1>
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
@@ -192,7 +192,7 @@ export const History = () => {
 						<Box sx={{ display: "flex" }}>
 							<UrlPagination
 								getPageUrl={getPageUrl.getThisUrl}
-								totalRows={historyState.data?.totalRows}
+								totalRows={historyState.data?.totalrows}
 							/>
 						</Box>
 					</>:

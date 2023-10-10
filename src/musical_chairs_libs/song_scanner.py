@@ -139,7 +139,7 @@ class SongScanner:
 					disc=fileTag.disc,
 					genre=fileTag.genre,
 					bitrate=fileTag.bitrate,
-					sampleRate=fileTag.samplerate,
+					samplerate=fileTag.samplerate,
 					comment=fileTag.comment,
 					duration=fileTag.duration
 				)

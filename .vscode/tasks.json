@@ -6,39 +6,10 @@
 		{
 			"label": "Set unit test env",
 			"type": "shell",
-			"command": "./set_up_unit_test_env.sh",
+			"command": ". ./radio_common.sh && setup_unit_test_env",
 			"problemMatcher": []
 		},
-		{
-			"label": "Setup dirs",
-			"type": "shell",
-			"command": "./radio_dir_setup.sh",
-			"problemMatcher": []
-		},
-		{
-			"label": "Environment check",
-			"type": "shell",
-			"command": "./env_check.sh",
-			"problemMatcher": []
-		},
-		{
-			"label": "Setup api",
-			"type": "shell",
-			"command": "./setup_backend.sh",
-			"problemMatcher": []
-		},
-		{
-			"label": "Setup client",
-			"type": "shell",
-			"command": "./setup_client.sh",
-			"problemMatcher": []
-		},
-		{
-			"label": "Full setup",
-			"type": "shell",
-			"command": "./commit_setup.sh",
-			"problemMatcher": []
-		}
+
 
 	]
 }

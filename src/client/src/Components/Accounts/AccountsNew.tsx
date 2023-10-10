@@ -25,8 +25,8 @@ const schema = Yup.object().shape({
 		debouncePromise(validatePhraseIsUnused, 100)
 	),
 	password: Yup.string().required().min(6),
-	passwordConfirm: Yup.string().required().test(
-		"passwordConfirm",
+	passwordconfirm: Yup.string().required().test(
+		"passwordconfirm",
 		() => "Passwords must match",
 		(value, context) => {
 			return value === context.parent.password;
@@ -48,9 +48,9 @@ export function AccountsNew() {
 	const formMethods = useForm<UserCreationInfo>({
 		defaultValues: {
 			username: "",
-			displayName: "",
+			displayname: "",
 			password: "",
-			passwordConfirm: "",
+			passwordconfirm: "",
 			email: "",
 		},
 		resolver: yupResolver(schema),
@@ -85,7 +85,7 @@ export function AccountsNew() {
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="displayName"
+					name="displayname"
 					label="Display Name"
 					formMethods={formMethods}
 				/>
@@ -100,7 +100,7 @@ export function AccountsNew() {
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="passwordConfirm"
+					name="passwordconfirm"
 					label="Confirm Password"
 					type="password"
 					formMethods={formMethods}

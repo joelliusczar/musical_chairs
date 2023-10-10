@@ -42,9 +42,9 @@ Next run the start up full web function
 startup_full_web
 ```
 
-If testing and database has been modified, also include `replaceDb`
+If testing and database has been modified
 ```
-startup_full_web replaceDb
+startup_full_web replace='sqlite_file'
 ```
 
 ## end nginx process
@@ -52,13 +52,13 @@ If we need to test stuff locally some more but there is an instance running on
 nginx, we can try to kill it by calling `kill_process_using_port 8032`
 
 ## VSCode debug
-Use debug launch profile Python: API
+Use debug launch profile "Python: API"
 
 # Deploying to server
 
 ## Fresh Server
 ```
-./deploy_to_server.sh setup_lvl=install
+./deploy_to_server.sh setuplvl=install
 ```
 
 ## Testing new changes

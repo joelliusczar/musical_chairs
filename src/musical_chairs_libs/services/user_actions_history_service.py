@@ -7,7 +7,6 @@ from typing import (
 	overload,
 	Collection
 )
-from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
@@ -52,13 +51,10 @@ def __when_next_can_do__(
 class UserActionsHistoryService:
 
 	def __init__(self,
-		conn: Optional[Connection]=None,
-		envManager: Optional[EnvManager]=None
+		conn: Optional[Connection]=None
 	) -> None:
 		if not conn:
-			if not envManager:
-				envManager = EnvManager()
-			conn = envManager.get_configured_db_connection()
+			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
 
@@ -101,7 +97,7 @@ class UserActionsHistoryService:
 			func.row_number().over( #pyright: ignore [reportUnknownMemberType]
 				partition_by=[q_stationFk, uah_action] if stationIds else uah_action,
 				order_by=uah_requestedTimestamp
-			).label("rowNum")
+			).label("rownum")
 		)\
 		.select_from(user_action_history)\
 		.where(uah_requestedTimestamp >= fromTimestamp)\
@@ -118,7 +114,7 @@ class UserActionsHistoryService:
 		subquery = query.subquery()
 		query = select(*subquery.c)
 		if limit is not None:
-			query = query.where(subquery.c.rowNum < limit)
+			query = query.where(subquery.c.rownum < limit)
 
 		records = self.conn.execute(query).mappings().fetchall()
 		if stationIds:
@@ -126,8 +122,8 @@ class UserActionsHistoryService:
 				StationHistoryActionItem(
 					userId,
 					cast(str,row["action"]),
-					cast(float,row["requestedTimestamp"]),
-					cast(int, row["stationFk"])
+					cast(float,row["requestedtimestamp"]),
+					cast(int, row["stationfk"])
 				)
 				for row in records
 			)
@@ -208,7 +204,7 @@ class UserActionsHistoryService:
 					)
 			} for s in groupby(
 			actionGen,
-			key=lambda k: k.stationId
+			key=lambda k: k.stationid
 		)}
 		result = {s.id: {
 				r.name:__when_next_can_do__(

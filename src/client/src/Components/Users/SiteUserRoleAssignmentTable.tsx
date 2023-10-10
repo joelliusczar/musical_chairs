@@ -45,7 +45,7 @@ roles.unshift({
 const ruleUpdatePaths = {
 	[WaitingTypes.add]: (state: SimpleStoreShape<User>, payload: ActionRule) => {
 		const roles = [...state.data.roles, payload]
-			.sort(keyedSortFn("username"));
+			.sort(keyedSortFn("name"));
 		return {
 			...state,
 			data: {
@@ -85,7 +85,7 @@ export const SiteUserRoleAssignmentTable = () => {
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
-	const { subjectUserKey } = useParams();
+	const { subjectuserkey } = useParams();
 
 	const { callStatus } = state;
 
@@ -95,7 +95,7 @@ export const SiteUserRoleAssignmentTable = () => {
 	},[]);
 
 	useEffect(() => {
-		if (!subjectUserKey) {
+		if (!subjectuserkey) {
 			enqueueSnackbar("No user selected", { variant: "error"});
 			return;
 		}
@@ -104,7 +104,7 @@ export const SiteUserRoleAssignmentTable = () => {
 
 			dispatch(dispatches.started());
 			try {
-				const data = await fetchUser({ subjectUserKey });
+				const data = await fetchUser({ subjectuserkey });
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 
@@ -119,7 +119,7 @@ export const SiteUserRoleAssignmentTable = () => {
 		fetch();
 	},[
 		dispatch,
-		subjectUserKey,
+		subjectuserkey,
 		fetchUser,
 		location.search,
 		location.pathname,
@@ -130,7 +130,7 @@ export const SiteUserRoleAssignmentTable = () => {
 	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
 		try {
 			const addedRule = await addSiteUserRule({
-				subjectUserKey: user.id,
+				subjectuserkey: user.id,
 				rule,
 			});
 			dispatch(dispatches.add(addedRule));
@@ -144,8 +144,8 @@ export const SiteUserRoleAssignmentTable = () => {
 	const removeRole = async (role: ActionRule, user: User) => {
 		try {
 			await removeSiteUserRule({
-				subjectUserKey: user.id,
-				ruleName: role.name,
+				subjectuserkey: user.id,
+				rulename: role.name,
 			});
 			dispatch(dispatches.remove(role.name));
 			enqueueSnackbar(`${role.name} removed!`, { variant: "success"});

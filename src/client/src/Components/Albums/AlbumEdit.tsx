@@ -41,7 +41,7 @@ export const AlbumEdit = (props: AlbumEditProps) => {
 	const formMethods = useForm<AlbumInfo>({
 		defaultValues: {
 			name: "",
-			albumArtist: null,
+			albumartist: null,
 		},
 	});
 	const { handleSubmit } = formMethods;
@@ -50,7 +50,7 @@ export const AlbumEdit = (props: AlbumEditProps) => {
 			const album = await saveAlbum({ data: {
 				name: values.name,
 				year: values.year || undefined,
-				albumArtist: values.albumArtist || undefined,
+				albumartist: values.albumartist || undefined,
 			} });
 			enqueueSnackbar("Save successful", { variant: "success"});
 			afterSubmit(album);
@@ -84,7 +84,7 @@ export const AlbumEdit = (props: AlbumEditProps) => {
 			<Loader status={artistCallStatus} error={artistError}>
 				<Box sx={inputField}>
 					<ArtistSelect
-						name="albumArtist"
+						name="albumartist"
 						options={artists}
 						formMethods={formMethods}
 						label="Album Artist"

@@ -105,19 +105,19 @@ def get_path_owner_roles(
 class AccountInfoBase:
 	username: str
 	email: str
-	displayName: Optional[str]=""
+	displayname: Optional[str]=""
 
 @dataclass(frozen=True)
 class AccountInfoSecurity(AccountInfoBase):
 	roles: List[Union[ActionRule, PathsActionRule]]=field(default_factory=list)
-	dirRoot: Optional[str]=None
+	dirroot: Optional[str]=None
 
 	@property
 	def preferredName(self) -> str:
-		return self.displayName or self.username
+		return self.displayname or self.username
 
 	@property
-	def isAdmin(self) -> bool:
+	def isadmin(self) -> bool:
 		return any(
 			UserRoleDef.ADMIN.conforms(r.name) \
 				for r in self.roles
@@ -146,6 +146,8 @@ class AccountInfoSecurity(AccountInfoBase):
 		yield from (p for p in pathTree.shortest_paths())
 
 	def has_roles(self, *roles: UserRoleDef) -> bool:
+		if self.isadmin:
+			return True
 		for role in roles:
 			if all(r.name != role.value or (r.name == role.value and r.blocked) \
 				for r in self.roles
@@ -181,7 +183,7 @@ class AccountCreationInfo(AccountInfoSecurity):
 		return {
 			"username": self.username,
 			"email": self.email,
-			"displayName": self.displayName,
+			"displayname": self.displayname,
 			"roles": self.roles
 		}
 
@@ -225,7 +227,7 @@ class AccountCreationInfo(AccountInfoSecurity):
 
 	# 	return SavedNameString.format_name_for_save(v)
 
-	# @validator("displayName")
+	# @validator("displayname")
 	# def displayName_valid_chars(cls, v: str) -> str:
 
 	# 	if re.match(guidRegx, v):
@@ -239,23 +241,23 @@ class AccountCreationInfo(AccountInfoSecurity):
 
 @dataclass(frozen=True)
 class PasswordInfo:
-	oldPassword: str
-	newPassword: str
+	oldpassword: str
+	newpassword: str
 
 @dataclass(frozen=True)
 class UserHistoryActionItem:
-	userId: int
+	userid: int
 	action: str
 	timestamp: float
 
 @dataclass(frozen=True)
 class StationHistoryActionItem(UserHistoryActionItem):
-	stationId: int
+	stationid: int
 
 
 @dataclass(frozen=True)
 class OwnerInfo(IdItem):
 	username: Optional[str]=None
-	displayName: Optional[str]=None
+	displayname: Optional[str]=None
 
 OwnerType = Union[OwnerInfo, AccountInfo]

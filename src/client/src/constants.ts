@@ -2,10 +2,11 @@ import { OwnedStationParams } from "./Types/station_types";
 import { OwnerParams, SubjectUserParams } from "./Types/user_types";
 import { StringObject } from "./Types/generic_types";
 
-export const baseAddress = process.env.REACT_APP_BASE_ADDRESS;
-export const apiVersion = process.env.REACT_APP_API_VERSION;
-export const isDev = process.env.NODE_ENV === "development";
-export const apiAddress = isDev ?
+
+//these vars need to be prefixed VITE
+export const baseAddress = import.meta.env.VITE_BASE_ADDRESS;
+export const apiVersion = import.meta.env.VITE_API_VERSION;
+export const apiAddress = import.meta.env.DEV ?
 	baseAddress : `${baseAddress}/api/${apiVersion}`;
 
 
@@ -19,30 +20,30 @@ export const CallStatus = {
 };
 
 export const DomRoutes = {
-	queue: ({ stationKey, ownerKey }: OwnedStationParams) =>
-		`/stations/queue/${ownerKey}/${stationKey ? `${stationKey}/` : ""}`,
-	history: ({ stationKey, ownerKey }: OwnedStationParams) =>
-		`/stations/history/${ownerKey}/${stationKey ? `${stationKey}/` : ""}`,
+	queue: ({ stationkey, ownerkey }: OwnedStationParams) =>
+		`/stations/queue/${ownerkey}/${stationkey ? `${stationkey}/` : ""}`,
+	history: ({ stationkey, ownerkey }: OwnedStationParams) =>
+		`/stations/history/${ownerkey}/${stationkey ? `${stationkey}/` : ""}`,
 	stations: (params?: OwnerParams) =>
-		`/stations/list/${params?.ownerKey || ""}`,
-	stationsEdit: ({ stationKey, ownerKey }: OwnedStationParams) =>
-		`/stations/edit/${ownerKey}/${stationKey}`,
+		`/stations/list/${params?.ownerkey || ""}`,
+	stationsEdit: ({ stationkey, ownerkey }: OwnedStationParams) =>
+		`/stations/edit/${ownerkey}/${stationkey}`,
 	stationsAdd: () => "/stations/edit/",
-	stationUsers: ({ stationKey, ownerKey }: OwnedStationParams) =>
-		`/stations/users/${ownerKey}/${stationKey}`,
+	stationUsers: ({ stationkey, ownerkey }: OwnedStationParams) =>
+		`/stations/users/${ownerkey}/${stationkey}`,
 	songEdit: () => "/songs/edit/",
-	songCatalogue: ({ stationKey, ownerKey }: OwnedStationParams) => {
-		const stationSegment = stationKey ? `${stationKey}/` : "";
-		return `/stations/song-catalogue/${ownerKey}/${stationSegment}`;
+	songCatalogue: ({ stationkey, ownerkey }: OwnedStationParams) => {
+		const stationSegment = stationkey ? `${stationkey}/` : "";
+		return `/stations/song-catalogue/${ownerkey}/${stationSegment}`;
 	},
 	pathUsers: () => "/song-info/users",
 	songTree: () => "/song-info/tree/",
 	accountsNew: () => "/accounts/new",
-	accountsEdit: ({ subjectUserKey }: SubjectUserParams) =>
-		`/accounts/edit/${subjectUserKey}`,
+	accountsEdit: ({ subjectuserkey }: SubjectUserParams) =>
+		`/accounts/edit/${subjectuserkey}`,
 	accountsLogin: () => "/accounts/login",
-	accountsRoles: ({ subjectUserKey }: SubjectUserParams) =>
-		`/users/roles/${subjectUserKey}`,
+	accountsRoles: ({ subjectuserkey }: SubjectUserParams) =>
+		`/users/roles/${subjectuserkey}`,
 	accountsList: () => "/accounts/list",
 	notFound: () => "/not-found",
 };

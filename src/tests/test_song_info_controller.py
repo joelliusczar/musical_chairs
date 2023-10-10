@@ -220,7 +220,7 @@ def test_song_save(
 		"name": "shoo_album",
 		"year": 2003,
 		"owner": {"id":kilo_user_id },
-		"albumArtist": {
+		"albumartist": {
 			"id": 6,
 			"name": "foxtrot_artist",
 			"owner": {"id":kilo_user_id },
@@ -228,7 +228,7 @@ def test_song_save(
 	}
 	sendData["genre"] = "pop_update"
 	sendData["comment"] = "Kazoos make good swimmers update"
-	sendData["primaryArtist"] = {
+	sendData["primaryartist"] = {
 		"id": 10,
 		"name": "juliet_artist",
 		"owner": { "id": kilo_user_id},
@@ -236,26 +236,26 @@ def test_song_save(
 	sendData["stations"] = [
 		{ "id": 2,
 			"name": "papa_station",
-			"displayName": "Come to papa",
+			"displayname": "Come to papa",
 			"owner": None,
-			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
-			"viewSecurityLevel": 0
+			"requestsecuritylevel": MinItemSecurityLevel.ANY_USER.value,
+			"viewsecuritylevel": 0
 		},
 		{
 			"id": 7,
 			"name": "uniform_station",
-			"displayName": "Asshole at the wheel",
+			"displayname": "Asshole at the wheel",
 			"owner": None,
-			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
-			"viewSecurityLevel": 0
+			"requestsecuritylevel": MinItemSecurityLevel.ANY_USER.value,
+			"viewsecuritylevel": 0
 		},
 		{
 			"id": 10,
 			"name": "xray_station",
-			"displayName": "Pentagular",
+			"displayname": "Pentagular",
 			"owner": None,
-			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
-			"viewSecurityLevel": 0
+			"requestsecuritylevel": MinItemSecurityLevel.ANY_USER.value,
+			"viewsecuritylevel": 0
 		}
 	]
 	sendData["artists"] = [
@@ -280,36 +280,36 @@ def test_song_save(
 	assert getResponseAfter.status_code == 200
 	data = json.loads(getResponseAfter.content)
 	for s in sendData["stations"]:
-		s["isRunning"] = False
+		s["isrunning"] = False
 	sendData["album"]["owner"]["username"] = "testUser_kilo"
-	sendData["album"]["owner"]["displayName"] = None
-	sendData["album"]["albumArtist"]["owner"]["username"] = "testUser_kilo"
-	sendData["album"]["albumArtist"]["owner"]["displayName"] = None
-	sendData["primaryArtist"]["owner"]["username"] = "testUser_kilo"
-	sendData["primaryArtist"]["owner"]["displayName"] = None
+	sendData["album"]["owner"]["displayname"] = None
+	sendData["album"]["albumartist"]["owner"]["username"] = "testUser_kilo"
+	sendData["album"]["albumartist"]["owner"]["displayname"] = None
+	sendData["primaryartist"]["owner"]["username"] = "testUser_kilo"
+	sendData["primaryartist"]["owner"]["displayname"] = None
 	sendData["artists"][0]["owner"]["username"] = "testUser_kilo"
-	sendData["artists"][0]["owner"]["displayName"] = None
+	sendData["artists"][0]["owner"]["displayname"] = None
 	sendData["artists"][1]["owner"]["username"] = "testUser_kilo"
-	sendData["artists"][1]["owner"]["displayName"] = None
+	sendData["artists"][1]["owner"]["displayname"] = None
 	sendData["artists"][2]["owner"]["username"] = "testUser_kilo"
-	sendData["artists"][2]["owner"]["displayName"] = None
+	sendData["artists"][2]["owner"]["displayname"] = None
 
 	sendData["stations"][0]["owner"] = {
 		"id": 2,
 		"username":"testUser_bravo",
-		"displayName": "Bravo Test User",
+		"displayname": "Bravo Test User",
 	}
 	sendData["stations"][0]["rules"] = []
 	sendData["stations"][1]["owner"] = {
 		"id": 2,
 		"username":"testUser_bravo",
-		"displayName": "Bravo Test User",
+		"displayname": "Bravo Test User",
 	}
 	sendData["stations"][1]["rules"] = []
 	sendData["stations"][2]["owner"] = {
 		"id": 2,
 		"username":"testUser_bravo",
-		"displayName": "Bravo Test User",
+		"displayname": "Bravo Test User",
 	}
 	sendData["stations"][2]["rules"] = []
 	mismatches = mismatched_properties(
@@ -342,7 +342,7 @@ def test_song_save_with_unpermitted_stations(
 	stations.append({
 		"id": 7,
 		"name": "uniform_station",
-		"displayName": "Asshole at the wheel"
+		"displayname": "Asshole at the wheel"
 	})
 
 	putResponse = client.put(
@@ -440,16 +440,16 @@ def test_song_save_different_station_owner(
 	sendData["stations"].append({
 		"id": 19,
 		"name": "india_station_rerun",
-		"displayName": "bitchingly fast!",
+		"displayname": "bitchingly fast!",
 		"owner": {
 			"id": station_saver_user_id,
 			"username": "stationSaver_testUser",
-			"displayName": "Station Saver"
+			"displayname": "Station Saver"
 		},
-		"isRunning": False,
+		"isrunning": False,
 		"rules": [],
-		"requestSecurityLevel": MinItemSecurityLevel.INVITED_USER.value,
-		"viewSecurityLevel": MinItemSecurityLevel.INVITED_USER.value
+		"requestsecuritylevel": MinItemSecurityLevel.INVITED_USER.value,
+		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value
 	})
 	putResponse = client.put(
 		f"song-info/songs/{51}",
@@ -481,8 +481,8 @@ def test_get_songs_for_multi_edit(
 	assert data["album"]["id"] == 11
 	assert data["album"]["name"] == "boo_album"
 	assert "album" in touched
-	assert data["primaryArtist"] == None
-	assert "primaryArtist" in touched
+	assert data["primaryartist"] == None
+	assert "primaryartist" in touched
 	assert data["artists"] == [{
 		"id": 4,
 		"name":
@@ -490,7 +490,7 @@ def test_get_songs_for_multi_edit(
 		"owner": {
 			"id": kilo_user_id,
 			"username": "testUser_kilo",
-			"displayName": None
+			"displayname": None
 		}
 	}]
 	assert "artists" in touched
@@ -503,8 +503,8 @@ def test_get_songs_for_multi_edit(
 	assert "genre" in touched
 	assert data["bitrate"] == 144
 	assert "bitrate" in touched
-	assert data["sampleRate"] == None
-	assert "sampleRate" in touched
+	assert data["samplerate"] == None
+	assert "samplerate" in touched
 	assert data["comment"] == None
 	assert "comment" not in touched
 	assert data["duration"] == None
@@ -516,16 +516,16 @@ def test_get_songs_for_multi_edit(
 	assert data["stations"] == [
 		{ "id": 1,
 			"name": "oscar_station",
-			"displayName": "Oscar the grouch",
-			"isRunning": False,
+			"displayname": "Oscar the grouch",
+			"isrunning": False,
 			"owner": {
 				"id": 2,
 				"username": "testUser_bravo",
-				"displayName": "Bravo Test User"
+				"displayname": "Bravo Test User"
 			},
 			"rules": [],
-			"requestSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
-			"viewSecurityLevel": 0
+			"requestsecuritylevel": MinItemSecurityLevel.ANY_USER.value,
+			"viewsecuritylevel": 0
 		}
 	]
 	assert "stations" in touched
@@ -551,7 +551,7 @@ def test_song_save_for_multi_edit(
 	assert len(set(d["path"] for d in data0)) == len(data0)
 	assert len(set(d["name"] for d in data0)) == len(data0)
 	assert len(set(d["album"]["id"] for d in data0 if d["album"])) == 4
-	assert len(set(d["primaryArtist"] for d in data0 if d["primaryArtist"])) == 0
+	assert len(set(d["primaryartist"] for d in data0 if d["primaryartist"])) == 0
 	artistsLen = len(set(
 		(*sorted(a["id"] for a in d["artists"]),)
 		for d in data0 if d["artists"])
@@ -566,7 +566,7 @@ def test_song_save_for_multi_edit(
 	assert len(set(d["disc"] for d in data0)) == 2
 	assert len(set(d["genre"] for d in data0)) == 2
 	assert len(set(d["bitrate"] for d in data0)) == 2
-	assert len(set(d["sampleRate"] for d in data0)) == 1
+	assert len(set(d["samplerate"] for d in data0)) == 1
 	assert len(set(d["comment"] for d in data0)) == 4
 	assert len(set(d["duration"] for d in data0)) == 1
 	assert len(set(d["explicit"] for d in data0)) == 1
@@ -585,15 +585,15 @@ def test_song_save_for_multi_edit(
 			{
 				"id": 6,
 				"name": "yankee_station",
-				"displayName": "Blurg the blergos"
+				"displayname": "Blurg the blergos"
 			},
 			{
 				"id": 8,
 				"name": "victor_station",
-				"displayName": "Fat, drunk, and stupid"
+				"displayname": "Fat, drunk, and stupid"
 			}
 		],
-		"primaryArtist": {
+		"primaryartist": {
 			"id": 14,
 			"name":
 			"oscar_artist",
@@ -603,7 +603,7 @@ def test_song_save_for_multi_edit(
 			{ "id": 8, "name": "hotel_artist", "owner": {"id": kilo_user_id } },
 			{ "id": 1, "name": "alpha_artist", "owner": {"id": kilo_user_id } }
 		],
-		"touched": ["album", "stations", "primaryArtist", "artists"]
+		"touched": ["album", "stations", "primaryartist", "artists"]
 	}
 
 	putResponse = client.put(
@@ -626,8 +626,8 @@ def test_song_save_for_multi_edit(
 	assert len(set(d["path"] for d in data2)) == len(data2)
 	assert len(set(d["name"] for d in data2)) == len(data2)
 	assert len(set(d["album"]["id"] for d in data2 if d["album"])) == 1
-	assert len(set(d["primaryArtist"]["id"] for d in data2
-		if d["primaryArtist"])
+	assert len(set(d["primaryartist"]["id"] for d in data2
+		if d["primaryartist"])
 	) == 1
 	artistsLen = len(set(
 		(*sorted(a["id"] for a in d["artists"]),)
@@ -643,7 +643,7 @@ def test_song_save_for_multi_edit(
 	assert len(set(d["disc"] for d in data2)) == 2
 	assert len(set(d["genre"] for d in data2)) == 2
 	assert len(set(d["bitrate"] for d in data2)) == 2
-	assert len(set(d["sampleRate"] for d in data2)) == 1
+	assert len(set(d["samplerate"] for d in data2)) == 1
 	assert len(set(d["comment"] for d in data2)) == 4
 	assert len(set(d["duration"] for d in data2)) == 1
 	assert len(set(d["explicit"] for d in data2)) == 1
@@ -685,7 +685,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	assert len(set(d["path"] for d in data0)) == len(data0)
 	assert len(set(d["name"] for d in data0)) == len(data0)
 	assert len(set(d["album"]["id"] for d in data0 if d["album"])) == 2
-	assert len(set(d["primaryArtist"] for d in data0 if d["primaryArtist"])) == 0
+	assert len(set(d["primaryartist"] for d in data0 if d["primaryartist"])) == 0
 	artistsLen = len(set(
 		(*sorted(a["id"] for a in d["artists"]),)
 		for d in data0 if d["artists"])
@@ -700,7 +700,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	assert len(set(d["disc"] for d in data0)) == 1
 	assert len(set(d["genre"] for d in data0)) == 1
 	assert len(set(d["bitrate"] for d in data0)) == 1
-	assert len(set(d["sampleRate"] for d in data0)) == 1
+	assert len(set(d["samplerate"] for d in data0)) == 1
 	assert len(set(d["comment"] for d in data0)) == 1
 	assert len(set(d["duration"] for d in data0)) == 1
 	assert len(set(d["explicit"] for d in data0)) == 1
@@ -719,22 +719,22 @@ def test_song_save_for_multi_edit_artist_to_primary(
 			{
 				"id": 6,
 				"name": "yankee_station",
-				"displayName": "Blurg the blergos"
+				"displayname": "Blurg the blergos"
 			},
 			{
 				"id": 8,
 				"name": "victor_station",
-				"displayName": "Fat, drunk, and stupid"
+				"displayname": "Fat, drunk, and stupid"
 			},
 		],
 		"artists": [],
-		"primaryArtist": {
+		"primaryartist": {
 			"id": 5,
 			"name":
 			"foxtrot_artist",
 			"owner": { "id": kilo_user_id}
 		},
-		"touched": ["album", "stations", "primaryArtist", "artists"]
+		"touched": ["album", "stations", "primaryartist", "artists"]
 	}
 
 	putResponse = client.put(
@@ -758,8 +758,8 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	assert len(set(d["path"] for d in data2)) == len(data2)
 	assert len(set(d["name"] for d in data2)) == len(data2)
 	assert len(set(d["album"]["id"] for d in data2 if d["album"])) == 1
-	assert len(set(d["primaryArtist"]["id"] for d in data2
-		if d["primaryArtist"])
+	assert len(set(d["primaryartist"]["id"] for d in data2
+		if d["primaryartist"])
 	) == 1
 	artistsLen = len(set(
 		(*sorted(a["id"] for a in d["artists"]),)
@@ -775,7 +775,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	assert len(set(d["disc"] for d in data2)) == 1
 	assert len(set(d["genre"] for d in data2)) == 1
 	assert len(set(d["bitrate"] for d in data2)) == 1
-	assert len(set(d["sampleRate"] for d in data2)) == 1
+	assert len(set(d["samplerate"] for d in data2)) == 1
 	assert len(set(d["comment"] for d in data2)) == 1
 	assert len(set(d["duration"] for d in data2)) == 1
 	assert len(set(d["explicit"] for d in data2)) == 1
@@ -846,6 +846,7 @@ def test_more_restrictive_path(
 
 	assert putResponse.status_code == 200
 
+@pytest.mark.echo(True)
 def test_get_path_users(
 	fixture_api_test_client: TestClient
 ):

@@ -47,7 +47,7 @@ def get_configured_db_connection(
 ) -> Iterator[Connection]:
 	if not envManager:
 		envManager = EnvManager()
-	conn = envManager.get_configured_db_connection()
+	conn = envManager.get_configured_api_connection("musical_chairs_db")
 	try:
 		yield conn
 	finally:
@@ -126,77 +126,77 @@ def get_optional_user_from_token(
 		return None
 
 def get_subject_user(
-	subjectUserKey: Union[int, str] = Query(None),
+	subjectuserkey: Union[int, str] = Query(None),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 		try:
-			subjectUserKey = int(subjectUserKey)
-			owner = accountsService.get_account_for_edit(subjectUserKey)
+			subjectuserkey = int(subjectuserkey)
+			owner = accountsService.get_account_for_edit(subjectuserkey)
 		except:
-			owner = accountsService.get_account_for_edit(subjectUserKey)
+			owner = accountsService.get_account_for_edit(subjectuserkey)
 		if owner:
 			return owner
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"User with key {subjectUserKey} not found")
+			detail=[build_error_obj(f"User with key {subjectuserkey} not found")
 			]
 		)
 
 def get_owner(
-	ownerKey: Union[int, str, None] = Query(None),
+	ownerkey: Union[int, str, None] = Query(None),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> Optional[AccountInfo]:
-	if ownerKey:
+	if ownerkey:
 		try:
-			ownerKey = int(ownerKey)
-			owner = accountsService.get_account_for_edit(ownerKey)
+			ownerkey = int(ownerkey)
+			owner = accountsService.get_account_for_edit(ownerkey)
 		except:
-			owner = accountsService.get_account_for_edit(ownerKey)
+			owner = accountsService.get_account_for_edit(ownerkey)
 		if owner:
 			return owner
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"User with key {ownerKey} not found")
+			detail=[build_error_obj(f"User with key {ownerkey} not found")
 			]
 		)
 	return None
 
 def get_stations_by_ids(
-	stationIds: list[int]=Query(default=[]),
+	stationids: list[int]=Query(default=[]),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	stationService: StationService = Depends(station_service),
 ) -> Collection[StationInfo]:
-	if not stationIds:
+	if not stationids:
 		return ()
 	return list(stationService.get_stations(
-		stationIds,
+		stationids,
 		user=user
 	))
 
 def get_station_by_name_and_owner(
-	stationKey: Union[int, str],
+	stationkey: Union[int, str],
 	owner: Optional[AccountInfo] = Depends(get_owner),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
-	if type(stationKey) == str and not owner:
+	if type(stationkey) == str and not owner:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail=[build_error_obj(
-				f"owner for station with key {stationKey} not found"
+				f"owner for station with key {stationkey} not found"
 			)]
 		)
 	#owner id is okay to be null if stationKey is an int
 	ownerId = owner.id if owner else None
 	station = next(stationService.get_stations(
-		stationKey,
+		stationkey,
 		ownerId=ownerId,
 		user=user
 	),None)
 	if not station:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"station with key {stationKey} not found")
+			detail=[build_error_obj(f"station with key {stationkey} not found")
 			]
 		)
 	return station
@@ -211,7 +211,7 @@ def get_user_with_simple_scopes(
 	securityScopes: SecurityScopes,
 	user: AccountInfo = Depends(get_current_user_simple)
 ) -> AccountInfo:
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	for scope in securityScopes.scopes:
 		if not any(r for r in user.roles if r.name == scope):
@@ -224,7 +224,7 @@ def get_user_with_rate_limited_scope(
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	scopeSet = set(securityScopes.scopes)
 	rules = ActionRule.sorted((r for r in user.roles if r.name in scopeSet))
@@ -247,12 +247,12 @@ def get_user_with_rate_limited_scope(
 	return user
 
 def impersonated_user_id(
-	impersonatedUserId: Optional[int],
+	impersonateduserid: Optional[int],
 	user: AccountInfo = Depends(get_current_user_simple)
 ) -> Optional[int]:
-	if user.isAdmin or any(r.conforms(UserRoleDef.USER_IMPERSONATE.value) \
+	if user.isadmin or any(r.conforms(UserRoleDef.USER_IMPERSONATE.value) \
 			for r in user.roles):
-		return impersonatedUserId
+		return impersonateduserid
 	return None
 
 def check_if_can_use_path(
@@ -297,14 +297,14 @@ def get_path_user(
 	scopes = {s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	}
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	if not scopes:
 		raise build_wrong_permissions_error()
 	rules = ActionRule.aggregate(
 		user.roles,
 		(p for p in songInfoService.get_paths_user_can_see(user.id)),
-		(p for p in get_path_owner_roles(normalize_opening_slash(user.dirRoot)))
+		(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 	)
 	roleNameSet = {r.name for r in rules}
 	if any(s for s in scopes if s not in roleNameSet):
@@ -319,17 +319,17 @@ def get_path_user(
 def get_path_user_and_check_optional_path(
 	securityScopes: SecurityScopes,
 	prefix: Optional[str]=None,
-	itemId: Optional[int]=None,
+	itemid: Optional[int]=None,
 	user: AccountInfo = Depends(get_path_user),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	if prefix is None:
-		if itemId:
-			prefix = next(songInfoService.get_song_path(itemId, False), "")
+		if itemid:
+			prefix = next(songInfoService.get_song_path(itemid, False), "")
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]
@@ -359,13 +359,13 @@ def get_path_user_and_check_optional_path(
 
 def get_multi_path_user(
 	securityScopes: SecurityScopes,
-	itemIds: list[int]=Query(default=[]),
+	itemids: list[int]=Query(default=[]),
 	user: AccountInfo=Depends(get_path_user),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	userActionHistoryService: UserActionsHistoryService=
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	userPrefixes = (
 		r for r in user.roles if isinstance(r, PathsActionRule)
@@ -379,7 +379,7 @@ def get_multi_path_user(
 					or r.name == UserRoleDef.ADMIN.value
 			)
 	), shouldEmptyUpdateTree=False)
-	prefixes = songInfoService.get_song_path(itemIds, False)
+	prefixes = songInfoService.get_song_path(itemids, False)
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]
@@ -404,11 +404,11 @@ def get_station_user(
 	minScope = (not securityScopes.scopes or\
 		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
 	)
-	if not station.viewSecurityLevel and minScope:
+	if not station.viewsecuritylevel and minScope:
 		return user
 	if not user:
 		raise build_not_logged_in_error()
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	scopes = {s for s in securityScopes.scopes \
 		if UserRoleDomain.Station.conforms(s)
@@ -448,11 +448,11 @@ def get_station_user_2(
 	minScope = (not securityScopes.scopes or\
 		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
 	)
-	if not any(s.viewSecurityLevel for s in stations) and minScope:
+	if not any(s.viewsecuritylevel for s in stations) and minScope:
 		return user
 	if not user:
 		raise build_not_logged_in_error()
-	if user.isAdmin:
+	if user.isadmin:
 		return user
 	scopes = {s for s in securityScopes.scopes \
 		if UserRoleDomain.Station.conforms(s)
@@ -482,18 +482,18 @@ def get_station_user_2(
 
 def get_account_if_has_scope(
 	securityScopes: SecurityScopes,
-	subjectUserKey: Union[int, str],
+	subjectuserkey: Union[int, str],
 	currentUser: AccountInfo = Depends(get_current_user_simple),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
-	isCurrentUser = subjectUserKey == currentUser.id or\
-		subjectUserKey == currentUser.username
+	isCurrentUser = subjectuserkey == currentUser.id or\
+		subjectuserkey == currentUser.username
 	scopeSet = {s for s in securityScopes.scopes}
-	hasEditRole = currentUser.isAdmin or\
+	hasEditRole = currentUser.isadmin or\
 		any(r.name in scopeSet for r in currentUser.roles)
 	if not isCurrentUser and not hasEditRole:
 		raise build_wrong_permissions_error()
-	prev = accountsService.get_account_for_edit(subjectUserKey) if subjectUserKey else None
+	prev = accountsService.get_account_for_edit(subjectuserkey) if subjectuserkey else None
 	if not prev:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,

@@ -30,13 +30,13 @@ const inputField = {
 };
 
 const passwordSchema = Yup.object().shape({
-	oldPassword: Yup.string().required("Old Password is required"),
-	newPassword: Yup.string().required("New Password is required").min(6),
-	passwordConfirm: Yup.string().required().test(
-		"passwordConfirm",
+	oldpassword: Yup.string().required("Old Password is required"),
+	newpassword: Yup.string().required("New Password is required").min(6),
+	passwordconfirm: Yup.string().required().test(
+		"passwordconfirm",
 		() => "Passwords must match",
 		(value, context) => {
-			return value === context.parent.newPassword;
+			return value === context.parent.newpassword;
 		}
 	),
 });
@@ -59,24 +59,24 @@ export const AccountsEdit = () => {
 
 
 	const passwordFormMethods = useForm<
-		PasswordUpdate & { passwordConfirm: string }
+		PasswordUpdate & { passwordconfirm: string }
 	>({
 		defaultValues: {
-			oldPassword: "",
-			newPassword: "",
-			passwordConfirm: "",
+			oldpassword: "",
+			newpassword: "",
+			passwordconfirm: "",
 		},
 		resolver: yupResolver(passwordSchema),
 		mode: "onBlur",
 	});
 	const { handleSubmit: passwordHandleSubmit } = passwordFormMethods;
 	const passwordCallSubmit = passwordHandleSubmit(async values => {
-		if (!pathVars.userKey) {
+		if (!pathVars.userkey) {
 			enqueueSnackbar("User is missing", { variant: "error"});
 			return;
 		}
 		try {
-			await updatePassword({subjectUserKey: pathVars.userKey, ...values});
+			await updatePassword({subjectuserkey: pathVars.userkey, ...values});
 			enqueueSnackbar("Password updated successfully", { variant: "success"});
 		}
 		catch(err){
@@ -86,7 +86,7 @@ export const AccountsEdit = () => {
 
 	const formMethods = useForm<User>({
 		defaultValues: {
-			displayName: "",
+			displayname: "",
 			email: "",
 		},
 		resolver: yupResolver(schema),
@@ -96,7 +96,7 @@ export const AccountsEdit = () => {
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const data = await updateAccountBasic(
-				{subjectUserKey: values.id, data: values}
+				{subjectuserkey: values.id, data: values}
 			);
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
@@ -129,7 +129,7 @@ export const AccountsEdit = () => {
 				const isDiffId = isNumKey && parseInt(key || "") !== formId;
 				const isDiffName = isStrKey && key != formUsername;
 				if (key && (isDiffId || isDiffName)) {
-					_fetchUser({ subjectUserKey: key });
+					_fetchUser({ subjectuserkey: key });
 				}
 
 			}
@@ -149,7 +149,7 @@ export const AccountsEdit = () => {
 		<Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="oldPassword"
+					name="oldpassword"
 					label="Old Password"
 					type="password"
 					formMethods={passwordFormMethods}
@@ -157,7 +157,7 @@ export const AccountsEdit = () => {
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="newPassword"
+					name="newpassword"
 					label="Password"
 					type="password"
 					formMethods={passwordFormMethods}
@@ -165,7 +165,7 @@ export const AccountsEdit = () => {
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="passwordConfirm"
+					name="passwordconfirm"
 					label="Confirm Password"
 					type="password"
 					formMethods={passwordFormMethods}
@@ -180,7 +180,7 @@ export const AccountsEdit = () => {
 		<Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="displayName"
+					name="displayname"
 					label="Display Name"
 					formMethods={formMethods}
 				/>

@@ -13,7 +13,7 @@ fi
 
 pkgMgrChoice=$(get_pkg_mgr)
 
-if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 	if ! dpkg -s build-essential >/dev/null 2>&1; then
 		install_package build-essential
 	fi &&
@@ -50,9 +50,9 @@ if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 		install_package libbz2-dev
 	fi &&
 	(
-		python_build_dir="$app_root"/"$build_home"/python
-		empty_dir_contents "$python_build_dir"
-		cd "$python_build_dir"
+		pythonBuildDir="$(get_app_root)"/"$MC_BUILD_DIR"/python
+		empty_dir_contents "$pythonBuildDir"
+		cd "$pythonBuildDir"
 		verNum='3.9.1'
 		curl -o Python-"$verNum".tgz \
 			https://www.python.org/ftp/python/"$verNum"/Python-"$verNum".tgz

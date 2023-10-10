@@ -1,17 +1,20 @@
 #!/bin/sh
 
 if [ -e ./radio_common.sh ]; then
-	radio_common_path='./radio_common.sh'
-elif [ -e ../radio_common.sh]; then
-	radio_common_path='../radio_common.sh'
-elif [ -e "$HOME"/radio/radio_common.sh]; then
-	radio_common_path="$HOME"/radio/radio_common.sh
+	radioCommonPath='./radio_common.sh'
+elif [ -e ../radio_common.sh ]; then
+	radioCommonPath='../radio_common.sh'
+elif [ -e "$HOME"/radio/radio_common.sh ]; then
+	radioCommonPath="$HOME"/radio/radio_common.sh
 else
   echo "radio_common.sh not found"
   exit 1
 fi
 
-. "$radio_common_path"
+#this is included locally. Any changes here are going to be on the server
+#unless they've been pushed to the repo
+. "$radioCommonPath"
+
 
 process_global_vars "$@" ||
 show_err_and_exit "error with global variabls"
@@ -70,55 +73,63 @@ fi
 error_check_path "$(get_repo_path)" &&
 rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
-cd "$app_root"/"$build_dir" &&
-git clone "$radio_server_repo_url" "$proj_name" &&
-cd "$proj_name"  &&
+cd "$(get_app_root)"/"$MC_BUILD_DIR" &&
+git clone "$MC_REPO_URL" "$MC_PROJ_NAME" &&
+cd "$MC_PROJ_NAME"  &&
 if [ "$currentBranch" != main ]; then
 	echo "Using branch ${currentBranch}"
 	git checkout -t origin/"$currentBranch" || exit 1
 fi
-cd "$app_root"
+cd "$(get_app_root)"
 RemoteScriptEOF1
 } > clone_repo_fifo &
 
 #select which setup script to run
 { cat<<RemoteScriptEOF2
 
-export diag_flag="$diag_flag" &&
-export exp_name="$exp_name" &&
+
+export expName="$expName" &&
 export S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" &&
 export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
-export PB_SECRET=$(get_pb_secret)
-export PB_API_KEY=$(get_pb_api_key)
-export APP_AUTH_KEY=$(get_mc_auth_key)
+export PB_SECRET=$(get_pb_secret) &&
+export PB_API_KEY=$(get_pb_api_key) &&
+export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
+export MC_DATABASE_NAME='musical_chairs_db';
+export __DB_SETUP_PASS__=$(get_db_setup_key) &&
+export MC_DB_PASS_OWNER=$(get_db_owner_key) &&
+export MC_DB_PASS_API=$(get_api_user_key) &&
+export MC_DB_PASS_RADIO=$(get_radio_user_key) &&
 
-if [ "$setup_lvl" = 'api' ]; then
-	echo "$setup_lvl"
-	(exit "$unitTestSuccess") &&
-	. ./radio_common.sh &&
-	sync_utility_scripts &&
-	startup_api
-elif [ "$setup_lvl" = 'client' ]; then
-	echo "$setup_lvl"
-	. ./radio_common.sh &&
-	sync_utility_scripts &&
-	setup_client &&
-	echo "finished setup"
-elif [ "$setup_lvl" = 'radio' ]; then
-	echo "$setup_lvl"
-	(exit "$unitTestSuccess") &&
-	. ./radio_common.sh &&
-	sync_utility_scripts &&
-	startup_radio
-elif [ "$setup_lvl" = 'install' ]; then
-	echo "$setup_lvl"
-	sh ./install_setup.sh &&
-	echo "finished setup"
-else
-	echo "$setup_lvl"
-	. ./radio_common.sh &&
-	sync_utility_scripts &&
-	echo "finished setup"
+if is_ssh; then
+	if [ "$__SETUP_LVL__" = 'api' ]; then
+		echo "$__SETUP_LVL__"
+		(exit "$unitTestSuccess") &&
+		. ./radio_common.sh &&
+		sync_utility_scripts &&
+		startup_api
+	elif [ "$__SETUP_LVL__" = 'client' ]; then
+		echo "$__SETUP_LVL__"
+		. ./radio_common.sh &&
+		sync_utility_scripts &&
+		setup_client &&
+		echo "finished setup"
+	elif [ "$__SETUP_LVL__" = 'radio' ]; then
+		echo "$__SETUP_LVL__"
+		(exit "$unitTestSuccess") &&
+		. ./radio_common.sh &&
+		sync_utility_scripts &&
+		startup_radio
+	elif [ "$__SETUP_LVL__" = 'install' ]; then
+		echo "$__SETUP_LVL__"
+		. ./radio_common.sh &&
+		run_initial_install_script &&
+		echo "finished setup"
+	else
+		echo "$__SETUP_LVL__"
+		. ./radio_common.sh &&
+		sync_utility_scripts &&
+		echo "finished setup"
+	fi
 fi
 
 RemoteScriptEOF2
@@ -127,21 +138,19 @@ RemoteScriptEOF2
 #we need this section to also resolve its variables remotely on the server
 {
 cat<<'RemoteScriptEOF3'
-exit_code="$?"
+exitCode="$?"
 
-export ACCESS_KEY_ID=$(gen_pass)
-export SECRET_ACCESS_KEY=$(gen_pass)
 echo 'Done Server side'
-(exit "$exit_code")
+(exit "$exitCode")
 RemoteScriptEOF3
 } > remote_cleanup_fifo &
 
 {
 	cat<<RemoteScriptEOF4
-$(cat "$radio_common_path")
+$(cat "$radioCommonPath")
 scope() (
 
-	radio_server_repo_url="$radio_server_repo_url"
+	MC_REPO_URL="$MC_REPO_URL"
 	currentBranch="$(git branch --show-current 2>/dev/null)"
 
 	$(cat clone_repo_fifo)
@@ -158,7 +167,7 @@ RemoteScriptEOF4
 } > remote_script_fifo &
 
 
-ssh -i "$radio_key_file" "$radio_server_ssh_address" \
+ssh -i "$MC_SERVER_KEY_FILE" "$MC_SERVER_SSH_ADDRESS" \
 	'bash -s' < remote_script_fifo &&
 echo "All done" || echo "Onk!"
 

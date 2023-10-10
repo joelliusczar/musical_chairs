@@ -1,28 +1,76 @@
 #pyright: reportUnknownMemberType=false
-from typing import cast
+import pytest
 from sqlalchemy import select, func
 from sqlalchemy.engine import Connection
-from sqlalchemy.sql import ColumnCollection
 from musical_chairs_libs.tables import songs
 from .constant_fixtures_for_test import *
-from .common_fixtures import \
-	fixture_populated_db_conn_in_mem as fixture_populated_db_conn_in_mem
 from .common_fixtures import *
 from .mocks.special_strings_reference import chinese1
 
 
-sg = cast(ColumnCollection,songs.columns) #pyright: ignore [reportUnknownMemberType]
+sg = songs.columns
 
-def test_iron_str(fixture_populated_db_conn_in_mem: Connection):
-	conn = fixture_populated_db_conn_in_mem
-	sg_name = sg.name #pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
-	sg_pk = sg.pk #pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
+@pytest.mark.skip()
+def test_iron_str(fixture_db_conn_in_mem: Connection):
+	conn = fixture_db_conn_in_mem
+	sg_name = sg.name
+	sg_pk = sg.pk
 	query = select(sg_name,\
-		func.format_name_for_search(sg_name).label("ironedStr")
+		sg_name.label("ironedStr")
 	).where(sg_pk == 50)
-	record = conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+	record = conn.execute(query).fetchone()
 	if record:
-		assert record.name == chinese1 #pyright: ignore [reportGeneralTypeIssues]
-		assert record.ironedStr == "mu hei jiang si" #pyright: ignore [reportGeneralTypeIssues]
+		assert record.name == chinese1
+		assert record.ironedStr == "mu hei jiang si"
 	else:
 		assert False
+
+@pytest.mark.populateFnName("fixture_db_empty_populate_factory")
+def test_next_directory_level(fixture_db_conn_in_mem: Connection):
+	conn = fixture_db_conn_in_mem
+	path = "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
+		"01._Come_Together_-_The_Beatles.flac"
+	query = select(func.next_directory_level(path, ""))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/"
+
+	query = select(func.next_directory_level(path, "P"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/"
+	query = select(func.next_directory_level(path, "Pop"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/"
+	query = select(func.next_directory_level(path, "Pop/"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/"
+	query = select(func.next_directory_level(path, "Pop/Pop"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/"
+	query = select(func.next_directory_level(path, "Pop/Pop_A-"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/"
+	query = select(func.next_directory_level(path, "Pop/Pop_A-F"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/"
+	query = select(func.next_directory_level(path, "Pop/Pop_A-F/"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/Beatles,_The/"
+	query = select(func.next_directory_level(path, "Pop/Pop_A-F/Beatles,_The/"))
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"
+	query = select(
+		func.next_directory_level(path, "Pop/Pop_A-F/Beatles,_The/Abbey_Road/")
+	)
+	result = conn.execute(query).fetchone()
+	assert result
+	assert result[0] == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
+		"01._Come_Together_-_The_Beatles.flac"

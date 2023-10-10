@@ -40,7 +40,7 @@ case $(uname) in
 		fi
 		;;
 	(Linux*)
-		if [ "$pkgMgrChoice" = "$APT_CONST" ] \
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ] \
 		&& ! libtool --version 2>/dev/null; then
 			install_package libtool-bin ||
 			show_err_and_exit "Couldn't install libtool"
@@ -89,33 +89,28 @@ case $(uname) in
 		;;
 	*) ;;
 esac
-ices_build_dir="$app_root"/"$build_dir"/ices
+icesBuildDir="$(get_app_root)"/"$MC_BUILD_DIR"/ices
 (
-	name_prefix='mc-'
-	sudo_rm_dir "$ices_build_dir"
-	cd "$app_root"/"$build_dir"
+	namePrefix='mc-'
+	sudo_rm_dir "$icesBuildDir"
+	cd "$(get_app_root)"/"$MC_BUILD_DIR"
 	git clone https://github.com/joelliusczar/ices0.git ices
 	cd ices
-	if [ "$exp_name" = "dbg_ices" ]; then
-		git checkout debuging
-		name_prefix='dbg-'
-	else
-		if [ -n "$ice_branch" ]; then
-			echo "Using branch ${ice_branch}"
-			git checkout -t origin/"$ice_branch" || exit 1
-		fi
+	if [ -n "$__ICES_BRANCH__" ]; then
+		echo "Using branch ${__ICES_BRANCH__}"
+		git checkout -t origin/"$__ICES_BRANCH__" || exit 1
 	fi
 	aclocal &&
 	autoreconf -fi &&
 	automake --add-missing &&
-	./configure --prefix="$app_root"/.local \
+	./configure --prefix="$(get_app_root)"/.local \
 		--with-python=$(which mc-python) \
-		--with-moddir="$app_root"/"$pyModules_dir" \
-		--program-prefix="$name_prefix" &&
+		--with-moddir="$(get_app_root)"/"$MC_PY_MODULE_DIR" \
+		--program-prefix="$namePrefix" &&
 	make &&
 	make install &&
-	cd "$app_root"/"$build_dir" &&
-	if [ "$skip_option" != clean ]; then
-		sudo_rm_dir "$ices_build_dir"
+	cd "$(get_app_root)"/"$MC_BUILD_DIR" &&
+	if ! str_contains "$__SKIP__" 'clean'; then
+		sudo_rm_dir "$icesBuildDir"
 	fi
 )

@@ -11,7 +11,7 @@ export interface IdItem {
 
 
 export interface OwnerParam {
-	ownerKey: KeyType
+	ownerkey: KeyType
 }
 
 export interface APIError {
@@ -43,7 +43,8 @@ export interface DontCareMap {
 }
 
 export type SortCallback<T> = (a:T, b:T) => number;
-export type SortCallbackFactory = (key: string) => SortCallback<{}>
+export type SortCallbackFactory = 
+<T, K extends keyof T>(key: K) => SortCallback<T>
 
 export type Flags<Type> = {
   [Property in keyof Type]: boolean;

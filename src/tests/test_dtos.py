@@ -59,9 +59,9 @@ def test_is_admin():
 		email="",
 		roles=[ActionRule(UserRoleDef.SONG_EDIT.value)]
 	)
-	assert not accountInfo.isAdmin
+	assert not accountInfo.isadmin
 	accountInfo.roles.append(ActionRule(UserRoleDef.ADMIN.value))
-	assert accountInfo.isAdmin
+	assert accountInfo.isadmin
 
 def test_validatedSongAboutInfo():
 	songInfo = ValidatedSongAboutInfo()

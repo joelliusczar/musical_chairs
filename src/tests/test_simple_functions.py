@@ -7,8 +7,6 @@ from sqlalchemy import\
 	select
 from sqlalchemy.sql import ColumnCollection
 from .common_fixtures import *
-from .common_fixtures import\
-	fixture_populated_db_conn_in_mem as fixture_populated_db_conn_in_mem
 from musical_chairs_libs.tables import songs as songs_tbl, sg_path
 
 sg: ColumnCollection = songs_tbl.columns #pyright: ignore reportUnknownMemberType
@@ -113,8 +111,8 @@ def test_next_directory_level():
 	assert result == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
 		"01._Come_Together_-_The_Beatles.flac"
 
-def test_populate_model_from_datarow(fixture_populated_db_conn_in_mem: Connection):
-	conn = fixture_populated_db_conn_in_mem
+def test_populate_model_from_datarow(fixture_db_conn_in_mem: Connection):
+	conn = fixture_db_conn_in_mem
 	query = select(sg_pk.label("id"), sg_name, sg_path)
 	row = conn.execute(query).fetchone() #pyright: ignore reportUnknownMemberType
 	print("oh hai")

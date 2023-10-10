@@ -21,8 +21,8 @@ echo "No package manager set"
 perl -v >/dev/null 2>&1 ||
 echo "Perl is not installed"
 
-[ -e "$app_root"/"$bin_dir" ] || 
-echo "${app_root}/${bin_dir} does not exist"
+[ -e "$(get_app_root)"/"$bin_dir" ] || 
+echo "$(get_app_root)/${bin_dir} does not exist"
 
 case $(uname) in
 	Darwin*)
@@ -75,7 +75,7 @@ case $(uname) in
 		echo "libshout is not installed"
 		;;
 	Linux*) 
-		if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 			libtool --version >/dev/null >/dev/null 2>&1 ||
 			echo "libtool is not installed"
 		fi
@@ -92,7 +92,7 @@ echo "pyMajor is not set"
 [ -n "$pyMinor" ] ||
 echo "pyMinor is not set"
 
-if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 	dpkg -s libxml2-dev >/dev/null 2>&1 ||
 	echo "libxml2-dev is not installed"
 	dpkg -s libogg-dev >/dev/null 2>&1 ||
@@ -115,18 +115,18 @@ if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
 	echo "python3-distutils is not installed"
 fi
 
-[ -e "$app_root"/"$build_home" ] ||
-echo "${app_root}/${build_home} does not exist"
+[ -e "$(get_app_root)"/"$build_home" ] ||
+echo "$(get_app_root)/${build_home} does not exist"
 
-[ -e "$app_root"/"$app_trunk" ] ||
-echo "${app_root}/${app_trunk} does not exist"
+[ -e "$(get_app_root)"/"$app_trunk" ] ||
+echo "$(get_app_root)/${app_trunk} does not exist"
 
 case $(uname) in
 	Linux*)
-		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
+		if [ "$pkgMgrChoice" = "$MC_PACMAN_CONST" ]; then
 			icecast -v >/dev/null 2>&1 ||
 			echo "$icecast is not installed"
-		elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+		elif [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 			icecast2 -v >/dev/null 2>&1 ||
 			echo "$icecast2 is not installed"
 		fi
@@ -137,17 +137,17 @@ esac
 mc-ices -V >/dev/null 2>&1 ||
 echo "mc-ices is not installed"
 
-[ -e "$app_root"/"$app_trunk"/radio_common.sh ] ||
+[ -e "$(get_app_root)"/"$app_trunk"/radio_common.sh ] ||
 echo "radio_common.sh is not in place"
-[ -e "$app_root"/"$app_trunk"/requirements.txt ] ||
+[ -e "$(get_app_root)"/"$app_trunk"/requirements.txt ] ||
 echo "requirements.txt is not in place"
 
 
 
-[ -e "$app_root"/"$app_trunk"/"$py_env" ] ||
+[ -e "$(get_app_root)"/"$app_trunk"/"$py_env" ] ||
 echo "${app_trunk}/${py_env} is not in place"
 
-compare_dirs "$templates_src" "$app_root"/"$templates_dir_cl"
+compare_dirs "$templates_src" "$(get_app_root)"/"$templates_dir_cl"
 compare_dirs "$api_src" "$web_root"/"$app_api_path_cl"
 
 [ -e "$web_root"/"$app_api_path_cl"/"$py_env" ] ||
@@ -156,8 +156,8 @@ compare_dirs "$client_src"/build \
  "$web_root"/"$app_client_path_cl"
 
 
-[ -e "$app_root"/"$sqlite_file" ] || 
-echo "${app_root}/${sqlite_file} is not in place"
+[ -e "$(get_app_root)"/"$sqlite_file" ] || 
+echo "$(get_app_root)/${sqlite_file} is not in place"
 
 nginx -v 2>/dev/null || 
 echo "nginx is not installed"

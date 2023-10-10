@@ -16,14 +16,14 @@ export interface AlbumInfo {
 	id: IdType
 	name: string
 	year: number | null
-	albumArtist: ArtistInfo | null
+	albumartist: ArtistInfo | null
 	owner: User
 }
 
 export interface AlbumCreationInfo {
 	name: string
 	year?: number
-	albumArtist?: ArtistInfo
+	albumartist?: ArtistInfo
 }
 
 export interface NowPlayingInfo {
@@ -36,16 +36,16 @@ export interface SongListDisplayItem extends NamedIdItem {
 	album: string | null
 	artist: string | null
 	path: string
-	queuedTimestamp: number
-	requestedTimestamp: number | null
-	playedTimestamp: number | null
+	queuedtimestamp: number
+	requestedtimestamp: number | null
+	playedtimestamp: number | null
 	rules: ActionRule[]
 }
 
 export interface CurrentPlayingInfo
 	extends StationTableData<SongListDisplayItem>
 {
-	nowPlaying: NowPlayingInfo | null
+	nowplaying: NowPlayingInfo | null
 }
 
 
@@ -56,9 +56,9 @@ export class InitialQueueState extends VoidStore {
 		super();
 		this.data = {
 			items: [],
-			totalRows: 0,
-			stationRules: [],
-			nowPlaying: {
+			totalrows: 0,
+			stationrules: [],
+			nowplaying: {
 				song: "",
 				album: "",
 				artist: "",
@@ -88,7 +88,7 @@ export type TouchedObject = {
 export interface SongInfoBase extends Named {
 	path: string
 	artists: ArtistInfo[]
-	primaryArtist: ArtistInfo
+	primaryartist: ArtistInfo
 	album: AlbumInfo
 	stations: StationInfo[]
 	genre: string

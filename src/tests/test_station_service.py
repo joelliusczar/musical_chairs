@@ -55,7 +55,7 @@ def test_get_stations_list_with_admin(
 		key=lambda s:s.id
 	)
 	assert len(data) == 1
-	assert data[0].viewSecurityLevel == MinItemSecurityLevel.LOCKED.value
+	assert data[0].viewsecuritylevel == MinItemSecurityLevel.LOCKED.value
 
 def test_get_stations_list_with_user_and_owner(
 	fixture_station_service: StationService,
@@ -131,7 +131,7 @@ def test_save_station(
 	stationService = fixture_station_service
 	testData = StationCreationInfo(
 		name = "brand_new_station",
-		displayName="Brand new station"
+		displayname="Brand new station"
 	)
 	julietUser = AccountInfo(
 		id = juliet_user_id,
@@ -143,11 +143,11 @@ def test_save_station(
 	fetched = next(stationService.get_stations(result.id))
 	assert fetched.id == result.id
 	assert fetched.name == "brand_new_station"
-	assert fetched.displayName == "Brand new station"
+	assert fetched.displayname == "Brand new station"
 
 	testData = StationCreationInfo(
 		name = "brand_new_station_fake_tag",
-		displayName="Brand new station with bad tag"
+		displayname="Brand new station with bad tag"
 	)
 	result = stationService.save_station(testData, julietUser)
 	assert result and result.id == len(get_initial_stations()) + 2
@@ -156,7 +156,7 @@ def test_save_station(
 
 	testData = StationCreationInfo(
 		name = "papa_station_update",
-		displayName="Come to papa test"
+		displayname="Come to papa test"
 	)
 	bravoUser = AccountInfo(
 		id = bravo_user_id,
@@ -167,18 +167,18 @@ def test_save_station(
 	assert result and result.id == 2
 	fetched = next(stationService.get_stations(result.id))
 	assert fetched and fetched.name == "papa_station_update"
-	assert fetched and fetched.displayName == "Come to papa test"
+	assert fetched and fetched.displayname == "Come to papa test"
 
 
 	testData = StationCreationInfo(
 		name = "oscar_station",
-		displayName="Oscar the grouch"
+		displayname="Oscar the grouch"
 	)
 	result = stationService.save_station(testData, fixture_primary_user, 1)
 	assert result and result.id == 1
 	fetched = next(stationService.get_stations(result.id))
 	assert fetched and fetched.name == "oscar_station"
-	assert fetched and fetched.displayName == "Oscar the grouch"
+	assert fetched and fetched.displayname == "Oscar the grouch"
 
 def test_get_station_user_rule_selection(
 	fixture_station_service: StationService,

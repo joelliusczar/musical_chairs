@@ -25,7 +25,7 @@ export const AccountsList = () => {
 	const [fetchError, setFetchError] = useState<string | null>(null);
 	const [tableData, setTableData] = useState<TableData<User>>({
 		items: [],
-		totalRows: 0,
+		totalrows: 0,
 	});
 	const location = useLocation();
 
@@ -91,13 +91,13 @@ export const AccountsList = () => {
 								return (
 									<TableRow key={`account_${idx}`}>
 										<TableCell>{item.username}</TableCell>
-										<TableCell>{item.displayName || ""}</TableCell>
+										<TableCell>{item.displayname || ""}</TableCell>
 										<TableCell>{item.email || ""}</TableCell>
 										<TableCell>
 											<Button
 												component={Link}
 												to={DomRoutes.accountsRoles({
-													subjectUserKey: item.username,
+													subjectuserkey: item.username,
 												})}
 											>
 												Roles

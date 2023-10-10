@@ -37,12 +37,8 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 		items: contextStations,
 	} = useStationData();
 
-	const stations = useMemo(() => contextStations ?
-		contextStations.filter(s =>
-			!!pathVars.ownerKey && userKeyMatch(pathVars.ownerKey,s.owner)) :
-		contextStations,
-	[contextStations, pathVars.ownerKey]
-	);
+
+	const stations = contextStations;
 
 	const pathToStation = (path: string): StationInfo | null => {
 		const split = path.split("/");
@@ -71,8 +67,8 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 	};
 
 	const pathSuffix = useMemo(() =>
-		`${pathVars.ownerKey}/${pathVars.stationKey?.toLowerCase()}`,
-	[pathVars.ownerKey,pathVars.stationKey]
+		`${pathVars.ownerkey}/${pathVars.stationkey?.toLowerCase()}`,
+	[pathVars.ownerkey,pathVars.stationkey]
 	);
 
 	const [selectedStation, setSelectedStation] = useState(pathToStation(
@@ -94,7 +90,7 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 			select
 			SelectProps={{
 				renderValue: () => {
-					return selectedStation?.displayName || selectedStation?.name || "";
+					return selectedStation?.displayname || selectedStation?.name || "";
 				},
 			}}
 			label="Stations"
@@ -108,8 +104,8 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 				}
 				navigate(getPageUrl(
 					{
-						ownerKey: station?.owner?.username?.toLowerCase(),
-						stationKey: station?.name?.toLowerCase(),
+						ownerkey: station?.owner?.username?.toLowerCase(),
+						stationkey: station?.name?.toLowerCase(),
 					},
 					location.search
 				),
@@ -134,7 +130,7 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 						className="station-menu"
 					>
 						<Box className="station-menu">
-							{s.displayName || s.name}
+							{s.displayname || s.name}
 							{/* <Typography noWrap >
 							</Typography> */}
 						</Box>

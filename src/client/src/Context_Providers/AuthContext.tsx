@@ -48,7 +48,7 @@ const expireCookie = (name: string) => {
 
 const clearCookies = () => {
 	expireCookie("username");
-	expireCookie("displayName");
+	expireCookie("displayname");
 	expireCookie("access_token");
 };
 
@@ -157,12 +157,12 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 		const username = decodeURIComponent(cookieObj["username"] || "");
 
 		const displayName = decodeURIComponent(
-			cookieObj["displayName"] || ""
+			cookieObj["displayname"] || ""
 		) || username;
 
 
 		if(!document.cookie) return;
-		dispatch(dispatches.assign({username, displayName}));
+		dispatch(dispatches.assign({username, displayname: displayName}));
 		const loginCall = async () => {
 			try {
 				const data = await login_with_cookie();

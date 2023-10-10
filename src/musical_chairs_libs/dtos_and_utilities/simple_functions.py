@@ -69,11 +69,18 @@ def next_directory_level(path: str, prefix: Optional[str]="") -> str:
 		return groups[0] if groups else ""
 	return ""
 
-def check_name_safety(name: str) -> Optional[str]:
-		m = re.search(r"\W", name)
+def get_non_simple_chars(name: str) -> Optional[str]:
+		m = re.search(r"[^a-zA-Z0-9_]", name)
 		if m:
 			return m.group(0)
 		return None
+
+def is_name_safe(name: str, maxLen: int=50) -> bool:
+	if len(name) > maxLen:
+		return False
+	if get_non_simple_chars(name):
+		return False
+	return True
 
 def _kvpSplit(kvp: str) -> Tuple[str, str]:
 	eqSplit = kvp.split("=")

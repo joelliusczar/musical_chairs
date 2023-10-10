@@ -70,8 +70,8 @@ def login(
 		max_age=tokenLifetime
 	)
 	response.set_cookie(
-		key="displayName",
-		value=parse.quote(user.displayName or user.username),
+		key="displayname",
+		value=parse.quote(user.displayname or user.username),
 		max_age=tokenLifetime
 	)
 	return AuthenticatedAccount(
@@ -80,7 +80,7 @@ def login(
 		username=user.username,
 		roles=user.roles,
 		lifetime=tokenLifetime,
-		displayName=user.displayName,
+		displayname=user.displayname,
 		email=user.email
 	)
 
@@ -98,7 +98,7 @@ def login_with_cookie(
 			username=user.username,
 			roles=user.roles,
 			lifetime=expiration,
-			displayName=user.displayName,
+			displayname=user.displayname,
 			email=user.email
 		)
 	except:
@@ -108,7 +108,7 @@ def login_with_cookie(
 			username="",
 			roles=[],
 			lifetime=0,
-			displayName="",
+			displayname="",
 			email=""
 		)
 
@@ -146,7 +146,7 @@ def get_user_list(
 		pageSize=pageSize
 	))
 	totalRows = accountsService.get_accounts_count()
-	return TableData(totalRows=totalRows, items=accounts)
+	return TableData(totalrows=totalRows, items=accounts)
 
 @router.get("/search", dependencies=[
 	# Security(get_user_with_simple_scopes, scopes=[UserRoleDef.USER_LIST.value])
@@ -164,7 +164,7 @@ def search_users(
 	))
 	return accounts
 
-@router.put("/account/{subjectUserKey}")
+@router.put("/account/{subjectuserkey}")
 def update_account(
 	updatedInfo: AccountInfoBase,
 	prev: AccountInfo = Security(
@@ -176,7 +176,7 @@ def update_account(
 	return accountsService.update_account_general_changes(updatedInfo, prev)
 
 
-@router.put("/update-password/{subjectUserKey}")
+@router.put("/update-password/{subjectuserkey}")
 def update_password(
 	passwordInfo: PasswordInfo,
 	currentUser: AccountInfo = Security(
@@ -196,7 +196,7 @@ def update_password(
 				)],
 		)
 
-@router.put("/update-roles/{subjectUserKey}")
+@router.put("/update-roles/{subjectuserkey}")
 def update_roles(
 	roles: list[ActionRule],
 	prev: AccountInfo = Security(
@@ -208,7 +208,7 @@ def update_roles(
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
 	return AccountInfo(**{**asdict(prev), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
-@router.get("/account/{subjectUserKey}")
+@router.get("/account/{subjectuserkey}")
 def get_account(
 	accountInfo: AccountInfo = Security(
 		get_account_if_has_scope,
@@ -251,7 +251,7 @@ def validate_site_rule(
 		)
 	return rule
 
-@router.post("/site-roles/user_role/{subjectUserKey}",
+@router.post("/site-roles/user_role/{subjectuserkey}",
 	dependencies=[
 		Security(
 			get_user_with_simple_scopes,
@@ -267,7 +267,7 @@ def add_user_rule(
 	return accountsService.add_user_rule(user.id, rule)
 
 
-@router.delete("/site-roles/user_role/{subjectUserKey}",
+@router.delete("/site-roles/user_role/{subjectuserkey}",
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[
 		Security(
@@ -277,7 +277,7 @@ def add_user_rule(
 	]
 )
 def remove_user_rule(
-	ruleName: str,
+	rulename: str,
 	user: AccountInfo = Depends(get_subject_user),
 	accountsService: AccountsService = Depends(accounts_service),
 ):
@@ -290,5 +290,5 @@ def remove_user_rule(
 		)
 	accountsService.remove_user_site_rule(
 		user.id,
-		ruleName
+		rulename
 	)

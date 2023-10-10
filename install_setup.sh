@@ -1,10 +1,10 @@
 #!/bin/sh
-
+echo "top of install script"
 if [ -e ./radio_common.sh ]; then
 	. ./radio_common.sh
-elif [ -e ../radio_common.sh]; then
+elif [ -e ../radio_common.sh ]; then
 	. ../radio_common.sh
-elif [ -e "$HOME"/radio/radio_common.sh]; then
+elif [ -e "$HOME"/radio/radio_common.sh ]; then
 	. "$HOME"/radio/radio_common.sh
 else
   echo "radio_common.sh not found"
@@ -26,7 +26,7 @@ curl -V || show_err_and_exit "curl is somehow not installed"
 
 case $(uname) in
 	(Linux*)
-		if [ "$pkgMgrChoice" = "$APT_CONST" ] && [ "$exp_name" != 'py3.8' ]; then
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ] && [ "$expName" != 'py3.8' ]; then
 			sudo apt-get update
 		fi
 		;;
@@ -47,9 +47,14 @@ if ! perl -v 2>/dev/null; then
 	install_package perl
 fi
 
-[ ! -e "$app_root"/"$bin_dir" ] && mkdir -pv "$app_root"/"$bin_dir"
+[ ! -e "$get_app_root"/"$MC_BIN_DIR" ] &&
+	mkdir -pv "$get_app_root"/"$MC_BIN_DIR"
 
-set_env_path_var
+set_env_vars || {
+	#not using show_err_and_exit at this point because its existence is suspect
+	echo "set_env_path_var error"
+	exit 1
+}
 
 output_env_vars
 
@@ -69,21 +74,23 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 		(Darwin*)
 			#want to install python thru homebrew bc the default version on mac
 			#is below what we want
-			if ! brew_is_installed python3; then
-				install_package python3
+			if ! brew_is_installed python@3.9; then
+				install_package python@3.9
 			fi
+			pythonToLink='python@3.9'
 			;;
 		(*) ;;
 	esac &&
-	ln -sf $(get_bin_path "$pythonToLink") "$app_root"/"$bin_dir"/mc-python
+	ln -sf $(get_bin_path "$pythonToLink") \
+		"$get_app_root"/"$MC_BIN_DIR"/mc-python
 fi || show_err_and_exit "python install failed"
 
 mc-python -V >/dev/null 2>&1 || show_err_and_exit "mc-python not available"
 
 if ! mc-python -m pip -V 2>/dev/null; then
-	curl -o "$app_root"/"$build_dir"/get-pip.py \
+	curl -o "$get_app_root"/"$MC_BUILD_DIR"/get-pip.py \
 		https://bootstrap.pypa.io/pip/get-pip.py &&
-	mc-python "$app_root"/"$build_dir"/get-pip.py ||
+	mc-python "$get_app_root"/"$MC_BUILD_DIR"/get-pip.py ||
 	show_err_and_exit "Couldn't install pip"
 fi
 
@@ -95,9 +102,9 @@ if ! mc-python -m  virtualenv --version 2>/dev/null; then
 fi
 
 if ! nvm --version 2>/dev/null; then
-	rc_script=$(get_rc_candidate)
-	touch "$rc_script" #create if doesn't exist
-	[ -f "$rc_script" ] ||
+	rcScript=$(get_rc_candidate)
+	touch "$rcScript" #create if doesn't exist
+	[ -f "$rcScript" ] ||
 	show_err_and_exit "Error: .bashrc is not a regular file"
 	curl -o- \
 		https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
@@ -117,6 +124,48 @@ if ! s3fs --version 2>/dev/null; then
 	esac
 fi
 
+if [ ! -e "$HOME"/.vimrc ]; then
+	touch "$HOME"/.vimrc
+fi
+perl -pi -e "s/set nonumber/set number/" "$HOME"/.vimrc
+perl -pi -e "s/set expandtab/set noexpandtab/" "$HOME"/.vimrc
+perl -pi -e "s/set tabstop=\d+/set tabstop=2/" "$HOME"/.vimrc
+lineNum=$(perl -ne 'print "true" if /set number/' "$HOME"/.vimrc)
+noexpandtabs=$(perl -ne 'print "true" if /set noexpandtab/' "$HOME"/.vimrc)
+tabstop=$(perl -ne 'print "true" if /set tabstop=2/' "$HOME"/.vimrc)
+
+if [ "$lineNum" != 'true' ]; then
+	echo 'set number' >> "$HOME"/.vimrc
+fi
+if [ "$noexpandtabs" != 'true' ]; then
+	echo 'set noexpandtab' >> "$HOME"/.vimrc
+fi
+if [ "$tabstop" != 'true' ]; then
+	echo 'set tabstop=2' >> "$HOME"/.vimrc
+fi
+
+if ! mariadb -V 2>/dev/null; then
+	if [ -n "$__DB_SETUP_PASS__" ]; then
+		case $(uname) in
+			(Linux*)
+				if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
+					install_package mariadb-server
+				fi
+				;;
+			(Darwin*)
+				install_package mariadb
+				;;
+			(*) ;;
+		esac &&
+		sudo -p 'Updating db root password' mysql -u root -e
+			"REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'mysql'@'localhost'" &&
+		sudo -p 'Updating db root password' mysql -u root -e \
+			"SET PASSWORD FOR root@localhost = PASSWORD('${__DB_SETUP_PASS__}');"
+	else
+		echo 'Need a password for root db account to install database'
+	fi
+fi
+
 if ! sqlite3 -version 2>/dev/null; then
 	install_package sqlite3
 fi
@@ -125,14 +174,15 @@ if ! git --version 2>/dev/null; then
 	install_package git
 fi
 
+
 case $(uname) in
 	(Linux*)
-		if [ "$pkgMgrChoice" = "$PACMAN_CONST" ]; then
+		if [ "$pkgMgrChoice" = "$MC_PACMAN_CONST" ]; then
 			if ! icecast -v 2>/dev/null; then
 				yes 'no' | install_package icecast &&
 				setup_icecast_confs icecast
 			fi
-		elif [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+		elif [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 			if ! icecast2 -v 2>/dev/null; then
 				install_package icecast2 &&
 				setup_icecast_confs icecast2
@@ -150,7 +200,7 @@ if ! nginx -v 2>/dev/null; then
 			install_package nginx
 			;;
 		(Linux*)
-			if [ "$pkgMgrChoice" = "$APT_CONST" ]; then
+			if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
 				install_package nginx-full
 			fi
 			;;
@@ -159,20 +209,21 @@ if ! nginx -v 2>/dev/null; then
 fi
 
 confDir=$(get_nginx_conf_dir_abs_path)
-echo "Checking for ${confDir}/${app_name}.conf"
-if [ ! -e "$confDir"/"$app_name".conf ]; then
+echo "Checking for ${confDir}/${MC_APP_NAME}.conf"
+if [ ! -e "$confDir"/"$MC_APP_NAME".conf ]; then
 	setup_nginx_confs &&
 	sudo -p 'copy nginx config' \
-		cp "$templates_src"/nginx_evil.conf "$confDir"/nginx_evil.conf
+		cp "$MC_TEMPLATES_SRC"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
 
 sync_utility_scripts
 
-echo "mc_auth_key=${APP_AUTH_KEY}" > "$HOME"/keys/"$proj_name"
-echo "pb_secret=${PB_SECRET}" >> "$HOME"/keys/"$proj_name"
-echo "pb_api_key=${PB_API_KEY}" >> "$HOME"/keys/"$proj_name"
+echo "mc_auth_key=${APP_AUTH_KEY}" > "$HOME"/keys/"$MC_PROJ_NAME"
+echo "pb_secret=${PB_SECRET}" >> "$HOME"/keys/"$MC_PROJ_NAME"
+echo "pb_api_key=${PB_API_KEY}" >> "$HOME"/keys/"$MC_PROJ_NAME"
 
 echo "$S3_ACCESS_KEY_ID":"$S3_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
 chmod 600 "$HOME"/.passwd-s3fs
 
 output_env_vars
+

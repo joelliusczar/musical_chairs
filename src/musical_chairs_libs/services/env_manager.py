@@ -24,12 +24,6 @@ class EnvManager:
 
 	@classmethod
 	@property
-	def db_name(cls) -> str:
-		sqliteFile = os.environ["MC_SQLITE_FILEPATH"]
-		return f"{EnvManager.app_root}/{sqliteFile}"
-
-	@classmethod
-	@property
 	def db_setup_pass(cls) -> str:
 		return os.environ.get("__DB_SETUP_PASS__", "")
 
@@ -70,6 +64,12 @@ class EnvManager:
 	@property
 	def sql_script_dir(cls) -> str:
 		moduleDir = os.environ["MC_SQL_SCRIPTS_DIR_CL"]
+		return f"{EnvManager.app_root}/{moduleDir}"
+
+	@classmethod
+	@property
+	def db_name(cls) -> str:
+		moduleDir = os.environ["MC_DATABASE_NAME"]
 		return f"{EnvManager.app_root}/{moduleDir}"
 
 	@classmethod

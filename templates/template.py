@@ -1,4 +1,5 @@
 from musical_chairs_libs.radio_handle import RadioHandle
+from musical_chairs_libs.services import EnvManager
 
 handle: RadioHandle = None #pyright: ignore [reportGeneralTypeIssues]
 
@@ -6,7 +7,8 @@ handle: RadioHandle = None #pyright: ignore [reportGeneralTypeIssues]
 # Should return 1 if ok, and 0 if something went wrong.
 def ices_init():
 	global handle
-	handle = RadioHandle(<station_id>, <dbName>) #pyright: ignore
+	dbName = EnvManager.db_name #pyright: ignore
+	handle = RadioHandle(<station_id>, dbName) #pyright: ignore
 	return handle.ices_init()
 
 # Function called to shutdown your python enviroment.

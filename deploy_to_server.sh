@@ -40,7 +40,7 @@ if [ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]; then
 	fi
 fi
 
-#run_unit_tests
+run_unit_tests
 unitTestSuccess="$?"
 
 
@@ -94,6 +94,7 @@ export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
 export PB_SECRET=$(get_pb_secret) &&
 export PB_API_KEY=$(get_pb_api_key) &&
 export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
+export MC_DATABASE_NAME='musical_chairs_db';
 export __DB_SETUP_PASS__=$(get_db_setup_key) &&
 export MC_DB_PASS_OWNER=$(get_db_owner_key) &&
 export MC_DB_PASS_API=$(get_api_user_key) &&

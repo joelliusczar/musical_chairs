@@ -11,7 +11,7 @@ else
   exit 1
 fi
 
-#this is included locally. Any changes here are going to be on the server
+#this is included locally. Any changes here are not going to be on the server
 #unless they've been pushed to the repo
 . "$radioCommonPath"
 
@@ -40,7 +40,9 @@ if [ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]; then
 	fi
 fi
 
-run_unit_tests
+if ! str_contains "$__SKIP__" 'unit_tests'; then
+	run_unit_tests
+fi
 unitTestSuccess="$?"
 
 

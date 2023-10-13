@@ -32,12 +32,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql.functions import coalesce
-from .env_manager import EnvManager
 from musical_chairs_libs.tables import (
 	users, u_pk, u_username, u_hashedPW, u_email, u_dirRoot, u_disabled,
 	u_creationTimestamp, u_displayName,
 	userRoles, ur_userFk, ur_role
 )
+from .env_manager import EnvManager
 from sqlalchemy import select, insert, desc, func, delete, update, or_
 from jose import jwt
 from email_validator import (
@@ -48,6 +48,7 @@ from email_validator import (
 
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALGORITHM = "HS256"
+
 
 
 
@@ -190,7 +191,7 @@ class AccountsService:
 				"sub": SavedNameString.format_name_for_save(userName),
 				"exp": expire
 			},
-			,
+			EnvManager.secret_key,
 			ALGORITHM
 		)
 		return token

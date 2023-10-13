@@ -78,6 +78,11 @@ class EnvManager:
 		return os.environ.get("__TEST_FLAG__","false") == "true"
 
 	@classmethod
+	@property
+	def secret_key(cls) -> str:
+		return os.environ["MC_AUTH_SECRET_KEY"]
+
+	@classmethod
 	def get_configured_api_connection(
 		cls,
 		dbName: str,

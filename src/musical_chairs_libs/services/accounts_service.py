@@ -1,5 +1,4 @@
 #pyright: reportMissingTypeStubs=false
-import os
 from dataclasses import asdict
 from datetime import timedelta, datetime, timezone
 from typing import (
@@ -33,6 +32,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql.functions import coalesce
+from .env_manager import EnvManager
 from musical_chairs_libs.tables import (
 	users, u_pk, u_username, u_hashedPW, u_email, u_dirRoot, u_disabled,
 	u_creationTimestamp, u_displayName,
@@ -48,7 +48,8 @@ from email_validator import (
 
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALGORITHM = "HS256"
-SECRET_KEY=os.environ["MC_AUTH_SECRET_KEY"]
+
+
 
 
 class AccountsService:
@@ -189,7 +190,7 @@ class AccountsService:
 				"sub": SavedNameString.format_name_for_save(userName),
 				"exp": expire
 			},
-			SECRET_KEY,
+			,
 			ALGORITHM
 		)
 		return token
@@ -206,7 +207,7 @@ class AccountsService:
 			return None, 0
 		decoded: dict[Any, Any] = jwt.decode(
 			token,
-			SECRET_KEY,
+			EnvManager.secret_key,
 			algorithms=[ALGORITHM]
 		)
 		expiration = decoded.get("exp") or 0

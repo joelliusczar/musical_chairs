@@ -1589,7 +1589,7 @@ remote_startup_api() (
 
 __replace_stream_module__() (
 	streamFile="$(get_app_root)"/"$MC_PY_MODULE_DIR"/stream.py
-	cp "$MC_TEMPLATES_SRC"/stream_template.py "$streamFile"
+	cp -v "$MC_TEMPLATES_SRC"/stream_template.py "$streamFile"
 )
 
 
@@ -1607,7 +1607,6 @@ setup_api() (
 	sync_utility_scripts &&
 	sync_requirement_list &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	copy_dir "$MC_API_SRC" "$(get_web_root)"/"$MC_APP_API_PATH_CL" &&
 	__replace_stream_module__ &&
 	create_py_env_in_app_trunk &&
@@ -1686,7 +1685,6 @@ setup_radio() (
 
 	create_py_env_in_app_trunk &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	__replace_stream_module__ &&
 	setup_database &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
@@ -1736,7 +1734,6 @@ regen_file_reference_file() (
 
 replace_sql_script() (
 	process_global_vars "$@" &&
-	export __TEST_FLAG__='true'
 	setup_common_dirs
 	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL"
 )

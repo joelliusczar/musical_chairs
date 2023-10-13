@@ -806,10 +806,14 @@ print_schema_scripts() (
 	)
 )
 
-start_python() (
+activate_mc_env() {
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate
+}
+
+start_python() (
+	activate_mc_env &&
 	python
 )
 
@@ -1520,7 +1524,11 @@ startup_radio() (
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
-		mc-ices -c -B "$conf"
+		ownerName=$(echo "$conf" | cut -d '_' -f 1)
+		stationName=$(basename $(echo "$conf" | cut -d '_' -f 2) '.conf')
+		python -m musical_chairs_libs.stream \
+			local "$MC_DATABASE_NAME" "$stationName" "$ownerName" | \
+			mc-ices -c "$conf"
 	done
 )
 

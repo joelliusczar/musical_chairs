@@ -55,7 +55,22 @@ class ProcessService:
 			return
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
-		subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
+
+		srcProc = subprocess.Popen([
+				"python",
+				"-m",
+				"musical_chairs_libs.stream",
+				"local",
+				EnvManager.db_name,
+				stationName,
+				ownerName
+			],
+			stdout=subprocess.PIPE
+		)
+		subprocess.Popen(
+			["mc-ices", "-c", f"{stationConf}"],
+			stdin=srcProc.stdout
+		)
 
 	@staticmethod
 	def get_pkg_mgr() -> Optional[PackageManagers]:

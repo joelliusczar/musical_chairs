@@ -1550,6 +1550,48 @@ startup_api() (
 	echo "done starting up api. Access at ${MC_FULL_URL}"
 )
 
+remote_startup_api() (
+	process_global_vars "$@" &&
+	mkfifo startup_fifo
+
+	{ cat<<-RemoteScriptEOF
+
+	$(cat ./radio_common.sh)
+
+	#be careful trying to extract this to its own function
+	#we need these variables to be in scope
+	export expName="$expName" &&
+	export S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" &&
+	export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
+	export PB_SECRET=$(get_pb_secret) &&
+	export PB_API_KEY=$(get_pb_api_key) &&
+	export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
+	export MC_DATABASE_NAME='musical_chairs_db';
+	export __DB_SETUP_PASS__=$(get_db_setup_key) &&
+	export MC_DB_PASS_OWNER=$(get_db_owner_key) &&
+	export MC_DB_PASS_API=$(get_api_user_key) &&
+	export MC_DB_PASS_RADIO=$(get_radio_user_key) &&
+
+	if is_ssh; then
+		. ./radio_common.sh &&
+		startup_api
+	fi
+
+	RemoteScriptEOF
+	} > startup_fifo &
+
+	ssh -i "$MC_SERVER_KEY_FILE" "$MC_SERVER_SSH_ADDRESS" \
+	'bash -s' < startup_fifo &&
+	echo "All done" || echo "Onk!"
+
+	rm -f startup_fifo
+)
+
+__replace_stream_module__() (
+	streamFile="$(get_app_root)"/"$MC_PY_MODULE_DIR"/stream.py
+	cp "$MC_TEMPLATES_SRC"/stream_template.py "$streamFile"
+)
+
 
 startup_nginx_for_debug() (
 	process_global_vars "$@" &&
@@ -1567,6 +1609,7 @@ setup_api() (
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
 	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	copy_dir "$MC_API_SRC" "$(get_web_root)"/"$MC_APP_API_PATH_CL" &&
+	__replace_stream_module__ &&
 	create_py_env_in_app_trunk &&
 	setup_database &&
 	setup_nginx_confs &&
@@ -1644,6 +1687,7 @@ setup_radio() (
 	create_py_env_in_app_trunk &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
 	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
+	__replace_stream_module__ &&
 	setup_database &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -1652,7 +1696,8 @@ setup_radio() (
 )
 
 __create_fake_keys_file__() {
-	echo "mc_auth_key=$(openssl rand -hex 32)" > "$(get_app_root)"/keys/"$MC_PROJ_NAME"
+	echo "mc_auth_key=$(openssl rand -hex 32)" \
+		> "$(get_app_root)"/keys/"$MC_PROJ_NAME"
 }
 
 regen_file_reference_file() (

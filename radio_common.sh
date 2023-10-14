@@ -1538,7 +1538,6 @@ startup_api() (
 	if ! str_contains "$__SKIP__" "setup_api"; then
 		setup_api
 	fi &&
-	export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background within a subshell so that it doesn't put
@@ -1550,6 +1549,21 @@ startup_api() (
 	echo "done starting up api. Access at ${MC_FULL_URL}"
 )
 
+__get_remote_export_script__() (
+	output="export expName='${expName}';"
+	output="${output} export S3_ACCESS_KEY_ID='${S3_ACCESS_KEY_ID}';" &&
+	output="${output} export S3_SECRET_ACCESS_KEY='${S3_SECRET_ACCESS_KEY}';" &&
+	output="${output} export PB_SECRET='$(get_pb_secret)';" &&
+	output="${output} export PB_API_KEY='$(get_pb_api_key)';" &&
+	output="${output} export MC_AUTH_SECRET_KEY='$(get_mc_auth_key)';" &&
+	output="${output} export MC_DATABASE_NAME='musical_chairs_db';" &&
+	output="${output} export __DB_SETUP_PASS__='$(get_db_setup_key)';" &&
+	output="${output} export MC_DB_PASS_OWNER='$(get_db_owner_key)';" &&
+	output="${output} export MC_DB_PASS_API='$(get_api_user_key)';" &&
+	output="${output} export MC_DB_PASS_RADIO='$(get_radio_user_key)';" &&
+	echo "$output"
+)
+
 remote_startup_api() (
 	process_global_vars "$@" &&
 	mkfifo startup_fifo
@@ -1558,23 +1572,38 @@ remote_startup_api() (
 
 	$(cat ./radio_common.sh)
 
-	#be careful trying to extract this to its own function
-	#we need these variables to be in scope
-	export expName="$expName" &&
-	export S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" &&
-	export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
-	export PB_SECRET=$(get_pb_secret) &&
-	export PB_API_KEY=$(get_pb_api_key) &&
-	export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
-	export MC_DATABASE_NAME='musical_chairs_db';
-	export __DB_SETUP_PASS__=$(get_db_setup_key) &&
-	export MC_DB_PASS_OWNER=$(get_db_owner_key) &&
-	export MC_DB_PASS_API=$(get_api_user_key) &&
-	export MC_DB_PASS_RADIO=$(get_radio_user_key) &&
+	$(__get_remote_export_script__)
 
 	if is_ssh; then
 		. ./radio_common.sh &&
 		startup_api
+	fi
+
+	RemoteScriptEOF
+	} > startup_fifo &
+
+	ssh -i "$MC_SERVER_KEY_FILE" "$MC_SERVER_SSH_ADDRESS" \
+	'bash -s' < startup_fifo &&
+	echo "All done" || echo "Onk!"
+
+	rm -f startup_fifo
+)
+
+#this is a little bit of a trash method
+remote_run() (
+	process_global_vars "$@" &&
+	mkfifo startup_fifo
+
+	{ cat<<-RemoteScriptEOF
+
+	$(cat ./radio_common.sh)
+
+	$(__get_remote_export_script__)
+
+	if is_ssh; then
+		. ./radio_common.sh &&
+		activate_mc_env &&
+		python -m musical_chairs_libs.stream local musical_chairs_db local vg joellius
 	fi
 
 	RemoteScriptEOF
@@ -1698,6 +1727,16 @@ __create_fake_keys_file__() {
 		> "$(get_app_root)"/keys/"$MC_PROJ_NAME"
 }
 
+get_hash_of_file() (
+	file="$1"
+	pyScript=$(cat <<-END
+		import sys, hashlib
+		print(hashlib.md5(sys.stdin.read().encode("utf-8")).hexdigest())
+	END
+	)
+	cat "$file" | python3 -c "$pyScript"
+)
+
 regen_file_reference_file() (
 	process_global_vars "$@" &&
 	outputFile="$MC_LIB_SRC"/dtos_and_utilities/file_reference.py
@@ -1706,11 +1745,7 @@ regen_file_reference_file() (
 	printf '# in radio_common.sh and rerun\n' >> "$outputFile"
 	printf 'from enum import Enum\n\n' >> "$outputFile"
 	printf 'class SqlScripts(Enum):\n' >> "$outputFile"
-	pyScript=$(cat <<-END
-		import sys, hashlib
-		print(hashlib.md5(sys.stdin.read().encode("utf-8")).hexdigest())
-	END
-	)
+
 	for script in "$MC_SQL_SCRIPTS_SRC"/*.sql; do
 		enumName=$(basename "$script" '.sql' | \
 			sed -e 's/[0-9]*.\(.*\)/\1/' | \
@@ -1719,7 +1754,7 @@ regen_file_reference_file() (
 			tr '[:lower:]' '[:upper:]'
 		)
 		fileName=$(basename "$script")
-		hashValue=$(cat "$script" | python3 -c "$pyScript")
+		hashValue=$(get_hash_of_file "$script")
 		printf \
 		"\t${enumName} = (\n\t\t\"${fileName}\",\n\t\t\"${hashValue}\"\n\t)\n" \
 			>> "$outputFile"

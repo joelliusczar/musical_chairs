@@ -10,7 +10,7 @@ class SqlScripts(Enum):
 	)
 	GRANT_RADIO = (
 		"2.grant_radio.sql",
-		"69dd3e5ba9bee729fa1d77c442bf48af"
+		"2b66091251d726783ab8f74164ce8045"
 	)
 	PATH_USER_INDEXES = (
 		"3.path_user_indexes.sql",

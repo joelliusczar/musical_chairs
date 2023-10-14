@@ -69,8 +69,7 @@ class EnvManager:
 	@classmethod
 	@property
 	def db_name(cls) -> str:
-		moduleDir = os.environ["MC_DATABASE_NAME"]
-		return f"{EnvManager.app_root}/{moduleDir}"
+		return os.environ["MC_DATABASE_NAME"]
 
 	@classmethod
 	@property

@@ -103,6 +103,8 @@ export MC_DB_PASS_API=$(get_api_user_key) &&
 export MC_DB_PASS_RADIO=$(get_radio_user_key) &&
 
 if is_ssh; then
+	echo 'radio_common hash:'
+	get_hash_of_file './radio_common.sh'
 	if [ "$__SETUP_LVL__" = 'api' ]; then
 		echo "$__SETUP_LVL__"
 		(exit "$unitTestSuccess") &&

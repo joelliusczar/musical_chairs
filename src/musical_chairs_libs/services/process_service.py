@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 import random
+from time import sleep
 from enum import Enum
 from itertools import dropwhile, islice
 from typing import Optional
@@ -67,10 +68,14 @@ class ProcessService:
 			],
 			stdout=subprocess.PIPE
 		)
-		subprocess.Popen(
+		iceProc = subprocess.Popen(
 			["mc-ices", "-c", f"{stationConf}"],
 			stdin=srcProc.stdout
 		)
+		sleep(1)
+		returnCode = iceProc.poll()
+		if returnCode:
+			raise RuntimeError("An error occured trying to start radio station")
 
 	@staticmethod
 	def get_pkg_mgr() -> Optional[PackageManagers]:

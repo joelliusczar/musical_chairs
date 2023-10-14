@@ -101,8 +101,8 @@ class StationService:
 		elif type(ownerKey) == str:
 			query = query.join(user_tbl, st_ownerFk == u_pk)\
 				.where(u_username == ownerKey)
-		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
-		pk: Optional[int] = cast(int,row[st_pk]) if row else None #pyright: ignore [reportGeneralTypeIssues]
+		row = self.conn.execute(query).fetchone()
+		pk = row[0] if row else None
 		return pk
 
 	def __attach_user_joins__(

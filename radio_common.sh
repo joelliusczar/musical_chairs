@@ -806,10 +806,14 @@ print_schema_scripts() (
 	)
 )
 
-start_python() (
+activate_mc_env() {
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate
+}
+
+start_python() (
+	activate_mc_env &&
 	python
 )
 
@@ -1524,13 +1528,32 @@ startup_radio() (
 	done
 )
 
+__get_remote_export_script__() (
+	if [ -n "$1" ]; then
+		exportMod='export'
+	else
+		exportMod=''
+	fi
+	output="export expName='${expName}';"
+	output="${output} export S3_ACCESS_KEY_ID='${S3_ACCESS_KEY_ID}';" &&
+	output="${output} export S3_SECRET_ACCESS_KEY='${S3_SECRET_ACCESS_KEY}';" &&
+	output="${output} export PB_SECRET='$(get_pb_secret)';" &&
+	output="${output} export PB_API_KEY='$(get_pb_api_key)';" &&
+	output="${output} export MC_AUTH_SECRET_KEY='$(get_mc_auth_key)';" &&
+	output="${output} export MC_DATABASE_NAME='musical_chairs_db';" &&
+	output="${output} export __DB_SETUP_PASS__='$(get_db_setup_key)';" &&
+	output="${output} export MC_DB_PASS_OWNER='$(get_db_owner_key)';" &&
+	output="${output} export MC_DB_PASS_API='$(get_api_user_key)';" &&
+	output="${output} export MC_DB_PASS_RADIO='$(get_radio_user_key)';" &&
+	echo "$output"
+)
+
 startup_api() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
 	if ! str_contains "$__SKIP__" "setup_api"; then
 		setup_api
 	fi &&
-	export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# see #python_env
 	#put uvicorn in background within a subshell so that it doesn't put
@@ -1557,7 +1580,6 @@ setup_api() (
 	sync_utility_scripts &&
 	sync_requirement_list &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	copy_dir "$MC_API_SRC" "$(get_web_root)"/"$MC_APP_API_PATH_CL" &&
 	create_py_env_in_app_trunk &&
 	setup_database &&
@@ -1635,7 +1657,6 @@ setup_radio() (
 
 	create_py_env_in_app_trunk &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	setup_database &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -1644,8 +1665,19 @@ setup_radio() (
 )
 
 __create_fake_keys_file__() {
-	echo "mc_auth_key=$(openssl rand -hex 32)" > "$(get_app_root)"/keys/"$MC_PROJ_NAME"
+	echo "mc_auth_key=$(openssl rand -hex 32)" \
+		> "$(get_app_root)"/keys/"$MC_PROJ_NAME"
 }
+
+get_hash_of_file() (
+	file="$1"
+	pyScript=$(cat <<-END
+		import sys, hashlib
+		print(hashlib.md5(sys.stdin.read().encode("utf-8")).hexdigest())
+	END
+	)
+	cat "$file" | python3 -c "$pyScript"
+)
 
 regen_file_reference_file() (
 	process_global_vars "$@" &&
@@ -1655,11 +1687,6 @@ regen_file_reference_file() (
 	printf '# in radio_common.sh and rerun\n' >> "$outputFile"
 	printf 'from enum import Enum\n\n' >> "$outputFile"
 	printf 'class SqlScripts(Enum):\n' >> "$outputFile"
-	pyScript=$(cat <<-END
-		import sys, hashlib
-		print(hashlib.md5(sys.stdin.read().encode("utf-8")).hexdigest())
-	END
-	)
 	for script in "$MC_SQL_SCRIPTS_SRC"/*.sql; do
 		enumName=$(basename "$script" '.sql' | \
 			sed -e 's/[0-9]*.\(.*\)/\1/' | \
@@ -1668,7 +1695,7 @@ regen_file_reference_file() (
 			tr '[:lower:]' '[:upper:]'
 		)
 		fileName=$(basename "$script")
-		hashValue=$(cat "$script" | python3 -c "$pyScript")
+		hashValue=$(get_hash_of_file "$script")
 		printf \
 		"\t${enumName} = (\n\t\t\"${fileName}\",\n\t\t\"${hashValue}\"\n\t)\n" \
 			>> "$outputFile"
@@ -1683,7 +1710,6 @@ regen_file_reference_file() (
 
 replace_sql_script() (
 	process_global_vars "$@" &&
-	export __TEST_FLAG__='true'
 	setup_common_dirs
 	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL"
 )
@@ -1787,6 +1813,12 @@ get_web_root() (
 			;;
 		(*) ;;
 	esac
+)
+
+connect_remote() (
+	process_global_vars "$@" &&
+	ssh -ti "$MC_SERVER_KEY_FILE" "$MC_SERVER_SSH_ADDRESS" \
+		$(__get_remote_export_script__) bash -l
 )
 
 process_global_args() {

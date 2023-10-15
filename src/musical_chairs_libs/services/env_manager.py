@@ -69,13 +69,17 @@ class EnvManager:
 	@classmethod
 	@property
 	def db_name(cls) -> str:
-		moduleDir = os.environ["MC_DATABASE_NAME"]
-		return f"{EnvManager.app_root}/{moduleDir}"
+		return os.environ["MC_DATABASE_NAME"]
 
 	@classmethod
 	@property
 	def test_flag(cls) -> bool:
 		return os.environ.get("__TEST_FLAG__","false") == "true"
+
+	@classmethod
+	@property
+	def secret_key(cls) -> str:
+		return os.environ["MC_AUTH_SECRET_KEY"]
 
 	@classmethod
 	def get_configured_api_connection(

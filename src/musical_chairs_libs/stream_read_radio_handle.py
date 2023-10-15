@@ -1,4 +1,5 @@
 import sys
+# import struct
 
 
 class StreamReadRadioHandle:
@@ -23,8 +24,10 @@ class StreamReadRadioHandle:
 	# Function called to get the next filename to stream.
 	# Should return a string.
 	def ices_get_next(self) -> str:
-		self.display = sys.stdin.readline()
-		self.songFullPath = sys.stdin.readline()
+		self.display = sys.stdin.buffer.readline().decode()
+		self.songFullPath = sys.stdin.buffer.readline().decode()
+		# sizePacket = sys.stdin.buffer.read(4)
+		# size = struct.unpack("i", sizePacket)[0]
 		return "-"
 
 	# This function, if defined, returns the string you'd like used

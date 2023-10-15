@@ -1,9 +1,11 @@
+import sys
 from typing import Tuple, Union, Optional
 from musical_chairs_libs.services import (
 	EnvManager,
 	QueueService,
 	StationService
 )
+import struct
 
 def set_proc_id(
 	stationId: int,
@@ -52,3 +54,8 @@ def get_station_id(
 		return stationId
 	finally:
 		conn.close()
+
+
+def send_size_packet(size: int):
+	sizePacket = struct.pack("i", size)
+	sys.stdout.buffer.write(sizePacket)

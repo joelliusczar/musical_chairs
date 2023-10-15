@@ -113,3 +113,7 @@ def normalize_opening_slash(
 			return path
 	return path[1:]
 
+def format_newlines_for_stream(input: str) -> str:
+	cleaned = input.replace("\n", " ")
+	output = f"{cleaned}\n"
+	return output

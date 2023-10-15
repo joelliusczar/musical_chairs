@@ -11,7 +11,7 @@ else
   exit 1
 fi
 
-#this is included locally. Any changes here are going to be on the server
+#this is included locally. Any changes here are not going to be on the server
 #unless they've been pushed to the repo
 . "$radioCommonPath"
 
@@ -40,7 +40,9 @@ if [ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]; then
 	fi
 fi
 
-run_unit_tests
+if ! str_contains "$__SKIP__" 'unit_tests'; then
+	run_unit_tests
+fi
 unitTestSuccess="$?"
 
 
@@ -101,6 +103,8 @@ export MC_DB_PASS_API=$(get_api_user_key) &&
 export MC_DB_PASS_RADIO=$(get_radio_user_key) &&
 
 if is_ssh; then
+	echo 'radio_common hash:'
+	get_hash_of_file './radio_common.sh'
 	if [ "$__SETUP_LVL__" = 'api' ]; then
 		echo "$__SETUP_LVL__"
 		(exit "$unitTestSuccess") &&

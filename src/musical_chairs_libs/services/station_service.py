@@ -91,16 +91,16 @@ class StationService:
 	def get_station_id(
 			self,
 			stationName: str,
-			userKey: Union[int, str]
+			ownerKey: Union[int, str]
 		) -> Optional[int]:
 		query = select(st_pk) \
 			.select_from(stations_tbl) \
 			.where(func.lower(st_name) == func.lower(stationName))
-		if type(userKey) == int:
-			query = query.where(st_ownerFk == userKey)
-		elif type(userKey) == str:
+		if type(ownerKey) == int:
+			query = query.where(st_ownerFk == ownerKey)
+		elif type(ownerKey) == str:
 			query = query.join(user_tbl, st_ownerFk == u_pk)\
-				.where(u_username == userKey)
+				.where(u_username == ownerKey)
 		row = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
 		pk: Optional[int] = cast(int,row[st_pk]) if row else None #pyright: ignore [reportGeneralTypeIssues]
 		return pk

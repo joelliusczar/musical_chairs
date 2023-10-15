@@ -6,6 +6,7 @@ from fastapi import (
 	HTTPException,
 	status,
 	Query,
+	UploadFile
 )
 from fastapi.responses import FileResponse
 from api_dependencies import (
@@ -268,6 +269,18 @@ def remove_user_rule(
 def create_directory(
 	prefix: str,
 	suffix: str,
+	user: AccountInfo = Security(
+		get_path_user_and_check_optional_path,
+		scopes=[UserRoleDef.PATH_UPLOAD.value]
+	),
+	songInfoService: SongInfoService = Depends(song_info_service)
+):
+	pass
+
+def upload_song(
+	prefix: str,
+	suffix: str,
+	file: UploadFile,
 	user: AccountInfo = Security(
 		get_path_user_and_check_optional_path,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]

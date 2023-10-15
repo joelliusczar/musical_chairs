@@ -257,10 +257,21 @@ def remove_user_rule(
 	prefix: str,
 	user: AccountInfo = Depends(get_subject_user),
 	rulename: Optional[str] = Depends(validate_path_rule_for_remove),
-	songInfoService: SongInfoService = Depends(song_info_service),
+	songInfoService: SongInfoService = Depends(song_info_service)
 ):
 	songInfoService.remove_user_rule_from_path(
 		user.id,
 		prefix,
 		rulename
 	)
+
+def create_directory(
+	prefix: str,
+	suffix: str,
+	user: AccountInfo = Security(
+		get_path_user_and_check_optional_path,
+		scopes=[UserRoleDef.PATH_UPLOAD.value]
+	),
+	songInfoService: SongInfoService = Depends(song_info_service)
+):
+	pass

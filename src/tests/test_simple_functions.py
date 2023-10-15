@@ -1,7 +1,9 @@
 from typing import Any
-from musical_chairs_libs.dtos_and_utilities import\
-	seconds_to_tuple,\
-	next_directory_level
+from musical_chairs_libs.dtos_and_utilities import (
+	seconds_to_tuple,
+	next_directory_level,
+	squash_sequential_duplicate_chars
+)
 from sqlalchemy.engine import Connection
 from sqlalchemy import\
 	select
@@ -116,3 +118,20 @@ def test_populate_model_from_datarow(fixture_db_conn_in_mem: Connection):
 	query = select(sg_pk.label("id"), sg_name, sg_path)
 	row = conn.execute(query).fetchone() #pyright: ignore reportUnknownMemberType
 	print("oh hai")
+
+def test_squash_sequential_duplicates():
+	result = squash_sequential_duplicate_chars("/alpha//bravo","/")
+	assert result == "/alpha/bravo"
+
+	result = squash_sequential_duplicate_chars("alpha//bravo","/")
+	assert result == "alpha/bravo"
+
+
+	result = squash_sequential_duplicate_chars("//////alpha//bravo","/")
+	assert result == "/alpha/bravo"
+
+	result = squash_sequential_duplicate_chars("//////","/")
+	assert result == "/"
+
+	result = squash_sequential_duplicate_chars("//////alpha//bravo////","/")
+	assert result == "/alpha/bravo/"

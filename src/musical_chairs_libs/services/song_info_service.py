@@ -34,6 +34,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	RulePriorityLevel,
 	normalize_opening_slash,
+	normalize_closing_slash,
 	AccountInfo,
 	ChainedAbsorbentTrie,
 	get_path_owner_roles,
@@ -41,7 +42,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDomain,
 	build_rules_query,
 	MinItemSecurityLevel,
-	generate_user_and_rules_from_rows
+	generate_user_and_rules_from_rows,
+	squash_sequential_duplicate_chars
 )
 from sqlalchemy import (
 	select,
@@ -393,7 +395,7 @@ class SongInfoService:
 				func.count(sg_pk).label("totalChildCount"),
 				func.max(sg_pk).label("pk"),
 				func.max(sg_path).label("control_path")
-		).where(sg_path.like(f"{prefix}%"))\
+		).where(func.normalize_opening_slash(sg_path, False).like(f"{prefix}%"))\
 			.group_by(func.next_directory_level(sg_path, prefix))
 		return query
 
@@ -418,9 +420,9 @@ class SongInfoService:
 						permittedPathsTree.values(normalizedPrefix) for r in p
 					]
 				)
-			else:
+			else: #directories
 				yield SongTreeNode(
-					path=cast(str, row["prefix"]),
+					path=normalize_closing_slash(cast(str, row["prefix"])),
 					totalChildCount=cast(int, row["totalChildCount"]),
 					rules=[r for p in
 						permittedPathsTree.values(normalizedPrefix) for r in p
@@ -1184,4 +1186,18 @@ class SongInfoService:
 			.where(pup_path == prefix)
 		if ruleName:
 			delStmt = delStmt.where(pup_role == ruleName)
-		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(delStmt)
+
+	def create_directory(self, prefix: str, suffix: str, userId: int):
+		path = normalize_opening_slash(
+			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
+			addSlash=False
+		)
+		stmt = insert(songs_tbl).values(
+			path = path,
+			isdirectoryplaceholder = True,
+			lastmodifiedbyuserfk = userId,
+			lastmodifiedtimestamp = self.get_datetime().timestamp()
+		)
+		self.conn.execute(stmt)
+		self.conn.commit()

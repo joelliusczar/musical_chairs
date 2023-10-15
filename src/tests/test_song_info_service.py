@@ -66,6 +66,36 @@ def test_song_ls(
 	assert paths[2].path == "foo/goo/"
 	assert paths[3].path == "foo/rude/"
 
+def test_add_directory(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+	songInfoService.create_directory("foo", "create_dir_test", user.id)
+	paths = sorted(songInfoService.song_ls(user, "foo/"), key=lambda d: d.path)
+	assert len(paths) == 5
+	assert paths[0].path == "foo/bar/"
+	assert paths[1].path == "foo/create_dir_test/"
+	assert paths[2].path == "foo/dude/"
+	assert paths[3].path == "foo/goo/"
+	assert paths[4].path == "foo/rude/"
+
+	paths = sorted(
+		songInfoService.song_ls(user, "foo/create_dir_test"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+
+	paths = sorted(
+		songInfoService.song_ls(user, "foo/create_dir_test/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+
+
 def test_song_ls_user_with_paths(
 	fixture_song_info_service: SongInfoService,
 	fixture_path_user_factory: Callable[[str], AccountInfo]

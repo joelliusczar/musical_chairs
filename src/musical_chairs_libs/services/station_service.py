@@ -685,7 +685,7 @@ class StationService:
 			query = query.where(st_pk.in_(stationIds))
 
 		rows = self.conn.execute(query)
-		pids = [cast(int, row[st_procId]) for row in rows]
+		pids = [cast(int, row[0]) for row in rows]
 		for pid in pids:
 			ProcessService.end_process(pid)
 		self.unset_station_procs(pids)

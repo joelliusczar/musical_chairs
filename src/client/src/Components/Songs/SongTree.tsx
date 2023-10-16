@@ -167,6 +167,14 @@ export const SongTree = withCacheProvider<
 			}).filter(n => !!n) as number[];
 		};
 
+		const isDirectorySelected = () => {
+			if (selectedNodes.length !== 1) return false;
+			const songNodeInfo = getCacheValue(selectedNodes[0]);
+			if (!songNodeInfo) return false;
+			if (!("path" in songNodeInfo)) return false;
+			return songNodeInfo.path?.endsWith("/");
+		};
+
 		const getSongEditUrl = (ids: IdType[]) => {
 			const queryStr = buildArrayQueryStr("ids", ids);
 			return `${DomRoutes.songEdit()}${queryStr}`;
@@ -174,6 +182,10 @@ export const SongTree = withCacheProvider<
 
 		const getUserAssignUrl = () => {
 			return `${DomRoutes.pathUsers()}?prefix=${selectedPrefix}`;
+		};
+
+		const promptForDirectoryName = () => {
+
 		};
 
 		const selectedSongIds = getSelectedSongIds();
@@ -221,6 +233,11 @@ export const SongTree = withCacheProvider<
 							to={getUserAssignUrl()}
 						>
 							Assign users
+						</Button>}
+						{isDirectorySelected() && <Button
+							onClick={promptForDirectoryName}
+						>
+							Create Directory
 						</Button>}
 					</Toolbar>
 				</AppBar>}

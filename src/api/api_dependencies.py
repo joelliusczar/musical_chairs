@@ -493,7 +493,8 @@ def get_account_if_has_scope(
 		any(r.name in scopeSet for r in currentUser.roles)
 	if not isCurrentUser and not hasEditRole:
 		raise build_wrong_permissions_error()
-	prev = accountsService.get_account_for_edit(subjectuserkey) if subjectuserkey else None
+	prev = accountsService.get_account_for_edit(subjectuserkey) \
+		if subjectuserkey else None
 	if not prev:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -501,3 +502,15 @@ def get_account_if_has_scope(
 		)
 	return prev
 
+def get_prefix_if_owner(
+	prefix: str,
+	currentUser: AccountInfo = Depends(get_current_user_simple),
+) -> str:
+	if not currentUser.dirroot:
+		raise build_wrong_permissions_error()
+	normalizedPrefix = normalize_opening_slash(prefix)
+	if not normalizedPrefix.startswith(
+		normalize_opening_slash(currentUser.dirroot)
+	):
+		raise build_wrong_permissions_error()
+	return prefix

@@ -791,6 +791,9 @@ install_py_env() {
 __install_py_env_if_needed__() {
 	if [ ! -e "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
 		__install_py_env__
+	else
+		echo "replacing musical_chair_lib files"
+		__replace_lib_files__ >/dev/null #only replace my code
 	fi
 }
 

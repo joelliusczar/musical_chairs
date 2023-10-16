@@ -389,7 +389,7 @@ class StationService:
 		stationName: SavedNameString,
 		userId: int,
 	) -> bool:
-		queryAny = select(st_pk, st_name).select_from(stations_tbl)\
+		queryAny = select(func.count(1)).select_from(stations_tbl)\
 				.where(st_name == str(stationName))\
 				.where(st_ownerFk == userId)\
 				.where(st_pk != id)

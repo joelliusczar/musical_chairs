@@ -8,7 +8,7 @@ import {
 	SongInfoForm,
 	AlbumCreationInfo,
 } from "../Types/song_info_types";
-import { IdType } from "../Types/generic_types";
+import { IdType, StringObject, Flags } from "../Types/generic_types";
 import { ListData, TableData, PageableParams } from "../Types/pageable_types";
 import {
 	User,
@@ -128,5 +128,52 @@ export const removePathUserRule = async (
 	const response = await webClient.delete<void>(url, {
 		params: params,
 	});
+	return response.data;
+};
+
+export const saveDirectory = async (
+	{ suffix, prefix }: { suffix: string, prefix: string }
+) => {
+
+	const response = await webClient.post<ListData<SongTreeNodeInfo>>(
+		"/song-info/directory",
+		null,
+		{
+			params: {
+				prefix,
+				suffix,
+			},
+		}
+	);
+	return response.data;
+};
+
+export const checkValues = async (
+	{ id, values }: { id: IdType, values: StringObject }
+) => {
+	const response = await webClient.get<Flags<StringObject>>(
+		"/song-info/check/", {
+			params: {
+				id,
+				...values,
+			},
+		});
+	return response.data;
+};
+
+export const uploadSong = async (
+	{ suffix, prefix }: { suffix: string, prefix: string }
+) => {
+
+	const response = await webClient.post<ListData<SongTreeNodeInfo>>(
+		"/song-info/upload",
+		null,
+		{
+			params: {
+				prefix,
+				suffix,
+			},
+		}
+	);
 	return response.data;
 };

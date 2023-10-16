@@ -1188,6 +1188,29 @@ class SongInfoService:
 			delStmt = delStmt.where(pup_role == ruleName)
 		self.conn.execute(delStmt)
 
+	def __is_path_used(
+		self,
+		id: Optional[int],
+		path: SavedNameString
+	) -> bool:
+		queryAny = select(func.count(1))\
+				.where(sg_path == str(path))\
+				.where(st_pk != id)
+		countRes = self.conn.execute(queryAny).scalar()
+		return countRes > 0 if countRes else False
+
+	def is_path_used(
+		self,
+		id: Optional[int],
+		prefix: str,
+		suffix: str
+	) -> bool:
+		path = squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/")
+		cleanedPath = SavedNameString(path)
+		if not cleanedPath:
+			return True
+		return self.__is_path_used(id, cleanedPath)
+
 	def create_directory(self, prefix: str, suffix: str, userId: int):
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),

@@ -57,7 +57,6 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 		yield dbName
 	finally:
 		with DbRootConnectionService() as rootConnService:
-			rootConnService.revoke_all_roles()
 			rootConnService.drop_database(dbName)
 
 @pytest.fixture

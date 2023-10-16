@@ -16,7 +16,8 @@ from api_dependencies import (
 	get_user_with_simple_scopes,
 	get_path_user_and_check_optional_path,
 	get_current_user_simple,
-	get_subject_user
+	get_subject_user,
+	get_prefix_if_owner
 )
 
 from musical_chairs_libs.services import SongInfoService
@@ -266,9 +267,22 @@ def remove_user_rule(
 		rulename
 	)
 
+@router.get("/check/")
+def is_phrase_used(
+	id: Optional[int]=None,
+	suffix: str = "",
+	prefix: str = Depends(get_prefix_if_owner),
+	user: AccountInfo = Depends(get_current_user_simple),
+	songInfoService: SongInfoService = Depends(song_info_service)
+) -> dict[str, bool]:
+	return {
+		"name": songInfoService.is_path_used(id, prefix, suffix)
+	}
+
+@router.post("/directory")
 def create_directory(
-	prefix: str,
 	suffix: str,
+	prefix: str = Depends(get_prefix_if_owner),
 	user: AccountInfo = Security(
 		get_path_user_and_check_optional_path,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
@@ -277,10 +291,11 @@ def create_directory(
 ):
 	pass
 
+@router.post("/upload")
 def upload_song(
-	prefix: str,
 	suffix: str,
 	file: UploadFile,
+	prefix: str = Depends(get_prefix_if_owner),
 	user: AccountInfo = Security(
 		get_path_user_and_check_optional_path,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]

@@ -211,14 +211,7 @@ export function AppRoutes() {
 			<Route
 				path={DomRoutes.songTree()}
 				element={
-					<PrivateRoute
-						element={<SongTree />}
-						scopes={[
-							UserRoleDef.PATH_LIST,
-							UserRoleDef.PATH_EDIT,
-							UserRoleDef.SONG_DOWNLOAD,
-						]}
-					/>
+					<SongTree />
 				}
 			/>
 			<Route

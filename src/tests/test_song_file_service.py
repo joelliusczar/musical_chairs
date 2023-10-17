@@ -8,6 +8,7 @@ from .common_fixtures import (
 	fixture_path_rule_service as fixture_path_rule_service
 )
 from .common_fixtures import *
+from io import BytesIO
 
 
 
@@ -62,24 +63,46 @@ def test_add_directory(
 	)
 	assert len(paths) == 1
 
-# def test_add_directory_to_leaves(
-# 	fixture_song_file_service: SongFileService,
-# 	fixture_account_service: AccountsService
-# ):
-# 	songFileService = fixture_song_file_service
-# 	accountService = fixture_account_service
-# 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
-# 	assert user
-# 	songFileService.create_directory(
-# 		"foo/goo/boo",
-# 		"create_dir_test",
-# 		user.id
-# 	)
-# 	paths = sorted(
-# 		songFileService.song_ls(user, "foo/goo/boo/"),
-# 		key=lambda d: d.path
-# 	)
-# 	pass
+def test_add_directory_to_leaves(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+	songFileService.create_directory(
+		"foo/goo/boo",
+		"create_dir_test",
+		user.id
+	)
+	paths = sorted(
+		songFileService.song_ls(user, "foo/goo/boo/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 6
+	assert paths[0].path == "foo/goo/boo/create_dir_test/"
+	assert paths[1].path == "foo/goo/boo/sierra"
+	assert paths[2].path == "foo/goo/boo/tango"
+	assert paths[3].path == "foo/goo/boo/uniform"
+	assert paths[4].path == "foo/goo/boo/victor"
+	assert paths[5].path == "foo/goo/boo/victor_2"
+	songFileService.save_song_file(
+		BytesIO(b"abc"),
+		"foo/goo/boo/create_dir_test",
+		"create_test_song",
+		user.id
+	)
+	paths = sorted(
+		songFileService.song_ls(user, "foo/goo/boo/"),
+		key=lambda d: d.path
+	)
+	assert paths[0].totalChildCount == 1
+	paths = sorted(
+		songFileService.song_ls(user, "foo/goo/boo/create_dir_test/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
 
 def test_song_ls_user_with_paths(
 	fixture_song_file_service: SongFileService,
@@ -107,3 +130,30 @@ def test_get_user_paths(
 	pathRuleService = fixture_path_rule_service
 	results = list(pathRuleService.get_paths_user_can_see(11))
 	assert results
+
+def test_get_parents_of_path(
+	fixture_song_file_service: SongFileService
+):
+	songFileService = fixture_song_file_service
+	results = sorted(
+		songFileService.get_parents_of_path("foo"),
+		key=lambda r: r[1]
+	)
+	assert not results
+	results = sorted(
+		songFileService.get_parents_of_path("/foo"),
+		key=lambda r: r[1]
+	)
+	assert not results
+
+	results = sorted(
+		songFileService.get_parents_of_path("foo/goo/boo/sierra/rapture"),
+		key=lambda r: r[1]
+	)
+	assert len(results) == 1
+
+	results = sorted(
+		songFileService.get_parents_of_path("foo/goo/boo/sierra"),
+		key=lambda r: r[1]
+	)
+	assert len(results) == 1

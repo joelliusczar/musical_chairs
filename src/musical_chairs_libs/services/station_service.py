@@ -64,7 +64,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	generate_user_and_rules_from_rows,
 	normalize_opening_slash
 )
-from .saving.path_rule_service import PathRuleService
+from .path_rule_service import PathRuleService
 from .template_service import TemplateService
 from .song_info_service import SongInfoService
 from .process_service import ProcessService

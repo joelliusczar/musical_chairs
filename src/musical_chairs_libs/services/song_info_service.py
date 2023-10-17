@@ -39,7 +39,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	generate_user_and_rules_from_rows,
 	squash_sequential_duplicate_chars
 )
-from .saving.path_rule_service import PathRuleService
+from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
 	insert,

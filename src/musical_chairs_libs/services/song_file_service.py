@@ -9,7 +9,7 @@ from typing import (
 	overload
 )
 from sqlalchemy.engine import Connection
-from .file_service_protocol import FileServiceBase
+from .saving.file_service_protocol import FileServiceBase
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	normalize_opening_slash,
@@ -23,6 +23,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from sqlalchemy import (
 	select,
 	insert,
+	delete,
 	func,
 	union_all,
 	String,
@@ -35,7 +36,7 @@ from musical_chairs_libs.tables import (
 	songs as songs_tbl,
 	sg_pk, sg_name, sg_path,
 )
-from ..env_manager import EnvManager
+from .env_manager import EnvManager
 
 class SongFileService:
 
@@ -56,6 +57,7 @@ class SongFileService:
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
 		)
+		self.delete_overlaping_placeholder_dirs(path)
 		stmt = insert(songs_tbl).values(
 			path = path,
 			isdirectoryplaceholder = True,
@@ -76,6 +78,7 @@ class SongFileService:
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}", "/"),
 			addSlash=False
 		)
+		self.delete_overlaping_placeholder_dirs(path)
 		self.file_service.save_song(path, file)
 		stmt = insert(songs_tbl).values(
 			path = path,
@@ -190,3 +193,24 @@ class SongFileService:
 			)
 		else:
 			yield from (cast(str,row[0]) for row in results)
+
+	def get_parents_of_path(self, path: str) -> Iterator[Tuple[int, str]]:
+		normalizedPrefix = normalize_opening_slash(path)
+		addSlash = True
+		query = select(sg_pk, sg_path)\
+			.where(func.substring(
+				normalizedPrefix,
+				1,
+				func.length(
+					func.normalize_opening_slash(sg_path, addSlash)
+				)
+			) == func.normalize_opening_slash(sg_path, addSlash))
+		results = self.conn.execute(query)
+		yield from ((row[0], row[1]) for row in results)
+
+	def delete_overlaping_placeholder_dirs(self, path: str):
+		overlap = [*self.get_parents_of_path(path)]
+		if any(r for r in overlap if not r[1].endswith("/")):
+			raise RuntimeError("Cannot delete song entries")
+		stmt = delete(songs_tbl).where(sg_pk.in_(r[0] for r in overlap))
+		self.conn.execute(stmt)

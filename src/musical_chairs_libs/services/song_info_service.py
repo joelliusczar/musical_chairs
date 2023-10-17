@@ -7,14 +7,12 @@ from typing import (
 	Iterable,
 	Any,
 	Tuple,
-	Callable,
-	overload
+	Callable
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
 	SongListDisplayItem,
 	ScanningSongItem,
-	SongTreeNode,
 	StationInfo,
 	SearchNameString,
 	get_datetime,
@@ -31,13 +29,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	ActionRule,
 	PathsActionRule,
-	UserRoleDef,
 	RulePriorityLevel,
 	normalize_opening_slash,
-	normalize_closing_slash,
 	AccountInfo,
-	ChainedAbsorbentTrie,
-	get_path_owner_roles,
 	OwnerInfo,
 	UserRoleDomain,
 	build_rules_query,
@@ -45,18 +39,16 @@ from musical_chairs_libs.dtos_and_utilities import (
 	generate_user_and_rules_from_rows,
 	squash_sequential_duplicate_chars
 )
+from .saving.path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
 	insert,
 	update,
 	func,
 	delete,
-	union_all,
 	or_,
 	and_,
-	String,
-	Integer,
-	CompoundSelect
+	Integer
 )
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.expression import (
@@ -67,7 +59,6 @@ from sqlalchemy.sql.expression import (
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.schema import Column
-from .env_manager import EnvManager
 from sqlalchemy.engine.row import RowMapping
 from dataclasses import asdict, fields
 from itertools import chain, groupby
@@ -85,21 +76,26 @@ from musical_chairs_libs.tables import (
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
 	path_user_permissions as path_user_permissions_tbl,
-	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count,
+	pup_userFk, pup_path, pup_role,
 	users as user_tbl, u_pk, u_username, u_displayName, u_email, u_dirRoot,
 	u_disabled
 )
+
 
 
 class SongInfoService:
 
 	def __init__(
 		self,
-		conn: Optional[Connection]=None
+		conn: Connection,
+		pathRuleService: Optional[PathRuleService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
+		if not pathRuleService:
+			pathRuleService = PathRuleService(conn)
+		self.path_rule_service = pathRuleService
 		self.get_datetime = get_datetime
 
 	def song_info(self, songPk: int) -> Optional[SongListDisplayItem]:
@@ -343,114 +339,6 @@ class SongInfoService:
 		except IntegrityError: pass
 		return count
 
-	def get_paths_user_can_see(self, userId: int) -> Iterator[PathsActionRule]:
-		query = select(pup_path, pup_role, pup_priority, pup_span, pup_count)\
-			.where(pup_userFk == userId)\
-			.order_by(pup_path)
-		records = self.conn.execute(query).mappings()
-		for r in records:
-			yield PathsActionRule(
-				cast(str,r[pup_role]),
-				priority=cast(int,r[pup_priority]) \
-					or RulePriorityLevel.STATION_PATH.value,
-				span=cast(int,r[pup_span]) or 0,
-				count=cast(int,r[pup_count]) or 0,
-				path=normalize_opening_slash(cast(str,r[pup_path]))
-			)
-
-	def get_rule_path_tree(
-		self,
-		user: AccountInfo
-	) -> ChainedAbsorbentTrie[ActionRule]:
-		rules = ActionRule.aggregate(
-			user.roles,
-			(p for p in self.get_paths_user_can_see(user.id)),
-			(p for p in get_path_owner_roles(user.dirroot))
-		)
-
-		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
-			(normalize_opening_slash(p.path), p) for p in
-				rules if isinstance(p, PathsActionRule) and p.path
-		)
-		pathRuleTree.add("", (r for r in user.roles \
-			if type(r) == ActionRule \
-				and (UserRoleDomain.Path.conforms(r.name) \
-						or r.name == UserRoleDef.ADMIN.value
-				)
-		), shouldEmptyUpdateTree=False)
-		return pathRuleTree
-
-	def __song_ls_query__(
-		self,
-		prefix: Optional[str]=""
-	) -> Select[Tuple[str, str, int, int, str]]:
-		prefix = normalize_opening_slash(prefix, False)
-		query = select(
-				func.next_directory_level(
-					sg_path,
-					prefix,
-					type_=String
-				).label("prefix"),
-				func.min(sg_name).label("name"),
-				func.count(sg_pk).label("totalChildCount"),
-				func.max(sg_pk).label("pk"),
-				func.max(sg_path).label("control_path")
-		).where(func.normalize_opening_slash(sg_path, False).like(f"{prefix}%"))\
-			.group_by(func.next_directory_level(sg_path, prefix))
-		return query
-
-	def __query_to_treeNodes__(
-		self,
-		query: Union[Select[Tuple[str, str, int, int, str]], CompoundSelect],
-		permittedPathsTree: ChainedAbsorbentTrie[PathsActionRule]
-	) -> Iterator[SongTreeNode]:
-		records = self.conn.execute(query).mappings()
-		for row in records:
-			normalizedPrefix = normalize_opening_slash(cast(str,row["prefix"]))
-			if not permittedPathsTree.matches(normalizedPrefix)\
-			:
-				continue
-			if row["control_path"] == row["prefix"]:
-				yield SongTreeNode(
-					path=cast(str, row["prefix"]),
-					totalChildCount=cast(int, row["totalChildCount"]),
-					id=cast(int, row["pk"]),
-					name=cast(str, row["name"]),
-					rules=[r for p in
-						permittedPathsTree.values(normalizedPrefix) for r in p
-					]
-				)
-			else: #directories
-				yield SongTreeNode(
-					path=normalize_closing_slash(cast(str, row["prefix"])),
-					totalChildCount=cast(int, row["totalChildCount"]),
-					rules=[r for p in
-						permittedPathsTree.values(normalizedPrefix) for r in p
-					]
-				)
-
-	def song_ls(
-		self,
-		user: AccountInfo,
-		prefix: Optional[str]=None
-	) -> Iterator[SongTreeNode]:
-		permittedPathTree = user.get_permitted_paths_tree()
-		if type(prefix) == str:
-			query = self.__song_ls_query__(prefix)
-			yield from self.__query_to_treeNodes__(query, permittedPathTree)
-		else:
-			prefixes = {
-				next((s for s in p.split("/") if s), "") if p else p for p in \
-				permittedPathTree.shortest_paths()
-			}
-			queryList: list[Select[Tuple[str, str, int, int, str]]] = []
-			for p in prefixes:
-				queryList.append(self.__song_ls_query__(p))
-			if queryList:
-				yield from self.__query_to_treeNodes__(
-					union_all(*queryList),
-					permittedPathTree
-				)
 
 	def get_songIds(
 		self,
@@ -477,37 +365,6 @@ class SongInfoService:
 		records = self.conn.execute(query).mappings()
 		yield from (cast(int, row["pk"]) for row in records)
 
-	@overload
-	def get_song_path(
-		self,
-		itemIds: int,
-		useFullSystemPath: bool=True
-	) -> Iterator[str]: ...
-
-	@overload
-	def get_song_path(
-		self,
-		itemIds: Iterable[int],
-		useFullSystemPath: bool=True
-	) -> Iterator[str]: ...
-
-	def get_song_path(
-		self,
-		itemIds: Union[Iterable[int], int],
-		useFullSystemPath: bool=True
-	) -> Iterator[str]:
-		query = select(sg_path)
-		if isinstance(itemIds, Iterable):
-			query = query.where(sg_pk.in_(itemIds))
-		else:
-			query = query.where(sg_pk == itemIds)
-		results = self.conn.execute(query)
-		if useFullSystemPath:
-			yield from (f"{EnvManager.search_base}/{row[0]}" \
-				for row in results
-			)
-		else:
-			yield from (cast(str,row[0]) for row in results)
 
 	def get_station_songs(
 		self,
@@ -912,7 +769,7 @@ class SongInfoService:
 		songIds: Iterable[int],
 		user: AccountInfo,
 	) -> Iterator[SongEditInfo]:
-		rulePathTree = self.get_rule_path_tree(user)
+		rulePathTree = self.path_rule_service.get_rule_path_tree(user)
 		query = self.__get_query_for_songs_for_edit__(songIds)
 		records = self.conn.execute(query).mappings()
 		currentSongRow = None
@@ -1211,16 +1068,3 @@ class SongInfoService:
 			return True
 		return self.__is_path_used(id, cleanedPath)
 
-	def create_directory(self, prefix: str, suffix: str, userId: int):
-		path = normalize_opening_slash(
-			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
-			addSlash=False
-		)
-		stmt = insert(songs_tbl).values(
-			path = path,
-			isdirectoryplaceholder = True,
-			lastmodifiedbyuserfk = userId,
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
-		self.conn.execute(stmt)
-		self.conn.commit()

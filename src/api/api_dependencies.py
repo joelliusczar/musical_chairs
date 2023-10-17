@@ -12,6 +12,12 @@ from musical_chairs_libs.services import (
 	ProcessService,
 	UserActionsHistoryService
 )
+from musical_chairs_libs.services.saving import (
+	LocalFileService,
+	SongFileService,
+	PathRuleService,
+	FileServiceBase,
+)
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	build_error_obj,
@@ -62,6 +68,20 @@ def song_info_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> SongInfoService:
 	return SongInfoService(conn)
+
+def path_rule_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> PathRuleService:
+	return PathRuleService(conn)
+
+def file_service() -> FileServiceBase:
+	return LocalFileService()
+
+def song_file_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	fileService: FileServiceBase=Depends(file_service)
+) -> SongFileService:
+	return SongFileService(conn, fileService)
 
 def queue_service(
 	conn: Connection=Depends(get_configured_db_connection)
@@ -292,7 +312,7 @@ def check_if_can_use_path(
 def get_path_user(
 	securityScopes: SecurityScopes,
 	user: AccountInfo = Depends(get_current_user_simple),
-	songInfoService: SongInfoService = Depends(song_info_service)
+	pathRuleService: PathRuleService = Depends(path_rule_service)
 ) -> AccountInfo:
 	scopes = {s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
@@ -303,7 +323,7 @@ def get_path_user(
 		raise build_wrong_permissions_error()
 	rules = ActionRule.aggregate(
 		user.roles,
-		(p for p in songInfoService.get_paths_user_can_see(user.id)),
+		(p for p in pathRuleService.get_paths_user_can_see(user.id)),
 		(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 	)
 	roleNameSet = {r.name for r in rules}
@@ -321,7 +341,7 @@ def get_path_user_and_check_optional_path(
 	prefix: Optional[str]=None,
 	itemid: Optional[int]=None,
 	user: AccountInfo = Depends(get_path_user),
-	songInfoService: SongInfoService = Depends(song_info_service),
+	songFileService: SongFileService = Depends(song_file_service),
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
@@ -329,7 +349,7 @@ def get_path_user_and_check_optional_path(
 		return user
 	if prefix is None:
 		if itemid:
-			prefix = next(songInfoService.get_song_path(itemid, False), "")
+			prefix = next(songFileService.get_song_path(itemid, False), "")
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]
@@ -361,7 +381,7 @@ def get_multi_path_user(
 	securityScopes: SecurityScopes,
 	itemids: list[int]=Query(default=[]),
 	user: AccountInfo=Depends(get_path_user),
-	songInfoService: SongInfoService = Depends(song_info_service),
+	songFileService: SongFileService = Depends(song_file_service),
 	userActionHistoryService: UserActionsHistoryService=
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
@@ -379,7 +399,7 @@ def get_multi_path_user(
 					or r.name == UserRoleDef.ADMIN.value
 			)
 	), shouldEmptyUpdateTree=False)
-	prefixes = songInfoService.get_song_path(itemids, False)
+	prefixes = songFileService.get_song_path(itemids, False)
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]

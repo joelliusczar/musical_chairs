@@ -44,77 +44,7 @@ def test_add_album(
 	pk = songInfoService.get_or_save_album("who_1_album", 4)
 	assert pk == len(get_initial_albums()) + 2
 
-def test_song_ls(
-	fixture_song_info_service: SongInfoService,
-	fixture_account_service: AccountsService
-):
-	songInfoService = fixture_song_info_service
-	accountService = fixture_account_service
-	user,_ = accountService.get_account_for_login("testUser_alpha") #random user
-	assert user
-	paths = sorted(songInfoService.song_ls(user), key=lambda d: d.path)
-	assert len(paths) == 4
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
 
-	paths = sorted(songInfoService.song_ls(user, "foo/"), key=lambda d: d.path)
-	assert len(paths) == 4
-	assert paths[0].path == "foo/bar/"
-	assert paths[1].path == "foo/dude/"
-	assert paths[2].path == "foo/goo/"
-	assert paths[3].path == "foo/rude/"
-
-def test_add_directory(
-	fixture_song_info_service: SongInfoService,
-	fixture_account_service: AccountsService
-):
-	songInfoService = fixture_song_info_service
-	accountService = fixture_account_service
-	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
-	assert user
-	songInfoService.create_directory("foo", "create_dir_test", user.id)
-	paths = sorted(songInfoService.song_ls(user, "foo/"), key=lambda d: d.path)
-	assert len(paths) == 5
-	assert paths[0].path == "foo/bar/"
-	assert paths[1].path == "foo/create_dir_test/"
-	assert paths[2].path == "foo/dude/"
-	assert paths[3].path == "foo/goo/"
-	assert paths[4].path == "foo/rude/"
-
-	paths = sorted(
-		songInfoService.song_ls(user, "foo/create_dir_test"),
-		key=lambda d: d.path
-	)
-	assert len(paths) == 1
-
-	paths = sorted(
-		songInfoService.song_ls(user, "foo/create_dir_test/"),
-		key=lambda d: d.path
-	)
-	assert len(paths) == 1
-
-
-def test_song_ls_user_with_paths(
-	fixture_song_info_service: SongInfoService,
-	fixture_path_user_factory: Callable[[str], AccountInfo]
-):
-	songInfoService = fixture_song_info_service
-	user = fixture_path_user_factory("testUser_uniform") #random user
-	paths = sorted(songInfoService.song_ls(user),key=lambda d: d.path)
-	# this is no longer expected behavior
-	# assert len(paths) == 2
-	# assert paths[0].path == "foo/bar/"
-	# assert paths[1].path == "foo/dude/"
-
-	assert len(paths) == 1
-	assert paths[0].path == "foo/"
-
-	paths = sorted(songInfoService.song_ls(user, "foo/"), key=lambda d: d.path)
-	assert len(paths) == 2
-	assert paths[0].path == "foo/bar/"
-	assert paths[1].path == "foo/dude/"
 
 
 def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
@@ -640,12 +570,6 @@ def test_get_duplicate_song(
 	assert songInfoList[0].id == 1
 	assert songInfoList[1].id == 6
 
-def test_get_user_paths(
-	fixture_song_info_service: SongInfoService
-):
-	songInfoService = fixture_song_info_service
-	results = list(songInfoService.get_paths_user_can_see(11))
-	assert results
 
 def test_get_song_with_owner_info(
 	fixture_song_info_service: SongInfoService,

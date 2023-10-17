@@ -11,6 +11,7 @@ from fastapi import (
 from fastapi.responses import FileResponse
 from api_dependencies import (
 	song_info_service,
+	song_file_service,
 	get_path_user,
 	get_multi_path_user,
 	get_user_with_simple_scopes,
@@ -21,6 +22,7 @@ from api_dependencies import (
 )
 
 from musical_chairs_libs.services import SongInfoService
+from musical_chairs_libs.services.saving import SongFileService
 from musical_chairs_libs.dtos_and_utilities import (
 	SongTreeNode,
 	ListData,
@@ -50,7 +52,7 @@ def song_ls(
 		get_path_user,
 		scopes=[UserRoleDef.PATH_LIST.value]
 	),
-	songInfoService: SongInfoService = Depends(song_info_service)
+	songInfoService: SongFileService = Depends(song_file_service)
 ) -> ListData[SongTreeNode]:
 	return ListData(items=list(songInfoService.song_ls(user, prefix)))
 
@@ -120,9 +122,9 @@ def get_songs_for_multi_edit(
 )
 def download_song(
 	id: int,
-	songInfoService: SongInfoService = Depends(song_info_service)
+	songFileService: SongFileService = Depends(song_file_service)
 ) -> str:
-	path = next(songInfoService.get_song_path(id), None)
+	path = next(songFileService.get_song_path(id), None)
 	if path:
 		return path
 	raise HTTPException(
@@ -302,4 +304,5 @@ def upload_song(
 	),
 	songInfoService: SongInfoService = Depends(song_info_service)
 ):
+	file.file
 	pass

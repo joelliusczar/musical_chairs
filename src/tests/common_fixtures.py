@@ -13,7 +13,11 @@ from musical_chairs_libs.services import (
 	TemplateService,
 	UserActionsHistoryService,
 	DbRootConnectionService,
-	DbOwnerConnectionService
+	DbOwnerConnectionService,
+)
+from musical_chairs_libs.services.saving import (
+	SongFileService,
+	PathRuleService
 )
 from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos_and_utilities import (
@@ -27,6 +31,7 @@ from .mocks.mock_db_constructors import (
 	setup_in_mem_tbls,
 )
 from .mocks.mock_datetime_provider import MockDatetimeProvider
+from .mocks.mock_file_service import MockFileService
 from .constant_fixtures_for_test import (
 	fixture_mock_password as fixture_mock_password,\
 	fixture_primary_user as fixture_primary_user,\
@@ -152,6 +157,21 @@ def fixture_song_info_service(
 	return songInfoService
 
 @pytest.fixture
+def fixture_path_rule_service(
+	fixture_db_conn_in_mem: Connection
+) -> PathRuleService:
+	pathRuleService = PathRuleService(fixture_db_conn_in_mem)
+	return pathRuleService
+
+@pytest.fixture
+def fixture_song_file_service(
+	fixture_db_conn_in_mem: Connection
+) -> SongFileService:
+	fileService = MockFileService()
+	songFileService = SongFileService(fixture_db_conn_in_mem, fileService)
+	return songFileService
+
+@pytest.fixture
 def fixture_template_service() -> TemplateService:
 	templateService = TemplateService()
 	return templateService
@@ -188,18 +208,18 @@ def fixture_datetime_iterator(
 
 @pytest.fixture
 def fixture_path_user_factory(
-	fixture_song_info_service: SongInfoService,
+	fixture_path_rule_service: PathRuleService,
 	fixture_account_service: AccountsService
 ) -> Callable[[str], AccountInfo]:
 
 	def path_user(username: str) -> AccountInfo:
-		songInfoService = fixture_song_info_service
+		pathRuleService = fixture_path_rule_service
 		accountService = fixture_account_service
 		user,_ = accountService.get_account_for_login(username)
 		assert user
 		rules = ActionRule.aggregate(
 			user.roles,
-			(p for p in songInfoService.get_paths_user_can_see(user.id)),
+			(p for p in pathRuleService.get_paths_user_can_see(user.id)),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 		userDict = asdict(user)

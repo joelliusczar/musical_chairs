@@ -11,7 +11,8 @@ import { formatError } from "../../Helpers/error_formatter";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import {
-	DirectoryInfo,
+	UploadInfo,
+	SongTreeNodeInfo,
 } from "../../Types/song_info_types";
 
 
@@ -24,13 +25,14 @@ const inputField = {
 const initialValues = {
 	suffix: "",
 	prefix: "",
+	file: null,
 };
 
 
 
 const validatePhraseIsUnused = async (
 	value: string | undefined,
-	context: Yup.TestContext<Partial<DirectoryInfo>>
+	context: Yup.TestContext<Partial<UploadInfo>>
 ) => {
 	const id = context?.parent?.id;
 	if (!value) return true;
@@ -42,17 +44,18 @@ const validatePhraseIsUnused = async (
 };
 
 const schema = Yup.object().shape({
-	name: Yup.string().required().test(
+	suffix: Yup.string().required().test(
 		"suffix",
 		(value) => `${value.path} is already used`,
 		validatePhraseIsUnused
 	),
+	file: Yup.mixed().required(),
 });
 
 
 type SongUploadProps = {
 	onCancel?: (e: unknown) => void
-	afterSubmit?: (s: DirectoryInfo) => void,
+	afterSubmit?: (s: SongTreeNodeInfo) => void,
 	prefix: string,
 };
 
@@ -61,22 +64,22 @@ export const SongUpload = (props: SongUploadProps) => {
 	const { enqueueSnackbar } = useSnackbar();
 
 
-	const _afterSubmit = (data: DirectoryInfo) => {
-		reset(data);
+	const _afterSubmit = () => {
+		reset({});
 	};
 
 	const afterSubmit = props.afterSubmit || _afterSubmit;
 
 
-	const formMethods = useForm<DirectoryInfo>({
+	const formMethods = useForm<UploadInfo>({
 		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
 	const { handleSubmit, reset } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			uploadSong(values);
-			afterSubmit(values);
+			const result = await uploadSong(values);
+			afterSubmit(result);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err) {
@@ -96,7 +99,7 @@ export const SongUpload = (props: SongUploadProps) => {
 		<>
 			<Box sx={inputField}>
 				<Typography variant="h1">
-					Create a directory
+					Upload a file in {prefix}
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
@@ -104,6 +107,14 @@ export const SongUpload = (props: SongUploadProps) => {
 					name="suffix"
 					label="Name"
 					formMethods={formMethods}
+				/>
+			</Box>
+			<Box sx={inputField}>
+				<FormTextField
+					name="file"
+					label="File"
+					formMethods={formMethods}
+					type="file"
 				/>
 			</Box>
 
@@ -121,7 +132,7 @@ export const SongUpload = (props: SongUploadProps) => {
 
 
 type SongUploadNewModalOpenerProps = {
-	add?: (s: DirectoryInfo) => void;
+	add?: (s: SongTreeNodeInfo) => void;
 	prefix: string
 }
 
@@ -138,7 +149,7 @@ export const SongUploadNewModalOpener = (
 		setItemNewOpen(false);
 	};
 
-	const itemCreated = (item: DirectoryInfo) => {
+	const itemCreated = (item: SongTreeNodeInfo) => {
 		add && add(item);
 		closeModal();
 	};

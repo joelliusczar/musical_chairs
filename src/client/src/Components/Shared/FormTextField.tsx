@@ -37,11 +37,11 @@ export function FormTextField<FormT extends FieldValues>(
 			inputRef={ref}
 			label={label}
 			defaultValue=""
-			{...otherProps}
 			InputLabelProps={{ shrink: true }}
 			error={!!error}
 			helperText={error && error.message}
 			variant="standard"
+			{...otherProps}
 		/>
 	);
 }

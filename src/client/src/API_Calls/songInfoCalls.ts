@@ -7,6 +7,7 @@ import {
 	SongInfoApiSavura,
 	SongInfoForm,
 	AlbumCreationInfo,
+	UploadInfo,
 } from "../Types/song_info_types";
 import { IdType, StringObject, Flags } from "../Types/generic_types";
 import { ListData, TableData, PageableParams } from "../Types/pageable_types";
@@ -135,7 +136,7 @@ export const saveDirectory = async (
 	{ suffix, prefix }: { suffix: string, prefix: string }
 ) => {
 
-	const response = await webClient.post<ListData<SongTreeNodeInfo>>(
+	const response = await webClient.post<SongTreeNodeInfo>(
 		"/song-info/directory",
 		null,
 		{
@@ -162,12 +163,15 @@ export const checkValues = async (
 };
 
 export const uploadSong = async (
-	{ suffix, prefix }: { suffix: string, prefix: string }
+	{ suffix, prefix, file }: UploadInfo
 ) => {
-
-	const response = await webClient.post<ListData<SongTreeNodeInfo>>(
+	const formData = new FormData();
+	if (file) {
+		formData.append("file", file);
+	}
+	const response = await webClient.post<SongTreeNodeInfo>(
 		"/song-info/upload",
-		null,
+		formData,
 		{
 			params: {
 				prefix,

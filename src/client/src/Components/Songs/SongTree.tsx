@@ -25,6 +25,8 @@ import { ListData } from "../../Types/pageable_types";
 import { PathsActionRule } from "../../Types/user_types";
 import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
+import { DirectoryNewModalOpener } from "./DirectoryEdit";
+import { SongUploadNewModalOpener } from "./SongUpload";
 
 type SongTreeNodeProps = {
 	children: React.ReactNode
@@ -184,13 +186,10 @@ export const SongTree = withCacheProvider<
 			return `${DomRoutes.pathUsers()}?prefix=${selectedPrefix}`;
 		};
 
-		const promptForDirectoryName = () => {
-
-		};
-
 		const selectedSongIds = getSelectedSongIds();
 
 		const canAssignUsers = () => {
+			if (isDirectorySelected()) return false;
 			if (selectedPrefix !== null) {
 				const hasRule = selectedPrefixRules
 					.filter(r => r.name === UserRoleDef.PATH_USER_LIST)
@@ -203,6 +202,21 @@ export const SongTree = withCacheProvider<
 			}
 			return false;
 		};
+
+		const canDownloadSelection = () => {
+			if (isDirectorySelected()) return false;
+			return selectedSongIds.length === 1;
+		};
+
+		const canEditSongInfo = () => {
+			if (isDirectorySelected()) return false;
+			return !!selectedSongIds.length;
+		};
+
+		const onAddNewNode = (node: SongTreeNodeInfo) => {
+
+		};
+
 
 		return (
 			<>
@@ -217,13 +231,13 @@ export const SongTree = withCacheProvider<
 					}}
 				>
 					<Toolbar variant="dense" sx={{ pb: 1, alignItems: "baseline"}}>
-						{!!selectedSongIds.length && <Button
+						{canEditSongInfo() && <Button
 							component={Link}
 							to={getSongEditUrl(selectedSongIds)}
 						>
 							Edit Song Info
 						</Button>}
-						{selectedSongIds.length === 1 &&<Button
+						{canDownloadSelection() &&<Button
 							href={getDownloadAddress(selectedSongIds[0])}
 						>
 							Download song
@@ -234,11 +248,12 @@ export const SongTree = withCacheProvider<
 						>
 							Assign users
 						</Button>}
-						{isDirectorySelected() && <Button
-							onClick={promptForDirectoryName}
-						>
-							Create Directory
-						</Button>}
+						{isDirectorySelected() && selectedPrefix &&
+							<DirectoryNewModalOpener add={onAddNewNode}
+								prefix={selectedPrefix} />}
+						{isDirectorySelected() && selectedPrefix &&
+							<SongUploadNewModalOpener add={onAddNewNode}
+								prefix={selectedPrefix} />}
 					</Toolbar>
 				</AppBar>}
 				<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />

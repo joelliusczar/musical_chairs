@@ -12,6 +12,7 @@ import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import {
 	DirectoryInfo,
+	SongTreeNodeInfo,
 } from "../../Types/song_info_types";
 
 
@@ -42,7 +43,7 @@ const validatePhraseIsUnused = async (
 };
 
 const schema = Yup.object().shape({
-	name: Yup.string().required().test(
+	suffix: Yup.string().required().test(
 		"suffix",
 		(value) => `${value.path} is already used`,
 		validatePhraseIsUnused
@@ -52,7 +53,7 @@ const schema = Yup.object().shape({
 
 type DirectoryEditProps = {
 	onCancel?: (e: unknown) => void
-	afterSubmit?: (s: DirectoryInfo) => void,
+	afterSubmit?: (s: SongTreeNodeInfo) => void,
 	prefix: string,
 };
 
@@ -61,8 +62,8 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 	const { enqueueSnackbar } = useSnackbar();
 
 
-	const _afterSubmit = (data: DirectoryInfo) => {
-		reset(data);
+	const _afterSubmit = () => {
+		reset({});
 	};
 
 	const afterSubmit = props.afterSubmit || _afterSubmit;
@@ -75,8 +76,8 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 	const { handleSubmit, reset } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			saveDirectory(values);
-			afterSubmit(values);
+			const result = await saveDirectory(values);
+			afterSubmit(result);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err) {
@@ -96,7 +97,7 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 		<>
 			<Box sx={inputField}>
 				<Typography variant="h1">
-					Create a directory
+					Create a directory in {prefix}
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
@@ -121,7 +122,7 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 
 
 type DirectoryNewModalOpenerProps = {
-	add?: (s: DirectoryInfo) => void;
+	add?: (s: SongTreeNodeInfo) => void;
 	prefix: string
 }
 
@@ -138,7 +139,7 @@ export const DirectoryNewModalOpener = (
 		setItemNewOpen(false);
 	};
 
-	const itemCreated = (item: DirectoryInfo) => {
+	const itemCreated = (item: SongTreeNodeInfo) => {
 		add && add(item);
 		closeModal();
 	};

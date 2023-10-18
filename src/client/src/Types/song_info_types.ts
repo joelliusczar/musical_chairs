@@ -103,7 +103,12 @@ export interface SongInfoApiSavura extends SongInfoBase {
 	touched: string[]
 }
 
-export type DirectoryInfo = {
+export interface DirectoryInfo {
 	prefix: string,
 	suffix: string
 };
+
+
+export interface UploadInfo extends DirectoryInfo {
+	file: File | null
+}

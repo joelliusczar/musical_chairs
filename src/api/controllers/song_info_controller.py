@@ -18,11 +18,15 @@ from api_dependencies import (
 	get_path_user_and_check_optional_path,
 	get_current_user_simple,
 	get_subject_user,
-	get_prefix_if_owner
+	get_prefix_if_owner,
+	path_rule_service
 )
 
-from musical_chairs_libs.services import SongInfoService
-from musical_chairs_libs.services.saving import SongFileService
+from musical_chairs_libs.services import (
+	SongInfoService,
+	SongFileService,
+	PathRuleService
+)
 from musical_chairs_libs.dtos_and_utilities import (
 	SongTreeNode,
 	ListData,
@@ -227,9 +231,9 @@ def get_all_albums(
 ])
 def get_path_user_list(
 	prefix: str,
-	songInfoService: SongInfoService = Depends(song_info_service)
+	pathRuleService: PathRuleService = Depends(path_rule_service)
 ) -> TableData[AccountInfo]:
-	pathUsers = list(songInfoService.get_path_users(prefix))
+	pathUsers = list(pathRuleService.get_path_users(prefix))
 	return TableData(pathUsers, len(pathUsers))
 
 @router.post("/path/user_role",
@@ -244,9 +248,9 @@ def add_user_rule(
 	prefix: str,
 	user: AccountInfo = Depends(get_subject_user),
 	rule: PathsActionRule = Depends(validate_path_rule),
-	songInfoService: SongInfoService = Depends(song_info_service),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> PathsActionRule:
-	return songInfoService.add_user_rule_to_path(user.id, prefix, rule)
+	return pathRuleService.add_user_rule_to_path(user.id, prefix, rule)
 
 @router.delete("/path/user_role",
 	status_code=status.HTTP_204_NO_CONTENT,
@@ -261,24 +265,27 @@ def remove_user_rule(
 	prefix: str,
 	user: AccountInfo = Depends(get_subject_user),
 	rulename: Optional[str] = Depends(validate_path_rule_for_remove),
-	songInfoService: SongInfoService = Depends(song_info_service)
+	pathRuleService: PathRuleService = Depends(path_rule_service)
 ):
-	songInfoService.remove_user_rule_from_path(
+	pathRuleService.remove_user_rule_from_path(
 		user.id,
 		prefix,
 		rulename
 	)
 
-@router.get("/check/")
+@router.get("/check/",
+	dependencies=[
+		Depends(get_current_user_simple)
+	]
+)
 def is_phrase_used(
 	id: Optional[int]=None,
 	suffix: str = "",
 	prefix: str = Depends(get_prefix_if_owner),
-	user: AccountInfo = Depends(get_current_user_simple),
-	songInfoService: SongInfoService = Depends(song_info_service)
+	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, bool]:
 	return {
-		"name": songInfoService.is_path_used(id, prefix, suffix)
+		"name": songFileService.is_path_used(id, prefix, suffix)
 	}
 
 @router.post("/directory")
@@ -289,9 +296,9 @@ def create_directory(
 		get_path_user_and_check_optional_path,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
 	),
-	songInfoService: SongInfoService = Depends(song_info_service)
-):
-	pass
+	songFileService: SongFileService = Depends(song_file_service)
+) -> SongTreeNode:
+	return songFileService.create_directory(prefix, suffix, user.id)
 
 @router.post("/upload")
 def upload_song(
@@ -302,7 +309,6 @@ def upload_song(
 		get_path_user_and_check_optional_path,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
 	),
-	songInfoService: SongInfoService = Depends(song_info_service)
+	songFileService: SongFileService = Depends(song_file_service)
 ):
-	file.file
-	pass
+	songFileService.save_song_file(file.file, prefix, suffix, user.id)

@@ -18,7 +18,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ChainedAbsorbentTrie,
 	SongTreeNode,
 	normalize_closing_slash,
-	AccountInfo
+	AccountInfo,
+	SavedNameString
 )
 from sqlalchemy import (
 	select,
@@ -35,6 +36,7 @@ from sqlalchemy.sql.expression import (
 from musical_chairs_libs.tables import (
 	songs as songs_tbl,
 	sg_pk, sg_name, sg_path,
+	st_pk
 )
 from .env_manager import EnvManager
 
@@ -52,7 +54,12 @@ class SongFileService:
 		self.get_datetime = get_datetime
 
 
-	def create_directory(self, prefix: str, suffix: str, userId: int):
+	def create_directory(
+		self,
+		prefix: str,
+		suffix: str,
+		userId: int
+	) -> SongTreeNode:
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
@@ -64,8 +71,13 @@ class SongFileService:
 			lastmodifiedbyuserfk = userId,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
-		self.conn.execute(stmt)
+		result = self.conn.execute(stmt)
 		self.conn.commit()
+		return SongTreeNode(
+			path=normalize_closing_slash(path),
+			totalChildCount=1,
+			id=result.lastrowid
+		)
 
 	def save_song_file(
 			self,
@@ -214,3 +226,26 @@ class SongFileService:
 			raise RuntimeError("Cannot delete song entries")
 		stmt = delete(songs_tbl).where(sg_pk.in_(r[0] for r in overlap))
 		self.conn.execute(stmt)
+
+	def __is_path_used(
+		self,
+		id: Optional[int],
+		path: SavedNameString
+	) -> bool:
+		queryAny = select(func.count(1))\
+				.where(sg_path == str(path))\
+				.where(st_pk != id)
+		countRes = self.conn.execute(queryAny).scalar()
+		return countRes > 0 if countRes else False
+
+	def is_path_used(
+		self,
+		id: Optional[int],
+		prefix: str,
+		suffix: str
+	) -> bool:
+		path = squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/")
+		cleanedPath = SavedNameString(path)
+		if not cleanedPath:
+			return True
+		return self.__is_path_used(id, cleanedPath)

@@ -27,30 +27,17 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationSongTuple,
 	SongArtistTuple,
 	AlreadyUsedError,
-	ActionRule,
-	PathsActionRule,
-	RulePriorityLevel,
-	normalize_opening_slash,
 	AccountInfo,
 	OwnerInfo,
-	UserRoleDomain,
-	build_rules_query,
-	MinItemSecurityLevel,
-	generate_user_and_rules_from_rows,
-	squash_sequential_duplicate_chars
 )
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
 	insert,
 	update,
-	func,
 	delete,
-	or_,
-	and_,
 	Integer
 )
-from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.expression import (
 	Tuple as dbTuple,
 	Select,
@@ -75,10 +62,7 @@ from musical_chairs_libs.tables import (
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
-	path_user_permissions as path_user_permissions_tbl,
-	pup_userFk, pup_path, pup_role,
-	users as user_tbl, u_pk, u_username, u_displayName, u_email, u_dirRoot,
-	u_disabled
+	users as user_tbl, u_pk, u_username, u_displayName
 )
 
 
@@ -934,137 +918,6 @@ class SongInfoService:
 		else:
 			return SongEditInfo(id=0, path="", touched=touched)
 
-	def get_path_users(
-		self,
-		prefix: str,
-		userId: Optional[int]=None,
-		owner: Optional[AccountInfo]=None
-	) -> Iterator[AccountInfo]:
-		addSlash = True
-		normalizedPrefix = normalize_opening_slash(prefix)
-		rulesQuery = build_rules_query(UserRoleDomain.Path).cte()
-		query = select(
-			u_pk,
-			u_username,
-			u_displayName,
-			u_email,
-			u_dirRoot,
-			rulesQuery.c.rule_userfk,
-			rulesQuery.c.rule_name,
-			rulesQuery.c.rule_count,
-			rulesQuery.c.rule_span,
-			rulesQuery.c.rule_priority,
-			rulesQuery.c.rule_domain
-		).select_from(user_tbl).join(
-			rulesQuery,
-			or_(
-				and_(
-					func.substring(
-						normalizedPrefix,
-						1,
-						func.length(
-							func.normalize_opening_slash(u_dirRoot, addSlash)
-						)
-					) == func.normalize_opening_slash(u_dirRoot, addSlash),
-					rulesQuery.c.rule_userfk == 0
-				),
-				and_(
-					rulesQuery.c.rule_userfk == u_pk,
-						func.substring(
-							normalizedPrefix,
-							1,
-							func.length(
-								func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
-							)
-						) == func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
-				),
-			),
-			isouter=True
-		).where(or_(u_disabled.is_(None), u_disabled == 0))\
-		.where(
-			or_(
-				coalesce(
-					rulesQuery.c.rule_priority,
-					RulePriorityLevel.SITE.value
-				) > MinItemSecurityLevel.INVITED_USER.value,
-					func.substring(
-						prefix,
-						1,
-						func.length(
-							func.normalize_opening_slash(u_dirRoot, addSlash)
-						)
-					) == func.normalize_opening_slash(u_dirRoot, addSlash)
-			)
-		)
-		if userId is not None:
-			query = query.where(u_pk == userId)
-		query = query.order_by(u_username)
-		records = self.conn.execute(query).mappings()
-		yield from generate_user_and_rules_from_rows(
-			records,
-			UserRoleDomain.Path,
-			owner.id if owner else None,
-			prefix
-		)
 
-	def add_user_rule_to_path(
-		self,
-		addedUserId: int,
-		prefix: str,
-		rule: ActionRule
-	) -> PathsActionRule:
-		stmt = insert(path_user_permissions_tbl).values(
-			userFk = addedUserId,
-			path = prefix,
-			role = rule.name,
-			span = rule.span,
-			count = rule.count,
-			priority = None,
-			creationTimestamp = self.get_datetime().timestamp()
-		)
-		self.conn.execute(stmt)
-		self.conn.commit()
-		return PathsActionRule(
-			rule.name,
-			rule.span,
-			rule.count,
-			RulePriorityLevel.STATION_PATH.value,
-			path=prefix
-		)
 
-	def remove_user_rule_from_path(
-		self,
-		userId: int,
-		prefix: str,
-		ruleName: Optional[str]
-	):
-		delStmt = delete(path_user_permissions_tbl)\
-			.where(pup_userFk == userId)\
-			.where(pup_path == prefix)
-		if ruleName:
-			delStmt = delStmt.where(pup_role == ruleName)
-		self.conn.execute(delStmt)
-
-	def __is_path_used(
-		self,
-		id: Optional[int],
-		path: SavedNameString
-	) -> bool:
-		queryAny = select(func.count(1))\
-				.where(sg_path == str(path))\
-				.where(st_pk != id)
-		countRes = self.conn.execute(queryAny).scalar()
-		return countRes > 0 if countRes else False
-
-	def is_path_used(
-		self,
-		id: Optional[int],
-		prefix: str,
-		suffix: str
-	) -> bool:
-		path = squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/")
-		cleanedPath = SavedNameString(path)
-		if not cleanedPath:
-			return True
-		return self.__is_path_used(id, cleanedPath)
 

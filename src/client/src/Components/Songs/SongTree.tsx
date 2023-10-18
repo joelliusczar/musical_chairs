@@ -8,7 +8,7 @@ import { fetchSongTree } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { drawerWidth } from "../../style_config";
 import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
 import {
@@ -27,6 +27,7 @@ import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import { DirectoryNewModalOpener } from "./DirectoryEdit";
 import { SongUploadNewModalOpener } from "./SongUpload";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 type SongTreeNodeProps = {
 	children: React.ReactNode
@@ -134,6 +135,7 @@ export const SongTree = withCacheProvider<
 			SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 		>();
 		const { enqueueSnackbar } = useSnackbar();
+		const navigate = useNavigate();
 
 		const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
 			if(nodeIds.length === 1) {
@@ -205,7 +207,16 @@ export const SongTree = withCacheProvider<
 
 		const canDownloadSelection = () => {
 			if (isDirectorySelected()) return false;
-			return selectedSongIds.length === 1;
+			if (selectedNodes.length !== 1) return false;
+			const songNodeInfo = getCacheValue(selectedNodes[0]);
+			if (songNodeInfo && "rules" in songNodeInfo) {
+				const canDownloadThisSong = anyConformsToAnyRule(
+					songNodeInfo?.rules,
+					[UserRoleDef.PATH_DOWNLOAD]
+				);
+				return canDownloadThisSong;
+			};
+			return false;
 		};
 
 		const canEditSongInfo = () => {
@@ -215,6 +226,12 @@ export const SongTree = withCacheProvider<
 
 		const onAddNewNode = (node: SongTreeNodeInfo) => {
 
+		};
+
+		const onAddNewSong = (node: SongTreeNodeInfo) => {
+			if (node && node.id) {
+				navigate(getSongEditUrl([node.id]));
+			}
 		};
 
 
@@ -252,7 +269,7 @@ export const SongTree = withCacheProvider<
 							<DirectoryNewModalOpener add={onAddNewNode}
 								prefix={selectedPrefix} />}
 						{isDirectorySelected() && selectedPrefix &&
-							<SongUploadNewModalOpener add={onAddNewNode}
+							<SongUploadNewModalOpener add={onAddNewSong}
 								prefix={selectedPrefix} />}
 					</Toolbar>
 				</AppBar>}

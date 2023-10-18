@@ -29,6 +29,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	AccountInfo,
 	OwnerInfo,
+	normalize_opening_slash
 )
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
@@ -810,7 +811,9 @@ class SongInfoService:
 				))
 		if currentSongRow:
 			songDict = self._prepare_song_row_for_model(currentSongRow)
-			rules = [*rulePathTree.valuesFlat(songDict["path"])]
+			rules = [*rulePathTree.valuesFlat(
+				normalize_opening_slash(cast(str, songDict["path"]))
+			)]
 			yield SongEditInfo(**songDict,
 					primaryartist=primaryArtist,
 					artists=sorted(artists, key=lambda a: a.id if a else 0),

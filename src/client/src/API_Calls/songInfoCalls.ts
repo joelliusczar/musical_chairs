@@ -163,11 +163,11 @@ export const checkValues = async (
 };
 
 export const uploadSong = async (
-	{ suffix, prefix, file }: UploadInfo
+	{ suffix, prefix, files }: UploadInfo
 ) => {
 	const formData = new FormData();
-	if (file) {
-		formData.append("file", file);
+	if (files && files.length) {
+		formData.append("file", files[0]);
 	}
 	const response = await webClient.post<SongTreeNodeInfo>(
 		"/song-info/upload",

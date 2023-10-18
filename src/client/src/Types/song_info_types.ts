@@ -110,5 +110,5 @@ export interface DirectoryInfo {
 
 
 export interface UploadInfo extends DirectoryInfo {
-	file: File | null
+	files: File[] | null
 }

@@ -65,7 +65,7 @@ class PathRuleService:
 		rules = ActionRule.aggregate(
 			user.roles,
 			(p for p in self.get_paths_user_can_see(user.id)),
-			(p for p in get_path_owner_roles(user.dirroot))
+			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 
 		pathRuleTree = ChainedAbsorbentTrie[ActionRule](

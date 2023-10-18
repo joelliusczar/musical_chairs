@@ -285,7 +285,7 @@ def is_phrase_used(
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, bool]:
 	return {
-		"name": songFileService.is_path_used(id, prefix, suffix)
+		"suffix": songFileService.is_path_used(id, prefix, suffix)
 	}
 
 @router.post("/directory")
@@ -310,5 +310,5 @@ def upload_song(
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
 	),
 	songFileService: SongFileService = Depends(song_file_service)
-):
-	songFileService.save_song_file(file.file, prefix, suffix, user.id)
+) -> SongTreeNode:
+	return songFileService.save_song_file(file.file, prefix, suffix, user.id)

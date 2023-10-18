@@ -67,6 +67,7 @@ class SongFileService:
 		self.delete_overlaping_placeholder_dirs(path)
 		stmt = insert(songs_tbl).values(
 			path = path,
+			name = suffix,
 			isdirectoryplaceholder = True,
 			lastmodifiedbyuserfk = userId,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
@@ -85,7 +86,7 @@ class SongFileService:
 			prefix: str,
 			suffix: str,
 			userId: int
-		):
+		) -> SongTreeNode:
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}", "/"),
 			addSlash=False
@@ -94,12 +95,18 @@ class SongFileService:
 		self.file_service.save_song(path, file)
 		stmt = insert(songs_tbl).values(
 			path = path,
+			name = suffix,
 			isdirectoryplaceholder = False,
 			lastmodifiedbyuserfk = userId,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
-		self.conn.execute(stmt)
+		result = self.conn.execute(stmt)
 		self.conn.commit()
+		return SongTreeNode(
+			path=normalize_closing_slash(path),
+			totalChildCount=1,
+			id=result.lastrowid
+		)
 
 
 	def __song_ls_query__(

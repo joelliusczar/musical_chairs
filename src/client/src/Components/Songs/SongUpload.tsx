@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
+import { FormFileUpload } from "../Shared/FormFileUpload";
 import { useSnackbar } from "notistack";
 import {
 	checkValues,
@@ -40,7 +41,7 @@ const validatePhraseIsUnused = async (
 		"suffix": value,
 		"prefix": context?.parent?.prefix,
 	}});
-	return !(context.path in used) || !used[context.path];
+	return !(	context.path in used) || !used[context.path];
 };
 
 const schema = Yup.object().shape({
@@ -49,7 +50,7 @@ const schema = Yup.object().shape({
 		(value) => `${value.path} is already used`,
 		validatePhraseIsUnused
 	),
-	file: Yup.mixed().required(),
+	files: Yup.mixed().required(),
 });
 
 
@@ -110,8 +111,8 @@ export const SongUpload = (props: SongUploadProps) => {
 				/>
 			</Box>
 			<Box sx={inputField}>
-				<FormTextField
-					name="file"
+				<FormFileUpload
+					name="files"
 					label="File"
 					formMethods={formMethods}
 					type="file"

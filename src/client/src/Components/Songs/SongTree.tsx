@@ -8,7 +8,7 @@ import { fetchSongTree } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { drawerWidth } from "../../style_config";
 import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
 import {
@@ -25,6 +25,9 @@ import { ListData } from "../../Types/pageable_types";
 import { PathsActionRule } from "../../Types/user_types";
 import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
+import { DirectoryNewModalOpener } from "./DirectoryEdit";
+import { SongUploadNewModalOpener } from "./SongUpload";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 type SongTreeNodeProps = {
 	children: React.ReactNode
@@ -132,6 +135,7 @@ export const SongTree = withCacheProvider<
 			SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 		>();
 		const { enqueueSnackbar } = useSnackbar();
+		const navigate = useNavigate();
 
 		const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
 			if(nodeIds.length === 1) {
@@ -167,6 +171,14 @@ export const SongTree = withCacheProvider<
 			}).filter(n => !!n) as number[];
 		};
 
+		const isDirectorySelected = () => {
+			if (selectedNodes.length !== 1) return false;
+			const songNodeInfo = getCacheValue(selectedNodes[0]);
+			if (!songNodeInfo) return false;
+			if (!("path" in songNodeInfo)) return false;
+			return songNodeInfo.path?.endsWith("/");
+		};
+
 		const getSongEditUrl = (ids: IdType[]) => {
 			const queryStr = buildArrayQueryStr("ids", ids);
 			return `${DomRoutes.songEdit()}${queryStr}`;
@@ -179,6 +191,7 @@ export const SongTree = withCacheProvider<
 		const selectedSongIds = getSelectedSongIds();
 
 		const canAssignUsers = () => {
+			if (isDirectorySelected()) return false;
 			if (selectedPrefix !== null) {
 				const hasRule = selectedPrefixRules
 					.filter(r => r.name === UserRoleDef.PATH_USER_LIST)
@@ -191,6 +204,36 @@ export const SongTree = withCacheProvider<
 			}
 			return false;
 		};
+
+		const canDownloadSelection = () => {
+			if (isDirectorySelected()) return false;
+			if (selectedNodes.length !== 1) return false;
+			const songNodeInfo = getCacheValue(selectedNodes[0]);
+			if (songNodeInfo && "rules" in songNodeInfo) {
+				const canDownloadThisSong = anyConformsToAnyRule(
+					songNodeInfo?.rules,
+					[UserRoleDef.PATH_DOWNLOAD]
+				);
+				return canDownloadThisSong;
+			};
+			return false;
+		};
+
+		const canEditSongInfo = () => {
+			if (isDirectorySelected()) return false;
+			return !!selectedSongIds.length;
+		};
+
+		const onAddNewNode = (node: SongTreeNodeInfo) => {
+
+		};
+
+		const onAddNewSong = (node: SongTreeNodeInfo) => {
+			if (node && node.id) {
+				navigate(getSongEditUrl([node.id]));
+			}
+		};
+
 
 		return (
 			<>
@@ -205,13 +248,13 @@ export const SongTree = withCacheProvider<
 					}}
 				>
 					<Toolbar variant="dense" sx={{ pb: 1, alignItems: "baseline"}}>
-						{!!selectedSongIds.length && <Button
+						{canEditSongInfo() && <Button
 							component={Link}
 							to={getSongEditUrl(selectedSongIds)}
 						>
 							Edit Song Info
 						</Button>}
-						{selectedSongIds.length === 1 &&<Button
+						{canDownloadSelection() &&<Button
 							href={getDownloadAddress(selectedSongIds[0])}
 						>
 							Download song
@@ -222,6 +265,12 @@ export const SongTree = withCacheProvider<
 						>
 							Assign users
 						</Button>}
+						{isDirectorySelected() && selectedPrefix &&
+							<DirectoryNewModalOpener add={onAddNewNode}
+								prefix={selectedPrefix} />}
+						{isDirectorySelected() && selectedPrefix &&
+							<SongUploadNewModalOpener add={onAddNewSong}
+								prefix={selectedPrefix} />}
 					</Toolbar>
 				</AppBar>}
 				<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />

@@ -102,3 +102,13 @@ export interface SongInfoForm extends SongInfoBase, FieldValues {
 export interface SongInfoApiSavura extends SongInfoBase {
 	touched: string[]
 }
+
+export interface DirectoryInfo {
+	prefix: string,
+	suffix: string
+};
+
+
+export interface UploadInfo extends DirectoryInfo {
+	files: File[] | null
+}

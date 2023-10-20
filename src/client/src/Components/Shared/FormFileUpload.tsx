@@ -1,5 +1,5 @@
 import React from "react";
-import { TextField } from "@mui/material";
+import { Button, FormHelperText } from "@mui/material";
 import {
 	useController,
 	UseFormReturn,
@@ -7,7 +7,7 @@ import {
 	FieldPath,
 } from "react-hook-form";
 
-type FormTextFieldProps<FormT extends FieldValues> = {
+type FormFileUpload<FormT extends FieldValues> = {
 	formMethods: UseFormReturn<FormT>
 	name: FieldPath<FormT>
 	label: string
@@ -17,9 +17,9 @@ type FormTextFieldProps<FormT extends FieldValues> = {
 	disabled?: boolean
 };
 
-export function FormTextField<FormT extends FieldValues>(
-	props: FormTextFieldProps<FormT>
-) {
+export const FormFileUpload = <FormT extends FieldValues>(
+	props: FormFileUpload<FormT>
+) => {
 	const { name, label, formMethods, ...otherProps } = props;
 	const { control, register } = formMethods;
 
@@ -29,19 +29,18 @@ export function FormTextField<FormT extends FieldValues>(
 			control,
 		});
 
-	const { ref, ...rest} = register(name);
 
 	return (
-		<TextField
-			{...rest}
-			inputRef={ref}
-			label={label}
-			defaultValue=""
-			InputLabelProps={{ shrink: true }}
-			error={!!error}
-			helperText={error && error.message}
-			variant="standard"
-			{...otherProps}
-		/>
+		<Button>
+			<input
+				{...register(name)}
+				defaultValue=""
+				{...otherProps}
+				type="file"
+			/>
+			{error && <FormHelperText error={true}>
+				{error?.message}
+			</FormHelperText>}
+		</Button>
 	);
-}
+};

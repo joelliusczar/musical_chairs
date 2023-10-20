@@ -70,6 +70,7 @@ class UserRoleDef(Enum):
 	PATH_USER_ASSIGN = f"{UserRoleDomain.Path.value}:userassign"
 	PATH_USER_LIST = f"{UserRoleDomain.Path.value}:userlist"
 	PATH_DOWNLOAD = f"{UserRoleDomain.Path.value}:download"
+	PATH_UPLOAD = f"{UserRoleDomain.Path.value}:upload"
 
 	def __call__(self, **kwargs: Union[str, int]) -> str:
 		return self.modded_value(**kwargs)

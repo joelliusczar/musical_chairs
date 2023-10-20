@@ -64,6 +64,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	generate_user_and_rules_from_rows,
 	normalize_opening_slash
 )
+from .path_rule_service import PathRuleService
 from .template_service import TemplateService
 from .song_info_service import SongInfoService
 from .process_service import ProcessService
@@ -76,6 +77,7 @@ class StationService:
 		conn: Optional[Connection]=None,
 		templateService: Optional[TemplateService]=None,
 		songInfoService: Optional[SongInfoService]=None,
+		pathRuleService: Optional[PathRuleService]=None
 	):
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -83,9 +85,12 @@ class StationService:
 			templateService = TemplateService()
 		if not songInfoService:
 			songInfoService = SongInfoService(conn)
+		if not pathRuleService:
+			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.template_service = templateService
 		self.song_info_service = songInfoService
+		self.path_rule_service = pathRuleService
 		self.get_datetime = get_datetime
 
 	def get_station_id(
@@ -347,7 +352,7 @@ class StationService:
 		offset = page * limit if limit else 0
 		pathRuleTree = None
 		if user:
-			pathRuleTree = self.song_info_service.get_rule_path_tree(user)
+			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
 
 		baseQuery = select(
 			sg_pk,
@@ -389,7 +394,7 @@ class StationService:
 		stationName: SavedNameString,
 		userId: int,
 	) -> bool:
-		queryAny = select(st_pk, st_name).select_from(stations_tbl)\
+		queryAny = select(func.count(1)).select_from(stations_tbl)\
 				.where(st_name == str(stationName))\
 				.where(st_ownerFk == userId)\
 				.where(st_pk != id)

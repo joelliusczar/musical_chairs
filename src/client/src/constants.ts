@@ -80,6 +80,7 @@ export const UserRoleDef: StringObject = {
 	PATH_USER_ASSIGN: `${UserRoleDomain.PATH}:userassign`,
 	PATH_USER_LIST: `${UserRoleDomain.PATH}:userlist`,
 	PATH_DOWNLOAD: `${UserRoleDomain.PATH}:download`,
+	PATH_UPLOAD: `${UserRoleDomain.PATH}:upload`,
 };
 
 export const MinItemSecurityLevel = {

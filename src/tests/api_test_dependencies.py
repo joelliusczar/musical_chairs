@@ -13,7 +13,11 @@ from .common_fixtures import (
 )
 from .common_fixtures import *
 from index import app
-from api_dependencies import get_configured_db_connection
+from api_dependencies import (
+	get_configured_db_connection,
+	file_service
+)
+from .mocks.mock_file_service import MockFileService
 
 
 def mock_depend_primary_user():
@@ -41,6 +45,7 @@ def fixture_api_test_client(
 
 	app.dependency_overrides[get_configured_db_connection] =\
 		lambda: fixture_db_conn_in_mem
+	app.dependency_overrides[file_service] = lambda: MockFileService()
 
 	client = TestClient(app, raise_server_exceptions=False)
 	return client

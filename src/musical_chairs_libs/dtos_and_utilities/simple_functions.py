@@ -10,12 +10,14 @@ from typing import (
 	Iterator,
 	Optional,
 	Tuple,
-	overload
+	overload,
+	TypeVar
 )
 from email_validator import ValidatedEmail
 from collections import Counter
 from .type_aliases import (s2sDict)
 
+T = TypeVar("T")
 
 guidRegx = \
 	r"[a-zA-Z\d]{8}-?[a-zA-Z\d]{4}-?[a-zA-Z\d]{4}-?[a-zA-Z\d]{4}-?[a-zA-Z\d]{12}"
@@ -113,3 +115,44 @@ def normalize_opening_slash(
 			return path
 	return path[1:]
 
+
+@overload
+def normalize_closing_slash(path: str, addSlash: bool=True) -> str:
+	...
+
+@overload
+def normalize_closing_slash(path: None, addSlash: bool=True) -> None:
+	...
+
+def normalize_closing_slash(
+	path: Optional[str],
+	addSlash: bool=True
+) -> Optional[str]:
+	if path is None:
+		return None
+	if addSlash:
+		if len(path) > 0 and path[-1] == "/":
+			return path
+		return f"{path}/"
+	if len(path) > 0 and path[-1] != "/":
+			return path
+	return path[:-1]
+
+def squash_sequential_duplicates(
+	compressura: Iterable[T],
+	pattern: T
+) -> Iterator[T]:
+	cIter = iter(compressura)
+	previous = next(cIter)
+	yield previous
+	for element in cIter:
+		if element == previous and element == pattern:
+			continue
+		previous = element
+		yield element
+
+def squash_sequential_duplicate_chars(
+	compressura: str,
+	pattern: str
+) -> str:
+	return "".join(squash_sequential_duplicates(compressura, pattern))

@@ -3,6 +3,7 @@ import platform
 import subprocess
 import random
 from enum import Enum
+from time import sleep
 from itertools import dropwhile, islice
 from typing import Optional
 from musical_chairs_libs.dtos_and_utilities import (
@@ -15,6 +16,30 @@ class PackageManagers(Enum):
 	PACMAN = "pacman"
 	HOMEBREW = "homebrew"
 
+
+def __start_ices__(stationConf: str):
+	subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
+
+def __start_ices_2__(stationConf: str, ownerName: str, stationName: str):
+	srcProc = subprocess.Popen([
+			"python",
+			"-m",
+			"musical_chairs_libs.stream",
+			"local",
+			EnvManager.db_name,
+			stationName,
+			ownerName
+		],
+		stdout=subprocess.PIPE
+	)
+	iceProc = subprocess.Popen(
+		["mc-ices", "-c", f"{stationConf}"],
+		stdin=srcProc.stdout
+	)
+	sleep(1)
+	returnCode = iceProc.poll()
+	if returnCode:
+		raise RuntimeError("An error occured trying to start radio station")
 
 class ProcessService:
 
@@ -55,7 +80,7 @@ class ProcessService:
 			return
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
-		subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
+		__start_ices_2__(stationConf, ownerName, stationName)
 
 	@staticmethod
 	def get_pkg_mgr() -> Optional[PackageManagers]:

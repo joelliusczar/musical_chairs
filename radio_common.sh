@@ -1518,6 +1518,23 @@ EOF
 	echo "Done ending all stations"
 )
 
+##deprecated
+__start_station_local_file_module__() (
+	conf="$1"
+	mc-ices -c -B "$conf"
+)
+
+__start_station_with_pipe__() (
+	conf="$1"
+	ownerName=$(echo "$conf" | cut -d '_' -f 1)
+	stationName=$(basename $(echo "$conf" | cut -d '_' -f 2) '.conf')
+	python -m musical_chairs_libs.stream \
+		'local' "$MC_DATABASE_NAME" "$stationName" "$ownerName" | \
+			mc-ices -c "$conf" \
+			>"$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL"/"${stationName}_${ownerName}" \
+			2>&1 &
+)
+
 startup_radio() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
@@ -1527,7 +1544,7 @@ startup_radio() (
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
-		mc-ices -c -B "$conf"
+		__start_station_with_pipe__ "$conf"
 	done
 )
 
@@ -1568,6 +1585,10 @@ startup_api() (
 	echo "done starting up api. Access at ${MC_FULL_URL}"
 )
 
+__replace_stream_module__() (
+	streamFile="$(get_app_root)"/"$MC_PY_MODULE_DIR"/stream.py
+	cp -v "$MC_TEMPLATES_SRC"/stream_template.py "$streamFile"
+)
 
 startup_nginx_for_debug() (
 	process_global_vars "$@" &&
@@ -1584,6 +1605,7 @@ setup_api() (
 	sync_requirement_list &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
 	copy_dir "$MC_API_SRC" "$(get_web_root)"/"$MC_APP_API_PATH_CL" &&
+	__replace_stream_module__ &&
 	create_py_env_in_app_trunk &&
 	setup_database &&
 	setup_nginx_confs &&
@@ -1660,6 +1682,7 @@ setup_radio() (
 
 	create_py_env_in_app_trunk &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
+	__replace_stream_module__ &&
 	setup_database &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -1929,6 +1952,7 @@ define_app_dir_paths() {
 	export MC_SQL_SCRIPTS_DIR_CL="$MC_APP_TRUNK"/sql_scripts
 	export MC_APP_API_PATH_CL=api/"$MC_APP_NAME"
 	export MC_APP_CLIENT_PATH_CL=client/"$MC_APP_NAME"
+	export MC_RADIO_LOG_DIR_CL="$MC_APP_TRUNK"/radio_logs
 
 	echo "app dir paths defined and created"
 }

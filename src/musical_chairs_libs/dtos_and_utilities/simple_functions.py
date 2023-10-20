@@ -156,3 +156,8 @@ def squash_sequential_duplicate_chars(
 	pattern: str
 ) -> str:
 	return "".join(squash_sequential_duplicates(compressura, pattern))
+
+def format_newlines_for_stream(input: str) -> str:
+	cleaned = input.replace("\n", " ")
+	output = f"{cleaned}\n"
+	return output

@@ -29,7 +29,7 @@ def __create_missing_directories__(fullPath: str):
 def __start_ices_2__(stationConf: str, ownerName: str, stationName: str):
 	logFilePath = f"{EnvManager.radio_logs_dir}/{ownerName}_{stationName}"
 	__create_missing_directories__(logFilePath)
-	logFile = open(logFilePath, "w")
+	logFile = open(logFilePath, "w", buffering=1)
 	try:
 		srcProc = subprocess.Popen([
 				"python",
@@ -45,7 +45,9 @@ def __start_ices_2__(stationConf: str, ownerName: str, stationName: str):
 		)
 		iceProc = subprocess.Popen(
 			["mc-ices", "-c", f"{stationConf}"],
-			stdin=srcProc.stdout
+			stdin=srcProc.stdout,
+			stdout=logFile,
+			stderr=logFile
 		)
 		sleep(1)
 		returnCode = iceProc.poll()

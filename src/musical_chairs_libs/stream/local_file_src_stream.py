@@ -50,6 +50,7 @@ def send_data(
 
 def begin_clean_up(signum: int, frame: Any):
 	global isRunning
+	sys.stderr.buffer.write(b"We have recieved the signall to end")
 	isRunning = False
 
 signal.signal(signal.SIGTERM, begin_clean_up)

@@ -26,6 +26,8 @@ class StreamReadRadioHandle:
 	def ices_get_next(self) -> str:
 		self.display = sys.stdin.buffer.readline().decode()
 		self.songFullPath = sys.stdin.buffer.readline().decode()
+		print(f"recieved display {self.display}")
+		print(f"recieved full path {self.songFullPath}")
 		return "-"
 
 	# This function, if defined, returns the string you'd like used

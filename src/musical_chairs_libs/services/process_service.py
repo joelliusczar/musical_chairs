@@ -21,25 +21,31 @@ def __start_ices__(stationConf: str):
 	subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
 
 def __start_ices_2__(stationConf: str, ownerName: str, stationName: str):
-	srcProc = subprocess.Popen([
-			"python",
-			"-m",
-			"musical_chairs_libs.stream",
-			"local",
-			EnvManager.db_name,
-			stationName,
-			ownerName
-		],
-		stdout=subprocess.PIPE
-	)
-	iceProc = subprocess.Popen(
-		["mc-ices", "-c", f"{stationConf}"],
-		stdin=srcProc.stdout
-	)
-	sleep(1)
-	returnCode = iceProc.poll()
-	if returnCode:
-		raise RuntimeError("An error occured trying to start radio station")
+	logFile = open(f"{EnvManager.radio_logs_dir}/{ownerName}_{stationName}", "w")
+	try:
+		srcProc = subprocess.Popen([
+				"python",
+				"-m",
+				"musical_chairs_libs.stream",
+				"local",
+				EnvManager.db_name,
+				stationName,
+				ownerName
+			],
+			stdout=subprocess.PIPE,
+			stderr=logFile
+		)
+		iceProc = subprocess.Popen(
+			["mc-ices", "-c", f"{stationConf}"],
+			stdin=srcProc.stdout
+		)
+		sleep(1)
+		returnCode = iceProc.poll()
+		if returnCode:
+			raise RuntimeError("An error occured trying to start radio station")
+	finally:
+		if not logFile.closed:
+			logFile.close()
 
 class ProcessService:
 

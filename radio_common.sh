@@ -1531,7 +1531,7 @@ __start_station_with_pipe__() (
 	python -m musical_chairs_libs.stream \
 		'local' "$MC_DATABASE_NAME" "$stationName" "$ownerName" | \
 			mc-ices -c "$conf" \
-			>"$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL"/"${stationName}_${ownerName}" \
+			>"$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL"/"${ownerName}_${stationName}" \
 			2>&1 &
 )
 

@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 import random
+from pathlib import Path
 from enum import Enum
 from time import sleep
 from itertools import dropwhile, islice
@@ -20,8 +21,15 @@ class PackageManagers(Enum):
 def __start_ices__(stationConf: str):
 	subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
 
+def __create_missing_directories__(fullPath: str):
+		path = Path(fullPath)
+		if not path.parents[0].exists():
+			path.parents[0].mkdir(parents=True, exist_ok=True)
+
 def __start_ices_2__(stationConf: str, ownerName: str, stationName: str):
-	logFile = open(f"{EnvManager.radio_logs_dir}/{ownerName}_{stationName}", "w")
+	logFilePath = f"{EnvManager.radio_logs_dir}/{ownerName}_{stationName}"
+	__create_missing_directories__(logFilePath)
+	logFile = open(logFilePath, "w")
 	try:
 		srcProc = subprocess.Popen([
 				"python",

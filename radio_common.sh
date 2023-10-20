@@ -619,6 +619,9 @@ setup_env_api_file() (
 	perl -pi -e \
 		"s@^(MC_TEST_ROOT=).*\$@\1'${MC_TEST_ROOT}'@" \
 		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_RADIO_LOG_DIR_CL=).*\$@\1'${MC_RADIO_LOG_DIR_CL}'@" \
+		"$envFile" &&
 	echo 'done setting up .env file'
 )
 
@@ -2008,6 +2011,8 @@ setup_common_dirs() {
 	mkdir -pv "$(get_app_root)"/"$MC_PY_MODULE_DIR"
 	[ -e "$(get_app_root)"/"$MC_DB_DIR" ] ||
 	mkdir -pv "$(get_app_root)"/"$MC_DB_DIR"
+	[ -e "$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL" ] ||
+	mkdir -pv "$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL"
 	[ -e "$(get_app_root)"/keys ] ||
 	mkdir -pv "$(get_app_root)"/keys
 }

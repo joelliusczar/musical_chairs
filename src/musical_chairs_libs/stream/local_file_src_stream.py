@@ -10,7 +10,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 from .common_stream_helpers import (
 	set_proc_id,
 	unset_proc_id,
-	get_song_info
+	get_song_info,
+	send_size_packet
 )
 import signal
 
@@ -45,6 +46,8 @@ def send_data(
 		sys.stdout.buffer.write(format_newlines_for_stream(display).encode())
 		songFullPath = f"{searchBase}/{songPath}"
 		sys.stdout.buffer.write(format_newlines_for_stream(songFullPath).encode())
+		size = os.path.getsize(songFullPath)
+		send_size_packet(size)
 		forward_data(songFullPath)
 	unset_proc_id(stationId, dbName)
 

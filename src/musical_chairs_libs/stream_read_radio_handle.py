@@ -28,7 +28,7 @@ class StreamReadRadioHandle:
 		self.songFullPath = sys.stdin.buffer.readline().decode()
 		print(f"recieved display {self.display}")
 		print(f"recieved full path {self.songFullPath}")
-		return "-"
+		return ">"
 
 	# This function, if defined, returns the string you'd like used
 	# as metadata (ie for title streaming) for the current song. You may

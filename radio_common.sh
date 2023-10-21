@@ -1521,7 +1521,7 @@ EOF
 	echo "Done ending all stations"
 )
 
-##deprecated
+
 __start_station_local_file_module__() (
 	conf="$1"
 	mc-ices -c -B "$conf"
@@ -1547,7 +1547,7 @@ startup_radio() (
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
-		__start_station_with_pipe__ "$conf"
+		__start_station_local_file_module__ "$conf"
 	done
 )
 

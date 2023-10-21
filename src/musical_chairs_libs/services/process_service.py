@@ -96,7 +96,7 @@ class ProcessService:
 			return
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
-		__start_ices_2__(stationConf, ownerName, stationName)
+		__start_ices__(stationConf)
 
 	@staticmethod
 	def get_pkg_mgr() -> Optional[PackageManagers]:

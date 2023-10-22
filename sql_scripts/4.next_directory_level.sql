@@ -3,9 +3,18 @@ CREATE OR REPLACE FUNCTION next_directory_level (
 	prefix VARCHAR(2000)
 ) RETURNS VARCHAR(2000)
 BEGIN
+	DECLARE escapedPrefix VARCHAR(2000);
 	DECLARE pattern VARCHAR(2000);
 	DECLARE matchResult VARCHAR(2000);
-	SET pattern = CONCAT('(',COALESCE(prefix, ''), '[^/]*/?)');
+	SET escapedPrefix = REPLACE(prefix, '\(', '\\(');
+	SET escapedPrefix = REPLACE(escapedPrefix, '\)', '\\)');
+	SET escapedPrefix = REPLACE(escapedPrefix, '\*', '\\*');
+	SET escapedPrefix = REPLACE(escapedPrefix, '\+', '\\+');
+	SET escapedPrefix = REPLACE(escapedPrefix, '\[', '\\[');
+	SET escapedPrefix = REPLACE(escapedPrefix, '\]', '\\]');
+	SET escapedPrefix = REPLACE(escapedPrefix, '\?', '\\?');
+	SET escapedPrefix = REPLACE(escapedPrefix, '\$', '\\$');
+	SET pattern = CONCAT('(',COALESCE(escapedPrefix, ''), '[^/]*/?)');
 	SET matchResult = REGEXP_SUBSTR(path, pattern);
 	RETURN matchResult;
 END;

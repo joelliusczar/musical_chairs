@@ -34,6 +34,18 @@ def test_song_ls(
 	assert paths[2].path == "foo/goo/"
 	assert paths[3].path == "foo/rude/"
 
+	paths = sorted(songFileService.song_ls(user, "tossedSlash/trap/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+	assert paths[0].path == "tossedSlash/trap/bang(pow)_1/"
+
+	paths = sorted(songFileService.song_ls(user, "tossedSlash/trap/bang(pow)_1/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+	assert paths[0].path == "tossedSlash/trap/bang(pow)_1/boo"
+
 def test_add_directory(
 	fixture_song_file_service: SongFileService,
 	fixture_account_service: AccountsService

@@ -15,7 +15,10 @@ import {
 	UploadInfo,
 	SongTreeNodeInfo,
 } from "../../Types/song_info_types";
-
+// import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
+// import {
+// 	dispatches,
+// } from "../../Reducers/waitingReducer";
 
 
 const inputField = {
@@ -63,6 +66,7 @@ type SongUploadProps = {
 export const SongUpload = (props: SongUploadProps) => {
 	const { onCancel, prefix } = props;
 	const { enqueueSnackbar } = useSnackbar();
+	// const [state, dispatch] = useVoidWaitingReducer();
 
 
 	const _afterSubmit = () => {
@@ -79,6 +83,7 @@ export const SongUpload = (props: SongUploadProps) => {
 	const { handleSubmit, reset } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
+			// dispatch(dispatches.started());
 			const result = await uploadSong(values);
 			afterSubmit(result);
 			enqueueSnackbar("Save successful", { variant: "success"});

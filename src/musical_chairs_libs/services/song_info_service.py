@@ -121,7 +121,7 @@ class SongInfoService:
 		print(name)
 		stmt = insert(artists_tbl).values(
 			name = savedName,
-			lastModifiedTimestamp = self.get_datetime().timestamp()
+			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
 		res = self.conn.execute(stmt)
 		insertedPk = res.lastrowid

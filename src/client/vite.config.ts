@@ -10,9 +10,10 @@ import fs from "fs";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(),"VITE_");
-	return {
+	const config = {
 		server: {
 			port: 3000,
+			strictPort: true,
 			https: mode === "development" ? {
 				key: fs.readFileSync(env.VITE_SSL_PRIVATE),
 				cert: fs.readFileSync(env.VITE_SSL_PUBLIC),
@@ -29,4 +30,5 @@ export default defineConfig(({ mode }) => {
 			outDir: "build",
 		},
 	};
+	return config;
 });

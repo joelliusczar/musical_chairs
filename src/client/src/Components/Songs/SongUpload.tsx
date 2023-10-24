@@ -89,12 +89,21 @@ export const SongUpload = (props: SongUploadProps) => {
 		}
 	});
 
-	const setValue = formMethods.setValue;
+	const {setValue, watch} = formMethods;
+	const files = watch("files");
 
 	useEffect(() => {
 		setValue("prefix", prefix);
 	},[prefix, setValue]);
 
+	useEffect(() => {
+		const suffix = watch("suffix");
+		if (!suffix) {
+			if (!!files?.length) {
+				setValue("suffix", files[0].name);
+			}
+		}
+	},[setValue, files, watch]);
 
 	return (
 		<>

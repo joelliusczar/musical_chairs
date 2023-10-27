@@ -24,6 +24,7 @@ import {
 	PasswordUpdate,
 	User,
 } from "../../Types/user_types";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 const inputField = {
 	margin: 2,
@@ -92,7 +93,7 @@ export const AccountsEdit = () => {
 		resolver: yupResolver(schema),
 		mode: "onBlur",
 	});
-	const { handleSubmit, reset, watch } = formMethods;
+	const { handleSubmit, reset, watch, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const data = await updateAccountBasic(
@@ -193,9 +194,12 @@ export const AccountsEdit = () => {
 				/>
 			</Box>
 			<Box sx={inputField} >
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}
+				>
 					Submit
-				</Button>
+				</SubmitButton>
 			</Box>
 		</Box>
 	</Loader>);

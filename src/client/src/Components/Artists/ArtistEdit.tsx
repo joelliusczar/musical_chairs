@@ -7,6 +7,7 @@ import { saveArtist } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import { ArtistInfo } from "../../Types/song_info_types";
+import { SubmitButton  } from "../Shared/SubmitButton";
 
 const inputField = {
 	margin: 2,
@@ -26,7 +27,7 @@ export const ArtistEdit = (props: ArtistEditProps) => {
 			name: "",
 		},
 	});
-	const { handleSubmit } = formMethods;
+	const { handleSubmit, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const artist = await saveArtist({ name: values.name });
@@ -54,9 +55,12 @@ export const ArtistEdit = (props: ArtistEditProps) => {
 				/>
 			</Box>
 			<Box sx={inputField} >
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}
+				>
 					Submit
-				</Button>
+				</SubmitButton>
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

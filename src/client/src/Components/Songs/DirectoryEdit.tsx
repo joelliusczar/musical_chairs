@@ -14,6 +14,7 @@ import {
 	DirectoryInfo,
 	SongTreeNodeInfo,
 } from "../../Types/song_info_types";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 
 
@@ -73,7 +74,7 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset } = formMethods;
+	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const result = await saveDirectory(values);
@@ -109,9 +110,12 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 			</Box>
 
 			<Box sx={inputField} >
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}
+				>
 					Submit
-				</Button>
+				</SubmitButton>
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

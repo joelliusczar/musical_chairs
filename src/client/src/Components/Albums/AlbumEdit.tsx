@@ -15,6 +15,7 @@ import Loader from "../Shared/Loader";
 import { useCombinedContextAndFormItems } from "../../Helpers/array_helpers";
 import { ArtistSelect } from "../Artists/ArtistSelect";
 import { AlbumInfo, ArtistInfo } from "../../Types/song_info_types";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 const inputField = {
 	margin: 2,
@@ -44,7 +45,7 @@ export const AlbumEdit = (props: AlbumEditProps) => {
 			albumartist: null,
 		},
 	});
-	const { handleSubmit } = formMethods;
+	const { handleSubmit, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const album = await saveAlbum({ data: {
@@ -97,9 +98,11 @@ export const AlbumEdit = (props: AlbumEditProps) => {
 				</Box>
 			</Loader>
 			<Box sx={inputField} >
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}>
 					Submit
-				</Button>
+				</SubmitButton>
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

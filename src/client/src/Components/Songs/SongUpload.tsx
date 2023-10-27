@@ -15,10 +15,8 @@ import {
 	UploadInfo,
 	SongTreeNodeInfo,
 } from "../../Types/song_info_types";
-// import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
-// import {
-// 	dispatches,
-// } from "../../Reducers/waitingReducer";
+import { SubmitButton } from "../Shared/SubmitButton";
+
 
 
 const inputField = {
@@ -66,7 +64,6 @@ type SongUploadProps = {
 export const SongUpload = (props: SongUploadProps) => {
 	const { onCancel, prefix } = props;
 	const { enqueueSnackbar } = useSnackbar();
-	// const [state, dispatch] = useVoidWaitingReducer();
 
 
 	const _afterSubmit = () => {
@@ -80,10 +77,9 @@ export const SongUpload = (props: SongUploadProps) => {
 		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset } = formMethods;
+	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			// dispatch(dispatches.started());
 			const result = await uploadSong(values);
 			afterSubmit(result);
 			enqueueSnackbar("Save successful", { variant: "success"});
@@ -134,9 +130,12 @@ export const SongUpload = (props: SongUploadProps) => {
 			</Box>
 
 			<Box sx={inputField} >
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}
+				>
 					Submit
-				</Button>
+				</SubmitButton>
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

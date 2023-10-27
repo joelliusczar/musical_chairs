@@ -6,6 +6,7 @@ import { useSnackbar } from "notistack";
 import { Link } from "react-router-dom";
 import { DomRoutes } from "../../constants";
 import { useLogin } from "../../Context_Providers/AuthContext";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 
 type LoginFormProps = {
@@ -26,7 +27,7 @@ export function LoginForm(props: LoginFormProps) {
 			password: "",
 		},
 	});
-	const { handleSubmit } = formMethods;
+	const { handleSubmit, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			await login(values.username, values.password);
@@ -65,9 +66,12 @@ export function LoginForm(props: LoginFormProps) {
 				/>
 			</Box>
 			<Box>
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}
+				>
 					Submit
-				</Button>
+				</SubmitButton>
 				{onCancel && <Button onClick={onCancel}>
 					Cancel
 				</Button>}

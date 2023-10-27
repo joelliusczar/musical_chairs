@@ -6,6 +6,7 @@ import { FormTextField } from "../Shared/FormTextField";
 import { FormSelect } from "../Shared/FormSelect";
 import { Named, SelectItem } from "../../Types/generic_types";
 import { ActionRuleCreationInfo } from "../../Types/user_types";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 
 const initialValues = {
@@ -32,7 +33,7 @@ export const RoleEntry = (props: RoleEntryProps) => {
 	const formMethods = useForm({
 		defaultValues: initialValues,
 	});
-	const { handleSubmit, reset } = formMethods;
+	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(values => {
 
 		const span = values.minutes * 60 + values.hours * 60 * 60
@@ -109,11 +110,12 @@ export const RoleEntry = (props: RoleEntryProps) => {
 			>
 				Cancel
 			</Button>
-			<Button
+			<SubmitButton
+				loading={formState.isSubmitting}
 				onClick={callSubmit}
 			>
 				Save
-			</Button>
+			</SubmitButton>
 		</Box>
 	</Paper>);
 

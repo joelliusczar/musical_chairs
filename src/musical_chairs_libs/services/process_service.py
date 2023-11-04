@@ -4,7 +4,6 @@ import subprocess
 import random
 from pathlib import Path
 from enum import Enum
-from time import sleep
 from itertools import dropwhile, islice
 from typing import Optional
 from musical_chairs_libs.dtos_and_utilities import (
@@ -26,36 +25,6 @@ def __create_missing_directories__(fullPath: str):
 		if not path.parents[0].exists():
 			path.parents[0].mkdir(parents=True, exist_ok=True)
 
-def __start_ices_2__(stationConf: str, ownerName: str, stationName: str):
-	logFilePath = f"{EnvManager.radio_logs_dir}/{ownerName}_{stationName}"
-	__create_missing_directories__(logFilePath)
-	logFile = open(logFilePath, "w", buffering=1)
-	try:
-		srcProc = subprocess.Popen([
-				"python",
-				"-m",
-				"musical_chairs_libs.stream",
-				"local",
-				EnvManager.db_name,
-				stationName,
-				ownerName
-			],
-			stdout=subprocess.PIPE,
-			stderr=logFile
-		)
-		iceProc = subprocess.Popen(
-			["mc-ices", "-c", f"{stationConf}"],
-			stdin=srcProc.stdout,
-			stdout=logFile,
-			stderr=logFile
-		)
-		sleep(1)
-		returnCode = iceProc.poll()
-		if returnCode:
-			raise RuntimeError("An error occured trying to start radio station")
-	finally:
-		if not logFile.closed:
-			logFile.close()
 
 class ProcessService:
 

@@ -2,7 +2,6 @@ import os
 import platform
 import subprocess
 import random
-from pathlib import Path
 from enum import Enum
 from itertools import dropwhile, islice
 from typing import Optional
@@ -19,11 +18,6 @@ class PackageManagers(Enum):
 
 def __start_ices__(stationConf: str):
 	subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
-
-def __create_missing_directories__(fullPath: str):
-		path = Path(fullPath)
-		if not path.parents[0].exists():
-			path.parents[0].mkdir(parents=True, exist_ok=True)
 
 
 class ProcessService:

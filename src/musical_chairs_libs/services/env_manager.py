@@ -68,6 +68,12 @@ class EnvManager:
 
 	@classmethod
 	@property
+	def radio_logs_dir(cls) -> str:
+		radioLogDir = os.environ["MC_RADIO_LOG_DIR_CL"]
+		return f"{EnvManager.app_root}/{radioLogDir}"
+
+	@classmethod
+	@property
 	def db_name(cls) -> str:
 		return os.environ["MC_DATABASE_NAME"]
 

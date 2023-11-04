@@ -14,6 +14,7 @@ import { FormSelect } from "../Shared/FormSelect";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { User } from "../../Types/user_types";
 import { ButtonClickEvent, ChangeEvent } from "../../Types/browser_types";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 type UserSeachInitialValues = {
 	selectedUser: User | null
@@ -97,9 +98,11 @@ export const UserSearch = (
 				/>
 			</Box>
 			<Box sx={inputField} >
-				<Button onClick={onConfirm}>
+				<SubmitButton
+					loading={formMethods.formState.isSubmitting}
+					onClick={onConfirm}>
 					Submit
-				</Button>
+				</SubmitButton>
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

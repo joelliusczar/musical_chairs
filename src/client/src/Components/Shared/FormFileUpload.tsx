@@ -20,7 +20,7 @@ type FormFileUpload<FormT extends FieldValues> = {
 export const FormFileUpload = <FormT extends FieldValues>(
 	props: FormFileUpload<FormT>
 ) => {
-	const { name, label, formMethods, ...otherProps } = props;
+	const { name, formMethods, ...otherProps } = props;
 	const { control, register } = formMethods;
 
 	const { fieldState: { error } }

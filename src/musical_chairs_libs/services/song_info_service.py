@@ -121,7 +121,7 @@ class SongInfoService:
 		print(name)
 		stmt = insert(artists_tbl).values(
 			name = savedName,
-			lastModifiedTimestamp = self.get_datetime().timestamp()
+			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
 		res = self.conn.execute(stmt)
 		insertedPk = res.lastrowid
@@ -154,8 +154,8 @@ class SongInfoService:
 		savedName = SavedNameString(artistName)
 		stmt = upsert(artists_tbl).values(
 			name = str(savedName),
-			lastModifiedByUserFk = user.id,
-			lastModifiedTimestamp = self.get_datetime().timestamp()
+			lastmodifiedbyuserfk = user.id,
+			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
 		owner = user
 		if artistId and isinstance(stmt, Update):

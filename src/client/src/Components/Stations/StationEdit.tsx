@@ -34,6 +34,7 @@ import {
 	StationInfo,
 	StationInfoForm,
 } from "../../Types/station_types";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 
 
@@ -153,7 +154,7 @@ export const StationEdit = (props: StationEditProps) => {
 		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset, watch } = formMethods;
+	const { handleSubmit, reset, watch, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const stationId = values.id || null;
@@ -279,9 +280,12 @@ export const StationEdit = (props: StationEditProps) => {
 
 			</Box>
 			<Box sx={inputField} >
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}
+				>
 					Submit
-				</Button>
+				</SubmitButton>
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

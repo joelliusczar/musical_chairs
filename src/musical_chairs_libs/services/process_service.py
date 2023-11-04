@@ -16,6 +16,10 @@ class PackageManagers(Enum):
 	HOMEBREW = "homebrew"
 
 
+def __start_ices__(stationConf: str):
+	subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
+
+
 class ProcessService:
 
 	@staticmethod
@@ -55,7 +59,7 @@ class ProcessService:
 			return
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
-		subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
+		__start_ices__(stationConf)
 
 	@staticmethod
 	def get_pkg_mgr() -> Optional[PackageManagers]:

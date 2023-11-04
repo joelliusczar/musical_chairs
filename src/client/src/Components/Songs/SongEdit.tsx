@@ -51,6 +51,7 @@ import {
 	TouchedObject,
 } from "../../Types/song_info_types";
 import { Named, IdType } from "../../Types/generic_types";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 
 const inputField = {
@@ -442,9 +443,11 @@ export const SongEdit = () => {
 				/>
 			</Box>
 			{canEditSongs && <Box sx={inputField} >
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}>
 					Submit
-				</Button>
+				</SubmitButton>
 			</Box>}
 		</Box>
 	</Loader>);

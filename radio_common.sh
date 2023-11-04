@@ -619,6 +619,9 @@ setup_env_api_file() (
 	perl -pi -e \
 		"s@^(MC_TEST_ROOT=).*\$@\1'${MC_TEST_ROOT}'@" \
 		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_RADIO_LOG_DIR_CL=).*\$@\1'${MC_RADIO_LOG_DIR_CL}'@" \
+		"$envFile" &&
 	echo 'done setting up .env file'
 )
 
@@ -1518,6 +1521,12 @@ EOF
 	echo "Done ending all stations"
 )
 
+
+__start_station_local_file_module__() (
+	conf="$1"
+	mc-ices -c -B "$conf"
+)
+
 startup_radio() (
 	process_global_vars "$@" &&
 	__set_env_path_var__ && #ensure that we can see mc-ices
@@ -1527,7 +1536,7 @@ startup_radio() (
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
-		mc-ices -c -B "$conf"
+		__start_station_local_file_module__ "$conf"
 	done
 )
 
@@ -1929,6 +1938,8 @@ define_app_dir_paths() {
 	export MC_SQL_SCRIPTS_DIR_CL="$MC_APP_TRUNK"/sql_scripts
 	export MC_APP_API_PATH_CL=api/"$MC_APP_NAME"
 	export MC_APP_CLIENT_PATH_CL=client/"$MC_APP_NAME"
+	#MC_RADIO_LOG_DIR_CL may not be relevant anymore
+	export MC_RADIO_LOG_DIR_CL="$MC_APP_TRUNK"/radio_logs
 
 	echo "app dir paths defined and created"
 }
@@ -1984,6 +1995,8 @@ setup_common_dirs() {
 	mkdir -pv "$(get_app_root)"/"$MC_PY_MODULE_DIR"
 	[ -e "$(get_app_root)"/"$MC_DB_DIR" ] ||
 	mkdir -pv "$(get_app_root)"/"$MC_DB_DIR"
+	[ -e "$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL" ] ||
+	mkdir -pv "$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL"
 	[ -e "$(get_app_root)"/keys ] ||
 	mkdir -pv "$(get_app_root)"/keys
 }

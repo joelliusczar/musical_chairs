@@ -18,7 +18,7 @@ class SqlScripts(Enum):
 	)
 	NEXT_DIRECTORY_LEVEL = (
 		"4.next_directory_level.sql",
-		"385d3947b221f220e4a59b51b197f42a"
+		"a3c3878db54ff3188091f51d50578e6f"
 	)
 	NORMALIZE_OPENING_SLASH = (
 		"5.normalize_opening_slash.sql",

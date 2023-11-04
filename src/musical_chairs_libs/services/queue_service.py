@@ -26,6 +26,7 @@ from sqlalchemy.sql.functions import coalesce
 from .station_service import StationService
 from .accounts_service import AccountsService
 from .song_info_service import SongInfoService
+from .path_rule_service import PathRuleService
 from musical_chairs_libs.tables import (
 	songs,
 	stations,
@@ -74,6 +75,7 @@ class QueueService:
 		accountService: Optional[AccountsService]=None,
 		songInfoService: Optional[SongInfoService]=None,
 		choiceSelector: Optional[Callable[[List[Any], int], Collection[Any]]]=None,
+		pathRuleService: Optional[PathRuleService]=None,
 	) -> None:
 			if not conn:
 				raise RuntimeError("No connection provided")
@@ -85,12 +87,15 @@ class QueueService:
 				songInfoService = SongInfoService(conn)
 			if not choiceSelector:
 				choiceSelector = choice
+			if not pathRuleService:
+				pathRuleService = PathRuleService(conn)
 			self.conn = conn
 			self.station_service = stationService
 			self.account_service = accountService
 			self.song_info_service = songInfoService
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
+			self.path_rule_service = pathRuleService
 
 	def get_all_station_song_possibilities(
 		self, stationPk: int
@@ -318,7 +323,7 @@ class QueueService:
 	) -> CurrentPlayingInfo:
 		pathRuleTree = None
 		if user:
-			pathRuleTree = self.song_info_service.get_rule_path_tree(user)
+			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
 		queue = []
 		for song in self.get_queue_for_station(stationId):
 			if pathRuleTree:
@@ -377,7 +382,7 @@ class QueueService:
 		offset = page * limit if limit else 0
 		pathRuleTree = None
 		if user:
-			pathRuleTree = self.song_info_service.get_rule_path_tree(user)
+			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
 
 		query = select(
 			sg_pk.label("id"),

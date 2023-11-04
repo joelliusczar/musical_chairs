@@ -15,6 +15,7 @@ import {
 	UploadInfo,
 	SongTreeNodeInfo,
 } from "../../Types/song_info_types";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 
 
@@ -76,7 +77,7 @@ export const SongUpload = (props: SongUploadProps) => {
 		defaultValues: initialValues,
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset } = formMethods;
+	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const result = await uploadSong(values);
@@ -89,12 +90,21 @@ export const SongUpload = (props: SongUploadProps) => {
 		}
 	});
 
-	const setValue = formMethods.setValue;
+	const {setValue, watch} = formMethods;
+	const files = watch("files");
 
 	useEffect(() => {
 		setValue("prefix", prefix);
 	},[prefix, setValue]);
 
+	useEffect(() => {
+		const suffix = watch("suffix");
+		if (!suffix) {
+			if (!!files?.length) {
+				setValue("suffix", files[0].name);
+			}
+		}
+	},[setValue, files, watch]);
 
 	return (
 		<>
@@ -120,9 +130,12 @@ export const SongUpload = (props: SongUploadProps) => {
 			</Box>
 
 			<Box sx={inputField} >
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}
+				>
 					Submit
-				</Button>
+				</SubmitButton>
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

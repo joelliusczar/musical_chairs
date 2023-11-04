@@ -12,6 +12,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { formatError } from "../../Helpers/error_formatter";
 import { validatePhraseIsUnused } from "../../Helpers/validation_helpers";
 import { UserCreationInfo } from "../../Types/user_types";
+import { SubmitButton } from "../Shared/SubmitButton";
 
 
 const inputField = {
@@ -56,7 +57,7 @@ export function AccountsNew() {
 		resolver: yupResolver(schema),
 		mode: "onBlur",
 	});
-	const { handleSubmit } = formMethods;
+	const { handleSubmit, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			await createAccount({ values });
@@ -114,9 +115,12 @@ export function AccountsNew() {
 				/>
 			</Box>
 			<Box sx={inputField} >
-				<Button onClick={callSubmit}>
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}
+				>
 					Submit
-				</Button>
+				</SubmitButton>
 			</Box>
 
 		</>

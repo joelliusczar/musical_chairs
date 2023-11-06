@@ -169,3 +169,86 @@ def test_get_parents_of_path(
 		key=lambda r: r[1]
 	)
 	assert len(results) == 1
+
+def test_prefix_split_(
+	fixture_song_file_service: SongFileService
+):
+	songFileService = fixture_song_file_service
+	results = list(songFileService.__prefix_split__(""))
+	assert len(results) == 1
+	assert results[0] == ""
+
+	results = list(songFileService.__prefix_split__("/"))
+	assert len(results) == 1
+	assert results[0] == ""
+
+	results = list(songFileService.__prefix_split__("alpha"))
+	assert len(results) == 1
+	assert results[0] == "alpha"
+
+	input = "alpha/bravo"
+	results = list(songFileService.__prefix_split__(input))
+	assert len(results) == 2
+	assert results[0] == "alpha"
+	assert results[1] == "alpha/bravo"
+
+	input = "alpha/bravo/charlie"
+	results = list(songFileService.__prefix_split__(input))
+	assert len(results) == 3
+	assert results[0] == "alpha"
+	assert results[1] == "alpha/bravo"
+	assert results[2] == "alpha/bravo/charlie"
+
+	input = "/alpha/bravo/charlie"
+	results = list(songFileService.__prefix_split__(input))
+	assert len(results) == 3
+	assert results[0] == "alpha"
+	assert results[1] == "alpha/bravo"
+	assert results[2] == "alpha/bravo/charlie"
+
+	input = "alpha/bravo/charlie/"
+	results = list(songFileService.__prefix_split__(input))
+	assert len(results) == 3
+	assert results[0] == "alpha"
+	assert results[1] == "alpha/bravo"
+	assert results[2] == "alpha/bravo/charlie"
+
+	input = "/alpha/bravo/charlie/"
+	results = list(songFileService.__prefix_split__(input))
+	assert len(results) == 3
+	assert results[0] == "alpha"
+	assert results[1] == "alpha/bravo"
+	assert results[2] == "alpha/bravo/charlie"
+
+
+def test_song_ls_recursive(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+	result0 = songFileService.song_ls_recursive(user, "foo/rude/bog")
+	assert "/" in result0
+	assert len(result0["/"]) == 4
+	assert "blitz/" in result0
+	assert len(result0["blitz/"]) == 0
+	assert "foo/" in result0
+	assert len(result0["foo/"]) == 4
+	assert "jazz/" in result0
+	assert len(result0["jazz/"]) == 0
+	assert "tossedSlash/" in result0
+	assert len(result0["tossedSlash/"]) == 0
+	assert "foo/bar/" in result0
+	assert len(result0["foo/bar/"]) == 0
+	assert "foo/dude/" in result0
+	assert len(result0["foo/dude/"]) == 0
+	assert "foo/goo/" in result0
+	assert len(result0["foo/goo/"]) == 0
+	assert "foo/rude/" in result0
+	assert len(result0["foo/rude/"]) == 2
+	assert "foo/rude/bog/" in result0
+	assert len(result0["foo/rude/bog/"]) == 2
+	assert "foo/rude/rog/" in result0
+	assert len(result0["foo/rude/rog/"]) == 0

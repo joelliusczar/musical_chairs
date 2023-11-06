@@ -61,6 +61,18 @@ def song_ls(
 	return ListData(items=list(songInfoService.song_ls(user, prefix)))
 
 
+# @router.get("/songs/ls_r")
+# def song_ls_recursive(
+# 	prefix: str,
+# 	user: AccountInfo = Security(
+# 		get_path_user,
+# 		scopes=[UserRoleDef.PATH_LIST.value]
+# 	),
+# 	songInfoService: SongFileService = Depends(song_file_service)
+# ) -> list[ListData[SongTreeNode]]:
+# 	return ListData(items=list(songInfoService.song_ls(user, prefix)))
+
+
 @router.get("/songs/{itemId}")
 def get_song_for_edit(
 	itemId: Union[int, str], #optional as str so I can send the correct status code

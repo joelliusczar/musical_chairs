@@ -1,3 +1,4 @@
+import re
 from typing import (
 	BinaryIO,
 	Iterator,
@@ -113,7 +114,8 @@ class SongFileService:
 		self,
 		prefix: Optional[str]=""
 	) -> Select[Tuple[str, str, int, int, str]]:
-		prefix = normalize_opening_slash(prefix, False)
+		isOpenSlash = False
+		prefix = normalize_opening_slash(prefix, isOpenSlash)
 		query = select(
 				func.next_directory_level(
 					sg_path,
@@ -124,7 +126,12 @@ class SongFileService:
 				func.count(sg_pk).label("totalChildCount"),
 				func.max(sg_pk).label("pk"),
 				func.max(sg_path).label("control_path")
-		).where(func.normalize_opening_slash(sg_path, False).like(f"{prefix}%"))\
+		).where(
+				func.normalize_opening_slash(
+					sg_path,
+					isOpenSlash
+				).like(f"{prefix}%")
+			)\
 			.group_by(func.next_directory_level(sg_path, prefix))
 		return query
 
@@ -180,6 +187,48 @@ class SongFileService:
 					union_all(*queryList),
 					permittedPathTree
 				)
+
+	def __prefix_split__(self, prefix: str) -> Iterator[str]:
+		split = prefix.split("/")
+		it = iter((p for p in split if p))
+		combined = next(it, "")
+		if combined:
+			yield ""
+		yield f"/{combined}/"
+		for part in it:
+			combined += f"/{part}"
+			yield f"/{combined}/"
+
+	def __build_song_tree_dict__(
+		self,
+		nodes: Iterable[SongTreeNode]
+	) -> dict[str, list[SongTreeNode]]:
+		result: dict[str, list[SongTreeNode]] = {}
+		result["/"] = []
+		for node in nodes:
+			parent = re.sub(r"/?[^/]+/?$", "/", node.path)
+			if parent in result:
+				result[parent].append(node)
+			if node.path.endswith("/"):
+				result[node.path] = []
+		return result
+
+	def song_ls_recursive(
+		self,
+		user: AccountInfo,
+		prefix: str
+	) -> dict[str, list[SongTreeNode]]:
+		permittedPathTree = user.get_permitted_paths_tree()
+		queryList: list[Select[Tuple[str, str, int, int, str]]] = []
+		for p in self.__prefix_split__(prefix):
+				queryList.append(self.__song_ls_query__(p))
+		nodes = self.__query_to_treeNodes__(
+			union_all(*queryList),
+			permittedPathTree
+		)
+		result = self.__build_song_tree_dict__(nodes)
+		return result
+
 
 	@overload
 	def get_song_path(

@@ -1,4 +1,5 @@
 import os
+import sys
 import platform
 import subprocess
 import random
@@ -10,17 +11,25 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from .env_manager import EnvManager
 
+
 class PackageManagers(Enum):
 	APTGET = "apt-get"
 	PACMAN = "pacman"
 	HOMEBREW = "homebrew"
 
 
-def __start_ices__(stationConf: str):
-	subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
+def __start_ices__(stationConf: str, portNumber: str):
+	subprocess.Popen(
+		["mc-ices", "-c", f"{stationConf}"],
+		env={
+				"MC_STATION_PORT": portNumber, 
+			 "PATH": os.environ["PATH"] 
+			}
+	)
 
 
 class ProcessService:
+
 
 	@staticmethod
 	def noop_mode() -> bool:
@@ -42,9 +51,10 @@ class ProcessService:
 			pass
 
 	@staticmethod
-	def start_station_external_process(
+	def start_station_mc_ices(
 		stationName: str,
-		ownerName: str
+		ownerName: str,
+		portNumber: str
 	) -> None:
 		filename_base = f"{ownerName}_{stationName}"
 		m = get_non_simple_chars(filename_base)
@@ -59,7 +69,19 @@ class ProcessService:
 			return
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
-		__start_ices__(stationConf)
+		__start_ices__(stationConf, portNumber)
+
+	@staticmethod
+	def start_song_queue(dbName: str, stationName: str, ownerName: str):
+		subprocess.Popen([
+				"python",
+				"-m",
+				"musical_chairs_libs.stream",
+				dbName,
+				stationName,
+				ownerName
+			]
+		)
 
 	@staticmethod
 	def get_pkg_mgr() -> Optional[PackageManagers]:
@@ -112,4 +134,5 @@ class ProcessService:
 			return f"{EnvManager.templates_dir}/icecast.xml"
 		err = "icecast logic has not been configured for this os"
 		raise NotImplementedError(err)
+	
 

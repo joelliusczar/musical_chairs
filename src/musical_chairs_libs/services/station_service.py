@@ -666,7 +666,7 @@ class StationService:
 			if ProcessService.noop_mode():
 				self.__noop_startup__(station.name)
 			else:
-				ProcessService.start_station_external_process(
+				ProcessService.start_station_mc_ices(
 					station.name,
 					owner.username
 				)

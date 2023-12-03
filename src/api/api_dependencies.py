@@ -93,9 +93,7 @@ def accounts_service(
 ) -> AccountsService:
 	return AccountsService(conn)
 
-def process_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> ProcessService:
+def process_service() -> ProcessService:
 	return ProcessService()
 
 def user_actions_history_service(

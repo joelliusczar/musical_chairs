@@ -54,7 +54,7 @@ ALGORITHM = "HS256"
 class AccountsService:
 
 	def __init__(self,
-		conn: Optional[Connection]=None
+		conn: Connection
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")

@@ -1,7 +1,6 @@
 #!/bin/sh
 
-
-[ -f "$HOME"/.profile ] && . "$HOME"/.profile
+[ -f "$HOME"/.profile ] && . "$HOME"/.profile >/dev/null
 [ -f "$HOME"/.zprofile ] && . "$HOME"/.zprofile
 [ -f "$HOME"/.zshrc ] && . "$HOME"/.zshrc
 
@@ -20,13 +19,29 @@ to_abs_path() (
 	fi
 )
 
+__is_current_dir_repo__() {
+	dir="$1"
+	[ -f "$dir"/radio_common.sh ] &&
+	[ -f "$dir"/README.md ] &&
+	[ -f "$dir"/deploy_to_server.sh ] &&
+	[ -d "$dir"/.vscode ] &&
+	[ -d "$dir"/compiled_dependencies ] &&
+	[ -d "$dir"/src ] &&
+	[ -d "$dir"/src/musical_chairs_libs ]
+}
+
 get_repo_path() (
 	if [ -n "$MC_LOCAL_REPO_PATH" ]; then
 		echo "$MC_LOCAL_REPO_PATH"
+	elif __is_current_dir_repo__ "$PWD"; then
+		echo "$PWD"
 	else
-		echo "using backup repo path" > 2
-		#done't try to change from home
-		echo "$HOME"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"
+		for guess in $(find "$HOME" -name musical_chairs); do
+			if __is_current_dir_repo__ "$guess"; then
+				echo "$guess" 
+				break
+			fi
+		done
 	fi
 )
 
@@ -364,6 +379,18 @@ get_libs_dest_dir() (
 	echo "$env_root"/"$packagePath"
 )
 
+
+__replace_lib_files__() {
+	regen_file_reference_file &&
+	copy_dir "$MC_LIB_SRC" \
+		"$(get_libs_dest_dir "$(get_app_root)"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
+}
+
+replace_lib_files() (
+	process_global_vars "$@" &&
+	__replace_lib_files__
+)
+
 # set up the python environment, then copy
 # subshell () auto switches in use python version back at the end of function
 create_py_env_in_dir() (
@@ -371,7 +398,7 @@ create_py_env_in_dir() (
 	__set_env_path_var__ #ensure that we can see mc-python
 	link_app_python_if_not_linked
 	set_python_version_const || return "$?"
-	env_root="$1"
+	env_root=${1:-"$(get_app_root)"/"$MC_APP_TRUNK"}
 	pyEnvDir="$env_root"/"$MC_PY_ENV"
 	error_check_path "$pyEnvDir" &&
 	mc-python -m virtualenv "$pyEnvDir" &&
@@ -385,22 +412,43 @@ create_py_env_in_dir() (
 	echo "done setting up py libs"
 )
 
-__replace_lib_files__() {
-	regen_file_reference_file &&
-	copy_dir "$MC_LIB_SRC" \
-		"$(get_libs_dest_dir "$(get_app_root)"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
-}
-
-replace_lib_files() (
-	process_global_vars "$@" &&
-	__replace_lib_files__
-)
-
 create_py_env_in_app_trunk() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
-	create_py_env_in_dir "$(get_app_root)"/"$MC_APP_TRUNK" &&
+	create_py_env_in_dir &&
 	__replace_lib_files__
+)
+
+__install_py_env__() {
+	sync_requirement_list &&
+	create_py_env_in_app_trunk
+}
+
+install_py_env() {
+	unset_globals
+	process_global_vars "$@" &&
+	__install_py_env__ &&
+	echo "done installing py env"
+}
+
+__install_py_env_if_needed__() {
+	if [ ! -e "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
+		__install_py_env__
+	else
+		echo "replacing musical_chair_lib files"
+		__replace_lib_files__ >/dev/null #only replace my code
+	fi
+}
+
+activate_mc_env() {
+	set_env_vars "$@" &&
+	__install_py_env_if_needed__ &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate
+}
+
+start_python() (
+	activate_mc_env &&
+	python
 )
 
 copy_lib_to_test() (
@@ -779,27 +827,6 @@ EOF
 	)
 )
 
-__install_py_env__() {
-	sync_requirement_list &&
-	create_py_env_in_app_trunk
-}
-
-install_py_env() {
-	unset_globals
-	process_global_vars "$@" &&
-	__install_py_env__ &&
-	echo "done installing py env"
-}
-
-__install_py_env_if_needed__() {
-	if [ ! -e "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
-		__install_py_env__
-	else
-		echo "replacing musical_chair_lib files"
-		__replace_lib_files__ >/dev/null #only replace my code
-	fi
-}
-
 print_schema_scripts() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
@@ -810,17 +837,6 @@ print_schema_scripts() (
 	EnvManager.print_expected_schema()
 	EOF
 	)
-)
-
-activate_mc_env() {
-	process_global_vars "$@" &&
-	__install_py_env_if_needed__ &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate
-}
-
-start_python() (
-	activate_mc_env &&
-	python
 )
 
 sync_utility_scripts() (
@@ -851,7 +867,7 @@ is_ssh() (
 
 run_initial_install_script() (
 	process_global_vars "$@" &&
-	sh $(get_repo_path)//install_setup.sh
+	sh $(get_repo_path)/install_setup.sh
 )
 
 compare_dirs() (
@@ -1342,7 +1358,10 @@ install_ices() (
 	|| [ -n "$__ICES_BRANCH__" ]; then
 		shutdown_all_stations &&
 		projDir="$(get_app_root)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
-		folderPath="$projDir"/compiled_dependencies
+		folderPath="$projDir"/compiled_dependencies &&
+		if [  ! -f "$folderPath"/build_ices.sh ]; then
+			folderPath="$PWD"/compiled_dependencies
+		fi &&
 		sh "$folderPath"/build_ices.sh "$__ICES_BRANCH__"
 	fi
 )
@@ -1377,7 +1396,8 @@ show_current_py_lib_files() (
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
+		2>&1 &&
 	(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
 	from musical_chairs_libs.services import EnvManager
@@ -1402,7 +1422,8 @@ show_ices_station_log() (
 	shift
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
+		2>&1 &&
 	logName="$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -1438,13 +1459,40 @@ update_icecast_conf() (
 	echo "done updating icecast config"
 )
 
+__update_ices_config__() (
+	conf="$1"
+	sourcePassword="$2"
+	perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
+)
+
+update_ices_config() (
+	conf="$1"
+	process_global_vars "$@"
+	__install_py_env_if_needed__ >/dev/null 2>&1 &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
+		2>&1 &&
+	sourcePassword=$(python <<-EOF
+	from musical_chairs_libs.services import ProcessService
+	from musical_chairs_libs.services import EnvManager
+	icecastConfLocation = ProcessService.get_icecast_conf_location()
+	sourcePassword = EnvManager.read_config_value(
+		icecastConfLocation,
+		"source-password"
+	)
+
+	print(sourcePassword)
+	EOF
+	)
+	__update_ices_config__ "$conf" "$sourcePassword"
+)
+
 update_all_ices_confs() (
 	echo "updating ices confs"
 	sourcePassword="$1"
 	process_global_vars "$@"
 	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
-		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
+		__update_ices_config__ "$conf" "$sourcePassword"
 	done &&
 	echo "done updating ices confs"
 )
@@ -1521,10 +1569,30 @@ EOF
 	echo "Done ending all stations"
 )
 
+__start_station_with_pipe__() (
+	conf="$1"
+	port="$2"
+	ownerName=$(echo "$conf" | cut -d '_' -f 1)
+	stationName=$(basename $(echo "$conf" | cut -d '_' -f 2) '.conf')
+	python -m musical_chairs_libs.stream \
+		"$MC_DATABASE_NAME" "$stationName" "$ownerName" | \
+			toot-ices -c "$conf" #\
+			# >"$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL"/"${ownerName}_${stationName}" \
+			# 2>&1 &
+) 
 
 __start_station_local_file_module__() (
 	conf="$1"
 	mc-ices -c -B "$conf"
+)
+
+start_station() (
+	conf="$1"
+	process_global_vars "$@" &&
+	__set_env_path_var__ && #ensure that we can see mc-ices
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	activate_mc_env &&
+	__start_station_with_pipe__ "$conf" 50007
 )
 
 startup_radio() (

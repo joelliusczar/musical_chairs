@@ -76,6 +76,11 @@ class EnvManager:
 	@property
 	def db_name(cls) -> str:
 		return os.environ["MC_DATABASE_NAME"]
+	
+	@classmethod
+	@property
+	def s3_bucket_name(cls) -> str:
+		return os.environ["S3_BUCKET_NAME"]
 
 	@classmethod
 	@property

@@ -115,8 +115,7 @@ __set_env_path_var__() {
 
 
 print_py_env_var_guesses() (
-	process_global_vars "$@" &&
-	__set_env_path_var__ && #ensure that we can see mc-ices
+	set_env_vars "$@" &&
 	echo "MC_CONTENT_HOME=$MC_CONTENT_HOME"
 	echo "MC_TEMPLATES_DIR_CL=$MC_TEMPLATES_DIR_CL"
 	echo "MC_SQL_SCRIPTS_DIR_CL"="$MC_SQL_SCRIPTS_DIR_CL"
@@ -155,57 +154,62 @@ get_icecast_name() (
 	esac
 )
 
-get_pb_api_key() (
+__get_pb_api_key__() (
 	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
-get_pb_secret() (
+__get_pb_secret__() (
 	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
-get_s3_api_key() (
+__get_s3_api_key__() (
 	perl -ne 'print "$1\n" if /S3_ACCESS_KEY_ID=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
-get_s3_secret() (
+__get_s3_secret__() (
 	perl -ne 'print "$1\n" if /S3_SECRET_ACCESS_KEY=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
-get_mc_auth_key() (
+__get_s3_bucket_name__() (
+	perl -ne 'print "$1\n" if /joelradio=(\w+)/' \
+		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+)
+
+__get_mc_auth_key__() (
 	perl -ne 'print "$1\n" if /MC_AUTH_SECRET_KEY=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
-get_address() (
+__get_address__() (
 	keyFile="$(get_app_root)"/keys/"$MC_PROJ_NAME"
-	perl -ne 'print "$1\n" if /address6=root@([\w:]+)/' "$keyFile"
+	perl -ne 'print "$1\n" if /MC_SERVER_SSH_ADDRESS=root@([\w:]+)/' "$keyFile"
 )
 
-get_id_file() (
+__get_id_file__() (
 	keyFile="$(get_app_root)"/keys/"$MC_PROJ_NAME"
-	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
+	perl -ne 'print "$1\n" if /MC_SERVER_KEY_FILE=(.+)/' "$keyFile"
 )
 
-get_db_setup_key() (
+__get_db_setup_key__() (
 	perl -ne 'print "$1\n" if /__DB_SETUP_PASS__=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
-get_db_owner_key() (
+__get_db_owner_key__() (
 	perl -ne 'print "$1\n" if /MC_DB_PASS_OWNER=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
-get_api_user_key() (
+__get_api_user_key__() (
 	perl -ne 'print "$1\n" if /MC_DB_PASS_API=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
-get_radio_user_key() (
+__get_radio_user_key__() (
 	perl -ne 'print "$1\n" if /MC_DB_PASS_RADIO=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
@@ -233,17 +237,12 @@ __get_remote_intermediate_key__() (
 	echo "/etc/ssl/certs/${MC_PROJ_NAME}.intermediate.key.pem"
 )
 
-connect_sftp() (
-	process_global_vars "$@" >&2 &&
-	sftp -6 -i $(get_id_file) "root@[$(get_address)]"
-)
-
 get_ssl_vars() (
 	process_global_vars "$@" >&2 &&
 	sendJson=$(cat <<-END
 	{
-		"secretapikey": "$(get_pb_secret)",
-		"apikey": "$(get_pb_api_key)"
+		"secretapikey": "$(__get_pb_secret__)",
+		"apikey": "$(__get_pb_api_key__)"
 	}
 	END
 	) &&
@@ -1351,11 +1350,10 @@ start_icecast_service() (
 	echo 'done starting icecast service'
 )
 
+
 install_ices() (
-	process_global_vars "$@" &&
-	__set_env_path_var__ &&
-	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
-	|| [ -n "$__ICES_BRANCH__" ]; then
+	set_env_vars "$@" &&
+	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good; then
 		shutdown_all_stations &&
 		projDir="$(get_app_root)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
 		folderPath="$projDir"/compiled_dependencies &&
@@ -1588,16 +1586,14 @@ __start_station_local_file_module__() (
 
 start_station() (
 	conf="$1"
-	process_global_vars "$@" &&
-	__set_env_path_var__ && #ensure that we can see mc-ices
+	set_env_vars "$@" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	activate_mc_env &&
 	__start_station_with_pipe__ "$conf" 50007
 )
 
 startup_radio() (
-	process_global_vars "$@" &&
-	__set_env_path_var__ && #ensure that we can see mc-ices
+	set_env_vars "$@" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
@@ -1617,20 +1613,20 @@ __get_remote_export_script__() (
 	output="export expName='${expName}';"
 	output="${output} export S3_ACCESS_KEY_ID='${S3_ACCESS_KEY_ID}';" &&
 	output="${output} export S3_SECRET_ACCESS_KEY='${S3_SECRET_ACCESS_KEY}';" &&
-	output="${output} export PB_SECRET='$(get_pb_secret)';" &&
-	output="${output} export PB_API_KEY='$(get_pb_api_key)';" &&
-	output="${output} export MC_AUTH_SECRET_KEY='$(get_mc_auth_key)';" &&
+	output="${output} export PB_SECRET='$(__get_pb_secret__)';" &&
+	output="${output} export PB_API_KEY='$(__get_pb_api_key__)';" &&
+	output="${output} export MC_AUTH_SECRET_KEY='$(__get_mc_auth_key__)';" &&
 	output="${output} export MC_DATABASE_NAME='musical_chairs_db';" &&
-	output="${output} export __DB_SETUP_PASS__='$(get_db_setup_key)';" &&
-	output="${output} export MC_DB_PASS_OWNER='$(get_db_owner_key)';" &&
-	output="${output} export MC_DB_PASS_API='$(get_api_user_key)';" &&
-	output="${output} export MC_DB_PASS_RADIO='$(get_radio_user_key)';" &&
+	output="${output} export __DB_SETUP_PASS__='$(__get_db_setup_key__)';" &&
+	output="${output} export MC_DB_PASS_OWNER='$(__get_db_owner_key__)';" &&
+	output="${output} export MC_DB_PASS_API='$(__get_api_user_key__)';" &&
+	output="${output} export MC_DB_PASS_RADIO='$(__get_radio_user_key__)';" &&
+	output="${output} export S3_BUCKET_NAME='$(__get_s3_bucket_name__)';" &&
 	echo "$output"
 )
 
 startup_api() (
-	process_global_vars "$@" &&
-	__set_env_path_var__ && #ensure that we can see mc-ices
+	set_env_vars "$@" &&
 	if ! str_contains "$__SKIP__" "setup_api"; then
 		setup_api
 	fi &&
@@ -1842,7 +1838,7 @@ run_unit_tests() (
 	export __TEST_FLAG__='true'
 	setup_unit_test_env &&
 	test_src="$MC_SRC_PATH"/tests &&
-	export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
+	export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
 	export PYTHONPATH="${MC_SRC_PATH}:${MC_SRC_PATH}/api" &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	cd "$test_src"
@@ -1897,8 +1893,13 @@ get_web_root() (
 
 connect_remote() (
 	process_global_vars "$@" &&
-	ssh -ti "$MC_SERVER_KEY_FILE" "$MC_SERVER_SSH_ADDRESS" \
+	ssh -ti $(__get_id_file__) "root@$(__get_address__)" \
 		$(__get_remote_export_script__) bash -l
+)
+
+connect_sftp() (
+	process_global_vars "$@" >&2 &&
+	sftp -6 -i $(__get_id_file__) "root@[$(__get_address__)]"
 )
 
 process_global_args() {
@@ -2067,6 +2068,8 @@ setup_common_dirs() {
 	mkdir -pv "$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL"
 	[ -e "$(get_app_root)"/keys ] ||
 	mkdir -pv "$(get_app_root)"/keys
+	[ -e "$(get_app_root)"/"$MC_BUILD_DIR" ] ||
+	mkdir -pv "$(get_app_root)"/"$MC_BUILD_DIR"
 }
 
 setup_base_dirs() {

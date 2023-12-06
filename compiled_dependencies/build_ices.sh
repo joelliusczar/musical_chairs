@@ -16,8 +16,7 @@ fi
 
 
 
-process_global_vars "$@"
-set_env_path_var
+set_env_vars "$@"
 #leave this here incase the python check in the global install script
 #did update the python version
 set_python_version_const

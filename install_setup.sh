@@ -174,7 +174,7 @@ if ! mariadb -V 2>/dev/null; then
 				;;
 			(*) ;;
 		esac &&
-		sudo -p 'Updating db root password' mysql -u root -e
+		sudo -p 'Updating db root password' mysql -u root -e \
 			"REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'mysql'@'localhost'" &&
 		sudo -p 'Updating db root password' mysql -u root -e \
 			"SET PASSWORD FOR root@localhost = PASSWORD('${__DB_SETUP_PASS__}');"

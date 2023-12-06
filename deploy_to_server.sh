@@ -93,14 +93,15 @@ RemoteScriptEOF1
 export expName="$expName" &&
 export S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" &&
 export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
-export PB_SECRET=$(get_pb_secret) &&
-export PB_API_KEY=$(get_pb_api_key) &&
-export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
+export PB_SECRET=$(__get_pb_secret__) &&
+export PB_API_KEY=$(__get_pb_api_key__) &&
+export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
 export MC_DATABASE_NAME='musical_chairs_db';
-export __DB_SETUP_PASS__=$(get_db_setup_key) &&
-export MC_DB_PASS_OWNER=$(get_db_owner_key) &&
-export MC_DB_PASS_API=$(get_api_user_key) &&
-export MC_DB_PASS_RADIO=$(get_radio_user_key) &&
+export __DB_SETUP_PASS__=$(__get_db_setup_key__) &&
+export MC_DB_PASS_OWNER=$(__get_db_owner_key__) &&
+export MC_DB_PASS_API=$(__get_api_user_key__) &&
+export MC_DB_PASS_RADIO=$(__get_radio_user_key__) &&
+export S3_BUCKET_NAME=$(__get_s3_bucket_name__) &&
 
 if is_ssh; then
 	sync_utility_scripts
@@ -168,7 +169,7 @@ RemoteScriptEOF4
 } > remote_script_fifo &
 
 
-ssh -i "$MC_SERVER_KEY_FILE" "$MC_SERVER_SSH_ADDRESS" \
+ssh -i $(__get_id_file__) "root@$(__get_address__)" \
 	'bash -s' < remote_script_fifo &&
 echo "All done" || echo "Onk!"
 

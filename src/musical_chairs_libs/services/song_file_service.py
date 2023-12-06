@@ -10,7 +10,7 @@ from typing import (
 	overload
 )
 from sqlalchemy.engine import Connection
-from .saving.file_service_protocol import FileServiceBase
+from .fs.file_service_protocol import FileServiceBase
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	normalize_opening_slash,

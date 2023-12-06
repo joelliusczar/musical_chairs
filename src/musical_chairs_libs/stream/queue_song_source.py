@@ -10,10 +10,12 @@ from typing import (
 	cast,
 	Callable
 )
-# from musical_chairs_libs.services import (
-# 	EnvManager,
-# 	QueueService
-# )
+from musical_chairs_libs.services.fs import S3FileService
+from musical_chairs_libs.services import (
+	EnvManager,
+	QueueService,
+	StationService
+)
 from tempfile import NamedTemporaryFile
 from asyncio import Queue
 
@@ -28,53 +30,48 @@ def get_song_info(
 ) -> Iterator[
 		Tuple[str, Union[str,None]]
 	]:
-	yield ("./safety_in", "Safety")
-	yield ("./input_file", "Jesu")
-	yield ("./safety_in", "Safety")
-	yield ("./input_file", "Jesu")
-	yield ("./safety_in", "Safety")
 
+	while True:
+		conn = EnvManager.get_configured_radio_connection(dbName)
+		try:
+			queueService = QueueService(conn)
+			(songPath, songName, album, artist) = \
+				queueService.pop_next_queued(stationId=stationId)
+			if songName:
+				display = f"{songName} - {album} - {artist}"
+			else:
+				display = os.path.splitext(os.path.split(songPath)[1])[0]
+			yield songPath, display
+		except:
+			break
+		finally:
+			conn.close()
 
-	# while True:
-	# 	conn = EnvManager.get_configured_radio_connection(dbName)
-	# 	try:
-	# 		queueService = QueueService(conn)
-	# 		(songPath, songName, album, artist) = \
-	# 			queueService.pop_next_queued(stationId=stationId)
-	# 		if songName:
-	# 			display = f"{songName} - {album} - {artist}"
-	# 		else:
-	# 			display = os.path.splitext(os.path.split(songPath)[1])[0]
-	# 		yield songPath, display
-	# 	except:
-	# 		break
-	# 	finally:
-	# 		conn.close()
+def get_station_id(
+	stationName: str,
+	ownerName: str,
+	dbName: str
+) -> Optional[int]:
+	conn = EnvManager.get_configured_radio_connection(dbName)
+	try:
+		stationId = StationService(conn).get_station_id(stationName, ownerName)
+		return stationId
+	finally:
+		conn.close()
 
-# def get_station_id(
-# 	stationName: str,
-# 	ownerName: str,
-# 	dbName: str
-# ) -> Optional[int]:
-# 	conn = EnvManager.get_configured_radio_connection(dbName)
-# 	try:
-# 		stationId = StationService(conn).get_station_id(stationName, ownerName)
-# 		return stationId
-# 	finally:
-# 		conn.close()
 
 async def load_data(dbName: str, stationName: str, ownerName: str):
-	# stationId = get_station_id(stationName, ownerName, dbName)
-	# if not stationId:
-	# 	raise RuntimeError(
-	# 		"station with owner"
-	# 		f" {ownerName} and name {stationName} not found"
-	# 	)
-	stationId = 0
+	stationId = get_station_id(stationName, ownerName, dbName)
+	if not stationId:
+		raise RuntimeError(
+			"station with owner"
+			f" {ownerName} and name {stationName} not found"
+		)
 	currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 	for (filename, display) in get_song_info(stationId, dbName):
 		await queue.put((currentFile, display))
-		with open(filename, "rb") as src:
+		fileService = S3FileService()
+		with fileService.open_song(filename) as src:
 			for chunk in src:
 				currentFile.write(chunk)
 		currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))

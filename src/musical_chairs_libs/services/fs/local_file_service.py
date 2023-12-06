@@ -26,3 +26,7 @@ class LocalFileService(FileServiceBase):
 		with open(savedPath, "wb") as out:
 			for chunk in file:
 				out.write(chunk)
+
+
+	def open_song(self, keyPath: str) -> BinaryIO:
+		return open(keyPath, "rb")

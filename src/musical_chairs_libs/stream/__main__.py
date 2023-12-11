@@ -1,49 +1,45 @@
 import sys
-from .queue_song_source import load_data, send_next
-from typing import (
-	Any
-)
+import signal
+from . import queue_song_source
+from typing import Any
 from musical_chairs_libs.services import (
 	ProcessService
 )
-from asyncio import (
-	get_event_loop, 
-	gather,
-	Task
-)
+from threading import Thread
 
-background_tasks: set[Task[Any]] = set()
+
+def handle_keyboard(sigNum: Any, frame: Any):
+	print("Receive keyboard interupt")
+	queue_song_source.stopSending = True
+	queue_song_source.stopLoading = True
+
+# signal.signal(signal.SIGINT, handle_keyboard)
 
 
 
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):
-	def handle_send_next_close(task: Task[Any]):
-		background_tasks.discard(task)
-		loadTask.cancel()
 
 	def start_ices(portNumber: str):
 		ProcessService.start_station_mc_ices(stationName, ownerName, portNumber)
 
-	try:
-		loop = get_event_loop()
-		loadTask = loop.create_task(load_data(dbName, stationName, ownerName))
-		sendTask = loop.create_task(send_next(start_ices))
+	loadThread = Thread(
+		target=queue_song_source.load_data,
+		args=[dbName, stationName, ownerName]
+	)
+	sendThread = Thread(
+		target=queue_song_source.send_next,
+		args=[start_ices]
+	)
 
-		background_tasks.add(loadTask)
-		background_tasks.add(sendTask) 
+	loadThread.start()
+	sendThread.start()
 
-		loadTask.add_done_callback(background_tasks.discard)
-		sendTask.add_done_callback(handle_send_next_close)
+	sendThread.join(600)
 
-		
+	queue_song_source.stopLoading = True
 
-		loop.run_until_complete(gather(loadTask, sendTask))
-	except Exception:
-		
-		for t in background_tasks:
-			t.cancel()
-		raise
+
 
 
 

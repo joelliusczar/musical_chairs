@@ -7,6 +7,7 @@ class SocketRadioHandle:
 	def __init__(self) -> None:
 		self.songnumber = -1
 		self.songFullPath = ""
+		self.display = ""
 		self.client = None
 
 

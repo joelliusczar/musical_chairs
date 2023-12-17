@@ -17,12 +17,16 @@ class PackageManagers(Enum):
 	HOMEBREW = "homebrew"
 
 
-def __start_ices__(stationConf: str, portNumber: str):
-	subprocess.Popen(
+def __start_ices__(
+	stationConf: str,
+	portNumber: str
+) -> subprocess.Popen[bytes]:
+	return subprocess.Popen(
 		["mc-ices", "-c", f"{stationConf}"],
 		env={
 				"MC_STATION_PORT": portNumber, 
-			 "PATH": os.environ["PATH"] 
+			 "PATH": os.environ["PATH"],
+			 
 			}
 	)
 
@@ -54,7 +58,7 @@ class ProcessService:
 		stationName: str,
 		ownerName: str,
 		portNumber: str
-	) -> None:
+	) -> subprocess.Popen[bytes]:
 		filename_base = f"{ownerName}_{stationName}"
 		m = get_non_simple_chars(filename_base)
 		if m:
@@ -65,10 +69,10 @@ class ProcessService:
 				"Noop mode. Won't search for station config"
 	 			" nor try to launch process"
 			)
-			return
+			return #pyright: ignore [reportGeneralTypeIssues]
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
-		__start_ices__(stationConf, portNumber)
+		return __start_ices__(stationConf, portNumber)
 
 	@staticmethod
 	def start_song_queue(dbName: str, stationName: str, ownerName: str):

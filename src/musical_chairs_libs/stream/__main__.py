@@ -1,5 +1,6 @@
 import sys
 import signal
+import subprocess
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
@@ -20,8 +21,12 @@ def handle_keyboard(sigNum: Any, frame: Any):
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):
 
-	def start_ices(portNumber: str):
-		ProcessService.start_station_mc_ices(stationName, ownerName, portNumber)
+	def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
+		return ProcessService.start_station_mc_ices(
+			stationName,
+			ownerName,
+			portNumber
+		)
 
 	loadThread = Thread(
 		target=queue_song_source.load_data,

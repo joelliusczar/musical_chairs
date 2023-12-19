@@ -2,9 +2,11 @@ import sys
 import signal
 import subprocess
 from . import queue_song_source
-from typing import Any
+from typing import Any, Optional
 from musical_chairs_libs.services import (
-	ProcessService
+	ProcessService,
+	EnvManager,
+	StationService
 )
 from threading import Thread
 
@@ -17,6 +19,31 @@ def handle_keyboard(sigNum: Any, frame: Any):
 signal.signal(signal.SIGINT, handle_keyboard)
 
 
+def get_station_id(
+	stationName: str,
+	ownerName: str,
+	dbName: str
+) -> Optional[int]:
+	conn = EnvManager.get_configured_radio_connection(dbName)
+	try:
+		stationId = StationService(conn).get_station_id(stationName, ownerName)
+		return stationId
+	except Exception as e:
+		print(e)
+	finally:
+		conn.close()
+
+def get_station_proc(
+	dbName: str,
+	stationId: int
+):
+	conn = EnvManager.get_configured_radio_connection(dbName)
+	try:
+		StationService(conn).set_station_proc(stationId)
+	except Exception as e:
+		print(e)
+	finally:
+		conn.close()
 
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):
@@ -27,10 +54,18 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			ownerName,
 			portNumber
 		)
+	
+	stationId = get_station_id(stationName, ownerName, dbName)
+	if not stationId:
+		raise RuntimeError(
+			"station with owner"
+			f" {ownerName} and name {stationName} not found"
+		)
+	get_station_proc(dbName, stationId)
 
 	loadThread = Thread(
 		target=queue_song_source.load_data,
-		args=[dbName, stationName, ownerName]
+		args=[dbName, stationId]
 	)
 	sendThread = Thread(
 		target=queue_song_source.send_next,

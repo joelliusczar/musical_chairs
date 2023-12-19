@@ -13,8 +13,7 @@ from typing import (
 from musical_chairs_libs.services.fs import S3FileService
 from musical_chairs_libs.services import (
 	EnvManager,
-	QueueService,
-	StationService
+	QueueService
 )
 from musical_chairs_libs.dtos_and_utilities import BlockingQueue
 from tempfile import NamedTemporaryFile
@@ -53,31 +52,11 @@ def get_song_info(
 		finally:
 			conn.close()
 
-def get_station_id(
-	stationName: str,
-	ownerName: str,
-	dbName: str
-) -> Optional[int]:
-	conn = EnvManager.get_configured_radio_connection(dbName)
-	try:
-		stationId = StationService(conn).get_station_id(stationName, ownerName)
-		return stationId
-	except Exception as e:
-		print(e)
-	finally:
-		conn.close()
 
-
-def load_data(dbName: str, stationName: str, ownerName: str):
+def load_data(dbName: str, stationId: int):
 	global stopLoading
 	global stopSending
 	try:
-		stationId = get_station_id(stationName, ownerName, dbName)
-		if not stationId:
-			raise RuntimeError(
-				"station with owner"
-				f" {ownerName} and name {stationName} not found"
-			)
 		currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		for (filename, display) in get_song_info(stationId, dbName):
 			if stopLoading:

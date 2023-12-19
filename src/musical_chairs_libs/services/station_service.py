@@ -666,7 +666,10 @@ class StationService:
 			if ProcessService.noop_mode():
 				self.__noop_startup__(station.name)
 			else:
-				ProcessService.start_station_mc_ices(
+				if not self.conn.engine.url.database:
+					raise RuntimeError("db Name is missing")
+				ProcessService.start_song_queue_process(
+					self.conn.engine.url.database,
 					station.name,
 					owner.username
 				)

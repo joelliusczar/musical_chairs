@@ -26,7 +26,6 @@ def __start_ices__(
 		env={
 				"MC_STATION_PORT": portNumber, 
 			 "PATH": os.environ["PATH"],
-			 
 			}
 	)
 
@@ -75,7 +74,7 @@ class ProcessService:
 		return __start_ices__(stationConf, portNumber)
 
 	@staticmethod
-	def start_song_queue(dbName: str, stationName: str, ownerName: str):
+	def start_song_queue_process(dbName: str, stationName: str, ownerName: str):
 		subprocess.Popen([
 				"python",
 				"-m",

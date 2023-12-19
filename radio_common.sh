@@ -440,6 +440,9 @@ __install_py_env_if_needed__() {
 }
 
 activate_mc_env() {
+	if [ -n "$VIRTUAL_ENV" ]; then
+		deactivate 2>&1 1>/dev/null
+	fi
 	set_env_vars "$@" &&
 	__install_py_env_if_needed__ &&
 	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate

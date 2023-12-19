@@ -1,4 +1,3 @@
-import sys
 import os
 import socket
 import subprocess
@@ -17,33 +16,15 @@ from musical_chairs_libs.services import (
 	QueueService,
 	StationService
 )
+from musical_chairs_libs.dtos_and_utilities import BlockingQueue
 from tempfile import NamedTemporaryFile
-from queue import SimpleQueue, Empty as EmptyException
 from threading import Condition
 
-fileQueue = SimpleQueue[Tuple[Optional[BinaryIO], Optional[str]]]()
+fileQueue = BlockingQueue[Tuple[Optional[BinaryIO], Optional[str]]](3, 30)
 waiter = Condition()
 stopLoading = False
 stopSending = False
-maxSize = 3
 
-def wait_for_queue_ready():
-	global stopLoading
-	global stopSending
-	try:
-		waiter.acquire()
-		waiter.wait(30)
-		waiter.release()
-	except Exception as e:
-		print(e)
-		stopSending = True
-		stopLoading = True
-
-
-def queue_ready():
-	waiter.acquire()
-	waiter.notify()
-	waiter.release()
 
 
 def get_song_info(
@@ -63,8 +44,11 @@ def get_song_info(
 				display = f"{songName} - {album} - {artist}"
 			else:
 				display = os.path.splitext(os.path.split(songPath)[1])[0]
+			display = display.replace("\n", "")
 			yield songPath, display
-		except:
+		except Exception as e:
+			print("Error getting song info")
+			print(e)
 			break
 		finally:
 			conn.close()
@@ -98,24 +82,13 @@ def load_data(dbName: str, stationName: str, ownerName: str):
 		for (filename, display) in get_song_info(stationId, dbName):
 			if stopLoading:
 				break
-			while fileQueue.qsize() > maxSize:
-				wait_for_queue_ready()
-				if stopLoading:
-					print("No more")
-					return
-			fileQueue.put((currentFile, display))
 			fileService = S3FileService()
 			with fileService.open_song(filename) as src:
 				for chunk in src:
 					currentFile.write(chunk)
-				queue_ready()
+			fileQueue.put((currentFile, display), lambda _: not stopLoading)
 			currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
-		while fileQueue.qsize() > maxSize:
-			wait_for_queue_ready()
-			if stopLoading:
-				return
-		fileQueue.put((None, None))
-		queue_ready()
+		fileQueue.put((None, None), lambda _: not stopLoading)
 	except Exception as e:
 		print(e)
 		stopLoading = True
@@ -131,6 +104,7 @@ def accept(
 			conn, _ = listener.accept()
 			return conn
 		except socket.timeout:
+			print("Socket timmed out")
 			returnCode = proc.poll()
 			if not returnCode is None:
 				return None
@@ -143,15 +117,12 @@ def clean_up(listener: socket.socket):
 		listener.close()
 	except:
 		print("Couldn't shut down socket. May already be closed")
-	queue_ready()
+ 
 	print("cleaning up unused")
-	try:
-		while True:
-			unusedFile = fileQueue.get(block=False)
-			if unusedFile[0]:
-				unusedFile[0].close()
-	except EmptyException:
-		pass
+	while True:
+		unusedFile = fileQueue.unblocked_get()
+		if unusedFile and unusedFile[0]:
+			unusedFile[0].close()
 
 
 def send_next(startSubProcess: Callable[[str], subprocess.Popen[bytes]]):
@@ -163,7 +134,6 @@ def send_next(startSubProcess: Callable[[str], subprocess.Popen[bytes]]):
 	listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	proc: Optional[subprocess.Popen[bytes]] = None
 	try:
-		# listener.settimeout(5)
 		listener.bind((host, portNumber))
 		listener.listen(1)
 		proc = startSubProcess(str(listener.getsockname()[1]))
@@ -183,21 +153,15 @@ def send_next(startSubProcess: Callable[[str], subprocess.Popen[bytes]]):
 					break
 				if currentFile:
 					currentFile.close()
-				while fileQueue.qsize() < 1:
-					wait_for_queue_ready()
-					if stopSending:
-						break
-				currentFile, display = fileQueue.get()
-				queue_ready()
+				currentFile, display = fileQueue.get(lambda _: not stopSending)
 				if currentFile:
 					conn.sendall(f"{currentFile.name}\n".encode())
 					conn.sendall(f"{display}\n".encode())
 				else:
-					conn.sendall(b"")
+					conn.sendall(b"\n\n")
 					break
-	except BrokenPipeError:
-		devnull = os.open(os.devnull, os.O_WRONLY)
-		os.dup2(devnull, sys.stdout.fileno())
+	except Exception as e:
+		print(e)
 	finally:
 		clean_up(listener)
 		if proc:

@@ -14,7 +14,7 @@ def handle_keyboard(sigNum: Any, frame: Any):
 	queue_song_source.stopSending = True
 	queue_song_source.stopLoading = True
 
-# signal.signal(signal.SIGINT, handle_keyboard)
+signal.signal(signal.SIGINT, handle_keyboard)
 
 
 
@@ -40,7 +40,11 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	loadThread.start()
 	sendThread.start()
 
-	sendThread.join(600)
+	while True:
+		sendThread.join(30)
+		if queue_song_source.stopLoading or queue_song_source.stopSending:
+			break
+
 
 	queue_song_source.stopLoading = True
 

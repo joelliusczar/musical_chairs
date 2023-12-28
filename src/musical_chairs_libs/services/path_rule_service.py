@@ -118,7 +118,7 @@ class PathRuleService:
 			path=prefix
 		)
 
-	def get_path_users(
+	def get_users_of_path(
 		self,
 		prefix: str,
 		userId: Optional[int]=None,

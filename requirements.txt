@@ -1,4 +1,6 @@
-fastapi==0.81.0
+fastapi==0.106.0
+httpx==0.26.0
+pydantic==2.5.3
 uvicorn==0.17.5
 SQLAlchemy==2.0.20
 tinytag==1.7.0

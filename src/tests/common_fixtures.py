@@ -2,7 +2,8 @@
 import pytest
 import os
 import hashlib
-from typing import Iterator, List, Any, Callable
+import subprocess
+from typing import Iterator, List, Any, Callable, cast
 from datetime import datetime
 from musical_chairs_libs.services import (
 	EnvManager,
@@ -246,14 +247,18 @@ def datetime_monkey_patch(
 	class MockDatetime(datetime, metaclass=MockDatetimeMeta):
 
 		@classmethod
-		def now(cls, tz: Any=None) -> datetime:
+		def now(cls, tz: Any=None) -> "MockDatetime":
 			dt = fixture_datetime_iterator()
-			return dt.astimezone(tz)
+			return cast(MockDatetime,dt.astimezone(tz))
 
 		@classmethod
-		def utcnow(cls) -> datetime:
-			return fixture_datetime_iterator()
-	monkeypatch.setattr("musical_chairs_libs.dtos_and_utilities.simple_functions.datetime", MockDatetime)
+		def utcnow(cls) -> "MockDatetime":
+			return cast(MockDatetime,fixture_datetime_iterator())
+		
+	monkeypatch.setattr(
+		"musical_chairs_libs.dtos_and_utilities.simple_functions.datetime",
+		MockDatetime
+	)
 	monkeypatch.setattr("jose.jwt.datetime", MockDatetime)
 
 	return fixture_datetime_iterator
@@ -267,6 +272,24 @@ def fixture_db_queryer(
 		res = fixture_db_conn_in_mem.exec_driver_sql(stmt)
 		print(res.fetchall())
 	return run_query
+
+@pytest.fixture
+def ices_config_monkey_patch(
+	monkeypatch: pytest.MonkeyPatch
+):
+	icecastTemplateLocation = f"{EnvManager.templates_dir}/icecast.xml"
+	cmdOutput = "     CGroup: /system.slice/icecast2.service\n"\
+		f"           └─966 /usr/bin/icecast2 -b -c {icecastTemplateLocation}"
+	def mock_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+		return subprocess.CompletedProcess(
+			args=[],
+			returncode=0,
+			stdout=cmdOutput
+		)
+		
+
+	monkeypatch.setattr("subprocess.run", mock_run)
+		
 
 if __name__ == "__main__":
 	print(fixture_mock_ordered_date_list)

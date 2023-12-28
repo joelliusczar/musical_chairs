@@ -220,6 +220,7 @@ get_localhost_key_dir() (
 			echo "$HOME"/.ssh
 			;;
 		(Linux*)
+			echo "$HOME"/.ssh
 			;;
 		(*) ;;
 	esac
@@ -249,7 +250,7 @@ get_ssl_vars() (
 	curl -s --header "Content-Type: application/json" \
 	--request POST \
 	--data "$sendJson" \
-	https://porkbun.com/api/json/v3/ssl/retrieve/$(_get_domain_name)
+	https://porkbun.com/api/json/v3/ssl/retrieve/$(__get_domain_name__)
 
 )
 
@@ -961,38 +962,50 @@ extract_sha256_from_cert() (
 
 extract_commonName_from_cert() (
 	openssl x509 -subject \
-	| perl -ne 'print "$1\n" if m{CN=([^/]+)}'
+	| perl -ne 'print "$1\n" if m{CN *= *([^/]+)}'
 )
 
-__certs_matching_name_osx__() (
+
+scan_pems_for_common_name() (
 	commonName="$1"
-	pattern='(-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----)'
-	script=$(cat <<-scriptEOF
-	while(\$_ =~ /$pattern/g) {
-		print "\$1\0"
-	}
-	scriptEOF
-	)
-	security find-certificate -a -p -c "$commonName" \
-	$(__get_keychain_osx__) | perl -0777 -ne "$script"
+	activate_mc_env &&
+	python -m 'musical_chairs_libs.dev.ssl.installed_certs' "$commonName" \
+		< /etc/ssl/certs/ca-certificates.crt 
 )
 
-__certs_matching_name_exact__() (
+certs_matching_name() (
 	commonName="$1"
-	case $(uname) in
+		case $(uname) in
 		(Darwin*)
-			__certs_matching_name_osx__ "$commonName" \
-			| extract_commonName_from_cert \
-			| input_match "$commonName"
+			security find-certificate -a -p -c "$commonName" \
+				$(__get_keychain_osx__)
 			;;
 		(*)
-			echo "operating system not configured"
-			return 0
+			scan_pems_for_common_name "$commonName"
 			;;
 	esac
 )
 
-__generate_local_ssl_cert_osx__() (
+__certs_matching_name_exact__() (
+	commonName="$1"
+	certs_matching_name "$commonName" \
+	| extract_commonName_from_cert \
+	| input_match "$commonName"
+)
+
+__get_openssl_default_conf__() (
+	case $(uname) in
+		(Darwin*)
+			echo '/System/Library/OpenSSL/openssl.cnf'
+			;;
+		(Linux*)
+			echo '/etc/ssl/openssl.cnf'
+			;;
+		(*) ;;
+	esac
+)
+
+__openssl_gen_cert__() (
 	commonName="$1"
 	domain="$2" &&
 	publicKeyFile="$3" &&
@@ -1000,7 +1013,7 @@ __generate_local_ssl_cert_osx__() (
 	mkfifo cat_config_fifo
 	{
 	cat<<-OpenSSLConfig
-	$(cat '/System/Library/OpenSSL/openssl.cnf')
+	$(cat $(__get_openssl_default_conf__))
 	$(printf "[SAN]\nsubjectAltName=DNS:${domain},IP:127.0.0.1")
 	OpenSSLConfig
 	} > cat_config_fifo &
@@ -1015,26 +1028,77 @@ __generate_local_ssl_cert_osx__() (
 
 __install_local_cert_osx__() (
 	publicKeyFile="$1" &&
-	sudo security add-trusted-cert -p ssl -d -r trustRoot \
-	-k $(__get_keychain_osx__) "$publicKeyFile"
+	sudo security add-trusted-cert -p \
+		ssl -d -r trustRoot \
+		-k $(__get_keychain_osx__) "$publicKeyFile"
+)
+
+set_firefox_cert_policy() {
+	publicKeyFile="$1" &&
+	pemFile=$(echo "$publicKeyFile" | sed 's/.crt$/.pem/')
+	cat <<- EOF > '/usr/share/firefox-esr/distribution/policies.json'
+		{
+			"policies": {
+				"Certificates": {
+					"ImportEnterpriseRoots": true,
+					"Install": [
+						"$publicKeyFile",
+						"/etc/ssl/certs/$pemFile"
+					]
+				}
+			}
+		}
+	EOF
+}
+
+__install_local_cert_debian__() (
+	publicKeyFile="$1" &&
+	sudo -p 'Password to install trusted certificate' \
+		cp "$publicKeyFile" /usr/local/share/ca-certificates &&
+	sudo update-ca-certificates &&
+	if firefox -v 2>/dev/null; then
+		if [ -s '/usr/share/firefox-esr/distribution/policies.json' ]; then
+			echo '/usr/share/firefox-esr/distribution/policies.json already exists'
+		else
+			set_firefox_cert_policy "$publicKeyFile"
+		fi
+	fi
 )
 
 __clean_up_invalid_cert__() (
 	commonName="$1" &&
 	case $(uname) in
 		(Darwin*)
-			#d: delimiter
-			#r: backslash not escape
-			__certs_matching_name_osx__ "$commonName" \
-				| while IFS= read -r -d '' cert; do
-					sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-					echo "$cert" | is_cert_expired &&
-					sudo security delete-certificate \
-						-Z "$sha256Value" -t $(__get_keychain_osx__)
+			cert=''
+			#turns out the d flag is not posix compliant :<
+			certs_matching_name "$commonName" \
+				| while read line; do
+					cert=$(printf "%s\n%s" "$cert" "$line")
+					if [ "$line" = '-----END CERTIFICATE-----' ]; then
+						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+						echo "$cert" | is_cert_expired &&
+						sudo security delete-certificate \
+							-Z "$sha256Value" -t $(__get_keychain_osx__)
+						cert=''
+					fi
 				done
 			;;
 		(*)
-			return 0
+				cert=''
+				#turns out the d flag is not posix compliant :<
+				scan_pems_for_common_name "$commonName" \
+					| while read line; do
+						cert=$(printf "%s\n%s" "$cert" "$line")
+						if [ "$line" = '-----END CERTIFICATE-----' ]; then
+							sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+							echo "$cert" | is_cert_expired && 
+							{
+								sudo -p "Delete from /usr/local/share/ca-certificates" \
+									rm /usr/local/share/ca-certificates;
+							}
+							cert=''
+						fi
+					done
 			;;
 	esac
 	return 0
@@ -1048,14 +1112,21 @@ __setup_ssl_cert_local__() (
 
 	case $(uname) in
 		(Darwin*)
-			__generate_local_ssl_cert_osx__ "$commonName" "$domain" \
-			"$publicKeyFile" "$privateKeyFile" &&
+			__openssl_gen_cert__ "$commonName" "$domain" \
+				"$publicKeyFile" "$privateKeyFile" &&
 			__install_local_cert_osx__ "$publicKeyFile" ||
 			return 1
 			;;
 		(*)
-			echo "operating system not configured"
-			return 1
+			if [ -f '/etc/debian_version' ]; then
+				__openssl_gen_cert__ "$commonName" "$domain" \
+					"$publicKeyFile" "$privateKeyFile" &&
+				__install_local_cert_debian__ "$publicKeyFile" ||
+				return 1
+			else
+				echo "operating system not configured"
+				return 1
+			fi
 			;;
 	esac
 	return 0
@@ -1063,7 +1134,7 @@ __setup_ssl_cert_local__() (
 
 setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
-	publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
+	publicKeyFile=$(__get_debug_cert_path__).public.key.crt &&
 	privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
 	__clean_up_invalid_cert__ "${MC_APP_NAME}-localhost"
 	__setup_ssl_cert_local__ "${MC_APP_NAME}-localhost" 'localhost' \
@@ -1073,7 +1144,7 @@ setup_ssl_cert_local_debug() (
 
 print_ssl_cert_info() (
 	process_global_vars "$@" &&
-	domain=$(_get_domain_name "$MC_APP_ENV" 'omitPort') &&
+	domain=$(__get_domain_name__ "$MC_APP_ENV" 'omitPort') &&
 	case "$MC_APP_ENV" in
 		(local*)
 			isDebugServer=${1#is_debug_server=}
@@ -1083,17 +1154,26 @@ print_ssl_cert_info() (
 			case $(uname) in
 			(Darwin*)
 				echo "#### nginx info ####"
+				cert=''
 				__certs_matching_name_osx__ "$domain" \
-					| while IFS= read -r -d '' cert; do
-						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-						echo "$cert" | openssl x509 -enddate -subject -noout
+					| while read line; do
+						cert=$(printf "%s\n%s" "$cert" "$line")
+						if [ "$line" = '-----END CERTIFICATE-----' ]; then
+							sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+							echo "$cert" | openssl x509 -enddate -subject -noout
+							cert=''
+						fi
 					done
 				echo "#### debug server info ####"
 				echo "${domain}-localhost"
 				__certs_matching_name_osx__ "${MC_APP_NAME}-localhost" \
-					| while IFS= read -r -d '' cert; do
-						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-						echo "$cert" | openssl x509 -enddate -subject -noout
+					| while read line; do
+						cert=$(printf "%s\n%s" "$cert" "$line")
+						if [ "$line" = '-----END CERTIFICATE-----' ]; then
+							sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+							echo "$cert" | openssl x509 -enddate -subject -noout
+							cert=''
+						fi
 					done
 				;;
 			(*)
@@ -1110,10 +1190,10 @@ print_ssl_cert_info() (
 
 setup_ssl_cert_nginx() (
 	process_global_vars "$@" &&
-	domain=$(_get_domain_name "$MC_APP_ENV" 'omitPort') &&
+	domain=$(__get_domain_name__ "$MC_APP_ENV" 'omitPort') &&
 	case "$MC_APP_ENV" in
 		(local*)
-			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.pem &&
+			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.crt &&
 			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
 			__clean_up_invalid_cert__ "$domain"
@@ -1153,7 +1233,7 @@ setup_react_env_debug() (
 	echo 'VITE_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
 	#VITE_SSL_PUBLIC, and SSL_KEY_FILE are used by create-react-app
 	#when calling `npm start`
-	echo "VITE_SSL_PUBLIC=$(__get_debug_cert_path__).public.key.pem" \
+	echo "VITE_SSL_PUBLIC=$(__get_debug_cert_path__).public.key.crt" \
 		>> "$envFile"
 	echo "VITE_SSL_PRIVATE=$(__get_debug_cert_path__).private.key.pem" \
 		>> "$envFile"
@@ -1163,7 +1243,8 @@ get_nginx_value() (
 	key=${1:-'conf-path'}
 	#break options into a list
 	#then isolate the option we're interested in
-	nginx -V 2>&1 | \
+	sudo -p "get nginx values" \
+		nginx -V 2>&1 | \
 		sed 's/ /\n/g' | \
 		sed -n "/--${key}/p" | \
 		sed 's/.*=\(.*\)/\1/'
@@ -1798,6 +1879,7 @@ setup_unit_test_env() (
 	echo 'setting up test environment'
 	process_global_vars "$@" &&
 	export __TEST_FLAG__='true'
+	publicKeyFile=$(__get_debug_cert_path__).public.key.crt
 
 	__create_fake_keys_file__
 	setup_common_dirs
@@ -2020,7 +2102,7 @@ __get_url_base__() (
 	echo "$MC_PROJ_NAME" | tr -d _
 )
 
-_get_domain_name() (
+__get_domain_name__() (
 	envArg="$1"
 	omitPort="$2"
 	urlBase=$(__get_url_base__)
@@ -2041,7 +2123,7 @@ _get_domain_name() (
 
 __define_url__() {
 	echo "env: ${MC_APP_ENV}"
-	export MC_SERVER_NAME=$(_get_domain_name "$MC_APP_ENV")
+	export MC_SERVER_NAME=$(__get_domain_name__ "$MC_APP_ENV")
 	export MC_FULL_URL="https://${MC_SERVER_NAME}"
 	echo "url defined"
 }

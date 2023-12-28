@@ -31,7 +31,7 @@ from api_dependencies import (
 	get_account_if_has_scope,
 	get_user_from_token,
 	get_optional_user_from_token,
-	get_subject_user
+	get_from_path_subject_user
 )
 
 
@@ -232,7 +232,7 @@ def get_path_user_list(
 
 def validate_site_rule(
 	rule: ActionRule,
-	user: Optional[AccountInfo] = Depends(get_subject_user),
+	user: Optional[AccountInfo] = Depends(get_from_path_subject_user),
 ) -> ActionRule:
 	if not user:
 		raise HTTPException(
@@ -260,7 +260,7 @@ def validate_site_rule(
 	]
 )
 def add_user_rule(
-	user: AccountInfo = Depends(get_subject_user),
+	user: AccountInfo = Depends(get_from_path_subject_user),
 	rule: ActionRule = Depends(validate_site_rule),
 	accountsService: AccountsService = Depends(accounts_service),
 ) -> ActionRule:
@@ -278,7 +278,7 @@ def add_user_rule(
 )
 def remove_user_rule(
 	rulename: str,
-	user: AccountInfo = Depends(get_subject_user),
+	user: AccountInfo = Depends(get_from_path_subject_user),
 	accountsService: AccountsService = Depends(accounts_service),
 ):
 	if not user:

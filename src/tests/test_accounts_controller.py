@@ -148,23 +148,23 @@ def test_login_fail(fixture_api_test_client: TestClient):
 	data = json.loads(response.content)
 	assert response.status_code == 422
 	assert data["detail"][0]["field"] == "body->username"
-	assert data["detail"][0]["msg"] == "field required"
+	assert data["detail"][0]["msg"] == "Field required"
 	assert data["detail"][1]["field"] == "body->password"
-	assert data["detail"][1]["msg"] == "field required"
+	assert data["detail"][1]["msg"] == "Field required"
 
 	formData = { "username": "testUser_charlie" }
 	response = client.post("/accounts/open", data=formData)
 	data = json.loads(response.content)
 	assert response.status_code == 422
 	assert data["detail"][0]["field"] == "body->password"
-	assert data["detail"][0]["msg"] == "field required"
+	assert data["detail"][0]["msg"] == "Field required"
 
 	formData = { "password": clear_mock_password() }
 	response = client.post("/accounts/open", data=formData)
 	data = json.loads(response.content)
 	assert response.status_code == 422
 	assert data["detail"][0]["field"] == "body->username"
-	assert data["detail"][0]["msg"] == "field required"
+	assert data["detail"][0]["msg"] == "Field required"
 
 def test_get_account_list(fixture_api_test_client: TestClient):
 	client = fixture_api_test_client

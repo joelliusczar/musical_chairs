@@ -115,6 +115,10 @@ if ! mc-python -m  virtualenv --version 2>/dev/null; then
 fi
 
 echo '##### nvm #####'
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
 if ! nvm --version 2>/dev/null; then
 	rcScript=$(get_rc_candidate)
 	touch "$rcScript" #create if doesn't exist
@@ -139,26 +143,6 @@ fi
 # 	esac
 # fi
 
-echo '##### vimrc #####'
-if [ ! -e "$HOME"/.vimrc ]; then
-	touch "$HOME"/.vimrc
-fi
-perl -pi -e "s/set nonumber/set number/" "$HOME"/.vimrc
-perl -pi -e "s/set expandtab/set noexpandtab/" "$HOME"/.vimrc
-perl -pi -e "s/set tabstop=\d+/set tabstop=2/" "$HOME"/.vimrc
-lineNum=$(perl -ne 'print "true" if /set number/' "$HOME"/.vimrc)
-noexpandtabs=$(perl -ne 'print "true" if /set noexpandtab/' "$HOME"/.vimrc)
-tabstop=$(perl -ne 'print "true" if /set tabstop=2/' "$HOME"/.vimrc)
-
-if [ "$lineNum" != 'true' ]; then
-	echo 'set number' >> "$HOME"/.vimrc
-fi
-if [ "$noexpandtabs" != 'true' ]; then
-	echo 'set noexpandtab' >> "$HOME"/.vimrc
-fi
-if [ "$tabstop" != 'true' ]; then
-	echo 'set tabstop=2' >> "$HOME"/.vimrc
-fi
 
 echo '##### mariadb #####'
 if ! mariadb -V 2>/dev/null; then
@@ -213,6 +197,30 @@ esac
 
 echo '##### ices #####'
 install_ices || show_err_and_exit "Couldn't install ices"
+
+echo '##### openssl #####'
+case $(uname) in
+	(Linux*)
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
+			if ! openssl version 2>/dev/null; then
+				install_package openssl
+			fi
+		fi
+		;;
+	(*) ;;
+esac
+
+echo '##### ca certificates #####'
+case $(uname) in
+	(Linux*)
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
+			if ! dpkg -s ca-certificates 2>/dev/null; then
+				install_package ca-certificates
+			fi
+		fi
+		;;
+	(*) ;;
+esac
 
 echo '##### nginx #####'
 if ! nginx -v 2>/dev/null; then

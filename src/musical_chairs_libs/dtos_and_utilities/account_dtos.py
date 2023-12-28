@@ -6,7 +6,7 @@ from typing import (
 	Union,
 	Collection
 )
-from pydantic import validator #pyright: ignore [reportUnknownVariableType]
+from pydantic import field_validator
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
 from .user_role_def import UserRoleDef, RulePriorityLevel, UserRoleDomain
@@ -187,18 +187,17 @@ class AccountCreationInfo(AccountInfoSecurity):
 			"roles": self.roles
 		}
 
-	@validator("email")
+	@field_validator("email")
 	def check_email(cls, v: str) -> str:
-		valid = validate_email(v) #pyright: ignore [reportUnknownMemberType]
+		valid = validate_email(v)
 		return valid.email #pyright: ignore [reportGeneralTypeIssues]
 
-	_pass_len = validator( #pyright: ignore [reportUnknownVariableType]
-		"password",
-		allow_reuse=True
+	_pass_len = field_validator( #pyright: ignore [reportUnknownVariableType]
+		"password"
 	)(min_length_validator_factory(6, "Password"))
 
 
-	@validator("roles")
+	@field_validator("roles")
 	def are_all_roles_allowed(cls, v: List[str]) -> List[str]:
 		roleSet = UserRoleDef.as_set()
 		duplicate = next(get_duplicates(

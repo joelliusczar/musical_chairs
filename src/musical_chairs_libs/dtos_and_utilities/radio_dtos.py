@@ -1,4 +1,4 @@
-from pydantic import validator, root_validator #pyright: ignore [reportUnknownVariableType]
+from pydantic import validator, model_validator
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
 from typing import (
@@ -243,10 +243,10 @@ class ValidatedSongAboutInfo(SongAboutInfo):
 			)
 		return v
 
-	@root_validator
-	def root_validator(cls, values: dict[Any, Any]) -> Any:
-		artists = values.get("artists", [])
-		primaryArtist = values.get("primaryartist", None)
+	@model_validator(mode="after")
+	def root_validator(self) -> "ValidatedSongAboutInfo":
+		artists = self.artists or []
+		primaryArtist = self.primaryartist or None
 
 		duplicate = next(get_duplicates(
 			a.id for a in chain(artists, (primaryArtist,) if primaryArtist else ())),
@@ -257,4 +257,4 @@ class ValidatedSongAboutInfo(SongAboutInfo):
 				f"Artist with id {duplicate[0]} has been added {duplicate[1]} times "
 				"but it is only legal to add it once."
 			)
-		return values
+		return self

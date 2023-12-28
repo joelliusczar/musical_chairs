@@ -19,8 +19,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 from api_dependencies import (
 	song_info_service,
 	station_service,
-	get_path_user,
-	get_subject_user
+	get_path_rule_loaded_current_user,
+	get_from_query_subject_user
 )
 
 
@@ -52,7 +52,7 @@ def get_song_ids(request: Request) -> Iterable[int]:
 			result.add(int(itemId))
 		fieldName = "itemids"
 		itemIds = request.query_params.getlist(fieldName)
-		result.update(itemIds)
+		result.update((int(i) for i in itemIds))
 
 	except ValueError:
 		raise HTTPException(
@@ -156,7 +156,7 @@ def __validate_song_album(
 def extra_validated_song(
 	song: ValidatedSongAboutInfo,
 	songIds: Iterable[int] = Depends(get_song_ids),
-	user: AccountInfo = Depends(get_path_user),
+	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
 	stationService: StationService = Depends(station_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> ValidatedSongAboutInfo:
@@ -174,7 +174,7 @@ def extra_validated_song(
 def validate_path_rule(
 	rule: PathsActionRule,
 	prefix: str,
-	user: Optional[AccountInfo] = Depends(get_subject_user),
+	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
 ) -> PathsActionRule:
 	if not user:
 		raise HTTPException(
@@ -206,7 +206,7 @@ def validate_path_rule(
 
 def validate_path_rule_for_remove(
 	prefix: str,
-	user: Optional[AccountInfo] = Depends(get_subject_user),
+	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
 	ruleName: Optional[str]=None
 ) -> Optional[str]:
 	if not user:

@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -12,12 +12,12 @@ from fastapi.responses import FileResponse
 from api_dependencies import (
 	song_info_service,
 	song_file_service,
-	get_path_user,
+	get_path_rule_loaded_current_user,
 	get_multi_path_user,
 	get_user_with_simple_scopes,
-	get_path_user_and_check_optional_path,
+	check_optional_path_for_current_user,
 	get_current_user_simple,
-	get_subject_user,
+	get_from_query_subject_user,
 	get_prefix_if_owner,
 	path_rule_service
 )
@@ -53,7 +53,7 @@ router = APIRouter(prefix="/song-info")
 def song_ls(
 	prefix: Optional[str] = None,
 	user: AccountInfo = Security(
-		get_path_user,
+		get_path_rule_loaded_current_user,
 		scopes=[UserRoleDef.PATH_LIST.value]
 	),
 	songInfoService: SongFileService = Depends(song_file_service)
@@ -75,18 +75,13 @@ def song_ls(
 
 @router.get("/songs/{itemId}")
 def get_song_for_edit(
-	itemId: Union[int, str], #optional as str so I can send the correct status code
+	itemId: int,
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_path_user_and_check_optional_path,
+		check_optional_path_for_current_user,
 		scopes=[UserRoleDef.PATH_VIEW.value]
 	)
 ) -> SongEditInfo:
-	if type(itemId) != int:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"{itemId} not found", "id")]
-		)
 	songInfo = next(songInfoService.get_songs_for_edit([itemId], user), None)
 	if songInfo:
 		return songInfo
@@ -130,7 +125,7 @@ def get_songs_for_multi_edit(
 	"/songs/download/{id}",
 	dependencies=[
 		Security(
-			get_path_user_and_check_optional_path,
+			check_optional_path_for_current_user,
 			scopes=[UserRoleDef.PATH_DOWNLOAD.value]
 		)
 	],
@@ -157,7 +152,7 @@ def update_song(
 	),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	user: AccountInfo = Security(
-		get_path_user_and_check_optional_path,
+		check_optional_path_for_current_user,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> SongEditInfo:
@@ -237,7 +232,7 @@ def get_all_albums(
 
 @router.get("/path/user_list",dependencies=[
 	Security(
-		get_path_user_and_check_optional_path,
+		check_optional_path_for_current_user,
 		scopes=[UserRoleDef.PATH_USER_LIST.value]
 	)
 ])
@@ -245,20 +240,20 @@ def get_path_user_list(
 	prefix: str,
 	pathRuleService: PathRuleService = Depends(path_rule_service)
 ) -> TableData[AccountInfo]:
-	pathUsers = list(pathRuleService.get_path_users(prefix))
+	pathUsers = list(pathRuleService.get_users_of_path(prefix))
 	return TableData(pathUsers, len(pathUsers))
 
 @router.post("/path/user_role",
 	dependencies=[
 		Security(
-			get_path_user_and_check_optional_path,
+			check_optional_path_for_current_user,
 			scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 		)
 	]
 )
 def add_user_rule(
 	prefix: str,
-	user: AccountInfo = Depends(get_subject_user),
+	user: AccountInfo = Depends(get_from_query_subject_user),
 	rule: PathsActionRule = Depends(validate_path_rule),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> PathsActionRule:
@@ -268,14 +263,14 @@ def add_user_rule(
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[
 		Security(
-			get_path_user_and_check_optional_path,
+			check_optional_path_for_current_user,
 			scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 		)
 	]
 )
 def remove_user_rule(
 	prefix: str,
-	user: AccountInfo = Depends(get_subject_user),
+	user: AccountInfo = Depends(get_from_query_subject_user),
 	rulename: Optional[str] = Depends(validate_path_rule_for_remove),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
 ):
@@ -305,7 +300,7 @@ def create_directory(
 	suffix: str,
 	prefix: str = Depends(get_prefix_if_owner),
 	user: AccountInfo = Security(
-		get_path_user_and_check_optional_path,
+		check_optional_path_for_current_user,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
 	),
 	songFileService: SongFileService = Depends(song_file_service)
@@ -318,7 +313,7 @@ def upload_song(
 	file: UploadFile,
 	prefix: str = Depends(get_prefix_if_owner),
 	user: AccountInfo = Security(
-		get_path_user_and_check_optional_path,
+		check_optional_path_for_current_user,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
 	),
 	songFileService: SongFileService = Depends(song_file_service)

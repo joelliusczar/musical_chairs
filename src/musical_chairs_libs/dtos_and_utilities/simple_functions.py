@@ -11,7 +11,8 @@ from typing import (
 	Optional,
 	Tuple,
 	overload,
-	TypeVar
+	TypeVar,
+	Union
 )
 from email_validator import ValidatedEmail
 from collections import Counter
@@ -161,3 +162,12 @@ def format_newlines_for_stream(input: str) -> str:
 	cleaned = input.replace("\n", " ")
 	output = f"{cleaned}\n"
 	return output
+
+def int_or_str(s: Union[int, str]) -> Union[int, str]:
+	#fastapi/pydantic stopped auto comnverting my string ints
+	#to ints
+	try:
+		i = int(s)
+		return i
+	except:
+		return s

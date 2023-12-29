@@ -18,7 +18,7 @@ def test_song_ls(
 ):
 	songFileService = fixture_song_file_service
 	accountService = fixture_account_service
-	user,_ = accountService.get_account_for_login("testUser_alpha") #random user
+	user,_ = accountService.get_account_for_login("testUser_alpha")
 	assert user
 	paths = sorted(songFileService.song_ls(user), key=lambda d: d.path)
 	assert len(paths) == 4
@@ -45,6 +45,82 @@ def test_song_ls(
 	)
 	assert len(paths) == 1
 	assert paths[0].path == "tossedSlash/trap/bang(pow)_1/boo"
+
+def test_song_ls_overlaping_paths(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_alpha")
+	assert user
+	paths = sorted(
+		songFileService.song_ls(user, "jazz/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 6
+	assert paths[0].path == "jazz/cat/"
+	assert paths[1].path == "jazz/lurk/"
+	assert paths[2].path == "jazz/overlap/"
+	assert paths[3].path == "jazz/overlaper/"
+	assert paths[4].path == "jazz/overloop/"
+	assert paths[5].path == "jazz/rude/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "jazz/o"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 3
+	assert paths[0].path == "jazz/overlap/"
+	assert paths[1].path == "jazz/overlaper/"
+	assert paths[2].path == "jazz/overloop/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "jazz/overl"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 3
+	assert paths[0].path == "jazz/overlap/"
+	assert paths[1].path == "jazz/overlaper/"
+	assert paths[2].path == "jazz/overloop/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "jazz/overla"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 2
+	assert paths[0].path == "jazz/overlap/"
+	assert paths[1].path == "jazz/overlaper/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "jazz/overlap"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 2
+	assert paths[0].path == "jazz/overlap/"
+	assert paths[1].path == "jazz/overlaper/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "jazz/overlap/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+	assert paths[0].path == "jazz/overlap/toon/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "jazz/overlaper"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+	assert paths[0].path == "jazz/overlaper/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "jazz/overlaper/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 2
+	assert paths[0].path == "jazz/overlaper/soon/"
+	assert paths[1].path == "jazz/overlaper/toon/"
 
 def test_add_directory(
 	fixture_song_file_service: SongFileService,

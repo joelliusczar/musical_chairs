@@ -436,7 +436,7 @@ album_params = [
 #				blitz/how well are we handing/dirs ending with space  /path
 #		blitz/  are we handling/
 #			blitz/  are we handling/ dirs beginning with space  /
-#				blitz/  are we handling/ dirs beginning with space  /path"
+#				blitz/  are we handling/ dirs beginning with space  /path
 # tossedSlash/
 # 	tossedSlash/goo/
 # 		tossedSlash/goo/looga/
@@ -935,10 +935,6 @@ song_params = [
 	{ "pk": 74,
 		"path": "jazz/overlaper/soon/carb_song",
 		"name": "carb_song",
-	},
-	{ "pk": 75,
-		"path": "jazz/overlaper/soon/barb_song",
-		"name": "barb_song",
 	},
 	{ "pk": 76,
 		"path": "jazz/overlaper/soon/barb_song",

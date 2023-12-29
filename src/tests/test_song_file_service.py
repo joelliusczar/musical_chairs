@@ -122,6 +122,60 @@ def test_song_ls_overlaping_paths(
 	assert paths[0].path == "jazz/overlaper/soon/"
 	assert paths[1].path == "jazz/overlaper/toon/"
 
+def test_song_ls_paths_with_spaces(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_alpha")
+	assert user
+	paths = sorted(
+		songFileService.song_ls(user, "blitz/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 4
+	assert paths[0].path == "blitz/  are we handling/"
+	assert paths[1].path == "blitz/how well are we handing/"
+	assert paths[2].path == "blitz/mar/"
+	assert paths[3].path == "blitz/rhino/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "blitz/ "),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+	assert paths[0].path == "blitz/  are we handling/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "blitz/  are we handling"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+	assert paths[0].path == "blitz/  are we handling/"
+
+	paths = sorted(
+		songFileService.song_ls(user, "blitz/  are we handling/"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+	assert paths[0].path == \
+		"blitz/  are we handling/ dirs beginning with space  /"
+	
+	paths = sorted(
+		songFileService.song_ls(user, "blitz/   "),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 0
+
+	paths = sorted(
+		songFileService.song_ls(user, "blitz/  are we  "),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 0
+
+
+
 def test_add_directory(
 	fixture_song_file_service: SongFileService,
 	fixture_account_service: AccountsService

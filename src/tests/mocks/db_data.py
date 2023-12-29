@@ -431,7 +431,6 @@ album_params = [
 #		blitz/how well are we handing/
 #			blitz/how well are we handing/spaces in our/
 #				blitz/how well are we handing/spaces in our/path names
-#		blitz/how well are we handing/
 #			blitz/how well are we handing/dirs ending with space  /
 #				blitz/how well are we handing/dirs ending with space  /path
 #		blitz/  are we handling/

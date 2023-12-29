@@ -405,6 +405,21 @@ album_params = [
 # 	jazz/lurk/
 # 		jazz/lurk/toot/
 # 			jazz/lurk/toot/alpha4_song
+#		jazz/overlap/
+#			jazz/overlap/toon
+#				jazz/overlap/toon/car_song
+#				jazz/overlap/toon/bar_song
+#		jazz/overlaper/
+#			jazz/overlaper/soon
+#				jazz/overlaper/soon/carb_song
+#				jazz/overlaper/soon/barb_song
+#			jazz/overlaper/toon
+#				jazz/overlaper/toon/car_song
+#				jazz/overlaper/toon/bar_song
+#		jazz/overloop/
+#			jazz/overloop/spoon
+#				jazz/overloop/spoon/cargo_song
+#				jazz/overloop/spoon/embargo_song
 # blitz/
 # 	blitz/mar/
 # 		blitz/mar/wall/
@@ -413,6 +428,15 @@ album_params = [
 # 	blitz/rhino/
 # 		blitz/rhino/rhina/
 # 			blitz/rhino/rhina/zulu3
+#		blitz/how well are we handing/
+#			blitz/how well are we handing/spaces in our/
+#				blitz/how well are we handing/spaces in our/path names
+#		blitz/how well are we handing/
+#			blitz/how well are we handing/dirs ending with space  /
+#				blitz/how well are we handing/dirs ending with space  /path
+#		blitz/  are we handling/
+#			blitz/  are we handling/ dirs beginning with space  /
+#				blitz/  are we handling/ dirs beginning with space  /path"
 # tossedSlash/
 # 	tossedSlash/goo/
 # 		tossedSlash/goo/looga/
@@ -899,6 +923,54 @@ song_params = [
 	{ "pk": 71,
 		"path": "tossedSlash/trap/bang(pow)_1/boo",
 		"name": "grass_tune",
+	},
+	{ "pk": 72,
+		"path": "jazz/overlap/toon/car_song",
+		"name": "car_song",
+	},
+	{ "pk": 73,
+		"path": "jazz/overlap/toon/bar_song",
+		"name": "bar_song",
+	},
+	{ "pk": 74,
+		"path": "jazz/overlaper/soon/carb_song",
+		"name": "carb_song",
+	},
+	{ "pk": 75,
+		"path": "jazz/overlaper/soon/barb_song",
+		"name": "barb_song",
+	},
+	{ "pk": 76,
+		"path": "jazz/overlaper/soon/barb_song",
+		"name": "barb_song",
+	},
+	{ "pk": 77,
+		"path": "jazz/overlaper/toon/car_song",
+		"name": "car_song",
+	},
+	{ "pk": 78,
+		"path": "jazz/overlaper/toon/bar_song",
+		"name": "bar_song",
+	},
+	{ "pk": 79,
+		"path": "jazz/overloop/spoon/cargo_song",
+		"name": "cargo_song",
+	},
+	{ "pk": 80,
+		"path": "jazz/overloop/spoon/embargo_song",
+		"name": "embargo_song",
+	},
+	{ "pk": 81,
+		"path": "blitz/how well are we handing/spaces in our/path names",
+		"name": "Song with spaces",
+	},
+	{ "pk": 82,
+		"path": "blitz/how well are we handing/dirs ending with space  /path",
+		"name": "Song ending in spaces",
+	},
+	{ "pk": 83,
+		"path": "blitz/  are we handling/ dirs beginning with space  /path",
+		"name": "Song beginning in spaces",
 	}
 ]
 

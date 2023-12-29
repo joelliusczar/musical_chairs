@@ -1,4 +1,8 @@
-from pydantic import validator, model_validator
+from pydantic import (
+	field_validator,
+	model_validator,
+	ValidationInfo
+)
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
 from typing import (
@@ -110,9 +114,14 @@ class StationCreationInfo:
 		default=MinItemSecurityLevel.OWENER_USER.value
 	)
 
-	@validator("requestsecuritylevel")
-	def check_requestSecurityLevel(cls, v: int, values: dict[Any, Any]) -> int:
-		if v < values["viewsecuritylevel"] \
+	@field_validator("requestsecuritylevel")
+	@classmethod
+	def check_requestSecurityLevel(
+		cls,
+		v: int,
+		validationInfo: ValidationInfo
+	) -> int:
+		if v < validationInfo.data["viewsecuritylevel"] \
 			or v == MinItemSecurityLevel.PUBLIC.value:
 			raise ValueError(
 				"Request Security cannot be public or lower than view security"
@@ -122,12 +131,12 @@ class StationCreationInfo:
 @pydanticDataclass
 class ValidatedStationCreationInfo(StationCreationInfo):
 
-	_name_len = validator( #pyright: ignore [reportUnknownVariableType]
-		"name",
-		allow_reuse=True
+	_name_len = field_validator(
+		"name"
 	)(min_length_validator_factory(2, "Station name"))
 
-	@validator("name")
+	@field_validator("name")
+	@classmethod
 	def check_name_for_illegal_chars(cls, v: str) -> str:
 		if not v:
 			return ""
@@ -230,7 +239,7 @@ class SongEditInfo(SongAboutInfo, SongPathInfo):
 @pydanticDataclass
 class ValidatedSongAboutInfo(SongAboutInfo):
 
-	@validator("stations")
+	@field_validator("stations")
 	def check_tags_duplicates(cls, v: List[StationInfo]) -> List[StationInfo]:
 		if not v:
 			return []

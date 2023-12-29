@@ -109,7 +109,6 @@ class SongFileService:
 			id=result.lastrowid
 		)
 
-
 	def __song_ls_query__(
 		self,
 		prefix: Optional[str]=""
@@ -164,7 +163,10 @@ class SongFileService:
 						permittedPathsTree.values(normalizedPrefix) for r in p
 					]
 				)
-
+	
+	"""
+		Lists the items in a "directory".  
+	"""
 	def song_ls(
 		self,
 		user: AccountInfo,
@@ -194,10 +196,10 @@ class SongFileService:
 		combined = next(it, "")
 		if combined:
 			yield ""
-		yield f"/{combined}/"
+		yield squash_sequential_duplicate_chars(f"/{combined}/", "/")
 		for part in it:
 			combined += f"/{part}"
-			yield f"/{combined}/"
+			yield squash_sequential_duplicate_chars(f"/{combined}/", "/")
 
 	def __build_song_tree_dict__(
 		self,

@@ -195,7 +195,7 @@ class SongFileService:
 		it = iter((p for p in split if p))
 		combined = next(it, "")
 		if combined:
-			yield ""
+			yield "/"
 		yield squash_sequential_duplicate_chars(f"/{combined}/", "/")
 		for part in it:
 			combined += f"/{part}"
@@ -211,11 +211,11 @@ class SongFileService:
 			parent = re.sub(r"/?[^/]+/?$", "/", node.path)
 			if parent in result:
 				result[parent].append(node)
-			if node.path.endswith("/"):
-				result[node.path] = []
+			else:
+				result[parent] = [node]
 		return result
 
-	def song_ls_recursive(
+	def get_parent_directoriess(
 		self,
 		user: AccountInfo,
 		prefix: str

@@ -306,52 +306,34 @@ def test_prefix_split_(
 	songFileService = fixture_song_file_service
 	results = list(songFileService.__prefix_split__(""))
 	assert len(results) == 1
-	assert results[0] == ""
+	assert results[0] == "/"
 
 	results = list(songFileService.__prefix_split__("/"))
 	assert len(results) == 1
-	assert results[0] == ""
+	assert results[0] == "/"
 
 	results = list(songFileService.__prefix_split__("alpha"))
-	assert len(results) == 1
-	assert results[0] == "alpha"
+	assert len(results) == 2
+	assert results[0] == "/"
+	assert results[1] == "/alpha/"
 
 	input = "alpha/bravo"
 	results = list(songFileService.__prefix_split__(input))
-	assert len(results) == 2
-	assert results[0] == "alpha"
-	assert results[1] == "alpha/bravo"
+	assert len(results) == 3
+	assert results[0] == "/"
+	assert results[1] == "/alpha/"
+	assert results[2] == "/alpha/bravo/"
 
 	input = "alpha/bravo/charlie"
 	results = list(songFileService.__prefix_split__(input))
-	assert len(results) == 3
-	assert results[0] == "alpha"
-	assert results[1] == "alpha/bravo"
-	assert results[2] == "alpha/bravo/charlie"
-
-	input = "/alpha/bravo/charlie"
-	results = list(songFileService.__prefix_split__(input))
-	assert len(results) == 3
-	assert results[0] == "alpha"
-	assert results[1] == "alpha/bravo"
-	assert results[2] == "alpha/bravo/charlie"
-
-	input = "alpha/bravo/charlie/"
-	results = list(songFileService.__prefix_split__(input))
-	assert len(results) == 3
-	assert results[0] == "alpha"
-	assert results[1] == "alpha/bravo"
-	assert results[2] == "alpha/bravo/charlie"
-
-	input = "/alpha/bravo/charlie/"
-	results = list(songFileService.__prefix_split__(input))
-	assert len(results) == 3
-	assert results[0] == "alpha"
-	assert results[1] == "alpha/bravo"
-	assert results[2] == "alpha/bravo/charlie"
+	assert len(results) == 4
+	assert results[0] == "/"
+	assert results[1] == "/alpha/"
+	assert results[2] == "/alpha/bravo/"
+	assert results[3] == "/alpha/bravo/charlie/"
 
 
-def test_song_ls_recursive(
+def test_get_parent_directoriess_0(
 	fixture_song_file_service: SongFileService,
 	fixture_account_service: AccountsService
 ):
@@ -359,26 +341,225 @@ def test_song_ls_recursive(
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
-	result0 = songFileService.song_ls_recursive(user, "foo/rude/bog")
-	assert "/" in result0
-	assert len(result0["/"]) == 4
-	assert "blitz/" in result0
-	assert len(result0["blitz/"]) == 0
-	assert "foo/" in result0
-	assert len(result0["foo/"]) == 4
-	assert "jazz/" in result0
-	assert len(result0["jazz/"]) == 0
-	assert "tossedSlash/" in result0
-	assert len(result0["tossedSlash/"]) == 0
-	assert "foo/bar/" in result0
-	assert len(result0["foo/bar/"]) == 0
-	assert "foo/dude/" in result0
-	assert len(result0["foo/dude/"]) == 0
-	assert "foo/goo/" in result0
-	assert len(result0["foo/goo/"]) == 0
-	assert "foo/rude/" in result0
-	assert len(result0["foo/rude/"]) == 2
-	assert "foo/rude/bog/" in result0
-	assert len(result0["foo/rude/bog/"]) == 2
-	assert "foo/rude/rog/" in result0
-	assert len(result0["foo/rude/rog/"]) == 0
+	result = songFileService.get_parent_directoriess(user, "")
+	assert len(result) == 1
+	assert "/" in result
+	assert len(result["/"]) == 4
+	paths = sorted(result["/"], key=lambda d: d.path)
+	assert paths[0].path == "blitz/"
+	assert paths[1].path == "foo/"
+	assert paths[2].path == "jazz/"
+	assert paths[3].path == "tossedSlash/"
+
+def test_get_parent_directoriess_1(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+
+	result = songFileService.get_parent_directoriess(user, "/")
+	assert len(result) == 1
+	assert "/" in result
+	assert len(result["/"]) == 4
+	paths = sorted(result["/"], key=lambda d: d.path)
+	assert paths[0].path == "blitz/"
+	assert paths[1].path == "foo/"
+	assert paths[2].path == "jazz/"
+	assert paths[3].path == "tossedSlash/"
+
+def test_get_parent_directoriess_2(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+
+	result = songFileService.get_parent_directoriess(user, "/f")
+	assert len(result) == 1
+	assert "/" in result
+	assert len(result["/"]) == 4
+	paths= sorted(result["/"], key=lambda d: d.path)
+	assert paths[0].path == "blitz/"
+	assert paths[1].path == "foo/"
+	assert paths[2].path == "jazz/"
+	assert paths[3].path == "tossedSlash/"
+
+def test_get_parent_directoriess_3(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+
+	result = songFileService.get_parent_directoriess(user, "/foo/")
+	assert len(result) == 2
+	assert "/" in result
+	assert len(result["/"]) == 4
+	paths = sorted(result["/"], key=lambda d: d.path)
+	assert paths[0].path == "blitz/"
+	assert paths[1].path == "foo/"
+	assert paths[2].path == "jazz/"
+	assert paths[3].path == "tossedSlash/"
+	
+	assert "foo/" in result
+	assert len(result["foo/"]) == 4
+	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
+	assert fooPaths[0].path == "foo/bar/"
+	assert fooPaths[1].path == "foo/dude/"
+	assert fooPaths[2].path == "foo/goo/"
+	assert fooPaths[3].path == "foo/rude/"
+
+def test_get_parent_directoriess_4(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+
+	result = songFileService.get_parent_directoriess(user, "/foo/rude/")
+	assert len(result) == 3
+
+	assert "/" in result
+	assert len(result["/"]) == 4
+	paths = sorted(result["/"], key=lambda d: d.path)
+	assert paths[0].path == "blitz/"
+	assert paths[1].path == "foo/"
+	assert paths[2].path == "jazz/"
+	assert paths[3].path == "tossedSlash/"
+
+	assert "foo/" in result
+	assert len(result["foo/"]) == 4
+	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
+	assert fooPaths[0].path == "foo/bar/"
+	assert fooPaths[1].path == "foo/dude/"
+	assert fooPaths[2].path == "foo/goo/"
+	assert fooPaths[3].path == "foo/rude/"
+
+	assert "foo/rude/" in result
+	assert len(result["foo/rude/"]) == 2
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
+	assert fooRudePaths[0].path == "foo/rude/bog/"
+	assert fooRudePaths[1].path == "foo/rude/rog/"
+
+def test_get_parent_directoriess_5(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+
+	result = songFileService.get_parent_directoriess(user, "foo/rude/bog")
+	assert len(result) == 4
+
+	assert "/" in result
+	assert len(result["/"]) == 4
+	paths = sorted(result["/"], key=lambda d: d.path)
+	assert paths[0].path == "blitz/"
+	assert paths[1].path == "foo/"
+	assert paths[2].path == "jazz/"
+	assert paths[3].path == "tossedSlash/"
+
+	assert "foo/" in result
+	assert len(result["foo/"]) == 4
+	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
+	assert fooPaths[0].path == "foo/bar/"
+	assert fooPaths[1].path == "foo/dude/"
+	assert fooPaths[2].path == "foo/goo/"
+	assert fooPaths[3].path == "foo/rude/"
+
+	assert "foo/rude/" in result
+	assert len(result["foo/rude/"]) == 2
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
+	assert fooRudePaths[0].path == "foo/rude/bog/"
+	assert fooRudePaths[1].path == "foo/rude/rog/"
+
+	assert "foo/rude/bog/" in result
+	assert len(result["foo/rude/bog/"]) == 2
+	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.path)
+	assert fooRudeBogPaths[0].path == "foo/rude/bog/kilo2"
+	assert fooRudeBogPaths[1].path == "foo/rude/bog/lima2"
+
+def test_get_parent_directoriess_6(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+
+	result = songFileService.get_parent_directoriess(user, "foo/rude/bog/kilo2")
+	assert len(result) == 4
+
+	assert "/" in result
+	assert len(result["/"]) == 4
+	paths = sorted(result["/"], key=lambda d: d.path)
+	assert paths[0].path == "blitz/"
+	assert paths[1].path == "foo/"
+	assert paths[2].path == "jazz/"
+	assert paths[3].path == "tossedSlash/"
+
+	assert "foo/" in result
+	assert len(result["foo/"]) == 4
+	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
+	assert fooPaths[0].path == "foo/bar/"
+	assert fooPaths[1].path == "foo/dude/"
+	assert fooPaths[2].path == "foo/goo/"
+	assert fooPaths[3].path == "foo/rude/"
+
+	assert "foo/rude/" in result
+	assert len(result["foo/rude/"]) == 2
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
+	assert fooRudePaths[0].path == "foo/rude/bog/"
+	assert fooRudePaths[1].path == "foo/rude/rog/"
+
+	assert "foo/rude/bog/" in result
+	assert len(result["foo/rude/bog/"]) == 2
+	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.path)
+	assert fooRudeBogPaths[0].path == "foo/rude/bog/kilo2"
+	assert fooRudeBogPaths[1].path == "foo/rude/bog/lima2"
+
+def test_get_parent_directoriess_of_bad_path(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+
+	result = songFileService.get_parent_directoriess(user, "foo/rude/x/")
+	assert len(result) == 3
+
+	assert "/" in result
+	assert len(result["/"]) == 4
+	paths = sorted(result["/"], key=lambda d: d.path)
+	assert paths[0].path == "blitz/"
+	assert paths[1].path == "foo/"
+	assert paths[2].path == "jazz/"
+	assert paths[3].path == "tossedSlash/"
+
+	assert "foo/" in result
+	assert len(result["foo/"]) == 4
+	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
+	assert fooPaths[0].path == "foo/bar/"
+	assert fooPaths[1].path == "foo/dude/"
+	assert fooPaths[2].path == "foo/goo/"
+	assert fooPaths[3].path == "foo/rude/"
+
+	assert "foo/rude/" in result
+	assert len(result["foo/rude/"]) == 2
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
+	assert fooRudePaths[0].path == "foo/rude/bog/"
+	assert fooRudePaths[1].path == "foo/rude/rog/"

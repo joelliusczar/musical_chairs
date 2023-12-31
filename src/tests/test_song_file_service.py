@@ -341,7 +341,7 @@ def test_get_parent_directoriess_0(
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
-	result = songFileService.get_parent_directoriess(user, "")
+	result = songFileService.song_ls_parents(user, "")
 	assert len(result) == 1
 	assert "/" in result
 	assert len(result["/"]) == 4
@@ -360,7 +360,7 @@ def test_get_parent_directoriess_1(
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
 
-	result = songFileService.get_parent_directoriess(user, "/")
+	result = songFileService.song_ls_parents(user, "/")
 	assert len(result) == 1
 	assert "/" in result
 	assert len(result["/"]) == 4
@@ -379,7 +379,7 @@ def test_get_parent_directoriess_2(
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
 
-	result = songFileService.get_parent_directoriess(user, "/f")
+	result = songFileService.song_ls_parents(user, "/f")
 	assert len(result) == 1
 	assert "/" in result
 	assert len(result["/"]) == 4
@@ -398,7 +398,7 @@ def test_get_parent_directoriess_3(
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
 
-	result = songFileService.get_parent_directoriess(user, "/foo/")
+	result = songFileService.song_ls_parents(user, "/foo/")
 	assert len(result) == 2
 	assert "/" in result
 	assert len(result["/"]) == 4
@@ -425,7 +425,7 @@ def test_get_parent_directoriess_4(
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
 
-	result = songFileService.get_parent_directoriess(user, "/foo/rude/")
+	result = songFileService.song_ls_parents(user, "/foo/rude/")
 	assert len(result) == 3
 
 	assert "/" in result
@@ -459,7 +459,7 @@ def test_get_parent_directoriess_5(
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
 
-	result = songFileService.get_parent_directoriess(user, "foo/rude/bog")
+	result = songFileService.song_ls_parents(user, "foo/rude/bog")
 	assert len(result) == 4
 
 	assert "/" in result
@@ -499,7 +499,7 @@ def test_get_parent_directoriess_6(
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
 
-	result = songFileService.get_parent_directoriess(user, "foo/rude/bog/kilo2")
+	result = songFileService.song_ls_parents(user, "foo/rude/bog/kilo2")
 	assert len(result) == 4
 
 	assert "/" in result
@@ -539,7 +539,7 @@ def test_get_parent_directoriess_of_bad_path(
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
 
-	result = songFileService.get_parent_directoriess(user, "foo/rude/x/")
+	result = songFileService.song_ls_parents(user, "foo/rude/x/")
 	assert len(result) == 3
 
 	assert "/" in result

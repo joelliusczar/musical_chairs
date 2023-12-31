@@ -42,6 +42,10 @@ export interface DontCareMap {
 	[key: string]: unknown
 }
 
+export interface Dictionary<T> {
+	[key: string]: T
+}
+
 export type SortCallback<T> = (a:T, b:T) => number;
 export type SortCallbackFactory = 
 <T, K extends keyof T>(key: K) => SortCallback<T>

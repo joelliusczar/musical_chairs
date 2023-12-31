@@ -61,16 +61,18 @@ def song_ls(
 	return ListData(items=list(songInfoService.song_ls(user, prefix)))
 
 
-# @router.get("/songs/ls_r")
-# def song_ls_recursive(
-# 	prefix: str,
-# 	user: AccountInfo = Security(
-# 		get_path_user,
-# 		scopes=[UserRoleDef.PATH_LIST.value]
-# 	),
-# 	songInfoService: SongFileService = Depends(song_file_service)
-# ) -> list[ListData[SongTreeNode]]:
-# 	return ListData(items=list(songInfoService.song_ls(user, prefix)))
+@router.get("/songs/ls_parents")
+def song_ls_parents(
+	prefix: str,
+	user: AccountInfo = Security(
+		get_path_rule_loaded_current_user,
+		scopes=[UserRoleDef.PATH_LIST.value]
+	),
+	songInfoService: SongFileService = Depends(song_file_service)
+) -> dict[str, ListData[SongTreeNode]]:
+	return {x[0]:ListData(items=x[1]) for x \
+		in songInfoService.song_ls_parents(user, prefix).items()
+	}
 
 
 @router.get("/songs/{itemId}")

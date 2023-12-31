@@ -215,7 +215,7 @@ class SongFileService:
 				result[parent] = [node]
 		return result
 
-	def get_parent_directoriess(
+	def song_ls_parents(
 		self,
 		user: AccountInfo,
 		prefix: str

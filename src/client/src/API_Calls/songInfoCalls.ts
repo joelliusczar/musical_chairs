@@ -9,7 +9,12 @@ import {
 	AlbumCreationInfo,
 	UploadInfo,
 } from "../Types/song_info_types";
-import { IdType, StringObject, Flags } from "../Types/generic_types";
+import { 
+	IdType,
+	StringObject,
+	Flags,
+	Dictionary,
+} from "../Types/generic_types";
 import { ListData, TableData, PageableParams } from "../Types/pageable_types";
 import {
 	User,
@@ -90,7 +95,7 @@ export const saveAlbum = async ({ data }: { data: AlbumCreationInfo}) => {
 	return response.data;
 };
 
-export const fetchSongTree = async ({ prefix }: { prefix: string }) => {
+export const fetchSongsLs = async ({ prefix }: { prefix: string }) => {
 	const response = await webClient.get<ListData<SongTreeNodeInfo>>(
 		"song-info/songs/ls",
 		{
@@ -101,6 +106,20 @@ export const fetchSongTree = async ({ prefix }: { prefix: string }) => {
 	);
 	return response.data;
 };
+
+
+export const fetchSongLsParents = async ({ prefix }: { prefix: string }) => {
+	const response = await webClient.get<Dictionary<ListData<SongTreeNodeInfo>>>(
+		"song-info/songs/ls_parents",
+		{
+			params: {
+				prefix,
+			},
+		}
+	);
+	return response.data;
+};
+
 
 export const fetchPathUsers = async (
 	params: PageableParams & { prefix: string}

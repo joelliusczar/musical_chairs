@@ -4,11 +4,14 @@ import { TreeView, TreeItem } from "@mui/lab";
 import {
 	dispatches,
 } from "../../Reducers/waitingReducer";
-import { fetchSongTree } from "../../API_Calls/songInfoCalls";
+import { 
+	fetchSongsLs,
+	fetchSongLsParents,
+} from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { drawerWidth } from "../../style_config";
 import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
 import {
@@ -29,6 +32,7 @@ import { DirectoryNewModalOpener } from "./DirectoryEdit";
 import { SongUploadNewModalOpener } from "./SongUpload";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
+
 type SongTreeNodeProps = {
 	children: React.ReactNode
 	prefix: string
@@ -48,13 +52,13 @@ export const SongTreeNode = (props: SongTreeNodeProps) => {
 
 	const label = songNodeInfo.name ?
 		songNodeInfo.name : songNodeInfo.path.replace(prefix, "");
+
 	return (
 		<TreeItem nodeId={nodeId} label={label}>
 			{children}
 		</TreeItem>
 	);
 };
-
 
 
 type SongDirectoryProps = {
@@ -72,21 +76,43 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 	const { getCacheValue, setCacheValue } = useCache<
 		ListData<SongTreeNodeInfo>
 	>();
+	const location = useLocation();
+	const [currentQueryStr, setCurrentQueryStr] = useState("");
+
 
 	useAuthViewStateChange(dispatch);
 	useEffect(() => {
 		const fetch = async () => {
+			if (currentQueryStr === `${location.pathname}${location.search}`) return;
+			const queryObj = new URLSearchParams(location.search);
+			const urlPrefix = queryObj.get("prefix");
 			try {
 				if(!callStatus) {
 					dispatch(dispatches.started());
-					const cachedResults = getCacheValue(prefix);
-					if(cachedResults) {
-						dispatch(dispatches.done(cachedResults));
+					if (!!urlPrefix && ! prefix) {
+						const data = await fetchSongLsParents({ prefix: urlPrefix });
+						Object.keys(data).forEach(key => {
+							setCacheValue(key, data[key]);
+						});
+						const shortestKey = Object.keys(data).reduce((a, c) => {
+							return (c?.length || 0) < (a?.length || 0) ? c : a;
+						});
+						console.log(data);
+						console.log(shortestKey);
+						console.log(data[shortestKey]);
+						dispatch(dispatches.done(data[shortestKey]));
+						setCurrentQueryStr(`${location.pathname}${location.search}`);
 					}
 					else {
-						const data = await fetchSongTree({ prefix });
-						setCacheValue(prefix, data);
-						dispatch(dispatches.done(data));
+						const cachedResults = getCacheValue(prefix);
+						if(cachedResults) {
+							dispatch(dispatches.done(cachedResults));
+						}
+						else {
+							const data = await fetchSongsLs({ prefix });
+							setCacheValue(prefix, data);
+							dispatch(dispatches.done(data));
+						}
 					}
 				}
 			}
@@ -95,7 +121,7 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 			}
 		};
 		fetch();
-	}, [callStatus, dispatch, prefix]);
+	}, [callStatus, dispatch, prefix, location.search, location.pathname]);
 
 	return (
 		<Loader status={callStatus} error={state.error}>
@@ -136,6 +162,20 @@ export const SongTree = withCacheProvider<
 		>();
 		const { enqueueSnackbar } = useSnackbar();
 		const navigate = useNavigate();
+		const location = useLocation();
+
+		const getDirectoryPart = (path: string) => {
+			const directoryPart = path.replace(/[^/]+$/, "")
+			return directoryPart;
+		};
+
+		const updateUrl = (path: string) => {
+			const directoryPart = getDirectoryPart(path);
+			navigate(
+				`${location.pathname}?prefix=${encodeURIComponent(directoryPart)}`,
+				{ replace: true }
+			);
+		};
 
 		const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
 			if(nodeIds.length === 1) {
@@ -143,7 +183,12 @@ export const SongTree = withCacheProvider<
 					setSelectedNodes([]);
 				}
 				const songNodeInfo = getCacheValue(nodeIds[0]);
-				if(songNodeInfo && "rules" in songNodeInfo && "path" in songNodeInfo) {
+				if (!!songNodeInfo && "path" in songNodeInfo) {
+					updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
+				}
+				if (!!songNodeInfo &&
+					 "rules" in songNodeInfo && "path" in songNodeInfo
+				) {
 					setSelectedPrefixRules(songNodeInfo?.rules || []);
 					setSelectedPrefix(normalizeOpeningSlash(songNodeInfo?.path));
 				}

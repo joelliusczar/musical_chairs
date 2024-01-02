@@ -215,6 +215,8 @@ export const StationEdit = (props: StationEditProps) => {
 		callStatus,
 		pathVars.ownerkey,
 		pathVars.stationkey,
+		enqueueSnackbar,
+		reset,
 	]);
 
 	const loadStatus = pathVars.stationkey ? callStatus: CallStatus.done;

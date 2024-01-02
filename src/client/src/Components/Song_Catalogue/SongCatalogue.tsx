@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
 	fetchSongCatalogue,
@@ -134,6 +134,11 @@ export const SongCatalogue = () => {
 			</Button>);
 	};
 
+	const setStationCallback = useCallback(
+		(s: StationInfo | null) => setSelectedStation(s),
+		[setSelectedStation]
+	);
+
 	useEffect(() => {
 		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
@@ -168,7 +173,6 @@ export const SongCatalogue = () => {
 		fetch();
 	},[
 		catalogueDispatch,
-		fetchSongCatalogue,
 		pathVars.stationkey,
 		pathVars.ownerkey,
 		location.search,
@@ -183,7 +187,7 @@ export const SongCatalogue = () => {
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
-					onChange={(s) => setSelectedStation(s)}
+					onChange={setStationCallback}
 				/>
 			</Box>
 			<Box m={1}>

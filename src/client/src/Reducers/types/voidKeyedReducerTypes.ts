@@ -3,7 +3,7 @@ import {
 	WaitingTypes,
 	KeyAndData,
 	KeyedStoreShape,
-	VoidStoreShape
+	VoidStoreShape,
 } from "./reducerTypes";
 
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
 	Box,
 } from "@mui/material";
@@ -12,7 +12,7 @@ import {
 	addStationUserRule,
 	removeStationUserRule,
 } from "../../API_Calls/stationCalls";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { formatError } from "../../Helpers/error_formatter";
 import { StationRouteSelect } from "./StationRouteSelect";
 import { UrlBuilder } from "../../Helpers/pageable_helpers";
@@ -119,6 +119,7 @@ export const StationUserRoleAssignmentTable = () => {
 	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const pathVars = useParams();
+	const location = useLocation();
 	const { enqueueSnackbar } = useSnackbar();
 
 	const { callStatus } = state;
@@ -158,6 +159,11 @@ export const StationUserRoleAssignmentTable = () => {
 		}
 	};
 
+	const setStationCallback = useCallback(
+		(s: StationInfo | null) => setSelectedStation(s),
+		[setSelectedStation]
+	);
+
 	useEffect(() => {
 		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
@@ -192,7 +198,6 @@ export const StationUserRoleAssignmentTable = () => {
 		fetch();
 	},[
 		dispatch,
-		fetchStationUsers,
 		pathVars.stationkey,
 		pathVars.ownerkey,
 		location.search,
@@ -288,7 +293,7 @@ export const StationUserRoleAssignmentTable = () => {
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={urlBuilder.getOtherUrl}
-					onChange={(s) => setSelectedStation(s)}
+					onChange={setStationCallback}
 					unrendered
 				/>
 			</Box>

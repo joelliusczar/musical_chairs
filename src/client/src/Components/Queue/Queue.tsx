@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchQueue, removeSongFromQueue } from "../../API_Calls/stationCalls";
 import {
@@ -128,6 +128,11 @@ export const Queue = () => {
 		}
 	};
 
+	const setStationCallback = useCallback(
+		(s: StationInfo | null) => setSelectedStation(s),
+		[setSelectedStation]
+	);
+
 	useEffect(() => {
 		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title = `Musical Chairs - Queue${stationTitle}`;
@@ -161,7 +166,6 @@ export const Queue = () => {
 		fetch();
 	},[
 		queueDispatch,
-		fetchQueue,
 		pathVars.stationkey,
 		pathVars.ownerkey,
 		location.search,
@@ -176,7 +180,7 @@ export const Queue = () => {
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={urlBuilder.getOtherUrl}
-					onChange={(s) => setSelectedStation(s)}
+					onChange={setStationCallback}
 				/>
 			</Box>
 			<Box m={1}>

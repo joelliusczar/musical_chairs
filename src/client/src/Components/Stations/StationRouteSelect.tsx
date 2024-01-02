@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
 	useStationData,
 } from "../../Context_Providers/AppContextProvider";
@@ -40,7 +40,7 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 
 	const stations = contextStations;
 
-	const pathToStation = (path: string): StationInfo | null => {
+	const pathToStation = useCallback((path: string): StationInfo | null => {
 		const split = path.split("/");
 		const selectedStations = stations?.filter(
 			s => keyMatch(split[1], s) &&
@@ -64,7 +64,7 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 			}
 		}
 		return null;
-	};
+	},[stations]);
 
 	const pathSuffix = useMemo(() =>
 		`${pathVars.ownerkey}/${pathVars.stationkey?.toLowerCase()}`,
@@ -79,7 +79,7 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 		const station = pathToStation(pathSuffix);
 		setSelectedStation(station);
 		!!onChange && onChange(station);
-	},[setSelectedStation, pathSuffix, stations]);
+	},[setSelectedStation, pathSuffix, stations, pathToStation, onChange]);
 
 	const stationName = selectedStation?.name?.toLowerCase() || "";
 	const ownername = selectedStation?.owner?.username?.toLowerCase() || "";

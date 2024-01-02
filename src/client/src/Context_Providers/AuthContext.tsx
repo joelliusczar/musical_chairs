@@ -211,8 +211,8 @@ export const useCurrentUser = () => {
 };
 
 export const useHasAnyRoles = (requiredRoleNames: string[]) => {
-	if(!requiredRoleNames || requiredRoleNames.length < 1) return true;
 	const { state: { data } } = useContext(AuthContext);
+	if(!requiredRoleNames || requiredRoleNames.length < 1) return true;
 	const userRoles = data?.roles;
 
 	if (!userRoles) {

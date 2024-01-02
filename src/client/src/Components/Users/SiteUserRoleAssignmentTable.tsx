@@ -18,7 +18,7 @@ import { UserRoleDef } from "../../constants";
 import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "./UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import {
 	WaitingTypes,
 	SimpleStoreShape,
@@ -85,6 +85,7 @@ export const SiteUserRoleAssignmentTable = () => {
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
+	const location = useLocation();
 	const { subjectuserkey } = useParams();
 
 	const { callStatus } = state;
@@ -120,11 +121,11 @@ export const SiteUserRoleAssignmentTable = () => {
 	},[
 		dispatch,
 		subjectuserkey,
-		fetchUser,
 		location.search,
 		location.pathname,
 		currentQueryStr,
 		setCurrentQueryStr,
+		enqueueSnackbar,
 	]);
 
 	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {

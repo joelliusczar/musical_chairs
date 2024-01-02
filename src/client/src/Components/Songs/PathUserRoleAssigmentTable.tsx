@@ -33,6 +33,7 @@ import {
 	ActionRuleCreationInfo,
 } from "../../Types/user_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
+import { useLocation } from "react-router-dom";
 
 
 const pathRoles = Object.keys(UserRoleDef)
@@ -121,6 +122,7 @@ export const PathUserRoleAssignmentTable = () => {
 	);
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
+	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
 	const prefix = queryObj.get("prefix");
 
@@ -186,7 +188,6 @@ export const PathUserRoleAssignmentTable = () => {
 		fetch();
 	},[
 		dispatch,
-		fetchPathUsers,
 		location.search,
 		location.pathname,
 		currentQueryStr,

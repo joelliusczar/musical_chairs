@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchHistory } from "../../API_Calls/stationCalls";
 import {
@@ -97,6 +97,11 @@ export const History = () => {
 			</Button>);
 	};
 
+	const setStationCallback = useCallback(
+		(s: StationInfo | null) => setSelectedStation(s),
+		[setSelectedStation]
+	);
+
 	useEffect(() => {
 		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
@@ -131,7 +136,6 @@ export const History = () => {
 		fetch();
 	},[
 		historyDispatch,
-		fetchHistory,
 		pathVars.stationkey,
 		pathVars.ownerkey,
 		location.search,
@@ -146,7 +150,7 @@ export const History = () => {
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
-					onChange={(s) => setSelectedStation(s)}
+					onChange={setStationCallback}
 				/>
 			</Box>
 			<Box m={1}>

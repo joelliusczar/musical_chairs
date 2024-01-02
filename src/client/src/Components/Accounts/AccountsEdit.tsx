@@ -118,7 +118,7 @@ export const AccountsEdit = () => {
 			enqueueSnackbar(formatError(err), { variant: "error"});
 			dispatch(dispatches.failed(formatError(err)));
 		}
-	}, [dispatch, reset]);
+	}, [dispatch, reset, enqueueSnackbar]);
 
 	useEffect(() => {
 		const [ formId, formUsername] = watch(["id", "username"]);

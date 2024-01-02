@@ -262,7 +262,7 @@ export const SongEdit = () => {
 		};
 
 		fetch();
-	}, [dispatch, callStatus, ids ]);
+	}, [dispatch, callStatus, ids, reset ]);
 
 	useEffect(() => {
 		if (ids?.length < 2) return;

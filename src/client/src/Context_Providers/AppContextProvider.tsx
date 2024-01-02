@@ -203,11 +203,11 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 		artistState,
 		artistDispatch,
 	}),[
-		albumsState,
 		stationsState,
 		albumsState,
 		albumsDispatch,
 		artistState,
+		artistDispatch,
 		stationsDispatch,
 	]);
 

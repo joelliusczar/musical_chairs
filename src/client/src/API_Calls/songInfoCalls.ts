@@ -155,7 +155,7 @@ export const saveDirectory = async (
 	{ suffix, prefix }: { suffix: string, prefix: string }
 ) => {
 
-	const response = await webClient.post<SongTreeNodeInfo>(
+	const response = await webClient.post<Dictionary<ListData<SongTreeNodeInfo>>>(
 		"/song-info/directory",
 		null,
 		{
@@ -197,6 +197,14 @@ export const uploadSong = async (
 				suffix,
 			},
 		}
+	);
+	return response.data;
+};
+
+export const songDownloadUrl = async ({ id }:{ id: IdType}) => {
+
+	const response = await webClient.get<string>(
+		`/song-info/songs/download/${id}`
 	);
 	return response.data;
 };

@@ -19,7 +19,13 @@ module.exports = {
 	"plugins": [
 		"@typescript-eslint",
 		"react",
+		"react-hooks",
 	],
+	"settings": {
+		"react": {
+			"version": "detect",
+		},
+	},
 	"root": true,
 	"rules": {
 		"no-undef": "off",
@@ -54,5 +60,7 @@ module.exports = {
 		"no-console": ["warn", { "allow": ["warn", "error", "info"]}],
 		"array-callback-return": "error",
 		"max-len": ["error", { "code": 80, "tabWidth": 2 }],
+		"react-hooks/rules-of-hooks": "error",
+		"react-hooks/exhaustive-deps": "error",
 	},
 };

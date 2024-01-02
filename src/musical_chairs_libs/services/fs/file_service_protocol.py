@@ -8,3 +8,6 @@ class FileServiceBase(Protocol):
 
 	def open_song(self, keyPath: str) -> BinaryIO:
 		...
+
+	def download_url(self, keyPath: str) -> str:
+		...

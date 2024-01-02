@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Button, AppBar, Toolbar } from "@mui/material";
 import { TreeView, TreeItem } from "@mui/lab";
 import {
@@ -7,6 +7,7 @@ import {
 import { 
 	fetchSongsLs,
 	fetchSongLsParents,
+	songDownloadUrl,
 } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { drawerWidth } from "../../style_config";
@@ -16,18 +17,15 @@ import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
 import {
 	buildArrayQueryStr,
-	getDownloadAddress,
 } from "../../Helpers/url_helpers";
 import { useSnackbar } from "notistack";
 import { useAuthViewStateChange } from "../../Context_Providers/AuthContext";
 import { normalizeOpeningSlash } from "../../Helpers/string_helpers";
-import { ListDataShape } from "../../Reducers/types/reducerTypes";
 import { SongTreeNodeInfo } from "../../Types/song_info_types";
 import { IdType, Dictionary } from "../../Types/generic_types";
 import { ListData } from "../../Types/pageable_types";
 import { PathsActionRule } from "../../Types/user_types";
-import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
-import { RequiredDataStore } from "../../Reducers/reducerStores";
+import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
 import { DirectoryNewModalOpener } from "./DirectoryEdit";
 import { SongUploadNewModalOpener } from "./SongUpload";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
@@ -70,9 +68,7 @@ type SongDirectoryProps = {
 
 export const SongDirectory = (props: SongDirectoryProps) => {
 	const { prefix, level, dirIdx, setExpandedNodes } = props;
-	const [state, dispatch] = useDataWaitingReducer(
-		new RequiredDataStore<ListDataShape<SongTreeNodeInfo>>({ items: []})
-	);
+	const [state, dispatch] = useVoidWaitingReducer();
 	const { callStatus } = state;
 	const { getCacheValue, setCacheValue } = useCache<
 		ListData<SongTreeNodeInfo>
@@ -88,7 +84,7 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 			treeInfo: Dictionary<ListData<SongTreeNodeInfo>>
 		) => {
 			const keys = Object.keys(treeInfo).sort((a, b) => a.length - b.length);
-			let result = []
+			const result = [];
 			let precomputedDirIdx = 0;
 			for (let i = 1; i < keys.length; i++) {
 				const foundIdx = treeInfo[keys[i - 1]]
@@ -110,25 +106,22 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 					if (!!urlPrefix && ! prefix) {
 						const data = await fetchSongLsParents({ prefix: urlPrefix });
 						Object.keys(data).forEach(key => {
-							setCacheValue(key, data[key]);
+							setCacheValue(normalizeOpeningSlash(key), data[key]);
 						});
-						const shortestKey = Object.keys(data).reduce((a, c) => {
-							return (c?.length || 0) < (a?.length || 0) ? c : a;
-						});
-						dispatch(dispatches.done(data[shortestKey]));
+						dispatch(dispatches.done());
 						setCurrentQueryStr(`${location.pathname}${location.search}`);
 						const nodeIds = songTreeParentInfoToNodeIds(data);
 						setExpandedNodes(nodeIds);
 					}
 					else {
-						const cachedResults = getCacheValue(prefix);
+						const cachedResults = getCacheValue(normalizeOpeningSlash(prefix));
 						if(cachedResults) {
-							dispatch(dispatches.done(cachedResults));
+							dispatch(dispatches.done());
 						}
 						else {
 							const data = await fetchSongsLs({ prefix });
-							setCacheValue(prefix, data);
-							dispatch(dispatches.done(data));
+							setCacheValue(normalizeOpeningSlash(prefix), data);
+							dispatch(dispatches.done());
 						}
 					}
 				}
@@ -145,12 +138,17 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 		location.search,
 		location.pathname,
 		setCacheValue,
-		setExpandedNodes
+		getCacheValue,
+		setExpandedNodes,
+		currentQueryStr,
 	]);
+
+	const currentLevelData = getCacheValue(normalizeOpeningSlash(prefix)) 
+		|| { items: []};
 
 	return (
 		<Loader status={callStatus} error={state.error}>
-			{state.data.items.map((d, idx) => {
+			{currentLevelData.items.map((d, idx) => {
 				const key = `${level}_${dirIdx}_${idx}`;
 
 				return (
@@ -184,7 +182,7 @@ export const SongTree = withCacheProvider<
 		const [selectedPrefix, setSelectedPrefix] = useState<string | null>(null);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
 			useState<PathsActionRule[]>([]);
-		const { getCacheValue } = useCache<
+		const { getCacheValue, setCacheValue } = useCache<
 			SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 		>();
 		const { enqueueSnackbar } = useSnackbar();
@@ -196,7 +194,7 @@ export const SongTree = withCacheProvider<
 		};
 
 		const getDirectoryPart = (path: string) => {
-			const directoryPart = path.replace(/[^/]+$/, "")
+			const directoryPart = path.replace(/[^/]+$/, "");
 			return directoryPart;
 		};
 
@@ -277,6 +275,11 @@ export const SongTree = withCacheProvider<
 			return `${DomRoutes.pathUsers()}?prefix=${selectedPrefix}`;
 		};
 
+		const downloadSong = async () => {
+			const url = await songDownloadUrl({id : selectedSongIds[0]});
+			window?.open(url, "_blank")?.focus();
+		};
+
 		const selectedSongIds = getSelectedSongIds();
 
 		const canAssignUsers = () => {
@@ -313,16 +316,17 @@ export const SongTree = withCacheProvider<
 			return !!selectedSongIds.length;
 		};
 
-		const onAddNewNode = (node: SongTreeNodeInfo) => {
-
-		};
-
 		const onAddNewSong = (node: SongTreeNodeInfo) => {
 			if (node && node.id) {
 				navigate(getSongEditUrl([node.id]));
 			}
 		};
 
+		const onAddNewNode = (nodes: Dictionary<ListData<SongTreeNodeInfo>>) => {
+			Object.keys(nodes).forEach(key => {
+				setCacheValue(normalizeOpeningSlash(key), nodes[key]);
+			});
+		};
 
 		return (
 			<>
@@ -344,7 +348,7 @@ export const SongTree = withCacheProvider<
 							Edit Song Info
 						</Button>}
 						{canDownloadSelection() &&<Button
-							href={getDownloadAddress(selectedSongIds[0])}
+							onClick={downloadSong}
 						>
 							Download song
 						</Button>}
@@ -355,11 +359,15 @@ export const SongTree = withCacheProvider<
 							Assign users
 						</Button>}
 						{isDirectorySelected() && selectedPrefix &&
-							<DirectoryNewModalOpener add={onAddNewNode}
-								prefix={selectedPrefix} />}
+							<DirectoryNewModalOpener 
+								add={onAddNewNode}
+								prefix={selectedPrefix} 
+							/>}
 						{isDirectorySelected() && selectedPrefix &&
-							<SongUploadNewModalOpener add={onAddNewSong}
-								prefix={selectedPrefix} />}
+							<SongUploadNewModalOpener 
+								add={onAddNewSong}
+								prefix={selectedPrefix} 
+							/>}
 					</Toolbar>
 				</AppBar>}
 				<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />

@@ -9,3 +9,6 @@ class MockFileService(FileServiceBase):
 
 	def open_song(self, keyPath: str) -> BinaryIO:
 		return BytesIO(b"Howdy")
+	
+	def download_url(self, keyPath: str) -> str:
+		return keyPath

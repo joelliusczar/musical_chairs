@@ -15,6 +15,8 @@ import {
 	SongTreeNodeInfo,
 } from "../../Types/song_info_types";
 import { SubmitButton } from "../Shared/SubmitButton";
+import { ListData } from "../../Types/pageable_types";
+import { Dictionary } from "../../Types/generic_types";
 
 
 
@@ -54,7 +56,7 @@ const schema = Yup.object().shape({
 
 type DirectoryEditProps = {
 	onCancel?: (e: unknown) => void
-	afterSubmit?: (s: SongTreeNodeInfo) => void,
+	afterSubmit?: (s: Dictionary<ListData<SongTreeNodeInfo>>) => void,
 	prefix: string,
 };
 
@@ -126,7 +128,7 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 
 
 type DirectoryNewModalOpenerProps = {
-	add?: (s: SongTreeNodeInfo) => void;
+	add?: (s: Dictionary<ListData<SongTreeNodeInfo>>) => void;
 	prefix: string
 }
 
@@ -143,7 +145,7 @@ export const DirectoryNewModalOpener = (
 		setItemNewOpen(false);
 	};
 
-	const itemCreated = (item: SongTreeNodeInfo) => {
+	const itemCreated = (item: Dictionary<ListData<SongTreeNodeInfo>>) => {
 		add && add(item);
 		closeModal();
 	};

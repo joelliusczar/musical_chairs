@@ -8,7 +8,6 @@ from fastapi import (
 	Query,
 	UploadFile
 )
-from fastapi.responses import FileResponse
 from api_dependencies import (
 	song_info_service,
 	song_file_service,
@@ -19,7 +18,8 @@ from api_dependencies import (
 	get_current_user_simple,
 	get_from_query_subject_user,
 	get_prefix_if_owner,
-	path_rule_service
+	path_rule_service,
+	file_service
 )
 
 from musical_chairs_libs.services import (
@@ -46,6 +46,10 @@ from song_validation import (
 	validate_path_rule,
 	validate_path_rule_for_remove
 )
+from musical_chairs_libs.services.fs import (
+	FileServiceBase,
+)
+
 router = APIRouter(prefix="/song-info")
 
 
@@ -130,16 +134,22 @@ def get_songs_for_multi_edit(
 			check_optional_path_for_current_user,
 			scopes=[UserRoleDef.PATH_DOWNLOAD.value]
 		)
-	],
-	response_class=FileResponse
+	]
 )
 def download_song(
 	id: int,
-	songFileService: SongFileService = Depends(song_file_service)
+	songFileService: SongFileService = Depends(song_file_service),
+	fileService: FileServiceBase = Depends(file_service)
 ) -> str:
-	path = next(songFileService.get_song_path(id), None)
+	path = next(songFileService.get_song_path(id, useFullSystemPath=False), None)
 	if path:
-		return path
+		url = fileService.download_url(path)
+		if url:
+			return url
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"File not found for {id}", "song file")]
+		)
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"{id} not found", "id")]
@@ -306,8 +316,10 @@ def create_directory(
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
 	),
 	songFileService: SongFileService = Depends(song_file_service)
-) -> SongTreeNode:
-	return songFileService.create_directory(prefix, suffix, user.id)
+) -> dict[str, ListData[SongTreeNode]]:
+	return {x[0]:ListData(items=x[1]) for x \
+		in songFileService.create_directory(prefix, suffix, user).items()
+	}
 
 @router.post("/upload")
 def upload_song(

@@ -15,7 +15,8 @@ const defaultKey = "__mc_cache_default__";
 type CacheContextType<T> = {
 	[key: KeyType]: {
 		getCacheValue: (key: KeyType, defaultValue?: T | null) => T | null,
-		setCacheValue: (key: KeyType, value: T) => void
+		setCacheValue: (key: KeyType, value: T) => void,
+		getCacheKeys: () => string[]
 	}
 };
 
@@ -39,13 +40,17 @@ export const CacheContextProvider = <T,>(props: CacheContextProviderProps) => {
 		return key in cache ? cache[key] : defaultValue;
 	},[cache]);
 
+	const getCacheKeys = useCallback(() => {
+		return Object.keys(cache);
+	}, [cache]);
+
 	const existingCaches = useContext<CacheContextType<T>>(CacheContext);
 
 
 	const contextValue = useMemo(() => ({
 		...existingCaches,
-		[cacheKey]: { getCacheValue, setCacheValue},
-	}),[existingCaches, cacheKey, getCacheValue, setCacheValue]);
+		[cacheKey]: { getCacheValue, setCacheValue, getCacheKeys },
+	}),[existingCaches, cacheKey, getCacheValue, setCacheValue, getCacheKeys]);
 
 	return (
 		<CacheContext.Provider value={contextValue}>

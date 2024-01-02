@@ -40,6 +40,7 @@ from musical_chairs_libs.tables import (
 	st_pk
 )
 from .env_manager import EnvManager
+from itertools import islice
 
 class SongFileService:
 
@@ -59,8 +60,8 @@ class SongFileService:
 		self,
 		prefix: str,
 		suffix: str,
-		userId: int
-	) -> SongTreeNode:
+		user: AccountInfo,
+	) -> dict[str, list[SongTreeNode]]:
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
@@ -70,16 +71,12 @@ class SongFileService:
 			path = path,
 			name = suffix,
 			isdirectoryplaceholder = True,
-			lastmodifiedbyuserfk = userId,
+			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
-		result = self.conn.execute(stmt)
+		self.conn.execute(stmt)
 		self.conn.commit()
-		return SongTreeNode(
-			path=normalize_closing_slash(path),
-			totalChildCount=1,
-			id=result.lastrowid
-		)
+		return self.song_ls_parents(user, prefix, -3)
 
 	def save_song_file(
 			self,
@@ -206,7 +203,6 @@ class SongFileService:
 		nodes: Iterable[SongTreeNode]
 	) -> dict[str, list[SongTreeNode]]:
 		result: dict[str, list[SongTreeNode]] = {}
-		result["/"] = []
 		for node in nodes:
 			parent = re.sub(r"/?[^/]+/?$", "/", node.path)
 			if parent in result:
@@ -218,11 +214,16 @@ class SongFileService:
 	def song_ls_parents(
 		self,
 		user: AccountInfo,
-		prefix: str
+		prefix: str,
+		depth: Optional[int]=None
 	) -> dict[str, list[SongTreeNode]]:
 		permittedPathTree = user.get_permitted_paths_tree()
 		queryList: list[Select[Tuple[str, str, int, int, str]]] = []
-		for p in self.__prefix_split__(prefix):
+		reverseDirection = bool(depth) and depth < 0
+		prefixSplit =  reversed([p for p in self.__prefix_split__(prefix)])\
+			if reverseDirection else self.__prefix_split__(prefix)
+		limited = islice(prefixSplit, abs(depth)) if depth else prefixSplit
+		for p in limited:
 				queryList.append(self.__song_ls_query__(p))
 		nodes = self.__query_to_treeNodes__(
 			union_all(*queryList),

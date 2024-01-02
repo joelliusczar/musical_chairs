@@ -30,3 +30,6 @@ class LocalFileService(FileServiceBase):
 
 	def open_song(self, keyPath: str) -> BinaryIO:
 		return open(keyPath, "rb")
+
+	def download_url(self, keyPath: str) -> str:
+		return keyPath

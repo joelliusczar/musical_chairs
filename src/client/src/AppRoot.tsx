@@ -1,4 +1,4 @@
-import React, { useState, createRef } from "react";
+import React, { createRef, useState } from "react";
 import "./App.css";
 import {
 	AppBar,
@@ -8,6 +8,7 @@ import {
 	Box,
 	Toolbar,
 	Button,
+	Tooltip,
 } from "@mui/material";
 import { AppRoutes, NavMenu } from "./Components/Navigation/NavRoutes";
 import { theme, drawerWidth } from "./style_config";
@@ -21,12 +22,23 @@ import {
 import {
 	AppContextProvider,
 } from "./Context_Providers/AppContextProvider";
+import { buildTimespanMsg, secondsToTuple } from "./Helpers/time_helper";
 
 
 function AppTrunk() {
-	const [menuAnchor, setMenuAnchor ] = useState(null);
 	const currentUser = useCurrentUser();
 	const openLoginPrompt = useLoginPrompt();
+	const [logginTooltipMsg, setLogginTooltipMsg] = useState("");
+
+	const loggedInTimespan = () => {
+		const timeTuple = secondsToTuple(
+			(Date.now() / 1000) - currentUser.login_timestamp
+		);
+		return `Logged in for ${buildTimespanMsg(
+			timeTuple
+		)}`;
+	};
+
 
 	return (
 		<Box sx={{ display: "flex" }}>
@@ -44,9 +56,14 @@ function AppTrunk() {
 						Login
 					</Button> :
 						<>
-							<UserMenu
-								btnLabel={currentUser.username}
-							/>
+							<Tooltip 
+								title={logginTooltipMsg}
+								onOpen={() => setLogginTooltipMsg(loggedInTimespan())}
+							>
+								<UserMenu
+									btnLabel={currentUser.username}
+								/>
+							</Tooltip>
 						</>
 					}
 				</Toolbar>

@@ -6,7 +6,8 @@ const divmod = (x: number, y: number) => {
 
 export const secondsToTuple = (seconds: number)
 : [number, number, number, number] => {
-	const [m, s] = divmod(seconds, 60);
+	const cleanedSeconds = Math.floor(seconds);
+	const [m, s] = divmod(cleanedSeconds, 60);
 	const [h, mRemainder] = divmod(m, 60);
 	const [d, hRemainder] = divmod(h, 24);
 	return [d, hRemainder, mRemainder, s];
@@ -17,10 +18,10 @@ export const buildTimespanMsg = (
 ) => {
 	const presentTimeFields = timeleft.map((t,i) => t > 0 ? i : null)
 		.filter(i => i !== null);
-	const days = timeleft[0] > 1 ? `${timeleft[0]} days` : "day";
-	const hours = timeleft[1] > 1 ? `${timeleft[1]} hours` : "hour";
-	const minutes = timeleft[2] > 1 ? `${timeleft[2]} minutes` : "minute";
-	const seconds = timeleft[3] > 1 ? `${timeleft[2]} seconds` : "second";
+	const days = timeleft[0] === 1 ? "1 day" : `${timeleft[0]} days`;
+	const hours = timeleft[1] ===  1 ? "1 hour" : `${timeleft[1]} hours` ;
+	const minutes = timeleft[2] ===  1 ? "1 minute" : `${timeleft[2]} minutes`;
+	const seconds = timeleft[3] ===  1 ?  "1 second" : `${timeleft[3]} seconds`;
 	if (compare(presentTimeFields, [])) {
 		return "";
 	}

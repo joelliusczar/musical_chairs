@@ -168,6 +168,7 @@ class AuthenticatedAccount(AccountInfoSecurity):
 	access_token: str=""
 	token_type: str=""
 	lifetime: float=0
+	login_timestamp: float=0
 
 @pydanticDataclass(frozen=True)
 class AccountCreationInfo(AccountInfoSecurity):

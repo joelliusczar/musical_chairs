@@ -1,6 +1,6 @@
 #pyright: reportMissingTypeStubs=false
 from urllib import parse
-from typing import Optional
+from typing import Optional, Callable
 from dataclasses import asdict
 from fastapi import (
 	APIRouter,
@@ -31,9 +31,10 @@ from api_dependencies import (
 	get_account_if_has_scope,
 	get_user_from_token,
 	get_optional_user_from_token,
-	get_from_path_subject_user
+	get_from_path_subject_user,
+	datetime_provider
 )
-
+from datetime import datetime
 
 
 
@@ -44,7 +45,8 @@ router = APIRouter(prefix=f"/accounts")
 def login(
 	response: Response,
 	formData: OAuth2PasswordRequestForm=Depends(),
-	accountService: AccountsService=Depends(accounts_service)
+	accountService: AccountsService=Depends(accounts_service),
+	getDatetime: Callable[[], datetime]=Depends(datetime_provider)
 ) -> AuthenticatedAccount:
 	user = accountService.authenticate_user(
 		formData.username,
@@ -74,6 +76,12 @@ def login(
 		value=parse.quote(user.displayname or user.username),
 		max_age=tokenLifetime
 	)
+	loginTimestamp = getDatetime().timestamp()
+	response.set_cookie(
+		key="login_timestamp",
+		value=str(loginTimestamp),
+		max_age=tokenLifetime
+	)
 	return AuthenticatedAccount(
 		access_token=token,
 		token_type="bearer",
@@ -81,12 +89,14 @@ def login(
 		roles=user.roles,
 		lifetime=tokenLifetime,
 		displayname=user.displayname,
-		email=user.email
+		email=user.email,
+		login_timestamp=loginTimestamp
 	)
 
 @router.post("/open_cookie")
 def login_with_cookie(
 	access_token: str  = Cookie(default=None),
+	login_timestamp: float  = Cookie(default=0),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AuthenticatedAccount:
 	uriDecodedToken = parse.unquote(access_token or "")
@@ -99,7 +109,8 @@ def login_with_cookie(
 			roles=user.roles,
 			lifetime=expiration,
 			displayname=user.displayname,
-			email=user.email
+			email=user.email,
+			login_timestamp=login_timestamp
 		)
 	except:
 		return AuthenticatedAccount(

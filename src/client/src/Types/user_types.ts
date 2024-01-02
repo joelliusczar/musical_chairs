@@ -53,6 +53,7 @@ export interface LoggedInUser extends RoledEntity {
 	username: string,
 	access_token: string,
 	lifetime: number,
+	login_timestamp: number,
 };
 
 export interface LoginCredentials {

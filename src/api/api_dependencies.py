@@ -5,7 +5,8 @@ from typing import (
 	Optional,
 	Iterable,
 	Union,
-	Collection
+	Collection,
+	Callable
 )
 from urllib import parse
 from fastapi import (
@@ -56,6 +57,7 @@ from api_error import (
 	build_wrong_permissions_error,
 	build_too_many_requests_error
 )
+from datetime import datetime
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -90,6 +92,9 @@ def station_key_path(
 	stationkey: Union[int, str]
 ) -> Union[int, str]:
 	return int_or_str(stationkey)
+
+def datetime_provider() -> Callable[[], datetime]:
+	return get_datetime
 
 def get_configured_db_connection(
 	envManager: EnvManager=Depends(EnvManager)

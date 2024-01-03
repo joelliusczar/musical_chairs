@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { useSnackbar } from "notistack";
 import { useForm } from "react-hook-form";
@@ -20,7 +20,6 @@ import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
 import { useParams } from "react-router-dom";
 import Loader from "../Shared/Loader";
 import {
-	SubjectUserParams,
 	PasswordUpdate,
 	User,
 } from "../../Types/user_types";
@@ -77,7 +76,11 @@ export const AccountsEdit = () => {
 			return;
 		}
 		try {
-			await updatePassword({subjectuserkey: pathVars.userkey, ...values});
+			const requestObj = updatePassword({
+				subjectuserkey: pathVars.userkey, 
+				...values,
+			});
+			await requestObj.call();
 			enqueueSnackbar("Password updated successfully", { variant: "success"});
 		}
 		catch(err){
@@ -96,9 +99,10 @@ export const AccountsEdit = () => {
 	const { handleSubmit, reset, watch, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const data = await updateAccountBasic(
+			const requestObj = updateAccountBasic(
 				{subjectuserkey: values.id, data: values}
 			);
+			const data = await requestObj.call();
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -107,39 +111,35 @@ export const AccountsEdit = () => {
 		}
 	});
 
-	const _fetchUser = useCallback(async (params: SubjectUserParams) => {
-		try {
-			dispatch(dispatches.started());
-			const data = await fetchUser(params);
-			reset(data);
-			dispatch(dispatches.done());
-		}
-		catch (err) {
-			enqueueSnackbar(formatError(err), { variant: "error"});
-			dispatch(dispatches.failed(formatError(err)));
-		}
-	}, [dispatch, reset, enqueueSnackbar]);
 
 	useEffect(() => {
 		const [ formId, formUsername] = watch(["id", "username"]);
+		const key = pathVars.userKey;
+		const isNumKey = Number.isInteger(key);
+		const isStrKey = typeof key === "string";
+		const isDiffId = isNumKey && parseInt(key || "") !== formId;
+		const isDiffName = isStrKey && key != formUsername;
+		if (!key || (!isDiffId && !isDiffName)) {
+			return;
+		}
+		const requestObj = fetchUser({ subjectuserkey: key });
 		const fetch = async () => {
 			try {
-				const key = pathVars.userKey;
-				const isNumKey = Number.isInteger(key);
-				const isStrKey = typeof key === "string";
-				const isDiffId = isNumKey && parseInt(key || "") !== formId;
-				const isDiffName = isStrKey && key != formUsername;
-				if (key && (isDiffId || isDiffName)) {
-					_fetchUser({ subjectuserkey: key });
-				}
-
+				dispatch(dispatches.started());
+				const data = await requestObj.call();
+				reset(data);
+				dispatch(dispatches.done());
 			}
-			catch(err) {
+			catch (err) {
+				enqueueSnackbar(formatError(err), { variant: "error"});
 				dispatch(dispatches.failed(formatError(err)));
 			}
 		};
+
 		fetch();
-	},[dispatch, pathVars.userKey, _fetchUser, watch]);
+
+		return () => requestObj.abortController.abort();
+	},[dispatch, pathVars.userKey, watch, enqueueSnackbar, reset]);
 
 	return (<Loader status={state.callStatus} error={state.error}>
 		<Box sx={inputField}>

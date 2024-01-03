@@ -17,7 +17,7 @@ import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
 import {
 	buildArrayQueryStr,
-} from "../../Helpers/url_helpers";
+} from "../../Helpers/request_helpers";
 import { useSnackbar } from "notistack";
 import { useAuthViewStateChange } from "../../Context_Providers/AuthContext";
 import { normalizeOpeningSlash } from "../../Helpers/string_helpers";

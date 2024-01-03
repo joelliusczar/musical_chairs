@@ -19,7 +19,7 @@ import {
 import { enableStations, disableStations } from "../../API_Calls/stationCalls";
 import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
-import { getListenAddress } from "../../Helpers/url_helpers";
+import { getListenAddress } from "../../Helpers/request_helpers";
 import {
 	dispatches,
 } from "../../Reducers/waitingReducer";

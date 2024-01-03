@@ -28,7 +28,7 @@ import {
 } from "../../Context_Providers/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { OptionsButton } from "../Shared/OptionsButton";
-import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo } from "../../Types/station_types";
 import {

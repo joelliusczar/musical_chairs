@@ -60,7 +60,8 @@ export function AccountsNew() {
 	const { handleSubmit, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			await createAccount({ values });
+			const requestObj = createAccount({ values });
+			await requestObj.call();
 			navigate(DomRoutes.accountsLogin());
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}

@@ -50,13 +50,14 @@ export const UserSearch = (
 		if (!inputValue) {
 			return;
 		}
+		const requestObj = searchUsers({ params: {searchTerm: inputValue} });
 		const searchCall = debouncePromise(async (searchTerm: string) => {
 			try {
 				if (searchTerm in searchCache.current) {
 					setOptions(searchCache.current[searchTerm]);
 					return;
 				}
-				const data = await searchUsers({ params: {searchTerm} });
+				const data = await requestObj.call();
 				searchCache.current[searchTerm] = data;
 				setOptions(data);
 			}
@@ -67,6 +68,7 @@ export const UserSearch = (
 		},100);
 
 		searchCall(inputValue);
+		() => requestObj.abortController.abort();
 	},[inputValue, enqueueSnackbar]);
 
 	return (

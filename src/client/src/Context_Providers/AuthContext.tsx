@@ -7,7 +7,7 @@ import React, {
 	useCallback,
 } from "react";
 import PropTypes from "prop-types";
-import { login, login_with_cookie, webClient } from "../API_Calls/userCalls";
+import { login, loginWithCookie, webClient } from "../API_Calls/userCalls";
 import {
 	dispatches,
 } from "../Reducers/waitingReducer";
@@ -37,6 +37,7 @@ const loggedOut = {
 	roles: [],
 	access_token: "",
 	lifetime: 0,
+	login_timestamp: 0,
 };
 
 const loggedOutState = new RequiredDataStore<LoggedInUser>(loggedOut);
@@ -47,9 +48,11 @@ const expireCookie = (name: string) => {
 
 
 const clearCookies = () => {
+	console.log("clearing cookies");
 	expireCookie("username");
 	expireCookie("displayname");
 	expireCookie("access_token");
+	expireCookie("login_timestamp");
 };
 
 type AuthContextType = {
@@ -115,6 +118,7 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 
 		//want closure references to be updating so we're clearing rather
 		//than reusing
+		console.log("setupAuthExpirationAction");
 		webClient.interceptors.response.clear();
 
 		webClient.interceptors.response.use(
@@ -152,6 +156,7 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 	]);
 
 	useEffect(() => {
+		const requestObj = loginWithCookie();
 		if (loggedInUsername) return;
 		const cookieObj = cookieToObject(document.cookie);
 		const username = decodeURIComponent(cookieObj["username"] || "");
@@ -161,11 +166,13 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 		) || username;
 
 
+
 		if(!document.cookie) return;
 		dispatch(dispatches.assign({username, displayname: displayName}));
+
 		const loginCall = async () => {
 			try {
-				const data = await login_with_cookie();
+				const data = await requestObj.call();
 				setupAuthExpirationAction();
 				dispatch(dispatches.done(data));
 			}
@@ -174,6 +181,7 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 			}
 		};
 		loginCall();
+		return () => requestObj.abortController.abort();
 	},[
 		dispatch,
 		setupAuthExpirationAction,
@@ -237,11 +245,12 @@ export const useLogin: () => [loginFnType, () => void] = () => {
 
 	const _login = async (username: string, password: string) => {
 		try {
-			dispatch(dispatches.started());
-			const data = await login({
+			const requestObj = login({
 				username,
 				password,
 			});
+			dispatch(dispatches.started());
+			const data = await requestObj.call();
 			setupAuthExpirationAction();
 			dispatch(dispatches.done(data));
 		}

@@ -43,16 +43,17 @@ export const AccountsList = () => {
 	},[]);
 
 	useEffect(() => {
+		const queryObj = new URLSearchParams(location.search);
+		const page = parseInt(queryObj.get("page") || "1");
+		const pageSize = parseInt(queryObj.get("rows") || "50");
+		const requestObj = fetchUserList({
+			params: { page: page - 1, pageSize: pageSize },
+		});
 		const fetch = async () => {
 			try {
 				if(!fetchStatus || fetchStatus === CallStatus.idle) {
 					setFetchStatus(CallStatus.loading);
-					const queryObj = new URLSearchParams(location.search);
-					const page = parseInt(queryObj.get("page") || "1");
-					const pageSize = parseInt(queryObj.get("rows") || "50");
-					const tableData = await fetchUserList({
-						params: { page: page - 1, pageSize: pageSize },
-					});
+					const tableData = await requestObj.call();
 					setFetchStatus(CallStatus.done);
 					setTableData(tableData);
 				}
@@ -63,6 +64,7 @@ export const AccountsList = () => {
 			}
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	},[
 		setFetchError,
 		fetchStatus,

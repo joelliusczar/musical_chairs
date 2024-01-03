@@ -100,12 +100,13 @@ export const SiteUserRoleAssignmentTable = () => {
 			enqueueSnackbar("No user selected", { variant: "error"});
 			return;
 		}
+		const requestObj = fetchUser({ subjectuserkey });
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 
 			dispatch(dispatches.started());
 			try {
-				const data = await fetchUser({ subjectuserkey });
+				const data = await requestObj.call();
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 
@@ -118,6 +119,7 @@ export const SiteUserRoleAssignmentTable = () => {
 
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	},[
 		dispatch,
 		subjectuserkey,
@@ -130,10 +132,11 @@ export const SiteUserRoleAssignmentTable = () => {
 
 	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
 		try {
-			const addedRule = await addSiteUserRule({
+			const requestObj = addSiteUserRule({
 				subjectuserkey: user.id,
 				rule,
 			});
+			const addedRule = await requestObj.call();
 			dispatch(dispatches.add(addedRule));
 			enqueueSnackbar("Role added!", { variant: "success"});
 		}
@@ -144,10 +147,11 @@ export const SiteUserRoleAssignmentTable = () => {
 
 	const removeRole = async (role: ActionRule, user: User) => {
 		try {
-			await removeSiteUserRule({
+			const requestObj = removeSiteUserRule({
 				subjectuserkey: user.id,
 				rulename: role.name,
 			});
+			await requestObj.call();
 			dispatch(dispatches.remove(role.name));
 			enqueueSnackbar(`${role.name} removed!`, { variant: "success"});
 		}

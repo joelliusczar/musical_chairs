@@ -1,5 +1,5 @@
 import { defaultWebClient as webClient } from "./api";
-import { buildArrayQueryStr } from "../Helpers/url_helpers";
+import { buildArrayQueryStr } from "../Helpers/request_helpers";
 import {
 	AlbumInfo,
 	ArtistInfo,

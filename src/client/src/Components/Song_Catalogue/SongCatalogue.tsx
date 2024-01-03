@@ -79,10 +79,11 @@ export const SongCatalogue = () => {
 			return;
 		}
 		try {
-			await sendSongRequest({
+			const requestObj = sendSongRequest({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				songid: songId });
+			await requestObj.call();
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
 		}
 		catch (err) {
@@ -146,22 +147,23 @@ export const SongCatalogue = () => {
 	},[selectedStation]);
 
 	useEffect(() => {
-		const fetch = async () => {
-			if (currentQueryStr === `${location.pathname}${location.search}`) return;
-			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationkey || !pathVars.ownerkey) return;
+		if (currentQueryStr === `${location.pathname}${location.search}`) return;
+		const queryObj = new URLSearchParams(location.search);
+		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
-			const page = parseInt(queryObj.get("page") || "1");
-			const limit = parseInt(queryObj.get("rows") || "50");
+		const page = parseInt(queryObj.get("page") || "1");
+		const limit = parseInt(queryObj.get("rows") || "50");
+		const requestObj = fetchSongCatalogue({
+			stationkey: pathVars.stationkey,
+			ownerkey: pathVars.ownerkey,
+			page: page - 1,
+			limit: limit,
+		}
+		);
+		const fetch = async () => {
 			catalogueDispatch(dispatches.started());
 			try {
-				const data = await fetchSongCatalogue({
-					stationkey: pathVars.stationkey,
-					ownerkey: pathVars.ownerkey,
-					page: page - 1,
-					limit: limit,
-				}
-				);
+				const data = await requestObj.call();
 				catalogueDispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 			}
@@ -171,6 +173,7 @@ export const SongCatalogue = () => {
 
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	},[
 		catalogueDispatch,
 		pathVars.stationkey,

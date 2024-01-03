@@ -109,21 +109,22 @@ export const History = () => {
 	},[selectedStation]);
 
 	useEffect(() => {
-		const fetch = async () => {
-			if (currentQueryStr === `${location.pathname}${location.search}`) return;
-			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationkey || !pathVars.ownerkey) return;
+		if (currentQueryStr === `${location.pathname}${location.search}`) return;
+		const queryObj = new URLSearchParams(location.search);
+		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
-			const page = parseInt(queryObj.get("page") || "1");
-			const limit = parseInt(queryObj.get("rows") || "50");
+		const page = parseInt(queryObj.get("page") || "1");
+		const limit = parseInt(queryObj.get("rows") || "50");
+		const requestObj = fetchHistory({
+			stationkey: pathVars.stationkey,
+			ownerkey: pathVars.ownerkey,
+			page: page - 1,
+			limit: limit,
+		});
+		const fetch = async () => {
 			historyDispatch(dispatches.started());
 			try {
-				const data = await fetchHistory({
-					stationkey: pathVars.stationkey,
-					ownerkey: pathVars.ownerkey,
-					page: page - 1,
-					limit: limit,
-				});
+				const data = await requestObj.call();
 				historyDispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 
@@ -134,6 +135,7 @@ export const History = () => {
 
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	},[
 		historyDispatch,
 		pathVars.stationkey,

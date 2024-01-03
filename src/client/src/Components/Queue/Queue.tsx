@@ -114,12 +114,13 @@ export const Queue = () => {
 				enqueueSnackbar("Station or user missing", {variant: "error" });
 				return;
 			}
-			const data = await removeSongFromQueue({
+			const requestObj = removeSongFromQueue({
 				ownerkey: pathVars.ownerkey,
 				stationkey: pathVars.stationkey,
 				songid: item?.id,
 				queuedtimestamp: item?.queuedtimestamp,
 			});
+			const data = await requestObj.call();
 			queueDispatch(dispatches.done(data));
 			enqueueSnackbar("Song has been removed from queue");
 		}
@@ -140,21 +141,22 @@ export const Queue = () => {
 
 
 	useEffect(() => {
-		const fetch = async () => {
-			if (currentQueryStr === `${location.pathname}${location.search}`) return;
-			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationkey || !pathVars.ownerkey) return;
+		if (currentQueryStr === `${location.pathname}${location.search}`) return;
+		const queryObj = new URLSearchParams(location.search);
+		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
-			const page = parseInt(queryObj.get("page") || "1");
-			const limit = parseInt(queryObj.get("rows") || "50");
+		const page = parseInt(queryObj.get("page") || "1");
+		const limit = parseInt(queryObj.get("rows") || "50");
+		const requestObj = fetchQueue({
+			stationkey: pathVars.stationkey,
+			ownerkey: pathVars.ownerkey,
+			page: page - 1,
+			limit: limit,
+		});
+		const fetch = async () => {
 			queueDispatch(dispatches.started());
 			try {
-				const data = await fetchQueue({
-					stationkey: pathVars.stationkey,
-					ownerkey: pathVars.ownerkey,
-					page: page - 1,
-					limit: limit,
-				});
+				const data = await requestObj.call();
 				queueDispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 			}
@@ -164,6 +166,7 @@ export const Queue = () => {
 
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	},[
 		queueDispatch,
 		pathVars.stationkey,

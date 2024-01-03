@@ -60,7 +60,8 @@ export const Stations = () => {
 	const disableAllStations = async () => {
 		try {
 			toggleDispatch(dispatches.started({ key: "*" }));
-			await disableStations({ includeAll: true });
+			const requestObj = disableStations({ includeAll: true });
+			await requestObj.call();
 			toggleDispatch(dispatches.done({ key: "*" }));
 			enqueueSnackbar("All stations are being disabled", { variant: "success"});
 		}
@@ -79,7 +80,8 @@ export const Stations = () => {
 		e.stopPropagation();
 		try {
 			toggleDispatch(dispatches.started({ key: id }));
-			await disableStations({ ids: [id]});
+			const requestObj = disableStations({ ids: [id]});
+			await requestObj.call();
 			toggleDispatch(dispatches.done({ key: id }));
 			enqueueSnackbar(`${name} is being disabled`, { variant: "success"});
 			updateStation(id, p => ({...p, isrunning: false}));
@@ -100,7 +102,8 @@ export const Stations = () => {
 		e.stopPropagation();
 		try {
 			toggleDispatch(dispatches.started({ key: id }));
-			await enableStations({ ids: id});
+			const requestObj = enableStations({ ids: id});
+			await requestObj.call();
 			toggleDispatch(dispatches.done({ key: id }));
 			enqueueSnackbar(`${name} is being enabled`, { variant: "success"});
 			updateStation(id, p => ({...p, isrunning: true}));

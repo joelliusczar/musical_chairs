@@ -142,12 +142,13 @@ export const StationUserRoleAssignmentTable = () => {
 				count: 0,
 				priority: null,
 			};
-			const addedRule = await addStationUserRule({
+			const requestObj = addStationUserRule({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				rule,
 				subjectuserkey: user.id,
 			});
+			const addedRule = await requestObj.call();
 			dispatch(dispatches.add({
 				...user,
 				roles: [...user.roles, addedRule],
@@ -171,21 +172,22 @@ export const StationUserRoleAssignmentTable = () => {
 	},[selectedStation]);
 
 	useEffect(() => {
-		const fetch = async () => {
-			if (currentQueryStr === `${location.pathname}${location.search}`) return;
-			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationkey || !pathVars.ownerkey) return;
+		if (currentQueryStr === `${location.pathname}${location.search}`) return;
+		const queryObj = new URLSearchParams(location.search);
+		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
-			const page = parseInt(queryObj.get("page") || "1");
-			const limit = parseInt(queryObj.get("rows") || "50");
+		const page = parseInt(queryObj.get("page") || "1");
+		const limit = parseInt(queryObj.get("rows") || "50");
+		const requestObj = fetchStationUsers({
+			stationkey: pathVars.stationkey,
+			ownerkey: pathVars.ownerkey,
+			page: page - 1,
+			limit: limit,
+		});
+		const fetch = async () => {
 			dispatch(dispatches.started());
 			try {
-				const data = await fetchStationUsers({
-					stationkey: pathVars.stationkey,
-					ownerkey: pathVars.ownerkey,
-					page: page - 1,
-					limit: limit,
-				});
+				const data = await requestObj.call();
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 
@@ -196,6 +198,7 @@ export const StationUserRoleAssignmentTable = () => {
 
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	},[
 		dispatch,
 		pathVars.stationkey,
@@ -212,12 +215,13 @@ export const StationUserRoleAssignmentTable = () => {
 			return;
 		}
 		try {
-			const addedRule = await addStationUserRule({
+			const requestObj = addStationUserRule({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				rule,
 				subjectuserkey: user.id,
 			});
+			const addedRule = await requestObj.call();
 			dispatch(dispatches.update(
 				user.id,
 				{...user,
@@ -237,12 +241,13 @@ export const StationUserRoleAssignmentTable = () => {
 			return;
 		}
 		try {
-			await removeStationUserRule({
+			const requestObj = removeStationUserRule({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				rulename: role.name,
 				subjectuserkey: user.id,
 			});
+			await requestObj.call();
 			const roles = [...user.roles];
 			const idx = roles.findIndex(r => r.name === role.name);
 			if (idx > -1 ) {
@@ -270,11 +275,12 @@ export const StationUserRoleAssignmentTable = () => {
 			return;
 		}
 		try {
-			await removeStationUserRule({
+			const requestObj = removeStationUserRule({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				subjectuserkey: user.id,
 			});
+			await requestObj.call();
 			dispatch(dispatches.remove(user.id));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});
 		}

@@ -169,10 +169,11 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 	},[albumsDispatch, username]);
 
 	useEffect(() => {
+		const requestObj = fetchStations();
 		const fetch = async () => {
 			try {
 				stationsDispatch(dispatches.started());
-				const data = await fetchStations();
+				const data = await requestObj.call();
 				stationsDispatch(dispatches.done(data));
 			}
 			catch(err) {
@@ -180,6 +181,7 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 			}
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	}, [stationsDispatch]);
 
 	useEffect(() => {

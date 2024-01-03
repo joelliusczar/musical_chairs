@@ -78,9 +78,10 @@ const validatePhraseIsUnused = async (
 ) => {
 	const id = context?.parent?.id;
 	if (!value) return true;
-	const used = await checkValues({ id, values: {
+	const requestObj = checkValues({ id, values: {
 		[context.path]: value,
 	}});
+	const used = await requestObj.call();
 	return !(context.path in used) || !used[context.path];
 };
 
@@ -166,7 +167,8 @@ export const StationEdit = (props: StationEditProps) => {
 			};
 			saveData.viewsecuritylevel = viewsecuritylevel.id;
 			saveData.requestsecuritylevel = requestsecuritylevel.id;
-			const data = await saveStation({ values: saveData, id: stationId });
+			const requestObj = saveStation({ values: saveData, id: stationId });
+			const data = await requestObj.call();
 			afterSubmit(data);
 			if (stationId) {
 				updateStation(stationId, data);
@@ -185,31 +187,32 @@ export const StationEdit = (props: StationEditProps) => {
 	useAuthViewStateChange(dispatch);
 
 	useEffect(() => {
-		const fetch = async () => {
-			try {
-				if(pathVars.stationkey && pathVars.ownerkey) {
+		if(pathVars.stationkey && pathVars.ownerkey) {
+			const requestObj = fetchStationForEdit({
+				ownerkey: pathVars.ownerkey,
+				stationkey: pathVars.stationkey,
+			});
+			const fetch = async () => {
+				try {
 					if(!callStatus) {
 						dispatch(dispatches.started());
-						const data = await fetchStationForEdit({
-							ownerkey: pathVars.ownerkey,
-							stationkey: pathVars.stationkey,
-						});
+						const data = await requestObj.call();
 						const formData = stationInfoToFormData(data);
 						reset(formData);
 						dispatch(dispatches.done());
 					}
 				}
-				else {
-					reset(initialValues);
+				catch(err) {
+					enqueueSnackbar(formatError(err), { variant: "error"});
+					dispatch(dispatches.failed(formatError(err)));
 				}
-			}
-			catch(err) {
-				enqueueSnackbar(formatError(err), { variant: "error"});
-				dispatch(dispatches.failed(formatError(err)));
-			}
-		};
-
-		fetch();
+			};
+			fetch();
+			return () => requestObj.abortController.abort();
+		}
+		else {
+			reset(initialValues);
+		}
 	}, [
 		dispatch,
 		callStatus,

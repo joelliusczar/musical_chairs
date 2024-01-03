@@ -20,165 +20,278 @@ import {
 	ActionRule,
 } from "../Types/user_types";
 
-export const fetchStations = async (params?: OwnerParam) => {
-	const response = await webClient.get<ListData<StationInfo>>(
-		"stations/list",
-		{
-			params: {
-				ownerkey: params?.ownerkey || undefined,
-			},
-		});
-	return response.data;
+export const fetchStations = (params?: OwnerParam) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const response = await webClient.get<ListData<StationInfo>>(
+				"stations/list",
+				{
+					params: {
+						ownerkey: params?.ownerkey || undefined,
+					},
+				});
+			return response.data;
+		},
+	};
 };
 
-export const fetchStationForEdit = async (
+export const fetchStationForEdit = (
 	{ ownerkey, stationkey }: { ownerkey: KeyType, stationkey: KeyType}
 ) => {
-	const response = await webClient.get<StationInfo>(
-		`stations/${ownerkey}/${stationkey}/`
-	);
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+
+			const response = await webClient.get<StationInfo>(
+				`stations/${ownerkey}/${stationkey}/`,
+				{ signal: abortController.signal }
+			);
+			return response.data;
+		},
+	};
 };
 
-export const checkValues = async (
+export const checkValues = (
 	{ id, values }: { id: IdType, values: StringObject }
 ) => {
-	const response = await webClient.get<Flags<StringObject>>("stations/check/", {
-		params: {
-			id,
-			...values,
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+
+			const response = await webClient.get<Flags<StringObject>>(
+				"stations/check/", {
+					params: {
+						id,
+						...values,
+					},
+					signal: abortController.signal,
+				}
+			);
+			return response.data;
 		},
-	});
-	return response.data;
+	};
 };
 
-export const saveStation = async (
+export const saveStation = (
 	{ values, id}: { values: StationCreationInfo, id?: IdType | null }
 ) => {
-	if(id) {
-		const response = await webClient.put<StationInfo>(
-			`/stations/${id}`,
-			values
-		);
-		return response.data;
-	}
-	else {
-		const response = await webClient.post<StationInfo>("stations", values);
-		return response.data;
-	}
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			if(id) {
+				const response = await webClient.put<StationInfo>(
+					`/stations/${id}`,
+					values,
+					{ signal: abortController.signal }
+				);
+				return response.data;
+			}
+			else {
+				const response = await webClient.post<StationInfo>("stations", values);
+				return response.data;
+			}
+		},
+	};
 };
 
-export const fetchSongCatalogue = async ({
+export const fetchSongCatalogue = ({
 	stationkey,
 	ownerkey,
 	...params
 }: RequiredStationParams) => {
-	const url = `stations/${ownerkey}/${stationkey}/catalogue/`;
-	const response = await webClient.get<
-		StationTableData<SongListDisplayItem>
-	>(url, { params: params });
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const url = `stations/${ownerkey}/${stationkey}/catalogue/`;
+			const response = await webClient.get<
+				StationTableData<SongListDisplayItem>
+			>(
+				url,
+				{ params: params, signal: abortController.signal }
+			);
+			return response.data;
+		},
+	};
 };
 
-export const fetchQueue = async (
+export const fetchQueue = (
 	{ stationkey, ownerkey, ...params }: RequiredStationParams
 ) => {
-	const url = `stations/${ownerkey}/${stationkey}/queue/`;
-	const response = await webClient.get<CurrentPlayingInfo>(url, {
-		params: params,
-	});
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const url = `stations/${ownerkey}/${stationkey}/queue/`;
+			const response = await webClient.get<CurrentPlayingInfo>(
+				url, {
+					params: params,
+					signal: abortController.signal,
+				}
+			);
+			return response.data;
+		},
+	};
 };
 
-export const fetchHistory = async (
+export const fetchHistory = (
 	{ stationkey, ownerkey, ...params }: RequiredStationParams
 ) => {
-	const url = `stations/${ownerkey}/${stationkey}/history/`;
-	const response = await webClient.get<
-		StationTableData<SongListDisplayItem>
-	>(url, { params: params });
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const url = `stations/${ownerkey}/${stationkey}/history/`;
+			const response = await webClient.get<
+				StationTableData<SongListDisplayItem>
+			>(url, { params: params, signal: abortController.signal });
+			return response.data;
+		},
+	};
 };
 
-export const sendSongRequest = async (
+export const sendSongRequest = (
 	{ stationkey, ownerkey, songid}: RequiredStationParams & {songid: IdType}
 ) => {
-	const response = await webClient
-		.post<void>(`stations/${ownerkey}/${stationkey}/request/${songid}`);
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const response = await webClient
+				.post<void>(
+					`stations/${ownerkey}/${stationkey}/request/${songid}`,
+					null,
+					{ signal: abortController.signal }
+				);
+			return response.data;
+		},
+	};
 };
 
-export const removeSongFromQueue = async (
+export const removeSongFromQueue = (
 	params: RequiredStationParams & { songid: IdType, queuedtimestamp: number }
 ) => {
-	const {
-		ownerkey,
-		stationkey,
-		songid,
-		queuedtimestamp,
-	} = params;
-	const response = await webClient.delete<CurrentPlayingInfo>(
-		`stations/${ownerkey}/${stationkey}/request`, {
-			params: {
-				id: songid,
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const {
+				ownerkey,
+				stationkey,
+				songid,
 				queuedtimestamp,
-			},
-		});
-	return response.data;
+			} = params;
+			const response = await webClient.delete<CurrentPlayingInfo>(
+				`stations/${ownerkey}/${stationkey}/request`, {
+					params: {
+						id: songid,
+						queuedtimestamp,
+					},
+					signal: abortController.signal,
+				});
+			return response.data;
+		},
+	};
 };
 
-export const enableStations = async (
+export const enableStations = (
 	{ ids }: { ids: IdType[] | IdType }
 ) => {
-	const queryStr = buildArrayQueryStrFromObj({"stationids": ids});
-	const response = await webClient
-		.put<StationInfo[]>(`stations/enable/${queryStr}`);
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const queryStr = buildArrayQueryStrFromObj({"stationids": ids});
+			const response = await webClient
+				.put<StationInfo[]>(
+					`stations/enable/${queryStr}`,
+					null,
+					{ signal: abortController.signal }
+				);
+			return response.data;
+		},
+	};
 };
 
-export const disableStations = async (
+export const disableStations = (
 	{ ids=[] }: { ids?: number[], includeAll?: boolean }
 ) => {
-	const queryStr = buildArrayQueryStrFromObj({"stationids": ids});
-	const response = await webClient
-		.put<void>(`stations/disable/${queryStr}`);
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const queryStr = buildArrayQueryStrFromObj({"stationids": ids});
+			const response = await webClient
+				.put<void>(
+					`stations/disable/${queryStr}`,
+					null,
+					{ signal: abortController.signal }
+				);
+			return response.data;
+		},
+	};
 };
 
-export const fetchStationUsers = async ({
+export const fetchStationUsers = ({
 	stationkey,
 	ownerkey,
 	...params
 }: RequiredStationParams) => {
-	const url = `stations/${ownerkey}/${stationkey}/user_list`;
-	const response = await webClient.get<TableData<User>>(url, {
-		params: params,
-	});
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const url = `stations/${ownerkey}/${stationkey}/user_list`;
+			const response = await webClient.get<TableData<User>>(url, {
+				params: params,
+				signal: abortController.signal,
+			});
+			return response.data;
+		},
+	};
 };
 
-export const addStationUserRule = async ({
+export const addStationUserRule = ({
 	ownerkey,
 	stationkey,
 	subjectuserkey,
 	rule,
 }: StationRuleAddition ) => {
-	const url = `stations/${ownerkey}/${stationkey}/user_role`;
-	const response = await webClient.post<ActionRule>(url, rule, {
-		params: { subjectuserkey },
-	});
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const url = `stations/${ownerkey}/${stationkey}/user_role`;
+			const response = await webClient.post<ActionRule>(url, rule, {
+				params: { subjectuserkey },
+				signal: abortController.signal,
+			});
+			return response.data;
+		},
+	};
 };
 
-export const removeStationUserRule = async ({
+export const removeStationUserRule = ({
 	ownerkey,
 	stationkey,
 	subjectuserkey,
 	rulename,
 }: StationRuleDeletion) => {
-	const url = `stations/${ownerkey}/${stationkey}/user_role`;
-	const response = await webClient.delete(url, {
-		params: { subjectuserkey, rulename },
-	});
-	return response.data;
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const url = `stations/${ownerkey}/${stationkey}/user_role`;
+			const response = await webClient.delete(url, {
+				params: { subjectuserkey, rulename },
+				signal: abortController.signal,
+			});
+			return response.data;
+		},
+	};
 };

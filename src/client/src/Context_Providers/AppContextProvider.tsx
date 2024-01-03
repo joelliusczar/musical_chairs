@@ -153,10 +153,11 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 
 	useEffect(() => {
 		if (!username) return;
+		const requestObj = fetchAlbumList({});
 		const fetch = async () => {
 			try {
 				albumsDispatch(dispatches.started());
-				const data = await fetchAlbumList({});
+				const data = await requestObj.call();
 				albumsDispatch(dispatches.done(data));
 			}
 			catch(err) {
@@ -164,6 +165,7 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 			}
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	},[albumsDispatch, username]);
 
 	useEffect(() => {
@@ -182,10 +184,11 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 
 	useEffect(() => {
 		if (!username) return;
+		const requestObj = fetchArtistList({});
 		const fetch = async () => {
 			try {
 				artistDispatch(dispatches.started());
-				const data = await fetchArtistList({});
+				const data = await requestObj.call();
 				artistDispatch(dispatches.done(data));
 			}
 			catch(err) {
@@ -193,6 +196,7 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 			}
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	}, [artistDispatch, username]);
 
 	const contextValue = useMemo(() => ({

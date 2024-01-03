@@ -222,9 +222,10 @@ export const SongEdit = () => {
 				...values,
 				touched: touchedObjectToArr(values.touched),
 			};
-			const data = ids.length < 2 ?
-				await saveSongEdits({ id: ids[0], data: valuesSavura }) :
-				await saveSongsEditsMulti({ ids, data: valuesSavura });
+			const requestObj = ids.length < 2 ?
+				saveSongEdits({ id: ids[0], data: valuesSavura }) :
+				saveSongsEditsMulti({ ids, data: valuesSavura });
+			const data = await requestObj.call();
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -240,15 +241,16 @@ export const SongEdit = () => {
 			dispatch(dispatches.failed("No song selected"));
 			return;
 		}
+		const requestObj = ids.length == 1 ?
+			fetchSongForEdit({
+				id: ids[0],
+			}) :
+			fetchSongsForMultiEdit({ ids });
 		const fetch = async () => {
 			try {
 				if (!callStatus) {
 					dispatch(dispatches.started());
-					const data = ids.length == 1 ?
-						await fetchSongForEdit({
-							id: ids[0],
-						}) :
-						await fetchSongsForMultiEdit({ ids });
+					const data = await requestObj.call();
 					reset({
 						...data,
 						touched: createTouchedObject(data.touched),
@@ -262,6 +264,7 @@ export const SongEdit = () => {
 		};
 
 		fetch();
+		return () => requestObj.abortController.abort();
 	}, [dispatch, callStatus, ids, reset ]);
 
 	useEffect(() => {

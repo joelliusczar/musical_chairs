@@ -38,10 +38,11 @@ const validatePhraseIsUnused = async (
 ) => {
 	const id = context?.parent?.id;
 	if (!value) return true;
-	const used = await checkValues({ id, values: {
+	const requestObj = checkValues({ id, values: {
 		"suffix": value,
 		"prefix": context?.parent?.prefix,
 	}});
+	const used = await requestObj.call();
 	return !(	context.path in used) || !used[context.path];
 };
 
@@ -80,7 +81,8 @@ export const SongUpload = (props: SongUploadProps) => {
 	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const result = await uploadSong(values);
+			const requestObj = uploadSong(values);
+			const result = await requestObj.call();
 			afterSubmit(result);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}

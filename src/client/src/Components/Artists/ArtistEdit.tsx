@@ -30,7 +30,8 @@ export const ArtistEdit = (props: ArtistEditProps) => {
 	const { handleSubmit, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const artist = await saveArtist({ name: values.name });
+			const requestObj = saveArtist({ name: values.name });
+			const artist = await requestObj.call();
 			enqueueSnackbar("Save successful", { variant: "success"});
 			afterSubmit(artist);
 		}

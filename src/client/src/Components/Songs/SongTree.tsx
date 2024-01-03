@@ -80,6 +80,11 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 
 	useAuthViewStateChange(dispatch);
 	useEffect(() => {
+		if (callStatus) return;
+		if (currentQueryStr === `${location.pathname}${location.search}`) return;
+		const queryObj = new URLSearchParams(location.search);
+		const urlPrefix = queryObj.get("prefix");
+
 		const songTreeParentInfoToNodeIds = (
 			treeInfo: Dictionary<ListData<SongTreeNodeInfo>>
 		) => {
@@ -96,41 +101,45 @@ export const SongDirectory = (props: SongDirectoryProps) => {
 			return result;
 		};
 
-		const fetch = async () => {
-			if (currentQueryStr === `${location.pathname}${location.search}`) return;
-			const queryObj = new URLSearchParams(location.search);
-			const urlPrefix = queryObj.get("prefix");
-			try {
-				if(!callStatus) {
+		try 
+		{
+			if (!!urlPrefix && !prefix) {
+				const requestObj = fetchSongLsParents({ prefix: urlPrefix });
+				const fetch = async () => {
 					dispatch(dispatches.started());
-					if (!!urlPrefix && ! prefix) {
-						const data = await fetchSongLsParents({ prefix: urlPrefix });
-						Object.keys(data).forEach(key => {
-							setCacheValue(normalizeOpeningSlash(key), data[key]);
-						});
+					const data = await requestObj.call();
+					Object.keys(data).forEach(key => {
+						setCacheValue(normalizeOpeningSlash(key), data[key]);
+					});
+					dispatch(dispatches.done());
+					setCurrentQueryStr(`${location.pathname}${location.search}`);
+					const nodeIds = songTreeParentInfoToNodeIds(data);
+					setExpandedNodes(nodeIds);
+				};
+				fetch();
+				return () => requestObj.abortController.abort();
+			}
+			else {
+				const requestObj = fetchSongsLs({ prefix });
+				const fetch = async () => {
+					const cachedResults = getCacheValue(normalizeOpeningSlash(prefix));
+					if(cachedResults) {
 						dispatch(dispatches.done());
-						setCurrentQueryStr(`${location.pathname}${location.search}`);
-						const nodeIds = songTreeParentInfoToNodeIds(data);
-						setExpandedNodes(nodeIds);
 					}
 					else {
-						const cachedResults = getCacheValue(normalizeOpeningSlash(prefix));
-						if(cachedResults) {
-							dispatch(dispatches.done());
-						}
-						else {
-							const data = await fetchSongsLs({ prefix });
-							setCacheValue(normalizeOpeningSlash(prefix), data);
-							dispatch(dispatches.done());
-						}
+						const data = await requestObj.call();
+						setCacheValue(normalizeOpeningSlash(prefix), data);
+						dispatch(dispatches.done());
 					}
-				}
+				};
+				fetch();
+				return () => requestObj.abortController.abort();
 			}
-			catch(err) {
-				dispatch(dispatches.failed(formatError(err)));
-			}
-		};
-		fetch();
+		}
+		catch(err) {
+			dispatch(dispatches.failed(formatError(err)));
+		}
+
 	}, [
 		callStatus,
 		dispatch,
@@ -276,7 +285,8 @@ export const SongTree = withCacheProvider<
 		};
 
 		const downloadSong = async () => {
-			const url = await songDownloadUrl({id : selectedSongIds[0]});
+			const requestObj = songDownloadUrl({id : selectedSongIds[0]});
+			const url = await requestObj.call();
 			window?.open(url, "_blank")?.focus();
 		};
 

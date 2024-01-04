@@ -23,12 +23,19 @@ import {
 	AppContextProvider,
 } from "./Context_Providers/AppContextProvider";
 import { buildTimespanMsg, secondsToTuple } from "./Helpers/time_helper";
+import { cookieToObject } from "./Helpers/browser_helpers";
 
 
 function AppTrunk() {
 	const currentUser = useCurrentUser();
 	const openLoginPrompt = useLoginPrompt();
 	const [logginTooltipMsg, setLogginTooltipMsg] = useState("");
+	const cookieObj = cookieToObject(document.cookie);
+	const usernameCookie = decodeURIComponent(cookieObj["username"] || "");
+
+	const displayNameCookie = decodeURIComponent(
+		cookieObj["displayname"] || ""
+	) || usernameCookie;
 
 	const loggedInTimespan = () => {
 		const timeTuple = secondsToTuple(
@@ -49,7 +56,7 @@ function AppTrunk() {
 			>
 				<Toolbar>
 					<Typography variant="h1">Musical Chairs</Typography>
-					{!currentUser.username ? <Button
+					{!(!!currentUser.username || !!displayNameCookie) ? <Button
 						color="inherit"
 						onClick={() => openLoginPrompt()}
 					>
@@ -61,7 +68,7 @@ function AppTrunk() {
 								onOpen={() => setLogginTooltipMsg(loggedInTimespan())}
 							>
 								<UserMenu
-									btnLabel={currentUser.username}
+									btnLabel={currentUser.username || displayNameCookie}
 								/>
 							</Tooltip>
 						</>

@@ -15,13 +15,17 @@ export function LoginModal(props: LoginModalProps) {
 
 	const closeModal = () => {
 		setOpen(false);
+	};
+
+	const handleCancel = () => {
+		setOpen(false);
 		onCancel && onCancel();
 	};
 
 
 	return (
 		<Dialog open={open} onClose={closeModal} >
-			<LoginForm afterSubmit={closeModal} onCancel={closeModal}/>
+			<LoginForm afterSubmit={closeModal} onCancel={handleCancel}/>
 		</Dialog>
 	);
 }

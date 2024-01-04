@@ -23,7 +23,6 @@ import {
 import { useSnackbar } from "notistack";
 import { LoginModal } from "../Components/Accounts/AccountsLoginModal";
 import { BrowserRouter } from "react-router-dom";
-import { cookieToObject } from "../Helpers/browser_helpers";
 import { LoggedInUser } from "../Types/user_types";
 import {
 	ActionPayload,
@@ -43,12 +42,13 @@ const loggedOut = {
 const loggedOutState = new RequiredDataStore<LoggedInUser>(loggedOut);
 
 const expireCookie = (name: string) => {
-	document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;";
+	const cookieStr = name + 
+		"=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;SameSite=None;";
+	document.cookie = cookieStr;
 };
 
 
 const clearCookies = () => {
-	console.log("clearing cookies");
 	expireCookie("username");
 	expireCookie("displayname");
 	expireCookie("access_token");
@@ -118,7 +118,6 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 
 		//want closure references to be updating so we're clearing rather
 		//than reusing
-		console.log("setupAuthExpirationAction");
 		webClient.interceptors.response.clear();
 
 		webClient.interceptors.response.use(
@@ -158,17 +157,8 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 	useEffect(() => {
 		const requestObj = loginWithCookie();
 		if (loggedInUsername) return;
-		const cookieObj = cookieToObject(document.cookie);
-		const username = decodeURIComponent(cookieObj["username"] || "");
-
-		const displayName = decodeURIComponent(
-			cookieObj["displayname"] || ""
-		) || username;
-
-
 
 		if(!document.cookie) return;
-		dispatch(dispatches.assign({username, displayname: displayName}));
 
 		const loginCall = async () => {
 			try {
@@ -243,7 +233,7 @@ export const useLogin: () => [loginFnType, () => void] = () => {
 		logout,
 	} = useContext(AuthContext);
 
-	const _login = async (username: string, password: string) => {
+	const _login = useCallback( async (username: string, password: string) => {
 		try {
 			const requestObj = login({
 				username,
@@ -258,7 +248,7 @@ export const useLogin: () => [loginFnType, () => void] = () => {
 			dispatch(dispatches.failed(formatError(err)));
 			throw err;
 		}
-	};
+	},[dispatch, setupAuthExpirationAction]);
 	return [_login, logout];
 };
 

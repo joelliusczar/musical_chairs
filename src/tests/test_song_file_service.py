@@ -184,7 +184,7 @@ def test_add_directory(
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
-	songFileService.create_directory("foo", "create_dir_test", user.id)
+	songFileService.create_directory("foo", "create_dir_test", user)
 	paths = sorted(songFileService.song_ls(user, "foo/"), key=lambda d: d.path)
 	assert len(paths) == 5
 	assert paths[0].path == "foo/bar/"
@@ -216,7 +216,7 @@ def test_add_directory_to_leaves(
 	songFileService.create_directory(
 		"foo/goo/boo",
 		"create_dir_test",
-		user.id
+		user
 	)
 	paths = sorted(
 		songFileService.song_ls(user, "foo/goo/boo/"),

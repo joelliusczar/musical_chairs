@@ -249,11 +249,13 @@ fi
 echo '##### leftovers #####'
 sync_utility_scripts
 
-echo "mc_auth_key=${APP_AUTH_KEY}" > "$HOME"/keys/"$MC_PROJ_NAME"
-echo "pb_secret=${PB_SECRET}" >> "$HOME"/keys/"$MC_PROJ_NAME"
-echo "pb_api_key=${PB_API_KEY}" >> "$HOME"/keys/"$MC_PROJ_NAME"
+if [ ! -e "$HOME"/keys/"$MC_PROJ_NAME" ]; then
+	echo "MC_AUTH_SECRET_KEY=${APP_AUTH_KEY}" > "$HOME"/keys/"$MC_PROJ_NAME"
+	echo "PB_SECRET=${PB_SECRET}" >> "$HOME"/keys/"$MC_PROJ_NAME"
+	echo "PB_API_KEY=${PB_API_KEY}" >> "$HOME"/keys/"$MC_PROJ_NAME"
+fi
 
-echo "$S3_ACCESS_KEY_ID":"$S3_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
+echo "$AWS_ACCESS_KEY_ID":"$AWS_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
 chmod 600 "$HOME"/.passwd-s3fs
 
 output_env_vars

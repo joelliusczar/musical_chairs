@@ -67,8 +67,8 @@ install_package() (
 )
 
 output_env_vars() (
-	export S3_ACCESS_KEY_ID=$(gen_pass)
-	export S3_SECRET_ACCESS_KEY=$(gen_pass)
+	export AWS_ACCESS_KEY_ID=$(gen_pass)
+	export AWS_SECRET_ACCESS_KEY=$(gen_pass)
 	printenv > "$(get_app_root)"/used_env_vars
 )
 
@@ -155,27 +155,27 @@ get_icecast_name() (
 )
 
 __get_pb_api_key__() (
-	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' \
+	perl -ne 'print "$1\n" if /PB_API_KEY=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_pb_secret__() (
-	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' \
+	perl -ne 'print "$1\n" if /PB_SECRET=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_s3_api_key__() (
-	perl -ne 'print "$1\n" if /S3_ACCESS_KEY_ID=(\w+)/' \
+	perl -ne 'print "$1\n" if /AWS_ACCESS_KEY_ID=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_s3_secret__() (
-	perl -ne 'print "$1\n" if /S3_SECRET_ACCESS_KEY=(\w+)/' \
+	perl -ne 'print "$1\n" if /AWS_SECRET_ACCESS_KEY=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_s3_bucket_name__() (
-	perl -ne 'print "$1\n" if /joelradio=(\w+)/' \
+	perl -ne 'print "$1\n" if /S3_BUCKET_NAME=(\w+)/' \
 		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
 )
 
@@ -1695,8 +1695,8 @@ __get_remote_export_script__() (
 		exportMod=''
 	fi
 	output="export expName='${expName}';"
-	output="${output} export S3_ACCESS_KEY_ID='${S3_ACCESS_KEY_ID}';" &&
-	output="${output} export S3_SECRET_ACCESS_KEY='${S3_SECRET_ACCESS_KEY}';" &&
+	output="${output} export AWS_ACCESS_KEY_ID='$(__get_s3_api_key__)';" &&
+	output="${output} export AWS_SECRET_ACCESS_KEY='$(__get_s3_secret__)';" &&
 	output="${output} export PB_SECRET='$(__get_pb_secret__)';" &&
 	output="${output} export PB_API_KEY='$(__get_pb_api_key__)';" &&
 	output="${output} export MC_AUTH_SECRET_KEY='$(__get_mc_auth_key__)';" &&

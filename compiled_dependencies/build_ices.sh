@@ -88,11 +88,11 @@ case $(uname) in
 		;;
 	*) ;;
 esac
-icesBuildDir="$(get_app_root)"/"$MC_BUILD_DIR"/ices
+icesBuildDir="$(__get_app_root__)"/"$MC_BUILD_DIR"/ices
 (
 	namePrefix='mc-'
 	sudo_rm_dir "$icesBuildDir"
-	cd "$(get_app_root)"/"$MC_BUILD_DIR"
+	cd "$(__get_app_root__)"/"$MC_BUILD_DIR"
 	git clone https://github.com/joelliusczar/ices0.git ices
 	cd ices
 	if [ -n "$__ICES_BRANCH__" ]; then
@@ -102,13 +102,13 @@ icesBuildDir="$(get_app_root)"/"$MC_BUILD_DIR"/ices
 	aclocal &&
 	autoreconf -fi &&
 	automake --add-missing &&
-	./configure --prefix="$(get_app_root)"/.local \
+	./configure --prefix="$(__get_app_root__)"/.local \
 		--with-python=$(which mc-python) \
-		--with-moddir="$(get_app_root)"/"$MC_PY_MODULE_DIR" \
+		--with-moddir="$(__get_app_root__)"/"$MC_PY_MODULE_DIR" \
 		--program-prefix="$namePrefix" &&
 	make &&
 	make install &&
-	cd "$(get_app_root)"/"$MC_BUILD_DIR" &&
+	cd "$(__get_app_root__)"/"$MC_BUILD_DIR" &&
 	if ! str_contains "$__SKIP__" 'clean'; then
 		sudo_rm_dir "$icesBuildDir"
 	fi

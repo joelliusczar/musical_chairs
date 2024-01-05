@@ -75,14 +75,14 @@ fi
 error_check_path "$(get_repo_path)" &&
 rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
-cd "$(get_app_root)"/"$MC_BUILD_DIR" &&
+cd "$(__get_app_root__)"/"$MC_BUILD_DIR" &&
 git clone "$MC_REPO_URL" "$MC_PROJ_NAME" &&
 cd "$MC_PROJ_NAME"  &&
 if [ "$currentBranch" != main ]; then
 	echo "Using branch ${currentBranch}"
 	git checkout -t origin/"$currentBranch" || exit 1
 fi
-cd "$(get_app_root)"
+cd "$(__get_app_root__)"
 RemoteScriptEOF1
 } > clone_repo_fifo &
 

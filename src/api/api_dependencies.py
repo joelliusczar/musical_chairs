@@ -49,7 +49,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
-from dataclasses import asdict
 from api_error import (
 	build_not_logged_in_error,
 	build_not_wrong_credentials_error,
@@ -397,7 +396,7 @@ def get_path_rule_loaded_current_user(
 	roleNameSet = {r.name for r in rules}
 	if any(s for s in scopes if s not in roleNameSet):
 		raise build_wrong_permissions_error()
-	userDict = asdict(user)
+	userDict = user.model_dump()
 	userDict["roles"] = rules
 	resultUser = AccountInfo(
 		**userDict,
@@ -522,7 +521,7 @@ def get_station_user(
 				currentTimestamp = get_datetime().timestamp()
 				timeleft = whenNext - currentTimestamp
 				raise build_too_many_requests_error(int(timeleft))
-	userDict = asdict(user)
+	userDict = user.model_dump()
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
 

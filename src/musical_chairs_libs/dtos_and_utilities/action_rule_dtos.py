@@ -1,6 +1,6 @@
 import sys
 from typing import (Any, Optional, Iterable, Iterator, Callable)
-from dataclasses import dataclass
+from .generic_dtos import MCBaseClass
 from .user_role_def import UserRoleDomain, RulePriorityLevel
 from itertools import groupby, chain
 from operator import attrgetter
@@ -9,9 +9,7 @@ from operator import attrgetter
 
 
 
-
-@dataclass()
-class ActionRule:
+class ActionRule(MCBaseClass):
 	name: str=""
 	span: float=0
 	count: float=0
@@ -19,21 +17,7 @@ class ActionRule:
 	# (station, path) > general
 	priority: Optional[int]=RulePriorityLevel.NONE.value
 	domain: str=UserRoleDomain.Site.value
-
-	def __init__(
-		self,
-		name: str="",
-		span: float=0,
-		count: float=0,
-		priority: Optional[int]=RulePriorityLevel.NONE.value,
-		domain: str=UserRoleDomain.Site.value
-	):
-		self.name = name
-		self.span = span
-		self.count = count
-		self.priority = priority
-		# domain is just provided to make json to dto happy
-
+	# model_config=ConfigDict(revalidate_instances="subclass-instances")
 
 	@staticmethod
 	def sorted(rules: Iterable["ActionRule"]) -> list["ActionRule"]:
@@ -155,20 +139,13 @@ class ActionRule:
 		yield from (next(g[1]) for g in groupby(rules, key=lambda k: k.name))
 
 
-@dataclass(unsafe_hash=True)
 class StationActionRule(ActionRule):
-
-	def __post_init__(self):
-		self.domain = UserRoleDomain.Station.value
+	domain: str=UserRoleDomain.Station.value
 
 
-
-@dataclass()
 class PathsActionRule(ActionRule):
 	path: Optional[str]=None
-
-	def __post_init__(self):
-		self.domain = UserRoleDomain.Path.value
+	domain: str=UserRoleDomain.Path.value
 
 	def is_parent_path(self, path: Optional[str]) -> bool:
 		if not self.path or not path:

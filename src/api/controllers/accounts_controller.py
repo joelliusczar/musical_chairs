@@ -1,7 +1,6 @@
 #pyright: reportMissingTypeStubs=false
 from urllib import parse
 from typing import Optional, Callable
-from dataclasses import asdict
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -217,7 +216,7 @@ def update_roles(
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
-	return AccountInfo(**{**asdict(prev), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+	return AccountInfo(**{**prev.model_dump(), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
 @router.get("/account/{subjectuserkey}")
 def get_account(
@@ -238,7 +237,7 @@ def get_path_user_list(
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> TableData[AccountInfo]:
 	pathUsers = list(accountsService.get_site_rule_users())
-	return TableData(pathUsers, len(pathUsers))
+	return TableData(items=pathUsers, totalrows=len(pathUsers))
 
 
 def validate_site_rule(

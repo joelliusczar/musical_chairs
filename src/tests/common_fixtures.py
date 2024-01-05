@@ -37,7 +37,7 @@ from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user,\
 	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
 )
-from dataclasses import asdict
+
 
 @pytest.fixture
 def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
@@ -222,7 +222,7 @@ def fixture_path_user_factory(
 			(p for p in pathRuleService.get_paths_user_can_see(user.id)),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
-		userDict = asdict(user)
+		userDict = user.model_dump()
 		userDict["roles"] = rules
 		resultUser = AccountInfo(
 			**userDict,

@@ -222,9 +222,9 @@ class StationService:
 			displayname=row[st_displayName],
 			isrunning=bool(row[st_procId]),
 			owner=OwnerInfo(
-				row[st_ownerFk],
-				row[u_username],
-				row[u_displayName]
+				id=row[st_ownerFk],
+				username=row[u_username],
+				displayname=row[u_displayName]
 			),
 			requestsecuritylevel=row["requestsecuritylevel"],
 			viewsecuritylevel=row[st_viewSecurityLevel] \
@@ -565,10 +565,10 @@ class StationService:
 		self.conn.execute(stmt)
 		self.conn.commit()
 		return StationActionRule(
-			rule.name,
-			rule.span,
-			rule.count,
-			RulePriorityLevel.STATION_PATH.value
+			name=rule.name,
+			span=rule.span,
+			count=rule.count,
+			priority=RulePriorityLevel.STATION_PATH.value
 		)
 
 	def remove_user_rule_from_station(

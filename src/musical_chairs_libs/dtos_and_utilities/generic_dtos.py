@@ -2,16 +2,18 @@ from typing import\
 	List,\
 	TypeVar,\
 	Generic
-from dataclasses import dataclass
+from pydantic import BaseModel as MCBaseClass, ConfigDict
 
 
 T = TypeVar("T")
 
-@dataclass()
-class ListData(Generic[T]):
+class FrozenBaseClass(MCBaseClass):
+	model_config = ConfigDict(frozen=True)
+
+class ListData(MCBaseClass, Generic[T]):
 	items: List[T]
 
-@dataclass()
+
 class TableData(ListData[T]):
 	totalrows: int
 
@@ -19,6 +21,5 @@ class TableData(ListData[T]):
 # class ErrorInfo(BaseModel):
 # 	msg: str
 
-@dataclass(frozen=True)
-class IdItem:
+class IdItem(FrozenBaseClass):
 	id: int

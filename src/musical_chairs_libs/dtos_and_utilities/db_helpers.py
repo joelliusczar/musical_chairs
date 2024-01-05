@@ -183,12 +183,12 @@ def row_to_action_rule(row: RowMapping) -> ActionRule:
 	)
 
 	return clsConstructor(
-		row["rule_name"],
-		row["rule_span"],
-		row["rule_count"],
+		name=row["rule_name"],
+		span=row["rule_span"],
+		count=row["rule_count"],
 		#if priortity is explict use that
 		#otherwise, prefer station specific rule vs non station specific rule
-		cast(int,row["rule_priority"]) if row["rule_priority"] \
+		priority=cast(int,row["rule_priority"]) if row["rule_priority"] \
 			else RulePriorityLevel.STATION_PATH.value
 	)
 

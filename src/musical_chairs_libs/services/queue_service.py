@@ -224,7 +224,7 @@ class QueueService:
 		for row in records:
 			yield SongListDisplayItem(
 				id=row[sg_pk],
-				name=row[sg_name],
+				name=row[sg_name] or "",
 				album=row["album"],
 				artist=row["artist"],
 				path=row[sg_path],

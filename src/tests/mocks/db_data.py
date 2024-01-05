@@ -1263,7 +1263,7 @@ def get_user_params(
 			"username": "testUser_echo",
 			"displayname": "ECHO, ECHO",
 			"hashedpw": None,
-			"email": None,
+			"email": "test5@test.com",
 			"isdisabled": False,
 			"creationtimestamp": orderedTestDates[1].timestamp(),
 			"dirroot": None

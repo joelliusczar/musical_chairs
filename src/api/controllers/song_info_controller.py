@@ -253,7 +253,7 @@ def get_path_user_list(
 	pathRuleService: PathRuleService = Depends(path_rule_service)
 ) -> TableData[AccountInfo]:
 	pathUsers = list(pathRuleService.get_users_of_path(prefix))
-	return TableData(pathUsers, len(pathUsers))
+	return TableData(items=pathUsers, totalrows=len(pathUsers))
 
 @router.post("/path/user_role",
 	dependencies=[

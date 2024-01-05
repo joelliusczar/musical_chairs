@@ -1,10 +1,9 @@
 from pydantic import (
 	field_validator,
 	model_validator,
-	ValidationInfo
+	ValidationInfo,
+	Field
 )
-from pydantic.dataclasses import dataclass as pydanticDataclass
-from dataclasses import dataclass, field
 from typing import (
 	Iterator,
 	Optional,
@@ -15,37 +14,32 @@ from typing import (
 from itertools import chain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, get_non_simple_chars
-from .generic_dtos import IdItem, TableData, T
+from .generic_dtos import IdItem, TableData, T, FrozenBaseClass, MCBaseClass
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule, PathsActionRule
 from .user_role_def import MinItemSecurityLevel
 
 
-@dataclass(frozen=True)
-class ArtistInfo:
+class ArtistInfo(FrozenBaseClass):
 	id: int
 	name: str
 	owner: OwnerType
 
-@dataclass(frozen=True)
-class AlbumCreationInfo:
+class AlbumCreationInfo(FrozenBaseClass):
 	name: str
 	year: Optional[int]=None
 	albumartist: Optional[ArtistInfo]=None
 
-@dataclass(frozen=True)
 class AlbumInfo(IdItem):
 	name: str
 	owner: OwnerType
 	year: Optional[int]=None
 	albumartist: Optional[ArtistInfo]=None
 
-@dataclass()
-class SongBase:
+class SongBase(MCBaseClass):
 	id: int
 	name: str
 
-@dataclass()
 class SongListDisplayItem(SongBase):
 	album: Optional[str]
 	artist: Optional[str]
@@ -53,11 +47,10 @@ class SongListDisplayItem(SongBase):
 	queuedtimestamp: float
 	requestedtimestamp: Optional[float]=None
 	playedtimestamp: Optional[float]=None
-	rules: list[ActionRule]=field(default_factory=list)
+	rules: list[ActionRule]=Field(default_factory=list)
 
 
-@dataclass(frozen=True)
-class ScanningSongItem:
+class ScanningSongItem(FrozenBaseClass):
 	id: int
 	path: str
 	name: Optional[str]=None
@@ -75,42 +68,45 @@ class ScanningSongItem:
 
 
 
-
-@dataclass()
 class StationTableData(TableData[T]):
 	stationrules: list[ActionRule]
 
-@dataclass()
+
 class CurrentPlayingInfo(StationTableData[SongListDisplayItem]):
 	nowplaying: Optional[SongListDisplayItem]
 
-@dataclass(frozen=True)
-class Tag:
-	id: int
-	name: str
 
-@dataclass(unsafe_hash=True)
-class StationInfo:
-	id: int
-	name: str
-	displayname: str=field(default="", hash=False, compare=False)
-	isrunning: bool=field(default=False, hash=False, compare=False)
+
+
+class StationInfo(MCBaseClass):
+	id: int=Field(frozen=True)
+	name: str=Field(frozen=True)
+	displayname: str=Field(default="", frozen=False)
+	isrunning: bool=Field(default=False, frozen=False)
 	#don't expect this to ever actually null
-	owner: Optional[OwnerType]=field(default=None, hash=False, compare=False)
-	rules: list[ActionRule]=field(
-		default_factory=list, hash=False, compare=False
+	owner: Optional[OwnerType]=Field(default=None, frozen=False)
+	rules: list[ActionRule]=Field(
+		default_factory=list, frozen=False
 	)
-	requestsecuritylevel: Optional[int]=field(
-		default=MinItemSecurityLevel.ANY_USER.value, hash=False, compare=False,
+	requestsecuritylevel: Optional[int]=Field(
+		default=MinItemSecurityLevel.ANY_USER.value, frozen=False
 	)
-	viewsecuritylevel: Optional[int]=field(default=0, hash=False, compare=False)
+	viewsecuritylevel: Optional[int]=Field(default=0, frozen=False)
 
-@dataclass()
-class StationCreationInfo:
+	def __hash__(self) -> int:
+		return hash((self.id, self.name))
+	
+	def __eq__(self, other: Any) -> bool:
+		if not other:
+			return False
+		return self.id == other.id and self.name == other.name
+
+
+class StationCreationInfo(MCBaseClass):
 	name: str
 	displayname: Optional[str]=""
-	viewsecuritylevel: Optional[int]=field(default=0)
-	requestsecuritylevel: Optional[int]=field(
+	viewsecuritylevel: Optional[int]=Field(default=0)
+	requestsecuritylevel: Optional[int]=Field(
 		default=MinItemSecurityLevel.OWENER_USER.value
 	)
 
@@ -128,7 +124,7 @@ class StationCreationInfo:
 			)
 		return v
 
-@pydanticDataclass
+
 class ValidatedStationCreationInfo(StationCreationInfo):
 
 	_name_len = field_validator(
@@ -147,29 +143,27 @@ class ValidatedStationCreationInfo(StationCreationInfo):
 		return v
 
 
-@dataclass(frozen=True)
-class SongTreeNode:
+class SongTreeNode(FrozenBaseClass):
 	path: str
 	totalChildCount: int
 	id: Optional[int]=None
 	name: Optional[str]=None
-	rules: list[PathsActionRule]=field(
-		default_factory=list, hash=False, compare=False
+	rules: list[PathsActionRule]=Field(
+		default_factory=list, frozen=True
 	)
 
-@dataclass()
-class SongArtistGrouping:
-	songId: int
-	artists: List[ArtistInfo]=field(default_factory=list)
 
-	def __iter__(self) -> Iterator[ArtistInfo]:
-		return iter(self.artists or [])
-
-@dataclass(frozen=True)
 class StationSongTuple:
-	songid: int
-	stationid: int
-	islinked: bool=field(default=False, hash=False, compare=False)
+
+	def __init__(
+		self,
+		songid: int,
+		stationid: int,
+		islinked: bool=False
+	) -> None:
+		self.songid = songid
+		self.stationid = stationid
+		self.islinked = islinked
 
 	def __len__(self) -> int:
 		return 2
@@ -178,12 +172,29 @@ class StationSongTuple:
 		yield self.songid
 		yield self.stationid
 
-@dataclass(frozen=True)
+	def __hash__(self) -> int:
+		return hash((self.songid, self.stationid))
+	
+	def __eq__(self, other: Any) -> bool:
+		if not other:
+			return False
+		return self.songid == other.songid \
+			and self.stationid == other.stationid
+
 class SongArtistTuple:
-	songid: int
-	artistid: int
-	isprimaryartist: bool=False
-	islinked: bool=field(default=False, hash=False, compare=False)
+
+
+	def __init__(
+		self,
+		songid: int,
+		artistid: int,
+		isprimaryartist: bool=False,
+		islinked: bool=False
+	) -> None:
+		self.songid = songid
+		self.artistid = artistid
+		self.isprimaryartist = isprimaryartist
+		self.islinked = islinked
 
 	def __len__(self) -> int:
 		return 2
@@ -192,26 +203,27 @@ class SongArtistTuple:
 		yield self.songid
 		yield self.artistid
 
-@dataclass()
-class SongTagGrouping:
-	songid: int
-	tags: List[Tag]=field(default_factory=list)
+	def __hash__(self) -> int:
+		return hash((self.songid, self.artistid))
+	
+	def __eq__(self, other: Any) -> bool:
+		if not other:
+			return False
+		return self.songid == other.songid \
+			and self.artistid == other.artistid
 
-	def __iter__(self) -> Iterator[Tag]:
-		return iter(self.tags or [])
 
-@dataclass()
-class SongPathInfo:
+class SongPathInfo(MCBaseClass):
 	id: int
 	path: str
 
-@dataclass()
-class SongAboutInfo:
+
+class SongAboutInfo(MCBaseClass):
 	name: Optional[str]=None
 	album: Optional[AlbumInfo]=None
 	primaryartist: Optional[ArtistInfo]=None
-	artists: Optional[list[ArtistInfo]]=field(default_factory=list)
-	covers: Optional[list[int]]=field(default_factory=list)
+	artists: Optional[list[ArtistInfo]]=Field(default_factory=list)
+	covers: Optional[list[int]]=Field(default_factory=list)
 	track: Optional[str]=None
 	disc: Optional[int]=None
 	genre: Optional[str]=None
@@ -221,7 +233,7 @@ class SongAboutInfo:
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 	lyrics: Optional[str]=""
-	stations: Optional[list[StationInfo]]=field(default_factory=list)
+	stations: Optional[list[StationInfo]]=Field(default_factory=list)
 	touched: Optional[set[str]]=None
 
 	@property
@@ -230,17 +242,16 @@ class SongAboutInfo:
 			yield self.primaryartist
 		yield from (a for a in self.artists or [])
 
-@dataclass()
+	
+
 class SongEditInfo(SongAboutInfo, SongPathInfo):
-	rules: list[ActionRule]=field(default_factory=list)
+	rules: list[ActionRule]=Field(default_factory=list)
 
 
-
-@pydanticDataclass
 class ValidatedSongAboutInfo(SongAboutInfo):
 
 	@field_validator("stations")
-	def check_tags_duplicates(cls, v: List[StationInfo]) -> List[StationInfo]:
+	def check_stations_duplicates(cls, v: List[StationInfo]) -> List[StationInfo]:
 		if not v:
 			return []
 

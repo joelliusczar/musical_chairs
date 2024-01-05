@@ -1921,7 +1921,7 @@ run_unit_tests() (
 	echo "running unit tests"
 	process_global_vars "$@"
 	export __TEST_FLAG__='true'
-	setup_unit_test_env &&
+	setup_unit_test_env >/dev/null &&
 	test_src="$MC_SRC_PATH"/tests &&
 	export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
 	export PYTHONPATH="${MC_SRC_PATH}:${MC_SRC_PATH}/api" &&

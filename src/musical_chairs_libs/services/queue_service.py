@@ -64,7 +64,7 @@ def choice(
 	pSize = len(items) + 1
 	# the sum of weights needs to equal 1
 	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
-	return numpy_choice(items, sampleSize, p = weights, replace=False).tolist()
+	return numpy_choice(items, sampleSize, p = cast(Any,weights), replace=False).tolist()
 
 class QueueService:
 

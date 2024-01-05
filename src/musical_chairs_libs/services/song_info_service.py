@@ -133,7 +133,7 @@ class SongInfoService:
 			.select_from(artists_tbl)\
 			.join(user_tbl, u_pk == ar_ownerFk)\
 			.where(ab_pk == artistId)
-		data = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+		data = self.conn.execute(query).mappings().fetchone()
 		if not data:
 			return OwnerInfo(0,"", "")
 		return OwnerInfo(
@@ -182,7 +182,7 @@ class SongInfoService:
 			.select_from(albums_tbl)\
 			.join(user_tbl, u_pk == ab_ownerFk)\
 			.where(ab_pk == albumId)
-		data = self.conn.execute(query).fetchone()
+		data = self.conn.execute(query).mappings().fetchone()
 		if not data:
 			return OwnerInfo(0,"", "")
 		return OwnerInfo(
@@ -356,6 +356,7 @@ class SongInfoService:
 		songIds: Union[int, Iterable[int], None]=None,
 		stationIds: Union[int, Iterable[int], None]=None,
 	) -> Iterable[StationSongTuple]:
+		
 		query = select(
 			stsg_songFk,
 			stsg_stationFk
@@ -393,16 +394,22 @@ class SongInfoService:
 	) -> Iterable[StationSongTuple]:
 		if not stationSongs:
 			return iter([])
-		query = select(
-			sg_pk,
-			st_pk
-		).where(dbTuple(sg_pk, st_pk).in_(stationSongs))
+		stationSongSet = set(stationSongs)
+		songQuery = select(sg_pk).where(
+			sg_pk.in_((s.songid for s in stationSongSet))
+		)
+		stationQuery = select(st_pk).where(
+			st_pk.in_((s.stationid for s in stationSongSet))
+		)
 
-		records = self.conn.execute(query)
-		yield from (StationSongTuple(
-			cast(int, row[0]),
-			cast(int, row[1])
-		) for row in records)
+		songRecords = self.conn.execute(songQuery).fetchall()
+		stationRecords = self.conn.execute(stationQuery).fetchall()
+		yield from (t for t in (StationSongTuple(
+			cast(int, songRow[0]),
+			cast(int, stationRow[0])
+		) for songRow in songRecords 
+			for stationRow in stationRecords
+		) if t in stationSongSet)
 
 	def link_songs_with_stations(
 		self,
@@ -581,17 +588,23 @@ class SongInfoService:
 			(sa.artistid for sa in songArtistsSet if sa.isprimaryartist),
 			-1
 		)
-		query = select(
-			sg_pk,
-			ar_pk
-		).where(dbTuple(sg_pk, ar_pk).in_(songArtistsSet))
+		songQuery = select(sg_pk).where(
+			sg_pk.in_(s.songid for s in songArtistsSet)
+		)
+		artistsQuery = select(ar_pk).where(
+			ar_pk.in_(a.artistid for a in songArtistsSet)
+		)
+		songRecords = self.conn.execute(songQuery).fetchall()
+		artistRecords = self.conn.execute(artistsQuery).fetchall()
 
-		records = self.conn.execute(query)
-		yield from (SongArtistTuple(
-			row[0],
-			row[1],
-			isprimaryartist=cast(int, row[1]) == primaryArtistId
-		) for row in records)
+		yield from (t for t in (SongArtistTuple(
+			songRow[0],
+			artistRow[0],
+			isprimaryartist=cast(int, artistRow[0]) == primaryArtistId
+		) for songRow in songRecords
+			for artistRow in artistRecords
+		) if t in songArtistsSet)
+
 
 	def __are_all_primary_artist_single(
 		self,

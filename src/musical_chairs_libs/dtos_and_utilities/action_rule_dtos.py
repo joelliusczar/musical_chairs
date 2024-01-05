@@ -13,8 +13,8 @@ from operator import attrgetter
 @dataclass()
 class ActionRule:
 	name: str=""
-	span: int=0
-	count: int=0
+	span: float=0
+	count: float=0
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
 	priority: Optional[int]=RulePriorityLevel.NONE.value
@@ -23,8 +23,8 @@ class ActionRule:
 	def __init__(
 		self,
 		name: str="",
-		span: int=0,
-		count: int=0,
+		span: float=0,
+		count: float=0,
 		priority: Optional[int]=RulePriorityLevel.NONE.value,
 		domain: str=UserRoleDomain.Site.value
 	):

@@ -6,7 +6,12 @@ from typing import (
 	Union,
 	Collection
 )
-from pydantic import field_validator
+from pydantic import (
+	field_validator,
+	field_serializer,
+	SerializationInfo,
+	SerializeAsAny
+)
 from pydantic.dataclasses import dataclass as pydanticDataclass
 from dataclasses import dataclass, field
 from .user_role_def import UserRoleDef, RulePriorityLevel, UserRoleDomain
@@ -154,6 +159,17 @@ class AccountInfoSecurity(AccountInfoBase):
 			):
 				return False
 		return True
+	
+	@field_serializer(
+		"roles",
+		return_type=SerializeAsAny[List[Union[ActionRule, PathsActionRule]]]
+	)
+	def serialize_roles(
+		self,
+		value: List[Union[ActionRule, PathsActionRule]],
+		_info: SerializationInfo
+	):
+		return value
 
 @dataclass(frozen=True)
 class AccountInfo(AccountInfoSecurity, IdItem):

@@ -21,7 +21,7 @@
   "python.testing.cwd": "${workspaceFolder}/src/tests",
   "python.testing.pytestPath": "${workspaceFolder}/test_trash/musical_chairs_dir/mc_env/bin/pytest",
   "python.testing.pytestArgs": [
-    "-s"
+    "-s", "-p", "no:warnings"
   ],
   "python.terminal.activateEnvironment": false,
   "python.envFile": "${workspaceFolder}/test_trash/musical_chairs_dir/config/.env",

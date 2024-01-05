@@ -17,7 +17,7 @@ fi
 
 
 process_global_vars "$@" ||
-show_err_and_exit "error with global variabls"
+show_err_and_exit "error with global variables"
 
 if [ -n "$(git status --porcelain)" ]; then
 	echo "There are uncommited changes that will not be apart of the deploy"
@@ -60,13 +60,13 @@ mkfifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
 #clone repo
 #we need this section to resolve its variables remotely on the server
 { cat <<'RemoteScriptEOF1'
+echo "SSH connection? ${SSH_CONNECTION}"
+[ -n "$SSH_CONNECTION" ] ||
+show_err_and_exit "This section should only be run remotely"
 #in addition to setting up any utilizing any passed in params
 #we call process_global_vars to also set up directories
 process_global_vars "$@" ||
-show_err_and_exit "error with global variabls"
-echo "$SSH_CONNECTION"
-[ -n "$SSH_CONNECTION" ] ||
-show_err_and_exit "This section should only be run remotely"
+show_err_and_exit "error with global variables"
 
 if ! git --version 2>/dev/null; then
 	install_package git

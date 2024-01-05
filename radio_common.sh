@@ -2250,5 +2250,6 @@ fn_ls() (
 
 test_shell() (
 	#put functions to test in here so they don't pollute your shell
-	install_py_env test
+	process_global_vars "$@" &&
+	get_app_root
 )

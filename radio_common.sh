@@ -1714,7 +1714,8 @@ startup_api() (
 	if ! str_contains "$__SKIP__" "setup_api"; then
 		setup_api
 	fi &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate
+	errCode="$?"
 	# see #python_env
 	#put uvicorn in background within a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
@@ -1722,7 +1723,9 @@ startup_api() (
 	(uvicorn --app-dir "$(get_web_root)"/"$MC_APP_API_PATH_CL" --root-path /api/v1 \
 	--host 0.0.0.0 --port "$MC_API_PORT" \
 	"index:app" </dev/null >api.out 2>&1 &)
-	echo "done starting up api. Access at ${MC_FULL_URL}"
+	(exit "$errCode") &&
+	echo "done starting up api. Access at ${MC_FULL_URL}" ||
+	echo "failed while trying to start up api"
 )
 
 

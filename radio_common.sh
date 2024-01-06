@@ -43,6 +43,9 @@ get_repo_path() (
 			fi
 		done
 	fi
+	#done't try to change from home
+	#fallback
+	echo "$HOME"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"
 )
 
 install_package() (
@@ -1888,7 +1891,8 @@ setup_unit_test_env() (
 	setup_common_dirs
 
 	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DIR_CL" &&
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
+	copy_dir "$MC_SQL_SCRIPTS_SRC" \
+		"$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
 		"$(__get_app_root__)"/"$MC_SQLITE_FILEPATH" &&
 	sync_requirement_list
@@ -2191,7 +2195,7 @@ process_global_vars() {
 	define_consts &&
 
 	define_top_level_terms &&
-	
+
 	create_install_dir &&
 
 	define_app_dir_paths &&

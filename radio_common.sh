@@ -2151,11 +2151,11 @@ get_web_root() (
 	fi
 	case $(uname) in
 		(Linux*)
-			echo "${MC_WEB_ROOT:-/srv}"
+			echo "${MC_WEB_ROOT_OVERRIDE:-/srv}"
 			return
 			;;
 		(Darwin*)
-			echo "${MC_WEB_ROOT:-/Library/WebServer}"
+			echo "${MC_WEB_ROOT_OVERRIDE:-/Library/WebServer}"
 			return
 			;;
 		(*) ;;
@@ -2179,7 +2179,8 @@ process_global_args() {
 	while [ ! -z "$1" ]; do
 		case "$1" in
 			#build out to test_trash rather than the normal directories
-			#sets MC_APP_ROOT and MC_WEB_ROOT without having to set them explicitly
+			#sets MC_APP_ROOT and MC_WEB_ROOT_OVERRIDE 
+			#without having to set them explicitly
 			(test)
 				export __TEST_FLAG__='true'
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} test"
@@ -2259,7 +2260,7 @@ define_top_level_terms() {
 	export sqliteFilename='songs_db.sqlite'
 	export MC_APP_TRUNK="$MC_PROJ_NAME"_dir
 	export MC_APP_ROOT="$MC_APP_ROOT"
-	export MC_WEB_ROOT="$MC_WEB_ROOT"
+	export MC_WEB_ROOT_OVERRIDE="$MC_WEB_ROOT_OVERRIDE"
 
 
 	export MC_LIB_NAME="$MC_PROJ_NAME"_libs

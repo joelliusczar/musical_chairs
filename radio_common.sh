@@ -36,7 +36,11 @@ get_repo_path() (
 	elif __is_current_dir_repo__ "$PWD"; then
 		echo "$PWD"
 	else
-		for guess in $(find "$HOME" -name musical_chairs); do
+		for guess in \
+			$(find "$HOME" -maxdepth 5 -type d \
+				-name "$MC_BUILD_DIR"/"$MC_PROJ_NAME"
+				); 
+		do
 			if __is_current_dir_repo__ "$guess"; then
 				echo "$guess" 
 				break

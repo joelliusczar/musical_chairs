@@ -2055,19 +2055,22 @@ regen_file_reference_file() (
 
 replace_sql_script() (
 	process_global_vars "$@" &&
-	setup_common_dirs
+	setup_app_directories
 	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DIR_CL"
 )
 
 #assume install_setup.sh has been run
 setup_unit_test_env() (
 	echo 'setting up test environment'
-	process_global_vars "$@" &&
+	process_global_args "$@" || return
+
+	define_global_vars &&
+	define_directory_vars &&
 	export __TEST_FLAG__='true'
 	publicKeyFile=$(__get_debug_cert_path__).public.key.crt
 
 	__create_fake_keys_file__
-	setup_common_dirs
+	setup_app_directories
 
 	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DIR_CL" &&
 	copy_dir "$MC_SQL_SCRIPTS_SRC" \
@@ -2238,29 +2241,27 @@ define_consts() {
 	export MC_CONTENT_HOME='music/radio'
 	export MC_BIN_DIR='.local/bin'
 	export MC_API_PORT='8033'
+	#python environment names
+	export MC_PY_ENV='mc_env'
 	export __CONSTANTS_SET__='true'
 	echo "constants defined"
 }
 
-create_install_dir() {
-	repoPath=$(get_repo_path)
-	if [ -z "$repoPath" ]; then
-		#no repo folder found
-		repoPath="$(__get_app_root__)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"
+create_install_directory() {
+	if [ -z "$MC_LOCAL_REPO_PATH" ]; then
+		echo 'MC_LOCAL_REPO_PATH is set. '
+		echo 'create_install_directory may have been run out of sequence'
+		exit 1
 	fi
-	[ -d "$repoPath" ] ||
-	mkdir -pv "$repoPath" &&
-	export MC_TEST_ROOT="${repoPath}/test_trash"
+	[ -d "$MC_LOCAL_REPO_PATH" ] ||
+	mkdir -pv "$MC_LOCAL_REPO_PATH" &&
 }
 
-define_top_level_terms() {
-	MC_APP_ROOT=${MC_APP_ROOT:-"$HOME"}
-	
+define_app_root_terms() {
+	export MC_APP_ROOT=${MC_APP_ROOT:-"$HOME"}
 
 	export sqliteFilename='songs_db.sqlite'
 	export MC_APP_TRUNK="$MC_PROJ_NAME"_dir
-	export MC_APP_ROOT="$MC_APP_ROOT"
-	export MC_WEB_ROOT_OVERRIDE="$MC_WEB_ROOT_OVERRIDE"
 
 
 	export MC_LIB_NAME="$MC_PROJ_NAME"_libs
@@ -2329,10 +2330,13 @@ define_repo_paths() {
 	export MC_SQL_SCRIPTS_SRC="$(get_repo_path)/sql_scripts"
 	export MC_REFERENCE_SRC="$(get_repo_path)/reference"
 	export MC_REFERENCE_SRC_DB="$MC_REFERENCE_SRC/$sqliteFilename"
+	export MC_TEST_ROOT="$(get_repo_path)/test_trash"
 	echo "source paths defined"
 }
 
-setup_common_dirs() {
+setup_app_directories() {
+	[ -e "$(__get_app_root__)"/"$MC_APP_TRUNK" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_APP_TRUNK"
 	[ -e "$(__get_app_root__)"/"$MC_CONFIG_DIR" ] ||
 	mkdir -pv "$(__get_app_root__)"/"$MC_CONFIG_DIR"
 	[ -e "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR" ] ||
@@ -2347,18 +2351,13 @@ setup_common_dirs() {
 	mkdir -pv "$(__get_app_root__)"/keys
 	[ -e "$(__get_app_root__)"/"$MC_BUILD_DIR" ] ||
 	mkdir -pv "$(__get_app_root__)"/"$MC_BUILD_DIR"
+	[ -e "$(__get_app_root__)"/"$MC_CONTENT_HOME" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_CONTENT_HOME"
 }
 
 setup_base_dirs() {
 
-	[ -e "$(__get_app_root__)"/"$MC_APP_TRUNK" ] ||
-	mkdir -pv "$(__get_app_root__)"/"$MC_APP_TRUNK"
-
-	setup_common_dirs
-
-	[ -e "$(__get_app_root__)"/"$MC_CONTENT_HOME" ] ||
-	mkdir -pv "$(__get_app_root__)"/"$MC_CONTENT_HOME"
-
+	setup_app_directories
 
 	[ -e "$(get_web_root)"/"$MC_APP_API_PATH_CL" ] ||
 	{
@@ -2368,29 +2367,32 @@ setup_base_dirs() {
 	}
 }
 
+define_global_vars() {
+	define_consts &&
+	define_app_root_terms &&
+	define_app_dir_paths &&
+	__define_url__
+}
+
+define_directory_vars() {
+	[ -z "$__DIRECTORY_VARS_SET__" ] || return 0
+	export MC_LOCAL_REPO_PATH=$(get_repo_path) &&
+	define_repo_paths
+	export __DIRECTORY_VARS_SET__='true'
+}
+
+
 process_global_vars() {
 	process_global_args "$@" || return
 	[ -z "$__GLOBALS_SET__" ] || return 0
 
-	define_consts &&
-
-	define_top_level_terms &&
-
-	create_install_dir &&
-
-	define_app_dir_paths &&
-
-	__define_url__ &&
-
-	define_repo_paths &&
-
-	#python environment names
-	export MC_PY_ENV='mc_env' &&
-
+	define_global_vars &&
+	define_directory_vars &&
 	setup_base_dirs &&
 
 	export __GLOBALS_SET__='globals'
 }
+
 
 unset_globals() {
 	enable_wordsplitting

@@ -74,6 +74,8 @@ show_err_and_exit "error with global variables on server"
 deployment_server_env_check ||
 show_err_and_exit "error with missing keys on server"
 
+create_install_directory &&
+
 if ! git --version 2>/dev/null; then
 	install_package git
 fi

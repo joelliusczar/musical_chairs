@@ -30,20 +30,147 @@ __is_current_dir_repo__() {
 	[ -d "$dir"/src/musical_chairs_libs ]
 }
 
+track_exit_code() {
+	exitCode="$?"
+	if [ -z "$fnExitCode" ]; then
+		echo 'fnExitCode not set'
+		exit 1
+	fi
+	((exit "$fnExitCode") || (exit "$exitCode"))
+	fnExitCode="$?"
+}
+
+deployment_local_env_check() (
+	#possibly problems if missing
+	[ -z "$__ICES_BRANCH__" ] &&
+	echo 'environmental var __ICES_BRANCH__ not set'
+	[ -z "$MC_LOCAL_REPO_PATH" ] &&
+	echo 'environmental var MC_LOCAL_REPO_PATH not set'
+	[ -z $(__get_db_setup_key__) ] &&
+	echo 'deployment var __DB_SETUP_PASS__ not set in keys'
+	[ -z $(__get_db_owner_key__) ] &&
+	echo 'deployment var MC_DB_PASS_OWNER not set in keys'
+
+	#definitely problems if missing
+	[ -z "$MC_REPO_URL" ] &&
+	echo 'environmental var MC_REPO_URL not set'
+	track_exit_code
+
+	#values for ssh'ing to server
+	[ -z $(__get_id_file__) ] &&
+	echo 'deployment var MC_SERVER_KEY_FILE not set in keys'
+	track_exit_code
+	[ -z $(__get_address__) ] &&
+	echo 'deployment var MC_SERVER_SSH_ADDRESS not set in keys'
+	track_exit_code
+
+	#porkbun
+	[ -z $(__get_pb_api_key__) ] &&
+	echo 'deployment var PB_API_KEY not set in keys'
+	track_exit_code
+	[ -z $(__get_pb_secret__) ] &&
+	echo 'deployment var PB_SECRET not set in keys'
+	track_exit_code
+
+	#for encrypting app token
+	[ -z $(__get_mc_auth_key__) ] &&
+	echo 'deployment var MC_AUTH_SECRET_KEY not set in keys'
+	track_exit_code
+
+	#s3
+	[ -z $(__get_s3_api_key__) ] &&
+	echo 'deployment var AWS_ACCESS_KEY_ID not set in keys'
+	track_exit_code
+	[ -z $(__get_s3_secret__) ] &&
+	echo 'deployment var AWS_SECRET_ACCESS_KEY not set in keys'
+	track_exit_code
+	[ -z $(__get_s3_bucket_name__) ] &&
+	echo 'deployment var S3_BUCKET_NAME not set in keys'
+	track_exit_code
+
+	#db
+	[ -z $(__get_api_db_user_key__) ] &&
+	echo 'deployment var MC_DB_PASS_API not set in keys'
+	track_exit_code
+	[ -z $(__get_radio_db_user_key__) ] &&
+	echo 'deployment var MC_DB_PASS_RADIO not set in keys'
+	track_exit_code
+	return "$fnExitCode"
+)
+
+
+deployment_server_env_check() (
+	#possibly problems if missing
+	[ -z "$__ICES_BRANCH__" ] &&
+	echo 'environmental var __ICES_BRANCH__ not set'
+	track_exit_code
+	[ -z "$MC_LOCAL_REPO_PATH" ] &&
+	echo 'environmental var MC_LOCAL_REPO_PATH not set'
+	track_exit_code
+	[ -z "$__DB_SETUP_PASS__" ] &&
+	echo 'environmental var __DB_SETUP_PASS__ not set in keys'
+	track_exit_code
+	[ -z "$MC_DB_PASS_OWNER" ] &&
+	echo 'environmental var MC_DB_PASS_OWNER not set in keys'
+	track_exit_code
+
+	#definitely problems if missing
+	[ -z "$MC_REPO_URL" ] &&
+	echo 'environmental var MC_REPO_URL not set'
+	track_exit_code
+
+	#porkbun
+	[ -z "$PB_API_KEY" ] &&
+	echo 'environmental var PB_API_KEY not set'
+	track_exit_code
+	[ -z "$PB_SECRET" ] &&
+	echo 'environmental var PB_SECRET not set'
+	track_exit_code
+
+	#for encrypting app token
+	[ -z "$MC_AUTH_SECRET_KEY" ] &&
+	echo 'environmental var MC_AUTH_SECRET_KEY not set'
+	track_exit_code
+
+	#s3
+	[ -z "$AWS_ACCESS_KEY_ID" ] &&
+	echo 'environmental var AWS_ACCESS_KEY_ID not set'
+	track_exit_code
+	[ -z "$AWS_SECRET_ACCESS_KEY" ] &&
+	echo 'environmental var AWS_SECRET_ACCESS_KEY not set'
+	track_exit_code
+	[ -z "$S3_BUCKET_NAME" ] &&
+	echo 'environmental var S3_BUCKET_NAME not set'
+	track_exit_code
+
+	#db
+	[ -z "$MC_DB_PASS_API" ] &&
+	echo 'environmental var MC_DB_PASS_API not set'
+	track_exit_code
+	[ -z "$MC_DB_PASS_RADIO" ] &&
+	echo 'environmental var MC_DB_PASS_RADIO not set'
+	track_exit_code
+	return "$fnExitCode"
+)
+
+
+
 get_repo_path() (
 	if [ -n "$MC_LOCAL_REPO_PATH" ]; then
 		echo "$MC_LOCAL_REPO_PATH"
+		return
 	elif __is_current_dir_repo__ "$PWD"; then
 		echo "$PWD"
+		return
 	else
 		for guess in \
 			$(find "$HOME" -maxdepth 5 -type d \
-				-name "$MC_BUILD_DIR"/"$MC_PROJ_NAME"
+				-path "$MC_BUILD_DIR"/"$MC_PROJ_NAME"
 				); 
 		do
 			if __is_current_dir_repo__ "$guess"; then
 				echo "$guess" 
-				break
+				return
 			fi
 		done
 	fi
@@ -162,61 +289,109 @@ get_icecast_name() (
 )
 
 __get_pb_api_key__() (
+	if [ -n "$PB_API_KEY" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$PB_API_KEY"
+		return
+	fi
 	perl -ne 'print "$1\n" if /PB_API_KEY=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_pb_secret__() (
+	if [ -n "$PB_SECRET" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$PB_SECRET"
+		return
+	fi
 	perl -ne 'print "$1\n" if /PB_SECRET=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_s3_api_key__() (
+	if [ -n "$AWS_ACCESS_KEY_ID" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$AWS_ACCESS_KEY_ID"
+		return
+	fi
 	perl -ne 'print "$1\n" if /AWS_ACCESS_KEY_ID=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_s3_secret__() (
+	if [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$AWS_SECRET_ACCESS_KEY"
+		return
+	fi
 	perl -ne 'print "$1\n" if /AWS_SECRET_ACCESS_KEY=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_s3_bucket_name__() (
+	if [ -n "$S3_BUCKET_NAME" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$S3_BUCKET_NAME"
+		return
+	fi
 	perl -ne 'print "$1\n" if /S3_BUCKET_NAME=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_mc_auth_key__() (
+	if [ -n "$MC_AUTH_SECRET_KEY" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$MC_AUTH_SECRET_KEY"
+		return
+	fi
 	perl -ne 'print "$1\n" if /MC_AUTH_SECRET_KEY=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_address__() (
+	if [ -n "$MC_SERVER_SSH_ADDRESS" ]; then
+		echo "$MC_SERVER_SSH_ADDRESS"
+		return
+	fi
 	keyFile="$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 	perl -ne 'print "$1\n" if /MC_SERVER_SSH_ADDRESS=root@([\w:]+)/' "$keyFile"
 )
 
 __get_id_file__() (
+	if [ -n "$MC_SERVER_KEY_FILE" ]; then
+		echo "$MC_SERVER_KEY_FILE"
+		return
+	fi
 	keyFile="$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 	perl -ne 'print "$1\n" if /MC_SERVER_KEY_FILE=(.+)/' "$keyFile"
 )
 
 __get_db_setup_key__() (
+	if [ -n "$__DB_SETUP_PASS__" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$__DB_SETUP_PASS__"
+		return
+	fi
 	perl -ne 'print "$1\n" if /__DB_SETUP_PASS__=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
 __get_db_owner_key__() (
+	if [ -n "$MC_DB_PASS_OWNER" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$MC_DB_PASS_OWNER"
+		return
+	fi
 	perl -ne 'print "$1\n" if /MC_DB_PASS_OWNER=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
-__get_api_user_key__() (
+__get_api_db_user_key__() (
+	if [ -n "$MC_DB_PASS_API" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$MC_DB_PASS_API"
+		return
+	fi
 	perl -ne 'print "$1\n" if /MC_DB_PASS_API=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
-__get_radio_user_key__() (
+__get_radio_db_user_key__() (
+	if [ -n "$MC_DB_PASS_RADIO" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$MC_DB_PASS_RADIO"
+		return
+	fi
 	perl -ne 'print "$1\n" if /MC_DB_PASS_RADIO=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
@@ -1710,8 +1885,8 @@ __get_remote_export_script__() (
 	output="${output} export MC_DATABASE_NAME='musical_chairs_db';" &&
 	output="${output} export __DB_SETUP_PASS__='$(__get_db_setup_key__)';" &&
 	output="${output} export MC_DB_PASS_OWNER='$(__get_db_owner_key__)';" &&
-	output="${output} export MC_DB_PASS_API='$(__get_api_user_key__)';" &&
-	output="${output} export MC_DB_PASS_RADIO='$(__get_radio_user_key__)';" &&
+	output="${output} export MC_DB_PASS_API='$(__get_api_db_user_key__)';" &&
+	output="${output} export MC_DB_PASS_RADIO='$(__get_radio_db_user_key__)';" &&
 	output="${output} export S3_BUCKET_NAME='$(__get_s3_bucket_name__)';" &&
 	echo "$output"
 )

@@ -19,6 +19,9 @@ fi
 process_global_vars "$@" ||
 show_err_and_exit "error with global variables"
 
+deployment_local_env_check ||
+show_err_and_exit "error with missing keys"
+
 if [ -n "$(git status --porcelain)" ]; then
 	echo "There are uncommited changes that will not be apart of the deploy"
 	echo "continue?"
@@ -66,7 +69,10 @@ show_err_and_exit "This section should only be run remotely"
 #in addition to setting up any utilizing any passed in params
 #we call process_global_vars to also set up directories
 process_global_vars "$@" ||
-show_err_and_exit "error with global variables"
+show_err_and_exit "error with global variables on server"
+
+deployment_server_env_check ||
+show_err_and_exit "error with missing keys on server"
 
 if ! git --version 2>/dev/null; then
 	install_package git
@@ -99,8 +105,8 @@ export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
 export MC_DATABASE_NAME='musical_chairs_db';
 export __DB_SETUP_PASS__=$(__get_db_setup_key__) &&
 export MC_DB_PASS_OWNER=$(__get_db_owner_key__) &&
-export MC_DB_PASS_API=$(__get_api_user_key__) &&
-export MC_DB_PASS_RADIO=$(__get_radio_user_key__) &&
+export MC_DB_PASS_API=$(__get_api_db_user_key__) &&
+export MC_DB_PASS_RADIO=$(__get_radio_db_user_key__) &&
 export S3_BUCKET_NAME=$(__get_s3_bucket_name__) &&
 
 if is_ssh; then

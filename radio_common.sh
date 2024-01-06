@@ -2059,14 +2059,19 @@ define_consts() {
 }
 
 create_install_dir() {
-	[ -d "$(get_repo_path)" ] ||
-	mkdir -pv "$(get_repo_path)"
-
+	repoPath=$(get_repo_path)
+	if [ -z "$repoPath" ]; then
+		#no repo folder found
+		repoPath="$(__get_app_root__)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"
+	fi
+	[ -d "$repoPath" ] ||
+	mkdir -pv "$repoPath" &&
+	export MC_TEST_ROOT="${repoPath}/test_trash"
 }
 
 define_top_level_terms() {
 	MC_APP_ROOT=${MC_APP_ROOT:-"$HOME"}
-	export MC_TEST_ROOT="$(get_repo_path)/test_trash"
+	
 
 	export sqliteFilename='songs_db.sqlite'
 	export MC_APP_TRUNK="$MC_PROJ_NAME"_dir
@@ -2185,9 +2190,9 @@ process_global_vars() {
 
 	define_consts &&
 
-	create_install_dir &&
-
 	define_top_level_terms &&
+	
+	create_install_dir &&
 
 	define_app_dir_paths &&
 

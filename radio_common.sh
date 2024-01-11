@@ -1276,7 +1276,8 @@ __clean_up_invalid_cert__() (
 							echo "$cert" | is_cert_expired && 
 							{
 								sudo -p "Delete from /usr/local/share/ca-certificates" \
-									rm /usr/local/share/ca-certificates;
+									rm /usr/local/share/ca-certificates/"$commonName"*.crt;
+								sudo update-ca-certificates
 							}
 							cert=''
 						fi

@@ -2,10 +2,10 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
 	Box,
 } from "@mui/material";
-import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
+import { 
+	dataDispatches as dispatches,
+	useDataWaitingReducer,
+} from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import {
 	fetchStationUsers,
@@ -21,11 +21,8 @@ import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
 import {
-	PageableListStoreShape,
-	WaitingTypes,
 	PageableListDataShape,
-	DataOrUpdater,
-} from "../../Reducers/types/reducerTypes";
+} from "../../Types/reducerTypes";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
 	User,
@@ -47,10 +44,14 @@ stationRoles.unshift({
 });
 
 
-const ruleUpdatePaths = {
-	[WaitingTypes.add]: (state: PageableListStoreShape<User>, payload: User) => {
-		const items = [...state.data.items, payload]
-			.sort(keyedSortFn("username"));
+const replaceUserInState = (
+	state: RequiredDataStore<PageableListDataShape<User>>,
+	userCopy: User
+) => {
+	const items = [...state.data.items];
+	const idx = items.findIndex(i => i.id === userCopy.id);
+	if (idx > -1) {
+		items[idx] = userCopy;
 		return {
 			...state,
 			data: {
@@ -58,54 +59,9 @@ const ruleUpdatePaths = {
 				items: items,
 			},
 		};
-	},
-	[WaitingTypes.remove]: (
-		state: PageableListStoreShape<User>,
-		payload: { key: number | string}
-	) => {
-		const { key } = payload;
-		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === parseInt(key as string));
-		items.splice(idx, 1);
-		return {
-			...state,
-			data: {
-				...state.data,
-				items: items,
-			},
-		};
-	},
-	[WaitingTypes.updateItem]: (
-		state: PageableListStoreShape<User>,
-		payload: {
-			key: string | number,
-			dataOrUpdater: DataOrUpdater<User>
-		}
-	) => {
-		const { key, dataOrUpdater } = payload;
-		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === parseInt(key as string));
-		if (idx > -1) {
-			if (typeof dataOrUpdater === "function") {
-				items.splice(idx, 1, dataOrUpdater(items[idx]));
-			}
-			else {
-				items.splice(idx, 1, dataOrUpdater);
-			}
-			const sortedItems = items.sort(keyedSortFn("username"));
-			return {
-				...state,
-				data: {
-					...state.data,
-					items: sortedItems,
-				},
-			};
-		}
-		else {
-			console.error("Item was not found in local store.");
-			return state;
-		}
-	},
+	}
+	console.error("Item was not found in local store.");
+	return state;
 };
 
 export const StationUserRoleAssignmentTable = () => {
@@ -113,8 +69,7 @@ export const StationUserRoleAssignmentTable = () => {
 	const [state, dispatch] = useDataWaitingReducer(
 		new RequiredDataStore<PageableListDataShape<User>>(
 			{ items: [], totalrows: 0 }
-		),
-		{reducerMods: ruleUpdatePaths}
+		)
 	);
 	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
@@ -149,9 +104,20 @@ export const StationUserRoleAssignmentTable = () => {
 				subjectuserkey: user.id,
 			});
 			const addedRule = await requestObj.call();
-			dispatch(dispatches.add({
-				...user,
-				roles: [...user.roles, addedRule],
+			dispatch(dispatches.update((state) => {
+				const userCopy = {
+					...user,
+					roles: [...user.roles, addedRule],
+				};
+				const items = [...state.data.items, userCopy]
+					.sort(keyedSortFn("username"));
+				return {
+					...state,
+					data: {
+						...state.data,
+						items: items,
+					},
+				};
 			}));
 			enqueueSnackbar("User added!", { variant: "success"});
 		}
@@ -222,12 +188,13 @@ export const StationUserRoleAssignmentTable = () => {
 				subjectuserkey: user.id,
 			});
 			const addedRule = await requestObj.call();
-			dispatch(dispatches.update(
-				user.id,
-				{...user,
+			dispatch(dispatches.update((state) => {
+				const userCopy = {
+					...user,
 					roles: [...user.roles, addedRule].sort(keyedSortFn("name")),
-				}
-			));
+				};
+				return replaceUserInState(state, userCopy);
+			}));
 			enqueueSnackbar("Role added!", { variant: "success"});
 		}
 		catch(err) {
@@ -248,20 +215,20 @@ export const StationUserRoleAssignmentTable = () => {
 				subjectuserkey: user.id,
 			});
 			await requestObj.call();
-			const roles = [...user.roles];
-			const idx = roles.findIndex(r => r.name === role.name);
-			if (idx > -1 ) {
-				roles.splice(idx, 1);
-				dispatch(dispatches.update(
-					user.id,
-					{...user,
+			dispatch(dispatches.update((state) => {
+				const roles = [...user.roles];
+				const ridx = roles.findIndex(r => r.name === role.name);
+				if (ridx > -1 ) {
+					roles.splice(ridx, 1);
+					const userCopy = {
+						...user,
 						roles: roles,
-					}
-				));
-			}
-			else {
-				enqueueSnackbar("Local role not found?", { variant: "error"});
-			}
+					};
+					return replaceUserInState(state, userCopy);
+				}
+				console.error("Item was not found in local store.");
+				return state;
+			}));
 			enqueueSnackbar(`${role.name} removed!`, { variant: "success"});
 		}
 		catch(err) {
@@ -281,7 +248,22 @@ export const StationUserRoleAssignmentTable = () => {
 				subjectuserkey: user.id,
 			});
 			await requestObj.call();
-			dispatch(dispatches.remove(user.id));
+			dispatch(dispatches.update((state) => {
+				const items = [...state.data.items];
+				const idx = items.findIndex(i => i.id === user.id);
+				if (idx > -1 ) {
+					items.splice(idx, 1);
+					return {
+						...state,
+						data: {
+							...state.data,
+							items: items,
+						},
+					};
+				}
+				console.error("Item was not found in local store.");
+				return state;
+			}));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});
 		}
 		catch(err) {

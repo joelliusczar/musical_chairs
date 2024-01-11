@@ -15,27 +15,33 @@ import { fetchUserList } from "../../API_Calls/userCalls";
 import {
 	useCurrentUser,
 	//useAuthViewStateChange,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { User } from "../../Types/user_types";
-import { TableData } from "../../Types/pageable_types";
 import {formatError } from "../../Helpers/error_formatter";
+import {
+	useDataWaitingReducer,
+	dataDispatches as dispatches,
+} from "../../Reducers/dataWaitingReducer";
+import { RequiredDataStore } from "../../Reducers/reducerStores";
+import {
+	PageableListDataShape,
+} from "../../Types/reducerTypes";
 
 export const AccountsList = () => {
-	const [fetchStatus, setFetchStatus] = useState<string | null>(null);
-	const [fetchError, setFetchError] = useState<string | null>(null);
-	const [tableData, setTableData] = useState<TableData<User>>({
-		items: [],
-		totalrows: 0,
-	});
+	const [state, dispatch] = useDataWaitingReducer(
+		new RequiredDataStore<PageableListDataShape<User>>(
+			{ items: [], totalrows: 0}
+		));
+
 	const location = useLocation();
 
 	const currentUser = useCurrentUser();
 
 	useEffect(() => {
 		if(currentUser.username) {
-			setFetchStatus(null);
+			dispatch(dispatches.restart());
 		}
-	},[currentUser.username, setFetchStatus]);
+	},[currentUser.username, dispatch]);
 
 	useEffect(() => {
 		document.title =
@@ -49,35 +55,36 @@ export const AccountsList = () => {
 		const requestObj = fetchUserList({
 			params: { page: page - 1, pageSize: pageSize },
 		});
-		const fetch = async () => {
-			try {
-				if(!fetchStatus || fetchStatus === CallStatus.idle) {
-					setFetchStatus(CallStatus.loading);
-					const tableData = await requestObj.call();
-					setFetchStatus(CallStatus.done);
-					setTableData(tableData);
+		dispatch(dispatches.run((state) => {
+			const fetch = async () => {
+				const { callStatus } = state;
+				try {
+					if(!callStatus || callStatus === CallStatus.idle) {
+						dispatch(dispatches.started());
+						const tableData = await requestObj.call();
+						dispatch(dispatches.done(
+							tableData
+						));
+					}
 				}
-			}
-			catch(err) {
-				setFetchStatus(CallStatus.failed);
-				setFetchError(formatError(err));
-			}
-		};
-		fetch();
+				catch(err) {
+					dispatch(dispatches.failed(formatError(err)));
+				}
+
+			};
+			fetch();
+		}));
 		return () => requestObj.abortController.abort();
 	},[
-		setFetchError,
-		fetchStatus,
-		setFetchStatus,
+		dispatch,
 		location,
 		currentUser,
-		setTableData,
 	]);
 
 	return (
 		<>
 			<h1>Accounts List</h1>
-			<Loader status={fetchStatus} error={fetchError}>
+			<Loader status={state.callStatus} error={state.error}>
 				<TableContainer>
 					<Table size="small">
 						<TableHead>
@@ -89,7 +96,7 @@ export const AccountsList = () => {
 							</TableRow>
 						</TableHead>
 						<TableBody>
-							{tableData.items.map((item, idx) => {
+							{state.data.items.map((item, idx) => {
 								return (
 									<TableRow key={`account_${idx}`}>
 										<TableCell>{item.username}</TableCell>

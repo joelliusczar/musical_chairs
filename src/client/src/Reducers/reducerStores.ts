@@ -1,5 +1,7 @@
+import { KeyValue } from "../Types/generic_types";
 
 export class VoidStore {
+	key?: KeyValue = "";
 	callStatus: string | null = null;
 	error: string | null = null;
 }

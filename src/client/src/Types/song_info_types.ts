@@ -1,4 +1,4 @@
-import { IdType, Named, NamedIdItem } from "./generic_types";
+import { IdValue, Named, NamedIdItem } from "./generic_types";
 import { PathsActionRule, ActionRule, User } from "./user_types";
 import { StationTableData, StationInfo } from "./station_types";
 import { VoidStore } from "../Reducers/reducerStores";
@@ -7,13 +7,13 @@ import {
 } from "react-hook-form";
 
 export interface ArtistInfo {
-	id: IdType
+	id: IdValue
 	name: string
 	owner: User
 }
 
 export interface AlbumInfo {
-	id: IdType
+	id: IdValue
 	name: string
 	year: number | null
 	albumartist: ArtistInfo | null

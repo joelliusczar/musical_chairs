@@ -18,7 +18,8 @@ from sqlalchemy import (
 	delete,
 	update,
 	literal,
-	union_all
+	union_all,
+	
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import RowMapping
@@ -387,7 +388,7 @@ class QueueService:
 		query = select(
 			sg_pk.label("id"),
 			uah_queuedTimestamp.label("queuedtimestamp"),
-			sg_name.label("name"),
+			coalesce[str](sg_name, "").label("name"),
 			ab_name.label("album"),
 			ar_name.label("artist"),
 			sg_path.label("path"),

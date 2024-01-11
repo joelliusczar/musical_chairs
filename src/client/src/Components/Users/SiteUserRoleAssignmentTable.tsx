@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import {
 	Box,
 } from "@mui/material";
-import {
-	dispatches,
-	globalStoreLogger,
-} from "../../Reducers/waitingReducer";
-import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
+import { 
+	useDataWaitingReducer,
+	dataDispatches as dispatches,
+} from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import {
 	addSiteUserRule,
@@ -19,10 +18,6 @@ import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "./UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
 import { useParams, useLocation } from "react-router-dom";
-import {
-	WaitingTypes,
-	SimpleStoreShape,
-} from "../../Reducers/types/reducerTypes";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
 	User,
@@ -42,47 +37,13 @@ roles.unshift({
 });
 
 
-const ruleUpdatePaths = {
-	[WaitingTypes.add]: (state: SimpleStoreShape<User>, payload: ActionRule) => {
-		const roles = [...state.data.roles, payload]
-			.sort(keyedSortFn("name"));
-		return {
-			...state,
-			data: {
-				...state.data,
-				roles: roles,
-			},
-		};
-	},
-	[WaitingTypes.remove]: (
-		state: SimpleStoreShape<User>,
-		payload: { key: number | string}
-	) => {
-		const { key } = payload;
-		const roles = [...state.data.roles];
-		const idx = roles.findIndex(r => r.name === key);
-		roles.splice(idx, 1);
-		return {
-			...state,
-			data: {
-				...state.data,
-				roles: roles,
-			},
-		};
-	},
-};
 
 export const SiteUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useDataWaitingReducer(
 		new RequiredDataStore<User>(
 			{ id: 0, username: "", roles: [], email: ""}
-		),
-		{
-			reducerMods: ruleUpdatePaths,
-			middleware: [globalStoreLogger("path users")],
-		}
-	);
+		));
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
 	const location = useLocation();
@@ -137,7 +98,17 @@ export const SiteUserRoleAssignmentTable = () => {
 				rule,
 			});
 			const addedRule = await requestObj.call();
-			dispatch(dispatches.add(addedRule));
+			dispatch(dispatches.update((state) => {
+				const roles = [...state.data.roles, addedRule]
+					.sort(keyedSortFn("name"));
+				return {
+					...state,
+					data: {
+						...state.data,
+						roles: roles,
+					},
+				};
+			}));
 			enqueueSnackbar("Role added!", { variant: "success"});
 		}
 		catch(err) {
@@ -152,7 +123,18 @@ export const SiteUserRoleAssignmentTable = () => {
 				rulename: role.name,
 			});
 			await requestObj.call();
-			dispatch(dispatches.remove(role.name));
+			dispatch(dispatches.update((state) => {
+				const roles = [...state.data.roles];
+				const idx = roles.findIndex(r => r.name === role.name);
+				roles.splice(idx, 1);
+				return {
+					...state,
+					data: {
+						...state.data,
+						roles: roles,
+					},
+				};
+			}));
 			enqueueSnackbar(`${role.name} removed!`, { variant: "success"});
 		}
 		catch(err) {

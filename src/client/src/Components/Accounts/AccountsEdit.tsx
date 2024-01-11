@@ -14,9 +14,9 @@ import {
 	updatePassword,
 } from "../../API_Calls/userCalls";
 import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
+	useVoidWaitingReducer,
+	voidDispatches as dispatches,
+} from "../../Reducers/voidWaitingReducer";
 import { useParams } from "react-router-dom";
 import Loader from "../Shared/Loader";
 import {
@@ -123,20 +123,22 @@ export const AccountsEdit = () => {
 			return;
 		}
 		const requestObj = fetchUser({ subjectuserkey: key });
-		const fetch = async () => {
-			try {
-				dispatch(dispatches.started());
-				const data = await requestObj.call();
-				reset(data);
-				dispatch(dispatches.done());
-			}
-			catch (err) {
-				enqueueSnackbar(formatError(err), { variant: "error"});
-				dispatch(dispatches.failed(formatError(err)));
-			}
-		};
-
-		fetch();
+		dispatch(dispatches.run(() => {
+			const fetch = async () => {
+				try {
+					dispatch(dispatches.started());
+					const data = await requestObj.call();
+					reset(data);
+					dispatch(dispatches.done());
+				}
+				catch (err) {
+					enqueueSnackbar(formatError(err), { variant: "error"});
+					dispatch(dispatches.failed(formatError(err)));
+				}
+			};
+	
+			fetch();
+		}));
 
 		return () => requestObj.abortController.abort();
 	},[dispatch, pathVars.userKey, watch, enqueueSnackbar, reset]);

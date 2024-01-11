@@ -13,9 +13,9 @@ import {
 	Button,
 } from "@mui/material";
 import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
+	dataDispatches as dispatches,
+	useDataWaitingReducer,
+} from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
@@ -25,17 +25,17 @@ import { formatError } from "../../Helpers/error_formatter";
 import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { OptionsButton } from "../Shared/OptionsButton";
-import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo } from "../../Types/station_types";
 import {
 	PageableListDataShape,
-} from "../../Reducers/types/reducerTypes";
+} from "../../Types/reducerTypes";
 import { SongListDisplayItem } from "../../Types/song_info_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
+import { songDownloadUrl } from "../../API_Calls/songInfoCalls";
 
 
 export const History = () => {
@@ -64,6 +64,12 @@ export const History = () => {
 
 	const getPageUrl = new UrlBuilder(DomRoutes.history);
 
+	const downloadSong = async (songId: number) => {
+		const requestObj = songDownloadUrl({id : songId });
+		const url = await requestObj.call();
+		window?.open(url, "_blank")?.focus();
+	};
+
 	const rowButton = (item: SongListDisplayItem, idx: number) => {
 		const rowButtonOptions = [];
 		const canEditThisSong = anyConformsToAnyRule(
@@ -81,7 +87,7 @@ export const History = () => {
 
 		if (canDownloadAnySong || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
-			href: getDownloadAddress(item.id),
+			onClick: () => downloadSong(item.id),
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton
@@ -121,20 +127,21 @@ export const History = () => {
 			page: page - 1,
 			limit: limit,
 		});
-		const fetch = async () => {
-			historyDispatch(dispatches.started());
-			try {
-				const data = await requestObj.call();
-				historyDispatch(dispatches.done(data));
-				setCurrentQueryStr(`${location.pathname}${location.search}`);
-
-			}
-			catch (err) {
-				historyDispatch(dispatches.failed(formatError(err)));
-			}
-
-		};
-		fetch();
+		historyDispatch(dispatches.run(() => {
+			const fetch = async () => {
+				historyDispatch(dispatches.started());
+				try {
+					const data = await requestObj.call();
+					historyDispatch(dispatches.done(data));
+					setCurrentQueryStr(`${location.pathname}${location.search}`);
+	
+				}
+				catch (err) {
+					historyDispatch(dispatches.failed(formatError(err)));
+				}
+			};
+			fetch();
+		}));
 		return () => requestObj.abortController.abort();
 	},[
 		historyDispatch,

@@ -10,3 +10,9 @@ export const cookieToObject = (cookie: string): StringObject => {
 	}
 	return obj;
 };
+
+export const getUsernameCookie = (cookie: string) => {
+	const cookieObj = cookieToObject(cookie);
+	const usernameCookie = decodeURIComponent(cookieObj["username"] || "");
+	return usernameCookie;
+};

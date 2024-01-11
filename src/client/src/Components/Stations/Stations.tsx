@@ -12,20 +12,20 @@ import Loader from "../Shared/Loader";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DomRoutes, UserRoleDef } from "../../constants";
 import { Link, useParams, useLocation } from "react-router-dom";
-import { useHasAnyRoles } from "../../Context_Providers/AuthContext";
+import { 
+	useHasAnyRoles,
+} from "../../Context_Providers/AuthContext/AuthContext";
 import {
 	useStationData,
-} from "../../Context_Providers/AppContextProvider";
+} from "../../Context_Providers/AppContext/AppContext";
 import { enableStations, disableStations } from "../../API_Calls/stationCalls";
 import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
 import { getListenAddress } from "../../Helpers/request_helpers";
 import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import {
-	useVoidKeyedWaitingReducer,
-} from "../../Reducers/voidKeyedWaitingReducer";
+	useKeyedVoidWaitingReducer,
+	keyedVoidDispatches as dispatches,
+} from "../../Reducers/keyedVoidWaitingReducer";
 import { CallStatus } from "../../constants";
 import { YesNoControl } from "../Shared/YesNoControl";
 import { userKeyMatch } from "../../Helpers/compare_helpers";
@@ -33,7 +33,7 @@ import {
 	anyConformsToAnyRule,
 } from "../../Helpers/rule_helpers";
 import { StationInfo } from "../../Types/station_types";
-import { IdType } from "../../Types/generic_types";
+import { IdValue } from "../../Types/generic_types";
 import { ButtonClickEvent } from "../../Types/browser_types";
 
 
@@ -48,7 +48,7 @@ export const Stations = () => {
 		update: updateStation,
 	} = useStationData();
 
-	const [toggleState, toggleDispatch] = useVoidKeyedWaitingReducer({});
+	const [toggleState, toggleDispatch] = useKeyedVoidWaitingReducer();
 
 	const pathVars = useParams();
 	const location =  useLocation();
@@ -58,64 +58,78 @@ export const Stations = () => {
 	const [ waitConfirm, setWaitConfirm ] = useState("");
 
 	const disableAllStations = async () => {
+		const ids = stations.map(s => s.id);
 		try {
-			toggleDispatch(dispatches.started({ key: "*" }));
+			toggleDispatch(dispatches.started(ids));
 			const requestObj = disableStations({ includeAll: true });
 			await requestObj.call();
-			toggleDispatch(dispatches.done({ key: "*" }));
+			toggleDispatch(dispatches.done(ids));
 			enqueueSnackbar("All stations are being disabled", { variant: "success"});
 		}
 		catch(err) {
 			const formattedError = formatError(err);
-			toggleDispatch(dispatches.failed({key: "*", data: formattedError}));
+			toggleDispatch(
+				dispatches.failed(
+					ids.map(id => ({ key: id, msg: formattedError}))
+				)
+			);
 			enqueueSnackbar(formattedError, {variant: "error" });
 		}
 	};
 
 	const handleDisableStation = async (
 		e: ButtonClickEvent,
-		id: IdType,
-		name: string
+		station: StationInfo
 	) => {
 		e.stopPropagation();
 		try {
-			toggleDispatch(dispatches.started({ key: id }));
-			const requestObj = disableStations({ ids: [id]});
+			
+			toggleDispatch(dispatches.started([station.id]));
+			const requestObj = disableStations({ ids: [station.id]});
 			await requestObj.call();
-			toggleDispatch(dispatches.done({ key: id }));
-			enqueueSnackbar(`${name} is being disabled`, { variant: "success"});
-			updateStation(id, p => ({...p, isrunning: false}));
+			toggleDispatch(dispatches.done([station.id]));
+			enqueueSnackbar(
+				`${station.name} is being disabled`, { variant: "success"}
+			);
+			updateStation({...station, isrunning: false});
 			setWaitConfirm("");
 		}
 		catch(err) {
 			const formattedError = formatError(err);
-			toggleDispatch(dispatches.failed({key: id, data: formattedError}));
+			toggleDispatch(dispatches.failed([{
+				key: station.id,
+				msg: formattedError,
+			}]));
 			enqueueSnackbar(formattedError, {variant: "error" });
 		}
 	};
 
 	const handleEnableStation = async (
 		e: ButtonClickEvent,
-		id: IdType,
-		name: string
+		station: StationInfo
 	) => {
 		e.stopPropagation();
 		try {
-			toggleDispatch(dispatches.started({ key: id }));
-			const requestObj = enableStations({ ids: id});
+			toggleDispatch(dispatches.started([station.id]));
+			const requestObj = enableStations({ ids: station.id});
 			await requestObj.call();
-			toggleDispatch(dispatches.done({ key: id }));
+			toggleDispatch(dispatches.done([station.id]));
 			enqueueSnackbar(`${name} is being enabled`, { variant: "success"});
-			updateStation(id, p => ({...p, isrunning: true}));
+			updateStation({...station, isrunning: true});
 		}
 		catch(err) {
 			const formattedError = formatError(err);
-			toggleDispatch(dispatches.failed({key: id, data: formattedError}));
+			toggleDispatch(
+				dispatches.failed([{
+					key: station.id,
+					msg: formattedError,
+				}])
+			);
 			enqueueSnackbar(formattedError, {variant: "error" });
 		}
 	};
 
-	const canToggleStation = (id?: IdType) => {
+	const canToggleStation = (id?: IdValue) => {
 		if((!!id  && toggleState[id]?.callStatus === CallStatus.loading) ||
 			toggleState["*"]?.callStatus === CallStatus.loading
 		) {
@@ -195,13 +209,13 @@ export const Stations = () => {
 							{waitConfirm === s.name ?
 								<YesNoControl
 									message={`Disable ${s.displayname}?`}
-									onYes={(e) => handleDisableStation(e, s.id, s.name)}
+									onYes={(e) => handleDisableStation(e, s)}
 									onNo={() => setWaitConfirm("")}
 								/> :
 								<Button
 									onClick={e => s.isrunning ?
 										openDisableConfirm(e, s.name) :
-										handleEnableStation(e, s.id, s.name)
+										handleEnableStation(e, s)
 									}
 									disabled={!canToggleStation(s.id)}
 								>

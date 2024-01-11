@@ -1,6 +1,6 @@
 import webClient from "./api";
 import { buildArrayQueryStrFromObj } from "../Helpers/request_helpers";
-import { OwnerParam, KeyType, IdType } from "../Types/generic_types";
+import { OwnerParam, KeyValue, IdValue } from "../Types/generic_types";
 import {
 	RequiredStationParams,
 	StationCreationInfo,
@@ -38,7 +38,7 @@ export const fetchStations = (params?: OwnerParam) => {
 };
 
 export const fetchStationForEdit = (
-	{ ownerkey, stationkey }: { ownerkey: KeyType, stationkey: KeyType}
+	{ ownerkey, stationkey }: { ownerkey: KeyValue, stationkey: KeyValue}
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -55,7 +55,7 @@ export const fetchStationForEdit = (
 };
 
 export const checkValues = (
-	{ id, values }: { id: IdType, values: StringObject }
+	{ id, values }: { id: IdValue, values: StringObject }
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -77,7 +77,7 @@ export const checkValues = (
 };
 
 export const saveStation = (
-	{ values, id}: { values: StationCreationInfo, id?: IdType | null }
+	{ values, id}: { values: StationCreationInfo, id?: IdValue | null }
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -156,7 +156,7 @@ export const fetchHistory = (
 };
 
 export const sendSongRequest = (
-	{ stationkey, ownerkey, songid}: RequiredStationParams & {songid: IdType}
+	{ stationkey, ownerkey, songid}: RequiredStationParams & {songid: IdValue}
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -174,7 +174,7 @@ export const sendSongRequest = (
 };
 
 export const removeSongFromQueue = (
-	params: RequiredStationParams & { songid: IdType, queuedtimestamp: number }
+	params: RequiredStationParams & { songid: IdValue, queuedtimestamp: number }
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -200,7 +200,7 @@ export const removeSongFromQueue = (
 };
 
 export const enableStations = (
-	{ ids }: { ids: IdType[] | IdType }
+	{ ids }: { ids: IdValue[] | IdValue }
 ) => {
 	const abortController = new AbortController();
 	return {

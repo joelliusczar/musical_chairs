@@ -5,7 +5,7 @@ import { DomRoutes } from "../../constants";
 import {
 	useCurrentUser,
 	useLogin,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import {
 	ButtonClickEvent,
 	ClickEvent,

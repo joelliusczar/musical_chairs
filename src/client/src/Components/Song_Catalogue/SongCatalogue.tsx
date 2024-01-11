@@ -18,9 +18,7 @@ import {
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import {
+	dataDispatches as dispatches,
 	useDataWaitingReducer,
 } from "../../Reducers/dataWaitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
@@ -32,13 +30,13 @@ import { OptionsButton } from "../Shared/OptionsButton";
 import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo, StationTableData } from "../../Types/station_types";
 import { SongListDisplayItem } from "../../Types/song_info_types";
-import { IdType } from "../../Types/generic_types";
+import { IdValue } from "../../Types/generic_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 
 export const SongCatalogue = () => {
@@ -73,7 +71,7 @@ export const SongCatalogue = () => {
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
 
-	const requestSong = async (songId: IdType) => {
+	const requestSong = async (songId: IdValue) => {
 		if (!pathVars.stationkey || !pathVars.ownerkey ) {
 			enqueueSnackbar("A key is missing", {variant: "error" });
 			return;
@@ -160,19 +158,21 @@ export const SongCatalogue = () => {
 			limit: limit,
 		}
 		);
-		const fetch = async () => {
-			catalogueDispatch(dispatches.started());
-			try {
-				const data = await requestObj.call();
-				catalogueDispatch(dispatches.done(data));
-				setCurrentQueryStr(`${location.pathname}${location.search}`);
-			}
-			catch (err) {
-				catalogueDispatch(dispatches.failed(formatError(err)));
-			}
-
-		};
-		fetch();
+		catalogueDispatch(dispatches.run(() => {
+			const fetch = async () => {
+				catalogueDispatch(dispatches.started());
+				try {
+					const data = await requestObj.call();
+					catalogueDispatch(dispatches.done(data));
+					setCurrentQueryStr(`${location.pathname}${location.search}`);
+				}
+				catch (err) {
+					catalogueDispatch(dispatches.failed(formatError(err)));
+				}
+	
+			};
+			fetch();
+		}));
 		return () => requestObj.abortController.abort();
 	},[
 		catalogueDispatch,

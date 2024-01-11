@@ -10,7 +10,7 @@ import {
 	UploadInfo,
 } from "../Types/song_info_types";
 import { 
-	IdType,
+	IdValue,
 	StringObject,
 	Flags,
 	Dictionary,
@@ -24,7 +24,7 @@ import {
 } from "../Types/user_types";
 
 
-export const fetchSongForEdit = ({ id }: { id: IdType}) => {
+export const fetchSongForEdit = ({ id }: { id: IdValue}) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,
@@ -38,7 +38,7 @@ export const fetchSongForEdit = ({ id }: { id: IdType}) => {
 	};
 };
 
-export const fetchSongsForMultiEdit = ({ ids }: { ids: IdType[]}) => {
+export const fetchSongsForMultiEdit = ({ ids }: { ids: IdValue[]}) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,
@@ -54,7 +54,7 @@ export const fetchSongsForMultiEdit = ({ ids }: { ids: IdType[]}) => {
 };
 
 export const saveSongEdits = (
-	{ id, data }: { id: IdType, data: SongInfoApiSavura}
+	{ id, data }: { id: IdValue, data: SongInfoApiSavura}
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -71,7 +71,7 @@ export const saveSongEdits = (
 };
 
 export const saveSongsEditsMulti = (
-	{ ids, data }: { ids: IdType[], data: SongInfoApiSavura}
+	{ ids, data }: { ids: IdValue[], data: SongInfoApiSavura}
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -280,7 +280,7 @@ export const saveDirectory = (
 };
 
 export const checkValues = (
-	{ id, values }: { id: IdType, values: StringObject }
+	{ id, values }: { id: IdValue, values: StringObject }
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -326,7 +326,7 @@ export const uploadSong = (
 	};
 };
 
-export const songDownloadUrl = ({ id }:{ id: IdType}) => {
+export const songDownloadUrl = ({ id }:{ id: IdValue}) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,

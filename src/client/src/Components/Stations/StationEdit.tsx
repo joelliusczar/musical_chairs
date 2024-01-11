@@ -12,10 +12,10 @@ import { formatError } from "../../Helpers/error_formatter";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
+import { 
+	useVoidWaitingReducer,
+	voidDispatches as dispatches,
+} from "../../Reducers/voidWaitingReducer";
 import {
 	DomRoutes,
 	CallStatus,
@@ -23,11 +23,11 @@ import {
 } from "../../constants";
 import {
 	useStationData,
-} from "../../Context_Providers/AppContextProvider";
+} from "../../Context_Providers/AppContext/AppContext";
 import {
 	useCurrentUser,
 	useAuthViewStateChange,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { Loader } from "../Shared/Loader";
 import { FormSelect } from "../Shared/FormSelect";
 import {
@@ -171,7 +171,7 @@ export const StationEdit = (props: StationEditProps) => {
 			const data = await requestObj.call();
 			afterSubmit(data);
 			if (stationId) {
-				updateStation(stationId, data);
+				updateStation(data);
 			}
 			else {
 				addStation(data);

@@ -1,45 +1,28 @@
 import React, {
-	createContext,
-	useContext,
 	useMemo,
 	useState,
 	useEffect,
 	useCallback,
 } from "react";
 import PropTypes from "prop-types";
-import { login, loginWithCookie, webClient } from "../API_Calls/userCalls";
-import {
-	dispatches,
-} from "../Reducers/waitingReducer";
+import { loginWithCookie, webClient } from "../../API_Calls/userCalls";
 import {
 	useDataWaitingReducer,
-} from "../Reducers/dataWaitingReducer";
-import { UserRoleDef } from "../constants";
-import { formatError } from "../Helpers/error_formatter";
-import {
-	anyConformsToRule,
-	anyConformsToAnyRule,
-} from "../Helpers/rule_helpers";
+	dataDispatches as dispatches,
+} from "../../Reducers/dataWaitingReducer";
+import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
-import { LoginModal } from "../Components/Accounts/AccountsLoginModal";
+import { LoginModal } from "../../Components/Accounts/AccountsLoginModal";
 import { BrowserRouter } from "react-router-dom";
-import { LoggedInUser } from "../Types/user_types";
 import {
-	ActionPayload,
-} from "../Reducers/types/reducerTypes";
-import { RequiredDataStore } from "../Reducers/reducerStores";
+	AuthContext,
+	loggedOutState,
+} from "./AuthContext";
 
-type loginFnType = (username: string, password: string) => void;
 
-const loggedOut = {
-	username: "",
-	roles: [],
-	access_token: "",
-	lifetime: 0,
-	login_timestamp: 0,
-};
 
-const loggedOutState = new RequiredDataStore<LoggedInUser>(loggedOut);
+
+
 
 const expireCookie = (name: string) => {
 	const cookieStr = name + 
@@ -55,24 +38,6 @@ const clearCookies = () => {
 	expireCookie("login_timestamp");
 };
 
-type AuthContextType = {
-	state: RequiredDataStore<LoggedInUser>,
-	dispatch: React.Dispatch<ActionPayload<LoggedInUser, LoggedInUser>>,
-	setupAuthExpirationAction: () => void
-	logout: () => void,
-	partialLogout: () => void,
-	openLoginPrompt: (onCancel?: () => void) => void
-}
-
-
-export const AuthContext = createContext<AuthContextType>({
-	state: loggedOutState,
-	dispatch: ({}) => {},
-	setupAuthExpirationAction: () => {},
-	logout: () => {},
-	partialLogout: () => {},
-	openLoginPrompt: () => {},
-});
 
 export const AuthContextProvider = (props: { children: JSX.Element }) => {
 	const { children } = props;
@@ -88,17 +53,18 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 	const loggedInUsername = state.data.username;
 
 	const partialLogout = useCallback(() => {
-		dispatch(dispatches.reset({
+		
+		dispatch(dispatches.set({
 			...loggedOutState.data,
 			username: loggedInUsername,
 		}));
 		clearCookies();
-		enqueueSnackbar("Logging out.");
+		enqueueSnackbar("ending session.");
 	},[dispatch, enqueueSnackbar, loggedInUsername]);
 
 
 	const logout = useCallback(() => {
-		dispatch(dispatches.reset(loggedOutState.data));
+		dispatch(dispatches.set(loggedOutState.data));
 		clearCookies();
 		enqueueSnackbar("Logging out.");
 	},[dispatch, enqueueSnackbar]);
@@ -127,6 +93,7 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 					partialLogout();
 					openLoginPrompt(logout);
 				}
+				webClient.defaults.headers.common["Authorization"] = null;
 				return Promise.reject(err);
 			}
 		);
@@ -203,71 +170,4 @@ AuthContextProvider.propTypes = {
 	]).isRequired,
 };
 
-export const useCurrentUser = () => {
-	const { state: { data } } = useContext(AuthContext);
-	return data;
-};
 
-export const useHasAnyRoles = (requiredRoleNames: string[]) => {
-	const { state: { data } } = useContext(AuthContext);
-	if(!requiredRoleNames || requiredRoleNames.length < 1) return true;
-	const userRoles = data?.roles;
-
-	if (!userRoles) {
-		return false;
-	}
-	if (anyConformsToRule(userRoles, UserRoleDef.ADMIN)) {
-		return true;
-	}
-
-	if (anyConformsToAnyRule(userRoles, requiredRoleNames)) {
-		return true;
-	}
-	return false;
-};
-
-export const useLogin: () => [loginFnType, () => void] = () => {
-	const {
-		dispatch,
-		setupAuthExpirationAction,
-		logout,
-	} = useContext(AuthContext);
-
-	const _login = useCallback( async (username: string, password: string) => {
-		try {
-			const requestObj = login({
-				username,
-				password,
-			});
-			dispatch(dispatches.started());
-			const data = await requestObj.call();
-			setupAuthExpirationAction();
-			dispatch(dispatches.done(data));
-		}
-		catch(err) {
-			dispatch(dispatches.failed(formatError(err)));
-			throw err;
-		}
-	},[dispatch, setupAuthExpirationAction]);
-	return [_login, logout];
-};
-
-export const useLoginPrompt = () => {
-	const {
-		openLoginPrompt,
-	} = useContext(AuthContext);
-
-	return openLoginPrompt;
-};
-
-export const useAuthViewStateChange = <T, U=T>(
-	dispatch: (action:ActionPayload<T,U>) => void
-) => {
-	const currentUser = useCurrentUser();
-
-	useEffect(() => {
-		if(currentUser.username) {
-			dispatch(dispatches.restart());
-		}
-	},[currentUser.username, dispatch]);
-};

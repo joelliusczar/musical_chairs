@@ -2,16 +2,16 @@ export interface Named {
 	name: string
 };
 
-export type IdType = number
-export type KeyType = string | IdType;
+export type IdValue = number
+export type KeyValue = string | IdValue;
 
 export interface IdItem {
-	id: IdType
+	id: IdValue
 };
 
 
 export interface OwnerParam {
-	ownerkey: KeyType
+	ownerkey: KeyValue
 }
 
 export interface APIError {
@@ -26,12 +26,12 @@ export interface Error {
 export interface NamedIdItem extends IdItem, Named {}
 
 export interface SelectItem extends Named {
-	id: IdType | number | string
+	id: IdValue | number | string
 };
 
 
 export interface Keyed {
-	[key: string]: KeyType
+	[key: string]: KeyValue
 };
 
 export interface StringObject {
@@ -43,7 +43,7 @@ export interface DontCareMap {
 }
 
 export interface Dictionary<T> {
-	[key: string]: T
+	[key: KeyValue]: T
 }
 
 export type SortCallback<T> = (a:T, b:T) => number;
@@ -57,3 +57,13 @@ export type Flags<Type> = {
 export type SingleOrList<OutT, InT extends OutT | OutT[] | null> =
 	InT extends OutT[] ? OutT[] :
   InT extends OutT ? OutT : null;
+
+
+
+type PropsCoercedToPorNeverOnO<P, O> = {
+	[ k in keyof O]: O[k] extends P ? k : never 
+}[keyof O];	
+
+export type PropsOfTypePOnO<P, O>= {
+	[k in PropsCoercedToPorNeverOnO<P, O> ]: P
+}

@@ -15,13 +15,15 @@ import { theme, drawerWidth } from "./style_config";
 import { SnackbarProvider } from "notistack";
 import { UserMenu } from "./Components/Accounts/UserMenu";
 import {
-	AuthContextProvider,
 	useCurrentUser,
 	useLoginPrompt,
-} from "./Context_Providers/AuthContext";
+} from "./Context_Providers/AuthContext/AuthContext";
+import {
+	AuthContextProvider,
+} from "./Context_Providers/AuthContext/AuthContextProvider";
 import {
 	AppContextProvider,
-} from "./Context_Providers/AppContextProvider";
+} from "./Context_Providers/AppContext/AppContextProvider";
 import { buildTimespanMsg, secondsToTuple } from "./Helpers/time_helper";
 import { cookieToObject } from "./Helpers/browser_helpers";
 

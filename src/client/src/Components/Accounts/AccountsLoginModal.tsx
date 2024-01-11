@@ -24,7 +24,7 @@ export function LoginModal(props: LoginModalProps) {
 
 
 	return (
-		<Dialog open={open} onClose={closeModal} >
+		<Dialog open={open} onClose={handleCancel} >
 			<LoginForm afterSubmit={closeModal} onCancel={handleCancel}/>
 		</Dialog>
 	);

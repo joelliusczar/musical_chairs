@@ -20,6 +20,7 @@ module.exports = {
 		"@typescript-eslint",
 		"react",
 		"react-hooks",
+		"react-refresh",
 	],
 	"settings": {
 		"react": {
@@ -62,5 +63,6 @@ module.exports = {
 		"max-len": ["error", { "code": 80, "tabWidth": 2 }],
 		"react-hooks/rules-of-hooks": "error",
 		"react-hooks/exhaustive-deps": "error",
+		"react-refresh/only-export-components": "warn",
 	},
 };

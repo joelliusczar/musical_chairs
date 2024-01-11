@@ -148,6 +148,7 @@ class SongTreeNode(FrozenBaseClass):
 	totalChildCount: int
 	id: Optional[int]=None
 	name: Optional[str]=None
+	directChildren: list["SongTreeNode"]=Field(default_factory=list)
 	rules: list[PathsActionRule]=Field(
 		default_factory=list, frozen=True
 	)

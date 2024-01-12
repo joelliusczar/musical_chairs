@@ -2255,7 +2255,7 @@ create_install_directory() {
 		exit 1
 	fi
 	[ -d "$MC_LOCAL_REPO_PATH" ] ||
-	mkdir -pv "$MC_LOCAL_REPO_PATH" &&
+	mkdir -pv "$MC_LOCAL_REPO_PATH"
 }
 
 define_app_root_terms() {

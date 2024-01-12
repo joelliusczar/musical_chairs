@@ -54,6 +54,7 @@ deployment_local_env_check() (
 	#definitely problems if missing
 	[ -z "$MC_REPO_URL" ] &&
 	echo 'environmental var MC_REPO_URL not set'
+	fnExitCode="$?"
 	track_exit_code
 
 	#values for ssh'ing to server
@@ -103,6 +104,7 @@ deployment_server_env_check() (
 	#possibly problems if missing
 	[ -z "$__ICES_BRANCH__" ] &&
 	echo 'environmental var __ICES_BRANCH__ not set'
+	fnExitCode="$?"
 	track_exit_code
 	[ -z "$MC_LOCAL_REPO_PATH" ] &&
 	echo 'environmental var MC_LOCAL_REPO_PATH not set'

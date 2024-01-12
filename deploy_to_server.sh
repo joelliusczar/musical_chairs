@@ -17,10 +17,10 @@ fi
 
 
 process_global_vars "$@" ||
-show_err_and_exit "error with global variables"
+show_err_and_exit "local error with global variables"
 
 deployment_local_env_check ||
-show_err_and_exit "error with missing keys"
+show_err_and_exit "local error with missing keys"
 
 if [ -n "$(git status --porcelain)" ]; then
 	echo "There are uncommited changes that will not be apart of the deploy"
@@ -176,7 +176,7 @@ scope $global_args
 RemoteScriptEOF4
 } > remote_script_fifo &
 
-
+echo "connectiong to $(__get_address__) using $(__get_id_file__)"
 ssh -i $(__get_id_file__) "root@$(__get_address__)" \
 	'bash -s' < remote_script_fifo &&
 echo "All done" || echo "Onk!"

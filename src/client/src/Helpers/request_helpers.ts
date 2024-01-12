@@ -1,4 +1,4 @@
-import { apiAddress, baseAddress } from "../constants";
+import { CallStatus, apiAddress, baseAddress } from "../constants";
 import { StationInfo } from "../Types/station_types";
 import { IdValue } from "../Types/generic_types";
 
@@ -36,4 +36,8 @@ export const getListenAddress = (station: StationInfo) => {
 
 export const getDownloadAddress = (songId: IdValue) => {
 	return `${apiAddress}/song-info/songs/download/${songId}`;
+};
+
+export const isCallPending = (callStatus: string | null) => {
+	return callStatus !== CallStatus.done && callStatus !== CallStatus.failed;
 };

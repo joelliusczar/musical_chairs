@@ -58,7 +58,11 @@ export const History = () => {
 			)
 		);
 
-	useAuthViewStateChange(historyDispatch);
+	const authReset = useCallback(() => {
+		historyDispatch(dispatches.restart());
+	}, [historyDispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	const { callStatus: historyCallStatus } = historyState;
 
@@ -127,21 +131,20 @@ export const History = () => {
 			page: page - 1,
 			limit: limit,
 		});
-		historyDispatch(dispatches.run(() => {
-			const fetch = async () => {
-				historyDispatch(dispatches.started());
-				try {
-					const data = await requestObj.call();
-					historyDispatch(dispatches.done(data));
-					setCurrentQueryStr(`${location.pathname}${location.search}`);
-	
-				}
-				catch (err) {
-					historyDispatch(dispatches.failed(formatError(err)));
-				}
-			};
-			fetch();
-		}));
+		const fetch = async () => {
+			historyDispatch(dispatches.started());
+			try {
+				const data = await requestObj.call();
+				historyDispatch(dispatches.done(data));
+				setCurrentQueryStr(`${location.pathname}${location.search}`);
+
+			}
+			catch (err) {
+				historyDispatch(dispatches.failed(formatError(err)));
+			}
+		};
+		fetch();
+		
 		return () => requestObj.abortController.abort();
 	},[
 		historyDispatch,

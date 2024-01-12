@@ -19,7 +19,7 @@ export type KeyedDataActionPayload<T> = {
 	payload: Dictionary<string>,
 } | {
 		type: WaitingTypes.restart,
-		payload: { keys: KeyValue[] }
+		payload: { keys?: KeyValue[] }
 } | {
 		type: WaitingTypes.run,
 		payload: ((state: KeyedStoreShape<RequiredDataStore<T | null>>) => void)
@@ -48,10 +48,15 @@ export const keyedDataDispatches = {
 			type: WaitingTypes.failed, 
 			payload: Dictionary<string>,
 		},
-	restart: (keys: KeyValue[]) => ({ 
+	restart: (keys?: KeyValue[]) => ({ 
 		type: WaitingTypes.restart,
-		payload: { keys: keys },
-	}) as { type: WaitingTypes.restart, payload: { keys: KeyValue[] } },
+		payload: { 
+			keys,
+		} as typeof keys extends undefined ? undefined : {keys: KeyValue[]},
+	}) as { 
+		type: WaitingTypes.restart,
+		payload: typeof keys extends undefined ? undefined : { keys: KeyValue[] },
+	},
 	run: <T>(
 		fn:(
 			data: KeyedStoreShape<RequiredDataStore<T | null>>
@@ -118,6 +123,9 @@ export const keyedDataReducer = <T>(
 	case WaitingTypes.restart:
 	{
 		const { keys } = action.payload;
+		if (!keys) {
+			return {};
+		}
 		const stateCopy = {...state};
 		keys.forEach(k => {
 			stateCopy[k] = {

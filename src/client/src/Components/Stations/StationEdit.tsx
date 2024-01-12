@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
@@ -184,7 +184,11 @@ export const StationEdit = (props: StationEditProps) => {
 		}
 	});
 
-	useAuthViewStateChange(dispatch);
+	const authReset = useCallback(() => {
+		dispatch(dispatches.restart());
+	}, [dispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	useEffect(() => {
 		if(pathVars.stationkey && pathVars.ownerkey) {

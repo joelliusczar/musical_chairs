@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useCallback } from "react";
 import {
 	Box,
 	Typography,
@@ -52,6 +52,7 @@ import {
 } from "../../Types/song_info_types";
 import { Named, IdValue } from "../../Types/generic_types";
 import { SubmitButton } from "../Shared/SubmitButton";
+import { isCallPending } from "../../Helpers/request_helpers";
 
 
 const inputField = {
@@ -127,6 +128,7 @@ export const SongEdit = () => {
 	const { enqueueSnackbar } = useSnackbar();
 	const [state, dispatch] = useVoidWaitingReducer();
 	const { callStatus } = state;
+	const isPending = isCallPending(callStatus);
 	const location = useLocation();
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
@@ -240,7 +242,11 @@ export const SongEdit = () => {
 		}
 	});
 
-	useAuthViewStateChange(dispatch);
+	const authReset = useCallback(() => {
+		dispatch(dispatches.restart());
+	}, [dispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	useEffect(() => {
 		if (ids.length === 0) {
@@ -252,29 +258,26 @@ export const SongEdit = () => {
 				id: ids[0],
 			}) :
 			fetchSongsForMultiEdit({ ids });
-		dispatch(dispatches.run((state) => {
-			const { callStatus } = state;
-			const fetch = async () => {
-				try {
-					if (!callStatus) {
-						dispatch(dispatches.started());
-						const data = await requestObj.call();
-						reset({
-							...data,
-							touched: createTouchedObject(data.touched),
-						});
-						dispatch(dispatches.done());
-					}
-				}
-				catch(err) {
-					dispatch(dispatches.failed(formatError(err)));
-				}
-			};
-	
-			fetch();
-		}));
+		if (!isPending) return;
+		const fetch = async () => {
+			try {
+				dispatch(dispatches.started());
+				const data = await requestObj.call();
+				reset({
+					...data,
+					touched: createTouchedObject(data.touched),
+				});
+				dispatch(dispatches.done());
+			}
+			catch(err) {
+				dispatch(dispatches.failed(formatError(err)));
+			}
+		};
+
+		fetch();
+
 		return () => requestObj.abortController.abort();
-	}, [dispatch, ids, reset ]);
+	}, [dispatch, ids, reset, isPending ]);
 
 	useEffect(() => {
 		if (ids?.length < 2) return;

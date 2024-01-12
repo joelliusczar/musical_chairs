@@ -132,21 +132,20 @@ export const PathUserRoleAssignmentTable = () => {
 		const requestObj = fetchPathUsers({
 			page: page - 1, limit: limit, prefix: prefix,
 		});
-		dispatch(dispatches.run(() => {
-			const fetch = async () => {
-				dispatch(dispatches.started());
-				try {
-					const data = await requestObj.call();
-					dispatch(dispatches.done(data));
-					setCurrentQueryStr(`${location.pathname}${location.search}`);
-				}
-				catch (err) {
-					dispatch(dispatches.failed(formatError(err)));
-				}
-	
-			};
-			fetch();
-		}));
+		const fetch = async () => {
+			dispatch(dispatches.started());
+			try {
+				const data = await requestObj.call();
+				dispatch(dispatches.done(data));
+				setCurrentQueryStr(`${location.pathname}${location.search}`);
+			}
+			catch (err) {
+				dispatch(dispatches.failed(formatError(err)));
+			}
+
+		};
+		fetch();
+
 		return () => requestObj.abortController.abort();
 	},[
 		dispatch,

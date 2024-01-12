@@ -64,7 +64,11 @@ export const Queue = () => {
 		[UserRoleDef.STATION_SKIP]
 	);
 
-	useAuthViewStateChange(queueDispatch);
+	const authReset = useCallback(() => {
+		queueDispatch(dispatches.restart());
+	}, [queueDispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	const urlBuilder = new UrlBuilder(DomRoutes.queue);
 

@@ -16,11 +16,10 @@ import {
 	anyConformsToAnyRule,
 } from "../../Helpers/rule_helpers";
 import { LoggedInUser } from "../../Types/user_types";
-import {
-	WaitingTypes,
-} from "../../Types/reducerTypes";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
-import { getUsernameCookie } from "../../Helpers/browser_helpers";
+import {
+	cookieToObjectURIDecoded,
+} from "../../Helpers/browser_helpers";
 
 export type AuthContextType = {
 	state: RequiredDataStore<LoggedInUser>,
@@ -110,15 +109,26 @@ export const useLoginPrompt = () => {
 };
 
 export const useAuthViewStateChange = (
-	dispatch: (action: { type: WaitingTypes.restart }) => void
+	restart: () => void
 ) => {
 	const currentUser = useCurrentUser();
-	const usernameCookie = getUsernameCookie(document.cookie);
-	const username = (currentUser.username || usernameCookie)?.trim();
+	const cookieObj = cookieToObjectURIDecoded(document.cookie);
+	const username = (
+		currentUser.username || cookieObj["username"]
+	)?.trim() || "";
+	const loggedIn = !!(currentUser.access_token || cookieObj["access_token"]);
+	const fullyLogedOut = !username;
 
 	useEffect(() => {
-		if(username) {
-			dispatch({ type: WaitingTypes.restart });
+		if (fullyLogedOut) {
+			restart();
 		}
-	},[username, dispatch]);
+	},[fullyLogedOut, restart]);
+
+	useEffect(() => {
+		const newLogin = !!username && loggedIn;
+		if(newLogin) {
+			restart();
+		}
+	},[username, restart, loggedIn]);
 };

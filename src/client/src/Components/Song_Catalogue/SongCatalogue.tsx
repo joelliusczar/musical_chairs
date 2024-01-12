@@ -57,7 +57,11 @@ export const SongCatalogue = () => {
 	const location = useLocation();
 	const pathVars = useParams();
 
-	useAuthViewStateChange(catalogueDispatch);
+	const authReset = useCallback(() => {
+		catalogueDispatch(dispatches.restart());
+	}, [catalogueDispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
 	const canRequestSongsForStation = anyConformsToAnyRule(
@@ -158,21 +162,20 @@ export const SongCatalogue = () => {
 			limit: limit,
 		}
 		);
-		catalogueDispatch(dispatches.run(() => {
-			const fetch = async () => {
-				catalogueDispatch(dispatches.started());
-				try {
-					const data = await requestObj.call();
-					catalogueDispatch(dispatches.done(data));
-					setCurrentQueryStr(`${location.pathname}${location.search}`);
-				}
-				catch (err) {
-					catalogueDispatch(dispatches.failed(formatError(err)));
-				}
-	
-			};
-			fetch();
-		}));
+		const fetch = async () => {
+			catalogueDispatch(dispatches.started());
+			try {
+				const data = await requestObj.call();
+				catalogueDispatch(dispatches.done(data));
+				setCurrentQueryStr(`${location.pathname}${location.search}`);
+			}
+			catch (err) {
+				catalogueDispatch(dispatches.failed(formatError(err)));
+			}
+
+		};
+		fetch();
+
 		return () => requestObj.abortController.abort();
 	},[
 		catalogueDispatch,

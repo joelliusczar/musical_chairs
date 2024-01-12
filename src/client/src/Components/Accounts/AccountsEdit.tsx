@@ -123,22 +123,20 @@ export const AccountsEdit = () => {
 			return;
 		}
 		const requestObj = fetchUser({ subjectuserkey: key });
-		dispatch(dispatches.run(() => {
-			const fetch = async () => {
-				try {
-					dispatch(dispatches.started());
-					const data = await requestObj.call();
-					reset(data);
-					dispatch(dispatches.done());
-				}
-				catch (err) {
-					enqueueSnackbar(formatError(err), { variant: "error"});
-					dispatch(dispatches.failed(formatError(err)));
-				}
-			};
-	
-			fetch();
-		}));
+		const fetch = async () => {
+			try {
+				dispatch(dispatches.started());
+				const data = await requestObj.call();
+				reset(data);
+				dispatch(dispatches.done());
+			}
+			catch (err) {
+				enqueueSnackbar(formatError(err), { variant: "error"});
+				dispatch(dispatches.failed(formatError(err)));
+			}
+		};
+
+		fetch();
 
 		return () => requestObj.abortController.abort();
 	},[dispatch, pathVars.userKey, watch, enqueueSnackbar, reset]);

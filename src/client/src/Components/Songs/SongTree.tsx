@@ -1,9 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Box, Button, AppBar, Toolbar } from "@mui/material";
 import { TreeView, TreeItem } from "@mui/lab";
-import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
 import { 
 	fetchSongsLs,
 	fetchSongLsParents,
@@ -11,7 +8,12 @@ import {
 } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { drawerWidth } from "../../style_config";
-import { withCacheProvider, useCache } from "../Shared/CacheContextProvider";
+import { 
+	useCache,
+} from "../../Context_Providers/TreeCacheContext/TreeCacheContext";
+import {
+	withCacheProvider,
+} from "../../Context_Providers/TreeCacheContext/TreeCacheContextHOC";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
 import { formatError } from "../../Helpers/error_formatter";
@@ -19,16 +21,39 @@ import {
 	buildArrayQueryStr,
 } from "../../Helpers/request_helpers";
 import { useSnackbar } from "notistack";
-import { useAuthViewStateChange } from "../../Context_Providers/AuthContext";
+import {
+	useCurrentUser,
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { normalizeOpeningSlash } from "../../Helpers/string_helpers";
 import { SongTreeNodeInfo } from "../../Types/song_info_types";
-import { IdType, Dictionary } from "../../Types/generic_types";
+import { IdValue, Dictionary, KeyValue } from "../../Types/generic_types";
 import { ListData } from "../../Types/pageable_types";
 import { PathsActionRule } from "../../Types/user_types";
-import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
+import {
+	keyedDataDispatches as dispatches,
+} from "../../Reducers/keyedDataWaitingReducer";
 import { DirectoryNewModalOpener } from "./DirectoryEdit";
 import { SongUploadNewModalOpener } from "./SongUpload";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import { isCallPending } from "../../Helpers/request_helpers";
+import { cookieToObjectURIDecoded } from "../../Helpers/browser_helpers";
+
+
+const songTreeParentInfoToNodeIds = (
+	treeInfo: Dictionary<ListData<SongTreeNodeInfo>>
+) => {
+	const keys = Object.keys(treeInfo).sort((a, b) => a.length - b.length);
+	const result = [];
+	let precomputedDirIdx = 0;
+	for (let i = 1; i < keys.length; i++) {
+		const foundIdx = treeInfo[keys[i - 1]]
+			.items
+			.findIndex(p => p.path === keys[i]);
+		result.push(`${i - 1}_${precomputedDirIdx}_${foundIdx}`);
+		precomputedDirIdx = foundIdx;
+	}
+	return result;
+};
 
 
 type SongTreeNodeProps = {
@@ -38,15 +63,17 @@ type SongTreeNodeProps = {
 	nodeId: string
 };
 
-export const SongTreeNode = (props: SongTreeNodeProps) => {
+const SongTreeNode = (props: SongTreeNodeProps) => {
 	const { children, songNodeInfo, prefix, nodeId } = props;
-	const { setCacheValue } = useCache<
+	const { dispatch } = useCache<
 		SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 	>();
 
 	useEffect(() => {
-		setCacheValue(nodeId, songNodeInfo);
-	},[setCacheValue, songNodeInfo, nodeId]);
+		dispatch(dispatches.done({
+			[nodeId] : songNodeInfo,
+		}));
+	},[dispatch, songNodeInfo, nodeId]);
 
 	const label = songNodeInfo.name ?
 		songNodeInfo.name : songNodeInfo.path.replace(prefix, "");
@@ -66,97 +93,150 @@ type SongDirectoryProps = {
 	setExpandedNodes: (p: string[]) => void,
 };
 
-export const SongDirectory = (props: SongDirectoryProps) => {
+const SongDirectory = (props: SongDirectoryProps) => {
 	const { prefix, level, dirIdx, setExpandedNodes } = props;
-	const [state, dispatch] = useVoidWaitingReducer();
-	const { callStatus } = state;
-	const { getCacheValue, setCacheValue } = useCache<
+	const { state, dispatch } = useCache<
 		ListData<SongTreeNodeInfo>
 	>();
-	const location = useLocation();
-	const [currentQueryStr, setCurrentQueryStr] = useState("");
+	
+	const storedAtPrefix = normalizeOpeningSlash(prefix) in state ? 
+		state[normalizeOpeningSlash(prefix)] : null;
+	const prefixData = storedAtPrefix?.data;
 
+	const callStatus = !!storedAtPrefix ? storedAtPrefix.callStatus : null;
+	const error = !!storedAtPrefix ? storedAtPrefix.error : null;
+	const hasError = !!error;
 
+	const isPending = isCallPending(callStatus);
+	const { enqueueSnackbar } = useSnackbar();
+	const queryStr = location.search;
+	const urlSegement = `${location.pathname}${queryStr}`;
 
-	useAuthViewStateChange(dispatch);
+	const currentUser = useCurrentUser();
+	const cookieObj = cookieToObjectURIDecoded(document.cookie);
+	const username = currentUser.username || cookieObj["username"] || "";
+	const loggedIn = !!(currentUser.access_token || cookieObj["access_token"]);
+	const fullyLogedOut = !username;
+
 	useEffect(() => {
-		if (callStatus) return;
-		if (currentQueryStr === `${location.pathname}${location.search}`) return;
-		const queryObj = new URLSearchParams(location.search);
-		const urlPrefix = queryObj.get("prefix");
-
-		const songTreeParentInfoToNodeIds = (
-			treeInfo: Dictionary<ListData<SongTreeNodeInfo>>
-		) => {
-			const keys = Object.keys(treeInfo).sort((a, b) => a.length - b.length);
-			const result = [];
-			let precomputedDirIdx = 0;
-			for (let i = 1; i < keys.length; i++) {
-				const foundIdx = treeInfo[keys[i - 1]]
-					.items
-					.findIndex(p => p.path === keys[i]);
-				result.push(`${i - 1}_${precomputedDirIdx}_${foundIdx}`);
-				precomputedDirIdx = foundIdx;
+		if (!prefix) { //only execute at top node
+			if (fullyLogedOut) {
+				dispatch(dispatches.restart());
 			}
-			return result;
-		};
+		}
+	},[prefix, fullyLogedOut, dispatch]);
 
-		try 
-		{
-			if (!!urlPrefix && !prefix) {
-				const requestObj = fetchSongLsParents({ prefix: urlPrefix });
-				const fetch = async () => {
-					dispatch(dispatches.started());
+	useEffect(() => {
+		const newLogin = !!username && loggedIn;
+		if (!prefix) { //only execute at top node
+			if (newLogin && hasError) {
+				dispatch(dispatches.restart());
+			}
+		}
+		//only execute if error is at this node
+		else if (newLogin && hasError) {
+			dispatch(dispatches.restart([
+				normalizeOpeningSlash(prefix),
+			]));
+		}
+	}, [loggedIn, dispatch, prefix, username, hasError]);
+
+
+	useEffect(() => {
+		const queryObj = new URLSearchParams(queryStr);
+		const urlPrefix = queryObj.get("prefix");
+		if (!!urlPrefix && !prefix) {
+			const requestObj = fetchSongLsParents({ prefix: urlPrefix });
+			if (!isPending) return;
+			const fetch = async () => {
+				try {
+					dispatch(dispatches.started([
+						normalizeOpeningSlash(urlPrefix),
+						normalizeOpeningSlash(""),
+					]));
 					const data = await requestObj.call();
+					const cacheAdditions: {
+						[key: KeyValue]: ListData<SongTreeNodeInfo>
+					} = {};
+					//only setting this to flip the callstatus
+					//don't think we're actually using it
+					cacheAdditions[normalizeOpeningSlash(urlPrefix)] = { items: []};
 					Object.keys(data).forEach(key => {
-						setCacheValue(normalizeOpeningSlash(key), data[key]);
+						cacheAdditions[normalizeOpeningSlash(key)] = data[key];
 					});
-					dispatch(dispatches.done());
-					setCurrentQueryStr(`${location.pathname}${location.search}`);
+					dispatch(dispatches.done(cacheAdditions));
 					const nodeIds = songTreeParentInfoToNodeIds(data);
 					setExpandedNodes(nodeIds);
-				};
-				fetch();
-				return () => requestObj.abortController.abort();
-			}
-			else {
-				const requestObj = fetchSongsLs({ prefix });
-				const fetch = async () => {
-					const cachedResults = getCacheValue(normalizeOpeningSlash(prefix));
-					if(cachedResults) {
-						dispatch(dispatches.done());
-					}
-					else {
-						const data = await requestObj.call();
-						setCacheValue(normalizeOpeningSlash(prefix), data);
-						dispatch(dispatches.done());
-					}
-				};
-				fetch();
-				return () => requestObj.abortController.abort();
-			}
-		}
-		catch(err) {
-			dispatch(dispatches.failed(formatError(err)));
-		}
+				}
+				catch(err) {
+					const errMsg = formatError(err);
+					enqueueSnackbar(errMsg,{ variant: "error"});
+					dispatch(
+						dispatches.failed({
+							[urlSegement]: errMsg,
+							[normalizeOpeningSlash("")]: errMsg,
+						})
+					);
+				}
+			};
 
-	}, [
-		callStatus,
-		dispatch,
+			fetch();
+
+			return () => requestObj.abortController.abort();
+		}
+	},[
+		queryStr,
 		prefix,
-		location.search,
-		location.pathname,
-		setCacheValue,
-		getCacheValue,
+		dispatch,
+		urlSegement,
+		enqueueSnackbar,
 		setExpandedNodes,
-		currentQueryStr,
+		isPending,
 	]);
 
-	const currentLevelData = getCacheValue(normalizeOpeningSlash(prefix)) 
-		|| { items: []};
+	useEffect(() => {
+		const queryObj = new URLSearchParams(queryStr);
+		const urlPrefix = queryObj.get("prefix");
+
+		if (!urlPrefix || !!prefix) {
+			const requestObj = fetchSongsLs({ prefix });
+			const normalizedPrefix = normalizeOpeningSlash(prefix);
+			if (!isPending) return;
+			const fetch = async () => {
+				try {
+					dispatch(dispatches.started([normalizedPrefix]));
+					const data = await requestObj.call();
+					dispatch(dispatches.done({
+						[normalizedPrefix]: data,
+					}));
+				}
+				catch(err) {
+					enqueueSnackbar(formatError(err),{ variant: "error"});
+					dispatch(
+						dispatches.failed({
+							[normalizedPrefix]: formatError(err),
+						})
+					);
+				}
+			};
+			fetch();
+
+			return () => requestObj.abortController.abort();
+		}
+	}, [
+		prefix,
+		queryStr,
+		enqueueSnackbar,
+		dispatch,
+		isPending,
+	]);
+
+
+	const currentLevelData = !!prefixData ? prefixData : { items: []};
+
 
 	return (
-		<Loader status={callStatus} error={state.error}>
+		<Loader status={callStatus} error={error}>
 			{currentLevelData.items.map((d, idx) => {
 				const key = `${level}_${dirIdx}_${idx}`;
 
@@ -191,7 +271,7 @@ export const SongTree = withCacheProvider<
 		const [selectedPrefix, setSelectedPrefix] = useState<string | null>(null);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
 			useState<PathsActionRule[]>([]);
-		const { getCacheValue, setCacheValue } = useCache<
+		const { dispatch, treeData } = useCache<
 			SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 		>();
 		const { enqueueSnackbar } = useSnackbar();
@@ -220,7 +300,7 @@ export const SongTree = withCacheProvider<
 				if(selectedNodes[0] === nodeIds[0]) { //unselect
 					setSelectedNodes([]);
 				}
-				const songNodeInfo = getCacheValue(nodeIds[0]);
+				const songNodeInfo = treeData[nodeIds[0]];
 				if (!!songNodeInfo && "path" in songNodeInfo) {
 					if (isNodeDirectory(songNodeInfo)) {
 						updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
@@ -251,15 +331,17 @@ export const SongTree = withCacheProvider<
 					setSelectedNodes([...nodeIds]);
 				}
 				else {
-					enqueueSnackbar("Maximum songs (100) have been selected.",
-						{ variant: "warning"});
+					enqueueSnackbar(
+						"Maximum songs (100) have been selected.",
+						{ variant: "warning"}
+					);
 				}
 			}
 		};
 
 		const getSelectedSongIds = () => {
 			return selectedNodes.map(s => {
-				const value = getCacheValue(s);
+				const value = treeData[s];
 				if (value && "id" in value) {
 					return value?.id;
 				}
@@ -269,13 +351,13 @@ export const SongTree = withCacheProvider<
 
 		const isDirectorySelected = () => {
 			if (selectedNodes.length !== 1) return false;
-			const songNodeInfo = getCacheValue(selectedNodes[0]);
+			const songNodeInfo = treeData[selectedNodes[0]];
 			if (!songNodeInfo) return false;
 			if (!("path" in songNodeInfo)) return false;
 			return isNodeDirectory(songNodeInfo);
 		};
 
-		const getSongEditUrl = (ids: IdType[]) => {
+		const getSongEditUrl = (ids: IdValue[]) => {
 			const queryStr = buildArrayQueryStr("ids", ids);
 			return `${DomRoutes.songEdit()}${queryStr}`;
 		};
@@ -310,7 +392,7 @@ export const SongTree = withCacheProvider<
 		const canDownloadSelection = () => {
 			if (isDirectorySelected()) return false;
 			if (selectedNodes.length !== 1) return false;
-			const songNodeInfo = getCacheValue(selectedNodes[0]);
+			const songNodeInfo = treeData[selectedNodes[0]];
 			if (songNodeInfo && "rules" in songNodeInfo) {
 				const canDownloadThisSong = anyConformsToAnyRule(
 					songNodeInfo?.rules,
@@ -334,7 +416,9 @@ export const SongTree = withCacheProvider<
 
 		const onAddNewNode = (nodes: Dictionary<ListData<SongTreeNodeInfo>>) => {
 			Object.keys(nodes).forEach(key => {
-				setCacheValue(normalizeOpeningSlash(key), nodes[key]);
+				dispatch(dispatches.done({
+					[normalizeOpeningSlash(key)]: nodes[key],
+				}));
 			});
 		};
 

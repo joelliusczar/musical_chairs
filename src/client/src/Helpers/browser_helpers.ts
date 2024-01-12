@@ -11,6 +11,15 @@ export const cookieToObject = (cookie: string): StringObject => {
 	return obj;
 };
 
+export const cookieToObjectURIDecoded = (cookie: string): StringObject => {
+	const cookieObj = cookieToObject(cookie);
+	const result: StringObject = {};
+	Object.keys(cookieObj).forEach(key => {
+		result[key] = decodeURIComponent(cookieObj[key] || "");
+	});
+	return result;
+};
+
 export const getUsernameCookie = (cookie: string) => {
 	const cookieObj = cookieToObject(cookie);
 	const usernameCookie = decodeURIComponent(cookieObj["username"] || "");

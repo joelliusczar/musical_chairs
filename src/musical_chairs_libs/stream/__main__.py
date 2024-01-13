@@ -9,7 +9,7 @@ from musical_chairs_libs.services import (
 	StationService
 )
 from threading import Thread
-
+import musical_chairs_libs.dtos_and_utilities.logging as logging
 
 def handle_keyboard(sigNum: Any, frame: Any):
 	print("Receive keyboard interupt")
@@ -47,6 +47,7 @@ def get_station_proc(
 
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):
+	logging.logger.info("Starting the queue process")
 
 	def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
 		return ProcessService.start_station_mc_ices(

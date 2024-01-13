@@ -133,6 +133,7 @@ if is_ssh; then
 	elif [ "$__SETUP_LVL__" = 'install' ]; then
 		echo "$__SETUP_LVL__"
 		. ./radio_common.sh &&
+		run_initial_install_script
 		echo "finished setup"
 	else
 		echo "$__SETUP_LVL__"

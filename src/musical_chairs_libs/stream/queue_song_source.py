@@ -18,6 +18,7 @@ from musical_chairs_libs.services import (
 from musical_chairs_libs.dtos_and_utilities import BlockingQueue
 from tempfile import NamedTemporaryFile
 from threading import Condition
+import musical_chairs_libs.dtos_and_utilities.logging as logging
 
 fileQueue = BlockingQueue[Tuple[Optional[BinaryIO], Optional[str]]](3, 30)
 waiter = Condition()
@@ -62,6 +63,7 @@ def load_data(dbName: str, stationId: int):
 			if stopLoading:
 				break
 			fileService = S3FileService()
+			logging.logger.info(f"file name: {filename}")
 			with fileService.open_song(filename) as src:
 				for chunk in src:
 					currentFile.write(chunk)
@@ -109,7 +111,7 @@ def send_next(startSubProcess: Callable[[str], subprocess.Popen[bytes]]):
 	global stopSending
 	currentFile = None
 	host = "127.0.0.1"
-	portNumber = 50009
+	portNumber = 0
 	listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	proc: Optional[subprocess.Popen[bytes]] = None
 	try:
@@ -118,14 +120,17 @@ def send_next(startSubProcess: Callable[[str], subprocess.Popen[bytes]]):
 		proc = startSubProcess(str(listener.getsockname()[1]))
 		conn = accept(listener, proc)
 		if not conn:
+			logging.logger.info("No connection")
 			clean_up(listener)
 			return
 		with conn:
 			while True:
 				returnCode = proc.poll()
 				if not returnCode is None:
+					logging.logger.info("MC-Ices errored out.")
 					break
 				if stopSending:
+						logging.logger.info("StopSending is set")
 						break
 				res = conn.recv(1)
 				if res == b"0":
@@ -133,6 +138,7 @@ def send_next(startSubProcess: Callable[[str], subprocess.Popen[bytes]]):
 				if currentFile:
 					currentFile.close()
 				currentFile, display = fileQueue.get(lambda _: not stopSending)
+				logging.logger.info(f"From queue: {display}")
 				if currentFile:
 					conn.sendall(f"{currentFile.name}\n".encode())
 					conn.sendall(f"{display}\n".encode())

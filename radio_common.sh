@@ -546,7 +546,7 @@ is_python_version_good() {
 
 is_ices_version_good() {
 	set_ices_version_const &&
-	[ "$icesMajor" -ge 0 ] && [ "$icesMinor" -ge 5 ]
+	[ "$icesMajor" -ge 0 ] && [ "$icesMinor" -ge 6 ] && [ "$icesPatch" -ge 1 ]
 }
 
 is_dir_empty() (
@@ -1660,6 +1660,11 @@ show_current_py_lib_files() (
 	echo "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/"$envDir"
 )
 
+show_web_py_files() (
+	process_global_vars "$@" >/dev/null 2>&1 &&
+	echo "$(get_web_root)"/"$MC_APP_API_PATH_CL"
+)
+
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
@@ -1905,8 +1910,11 @@ startup_api() (
 	#put uvicorn in background within a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
-	(uvicorn --app-dir "$(get_web_root)"/"$MC_APP_API_PATH_CL" --root-path /api/v1 \
-	--host 0.0.0.0 --port "$MC_API_PORT" \
+	(uvicorn --app-dir "$(get_web_root)"/"$MC_APP_API_PATH_CL" \
+	--root-path /api/v1 \
+	--host 0.0.0.0 \
+	--port "$MC_API_PORT" \
+	
 	"index:app" </dev/null >api.out 2>&1 &)
 	(exit "$errCode") &&
 	echo "done starting up api. Access at ${MC_FULL_URL}" ||
@@ -2170,6 +2178,7 @@ get_web_root() (
 
 connect_remote() (
 	process_global_vars "$@" &&
+	echo "connectiong to $(__get_address__) using $(__get_id_file__)" &&
 	ssh -ti $(__get_id_file__) "root@$(__get_address__)" \
 		$(__get_remote_export_script__) bash -l
 )

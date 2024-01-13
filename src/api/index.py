@@ -30,7 +30,7 @@ app.add_middleware(
 	allow_origins=cors_allowed_origins,
 	allow_methods=["*"],
 	allow_headers=["Authorization", "Cookie"],
-	expose_headers=["X-AuthExpired"],
+	expose_headers=["x-authexpired"],
 	allow_credentials=True
 )
 app.include_router(stations_controller.router)

@@ -136,5 +136,3 @@ class ProcessService:
 			return f"{EnvManager.templates_dir}/icecast.xml"
 		err = "icecast logic has not been configured for this os"
 		raise NotImplementedError(err)
-	
-

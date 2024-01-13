@@ -33,3 +33,5 @@ set +e
 # export AWS_ACCESS_KEY_ID='AWS_ACCESS_KEY_ID'
 # export AWS_SECRET_ACCESS_KEY='AWS_SECRET_ACCESS_KEY'
 # export MC_APP_ENV='local'
+
+# update hosts file

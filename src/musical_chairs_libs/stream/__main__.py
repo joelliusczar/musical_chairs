@@ -9,10 +9,12 @@ from musical_chairs_libs.services import (
 	StationService
 )
 from threading import Thread
+from setproctitle import setproctitle
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 
+
 def handle_keyboard(sigNum: Any, frame: Any):
-	print("Receive keyboard interupt")
+	print("Received interupt")
 	queue_song_source.stopSending = True
 	queue_song_source.stopLoading = True
 
@@ -33,7 +35,7 @@ def get_station_id(
 	finally:
 		conn.close()
 
-def get_station_proc(
+def set_station_proc(
 	dbName: str,
 	stationId: int
 ):
@@ -50,6 +52,13 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	logging.logger.info("Starting the queue process")
 
 	def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
+		try:
+			setproctitle(
+				f"MC Radio - {ownerName}_{stationName} at {portNumber}"
+			)
+		except Exception as e:
+			print("Failed to rename process")
+			print(e)
 		return ProcessService.start_station_mc_ices(
 			stationName,
 			ownerName,
@@ -62,7 +71,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			"station with owner"
 			f" {ownerName} and name {stationName} not found"
 		)
-	get_station_proc(dbName, stationId)
+	set_station_proc(dbName, stationId)
 
 	loadThread = Thread(
 		target=queue_song_source.load_data,

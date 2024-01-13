@@ -1127,12 +1127,20 @@ __get_keychain_osx__() (
 	echo '/Library/Keychains/System.keychain'
 )
 
+__get_debug_cert_name__() (
+	echo "$MC_PROJ_NAME"_localhost_debug
+)
+
 __get_debug_cert_path__() (
-	echo $(get_localhost_key_dir)/"$MC_PROJ_NAME"_localhost_debug
+	echo $(get_localhost_key_dir)/$(__get_debug_cert_name__)
+)
+
+__get_local_nginx_cert_name__() (
+	echo "$MC_PROJ_NAME"_localhost_nginx
 )
 
 __get_local_nginx_cert_path__() (
-	echo $(get_localhost_key_dir)/"$MC_PROJ_NAME"_localhost_nginx
+	echo $(get_localhost_key_dir)/$(__get_local_nginx_cert_name__)
 )
 
 is_cert_expired() (
@@ -1217,36 +1225,72 @@ __install_local_cert_osx__() (
 		-k $(__get_keychain_osx__) "$publicKeyFile"
 )
 
-set_firefox_cert_policy() {
-	publicKeyFile="$1" &&
-	pemFile=$(echo "$publicKeyFile" | sed 's/.crt$/.pem/')
-	cat <<- EOF > '/usr/share/firefox-esr/distribution/policies.json'
-		{
-			"policies": {
-				"Certificates": {
-					"ImportEnterpriseRoots": true,
-					"Install": [
-						"$publicKeyFile",
-						"/etc/ssl/certs/$pemFile"
-					]
-				}
-			}
+create_firefox_cert_policy_file() (
+	publicKeyName="$1" &&
+	pemFile=$(echo "$publicKeyName" | sed 's/.crt$/.pem/')
+	content=$(cat <<END
+{
+	"policies": {
+		"Certificates": {
+			"ImportEnterpriseRoots": true,
+			"Install": [
+				"$publicKeyName",
+				"/etc/ssl/certs/$pemFile"
+			]
 		}
-	EOF
+	}
 }
+END
+)
+	sudo -p "Need password to create firefox policy file" \
+		sh -c \
+		"echo '$content' > '/usr/share/firefox-esr/distribution/policies.json'"
+)
+
+__set_firefox_cert_policy__() (
+	publicKeyName="$1" &&
+	policyFile='/usr/share/firefox-esr/distribution/policies.json'
+	if firefox -v 2>/dev/null; then
+		if [ -s "$policyFile" ]; then
+			content=$(cat "$policyFile" \
+			| get_trusted_by_firefox_json_with_added_cert "$publicKeyName")
+				if (exit "$?"); then
+					sudo -p "Need password to update firefox policy file" \
+					sh -c \
+					"echo '$content' > '$policyFile'"
+				else
+					create_firefox_cert_policy_file "$publicKeyName"
+				fi
+		else
+			create_firefox_cert_policy_file "$publicKeyName"
+		fi
+	fi
+)
+
+#"import sys, json; print(json.load(sys.stdin, strict=False)['$jsonKey'])"
+get_trusted_by_firefox_json_with_added_cert() (
+	publicKeyFile="$1"
+	pemFile=$(echo "$publicKeyFile" | sed 's/.crt$/.pem/')
+	pyScript=$(cat <<-END
+		import sys
+		import json
+		config = json.load(sys.stdin, strict=False)
+		installed = config['policies']['Certificates']['Install']
+		if not "$publicKeyFile" in installed:
+		  installed.append("$publicKeyFile")
+		if not "/etc/ssl/certs/$pemFile" in installed:
+		  installed.append("/etc/ssl/certs/$pemFile")
+		print(json.dumps(config))
+	END
+	)
+	python3 -c "$pyScript"
+)
 
 __install_local_cert_debian__() (
 	publicKeyFile="$1" &&
 	sudo -p 'Password to install trusted certificate' \
 		cp "$publicKeyFile" /usr/local/share/ca-certificates &&
-	sudo update-ca-certificates &&
-	if firefox -v 2>/dev/null; then
-		if [ -s '/usr/share/firefox-esr/distribution/policies.json' ]; then
-			echo '/usr/share/firefox-esr/distribution/policies.json already exists'
-		else
-			set_firefox_cert_policy "$publicKeyFile"
-		fi
-	fi
+	sudo update-ca-certificates
 )
 
 __clean_up_invalid_cert__() (
@@ -1323,7 +1367,9 @@ setup_ssl_cert_local_debug() (
 	privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
 	__clean_up_invalid_cert__ "${MC_APP_NAME}-localhost"
 	__setup_ssl_cert_local__ "${MC_APP_NAME}-localhost" 'localhost' \
-		"$publicKeyFile" "$privateKeyFile" &&
+		"$publicKeyFile" "$privateKeyFile"
+	publicKeyName=$(__get_debug_cert_name__).public.key.crt &&
+	__set_firefox_cert_policy__ "$publicKeyName" &&
 	setup_react_env_debug
 )
 
@@ -1336,11 +1382,10 @@ print_ssl_cert_info() (
 			if [ -n "$isDebugServer" ]; then
 				domain="${domain}-localhost"
 			fi
-			case $(uname) in
-			(Darwin*)
 				echo "#### nginx info ####"
+				echo "$(__get_local_nginx_cert_path__).public.key.crt"
 				cert=''
-				__certs_matching_name_osx__ "$domain" \
+				certs_matching_name "$domain" \
 					| while read line; do
 						cert=$(printf "%s\n%s" "$cert" "$line")
 						if [ "$line" = '-----END CERTIFICATE-----' ]; then
@@ -1351,7 +1396,9 @@ print_ssl_cert_info() (
 					done
 				echo "#### debug server info ####"
 				echo "${domain}-localhost"
-				__certs_matching_name_osx__ "${MC_APP_NAME}-localhost" \
+				echo "$(__get_debug_cert_path__).public.key.crt"
+				cert=''
+				certs_matching_name "${MC_APP_NAME}-localhost" \
 					| while read line; do
 						cert=$(printf "%s\n%s" "$cert" "$line")
 						if [ "$line" = '-----END CERTIFICATE-----' ]; then
@@ -1360,12 +1407,7 @@ print_ssl_cert_info() (
 							cert=''
 						fi
 					done
-				;;
-			(*)
-				echo 'Finding local certs is not setup on this OS'
-				;;
-		esac
-			;;
+					;;
 		(*)
 			publicKeyFile=$(__get_remote_public_key__) &&
 			cat "$publicKeyFile" | openssl x509 -enddate -subject -noout
@@ -1373,11 +1415,24 @@ print_ssl_cert_info() (
 	esac
 )
 
+add_test_url_to_hosts() (
+	domain="$1"
+	if [ -z "$domain" ]; then
+		echo "Missing domain in adding to hosts"
+		return 1
+	fi
+	if ! grep "$domain" /etc/hosts >/dev/null; then
+		sudo -p 'password to update hosts' \
+			sh -c "printf '127.0.0.1\t${domain}\n' >> /etc/hosts"
+	fi
+)
+
 setup_ssl_cert_nginx() (
 	process_global_vars "$@" &&
 	domain=$(__get_domain_name__ "$MC_APP_ENV" 'omitPort') &&
 	case "$MC_APP_ENV" in
 		(local*)
+			add_test_url_to_hosts "$domain"
 			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.crt &&
 			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
@@ -1386,6 +1441,8 @@ setup_ssl_cert_nginx() (
 				__setup_ssl_cert_local__ \
 				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
 			fi
+			publicKeyName=$(__get_local_nginx_cert_name__).public.key.crt &&
+			__set_firefox_cert_policy__ "$publicKeyName"
 			;;
 		(*)
 			publicKeyFile=$(__get_remote_public_key__) &&
@@ -1428,7 +1485,7 @@ get_nginx_value() (
 	key=${1:-'conf-path'}
 	#break options into a list
 	#then isolate the option we're interested in
-	sudo -p "get nginx values" \
+	sudo -p "Need pass to get nginx values " \
 		nginx -V 2>&1 | \
 		sed 's/ /\n/g' | \
 		sed -n "/--${key}/p" | \
@@ -1471,7 +1528,7 @@ update_nginx_conf() (
 	__copy_and_update_nginx_template__ &&
 	case "$MC_APP_ENV" in
 		(local*)
-			publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
+			publicKey=$(__get_local_nginx_cert_path__).public.key.crt &&
 			privateKey=$(__get_local_nginx_cert_path__).private.key.pem &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
@@ -1914,9 +1971,9 @@ startup_api() (
 	--root-path /api/v1 \
 	--host 0.0.0.0 \
 	--port "$MC_API_PORT" \
-	
 	"index:app" </dev/null >api.out 2>&1 &)
 	(exit "$errCode") &&
+	echo "Server base is $(PWD). Look there for api.out and the log file"
 	echo "done starting up api. Access at ${MC_FULL_URL}" ||
 	echo "failed while trying to start up api"
 )
@@ -2449,10 +2506,4 @@ fn_ls() (
 	process_global_vars "$@" >/dev/null
 	perl -ne 'print "$1\n" if /^([a-zA-Z_0-9]+)\(\)/' \
 		"$(get_repo_path)"/radio_common.sh | sort
-)
-
-test_shell() (
-	#put functions to test in here so they don't pollute your shell
-	process_global_vars "$@" &&
-	get_app_root
 )

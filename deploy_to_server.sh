@@ -55,10 +55,30 @@ unitTestSuccess="$?"
 #myVar=$(cat<<EOF
 #...
 #)
-mkfifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
+mkfifo env_var_fifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
 	remote_script_fifo
 
 
+{ cat<<RemoteScriptEOF0
+
+
+export expName="$expName" &&
+export AWS_ACCESS_KEY_ID=$(__get_s3_api_key__) &&
+export AWS_SECRET_ACCESS_KEY=$(__get_s3_secret__) &&
+export PB_SECRET=$(__get_pb_secret__) &&
+export PB_API_KEY=$(__get_pb_api_key__) &&
+export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
+export MC_DATABASE_NAME='musical_chairs_db';
+export __DB_SETUP_PASS__=$(__get_db_setup_key__) &&
+export MC_DB_PASS_OWNER=$(__get_db_owner_key__) &&
+export MC_DB_PASS_API=$(__get_api_db_user_key__) &&
+export MC_DB_PASS_RADIO=$(__get_radio_db_user_key__) &&
+export S3_BUCKET_NAME=$(__get_s3_bucket_name__) &&
+export S3_REGION_NAME=$(__get_s3_region_name__) &&
+
+
+RemoteScriptEOF0
+} > env_var_fifo &
 
 #clone repo
 #we need this section to resolve its variables remotely on the server
@@ -97,20 +117,6 @@ RemoteScriptEOF1
 #select which setup script to run
 { cat<<RemoteScriptEOF2
 
-
-export expName="$expName" &&
-export AWS_ACCESS_KEY_ID=$(__get_s3_api_key__) &&
-export AWS_SECRET_ACCESS_KEY=$(__get_s3_secret__) &&
-export PB_SECRET=$(__get_pb_secret__) &&
-export PB_API_KEY=$(__get_pb_api_key__) &&
-export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
-export MC_DATABASE_NAME='musical_chairs_db';
-export __DB_SETUP_PASS__=$(__get_db_setup_key__) &&
-export MC_DB_PASS_OWNER=$(__get_db_owner_key__) &&
-export MC_DB_PASS_API=$(__get_api_db_user_key__) &&
-export MC_DB_PASS_RADIO=$(__get_radio_db_user_key__) &&
-export S3_BUCKET_NAME=$(__get_s3_bucket_name__) &&
-export S3_REGION_NAME=$(__get_s3_region_name__) &&
 
 if is_ssh; then
 	sync_utility_scripts
@@ -165,6 +171,8 @@ scope() (
 	MC_REPO_URL="$MC_REPO_URL"
 	currentBranch="$(git branch --show-current 2>/dev/null)"
 
+	$(cat env_var_fifo)
+
 	$(cat clone_repo_fifo)
 
 	$(cat script_select_fifo)
@@ -183,7 +191,7 @@ ssh -i $(__get_id_file__) "root@$(__get_address__)" \
 	'bash -s' < remote_script_fifo &&
 echo "All done" || echo "Onk!"
 
-rm -f remote_script_fifo remote_cleanup_fifo
+rm -f env_var_fifo remote_script_fifo remote_cleanup_fifo
 rm -f radio_common_fifo clone_repo_fifo script_select_fifo
 
 

@@ -48,7 +48,6 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.engine.row import RowMapping
-from dataclasses import asdict, fields
 from itertools import chain, groupby
 from musical_chairs_libs.tables import (
 	albums as albums_tbl,
@@ -133,13 +132,13 @@ class SongInfoService:
 			.select_from(artists_tbl)\
 			.join(user_tbl, u_pk == ar_ownerFk)\
 			.where(ab_pk == artistId)
-		data = self.conn.execute(query).fetchone() #pyright: ignore [reportUnknownMemberType]
+		data = self.conn.execute(query).mappings().fetchone()
 		if not data:
-			return OwnerInfo(0,"", "")
+			return OwnerInfo(id=0,username="", displayname="")
 		return OwnerInfo(
-			data[ar_ownerFk],
-			data[u_username],
-			data[u_displayName]
+			id=data[ar_ownerFk],
+			username=data[u_username],
+			displayname=data[u_displayName]
 		)
 
 	def save_artist(
@@ -182,13 +181,13 @@ class SongInfoService:
 			.select_from(albums_tbl)\
 			.join(user_tbl, u_pk == ab_ownerFk)\
 			.where(ab_pk == albumId)
-		data = self.conn.execute(query).fetchone()
+		data = self.conn.execute(query).mappings().fetchone()
 		if not data:
-			return OwnerInfo(0,"", "")
+			return OwnerInfo(id=0,username="", displayname="")
 		return OwnerInfo(
-			data[ab_ownerFk],
-			data[u_username],
-			data[u_displayName]
+			id=data[ab_ownerFk],
+			username=data[u_username],
+			displayname=data[u_displayName]
 		)
 
 	def save_album(
@@ -223,7 +222,13 @@ class SongInfoService:
 				artistKeys=album.albumartist.id
 			), None) if album.albumartist else None
 			self.conn.commit()
-			return AlbumInfo(affectedPk, str(savedName), owner, album.year, artist)
+			return AlbumInfo(
+				id=affectedPk,
+				name=str(savedName),
+				owner=owner,
+				year=album.year,
+				albumartist=artist
+			)
 		except IntegrityError:
 			raise AlreadyUsedError(
 				[build_error_obj(
@@ -393,16 +398,22 @@ class SongInfoService:
 	) -> Iterable[StationSongTuple]:
 		if not stationSongs:
 			return iter([])
-		query = select(
-			sg_pk,
-			st_pk
-		).where(dbTuple(sg_pk, st_pk).in_(stationSongs))
+		stationSongSet = set(stationSongs)
+		songQuery = select(sg_pk).where(
+			sg_pk.in_((s.songid for s in stationSongSet))
+		)
+		stationQuery = select(st_pk).where(
+			st_pk.in_((s.stationid for s in stationSongSet))
+		)
 
-		records = self.conn.execute(query)
-		yield from (StationSongTuple(
-			cast(int, row[0]),
-			cast(int, row[1])
-		) for row in records)
+		songRecords = self.conn.execute(songQuery).fetchall()
+		stationRecords = self.conn.execute(stationQuery).fetchall()
+		yield from (t for t in (StationSongTuple(
+			cast(int, songRow[0]),
+			cast(int, stationRow[0])
+		) for songRow in songRecords 
+			for stationRow in stationRecords
+		) if t in stationSongSet)
 
 	def link_songs_with_stations(
 		self,
@@ -474,21 +485,21 @@ class SongInfoService:
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query).mappings()
 		yield from (AlbumInfo(
-			row["id"],
-			row["name"],
-			OwnerInfo(
-				row["album.ownerid"],
-				row["album.ownername"],
-				row["album.ownerdisplayname"]
+			id=row["id"],
+			name=row["name"],
+			owner=OwnerInfo(
+				id=row["album.ownerid"],
+				username=row["album.ownername"],
+				displayname=row["album.ownerdisplayname"]
 			),
-			row["year"],
-			ArtistInfo(
-				row["albumartistid"],
-				row["artist.name"],
-				OwnerInfo(
-					row["artist.ownerid"],
-					row["artist.ownername"],
-					row["artist.ownerdisplayname"]
+			year=row["year"],
+			albumartist=ArtistInfo(
+				id=row["albumartistid"],
+				name=row["artist.name"],
+				owner=OwnerInfo(
+					id=row["artist.ownerid"],
+					username=row["artist.ownername"],
+					displayname=row["artist.ownerdisplayname"]
 				)
 			) if row["albumartistid"] else None
 			) for row in records)
@@ -522,12 +533,12 @@ class SongInfoService:
 		records = self.conn.execute(query).mappings()
 
 		yield from (ArtistInfo(
-			row[ar_pk],
-			row[ar_name],
-			OwnerInfo(
-				row[ar_ownerFk],
-				row[u_username],
-				row[u_displayName]
+			id=row[ar_pk],
+			name=row[ar_name],
+			owner=OwnerInfo(
+				id=row[ar_ownerFk],
+				username=row[u_username],
+				displayname=row[u_displayName]
 			)
 		)
 			for row in records)
@@ -581,17 +592,23 @@ class SongInfoService:
 			(sa.artistid for sa in songArtistsSet if sa.isprimaryartist),
 			-1
 		)
-		query = select(
-			sg_pk,
-			ar_pk
-		).where(dbTuple(sg_pk, ar_pk).in_(songArtistsSet))
+		songQuery = select(sg_pk).where(
+			sg_pk.in_(s.songid for s in songArtistsSet)
+		)
+		artistsQuery = select(ar_pk).where(
+			ar_pk.in_(a.artistid for a in songArtistsSet)
+		)
+		songRecords = self.conn.execute(songQuery).fetchall()
+		artistRecords = self.conn.execute(artistsQuery).fetchall()
 
-		records = self.conn.execute(query)
-		yield from (SongArtistTuple(
-			row[0],
-			row[1],
-			isprimaryartist=cast(int, row[1]) == primaryArtistId
-		) for row in records)
+		yield from (t for t in (SongArtistTuple(
+			songRow[0],
+			artistRow[0],
+			isprimaryartist=cast(int, artistRow[0]) == primaryArtistId
+		) for songRow in songRecords
+			for artistRow in artistRecords
+		) if t in songArtistsSet)
+
 
 	def __are_all_primary_artist_single(
 		self,
@@ -638,26 +655,26 @@ class SongInfoService:
 
 	def _prepare_song_row_for_model(self, row: RowMapping) -> dict[str, Any]:
 		songDict: dict[Any, Any] = {**row}
-		albumArtistId = songDict.pop("album.albumartistid", None)
+		albumArtistId = songDict.pop("album.albumartistid", 0) or 0
 		albumArtistName = songDict.pop("album.albumartist.name", "")
 		albumArtistOwner = OwnerInfo(
-			songDict.pop("album.albumartist.ownerid", 0),
-			songDict.pop("album.albumartist.ownername", ""),
-			songDict.pop("album.albumartist.ownerdisplayname", ""),
+			id=songDict.pop("album.albumartist.ownerid", 0) or 0,
+			username=songDict.pop("album.albumartist.ownername", ""),
+			displayname=songDict.pop("album.albumartist.ownerdisplayname", ""),
 		)
 		album = AlbumInfo(
-			songDict.pop("album.id", None),
-			songDict.pop("album.name", None),
-			OwnerInfo(
-				songDict.pop("album.ownerid", 0),
-				songDict.pop("album.ownername", ""),
-				songDict.pop("album.ownerdisplayname", ""),
+			id=songDict.pop("album.id", 0) or 0,
+			name=songDict.pop("album.name", None) or "",
+			owner=OwnerInfo(
+				id=songDict.pop("album.ownerid", 0) or 0,
+				username=songDict.pop("album.ownername", ""),
+				displayname=songDict.pop("album.ownerdisplayname", ""),
 			),
-			songDict.pop("album.year", None),
-			ArtistInfo(
-				albumArtistId,
-				albumArtistName,
-				albumArtistOwner,
+			year=songDict.pop("album.year", None),
+			albumartist=ArtistInfo(
+				id=albumArtistId,
+				name=albumArtistName,
+				owner=albumArtistOwner,
 			) if albumArtistId else None
 		)
 		if album.id:
@@ -779,34 +796,34 @@ class SongInfoService:
 				primaryArtist = None
 			if row[sgar_isPrimaryArtist]:
 				primaryArtist = ArtistInfo(
-					row["artist.id"],
-					row["artist.name"],
-					OwnerInfo(
-						row["artist.ownerid"],
-						row["artist.ownername"],
-						row["artist.ownerdisplayname"]
+					id=row["artist.id"],
+					name=row["artist.name"],
+					owner=OwnerInfo(
+						id=row["artist.ownerid"],
+						username=row["artist.ownername"],
+						displayname=row["artist.ownerdisplayname"]
 					)
 				)
 			elif row["artist.id"]:
 				artists.add(ArtistInfo(
-						row["artist.id"],
-						row["artist.name"],
-						OwnerInfo(
-							row["artist.ownerid"],
-							row["artist.ownername"],
-							row["artist.ownerdisplayname"]
+						id=row["artist.id"],
+						name=row["artist.name"],
+						owner=OwnerInfo(
+							id=row["artist.ownerid"],
+							username=row["artist.ownername"],
+							displayname=row["artist.ownerdisplayname"]
 						)
 					)
 				)
 			if row["station.id"]:
 				stations.add(StationInfo(
-					row["station.id"],
-					row["station.name"],
-					row["station.displayname"],
+					id=row["station.id"],
+					name=row["station.name"],
+					displayname=row["station.displayname"],
 					owner=OwnerInfo(
-						row["station.ownerid"],
-						row["station.ownername"],
-						row["station.ownerdisplayname"]
+						id=row["station.ownerid"],
+						username=row["station.ownername"],
+						displayname=row["station.ownerdisplayname"]
 					)
 				))
 		if currentSongRow:
@@ -832,10 +849,11 @@ class SongInfoService:
 		if not songInfo:
 			return self.get_songs_for_edit(ids, user)
 		if not songInfo.touched:
-			songInfo.touched = {f.name for f in fields(SongAboutInfo)}
+			
+			songInfo.touched = {f for f in SongAboutInfo.model_fields}
 		ids = list(ids)
 		songInfo.name = str(SavedNameString(songInfo.name))
-		songInfoDict = asdict(songInfo)
+		songInfoDict = songInfo.model_dump()
 		songInfoDict.pop("artists", None)
 		songInfoDict.pop("primaryartist", None)
 		songInfoDict.pop("tags", None)
@@ -888,7 +906,7 @@ class SongInfoService:
 		if not songIds:
 			return None
 		commonSongInfo = None
-		touched = {f.name for f in fields(SongAboutInfo) }
+		touched = {f for f in SongAboutInfo.model_fields }
 		removedFields: set[str] = set()
 		rules = None
 		for songInfo in self.get_songs_for_edit(songIds, user):
@@ -898,7 +916,7 @@ class SongInfoService:
 				# only keep the set of rules that are common to
 				# each song
 				rules = rules & set(songInfo.rules)
-			songInfoDict = asdict(songInfo)
+			songInfoDict = songInfo.model_dump()
 			if not commonSongInfo:
 				commonSongInfo = songInfoDict
 				continue

@@ -222,9 +222,9 @@ class StationService:
 			displayname=row[st_displayName],
 			isrunning=bool(row[st_procId]),
 			owner=OwnerInfo(
-				row[st_ownerFk],
-				row[u_username],
-				row[u_displayName]
+				id=row[st_ownerFk],
+				username=row[u_username],
+				displayname=row[u_displayName]
 			),
 			requestsecuritylevel=row["requestsecuritylevel"],
 			viewsecuritylevel=row[st_viewSecurityLevel] \
@@ -565,10 +565,10 @@ class StationService:
 		self.conn.execute(stmt)
 		self.conn.commit()
 		return StationActionRule(
-			rule.name,
-			rule.span,
-			rule.count,
-			RulePriorityLevel.STATION_PATH.value
+			name=rule.name,
+			span=rule.span,
+			count=rule.count,
+			priority=RulePriorityLevel.STATION_PATH.value
 		)
 
 	def remove_user_rule_from_station(
@@ -662,16 +662,26 @@ class StationService:
 				if s[1] > 0
 			}
 			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
-		for station in stationsEnabled:
-			if ProcessService.noop_mode():
-				self.__noop_startup__(station.name)
-			else:
-				ProcessService.start_station_external_process(
-					station.name,
-					owner.username
-				)
-			yield station
-		self.conn.commit()
+		try:
+			for station in stationsEnabled:
+				try:
+					if ProcessService.noop_mode():
+						self.__noop_startup__(station.name)
+					else:
+						if not self.conn.engine.url.database:
+							raise RuntimeError("db Name is missing")
+
+						ProcessService.start_song_queue_process(
+							self.conn.engine.url.database,
+							station.name,
+							owner.username
+						)
+					yield station
+				except RuntimeError:
+					self.unset_station_procs(stationIds=station.id)
+					raise
+		finally:
+			self.conn.commit()
 
 	def disable_stations(
 		self,

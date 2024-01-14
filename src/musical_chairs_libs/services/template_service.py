@@ -10,14 +10,19 @@ class TemplateService:
 	def __init__(self) -> None:
 		pass
 
-	def _load_ices_config_template(self) -> str:
+	def __load_ices_config_template__(self) -> str:
 		templateDir = EnvManager.templates_dir
 		txt = Path(f"{templateDir}/ices.conf").read_text()
 		return txt
 
-	def _load_ices_python_module_template(self) -> str:
+	def __load_ices_python_module_template__(self) -> str:
 		templateDir = EnvManager.templates_dir
 		txt = Path(f"{templateDir}/template.py").read_text()
+		return txt
+	
+	def __load_icecast_config_template__(self) -> str:
+		templateDir = EnvManager.templates_dir
+		txt = Path(f"{templateDir}/icecast.xml").read_text()
 		return txt
 
 	def __create_ices_config_content__(
@@ -27,7 +32,7 @@ class TemplateService:
 		sourcePassword: str,
 		username: str
 	) -> str:
-		icesConfigTemplate = self._load_ices_config_template()
+		icesConfigTemplate = self.__load_ices_config_template__()
 		return icesConfigTemplate.replace(
 			"<Password>icecast_password</Password>",
 			f"<Password>{sourcePassword}</Password>"
@@ -43,7 +48,7 @@ class TemplateService:
 		)
 
 	def __create_ices_python_module_content__(self, stationId: int) -> str:
-		pythonModuleTemplate = self._load_ices_python_module_template()
+		pythonModuleTemplate = self.__load_ices_python_module_template__()
 		return pythonModuleTemplate.replace("<station_id>",str(stationId))
 
 	def create_station_files(

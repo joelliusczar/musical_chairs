@@ -44,9 +44,6 @@ def test_add_album(
 	pk = songInfoService.get_or_save_album("who_1_album", 4)
 	assert pk == len(get_initial_albums()) + 2
 
-
-
-
 def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
 	songs = sorted(songInfoService.get_songIds(stationKey=3))
@@ -274,7 +271,7 @@ def test_link_songs_with_station_nonexistent_songs(
 ):
 	songInfoService = fixture_song_info_service
 	initialSongs = get_initial_songs()
-	badId = len(initialSongs) + 1
+	badId = max(s["pk"] for s in initialSongs) + 1
 	songInfoService.link_songs_with_stations(
 		[StationSongTuple(34, 7), StationSongTuple(43, 7), StationSongTuple(badId, 7)]
 	)

@@ -6,9 +6,14 @@ from typing import (
 	Union,
 	Collection
 )
-from pydantic import validator #pyright: ignore [reportUnknownVariableType]
-from pydantic.dataclasses import dataclass as pydanticDataclass
-from dataclasses import dataclass, field
+from pydantic import (
+	field_validator,
+	field_serializer,
+	SerializationInfo,
+	SerializeAsAny,
+	Field
+)
+
 from .user_role_def import UserRoleDef, RulePriorityLevel, UserRoleDomain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import (
@@ -16,7 +21,7 @@ from .simple_functions import (
 	validate_email,
 	normalize_opening_slash
 )
-from .generic_dtos import IdItem
+from .generic_dtos import IdItem, FrozenBaseClass
 from .action_rule_dtos import (
 	ActionRule,
 	PathsActionRule,
@@ -34,32 +39,32 @@ def get_station_owner_rules(
 	#explicit rules with defined limts
 	if not scopes or UserRoleDef.STATION_ASSIGN.value in scopes:
 		yield StationActionRule(
-			UserRoleDef.STATION_ASSIGN.value,
+			name=UserRoleDef.STATION_ASSIGN.value,
 			priority=RulePriorityLevel.OWNER.value,
 		)
 	if not scopes or UserRoleDef.STATION_DELETE.value in scopes:
 		yield StationActionRule(
-			UserRoleDef.STATION_DELETE.value,
+			name=UserRoleDef.STATION_DELETE.value,
 			priority=RulePriorityLevel.OWNER.value,
 		)
 	if not scopes or UserRoleDef.STATION_EDIT.value in scopes:
 		yield StationActionRule(
-			UserRoleDef.STATION_EDIT.value,
+			name=UserRoleDef.STATION_EDIT.value,
 			priority=RulePriorityLevel.OWNER.value,
 		)
 	if not scopes or UserRoleDef.STATION_VIEW.value in scopes:
 		yield StationActionRule(
-			UserRoleDef.STATION_VIEW.value,
+			name=UserRoleDef.STATION_VIEW.value,
 			priority=RulePriorityLevel.OWNER.value,
 		)
 	if not scopes or UserRoleDef.STATION_USER_ASSIGN.value in scopes:
 		yield StationActionRule(
-			UserRoleDef.STATION_USER_ASSIGN.value,
+			name=UserRoleDef.STATION_USER_ASSIGN.value,
 			priority=RulePriorityLevel.OWNER.value,
 		)
 	if not scopes or UserRoleDef.STATION_USER_LIST.value in scopes:
 		yield StationActionRule(
-			UserRoleDef.STATION_USER_LIST.value,
+			name=UserRoleDef.STATION_USER_LIST.value,
 			priority=RulePriorityLevel.OWNER.value,
 		)
 
@@ -71,45 +76,44 @@ def get_path_owner_roles(
 			return
 		if not scopes or UserRoleDef.PATH_LIST.value in scopes:
 			yield PathsActionRule(
-				UserRoleDef.PATH_LIST.value,
+				name=UserRoleDef.PATH_LIST.value,
 				priority=RulePriorityLevel.OWNER.value,
 				path=ownerDir,
 			)
 		if not scopes or UserRoleDef.PATH_VIEW.value in scopes:
 			yield PathsActionRule(
-				UserRoleDef.PATH_VIEW.value,
+				name=UserRoleDef.PATH_VIEW.value,
 				priority=RulePriorityLevel.OWNER.value,
 				path=ownerDir,
 			)
 		if not scopes or UserRoleDef.PATH_EDIT.value in scopes:
 			yield PathsActionRule(
-				UserRoleDef.PATH_EDIT.value,
+				name=UserRoleDef.PATH_EDIT.value,
 				priority=RulePriorityLevel.OWNER.value,
 				path=ownerDir,
 			)
 		if not scopes or UserRoleDef.PATH_USER_LIST.value in scopes:
 			yield PathsActionRule(
-				UserRoleDef.PATH_USER_LIST.value,
+				name=UserRoleDef.PATH_USER_LIST.value,
 				priority=RulePriorityLevel.OWNER.value,
 				path=ownerDir,
 			)
 		if not scopes or UserRoleDef.PATH_USER_ASSIGN.value in scopes:
 			yield PathsActionRule(
-				UserRoleDef.PATH_USER_ASSIGN.value,
+				name=UserRoleDef.PATH_USER_ASSIGN.value,
 				priority=RulePriorityLevel.OWNER.value,
 				path=ownerDir,
 			)
 
 
-@dataclass(frozen=True)
-class AccountInfoBase:
+
+class AccountInfoBase(FrozenBaseClass):
 	username: str
 	email: str
 	displayname: Optional[str]=""
 
-@dataclass(frozen=True)
 class AccountInfoSecurity(AccountInfoBase):
-	roles: List[Union[ActionRule, PathsActionRule]]=field(default_factory=list)
+	roles: List[Union[ActionRule, PathsActionRule]]=Field(default_factory=list)
 	dirroot: Optional[str]=None
 
 	@property
@@ -154,13 +158,22 @@ class AccountInfoSecurity(AccountInfoBase):
 			):
 				return False
 		return True
+	
+	@field_serializer(
+		"roles",
+		return_type=SerializeAsAny[List[Union[ActionRule, PathsActionRule]]]
+	)
+	def serialize_roles(
+		self,
+		value: List[Union[ActionRule, PathsActionRule]],
+		_info: SerializationInfo
+	):
+		return value
 
-@dataclass(frozen=True)
 class AccountInfo(AccountInfoSecurity, IdItem):
 	...
 
 
-@dataclass(frozen=True)
 class AuthenticatedAccount(AccountInfoSecurity):
 	'''
 	This AccountInfo is only returned after successful authentication.
@@ -168,8 +181,9 @@ class AuthenticatedAccount(AccountInfoSecurity):
 	access_token: str=""
 	token_type: str=""
 	lifetime: float=0
+	login_timestamp: float=0
 
-@pydanticDataclass(frozen=True)
+
 class AccountCreationInfo(AccountInfoSecurity):
 	'''
 	This AccountInfo is only to the server to create an account.
@@ -187,18 +201,17 @@ class AccountCreationInfo(AccountInfoSecurity):
 			"roles": self.roles
 		}
 
-	@validator("email")
+	@field_validator("email")
 	def check_email(cls, v: str) -> str:
-		valid = validate_email(v) #pyright: ignore [reportUnknownMemberType]
+		valid = validate_email(v)
 		return valid.email #pyright: ignore [reportGeneralTypeIssues]
 
-	_pass_len = validator( #pyright: ignore [reportUnknownVariableType]
-		"password",
-		allow_reuse=True
+	_pass_len = field_validator( #pyright: ignore [reportUnknownVariableType]
+		"password"
 	)(min_length_validator_factory(6, "Password"))
 
 
-	@validator("roles")
+	@field_validator("roles")
 	def are_all_roles_allowed(cls, v: List[str]) -> List[str]:
 		roleSet = UserRoleDef.as_set()
 		duplicate = next(get_duplicates(
@@ -239,23 +252,19 @@ class AccountCreationInfo(AccountInfoSecurity):
 
 	# 	return SavedNameString.format_name_for_save(cleaned)
 
-@dataclass(frozen=True)
-class PasswordInfo:
+class PasswordInfo(FrozenBaseClass):
 	oldpassword: str
 	newpassword: str
 
-@dataclass(frozen=True)
-class UserHistoryActionItem:
+class UserHistoryActionItem(FrozenBaseClass):
 	userid: int
 	action: str
 	timestamp: float
 
-@dataclass(frozen=True)
 class StationHistoryActionItem(UserHistoryActionItem):
 	stationid: int
 
 
-@dataclass(frozen=True)
 class OwnerInfo(IdItem):
 	username: Optional[str]=None
 	displayname: Optional[str]=None

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { FormTextField } from "../Shared/FormTextField";
 import * as Yup from "yup";
@@ -60,7 +60,8 @@ export function AccountsNew() {
 	const { handleSubmit, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			await createAccount({ values });
+			const requestObj = createAccount({ values });
+			await requestObj.call();
 			navigate(DomRoutes.accountsLogin());
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}

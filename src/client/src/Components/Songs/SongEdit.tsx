@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useCallback } from "react";
 import {
 	Box,
 	Typography,
@@ -14,30 +14,30 @@ import {
 	useAlbumData,
 	useStationData,
 	useIdMapper,
-} from "../../Context_Providers/AppContextProvider";
+} from "../../Context_Providers/AppContext/AppContext";
 import Loader from "../Shared/Loader";
 import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
 import { AlbumNewModalOpener } from "../Albums/AlbumEdit";
 import { StationNewModalOpener } from "../Stations/StationEdit";
 import { useLocation } from "react-router-dom";
-import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
+import { 
+	useVoidWaitingReducer,
+	voidDispatches as dispatches,
+} from "../../Reducers/voidWaitingReducer";
 import { useSnackbar } from "notistack";
 import {
 	fetchSongForEdit,
 	saveSongEdits,
 	fetchSongsForMultiEdit,
 	saveSongsEditsMulti,
+	songDownloadUrl,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { UserRoleDef } from "../../constants";
-import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	useCombinedContextAndFormItems,
@@ -50,8 +50,9 @@ import {
 	TouchTypes,
 	TouchedObject,
 } from "../../Types/song_info_types";
-import { Named, IdType } from "../../Types/generic_types";
+import { Named, IdValue } from "../../Types/generic_types";
 import { SubmitButton } from "../Shared/SubmitButton";
+import { isCallPending } from "../../Helpers/request_helpers";
 
 
 const inputField = {
@@ -100,7 +101,7 @@ const schema = Yup.object().shape({
 		"",
 		(value, testContext) => {
 			if (!value) return true;
-			const found: { [key: IdType]: true} = {};
+			const found: { [key: IdValue]: true} = {};
 			for (const artist of value) {
 				if (artist?.id === testContext.parent.primaryartist?.id) {
 					return testContext.createError({
@@ -127,6 +128,7 @@ export const SongEdit = () => {
 	const { enqueueSnackbar } = useSnackbar();
 	const [state, dispatch] = useVoidWaitingReducer();
 	const { callStatus } = state;
+	const isPending = isCallPending(callStatus);
 	const location = useLocation();
 	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
 
@@ -206,6 +208,12 @@ export const SongEdit = () => {
 		return false;
 	};
 
+	const downloadSong = async (songId: number) => {
+		const requestObj = songDownloadUrl({id : songId });
+		const url = await requestObj.call();
+		window?.open(url, "_blank")?.focus();
+	};
+
 	// eslint-disable-next-line react/prop-types
 	const TouchedCheckbox = ({ name }: Named) => {
 		return <Checkbox
@@ -222,9 +230,10 @@ export const SongEdit = () => {
 				...values,
 				touched: touchedObjectToArr(values.touched),
 			};
-			const data = ids.length < 2 ?
-				await saveSongEdits({ id: ids[0], data: valuesSavura }) :
-				await saveSongsEditsMulti({ ids, data: valuesSavura });
+			const requestObj = ids.length < 2 ?
+				saveSongEdits({ id: ids[0], data: valuesSavura }) :
+				saveSongsEditsMulti({ ids, data: valuesSavura });
+			const data = await requestObj.call();
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -233,28 +242,32 @@ export const SongEdit = () => {
 		}
 	});
 
-	useAuthViewStateChange(dispatch);
+	const authReset = useCallback(() => {
+		dispatch(dispatches.restart());
+	}, [dispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	useEffect(() => {
 		if (ids.length === 0) {
 			dispatch(dispatches.failed("No song selected"));
 			return;
 		}
+		const requestObj = ids.length == 1 ?
+			fetchSongForEdit({
+				id: ids[0],
+			}) :
+			fetchSongsForMultiEdit({ ids });
+		if (!isPending) return;
 		const fetch = async () => {
 			try {
-				if (!callStatus) {
-					dispatch(dispatches.started());
-					const data = ids.length == 1 ?
-						await fetchSongForEdit({
-							id: ids[0],
-						}) :
-						await fetchSongsForMultiEdit({ ids });
-					reset({
-						...data,
-						touched: createTouchedObject(data.touched),
-					});
-					dispatch(dispatches.done());
-				}
+				dispatch(dispatches.started());
+				const data = await requestObj.call();
+				reset({
+					...data,
+					touched: createTouchedObject(data.touched),
+				});
+				dispatch(dispatches.done());
 			}
 			catch(err) {
 				dispatch(dispatches.failed(formatError(err)));
@@ -262,7 +275,9 @@ export const SongEdit = () => {
 		};
 
 		fetch();
-	}, [dispatch, callStatus, ids ]);
+
+		return () => requestObj.abortController.abort();
+	}, [dispatch, ids, reset, isPending ]);
 
 	useEffect(() => {
 		if (ids?.length < 2) return;
@@ -322,7 +337,11 @@ export const SongEdit = () => {
 			</Typography>
 			<Box>
 				{canDownloadSongs && ids.length === 1 &&
-					<Button href={getDownloadAddress(ids[0])}>Download</Button>}
+					<Button 
+						onClick={() => downloadSong(ids[0])}
+					>
+						Download
+					</Button>}
 			</Box>
 			<Box sx={inputField}>
 				{ids?.length > 1 && <TouchedCheckbox

@@ -29,13 +29,13 @@ from api_dependencies import (
 	station_service,
 	queue_service,
 	get_station_user,
-	get_owner,
+	get_owner_from_query,
 	get_station_by_name_and_owner,
 	get_current_user_simple,
 	get_user_with_rate_limited_scope,
 	get_user_with_simple_scopes,
 	get_optional_user_from_token,
-	get_subject_user,
+	get_from_query_subject_user,
 	get_station_user_2,
 	get_stations_by_ids
 )
@@ -50,7 +50,7 @@ router = APIRouter(prefix="/stations")
 @router.get("/list")
 def station_list(
 	user: AccountInfo = Depends(get_optional_user_from_token),
-	owner: Optional[AccountInfo] = Depends(get_owner),
+	owner: Optional[AccountInfo] = Depends(get_owner_from_query),
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:
 	stations = list(stationService.get_stations(None,
@@ -268,7 +268,7 @@ def get_station_user_list(
 	stationService: StationService = Depends(station_service),
 ) -> TableData[AccountInfo]:
 	stationUsers = list(stationService.get_station_users(stationInfo))
-	return TableData(stationUsers, len(stationUsers))
+	return TableData(items=stationUsers, totalrows=len(stationUsers))
 
 
 @router.post("/{ownerkey}/{stationkey}/user_role",
@@ -280,7 +280,7 @@ def get_station_user_list(
 	]
 )
 def add_user_rule(
-	user: AccountInfo = Depends(get_subject_user),
+	user: AccountInfo = Depends(get_from_query_subject_user),
 	rule: StationActionRule = Depends(validate_station_rule),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service),
@@ -298,7 +298,7 @@ def add_user_rule(
 	]
 )
 def remove_user_rule(
-	user: AccountInfo = Depends(get_subject_user),
+	user: AccountInfo = Depends(get_from_query_subject_user),
 	rulename: Optional[str] = Depends(validate_station_rule_for_remove),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service),

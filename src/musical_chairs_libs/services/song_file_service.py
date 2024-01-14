@@ -1,3 +1,4 @@
+import re
 from typing import (
 	BinaryIO,
 	Iterator,
@@ -9,7 +10,7 @@ from typing import (
 	overload
 )
 from sqlalchemy.engine import Connection
-from .saving.file_service_protocol import FileServiceBase
+from .fs.file_service_protocol import FileServiceBase
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	normalize_opening_slash,
@@ -39,6 +40,7 @@ from musical_chairs_libs.tables import (
 	st_pk
 )
 from .env_manager import EnvManager
+from itertools import islice
 
 class SongFileService:
 
@@ -58,8 +60,8 @@ class SongFileService:
 		self,
 		prefix: str,
 		suffix: str,
-		userId: int
-	) -> SongTreeNode:
+		user: AccountInfo,
+	) -> dict[str, list[SongTreeNode]]:
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
@@ -69,16 +71,12 @@ class SongFileService:
 			path = path,
 			name = suffix,
 			isdirectoryplaceholder = True,
-			lastmodifiedbyuserfk = userId,
+			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
-		result = self.conn.execute(stmt)
+		self.conn.execute(stmt)
 		self.conn.commit()
-		return SongTreeNode(
-			path=normalize_closing_slash(path),
-			totalChildCount=1,
-			id=result.lastrowid
-		)
+		return self.song_ls_parents(user, prefix, -3)
 
 	def save_song_file(
 			self,
@@ -108,12 +106,12 @@ class SongFileService:
 			id=result.lastrowid
 		)
 
-
 	def __song_ls_query__(
 		self,
 		prefix: Optional[str]=""
 	) -> Select[Tuple[str, str, int, int, str]]:
-		prefix = normalize_opening_slash(prefix, False)
+		isOpenSlash = False
+		prefix = normalize_opening_slash(prefix, isOpenSlash)
 		query = select(
 				func.next_directory_level(
 					sg_path,
@@ -124,7 +122,12 @@ class SongFileService:
 				func.count(sg_pk).label("totalChildCount"),
 				func.max(sg_pk).label("pk"),
 				func.max(sg_path).label("control_path")
-		).where(func.normalize_opening_slash(sg_path, False).like(f"{prefix}%"))\
+		).where(
+				func.normalize_opening_slash(
+					sg_path,
+					isOpenSlash
+				).like(f"{prefix}%")
+			)\
 			.group_by(func.next_directory_level(sg_path, prefix))
 		return query
 
@@ -157,7 +160,10 @@ class SongFileService:
 						permittedPathsTree.values(normalizedPrefix) for r in p
 					]
 				)
-
+	
+	"""
+		Lists the items in a "directory".  
+	"""
 	def song_ls(
 		self,
 		user: AccountInfo,
@@ -180,6 +186,52 @@ class SongFileService:
 					union_all(*queryList),
 					permittedPathTree
 				)
+
+	def __prefix_split__(self, prefix: str) -> Iterator[str]:
+		split = prefix.split("/")
+		it = iter((p for p in split if p))
+		combined = next(it, "")
+		if combined:
+			yield "/"
+		yield squash_sequential_duplicate_chars(f"/{combined}/", "/")
+		for part in it:
+			combined += f"/{part}"
+			yield squash_sequential_duplicate_chars(f"/{combined}/", "/")
+
+	def __build_song_tree_dict__(
+		self,
+		nodes: Iterable[SongTreeNode]
+	) -> dict[str, list[SongTreeNode]]:
+		result: dict[str, list[SongTreeNode]] = {}
+		for node in nodes:
+			parent = re.sub(r"/?[^/]+/?$", "/", node.path)
+			if parent in result:
+				result[parent].append(node)
+			else:
+				result[parent] = [node]
+		return result
+
+	def song_ls_parents(
+		self,
+		user: AccountInfo,
+		prefix: str,
+		depth: Optional[int]=None
+	) -> dict[str, list[SongTreeNode]]:
+		permittedPathTree = user.get_permitted_paths_tree()
+		queryList: list[Select[Tuple[str, str, int, int, str]]] = []
+		reverseDirection = bool(depth) and depth < 0
+		prefixSplit =  reversed([p for p in self.__prefix_split__(prefix)])\
+			if reverseDirection else self.__prefix_split__(prefix)
+		limited = islice(prefixSplit, abs(depth)) if depth else prefixSplit
+		for p in limited:
+				queryList.append(self.__song_ls_query__(p))
+		nodes = self.__query_to_treeNodes__(
+			union_all(*queryList),
+			permittedPathTree
+		)
+		result = self.__build_song_tree_dict__(nodes)
+		return result
+
 
 	@overload
 	def get_song_path(
@@ -207,7 +259,7 @@ class SongFileService:
 			query = query.where(sg_pk == itemIds)
 		results = self.conn.execute(query)
 		if useFullSystemPath:
-			yield from (f"{EnvManager.search_base}/{row[0]}" \
+			yield from (f"{EnvManager.absolute_content_home}/{row[0]}" \
 				for row in results
 			)
 		else:

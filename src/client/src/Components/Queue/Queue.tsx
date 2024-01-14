@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchQueue, removeSongFromQueue } from "../../API_Calls/stationCalls";
 import {
@@ -15,9 +15,9 @@ import {
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
+	dataDispatches as dispatches,
+	useDataWaitingReducer,
+} from "../../Reducers/dataWaitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { UrlBuilder } from "../../Helpers/pageable_helpers";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
@@ -28,9 +28,9 @@ import { OptionsButton } from "../Shared/OptionsButton";
 import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { UserRoleDef } from "../../constants";
-import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	SongListDisplayItem,
@@ -64,7 +64,11 @@ export const Queue = () => {
 		[UserRoleDef.STATION_SKIP]
 	);
 
-	useAuthViewStateChange(queueDispatch);
+	const authReset = useCallback(() => {
+		queueDispatch(dispatches.restart());
+	}, [queueDispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	const urlBuilder = new UrlBuilder(DomRoutes.queue);
 
@@ -114,12 +118,13 @@ export const Queue = () => {
 				enqueueSnackbar("Station or user missing", {variant: "error" });
 				return;
 			}
-			const data = await removeSongFromQueue({
+			const requestObj = removeSongFromQueue({
 				ownerkey: pathVars.ownerkey,
 				stationkey: pathVars.stationkey,
 				songid: item?.id,
 				queuedtimestamp: item?.queuedtimestamp,
 			});
+			const data = await requestObj.call();
 			queueDispatch(dispatches.done(data));
 			enqueueSnackbar("Song has been removed from queue");
 		}
@@ -128,6 +133,11 @@ export const Queue = () => {
 		}
 	};
 
+	const setStationCallback = useCallback(
+		(s: StationInfo | null) => setSelectedStation(s),
+		[setSelectedStation]
+	);
+
 	useEffect(() => {
 		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title = `Musical Chairs - Queue${stationTitle}`;
@@ -135,21 +145,22 @@ export const Queue = () => {
 
 
 	useEffect(() => {
-		const fetch = async () => {
-			if (currentQueryStr === `${location.pathname}${location.search}`) return;
-			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationkey || !pathVars.ownerkey) return;
+		if (currentQueryStr === `${location.pathname}${location.search}`) return;
+		const queryObj = new URLSearchParams(location.search);
+		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
-			const page = parseInt(queryObj.get("page") || "1");
-			const limit = parseInt(queryObj.get("rows") || "50");
+		const page = parseInt(queryObj.get("page") || "1");
+		const limit = parseInt(queryObj.get("rows") || "50");
+		const requestObj = fetchQueue({
+			stationkey: pathVars.stationkey,
+			ownerkey: pathVars.ownerkey,
+			page: page - 1,
+			limit: limit,
+		});
+		const fetch = async () => {
 			queueDispatch(dispatches.started());
 			try {
-				const data = await fetchQueue({
-					stationkey: pathVars.stationkey,
-					ownerkey: pathVars.ownerkey,
-					page: page - 1,
-					limit: limit,
-				});
+				const data = await requestObj.call();
 				queueDispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 			}
@@ -159,9 +170,9 @@ export const Queue = () => {
 
 		};
 		fetch();
+		return () => requestObj.abortController.abort();
 	},[
 		queueDispatch,
-		fetchQueue,
 		pathVars.stationkey,
 		pathVars.ownerkey,
 		location.search,
@@ -176,7 +187,7 @@ export const Queue = () => {
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={urlBuilder.getOtherUrl}
-					onChange={(s) => setSelectedStation(s)}
+					onChange={setStationCallback}
 				/>
 			</Box>
 			<Box m={1}>

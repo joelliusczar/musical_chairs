@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.requests import Request
 from controllers import (
 	stations_controller,
@@ -30,7 +30,7 @@ app.add_middleware(
 	allow_origins=cors_allowed_origins,
 	allow_methods=["*"],
 	allow_headers=["Authorization", "Cookie"],
-	expose_headers=["X-AuthExpired"],
+	expose_headers=["x-authexpired"],
 	allow_credentials=True
 )
 app.include_router(stations_controller.router)
@@ -44,7 +44,7 @@ def get_cors_origin_or_default(origin: str) -> str:
 	return cors_allowed_origins[0] if len(cors_allowed_origins) else ""
 
 def transForm_error(err: Any) -> dict[str, Any]:
-	msg = err["msg"]
+	msg = str(err["msg"]).removeprefix("Value error,").strip()
 	field = "->".join(f for f in err["loc"]) if len(err["loc"]) > 1 \
 		else err["loc"][0] if len(err["loc"]) > 0 else None
 	return build_error_obj(msg, field)
@@ -61,7 +61,7 @@ def change_validation_errors(
 async def change_errors(
 	request: Request,
 	ex: StarletteHTTPException
-) -> JSONResponse:
+) -> Response:
 	if type(ex.detail) is str:
 		ex.detail = [build_error_obj(ex.detail)] #pyright: ignore [reportGeneralTypeIssues]
 	return await http_exception_handler(request, ex)
@@ -76,7 +76,7 @@ def handle_already_used_values(
 		status_code=422,
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
-				request.headers.get("origin", None)
+				request.headers.get("origin", "")
 			),
 			"access-control-allow-credentials": "true"
 		}
@@ -92,7 +92,7 @@ def handle_invalid_email(
 		status_code=422,
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
-				request.headers.get("origin", None)
+				request.headers.get("origin", "")
 			),
 			"access-control-allow-credentials": "true"
 		}
@@ -116,7 +116,7 @@ def everything_else(
 		status_code=500,
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
-				request.headers.get("origin", None)
+				request.headers.get("origin", "")
 			),
 			"access-control-allow-credentials": "true"
 		}

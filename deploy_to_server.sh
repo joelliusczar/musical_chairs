@@ -17,7 +17,10 @@ fi
 
 
 process_global_vars "$@" ||
-show_err_and_exit "error with global variabls"
+show_err_and_exit "local error with global variables"
+
+deployment_local_env_check ||
+show_err_and_exit "local error with missing keys"
 
 if [ -n "$(git status --porcelain)" ]; then
 	echo "There are uncommited changes that will not be apart of the deploy"
@@ -52,21 +55,49 @@ unitTestSuccess="$?"
 #myVar=$(cat<<EOF
 #...
 #)
-mkfifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
+mkfifo env_var_fifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
 	remote_script_fifo
 
 
+{ cat<<RemoteScriptEOF0
+
+
+export expName="$expName" &&
+export AWS_ACCESS_KEY_ID=$(__get_s3_api_key__) &&
+export AWS_SECRET_ACCESS_KEY=$(__get_s3_secret__) &&
+export S3_ACCESS_KEY_ID=$(__get_s3_api_key__) &&
+export S3_SECRET_ACCESS_KEY=$(__get_s3_secret__) &&
+export PB_SECRET=$(__get_pb_secret__) &&
+export PB_API_KEY=$(__get_pb_api_key__) &&
+export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
+export MC_DATABASE_NAME='musical_chairs_db';
+export __DB_SETUP_PASS__=$(__get_db_setup_key__) &&
+export MC_DB_PASS_OWNER=$(__get_db_owner_key__) &&
+export MC_DB_PASS_API=$(__get_api_db_user_key__) &&
+export MC_DB_PASS_RADIO=$(__get_radio_db_user_key__) &&
+export S3_BUCKET_NAME=$(__get_s3_bucket_name__) &&
+export S3_REGION_NAME=$(__get_s3_region_name__) &&
+export __ICES_BRANCH__=$(__get_ices_branch__) &&
+
+
+RemoteScriptEOF0
+} > env_var_fifo &
 
 #clone repo
 #we need this section to resolve its variables remotely on the server
 { cat <<'RemoteScriptEOF1'
+echo "SSH connection? ${SSH_CONNECTION}"
+[ -n "$SSH_CONNECTION" ] ||
+show_err_and_exit "This section should only be run remotely"
 #in addition to setting up any utilizing any passed in params
 #we call process_global_vars to also set up directories
 process_global_vars "$@" ||
-show_err_and_exit "error with global variabls"
-echo "$SSH_CONNECTION"
-[ -n "$SSH_CONNECTION" ] ||
-show_err_and_exit "This section should only be run remotely"
+show_err_and_exit "error with global variables on server"
+
+deployment_server_env_check ||
+show_err_and_exit "error with missing keys on server"
+
+create_install_directory &&
 
 if ! git --version 2>/dev/null; then
 	install_package git
@@ -75,32 +106,20 @@ fi
 error_check_path "$(get_repo_path)" &&
 rm -rf "$(get_repo_path)" &&
 #since the clone will create the sub dir, we'll just start in the parent
-cd "$(get_app_root)"/"$MC_BUILD_DIR" &&
+cd "$(__get_app_root__)"/"$MC_BUILD_DIR" &&
 git clone "$MC_REPO_URL" "$MC_PROJ_NAME" &&
 cd "$MC_PROJ_NAME"  &&
 if [ "$currentBranch" != main ]; then
 	echo "Using branch ${currentBranch}"
 	git checkout -t origin/"$currentBranch" || exit 1
 fi
-cd "$(get_app_root)"
+cd "$(__get_app_root__)"
 RemoteScriptEOF1
 } > clone_repo_fifo &
 
 #select which setup script to run
 { cat<<RemoteScriptEOF2
 
-
-export expName="$expName" &&
-export S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" &&
-export S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" &&
-export PB_SECRET=$(get_pb_secret) &&
-export PB_API_KEY=$(get_pb_api_key) &&
-export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
-export MC_DATABASE_NAME='musical_chairs_db';
-export __DB_SETUP_PASS__=$(get_db_setup_key) &&
-export MC_DB_PASS_OWNER=$(get_db_owner_key) &&
-export MC_DB_PASS_API=$(get_api_user_key) &&
-export MC_DB_PASS_RADIO=$(get_radio_user_key) &&
 
 if is_ssh; then
 	sync_utility_scripts
@@ -124,6 +143,7 @@ if is_ssh; then
 	elif [ "$__SETUP_LVL__" = 'install' ]; then
 		echo "$__SETUP_LVL__"
 		. ./radio_common.sh &&
+		run_initial_install_script
 		echo "finished setup"
 	else
 		echo "$__SETUP_LVL__"
@@ -154,6 +174,8 @@ scope() (
 	MC_REPO_URL="$MC_REPO_URL"
 	currentBranch="$(git branch --show-current 2>/dev/null)"
 
+	$(cat env_var_fifo)
+
 	$(cat clone_repo_fifo)
 
 	$(cat script_select_fifo)
@@ -167,12 +189,12 @@ scope $global_args
 RemoteScriptEOF4
 } > remote_script_fifo &
 
-
-ssh -i "$MC_SERVER_KEY_FILE" "$MC_SERVER_SSH_ADDRESS" \
+echo "connectiong to $(__get_address__) using $(__get_id_file__)"
+ssh -i $(__get_id_file__) "root@$(__get_address__)" \
 	'bash -s' < remote_script_fifo &&
 echo "All done" || echo "Onk!"
 
-rm -f remote_script_fifo remote_cleanup_fifo
+rm -f env_var_fifo remote_script_fifo remote_cleanup_fifo
 rm -f radio_common_fifo clone_repo_fifo script_select_fifo
 
 

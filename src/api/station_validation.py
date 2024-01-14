@@ -15,12 +15,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from api_dependencies import (
 	get_station_by_name_and_owner,
-	get_subject_user
+	get_from_query_subject_user
 )
 
 def validate_station_rule(
 	rule: StationActionRule,
-	user: Optional[AccountInfo] = Depends(get_subject_user),
+	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
 ) -> StationActionRule:
 	if not user:
@@ -49,7 +49,7 @@ def validate_station_rule(
 	return rule
 
 def validate_station_rule_for_remove(
-	user: Optional[AccountInfo] = Depends(get_subject_user),
+	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
 	ruleName: Optional[str]=None,
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
 ) -> Optional[str]:

@@ -6,12 +6,14 @@ from musical_chairs_libs.services import (
 	ProcessService
 )
 from .constant_fixtures_for_test import *
-from .common_fixtures import\
-	fixture_template_service as fixture_template_service,\
-	fixture_clean_station_folders as fixture_clean_station_folders
+from .common_fixtures import(
+	fixture_template_service as fixture_template_service,
+	fixture_clean_station_folders as fixture_clean_station_folders,
+	ices_config_monkey_patch as ices_config_monkey_patch
+)
 
 
-
+@pytest.mark.usefixtures("ices_config_monkey_patch")
 def test_extract_source_password():
 
 	sourcePassword = EnvManager.read_config_value(

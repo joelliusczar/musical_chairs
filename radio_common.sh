@@ -1,7 +1,6 @@
 #!/bin/sh
 
-
-[ -f "$HOME"/.profile ] && . "$HOME"/.profile
+[ -f "$HOME"/.profile ] && . "$HOME"/.profile >/dev/null
 [ -f "$HOME"/.zprofile ] && . "$HOME"/.zprofile
 [ -f "$HOME"/.zshrc ] && . "$HOME"/.zshrc
 
@@ -20,14 +19,177 @@ to_abs_path() (
 	fi
 )
 
+__is_current_dir_repo__() {
+	dir="$1"
+	[ -f "$dir"/radio_common.sh ] &&
+	[ -f "$dir"/README.md ] &&
+	[ -f "$dir"/deploy_to_server.sh ] &&
+	[ -d "$dir"/.vscode ] &&
+	[ -d "$dir"/compiled_dependencies ] &&
+	[ -d "$dir"/src ] &&
+	[ -d "$dir"/src/musical_chairs_libs ]
+}
+
+track_exit_code() {
+	exitCode="$?"
+	if [ -z "$fnExitCode" ]; then
+		echo 'fnExitCode not set'
+		exit 1
+	fi
+	((exit "$fnExitCode") || (exit "$exitCode"))
+	fnExitCode="$?"
+}
+
+deployment_local_env_check() (
+	echo 'checking environment vars before deployment'
+	#possibly problems if missing
+	[ -z $(__get_ices_branch__) ] &&
+	echo 'environmental var __ICES_BRANCH__ not set'
+	[ -z "$MC_LOCAL_REPO_PATH" ] &&
+	echo 'environmental var MC_LOCAL_REPO_PATH not set'
+	[ -z $(__get_db_setup_key__) ] &&
+	echo 'deployment var __DB_SETUP_PASS__ not set in keys'
+	[ -z $(__get_db_owner_key__) ] &&
+	echo 'deployment var MC_DB_PASS_OWNER not set in keys'
+
+	#definitely problems if missing
+	[ -z "$MC_REPO_URL" ] &&
+	echo 'environmental var MC_REPO_URL not set'
+	fnExitCode="$?"
+	track_exit_code
+
+	#values for ssh'ing to server
+	[ -z $(__get_id_file__) ] &&
+	echo 'deployment var MC_SERVER_KEY_FILE not set in keys'
+	track_exit_code
+	[ -z $(__get_address__) ] &&
+	echo 'deployment var MC_SERVER_SSH_ADDRESS not set in keys'
+	track_exit_code
+
+	#porkbun
+	[ -z $(__get_pb_api_key__) ] &&
+	echo 'deployment var PB_API_KEY not set in keys'
+	track_exit_code
+	[ -z $(__get_pb_secret__) ] &&
+	echo 'deployment var PB_SECRET not set in keys'
+	track_exit_code
+
+	#for encrypting app token
+	[ -z $(__get_mc_auth_key__) ] &&
+	echo 'deployment var MC_AUTH_SECRET_KEY not set in keys'
+	track_exit_code
+
+	#s3
+	[ -z $(__get_s3_api_key__) ] &&
+	echo 'deployment var AWS_ACCESS_KEY_ID not set in keys'
+	track_exit_code
+	[ -z $(__get_s3_secret__) ] &&
+	echo 'deployment var AWS_SECRET_ACCESS_KEY not set in keys'
+	track_exit_code
+	[ -z $(__get_s3_bucket_name__) ] &&
+	echo 'deployment var S3_BUCKET_NAME not set in keys'
+	track_exit_code
+	[ -z $(__get_s3_region_name__) ] &&
+	echo 'deployment var S3_REGION_NAME not set in keys'
+	track_exit_code
+
+	#db
+	[ -z $(__get_api_db_user_key__) ] &&
+	echo 'deployment var MC_DB_PASS_API not set in keys'
+	track_exit_code
+	[ -z $(__get_radio_db_user_key__) ] &&
+	echo 'deployment var MC_DB_PASS_RADIO not set in keys'
+	track_exit_code
+	return "$fnExitCode"
+)
+
+
+deployment_server_env_check() (
+	echo 'checking environment vars on server'
+	#possibly problems if missing
+	[ -z "$__ICES_BRANCH__" ] &&
+	echo 'environmental var __ICES_BRANCH__ not set'
+	[ -z "$MC_LOCAL_REPO_PATH" ] &&
+	echo 'environmental var MC_LOCAL_REPO_PATH not set'
+	[ -z "$__DB_SETUP_PASS__" ] &&
+	echo 'environmental var __DB_SETUP_PASS__ not set in keys'
+	[ -z "$MC_DB_PASS_OWNER" ] &&
+	echo 'environmental var MC_DB_PASS_OWNER not set in keys'
+
+
+	#definitely problems if missing
+	[ -z "$MC_REPO_URL" ] &&
+	echo 'environmental var MC_REPO_URL not set'
+	fnExitCode="$?"
+	track_exit_code
+
+	#porkbun
+	[ -z "$PB_API_KEY" ] &&
+	echo 'environmental var PB_API_KEY not set'
+	track_exit_code
+	[ -z "$PB_SECRET" ] &&
+	echo 'environmental var PB_SECRET not set'
+	track_exit_code
+
+	#for encrypting app token
+	[ -z "$MC_AUTH_SECRET_KEY" ] &&
+	echo 'environmental var MC_AUTH_SECRET_KEY not set'
+	track_exit_code
+
+	#s3
+	[ -z "$AWS_ACCESS_KEY_ID" ] &&
+	echo 'environmental var AWS_ACCESS_KEY_ID not set'
+	track_exit_code
+	[ -z "$AWS_SECRET_ACCESS_KEY" ] &&
+	echo 'environmental var AWS_SECRET_ACCESS_KEY not set'
+	track_exit_code
+	[ -z "$S3_ACCESS_KEY_ID" ] &&
+	echo 'environmental var S3_ACCESS_KEY_ID not set'
+	track_exit_code
+	[ -z "$S3_SECRET_ACCESS_KEY" ] &&
+	echo 'environmental var S3_SECRET_ACCESS_KEY not set'
+	track_exit_code
+	[ -z "$S3_BUCKET_NAME" ] &&
+	echo 'environmental var S3_BUCKET_NAME not set'
+	track_exit_code
+	[ -z "$S3_REGION_NAME" ] &&
+	echo 'environmental var S3_REGION_NAME not set'
+	track_exit_code
+
+	#db
+	[ -z "$MC_DB_PASS_API" ] &&
+	echo 'environmental var MC_DB_PASS_API not set'
+	track_exit_code
+	[ -z "$MC_DB_PASS_RADIO" ] &&
+	echo 'environmental var MC_DB_PASS_RADIO not set'
+	track_exit_code
+	return "$fnExitCode"
+)
+
+
+
 get_repo_path() (
 	if [ -n "$MC_LOCAL_REPO_PATH" ]; then
 		echo "$MC_LOCAL_REPO_PATH"
+		return
+	elif __is_current_dir_repo__ "$PWD"; then
+		echo "$PWD"
+		return
 	else
-		echo "using backup repo path" > 2
-		#done't try to change from home
-		echo "$HOME"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"
+		for guess in \
+			$(find "$HOME" -maxdepth 5 -type d \
+				-path "$MC_BUILD_DIR"/"$MC_PROJ_NAME"
+				); 
+		do
+			if __is_current_dir_repo__ "$guess"; then
+				echo "$guess" 
+				return
+			fi
+		done
 	fi
+	#done't try to change from home
+	#fallback
+	echo "$HOME"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME"
 )
 
 install_package() (
@@ -52,9 +214,9 @@ install_package() (
 )
 
 output_env_vars() (
-	export S3_ACCESS_KEY_ID=$(gen_pass)
-	export S3_SECRET_ACCESS_KEY=$(gen_pass)
-	printenv > "$(get_app_root)"/used_env_vars
+	export AWS_ACCESS_KEY_ID=$(gen_pass)
+	export AWS_SECRET_ACCESS_KEY=$(gen_pass)
+	printenv > "$(__get_app_root__)"/used_env_vars
 )
 
 set_python_version_const() {
@@ -91,17 +253,16 @@ set_env_vars() {
 }
 
 __set_env_path_var__() {
-	if perl -e "exit 1 if index('$PATH','$(get_app_root)/${MC_BIN_DIR}') != -1";
+	if perl -e "exit 1 if index('$PATH','$(__get_app_root__)/${MC_BIN_DIR}') != -1";
 	then
-		echo "Please add '$(get_app_root)/${MC_BIN_DIR}' to path"
-		export PATH="$PATH":"$(get_app_root)"/"$MC_BIN_DIR"
+		echo "Please add '$(__get_app_root__)/${MC_BIN_DIR}' to path"
+		export PATH="$PATH":"$(__get_app_root__)"/"$MC_BIN_DIR"
 	fi
 }
 
 
 print_py_env_var_guesses() (
-	process_global_vars "$@" &&
-	__set_env_path_var__ && #ensure that we can see mc-ices
+	set_env_vars "$@" &&
 	echo "MC_CONTENT_HOME=$MC_CONTENT_HOME"
 	echo "MC_TEMPLATES_DIR_CL=$MC_TEMPLATES_DIR_CL"
 	echo "MC_SQL_SCRIPTS_DIR_CL"="$MC_SQL_SCRIPTS_DIR_CL"
@@ -140,59 +301,128 @@ get_icecast_name() (
 	esac
 )
 
-get_pb_api_key() (
-	perl -ne 'print "$1\n" if /pb_api_key=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+__get_ices_branch__() (
+	if [ -n "$__ICES_BRANCH__" ]; then
+		echo "$__ICES_BRANCH__"
+		return
+	fi
 )
 
-get_pb_secret() (
-	perl -ne 'print "$1\n" if /pb_secret=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+__get_pb_api_key__() (
+	if [ -n "$PB_API_KEY" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$PB_API_KEY"
+		return
+	fi
+	perl -ne 'print "$1\n" if /PB_API_KEY=(\w+)/' \
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
-get_s3_api_key() (
-	perl -ne 'print "$1\n" if /S3_ACCESS_KEY_ID=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+__get_pb_secret__() (
+	if [ -n "$PB_SECRET" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$PB_SECRET"
+		return
+	fi
+	perl -ne 'print "$1\n" if /PB_SECRET=(\w+)/' \
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
-get_s3_secret() (
-	perl -ne 'print "$1\n" if /S3_SECRET_ACCESS_KEY=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+__get_s3_api_key__() (
+	if [ -n "$AWS_ACCESS_KEY_ID" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$AWS_ACCESS_KEY_ID"
+		return
+	fi
+	perl -ne 'print "$1\n" if /AWS_ACCESS_KEY_ID=(\w+)/' \
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
-get_mc_auth_key() (
+__get_s3_secret__() (
+	if [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$AWS_SECRET_ACCESS_KEY"
+		return
+	fi
+	perl -ne 'print "$1\n" if /AWS_SECRET_ACCESS_KEY=([\w\/]+)/' \
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+)
+
+__get_s3_bucket_name__() (
+	if [ -n "$S3_BUCKET_NAME" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$S3_BUCKET_NAME"
+		return
+	fi
+	perl -ne 'print "$1\n" if /S3_BUCKET_NAME=(\w+)/' \
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+)
+
+__get_s3_region_name__() (
+	if [ -n "$S3_REGION_NAME" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$S3_REGION_NAME"
+		return
+	fi
+	perl -ne 'print "$1\n" if /S3_REGION_NAME=([\w\-]+)/' \
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+)
+
+__get_mc_auth_key__() (
+	if [ -n "$MC_AUTH_SECRET_KEY" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$MC_AUTH_SECRET_KEY"
+		return
+	fi
 	perl -ne 'print "$1\n" if /MC_AUTH_SECRET_KEY=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
-get_address() (
-	keyFile="$(get_app_root)"/keys/"$MC_PROJ_NAME"
-	perl -ne 'print "$1\n" if /address6=root@([\w:]+)/' "$keyFile"
+__get_address__() (
+	if [ -n "$MC_SERVER_SSH_ADDRESS" ]; then
+		echo "$MC_SERVER_SSH_ADDRESS"
+		return
+	fi
+	keyFile="$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+	perl -ne 'print "$1\n" if /MC_SERVER_SSH_ADDRESS=root@([\w:]+)/' "$keyFile"
 )
 
-get_id_file() (
-	keyFile="$(get_app_root)"/keys/"$MC_PROJ_NAME"
-	perl -ne 'print "$1\n" if /access_id_file=(.+)/' "$keyFile"
+__get_id_file__() (
+	if [ -n "$MC_SERVER_KEY_FILE" ]; then
+		echo "$MC_SERVER_KEY_FILE"
+		return
+	fi
+	keyFile="$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+	perl -ne 'print "$1\n" if /MC_SERVER_KEY_FILE=(.+)/' "$keyFile"
 )
 
-get_db_setup_key() (
+__get_db_setup_key__() (
+	if [ -n "$__DB_SETUP_PASS__" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$__DB_SETUP_PASS__"
+		return
+	fi
 	perl -ne 'print "$1\n" if /__DB_SETUP_PASS__=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
-get_db_owner_key() (
+__get_db_owner_key__() (
+	if [ -n "$MC_DB_PASS_OWNER" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$MC_DB_PASS_OWNER"
+		return
+	fi
 	perl -ne 'print "$1\n" if /MC_DB_PASS_OWNER=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
-get_api_user_key() (
+__get_api_db_user_key__() (
+	if [ -n "$MC_DB_PASS_API" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$MC_DB_PASS_API"
+		return
+	fi
 	perl -ne 'print "$1\n" if /MC_DB_PASS_API=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
-get_radio_user_key() (
+__get_radio_db_user_key__() (
+	if [ -n "$MC_DB_PASS_RADIO" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$MC_DB_PASS_RADIO"
+		return
+	fi
 	perl -ne 'print "$1\n" if /MC_DB_PASS_RADIO=(\w+)/' \
-		"$(get_app_root)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
 get_localhost_key_dir() (
@@ -201,6 +431,7 @@ get_localhost_key_dir() (
 			echo "$HOME"/.ssh
 			;;
 		(Linux*)
+			echo "$HOME"/.ssh
 			;;
 		(*) ;;
 	esac
@@ -218,24 +449,19 @@ __get_remote_intermediate_key__() (
 	echo "/etc/ssl/certs/${MC_PROJ_NAME}.intermediate.key.pem"
 )
 
-connect_sftp() (
-	process_global_vars "$@" >&2 &&
-	sftp -6 -i $(get_id_file) "root@[$(get_address)]"
-)
-
 get_ssl_vars() (
 	process_global_vars "$@" >&2 &&
 	sendJson=$(cat <<-END
 	{
-		"secretapikey": "$(get_pb_secret)",
-		"apikey": "$(get_pb_api_key)"
+		"secretapikey": "$(__get_pb_secret__)",
+		"apikey": "$(__get_pb_api_key__)"
 	}
 	END
 	) &&
 	curl -s --header "Content-Type: application/json" \
 	--request POST \
 	--data "$sendJson" \
-	https://porkbun.com/api/json/v3/ssl/retrieve/$(_get_domain_name)
+	https://porkbun.com/api/json/v3/ssl/retrieve/$(__get_domain_name__)
 
 )
 
@@ -272,17 +498,17 @@ s3_name() {
 kill_s3fs() {
 	process_global_vars "$@" &&
 	kill -9 $(ps -e | grep s3fs | awk '{ print $1 }')
-	fusermount -u "$(get_app_root)"/"$MC_CONTENT_HOME"
+	fusermount -u "$(__get_app_root__)"/"$MC_CONTENT_HOME"
 }
 
 link_to_music_files() {
 	echo 'linking music files'
 	process_global_vars "$@" &&
-	if [ -z  "$(ls -A "$(get_app_root)"/"$MC_CONTENT_HOME")" ]; then
+	if [ -z  "$(ls -A "$(__get_app_root__)"/"$MC_CONTENT_HOME")" ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
-			s3fs "$(s3_name)" "$(get_app_root)"/"$MC_CONTENT_HOME"/ \
+			s3fs "$(s3_name)" "$(__get_app_root__)"/"$MC_CONTENT_HOME"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
-			[ -e "$(get_app_root)"/"$MC_CONTENT_HOME"/Soundtrack ]
+			[ -e "$(__get_app_root__)"/"$MC_CONTENT_HOME"/Soundtrack ]
 		else
 			return 1
 		fi
@@ -347,7 +573,7 @@ is_python_version_good() {
 
 is_ices_version_good() {
 	set_ices_version_const &&
-	[ "$icesMajor" -ge 0 ] && [ "$icesMinor" -ge 5 ]
+	[ "$icesMajor" -ge 0 ] && [ "$icesMinor" -ge 6 ] && [ "$icesPatch" -ge 1 ]
 }
 
 is_dir_empty() (
@@ -364,6 +590,18 @@ get_libs_dest_dir() (
 	echo "$env_root"/"$packagePath"
 )
 
+
+__replace_lib_files__() {
+	regen_file_reference_file &&
+	copy_dir "$MC_LIB_SRC" \
+		"$(get_libs_dest_dir "$(__get_app_root__)"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
+}
+
+replace_lib_files() (
+	process_global_vars "$@" &&
+	__replace_lib_files__
+)
+
 # set up the python environment, then copy
 # subshell () auto switches in use python version back at the end of function
 create_py_env_in_dir() (
@@ -371,7 +609,7 @@ create_py_env_in_dir() (
 	__set_env_path_var__ #ensure that we can see mc-python
 	link_app_python_if_not_linked
 	set_python_version_const || return "$?"
-	env_root="$1"
+	env_root=${1:-"$(__get_app_root__)"/"$MC_APP_TRUNK"}
 	pyEnvDir="$env_root"/"$MC_PY_ENV"
 	error_check_path "$pyEnvDir" &&
 	mc-python -m virtualenv "$pyEnvDir" &&
@@ -381,26 +619,50 @@ create_py_env_in_dir() (
 	# #python_env
 	# use regular python command rather mc-python
 	# because mc-python still points to the homebrew location
-	python -m pip install -r "$(get_app_root)"/"$MC_APP_TRUNK"/requirements.txt &&
+	python -m pip install -r "$(__get_app_root__)"/"$MC_APP_TRUNK"/requirements.txt &&
 	echo "done setting up py libs"
-)
-
-__replace_lib_files__() {
-	regen_file_reference_file &&
-	copy_dir "$MC_LIB_SRC" \
-		"$(get_libs_dest_dir "$(get_app_root)"/"$MC_APP_TRUNK")""$MC_LIB_NAME"
-}
-
-replace_lib_files() (
-	process_global_vars "$@" &&
-	__replace_lib_files__
 )
 
 create_py_env_in_app_trunk() (
 	process_global_vars "$@" &&
 	sync_requirement_list &&
-	create_py_env_in_dir "$(get_app_root)"/"$MC_APP_TRUNK" &&
+	create_py_env_in_dir &&
 	__replace_lib_files__
+)
+
+__install_py_env__() {
+	sync_requirement_list &&
+	create_py_env_in_app_trunk
+}
+
+install_py_env() {
+	unset_globals
+	process_global_vars "$@" &&
+	__install_py_env__ &&
+	echo "done installing py env"
+}
+
+__install_py_env_if_needed__() {
+	if [ ! -e "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
+		__install_py_env__
+	else
+		echo "replacing musical_chair_lib files"
+		__replace_lib_files__ >/dev/null #only replace my code
+	fi
+}
+
+activate_mc_env() {
+	if [ -n "$VIRTUAL_ENV" ]; then
+		deactivate 2>&1 1>/dev/null
+	fi
+	set_env_vars "$@" &&
+	__install_py_env_if_needed__ &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate
+}
+
+start_python() (
+	activate_mc_env &&
+	python
 )
 
 copy_lib_to_test() (
@@ -510,17 +772,17 @@ get_bin_path() (
 
 link_app_python_if_not_linked() {
 	if ! mc-python -V 2>/dev/null; then
-		if [ ! -e "$(get_app_root)"/"$MC_BIN_DIR" ]; then
-			sudo_mkdir "$(get_app_root)"/"$MC_BIN_DIR" || return "$?"
+		if [ ! -e "$(__get_app_root__)"/"$MC_BIN_DIR" ]; then
+			sudo_mkdir "$(__get_app_root__)"/"$MC_BIN_DIR" || return "$?"
 		fi
 		case $(uname) in
 			(Darwin*)
 				ln -sf $(get_bin_path python@3.9) \
-					"$(get_app_root)"/"$MC_BIN_DIR"/mc-python
+					"$(__get_app_root__)"/"$MC_BIN_DIR"/mc-python
 				;;
 			(*)
 				ln -sf $(get_bin_path python3) \
-					"$(get_app_root)"/"$MC_BIN_DIR"/mc-python
+					"$(__get_app_root__)"/"$MC_BIN_DIR"/mc-python
 				;;
 		esac
 	fi
@@ -581,7 +843,7 @@ kill_process_using_port() (
 #test runner needs to read .env
 setup_env_api_file() (
 	echo 'setting up .env file'
-	envFile="$(get_app_root)"/"$MC_CONFIG_DIR"/.env
+	envFile="$(__get_app_root__)"/"$MC_CONFIG_DIR"/.env
 	error_check_all_paths "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	cp "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
@@ -640,11 +902,11 @@ replace_db_file_if_needed() (
 	echo 'tentatively copying initial db'
 	process_global_vars "$@" &&
 	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
-		"$(get_app_root)"/"$MC_SQLITE_FILEPATH"  &&
-	if [ ! -e "$(get_app_root)"/"$MC_SQLITE_FILEPATH" ] \
+		"$(__get_app_root__)"/"$MC_SQLITE_FILEPATH"  &&
+	if [ ! -e "$(__get_app_root__)"/"$MC_SQLITE_FILEPATH" ] \
 	|| [ -n "$__CLEAN_FLAG" ] \
 	|| str_contains "$__REPLACE__" "sqlite_file"; then
-		cp -v "$MC_REFERENCE_SRC_DB" "$(get_app_root)"/"$MC_SQLITE_FILEPATH" &&
+		cp -v "$MC_REFERENCE_SRC_DB" "$(__get_app_root__)"/"$MC_SQLITE_FILEPATH" &&
 		return 0
 		echo 'Done copying db'
 	fi
@@ -669,7 +931,7 @@ setup_db() (
 		fi
 	fi
 
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	python <<-EOF
 	from musical_chairs_libs.tables import metadata
 	from musical_chairs_libs.services import EnvManager
@@ -723,9 +985,9 @@ set_db_root_initial_password() (
 setup_database() (
 	echo 'initial db setup'
 	process_global_vars "$@" &&
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
+	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	__install_py_env_if_needed__ &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	#going to allow an error as a valid result by redirecting error to out
 	rootHash=$(mysql -srN -e \
 		"SELECT password FROM mysql.user WHERE user = 'root' LIMIT 1" 2>&1
@@ -763,7 +1025,7 @@ teardown_database() (
 	echo 'tearing down db'
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate \
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate \
 		>/dev/null 2>&1 &&
 	(python <<EOF
 from musical_chairs_libs.services import (
@@ -779,31 +1041,10 @@ EOF
 	)
 )
 
-__install_py_env__() {
-	sync_requirement_list &&
-	create_py_env_in_app_trunk
-}
-
-install_py_env() {
-	unset_globals
-	process_global_vars "$@" &&
-	__install_py_env__ &&
-	echo "done installing py env"
-}
-
-__install_py_env_if_needed__() {
-	if [ ! -e "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
-		__install_py_env__
-	else
-		echo "replacing musical_chair_lib files"
-		__replace_lib_files__ >/dev/null #only replace my code
-	fi
-}
-
 print_schema_scripts() (
 	process_global_vars "$@" &&
 	__install_py_env_if_needed__ &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	printf '\033c' &&
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
@@ -812,32 +1053,21 @@ print_schema_scripts() (
 	)
 )
 
-activate_mc_env() {
-	process_global_vars "$@" &&
-	__install_py_env_if_needed__ &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate
-}
-
-start_python() (
-	activate_mc_env &&
-	python
-)
-
 sync_utility_scripts() (
 	process_global_vars "$@" &&
-	cp "$(get_repo_path)"/radio_common.sh "$(get_app_root)"/radio_common.sh
+	cp "$(get_repo_path)"/radio_common.sh "$(__get_app_root__)"/radio_common.sh
 )
 
 #copy python dependency file to the deployment directory
 sync_requirement_list() (
 	process_global_vars "$@" &&
 	error_check_all_paths "$(get_repo_path)"/requirements.txt \
-		"$(get_app_root)"/"$MC_APP_TRUNK"/requirements.txt \
-		"$(get_app_root)"/requirements.txt &&
+		"$(__get_app_root__)"/"$MC_APP_TRUNK"/requirements.txt \
+		"$(__get_app_root__)"/requirements.txt &&
 	#keep a copy in the parent radio directory
 	cp "$(get_repo_path)"/requirements.txt \
-		"$(get_app_root)"/"$MC_APP_TRUNK"/requirements.txt &&
-	cp "$(get_repo_path)"/requirements.txt "$(get_app_root)"/requirements.txt
+		"$(__get_app_root__)"/"$MC_APP_TRUNK"/requirements.txt &&
+	cp "$(get_repo_path)"/requirements.txt "$(__get_app_root__)"/requirements.txt
 )
 
 gen_pass() (
@@ -851,7 +1081,7 @@ is_ssh() (
 
 run_initial_install_script() (
 	process_global_vars "$@" &&
-	sh $(get_repo_path)//install_setup.sh
+	sh $(get_repo_path)/install_setup.sh
 )
 
 compare_dirs() (
@@ -924,12 +1154,20 @@ __get_keychain_osx__() (
 	echo '/Library/Keychains/System.keychain'
 )
 
+__get_debug_cert_name__() (
+	echo "$MC_PROJ_NAME"_localhost_debug
+)
+
 __get_debug_cert_path__() (
-	echo $(get_localhost_key_dir)/"$MC_PROJ_NAME"_localhost_debug
+	echo $(get_localhost_key_dir)/$(__get_debug_cert_name__)
+)
+
+__get_local_nginx_cert_name__() (
+	echo "$MC_PROJ_NAME"_localhost_nginx
 )
 
 __get_local_nginx_cert_path__() (
-	echo $(get_localhost_key_dir)/"$MC_PROJ_NAME"_localhost_nginx
+	echo $(get_localhost_key_dir)/$(__get_local_nginx_cert_name__)
 )
 
 is_cert_expired() (
@@ -943,38 +1181,50 @@ extract_sha256_from_cert() (
 
 extract_commonName_from_cert() (
 	openssl x509 -subject \
-	| perl -ne 'print "$1\n" if m{CN=([^/]+)}'
+	| perl -ne 'print "$1\n" if m{CN *= *([^/]+)}'
 )
 
-__certs_matching_name_osx__() (
+
+scan_pems_for_common_name() (
 	commonName="$1"
-	pattern='(-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----)'
-	script=$(cat <<-scriptEOF
-	while(\$_ =~ /$pattern/g) {
-		print "\$1\0"
-	}
-	scriptEOF
-	)
-	security find-certificate -a -p -c "$commonName" \
-	$(__get_keychain_osx__) | perl -0777 -ne "$script"
+	activate_mc_env &&
+	python -m 'musical_chairs_libs.dev.ssl.installed_certs' "$commonName" \
+		< /etc/ssl/certs/ca-certificates.crt 
 )
 
-__certs_matching_name_exact__() (
+certs_matching_name() (
 	commonName="$1"
-	case $(uname) in
+		case $(uname) in
 		(Darwin*)
-			__certs_matching_name_osx__ "$commonName" \
-			| extract_commonName_from_cert \
-			| input_match "$commonName"
+			security find-certificate -a -p -c "$commonName" \
+				$(__get_keychain_osx__)
 			;;
 		(*)
-			echo "operating system not configured"
-			return 0
+			scan_pems_for_common_name "$commonName"
 			;;
 	esac
 )
 
-__generate_local_ssl_cert_osx__() (
+__certs_matching_name_exact__() (
+	commonName="$1"
+	certs_matching_name "$commonName" \
+	| extract_commonName_from_cert \
+	| input_match "$commonName"
+)
+
+__get_openssl_default_conf__() (
+	case $(uname) in
+		(Darwin*)
+			echo '/System/Library/OpenSSL/openssl.cnf'
+			;;
+		(Linux*)
+			echo '/etc/ssl/openssl.cnf'
+			;;
+		(*) ;;
+	esac
+)
+
+__openssl_gen_cert__() (
 	commonName="$1"
 	domain="$2" &&
 	publicKeyFile="$3" &&
@@ -982,7 +1232,7 @@ __generate_local_ssl_cert_osx__() (
 	mkfifo cat_config_fifo
 	{
 	cat<<-OpenSSLConfig
-	$(cat '/System/Library/OpenSSL/openssl.cnf')
+	$(cat $(__get_openssl_default_conf__))
 	$(printf "[SAN]\nsubjectAltName=DNS:${domain},IP:127.0.0.1")
 	OpenSSLConfig
 	} > cat_config_fifo &
@@ -997,26 +1247,114 @@ __generate_local_ssl_cert_osx__() (
 
 __install_local_cert_osx__() (
 	publicKeyFile="$1" &&
-	sudo security add-trusted-cert -p ssl -d -r trustRoot \
-	-k $(__get_keychain_osx__) "$publicKeyFile"
+	sudo security add-trusted-cert -p \
+		ssl -d -r trustRoot \
+		-k $(__get_keychain_osx__) "$publicKeyFile"
+)
+
+create_firefox_cert_policy_file() (
+	publicKeyName="$1" &&
+	pemFile=$(echo "$publicKeyName" | sed 's/.crt$/.pem/')
+	content=$(cat <<END
+{
+	"policies": {
+		"Certificates": {
+			"ImportEnterpriseRoots": true,
+			"Install": [
+				"$publicKeyName",
+				"/etc/ssl/certs/$pemFile"
+			]
+		}
+	}
+}
+END
+)
+	sudo -p "Need password to create firefox policy file" \
+		sh -c \
+		"echo '$content' > '/usr/share/firefox-esr/distribution/policies.json'"
+)
+
+__set_firefox_cert_policy__() (
+	publicKeyName="$1" &&
+	policyFile='/usr/share/firefox-esr/distribution/policies.json'
+	if firefox -v 2>/dev/null; then
+		if [ -s "$policyFile" ]; then
+			content=$(cat "$policyFile" \
+			| get_trusted_by_firefox_json_with_added_cert "$publicKeyName")
+				if (exit "$?"); then
+					sudo -p "Need password to update firefox policy file" \
+					sh -c \
+					"echo '$content' > '$policyFile'"
+				else
+					create_firefox_cert_policy_file "$publicKeyName"
+				fi
+		else
+			create_firefox_cert_policy_file "$publicKeyName"
+		fi
+	fi
+)
+
+#"import sys, json; print(json.load(sys.stdin, strict=False)['$jsonKey'])"
+get_trusted_by_firefox_json_with_added_cert() (
+	publicKeyFile="$1"
+	pemFile=$(echo "$publicKeyFile" | sed 's/.crt$/.pem/')
+	pyScript=$(cat <<-END
+		import sys
+		import json
+		config = json.load(sys.stdin, strict=False)
+		installed = config['policies']['Certificates']['Install']
+		if not "$publicKeyFile" in installed:
+		  installed.append("$publicKeyFile")
+		if not "/etc/ssl/certs/$pemFile" in installed:
+		  installed.append("/etc/ssl/certs/$pemFile")
+		print(json.dumps(config))
+	END
+	)
+	python3 -c "$pyScript"
+)
+
+__install_local_cert_debian__() (
+	publicKeyFile="$1" &&
+	sudo -p 'Password to install trusted certificate' \
+		cp "$publicKeyFile" /usr/local/share/ca-certificates &&
+	sudo update-ca-certificates
 )
 
 __clean_up_invalid_cert__() (
 	commonName="$1" &&
 	case $(uname) in
 		(Darwin*)
-			#d: delimiter
-			#r: backslash not escape
-			__certs_matching_name_osx__ "$commonName" \
-				| while IFS= read -r -d '' cert; do
-					sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-					echo "$cert" | is_cert_expired &&
-					sudo security delete-certificate \
-						-Z "$sha256Value" -t $(__get_keychain_osx__)
+			cert=''
+			#turns out the d flag is not posix compliant :<
+			certs_matching_name "$commonName" \
+				| while read line; do
+					cert=$(printf "%s\n%s" "$cert" "$line")
+					if [ "$line" = '-----END CERTIFICATE-----' ]; then
+						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+						echo "$cert" | is_cert_expired &&
+						sudo security delete-certificate \
+							-Z "$sha256Value" -t $(__get_keychain_osx__)
+						cert=''
+					fi
 				done
 			;;
 		(*)
-			return 0
+				cert=''
+				#turns out the d flag is not posix compliant :<
+				scan_pems_for_common_name "$commonName" \
+					| while read line; do
+						cert=$(printf "%s\n%s" "$cert" "$line")
+						if [ "$line" = '-----END CERTIFICATE-----' ]; then
+							sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+							echo "$cert" | is_cert_expired && 
+							{
+								sudo -p "Delete from /usr/local/share/ca-certificates" \
+									rm /usr/local/share/ca-certificates/"$commonName"*.crt;
+								sudo update-ca-certificates
+							}
+							cert=''
+						fi
+					done
 			;;
 	esac
 	return 0
@@ -1030,14 +1368,21 @@ __setup_ssl_cert_local__() (
 
 	case $(uname) in
 		(Darwin*)
-			__generate_local_ssl_cert_osx__ "$commonName" "$domain" \
-			"$publicKeyFile" "$privateKeyFile" &&
+			__openssl_gen_cert__ "$commonName" "$domain" \
+				"$publicKeyFile" "$privateKeyFile" &&
 			__install_local_cert_osx__ "$publicKeyFile" ||
 			return 1
 			;;
 		(*)
-			echo "operating system not configured"
-			return 1
+			if [ -f '/etc/debian_version' ]; then
+				__openssl_gen_cert__ "$commonName" "$domain" \
+					"$publicKeyFile" "$privateKeyFile" &&
+				__install_local_cert_debian__ "$publicKeyFile" ||
+				return 1
+			else
+				echo "operating system not configured"
+				return 1
+			fi
 			;;
 	esac
 	return 0
@@ -1045,44 +1390,51 @@ __setup_ssl_cert_local__() (
 
 setup_ssl_cert_local_debug() (
 	process_global_vars "$@" &&
-	publicKeyFile=$(__get_debug_cert_path__).public.key.pem &&
+	publicKeyFile=$(__get_debug_cert_path__).public.key.crt &&
 	privateKeyFile=$(__get_debug_cert_path__).private.key.pem &&
 	__clean_up_invalid_cert__ "${MC_APP_NAME}-localhost"
 	__setup_ssl_cert_local__ "${MC_APP_NAME}-localhost" 'localhost' \
-		"$publicKeyFile" "$privateKeyFile" &&
+		"$publicKeyFile" "$privateKeyFile"
+	publicKeyName=$(__get_debug_cert_name__).public.key.crt &&
+	__set_firefox_cert_policy__ "$publicKeyName" &&
 	setup_react_env_debug
 )
 
 print_ssl_cert_info() (
 	process_global_vars "$@" &&
-	domain=$(_get_domain_name "$MC_APP_ENV" 'omitPort') &&
+	domain=$(__get_domain_name__ "$MC_APP_ENV" 'omitPort') &&
 	case "$MC_APP_ENV" in
 		(local*)
 			isDebugServer=${1#is_debug_server=}
 			if [ -n "$isDebugServer" ]; then
 				domain="${domain}-localhost"
 			fi
-			case $(uname) in
-			(Darwin*)
 				echo "#### nginx info ####"
-				__certs_matching_name_osx__ "$domain" \
-					| while IFS= read -r -d '' cert; do
-						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-						echo "$cert" | openssl x509 -enddate -subject -noout
+				echo "$(__get_local_nginx_cert_path__).public.key.crt"
+				cert=''
+				certs_matching_name "$domain" \
+					| while read line; do
+						cert=$(printf "%s\n%s" "$cert" "$line")
+						if [ "$line" = '-----END CERTIFICATE-----' ]; then
+							sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+							echo "$cert" | openssl x509 -enddate -subject -noout
+							cert=''
+						fi
 					done
 				echo "#### debug server info ####"
 				echo "${domain}-localhost"
-				__certs_matching_name_osx__ "${MC_APP_NAME}-localhost" \
-					| while IFS= read -r -d '' cert; do
-						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
-						echo "$cert" | openssl x509 -enddate -subject -noout
+				echo "$(__get_debug_cert_path__).public.key.crt"
+				cert=''
+				certs_matching_name "${MC_APP_NAME}-localhost" \
+					| while read line; do
+						cert=$(printf "%s\n%s" "$cert" "$line")
+						if [ "$line" = '-----END CERTIFICATE-----' ]; then
+							sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
+							echo "$cert" | openssl x509 -enddate -subject -noout
+							cert=''
+						fi
 					done
-				;;
-			(*)
-				echo 'Finding local certs is not setup on this OS'
-				;;
-		esac
-			;;
+					;;
 		(*)
 			publicKeyFile=$(__get_remote_public_key__) &&
 			cat "$publicKeyFile" | openssl x509 -enddate -subject -noout
@@ -1090,12 +1442,25 @@ print_ssl_cert_info() (
 	esac
 )
 
+add_test_url_to_hosts() (
+	domain="$1"
+	if [ -z "$domain" ]; then
+		echo "Missing domain in adding to hosts"
+		return 1
+	fi
+	if ! grep "$domain" /etc/hosts >/dev/null; then
+		sudo -p 'password to update hosts' \
+			sh -c "printf '127.0.0.1\t${domain}\n' >> /etc/hosts"
+	fi
+)
+
 setup_ssl_cert_nginx() (
 	process_global_vars "$@" &&
-	domain=$(_get_domain_name "$MC_APP_ENV" 'omitPort') &&
+	domain=$(__get_domain_name__ "$MC_APP_ENV" 'omitPort') &&
 	case "$MC_APP_ENV" in
 		(local*)
-			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.pem &&
+			add_test_url_to_hosts "$domain"
+			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.crt &&
 			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
 			__clean_up_invalid_cert__ "$domain"
@@ -1103,6 +1468,8 @@ setup_ssl_cert_nginx() (
 				__setup_ssl_cert_local__ \
 				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
 			fi
+			publicKeyName=$(__get_local_nginx_cert_name__).public.key.crt &&
+			__set_firefox_cert_policy__ "$publicKeyName"
 			;;
 		(*)
 			publicKeyFile=$(__get_remote_public_key__) &&
@@ -1135,7 +1502,7 @@ setup_react_env_debug() (
 	echo 'VITE_BASE_ADDRESS=https://localhost:8032' >> "$envFile"
 	#VITE_SSL_PUBLIC, and SSL_KEY_FILE are used by create-react-app
 	#when calling `npm start`
-	echo "VITE_SSL_PUBLIC=$(__get_debug_cert_path__).public.key.pem" \
+	echo "VITE_SSL_PUBLIC=$(__get_debug_cert_path__).public.key.crt" \
 		>> "$envFile"
 	echo "VITE_SSL_PRIVATE=$(__get_debug_cert_path__).private.key.pem" \
 		>> "$envFile"
@@ -1145,7 +1512,8 @@ get_nginx_value() (
 	key=${1:-'conf-path'}
 	#break options into a list
 	#then isolate the option we're interested in
-	nginx -V 2>&1 | \
+	sudo -p "Need pass to get nginx values " \
+		nginx -V 2>&1 | \
 		sed 's/ /\n/g' | \
 		sed -n "/--${key}/p" | \
 		sed 's/.*=\(.*\)/\1/'
@@ -1187,7 +1555,7 @@ update_nginx_conf() (
 	__copy_and_update_nginx_template__ &&
 	case "$MC_APP_ENV" in
 		(local*)
-			publicKey=$(__get_local_nginx_cert_path__).public.key.pem &&
+			publicKey=$(__get_local_nginx_cert_path__).public.key.crt &&
 			privateKey=$(__get_local_nginx_cert_path__).private.key.pem &&
 			sudo -p "update ${appConfFile}" \
 				perl -pi -e "s/<listen>/8080 ssl/" "$appConfFile" &&
@@ -1335,14 +1703,16 @@ start_icecast_service() (
 	echo 'done starting icecast service'
 )
 
+
 install_ices() (
-	process_global_vars "$@" &&
-	__set_env_path_var__ &&
-	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good \
-	|| [ -n "$__ICES_BRANCH__" ]; then
+	set_env_vars "$@" &&
+	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good; then
 		shutdown_all_stations &&
-		projDir="$(get_app_root)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
-		folderPath="$projDir"/compiled_dependencies
+		projDir="$(__get_app_root__)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
+		folderPath="$projDir"/compiled_dependencies &&
+		if [  ! -f "$folderPath"/build_ices.sh ]; then
+			folderPath="$PWD"/compiled_dependencies
+		fi &&
 		sh "$folderPath"/build_ices.sh "$__ICES_BRANCH__"
 	fi
 )
@@ -1371,13 +1741,19 @@ show_current_py_lib_files() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	set_python_version_const >/dev/null 2>&1 &&
 	envDir="lib/python${pyMajor}.${pyMinor}/site-packages/${MC_LIB_NAME}"
-	echo "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/"$envDir"
+	echo "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/"$envDir"
+)
+
+show_web_py_files() (
+	process_global_vars "$@" >/dev/null 2>&1 &&
+	echo "$(get_web_root)"/"$MC_APP_API_PATH_CL"
 )
 
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
+		2>&1 &&
 	(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
 	from musical_chairs_libs.services import EnvManager
@@ -1402,8 +1778,9 @@ show_ices_station_log() (
 	shift
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null 2>&1 &&
-	logName="$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
+		2>&1 &&
+	logName="$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
 	(python <<-EOF
 	from musical_chairs_libs.services import EnvManager
 	logdir = EnvManager.read_config_value(
@@ -1438,13 +1815,40 @@ update_icecast_conf() (
 	echo "done updating icecast config"
 )
 
+__update_ices_config__() (
+	conf="$1"
+	sourcePassword="$2"
+	perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
+)
+
+update_ices_config() (
+	conf="$1"
+	process_global_vars "$@"
+	__install_py_env_if_needed__ >/dev/null 2>&1 &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
+		2>&1 &&
+	sourcePassword=$(python <<-EOF
+	from musical_chairs_libs.services import ProcessService
+	from musical_chairs_libs.services import EnvManager
+	icecastConfLocation = ProcessService.get_icecast_conf_location()
+	sourcePassword = EnvManager.read_config_value(
+		icecastConfLocation,
+		"source-password"
+	)
+
+	print(sourcePassword)
+	EOF
+	)
+	__update_ices_config__ "$conf" "$sourcePassword"
+)
+
 update_all_ices_confs() (
 	echo "updating ices confs"
 	sourcePassword="$1"
 	process_global_vars "$@"
-	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
+	for conf in "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
-		perl -pi -e "s/>\w*/>${sourcePassword}/ if /Password/" "$conf"
+		__update_ices_config__ "$conf" "$sourcePassword"
 	done &&
 	echo "done updating ices confs"
 )
@@ -1472,10 +1876,10 @@ run_song_scan() (
 	process_global_vars "$@"
 	link_to_music_files &&
 	setup_radio &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 
 	if str_contains "$__REPLACE__" "sqlite_file"; then
-		sudo_rm_contents "$(get_app_root)"/"$MC_SQLITE_FILEPATH" || return "$?"
+		sudo_rm_contents "$(__get_app_root__)"/"$MC_SQLITE_FILEPATH" || return "$?"
 	fi &&
 	# #python_env
 	python  <<-EOF
@@ -1485,9 +1889,9 @@ run_song_scan() (
 	print("Starting")
 	EnvManager.setup_db_if_missing(echo = True)
 	songScanner = SongScanner()
-	inserted = songScanner.save_paths('$(get_app_root)/${MC_CONTENT_HOME}')
+	inserted = songScanner.save_paths('$(__get_app_root__)/${MC_CONTENT_HOME}')
 	print(f"saving paths done: {inserted} inserted")
-	updated = songScanner.update_metadata('$(get_app_root)/${MC_CONTENT_HOME}')
+	updated = songScanner.update_metadata('$(__get_app_root__)/${MC_CONTENT_HOME}')
 	print(f"updating songs done: {updated}")
 	EOF
 )
@@ -1497,11 +1901,11 @@ shutdown_all_stations() (
 	#gonna assume that the environment has been setup because if
 	#the environment hasn't been setup yet then no radio stations
 	#are running
-	if [ ! -s "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
+	if [ ! -s "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
 try:
@@ -1521,20 +1925,38 @@ EOF
 	echo "Done ending all stations"
 )
 
+__start_station_with_pipe__() (
+	conf="$1"
+	port="$2"
+	ownerName=$(echo "$conf" | cut -d '_' -f 1)
+	stationName=$(basename $(echo "$conf" | cut -d '_' -f 2) '.conf')
+	python -m musical_chairs_libs.stream \
+		"$MC_DATABASE_NAME" "$stationName" "$ownerName" | \
+			toot-ices -c "$conf" #\
+			# >"$(__get_app_root__)"/"$MC_RADIO_LOG_DIR_CL"/"${ownerName}_${stationName}" \
+			# 2>&1 &
+) 
 
 __start_station_local_file_module__() (
 	conf="$1"
 	mc-ices -c -B "$conf"
 )
 
+start_station() (
+	conf="$1"
+	set_env_vars "$@" &&
+	pkgMgrChoice=$(get_pkg_mgr) &&
+	activate_mc_env &&
+	__start_station_with_pipe__ "$conf" 50007
+)
+
 startup_radio() (
-	process_global_vars "$@" &&
-	__set_env_path_var__ && #ensure that we can see mc-ices
+	set_env_vars "$@" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
-	for conf in "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	for conf in "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		__start_station_local_file_module__ "$conf"
 	done
@@ -1547,34 +1969,44 @@ __get_remote_export_script__() (
 		exportMod=''
 	fi
 	output="export expName='${expName}';"
-	output="${output} export S3_ACCESS_KEY_ID='${S3_ACCESS_KEY_ID}';" &&
-	output="${output} export S3_SECRET_ACCESS_KEY='${S3_SECRET_ACCESS_KEY}';" &&
-	output="${output} export PB_SECRET='$(get_pb_secret)';" &&
-	output="${output} export PB_API_KEY='$(get_pb_api_key)';" &&
-	output="${output} export MC_AUTH_SECRET_KEY='$(get_mc_auth_key)';" &&
+	output="${output} export AWS_ACCESS_KEY_ID='$(__get_s3_api_key__)';" &&
+	output="${output} export AWS_SECRET_ACCESS_KEY='$(__get_s3_secret__)';" &&
+	output="${output} export S3_ACCESS_KEY_ID='$(__get_s3_api_key__)';" &&
+	output="${output} export S3_SECRET_ACCESS_KEY='$(__get_s3_secret__)';" &&
+	output="${output} export PB_SECRET='$(__get_pb_secret__)';" &&
+	output="${output} export PB_API_KEY='$(__get_pb_api_key__)';" &&
+	output="${output} export MC_AUTH_SECRET_KEY='$(__get_mc_auth_key__)';" &&
 	output="${output} export MC_DATABASE_NAME='musical_chairs_db';" &&
-	output="${output} export __DB_SETUP_PASS__='$(get_db_setup_key)';" &&
-	output="${output} export MC_DB_PASS_OWNER='$(get_db_owner_key)';" &&
-	output="${output} export MC_DB_PASS_API='$(get_api_user_key)';" &&
-	output="${output} export MC_DB_PASS_RADIO='$(get_radio_user_key)';" &&
+	output="${output} export __DB_SETUP_PASS__='$(__get_db_setup_key__)';" &&
+	output="${output} export MC_DB_PASS_OWNER='$(__get_db_owner_key__)';" &&
+	output="${output} export MC_DB_PASS_API='$(__get_api_db_user_key__)';" &&
+	output="${output} export MC_DB_PASS_RADIO='$(__get_radio_db_user_key__)';" &&
+	output="${output} export S3_BUCKET_NAME='$(__get_s3_bucket_name__)';" &&
+	output="${output} export S3_REGION_NAME='$(__get_s3_region_name__)';" &&
+	output="${output} export __ICES_BRANCH__='$(__get_ices_branch__)';" &&
 	echo "$output"
 )
 
 startup_api() (
-	process_global_vars "$@" &&
-	__set_env_path_var__ && #ensure that we can see mc-ices
+	set_env_vars "$@" &&
 	if ! str_contains "$__SKIP__" "setup_api"; then
 		setup_api
 	fi &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate
+	errCode="$?"
 	# see #python_env
 	#put uvicorn in background within a subshell so that it doesn't put
 	#the whole chain in the background, and then block due to some of the
 	#preceeding comands still having stdout open
-	(uvicorn --app-dir "$(get_web_root)"/"$MC_APP_API_PATH_CL" --root-path /api/v1 \
-	--host 0.0.0.0 --port "$MC_API_PORT" \
+	(uvicorn --app-dir "$(get_web_root)"/"$MC_APP_API_PATH_CL" \
+	--root-path /api/v1 \
+	--host 0.0.0.0 \
+	--port "$MC_API_PORT" \
 	"index:app" </dev/null >api.out 2>&1 &)
-	echo "done starting up api. Access at ${MC_FULL_URL}"
+	(exit "$errCode") &&
+	echo "Server base is $(pwd). Look there for api.out and the log file"
+	echo "done starting up api. Access at ${MC_FULL_URL}" ||
+	echo "failed while trying to start up api"
 )
 
 
@@ -1591,7 +2023,7 @@ setup_api() (
 	kill_process_using_port "$MC_API_PORT" &&
 	sync_utility_scripts &&
 	sync_requirement_list &&
-	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DIR_CL" &&
 	copy_dir "$MC_API_SRC" "$(get_web_root)"/"$MC_APP_API_PATH_CL" &&
 	create_py_env_in_app_trunk &&
 	setup_database &&
@@ -1668,7 +2100,7 @@ setup_radio() (
 	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
-	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DIR_CL" &&
 	setup_database &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -1678,7 +2110,7 @@ setup_radio() (
 
 __create_fake_keys_file__() {
 	echo "mc_auth_key=$(openssl rand -hex 32)" \
-		> "$(get_app_root)"/keys/"$MC_PROJ_NAME"
+		> "$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 }
 
 get_hash_of_file() (
@@ -1722,26 +2154,31 @@ regen_file_reference_file() (
 
 replace_sql_script() (
 	process_global_vars "$@" &&
-	setup_common_dirs
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL"
+	setup_app_directories
+	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DIR_CL"
 )
 
 #assume install_setup.sh has been run
 setup_unit_test_env() (
 	echo 'setting up test environment'
-	process_global_vars "$@" &&
+	process_global_args "$@" || return
+
+	define_global_vars &&
+	define_directory_vars &&
 	export __TEST_FLAG__='true'
+	publicKeyFile=$(__get_debug_cert_path__).public.key.crt
 
 	__create_fake_keys_file__
-	setup_common_dirs
+	setup_app_directories
 
-	copy_dir "$MC_TEMPLATES_SRC" "$(get_app_root)"/"$MC_TEMPLATES_DIR_CL" &&
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(get_app_root)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_SQL_SCRIPTS_SRC" \
+		"$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DIR_CL" &&
 	error_check_all_paths "$MC_REFERENCE_SRC_DB" \
-		"$(get_app_root)"/"$MC_SQLITE_FILEPATH" &&
+		"$(__get_app_root__)"/"$MC_SQLITE_FILEPATH" &&
 	sync_requirement_list
 	setup_env_api_file
-	pyEnvPath="$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"
+	pyEnvPath="$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$MC_LIB_SRC" -newer "$pyEnvPath" 2>&1)
 	if [ -n "$srcChanges" ] || \
@@ -1751,9 +2188,9 @@ setup_unit_test_env() (
 		create_py_env_in_app_trunk
 	fi
 	replace_db_file_if_needed2 &&
-	echo "$(get_app_root)"/"$MC_CONFIG_DIR"/.env &&
+	echo "$(__get_app_root__)"/"$MC_CONFIG_DIR"/.env &&
 	echo "PYTHONPATH='${MC_SRC_PATH}:${MC_SRC_PATH}/api'" \
-		>> "$(get_app_root)"/"$MC_CONFIG_DIR"/.env &&
+		>> "$(__get_app_root__)"/"$MC_CONFIG_DIR"/.env &&
 	echo "done setting up test environment"
 )
 
@@ -1772,11 +2209,11 @@ run_unit_tests() (
 	echo "running unit tests"
 	process_global_vars "$@"
 	export __TEST_FLAG__='true'
-	setup_unit_test_env &&
+	setup_unit_test_env >/dev/null &&
 	test_src="$MC_SRC_PATH"/tests &&
-	export MC_AUTH_SECRET_KEY=$(get_mc_auth_key) &&
+	export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
 	export PYTHONPATH="${MC_SRC_PATH}:${MC_SRC_PATH}/api" &&
-	. "$(get_app_root)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	cd "$test_src"
 	pytest -s "$@" &&
 	echo "done running unit tests"
@@ -1801,7 +2238,7 @@ get_rc_candidate() {
 	esac
 }
 
-get_app_root() (
+__get_app_root__() (
 	if [ -n "$__TEST_FLAG__" ]; then
 		echo "$MC_TEST_ROOT"
 		return
@@ -1816,11 +2253,11 @@ get_web_root() (
 	fi
 	case $(uname) in
 		(Linux*)
-			echo "${MC_WEB_ROOT:-/srv}"
+			echo "${MC_WEB_ROOT_OVERRIDE:-/srv}"
 			return
 			;;
 		(Darwin*)
-			echo "${MC_WEB_ROOT:-/Library/WebServer}"
+			echo "${MC_WEB_ROOT_OVERRIDE:-/Library/WebServer}"
 			return
 			;;
 		(*) ;;
@@ -1829,8 +2266,14 @@ get_web_root() (
 
 connect_remote() (
 	process_global_vars "$@" &&
-	ssh -ti "$MC_SERVER_KEY_FILE" "$MC_SERVER_SSH_ADDRESS" \
+	echo "connectiong to $(__get_address__) using $(__get_id_file__)" &&
+	ssh -ti $(__get_id_file__) "root@$(__get_address__)" \
 		$(__get_remote_export_script__) bash -l
+)
+
+connect_sftp() (
+	process_global_vars "$@" >&2 &&
+	sftp -6 -i $(__get_id_file__) "root@[$(__get_address__)]"
 )
 
 process_global_args() {
@@ -1839,7 +2282,8 @@ process_global_args() {
 	while [ ! -z "$1" ]; do
 		case "$1" in
 			#build out to test_trash rather than the normal directories
-			#sets MC_APP_ROOT and MC_WEB_ROOT without having to set them explicitly
+			#sets MC_APP_ROOT and MC_WEB_ROOT_OVERRIDE 
+			#without having to set them explicitly
 			(test)
 				export __TEST_FLAG__='true'
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} test"
@@ -1897,24 +2341,27 @@ define_consts() {
 	export MC_CONTENT_HOME='music/radio'
 	export MC_BIN_DIR='.local/bin'
 	export MC_API_PORT='8033'
+	#python environment names
+	export MC_PY_ENV='mc_env'
 	export __CONSTANTS_SET__='true'
 	echo "constants defined"
 }
 
-create_install_dir() {
-	[ -d "$(get_repo_path)" ] ||
-	mkdir -pv "$(get_repo_path)"
-
+create_install_directory() {
+	if [ -z "$MC_LOCAL_REPO_PATH" ]; then
+		echo 'MC_LOCAL_REPO_PATH is set. '
+		echo 'create_install_directory may have been run out of sequence'
+		exit 1
+	fi
+	[ -d "$MC_LOCAL_REPO_PATH" ] ||
+	mkdir -pv "$MC_LOCAL_REPO_PATH"
 }
 
-define_top_level_terms() {
-	MC_APP_ROOT=${MC_APP_ROOT:-"$HOME"}
-	export MC_TEST_ROOT="$(get_repo_path)/test_trash"
+define_app_root_terms() {
+	export MC_APP_ROOT=${MC_APP_ROOT:-"$HOME"}
 
 	export sqliteFilename='songs_db.sqlite'
 	export MC_APP_TRUNK="$MC_PROJ_NAME"_dir
-	export MC_APP_ROOT="$MC_APP_ROOT"
-	export MC_WEB_ROOT="$MC_WEB_ROOT"
 
 
 	export MC_LIB_NAME="$MC_PROJ_NAME"_libs
@@ -1948,7 +2395,7 @@ __get_url_base__() (
 	echo "$MC_PROJ_NAME" | tr -d _
 )
 
-_get_domain_name() (
+__get_domain_name__() (
 	envArg="$1"
 	omitPort="$2"
 	urlBase=$(__get_url_base__)
@@ -1969,7 +2416,7 @@ _get_domain_name() (
 
 __define_url__() {
 	echo "env: ${MC_APP_ENV}"
-	export MC_SERVER_NAME=$(_get_domain_name "$MC_APP_ENV")
+	export MC_SERVER_NAME=$(__get_domain_name__ "$MC_APP_ENV")
 	export MC_FULL_URL="https://${MC_SERVER_NAME}"
 	echo "url defined"
 }
@@ -1983,34 +2430,34 @@ define_repo_paths() {
 	export MC_SQL_SCRIPTS_SRC="$(get_repo_path)/sql_scripts"
 	export MC_REFERENCE_SRC="$(get_repo_path)/reference"
 	export MC_REFERENCE_SRC_DB="$MC_REFERENCE_SRC/$sqliteFilename"
+	export MC_TEST_ROOT="$(get_repo_path)/test_trash"
 	echo "source paths defined"
 }
 
-setup_common_dirs() {
-	[ -e "$(get_app_root)"/"$MC_CONFIG_DIR" ] ||
-	mkdir -pv "$(get_app_root)"/"$MC_CONFIG_DIR"
-	[ -e "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR" ] ||
-	mkdir -pv "$(get_app_root)"/"$MC_ICES_CONFIGS_DIR"
-	[ -e "$(get_app_root)"/"$MC_PY_MODULE_DIR" ] ||
-	mkdir -pv "$(get_app_root)"/"$MC_PY_MODULE_DIR"
-	[ -e "$(get_app_root)"/"$MC_DB_DIR" ] ||
-	mkdir -pv "$(get_app_root)"/"$MC_DB_DIR"
-	[ -e "$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL" ] ||
-	mkdir -pv "$(get_app_root)"/"$MC_RADIO_LOG_DIR_CL"
-	[ -e "$(get_app_root)"/keys ] ||
-	mkdir -pv "$(get_app_root)"/keys
+setup_app_directories() {
+	[ -e "$(__get_app_root__)"/"$MC_APP_TRUNK" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_APP_TRUNK"
+	[ -e "$(__get_app_root__)"/"$MC_CONFIG_DIR" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_CONFIG_DIR"
+	[ -e "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR"
+	[ -e "$(__get_app_root__)"/"$MC_PY_MODULE_DIR" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_PY_MODULE_DIR"
+	[ -e "$(__get_app_root__)"/"$MC_DB_DIR" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_DB_DIR"
+	[ -e "$(__get_app_root__)"/"$MC_RADIO_LOG_DIR_CL" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_RADIO_LOG_DIR_CL"
+	[ -e "$(__get_app_root__)"/keys ] ||
+	mkdir -pv "$(__get_app_root__)"/keys
+	[ -e "$(__get_app_root__)"/"$MC_BUILD_DIR" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_BUILD_DIR"
+	[ -e "$(__get_app_root__)"/"$MC_CONTENT_HOME" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_CONTENT_HOME"
 }
 
 setup_base_dirs() {
 
-	[ -e "$(get_app_root)"/"$MC_APP_TRUNK" ] ||
-	mkdir -pv "$(get_app_root)"/"$MC_APP_TRUNK"
-
-	setup_common_dirs
-
-	[ -e "$(get_app_root)"/"$MC_CONTENT_HOME" ] ||
-	mkdir -pv "$(get_app_root)"/"$MC_CONTENT_HOME"
-
+	setup_app_directories
 
 	[ -e "$(get_web_root)"/"$MC_APP_API_PATH_CL" ] ||
 	{
@@ -2020,29 +2467,32 @@ setup_base_dirs() {
 	}
 }
 
+define_global_vars() {
+	define_consts &&
+	define_app_root_terms &&
+	define_app_dir_paths &&
+	__define_url__
+}
+
+define_directory_vars() {
+	[ -z "$__DIRECTORY_VARS_SET__" ] || return 0
+	export MC_LOCAL_REPO_PATH=$(get_repo_path) &&
+	define_repo_paths
+	export __DIRECTORY_VARS_SET__='true'
+}
+
+
 process_global_vars() {
 	process_global_args "$@" || return
 	[ -z "$__GLOBALS_SET__" ] || return 0
 
-	define_consts &&
-
-	create_install_dir &&
-
-	define_top_level_terms &&
-
-	define_app_dir_paths &&
-
-	__define_url__ &&
-
-	define_repo_paths &&
-
-	#python environment names
-	export MC_PY_ENV='mc_env' &&
-
+	define_global_vars &&
+	define_directory_vars &&
 	setup_base_dirs &&
 
 	export __GLOBALS_SET__='globals'
 }
+
 
 unset_globals() {
 	enable_wordsplitting
@@ -2087,9 +2537,4 @@ fn_ls() (
 	process_global_vars "$@" >/dev/null
 	perl -ne 'print "$1\n" if /^([a-zA-Z_0-9]+)\(\)/' \
 		"$(get_repo_path)"/radio_common.sh | sort
-)
-
-test_shell() (
-	#put functions to test in here so they don't pollute your shell
-	install_py_env test
 )

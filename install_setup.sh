@@ -43,12 +43,13 @@ case $(uname) in
 	(*) ;;
 esac
 
+echo '##### perl #####'
 if ! perl -v 2>/dev/null; then
 	install_package perl
 fi
 
-[ ! -e "$get_app_root"/"$MC_BIN_DIR" ] &&
-	mkdir -pv "$get_app_root"/"$MC_BIN_DIR"
+[ ! -e "$(__get_app_root__)"/"$MC_BIN_DIR" ] &&
+	mkdir -pv "$(__get_app_root__)"/"$MC_BIN_DIR"
 
 set_env_vars || {
 	#not using show_err_and_exit at this point because its existence is suspect
@@ -58,7 +59,7 @@ set_env_vars || {
 
 output_env_vars
 
-
+echo '##### python #####'
 if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 	pythonToLink='python3'
 	case $(uname) in
@@ -82,24 +83,41 @@ if ! mc-python -V 2>/dev/null || ! is_python_version_good; then
 		(*) ;;
 	esac &&
 	ln -sf $(get_bin_path "$pythonToLink") \
-		"$get_app_root"/"$MC_BIN_DIR"/mc-python
+		"$(__get_app_root__)"/"$MC_BIN_DIR"/mc-python
 fi || show_err_and_exit "python install failed"
 
 mc-python -V >/dev/null 2>&1 || show_err_and_exit "mc-python not available"
 
+echo '##### python pip #####'
 if ! mc-python -m pip -V 2>/dev/null; then
-	curl -o "$get_app_root"/"$MC_BUILD_DIR"/get-pip.py \
-		https://bootstrap.pypa.io/pip/get-pip.py &&
-	mc-python "$get_app_root"/"$MC_BUILD_DIR"/get-pip.py ||
+	if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
+		install_package python3-pip
+	else
+		curl -o "$(__get_app_root__)"/"$MC_BUILD_DIR"/get-pip.py \
+			https://bootstrap.pypa.io/pip/get-pip.py &&
+		mc-python "$(__get_app_root__)"/"$MC_BUILD_DIR"/get-pip.py 
+	fi ||
 	show_err_and_exit "Couldn't install pip"
 fi
 
-mc-python -m pip install --upgrade pip
+if [ "$pkgMgrChoice" != "$MC_APT_CONST" ]; then
+	mc-python -m pip install --upgrade pip
+fi
 
+echo '##### pythpn virtualenv #####'
 if ! mc-python -m  virtualenv --version 2>/dev/null; then
-	mc-python -m pip install --user virtualenv ||
+	if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
+		install_package virtualenv
+	else
+		mc-python -m pip install --user virtualenv
+	fi ||
 	show_err_and_exit "Couldn't install virtualenv"
 fi
+
+echo '##### nvm #####'
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 if ! nvm --version 2>/dev/null; then
 	rcScript=$(get_rc_candidate)
@@ -112,38 +130,21 @@ if ! nvm --version 2>/dev/null; then
   [ -s "$NVM_DIR"/nvm.sh ] && \. "$NVM_DIR"/nvm.sh  # This loads nvm
 fi
 
+echo '##### node #####'
 if ! nvm run node --version 2>/dev/null; then
 	nvm install node
 fi
 
-if ! s3fs --version 2>/dev/null; then
-	case $(uname) in
-		(Linux*)
-				install_package s3fs
-			;;
-	esac
-fi
+# if ! s3fs --version 2>/dev/null; then
+# 	case $(uname) in
+# 		(Linux*)
+# 				install_package s3fs
+# 			;;
+# 	esac
+# fi
 
-if [ ! -e "$HOME"/.vimrc ]; then
-	touch "$HOME"/.vimrc
-fi
-perl -pi -e "s/set nonumber/set number/" "$HOME"/.vimrc
-perl -pi -e "s/set expandtab/set noexpandtab/" "$HOME"/.vimrc
-perl -pi -e "s/set tabstop=\d+/set tabstop=2/" "$HOME"/.vimrc
-lineNum=$(perl -ne 'print "true" if /set number/' "$HOME"/.vimrc)
-noexpandtabs=$(perl -ne 'print "true" if /set noexpandtab/' "$HOME"/.vimrc)
-tabstop=$(perl -ne 'print "true" if /set tabstop=2/' "$HOME"/.vimrc)
 
-if [ "$lineNum" != 'true' ]; then
-	echo 'set number' >> "$HOME"/.vimrc
-fi
-if [ "$noexpandtabs" != 'true' ]; then
-	echo 'set noexpandtab' >> "$HOME"/.vimrc
-fi
-if [ "$tabstop" != 'true' ]; then
-	echo 'set tabstop=2' >> "$HOME"/.vimrc
-fi
-
+echo '##### mariadb #####'
 if ! mariadb -V 2>/dev/null; then
 	if [ -n "$__DB_SETUP_PASS__" ]; then
 		case $(uname) in
@@ -157,24 +158,26 @@ if ! mariadb -V 2>/dev/null; then
 				;;
 			(*) ;;
 		esac &&
-		sudo -p 'Updating db root password' mysql -u root -e
+		sudo -p 'Updating db root password' mysql -u root -e \
 			"REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'mysql'@'localhost'" &&
 		sudo -p 'Updating db root password' mysql -u root -e \
 			"SET PASSWORD FOR root@localhost = PASSWORD('${__DB_SETUP_PASS__}');"
 	else
-		echo 'Need a password for root db account to install database'
+		show_err_and_exit 'Need a password for root db account to install database'
 	fi
 fi
 
+echo '##### sqlite3 #####'
 if ! sqlite3 -version 2>/dev/null; then
 	install_package sqlite3
 fi
 
+echo '##### git #####'
 if ! git --version 2>/dev/null; then
 	install_package git
 fi
 
-
+echo '##### icecast #####'
 case $(uname) in
 	(Linux*)
 		if [ "$pkgMgrChoice" = "$MC_PACMAN_CONST" ]; then
@@ -192,8 +195,34 @@ case $(uname) in
 	(*) ;;
 esac
 
+echo '##### ices #####'
 install_ices || show_err_and_exit "Couldn't install ices"
 
+echo '##### openssl #####'
+case $(uname) in
+	(Linux*)
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
+			if ! openssl version 2>/dev/null; then
+				install_package openssl
+			fi
+		fi
+		;;
+	(*) ;;
+esac
+
+echo '##### ca certificates #####'
+case $(uname) in
+	(Linux*)
+		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
+			if ! dpkg -s ca-certificates 2>/dev/null; then
+				install_package ca-certificates
+			fi
+		fi
+		;;
+	(*) ;;
+esac
+
+echo '##### nginx #####'
 if ! nginx -v 2>/dev/null; then
 	case $(uname) in
 		(Darwin*)
@@ -208,6 +237,7 @@ if ! nginx -v 2>/dev/null; then
 	esac
 fi
 
+echo '##### ngnix additional setup #####'
 confDir=$(get_nginx_conf_dir_abs_path)
 echo "Checking for ${confDir}/${MC_APP_NAME}.conf"
 if [ ! -e "$confDir"/"$MC_APP_NAME".conf ]; then
@@ -216,13 +246,16 @@ if [ ! -e "$confDir"/"$MC_APP_NAME".conf ]; then
 		cp "$MC_TEMPLATES_SRC"/nginx_evil.conf "$confDir"/nginx_evil.conf
 fi
 
+echo '##### leftovers #####'
 sync_utility_scripts
 
-echo "mc_auth_key=${APP_AUTH_KEY}" > "$HOME"/keys/"$MC_PROJ_NAME"
-echo "pb_secret=${PB_SECRET}" >> "$HOME"/keys/"$MC_PROJ_NAME"
-echo "pb_api_key=${PB_API_KEY}" >> "$HOME"/keys/"$MC_PROJ_NAME"
+if [ ! -e "$HOME"/keys/"$MC_PROJ_NAME" ]; then
+	echo "MC_AUTH_SECRET_KEY=${APP_AUTH_KEY}" > "$HOME"/keys/"$MC_PROJ_NAME"
+	echo "PB_SECRET=${PB_SECRET}" >> "$HOME"/keys/"$MC_PROJ_NAME"
+	echo "PB_API_KEY=${PB_API_KEY}" >> "$HOME"/keys/"$MC_PROJ_NAME"
+fi
 
-echo "$S3_ACCESS_KEY_ID":"$S3_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
+echo "$AWS_ACCESS_KEY_ID":"$AWS_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
 chmod 600 "$HOME"/.passwd-s3fs
 
 output_env_vars

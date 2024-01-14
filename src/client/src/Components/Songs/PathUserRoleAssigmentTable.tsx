@@ -3,10 +3,7 @@ import {
 	Box,
 } from "@mui/material";
 import {
-	dispatches,
-	globalStoreLogger,
-} from "../../Reducers/waitingReducer";
-import {
+	dataDispatches as dispatches,
 	useDataWaitingReducer,
 } from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
@@ -20,19 +17,16 @@ import { UserRoleDef, UserRoleDomain } from "../../constants";
 import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
-import { KeyType } from "../../Types/generic_types";
 import {
 	PageableListDataShape,
-	PageableListStoreShape,
-	WaitingTypes,
-	DataOrUpdater,
-} from "../../Reducers/types/reducerTypes";
+} from "../../Types/reducerTypes";
 import {
 	User,
 	ActionRule,
 	ActionRuleCreationInfo,
 } from "../../Types/user_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
+import { useLocation } from "react-router-dom";
 
 
 const pathRoles = Object.keys(UserRoleDef)
@@ -47,10 +41,14 @@ pathRoles.unshift({
 });
 
 
-const ruleUpdatePaths = {
-	[WaitingTypes.add]: (state: PageableListStoreShape<User>, payload: User) => {
-		const items = [...state.data.items, payload]
-			.sort(keyedSortFn("username"));
+const replaceUserInState = (
+	state: RequiredDataStore<PageableListDataShape<User>>,
+	userCopy: User
+) => {
+	const items = [...state.data.items];
+	const idx = items.findIndex(i => i.id === userCopy.id);
+	if (idx > -1) {
+		items[idx] = userCopy;
 		return {
 			...state,
 			data: {
@@ -58,54 +56,9 @@ const ruleUpdatePaths = {
 				items: items,
 			},
 		};
-	},
-	[WaitingTypes.remove]: (
-		state: PageableListStoreShape<User>,
-		payload: { key: KeyType}
-	) => {
-		const { key } = payload;
-		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === (+key * 1));
-		items.splice(idx, 1);
-		return {
-			...state,
-			data: {
-				...state.data,
-				items: items,
-			},
-		};
-	},
-	[WaitingTypes.updateItem]: (
-		state: PageableListStoreShape<User>,
-		payload: {
-			key: KeyType,
-			dataOrUpdater: DataOrUpdater<User>
-		}
-	) => {
-		const { key, dataOrUpdater } = payload;
-		const items = [...state.data.items];
-		const idx = items.findIndex(x => x.id === (+key * 1));
-		if (idx > -1) {
-			if (typeof dataOrUpdater === "function") {
-				items.splice(idx, 1, dataOrUpdater(items[idx]));
-			}
-			else {
-				items.splice(idx, 1, dataOrUpdater);
-			}
-			const sortedItems = items.sort(keyedSortFn("username"));
-			return {
-				...state,
-				data: {
-					...state.data,
-					items: sortedItems,
-				},
-			};
-		}
-		else {
-			console.error("Item was not found in local store.");
-			return state;
-		}
-	},
+	}
+	console.error("Item was not found in local store.");
+	return state;
 };
 
 export const PathUserRoleAssignmentTable = () => {
@@ -113,14 +66,10 @@ export const PathUserRoleAssignmentTable = () => {
 	const [state, dispatch] = useDataWaitingReducer(
 		new RequiredDataStore<PageableListDataShape<User>>(
 			{ items: [], totalrows: 0}
-		),
-		{
-			reducerMods: ruleUpdatePaths,
-			middleware:[globalStoreLogger("path users")],
-		}
-	);
+		));
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
+	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
 	const prefix = queryObj.get("prefix");
 
@@ -132,21 +81,33 @@ export const PathUserRoleAssignmentTable = () => {
 			console.error("provided user was null");
 			return;
 		}
+		const rule = {
+			name: UserRoleDef.PATH_VIEW,
+			span: 0,
+			count: 0,
+			priority: null,
+		};
+		const requestObj = addPathUserRule({
+			rule,
+			prefix,
+			subjectuserkey: user.id,
+		});
 		try {
-			const rule = {
-				name: UserRoleDef.PATH_VIEW,
-				span: 0,
-				count: 0,
-				priority: null,
-			};
-			const addedRule = await addPathUserRule({
-				rule,
-				prefix,
-				subjectuserkey: user.id,
-			});
-			dispatch(dispatches.add({
-				...user,
-				roles: [...user.roles, addedRule],
+			const addedRule = await requestObj.call();
+			dispatch(dispatches.update((state) => {
+				const userCopy = {
+					...user,
+					roles: [...user.roles, addedRule],
+				};
+				const items = [...state.data.items, userCopy]
+					.sort(keyedSortFn("username"));
+				return {
+					...state,
+					data: {
+						...state.data,
+						items: items,
+					},
+				};
 			}));
 			enqueueSnackbar("User added!", { variant: "success"});
 		}
@@ -161,22 +122,22 @@ export const PathUserRoleAssignmentTable = () => {
 	},[prefix]);
 
 	useEffect(() => {
-		const fetch = async () => {
-			if (currentQueryStr === `${location.pathname}${location.search}`) return;
-			const queryObj = new URLSearchParams(location.search);
-			const prefix = queryObj.get("prefix");
-			if (prefix === null) return;
+		if (currentQueryStr === `${location.pathname}${location.search}`) return;
+		const queryObj = new URLSearchParams(location.search);
+		const prefix = queryObj.get("prefix");
+		if (prefix === null) return;
 
-			const page = parseInt(queryObj.get("page") || "1");
-			const limit = parseInt(queryObj.get("rows") || "50");
+		const page = parseInt(queryObj.get("page") || "1");
+		const limit = parseInt(queryObj.get("rows") || "50");
+		const requestObj = fetchPathUsers({
+			page: page - 1, limit: limit, prefix: prefix,
+		});
+		const fetch = async () => {
 			dispatch(dispatches.started());
 			try {
-				const data = await fetchPathUsers({
-					page: page - 1, limit: limit, prefix: prefix,
-				});
+				const data = await requestObj.call();
 				dispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
-
 			}
 			catch (err) {
 				dispatch(dispatches.failed(formatError(err)));
@@ -184,9 +145,10 @@ export const PathUserRoleAssignmentTable = () => {
 
 		};
 		fetch();
+
+		return () => requestObj.abortController.abort();
 	},[
 		dispatch,
-		fetchPathUsers,
 		location.search,
 		location.pathname,
 		currentQueryStr,
@@ -195,17 +157,19 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
 		try {
-			const addedRule = await addPathUserRule({
+			const requestObj = addPathUserRule({
 				rule,
 				prefix,
 				subjectuserkey: user.id,
 			});
-			dispatch(dispatches.update(
-				user.id,
-				{...user,
+			const addedRule = await requestObj.call();
+			dispatch(dispatches.update((state) => {
+				const userCopy = {
+					...user,
 					roles: [...user.roles, addedRule].sort(keyedSortFn("name")),
-				}
-			));
+				};
+				return replaceUserInState(state, userCopy);
+			}));
 			enqueueSnackbar("Role added!", { variant: "success"});
 		}
 		catch(err) {
@@ -215,25 +179,26 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const removeRole = async (role: ActionRule, user: User) => {
 		try {
-			await removePathUserRule({
+			const requestObj = removePathUserRule({
 				rulename: role.name,
 				prefix,
 				subjectuserkey: user.id,
 			});
-			const roles = [...user.roles];
-			const idx = roles.findIndex(r => r.name === role.name);
-			if (idx > -1 ) {
-				roles.splice(idx, 1);
-				dispatch(dispatches.update(
-					user.id,
-					{...user,
+			await requestObj.call();
+			dispatch(dispatches.update((state) => {
+				const roles = [...user.roles];
+				const ridx = roles.findIndex(r => r.name === role.name);
+				if (ridx > -1 ) {
+					roles.splice(ridx, 1);
+					const userCopy = {
+						...user,
 						roles: roles,
-					}
-				));
-			}
-			else {
-				enqueueSnackbar("Local role not found?", { variant: "error"});
-			}
+					};
+					return replaceUserInState(state, userCopy);
+				}
+				console.error("Item was not found in local store.");
+				return state;
+			}));
 			enqueueSnackbar(`${role.name} removed!`, { variant: "success"});
 		}
 		catch(err) {
@@ -243,11 +208,27 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const removeUser = async (user: User) => {
 		try {
-			await removePathUserRule({
+			const requestObj = removePathUserRule({
 				prefix,
 				subjectuserkey: user.id,
 			});
-			dispatch(dispatches.remove(user.id));
+			await requestObj.call();
+			dispatch(dispatches.update((state) => {
+				const items = [...state.data.items];
+				const idx = items.findIndex(i => i.id === user.id);
+				if (idx > -1 ) {
+					items.splice(idx, 1);
+					return {
+						...state,
+						data: {
+							...state.data,
+							items: items,
+						},
+					};
+				}
+				console.error("Item was not found in local store.");
+				return state;
+			}));
 			enqueueSnackbar(`${user.username} removed!`, { variant: "success"});
 		}
 		catch(err) {

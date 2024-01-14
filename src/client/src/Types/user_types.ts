@@ -1,4 +1,4 @@
-import { KeyType, IdItem } from "../Types/generic_types";
+import { KeyValue, IdItem } from "../Types/generic_types";
 import { PageableParams } from "./pageable_types";
 
 export interface OwnerOnlyParam {
@@ -53,6 +53,7 @@ export interface LoggedInUser extends RoledEntity {
 	username: string,
 	access_token: string,
 	lifetime: number,
+	login_timestamp: number,
 };
 
 export interface LoginCredentials {
@@ -77,7 +78,7 @@ export interface UserCreationInfo extends User, RoledEntity{
 };
 
 export interface SubjectUserKeyItem {
-	subjectuserkey: KeyType
+	subjectuserkey: KeyValue
 };
 
 export interface SubjectUserRoleAddition extends SubjectUserKeyItem {

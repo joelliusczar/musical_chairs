@@ -15,12 +15,17 @@ class EnvManager:
 		if EnvManager.test_flag:
 			return os.environ["MC_TEST_ROOT"]
 		return os.environ["MC_APP_ROOT"]
+	
+	@classmethod
+	@property
+	def relative_content_home(cls) -> str:
+		contentHome = os.environ["MC_CONTENT_HOME"]
+		return contentHome
 
 	@classmethod
 	@property
-	def search_base(cls) -> str:
-		contentHome = os.environ["MC_CONTENT_HOME"]
-		return f"{EnvManager.app_root}/{contentHome}"
+	def absolute_content_home(cls) -> str:
+		return f"{EnvManager.app_root}/{EnvManager.relative_content_home}"
 
 	@classmethod
 	@property
@@ -76,6 +81,16 @@ class EnvManager:
 	@property
 	def db_name(cls) -> str:
 		return os.environ["MC_DATABASE_NAME"]
+	
+	@classmethod
+	@property
+	def s3_bucket_name(cls) -> str:
+		return os.environ["S3_BUCKET_NAME"]
+	
+	@classmethod
+	@property
+	def s3_region_name(cls) -> str:
+		return os.environ["S3_REGION_NAME"]
 
 	@classmethod
 	@property

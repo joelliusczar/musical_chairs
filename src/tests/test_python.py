@@ -24,16 +24,13 @@ def fixture_side_effect() -> Iterator[None]:
 	try:
 		yield None
 	finally:
-		print("finally")
 		global side_effect_check
 		assert side_effect_check
 
 @pytest.mark.usefixtures("fixture_side_effect")
 def test_use_side_effect():
-	print("get started")
 	global side_effect_check
 	side_effect_check = True
-	print("done here")
 
 
 
@@ -76,11 +73,11 @@ def getKeyedObjects():
 def keyMatch(key: str, object: Any):
 
 	if key == object["id"]:
-		return True;
+		return True
 
 	if key == object["name"]:
-		return True;
-	return False;
+		return True
+	return False
 
 
 def pathToTestObject(path: str):

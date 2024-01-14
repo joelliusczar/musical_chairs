@@ -9,6 +9,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_non_simple_chars
 )
 from .env_manager import EnvManager
+import musical_chairs_libs.dtos_and_utilities.logging as logging
+
 
 class PackageManagers(Enum):
 	APTGET = "apt-get"
@@ -16,11 +18,26 @@ class PackageManagers(Enum):
 	HOMEBREW = "homebrew"
 
 
-def __start_ices__(stationConf: str):
-	subprocess.run(["mc-ices", "-c", f"{stationConf}", "-B"])
+def __start_ices__(
+	stationConf: str,
+	portNumber: str
+) -> subprocess.Popen[bytes]:
+	return subprocess.Popen(
+		["mc-ices", "-c", f"{stationConf}"],
+		env={
+				"MC_STATION_PORT": portNumber, 
+			 "PATH": os.environ["PATH"],
+			 "MC_CONTENT_HOME": EnvManager.relative_content_home,
+			 "MC_APP_ROOT": EnvManager.app_root,
+			 "MC_DB_PASS_RADIO": EnvManager.db_pass_radio,
+			 "MC_RADIO_LOG_DIR_CL": EnvManager.radio_logs_dir,
+			 "MC_DATABASE_NAME": EnvManager.db_name
+			}
+	)
 
 
 class ProcessService:
+
 
 	@staticmethod
 	def noop_mode() -> bool:
@@ -42,10 +59,11 @@ class ProcessService:
 			pass
 
 	@staticmethod
-	def start_station_external_process(
+	def start_station_mc_ices(
 		stationName: str,
-		ownerName: str
-	) -> None:
+		ownerName: str,
+		portNumber: str
+	) -> subprocess.Popen[bytes]:
 		filename_base = f"{ownerName}_{stationName}"
 		m = get_non_simple_chars(filename_base)
 		if m:
@@ -56,10 +74,37 @@ class ProcessService:
 				"Noop mode. Won't search for station config"
 	 			" nor try to launch process"
 			)
-			return
+			return #pyright: ignore [reportGeneralTypeIssues]
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
-		__start_ices__(stationConf)
+		return __start_ices__(stationConf, portNumber)
+
+	@staticmethod
+	def start_song_queue_process(dbName: str, stationName: str, ownerName: str):
+		# stationProc = subprocess.Popen([
+		# 		"python",
+		# 		"-m",
+		# 		"musical_chairs_libs.stream",
+		# 		dbName,
+		# 		stationName,
+		# 		ownerName
+		# 	]
+		# )
+
+		stationProc = ProcessService.start_station_mc_ices(
+			stationName,
+			ownerName,
+			"0"
+		)
+
+		try:
+			stationProc.wait(5)
+			raise RuntimeError("Station ended sooner than expected")
+		except subprocess.TimeoutExpired:
+			print("So far so good")
+			logging.logger.info("so far so good")
+
+
 
 	@staticmethod
 	def get_pkg_mgr() -> Optional[PackageManagers]:
@@ -112,4 +157,3 @@ class ProcessService:
 			return f"{EnvManager.templates_dir}/icecast.xml"
 		err = "icecast logic has not been configured for this os"
 		raise NotImplementedError(err)
-

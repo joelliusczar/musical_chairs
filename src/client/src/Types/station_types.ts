@@ -1,8 +1,8 @@
 import {
 	NamedIdItem,
-	KeyType,
+	KeyValue,
 	Named,
-	IdType,
+	IdValue,
 } from "./generic_types";
 import {
 	OwnerParams,
@@ -14,19 +14,18 @@ import {
 } from "../Types/user_types";
 import {
 	PageableListDataShape,
-	SimpleStoreShape,
-} from "../Reducers/types/reducerTypes";
+} from "./reducerTypes";
 
 export interface OwnedStationParams extends OwnerParams {
-	stationkey?: KeyType
+	stationkey?: KeyValue
 }
 
 export interface RequiredStationParams extends OwnedStationParams {
-	stationkey: KeyType
+	stationkey: KeyValue
 }
 
 export interface RequiredStationParamsOnly extends OwnerOnlyParam {
-	stationkey: KeyType
+	stationkey: KeyValue
 }
 
 export interface StationInfo extends NamedIdItem {
@@ -34,22 +33,22 @@ export interface StationInfo extends NamedIdItem {
 	isrunning: boolean
 	owner: User | null
 	rules: ActionRule[]
-	viewsecuritylevel: IdType
-	requestsecuritylevel: IdType
+	viewsecuritylevel: IdValue
+	requestsecuritylevel: IdValue
 }
 
 export interface StationInfoForm extends Named {
-	id?: IdType
+	id?: IdValue
 	displayname: string | null
 	viewsecuritylevel: NamedIdItem
 	requestsecuritylevel: NamedIdItem
 }
 
 export interface StationCreationInfo extends Named {
-	id?: IdType
+	id?: IdValue
 	displayname: string | null
-	viewsecuritylevel: IdType | number | string
-	requestsecuritylevel: IdType | number | string
+	viewsecuritylevel: IdValue | number | string
+	requestsecuritylevel: IdValue | number | string
 };
 
 export interface StationRuleUpdateParams
@@ -66,6 +65,3 @@ export interface StationRuleDeletion extends StationRuleUpdateParams {
 export interface StationTableData<T> extends PageableListDataShape<T> {
 	stationrules: ActionRule[]
 };
-
-export type StationItemsStore<DataShape> =
-	SimpleStoreShape<StationTableData<DataShape>>;

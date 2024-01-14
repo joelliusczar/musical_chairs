@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
@@ -12,10 +12,10 @@ import { formatError } from "../../Helpers/error_formatter";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import { useVoidWaitingReducer } from "../../Reducers/voidWaitingReducer";
+import { 
+	useVoidWaitingReducer,
+	voidDispatches as dispatches,
+} from "../../Reducers/voidWaitingReducer";
 import {
 	DomRoutes,
 	CallStatus,
@@ -23,11 +23,11 @@ import {
 } from "../../constants";
 import {
 	useStationData,
-} from "../../Context_Providers/AppContextProvider";
+} from "../../Context_Providers/AppContext/AppContext";
 import {
 	useCurrentUser,
 	useAuthViewStateChange,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { Loader } from "../Shared/Loader";
 import { FormSelect } from "../Shared/FormSelect";
 import {
@@ -78,9 +78,10 @@ const validatePhraseIsUnused = async (
 ) => {
 	const id = context?.parent?.id;
 	if (!value) return true;
-	const used = await checkValues({ id, values: {
+	const requestObj = checkValues({ id, values: {
 		[context.path]: value,
 	}});
+	const used = await requestObj.call();
 	return !(context.path in used) || !used[context.path];
 };
 
@@ -166,10 +167,11 @@ export const StationEdit = (props: StationEditProps) => {
 			};
 			saveData.viewsecuritylevel = viewsecuritylevel.id;
 			saveData.requestsecuritylevel = requestsecuritylevel.id;
-			const data = await saveStation({ values: saveData, id: stationId });
+			const requestObj = saveStation({ values: saveData, id: stationId });
+			const data = await requestObj.call();
 			afterSubmit(data);
 			if (stationId) {
-				updateStation(stationId, data);
+				updateStation(data);
 			}
 			else {
 				addStation(data);
@@ -182,39 +184,46 @@ export const StationEdit = (props: StationEditProps) => {
 		}
 	});
 
-	useAuthViewStateChange(dispatch);
+	const authReset = useCallback(() => {
+		dispatch(dispatches.restart());
+	}, [dispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	useEffect(() => {
-		const fetch = async () => {
-			try {
-				if(pathVars.stationkey && pathVars.ownerkey) {
+		if(pathVars.stationkey && pathVars.ownerkey) {
+			const requestObj = fetchStationForEdit({
+				ownerkey: pathVars.ownerkey,
+				stationkey: pathVars.stationkey,
+			});
+			const fetch = async () => {
+				try {
 					if(!callStatus) {
 						dispatch(dispatches.started());
-						const data = await fetchStationForEdit({
-							ownerkey: pathVars.ownerkey,
-							stationkey: pathVars.stationkey,
-						});
+						const data = await requestObj.call();
 						const formData = stationInfoToFormData(data);
 						reset(formData);
 						dispatch(dispatches.done());
 					}
 				}
-				else {
-					reset(initialValues);
+				catch(err) {
+					enqueueSnackbar(formatError(err), { variant: "error"});
+					dispatch(dispatches.failed(formatError(err)));
 				}
-			}
-			catch(err) {
-				enqueueSnackbar(formatError(err), { variant: "error"});
-				dispatch(dispatches.failed(formatError(err)));
-			}
-		};
-
-		fetch();
+			};
+			fetch();
+			return () => requestObj.abortController.abort();
+		}
+		else {
+			reset(initialValues);
+		}
 	}, [
 		dispatch,
 		callStatus,
 		pathVars.ownerkey,
 		pathVars.stationkey,
+		enqueueSnackbar,
+		reset,
 	]);
 
 	const loadStatus = pathVars.stationkey ? callStatus: CallStatus.done;

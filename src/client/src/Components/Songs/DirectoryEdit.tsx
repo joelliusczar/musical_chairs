@@ -15,6 +15,8 @@ import {
 	SongTreeNodeInfo,
 } from "../../Types/song_info_types";
 import { SubmitButton } from "../Shared/SubmitButton";
+import { ListData } from "../../Types/pageable_types";
+import { Dictionary } from "../../Types/generic_types";
 
 
 
@@ -36,10 +38,11 @@ const validatePhraseIsUnused = async (
 ) => {
 	const id = context?.parent?.id;
 	if (!value) return true;
-	const used = await checkValues({ id, values: {
+	const requestObj = checkValues({ id, values: {
 		"suffix": value,
 		"prefix": context?.parent?.prefix,
 	}});
+	const used = await requestObj.call();
 	return !(context.path in used) || !used[context.path];
 };
 
@@ -54,7 +57,7 @@ const schema = Yup.object().shape({
 
 type DirectoryEditProps = {
 	onCancel?: (e: unknown) => void
-	afterSubmit?: (s: SongTreeNodeInfo) => void,
+	afterSubmit?: (s: Dictionary<ListData<SongTreeNodeInfo>>) => void,
 	prefix: string,
 };
 
@@ -77,7 +80,8 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const result = await saveDirectory(values);
+			const requestObj = saveDirectory(values);
+			const result = await requestObj.call();
 			afterSubmit(result);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -126,7 +130,7 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 
 
 type DirectoryNewModalOpenerProps = {
-	add?: (s: SongTreeNodeInfo) => void;
+	add?: (s: Dictionary<ListData<SongTreeNodeInfo>>) => void;
 	prefix: string
 }
 
@@ -143,7 +147,7 @@ export const DirectoryNewModalOpener = (
 		setItemNewOpen(false);
 	};
 
-	const itemCreated = (item: SongTreeNodeInfo) => {
+	const itemCreated = (item: Dictionary<ListData<SongTreeNodeInfo>>) => {
 		add && add(item);
 		closeModal();
 	};

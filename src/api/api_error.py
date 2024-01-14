@@ -25,7 +25,7 @@ def build_expired_credentials_error() -> HTTPException:
 		detail=[build_error_obj("Credentials are expired")],
 		headers={
 			"WWW-Authenticate": "Bearer",
-			"X-AuthExpired": "true"
+			"x-authexpired": "true"
 		}
 	)
 

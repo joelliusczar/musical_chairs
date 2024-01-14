@@ -1,7 +1,6 @@
 #pyright: reportMissingTypeStubs=false
 from urllib import parse
-from typing import Optional
-from dataclasses import asdict
+from typing import Optional, Callable
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -31,9 +30,10 @@ from api_dependencies import (
 	get_account_if_has_scope,
 	get_user_from_token,
 	get_optional_user_from_token,
-	get_subject_user
+	get_from_path_subject_user,
+	datetime_provider
 )
-
+from datetime import datetime
 
 
 
@@ -44,7 +44,8 @@ router = APIRouter(prefix=f"/accounts")
 def login(
 	response: Response,
 	formData: OAuth2PasswordRequestForm=Depends(),
-	accountService: AccountsService=Depends(accounts_service)
+	accountService: AccountsService=Depends(accounts_service),
+	getDatetime: Callable[[], datetime]=Depends(datetime_provider)
 ) -> AuthenticatedAccount:
 	user = accountService.authenticate_user(
 		formData.username,
@@ -74,6 +75,12 @@ def login(
 		value=parse.quote(user.displayname or user.username),
 		max_age=tokenLifetime
 	)
+	loginTimestamp = getDatetime().timestamp()
+	response.set_cookie(
+		key="login_timestamp",
+		value=str(loginTimestamp),
+		max_age=tokenLifetime
+	)
 	return AuthenticatedAccount(
 		access_token=token,
 		token_type="bearer",
@@ -81,12 +88,14 @@ def login(
 		roles=user.roles,
 		lifetime=tokenLifetime,
 		displayname=user.displayname,
-		email=user.email
+		email=user.email,
+		login_timestamp=loginTimestamp
 	)
 
 @router.post("/open_cookie")
 def login_with_cookie(
 	access_token: str  = Cookie(default=None),
+	login_timestamp: float  = Cookie(default=0),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AuthenticatedAccount:
 	uriDecodedToken = parse.unquote(access_token or "")
@@ -99,7 +108,8 @@ def login_with_cookie(
 			roles=user.roles,
 			lifetime=expiration,
 			displayname=user.displayname,
-			email=user.email
+			email=user.email,
+			login_timestamp=login_timestamp
 		)
 	except:
 		return AuthenticatedAccount(
@@ -206,7 +216,7 @@ def update_roles(
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
-	return AccountInfo(**{**asdict(prev), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+	return AccountInfo(**{**prev.model_dump(), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
 
 @router.get("/account/{subjectuserkey}")
 def get_account(
@@ -227,12 +237,12 @@ def get_path_user_list(
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> TableData[AccountInfo]:
 	pathUsers = list(accountsService.get_site_rule_users())
-	return TableData(pathUsers, len(pathUsers))
+	return TableData(items=pathUsers, totalrows=len(pathUsers))
 
 
 def validate_site_rule(
 	rule: ActionRule,
-	user: Optional[AccountInfo] = Depends(get_subject_user),
+	user: Optional[AccountInfo] = Depends(get_from_path_subject_user),
 ) -> ActionRule:
 	if not user:
 		raise HTTPException(
@@ -260,7 +270,7 @@ def validate_site_rule(
 	]
 )
 def add_user_rule(
-	user: AccountInfo = Depends(get_subject_user),
+	user: AccountInfo = Depends(get_from_path_subject_user),
 	rule: ActionRule = Depends(validate_site_rule),
 	accountsService: AccountsService = Depends(accounts_service),
 ) -> ActionRule:
@@ -278,7 +288,7 @@ def add_user_rule(
 )
 def remove_user_rule(
 	rulename: str,
-	user: AccountInfo = Depends(get_subject_user),
+	user: AccountInfo = Depends(get_from_path_subject_user),
 	accountsService: AccountsService = Depends(accounts_service),
 ):
 	if not user:

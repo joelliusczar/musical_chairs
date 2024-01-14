@@ -1,7 +1,22 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Iterator, Tuple, Optional, Iterable, Union, Collection
+from typing import (
+	Iterator,
+	Tuple,
+	Optional,
+	Iterable,
+	Union,
+	Collection,
+	Callable
+)
 from urllib import parse
-from fastapi import Depends, HTTPException, status, Query, Request
+from fastapi import (
+	Depends,
+	HTTPException,
+	status,
+	Query,
+	Request,
+	Path
+)
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
 	EnvManager,
@@ -14,7 +29,7 @@ from musical_chairs_libs.services import (
 	SongFileService,
 	PathRuleService,
 )
-from musical_chairs_libs.services.saving import (
+from musical_chairs_libs.services.fs import (
 	LocalFileService,
 	FileServiceBase,
 )
@@ -29,11 +44,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ChainedAbsorbentTrie,
 	normalize_opening_slash,
 	UserRoleDef,
-	StationInfo
+	StationInfo,
+	int_or_str
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
-from dataclasses import asdict
 from api_error import (
 	build_not_logged_in_error,
 	build_not_wrong_credentials_error,
@@ -41,12 +56,44 @@ from api_error import (
 	build_wrong_permissions_error,
 	build_too_many_requests_error
 )
+from datetime import datetime
+
 
 oauth2_scheme = OAuth2PasswordBearer(
 	tokenUrl="accounts/open",
 	auto_error=False
 )
 
+
+def subject_user_key_path(
+	subjectuserkey: Union[int, str]  = Path()
+) -> Union[int, str]:
+	return int_or_str(subjectuserkey)
+
+def subject_user_key_query(
+	subjectuserkey: Union[int, str]  = Query()
+) -> Union[int, str]:
+	return int_or_str(subjectuserkey)
+
+def owner_key_path(
+	ownerkey: Union[int, str]  = Path()
+) -> Union[int, str]:
+	return int_or_str(ownerkey)
+
+def owner_key_query(
+	ownerkey: Union[int, str, None]  = Query(None)
+) -> Union[int, str, None]:
+	if ownerkey is None:
+		return ownerkey
+	return int_or_str(ownerkey)
+
+def station_key_path(
+	stationkey: Union[int, str]
+) -> Union[int, str]:
+	return int_or_str(stationkey)
+
+def datetime_provider() -> Callable[[], datetime]:
+	return get_datetime
 
 def get_configured_db_connection(
 	envManager: EnvManager=Depends(EnvManager)
@@ -93,9 +140,7 @@ def accounts_service(
 ) -> AccountsService:
 	return AccountsService(conn)
 
-def process_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> ProcessService:
+def process_service() -> ProcessService:
 	return ProcessService()
 
 def user_actions_history_service(
@@ -143,43 +188,65 @@ def get_optional_user_from_token(
 		)
 		return user
 	except ExpiredSignatureError:
-		return None
+		raise build_expired_credentials_error()
 
-def get_subject_user(
-	subjectuserkey: Union[int, str] = Query(None),
-	accountsService: AccountsService = Depends(accounts_service)
-) -> AccountInfo:
-		try:
-			subjectuserkey = int(subjectuserkey)
-			owner = accountsService.get_account_for_edit(subjectuserkey)
-		except:
-			owner = accountsService.get_account_for_edit(subjectuserkey)
-		if owner:
-			return owner
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"User with key {subjectuserkey} not found")
-			]
-		)
-
-def get_owner(
-	ownerkey: Union[int, str, None] = Query(None),
-	accountsService: AccountsService = Depends(accounts_service)
+def __open_user_from_request__(
+	userkey: Union[int, str, None],
+	accountsService: AccountsService
 ) -> Optional[AccountInfo]:
-	if ownerkey:
+	if userkey:
 		try:
-			ownerkey = int(ownerkey)
-			owner = accountsService.get_account_for_edit(ownerkey)
+			userkey = int(userkey)
+			owner = accountsService.get_account_for_edit(userkey)
 		except:
-			owner = accountsService.get_account_for_edit(ownerkey)
+			owner = accountsService.get_account_for_edit(userkey)
 		if owner:
 			return owner
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"User with key {ownerkey} not found")
+			detail=[build_error_obj(f"User with key {userkey} not found")
 			]
 		)
 	return None
+
+def get_from_path_subject_user(
+	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> AccountInfo:
+	user = __open_user_from_request__(subjectuserkey, accountsService)
+	if not user:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj("subjectuserkey missing")
+			]
+		)
+	return user
+
+def get_from_query_subject_user(
+	subjectuserkey: Union[int, str] = Depends(subject_user_key_query),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> AccountInfo:
+	user = __open_user_from_request__(subjectuserkey, accountsService)
+	if not user:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=[build_error_obj("subjectuserkey missing")
+			]
+		)
+	return user
+
+def get_owner_from_query(
+	ownerkey: Union[int, str, None] = Depends(owner_key_query),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> Optional[AccountInfo]:
+	return __open_user_from_request__(ownerkey, accountsService)
+
+
+def get_owner_from_path(
+	ownerkey: Union[int, str, None] = Depends(owner_key_path),
+	accountsService: AccountsService = Depends(accounts_service)
+) -> Optional[AccountInfo]:
+	return __open_user_from_request__(ownerkey, accountsService)
 
 def get_stations_by_ids(
 	stationids: list[int]=Query(default=[]),
@@ -194,8 +261,8 @@ def get_stations_by_ids(
 	))
 
 def get_station_by_name_and_owner(
-	stationkey: Union[int, str],
-	owner: Optional[AccountInfo] = Depends(get_owner),
+	stationkey: Union[int, str] = Depends(station_key_path),
+	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
@@ -309,7 +376,7 @@ def check_if_can_use_path(
 				raise build_too_many_requests_error(int(timeleft))
 
 
-def get_path_user(
+def get_path_rule_loaded_current_user(
 	securityScopes: SecurityScopes,
 	user: AccountInfo = Depends(get_current_user_simple),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
@@ -329,18 +396,18 @@ def get_path_user(
 	roleNameSet = {r.name for r in rules}
 	if any(s for s in scopes if s not in roleNameSet):
 		raise build_wrong_permissions_error()
-	userDict = asdict(user)
+	userDict = user.model_dump()
 	userDict["roles"] = rules
 	resultUser = AccountInfo(
 		**userDict,
 	)
 	return resultUser
 
-def get_path_user_and_check_optional_path(
+def check_optional_path_for_current_user(
 	securityScopes: SecurityScopes,
 	prefix: Optional[str]=None,
 	itemid: Optional[int]=None,
-	user: AccountInfo = Depends(get_path_user),
+	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
 	songFileService: SongFileService = Depends(song_file_service),
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
@@ -380,7 +447,7 @@ def get_path_user_and_check_optional_path(
 def get_multi_path_user(
 	securityScopes: SecurityScopes,
 	itemids: list[int]=Query(default=[]),
-	user: AccountInfo=Depends(get_path_user),
+	user: AccountInfo=Depends(get_path_rule_loaded_current_user),
 	songFileService: SongFileService = Depends(song_file_service),
 	userActionHistoryService: UserActionsHistoryService=
 		Depends(user_actions_history_service)
@@ -454,7 +521,7 @@ def get_station_user(
 				currentTimestamp = get_datetime().timestamp()
 				timeleft = whenNext - currentTimestamp
 				raise build_too_many_requests_error(int(timeleft))
-	userDict = asdict(user)
+	userDict = user.model_dump()
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
 
@@ -502,7 +569,7 @@ def get_station_user_2(
 
 def get_account_if_has_scope(
 	securityScopes: SecurityScopes,
-	subjectuserkey: Union[int, str],
+	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
 	currentUser: AccountInfo = Depends(get_current_user_simple),
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:

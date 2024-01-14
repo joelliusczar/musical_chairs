@@ -1,6 +1,6 @@
-import { apiAddress, baseAddress } from "../constants";
+import { CallStatus, apiAddress, baseAddress } from "../constants";
 import { StationInfo } from "../Types/station_types";
-import { IdType } from "../Types/generic_types";
+import { IdValue } from "../Types/generic_types";
 
 export const buildArrayQueryStr = (key: string, arr: number[] | string[]) => {
 	const queryObj = new URLSearchParams();
@@ -34,6 +34,10 @@ export const getListenAddress = (station: StationInfo) => {
 	return `${baseAddress}/listen/stream/${stationName}`;
 };
 
-export const getDownloadAddress = (songId: IdType) => {
+export const getDownloadAddress = (songId: IdValue) => {
 	return `${apiAddress}/song-info/songs/download/${songId}`;
+};
+
+export const isCallPending = (callStatus: string | null) => {
+	return callStatus !== CallStatus.done && callStatus !== CallStatus.failed;
 };

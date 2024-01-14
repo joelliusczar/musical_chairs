@@ -4,7 +4,7 @@ import {
 	useCurrentUser,
 	useHasAnyRoles,
 	AuthContext,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { Loader } from "./Loader";
 
 type PrivateRouteTypes = {

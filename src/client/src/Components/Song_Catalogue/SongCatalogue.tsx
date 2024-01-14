@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
 	fetchSongCatalogue,
@@ -18,9 +18,7 @@ import {
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import {
+	dataDispatches as dispatches,
 	useDataWaitingReducer,
 } from "../../Reducers/dataWaitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
@@ -32,13 +30,13 @@ import { OptionsButton } from "../Shared/OptionsButton";
 import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { UserRoleDef } from "../../constants";
-import { getDownloadAddress } from "../../Helpers/url_helpers";
+import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo, StationTableData } from "../../Types/station_types";
 import { SongListDisplayItem } from "../../Types/song_info_types";
-import { IdType } from "../../Types/generic_types";
+import { IdValue } from "../../Types/generic_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 
 export const SongCatalogue = () => {
@@ -59,7 +57,11 @@ export const SongCatalogue = () => {
 	const location = useLocation();
 	const pathVars = useParams();
 
-	useAuthViewStateChange(catalogueDispatch);
+	const authReset = useCallback(() => {
+		catalogueDispatch(dispatches.restart());
+	}, [catalogueDispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
 	const canRequestSongsForStation = anyConformsToAnyRule(
@@ -73,16 +75,17 @@ export const SongCatalogue = () => {
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
 
-	const requestSong = async (songId: IdType) => {
+	const requestSong = async (songId: IdValue) => {
 		if (!pathVars.stationkey || !pathVars.ownerkey ) {
 			enqueueSnackbar("A key is missing", {variant: "error" });
 			return;
 		}
 		try {
-			await sendSongRequest({
+			const requestObj = sendSongRequest({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				songid: songId });
+			await requestObj.call();
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
 		}
 		catch (err) {
@@ -134,6 +137,11 @@ export const SongCatalogue = () => {
 			</Button>);
 	};
 
+	const setStationCallback = useCallback(
+		(s: StationInfo | null) => setSelectedStation(s),
+		[setSelectedStation]
+	);
+
 	useEffect(() => {
 		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
@@ -141,22 +149,23 @@ export const SongCatalogue = () => {
 	},[selectedStation]);
 
 	useEffect(() => {
-		const fetch = async () => {
-			if (currentQueryStr === `${location.pathname}${location.search}`) return;
-			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationkey || !pathVars.ownerkey) return;
+		if (currentQueryStr === `${location.pathname}${location.search}`) return;
+		const queryObj = new URLSearchParams(location.search);
+		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
-			const page = parseInt(queryObj.get("page") || "1");
-			const limit = parseInt(queryObj.get("rows") || "50");
+		const page = parseInt(queryObj.get("page") || "1");
+		const limit = parseInt(queryObj.get("rows") || "50");
+		const requestObj = fetchSongCatalogue({
+			stationkey: pathVars.stationkey,
+			ownerkey: pathVars.ownerkey,
+			page: page - 1,
+			limit: limit,
+		}
+		);
+		const fetch = async () => {
 			catalogueDispatch(dispatches.started());
 			try {
-				const data = await fetchSongCatalogue({
-					stationkey: pathVars.stationkey,
-					ownerkey: pathVars.ownerkey,
-					page: page - 1,
-					limit: limit,
-				}
-				);
+				const data = await requestObj.call();
 				catalogueDispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 			}
@@ -166,9 +175,10 @@ export const SongCatalogue = () => {
 
 		};
 		fetch();
+
+		return () => requestObj.abortController.abort();
 	},[
 		catalogueDispatch,
-		fetchSongCatalogue,
 		pathVars.stationkey,
 		pathVars.ownerkey,
 		location.search,
@@ -183,7 +193,7 @@ export const SongCatalogue = () => {
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
-					onChange={(s) => setSelectedStation(s)}
+					onChange={setStationCallback}
 				/>
 			</Box>
 			<Box m={1}>

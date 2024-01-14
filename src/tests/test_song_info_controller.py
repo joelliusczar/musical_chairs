@@ -846,7 +846,7 @@ def test_more_restrictive_path(
 
 	assert putResponse.status_code == 200
 
-@pytest.mark.echo(True)
+@pytest.mark.echo(False)
 def test_get_path_users(
 	fixture_api_test_client: TestClient
 ):

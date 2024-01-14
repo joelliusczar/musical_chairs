@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchHistory } from "../../API_Calls/stationCalls";
 import {
@@ -13,9 +13,9 @@ import {
 	Button,
 } from "@mui/material";
 import {
-	dispatches,
-} from "../../Reducers/waitingReducer";
-import { useDataWaitingReducer } from "../../Reducers/dataWaitingReducer";
+	dataDispatches as dispatches,
+	useDataWaitingReducer,
+} from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import { DomRoutes } from "../../constants";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
@@ -25,17 +25,17 @@ import { formatError } from "../../Helpers/error_formatter";
 import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
-} from "../../Context_Providers/AuthContext";
+} from "../../Context_Providers/AuthContext/AuthContext";
 import { UserRoleDef } from "../../constants";
 import { OptionsButton } from "../Shared/OptionsButton";
-import { getDownloadAddress } from "../../Helpers/url_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo } from "../../Types/station_types";
 import {
 	PageableListDataShape,
-} from "../../Reducers/types/reducerTypes";
+} from "../../Types/reducerTypes";
 import { SongListDisplayItem } from "../../Types/song_info_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
+import { songDownloadUrl } from "../../API_Calls/songInfoCalls";
 
 
 export const History = () => {
@@ -58,11 +58,21 @@ export const History = () => {
 			)
 		);
 
-	useAuthViewStateChange(historyDispatch);
+	const authReset = useCallback(() => {
+		historyDispatch(dispatches.restart());
+	}, [historyDispatch]);
+
+	useAuthViewStateChange(authReset);
 
 	const { callStatus: historyCallStatus } = historyState;
 
 	const getPageUrl = new UrlBuilder(DomRoutes.history);
+
+	const downloadSong = async (songId: number) => {
+		const requestObj = songDownloadUrl({id : songId });
+		const url = await requestObj.call();
+		window?.open(url, "_blank")?.focus();
+	};
 
 	const rowButton = (item: SongListDisplayItem, idx: number) => {
 		const rowButtonOptions = [];
@@ -81,7 +91,7 @@ export const History = () => {
 
 		if (canDownloadAnySong || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
-			href: getDownloadAddress(item.id),
+			onClick: () => downloadSong(item.id),
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton
@@ -97,6 +107,11 @@ export const History = () => {
 			</Button>);
 	};
 
+	const setStationCallback = useCallback(
+		(s: StationInfo | null) => setSelectedStation(s),
+		[setSelectedStation]
+	);
+
 	useEffect(() => {
 		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
@@ -104,21 +119,22 @@ export const History = () => {
 	},[selectedStation]);
 
 	useEffect(() => {
-		const fetch = async () => {
-			if (currentQueryStr === `${location.pathname}${location.search}`) return;
-			const queryObj = new URLSearchParams(location.search);
-			if (!pathVars.stationkey || !pathVars.ownerkey) return;
+		if (currentQueryStr === `${location.pathname}${location.search}`) return;
+		const queryObj = new URLSearchParams(location.search);
+		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 
-			const page = parseInt(queryObj.get("page") || "1");
-			const limit = parseInt(queryObj.get("rows") || "50");
+		const page = parseInt(queryObj.get("page") || "1");
+		const limit = parseInt(queryObj.get("rows") || "50");
+		const requestObj = fetchHistory({
+			stationkey: pathVars.stationkey,
+			ownerkey: pathVars.ownerkey,
+			page: page - 1,
+			limit: limit,
+		});
+		const fetch = async () => {
 			historyDispatch(dispatches.started());
 			try {
-				const data = await fetchHistory({
-					stationkey: pathVars.stationkey,
-					ownerkey: pathVars.ownerkey,
-					page: page - 1,
-					limit: limit,
-				});
+				const data = await requestObj.call();
 				historyDispatch(dispatches.done(data));
 				setCurrentQueryStr(`${location.pathname}${location.search}`);
 
@@ -126,12 +142,12 @@ export const History = () => {
 			catch (err) {
 				historyDispatch(dispatches.failed(formatError(err)));
 			}
-
 		};
 		fetch();
+		
+		return () => requestObj.abortController.abort();
 	},[
 		historyDispatch,
-		fetchHistory,
 		pathVars.stationkey,
 		pathVars.ownerkey,
 		location.search,
@@ -146,7 +162,7 @@ export const History = () => {
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
-					onChange={(s) => setSelectedStation(s)}
+					onChange={setStationCallback}
 				/>
 			</Box>
 			<Box m={1}>

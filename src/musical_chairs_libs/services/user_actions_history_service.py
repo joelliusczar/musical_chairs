@@ -120,10 +120,10 @@ class UserActionsHistoryService:
 		if stationIds:
 			yield from (
 				StationHistoryActionItem(
-					userId,
-					cast(str,row["action"]),
-					cast(float,row["requestedtimestamp"]),
-					cast(int, row["stationfk"])
+					userid=userId,
+					action=cast(str,row["action"]),
+					timestamp=cast(float,row["requestedtimestamp"]),
+					stationid=cast(int, row["stationfk"])
 				)
 				for row in records
 			)
@@ -131,9 +131,9 @@ class UserActionsHistoryService:
 		else:
 			yield from (
 				UserHistoryActionItem(
-					userId,
-					cast(str,row[uah_action]),
-					cast(float,row[uah_requestedTimestamp])
+					userid=userId,
+					action=cast(str,row[uah_action]),
+					timestamp=cast(float,row[uah_requestedTimestamp])
 				)
 				for row in records
 			)
@@ -148,17 +148,17 @@ class UserActionsHistoryService:
 
 	def calc_lookup_for_when_user_can_next_do_action(
 		self,
-		userId: int,
+		userid: int,
 		rules: Collection[ActionRule],
 	) -> dict[str, Optional[float]]:
 		if not rules:
 			return {}
-		maxLimit = max(r.count for r in rules)
+		maxLimit = max(int(r.count) for r in rules)
 		maxSpan = max(r.span for r in rules)
 		currentTimestamp = self.get_datetime().timestamp()
 		fromTimestamp = currentTimestamp - maxSpan
 		actionGen = self.get_user_action_history(
-			userId,
+			userid,
 			fromTimestamp,
 			(r.name for r in rules),
 			maxLimit
@@ -185,7 +185,7 @@ class UserActionsHistoryService:
 			return {}
 		if not any(r for s in stations for r in s.rules):
 			return {}
-		maxLimit = max(r.count for s in stations for r in s.rules)
+		maxLimit = max(int(r.count) for s in stations for r in s.rules)
 		maxSpan = max(r.span for s in stations for r in s.rules)
 		currentTimestamp = self.get_datetime().timestamp()
 		fromTimestamp = currentTimestamp - maxSpan

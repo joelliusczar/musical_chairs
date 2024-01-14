@@ -18,7 +18,8 @@ from sqlalchemy import (
 	delete,
 	update,
 	literal,
-	union_all
+	union_all,
+	
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import RowMapping
@@ -64,7 +65,7 @@ def choice(
 	pSize = len(items) + 1
 	# the sum of weights needs to equal 1
 	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
-	return numpy_choice(items, sampleSize, p = weights, replace=False).tolist()
+	return numpy_choice(items, sampleSize, p = cast(Any,weights), replace=False).tolist()
 
 class QueueService:
 
@@ -224,7 +225,7 @@ class QueueService:
 		for row in records:
 			yield SongListDisplayItem(
 				id=row[sg_pk],
-				name=row[sg_name],
+				name=row[sg_name] or "",
 				album=row["album"],
 				artist=row["artist"],
 				path=row[sg_path],
@@ -387,7 +388,7 @@ class QueueService:
 		query = select(
 			sg_pk.label("id"),
 			uah_queuedTimestamp.label("queuedtimestamp"),
-			sg_name.label("name"),
+			coalesce[str](sg_name, "").label("name"),
 			ab_name.label("album"),
 			ar_name.label("artist"),
 			sg_path.label("path"),

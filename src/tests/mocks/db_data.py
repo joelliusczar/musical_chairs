@@ -322,6 +322,143 @@ album_params = [
 	*albumParams4
 ]
 
+# foo/
+# 	foo/goo/
+# 		foo/goo/boo/
+# 			foo/goo/boo/sierra
+# 			foo/goo/boo/tango
+# 			foo/goo/boo/uniform
+# 			foo/goo/boo/victor
+# 			foo/goo/boo/victor_2
+# 		foo/goo/who_1/
+# 			foo/goo/who_1/whiskey
+# 			foo/goo/who_1/xray
+# 			foo/goo/who_1/yankee
+# 			foo/goo/who_1/zulu
+# 			foo/goo/who_1/alpha
+# 		foo/goo/who_2/
+# 			foo/goo/who_2/bravo
+# 			foo/goo/who_2/charlie
+# 			foo/goo/who_2/delta
+# 			foo/goo/who_2/foxtrot
+# 			foo/goo/who_2/golf
+# 		foo/goo/shoo/
+# 			foo/goo/shoo/hotel
+# 			foo/goo/shoo/india
+# 			foo/goo/shoo/juliet
+# 			foo/goo/shoo/kilo
+# 		foo/goo/koo/
+# 			foo/goo/koo/lima
+# 			foo/goo/koo/mike
+# 			foo/goo/koo/november
+# 		foo/goo/roo/
+# 			foo/goo/roo/oscar
+# 			foo/goo/roo/papa
+# 			foo/goo/roo/romeo
+# 			foo/goo/roo/sierra2
+# 			foo/goo/roo/tango2
+# 			foo/goo/roo/uniform2
+# 			foo/goo/roo/victor2
+# 			foo/goo/roo/whiskey2
+# 			foo/goo/roo/xray2
+# 		foo/goo/doo/
+# 			foo/goo/doo/yankee2
+# 			foo/goo/doo/zulu2
+# 		foo/goo/soo/
+# 			foo/goo/soo/alpha2
+# 			foo/goo/soo/bravo2
+# 			foo/goo/soo/charlie2
+# 		foo/goo/moo/
+# 			foo/goo/moo/delta2
+# 			foo/goo/moo/echo2
+# 			foo/goo/moo/foxtrot2
+# 			foo/goo/moo/golf2
+# 		foo/goo/broo/
+# 			foo/goo/broo/hotel2
+# 			foo/goo/broo/india2
+# 			foo/goo/broo/juliet2
+# 		foo/goo/looga/
+# 			foo/goo/looga/alpha
+# 	foo/rude/
+# 		foo/rude/bog/
+# 			foo/rude/bog/kilo2
+# 			foo/rude/bog/lima2
+# 		foo/rude/rog/
+# 			foo/rude/rog/mike2
+# 			foo/rude/rog/november2
+# 			foo/rude/rog/oscar2
+# 	foo/dude/
+# 		foo/dude/dog/
+# 			foo/dude/dog/papa2
+# 	foo/bar/
+# 		foo/bar/baz/
+# 			foo/bar/baz/romeo2
+# 			foo/bar/baz/sierra3
+# jazz/
+# 	jazz/rude/
+# 		jazz/rude/rog/
+# 			jazz/rude/rog/tango3
+# 			jazz/rude/rog/uniform3
+# 	jazz/cat/
+# 		jazz/cat/kitten/
+# 			jazz/cat/kitten/victor3
+# 	jazz/lurk/
+# 		jazz/lurk/toot/
+# 			jazz/lurk/toot/alpha4_song
+#		jazz/overlap/
+#			jazz/overlap/toon
+#				jazz/overlap/toon/car_song
+#				jazz/overlap/toon/bar_song
+#		jazz/overlaper/
+#			jazz/overlaper/soon
+#				jazz/overlaper/soon/carb_song
+#				jazz/overlaper/soon/barb_song
+#			jazz/overlaper/toon
+#				jazz/overlaper/toon/car_song
+#				jazz/overlaper/toon/bar_song
+#		jazz/overloop/
+#			jazz/overloop/spoon
+#				jazz/overloop/spoon/cargo_song
+#				jazz/overloop/spoon/embargo_song
+# blitz/
+# 	blitz/mar/
+# 		blitz/mar/wall/
+# 			blitz/mar/wall/whiskey3
+# 			blitz/mar/wall/xray3
+# 	blitz/rhino/
+# 		blitz/rhino/rhina/
+# 			blitz/rhino/rhina/zulu3
+#		blitz/how well are we handing/
+#			blitz/how well are we handing/spaces in our/
+#				blitz/how well are we handing/spaces in our/path names
+#			blitz/how well are we handing/dirs ending with space  /
+#				blitz/how well are we handing/dirs ending with space  /path
+#		blitz/  are we handling/
+#			blitz/  are we handling/ dirs beginning with space  /
+#				blitz/  are we handling/ dirs beginning with space  /path
+# tossedSlash/
+# 	tossedSlash/goo/
+# 		tossedSlash/goo/looga/
+# 			tossedSlash/goo/looga/alpha
+# 			tossedSlash/goo/looga/bravo
+# 	tossedSlash/guess/
+# 		tossedSlash/guess/gold/
+# 			tossedSlash/guess/gold/jar
+# 			tossedSlash/guess/gold/bar
+# 			tossedSlash/guess/gold/run
+# 		tossedSlash/guess/silver/
+# 			tossedSlash/guess/silver/run
+# 			tossedSlash/guess/silver/plastic
+# 			tossedSlash/guess/silver/salt
+# 			tossedSlash/guess/silver/green
+# 	tossedSlash/band
+# 		tossedSlash/band/bun
+# 		tossedSlash/band/hun
+# 	tossedSlash/trap/
+# 		tossedSlash/trap/bang(pow)_1
+# 			tossedSlash/trap/bang(pow)_1/boo
+
+
 song_params = [
 	{ "pk": 1,
 		"path": "foo/goo/boo/sierra",
@@ -785,6 +922,50 @@ song_params = [
 	{ "pk": 71,
 		"path": "tossedSlash/trap/bang(pow)_1/boo",
 		"name": "grass_tune",
+	},
+	{ "pk": 72,
+		"path": "jazz/overlap/toon/car_song",
+		"name": "car_song",
+	},
+	{ "pk": 73,
+		"path": "jazz/overlap/toon/bar_song",
+		"name": "bar_song",
+	},
+	{ "pk": 74,
+		"path": "jazz/overlaper/soon/carb_song",
+		"name": "carb_song",
+	},
+	{ "pk": 76,
+		"path": "jazz/overlaper/soon/barb_song",
+		"name": "barb_song",
+	},
+	{ "pk": 77,
+		"path": "jazz/overlaper/toon/car_song",
+		"name": "car_song",
+	},
+	{ "pk": 78,
+		"path": "jazz/overlaper/toon/bar_song",
+		"name": "bar_song",
+	},
+	{ "pk": 79,
+		"path": "jazz/overloop/spoon/cargo_song",
+		"name": "cargo_song",
+	},
+	{ "pk": 80,
+		"path": "jazz/overloop/spoon/embargo_song",
+		"name": "embargo_song",
+	},
+	{ "pk": 81,
+		"path": "blitz/how well are we handing/spaces in our/path names",
+		"name": "Song with spaces",
+	},
+	{ "pk": 82,
+		"path": "blitz/how well are we handing/dirs ending with space  /path",
+		"name": "Song ending in spaces",
+	},
+	{ "pk": 83,
+		"path": "blitz/  are we handling/ dirs beginning with space  /path",
+		"name": "Song beginning in spaces",
 	}
 ]
 
@@ -1082,7 +1263,7 @@ def get_user_params(
 			"username": "testUser_echo",
 			"displayname": "ECHO, ECHO",
 			"hashedpw": None,
-			"email": None,
+			"email": "test5@test.com",
 			"isdisabled": False,
 			"creationtimestamp": orderedTestDates[1].timestamp(),
 			"dirroot": None

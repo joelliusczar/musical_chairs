@@ -1,5 +1,4 @@
 #pyright: reportMissingTypeStubs=false
-from dataclasses import asdict
 from datetime import timedelta, datetime, timezone
 from typing import (
 	Any,
@@ -54,7 +53,7 @@ ALGORITHM = "HS256"
 class AccountsService:
 
 	def __init__(self,
-		conn: Optional[Connection]=None
+		conn: Connection
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -352,7 +351,7 @@ class AccountsService:
 		self.conn.execute(stmt)
 		self.conn.commit()
 		return AccountInfo(
-			**{**asdict(currentUser), #pyright: ignore [reportGeneralTypeIssues]
+			**{**currentUser.model_dump(), #pyright: ignore [reportGeneralTypeIssues]
 				"displayname": updatedInfo.displayname,
 				"email": updatedEmail
 			}
@@ -431,10 +430,10 @@ class AccountsService:
 		self.conn.commit()
 
 		return ActionRule(
-			rule.name,
-			rule.span,
-			rule.count,
-			RulePriorityLevel.SITE.value
+			name=rule.name,
+			span=rule.span,
+			count=rule.count,
+			priority=RulePriorityLevel.SITE.value
 		)
 
 	def remove_user_site_rule(

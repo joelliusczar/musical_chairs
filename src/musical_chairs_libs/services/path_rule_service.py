@@ -50,7 +50,7 @@ class PathRuleService:
 		records = self.conn.execute(query).mappings()
 		for r in records:
 			yield PathsActionRule(
-				cast(str,r[pup_role]),
+				name=cast(str,r[pup_role]),
 				priority=cast(int,r[pup_priority]) \
 					or RulePriorityLevel.STATION_PATH.value,
 				span=cast(int,r[pup_span]) or 0,
@@ -111,14 +111,14 @@ class PathRuleService:
 		self.conn.execute(stmt)
 		self.conn.commit()
 		return PathsActionRule(
-			rule.name,
-			rule.span,
-			rule.count,
-			RulePriorityLevel.STATION_PATH.value,
+			name=rule.name,
+			span=rule.span,
+			count=rule.count,
+			priority=RulePriorityLevel.STATION_PATH.value,
 			path=prefix
 		)
 
-	def get_path_users(
+	def get_users_of_path(
 		self,
 		prefix: str,
 		userId: Optional[int]=None,

@@ -1,4 +1,4 @@
-import { IdType } from "./generic_types";
+import { IdValue } from "./generic_types";
 
 export interface ListData<T> {
 	items: T[]
@@ -13,7 +13,7 @@ export interface PageableParams {
 	page?: number | null
 	pageSize?: number
 	rows?: number | null
-	id?: IdType
+	id?: IdValue
 	name?: string
 	limit?: number
 }

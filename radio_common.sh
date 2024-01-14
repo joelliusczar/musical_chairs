@@ -1973,7 +1973,7 @@ startup_api() (
 	--port "$MC_API_PORT" \
 	"index:app" </dev/null >api.out 2>&1 &)
 	(exit "$errCode") &&
-	echo "Server base is $(PWD). Look there for api.out and the log file"
+	echo "Server base is $(pwd). Look there for api.out and the log file"
 	echo "done starting up api. Access at ${MC_FULL_URL}" ||
 	echo "failed while trying to start up api"
 )

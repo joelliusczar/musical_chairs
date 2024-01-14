@@ -663,17 +663,21 @@ class StationService:
 			}
 			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
 		for station in stationsEnabled:
-			if ProcessService.noop_mode():
-				self.__noop_startup__(station.name)
-			else:
-				if not self.conn.engine.url.database:
-					raise RuntimeError("db Name is missing")
-				ProcessService.start_song_queue_process(
-					self.conn.engine.url.database,
-					station.name,
-					owner.username
-				)
-			yield station
+			try:
+				if ProcessService.noop_mode():
+					self.__noop_startup__(station.name)
+				else:
+					if not self.conn.engine.url.database:
+						raise RuntimeError("db Name is missing")
+
+					ProcessService.start_song_queue_process(
+						self.conn.engine.url.database,
+						station.name,
+						owner.username
+					)
+				yield station
+			except RuntimeError:
+				self.unset_station_procs(stationIds=station.id)
 		self.conn.commit()
 
 	def disable_stations(

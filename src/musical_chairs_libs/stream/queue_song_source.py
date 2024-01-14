@@ -72,6 +72,7 @@ def load_data(dbName: str, stationId: int):
 		fileQueue.put((None, None), lambda _: not stopLoading)
 	except Exception as e:
 		print(e)
+		logging.logger.error(e)
 		stopLoading = True
 		stopSending = True
 

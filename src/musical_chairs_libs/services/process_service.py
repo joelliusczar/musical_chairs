@@ -9,6 +9,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_non_simple_chars
 )
 from .env_manager import EnvManager
+import musical_chairs_libs.dtos_and_utilities.logging as logging
 
 
 class PackageManagers(Enum):
@@ -75,7 +76,7 @@ class ProcessService:
 
 	@staticmethod
 	def start_song_queue_process(dbName: str, stationName: str, ownerName: str):
-		subprocess.Popen([
+		stationProc = subprocess.Popen([
 				"python",
 				"-m",
 				"musical_chairs_libs.stream",
@@ -84,6 +85,15 @@ class ProcessService:
 				ownerName
 			]
 		)
+
+		try:
+			stationProc.wait(3)
+			raise RuntimeError("Station ended sooner than expected")
+		except TimeoutError:
+			print("So far so good")
+			logging.logger.info("so far so good")
+
+
 
 	@staticmethod
 	def get_pkg_mgr() -> Optional[PackageManagers]:

@@ -27,6 +27,7 @@ def __start_ices__(
 		env={
 				"MC_STATION_PORT": portNumber, 
 			 "PATH": os.environ["PATH"],
+			 "MC_CONTENT_HOME": EnvManager.search_base
 			}
 	)
 
@@ -93,7 +94,7 @@ class ProcessService:
 		)
 
 		try:
-			stationProc.wait(3)
+			stationProc.wait(5)
 			raise RuntimeError("Station ended sooner than expected")
 		except subprocess.TimeoutExpired:
 			print("So far so good")

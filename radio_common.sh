@@ -144,6 +144,12 @@ deployment_server_env_check() (
 	[ -z "$AWS_SECRET_ACCESS_KEY" ] &&
 	echo 'environmental var AWS_SECRET_ACCESS_KEY not set'
 	track_exit_code
+	[ -z "$S3_ACCESS_KEY_ID" ] &&
+	echo 'environmental var S3_ACCESS_KEY_ID not set'
+	track_exit_code
+	[ -z "$S3_SECRET_ACCESS_KEY" ] &&
+	echo 'environmental var S3_SECRET_ACCESS_KEY not set'
+	track_exit_code
 	[ -z "$S3_BUCKET_NAME" ] &&
 	echo 'environmental var S3_BUCKET_NAME not set'
 	track_exit_code
@@ -1959,6 +1965,8 @@ __get_remote_export_script__() (
 	output="export expName='${expName}';"
 	output="${output} export AWS_ACCESS_KEY_ID='$(__get_s3_api_key__)';" &&
 	output="${output} export AWS_SECRET_ACCESS_KEY='$(__get_s3_secret__)';" &&
+	output="${output} export S3_ACCESS_KEY_ID='$(__get_s3_api_key__)';" &&
+	output="${output} export S3_SECRET_ACCESS_KEY='$(__get_s3_secret__)';" &&
 	output="${output} export PB_SECRET='$(__get_pb_secret__)';" &&
 	output="${output} export PB_API_KEY='$(__get_pb_api_key__)';" &&
 	output="${output} export MC_AUTH_SECRET_KEY='$(__get_mc_auth_key__)';" &&

@@ -65,6 +65,8 @@ mkfifo env_var_fifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
 export expName="$expName" &&
 export AWS_ACCESS_KEY_ID=$(__get_s3_api_key__) &&
 export AWS_SECRET_ACCESS_KEY=$(__get_s3_secret__) &&
+export S3_ACCESS_KEY_ID=$(__get_s3_api_key__) &&
+export S3_SECRET_ACCESS_KEY=$(__get_s3_secret__) &&
 export PB_SECRET=$(__get_pb_secret__) &&
 export PB_API_KEY=$(__get_pb_api_key__) &&
 export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&

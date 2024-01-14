@@ -89,7 +89,7 @@ class ProcessService:
 		try:
 			stationProc.wait(3)
 			raise RuntimeError("Station ended sooner than expected")
-		except TimeoutError:
+		except subprocess.TimeoutExpired:
 			print("So far so good")
 			logging.logger.info("so far so good")
 

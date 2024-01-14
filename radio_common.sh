@@ -334,7 +334,7 @@ __get_s3_secret__() (
 		echo "$AWS_SECRET_ACCESS_KEY"
 		return
 	fi
-	perl -ne 'print "$1\n" if /AWS_SECRET_ACCESS_KEY=(\w+)/' \
+	perl -ne 'print "$1\n" if /AWS_SECRET_ACCESS_KEY=([\w\/]+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 

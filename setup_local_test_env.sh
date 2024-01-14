@@ -29,7 +29,7 @@ set +e
 # export MC_DATABASE_NAME='dbName'
 # export MC_SERVER_KEY_FILE='ssh_file_location'
 # export MC_SERVER_SSH_ADDRESS='ip_address'
-# export S3_BUCKET_NAME=joelradio
+# export S3_BUCKET_NAME=<bucket name>
 # export AWS_ACCESS_KEY_ID='AWS_ACCESS_KEY_ID'
 # export AWS_SECRET_ACCESS_KEY='AWS_SECRET_ACCESS_KEY'
 # export MC_APP_ENV='local'

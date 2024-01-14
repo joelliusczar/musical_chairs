@@ -88,6 +88,9 @@ deployment_local_env_check() (
 	[ -z $(__get_s3_bucket_name__) ] &&
 	echo 'deployment var S3_BUCKET_NAME not set in keys'
 	track_exit_code
+	[ -z $(__get_s3_region_name__) ] &&
+	echo 'deployment var S3_REGION_NAME not set in keys'
+	track_exit_code
 
 	#db
 	[ -z $(__get_api_db_user_key__) ] &&
@@ -143,6 +146,9 @@ deployment_server_env_check() (
 	track_exit_code
 	[ -z "$S3_BUCKET_NAME" ] &&
 	echo 'environmental var S3_BUCKET_NAME not set'
+	track_exit_code
+	[ -z "$S3_REGION_NAME" ] &&
+	echo 'environmental var S3_REGION_NAME not set'
 	track_exit_code
 
 	#db
@@ -332,6 +338,15 @@ __get_s3_bucket_name__() (
 		return
 	fi
 	perl -ne 'print "$1\n" if /S3_BUCKET_NAME=(\w+)/' \
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+)
+
+__get_s3_region_name__() (
+	if [ -n "$S3_REGION_NAME" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$S3_REGION_NAME"
+		return
+	fi
+	perl -ne 'print "$1\n" if /S3_REGION_NAME=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
@@ -1953,6 +1968,7 @@ __get_remote_export_script__() (
 	output="${output} export MC_DB_PASS_API='$(__get_api_db_user_key__)';" &&
 	output="${output} export MC_DB_PASS_RADIO='$(__get_radio_db_user_key__)';" &&
 	output="${output} export S3_BUCKET_NAME='$(__get_s3_bucket_name__)';" &&
+	output="${output} export S3_REGION_NAME='$(__get_s3_region_name__)';" &&
 	echo "$output"
 )
 

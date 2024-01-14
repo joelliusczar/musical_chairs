@@ -188,7 +188,7 @@ def get_optional_user_from_token(
 		)
 		return user
 	except ExpiredSignatureError:
-		return None
+		raise build_expired_credentials_error()
 
 def __open_user_from_request__(
 	userkey: Union[int, str, None],

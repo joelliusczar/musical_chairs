@@ -51,7 +51,7 @@ class RadioHandle:
 	# Function called to get the next filename to stream.
 	# Should return a string.
 	def ices_get_next(self) -> str:
-		searchBase = self.env_manager.search_base
+		searchBase = EnvManager.absolute_content_home
 		conn = self.env_manager.get_configured_radio_connection(self.dbName)
 		queueService = QueueService(conn)
 		(songPath, songName, album, artist) = \

@@ -8,7 +8,7 @@ from .file_service_protocol import FileServiceBase
 class LocalFileService(FileServiceBase):
 
 	def __create_missing_directories__(self, keyPath: str):
-		savedPath = f"{EnvManager.search_base}/{keyPath}"
+		savedPath = f"{EnvManager.absolute_content_home}/{keyPath}"
 		path = Path(savedPath)
 		path.parents[0].mkdir(parents=True, exist_ok=True)
 
@@ -22,7 +22,7 @@ class LocalFileService(FileServiceBase):
 
 	def save_song(self, keyPath: str, file: BinaryIO):
 		self.__create_missing_directories__(keyPath)
-		savedPath = f"{EnvManager.search_base}/{keyPath}"
+		savedPath = f"{EnvManager.absolute_content_home}/{keyPath}"
 		with open(savedPath, "wb") as out:
 			for chunk in file:
 				out.write(chunk)

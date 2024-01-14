@@ -268,7 +268,7 @@ def get_station_user_list(
 	stationService: StationService = Depends(station_service),
 ) -> TableData[AccountInfo]:
 	stationUsers = list(stationService.get_station_users(stationInfo))
-	return TableData(stationUsers, len(stationUsers))
+	return TableData(items=stationUsers, totalrows=len(stationUsers))
 
 
 @router.post("/{ownerkey}/{stationkey}/user_role",

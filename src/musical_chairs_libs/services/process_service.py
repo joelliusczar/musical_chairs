@@ -76,18 +76,24 @@ class ProcessService:
 
 	@staticmethod
 	def start_song_queue_process(dbName: str, stationName: str, ownerName: str):
-		stationProc = subprocess.Popen([
-				"python",
-				"-m",
-				"musical_chairs_libs.stream",
-				dbName,
-				stationName,
-				ownerName
-			]
+		# stationProc = subprocess.Popen([
+		# 		"python",
+		# 		"-m",
+		# 		"musical_chairs_libs.stream",
+		# 		dbName,
+		# 		stationName,
+		# 		ownerName
+		# 	]
+		# )
+
+		stationProc = ProcessService.start_station_mc_ices(
+			stationName,
+			ownerName,
+			"0"
 		)
 
 		try:
-			stationProc.wait(5)
+			stationProc.wait(3)
 			raise RuntimeError("Station ended sooner than expected")
 		except subprocess.TimeoutExpired:
 			print("So far so good")

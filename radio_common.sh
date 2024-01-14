@@ -346,7 +346,7 @@ __get_s3_region_name__() (
 		echo "$S3_REGION_NAME"
 		return
 	fi
-	perl -ne 'print "$1\n" if /S3_REGION_NAME=(\w+)/' \
+	perl -ne 'print "$1\n" if /S3_REGION_NAME=([\w\-]+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 

@@ -41,6 +41,7 @@ track_exit_code() {
 }
 
 deployment_local_env_check() (
+	echo 'checking environment vars before deployment'
 	#possibly problems if missing
 	[ -z "$__ICES_BRANCH__" ] &&
 	echo 'environmental var __ICES_BRANCH__ not set'
@@ -104,6 +105,7 @@ deployment_local_env_check() (
 
 
 deployment_server_env_check() (
+	echo 'checking environment vars on server'
 	#possibly problems if missing
 	[ -z "$__ICES_BRANCH__" ] &&
 	echo 'environmental var __ICES_BRANCH__ not set'

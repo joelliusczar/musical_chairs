@@ -44,7 +44,7 @@ def fixture_db_populate_factory(
 	return populate_fn
 
 @pytest.mark.populateFnName("fixture_db_populate_factory")
-@pytest.mark.echo(True)
+@pytest.mark.echo(False)
 def test_in_mem_db(fixture_db_conn_in_mem: Connection) -> None:
 	a = artists.columns
 	query = select(artists).order_by(a.name)

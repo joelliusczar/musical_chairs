@@ -42,6 +42,7 @@ def set_station_proc(
 	conn = EnvManager.get_configured_radio_connection(dbName)
 	try:
 		StationService(conn).set_station_proc(stationId)
+		conn.commit()
 	except Exception as e:
 		print(e)
 	finally:

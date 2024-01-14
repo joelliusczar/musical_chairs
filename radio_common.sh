@@ -43,7 +43,7 @@ track_exit_code() {
 deployment_local_env_check() (
 	echo 'checking environment vars before deployment'
 	#possibly problems if missing
-	[ -z "$__ICES_BRANCH__" ] &&
+	[ -z $(__get_ices_branch__) ] &&
 	echo 'environmental var __ICES_BRANCH__ not set'
 	[ -z "$MC_LOCAL_REPO_PATH" ] &&
 	echo 'environmental var MC_LOCAL_REPO_PATH not set'
@@ -109,21 +109,18 @@ deployment_server_env_check() (
 	#possibly problems if missing
 	[ -z "$__ICES_BRANCH__" ] &&
 	echo 'environmental var __ICES_BRANCH__ not set'
-	fnExitCode="$?"
-	track_exit_code
 	[ -z "$MC_LOCAL_REPO_PATH" ] &&
 	echo 'environmental var MC_LOCAL_REPO_PATH not set'
-	track_exit_code
 	[ -z "$__DB_SETUP_PASS__" ] &&
 	echo 'environmental var __DB_SETUP_PASS__ not set in keys'
-	track_exit_code
 	[ -z "$MC_DB_PASS_OWNER" ] &&
 	echo 'environmental var MC_DB_PASS_OWNER not set in keys'
-	track_exit_code
+
 
 	#definitely problems if missing
 	[ -z "$MC_REPO_URL" ] &&
 	echo 'environmental var MC_REPO_URL not set'
+	fnExitCode="$?"
 	track_exit_code
 
 	#porkbun
@@ -302,6 +299,13 @@ get_icecast_name() (
     ("$MC_APT_CONST") echo 'icecast2';;
     (*) echo 'icecast2';;
 	esac
+)
+
+__get_ices_branch__() (
+	if [ -n "$__ICES_BRANCH__" ]; then
+		echo "$__ICES_BRANCH__"
+		return
+	fi
 )
 
 __get_pb_api_key__() (
@@ -1979,6 +1983,7 @@ __get_remote_export_script__() (
 	output="${output} export MC_DB_PASS_RADIO='$(__get_radio_db_user_key__)';" &&
 	output="${output} export S3_BUCKET_NAME='$(__get_s3_bucket_name__)';" &&
 	output="${output} export S3_REGION_NAME='$(__get_s3_region_name__)';" &&
+	output="${output} export __ICES_BRANCH__='$(__get_ices_branch__)';" &&
 	echo "$output"
 )
 

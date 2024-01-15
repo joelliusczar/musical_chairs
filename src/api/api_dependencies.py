@@ -30,6 +30,7 @@ from musical_chairs_libs.services import (
 	PathRuleService,
 )
 from musical_chairs_libs.services.fs import (
+	S3FileService,
 	LocalFileService,
 	FileServiceBase,
 )
@@ -123,6 +124,9 @@ def path_rule_service(
 
 def file_service() -> FileServiceBase:
 	return LocalFileService()
+
+def dl_url_file_service() -> FileServiceBase:
+	return S3FileService()
 
 def song_file_service(
 	conn: Connection=Depends(get_configured_db_connection),

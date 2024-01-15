@@ -45,7 +45,7 @@ from email_validator import (
 )
 
 
-ACCESS_TOKEN_EXPIRE_MINUTES=3
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALGORITHM = "HS256"
 
 

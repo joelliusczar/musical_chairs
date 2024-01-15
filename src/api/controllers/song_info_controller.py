@@ -19,7 +19,7 @@ from api_dependencies import (
 	get_from_query_subject_user,
 	get_prefix_if_owner,
 	path_rule_service,
-	file_service
+	dl_url_file_service
 )
 
 from musical_chairs_libs.services import (
@@ -139,7 +139,7 @@ def get_songs_for_multi_edit(
 def download_song(
 	id: int,
 	songFileService: SongFileService = Depends(song_file_service),
-	fileService: FileServiceBase = Depends(file_service)
+	fileService: FileServiceBase = Depends(dl_url_file_service)
 ) -> str:
 	path = next(songFileService.get_song_path(id, useFullSystemPath=False), None)
 	if path:

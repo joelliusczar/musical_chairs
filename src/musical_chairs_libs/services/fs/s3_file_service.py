@@ -4,12 +4,25 @@ from botocore.client import Config
 from typing import BinaryIO, cast
 from ..env_manager import EnvManager
 from .file_service_protocol import FileServiceBase
-
+from musical_chairs_libs.dtos_and_utilities import SongAboutInfo
+from ..artist_service import ArtistService
+from ..album_service import AlbumService
 
 class S3FileService(FileServiceBase):
 
+	def __init__(
+		self,
+		artistService: ArtistService,
+		albumService: AlbumService
+	) -> None:
+		self.artist_service = artistService
+		self.album_service = albumService
 
-	def save_song(self, keyPath: str, file: BinaryIO):
+	def extract_song_info(self, file: BinaryIO) -> SongAboutInfo:
+		return SongAboutInfo()
+
+
+	def save_song(self, keyPath: str, file: BinaryIO) -> SongAboutInfo:
 		resource = boto3.resource( #pyright: ignore [reportUnknownMemberType]
 			"s3",
 			config=Config(
@@ -23,6 +36,7 @@ class S3FileService(FileServiceBase):
 		)
 		s3_obj.put(Body=file) #pyright: ignore [reportUnknownMemberType]
 		s3_obj.wait_until_exists() #pyright: ignore [reportUnknownMemberType]
+		return self.extract_song_info(file)
 
 
 

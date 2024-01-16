@@ -6,15 +6,13 @@ from typing import (
 	cast,
 	Iterable,
 	Any,
-	Tuple,
-	Callable
+	Tuple
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
 	SongListDisplayItem,
 	ScanningSongItem,
 	StationInfo,
-	SearchNameString,
 	get_datetime,
 	Sentinel,
 	missing,
@@ -22,11 +20,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ArtistInfo,
 	SongAboutInfo,
 	SongEditInfo,
-	build_error_obj,
-	AlbumCreationInfo,
 	StationSongTuple,
 	SongArtistTuple,
-	AlreadyUsedError,
 	AccountInfo,
 	OwnerInfo,
 	normalize_opening_slash
@@ -37,18 +32,15 @@ from sqlalchemy import (
 	insert,
 	update,
 	delete,
-	Integer
 )
 from sqlalchemy.sql.expression import (
 	Tuple as dbTuple,
 	Select,
-	Update,
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql.schema import Column
 from sqlalchemy.engine.row import RowMapping
-from itertools import chain, groupby
+from itertools import chain
 from musical_chairs_libs.tables import (
 	albums as albums_tbl,
 	song_artist as song_artist_tbl,
@@ -62,9 +54,9 @@ from musical_chairs_libs.tables import (
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
-	users as user_tbl, u_pk, u_username, u_displayName
+	users as user_tbl
 )
-
+from .song_artist_service import SongArtistService
 
 
 class SongInfoService:
@@ -72,14 +64,18 @@ class SongInfoService:
 	def __init__(
 		self,
 		conn: Connection,
-		pathRuleService: Optional[PathRuleService]=None
+		pathRuleService: Optional[PathRuleService]=None,
+		songArtistService: Optional[SongArtistService]=None,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		if not pathRuleService:
 			pathRuleService = PathRuleService(conn)
+		if not songArtistService:
+			songArtistService = SongArtistService(conn)
 		self.path_rule_service = pathRuleService
+		self.song_artist_service = songArtistService
 		self.get_datetime = get_datetime
 
 	def song_info(self, songPk: int) -> Optional[SongListDisplayItem]:
@@ -107,164 +103,6 @@ class SongInfoService:
 			artist=cast(str,row["artist"]),
 			queuedtimestamp=0
 		)
-
-	def get_or_save_artist(self, name: Optional[str]) -> Optional[int]:
-		if not name:
-			return None
-		savedName = SavedNameString.format_name_for_save(name)
-		query = select(ar_pk).select_from(artists_tbl).where(ar_name == savedName)
-		row = self.conn.execute(query).fetchone()
-		if row:
-			pk = cast(int, row[0])
-			return pk
-		print(name)
-		stmt = insert(artists_tbl).values(
-			name = savedName,
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
-		res = self.conn.execute(stmt)
-		insertedPk = res.lastrowid
-		self.conn.commit()
-		return insertedPk
-
-	def __get_artist_owner__(self, artistId: int) -> OwnerInfo:
-		query = select(ar_ownerFk, u_username, u_displayName)\
-			.select_from(artists_tbl)\
-			.join(user_tbl, u_pk == ar_ownerFk)\
-			.where(ab_pk == artistId)
-		data = self.conn.execute(query).mappings().fetchone()
-		if not data:
-			return OwnerInfo(id=0,username="", displayname="")
-		return OwnerInfo(
-			id=data[ar_ownerFk],
-			username=data[u_username],
-			displayname=data[u_displayName]
-		)
-
-	def save_artist(
-		self,
-		user: AccountInfo,
-		artistName: str,
-		artistId: Optional[int]=None
-	) -> ArtistInfo:
-		if not artistName and not artistId:
-			raise ValueError("No artist info to save")
-		upsert = update if artistId else insert
-		savedName = SavedNameString(artistName)
-		stmt = upsert(artists_tbl).values(
-			name = str(savedName),
-			lastmodifiedbyuserfk = user.id,
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
-		owner = user
-		if artistId and isinstance(stmt, Update):
-			stmt = stmt.where(ar_pk == artistId)
-			owner = self.__get_artist_owner__(artistId)
-		else:
-			stmt = stmt.values(ownerfk = user.id)
-		try:
-			res = self.conn.execute(stmt)
-
-			affectedPk: int = artistId if artistId else res.lastrowid
-			self.conn.commit()
-			return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
-		except IntegrityError:
-			raise AlreadyUsedError(
-				[build_error_obj(
-					f"{artistName} is already used.",
-					"path->name"
-				)]
-			)
-
-	def __get_album_owner__(self, albumId: int) -> OwnerInfo:
-		query = select(ab_ownerFk, u_username, u_displayName)\
-			.select_from(albums_tbl)\
-			.join(user_tbl, u_pk == ab_ownerFk)\
-			.where(ab_pk == albumId)
-		data = self.conn.execute(query).mappings().fetchone()
-		if not data:
-			return OwnerInfo(id=0,username="", displayname="")
-		return OwnerInfo(
-			id=data[ab_ownerFk],
-			username=data[u_username],
-			displayname=data[u_displayName]
-		)
-
-	def save_album(
-		self,
-		album: AlbumCreationInfo,
-		user: AccountInfo,
-		albumId: Optional[int]=None
-	) -> AlbumInfo:
-		if not album and not albumId:
-			raise ValueError("No album info to save")
-		upsert = update if albumId else insert
-		savedName = SavedNameString(album.name)
-		stmt = upsert(albums_tbl).values(
-			name = str(savedName),
-			year = album.year,
-			albumartistfk = album.albumartist.id if album.albumartist else None,
-			lastmodifiedbyuserfk = user.id,
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
-		owner = user
-		if albumId and isinstance(stmt, Update):
-			stmt = stmt.where(ab_pk == albumId)
-			owner = self.__get_album_owner__(albumId)
-		else:
-			stmt = stmt.values(ownerfk = user.id)
-		try:
-			res = self.conn.execute(stmt)
-
-			affectedPk = albumId if albumId else res.lastrowid
-			artist = next(self.get_artists(
-				userId=user.id,
-				artistKeys=album.albumartist.id
-			), None) if album.albumartist else None
-			self.conn.commit()
-			return AlbumInfo(
-				id=affectedPk,
-				name=str(savedName),
-				owner=owner,
-				year=album.year,
-				albumartist=artist
-			)
-		except IntegrityError:
-			raise AlreadyUsedError(
-				[build_error_obj(
-					f"{album.name} is already used for artist.",
-					"body->name"
-				)]
-			)
-
-	def get_or_save_album(
-		self,
-		name: Optional[str],
-		artistFk: Optional[int]=None,
-		year: Optional[int]=None
-	) -> Optional[int]:
-		if not name:
-			return None
-		savedName = SavedNameString.format_name_for_save(name)
-		query = select(ab_pk).select_from(albums_tbl).where(ab_name == savedName)
-		if artistFk:
-			query = query.where(ab_albumArtistFk == artistFk)
-		row = self.conn.execute(query).fetchone()
-		if row:
-			pk = cast(int, row[0])
-			return pk
-		print(name)
-		stmt = insert(albums_tbl).values(
-			name = savedName,
-			albumartistfk = artistFk,
-			year = year,
-			lastmodifiedtimestamp = self.get_datetime().timestamp(),
-			ownerfk = 1,
-			lastmodifiedbyuserfk = 1
-		)
-		res = self.conn.execute(stmt)
-		insertedPk = res.lastrowid
-		return insertedPk
 
 	def get_song_refs(
 		self,
@@ -445,213 +283,6 @@ class SongInfoService:
 			songIds={st.songid for st in uniquePairs}
 		)
 
-	def get_albums(self,
-		page: int = 0,
-		pageSize: Optional[int]=None,
-		albumKeys: Union[int, str, Iterable[int], None]=None,
-		userId: Optional[int]=None
-	) -> Iterator[AlbumInfo]:
-		album_owner = user_tbl.alias("albumowner")
-		albumOwnerId = cast(Column[Integer], album_owner.c.pk)
-		artist_owner = user_tbl.alias("artistowner")
-		artistOwnerId = cast(Column[Integer], artist_owner.c.pk)
-		query = select(
-			ab_pk.label("id"),
-			ab_name.label("name"),
-			ab_year.label("year"),
-			ab_albumArtistFk.label("albumartistid"),
-			ab_ownerFk.label("album.ownerid"),
-			album_owner.c.username.label("album.ownername"),
-			album_owner.c.displayname.label("album.ownerdisplayname"),
-			ar_name.label("artist.name"),
-			ar_ownerFk.label("artist.ownerid"),
-			artist_owner.c.username.label("artist.ownername"),
-			artist_owner.c.displayname.label("artist.ownerdisplayname")
-		).select_from(albums_tbl)\
-			.join(artists_tbl, ar_pk == ab_albumArtistFk, isouter=True) \
-			.join(album_owner, albumOwnerId == ab_ownerFk, isouter=True) \
-			.join(artist_owner, artistOwnerId == ar_ownerFk, isouter=True)
-		if type(albumKeys) == int:
-			query = query.where(ab_pk == albumKeys)
-		elif isinstance(albumKeys, Iterable):
-			query = query.where(ab_pk.in_(albumKeys))
-		elif type(albumKeys) is str:
-			searchStr = SearchNameString.format_name_for_search(albumKeys)
-			query = query\
-				.where(ab_name.like(f"%{searchStr}%"))
-		if userId:
-			query = query.where(ab_ownerFk == userId)
-		offset = page * pageSize if pageSize else 0
-		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query).mappings()
-		yield from (AlbumInfo(
-			id=row["id"],
-			name=row["name"],
-			owner=OwnerInfo(
-				id=row["album.ownerid"],
-				username=row["album.ownername"],
-				displayname=row["album.ownerdisplayname"]
-			),
-			year=row["year"],
-			albumartist=ArtistInfo(
-				id=row["albumartistid"],
-				name=row["artist.name"],
-				owner=OwnerInfo(
-					id=row["artist.ownerid"],
-					username=row["artist.ownername"],
-					displayname=row["artist.ownerdisplayname"]
-				)
-			) if row["albumartistid"] else None
-			) for row in records)
-
-	def get_artists(self,
-		page: int = 0,
-		pageSize: Optional[int]=None,
-		artistKeys: Union[int, Iterable[int], str, None]=None,
-		userId: Optional[int]=None
-	) -> Iterator[ArtistInfo]:
-		query = select(
-			ar_pk,
-			ar_name,
-			ar_ownerFk,
-			u_username,
-			u_displayName
-		)\
-		.join(user_tbl, u_pk == ar_ownerFk, isouter=True)
-		if type(artistKeys) == int:
-			query = query.where(ar_pk == artistKeys)
-		#check speficially if instance because [] is falsy
-		elif isinstance(artistKeys, Iterable) :
-			query = query.where(ar_pk.in_(artistKeys))
-		elif type(artistKeys) is str:
-			query = query\
-				.where(ar_name.like(f"%{artistKeys}%"))
-		if userId:
-			query = query.where(ar_ownerFk == userId)
-		offset = page * pageSize if pageSize else 0
-		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query).mappings()
-
-		yield from (ArtistInfo(
-			id=row[ar_pk],
-			name=row[ar_name],
-			owner=OwnerInfo(
-				id=row[ar_ownerFk],
-				username=row[u_username],
-				displayname=row[u_displayName]
-			)
-		)
-			for row in records)
-
-	def get_song_artists(
-		self,
-		songIds: Union[int, Iterable[int],None]=None,
-		artistIds: Union[int, Iterable[int],None]=None,
-	) -> Iterable[SongArtistTuple]:
-		query = select(
-			sgar_artistFk,
-			sgar_songFk,
-			sgar_isPrimaryArtist
-		)
-
-		if type(songIds) == int:
-			query = query.where(sgar_songFk == songIds)
-		elif isinstance(songIds, Iterable):
-			query = query.where(sgar_songFk.in_(songIds))
-		if type(artistIds) == int:
-			query = query.where(sgar_artistFk == artistIds)
-		elif isinstance(artistIds, Iterable):
-			query = query.where(sgar_artistFk.in_(artistIds))
-		query = query.order_by(sgar_songFk)
-		records = self.conn.execute(query).mappings()
-		yield from (SongArtistTuple(
-				row[sgar_songFk],
-				row[sgar_artistFk],
-				row[sgar_isPrimaryArtist]
-			)
-			for row in records)
-
-	def remove_songs_for_artists(
-		self,
-		songArtists: Iterable[Union[SongArtistTuple, Tuple[int, int]]],
-	) -> int:
-		songArtists = songArtists or []
-		delStmt = delete(song_artist_tbl)\
-			.where(dbTuple(sgar_songFk, sgar_artistFk).in_(songArtists))
-		count = self.conn.execute(delStmt).rowcount
-		return count
-
-	def validate_song_artists(
-		self,
-		songArtists: Iterable[SongArtistTuple]
-	) -> Iterable[SongArtistTuple]:
-		if not songArtists:
-			return iter([])
-		songArtistsSet = set(songArtists)
-		primaryArtistId = next(
-			(sa.artistid for sa in songArtistsSet if sa.isprimaryartist),
-			-1
-		)
-		songQuery = select(sg_pk).where(
-			sg_pk.in_(s.songid for s in songArtistsSet)
-		)
-		artistsQuery = select(ar_pk).where(
-			ar_pk.in_(a.artistid for a in songArtistsSet)
-		)
-		songRecords = self.conn.execute(songQuery).fetchall()
-		artistRecords = self.conn.execute(artistsQuery).fetchall()
-
-		yield from (t for t in (SongArtistTuple(
-			songRow[0],
-			artistRow[0],
-			isprimaryartist=cast(int, artistRow[0]) == primaryArtistId
-		) for songRow in songRecords
-			for artistRow in artistRecords
-		) if t in songArtistsSet)
-
-
-	def __are_all_primary_artist_single(
-		self,
-		songArtists: Iterable[SongArtistTuple]
-	) -> bool:
-		songKey: Callable[[SongArtistTuple],int] = lambda a: a.songid
-		artistsGroups = groupby(sorted(songArtists, key=songKey), key=songKey)
-		for _, g in artistsGroups:
-			if len([sa for sa in g if sa.isprimaryartist]) > 1:
-				return False
-		return True
-
-	def link_songs_with_artists(
-		self,
-		songArtists: Iterable[SongArtistTuple],
-		userId: Optional[int]=None
-	) -> Iterable[SongArtistTuple]:
-		if not songArtists:
-			return []
-		uniquePairs = set(self.validate_song_artists(songArtists))
-
-		if not self.__are_all_primary_artist_single(uniquePairs):
-			raise ValueError("Only one artist can be the primary artist")
-		existingPairs = set(self.get_song_artists(
-			songIds={sa.songid for sa in uniquePairs}
-		))
-		outPairs = existingPairs - uniquePairs
-		inPairs = uniquePairs - existingPairs
-		self.remove_songs_for_artists(outPairs)
-		if not inPairs: #if no songs - artist have been linked
-			return existingPairs - outPairs
-		params = [{
-			"songfk": p.songid,
-			"artistfk": p.artistid,
-			"isprimaryartist": p.isprimaryartist,
-			"lastmodifiedbyuserfk": userId,
-			"lastmodifiedtimestamp": self.get_datetime().timestamp()
-		} for p in inPairs]
-		stmt = insert(song_artist_tbl)
-		self.conn.execute(stmt, params)
-		return self.get_song_artists(
-			songIds={sa.songid for sa in uniquePairs}
-		)
 
 	def _prepare_song_row_for_model(self, row: RowMapping) -> dict[str, Any]:
 		songDict: dict[Any, Any] = {**row}
@@ -872,7 +503,7 @@ class SongInfoService:
 		).where(sg_pk.in_(ids))
 		self.conn.execute(stmt)
 		if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
-			self.link_songs_with_artists(
+			self.song_artist_service.link_songs_with_artists(
 				chain(
 					(SongArtistTuple(sid, a.id) for a in songInfo.artists or []
 						for sid in ids

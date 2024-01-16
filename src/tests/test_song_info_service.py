@@ -1,7 +1,10 @@
 from musical_chairs_libs.services import SongInfoService
 from .constant_fixtures_for_test import *
-from .common_fixtures import\
-	fixture_song_info_service as fixture_song_info_service
+from .common_fixtures import(
+	fixture_song_info_service as fixture_song_info_service,
+	fixture_artist_service as fixture_artist_service,
+	fixture_album_service as fixture_album_service
+)
 from .common_fixtures import *
 from .mocks.db_population import\
 	get_initial_songs,\
@@ -26,22 +29,22 @@ def test_song_query_paging(fixture_song_info_service: SongInfoService):
 	assert songs2[0].name == "whiskey_song"
 	assert songs2[4].name == "alpha_song"
 
-def test_add_artists(fixture_song_info_service: SongInfoService):
-	songInfoService = fixture_song_info_service
-	pk = songInfoService.get_or_save_artist("foxtrot_artist")
+def test_add_artists(fixture_artist_service: ArtistService):
+	artistService = fixture_artist_service
+	pk = artistService.get_or_save_artist("foxtrot_artist")
 	assert pk == 6
-	pk = songInfoService.get_or_save_artist("hotel_artist")
+	pk = artistService.get_or_save_artist("hotel_artist")
 	assert pk == 8
 
 def test_add_album(
-	fixture_song_info_service: SongInfoService
+	fixture_album_service: AlbumService
 ):
-	songInfoService = fixture_song_info_service
-	pk = songInfoService.get_or_save_album("who_1_album", 5)
+	albumService = fixture_album_service
+	pk = albumService.get_or_save_album("who_1_album", 5)
 	assert pk == 10
-	pk = songInfoService.get_or_save_album("bat_album", 5)
+	pk = albumService.get_or_save_album("bat_album", 5)
 	assert pk == len(get_initial_albums()) + 1
-	pk = songInfoService.get_or_save_album("who_1_album", 4)
+	pk = albumService.get_or_save_album("who_1_album", 4)
 	assert pk == len(get_initial_albums()) + 2
 
 def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
@@ -302,31 +305,31 @@ def test_link_already_linked_songs_with_stations(
 	assert len(results) == 2
 
 def test_get_albums(
-	fixture_song_info_service: SongInfoService
+	fixture_album_service: AlbumService
 ):
-	songInfoService = fixture_song_info_service
-	allAlbums = list(songInfoService.get_albums())
+	albumService = fixture_album_service
+	allAlbums = list(albumService.get_albums())
 	assert allAlbums
 	assert len(allAlbums) == len(get_initial_albums())
 
 def test_get_artists(
-	fixture_song_info_service: SongInfoService,
+	fixture_artist_service: ArtistService,
 	fixture_account_service: AccountsService
 ):
-	songInfoService = fixture_song_info_service
+	artistService = fixture_artist_service
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("testUser_november") #random user
 	assert user
-	allArtists = list(songInfoService.get_artists())
+	allArtists = list(artistService.get_artists())
 	assert allArtists
 	assert len(allArtists) == len(get_initial_artists())
 
-	specificArtist = list(songInfoService.get_artists(artistKeys=5))
+	specificArtist = list(artistService.get_artists(artistKeys=5))
 	assert specificArtist
 	assert len(specificArtist) == 1
 	assert specificArtist[0].name == "echo_artist"
 	specificArtists = sorted(
-		songInfoService.get_artists(artistKeys=[5, 1, 2]),
+		artistService.get_artists(artistKeys=[5, 1, 2]),
 		key=lambda a: a.id or 0
 	)
 	assert specificArtists
@@ -337,22 +340,24 @@ def test_get_artists(
 	assert specificArtists[2].name == "echo_artist"
 
 	emptyArtists = sorted(
-		songInfoService.get_artists(artistKeys=[]),
+		artistService.get_artists(artistKeys=[]),
 		key=lambda a: a.id or 0
 	)
 	assert emptyArtists is not None and len(emptyArtists) == 0
 
 
 def test_get_artists_for_songs(
-	fixture_song_info_service: SongInfoService
+	fixture_artist_service: ArtistService,
+	fixture_songartist_service: SongArtistService
 ):
-	songInfoService = fixture_song_info_service
+	artistService = fixture_artist_service
+	songArtistService = fixture_songartist_service
 
-	songArtists = list(songInfoService.get_song_artists(songIds=17))
+	songArtists = list(songArtistService.get_song_artists(songIds=17))
 
 	assert songArtists
 	assert len(songArtists) == 5
-	artists = sorted(songInfoService.get_artists(
+	artists = sorted(artistService.get_artists(
 			artistKeys=(sa.artistid for sa in songArtists)
 	), key=lambda a: a.id or 0)
 
@@ -363,12 +368,12 @@ def test_get_artists_for_songs(
 	assert artists[3].name == "juliet_artist"
 	assert artists[4].name == "kilo_artist"
 
-	songArtists = list(songInfoService.get_song_artists(songIds=[8, 1]))
+	songArtists = list(songArtistService.get_song_artists(songIds=[8, 1]))
 	assert songArtists
 
 	assert len(songArtists) == 3
 
-	artists = sorted(songInfoService.get_artists(
+	artists = sorted(artistService.get_artists(
 			artistKeys=(sa.artistid for sa in songArtists)
 	), key=lambda a: a.id or 0)
 

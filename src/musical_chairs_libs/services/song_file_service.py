@@ -20,7 +20,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongTreeNode,
 	normalize_closing_slash,
 	AccountInfo,
-	SavedNameString
+	SavedNameString,
+	SongArtistTuple
 )
 from sqlalchemy import (
 	select,
@@ -40,6 +41,7 @@ from musical_chairs_libs.tables import (
 	st_pk
 )
 from .env_manager import EnvManager
+from .song_artist_service import SongArtistService
 from itertools import islice
 
 class SongFileService:
@@ -47,13 +49,18 @@ class SongFileService:
 	def __init__(
 		self,
 		conn: Connection,
-		fileService: FileServiceBase
+		fileService: FileServiceBase,
+		songArtistService: Optional[SongArtistService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.file_service = fileService
 		self.get_datetime = get_datetime
+		if not songArtistService:
+			songArtistService = SongArtistService(conn)
+		self.song_artist_service = songArtistService
+
 
 
 	def create_directory(
@@ -90,15 +97,29 @@ class SongFileService:
 			addSlash=False
 		)
 		self.delete_overlaping_placeholder_dirs(path)
-		self.file_service.save_song(path, file)
+		songAboutInfo = self.file_service.save_song(path, file)
 		stmt = insert(songs_tbl).values(
 			path = path,
-			name = suffix,
+			name = songAboutInfo.name,
+			albumfk = songAboutInfo.album.id if songAboutInfo.album else None,
+			track = songAboutInfo.track,
+			disc = songAboutInfo.disc,
+			bitrate = songAboutInfo.bitrate,
+			genre = songAboutInfo.genre,
+			duration = songAboutInfo.duration,
 			isdirectoryplaceholder = False,
 			lastmodifiedbyuserfk = userId,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
 		result = self.conn.execute(stmt)
+		if result.inserted_primary_key and songAboutInfo.primaryartist:
+			self.song_artist_service.link_songs_with_artists(
+				[SongArtistTuple(
+					cast(int,result.inserted_primary_key[0]),
+					songAboutInfo.primaryartist.id,
+					isprimaryartist=True
+				)]
+			)
 		self.conn.commit()
 		return SongTreeNode(
 			path=normalize_closing_slash(path),

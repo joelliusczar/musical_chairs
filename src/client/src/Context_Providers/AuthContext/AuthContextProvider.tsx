@@ -66,6 +66,8 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 	const logout = useCallback(() => {
 		dispatch(dispatches.set(loggedOutState.data));
 		clearCookies();
+		webClient.defaults.headers.common["Authorization"] = null;
+		webClient.interceptors.response.clear();
 		enqueueSnackbar("Logging out.");
 	},[dispatch, enqueueSnackbar]);
 

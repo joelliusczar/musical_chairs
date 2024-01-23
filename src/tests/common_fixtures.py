@@ -16,7 +16,10 @@ from musical_chairs_libs.services import (
 	DbRootConnectionService,
 	DbOwnerConnectionService,
 	SongFileService,
-	PathRuleService
+	PathRuleService,
+	ArtistService,
+	AlbumService,
+	SongArtistService
 )
 
 from musical_chairs_libs.radio_handle import RadioHandle
@@ -157,6 +160,27 @@ def fixture_song_info_service(
 	return songInfoService
 
 @pytest.fixture
+def fixture_album_service(
+	fixture_db_conn_in_mem: Connection
+) -> AlbumService:
+	albumService = AlbumService(fixture_db_conn_in_mem)
+	return albumService
+
+@pytest.fixture
+def fixture_artist_service(
+	fixture_db_conn_in_mem: Connection
+) -> ArtistService:
+	artistService = ArtistService(fixture_db_conn_in_mem)
+	return artistService
+
+@pytest.fixture
+def fixture_songartist_service(
+	fixture_db_conn_in_mem: Connection
+) -> SongArtistService:
+	songArtistService = SongArtistService(fixture_db_conn_in_mem)
+	return songArtistService
+
+@pytest.fixture
 def fixture_path_rule_service(
 	fixture_db_conn_in_mem: Connection
 ) -> PathRuleService:
@@ -168,7 +192,10 @@ def fixture_song_file_service(
 	fixture_db_conn_in_mem: Connection
 ) -> SongFileService:
 	fileService = MockFileService()
-	songFileService = SongFileService(fixture_db_conn_in_mem, fileService)
+	songFileService = SongFileService(
+		fixture_db_conn_in_mem,
+		fileService
+	)
 	return songFileService
 
 @pytest.fixture

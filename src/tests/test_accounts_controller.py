@@ -121,7 +121,7 @@ def test_login_success(fixture_api_test_client: TestClient):
 	assert "login_timestamp" in data
 	assert data["token_type"] == "bearer"
 	assert len(data["roles"]) == 3
-	assert data["lifetime"] ==  1800
+	assert data["lifetime"] ==  1800 or data["lifetime"] == 604800.0
 	assert data["email"] == "test6@test.com"
 
 

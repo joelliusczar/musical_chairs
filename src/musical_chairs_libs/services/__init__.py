@@ -9,4 +9,6 @@ from .user_actions_history_service import *
 from .db_setup_service import *
 from .song_file_service import *
 from .path_rule_service import *
-
+from .artist_service import *
+from .album_service import *
+from .song_artist_service import *

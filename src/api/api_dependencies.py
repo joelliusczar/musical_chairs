@@ -28,6 +28,8 @@ from musical_chairs_libs.services import (
 	UserActionsHistoryService,
 	SongFileService,
 	PathRuleService,
+	ArtistService,
+	AlbumService,
 )
 from musical_chairs_libs.services.fs import (
 	S3FileService,
@@ -117,16 +119,32 @@ def song_info_service(
 ) -> SongInfoService:
 	return SongInfoService(conn)
 
+def artist_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> ArtistService:
+	return ArtistService(conn)
+
+def album_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> AlbumService:
+	return AlbumService(conn)
+
 def path_rule_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> PathRuleService:
 	return PathRuleService(conn)
 
-def file_service() -> FileServiceBase:
-	return LocalFileService()
+def file_service(
+	artistService: ArtistService = Depends(artist_service),
+	albumService: AlbumService = Depends(album_service)
+) -> FileServiceBase:
+	return LocalFileService(artistService, albumService)
 
-def dl_url_file_service() -> FileServiceBase:
-	return S3FileService()
+def dl_url_file_service(
+	artistService: ArtistService = Depends(artist_service),
+	albumService: AlbumService = Depends(album_service)
+) -> FileServiceBase:
+	return S3FileService(artistService, albumService)
 
 def song_file_service(
 	conn: Connection=Depends(get_configured_db_connection),

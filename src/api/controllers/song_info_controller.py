@@ -19,13 +19,17 @@ from api_dependencies import (
 	get_from_query_subject_user,
 	get_prefix_if_owner,
 	path_rule_service,
-	dl_url_file_service
+	dl_url_file_service,
+	album_service,
+	artist_service,
 )
 
 from musical_chairs_libs.services import (
 	SongInfoService,
 	SongFileService,
-	PathRuleService
+	PathRuleService,
+	AlbumService,
+	ArtistService,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	SongTreeNode,
@@ -199,47 +203,47 @@ def update_songs_multi(
 
 @router.get("/artists/list")
 def get_all_artists(
-	songInfoService: SongInfoService = Depends(song_info_service),
+	artistService: ArtistService = Depends(artist_service),
 	user: AccountInfo = Security(
 		get_current_user_simple,
 		scopes=[]
 	)
 ) -> ListData[ArtistInfo]:
-	return ListData(items=list(songInfoService.get_artists(userId=user.id)))
+	return ListData(items=list(artistService.get_artists(userId=user.id)))
 
 @router.post("/artists")
 def create_artist(
 	name: str,
-	songInfoService: SongInfoService = Depends(song_info_service),
+	artistService: ArtistService = Depends(artist_service),
 	user: AccountInfo = Security(
 		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> ArtistInfo:
-	artistInfo = songInfoService.save_artist(user, name)
+	artistInfo = artistService.save_artist(user, name)
 	return artistInfo
 
 @router.post("/albums")
 def create_album(
 	album: AlbumCreationInfo,
-	songInfoService: SongInfoService = Depends(song_info_service),
+	albumService: AlbumService = Depends(album_service),
 	user: AccountInfo = Security(
 		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	)
 ) -> AlbumInfo:
-	albumInfo = songInfoService.save_album(album, user=user)
+	albumInfo = albumService.save_album(album, user=user)
 	return albumInfo
 
 @router.get("/albums/list")
 def get_all_albums(
-	songInfoService: SongInfoService = Depends(song_info_service),
+	albumService: AlbumService = Depends(album_service),
 	user: AccountInfo = Security(
 		get_current_user_simple,
 		scopes=[]
 	)
 ) -> ListData[AlbumInfo]:
-	return ListData(items=list(songInfoService.get_albums(userId=user.id)))
+	return ListData(items=list(albumService.get_albums(userId=user.id)))
 
 
 @router.get("/path/user_list",dependencies=[

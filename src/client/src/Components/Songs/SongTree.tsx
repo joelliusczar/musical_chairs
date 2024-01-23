@@ -105,7 +105,6 @@ const SongDirectory = (props: SongDirectoryProps) => {
 
 	const callStatus = !!storedAtPrefix ? storedAtPrefix.callStatus : null;
 	const error = !!storedAtPrefix ? storedAtPrefix.error : null;
-	const hasError = !!error;
 
 	const isPending = isCallPending(callStatus);
 	const { enqueueSnackbar } = useSnackbar();
@@ -129,17 +128,17 @@ const SongDirectory = (props: SongDirectoryProps) => {
 	useEffect(() => {
 		const newLogin = !!username && loggedIn;
 		if (!prefix) { //only execute at top node
-			if (newLogin && hasError) {
+			if (newLogin) {
 				dispatch(dispatches.restart());
 			}
 		}
 		//only execute if error is at this node
-		else if (newLogin && hasError) {
+		else if (newLogin) {
 			dispatch(dispatches.restart([
 				normalizeOpeningSlash(prefix),
 			]));
 		}
-	}, [loggedIn, dispatch, prefix, username, hasError]);
+	}, [loggedIn, dispatch, prefix, username]);
 
 
 	useEffect(() => {

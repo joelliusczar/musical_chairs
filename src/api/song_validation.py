@@ -5,7 +5,12 @@ from fastapi import (
 	status,
 	Request
 )
-from musical_chairs_libs.services import SongInfoService, StationService
+from musical_chairs_libs.services import (
+	SongInfoService,
+	StationService,
+	ArtistService,
+	AlbumService
+)
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	UserRoleDef,
@@ -20,7 +25,9 @@ from api_dependencies import (
 	song_info_service,
 	station_service,
 	get_path_rule_loaded_current_user,
-	get_from_query_subject_user
+	get_from_query_subject_user,
+	album_service,
+	artist_service,
 )
 
 
@@ -110,12 +117,12 @@ def __validate_song_stations(
 def __validate_song_artists(
 	song: ValidatedSongAboutInfo,
 	user: AccountInfo,
-	songInfoService: SongInfoService,
+	artistService: ArtistService,
 ):
 	if not song.allArtists:
 		return
 	artistIds = {a.id for a in song.allArtists}
-	dbArtists = {a.id for a in songInfoService.get_artists(
+	dbArtists = {a.id for a in artistService.get_artists(
 		artistKeys=artistIds,
 		#in theory, this should not create a vulnerability
 		#because even if user has path:edit on a non-overlapping path
@@ -135,10 +142,10 @@ def __validate_song_artists(
 def __validate_song_album(
 	song: ValidatedSongAboutInfo,
 	user: AccountInfo,
-	songInfoService: SongInfoService,
+	albumService: AlbumService,
 ):
 	if song.album:
-		dbAlbum = next(songInfoService.get_albums(
+		dbAlbum = next(albumService.get_albums(
 			albumKeys=song.album.id,
 			userId=user.id if not user.has_roles(UserRoleDef.PATH_EDIT) else None
 		), None)
@@ -159,6 +166,8 @@ def extra_validated_song(
 	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
 	stationService: StationService = Depends(station_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
+	artistService: ArtistService = Depends(artist_service),
+	albumService: AlbumService = Depends(album_service)
 ) -> ValidatedSongAboutInfo:
 	__validate_song_stations(
 		song,
@@ -167,8 +176,8 @@ def extra_validated_song(
 		stationService,
 		songInfoService
 	)
-	__validate_song_artists(song, user, songInfoService)
-	__validate_song_album(song, user, songInfoService)
+	__validate_song_artists(song, user, artistService)
+	__validate_song_album(song, user, albumService)
 	return song
 
 def validate_path_rule(

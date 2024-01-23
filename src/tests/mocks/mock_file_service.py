@@ -1,11 +1,15 @@
 from typing import BinaryIO
 from io import BytesIO
+from musical_chairs_libs.dtos_and_utilities import SongAboutInfo
 from musical_chairs_libs.services.fs import FileServiceBase
 
 class MockFileService(FileServiceBase):
 
-	def save_song(self, keyPath: str, file: BinaryIO):
-		pass
+	def save_song(self, keyPath: str, file: BinaryIO) -> SongAboutInfo:
+		if keyPath:
+			segments = keyPath.split("/")
+			return SongAboutInfo(name=next((s for s in segments),""))
+		return SongAboutInfo(name="")
 
 	def open_song(self, keyPath: str) -> BinaryIO:
 		return BytesIO(b"Howdy")

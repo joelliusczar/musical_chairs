@@ -71,11 +71,24 @@ class SongArtistService:
 		
 	def remove_songs_for_artists(
 		self,
-		songArtists: Iterable[Union[SongArtistTuple, Tuple[int, int]]],
+		songArtists: Union[
+			Iterable[Union[SongArtistTuple, Tuple[int, int]]],
+			None
+		]=None,
+		songIds: Union[int, Iterable[int], None]=None
 	) -> int:
-		songArtists = songArtists or []
-		delStmt = delete(song_artist_tbl)\
-			.where(dbTuple(sgar_songFk, sgar_artistFk).in_(songArtists))
+		if songArtists is None and songIds is None:
+			raise ValueError("SongArtists or songIds must be provided")
+		delStmt = delete(song_artist_tbl)
+		if isinstance(songArtists,Iterable):
+			delStmt = delStmt\
+				.where(dbTuple(sgar_songFk, sgar_artistFk).in_(songArtists))
+		elif isinstance(songIds, Iterable):
+			delStmt = delStmt.where(sgar_songFk.in_(songIds))
+		elif type(songIds) is int:
+			delStmt = delStmt.where(sgar_songFk == songIds)
+		else:
+			return 0
 		count = self.conn.execute(delStmt).rowcount
 		return count
 

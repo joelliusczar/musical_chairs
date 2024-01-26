@@ -3,7 +3,8 @@ from .constant_fixtures_for_test import *
 from .common_fixtures import(
 	fixture_song_info_service as fixture_song_info_service,
 	fixture_artist_service as fixture_artist_service,
-	fixture_album_service as fixture_album_service
+	fixture_album_service as fixture_album_service,
+	fixture_station_service as fixture_station_service,
 )
 from .common_fixtures import *
 from .mocks.db_population import\
@@ -36,6 +37,180 @@ def test_add_artists(fixture_artist_service: ArtistService):
 	pk = artistService.get_or_save_artist("hotel_artist")
 	assert pk == 8
 
+def test_save_song_remove_1_artists(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([84], user))
+	copy = songInfo.model_copy()
+	assert copy
+	assert copy.artists
+	sortedArtists = sorted(copy.allArtists, key=lambda a: a.id)
+	assert sortedArtists[0].id == 18
+	assert sortedArtists[1].id == 19
+	assert sortedArtists[2].id == 20 #primary artist
+	assert sortedArtists[3].id == 21
+	copy.artists = [a for a in copy.artists if a.id != 19]
+	afterSaved = next(songInfoService.save_songs([84], copy, user))
+	assert afterSaved.artists
+	sortedArtists = sorted(afterSaved.allArtists, key=lambda a: a.id)
+	assert sortedArtists[0].id == 18
+	assert sortedArtists[1].id == 20 #primary artist
+	assert sortedArtists[2].id == 21
+	refetched = next(songInfoService.get_songs_for_edit([84], user))
+	sortedArtists = sorted(refetched.allArtists, key=lambda a: a.id)
+	assert sortedArtists[0].id == 18
+	assert sortedArtists[1].id == 20 #primary artist
+	assert sortedArtists[2].id == 21
+
+def test_save_song_remove_nonprimary_artists(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([84], user))
+	copy = songInfo.model_copy()
+	assert copy
+	assert copy.artists
+	sortedArtists = sorted(copy.allArtists, key=lambda a: a.id)
+	assert sortedArtists[0].id == 18
+	assert sortedArtists[1].id == 19
+	assert sortedArtists[2].id == 20 #primary artist
+	assert sortedArtists[3].id == 21
+	copy.artists.pop()
+	copy.artists.pop()
+	copy.artists.pop()
+	afterSaved = next(songInfoService.save_songs([84], copy, user))
+	assert not afterSaved.artists
+	assert afterSaved.primaryartist
+	sortedArtists = sorted(afterSaved.allArtists, key=lambda a: a.id)
+	assert len(sortedArtists) == 1
+	assert sortedArtists[0].id == 20
+	refetched = next(songInfoService.get_songs_for_edit([84], user))
+	sortedArtists = sorted(refetched.allArtists, key=lambda a: a.id)
+	assert len(sortedArtists) == 1
+	assert sortedArtists[0].id == 20
+
+def test_save_song_remove_primary_artist(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([84], user))
+	copy = songInfo.model_copy()
+	assert copy
+	assert copy.artists
+	sortedArtists = sorted(copy.allArtists, key=lambda a: a.id)
+	assert sortedArtists[0].id == 18
+	assert sortedArtists[1].id == 19
+	assert sortedArtists[2].id == 20 #primary artist
+	assert sortedArtists[3].id == 21
+	copy.primaryartist = None
+	afterSaved = next(songInfoService.save_songs([84], copy, user))
+	assert afterSaved.artists
+	assert not afterSaved.primaryartist
+	sortedArtists = sorted(afterSaved.allArtists, key=lambda a: a.id)
+	assert len(sortedArtists) == 3
+	assert sortedArtists[0].id == 18
+	assert sortedArtists[1].id == 19
+	assert sortedArtists[2].id == 21
+	refetched = next(songInfoService.get_songs_for_edit([84], user))
+	sortedArtists = sorted(refetched.allArtists, key=lambda a: a.id)
+	assert len(sortedArtists) == 3
+	assert sortedArtists[0].id == 18
+	assert sortedArtists[1].id == 19
+	assert sortedArtists[2].id == 21
+	
+def test_save_song_remove_all_artists(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([84], user))
+	copy = songInfo.model_copy()
+	assert copy
+	assert copy.artists
+	sortedArtists = sorted(copy.allArtists, key=lambda a: a.id)
+	assert sortedArtists[0].id == 18
+	assert sortedArtists[1].id == 19
+	assert sortedArtists[2].id == 20 #primary artist
+	assert sortedArtists[3].id == 21
+	copy.primaryartist = None
+	copy.artists.pop()
+	copy.artists.pop()
+	copy.artists.pop()
+	afterSaved = next(songInfoService.save_songs([84], copy, user))
+	assert not afterSaved.artists
+	assert not afterSaved.primaryartist
+	refetched = next(songInfoService.get_songs_for_edit([84], user))
+	assert not refetched.artists
+	assert not refetched.primaryartist
+
+def test_save_song_swap_artists(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService,
+	fixture_artist_service: ArtistService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	artistService = fixture_artist_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([85], user))
+	copy = songInfo.model_copy()
+	assert copy
+	assert copy.artists
+	assert len(copy.artists) == 1
+	assert copy.artists[0].id == 22
+	replacement = next(artistService.get_artists(artistKeys=23))
+	copy.artists = [replacement]
+	afterSaved = next(songInfoService.save_songs([85], copy, user))
+	assert afterSaved.artists
+	assert len(afterSaved.artists) == 1
+	assert afterSaved.artists[0].id == 23
+	refetched = next(songInfoService.get_songs_for_edit([85], user))
+	assert refetched.artists
+	assert len(refetched.artists) == 1
+	assert refetched.artists[0].id == 23
+	copy = songInfo.model_copy()
+	assert copy
+	copy.artists = []
+	copy.primaryartist = next(artistService.get_artists(artistKeys=24))
+	afterSaved = next(songInfoService.save_songs([85], copy, user))
+	assert not afterSaved.artists
+	assert afterSaved.primaryartist
+	assert afterSaved.primaryartist.id == 24
+	refetched = next(songInfoService.get_songs_for_edit([85], user))
+	assert not refetched.artists
+	assert refetched.primaryartist
+	assert refetched.primaryartist.id == 24
+
+	copy = refetched.model_copy()
+	copy.primaryartist = next(artistService.get_artists(artistKeys=25))
+	afterSaved = next(songInfoService.save_songs([85], copy, user))
+	assert not afterSaved.artists
+	assert afterSaved.primaryartist
+	assert afterSaved.primaryartist.id == 25
+	refetched = next(songInfoService.get_songs_for_edit([85], user))
+	assert not refetched.artists
+	assert refetched.primaryartist
+	assert refetched.primaryartist.id == 25
+
+
+
 def test_add_album(
 	fixture_album_service: AlbumService
 ):
@@ -52,6 +227,83 @@ def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
 	songs = sorted(songInfoService.get_songIds(stationKey=3))
 	assert len(songs) == 11
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 34, 36, 43 ] == songs
+
+def test_save_song_remove_1_station(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([84], user))
+	copy = songInfo.model_copy()
+	assert copy
+	assert copy.stations
+	sortedStations = sorted(copy.stations, key=lambda a: a.id)
+	assert sortedStations[0].id == 21
+	assert sortedStations[1].id == 22
+	assert sortedStations[2].id == 23
+	copy.stations = [s for s in copy.stations if s.id != 22]
+	afterSaved = next(songInfoService.save_songs([84], copy, user))
+	assert afterSaved.stations
+	sortedStations = sorted(afterSaved.stations, key=lambda a: a.id)
+	assert sortedStations[0].id == 21
+	assert sortedStations[1].id == 23
+	refetched = next(songInfoService.get_songs_for_edit([84], user))
+	assert refetched.stations
+	sortedStations = sorted(refetched.stations, key=lambda a: a.id)
+	assert sortedStations[0].id == 21
+	assert sortedStations[1].id == 23
+
+def test_save_song_remove_all_stations(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_november") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([84], user))
+	copy = songInfo.model_copy()
+	assert copy
+	assert copy.stations
+	sortedStations = sorted(copy.stations, key=lambda a: a.id)
+	assert sortedStations[0].id == 21
+	assert sortedStations[1].id == 22
+	assert sortedStations[2].id == 23
+	copy.stations = []
+	afterSaved = next(songInfoService.save_songs([84], copy, user))
+	assert not afterSaved.stations
+	refetched = next(songInfoService.get_songs_for_edit([84], user))
+	assert not refetched.stations
+
+def test_save_song_swap_station(
+	fixture_song_info_service: SongInfoService,
+	fixture_account_service: AccountsService,
+	fixture_station_service: StationService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	stationService = fixture_station_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #random user
+	assert user
+	songInfo = next(songInfoService.get_songs_for_edit([85], user))
+	copy = songInfo.model_copy()
+	assert copy
+	assert copy.stations
+	assert len(copy.stations) == 1
+	assert copy.stations[0].id == 24
+	replacement = next(stationService.get_stations(stationKeys=25, user=user))
+	copy.stations = [replacement]
+	afterSaved = next(songInfoService.save_songs([85], copy, user))
+	assert afterSaved.stations
+	assert len(afterSaved.stations) == 1
+	assert afterSaved.stations[0].id == 25
+	refetched = next(songInfoService.get_songs_for_edit([85], user))
+	assert refetched.stations
+	assert len(refetched.stations) == 1
+	assert refetched.stations[0].id == 25
 
 def test_get_song_stations_linked(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service

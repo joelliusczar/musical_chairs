@@ -223,11 +223,24 @@ class SongInfoService:
 
 	def remove_songs_for_stations(
 		self,
-		stationSongs: Iterable[Union[StationSongTuple, Tuple[int, int]]],
+		stationSongs: Union[
+			Iterable[Union[StationSongTuple, Tuple[int, int]]],
+			None
+		]=None,
+		songIds: Union[int, Iterable[int], None]=None
 	) -> int:
-		stationSongs = stationSongs or []
-		delStmt = delete(stations_songs_tbl)\
-			.where(dbTuple(stsg_songFk, stsg_stationFk).in_(stationSongs))
+		if stationSongs is None and songIds is None:
+			raise ValueError("stationSongs or songIds must be provided")
+		delStmt = delete(stations_songs_tbl)
+		if isinstance(stationSongs, Iterable):
+			delStmt = delStmt\
+				.where(dbTuple(stsg_songFk, stsg_stationFk).in_(stationSongs))
+		elif isinstance(songIds, Iterable):
+			delStmt = delStmt.where(stsg_songFk.in_(songIds))
+		elif type(songIds) is int:
+			delStmt = delStmt.where(stsg_songFk == songIds)
+		else:
+			return 0
 		return self.conn.execute(delStmt).rowcount
 
 	def validate_stations_songs(
@@ -480,7 +493,6 @@ class SongInfoService:
 		if not songInfo:
 			return self.get_songs_for_edit(ids, user)
 		if not songInfo.touched:
-			
 			songInfo.touched = {f for f in SongAboutInfo.model_fields}
 		ids = list(ids)
 		songInfo.name = str(SavedNameString(songInfo.name))
@@ -515,12 +527,16 @@ class SongInfoService:
 				),
 				user.id
 			)
+			if not [*songInfo.allArtists]:
+				self.song_artist_service.remove_songs_for_artists(songIds=ids)
 		if "stations" in songInfo.touched:
 			self.link_songs_with_stations(
 				(StationSongTuple(sid, t.id)
 					for t in (songInfo.stations or []) for sid in ids),
 				user.id
 			)
+			if not songInfo.stations:
+				self.remove_songs_for_stations(songIds=ids)
 		self.conn.commit()
 		if len(ids) < 2:
 			yield from self.get_songs_for_edit(ids, user)

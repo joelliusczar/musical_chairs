@@ -186,6 +186,62 @@ artist_params = [
 		"lastmodifiedbyuserfk": fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
 	},
+	{
+		"pk": 18,
+		"name": "tango_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 19,
+		"name": "uniform_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 20,
+		"name": "victor_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 21,
+		"name": "whiskey_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 22,
+		"name": "xray_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 23,
+		"name": "yankee_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 24,
+		"name": "zulu_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 25,
+		"name": "z-albert_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
+	}
 ]
 
 albumParams1 = [
@@ -420,6 +476,8 @@ album_params = [
 #			jazz/overloop/spoon
 #				jazz/overloop/spoon/cargo_song
 #				jazz/overloop/spoon/embargo_song
+#				jazz/overloop/spoon/bash_bang
+#				jazz/overloop/spoon/bling_book
 # blitz/
 # 	blitz/mar/
 # 		blitz/mar/wall/
@@ -966,7 +1024,15 @@ song_params = [
 	{ "pk": 83,
 		"path": "blitz/  are we handling/ dirs beginning with space  /path",
 		"name": "Song beginning in spaces",
-	}
+	},
+	{ "pk": 84,
+		"path": "jazz/overloop/spoon/bash_bang",
+		"name": "bash_bang_song",
+	},
+	{ "pk": 85,
+		"path": "jazz/overloop/spoon/bling_book",
+		"name": "bling_book_song",
+	},
 ]
 
 songArtistParams = [
@@ -1019,6 +1085,10 @@ songArtistParams = [
 	{ "pk": 51, "songfk": 35, "artistfk": 12 },
 	{ "pk": 52, "songfk": 59, "artistfk": 16 },
 	{ "pk": 54, "songfk": 59, "artistfk": 17 },
+	{ "pk": 55, "songfk": 84, "artistfk": 18 },
+	{ "pk": 56, "songfk": 84, "artistfk": 19 },
+	{ "pk": 58, "songfk": 84, "artistfk": 21 },
+	{ "pk": 59, "songfk": 85, "artistfk": 22 },
 ]
 
 songArtistParams2 = [
@@ -1027,6 +1097,7 @@ songArtistParams2 = [
 	{ "pk": 43, "songfk": 41, "artistfk": 7, "isprimaryartist": 1 },
 	{ "pk": 44, "songfk": 1, "artistfk": 6, "isprimaryartist": 1 },
 	{ "pk": 53, "songfk": 59, "artistfk": 15, "isprimaryartist": 1 },
+	{ "pk": 57, "songfk": 84, "artistfk": 20, "isprimaryartist": 1 },
 ]
 
 songArtistParamsAll = [*songArtistParams, *songArtistParams2]
@@ -1151,6 +1222,36 @@ station_params = [
 		"displayname": "Neptune, how could you?",
 		"ownerfk": unruled_station_user_id,
 		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value
+	},
+	{ "pk": 21,
+		"name": "kilo_station_rerun",
+		"displayname": "kilo bam",
+		"ownerfk": jazzDirOwnerId,
+		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value
+	},
+	{ "pk": 22,
+		"name": "lima_station_rerun",
+		"displayname": "Peruvian nuts",
+		"ownerfk": jazzDirOwnerId,
+		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value
+	},
+	{ "pk": 23,
+		"name": "mike_station_rerun",
+		"displayname": "Milk",
+		"ownerfk": jazzDirOwnerId,
+		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value
+	},
+	{ "pk": 24,
+		"name": "november_station_rerun",
+		"displayname": "Nancy",
+		"ownerfk": jazzDirOwnerId,
+		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value
+	},
+	{ "pk": 25,
+		"name": "oscar_station_rerun",
+		"displayname": "oodle laylee",
+		"ownerfk": jazzDirOwnerId,
+		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value
 	}
 ]
 
@@ -1209,6 +1310,10 @@ stationSongParams = [
 	{ "songfk": 47, "stationfk": 8 },
 	{ "songfk": 59, "stationfk": 10 },
 	{ "songfk": 59, "stationfk": 11 },
+	{ "songfk": 84, "stationfk": 21 },
+	{ "songfk": 84, "stationfk": 22 },
+	{ "songfk": 84, "stationfk": 23 },
+	{ "songfk": 85, "stationfk": 24 },
 ]
 
 def get_user_params(

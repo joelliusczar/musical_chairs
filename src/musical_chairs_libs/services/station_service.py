@@ -260,7 +260,7 @@ class StationService:
 
 	def get_stations(
 		self,
-		stationKeys: Union[int,str, Iterable[int], None]=None,
+		stationKeys: Union[int, str, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
 		user: Optional[AccountInfo]=None,
 		scopes: Optional[Collection[str]]=None

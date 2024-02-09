@@ -35,7 +35,7 @@ from musical_chairs_libs.tables import (
 	songs, sg_pk, sg_name, sg_path, sg_albumFk,
 	albums, ab_name, ab_pk,
 	artists, ar_name, ar_pk,
-	song_artist, sgar_songFk, sgar_artistFk,
+	song_artist, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	station_user_permissions as station_user_permissions_tbl, stup_userFk,
 	stup_stationFk, stup_role,
@@ -337,8 +337,11 @@ class StationService:
 		self,
 		stationId: int,
 	) -> int:
-		baseQuery = select(func.count(1))
-		query = self.__attach_catalogue_joins(baseQuery, stationId)
+		baseQuery = select(sg_pk)
+		query = self.__attach_catalogue_joins(baseQuery, stationId)\
+			.group_by(sg_pk)
+		subquery = query.subquery()
+		query = select(func.count(1)).select_from(subquery)
 		count = self.conn.execute(query).scalar() or 0 #pyright: ignore [reportUnknownMemberType]
 		return count
 
@@ -357,11 +360,18 @@ class StationService:
 		baseQuery = select(
 			sg_pk,
 			sg_path,
-			sg_name,
+			coalesce[str](sg_name, "").label("name"),
 			ab_name.label("album"),
 			ar_name.label("artist"),
+			func.row_number().over( #pyright: ignore [reportUnknownMemberType]
+				partition_by=sg_pk,
+				order_by=[sgar_isPrimaryArtist.desc(), ar_name]
+			).label("rownum")
 		)
-		query = self.__attach_catalogue_joins(baseQuery, stationId)\
+		query = self.__attach_catalogue_joins(baseQuery, stationId)
+		subquery = query.subquery()
+		query = select(*subquery.c)\
+			.where(subquery.c.rownum < 2)\
 			.offset(offset)\
 			.limit(limit)
 		records = self.conn.execute(query).mappings()
@@ -369,12 +379,12 @@ class StationService:
 			rules = []
 			if pathRuleTree:
 				rules = list(pathRuleTree.valuesFlat(
-					normalize_opening_slash(cast(str, row[sg_path])))
+					normalize_opening_slash(cast(str, row["path"])))
 				)
 			yield SongListDisplayItem(
-				id=cast(int,row[sg_pk]),
-				path=cast(str, row[sg_path]),
-				name=cast(str, row[sg_name]),
+				id=cast(int, row["pk"]),
+				path=cast(str, row["path"]),
+				name=cast(str, row["name"]),
 				album=cast(str, row["album"]),
 				artist=cast(str, row["artist"]),
 				queuedtimestamp=0,
@@ -388,7 +398,7 @@ class StationService:
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
 
-	def __is_stationName_used(
+	def __is_stationName_used__(
 		self,
 		id: Optional[int],
 		stationName: SavedNameString,
@@ -410,7 +420,7 @@ class StationService:
 		cleanedStationName = SavedNameString(stationName)
 		if not cleanedStationName:
 			return True
-		return self.__is_stationName_used(id, cleanedStationName, userId)
+		return self.__is_stationName_used__(id, cleanedStationName, userId)
 
 	def __create_initial_owner_rules__(self, stationId: int, userId: int):
 		rules = [{
@@ -610,7 +620,6 @@ class StationService:
 				.where(st_pk == stationId)
 		self.conn.execute(stmt)
 
-
 	def unset_station_procs(
 		self,
 		procIds: Optional[Iterable[int]]=None,
@@ -628,7 +637,6 @@ class StationService:
 		else:
 			raise ValueError("procIds, stationIds, or stationNames must be provided.")
 		self.conn.execute(stmt)
-
 
 	def __noop_startup__(self, stationName: str) -> None:
 		#for normal operations, this is handled in the ices process

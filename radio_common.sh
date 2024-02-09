@@ -1348,7 +1348,8 @@ __clean_up_invalid_cert__() (
 							sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
 							echo "$cert" | is_cert_expired && 
 							{
-								sudo -p "Delete from /usr/local/share/ca-certificates" \
+								sudo -p \
+									"Need pass to delete from /usr/local/share/ca-certificates" \
 									rm /usr/local/share/ca-certificates/"$commonName"*.crt;
 								sudo update-ca-certificates
 							}

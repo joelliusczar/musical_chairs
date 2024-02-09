@@ -241,6 +241,20 @@ artist_params = [
 		"ownerfk": jazzDirOwnerId,
 		"lastmodifiedbyuserfk": jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 26,
+		"name": "z-charlie_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 27,
+		"name": "z-bravo_artist",
+		"ownerfk": jazzDirOwnerId,
+		"lastmodifiedbyuserfk": jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
 	}
 ]
 
@@ -478,6 +492,7 @@ album_params = [
 #				jazz/overloop/spoon/embargo_song
 #				jazz/overloop/spoon/bash_bang
 #				jazz/overloop/spoon/bling_book
+#				jazz/overloop/spoon/barn_soup
 # blitz/
 # 	blitz/mar/
 # 		blitz/mar/wall/
@@ -1033,6 +1048,10 @@ song_params = [
 		"path": "jazz/overloop/spoon/bling_book",
 		"name": "bling_book_song",
 	},
+	{ "pk": 86,
+		"path": "jazz/overloop/spoon/barn_soup",
+		"name": "barn_soup_song",
+	},
 ]
 
 songArtistParams = [
@@ -1089,6 +1108,8 @@ songArtistParams = [
 	{ "pk": 56, "songfk": 84, "artistfk": 19 },
 	{ "pk": 58, "songfk": 84, "artistfk": 21 },
 	{ "pk": 59, "songfk": 85, "artistfk": 22 },
+	{ "pk": 60, "songfk": 86, "artistfk": 26 },
+	{ "pk": 61, "songfk": 86, "artistfk": 27 },
 ]
 
 songArtistParams2 = [
@@ -1314,6 +1335,10 @@ stationSongParams = [
 	{ "songfk": 84, "stationfk": 22 },
 	{ "songfk": 84, "stationfk": 23 },
 	{ "songfk": 85, "stationfk": 24 },
+	{ "songfk": 76, "stationfk": 23 },
+	{ "songfk": 42, "stationfk": 23 },
+	{ "songfk": 86, "stationfk": 23 },
+	{ "songfk": 10, "stationfk": 23 },
 ]
 
 def get_user_params(

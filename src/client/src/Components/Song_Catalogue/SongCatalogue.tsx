@@ -189,7 +189,12 @@ export const SongCatalogue = () => {
 
 	return (
 		<>
-			<h1>Song Catalogue: {selectedStation?.displayname || ""}</h1>
+			<h1>
+				Song Catalogue: {selectedStation?.displayname || ""}
+			</h1>
+			<h2>
+				{catalogueState?.data?.totalrows || ""} songs on this station.
+			</h2>
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}

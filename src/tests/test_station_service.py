@@ -593,3 +593,27 @@ def test_get_station_user_list_station_no_users(
 	assert rules[4].name == UserRoleDef.STATION_USER_ASSIGN.value
 	assert rules[5].name == UserRoleDef.STATION_USER_LIST.value
 	assert rules[6].name == UserRoleDef.STATION_VIEW.value
+
+def test_get_station_catalogue_multi_artist(
+	fixture_station_service: StationService,
+	fixture_account_service: AccountsService
+):
+	stationService = fixture_station_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("unruledStation_testUser")
+	assert user
+	songs = sorted(
+		stationService.get_station_song_catalogue(23),
+		key=lambda s: s.id
+	)
+	assert len(songs) == 5
+	multiArtistPrimarySong = next(s for s in songs if s.id == 84)
+	assert multiArtistPrimarySong.artist == "victor_artist"
+	multiArtistSong = next(s for s in songs if s.id == 86)
+	assert multiArtistSong.artist == "z-bravo_artist"
+	noArtistSong = next(s for s in songs if s.id == 76)
+	assert noArtistSong.artist == None
+	totalSongs = stationService.song_catalogue_count(
+		stationId = 23
+	)
+	assert totalSongs == 5

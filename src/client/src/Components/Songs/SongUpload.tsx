@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { FormFileUpload } from "../Shared/FormFileUpload";
 import { useSnackbar } from "notistack";
 import {
-	checkValues,
+	checkSuffixes,
 	uploadSong,
 } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
@@ -14,8 +14,15 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import {
 	UploadInfo,
 	SongTreeNodeInfo,
+	MultiUploadInfo,
 } from "../../Types/song_info_types";
 import { SubmitButton } from "../Shared/SubmitButton";
+import { 
+	useKeyedVoidWaitingReducer,
+	keyedVoidDispatches as dispatches,
+} from "../../Reducers/keyedVoidWaitingReducer";
+import { Loader } from "../Shared/Loader";
+import get from "just-safe-get";
 
 
 
@@ -25,47 +32,44 @@ const inputField = {
 
 
 const initialValues = {
-	suffix: "",
-	prefix: "",
-	file: null,
+	files: [],
 };
 
 
-
-const validatePhraseIsUnused = async (
-	value: string | undefined,
-	context: Yup.TestContext<Partial<UploadInfo>>
-) => {
-	const id = context?.parent?.id;
-	if (!value) return true;
-	const requestObj = checkValues({ id, values: {
-		"suffix": value,
-		"prefix": context?.parent?.prefix,
-	}});
-	const used = await requestObj.call();
-	return !(	context.path in used) || !used[context.path];
-};
-
-const schema = Yup.object().shape({
-	suffix: Yup.string().required().test(
-		"suffix",
-		(value) => `${value.path} is already used`,
-		validatePhraseIsUnused
-	),
-	files: Yup.mixed().required(),
+const getSchema = (prefix: string) => Yup.lazy(values => {
+	const requestObj = checkSuffixes({ 
+		prefix,
+		songSuffixes: values.files.map(
+			(f: UploadInfo) => ({ path: f.suffix, id: 0})
+		),
+	});
+	const usedPromise = requestObj.call();
+	return Yup.object().shape({
+		files: Yup.array().of(Yup.object().shape({
+			suffix: Yup.string().required().test(
+				"suffix",
+				(value) => `${value.value} is already used`,
+				async (value: string | undefined) => {
+					if (!value) return true;
+					const used = await usedPromise;
+					return !(	value in used) || !used[value];
+				}
+			),
+		})),
+	});
 });
 
 
 type SongUploadProps = {
 	onCancel?: (e: unknown) => void
-	afterSubmit?: (s: SongTreeNodeInfo) => void,
+	afterSubmit?: (s: SongTreeNodeInfo[]) => void,
 	prefix: string,
 };
 
 export const SongUpload = (props: SongUploadProps) => {
 	const { onCancel, prefix } = props;
 	const { enqueueSnackbar } = useSnackbar();
-
+	const [ uploadState, uploadDispatch] = useKeyedVoidWaitingReducer();
 
 	const _afterSubmit = () => {
 		reset({});
@@ -74,39 +78,45 @@ export const SongUpload = (props: SongUploadProps) => {
 	const afterSubmit = props.afterSubmit || _afterSubmit;
 
 
-	const formMethods = useForm<UploadInfo>({
+	const formMethods = useForm<MultiUploadInfo>({
 		defaultValues: initialValues,
-		resolver: yupResolver(schema),
+		resolver: yupResolver(getSchema(prefix)),
 	});
 	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
+		console.log("submit");
+		let idx = 0;
 		try {
-			const requestObj = uploadSong(values);
-			const result = await requestObj.call();
-			afterSubmit(result);
+			const results: SongTreeNodeInfo[] = [];
+			for (; idx < values.files.length; idx++) {
+				const requestObj = uploadSong({
+					prefix: prefix,
+					files: [values.files[idx].file],
+					suffix: values.files[idx].suffix,
+				});
+				uploadDispatch(dispatches.started([idx]));
+				const result = await requestObj.call();
+				if (!!result) {
+					results.push(result);
+				}
+				uploadDispatch(dispatches.done([idx]));
+			}
+			afterSubmit(results);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err) {
+			const errMsg = formatError(err);
 			enqueueSnackbar(formatError(err), { variant: "error"});
+			uploadDispatch(dispatches.failed([{ key: idx, msg: errMsg}]));
 			console.error(err);
 		}
 	});
 
-	const {setValue, watch} = formMethods;
+	const { watch } = formMethods;
 	const files = watch("files");
 
-	useEffect(() => {
-		setValue("prefix", prefix);
-	},[prefix, setValue]);
 
-	useEffect(() => {
-		const suffix = watch("suffix");
-		if (!suffix) {
-			if (!!files?.length) {
-				setValue("suffix", files[0].name);
-			}
-		}
-	},[setValue, files, watch]);
+
 
 	return (
 		<>
@@ -115,19 +125,44 @@ export const SongUpload = (props: SongUploadProps) => {
 					Upload a file in {prefix}
 				</Typography>
 			</Box>
-			<Box sx={inputField}>
-				<FormTextField
-					name="suffix"
-					label="Name"
-					formMethods={formMethods}
-				/>
-			</Box>
+			{(!!files?.length) && files.map((f, idx) => {
+				return <Box sx={inputField} key={`files.${idx}.suffix`}>
+					<FormTextField
+						name={`files.${idx}.suffix`}
+						label="Name"
+						formMethods={formMethods}
+					/>
+					<Loader 
+						status={get(uploadState, `${idx}.callStatus`)}
+						error={get(uploadState, `${idx}.error`)}
+					>
+						<Typography>Done</Typography>
+					</Loader>
+				</Box>;
+			})
+			}
 			<Box sx={inputField}>
 				<FormFileUpload
 					name="files"
 					label="File"
 					formMethods={formMethods}
 					type="file"
+					multiple
+					transform={{
+						output: (e) => {
+							return {
+								target: {
+									name: e.target.name,
+									value: e.target.value ? 
+										[...e.target.value].map(f => ({ 
+											file: f,
+											suffix: f.name,
+										}
+										)) : [],
+								},
+							};
+						},
+					}}
 				/>
 			</Box>
 
@@ -148,7 +183,7 @@ export const SongUpload = (props: SongUploadProps) => {
 
 
 type SongUploadNewModalOpenerProps = {
-	add?: (s: SongTreeNodeInfo) => void;
+	add?: (s: SongTreeNodeInfo[]) => void;
 	prefix: string
 }
 
@@ -165,8 +200,8 @@ export const SongUploadNewModalOpener = (
 		setItemNewOpen(false);
 	};
 
-	const itemCreated = (item: SongTreeNodeInfo) => {
-		add && add(item);
+	const itemCreated = (items: SongTreeNodeInfo[]) => {
+		add && add(items);
 		closeModal();
 	};
 

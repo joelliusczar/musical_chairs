@@ -612,7 +612,7 @@ def get_account_if_has_scope(
 	return prev
 
 def get_prefix_if_owner(
-	prefix: str,
+	prefix: str=Query(),
 	currentUser: AccountInfo = Depends(get_current_user_simple),
 ) -> str:
 	if not currentUser.dirroot:

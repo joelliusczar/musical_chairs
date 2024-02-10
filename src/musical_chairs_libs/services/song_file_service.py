@@ -9,6 +9,7 @@ from typing import (
 	Iterable,
 	overload
 )
+from pathlib import Path
 from sqlalchemy.engine import Connection
 from .fs.file_service_protocol import FileServiceBase
 from musical_chairs_libs.dtos_and_utilities import (
@@ -21,7 +22,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	normalize_closing_slash,
 	AccountInfo,
 	SavedNameString,
-	SongArtistTuple
+	SongArtistTuple,
+	AlreadyUsedError,
+	SongPathInfo,
+	ReusableIterable
 )
 from sqlalchemy import (
 	select,
@@ -96,6 +100,8 @@ class SongFileService:
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}", "/"),
 			addSlash=False
 		)
+		if self.__is_path_used(None, path=SavedNameString(path)):
+			raise AlreadyUsedError(f"{path} is already used")
 		self.delete_overlaping_placeholder_dirs(path)
 		songAboutInfo = self.file_service.save_song(path, file)
 		stmt = insert(songs_tbl).values(
@@ -317,6 +323,36 @@ class SongFileService:
 				.where(st_pk != id)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
+	
+	def __are_paths_used__(
+		self,
+		paths: ReusableIterable[SongPathInfo]
+	) -> dict[str, bool]:
+		query = select(sg_pk, sg_path).where(sg_path.in_(p.path for p in paths))
+		rows = self.conn.execute(query)
+		pathToId = {cast(str, r[1]): cast(int, r[0]) for r in rows}
+		return {
+			Path(p.path).name: (pathToId.get(p.path, p.id) != p.id) 
+			for p in paths
+		}
+	
+	def are_paths_used(
+		self,
+		prefix: str,
+		suffixes: Iterable[SongPathInfo]
+	) -> dict[str, bool]:
+		cleanedPaths = [
+			SongPathInfo(
+				id=p.id,
+				path=str(SavedNameString(
+						squash_sequential_duplicate_chars(f"{prefix}/{p.path}", "/")
+					)
+				)
+			) 
+			for p in suffixes
+		]
+		return self.__are_paths_used__(cleanedPaths)
+
 
 	def is_path_used(
 		self,

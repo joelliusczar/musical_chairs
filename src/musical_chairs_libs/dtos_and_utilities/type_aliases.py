@@ -1,4 +1,12 @@
-from typing import Union, Optional
+from typing import (
+	Union,
+	Optional,
+	TypeVar,
+	Sequence,
+	Set
+)
+
+T = TypeVar("T")
 
 s2sDict = dict[str, str]
 simpleDict = Union[
@@ -7,3 +15,5 @@ simpleDict = Union[
 	dict[str, Optional[Union[str, int]]],
 	dict[str, Optional[Union[str, int, bool]]]
 ]
+
+ReusableIterable = Union[Sequence[T],Set[T]]

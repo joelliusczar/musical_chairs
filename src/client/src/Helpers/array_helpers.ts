@@ -27,3 +27,8 @@ export const useCombinedContextAndFormItems = <T extends NamedIdItem>(
 
 	return combined;
 };
+
+export const notNullPredicate = 
+	<T>(value: T | null | undefined): value is T => {
+		return value !== null && value !== undefined;
+	};

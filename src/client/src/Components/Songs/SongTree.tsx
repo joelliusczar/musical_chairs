@@ -37,6 +37,7 @@ import { SongUploadNewModalOpener } from "./SongUpload";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { isCallPending } from "../../Helpers/request_helpers";
 import { cookieToObjectURIDecoded } from "../../Helpers/browser_helpers";
+import { notNullPredicate } from "../../Helpers/array_helpers";
 
 
 const songTreeParentInfoToNodeIds = (
@@ -407,10 +408,9 @@ export const SongTree = withCacheProvider<
 			return !!selectedSongIds.length;
 		};
 
-		const onAddNewSong = (node: SongTreeNodeInfo) => {
-			if (node && node.id) {
-				navigate(getSongEditUrl([node.id]));
-			}
+		const onAddNewSong = (nodes: SongTreeNodeInfo[]) => {
+			const nodeIds = nodes.map(n => n.id).filter(notNullPredicate);
+			navigate(getSongEditUrl(nodeIds));
 		};
 
 		const onAddNewNode = (nodes: Dictionary<ListData<SongTreeNodeInfo>>) => {

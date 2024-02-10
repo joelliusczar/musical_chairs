@@ -108,6 +108,14 @@ export interface DirectoryInfo {
 	suffix: string
 };
 
+export type UploadItem = {
+	suffix: string,
+	file: File
+};
+
+export interface MultiUploadInfo {
+	files: UploadItem[],
+};
 
 export interface UploadInfo extends DirectoryInfo {
 	files: File[] | null

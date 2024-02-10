@@ -153,6 +153,7 @@ export const StationEdit = (props: StationEditProps) => {
 
 	const formMethods = useForm<StationInfoForm>({
 		defaultValues: initialValues,
+		reValidateMode: "onSubmit",
 		resolver: yupResolver(schema),
 	});
 	const { handleSubmit, reset, watch, formState } = formMethods;

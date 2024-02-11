@@ -72,7 +72,7 @@ def handle_already_used_values(
 	ex: AlreadyUsedError
 ) -> JSONResponse:
 	return JSONResponse(
-		{ "detail": [{"msg": ex.args[0]}] },
+		{ "detail": ex.args[0] },
 		status_code=422,
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(

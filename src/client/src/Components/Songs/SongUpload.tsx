@@ -169,6 +169,7 @@ export const SongUpload = (props: SongUploadProps) => {
 				<SubmitButton
 					loading={formState.isSubmitting}
 					onClick={callSubmit}
+					disabled={(files?.length || 0) < 1}
 				>
 					Submit
 				</SubmitButton>

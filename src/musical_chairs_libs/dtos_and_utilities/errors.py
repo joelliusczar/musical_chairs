@@ -1,7 +1,10 @@
-
+from .simple_functions import build_error_obj
 
 class AlreadyUsedError(ValueError):
-	pass
+	
+	@staticmethod
+	def build_error(msg: str, field: str) -> "AlreadyUsedError":
+		return AlreadyUsedError([build_error_obj(msg, field)])
 
 class IllegalOperationError(RuntimeError):
 	pass

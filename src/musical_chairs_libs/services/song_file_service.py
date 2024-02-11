@@ -101,7 +101,10 @@ class SongFileService:
 			addSlash=False
 		)
 		if self.__is_path_used(None, path=SavedNameString(path)):
-			raise AlreadyUsedError(f"{path} is already used")
+			raise AlreadyUsedError.build_error(
+				f"{path} is already used",
+				"suffix"
+			)
 		self.delete_overlaping_placeholder_dirs(path)
 		songAboutInfo = self.file_service.save_song(path, file)
 		stmt = insert(songs_tbl).values(

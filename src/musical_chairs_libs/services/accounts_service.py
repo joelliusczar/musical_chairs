@@ -14,7 +14,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
 	AccountCreationInfo,
 	get_datetime,
-	build_error_obj,
 	hashpw,
 	checkpw,
 	validate_email,
@@ -105,19 +104,15 @@ class AccountsService:
 	def create_account(self, accountInfo: AccountCreationInfo) -> AccountInfo:
 		cleanedEmail: ValidatedEmail = validate_email(accountInfo.email)
 		if self._is_username_used(accountInfo.username):
-			raise AlreadyUsedError([
-				build_error_obj(
-					f"{accountInfo.username} is already used.",
-					"body->username"
-				)
-			])
+			raise AlreadyUsedError.build_error(
+				f"{accountInfo.username} is already used.",
+				"body->username"
+			)
 		if self._is_email_used(cleanedEmail):
-			raise AlreadyUsedError([
-				build_error_obj(
-					f"{accountInfo.email} is already used.",
-					"body->email"
-				)
-			])
+			raise AlreadyUsedError.build_error(
+				f"{accountInfo.email} is already used.",
+				"body->email"
+			)
 		hashed = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
 			username=SavedNameString.format_name_for_save(accountInfo.username),
@@ -338,12 +333,10 @@ class AccountsService:
 		validEmail = validate_email(updatedInfo.email)
 		updatedEmail = cast(str, validEmail.email)
 		if updatedEmail != currentUser.email and self._is_email_used(validEmail):
-			raise AlreadyUsedError([
-				build_error_obj(
-					f"{updatedInfo.email} is already used.",
-					"body->email"
-				)
-			])
+			raise AlreadyUsedError.build_error(
+				f"{updatedInfo.email} is already used.",
+				"body->email"
+			)
 		stmt = update(users).values(
 			displayname = updatedInfo.displayname,
 			email = updatedEmail

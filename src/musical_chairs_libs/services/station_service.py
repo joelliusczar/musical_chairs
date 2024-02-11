@@ -48,7 +48,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationCreationInfo,
 	SavedNameString,
 	get_datetime,
-	build_error_obj,
 	AccountInfo,
 	ActionRule,
 	StationActionRule,
@@ -490,10 +489,8 @@ class StationService:
 				self.__create_initial_owner_rules__(affectedId, user.id)
 			self.conn.commit()
 		except IntegrityError:
-			raise AlreadyUsedError(
-				[build_error_obj(
-					f"{savedName} is already used.", "body->name"
-				)]
+			raise AlreadyUsedError.build_error(
+				f"{savedName} is already used.", "body->name"
 			)
 
 		affectedId: int = stationId if stationId else res.lastrowid

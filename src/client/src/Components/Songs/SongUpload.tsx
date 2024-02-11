@@ -84,7 +84,6 @@ export const SongUpload = (props: SongUploadProps) => {
 	});
 	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
-		console.log("submit");
 		let idx = 0;
 		try {
 			const results: SongTreeNodeInfo[] = [];
@@ -106,7 +105,7 @@ export const SongUpload = (props: SongUploadProps) => {
 		}
 		catch(err) {
 			const errMsg = formatError(err);
-			enqueueSnackbar(formatError(err), { variant: "error"});
+			enqueueSnackbar(errMsg, { variant: "error"});
 			uploadDispatch(dispatches.failed([{ key: idx, msg: errMsg}]));
 			console.error(err);
 		}

@@ -328,9 +328,17 @@ class SongFileService:
 		self,
 		paths: ReusableIterable[SongPathInfo]
 	) -> dict[str, bool]:
-		query = select(sg_pk, sg_path).where(sg_path.in_(p.path for p in paths))
+		addSlash=True
+		query = select(sg_pk, sg_path).where(
+			func.normalize_opening_slash(
+				sg_path, 
+				addSlash
+			).in_(p.path for p in paths))
 		rows = self.conn.execute(query)
-		pathToId = {cast(str, r[1]): cast(int, r[0]) for r in rows}
+		pathToId = {
+			normalize_opening_slash(cast(str, r[1])): cast(int, r[0]) 
+			for r in rows
+		}
 		return {
 			Path(p.path).name: (pathToId.get(p.path, p.id) != p.id) 
 			for p in paths
@@ -345,7 +353,9 @@ class SongFileService:
 			SongPathInfo(
 				id=p.id,
 				path=str(SavedNameString(
-						squash_sequential_duplicate_chars(f"{prefix}/{p.path}", "/")
+						normalize_opening_slash(
+							squash_sequential_duplicate_chars(f"{prefix}/{p.path}", "/")
+						)
 					)
 				)
 			) 

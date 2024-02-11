@@ -43,7 +43,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
 	ValidatedSongAboutInfo,
 	TableData,
-	PathsActionRule
+	PathsActionRule,
+	SongPathInfo
 )
 from song_validation import (
 	extra_validated_song,
@@ -310,6 +311,19 @@ def is_phrase_used(
 	return {
 		"suffix": songFileService.is_path_used(id, prefix, suffix)
 	}
+
+@router.put("/check_multi/",
+	dependencies=[
+		Depends(get_current_user_simple)
+	]
+)
+def are_paths_used(
+	songSuffixes: list[SongPathInfo],
+	prefix: str = Depends(get_prefix_if_owner),
+	songFileService: SongFileService = Depends(song_file_service)
+) -> dict[str, bool]:
+	return songFileService.are_paths_used(prefix, songSuffixes)
+
 
 @router.post("/directory")
 def create_directory(

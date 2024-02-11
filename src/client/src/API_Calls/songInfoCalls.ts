@@ -299,6 +299,31 @@ export const checkValues = (
 	};
 };
 
+export const checkSuffixes = ({
+	prefix,
+	songSuffixes,
+}: {
+	prefix: string,
+	songSuffixes: { id?: IdValue, suffix: string }[]
+}) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const response = await webClient.put<Flags<StringObject>>(
+				"/song-info/check_multi/", 
+				songSuffixes,
+				{
+					params: {
+						prefix: prefix,
+					},
+					signal: abortController.signal,
+				});
+			return response.data;
+		},
+	};
+};
+
 export const uploadSong = (
 	{ suffix, prefix, files }: UploadInfo
 ) => {

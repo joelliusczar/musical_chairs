@@ -10,7 +10,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
 	get_datetime,
 	ArtistInfo,
-	build_error_obj,
 	AlreadyUsedError,
 	AccountInfo,
 	OwnerInfo,
@@ -150,9 +149,7 @@ class ArtistService:
 			self.conn.commit()
 			return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
 		except IntegrityError:
-			raise AlreadyUsedError(
-				[build_error_obj(
-					f"{artistName} is already used.",
-					"path->name"
-				)]
+			raise AlreadyUsedError.build_error(
+				f"{artistName} is already used.",
+				"path->name"
 			)

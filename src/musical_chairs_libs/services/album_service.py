@@ -12,7 +12,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	AlbumInfo,
 	ArtistInfo,
-	build_error_obj,
 	AlbumCreationInfo,
 	AlreadyUsedError,
 	AccountInfo,
@@ -174,11 +173,9 @@ class AlbumService:
 				albumartist=artist
 			)
 		except IntegrityError:
-			raise AlreadyUsedError(
-				[build_error_obj(
-					f"{album.name} is already used for artist.",
-					"body->name"
-				)]
+			raise AlreadyUsedError.build_error(
+				f"{album.name} is already used for artist.",
+				"body->name"
 			)
 
 	def get_or_save_album(

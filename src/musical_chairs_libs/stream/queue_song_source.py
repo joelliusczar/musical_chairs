@@ -13,7 +13,9 @@ from typing import (
 from musical_chairs_libs.services.fs import S3FileService
 from musical_chairs_libs.services import (
 	EnvManager,
-	QueueService
+	QueueService,
+	ArtistService,
+	AlbumService
 )
 from musical_chairs_libs.dtos_and_utilities import BlockingQueue
 from tempfile import NamedTemporaryFile
@@ -58,11 +60,14 @@ def load_data(dbName: str, stationId: int):
 	global stopLoading
 	global stopSending
 	try:
+		conn = EnvManager.get_configured_radio_connection(dbName)
 		currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		for (filename, display) in get_song_info(stationId, dbName):
 			if stopLoading:
 				break
-			fileService = S3FileService()
+			artistService = ArtistService(conn)
+			albumService = AlbumService(conn)
+			fileService = S3FileService(artistService, albumService)
 			logging.logger.info(f"file name: {filename}")
 			with fileService.open_song(filename) as src:
 				for chunk in src:

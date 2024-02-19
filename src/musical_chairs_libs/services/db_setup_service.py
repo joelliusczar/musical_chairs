@@ -24,7 +24,7 @@ class DbRootConnectionService:
 		self.conn = self.conn = self.get_root_connection()
 
 	def get_root_connection(self) -> Connection:
-		dbPass = EnvManager.db_setup_pass
+		dbPass = EnvManager.db_setup_pass()
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
 		engineAsRoot = create_engine(
@@ -58,7 +58,7 @@ class DbRootConnectionService:
 		)
 
 	def create_app_users(self):
-		dbPass = EnvManager.db_pass_api
+		dbPass = EnvManager.db_pass_api()
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
 		self.create_db_user(
@@ -67,7 +67,7 @@ class DbRootConnectionService:
 			dbPass
 		)
 
-		dbPass = EnvManager.db_pass_radio
+		dbPass = EnvManager.db_pass_radio()
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
 		self.create_db_user(
@@ -77,7 +77,7 @@ class DbRootConnectionService:
 		)
 
 	def create_owner(self):
-		dbPass = EnvManager.db_pass_owner
+		dbPass = EnvManager.db_pass_owner()
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
 		self.create_db_user(
@@ -131,7 +131,7 @@ class DbOwnerConnectionService:
 		self.conn = self.get_owner_connection()
 
 	def get_owner_connection(self) -> Connection:
-		dbPass = EnvManager.db_pass_owner
+		dbPass = EnvManager.db_pass_owner()
 		if not dbPass:
 			raise RuntimeError("The system is not configured correctly for that.")
 		if not is_db_name_safe(self.dbName):

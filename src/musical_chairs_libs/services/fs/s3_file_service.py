@@ -27,11 +27,11 @@ class S3FileService(FileServiceBase):
 			"s3",
 			config=Config(
 				signature_version='s3v4',
-				region_name=EnvManager.s3_region_name
+				region_name=EnvManager.s3_region_name()
 			)
 		)
 		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues, reportUnknownVariableType]]
-			bucket_name=EnvManager.s3_bucket_name,
+			bucket_name=EnvManager.s3_bucket_name(),
 			key=keyPath
 		)
 		s3_obj.put(Body=file) #pyright: ignore [reportUnknownMemberType]
@@ -45,11 +45,11 @@ class S3FileService(FileServiceBase):
 			"s3",
 			config=Config(
 				signature_version='s3v4',
-				region_name=EnvManager.s3_region_name
+				region_name=EnvManager.s3_region_name()
 			)
 		) 
 		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues, reportUnknownVariableType]]
-			bucket_name=EnvManager.s3_bucket_name,
+			bucket_name=EnvManager.s3_bucket_name(),
 			key=keyPath
 		)
 		body = s3_obj.get()["Body"] #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
@@ -60,13 +60,13 @@ class S3FileService(FileServiceBase):
 			"s3",
 			config=Config(
 				signature_version='s3v4',
-				region_name=EnvManager.s3_region_name
+				region_name=EnvManager.s3_region_name()
 			)
 		) 
 		url = s3Client.generate_presigned_url( #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
 			'get_object', 
 			Params = {
-				'Bucket': EnvManager.s3_bucket_name,
+				'Bucket': EnvManager.s3_bucket_name(),
 				'Key': keyPath
 			},
 			HttpMethod = 'get'

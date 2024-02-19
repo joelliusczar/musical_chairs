@@ -183,7 +183,7 @@ class AccountsService:
 				"sub": SavedNameString.format_name_for_save(userName),
 				"exp": expire
 			},
-			EnvManager.secret_key,
+			EnvManager.secret_key(),
 			ALGORITHM
 		)
 		return token
@@ -200,7 +200,7 @@ class AccountsService:
 			return None, 0
 		decoded: dict[Any, Any] = jwt.decode(
 			token,
-			EnvManager.secret_key,
+			EnvManager.secret_key(),
 			algorithms=[ALGORITHM]
 		)
 		expiration = decoded.get("exp") or 0
@@ -344,7 +344,7 @@ class AccountsService:
 		self.conn.execute(stmt)
 		self.conn.commit()
 		return AccountInfo(
-			**{**currentUser.model_dump(), #pyright: ignore [reportGeneralTypeIssues]
+			**{**currentUser.model_dump(), #pyright: ignore [reportArgumentType]
 				"displayname": updatedInfo.displayname,
 				"email": updatedEmail
 			}

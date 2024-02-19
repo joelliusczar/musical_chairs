@@ -11,17 +11,17 @@ class TemplateService:
 		pass
 
 	def __load_ices_config_template__(self) -> str:
-		templateDir = EnvManager.templates_dir
+		templateDir = EnvManager.templates_dir()
 		txt = Path(f"{templateDir}/ices.conf").read_text()
 		return txt
 
 	def __load_ices_python_module_template__(self) -> str:
-		templateDir = EnvManager.templates_dir
+		templateDir = EnvManager.templates_dir()
 		txt = Path(f"{templateDir}/template.py").read_text()
 		return txt
 	
 	def __load_icecast_config_template__(self) -> str:
-		templateDir = EnvManager.templates_dir
+		templateDir = EnvManager.templates_dir()
 		txt = Path(f"{templateDir}/icecast.xml").read_text()
 		return txt
 
@@ -70,15 +70,15 @@ class TemplateService:
 			username
 		)
 		filename_base = f"{username}_{internalName}"
-		Path(f"{EnvManager.station_config_dir}/ices.{filename_base}.conf")\
+		Path(f"{EnvManager.station_config_dir()}/ices.{filename_base}.conf")\
 			.write_text(configContent)
 		pythonModuleContent = self.__create_ices_python_module_content__(stationId)
-		Path(f"{EnvManager.station_module_dir}/{filename_base}.py")\
+		Path(f"{EnvManager.station_module_dir()}/{filename_base}.py")\
 			.write_text(pythonModuleContent)
 
 	@staticmethod
 	def load_sql_script_content(script: SqlScripts) -> str:
-		sqlScriptsDir = EnvManager.sql_script_dir
+		sqlScriptsDir = EnvManager.sql_script_dir()
 		txt = Path(f"{sqlScriptsDir}/{script.file_name}").read_text()
 		checksum = hashlib.md5(txt.encode("utf-8")).hexdigest()
 		if checksum != script.checksum:

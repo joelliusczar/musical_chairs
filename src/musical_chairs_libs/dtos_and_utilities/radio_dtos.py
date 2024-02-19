@@ -263,8 +263,8 @@ class ValidatedSongAboutInfo(SongAboutInfo):
 				"but it is only legal to add it once."
 			)
 		return v
-
-	@model_validator(mode="after")
+	
+	@model_validator(mode="after") # type: ignore
 	def root_validator(self) -> "ValidatedSongAboutInfo":
 		artists = self.artists or []
 		primaryArtist = self.primaryartist or None

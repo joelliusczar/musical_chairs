@@ -204,6 +204,8 @@ class AccountCreationInfo(AccountInfoSecurity):
 	@field_validator("email")
 	def check_email(cls, v: str) -> str:
 		valid = validate_email(v)
+		if not valid or not valid.email:
+			raise ValueError("Email is null")
 		return valid.email #pyright: ignore [reportGeneralTypeIssues]
 
 	_pass_len = field_validator( #pyright: ignore [reportUnknownVariableType]

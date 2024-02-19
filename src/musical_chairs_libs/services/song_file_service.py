@@ -289,7 +289,7 @@ class SongFileService:
 			query = query.where(sg_pk == itemIds)
 		results = self.conn.execute(query)
 		if useFullSystemPath:
-			yield from (f"{EnvManager.absolute_content_home}/{row[0]}" \
+			yield from (f"{EnvManager.absolute_content_home()}/{row[0]}" \
 				for row in results
 			)
 		else:

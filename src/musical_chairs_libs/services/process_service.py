@@ -27,11 +27,11 @@ def __start_ices__(
 		env={
 				"MC_STATION_PORT": portNumber, 
 			 "PATH": os.environ["PATH"],
-			 "MC_CONTENT_HOME": EnvManager.relative_content_home,
-			 "MC_APP_ROOT": EnvManager.app_root,
-			 "MC_DB_PASS_RADIO": EnvManager.db_pass_radio,
-			 "MC_RADIO_LOG_DIR_CL": EnvManager.radio_logs_dir,
-			 "MC_DATABASE_NAME": EnvManager.db_name
+			 "MC_CONTENT_HOME": EnvManager.relative_content_home(),
+			 "MC_APP_ROOT": EnvManager.app_root(),
+			 "MC_DB_PASS_RADIO": EnvManager.db_pass_radio(),
+			 "MC_RADIO_LOG_DIR_CL": EnvManager.radio_logs_dir(),
+			 "MC_DATABASE_NAME": EnvManager.db_name()
 			}
 	)
 
@@ -74,7 +74,7 @@ class ProcessService:
 				"Noop mode. Won't search for station config"
 	 			" nor try to launch process"
 			)
-			return #pyright: ignore [reportGeneralTypeIssues]
+			return #pyright: ignore [reportReturnType]
 		if not os.path.isfile(stationConf):
 			raise LookupError(f"Station not found at: {stationConf}")
 		return __start_ices__(stationConf, portNumber)

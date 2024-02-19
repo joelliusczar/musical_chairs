@@ -215,9 +215,9 @@ def fixture_user_actions_history_service(
 @pytest.fixture
 def fixture_clean_station_folders():
 	yield
-	for file in os.scandir(EnvManager.station_config_dir):
+	for file in os.scandir(EnvManager.station_config_dir()):
 		os.remove(file.path)
-	for file in os.scandir(EnvManager.station_module_dir):
+	for file in os.scandir(EnvManager.station_module_dir()):
 		os.remove(file.path)
 
 @pytest.fixture
@@ -304,7 +304,7 @@ def fixture_db_queryer(
 def ices_config_monkey_patch(
 	monkeypatch: pytest.MonkeyPatch
 ):
-	icecastTemplateLocation = f"{EnvManager.templates_dir}/icecast.xml"
+	icecastTemplateLocation = f"{EnvManager.templates_dir()}/icecast.xml"
 	cmdOutput = "     CGroup: /system.slice/icecast2.service\n"\
 		f"           └─966 /usr/bin/icecast2 -b -c {icecastTemplateLocation}"
 	def mock_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:

@@ -1689,6 +1689,11 @@ setup_nginx_confs() (
 	echo 'done setting up nginx confs'
 )
 
+refresh_certs() (
+	setup_ssl_cert_nginx &&
+	restart_nginx
+)
+
 start_icecast_service() (
 	echo 'starting icecast service'
 	icecastName="$1"

@@ -63,7 +63,7 @@ async def change_errors(
 	ex: StarletteHTTPException
 ) -> Response:
 	if type(ex.detail) is str:
-		ex.detail = [build_error_obj(ex.detail)] #pyright: ignore [reportGeneralTypeIssues]
+		ex.detail = [build_error_obj(ex.detail)] #pyright: ignore [reportAttributeAccessIssue]
 	return await http_exception_handler(request, ex)
 
 @app.exception_handler(AlreadyUsedError) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 		privateKey = sys.argv[1]
 		publicKey = sys.argv[2]
 		uvicorn.run(
-			app, #pyright: ignore [reportGeneralTypeIssues]
+			app, #pyright: ignore [reportArgumentType]
 			host="0.0.0.0",
 			port=8032,
 			ssl_keyfile=privateKey,
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 		)
 	else:
 		uvicorn.run(
-			app, #pyright: ignore [reportGeneralTypeIssues]
+			app, #pyright: ignore [reportArgumentType]
 			host="0.0.0.0",
 			port=8032
 		)

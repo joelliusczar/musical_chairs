@@ -48,6 +48,10 @@ const buildNodeId = (level: number, dirIdx: number, idx: number) => {
 	return`${level}-${dirIdx}-${idx}`;
 };
 
+const isNodeDirectory = (node: SongTreeNodeInfo) => {
+	return node.path?.endsWith("/");
+};
+
 const songTreeParentInfoToNodeIds = (
 	treeInfo: Dictionary<ListData<SongTreeNodeInfo>>
 ) => {
@@ -88,13 +92,13 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 	},[dispatch, songNodeInfo, nodeId]);
 
 	useEffect(() => {
-		
+		if (!isNodeDirectory(songNodeInfo)) return;
 		const selector = `#${treeId}-${nodeId} .Mui-expanded`;
 		const el = document.querySelectorAll(selector)[0];
 		if (el) {
 			el.scrollIntoView({ block: "center", behavior: "smooth"});
 		}
-	},[nodeId]);
+	},[nodeId, songNodeInfo]);
 
 	const label = songNodeInfo.name ?
 		songNodeInfo.name : songNodeInfo.path.replace(prefix, "");
@@ -303,10 +307,6 @@ export const SongTree = withCacheProvider<
 		const navigate = useNavigate();
 		const location = useLocation();
 
-		const isNodeDirectory = (node: SongTreeNodeInfo) => {
-			return node.path?.endsWith("/");
-		};
-
 		const getDirectoryPart = (path: string) => {
 			const directoryPart = path.replace(/[^/]+$/, "");
 			return directoryPart;
@@ -321,7 +321,6 @@ export const SongTree = withCacheProvider<
 		};
 
 		const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
-			console.log("select", nodeIds);
 			if(nodeIds.length === 1) {
 				const songNodeInfo = treeData[nodeIds[0]];
 				if(selectedNodes[0] === nodeIds[0]) { //unselect
@@ -340,7 +339,11 @@ export const SongTree = withCacheProvider<
 							});
 						}
 						else {
-							expandedCopy.splice(expandedFoundIdx, 1);
+							const isFoundSelected = selectedNodes
+								.some(n => n === expandedNodes[expandedFoundIdx].nodeId);
+							if (isFoundSelected) {
+								expandedCopy.splice(expandedFoundIdx, 1);
+							}
 						}
 						setExpandedNodes(expandedCopy);
 

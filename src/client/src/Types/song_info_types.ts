@@ -67,6 +67,11 @@ export class InitialQueueState extends VoidStore {
 	}
 }
 
+export interface DirectoryInfoNodeInfo {
+	path: string,
+	nodeId: string
+}
+
 export interface SongTreeNodeInfo {
 	path: string
 	totalChildCount: number

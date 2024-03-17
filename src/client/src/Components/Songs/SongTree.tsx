@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Button, AppBar, Toolbar } from "@mui/material";
 import { TreeView, TreeItem } from "@mui/lab";
 import { 
@@ -25,7 +25,10 @@ import {
 	useCurrentUser,
 } from "../../Context_Providers/AuthContext/AuthContext";
 import { normalizeOpeningSlash } from "../../Helpers/string_helpers";
-import { SongTreeNodeInfo } from "../../Types/song_info_types";
+import {
+	SongTreeNodeInfo,
+	DirectoryInfoNodeInfo,
+} from "../../Types/song_info_types";
 import { IdValue, Dictionary, KeyValue } from "../../Types/generic_types";
 import { ListData } from "../../Types/pageable_types";
 import { PathsActionRule } from "../../Types/user_types";
@@ -39,6 +42,11 @@ import { isCallPending } from "../../Helpers/request_helpers";
 import { cookieToObjectURIDecoded } from "../../Helpers/browser_helpers";
 import { notNullPredicate } from "../../Helpers/array_helpers";
 
+const treeId = "song-tree";
+
+const buildNodeId = (level: number, dirIdx: number, idx: number) => {
+	return`${level}-${dirIdx}-${idx}`;
+};
 
 const songTreeParentInfoToNodeIds = (
 	treeInfo: Dictionary<ListData<SongTreeNodeInfo>>
@@ -50,7 +58,10 @@ const songTreeParentInfoToNodeIds = (
 		const foundIdx = treeInfo[keys[i - 1]]
 			.items
 			.findIndex(p => p.path === keys[i]);
-		result.push(`${i - 1}_${precomputedDirIdx}_${foundIdx}`);
+		result.push({
+			path: keys[i - 1],
+			nodeId: buildNodeId(i - 1, precomputedDirIdx, foundIdx),
+		});
 		precomputedDirIdx = foundIdx;
 	}
 	return result;
@@ -76,11 +87,23 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 		}));
 	},[dispatch, songNodeInfo, nodeId]);
 
+	useEffect(() => {
+		
+		const selector = `#${treeId}-${nodeId} .Mui-expanded`;
+		const el = document.querySelectorAll(selector)[0];
+		if (el) {
+			el.scrollIntoView({ block: "center", behavior: "smooth"});
+		}
+	},[nodeId]);
+
 	const label = songNodeInfo.name ?
 		songNodeInfo.name : songNodeInfo.path.replace(prefix, "");
 
 	return (
-		<TreeItem nodeId={nodeId} label={label}>
+		<TreeItem 
+			nodeId={nodeId} 
+			label={label}
+		>
 			{children}
 		</TreeItem>
 	);
@@ -91,7 +114,7 @@ type SongDirectoryProps = {
 	prefix: string
 	level: number
 	dirIdx: number,
-	setExpandedNodes: (p: string[]) => void,
+	setExpandedNodes: (p: DirectoryInfoNodeInfo[]) => void,
 };
 
 const SongDirectory = (props: SongDirectoryProps) => {
@@ -238,7 +261,7 @@ const SongDirectory = (props: SongDirectoryProps) => {
 	return (
 		<Loader status={callStatus} error={error}>
 			{currentLevelData.items.map((d, idx) => {
-				const key = `${level}_${dirIdx}_${idx}`;
+				const key = buildNodeId(level, dirIdx, idx);
 
 				return (
 					<SongTreeNode
@@ -266,7 +289,9 @@ export const SongTree = withCacheProvider<
 	SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 >()(
 	() => {
-		const [expandedNodes, setExpandedNodes] = useState<string[]>([]); 
+		const [expandedNodes, setExpandedNodes] = useState<
+			DirectoryInfoNodeInfo[]
+		>([]); 
 		const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 		const [selectedPrefix, setSelectedPrefix] = useState<string | null>(null);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
@@ -296,19 +321,23 @@ export const SongTree = withCacheProvider<
 		};
 
 		const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
+			console.log("select", nodeIds);
 			if(nodeIds.length === 1) {
+				const songNodeInfo = treeData[nodeIds[0]];
 				if(selectedNodes[0] === nodeIds[0]) { //unselect
 					setSelectedNodes([]);
 				}
-				const songNodeInfo = treeData[nodeIds[0]];
 				if (!!songNodeInfo && "path" in songNodeInfo) {
 					if (isNodeDirectory(songNodeInfo)) {
 						updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
 						const expandedCopy = [...expandedNodes];
 						const expandedFoundIdx = 
-							expandedNodes.findIndex(n => n === nodeIds[0]);
+							expandedNodes.findIndex(n => n.nodeId === nodeIds[0]);
 						if (expandedFoundIdx === -1) {
-							expandedCopy.push(nodeIds[0]);
+							expandedCopy.push({
+								path: songNodeInfo.path,
+								nodeId: nodeIds[0],
+							});
 						}
 						else {
 							expandedCopy.splice(expandedFoundIdx, 1);
@@ -466,9 +495,10 @@ export const SongTree = withCacheProvider<
 				<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />
 				<TreeView
 					selected={selectedNodes}
-					expanded={expandedNodes}
+					expanded={expandedNodes.map(n => n.nodeId)}
 					onNodeSelect={onNodeSelect}
 					multiSelect
+					id={treeId}
 				>
 					<SongDirectory
 						prefix=""

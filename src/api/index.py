@@ -17,7 +17,8 @@ from controllers import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
-	AlreadyUsedError
+	AlreadyUsedError,
+	MCNotImplementedError
 )
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
@@ -97,6 +98,26 @@ def handle_invalid_email(
 			"access-control-allow-credentials": "true"
 		}
 	)
+
+@app.exception_handler(MCNotImplementedError) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]
+def not_implemented(
+	request: Request,
+	ex: Exception
+) -> JSONResponse:
+	response = JSONResponse(content=
+		{ "detail": [
+				build_error_obj("This functionality has not been implemented")
+			]
+		},
+		status_code=500,
+		headers={
+			"Access-Control-Allow-Origin": get_cors_origin_or_default(
+				request.headers.get("origin", "")
+			),
+			"access-control-allow-credentials": "true"
+		}
+	)
+	return response
 
 
 @app.exception_handler(Exception) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]

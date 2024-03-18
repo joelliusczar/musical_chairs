@@ -351,3 +351,16 @@ def upload_song(
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> SongTreeNode:
 	return songFileService.save_song_file(file.file, prefix, suffix, user.id)
+
+@router.delete("/path/delete_prefix")
+def delete_prefix(
+	prefix: str = Depends(get_prefix_if_owner),
+	user: AccountInfo = Security(
+		check_optional_path_for_current_user,
+		scopes=[UserRoleDef.PATH_DELETE.value]
+	),
+	songFileService: SongFileService = Depends(song_file_service)
+) -> dict[str, ListData[SongTreeNode]]:
+	return {x[0]:ListData(items=x[1]) for x \
+		in songFileService.delete_prefix(prefix, user).items()
+	}

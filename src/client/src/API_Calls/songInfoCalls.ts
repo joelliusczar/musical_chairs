@@ -364,3 +364,23 @@ export const songDownloadUrl = ({ id }:{ id: IdValue}) => {
 		},
 	};
 };
+
+export const deletePrefix = ({ prefix }:{ prefix: string}) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const response = await webClient
+				.delete<Dictionary<ListData<SongTreeNodeInfo>>>(
+					"/song-info/path/delete_prefix",
+					{ 
+						params: {
+							prefix,
+						},
+						signal: abortController.signal,
+					}
+				);
+			return response.data;
+		},
+	};
+};

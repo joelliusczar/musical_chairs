@@ -5,8 +5,10 @@ import {
 	fetchSongsLs,
 	fetchSongLsParents,
 	songDownloadUrl,
+	deletePrefix,
 } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
+import { YesNoModalOpener } from "../Shared/YesNoControl";
 import { drawerWidth } from "../../style_config";
 import { 
 	useCache,
@@ -24,7 +26,9 @@ import { useSnackbar } from "notistack";
 import {
 	useCurrentUser,
 } from "../../Context_Providers/AuthContext/AuthContext";
-import { normalizeOpeningSlash } from "../../Helpers/string_helpers";
+import { 
+	normalizeOpeningSlash,
+} from "../../Helpers/string_helpers";
 import {
 	SongTreeNodeInfo,
 	DirectoryInfoNodeInfo,
@@ -410,7 +414,26 @@ export const SongTree = withCacheProvider<
 			if (isDirectorySelected()) return false;
 			if (selectedPrefix !== null) {
 				const hasRule = selectedPrefixRules
-					.filter(r => r.name === UserRoleDef.PATH_USER_LIST)
+					.filter(r => r.name === UserRoleDef.PATH_USER_LIST ||
+						r.domain === UserRoleDomain.SITE
+					)
+					.some(r =>
+						(r.path &&
+							selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
+						r.domain === UserRoleDomain.SITE
+					);
+				return hasRule;
+			}
+			return false;
+		};
+
+		const canDeletePath = () => {
+			if (selectedNodes.length !== 1) return false;
+			if (selectedPrefix !== null) {
+				const hasRule = selectedPrefixRules
+					.filter(r => r.name === UserRoleDef.PATH_DELETE ||
+						r.domain === UserRoleDomain.SITE
+					)
 					.some(r =>
 						(r.path &&
 							selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
@@ -445,12 +468,25 @@ export const SongTree = withCacheProvider<
 			navigate(getSongEditUrl(nodeIds));
 		};
 
-		const onAddNewNode = (nodes: Dictionary<ListData<SongTreeNodeInfo>>) => {
+		const updateTree = (nodes: Dictionary<ListData<SongTreeNodeInfo>>) => {
 			Object.keys(nodes).forEach(key => {
 				dispatch(dispatches.done({
 					[normalizeOpeningSlash(key)]: nodes[key],
 				}));
 			});
+		};
+
+		const deleteNode = async () => {
+			if (selectedPrefix) {
+				try {
+					const requestObj = deletePrefix({prefix: selectedPrefix});
+					const result = await requestObj.call();
+					updateTree(result);
+				}
+				catch (err) {
+					enqueueSnackbar(formatError(err),{ variant: "error"});
+				}
+			}
 		};
 
 		return (
@@ -485,7 +521,7 @@ export const SongTree = withCacheProvider<
 						</Button>}
 						{isDirectorySelected() && selectedPrefix &&
 							<DirectoryNewModalOpener 
-								add={onAddNewNode}
+								add={updateTree}
 								prefix={selectedPrefix} 
 							/>}
 						{isDirectorySelected() && selectedPrefix &&
@@ -493,6 +529,12 @@ export const SongTree = withCacheProvider<
 								add={onAddNewSong}
 								prefix={selectedPrefix} 
 							/>}
+						{canDeletePath() && <YesNoModalOpener
+							promptLabel="Delete Path"
+							message={`Are you sure you want to delete ${selectedPrefix}`}
+							onYes={() => deleteNode()}
+							onNo={() => {}}
+						/>}
 					</Toolbar>
 				</AppBar>}
 				<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />

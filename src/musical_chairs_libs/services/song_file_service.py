@@ -25,7 +25,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongArtistTuple,
 	AlreadyUsedError,
 	SongPathInfo,
-	ReusableIterable
+	ReusableIterable,
+	MCNotImplementedError
 )
 from sqlalchemy import (
 	select,
@@ -41,7 +42,7 @@ from sqlalchemy.sql.expression import (
 )
 from musical_chairs_libs.tables import (
 	songs as songs_tbl,
-	sg_pk, sg_name, sg_path,
+	sg_pk, sg_name, sg_path, sg_isdirplacholhder,
 	st_pk
 )
 from .env_manager import EnvManager
@@ -366,7 +367,6 @@ class SongFileService:
 		]
 		return self.__are_paths_used__(cleanedPaths)
 
-
 	def is_path_used(
 		self,
 		id: Optional[int],
@@ -378,3 +378,31 @@ class SongFileService:
 		if not cleanedPath:
 			return True
 		return self.__is_path_used(id, cleanedPath)
+	
+	def delete_prefix(
+		self,
+		prefix: str,
+		user: AccountInfo
+	) -> dict[str, list[SongTreeNode]]:
+		_prefix = normalize_opening_slash(
+				squash_sequential_duplicate_chars(prefix, "/")
+			)
+		addSlash = True
+		query = select(sg_pk, sg_isdirplacholhder)\
+			.where(func.normalize_opening_slash(
+				sg_path, 
+				addSlash
+			) == _prefix)
+		row = self.conn.execute(query).fetchone()
+		if row and row[1]:
+			songId = cast(int, row[0])
+			stmt = delete(songs_tbl).where(sg_pk == songId)
+			self.conn.execute(stmt)
+			self.conn.commit()
+		else:
+			raise MCNotImplementedError(
+				"Deleting songs or populated directories not currently Supported"
+			)
+		parentPrefix = str(Path(prefix).parent)
+		return self.song_ls_parents(user, parentPrefix)
+		

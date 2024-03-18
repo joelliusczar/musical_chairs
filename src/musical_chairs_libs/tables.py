@@ -123,6 +123,7 @@ sg_comment = cast(Column[Optional[String]], sg.comment)
 sg_lyrics = cast(Column[Optional[String]], sg.lyrics)
 sg_duration = cast(Column[Optional[Float[float]]], sg.duration)
 sg_sampleRate = cast(Column[Optional[Float[float]]], sg.samplerate)
+sg_isdirplacholhder = cast(Column[Boolean], sg.isdirectoryplaceholder)
 
 Index("idx_uniquesongpath", sg_path, unique=True)
 

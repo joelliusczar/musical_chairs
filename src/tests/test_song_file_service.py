@@ -563,3 +563,19 @@ def test_get_parent_directoriess_of_bad_path(
 	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
 	assert fooRudePaths[0].path == "foo/rude/bog/"
 	assert fooRudePaths[1].path == "foo/rude/rog/"
+
+def test_delete_directory(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+	songFileService.create_directory("foo/goo", "testdir", user)
+	result = songFileService.song_ls_parents(user, "foo/goo")
+	assert len(result["foo/goo/"]) == 12
+	assert "foo/goo/testdir/" in (p.path for p in result["foo/goo/"])
+	result = songFileService.delete_prefix("foo/goo/testdir/", user)
+	assert len(result["foo/goo/"]) == 11
+	assert "foo/goo/testdir/" not in (p.path for p in result["foo/goo/"])

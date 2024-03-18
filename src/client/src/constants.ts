@@ -76,6 +76,7 @@ export const UserRoleDef: StringObject = {
 	USER_IMPERSONATE: "user:impersonate",
 	PATH_LIST: `${UserRoleDomain.PATH}:list`,
 	PATH_EDIT: `${UserRoleDomain.PATH}:edit`,
+	PATH_DELETE: `${UserRoleDomain.PATH}:delete`,
 	PATH_VIEW: `${UserRoleDomain.PATH}:view`,
 	PATH_USER_ASSIGN: `${UserRoleDomain.PATH}:userassign`,
 	PATH_USER_LIST: `${UserRoleDomain.PATH}:userlist`,

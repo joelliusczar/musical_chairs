@@ -66,6 +66,7 @@ class UserRoleDef(Enum):
 	USER_IMPERSONATE = "user:impersonate"
 	PATH_LIST = f"{UserRoleDomain.Path.value}:list"
 	PATH_EDIT = f"{UserRoleDomain.Path.value}:edit"
+	PATH_DELETE = f"{UserRoleDomain.Path.value}:delete"
 	PATH_VIEW = f"{UserRoleDomain.Path.value}:view"
 	PATH_USER_ASSIGN = f"{UserRoleDomain.Path.value}:userassign"
 	PATH_USER_LIST = f"{UserRoleDomain.Path.value}:userlist"

@@ -22,6 +22,8 @@ from api_dependencies import (
 	dl_url_file_service,
 	album_service,
 	artist_service,
+	get_optional_prefix,
+	get_prefix,
 )
 
 from musical_chairs_libs.services import (
@@ -60,7 +62,7 @@ router = APIRouter(prefix="/song-info")
 
 @router.get("/songs/ls")
 def song_ls(
-	prefix: Optional[str] = None,
+	prefix: Optional[str] = Depends(get_optional_prefix),
 	user: AccountInfo = Security(
 		get_path_rule_loaded_current_user,
 		scopes=[UserRoleDef.PATH_LIST.value]
@@ -72,16 +74,20 @@ def song_ls(
 
 @router.get("/songs/ls_parents")
 def song_ls_parents(
-	prefix: str,
+	prefix: str = Depends(get_prefix),
 	user: AccountInfo = Security(
 		get_path_rule_loaded_current_user,
 		scopes=[UserRoleDef.PATH_LIST.value]
 	),
 	songInfoService: SongFileService = Depends(song_file_service)
 ) -> dict[str, ListData[SongTreeNode]]:
-	return {x[0]:ListData(items=x[1]) for x \
+	result = {
+		x[0]:ListData(
+			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
+		) for x 
 		in songInfoService.song_ls_parents(user, prefix).items()
 	}
+	return result
 
 
 @router.get("/songs/{itemId}")
@@ -254,7 +260,7 @@ def get_all_albums(
 	)
 ])
 def get_path_user_list(
-	prefix: str,
+	prefix: str = Depends(get_prefix),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
 ) -> TableData[AccountInfo]:
 	pathUsers = list(pathRuleService.get_users_of_path(prefix))
@@ -269,7 +275,7 @@ def get_path_user_list(
 	]
 )
 def add_user_rule(
-	prefix: str,
+	prefix: str = Depends(get_prefix),
 	user: AccountInfo = Depends(get_from_query_subject_user),
 	rule: PathsActionRule = Depends(validate_path_rule),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
@@ -286,7 +292,7 @@ def add_user_rule(
 	]
 )
 def remove_user_rule(
-	prefix: str,
+	prefix: str = Depends(get_prefix),
 	user: AccountInfo = Depends(get_from_query_subject_user),
 	rulename: Optional[str] = Depends(validate_path_rule_for_remove),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
@@ -335,9 +341,13 @@ def create_directory(
 	),
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, ListData[SongTreeNode]]:
-	return {x[0]:ListData(items=x[1]) for x \
-		in songFileService.create_directory(prefix, suffix, user).items()
-	}
+		result = {
+		x[0]:ListData(
+			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
+			) for x 
+			in songFileService.create_directory(prefix, suffix, user).items()
+		}
+		return result
 
 @router.post("/upload")
 def upload_song(
@@ -361,6 +371,10 @@ def delete_prefix(
 	),
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, ListData[SongTreeNode]]:
-	return {x[0]:ListData(items=x[1]) for x \
+	result = {
+		x[0]:ListData(
+			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
+		) for x 
 		in songFileService.delete_prefix(prefix, user).items()
 	}
+	return result

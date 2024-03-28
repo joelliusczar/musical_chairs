@@ -57,7 +57,10 @@ const schema = Yup.object().shape({
 
 type DirectoryEditProps = {
 	onCancel?: (e: unknown) => void
-	afterSubmit?: (s: Dictionary<ListData<SongTreeNodeInfo>>) => void,
+	afterSubmit?: (
+		s: Dictionary<ListData<SongTreeNodeInfo>>,
+		fullPath: string,
+	) => void,
 	prefix: string,
 };
 
@@ -82,7 +85,7 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 		try {
 			const requestObj = saveDirectory(values);
 			const result = await requestObj.call();
-			afterSubmit(result);
+			afterSubmit(result, `${values.prefix}${values.suffix}/`);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err) {
@@ -130,7 +133,10 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 
 
 type DirectoryNewModalOpenerProps = {
-	add?: (s: Dictionary<ListData<SongTreeNodeInfo>>) => void;
+	add?: (
+		s: Dictionary<ListData<SongTreeNodeInfo>>,
+		fullPath: string
+	) => void;
 	prefix: string
 }
 
@@ -147,8 +153,11 @@ export const DirectoryNewModalOpener = (
 		setItemNewOpen(false);
 	};
 
-	const itemCreated = (item: Dictionary<ListData<SongTreeNodeInfo>>) => {
-		add && add(item);
+	const itemCreated = (
+		item: Dictionary<ListData<SongTreeNodeInfo>>,
+		fullPath: string
+	) => {
+		add && add(item, fullPath);
 		closeModal();
 	};
 

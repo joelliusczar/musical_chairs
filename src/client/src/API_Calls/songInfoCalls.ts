@@ -158,7 +158,7 @@ export const saveAlbum = ({ data }: { data: AlbumCreationInfo}) => {
 	};
 };
 
-export const fetchSongsLs = ({ prefix }: { prefix: string }) => {
+export const fetchSongsLs = ({ nodeId }: { nodeId: string }) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,
@@ -167,7 +167,7 @@ export const fetchSongsLs = ({ prefix }: { prefix: string }) => {
 				"song-info/songs/ls",
 				{
 					params: {
-						prefix,
+						nodeId,
 					},
 					signal: abortController.signal,
 				}
@@ -178,7 +178,7 @@ export const fetchSongsLs = ({ prefix }: { prefix: string }) => {
 };
 
 
-export const fetchSongLsParents = ({ prefix }: { prefix: string }) => {
+export const fetchSongLsParents = ({ nodeId }: { nodeId: string }) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,
@@ -188,7 +188,7 @@ export const fetchSongLsParents = ({ prefix }: { prefix: string }) => {
 					"song-info/songs/ls_parents",
 					{
 						params: {
-							prefix,
+							nodeId,
 						},
 						signal: abortController.signal,
 					}
@@ -218,7 +218,7 @@ export const fetchPathUsers = (
 };
 
 export const addPathUserRule = (
-	{ rule, ...params }: SubjectUserRoleAddition & { prefix: string | null }
+	{ rule, ...params }: SubjectUserRoleAddition & { nodeId: string | null }
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -239,7 +239,7 @@ export const addPathUserRule = (
 };
 
 export const removePathUserRule = (
-	{ ...params }: SubjectUserRoleDeletion & { prefix: string | null }
+	{ ...params }: SubjectUserRoleDeletion & { nodeId: string | null }
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -365,7 +365,7 @@ export const songDownloadUrl = ({ id }:{ id: IdValue}) => {
 	};
 };
 
-export const deletePrefix = ({ prefix }:{ prefix: string}) => {
+export const deletePrefix = ({ nodeId }:{ nodeId: string}) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,
@@ -375,7 +375,7 @@ export const deletePrefix = ({ prefix }:{ prefix: string}) => {
 					"/song-info/path/delete_prefix",
 					{ 
 						params: {
-							prefix,
+							nodeId,
 						},
 						signal: abortController.signal,
 					}

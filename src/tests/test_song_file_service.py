@@ -333,7 +333,7 @@ def test_prefix_split_(
 	assert results[3] == "/alpha/bravo/charlie/"
 
 
-def test_get_parent_directoriess_0(
+def test_get_parent_directories_0(
 	fixture_song_file_service: SongFileService,
 	fixture_account_service: AccountsService
 ):
@@ -579,3 +579,19 @@ def test_delete_directory(
 	result = songFileService.delete_prefix("foo/goo/testdir/", user)
 	assert len(result["foo/goo/"]) == 11
 	assert "foo/goo/testdir/" not in (p.path for p in result["foo/goo/"])
+
+def test_parent_ls_with_placeholder_dir(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+	songFileService.create_directory("foo/goo", "testdir", user)
+	result = songFileService.song_ls_parents(user, "foo/goo/testdir/")
+	pass
+	assert len(result["foo/goo/"]) == 12
+	assert sum(
+		1 for n in result["foo/goo/"] if n.path.endswith("testdir/")
+	) == 1

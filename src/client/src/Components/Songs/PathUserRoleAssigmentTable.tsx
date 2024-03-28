@@ -27,6 +27,7 @@ import {
 } from "../../Types/user_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import { useLocation } from "react-router-dom";
+import { urlSafeBase64ToUnicode } from "../../Helpers/string_helpers";
 
 
 const pathRoles = Object.keys(UserRoleDef)
@@ -71,7 +72,8 @@ export const PathUserRoleAssignmentTable = () => {
 	const { enqueueSnackbar } = useSnackbar();
 	const location = useLocation();
 	const queryObj = new URLSearchParams(location.search);
-	const prefix = queryObj.get("prefix");
+	const nodeId = queryObj.get("nodeid") || "";
+	const prefix = urlSafeBase64ToUnicode(nodeId);
 
 	const { callStatus } = state;
 
@@ -89,7 +91,7 @@ export const PathUserRoleAssignmentTable = () => {
 		};
 		const requestObj = addPathUserRule({
 			rule,
-			prefix,
+			nodeId,
 			subjectuserkey: user.id,
 		});
 		try {
@@ -124,7 +126,7 @@ export const PathUserRoleAssignmentTable = () => {
 	useEffect(() => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
 		const queryObj = new URLSearchParams(location.search);
-		const prefix = queryObj.get("prefix");
+		const prefix = queryObj.get("nodeid");
 		if (prefix === null) return;
 
 		const page = parseInt(queryObj.get("page") || "1");
@@ -159,7 +161,7 @@ export const PathUserRoleAssignmentTable = () => {
 		try {
 			const requestObj = addPathUserRule({
 				rule,
-				prefix,
+				nodeId,
 				subjectuserkey: user.id,
 			});
 			const addedRule = await requestObj.call();
@@ -181,7 +183,7 @@ export const PathUserRoleAssignmentTable = () => {
 		try {
 			const requestObj = removePathUserRule({
 				rulename: role.name,
-				prefix,
+				nodeId,
 				subjectuserkey: user.id,
 			});
 			await requestObj.call();
@@ -209,7 +211,7 @@ export const PathUserRoleAssignmentTable = () => {
 	const removeUser = async (user: User) => {
 		try {
 			const requestObj = removePathUserRule({
-				prefix,
+				nodeId,
 				subjectuserkey: user.id,
 			});
 			await requestObj.call();

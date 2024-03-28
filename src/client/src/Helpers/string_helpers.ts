@@ -28,6 +28,7 @@ export function normalizeOpeningSlash(
 }
 
 export const unicodeToBase64 = (str: string) => {
+	if (!str) return "";
 	const bytes = new TextEncoder().encode(str);
 	const binString = Array.from(bytes, (byte) =>
 		String.fromCodePoint(byte)
@@ -36,6 +37,7 @@ export const unicodeToBase64 = (str: string) => {
 };
 
 export const base64ToBytes = (base64: string) => {
+	if (!base64) return new Uint8Array();
 	const binString = atob(base64)
 		.split("")
 		.map(m => m.codePointAt(0))
@@ -44,17 +46,20 @@ export const base64ToBytes = (base64: string) => {
 };
 
 export const base64ToUnicode = (base64: string) => {
+	if (!base64) return "";
 	return new TextDecoder().decode(base64ToBytes(base64));
 };
 
 
 export const unicodeToUrlSafeBase64 = (str: string) => {
+	if (!str) return "";
 	return unicodeToBase64(str)
 		.replaceAll("+", "-")
 		.replaceAll("/", "_");
 };
 
 export const urlSafeBase64ToUnicode = (id: string) => {
+	if (!id) return "";
 	const base64 = id
 		.replaceAll("-", "+")
 		.replaceAll("_", "/");

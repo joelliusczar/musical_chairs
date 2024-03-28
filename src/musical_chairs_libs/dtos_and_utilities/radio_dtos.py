@@ -9,7 +9,7 @@ from typing import (
 	Optional,
 	Iterable,
 	List,
-	Any
+	Any,
 )
 from itertools import chain
 from .validation_functions import min_length_validator_factory
@@ -18,6 +18,7 @@ from .generic_dtos import IdItem, TableData, T, FrozenBaseClass, MCBaseClass
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule, PathsActionRule
 from .user_role_def import MinItemSecurityLevel
+from pathlib import Path
 
 
 class ArtistInfo(FrozenBaseClass):
@@ -152,6 +153,21 @@ class SongTreeNode(FrozenBaseClass):
 	rules: list[PathsActionRule]=Field(
 		default_factory=list, frozen=True
 	)
+
+	def __hash__(self) -> int:
+		return hash(self.path)
+	
+	def __eq__(self, other: Any) -> bool:
+		if not other:
+			return False
+		return self.path == other.path
+	
+	@staticmethod
+	def same_level_sort_key(node: "SongTreeNode") -> str:
+		if node.name:
+			return node.name
+		return Path(node.path).stem
+	
 
 
 class StationSongTuple:

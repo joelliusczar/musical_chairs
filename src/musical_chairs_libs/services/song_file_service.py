@@ -7,7 +7,9 @@ from typing import (
 	Tuple,
 	Union,
 	Iterable,
-	overload
+	overload,
+	Collection,
+	Mapping
 )
 from pathlib import Path
 from sqlalchemy.engine import Connection
@@ -73,7 +75,7 @@ class SongFileService:
 		prefix: str,
 		suffix: str,
 		user: AccountInfo,
-	) -> dict[str, list[SongTreeNode]]:
+	) -> Mapping[str, Collection[SongTreeNode]]:
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
@@ -232,14 +234,14 @@ class SongFileService:
 	def __build_song_tree_dict__(
 		self,
 		nodes: Iterable[SongTreeNode]
-	) -> dict[str, list[SongTreeNode]]:
-		result: dict[str, list[SongTreeNode]] = {}
+	) -> Mapping[str, Collection[SongTreeNode]]:
+		result: dict[str, set[SongTreeNode]] = {}
 		for node in nodes:
 			parent = re.sub(r"/?[^/]+/?$", "/", node.path)
 			if parent in result:
-				result[parent].append(node)
+				result[parent].add(node)
 			else:
-				result[parent] = [node]
+				result[parent] = set([node])
 		return result
 
 	def song_ls_parents(
@@ -247,7 +249,7 @@ class SongFileService:
 		user: AccountInfo,
 		prefix: str,
 		depth: Optional[int]=None
-	) -> dict[str, list[SongTreeNode]]:
+	) -> Mapping[str, Collection[SongTreeNode]]:
 		permittedPathTree = user.get_permitted_paths_tree()
 		queryList: list[Select[Tuple[str, str, int, int, str]]] = []
 		reverseDirection = bool(depth) and depth < 0
@@ -383,7 +385,7 @@ class SongFileService:
 		self,
 		prefix: str,
 		user: AccountInfo
-	) -> dict[str, list[SongTreeNode]]:
+	) -> Mapping[str, Collection[SongTreeNode]]:
 		_prefix = normalize_opening_slash(
 				squash_sequential_duplicate_chars(prefix, "/")
 			)

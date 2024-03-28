@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Box, Button, AppBar, Toolbar } from "@mui/material";
 import { TreeView, TreeItem } from "@mui/lab";
 import { 
@@ -28,6 +28,8 @@ import {
 } from "../../Context_Providers/AuthContext/AuthContext";
 import { 
 	normalizeOpeningSlash,
+	unicodeToUrlSafeBase64,
+	urlSafeBase64ToUnicode,
 } from "../../Helpers/string_helpers";
 import {
 	SongTreeNodeInfo,
@@ -48,9 +50,6 @@ import { notNullPredicate } from "../../Helpers/array_helpers";
 
 const treeId = "song-tree";
 
-const buildNodeId = (level: number, dirIdx: number, idx: number) => {
-	return`${level}-${dirIdx}-${idx}`;
-};
 
 const isNodeDirectory = (node: SongTreeNodeInfo) => {
 	return node.path?.endsWith("/");
@@ -59,18 +58,22 @@ const isNodeDirectory = (node: SongTreeNodeInfo) => {
 const songTreeParentInfoToNodeIds = (
 	treeInfo: Dictionary<ListData<SongTreeNodeInfo>>
 ) => {
-	const keys = Object.keys(treeInfo).sort((a, b) => a.length - b.length);
+	const keys = Object.keys(treeInfo);
 	const result = [];
-	let precomputedDirIdx = 0;
-	for (let i = 1; i < keys.length; i++) {
-		const foundIdx = treeInfo[keys[i - 1]]
+	for (let i = 0; i < keys.length; i++) {
+		const currentKey = keys[i];
+		if (!currentKey) continue;
+
+		const currentNode = treeInfo[currentKey];
+		const foundIdx = currentNode
 			.items
-			.findIndex(p => p.path === keys[i]);
+			.findIndex(p => p.path === currentKey);
 		result.push({
-			path: keys[i - 1],
-			nodeId: buildNodeId(i - 1, precomputedDirIdx, foundIdx),
+			path: currentKey,
+			nodeId: unicodeToUrlSafeBase64(normalizeOpeningSlash(currentKey)),
+			rules: foundIdx > 0 ? currentNode.items[foundIdx].rules : [],
 		});
-		precomputedDirIdx = foundIdx;
+
 	}
 	return result;
 };
@@ -80,11 +83,12 @@ type SongTreeNodeProps = {
 	children: React.ReactNode
 	prefix: string
 	songNodeInfo: SongTreeNodeInfo
-	nodeId: string
+	nodeId: string,
+	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void, 
 };
 
 const SongTreeNode = (props: SongTreeNodeProps) => {
-	const { children, songNodeInfo, prefix, nodeId } = props;
+	const { children, songNodeInfo, prefix, nodeId, onNodeLoaded } = props;
 	const { dispatch } = useCache<
 		SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 	>();
@@ -96,13 +100,9 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 	},[dispatch, songNodeInfo, nodeId]);
 
 	useEffect(() => {
-		if (!isNodeDirectory(songNodeInfo)) return;
-		const selector = `#${treeId}-${nodeId} .Mui-expanded`;
-		const el = document.querySelectorAll(selector)[0];
-		if (el) {
-			el.scrollIntoView({ block: "center", behavior: "smooth"});
-		}
-	},[nodeId, songNodeInfo]);
+		onNodeLoaded(songNodeInfo, nodeId);
+	},[onNodeLoaded, songNodeInfo, nodeId]);
+
 
 	const label = songNodeInfo.name ?
 		songNodeInfo.name : songNodeInfo.path.replace(prefix, "");
@@ -120,13 +120,13 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 
 type SongDirectoryProps = {
 	prefix: string
-	level: number
-	dirIdx: number,
+	level: number,
 	setExpandedNodes: (p: DirectoryInfoNodeInfo[]) => void,
+	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void, 
 };
 
 const SongDirectory = (props: SongDirectoryProps) => {
-	const { prefix, level, dirIdx, setExpandedNodes } = props;
+	const { prefix, level, setExpandedNodes, onNodeLoaded } = props;
 	const { state, dispatch } = useCache<
 		ListData<SongTreeNodeInfo>
 	>();
@@ -141,6 +141,8 @@ const SongDirectory = (props: SongDirectoryProps) => {
 	const isPending = isCallPending(callStatus);
 	const { enqueueSnackbar } = useSnackbar();
 	const queryStr = location.search;
+	const queryObj = new URLSearchParams(queryStr);
+	const urlNodeId = queryObj.get("nodeid");
 	const urlSegement = `${location.pathname}${queryStr}`;
 
 	const currentUser = useCurrentUser();
@@ -174,10 +176,9 @@ const SongDirectory = (props: SongDirectoryProps) => {
 
 
 	useEffect(() => {
-		const queryObj = new URLSearchParams(queryStr);
-		const urlPrefix = queryObj.get("prefix");
-		if (!!urlPrefix && !prefix) {
-			const requestObj = fetchSongLsParents({ prefix: urlPrefix });
+		if (!!urlNodeId && !prefix) {
+			const urlPrefix = urlSafeBase64ToUnicode(urlNodeId);
+			const requestObj = fetchSongLsParents({ nodeId: urlNodeId });
 			if (!isPending) return;
 			const fetch = async () => {
 				try {
@@ -216,7 +217,7 @@ const SongDirectory = (props: SongDirectoryProps) => {
 			return () => requestObj.abortController.abort();
 		}
 	},[
-		queryStr,
+		urlNodeId,
 		prefix,
 		dispatch,
 		urlSegement,
@@ -226,11 +227,9 @@ const SongDirectory = (props: SongDirectoryProps) => {
 	]);
 
 	useEffect(() => {
-		const queryObj = new URLSearchParams(queryStr);
-		const urlPrefix = queryObj.get("prefix");
-
-		if (!urlPrefix || !!prefix) {
-			const requestObj = fetchSongsLs({ prefix });
+		if (!urlNodeId || !!prefix) {
+			const nodeId = unicodeToUrlSafeBase64(prefix);
+			const requestObj = fetchSongsLs({ nodeId });
 			const normalizedPrefix = normalizeOpeningSlash(prefix);
 			if (!isPending) return;
 			const fetch = async () => {
@@ -256,7 +255,7 @@ const SongDirectory = (props: SongDirectoryProps) => {
 		}
 	}, [
 		prefix,
-		queryStr,
+		urlNodeId,
 		enqueueSnackbar,
 		dispatch,
 		isPending,
@@ -265,25 +264,25 @@ const SongDirectory = (props: SongDirectoryProps) => {
 
 	const currentLevelData = !!prefixData ? prefixData : { items: []};
 
-
 	return (
 		<Loader status={callStatus} error={error}>
-			{currentLevelData.items.map((d, idx) => {
-				const key = buildNodeId(level, dirIdx, idx);
+			{currentLevelData.items.map((d) => {
+				const nodeId = unicodeToUrlSafeBase64(normalizeOpeningSlash(d.path));
 
 				return (
 					<SongTreeNode
-						nodeId={key}
-						key={key}
+						nodeId={nodeId}
+						key={nodeId}
 						prefix={prefix}
 						songNodeInfo={d}
+						onNodeLoaded={onNodeLoaded}
 					>
 						{!d.id &&
 							<SongDirectory
 								prefix={d.path}
 								level={level + 1}
-								dirIdx={idx}
 								setExpandedNodes={setExpandedNodes}
+								onNodeLoaded={onNodeLoaded}
 							/>}
 					</SongTreeNode>
 				);
@@ -301,7 +300,6 @@ export const SongTree = withCacheProvider<
 			DirectoryInfoNodeInfo[]
 		>([]); 
 		const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
-		const [selectedPrefix, setSelectedPrefix] = useState<string | null>(null);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
 			useState<PathsActionRule[]>([]);
 		const { dispatch, treeData } = useCache<
@@ -310,16 +308,18 @@ export const SongTree = withCacheProvider<
 		const { enqueueSnackbar } = useSnackbar();
 		const navigate = useNavigate();
 		const location = useLocation();
+		const queryStr = location.search;
+		const queryObj = new URLSearchParams(queryStr);
+		const urlNodeId = queryObj.get("nodeid");
+		const selectedPrefix = selectedNodes.length == 1 ? 
+			urlSafeBase64ToUnicode(selectedNodes[0]) :
+			null;
 
-		const getDirectoryPart = (path: string) => {
-			const directoryPart = path.replace(/[^/]+$/, "");
-			return directoryPart;
-		};
 
 		const updateUrl = (path: string) => {
-			const directoryPart = getDirectoryPart(path);
+			const nodeId = unicodeToUrlSafeBase64(path);
 			navigate(
-				`${location.pathname}?prefix=${encodeURIComponent(directoryPart)}`,
+				`${location.pathname}?nodeid=${nodeId}`,
 				{ replace: true }
 			);
 		};
@@ -353,17 +353,13 @@ export const SongTree = withCacheProvider<
 
 					}
 				}
-				if (!!songNodeInfo &&
-					 "rules" in songNodeInfo && "path" in songNodeInfo
-				) {
+				if (!!songNodeInfo && "rules" in songNodeInfo) {
 					setSelectedPrefixRules(songNodeInfo?.rules || []);
-					setSelectedPrefix(normalizeOpeningSlash(songNodeInfo?.path));
 				}
 				setSelectedNodes([nodeIds[0]]);
 			}
 			else {
 				if(nodeIds.length < 100) {
-					setSelectedPrefix(null);
 					setSelectedNodes([...nodeIds]);
 				}
 				else {
@@ -399,7 +395,9 @@ export const SongTree = withCacheProvider<
 		};
 
 		const getUserAssignUrl = () => {
-			return `${DomRoutes.pathUsers()}?prefix=${selectedPrefix}`;
+			if (selectedNodes.length !== 1) return DomRoutes.pathUsers();
+			const nodeId = selectedNodes[0];
+			return `${DomRoutes.pathUsers()}?nodeid=${nodeId}`;
 		};
 
 		const downloadSong = async () => {
@@ -412,7 +410,8 @@ export const SongTree = withCacheProvider<
 
 		const canAssignUsers = () => {
 			if (isDirectorySelected()) return false;
-			if (selectedPrefix !== null) {
+			if (selectedNodes.length === 1) {
+				const selectedPrefix = urlSafeBase64ToUnicode(selectedNodes[0]);
 				const hasRule = selectedPrefixRules
 					.filter(r => r.name === UserRoleDef.PATH_USER_LIST ||
 						r.domain === UserRoleDomain.SITE
@@ -429,19 +428,17 @@ export const SongTree = withCacheProvider<
 
 		const canDeletePath = () => {
 			if (selectedNodes.length !== 1) return false;
-			if (selectedPrefix !== null) {
-				const hasRule = selectedPrefixRules
-					.filter(r => r.name === UserRoleDef.PATH_DELETE ||
-						r.domain === UserRoleDomain.SITE
-					)
-					.some(r =>
-						(r.path &&
-							selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
-						r.domain === UserRoleDomain.SITE
-					);
-				return hasRule;
-			}
-			return false;
+			const selectedPrefix = urlSafeBase64ToUnicode(selectedNodes[0]);
+			const hasRule = selectedPrefixRules
+				.filter(r => r.name === UserRoleDef.PATH_DELETE ||
+					r.domain === UserRoleDomain.SITE
+				)
+				.some(r =>
+					(r.path &&
+						selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
+					r.domain === UserRoleDomain.SITE
+				);
+			return hasRule;
 		};
 
 		const canDownloadSelection = () => {
@@ -476,10 +473,33 @@ export const SongTree = withCacheProvider<
 			});
 		};
 
+		const scrollToNode = useCallback((nodeId: string) => {
+			const selector = `#${treeId}-${nodeId} .MuiTreeItem-label`;
+			const el = document.querySelectorAll(selector)[0];
+			if (el) {
+				el.scrollIntoView({ block: "center", behavior: "smooth"});
+			}
+		},[]);
+
+		const addEmptyDirectory = (
+			nodes: Dictionary<ListData<SongTreeNodeInfo>>,
+			fullPath: string
+		) => {
+			updateTree(nodes);
+			const normalizedPath = normalizeOpeningSlash(fullPath);
+			updateUrl(normalizedPath);
+			const escapedNodeId = unicodeToUrlSafeBase64(normalizedPath)
+				.replaceAll("=","\\=");
+			setTimeout(() => {
+				scrollToNode(escapedNodeId);
+			});
+		};
+
 		const deleteNode = async () => {
-			if (selectedPrefix) {
+			if (selectedNodes.length === 1) {
+				const nodeId = selectedNodes[0];
 				try {
-					const requestObj = deletePrefix({prefix: selectedPrefix});
+					const requestObj = deletePrefix({ nodeId });
 					const result = await requestObj.call();
 					updateTree(result);
 				}
@@ -488,6 +508,17 @@ export const SongTree = withCacheProvider<
 				}
 			}
 		};
+
+		const onNodeLoaded = useCallback((
+			node: SongTreeNodeInfo,
+			nodeId: string
+		) => {
+			const escapedNodeId = nodeId.replaceAll("=","\\=");
+			if (!isNodeDirectory(node)) return;
+			if (nodeId !== urlNodeId) return;
+			setSelectedNodes([nodeId]);
+			scrollToNode(escapedNodeId);
+		},[urlNodeId, setSelectedNodes, scrollToNode]);
 
 		return (
 			<>
@@ -521,7 +552,7 @@ export const SongTree = withCacheProvider<
 						</Button>}
 						{isDirectorySelected() && selectedPrefix &&
 							<DirectoryNewModalOpener 
-								add={updateTree}
+								add={addEmptyDirectory}
 								prefix={selectedPrefix} 
 							/>}
 						{isDirectorySelected() && selectedPrefix &&
@@ -548,8 +579,8 @@ export const SongTree = withCacheProvider<
 					<SongDirectory
 						prefix=""
 						level={0}
-						dirIdx={0}
 						setExpandedNodes={setExpandedNodes}
+						onNodeLoaded={onNodeLoaded}
 					/>
 				</TreeView>
 			</>

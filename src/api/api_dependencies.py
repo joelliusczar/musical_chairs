@@ -60,6 +60,7 @@ from api_error import (
 	build_too_many_requests_error
 )
 from datetime import datetime
+from base64 import urlsafe_b64decode
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -169,6 +170,31 @@ def user_actions_history_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> UserActionsHistoryService:
 	return UserActionsHistoryService(conn)
+
+def get_optional_prefix(
+	prefix: Optional[str]=Query(None),
+	nodeId: Optional[str]=Query(None)
+) -> Optional[str]:
+	if prefix is not None:
+		return prefix
+	if nodeId is not None:
+		translated = nodeId
+		decoded = urlsafe_b64decode(translated).decode()
+		return decoded
+
+def get_prefix(
+	prefix: Optional[str]=Query(None),
+	nodeId: Optional[str]=Query(None)
+) -> str:
+	prefix = get_optional_prefix(prefix, nodeId)
+	if prefix is not None:
+		return prefix
+	raise HTTPException(
+		status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+		detail=[build_error_obj("prefix and nodeId both missing")
+		]
+	)
+
 
 def get_user_from_token(
 	token: str,
@@ -427,7 +453,7 @@ def get_path_rule_loaded_current_user(
 
 def check_optional_path_for_current_user(
 	securityScopes: SecurityScopes,
-	prefix: Optional[str]=None,
+	prefix: Optional[str]=Depends(get_optional_prefix),
 	itemid: Optional[int]=None,
 	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
 	songFileService: SongFileService = Depends(song_file_service),
@@ -612,7 +638,7 @@ def get_account_if_has_scope(
 	return prev
 
 def get_prefix_if_owner(
-	prefix: str=Query(),
+	prefix: str=Depends(get_prefix),
 	currentUser: AccountInfo = Depends(get_current_user_simple),
 ) -> str:
 	if not currentUser.dirroot:

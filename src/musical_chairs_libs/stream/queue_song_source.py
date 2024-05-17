@@ -81,18 +81,16 @@ def load_data(
 
 def accept(
 	listener: socket.socket,
-	proc: subprocess.Popen[bytes]
+	timeout: int
 ) -> Optional[socket.socket]:
-	listener.settimeout(5)
+	listener.settimeout(timeout)
 	while True:
 		try:
 			conn, _ = listener.accept()
 			return conn
 		except socket.timeout:
 			logging.radioLogger.error("Socket timmed out")
-			returnCode = proc.poll()
-			if not returnCode is None:
-				return None
+			clean_up_ices_process()
 
 def clean_up_tmp_files(listener: socket.socket):
 	global stopLoading
@@ -126,7 +124,10 @@ def clean_up_ices_process():
 		)
 
 
-def send_next(startSubProcess: Callable[[str], subprocess.Popen[bytes]]):
+def send_next(
+		startSubProcess: Callable[[str], subprocess.Popen[bytes]],
+		timeout: int
+	):
 	global stopLoading
 	global stopSending
 	global icesProcess
@@ -140,7 +141,7 @@ def send_next(startSubProcess: Callable[[str], subprocess.Popen[bytes]]):
 		listener.listen(1)
 		icesProcess = startSubProcess(str(listener.getsockname()[1]))
 		logging.radioLogger.debug("Ices process started")
-		conn = accept(listener, icesProcess)
+		conn = accept(listener, timeout)
 		if not conn:
 			logging.radioLogger.error("No connection")
 			clean_up_tmp_files(listener)
@@ -170,9 +171,9 @@ def send_next(startSubProcess: Callable[[str], subprocess.Popen[bytes]]):
 					conn.sendall(b"\n\n")
 					break
 	except Exception as e:
-		stopSending =  True
 		logging.radioLogger.error(e)
 	finally:
+		stopSending =  True
 		clean_up_tmp_files(listener)
 		clean_up_ices_process()
 

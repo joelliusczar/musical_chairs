@@ -38,6 +38,7 @@ def __start_ices__(
 
 class ProcessService:
 
+	stream_timeout = 5
 
 	@staticmethod
 	def noop_mode() -> bool:
@@ -99,7 +100,7 @@ class ProcessService:
 		# )
 
 		try:
-			stationProc.wait(5)
+			stationProc.wait(ProcessService.stream_timeout)
 			raise RuntimeError("Station ended sooner than expected")
 		except subprocess.TimeoutExpired:
 			logging.radioLogger.info("so far so good")

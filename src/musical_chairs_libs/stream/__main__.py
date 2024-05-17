@@ -78,7 +78,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	)
 	sendThread = Thread(
 		target=queue_song_source.send_next,
-		args=[start_ices]
+		args=[start_ices, ProcessService.stream_timeout]
 	)
 
 	def handle_loading_error(args: ExceptHookArgs):

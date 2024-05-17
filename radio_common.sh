@@ -349,7 +349,7 @@ __get_s3_bucket_name__() (
 		echo "$S3_BUCKET_NAME"
 		return
 	fi
-	perl -ne 'print "$1\n" if /S3_BUCKET_NAME=(\w+)/' \
+	perl -ne 'print "$1\n" if /S3_BUCKET_NAME=([\w\-]+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
@@ -2274,6 +2274,12 @@ connect_remote() (
 	echo "connectiong to $(__get_address__) using $(__get_id_file__)" &&
 	ssh -ti $(__get_id_file__) "root@$(__get_address__)" \
 		$(__get_remote_export_script__) bash -l
+)
+
+print_exported_env_vars() (
+	process_global_vars "$@" &&
+	echo "App root: $(__get_app_root__)"
+	__get_remote_export_script__ "$@"
 )
 
 connect_sftp() (

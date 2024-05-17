@@ -70,7 +70,9 @@ def load_data(
 			with fileService.open_song(filename) as src:
 				for chunk in src:
 					currentFile.write(chunk)
+			logging.radioLogger.debug(f"File copied: {filename}")
 			fileQueue.put((currentFile, display), lambda _: not stopLoading)
+			logging.radioLogger.debug(f"File queued: {filename}")
 			currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		fileQueue.put((None, None), lambda _: not stopLoading)
 	except Exception as e:

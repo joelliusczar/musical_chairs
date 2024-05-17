@@ -35,6 +35,7 @@ import {
 	StationInfoForm,
 } from "../../Types/station_types";
 import { SubmitButton } from "../Shared/SubmitButton";
+import { isCallPending } from "../../Helpers/request_helpers";
 
 
 
@@ -135,6 +136,7 @@ export const StationEdit = (props: StationEditProps) => {
 		add: addStation,
 		update: updateStation,
 	} = useStationData();
+	const isPending = isCallPending(callStatus);
 
 	const getPageUrl = (params: { name: string }) => {
 		return DomRoutes.stationsEdit({
@@ -197,15 +199,14 @@ export const StationEdit = (props: StationEditProps) => {
 				ownerkey: pathVars.ownerkey,
 				stationkey: pathVars.stationkey,
 			});
+			if (!isPending) return;
 			const fetch = async () => {
 				try {
-					if(!callStatus) {
-						dispatch(dispatches.started());
-						const data = await requestObj.call();
-						const formData = stationInfoToFormData(data);
-						reset(formData);
-						dispatch(dispatches.done());
-					}
+					dispatch(dispatches.started());
+					const data = await requestObj.call();
+					const formData = stationInfoToFormData(data);
+					reset(formData);
+					dispatch(dispatches.done());
 				}
 				catch(err) {
 					enqueueSnackbar(formatError(err), { variant: "error"});
@@ -220,7 +221,7 @@ export const StationEdit = (props: StationEditProps) => {
 		}
 	}, [
 		dispatch,
-		callStatus,
+		isPending,
 		pathVars.ownerkey,
 		pathVars.stationkey,
 		enqueueSnackbar,

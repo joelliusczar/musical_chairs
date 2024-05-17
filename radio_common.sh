@@ -1009,7 +1009,7 @@ with DbRootConnectionService() as rootConnService:
 	rootConnService.create_app_users()
 	rootConnService.grant_owner_roles(dbName)
 
-with DbOwnerConnectionService(dbName, echo=True) as ownerConnService:
+with DbOwnerConnectionService(dbName) as ownerConnService:
 	ownerConnService.create_tables()
 	ownerConnService.add_path_permission_index()
 	ownerConnService.grant_api_roles()
@@ -1322,6 +1322,8 @@ __install_local_cert_debian__() (
 
 __clean_up_invalid_cert__() (
 	commonName="$1" &&
+	certName="$2" &&
+	echo "Clean up certs for ${commonName} if needed"
 	case $(uname) in
 		(Darwin*)
 			cert=''
@@ -1345,12 +1347,15 @@ __clean_up_invalid_cert__() (
 					| while read line; do
 						cert=$(printf "%s\n%s" "$cert" "$line")
 						if [ "$line" = '-----END CERTIFICATE-----' ]; then
-							sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
 							echo "$cert" | is_cert_expired && 
 							{
+								certDir='/usr/local/share/ca-certificates'
+								if [ -z "$certName" ]; then
+									certName="$commonName"
+								fi
 								sudo -p \
-									"Need pass to delete from /usr/local/share/ca-certificates" \
-									rm /usr/local/share/ca-certificates/"$commonName"*.crt;
+									"Need pass to delete from ${certDir}" \
+									rm "$certDir"/"$certName"*.crt;
 								sudo update-ca-certificates
 							}
 							cert=''
@@ -1404,6 +1409,7 @@ setup_ssl_cert_local_debug() (
 print_ssl_cert_info() (
 	process_global_vars "$@" &&
 	domain=$(__get_domain_name__ "$MC_APP_ENV" 'omitPort') &&
+	echo "$domain"
 	case "$MC_APP_ENV" in
 		(local*)
 			isDebugServer=${1#is_debug_server=}
@@ -1464,7 +1470,7 @@ setup_ssl_cert_nginx() (
 			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.crt &&
 			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
-			__clean_up_invalid_cert__ "$domain"
+			__clean_up_invalid_cert__ "$domain" $(__get_local_nginx_cert_name__)
 			if [ -z $(__certs_matching_name_exact__ "$domain") ]; then
 				__setup_ssl_cert_local__ \
 				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"

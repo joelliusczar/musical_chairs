@@ -691,11 +691,10 @@ class StationService:
 	def disable_stations(
 		self,
 		stationIds: Iterable[int],
-		ownerKey: Union[int, str, None],
-		includeAll: bool = False
+		ownerKey: Union[int, str, None]=None
 	) -> None:
 		query = select(st_procId).where(st_procId.is_not(None))
-		if includeAll:
+		if ownerKey:
 			if type(ownerKey) == int:
 				query = query.where(st_ownerFk == ownerKey)
 			elif type(ownerKey) == str:

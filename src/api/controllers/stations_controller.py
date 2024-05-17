@@ -241,7 +241,10 @@ def disable_stations(
 	),
 	stationService: StationService = Depends(station_service)
 ) -> None:
-	stationService.disable_stations((s.id for s in stations), user.id, includeAll)
+	stationService.disable_stations(
+		(s.id for s in stations),
+		user.id if includeAll else None
+	)
 
 @router.post("/{ownerkey}/{stationkey}/play_next",
 	status_code=status.HTTP_204_NO_CONTENT,

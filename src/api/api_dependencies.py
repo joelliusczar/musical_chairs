@@ -31,10 +31,12 @@ from musical_chairs_libs.services import (
 	ArtistService,
 	AlbumService,
 )
+from musical_chairs_libs.protocols import (
+	FileService
+)
 from musical_chairs_libs.services.fs import (
 	S3FileService,
 	LocalFileService,
-	FileServiceBase,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
@@ -138,18 +140,18 @@ def path_rule_service(
 def file_service(
 	artistService: ArtistService = Depends(artist_service),
 	albumService: AlbumService = Depends(album_service)
-) -> FileServiceBase:
+) -> FileService:
 	return LocalFileService(artistService, albumService)
 
 def dl_url_file_service(
 	artistService: ArtistService = Depends(artist_service),
 	albumService: AlbumService = Depends(album_service)
-) -> FileServiceBase:
+) -> FileService:
 	return S3FileService(artistService, albumService)
 
 def song_file_service(
 	conn: Connection=Depends(get_configured_db_connection),
-	fileService: FileServiceBase=Depends(file_service)
+	fileService: FileService=Depends(file_service)
 ) -> SongFileService:
 	return SongFileService(conn, fileService)
 

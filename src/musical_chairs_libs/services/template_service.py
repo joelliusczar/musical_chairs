@@ -38,7 +38,7 @@ class TemplateService:
 			f"<Password>{sourcePassword}</Password>"
 		).replace(
 			"<Module>internal_station_name</Module>",
-			f"<Module>{username}_{internalName}</Module>"
+			"<Module>station</Module>"
 		).replace(
 			"<Mountpoint>/internal_station_name</Mountpoint>",
 			f"<Mountpoint>/{username}/{internalName}</Mountpoint>"
@@ -72,9 +72,6 @@ class TemplateService:
 		filename_base = f"{username}_{internalName}"
 		Path(f"{EnvManager.station_config_dir()}/ices.{filename_base}.conf")\
 			.write_text(configContent)
-		pythonModuleContent = self.__create_ices_python_module_content__(stationId)
-		Path(f"{EnvManager.station_module_dir()}/{filename_base}.py")\
-			.write_text(pythonModuleContent)
 
 	@staticmethod
 	def load_sql_script_content(script: SqlScripts) -> str:

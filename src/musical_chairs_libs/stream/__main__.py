@@ -1,56 +1,44 @@
+import threading
 import sys
 import signal
 import subprocess
 from . import queue_song_source
-from typing import Any, Optional
+from typing import Any
 from musical_chairs_libs.services import (
-	ProcessService,
+	AlbumService,
 	EnvManager,
-	StationService
+	ArtistService,
+	ProcessService,
+	QueueService,
+	StationService,
 )
-from threading import Thread
+from threading import ExceptHookArgs, Thread
 from setproctitle import setproctitle
 import musical_chairs_libs.dtos_and_utilities.logging as logging
+from musical_chairs_libs.services.fs import S3FileService
+
 
 
 def handle_keyboard(sigNum: Any, frame: Any):
-	print("Received interupt")
+	logging.radioLogger.info("Received interupt")
 	queue_song_source.stopSending = True
 	queue_song_source.stopLoading = True
 
+def handle_terminate_signal(sigNum: Any, frame: Any):
+	logging.radioLogger.info("Received termination signal")
+	queue_song_source.stopSending = True
+	queue_song_source.stopLoading = True
+	queue_song_source.clean_up_ices_process()
+
 signal.signal(signal.SIGINT, handle_keyboard)
+signal.signal(signal.SIGTERM, handle_terminate_signal)
 
 
-def get_station_id(
-	stationName: str,
-	ownerName: str,
-	dbName: str
-) -> Optional[int]:
-	conn = EnvManager.get_configured_radio_connection(dbName)
-	try:
-		stationId = StationService(conn).get_station_id(stationName, ownerName)
-		return stationId
-	except Exception as e:
-		print(e)
-	finally:
-		conn.close()
-
-def set_station_proc(
-	dbName: str,
-	stationId: int
-):
-	conn = EnvManager.get_configured_radio_connection(dbName)
-	try:
-		StationService(conn).set_station_proc(stationId)
-		conn.commit()
-	except Exception as e:
-		print(e)
-	finally:
-		conn.close()
 
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):
-	logging.logger.info("Starting the queue process")
+	logging.radioLogger.info("Starting the queue process")
+	logging.radioLogger.debug("Debug canary")
 
 	def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
 		try:
@@ -58,42 +46,69 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 				f"MC Radio - {ownerName}_{stationName} at {portNumber}"
 			)
 		except Exception as e:
-			print("Failed to rename process")
-			print(e)
+			logging.radioLogger.info("Failed to rename process")
+			logging.radioLogger.info(e)
+		logging.radioLogger.info(f"Starting mc ices with {ownerName}_{stationName}")
 		return ProcessService.start_station_mc_ices(
 			stationName,
 			ownerName,
 			portNumber
 		)
 	
-	stationId = get_station_id(stationName, ownerName, dbName)
+	conn = EnvManager.get_configured_radio_connection(dbName)
+
+
+	stationService = StationService(conn)
+	stationId = stationService.get_station_id(stationName, ownerName)
 	if not stationId:
 		raise RuntimeError(
 			"station with owner"
 			f" {ownerName} and name {stationName} not found"
 		)
-	set_station_proc(dbName, stationId)
+	
+	artistService = ArtistService(conn)
+	albumService = AlbumService(conn)
+	fileService = S3FileService(artistService, albumService)
+	queueService = QueueService(conn)
+	stationService.set_station_proc(stationId)
 
 	loadThread = Thread(
 		target=queue_song_source.load_data,
-		args=[dbName, stationId]
+		args=[stationId, queueService, fileService],
 	)
 	sendThread = Thread(
 		target=queue_song_source.send_next,
 		args=[start_ices]
 	)
 
-	loadThread.start()
-	sendThread.start()
+	def handle_loading_error(args: ExceptHookArgs):
+		if args.thread == loadThread:
+			conn.close()
+		if args.thread == sendThread:
+			queue_song_source.clean_up_ices_process()
 
-	while True:
-		sendThread.join(30)
-		if queue_song_source.stopLoading or queue_song_source.stopSending:
-			break
+	threading.excepthook = handle_loading_error
 
+	try:
+		loadThread.start()
+		sendThread.start()
 
-	queue_song_source.stopLoading = True
+		while True:
+			sendThread.join(30)
+			if queue_song_source.stopLoading or queue_song_source.stopSending:
+				break
+		queue_song_source.stopLoading = True
+		logging.radioLogger.debug("Escaped the loop")
 
+		if not conn.closed:
+			logging.radioLogger.info("Closing the connection")
+			try:
+				conn.close()
+			except:
+				logging.radioLogger.warn("Could not close the connection")
+	finally:
+		logging.radioLogger.info("Disabling the station")
+		stationService.disable_stations([stationId])
 
 
 
@@ -106,3 +121,4 @@ if __name__ == "__main__":
 
 
 	start_song_queue(dbName, stationName, ownerName)
+	logging.radioLogger.info("Ending station queue process")

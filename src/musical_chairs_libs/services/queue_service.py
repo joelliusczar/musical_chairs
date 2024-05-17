@@ -97,6 +97,7 @@ class QueueService:
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.path_rule_service = pathRuleService
+			self.queue_size = 50
 
 	def get_all_station_song_possibilities(
 		self, stationPk: int
@@ -234,13 +235,12 @@ class QueueService:
 
 	def pop_next_queued(
 		self,
-		stationId: int,
-		queueSize: int=50
+		stationId: int
 	) -> Tuple[str, Optional[str], Optional[str], Optional[str]]:
 		if not stationId:
 			raise ValueError("Station Id must be provided")
 		if self.is_queue_empty(stationId):
-			self.fil_up_queue(stationId, queueSize + 1)
+			self.fil_up_queue(stationId, self.queue_size + 1)
 		results = self.get_queue_for_station(stationId, limit=1)
 		queueItem = next(results)
 		self.move_from_queue_to_history(
@@ -248,7 +248,7 @@ class QueueService:
 			queueItem.id,
 			queueItem.queuedtimestamp
 		)
-		self.fil_up_queue(stationId, queueSize)
+		self.fil_up_queue(stationId, self.queue_size)
 		self.conn.commit()
 		return (
 			queueItem.path,
@@ -325,7 +325,7 @@ class QueueService:
 		pathRuleTree = None
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
-		queue = []
+		queue: list[SongListDisplayItem] = []
 		for song in self.get_queue_for_station(stationId):
 			if pathRuleTree:
 				song.rules = list(pathRuleTree.valuesFlat(song.path))

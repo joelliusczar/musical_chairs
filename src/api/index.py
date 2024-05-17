@@ -125,7 +125,7 @@ def everything_else(
 	request: Request,
 	ex: Exception
 ) -> JSONResponse:
-	logging.debugLogger.debug(
+	logging.logger.debug(
 		"".join(TracebackException.from_exception(ex).format())
 	)
 	logging.logger.exception(ex)

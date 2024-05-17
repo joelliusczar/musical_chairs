@@ -487,14 +487,6 @@ get_ssl_public() (
 	get_ssl_vars | stdin_json_extract_value 'publickey'
 )
 
-aws_role() {
-	echo 'music_reader'
-}
-
-s3_name() {
-	echo 'joelradio'
-}
-
 kill_s3fs() {
 	process_global_vars "$@" &&
 	kill -9 $(ps -e | grep s3fs | awk '{ print $1 }')
@@ -506,7 +498,8 @@ link_to_music_files() {
 	process_global_vars "$@" &&
 	if [ -z  "$(ls -A "$(__get_app_root__)"/"$MC_CONTENT_HOME")" ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
-			s3fs "$(s3_name)" "$(__get_app_root__)"/"$MC_CONTENT_HOME"/ \
+			s3fs "$(__get_s3_bucket_name__)" \
+				"$(__get_app_root__)"/"$MC_CONTENT_HOME"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
 			[ -e "$(__get_app_root__)"/"$MC_CONTENT_HOME"/Soundtrack ]
 		else

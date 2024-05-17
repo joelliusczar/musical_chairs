@@ -83,6 +83,7 @@ def accept(
 	listener: socket.socket,
 	timeout: int
 ) -> Optional[socket.socket]:
+	global icesProcess
 	listener.settimeout(timeout)
 	while True:
 		try:
@@ -90,7 +91,11 @@ def accept(
 			return conn
 		except socket.timeout:
 			logging.radioLogger.error("Socket timmed out")
-			clean_up_ices_process()
+			if icesProcess:
+				returnCode = icesProcess.poll()
+				if not returnCode is None:
+					return None
+			return None
 
 def clean_up_tmp_files(listener: socket.socket):
 	global stopLoading

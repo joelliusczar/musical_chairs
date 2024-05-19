@@ -27,7 +27,7 @@ export interface AlbumCreationInfo {
 }
 
 export interface NowPlayingInfo {
-	song: string
+	name: string
 	album: string
 	artist: string
 }
@@ -59,7 +59,7 @@ export class InitialQueueState extends VoidStore {
 			totalrows: 0,
 			stationrules: [],
 			nowplaying: {
-				song: "",
+				name: "",
 				album: "",
 				artist: "",
 			},

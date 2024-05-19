@@ -707,5 +707,5 @@ class StationService:
 		pids = [cast(int, row[0]) for row in rows]
 		for pid in pids:
 			ProcessService.end_process(pid)
-		self.unset_station_procs(pids)
+		self.unset_station_procs(stationIds=stationIds)
 		self.conn.commit()

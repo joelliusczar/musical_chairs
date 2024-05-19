@@ -42,6 +42,7 @@ class ProcessService:
 
 	@staticmethod
 	def noop_mode() -> bool:
+		#the radio process deosn't currently on macs
 		return platform.system() == "Darwin"
 
 	@staticmethod
@@ -53,8 +54,10 @@ class ProcessService:
 	@staticmethod
 	def end_process(procId: int) -> None:
 		if ProcessService.noop_mode():
+			logging.radioLogger.info("Process service is using noop mode")
 			return
 		try:
+			logging.radioLogger.info(f"Sending signal to end process {procId}")
 			os.kill(procId, 15)
 		except Exception as ex:
 			logging.radioLogger.warn("Encountered issue when killing process")
@@ -90,7 +93,10 @@ class ProcessService:
 				dbName,
 				stationName,
 				ownerName
-			]
+			],
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+			stdin=subprocess.DEVNULL
 		)
 
 		# stationProc = ProcessService.start_station_mc_ices(

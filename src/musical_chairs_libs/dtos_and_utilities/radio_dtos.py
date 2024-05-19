@@ -1,3 +1,4 @@
+import os
 from pydantic import (
 	field_validator,
 	model_validator,
@@ -49,6 +50,13 @@ class SongListDisplayItem(SongBase):
 	requestedtimestamp: Optional[float]=None
 	playedtimestamp: Optional[float]=None
 	rules: list[ActionRule]=Field(default_factory=list)
+
+	def display(self) -> str:	
+		if self.name:
+				display = f"{self.name} - {self.album} - {self.artist}"
+		else:
+			display = os.path.splitext(os.path.split(self.path)[1])[0]
+		return display.replace("\n", "")
 
 
 class ScanningSongItem(FrozenBaseClass):

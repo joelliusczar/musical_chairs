@@ -4,7 +4,7 @@ import sys
 
 
 formatter = builtin_logging.Formatter(
-	"[%(asctime)s][%(levelname)s]: %(message)s"
+	"[%(asctime)s][%(levelname)s][%(funcName)s]: %(message)s"
 )
 	
 

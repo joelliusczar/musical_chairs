@@ -105,7 +105,8 @@ class EnvManager:
 	def get_configured_radio_connection(
 		cls,
 		dbName: str,
-		echo: bool=False
+		echo: bool=False,
+		isolationLevel: str="REPEATABLE READ"
 	) -> Connection:
 		dbPass = EnvManager.db_pass_radio()
 		if not dbPass:
@@ -113,6 +114,9 @@ class EnvManager:
 		engine = create_engine(
 			f"mysql+pymysql://{DbUsers.RADIO_USER()}:{dbPass}@localhost/{dbName}",
 			echo=echo,
+			execution_options={
+        "isolation_level": isolationLevel
+    }
 		)
 		return engine.connect()
 

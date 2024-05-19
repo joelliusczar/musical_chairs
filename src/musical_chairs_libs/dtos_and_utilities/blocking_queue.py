@@ -1,6 +1,7 @@
-from typing import Generic, TypeVar, Optional, Callable
+from typing import Any, Generic, TypeVar, Optional, Callable
 from queue import SimpleQueue, Empty as EmptyException
 from threading import Condition, RLock
+from .sentinel import missing
 
 T = TypeVar("T")
 
@@ -25,8 +26,8 @@ class BlockingQueue(Generic[T]):
 	def qsize(self) -> int:
 		with self.__count_lock__:
 			return self.__count__
-
-	def get(
+		
+	def __get__(
 		self,
 		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
 	) -> T:
@@ -36,12 +37,28 @@ class BlockingQueue(Generic[T]):
 				if shouldContinue and not shouldContinue(self):
 					raise TimeoutError("Cannot wait for get any longer")
 		item = self.__queue__.get()
+		return item
+
+	def __unblock_after_get__(self):
 		self.__decrement__()
 		with self.__condition__:
 			self.__condition__.notify()
+
+	def get(
+		self,
+		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
+	) -> T:
+		item = self.__get__(shouldContinue)
+		self.__unblock_after_get__()
 		return item
+
+	def delayed_decrement_get(
+		self,
+		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
+	) -> "DelayedDecrementReader[T]":
+		return DelayedDecrementReader(self, shouldContinue)
 	
-	def unblocked_get(self) -> Optional[T]:
+	def get_unblocked(self) -> Optional[T]:
 		try:
 			item = self.__queue__.get(block=False)
 			self.__decrement__()
@@ -65,3 +82,23 @@ class BlockingQueue(Generic[T]):
 		with self.__condition__:
 			self.__condition__.notify()
 			
+class DelayedDecrementReader(Generic[T]):
+
+	def __init__(
+		self,
+		queue: "BlockingQueue[T]",
+		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
+	) -> None:
+		self.__queue__ = queue
+		self.__shouldContinue__ = shouldContinue
+		self.__item__ = missing
+
+	def __enter__(
+		self,	
+	) -> T:
+		self.__item__ = self.__queue__.__get__(self.__shouldContinue__)
+		return self.__item__
+	
+	def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
+		if self.__item__ != missing:
+			self.__queue__.__unblock_after_get__()

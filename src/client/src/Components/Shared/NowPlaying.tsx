@@ -5,7 +5,7 @@ import { NowPlayingInfo } from "../../Types/song_info_types";
 
 const formatNowPlaying = (nowPlaying: NowPlayingInfo | null) => {
 	if(!nowPlaying) return "No song info available";
-	const song = nowPlaying.song || "{No song name}";
+	const song = nowPlaying.name || "{No song name}";
 	const album = nowPlaying.album || "{No album name}";
 	const artist = nowPlaying.artist || "{No artist name}";
 	const str = `Song: ${song} - ${album} - ${artist}`;
@@ -27,7 +27,7 @@ export const NowPlaying = (props: NowPlayingProps) => {
 
 NowPlaying.propTypes = {
 	nowPlaying: PropTypes.shape({
-		song: PropTypes.string,
+		name: PropTypes.string,
 		album: PropTypes.string,
 		artist: PropTypes.string,
 	}),

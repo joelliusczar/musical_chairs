@@ -1,53 +1,46 @@
-import re
+import tracemalloc
 from musical_chairs_libs.services import EnvManager
-from io import StringIO
-from typing import Iterable, cast
-from sqlalchemy.engine.row import Row
-from musical_chairs_libs.tables import metadata
-from contextlib import redirect_stdout
-from src.tests.mocks.db_population import *
-from src.tests.mocks.constant_values_defs import (
-	mock_ordered_date_list,
-	primary_user,
-	mock_password
+from sqlalchemy import (
+	select,
+	
+)
+from musical_chairs_libs.dtos_and_utilities import UserRoleDef
+from musical_chairs_libs.tables import (
+	q_userActionHistoryFk, q_stationFk, q_songFk, uah_pk,
+	uah_queuedTimestamp, uah_action, user_action_history,
+  songs
 )
 
 
-conn = EnvManager.get_configured_db_connection(inMemory=True)
-metadata.create_all(conn.engine)
-buffer = StringIO()
-# with open("test_db.sql","w") as f:
-with redirect_stdout(buffer):
-	result = conn.execute("SELECT sql FROM sqlite_master WHERE type='table';") #pyright: ignore [reportUnknownMemberType]
-	result = [cast(str,r[0]) for r in cast(Iterable[Row],result.fetchall())]
-	result.append("")
-	print(";\n".join(result))
-	result = conn.execute("SELECT sql FROM sqlite_master WHERE type='index';") #pyright: ignore [reportUnknownMemberType]
-	result = [cast(str,r[0]) for r in cast(Iterable[Row],result.fetchall())]
-	result.append("")
-	print(";\n".join(result))
-	conn.connection.connection.set_trace_callback(print) #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues]
-	populate_artists(conn)
-	populate_albums(conn)
-	populate_songs(conn)
-	populate_songs_artists(conn)
-	populate_stations_songs(conn)
-	populate_stations(conn)
-	populate_users(
-		conn,
-		mock_ordered_date_list,
-		primary_user(),
-		mock_password()
-	)
-	populate_user_roles(conn, mock_ordered_date_list, primary_user())
-	populate_station_permissions(conn, mock_ordered_date_list)
-	populate_path_permissions(conn, mock_ordered_date_list)
-	populate_user_actions_history(conn, mock_ordered_date_list)
-	populate_station_queue(conn)
-conn.close()
-contents = buffer.getvalue()
-contents = re.sub(r"(INSERT .+)\n", lambda m: f"{m.group(1)};\n", contents)
-contents = re.sub(r"(BEGIN) *\n", lambda m: f"{m.group(1)};\n", contents)
-contents = re.sub(r"(COMMIT)\n", lambda m: f"{m.group(1)};\n", contents)
-with open("test_db.sql","w") as f:
-	f.write(contents)
+conn = EnvManager.get_configured_api_connection("musical_chairs_db")
+
+subquery = select(q_userActionHistoryFk.label("fkBob"))\
+	.where(q_stationFk == 3)\
+	.where(q_songFk == 3603)
+
+query = select(user_action_history.c)\
+.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
+.where(uah_pk.in_(subquery))
+# .where(uah_queuedTimestamp == 1716127797.993587)\
+
+query = select(songs.c)
+
+
+tracemalloc.start()
+print(tracemalloc.get_traced_memory())
+result = conn.execution_options().execute(query)
+
+for row in result:
+	pass
+# while row := result.fetchone():
+#     pass
+
+print([round(v/1024) for v in tracemalloc.get_traced_memory()])
+
+# snapshot = tracemalloc.take_snapshot()
+# snapshot.filter_traces([tracemalloc.Filter(True, "sqlalchemy/engine/result")])
+# top_stats = snapshot.statistics("lineno")
+
+# for stat in top_stats:
+#     print(f"{stat.traceback.format()}\n{round(stat.size /1024)}KiB")
+# pass

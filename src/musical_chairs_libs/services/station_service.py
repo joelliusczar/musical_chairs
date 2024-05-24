@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.dtos_and_utilities.logging as logging
 from typing import (
 	Any,
 	Iterator,
@@ -616,6 +617,7 @@ class StationService:
 			.values(procid = pid) \
 				.where(st_pk == stationId)
 		self.conn.execute(stmt)
+		self.conn.commit()
 
 	def unset_station_procs(
 		self,
@@ -693,6 +695,7 @@ class StationService:
 		stationIds: Iterable[int],
 		ownerKey: Union[int, str, None]=None
 	) -> None:
+		logging.radioLogger.debug(f"disable {stationIds}")
 		query = select(st_procId).where(st_procId.is_not(None))
 		if ownerKey:
 			if type(ownerKey) == int:
@@ -706,6 +709,7 @@ class StationService:
 		rows = self.conn.execute(query)
 		pids = [cast(int, row[0]) for row in rows]
 		for pid in pids:
+			logging.radioLogger.debug(f"send signal to {pid}")
 			ProcessService.end_process(pid)
 		self.unset_station_procs(stationIds=stationIds)
 		self.conn.commit()

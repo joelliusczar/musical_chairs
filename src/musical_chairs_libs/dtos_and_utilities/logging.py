@@ -48,3 +48,18 @@ radioLogger.addHandler(stdOutHandler)
 radioLogger.addHandler(stdErrHandler)
 radioLogger.addHandler(radioDefaultHandler)
 
+queueLogger = builtin_logging.getLogger("mc_radio.queue")
+queueHandler = builtin_logging.FileHandler(
+	"musical_chairs_queue.log",
+	encoding="utf-8"
+)
+queueHandler.setFormatter(
+	builtin_logging.Formatter(
+		"Queue: [%(asctime)s]: %(message)s"
+	)
+)
+queueLogger.addHandler(queueHandler)
+# queueLogger.addHandler(stdOutHandler)
+# queueLogger.addHandler(stdErrHandler)
+# queueLogger.addHandler(radioDefaultHandler)
+

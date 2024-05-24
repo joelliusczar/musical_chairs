@@ -72,7 +72,7 @@ class BlockingQueue(Generic[T]):
 		item: T,
 		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
 	):
-		while self.qsize() > self.size:
+		while self.qsize() >= self.size:
 			with self.__condition__:
 				self.__condition__.wait(self.retryInterval)
 				if shouldContinue and not shouldContinue(self):

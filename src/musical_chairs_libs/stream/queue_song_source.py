@@ -45,6 +45,7 @@ def get_song_info(
 			queueItem = songPopper.pop_next_queued(stationId, loaded)
 			with loadingLock:
 				loaded.add(queueItem)
+				logging.radioLogger.debug([s.name for s in loaded])
 			yield queueItem
 		except Exception as e:
 			logging.radioLogger.error("Error getting song info")
@@ -68,7 +69,7 @@ def load_data(
 			if stopRunning:
 				logging.radioLogger.info(f"Stop running flag encountered")
 				break
-			logging.queueLogger.info(f"file name: {queueItem.path}")
+			logging.queueLogger.info(f"queued: {queueItem.name}")
 			with fileService.open_song(queueItem.path) as src:
 				for chunk in src:
 					currentFile.write(chunk)
@@ -182,7 +183,7 @@ def send_next(
 					lambda _: not stopRunning
 				) as (currentFile, queueItem):
 					display = queueItem.display() if queueItem else "Missing Name"
-					logging.queueLogger.info(f"From queue: {display}")
+					logging.queueLogger.info(f"Playing: {display}")
 					if queueItem:
 						if not songPopper.move_from_queue_to_history(
 							stationId,
@@ -192,7 +193,6 @@ def send_next(
 							logging.radioLogger.info(
 								f"Skipping {queueItem.name}"
 							)
-							queueItem = None
 							skipped = True
 							continue
 						else:

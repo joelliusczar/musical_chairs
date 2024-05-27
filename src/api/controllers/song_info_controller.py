@@ -53,9 +53,8 @@ from song_validation import (
 	validate_path_rule,
 	validate_path_rule_for_remove
 )
-from musical_chairs_libs.services.fs import (
-	FileServiceBase,
-)
+from musical_chairs_libs.protocols import FileService
+
 
 router = APIRouter(prefix="/song-info")
 
@@ -150,7 +149,7 @@ def get_songs_for_multi_edit(
 def download_song(
 	id: int,
 	songFileService: SongFileService = Depends(song_file_service),
-	fileService: FileServiceBase = Depends(dl_url_file_service)
+	fileService: FileService = Depends(dl_url_file_service)
 ) -> str:
 	path = next(songFileService.get_song_path(id, useFullSystemPath=False), None)
 	if path:

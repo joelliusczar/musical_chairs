@@ -12,7 +12,8 @@ from typing import (
 	Tuple,
 	overload,
 	TypeVar,
-	Union
+	Union,
+	Callable
 )
 from email_validator import ValidatedEmail
 from collections import Counter
@@ -171,3 +172,40 @@ def int_or_str(s: Union[int, str]) -> Union[int, str]:
 		return i
 	except:
 		return s
+	
+def interweave(
+	it1: Iterable[T],
+	it2: Iterable[T],
+	compare: Callable[[T, T], bool]
+) -> Iterator[T]:
+	iter1 = iter(it1)
+	iter2 = iter(it2)
+	try:
+		value1 = next(iter1)
+	except StopIteration:
+		yield from iter2
+		return
+	try:
+		value2 = next(iter2)
+	except StopIteration:
+		yield value1
+		yield from iter1
+		return
+	while True:
+		if compare(value1, value2):
+			yield value1
+			try:
+				value1 = next(iter1)
+			except StopIteration:
+				yield value2
+				yield from iter2
+				return
+		else:
+			yield value2
+			try:
+				value2 = next(iter2)
+			except StopIteration:
+				yield value1
+				yield from iter1
+				return
+		

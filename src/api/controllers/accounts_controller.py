@@ -216,7 +216,7 @@ def update_roles(
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
-	return AccountInfo(**{**prev.model_dump(), "roles": addedRoles}) #pyright: ignore [reportUnknownArgumentType, reportGeneralTypeIssues]
+	return AccountInfo(**{**prev.model_dump(), "roles": addedRoles}) #pyright: ignore [reportArgumentType, reportGeneralTypeIssues]
 
 @router.get("/account/{subjectuserkey}")
 def get_account(

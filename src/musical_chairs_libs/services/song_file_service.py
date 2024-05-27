@@ -13,7 +13,7 @@ from typing import (
 )
 from pathlib import Path
 from sqlalchemy.engine import Connection
-from .fs.file_service_protocol import FileServiceBase
+from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	normalize_opening_slash,
@@ -56,7 +56,7 @@ class SongFileService:
 	def __init__(
 		self,
 		conn: Connection,
-		fileService: FileServiceBase,
+		fileService: FileService,
 		songArtistService: Optional[SongArtistService]=None
 	) -> None:
 		if not conn:

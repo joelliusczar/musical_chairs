@@ -3,12 +3,12 @@ import boto3
 from botocore.client import Config
 from typing import BinaryIO, cast
 from ..env_manager import EnvManager
-from .file_service_protocol import FileServiceBase
+from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import SongAboutInfo
 from ..artist_service import ArtistService
 from ..album_service import AlbumService
 
-class S3FileService(FileServiceBase):
+class S3FileService(FileService):
 
 	def __init__(
 		self,

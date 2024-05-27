@@ -152,11 +152,11 @@ class PathsActionRule(ActionRule):
 			return False
 		return path.startswith(self.path) and len(path) > len(self.path)
 
-	def __eq__(self, __value: Any) -> bool:
-		if self.path is None and not hasattr(__value, "path"):
-			return super().__eq__(__value)
-		return super().__eq__(__value) \
-			and self.path == __value.path
+	def __eq__(self, other: Any) -> bool:
+		if self.path is None and not hasattr(other, "path"):
+			return super().__eq__(other)
+		return super().__eq__(other) \
+			and self.path == other.path
 
 	def __hash__(self) -> int:
 		if self.path is None:

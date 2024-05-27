@@ -27,7 +27,7 @@ export interface AlbumCreationInfo {
 }
 
 export interface NowPlayingInfo {
-	song: string
+	name: string
 	album: string
 	artist: string
 }
@@ -37,7 +37,6 @@ export interface SongListDisplayItem extends NamedIdItem {
 	artist: string | null
 	path: string
 	queuedtimestamp: number
-	requestedtimestamp: number | null
 	playedtimestamp: number | null
 	rules: ActionRule[]
 }
@@ -59,7 +58,7 @@ export class InitialQueueState extends VoidStore {
 			totalrows: 0,
 			stationrules: [],
 			nowplaying: {
-				song: "",
+				name: "",
 				album: "",
 				artist: "",
 			},

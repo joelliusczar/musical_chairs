@@ -3,13 +3,13 @@ from tinytag import TinyTag
 from pathlib import Path
 from typing import BinaryIO
 from ..env_manager import EnvManager
-from .file_service_protocol import FileServiceBase
+from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import SongAboutInfo
 from ..artist_service import ArtistService
 from ..album_service import AlbumService
 
 
-class LocalFileService(FileServiceBase):
+class LocalFileService(FileService):
 
 	def __init__(
 		self,

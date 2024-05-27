@@ -1,9 +1,9 @@
 from typing import BinaryIO
 from io import BytesIO
 from musical_chairs_libs.dtos_and_utilities import SongAboutInfo
-from musical_chairs_libs.services.fs import FileServiceBase
+from musical_chairs_libs.protocols import FileService
 
-class MockFileService(FileServiceBase):
+class MockFileService(FileService):
 
 	def save_song(self, keyPath: str, file: BinaryIO) -> SongAboutInfo:
 		if keyPath:

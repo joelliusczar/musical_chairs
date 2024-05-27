@@ -100,7 +100,7 @@ export const Queue = () => {
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton
-			id={`queue-row-btn-${idx}`}
+			id={`queue-row-btn-${item.id}-${idx}`}
 			options={rowButtonOptions}
 		/> :
 			<Button

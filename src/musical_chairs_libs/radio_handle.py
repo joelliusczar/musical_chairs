@@ -54,14 +54,13 @@ class RadioHandle:
 		searchBase = EnvManager.absolute_content_home()
 		conn = self.env_manager.get_configured_radio_connection(self.dbName)
 		queueService = QueueService(conn)
-		(songPath, songName, album, artist) = \
-			queueService.pop_next_queued(stationId=self.stationId)
+		queueItem = queueService.pop_next_queued(stationId=self.stationId)
 		conn.close()
-		if songName:
-			self.display = f"{songName} - {album} - {artist}"
+		if queueItem.name:
+			self.display = f"{queueItem.name} - {queueItem.album} - {queueItem.artist}"
 		else:
-			self.display = os.path.splitext(os.path.split(songPath)[1])[0]
-		self.songFullPath = f"{searchBase}/{songPath}"
+			self.display = os.path.splitext(os.path.split(queueItem.path)[1])[0]
+		self.songFullPath = f"{searchBase}/{queueItem.path}"
 		return self.songFullPath
 
 	# This function, if defined, returns the string you'd like used

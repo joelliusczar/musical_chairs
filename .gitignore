@@ -14,3 +14,5 @@ api.out
 radio.log
 musical_chairs.log
 musical_chairs-debug.log
+musical_chairs_radio.log
+musical_chairs_queue.log

@@ -38,9 +38,11 @@ def __start_ices__(
 
 class ProcessService:
 
+	stream_timeout = 5
 
 	@staticmethod
 	def noop_mode() -> bool:
+		#the radio process deosn't currently on macs
 		return platform.system() == "Darwin"
 
 	@staticmethod
@@ -52,11 +54,14 @@ class ProcessService:
 	@staticmethod
 	def end_process(procId: int) -> None:
 		if ProcessService.noop_mode():
+			logging.radioLogger.info("Process service is using noop mode")
 			return
 		try:
+			logging.radioLogger.info(f"Sending signal to end process {procId}")
 			os.kill(procId, 15)
-		except:
-			pass
+		except Exception as ex:
+			logging.radioLogger.warn("Encountered issue when killing process")
+			logging.radioLogger.warn(ex)
 
 	@staticmethod
 	def start_station_mc_ices(
@@ -68,7 +73,7 @@ class ProcessService:
 		m = get_non_simple_chars(filename_base)
 		if m:
 			raise RuntimeError("Invalid station name was used")
-		stationConf = f"{EnvManager.station_config_dir}/ices.{filename_base}.conf"
+		stationConf = f"{EnvManager.station_config_dir()}/ices.{filename_base}.conf"
 		if ProcessService.noop_mode():
 			print(
 				"Noop mode. Won't search for station config"
@@ -81,28 +86,30 @@ class ProcessService:
 
 	@staticmethod
 	def start_song_queue_process(dbName: str, stationName: str, ownerName: str):
-		# stationProc = subprocess.Popen([
-		# 		"python",
-		# 		"-m",
-		# 		"musical_chairs_libs.stream",
-		# 		dbName,
-		# 		stationName,
-		# 		ownerName
-		# 	]
-		# )
-
-		stationProc = ProcessService.start_station_mc_ices(
-			stationName,
-			ownerName,
-			"0"
+		stationProc = subprocess.Popen([
+				"python",
+				"-m",
+				"musical_chairs_libs.stream",
+				dbName,
+				stationName,
+				ownerName
+			],
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+			stdin=subprocess.DEVNULL
 		)
 
+		# stationProc = ProcessService.start_station_mc_ices(
+		# 	stationName,
+		# 	ownerName,
+		# 	"0"
+		# )
+
 		try:
-			stationProc.wait(5)
+			stationProc.wait(ProcessService.stream_timeout)
 			raise RuntimeError("Station ended sooner than expected")
 		except subprocess.TimeoutExpired:
-			print("So far so good")
-			logging.logger.info("so far so good")
+			logging.radioLogger.info("so far so good")
 
 
 

@@ -14,14 +14,16 @@ def test_get_user_action_history(
 ):
 	dates = fixture_mock_ordered_date_list
 	historyService = fixture_user_actions_history_service
-	# res = list(historyService.get_user_action_history(
-	# 	juliet_user_id,
-	# 	dates[0].timestamp() - 1000,
-	# 	limit=3
-	# ))
-	list(historyService.get_user_action_history(
+	res = list(historyService.get_user_action_history(
+		juliet_user_id,
+		dates[0].timestamp() - 1000,
+		limit=3
+	))
+	assert res
+	res = list(historyService.get_user_action_history(
 		juliet_user_id,
 		dates[0].timestamp() - 1000,
 		limit=3,
 		stationIds=[2, 5, 6]
 	))
+	assert res

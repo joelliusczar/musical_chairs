@@ -194,3 +194,9 @@ class DbOwnerConnectionService:
 			SqlScripts.NORMALIZE_OPENING_SLASH
 		).replace("<apiUser>", DbUsers.API_USER("localhost"))
 		self.conn.exec_driver_sql(script)
+
+	def drop_requestedtimestamp_column(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.DROP_REQUESTED_TIMESTAMP
+		).replace("<dbName>", self.dbName)
+		self.conn.exec_driver_sql(script)

@@ -349,7 +349,7 @@ __get_s3_bucket_name__() (
 		echo "$S3_BUCKET_NAME"
 		return
 	fi
-	perl -ne 'print "$1\n" if /S3_BUCKET_NAME=(\w+)/' \
+	perl -ne 'print "$1\n" if /S3_BUCKET_NAME=([\w\-]+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 )
 
@@ -487,14 +487,6 @@ get_ssl_public() (
 	get_ssl_vars | stdin_json_extract_value 'publickey'
 )
 
-aws_role() {
-	echo 'music_reader'
-}
-
-s3_name() {
-	echo 'joelradio'
-}
-
 kill_s3fs() {
 	process_global_vars "$@" &&
 	kill -9 $(ps -e | grep s3fs | awk '{ print $1 }')
@@ -506,7 +498,8 @@ link_to_music_files() {
 	process_global_vars "$@" &&
 	if [ -z  "$(ls -A "$(__get_app_root__)"/"$MC_CONTENT_HOME")" ]; then
 		if [ -e "$HOME"/.passwd-s3fs ]; then
-			s3fs "$(s3_name)" "$(__get_app_root__)"/"$MC_CONTENT_HOME"/ \
+			s3fs "$(__get_s3_bucket_name__)" \
+				"$(__get_app_root__)"/"$MC_CONTENT_HOME"/ \
 				-o connect_timeout=10 -o retries=2 -o dbglevel=info -o curldbg
 			[ -e "$(__get_app_root__)"/"$MC_CONTENT_HOME"/Soundtrack ]
 		else
@@ -1009,13 +1002,14 @@ with DbRootConnectionService() as rootConnService:
 	rootConnService.create_app_users()
 	rootConnService.grant_owner_roles(dbName)
 
-with DbOwnerConnectionService(dbName, echo=True) as ownerConnService:
+with DbOwnerConnectionService(dbName) as ownerConnService:
 	ownerConnService.create_tables()
 	ownerConnService.add_path_permission_index()
 	ownerConnService.grant_api_roles()
 	ownerConnService.grant_radio_roles()
 	ownerConnService.add_next_directory_level_func()
 	ownerConnService.add_normalize_opening_slash()
+	ownerConnService.drop_requestedtimestamp_column()
 EOF
 	)
 
@@ -1322,6 +1316,8 @@ __install_local_cert_debian__() (
 
 __clean_up_invalid_cert__() (
 	commonName="$1" &&
+	certName="$2" &&
+	echo "Clean up certs for ${commonName} if needed"
 	case $(uname) in
 		(Darwin*)
 			cert=''
@@ -1345,12 +1341,15 @@ __clean_up_invalid_cert__() (
 					| while read line; do
 						cert=$(printf "%s\n%s" "$cert" "$line")
 						if [ "$line" = '-----END CERTIFICATE-----' ]; then
-							sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
 							echo "$cert" | is_cert_expired && 
 							{
+								certDir='/usr/local/share/ca-certificates'
+								if [ -z "$certName" ]; then
+									certName="$commonName"
+								fi
 								sudo -p \
-									"Need pass to delete from /usr/local/share/ca-certificates" \
-									rm /usr/local/share/ca-certificates/"$commonName"*.crt;
+									"Need pass to delete from ${certDir}" \
+									rm "$certDir"/"$certName"*.crt;
 								sudo update-ca-certificates
 							}
 							cert=''
@@ -1404,6 +1403,7 @@ setup_ssl_cert_local_debug() (
 print_ssl_cert_info() (
 	process_global_vars "$@" &&
 	domain=$(__get_domain_name__ "$MC_APP_ENV" 'omitPort') &&
+	echo "$domain"
 	case "$MC_APP_ENV" in
 		(local*)
 			isDebugServer=${1#is_debug_server=}
@@ -1464,7 +1464,7 @@ setup_ssl_cert_nginx() (
 			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.crt &&
 			privateKeyFile=$(__get_local_nginx_cert_path__).private.key.pem &&
 			# we're leaving off the && because what would that even mean here?
-			__clean_up_invalid_cert__ "$domain"
+			__clean_up_invalid_cert__ "$domain" $(__get_local_nginx_cert_name__)
 			if [ -z $(__certs_matching_name_exact__ "$domain") ]; then
 				__setup_ssl_cert_local__ \
 				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
@@ -2275,6 +2275,12 @@ connect_remote() (
 	echo "connectiong to $(__get_address__) using $(__get_id_file__)" &&
 	ssh -ti $(__get_id_file__) "root@$(__get_address__)" \
 		$(__get_remote_export_script__) bash -l
+)
+
+print_exported_env_vars() (
+	process_global_vars "$@" &&
+	echo "App root: $(__get_app_root__)"
+	__get_remote_export_script__ "$@"
 )
 
 connect_sftp() (

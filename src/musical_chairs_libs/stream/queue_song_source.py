@@ -24,7 +24,7 @@ from traceback import TracebackException
 
 fileQueue = BlockingQueue[
 	Tuple[Optional[BinaryIO], Optional[SongListDisplayItem]]
-](4, 30)
+](3, 30)
 waiter = Condition()
 stopRunning = False
 icesProcess: Optional[subprocess.Popen[bytes]] = None

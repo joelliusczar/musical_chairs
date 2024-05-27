@@ -45,7 +45,6 @@ def get_song_info(
 			queueItem = songPopper.pop_next_queued(stationId, loaded)
 			with loadingLock:
 				loaded.add(queueItem)
-				logging.radioLogger.debug([s.name for s in loaded])
 			yield queueItem
 		except Exception as e:
 			logging.radioLogger.error("Error getting song info")

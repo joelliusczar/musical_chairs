@@ -1009,6 +1009,7 @@ with DbOwnerConnectionService(dbName) as ownerConnService:
 	ownerConnService.grant_radio_roles()
 	ownerConnService.add_next_directory_level_func()
 	ownerConnService.add_normalize_opening_slash()
+	ownerConnService.drop_requested_column()
 EOF
 	)
 

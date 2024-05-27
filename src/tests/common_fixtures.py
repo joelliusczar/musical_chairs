@@ -61,6 +61,7 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 		ownerConnService.grant_radio_roles()
 		ownerConnService.add_next_directory_level_func()
 		ownerConnService.add_normalize_opening_slash()
+		ownerConnService.drop_requestedtimestamp_column()
 	try:
 		yield dbName
 	finally:

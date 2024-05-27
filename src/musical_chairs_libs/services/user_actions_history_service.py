@@ -22,7 +22,7 @@ from sqlalchemy import (
 )
 from musical_chairs_libs.tables import (
 	user_action_history, uah_userFk, uah_action, uah_pk,
-	uah_requestedTimestamp,
+	uah_queuedTimestamp,
 	station_queue, q_stationFk, q_userActionHistoryFk
 )
 from itertools import groupby
@@ -93,14 +93,14 @@ class UserActionsHistoryService:
 			]:
 		query = select(
 			uah_action,
-			uah_requestedTimestamp,
+			uah_queuedTimestamp,
 			func.row_number().over( #pyright: ignore [reportUnknownMemberType]
 				partition_by=[q_stationFk, uah_action] if stationIds else uah_action,
-				order_by=uah_requestedTimestamp
+				order_by=uah_queuedTimestamp
 			).label("rownum")
 		)\
 		.select_from(user_action_history)\
-		.where(uah_requestedTimestamp >= fromTimestamp)\
+		.where(uah_queuedTimestamp >= fromTimestamp)\
 		.where(uah_userFk == userId)
 		if stationIds:
 			query = query.add_columns(q_stationFk)\
@@ -110,7 +110,7 @@ class UserActionsHistoryService:
 			query = query.order_by(q_stationFk)
 		if actions:
 			query = query.where(uah_action.in_(actions))
-		query = query.order_by(uah_action, uah_requestedTimestamp)
+		query = query.order_by(uah_action, uah_queuedTimestamp)
 		subquery = query.subquery()
 		query = select(*subquery.c)
 		if limit is not None:
@@ -118,11 +118,13 @@ class UserActionsHistoryService:
 
 		records = self.conn.execute(query).mappings().fetchall()
 		if stationIds:
+			#apparently these do need to be the strings and not the 
+			#column objects
 			yield from (
 				StationHistoryActionItem(
 					userid=userId,
-					action=cast(str,row["action"]),
-					timestamp=cast(float,row["requestedtimestamp"]),
+					action=cast(str,row["action"]), 
+					timestamp=cast(float,row["queuedtimestamp"]),
 					stationid=cast(int, row["stationfk"])
 				)
 				for row in records
@@ -132,8 +134,8 @@ class UserActionsHistoryService:
 			yield from (
 				UserHistoryActionItem(
 					userid=userId,
-					action=cast(str,row[uah_action]),
-					timestamp=cast(float,row[uah_requestedTimestamp])
+					action=cast(str,row["action"]),
+					timestamp=cast(float,row["queuedtimestamp"])
 				)
 				for row in records
 			)

@@ -37,7 +37,6 @@ export interface SongListDisplayItem extends NamedIdItem {
 	artist: string | null
 	path: string
 	queuedtimestamp: number
-	requestedtimestamp: number | null
 	playedtimestamp: number | null
 	rules: ActionRule[]
 }

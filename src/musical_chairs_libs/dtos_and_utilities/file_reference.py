@@ -24,6 +24,10 @@ class SqlScripts(Enum):
 		"5.normalize_opening_slash.sql",
 		"d2946254f45be36bdb565f398034c5a1"
 	)
+	DROP_REQUESTED_TIMESTAMP = (
+		"6.drop_requested_timestamp.sql",
+		"366ec48ec490f9e56d61d06838d6809b"
+	)
 
 	@property
 	def file_name(self) -> str:

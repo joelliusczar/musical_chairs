@@ -201,17 +201,22 @@ def test_request_song_timeout(
 	headers = login_test_user("testUser_november", client)
 
 	#1 t=0 [2]
+	response = client.post(
+		"stations/testUser_bravo/3/request/36",
+		headers=headers
+	)
+	assert response.status_code == 200
 	#2 t=s+15 [3]
 	#3 t=s+20 [4]
 	#4 t=s+25 [5]
 	#5 t=m+3, s+7 [6]
-	for _ in datetimeProvider(5):
+	for _ in datetimeProvider(4):
+		print("round")
 		response = client.post(
 			"stations/testUser_bravo/3/request/36",
 			headers=headers
 		)
 		assert response.status_code == 200
-
 	pass
 	#6 t=m+4, s+7 [7]
 	#7 t=m+4, s+30 [8]
@@ -226,14 +231,14 @@ def test_request_song_timeout(
 		assert response.status_code == 429
 
 	next(datetimeProvider)
-
+	
 	#12 t=m+5 [12]
 	response = client.post(
 			"stations/testUser_bravo/3/request/36",
 			headers=headers
 	)
 	assert response.status_code == 200
-
+	
 	next(datetimeProvider)
 
 	#13 t=m+5, s+14 [13]

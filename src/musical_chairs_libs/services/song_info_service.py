@@ -48,6 +48,7 @@ from musical_chairs_libs.tables import (
 	songs as songs_tbl,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	stations as stations_tbl, st_name, st_pk, st_displayName, st_ownerFk,
+	st_requestSecurityLevel, st_viewSecurityLevel,
 	sg_pk, sg_name, sg_path,
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
@@ -387,7 +388,9 @@ class SongInfoService:
 			st_ownerFk.label("station.ownerid"),
 			stationOwner.c.username.label("station.ownername"),
 			stationOwner.c.displayname.label("station.ownerdisplayname"),
-			st_displayName.label("station.displayname")
+			st_displayName.label("station.displayname"),
+			st_requestSecurityLevel.label("station.requestsecuritylevel"),
+			st_viewSecurityLevel.label("station.viewsecuritylevel")
 		).select_from(songs_tbl)\
 				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
 				.join(artists_tbl, ar_pk == sgar_artistFk, isouter=True)\
@@ -468,7 +471,9 @@ class SongInfoService:
 						id=row["station.ownerid"],
 						username=row["station.ownername"],
 						displayname=row["station.ownerdisplayname"]
-					)
+					),
+					requestsecuritylevel=row["station.requestsecuritylevel"],
+					viewsecuritylevel=row["station.viewsecuritylevel"]
 				))
 		if currentSongRow:
 			songDict = self._prepare_song_row_for_model(currentSongRow)

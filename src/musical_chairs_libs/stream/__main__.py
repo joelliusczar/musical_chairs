@@ -20,7 +20,7 @@ from musical_chairs_libs.services.fs import S3FileService
 from sqlalchemy.engine import Connection
 
 def __end_stream__():
-	queue_song_source.stopLoading = True
+	queue_song_source.stopRunning = True
 	queue_song_source.clean_up_ices_process()
 
 def handle_keyboard(sigNum: Any, frame: Any):
@@ -110,7 +110,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		loadThread.start()
 		sendThread.start()
 
-		while queue_song_source.stopLoading:
+		while queue_song_source.stopRunning:
 			sendThread.join(30)
 		sendThread.join() #wait for clean up to finish
 		logging.radioLogger.debug("Escaped the loop")

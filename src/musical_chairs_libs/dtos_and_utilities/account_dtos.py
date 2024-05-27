@@ -21,7 +21,7 @@ from .simple_functions import (
 	validate_email,
 	normalize_opening_slash
 )
-from .generic_dtos import IdItem, FrozenBaseClass
+from .generic_dtos import FrozenIdItem, FrozenBaseClass
 from .action_rule_dtos import (
 	ActionRule,
 	PathsActionRule,
@@ -170,7 +170,7 @@ class AccountInfoSecurity(AccountInfoBase):
 	):
 		return value
 
-class AccountInfo(AccountInfoSecurity, IdItem):
+class AccountInfo(AccountInfoSecurity, FrozenIdItem):
 	...
 
 
@@ -267,7 +267,7 @@ class StationHistoryActionItem(UserHistoryActionItem):
 	stationid: int
 
 
-class OwnerInfo(IdItem):
+class OwnerInfo(FrozenIdItem):
 	username: Optional[str]=None
 	displayname: Optional[str]=None
 

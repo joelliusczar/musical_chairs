@@ -2,7 +2,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem
 )
 from typing import (
-	Protocol
+	Optional,
+	Protocol,
+	Set
 )
 
 class SongPopper(Protocol):
@@ -10,7 +12,7 @@ class SongPopper(Protocol):
 	def pop_next_queued(
 		self,
 		stationId: int,
-		offset: int=0
+		loaded: Optional[Set[SongListDisplayItem]]=None
 	) -> SongListDisplayItem:
 		...
 

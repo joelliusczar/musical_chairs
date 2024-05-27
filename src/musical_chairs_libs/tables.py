@@ -218,8 +218,7 @@ user_action_history = Table("useractionhistory", metadata,
 	Column("userfk", Integer, ForeignKey("users.pk"), nullable=True),
 	Column("action", String(50), nullable=False),
 	Column("timestamp", Double[float], nullable=True),
-	Column("queuedtimestamp", Double[float], nullable=False),
-	Column("requestedtimestamp", Double[float], nullable=True)
+	Column("queuedtimestamp", Double[float], nullable=False)
 )
 
 uah = user_action_history.c
@@ -228,7 +227,6 @@ uah_userFk = cast(Column[Optional[Integer]],uah.userfk)
 uah_action = cast(Column[String], uah.action)
 uah_timestamp = cast(Column[Optional[Double[float]]],uah.timestamp)
 uah_queuedTimestamp = cast(Column[Double[float]], uah.queuedtimestamp)
-uah_requestedTimestamp = cast(Column[Double[float]], uah.requestedtimestamp)
 
 station_queue = Table("stationqueue", metadata,
   Column("useractionhistoryfk",

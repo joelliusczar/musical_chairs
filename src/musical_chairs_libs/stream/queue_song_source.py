@@ -2,12 +2,12 @@ import musical_chairs_libs.dtos_and_utilities.logging as logging
 import socket
 import subprocess
 from typing import (
-	Tuple,
-	Iterator,
 	BinaryIO,
-	Optional,
+	Callable,
 	cast,
-	Callable
+	Iterator,
+	Optional,
+	Tuple,
 )
 from musical_chairs_libs.protocols import (
 	FileService,
@@ -18,7 +18,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem
 )
 from tempfile import NamedTemporaryFile
-from threading import Condition
+from threading import Condition, Lock
 from traceback import TracebackException
 
 
@@ -26,8 +26,10 @@ fileQueue = BlockingQueue[
 	Tuple[Optional[BinaryIO], Optional[SongListDisplayItem]]
 ](4, 30)
 waiter = Condition()
-stopLoading = False
+stopRunning = False
 icesProcess: Optional[subprocess.Popen[bytes]] = None
+loaded = set[SongListDisplayItem]()
+loadingLock = Lock()
 
 
 
@@ -40,7 +42,9 @@ def get_song_info(
 		try:
 			offset = fileQueue.qsize()
 			logging.queueLogger.debug(f"offset : {offset}")
-			queueItem = songPopper.pop_next_queued(stationId, offset)
+			queueItem = songPopper.pop_next_queued(stationId, loaded)
+			with loadingLock:
+				loaded.add(queueItem)
 			yield queueItem
 		except Exception as e:
 			logging.radioLogger.error("Error getting song info")
@@ -53,7 +57,7 @@ def load_data(
 		songPopper: SongPopper,
 		fileService: FileService
 	):
-	global stopLoading
+	global stopRunning
 	logging.radioLogger.info(f"Beginning data load")
 	try:
 		currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
@@ -61,23 +65,23 @@ def load_data(
 			stationId, 
 			songPopper
 		):
-			if stopLoading:
-				logging.radioLogger.info(f"Stop loading flag encountered")
+			if stopRunning:
+				logging.radioLogger.info(f"Stop running flag encountered")
 				break
 			logging.queueLogger.info(f"file name: {queueItem.path}")
 			with fileService.open_song(queueItem.path) as src:
 				for chunk in src:
 					currentFile.write(chunk)
-			fileQueue.put((currentFile, queueItem), lambda _: not stopLoading)
+			fileQueue.put((currentFile, queueItem), lambda _: not stopRunning)
 			currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
-		fileQueue.put((None, None), lambda _: not stopLoading)
+		fileQueue.put((None, None), lambda _: not stopRunning)
 	except Exception as e:
 		logging.radioLogger.error("Error while trying to load data")
 		logging.radioLogger.error(
 			"".join(TracebackException.from_exception(e).format())
 		)
 	finally:
-		stopLoading = True
+		stopRunning = True
 
 def accept(
 	listener: socket.socket,
@@ -135,9 +139,10 @@ def send_next(
 		songPopper: SongPopper,
 		timeout: int
 	):
-	global stopLoading
+	global stopRunning
 	global icesProcess
 	currentFile = None
+	queueItem = None
 	skipped = False
 	host = "127.0.0.1"
 	portNumber = 0
@@ -158,7 +163,7 @@ def send_next(
 				if not returnCode is None:
 					logging.radioLogger.error("mc-ices errored out.")
 					break
-				if stopLoading:
+				if stopRunning:
 						logging.radioLogger.warn("stopLoading is set")
 						break
 				#don't want to wait for 'next' signal from ices when it doesn't
@@ -167,11 +172,14 @@ def send_next(
 					res = conn.recv(1)
 					if res == b"0":
 						break
+				if queueItem:
+					with loadingLock:
+						loaded.remove(queueItem)
 				if currentFile:
 					logging.radioLogger.debug(f"closing {currentFile.name}")
 					currentFile.close()
 				with fileQueue.delayed_decrement_get(
-					lambda _: not stopLoading
+					lambda _: not stopRunning
 				) as (currentFile, queueItem):
 					display = queueItem.display() if queueItem else "Missing Name"
 					logging.queueLogger.info(f"From queue: {display}")
@@ -202,7 +210,7 @@ def send_next(
 		)
 	finally:
 		logging.radioLogger.debug("send_next finally")
-		stopLoading = True
+		stopRunning = True
 		cleanup_socket(listener)
 		clean_up_tmp_files()
 		clean_up_ices_process()

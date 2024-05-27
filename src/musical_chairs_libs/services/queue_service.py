@@ -1,5 +1,5 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
-import musical_chairs_libs.dtos_and_utilities.logging as logging
+#import musical_chairs_libs.dtos_and_utilities.logging as logging
 from typing import (
 	Any,
 	Callable,
@@ -8,7 +8,8 @@ from typing import (
 	Iterator,
 	cast,
 	Collection,
-	Sequence
+	Sequence,
+	Set
 )
 from sqlalchemy import (
 	select,
@@ -18,7 +19,6 @@ from sqlalchemy import (
 	update,
 	literal,
 	union_all,
-	or_,
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import RowMapping
@@ -32,7 +32,7 @@ from musical_chairs_libs.tables import (
 	stations,
 	stations_songs as stations_songs_tbl, stsg_stationFk, stsg_songFk,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
-	uah_timestamp, uah_action, uah_requestedTimestamp,
+	uah_timestamp, uah_action,
 	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk,
 	albums,
 	artists,
@@ -45,11 +45,12 @@ from musical_chairs_libs.tables import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
-	SongListDisplayItem,
 	CurrentPlayingInfo,
 	get_datetime,
+	QueuedItem,
+	SongListDisplayItem,
 	StationInfo,
-	UserRoleDef
+	UserRoleDef,
 )
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
@@ -197,8 +198,7 @@ class QueueService:
 	def get_queue_for_station(
 		self,
 		stationId: int,
-		limit: Optional[int]=None,
-		include_skipped: bool=False
+		limit: Optional[int]=None
 	) -> Iterator[SongListDisplayItem]:
 		primaryArtistGroupQuery = select(
 			func.max(sgar_pk).label("pk"),
@@ -217,8 +217,7 @@ class QueueService:
 				ab_name.label("album"),
 				ar_name.label("artist"),
 				uah_queuedTimestamp,
-				uah_timestamp,
-				uah_requestedTimestamp
+				uah_timestamp
 			).select_from(station_queue)\
 				.join(user_action_history_tbl,uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
@@ -227,18 +226,9 @@ class QueueService:
 				.join(artists, sgar_artistFk == ar_pk, isouter=True)\
 				.join(subq, subq.c.pk == coalesce(sgar_pk, -1))\
 				.where(q_stationFk == stationId)\
-				.where(uah_timestamp.is_(None))
-		
-		if include_skipped:
-			query = query.where(or_(
-				uah_action == UserRoleDef.STATION_SKIP.value,
-				uah_action == UserRoleDef.STATION_REQUEST.value
-			))
-		else:
-			query = query.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
-				.where(uah_timestamp.is_(None))
-		
-		query = query.order_by(uah_queuedTimestamp)
+				.where(uah_timestamp.is_(None))\
+				.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
+				.order_by(uah_queuedTimestamp)
 
 		if limit:
 			query = query.limit(limit)
@@ -253,39 +243,54 @@ class QueueService:
 				path=row[sg_path],
 				queuedtimestamp=row[uah_queuedTimestamp],
 				playedtimestamp=row[uah_timestamp],
-				requestedtimestamp=row[uah_requestedTimestamp]
+			)
+
+	def __get_skipped__(
+		self,
+		stationId: int,
+		limit: Optional[int]=None
+	) -> Iterator[QueuedItem]:
+		
+		query = select(
+			q_songFk,
+			uah_queuedTimestamp, 
+		).select_from(station_queue)\
+			.join(user_action_history_tbl,uah_pk == q_userActionHistoryFk)\
+			.where(q_stationFk == stationId)\
+			.where(uah_action == UserRoleDef.STATION_SKIP.value)\
+			.order_by(uah_queuedTimestamp)\
+			.limit(limit)
+		
+		records = self.conn.execute(query)
+		for row in records:
+			yield QueuedItem(
+				id=row[0],
+				name="",
+				queuedtimestamp=row[1]
 			)
 
 	def pop_next_queued(
 		self,
 		stationId: int,
-		offset: int=0
+		loaded: Optional[Set[SongListDisplayItem]]=None
 	) -> SongListDisplayItem:
 		if not stationId:
 			raise ValueError("Station Id must be provided")
-		offset = offset if offset > -1 else 0
+		offset = len(loaded) if loaded else 0
 		if self.is_queue_empty(stationId, offset):
 			self.fil_up_queue(stationId, self.queue_size + 1 - offset)
 			self.conn.commit()
 
-			
+
 		results = self.get_queue_for_station(
 			stationId,
-			limit=self.queue_size,
-			include_skipped=True
+			limit=self.queue_size
 		)
-		results = [s for s in results]
-		logging.radioLogger.debug([f"song:{s.name} queued: {s.queuedtimestamp} played: {s.playedtimestamp}" for s in results[:10]])
-		count = 0
+
 		for item in results:
-			logging.radioLogger.debug((f"offset: {offset}"))
-			if item.playedtimestamp: #skipped
-				logging.radioLogger.debug((f"skip: song:{item.name} queued: {item.queuedtimestamp} played: {item.playedtimestamp}"))
+			if loaded and item in loaded:
 				continue
-			if count == offset:
-				logging.radioLogger.debug((f"return: song:{item.name} queued: {item.queuedtimestamp} played: {item.playedtimestamp}"))
-				return item
-			offset += 1
+			return item
 		
 		raise RuntimeError("No unskipped songs available.")
 
@@ -295,11 +300,10 @@ class QueueService:
 		stationId: int,
 		userId: int
 	) -> int:
-		timestamp = self.get_datetime().timestamp()
+		queuedtimestamp = self.get_datetime().timestamp()
 
 		stmt = insert(user_action_history_tbl).values(
-			queuedtimestamp = timestamp,
-			requestedtimestamp = timestamp,
+			queuedtimestamp = queuedtimestamp,
 			userfk = userId,
 			action = UserRoleDef.STATION_REQUEST.value,
 		)
@@ -386,7 +390,7 @@ class QueueService:
 		stmt = update(user_action_history_tbl) \
 			.values(
 				action = UserRoleDef.STATION_SKIP.value,
-				requestedtimestamp = currentTime
+				timestamp = currentTime
 			) \
 			.where(
 				uah_pk.in_(subquery) #pyright: ignore [reportArgumentType]
@@ -443,7 +447,7 @@ class QueueService:
 			.where(uah_timestamp.isnot(None))\
 			.where(q_stationFk == stationId)\
 			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
-			.order_by(desc(uah_queuedTimestamp)) \
+			.order_by(desc(uah_timestamp)) \
 			.offset(offset)\
 			.limit(limit)
 		records = self.conn.execute(query).mappings()

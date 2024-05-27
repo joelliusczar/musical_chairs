@@ -41,7 +41,6 @@ def _insert_row_into_history(conn: Connection, userPk: int):
 				tzinfo=timezone.utc
 			).timestamp(),
 			"queuedtimestamp": queuedTimestamp,
-			"requestedtimestamp": queuedTimestamp,
 			"requestedbyuserfk": userPk
 		}
 	]

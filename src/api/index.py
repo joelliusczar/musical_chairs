@@ -125,10 +125,9 @@ def everything_else(
 	request: Request,
 	ex: Exception
 ) -> JSONResponse:
-	logging.logger.debug(
+	logging.logger.error(
 		"".join(TracebackException.from_exception(ex).format())
 	)
-	logging.logger.exception(ex)
 	response = JSONResponse(content=
 		{ "detail": [
 				build_error_obj("Onk! Caveman error! What do?")

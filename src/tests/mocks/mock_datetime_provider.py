@@ -1,25 +1,24 @@
 from typing import (Iterable, Iterator, overload, Optional, Union)
-from datetime import datetime, timedelta
+from datetime import datetime
 
 class MockDatetimeProvider:
 
 	def __init__(self, datetimes: Iterable[datetime]) -> None:
-		self.datetimes = list(datetimes)
-		#using index tracking so it's easier to see where I am while testing
-		self.idx = 0
-		self.__range_to = None
-		self.__current = self.datetimes[self.idx]
-		self.__latest = self.__current
-		self.__time_offset = timedelta()
+		self.__dtIter__ = iter(datetimes)
+		self.__range__ = None
+		self.__current__ = next(self.__dtIter__)
 
 	def __next__(self) -> datetime:
-		if self.__range_to != None:
-			if self.idx >= self.__range_to:
-				self.__range_to = None
-				raise StopIteration()
-		self.__current = self.datetimes[self.idx]
-		self.idx += 1
-		return self.__current
+		if self.__range__:
+			try:
+				next(self.__range__)
+			except StopIteration:
+				self.__range__ = None
+				raise
+		self.__current__ = next(self.__dtIter__)
+		return self.__current__
+
+
 
 	def __iter__(self) -> Iterator[datetime]:
 		return self
@@ -35,15 +34,13 @@ class MockDatetimeProvider:
 		offset: Optional[int]=None
 	) -> Union[datetime, Iterator[datetime]]:
 		if offset != None:
-			self.__range_to = self.idx + offset
+			self.__range__ = iter(range(offset))
 			return self
 
-		self.__latest = self.__current + self.__time_offset
-
-		return self.__latest
+		return self.__current__
 
 	def __str__(self) -> str:
-		return  f"idx: {self.idx} - {str(self.__latest)}"
+		return  f"{str(self.__current__)}"
 
 	def __repr__(self) -> str:
 		return str(self)

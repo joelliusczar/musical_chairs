@@ -15,41 +15,55 @@ from typing import (
 from itertools import chain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_duplicates, get_non_simple_chars
-from .generic_dtos import IdItem, TableData, T, FrozenBaseClass, MCBaseClass
+from .generic_dtos import (
+	FrozenIdItem,
+	TableData,
+	T,
+	FrozenBaseClass,
+	MCBaseClass,
+	NamedIdItem,
+	FrozenNamed,
+	FrozenNamedIdItem,
+	IdItem
+)
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule, PathsActionRule
 from .user_role_def import MinItemSecurityLevel
 from pathlib import Path
 
 
-class ArtistInfo(FrozenBaseClass):
-	id: int
-	name: str
+
+class ArtistInfo(FrozenNamedIdItem):
 	owner: OwnerType
 
-class AlbumCreationInfo(FrozenBaseClass):
-	name: str
+class AlbumCreationInfo(FrozenNamed):
 	year: Optional[int]=None
 	albumartist: Optional[ArtistInfo]=None
 
-class AlbumInfo(IdItem):
-	name: str
+class AlbumInfo(FrozenNamedIdItem):
 	owner: OwnerType
 	year: Optional[int]=None
 	albumartist: Optional[ArtistInfo]=None
 
-class SongBase(MCBaseClass):
-	id: int
-	name: str
+class QueuedItem(NamedIdItem):
+	queuedtimestamp: float=Field(frozen=True)
 
-class SongListDisplayItem(SongBase):
+	def __hash__(self) -> int:
+		return hash((self.id, self.name, self.queuedtimestamp))
+	
+	def __eq__(self, value: Any) -> bool:
+		if not value:
+			return False
+		return self.id == value.id \
+			and self.name == value.name \
+			and self.queuedtimestamp == value.queuedtimestamp
+
+class SongListDisplayItem(QueuedItem):
 	album: Optional[str]
 	artist: Optional[str]
 	path: str
-	queuedtimestamp: float
-	requestedtimestamp: Optional[float]=None
 	playedtimestamp: Optional[float]=None
-	rules: list[ActionRule]=Field(default_factory=list)
+	rules: list[ActionRule]=Field(default_factory=list, frozen=False)
 
 	def display(self) -> str:	
 		if self.name:
@@ -59,8 +73,7 @@ class SongListDisplayItem(SongBase):
 		return display.replace("\n", "")
 
 
-class ScanningSongItem(FrozenBaseClass):
-	id: int
+class ScanningSongItem(FrozenIdItem):
 	path: str
 	name: Optional[str]=None
 	albumId: Optional[int]=None
@@ -238,8 +251,7 @@ class SongArtistTuple:
 			and self.artistid == other.artistid
 
 
-class SongPathInfo(MCBaseClass):
-	id: int
+class SongPathInfo(IdItem):
 	path: str
 
 

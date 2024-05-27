@@ -134,6 +134,16 @@ def populate_songs(conn: Connection):
 		'bitrate' in s and \
 		not 'comment' in s, song_params))
 	conn.execute(stmt, songParams9) #pyright: ignore [reportUnknownMemberType]
+	songParams14 = list(filter(lambda s: \
+		'name' in s and \
+		not 'explicit' in s and \
+		not 'albumfk' in s and \
+		not 'track' in s and \
+		not 'disc' in s and \
+		'genre' in s and \
+		not 'bitrate' in s and \
+		'comment' in s, song_params))
+	conn.execute(stmt, songParams14) #pyright: ignore [reportUnknownMemberType]
 	songParams10 = list(filter(lambda s: \
 		'name' in s and \
 		'explicit' in s and \

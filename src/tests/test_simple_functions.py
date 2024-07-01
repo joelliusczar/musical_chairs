@@ -114,8 +114,8 @@ def test_next_directory_level():
 	assert result == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
 		"01._Come_Together_-_The_Beatles.flac"
 
-def test_populate_model_from_datarow(fixture_db_conn_in_mem: Connection):
-	conn = fixture_db_conn_in_mem
+def test_populate_model_from_datarow(fixture_conn_cardboarddb: Connection):
+	conn = fixture_conn_cardboarddb
 	query = select(sg_pk.label("id"), sg_name, sg_path)
 	row = conn.execute(query).fetchone() #pyright: ignore reportUnknownMemberType
 	print("oh hai")

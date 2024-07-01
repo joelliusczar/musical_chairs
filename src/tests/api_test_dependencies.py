@@ -9,7 +9,7 @@ from .mocks.constant_values_defs import (
 from sqlalchemy.engine import Connection
 from fastapi.testclient import TestClient
 from .common_fixtures import (
-	fixture_db_conn_in_mem as fixture_db_conn_in_mem
+	fixture_conn_cardboarddb as fixture_conn_cardboarddb
 )
 from .common_fixtures import *
 from index import app
@@ -39,12 +39,12 @@ def login_test_user(username: str, client: TestClient) -> dict[str, Any]:
 
 @pytest.fixture
 def fixture_api_test_client(
-	fixture_db_conn_in_mem: Connection,
+	fixture_conn_cardboarddb: Connection,
 	request: pytest.FixtureRequest
 ) -> TestClient:
 
 	app.dependency_overrides[get_configured_db_connection] =\
-		lambda: fixture_db_conn_in_mem
+		lambda: fixture_conn_cardboarddb
 	app.dependency_overrides[file_service] = lambda: MockFileService()
 
 	client = TestClient(app, raise_server_exceptions=False)

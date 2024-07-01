@@ -62,6 +62,7 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 		ownerConnService.add_next_directory_level_func()
 		ownerConnService.add_normalize_opening_slash()
 		ownerConnService.drop_requestedtimestamp_column()
+		ownerConnService.add_internalpath_column()
 	try:
 		yield dbName
 	finally:
@@ -97,7 +98,7 @@ def fixture_db_empty_populate_factory() -> Callable[[], None]:
 
 
 @pytest.fixture
-def fixture_db_conn_in_mem(
+def fixture_conn_cardboarddb(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str,
 ) -> Iterator[Connection]:
@@ -123,7 +124,7 @@ def fixture_populated_db_name(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str
 ) -> str:
-	request.getfixturevalue("fixture_db_conn_in_mem")
+	request.getfixturevalue("fixture_conn_cardboarddb")
 	return fixture_setup_db
 
 
@@ -135,66 +136,66 @@ def fixture_radio_handle(fixture_populated_db_name: str) -> RadioHandle:
 
 @pytest.fixture
 def fixture_queue_service(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> QueueService:
-	queueService = QueueService(fixture_db_conn_in_mem)
+	queueService = QueueService(fixture_conn_cardboarddb)
 	return queueService
 
 @pytest.fixture
 def fixture_account_service(
-	fixture_db_conn_in_mem: Connection) -> AccountsService:
-	accountService = AccountsService(fixture_db_conn_in_mem)
+	fixture_conn_cardboarddb: Connection) -> AccountsService:
+	accountService = AccountsService(fixture_conn_cardboarddb)
 	return accountService
 
 @pytest.fixture
 def fixture_station_service(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> StationService:
-	stationService = StationService(fixture_db_conn_in_mem)
+	stationService = StationService(fixture_conn_cardboarddb)
 	return stationService
 
 @pytest.fixture
 def fixture_song_info_service(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> SongInfoService:
-	songInfoService = SongInfoService(fixture_db_conn_in_mem)
+	songInfoService = SongInfoService(fixture_conn_cardboarddb)
 	return songInfoService
 
 @pytest.fixture
 def fixture_album_service(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> AlbumService:
-	albumService = AlbumService(fixture_db_conn_in_mem)
+	albumService = AlbumService(fixture_conn_cardboarddb)
 	return albumService
 
 @pytest.fixture
 def fixture_artist_service(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> ArtistService:
-	artistService = ArtistService(fixture_db_conn_in_mem)
+	artistService = ArtistService(fixture_conn_cardboarddb)
 	return artistService
 
 @pytest.fixture
 def fixture_songartist_service(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> SongArtistService:
-	songArtistService = SongArtistService(fixture_db_conn_in_mem)
+	songArtistService = SongArtistService(fixture_conn_cardboarddb)
 	return songArtistService
 
 @pytest.fixture
 def fixture_path_rule_service(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> PathRuleService:
-	pathRuleService = PathRuleService(fixture_db_conn_in_mem)
+	pathRuleService = PathRuleService(fixture_conn_cardboarddb)
 	return pathRuleService
 
 @pytest.fixture
 def fixture_song_file_service(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> SongFileService:
 	fileService = MockFileService()
 	songFileService = SongFileService(
-		fixture_db_conn_in_mem,
+		fixture_conn_cardboarddb,
 		fileService
 	)
 	return songFileService
@@ -206,10 +207,10 @@ def fixture_template_service() -> TemplateService:
 
 @pytest.fixture
 def fixture_user_actions_history_service(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> UserActionsHistoryService:
 	userActionsHistoryService = UserActionsHistoryService(
-		fixture_db_conn_in_mem
+		fixture_conn_cardboarddb
 	)
 	return userActionsHistoryService
 
@@ -294,10 +295,10 @@ def datetime_monkey_patch(
 
 @pytest.fixture
 def fixture_db_queryer(
-	fixture_db_conn_in_mem: Connection
+	fixture_conn_cardboarddb: Connection
 ) -> Callable[[str], None]:
 	def run_query(stmt: str):
-		res = fixture_db_conn_in_mem.exec_driver_sql(stmt)
+		res = fixture_conn_cardboarddb.exec_driver_sql(stmt)
 		print(res.fetchall())
 	return run_query
 

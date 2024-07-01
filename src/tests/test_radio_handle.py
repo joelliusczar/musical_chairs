@@ -1,7 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 from .common_fixtures import (
 	fixture_radio_handle as fixture_radio_handle,
-	fixture_db_conn_in_mem as fixture_db_conn_in_mem,
+	fixture_conn_cardboarddb as fixture_conn_cardboarddb,
 	fixture_populated_db_name as fixture_populated_db_name,
 )
 from .common_fixtures import *

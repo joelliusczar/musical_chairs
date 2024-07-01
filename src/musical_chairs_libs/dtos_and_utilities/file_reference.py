@@ -28,6 +28,10 @@ class SqlScripts(Enum):
 		"6.drop_requested_timestamp.sql",
 		"366ec48ec490f9e56d61d06838d6809b"
 	)
+	ADD_INTERNAL_PATH = (
+		"7.add_internal_path.sql",
+		"052cdef6b1fcc63739deec492333de3e"
+	)
 
 	@property
 	def file_name(self) -> str:

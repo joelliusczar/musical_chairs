@@ -11,8 +11,8 @@ from .mocks.special_strings_reference import chinese1
 sg = songs.columns
 
 @pytest.mark.skip()
-def test_iron_str(fixture_db_conn_in_mem: Connection):
-	conn = fixture_db_conn_in_mem
+def test_iron_str(fixture_conn_cardboarddb: Connection):
+	conn = fixture_conn_cardboarddb
 	sg_name = sg.name
 	sg_pk = sg.pk
 	query = select(sg_name,\
@@ -26,8 +26,8 @@ def test_iron_str(fixture_db_conn_in_mem: Connection):
 		assert False
 
 @pytest.mark.populateFnName("fixture_db_empty_populate_factory")
-def test_next_directory_level(fixture_db_conn_in_mem: Connection):
-	conn = fixture_db_conn_in_mem
+def test_next_directory_level(fixture_conn_cardboarddb: Connection):
+	conn = fixture_conn_cardboarddb
 	path = "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
 		"01._Come_Together_-_The_Beatles.flac"
 	query = select(func.next_directory_level(path, ""))

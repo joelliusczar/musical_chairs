@@ -106,7 +106,8 @@ songs = Table("songs", metadata,
 	Column("isdirectoryplaceholder", Boolean, nullable=True),
 	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
 		nullable=True),
-	Column("lastmodifiedtimestamp", Double[float], nullable=True)
+	Column("lastmodifiedtimestamp", Double[float], nullable=True),
+	Column("internalpath", String(255), nullable=False),
 )
 
 sg = songs.c

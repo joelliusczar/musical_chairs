@@ -17,3 +17,4 @@ with DbOwnerConnectionService(dbName, echo=False) as ownerConnService:
 	ownerConnService.add_next_directory_level_func()
 	ownerConnService.add_normalize_opening_slash()
 	ownerConnService.drop_requestedtimestamp_column()
+	ownerConnService.add_internalpath_column()

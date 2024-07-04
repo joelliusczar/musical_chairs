@@ -1,13 +1,13 @@
 #!/bin/sh
 
-if [ -e ./radio_common.sh ]; then
-	. ./radio_common.sh
-elif [ -e ../radio_common.sh ]; then
-	. ../radio_common.sh
-elif [ -e "$HOME"/radio/radio_common.sh ]; then
-	. "$HOME"/radio/radio_common.sh
+if [ -e ./mc_dev_ops.sh ]; then
+	. ./mc_dev_ops.sh
+elif [ -e ../mc_dev_ops.sh ]; then
+	. ../mc_dev_ops.sh
+elif [ -e "$HOME"/radio/mc_dev_ops.sh ]; then
+	. "$HOME"/radio/mc_dev_ops.sh
 else
-  echo "radio_common.sh not found"
+  echo "mc_dev_ops.sh not found"
   exit 1
 fi
 
@@ -122,7 +122,7 @@ echo "$(get_app_root)/${build_home} does not exist"
 echo "$(get_app_root)/${app_trunk} does not exist"
 
 case $(uname) in
-	Linux*)
+	(Linux*)
 		if [ "$pkgMgrChoice" = "$MC_PACMAN_CONST" ]; then
 			icecast -v >/dev/null 2>&1 ||
 			echo "$icecast is not installed"
@@ -131,14 +131,14 @@ case $(uname) in
 			echo "$icecast2 is not installed"
 		fi
 		;;
-	*) ;;
+	(*) ;;
 esac
 
 mc-ices -V >/dev/null 2>&1 ||
 echo "mc-ices is not installed"
 
-[ -e "$(get_app_root)"/"$app_trunk"/radio_common.sh ] ||
-echo "radio_common.sh is not in place"
+[ -e "$(get_app_root)"/"$app_trunk"/mc_dev_ops.sh ] ||
+echo "mc_dev_ops.sh is not in place"
 [ -e "$(get_app_root)"/"$app_trunk"/requirements.txt ] ||
 echo "requirements.txt is not in place"
 

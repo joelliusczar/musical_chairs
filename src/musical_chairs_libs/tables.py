@@ -114,6 +114,7 @@ sg = songs.c
 sg_pk = cast(Column[Integer],sg.pk)
 sg_name = cast(Column[Optional[String]],sg.name)
 sg_path = cast(Column[String],sg.path)
+sg_internalpath = cast(Column[String],sg.internalpath)
 sg_albumFk = cast(Column[Optional[Integer]], sg.albumfk)
 sg_track = cast(Column[Optional[Integer]], sg.track)
 sg_disc = cast(Column[Optional[Integer]], sg.disc)

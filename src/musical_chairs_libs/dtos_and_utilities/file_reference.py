@@ -1,6 +1,6 @@
 ####### This file is generated. #######
 # edit regen_file_reference_file #
-# in radio_common.sh and rerun
+# in mc_dev_ops.sh and rerun
 from enum import Enum
 
 class SqlScripts(Enum):

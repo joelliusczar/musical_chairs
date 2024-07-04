@@ -9,7 +9,7 @@
   "python.analysis.typeCheckingMode": "strict",
   "python.analysis.indexing": true,
   "python.analysis.useLibraryCodeForTypes": true,
-  "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/musical_chairs_dir/mc_env/bin/python",
+  "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/musical_chairs/mc_env/bin/python",
   "terminal.integrated.env.osx": {
     "PTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
     "MC_LIB_NAME": "musical_chairs_libs",
@@ -19,12 +19,12 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "python.testing.cwd": "${workspaceFolder}/src/tests",
-  "python.testing.pytestPath": "${workspaceFolder}/test_trash/musical_chairs_dir/mc_env/bin/pytest",
+  "python.testing.pytestPath": "${workspaceFolder}/test_trash/musical_chairs/mc_env/bin/pytest",
   "python.testing.pytestArgs": [
     "-s", "-p", "no:warnings"
   ],
   "python.terminal.activateEnvironment": false,
-  "python.envFile": "${workspaceFolder}/test_trash/musical_chairs_dir/config/.env",
+  "python.envFile": "${workspaceFolder}/test_trash/musical_chairs/config/.env",
   "search.exclude": {
     "**/test_trash": true
   },

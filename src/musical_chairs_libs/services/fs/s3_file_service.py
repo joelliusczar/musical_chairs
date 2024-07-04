@@ -30,7 +30,7 @@ class S3FileService(FileService):
 				region_name=EnvManager.s3_region_name()
 			)
 		)
-		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues, reportUnknownVariableType]]
+		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
 			bucket_name=EnvManager.s3_bucket_name(),
 			key=keyPath
 		)
@@ -48,7 +48,7 @@ class S3FileService(FileService):
 				region_name=EnvManager.s3_region_name()
 			)
 		) 
-		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportGeneralTypeIssues, reportUnknownVariableType]]
+		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
 			bucket_name=EnvManager.s3_bucket_name(),
 			key=keyPath
 		)

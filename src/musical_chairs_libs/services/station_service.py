@@ -33,7 +33,7 @@ from sqlalchemy import (
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
 	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel,
-	songs, sg_pk, sg_name, sg_path, sg_albumFk,
+	songs, sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath,
 	albums, ab_name, ab_pk,
 	artists, ar_name, ar_pk,
 	song_artist, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
@@ -360,6 +360,7 @@ class StationService:
 		baseQuery = select(
 			sg_pk,
 			sg_path,
+			sg_internalpath,
 			coalesce[str](sg_name, "").label("name"),
 			ab_name.label("album"),
 			ar_name.label("artist"),
@@ -384,6 +385,7 @@ class StationService:
 			yield SongListDisplayItem(
 				id=cast(int, row["pk"]),
 				path=cast(str, row["path"]),
+				internalpath=cast(str, row["internalpath"]),
 				name=cast(str, row["name"]),
 				album=cast(str, row["album"]),
 				artist=cast(str, row["artist"]),

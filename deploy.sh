@@ -67,7 +67,8 @@ export S3_ACCESS_KEY_ID=$(__get_s3_api_key__) &&
 export S3_SECRET_ACCESS_KEY=$(__get_s3_secret__) &&
 export PB_SECRET=$(__get_pb_secret__) &&
 export PB_API_KEY=$(__get_pb_api_key__) &&
-export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
+export MC_AUTH_SECRET_KEY=$(__get_api_auth_key__) &&
+export MC_NAMESPACE_UUID=$(__get_namespace_uuid__) &&
 export MC_DATABASE_NAME='musical_chairs_db';
 export __DB_SETUP_PASS__=$(__get_db_setup_key__) &&
 export MC_DB_PASS_OWNER=$(__get_db_owner_key__) &&
@@ -139,7 +140,7 @@ if is_ssh; then
 	elif [ "$__SETUP_LVL__" = 'radio' ]; then
 		echo "$__SETUP_LVL__"
 		(exit "$unitTestSuccess") &&
-		. ./radio_common.sh &&
+		. ./mc_dev_ops.sh &&
 		startup_radio
 	elif [ "$__SETUP_LVL__" = 'install' ]; then
 		echo "$__SETUP_LVL__"

@@ -198,11 +198,16 @@ class DbOwnerConnectionService:
 	def drop_requestedtimestamp_column(self):
 		script = TemplateService.load_sql_script_content(
 			SqlScripts.DROP_REQUESTED_TIMESTAMP
-		).replace("<dbName>", self.dbName)
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
+		
 		self.conn.exec_driver_sql(script)
 
 	def add_internalpath_column(self):
 		script = TemplateService.load_sql_script_content(
 			SqlScripts.ADD_INTERNAL_PATH
-		).replace("<dbName>", self.dbName)
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
 		self.conn.exec_driver_sql(script)

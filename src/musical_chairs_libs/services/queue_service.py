@@ -38,7 +38,7 @@ from musical_chairs_libs.tables import (
 	artists,
 	song_artist,
 	sgar_pk, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
-	sg_pk, sg_name, sg_path, sg_albumFk,
+	sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath,
 	st_pk, st_name,
 	ar_pk, ar_name,
 	ab_pk, ab_name
@@ -213,6 +213,7 @@ class QueueService:
 		query = select(
 				sg_pk,
 				sg_path,
+				sg_internalpath,
 				sg_name,
 				ab_name.label("album"),
 				ar_name.label("artist"),
@@ -241,6 +242,7 @@ class QueueService:
 				album=row["album"],
 				artist=row["artist"],
 				path=row[sg_path],
+				internalpath=row[sg_internalpath],
 				queuedtimestamp=row[uah_queuedTimestamp],
 				playedtimestamp=row[uah_timestamp],
 			)
@@ -438,6 +440,7 @@ class QueueService:
 			ab_name.label("album"),
 			ar_name.label("artist"),
 			sg_path.label("path"),
+			sg_internalpath.label("internalpath"),
 		).select_from(station_queue) \
 			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 			.join(songs, q_songFk == sg_pk) \

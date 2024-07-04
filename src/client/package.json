@@ -23,6 +23,8 @@
     "just-safe-get": "^4.2.0",
     "notistack": "^2.0.5",
     "react": "^17.0.2",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^17.0.2",
     "react-hook-form": "^7.34.2",
     "react-router-dom": "^6.14.2",
@@ -39,7 +41,7 @@
     "start": "vite",
     "build": "tsc && vite build",
     "build:test": "env-cmd -f ./.env.local run-scripts build",
-    "setVars": ". ../../radio_common.sh && setup_react_env_debug",
+    "setVars": ". ../../mc_dev_ops.sh && setup_react_env_debug",
     "serve": "vite preview"
   },
   "eslintConfig": {

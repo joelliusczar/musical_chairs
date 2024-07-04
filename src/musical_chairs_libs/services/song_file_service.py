@@ -1,4 +1,5 @@
 import re
+import uuid
 from typing import (
 	BinaryIO,
 	Iterator,
@@ -83,6 +84,7 @@ class SongFileService:
 		self.delete_overlaping_placeholder_dirs(path)
 		stmt = insert(songs_tbl).values(
 			path = path,
+			internalpath = str(uuid.uuid4()),
 			name = suffix,
 			isdirectoryplaceholder = True,
 			lastmodifiedbyuserfk = user.id,
@@ -109,9 +111,11 @@ class SongFileService:
 				"suffix"
 			)
 		self.delete_overlaping_placeholder_dirs(path)
-		songAboutInfo = self.file_service.save_song(path, file)
+		internalPath = str(uuid.uuid4())
+		songAboutInfo = self.file_service.save_song(internalPath, file)
 		stmt = insert(songs_tbl).values(
 			path = path,
+			internalpath = internalPath,
 			name = songAboutInfo.name,
 			albumfk = songAboutInfo.album.id if songAboutInfo.album else None,
 			track = songAboutInfo.track,

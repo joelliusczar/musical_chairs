@@ -6,7 +6,7 @@
 		{
 			"label": "Set unit test env",
 			"type": "shell",
-			"command": ". ./radio_common.sh && setup_unit_test_env",
+			"command": ". ./mc_dev_ops.sh && setup_unit_test_env",
 			"problemMatcher": [],
 			"presentation": {
 				"reveal": "silent",

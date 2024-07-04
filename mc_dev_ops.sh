@@ -548,7 +548,7 @@ update_icecast_conf() (
 show_icecast_log() (
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
+	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
 		2>&1 &&
 	(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
@@ -575,7 +575,7 @@ show_ices_station_log() (
 	shift
 	process_global_vars "$@" >/dev/null 2>&1 &&
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
+	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
 		2>&1 &&
 	logName="$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR"/ices."$owner"_"$station".conf
 	(python <<-EOF
@@ -601,7 +601,7 @@ update_ices_config() (
 	conf="$1"
 	process_global_vars "$@"
 	__install_py_env_if_needed__ >/dev/null 2>&1 &&
-	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
+	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate >/dev/null \
 		2>&1 &&
 	sourcePassword=$(python <<-EOF
 	from musical_chairs_libs.services import ProcessService
@@ -719,8 +719,11 @@ __deployment_env_check_required__() {
 	track_exit_code
 
 	#for encrypting app token
-	[ -z $(__get_mc_auth_key__) ] &&
+	[ -z $(__get_api_auth_key__) ] &&
 	echo 'deployment var MC_AUTH_SECRET_KEY not set in keys'
+	track_exit_code
+	[ -z $(__get_namespace_uuid__) ] &&
+	echo 'deployment var MC_NAMESPACE_UUID not set in keys'
 	track_exit_code
 
 	#s3
@@ -744,6 +747,7 @@ __deployment_env_check_required__() {
 	[ -z $(__get_radio_db_user_key__) ] &&
 	echo 'deployment var MC_DB_PASS_RADIO not set in keys'
 	track_exit_code
+
 	return "$fnExitCode"
 }
 
@@ -791,6 +795,9 @@ __server_env_check_required__() {
 	[ -z "$MC_AUTH_SECRET_KEY" ] &&
 	echo 'environmental var MC_AUTH_SECRET_KEY not set'
 	track_exit_code
+	[ -z "$MC_NAMESPACE_UUID" ] &&
+	echo 'deployment var MC_NAMESPACE_UUID not set in keys'
+	track_exit_code
 
 	#s3
 	[ -z "$AWS_ACCESS_KEY_ID" ] &&
@@ -831,8 +838,8 @@ server_env_check() (
 
 __dev_env_check_recommended__() {
 	#possibly problems if missing
-	[ -z "$BOT_REPO_URL" ] &&
-	echo 'environmental var BOT_REPO_URL not set'
+	[ -z "$MC_REPO_URL" ] &&
+	echo 'environmental var MC_REPO_URL not set'
 	[ -z "$__DB_SETUP_PASS__" ] &&
 	echo 'environmental var __DB_SETUP_PASS__ not set in keys'
 	[ -z "$MC_DB_PASS_OWNER" ] &&
@@ -863,6 +870,9 @@ __dev_env_check_required__() {
 	#for encrypting app token
 	[ -z "$MC_AUTH_SECRET_KEY" ] &&
 	echo 'environmental var MC_AUTH_SECRET_KEY not set'
+	track_exit_code
+	[ -z "$MC_NAMESPACE_UUID" ] &&
+	echo 'deployment var MC_NAMESPACE_UUID not set in keys'
 	track_exit_code
 
 	return "$fnExitCode"
@@ -978,13 +988,23 @@ __get_s3_region_name__() (
 )
 
 
-__get_mc_auth_key__() (
+__get_api_auth_key__() (
 	if [ -n "$MC_AUTH_SECRET_KEY" ] && [ "$MC_ENV" != 'local' ]; then
 		echo "$MC_AUTH_SECRET_KEY"
 		return
 	fi
 	perl -ne 'print "$1\n" if /MC_AUTH_SECRET_KEY=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
+)
+
+
+__get_namespace_uuid__() (
+	if [ -n "$MC_NAMESPACE_UUID" ] && [ "$MC_ENV" != 'local' ]; then
+		echo "$MC_NAMESPACE_UUID"
+		return
+	fi
+	perl -ne 'print "$1\n" if /MC_NAMESPACE_UUID=([\w\-]+)/' \
+		"$(__get_app_root__)"/keys/"$MC_NAMESPACE_UUID"
 )
 
 
@@ -1225,32 +1245,10 @@ setup_env_api_file() (
 	perl -pi -e \
 		"s@^(MC_RADIO_LOG_DIR_CL=).*\$@\1'${MC_RADIO_LOG_DIR_CL}'@" \
 		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_NAMESPACE_UUID=).*\$@\1'${MC_NAMESPACE_UUID}'@" \
+		"$envFile" &&
 	echo 'done setting up .env file'
-)
-
-
-setup_db() (
-	echo 'setting up initial db'
-	process_global_vars "$@" &&
-	if [ -n "$(pgrep 'mc-ices')" ]; then
-		shutdown_all_stations
-	fi
-	if [ -n "$(pgrep 'uvicorn')" ]; then
-		kill_process_using_port "$MC_API_PORT"
-	fi
-
-	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
-	python <<-EOF
-	from musical_chairs.tables import metadata
-	from musical_chairs.services import EnvManager
-	envManager = EnvManager()
-	conn = envManager.get_configured_db_connection()
-	metadata.create_all(conn.engine)
-
-	print('Created all tables')
-	EOF
-
-	echo 'done with db stuff'
 )
 
 
@@ -1308,11 +1306,11 @@ setup_database() (
 		set_db_root_initial_password
 	fi &&
 	(python <<EOF
-from musical_chairs.services import (
+from musical_chairs_libs.services import (
 	DbRootConnectionService,
 	DbOwnerConnectionService
 )
-dbName="musical chairs_db"
+dbName="musical_chairs_db"
 with DbRootConnectionService() as rootConnService:
 	rootConnService.create_db(dbName)
 	rootConnService.create_owner()
@@ -1342,7 +1340,7 @@ teardown_database() (
 	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate \
 		>/dev/null 2>&1 &&
 	(python <<EOF
-from musical_chairs.services import (
+from musical_chairs_libs.services import (
 	DbRootConnectionService,
 	DbOwnerConnectionService
 )
@@ -2003,7 +2001,8 @@ __get_remote_export_script__() (
 	output="export expName='${expName}';"
 	output="${output} export PB_SECRET='$(__get_pb_secret__)';" &&
 	output="${output} export PB_API_KEY='$(__get_pb_api_key__)';" &&
-	output="${output} export MC_AUTH_SECRET_KEY='$(__get_mc_auth_key__)';" &&
+	output="${output} export MC_AUTH_SECRET_KEY='$(__get_api_auth_key__)';" &&
+	output="${output} export MC_NAMESPACE_UUID='$(__get_namespace_uuid__)';" &&
 	output="${output} export MC_DATABASE_NAME='musical chairs_db';" &&
 	output="${output} export __DB_SETUP_PASS__='$(__get_db_setup_key__)';" &&
 	output="${output} export MC_DB_PASS_OWNER='$(__get_db_owner_key__)';" &&
@@ -2048,7 +2047,7 @@ startup_radio() (
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	link_to_music_files &&
 	setup_radio &&
-	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	for conf in "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
 		[ ! -s "$conf" ] && continue
 		__start_station_local_file_module__ "$conf"
@@ -2087,11 +2086,11 @@ shutdown_all_stations() (
 	#gonna assume that the environment has been setup because if
 	#the environment hasn't been setup yet then no radio stations
 	#are running
-	if [ ! -s "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
+	if [ ! -s "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
 		echo "python env not setup, so no stations to shut down"
 		return
 	fi
-	. "$(__get_app_root__)"/"$MC_APP_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	# #python_env
 	{ python  <<EOF
 try:
@@ -2145,7 +2144,7 @@ setup_radio() (
 	sync_utility_scripts &&
 
 	create_py_env_in_app_trunk &&
-	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DIR_CL" &&
+	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DEST" &&
 	setup_database &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
@@ -2303,8 +2302,8 @@ setup_unit_test_env() (
 	export __TEST_FLAG__='true'
 	publicKeyFile=$(__get_debug_cert_path__).public.key.crt
 
-	__create_fake_keys_file__
 	setup_app_directories
+	__create_fake_keys_file__
 
 	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DEST" &&
 	copy_dir "$MC_SQL_SCRIPTS_SRC" \
@@ -2330,11 +2329,11 @@ setup_unit_test_env() (
 #assume install_setup.sh has been run
 run_unit_tests() (
 	echo "running unit tests"
-	process_global_vars "$@"
+	process_global_vars "$@"f
 	export __TEST_FLAG__='true'
 	setup_unit_test_env >/dev/null &&
 	test_src="$MC_SRC"/tests &&
-	export MC_AUTH_SECRET_KEY=$(__get_mc_auth_key__) &&
+	export MC_AUTH_SECRET_KEY=$(__get_api_auth_key__) &&
 	export PYTHONPATH="${MC_SRC}:${MC_SRC}/api" &&
 	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	cd "$test_src"
@@ -2483,6 +2482,11 @@ define_consts() {
 	export MC_DEV_OPS_LIB="$MC_PROJ_NAME_SNAKE"_dev_ops
 	export MC_APP="$MC_PROJ_NAME_SNAKE"
 
+	export MC_ICES_CONFIGS_DIR="$MC_TRUNK"/ices_configs
+	export MC_PY_MODULE_DIR="$MC_TRUNK"/pyModules
+	#MC_RADIO_LOG_DIR_CL may not be relevant anymore
+	export MC_RADIO_LOG_DIR_CL="$MC_TRUNK"/radio_logs
+
 	export MC_CONFIG_DIR="$MC_TRUNK"/config
 	export MC_DB_DIR="$MC_TRUNK"/db
 	export MC_UTEST_ENV_DIR="$MC_TEST_ROOT"/utest
@@ -2522,9 +2526,9 @@ __get_domain_name__() (
 	envArg="$1"
 	omitPort="$2"
 	urlBase=$(__get_url_base__)
-	tld=''
+	tld='radio.fm'
 	if [ -z "$tld" ]; then
-		echo "tld has been setup for this app yet" >&2
+		echo "tld has not been setup for this app yet" >&2
 		echo ""
 	fi
 	case "$envArg" in
@@ -2549,7 +2553,7 @@ define_repo_paths() {
 	export MC_API_SRC="$MC_SRC/api"
 	export MC_CLIENT_SRC="$MC_SRC/client"
 	export MC_LIB_SRC="$MC_SRC/$MC_LIB"
-	export MC_DEV_OPS_LIB_SRC="$MC_SRC/$MC_DEV_OPS_LIB"
+	export MC_DEV_OPS_LIB_SRC="$(get_repo_path)/$MC_DEV_OPS_LIB"
 	export MC_TEMPLATES_SRC="$(get_repo_path)/templates"
 	export MC_SQL_SCRIPTS_SRC="$(get_repo_path)/sql_scripts"
 	export MC_REFERENCE_SRC="$(get_repo_path)/reference"
@@ -2571,16 +2575,19 @@ setup_app_directories() {
 	mkdir -pv "$(__get_app_root__)"/"$MC_BUILD_DIR"
 	[ -e "$(__get_app_root__)"/"$MC_CONTENT_DIR" ] ||
 	mkdir -pv "$(__get_app_root__)"/"$MC_CONTENT_DIR"
+	[ -e "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR"
+	[ -e "$(__get_app_root__)"/"$MC_PY_MODULE_DIR" ] ||
+	mkdir -pv "$(__get_app_root__)"/"$MC_PY_MODULE_DIR"
 }
 
 
 __setup_api_dir__() {
 	if [ !  -e "$(get_web_root)"/"$MC_API_DEST" ]; then
-	{
 		sudo -p 'Pass required to create web server directory: ' \
 			mkdir -pv "$(get_web_root)"/"$MC_API_DEST" ||
 		show_err_and_return "Could not create $(get_web_root)/${MC_API_DEST}"
-	}
+	fi
 }
 
 
@@ -2609,6 +2616,7 @@ unset_globals() {
 	exceptions=$(tr '\n' ' '<<-'EOF'
 		MC_ENV
 		MC_AUTH_SECRET_KEY
+		MC_NAMESPACE_UUID
 		MC_DB_PASS_API
 		MC_DB_PASS_OWNER
 		MC_LOCAL_REPO_DIR

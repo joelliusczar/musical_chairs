@@ -62,6 +62,7 @@ class SongListDisplayItem(QueuedItem):
 	album: Optional[str]
 	artist: Optional[str]
 	path: str
+	internalpath: str
 	playedtimestamp: Optional[float]=None
 	rules: list[ActionRule]=Field(default_factory=list, frozen=False)
 

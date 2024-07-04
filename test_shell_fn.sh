@@ -1,13 +1,13 @@
 #!/bin/sh
 
-if [ -e ./radio_common.sh ]; then
-	radioCommonPath='./radio_common.sh'
-elif [ -e ../radio_common.sh ]; then
-	radioCommonPath='../radio_common.sh'
-elif [ -e "$HOME"/radio/radio_common.sh ]; then
-	radioCommonPath="$HOME"/radio/radio_common.sh
+if [ -e ./mc_dev_ops.sh ]; then
+	radioCommonPath='./mc_dev_ops.sh'
+elif [ -e ../mc_dev_ops.sh ]; then
+	radioCommonPath='../mc_dev_ops.sh'
+elif [ -e "$HOME"/radio/mc_dev_ops.sh ]; then
+	radioCommonPath="$HOME"/radio/mc_dev_ops.sh
 else
-  echo "radio_common.sh not found"
+  echo "mc_dev_ops.sh not found"
   exit 1
 fi
 

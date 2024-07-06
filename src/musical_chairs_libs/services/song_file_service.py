@@ -29,11 +29,13 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	SongPathInfo,
 	ReusableIterable,
-	MCNotImplementedError
+	MCNotImplementedError,
+	DirectoryTransfer,
 )
 from sqlalchemy import (
 	select,
 	insert,
+	update,
 	delete,
 	func,
 	union_all,
@@ -45,7 +47,7 @@ from sqlalchemy.sql.expression import (
 )
 from musical_chairs_libs.tables import (
 	songs as songs_tbl,
-	sg_pk, sg_name, sg_path, sg_isdirplacholhder,
+	sg_pk, sg_name, sg_path,
 	st_pk
 )
 from .env_manager import EnvManager
@@ -92,7 +94,7 @@ class SongFileService:
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
-		return self.song_ls_parents(user, prefix, -3)
+		return self.song_ls_parents(user, prefix, includeTop=False)
 
 	def save_song_file(
 			self,
@@ -147,8 +149,8 @@ class SongFileService:
 		self,
 		prefix: Optional[str]=""
 	) -> Select[Tuple[str, str, int, int, str]]:
-		isOpenSlash = False
-		prefix = normalize_opening_slash(prefix, isOpenSlash)
+		hasOpenSlash = False
+		prefix = normalize_opening_slash(prefix, hasOpenSlash)
 		query = select(
 				func.next_directory_level(
 					sg_path,
@@ -162,10 +164,15 @@ class SongFileService:
 		).where(
 				func.normalize_opening_slash(
 					sg_path,
-					isOpenSlash
+					hasOpenSlash
 				).like(f"{prefix}%")
 			)\
-			.group_by(func.next_directory_level(sg_path, prefix))
+			.group_by(
+				func.next_directory_level(
+					func.normalize_opening_slash(sg_path, hasOpenSlash),
+					prefix
+				)
+			)
 		return query
 
 	def __query_to_treeNodes__(
@@ -179,7 +186,10 @@ class SongFileService:
 			if not permittedPathsTree.matches(normalizedPrefix)\
 			:
 				continue
-			if row["control_path"] == row["prefix"]:
+			nomalizedControlPath = normalize_opening_slash(
+				cast(str,row["control_path"])
+			)
+			if nomalizedControlPath == normalizedPrefix:
 				yield SongTreeNode(
 					path=cast(str, row["prefix"]),
 					totalChildCount=cast(int, row["totalChildCount"]),
@@ -252,14 +262,14 @@ class SongFileService:
 		self,
 		user: AccountInfo,
 		prefix: str,
-		depth: Optional[int]=None
+		includeTop: bool=True
 	) -> Mapping[str, Collection[SongTreeNode]]:
 		permittedPathTree = user.get_permitted_paths_tree()
 		queryList: list[Select[Tuple[str, str, int, int, str]]] = []
-		reverseDirection = bool(depth) and depth < 0
-		prefixSplit =  reversed([p for p in self.__prefix_split__(prefix)])\
-			if reverseDirection else self.__prefix_split__(prefix)
-		limited = islice(prefixSplit, abs(depth)) if depth else prefixSplit
+
+		prefixSplit =  reversed([p for p in self.__prefix_split__(prefix)])
+
+		limited = prefixSplit if includeTop else islice(prefixSplit, 3)
 		for p in limited:
 				queryList.append(self.__song_ls_query__(p))
 		nodes = self.__query_to_treeNodes__(
@@ -390,18 +400,18 @@ class SongFileService:
 		prefix: str,
 		user: AccountInfo
 	) -> Mapping[str, Collection[SongTreeNode]]:
-		_prefix = normalize_opening_slash(
+		_prefix = normalize_closing_slash(normalize_opening_slash(
 				squash_sequential_duplicate_chars(prefix, "/")
-			)
+			))
 		addSlash = True
-		query = select(sg_pk, sg_isdirplacholhder)\
+		query = select(sg_pk)\
 			.where(func.normalize_opening_slash(
 				sg_path, 
 				addSlash
-			) == _prefix)
-		row = self.conn.execute(query).fetchone()
-		if row and row[1]:
-			songId = cast(int, row[0])
+			).like(f"{_prefix}%"))
+		rows = self.conn.execute(query).fetchall()
+		if len(rows) == 1:
+			songId = cast(int, rows[0][0])
 			stmt = delete(songs_tbl).where(sg_pk == songId)
 			self.conn.execute(stmt)
 			self.conn.commit()
@@ -410,5 +420,43 @@ class SongFileService:
 				"Deleting songs or populated directories not currently Supported"
 			)
 		parentPrefix = str(Path(prefix).parent)
-		return self.song_ls_parents(user, parentPrefix)
+		return self.song_ls_parents(user, parentPrefix, includeTop=False)
+		
+
+	def move_path(
+		self,
+		transfer: DirectoryTransfer,
+		user: AccountInfo
+	) -> Mapping[str, Collection[SongTreeNode]]:
+		newprefix = normalize_opening_slash(
+			squash_sequential_duplicate_chars(transfer.newprefix, "/")
+		)
+		isSrcPathBlank= not transfer.path or transfer.path.isspace()
+		if isSrcPathBlank or transfer.path == user.dirroot:
+			raise ValueError("Cannot move that directory")
+		if not transfer.newprefix or transfer.newprefix.isspace():
+			raise ValueError("Cannot move to that directory")
+		path = squash_sequential_duplicate_chars(transfer.path, "/")
+		prefix = normalize_opening_slash(
+			normalize_closing_slash(str(Path(path).parent)),
+			addSlash=False
+		)
+		nPath = normalize_opening_slash(path)
+		addSlash = True
+		statement = update(songs_tbl)\
+			.where(func.normalize_opening_slash(
+				sg_path, 
+				addSlash
+			).like(f"{nPath}%"))\
+			.values(
+				path = sg_path.regexp_replace(
+					f"^/?{prefix}",
+					newprefix
+				)
+			)
+		self.conn.execute(statement)
+		self.conn.commit()
+		
+		
+		return self.song_ls_parents(user, newprefix, includeTop=False)
 		

@@ -6,12 +6,13 @@ import {
 	fetchSongLsParents,
 	songDownloadUrl,
 	deletePrefix,
+	movePath,
 } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
 import { drawerWidth } from "../../style_config";
 import { 
-	useCache,
+	useTree,
 } from "../../Context_Providers/TreeCacheContext/TreeCacheContext";
 import {
 	withCacheProvider,
@@ -27,13 +28,14 @@ import {
 	useCurrentUser,
 } from "../../Context_Providers/AuthContext/AuthContext";
 import { 
+	base64ToUnicode,
 	normalizeOpeningSlash,
 	unicodeToUrlSafeBase64,
 	urlSafeBase64ToUnicode,
 } from "../../Helpers/string_helpers";
 import {
 	SongTreeNodeInfo,
-	DirectoryInfoNodeInfo,
+	DirectoryTransferSource,
 } from "../../Types/song_info_types";
 import { IdValue, Dictionary, KeyValue } from "../../Types/generic_types";
 import { ListData } from "../../Types/pageable_types";
@@ -47,6 +49,8 @@ import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { isCallPending } from "../../Helpers/request_helpers";
 import { cookieToObjectURIDecoded } from "../../Helpers/browser_helpers";
 import { notNullPredicate } from "../../Helpers/array_helpers";
+import { useDrag, useDrop, DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 const treeId = "song-tree";
 
@@ -63,19 +67,16 @@ const songTreeParentInfoToNodeIds = (
 	for (let i = 0; i < keys.length; i++) {
 		const currentKey = keys[i];
 		if (!currentKey) continue;
-
-		const currentNode = treeInfo[currentKey];
-		const foundIdx = currentNode
-			.items
-			.findIndex(p => p.path === currentKey);
-		result.push({
-			path: currentKey,
-			nodeId: unicodeToUrlSafeBase64(normalizeOpeningSlash(currentKey)),
-			rules: foundIdx > 0 ? currentNode.items[foundIdx].rules : [],
-		});
-
+		result.push(unicodeToUrlSafeBase64(normalizeOpeningSlash(currentKey)));
 	}
 	return result;
+};
+
+const firstNode = (nodes: ListData<SongTreeNodeInfo>) => {
+	if (nodes.items.length) {
+		return nodes.items[0];
+	}
+	return null;
 };
 
 
@@ -89,13 +90,71 @@ type SongTreeNodeProps = {
 
 const SongTreeNode = (props: SongTreeNodeProps) => {
 	const { children, songNodeInfo, prefix, nodeId, onNodeLoaded } = props;
-	const { dispatch } = useCache<
-		SongTreeNodeInfo | ListData<SongTreeNodeInfo>
+	const { dispatch , updateTree, setExpandedNodes } = useTree<
+		ListData<SongTreeNodeInfo>
 	>();
+	const { enqueueSnackbar } = useSnackbar();
+
+	const [, dragRef] = useDrag<DirectoryTransferSource>({
+		type: "branch",
+		item: { prefix, path: songNodeInfo.path },
+	});
+
+	const dropPath = songNodeInfo.path;
+
+	const [{ isOver },dropRef] = useDrop<
+	DirectoryTransferSource,
+		unknown,
+		{ isOver: boolean }
+	>(() => ({
+		accept: "branch",
+		drop: async (item, monitor) => {
+			if(!monitor.didDrop()) {
+				try {
+					const requestObj = movePath({
+						...item,
+						newprefix: dropPath,
+					});
+					const result = await requestObj.call();
+					updateTree(result);
+
+					const expanded = dropPath
+						.split("/")
+						// .filter(s => !!s)
+						.reduce((a, c) => {
+							if (a.length) {
+								const last = a[a.length - 1];
+								a.push(`${last}${c}/`);
+								return a;
+							}
+							else {
+								a.push(`${c}/`);
+								return a;
+							}
+						},[] as string[]);
+					expanded.pop();
+					setExpandedNodes(expanded.map(p => unicodeToUrlSafeBase64(
+						normalizeOpeningSlash(p)
+					)));
+				}
+				catch (err) {
+					enqueueSnackbar(formatError(err),{ variant: "error"});
+				}
+			}
+		},
+		canDrop: (item) => {
+			if (!dropPath.endsWith("/")) return false;
+			if (dropPath === item.path) return false;
+			return true;
+		},
+		collect: (monitor) => ({
+			isOver: !!monitor.isOver({ shallow: true }) && !!monitor.canDrop(),
+		}),
+	}));
 
 	useEffect(() => {
 		dispatch(dispatches.done({
-			[nodeId] : songNodeInfo,
+			[nodeId] : { items: [songNodeInfo], totalRows: 1 },
 		}));
 	},[dispatch, songNodeInfo, nodeId]);
 
@@ -108,12 +167,18 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 		songNodeInfo.name : songNodeInfo.path.replace(prefix, "");
 
 	return (
-		<TreeItem 
-			nodeId={nodeId} 
-			label={label}
+		<div
+			style={ isOver ? { border: "1px solid"} : {}}
+			ref={dropRef}
 		>
-			{children}
-		</TreeItem>
+			<TreeItem
+				nodeId={nodeId}
+				label={label}
+				ref={dragRef}
+			>
+				{children}
+			</TreeItem>
+		</div>
 	);
 };
 
@@ -121,13 +186,12 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 type SongDirectoryProps = {
 	prefix: string
 	level: number,
-	setExpandedNodes: (p: DirectoryInfoNodeInfo[]) => void,
 	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void, 
 };
 
 const SongDirectory = (props: SongDirectoryProps) => {
-	const { prefix, level, setExpandedNodes, onNodeLoaded } = props;
-	const { state, dispatch } = useCache<
+	const { prefix, level, onNodeLoaded } = props;
+	const { state, dispatch, setExpandedNodes } = useTree<
 		ListData<SongTreeNodeInfo>
 	>();
 	
@@ -281,7 +345,6 @@ const SongDirectory = (props: SongDirectoryProps) => {
 							<SongDirectory
 								prefix={d.path}
 								level={level + 1}
-								setExpandedNodes={setExpandedNodes}
 								onNodeLoaded={onNodeLoaded}
 							/>}
 					</SongTreeNode>
@@ -296,14 +359,11 @@ export const SongTree = withCacheProvider<
 	SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 >()(
 	() => {
-		const [expandedNodes, setExpandedNodes] = useState<
-			DirectoryInfoNodeInfo[]
-		>([]); 
 		const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
 			useState<PathsActionRule[]>([]);
-		const { dispatch, treeData } = useCache<
-			SongTreeNodeInfo | ListData<SongTreeNodeInfo>
+		const { treeData, updateTree, expandedNodes, setExpandedNodes } = useTree<
+			ListData<SongTreeNodeInfo>
 		>();
 		const { enqueueSnackbar } = useSnackbar();
 		const navigate = useNavigate();
@@ -315,7 +375,6 @@ export const SongTree = withCacheProvider<
 			urlSafeBase64ToUnicode(selectedNodes[0]) :
 			null;
 
-
 		const updateUrl = (path: string) => {
 			const nodeId = unicodeToUrlSafeBase64(path);
 			navigate(
@@ -326,7 +385,7 @@ export const SongTree = withCacheProvider<
 
 		const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
 			if(nodeIds.length === 1) {
-				const songNodeInfo = treeData[nodeIds[0]];
+				const songNodeInfo = firstNode(treeData[nodeIds[0]]);
 				if(selectedNodes[0] === nodeIds[0]) { //unselect
 					setSelectedNodes([]);
 				}
@@ -335,16 +394,13 @@ export const SongTree = withCacheProvider<
 						updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
 						const expandedCopy = [...expandedNodes];
 						const expandedFoundIdx = 
-							expandedNodes.findIndex(n => n.nodeId === nodeIds[0]);
+							expandedNodes.findIndex(n => n === nodeIds[0]);
 						if (expandedFoundIdx === -1) {
-							expandedCopy.push({
-								path: songNodeInfo.path,
-								nodeId: nodeIds[0],
-							});
+							expandedCopy.push(nodeIds[0]);
 						}
 						else {
 							const isFoundSelected = selectedNodes
-								.some(n => n === expandedNodes[expandedFoundIdx].nodeId);
+								.some(n => n === expandedNodes[expandedFoundIdx]);
 							if (isFoundSelected) {
 								expandedCopy.splice(expandedFoundIdx, 1);
 							}
@@ -383,7 +439,7 @@ export const SongTree = withCacheProvider<
 
 		const isDirectorySelected = () => {
 			if (selectedNodes.length !== 1) return false;
-			const songNodeInfo = treeData[selectedNodes[0]];
+			const songNodeInfo = firstNode(treeData[selectedNodes[0]]);
 			if (!songNodeInfo) return false;
 			if (!("path" in songNodeInfo)) return false;
 			return isNodeDirectory(songNodeInfo);
@@ -444,7 +500,7 @@ export const SongTree = withCacheProvider<
 		const canDownloadSelection = () => {
 			if (isDirectorySelected()) return false;
 			if (selectedNodes.length !== 1) return false;
-			const songNodeInfo = treeData[selectedNodes[0]];
+			const songNodeInfo = firstNode(treeData[selectedNodes[0]]);
 			if (songNodeInfo && "rules" in songNodeInfo) {
 				const canDownloadThisSong = anyConformsToAnyRule(
 					songNodeInfo?.rules,
@@ -463,14 +519,6 @@ export const SongTree = withCacheProvider<
 		const onAddNewSong = (nodes: SongTreeNodeInfo[]) => {
 			const nodeIds = nodes.map(n => n.id).filter(notNullPredicate);
 			navigate(getSongEditUrl(nodeIds));
-		};
-
-		const updateTree = (nodes: Dictionary<ListData<SongTreeNodeInfo>>) => {
-			Object.keys(nodes).forEach(key => {
-				dispatch(dispatches.done({
-					[normalizeOpeningSlash(key)]: nodes[key],
-				}));
-			});
 		};
 
 		const scrollToNode = useCallback((nodeId: string) => {
@@ -521,7 +569,7 @@ export const SongTree = withCacheProvider<
 		},[urlNodeId, setSelectedNodes, scrollToNode]);
 
 		return (
-			<>
+			<DndProvider backend={HTML5Backend}>
 				{(!!selectedSongIds.length || selectedPrefixRules) &&
 				<AppBar
 					sx={{
@@ -571,7 +619,7 @@ export const SongTree = withCacheProvider<
 				<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />
 				<TreeView
 					selected={selectedNodes}
-					expanded={expandedNodes.map(n => n.nodeId)}
+					expanded={expandedNodes}
 					onNodeSelect={onNodeSelect}
 					multiSelect
 					id={treeId}
@@ -579,10 +627,9 @@ export const SongTree = withCacheProvider<
 					<SongDirectory
 						prefix=""
 						level={0}
-						setExpandedNodes={setExpandedNodes}
 						onNodeLoaded={onNodeLoaded}
 					/>
 				</TreeView>
-			</>
+			</DndProvider>
 		);
 	});

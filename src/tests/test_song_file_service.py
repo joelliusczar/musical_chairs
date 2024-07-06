@@ -2,6 +2,9 @@ from musical_chairs_libs.services import (
 	SongFileService,
 	PathRuleService
 )
+from musical_chairs_libs.dtos_and_utilities import (
+	DirectoryTransfer
+)
 from .constant_fixtures_for_test import *
 from .common_fixtures import (
 	fixture_song_file_service as fixture_song_file_service,
@@ -595,3 +598,38 @@ def test_parent_ls_with_placeholder_dir(
 	assert sum(
 		1 for n in result["foo/goo/"] if n.path.endswith("testdir/")
 	) == 1
+
+@pytest.mark.echo(False)
+def test_move_path(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+	transfer = DirectoryTransfer(
+		path="foo/rude/rog/mike2",
+		newprefix="foo/rude/bog/"
+	)
+	srcInitial = list(songFileService.song_ls(user, "foo/rude/rog/"))
+	assert len(srcInitial) == 3
+	result = songFileService.move_path(transfer, user)
+	updatedDir = result["foo/rude/bog/"]
+	assert len(updatedDir) == 3
+	srcUpdated = list(songFileService.song_ls(user, "foo/rude/rog/"))
+	assert len(srcUpdated) == 2
+
+	transfer = DirectoryTransfer(
+		path="foo/bar/baz/",
+		newprefix="foo/dude/"
+	)
+	result = songFileService.move_path(transfer, user)
+
+	transfer = DirectoryTransfer(
+		path="",
+		newprefix="foo/dude/"
+	)
+	with pytest.raises(ValueError):
+		songFileService.move_path(transfer, user)
+	pass

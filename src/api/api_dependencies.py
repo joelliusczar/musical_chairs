@@ -50,7 +50,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	normalize_opening_slash,
 	UserRoleDef,
 	StationInfo,
-	int_or_str
+	int_or_str,
+	DirectoryTransfer
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -396,7 +397,7 @@ def check_if_can_use_path(
 	scopes: Iterable[str],
 	prefix: str,
 	user: AccountInfo,
-	userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
+	userPrefixTrie: ChainedAbsorbentTrie[PathsActionRule],
 	userActionHistoryService: UserActionsHistoryService
 ):
 	scopeSet = set(scopes)
@@ -471,23 +472,36 @@ def check_optional_path_for_current_user(
 		if UserRoleDomain.Path.conforms(s)
 	]
 	if prefix:
-		userPrefixes = (
-			r for r in user.roles if isinstance(r, PathsActionRule)
-		)
 
-		userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
-			(p.path, p) for p in userPrefixes if p.path
-		)
-
-		userPrefixTrie.add("", (r for r in user.roles \
-			if type(r) == ActionRule \
-				and (UserRoleDomain.Path.conforms(r.name) \
-						or r.name == UserRoleDef.ADMIN.value
-				)
-		), shouldEmptyUpdateTree=False)
+		userPrefixTrie = user.get_permitted_paths_tree()
 		check_if_can_use_path(
 			scopes,
 			prefix,
+			user,
+			userPrefixTrie,
+			userActionHistoryService
+		)
+	return user
+
+def check_directory_transfer(
+	transfer: DirectoryTransfer,
+	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
+	songFileService: SongFileService = Depends(song_file_service),
+	userActionHistoryService: UserActionsHistoryService =
+		Depends(user_actions_history_service)
+) -> AccountInfo:
+	if user.isadmin:
+		return user
+	userPrefixTrie = user.get_permitted_paths_tree()
+	scopes = (
+		(transfer.path, UserRoleDef.PATH_DELETE),
+		(transfer.newprefix, UserRoleDef.PATH_EDIT)
+	)
+
+	for path, scope in scopes:
+		check_if_can_use_path(
+			[scope.value],
+			path,
 			user,
 			userPrefixTrie,
 			userActionHistoryService
@@ -504,18 +518,7 @@ def get_multi_path_user(
 ) -> AccountInfo:
 	if user.isadmin:
 		return user
-	userPrefixes = (
-		r for r in user.roles if isinstance(r, PathsActionRule)
-	)
-	userPrefixTrie = ChainedAbsorbentTrie[ActionRule](
-			(p.path, p) for p in userPrefixes if p.path
-		)
-	userPrefixTrie.add("", (r for r in user.roles \
-		if type(r) == ActionRule \
-			and (UserRoleDomain.Path.conforms(r.name) \
-					or r.name == UserRoleDef.ADMIN.value
-			)
-	), shouldEmptyUpdateTree=False)
+	userPrefixTrie = user.get_permitted_paths_tree()
 	prefixes = songFileService.get_song_path(itemids, False)
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)

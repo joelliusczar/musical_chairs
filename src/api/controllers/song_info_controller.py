@@ -24,6 +24,7 @@ from api_dependencies import (
 	artist_service,
 	get_optional_prefix,
 	get_prefix,
+	check_directory_transfer
 )
 
 from musical_chairs_libs.services import (
@@ -46,7 +47,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ValidatedSongAboutInfo,
 	TableData,
 	PathsActionRule,
-	SongPathInfo
+	SongPathInfo,
+	DirectoryTransfer
 )
 from song_validation import (
 	extra_validated_song,
@@ -333,7 +335,7 @@ def are_paths_used(
 @router.post("/directory")
 def create_directory(
 	suffix: str,
-	prefix: str = Depends(get_prefix_if_owner),
+	prefix: str = Depends(get_prefix),
 	user: AccountInfo = Security(
 		check_optional_path_for_current_user,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
@@ -352,7 +354,7 @@ def create_directory(
 def upload_song(
 	suffix: str,
 	file: UploadFile,
-	prefix: str = Depends(get_prefix_if_owner),
+	prefix: str = Depends(get_prefix),
 	user: AccountInfo = Security(
 		check_optional_path_for_current_user,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
@@ -363,7 +365,7 @@ def upload_song(
 
 @router.delete("/path/delete_prefix")
 def delete_prefix(
-	prefix: str = Depends(get_prefix_if_owner),
+	prefix: str = Depends(get_prefix),
 	user: AccountInfo = Security(
 		check_optional_path_for_current_user,
 		scopes=[UserRoleDef.PATH_DELETE.value]
@@ -375,5 +377,19 @@ def delete_prefix(
 			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
 		) for x 
 		in songFileService.delete_prefix(prefix, user).items()
+	}
+	return result
+
+@router.post("/path/move")
+def move_path(
+	transfer: DirectoryTransfer,
+	user: AccountInfo = Depends(check_directory_transfer),
+	songFileService: SongFileService = Depends(song_file_service)
+) -> dict[str, ListData[SongTreeNode]]:
+	result = {
+		x[0]:ListData(
+			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
+		) for x 
+		in songFileService.move_path(transfer, user).items()
 	}
 	return result

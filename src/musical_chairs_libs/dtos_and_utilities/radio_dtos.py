@@ -316,3 +316,7 @@ class ValidatedSongAboutInfo(SongAboutInfo):
 				"but it is only legal to add it once."
 			)
 		return self
+	
+class DirectoryTransfer(MCBaseClass):
+	path: str
+	newprefix: str

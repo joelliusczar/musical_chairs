@@ -83,6 +83,10 @@ class EnvManager:
 		return os.environ["S3_REGION_NAME"]
 
 	@classmethod
+	def s3_endpoint(cls) -> str:
+		return os.environ["S3_ENDPOINT"]
+
+	@classmethod
 	def test_flag(cls) -> bool:
 		return os.environ.get("__TEST_FLAG__","false") == "true"
 

@@ -32,6 +32,10 @@ class SqlScripts(Enum):
 		"7.add_internal_path.sql",
 		"052cdef6b1fcc63739deec492333de3e"
 	)
+	DROP_PLACEHOLDERDIR = (
+		"8.drop_placeholderdir.sql",
+		"0a6135fd8286d10611c7e8c7bbfea94f"
+	)
 
 	@property
 	def file_name(self) -> str:

@@ -88,7 +88,6 @@ class SongFileService:
 			path = path,
 			internalpath = str(uuid.uuid4()),
 			name = suffix,
-			isdirectoryplaceholder = True,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
@@ -125,7 +124,6 @@ class SongFileService:
 			bitrate = songAboutInfo.bitrate,
 			genre = songAboutInfo.genre,
 			duration = songAboutInfo.duration,
-			isdirectoryplaceholder = False,
 			lastmodifiedbyuserfk = userId,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)

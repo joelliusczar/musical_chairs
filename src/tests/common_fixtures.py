@@ -15,6 +15,7 @@ from musical_chairs_libs.services import (
 	UserActionsHistoryService,
 	DbRootConnectionService,
 	DbOwnerConnectionService,
+	setup_database,
 	SongFileService,
 	PathRuleService,
 	ArtistService,
@@ -47,22 +48,7 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 	#some tests were failing because db name was too long
 	testId =  hashlib.md5(request.node.name.encode("utf-8")).hexdigest()
 	dbName=f"test_{testId}_musical_chairs_db"
-	with DbRootConnectionService() as rootConnService:
-		rootConnService.drop_database(dbName)
-		rootConnService.create_db(dbName)
-		rootConnService.create_owner()
-		rootConnService.create_app_users()
-		rootConnService.grant_owner_roles(dbName)
-
-	with DbOwnerConnectionService(dbName) as ownerConnService:
-		ownerConnService.create_tables()
-		ownerConnService.add_path_permission_index()
-		ownerConnService.grant_api_roles()
-		ownerConnService.grant_radio_roles()
-		ownerConnService.add_next_directory_level_func()
-		ownerConnService.add_normalize_opening_slash()
-		ownerConnService.drop_requestedtimestamp_column()
-		ownerConnService.add_internalpath_column()
+	setup_database(dbName)
 	try:
 		yield dbName
 	finally:

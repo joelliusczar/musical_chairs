@@ -2049,18 +2049,6 @@ startup_api() (
 )
 
 
-startup_radio() (
-	set_env_vars "$@" &&
-	pkgMgrChoice=$(get_pkg_mgr) &&
-	setup_radio &&
-	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
-	for conf in "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do
-		[ ! -s "$conf" ] && continue
-		__start_station_local_file_module__ "$conf"
-	done
-)
-
-
 __start_station_with_pipe__() (
 	conf="$1"
 	port="$2"

@@ -142,7 +142,7 @@ if is_ssh; then
 		echo "$__SETUP_LVL__"
 		(exit "$unitTestSuccess") &&
 		. ./mc_dev_ops.sh &&
-		startup_radio
+		setup_radio
 	elif [ "$__SETUP_LVL__" = 'install' ]; then
 		echo "$__SETUP_LVL__"
 		. ./mc_dev_ops.sh &&

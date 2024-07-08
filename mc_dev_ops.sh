@@ -2163,7 +2163,7 @@ setup_radio() (
 sync_station_module() (
 	process_global_vars "$@" &&
 	cp "$(__get_app_root__)"/"$MC_TEMPLATES_DEST"/socket_template.py\
-		 "$MC_PY_MODULE_DIR)"/station.py
+		 "$MC_PY_MODULE_DIR"/station.py
 )
 
 regen_station_configs() (

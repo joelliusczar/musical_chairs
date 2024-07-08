@@ -1929,10 +1929,10 @@ restart_nginx() (
 			;;
 		(Linux*)
 			if systemctl is-active --quiet nginx; then
-				sudo -p 'starting nginx' systemctl restart nginx
+				sudo -p 'starting nginx. Need pass:' systemctl restart nginx
 			else
-				sudo -p 'enabling nginx' systemctl enable nginx
-				sudo -p 'restarting nginx' systemctl start nginx
+				sudo -p 'enabling nginx. Need pass:' systemctl enable nginx
+				sudo -p 'restarting nginx. Need pass:' systemctl start nginx
 			fi
 			;;
 		(*) ;;

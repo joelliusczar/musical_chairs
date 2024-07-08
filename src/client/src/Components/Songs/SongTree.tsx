@@ -429,7 +429,7 @@ export const SongTree = withCacheProvider<
 
 		const getSelectedSongIds = () => {
 			return selectedNodes.map(s => {
-				const value = treeData[s];
+				const value = firstNode(treeData[s]);
 				if (value && "id" in value) {
 					return value?.id;
 				}

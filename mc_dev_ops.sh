@@ -443,12 +443,7 @@ is_ices_version_good() {
 install_ices_unchecked() (
 	set_env_vars "$@" &&
 	shutdown_all_stations &&
-	projDir="$(__get_app_root__)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
-	folderPath="$projDir"/compiled_dependencies &&
-	if [  ! -f "$folderPath"/build_ices.sh ]; then
-		folderPath="$PWD"/compiled_dependencies
-	fi &&
-	sh "$folderPath"/build_ices.sh "$__ICES_BRANCH__"
+	sh "$(get_repo_path)"compiled_dependencies/build_ices.sh "$__ICES_BRANCH__"
 )
 
 

@@ -9,16 +9,6 @@ __INCLUDE_COUNT__=$((__INCLUDE_COUNT__ + 1))
 export __INCLUDE_COUNT__
 
 
-track_exit_code() {
-	exitCode="$?"
-	if [ -z "$fnExitCode" ]; then
-		fnExitCode="$exitCode"
-	fi
-	((exit "$fnExitCode") || (exit "$exitCode"))
-	fnExitCode="$?"
-}
-
-
 install_package() (
 	pkgName="$1"
 	echo "Try to install --${pkgName}--"
@@ -678,79 +668,95 @@ brew_is_installed() (
 )
 
 
+track_exit_code() {
+	exitCode="$?"
+	if [ -z "$fnExitCode" ]; then
+		fnExitCode="$exitCode"
+	fi
+	((exit "$fnExitCode") && (exit "$exitCode"))
+	fnExitCode="$?"
+	return "$exitCode"
+}
+
+
 __deployment_env_check_recommended__() {
 	#possibly problems if missing
 
-	[ -z $(__get_ices_branch__) ] &&
+	[ -n $(__get_ices_branch__) ] ||
 	echo 'environmental var __ICES_BRANCH__ not set'
-	[ -z "$MC_LOCAL_REPO_DIR" ] &&
+	[ -n "$MC_LOCAL_REPO_DIR" ] ||
 	echo 'environmental var MC_LOCAL_REPO_DIR not set'
-	[ -z $(__get_db_setup_key__) ] &&
+	[ -n $(__get_db_setup_key__) ] ||
 	echo 'deployment var __DB_SETUP_PASS__ not set in keys'
-	[ -z $(__get_db_owner_key__) ] &&
+	[ -n $(__get_db_owner_key__) ] ||
 	echo 'deployment var MC_DB_PASS_OWNER not set in keys'
 }
 
 
 __deployment_env_check_required__() {
 	#definitely problems if missing
-	[ -z "$MC_REPO_URL" ] &&
+	keyFile="$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
+	if [ ! -s "$keyFile" ]; then
+		echo "key file not setup. ${keyFile}"
+		return 1
+	fi
+	[ -n "$MC_REPO_URL" ] ||
 	echo 'environmental var MC_REPO_URL not set'
 	fnExitCode="$?"
+	
 	track_exit_code
-	[ -z $(__get_domain_name__) ] &&
+	[ -n "$(__get_domain_name__)" ]
+	track_exit_code ||
 	echo 'top level domain for app has not been set. Check __get_domain_name__'
-	track_exit_code
 
 	#values for ssh'ing to server
-	[ -z $(__get_id_file__) ] &&
+	[ -n "$(__get_id_file__)" ]
+	track_exit_code ||
 	echo 'deployment var MC_SERVER_KEY_FILE not set in keys'
-	track_exit_code
-	[ -z $(__get_address__) ] &&
+	[ -n "$(__get_address__)" ]
+	track_exit_code ||
 	echo 'deployment var MC_SERVER_SSH_ADDRESS not set in keys'
-	track_exit_code
 
 	#porkbun
-	[ -z $(__get_pb_api_key__) ] &&
+	[ -n "$(__get_pb_api_key__)" ]
+	track_exit_code ||
 	echo 'deployment var PB_API_KEY not set in keys'
-	track_exit_code
-	[ -z $(__get_pb_secret__) ] &&
+	[ -n "$(__get_pb_secret__)" ]
+	track_exit_code ||
 	echo 'deployment var PB_SECRET not set in keys'
-	track_exit_code
 
 	#for encrypting app token
-	[ -z $(__get_api_auth_key__) ] &&
+	[ -n "$(__get_api_auth_key__)" ]
+	track_exit_code ||
 	echo 'deployment var MC_AUTH_SECRET_KEY not set in keys'
-	track_exit_code
-	[ -z $(__get_namespace_uuid__) ] &&
+	[ -n "$(__get_namespace_uuid__)" ]
+	track_exit_code ||
 	echo 'deployment var MC_NAMESPACE_UUID not set in keys'
-	track_exit_code
 
 	#s3
-	[ -z $(__get_s3_api_key__) ] &&
+	[ -n "$(__get_s3_api_key__)" ]
+	track_exit_code ||
 	echo 'deployment var AWS_ACCESS_KEY_ID not set in keys'
-	track_exit_code
-	[ -z $(__get_s3_secret__) ] &&
+	[ -n "$(__get_s3_secret__)" ]
+	track_exit_code ||
 	echo 'deployment var AWS_SECRET_ACCESS_KEY not set in keys'
-	track_exit_code
-	[ -z $(__get_s3_bucket_name__) ] &&
+	[ -n "$(__get_s3_bucket_name__)" ]
+	track_exit_code ||
 	echo 'deployment var S3_BUCKET_NAME not set in keys'
-	track_exit_code
-	[ -z $(__get_s3_region_name__) ] &&
+	[ -n "$(__get_s3_region_name__)" ]
+	track_exit_code ||
 	echo 'deployment var S3_REGION_NAME not set in keys'
-	track_exit_code
-	[ -z $(__get_s3_endpoint__) ] &&
+	[ -n "$(__get_s3_endpoint__)" ]
+	track_exit_code ||
 	echo 'deployment var S3_ENDPOINT not set in keys'
-	track_exit_code
 
 	#db
-	[ -z $(__get_api_db_user_key__) ] &&
+	[ -n "$(__get_api_db_user_key__)" ]
+	track_exit_code ||
 	echo 'deployment var MC_DB_PASS_API not set in keys'
-	track_exit_code
-	[ -z $(__get_radio_db_user_key__) ] &&
+	[ -n "$(__get_radio_db_user_key__)" ]
+	track_exit_code ||
 	echo 'deployment var MC_DB_PASS_RADIO not set in keys'
-	track_exit_code
-
 	return "$fnExitCode"
 }
 
@@ -764,74 +770,74 @@ deployment_env_check() (
 
 __server_env_check_recommended__() {
 	#possibly problems if missing
-	[ -z "$__ICES_BRANCH__" ] &&
+	[ -n "$__ICES_BRANCH__" ] ||
 	echo 'environmental var __ICES_BRANCH__ not set'
-	[ -z "$MC_LOCAL_REPO_DIR" ] &&
+	[ -n "$MC_LOCAL_REPO_DIR" ] ||
 	echo 'environmental var MC_LOCAL_REPO_DIR not set'
-	[ -z "$__DB_SETUP_PASS__" ] &&
+	[ -n "$__DB_SETUP_PASS__" ] ||
 	echo 'environmental var __DB_SETUP_PASS__ not set in keys'
-	[ -z "$MC_DB_PASS_OWNER" ] &&
+	[ -n "$MC_DB_PASS_OWNER" ] ||
 	echo 'environmental var MC_DB_PASS_OWNER not set in keys'
 }
 
 
 __server_env_check_required__() {
 	#definitely problems if missing
-	[ -z "$MC_REPO_URL" ] &&
-	echo 'environmental var MC_REPO_URL not set'
+	[ -n "$MC_REPO_URL" ]
 	fnExitCode="$?"
-	track_exit_code
+	track_exit_code ||
+	echo 'environmental var MC_REPO_URL not set'
 
-	[ -z $(__get_domain_name__) ] &&
+	[ -n "$(__get_domain_name__)" ]
+	track_exit_code ||
 	echo 'top level domain for app has not been set. Check __get_domain_name__'
-	track_exit_code
 
 	#porkbun
-	[ -z "$PB_API_KEY" ] &&
+	[ -n "$PB_API_KEY" ]
+	track_exit_code ||
 	echo 'environmental var PB_API_KEY not set'
-	track_exit_code
-	[ -z "$PB_SECRET" ] &&
+	[ -n "$PB_SECRET" ]
+	track_exit_code ||
 	echo 'environmental var PB_SECRET not set'
-	track_exit_code
 
 	#for encrypting app token
-	[ -z "$MC_AUTH_SECRET_KEY" ] &&
+	[ -n "$MC_AUTH_SECRET_KEY" ]
+	track_exit_code ||
 	echo 'environmental var MC_AUTH_SECRET_KEY not set'
-	track_exit_code
-	[ -z "$MC_NAMESPACE_UUID" ] &&
+	[ -n "$MC_NAMESPACE_UUID" ]
+	track_exit_code ||
 	echo 'deployment var MC_NAMESPACE_UUID not set in keys'
-	track_exit_code
 
 	#s3
-	[ -z "$AWS_ACCESS_KEY_ID" ] &&
+	[ -n "$AWS_ACCESS_KEY_ID" ]
+	track_exit_code ||
 	echo 'environmental var AWS_ACCESS_KEY_ID not set'
-	track_exit_code
-	[ -z "$AWS_SECRET_ACCESS_KEY" ] &&
+	[ -n "$AWS_SECRET_ACCESS_KEY" ]
+	track_exit_code ||
 	echo 'environmental var AWS_SECRET_ACCESS_KEY not set'
-	track_exit_code
-	[ -z "$S3_ACCESS_KEY_ID" ] &&
+	[ -n "$S3_ACCESS_KEY_ID" ]
+	track_exit_code ||
 	echo 'environmental var S3_ACCESS_KEY_ID not set'
-	track_exit_code
-	[ -z "$S3_SECRET_ACCESS_KEY" ] &&
+	[ -n "$S3_SECRET_ACCESS_KEY" ]
+	track_exit_code ||
 	echo 'environmental var S3_SECRET_ACCESS_KEY not set'
-	track_exit_code
-	[ -z "$S3_BUCKET_NAME" ] &&
+	[ -n "$S3_BUCKET_NAME" ]
+	track_exit_code ||
 	echo 'environmental var S3_BUCKET_NAME not set'
-	track_exit_code
-	[ -z "$S3_REGION_NAME" ] &&
+	[ -n "$S3_REGION_NAME" ]
+	track_exit_code ||
 	echo 'environmental var S3_REGION_NAME not set'
-	track_exit_code
-	[ -z "$S3_ENDPOINT" ] &&
+	[ -n "$S3_ENDPOINT" ]
+	track_exit_code ||
 	echo 'environmental var S3_ENDPOINT not set'
-	track_exit_code
 
 	#db
-	[ -z "$MC_DB_PASS_API" ] &&
+	[ -n "$MC_DB_PASS_API" ]
+	track_exit_code ||
 	echo 'environmental var MC_DB_PASS_API not set'
-	track_exit_code
-	[ -z "$MC_DB_PASS_RADIO" ] &&
+	[ -n "$MC_DB_PASS_RADIO" ]
+	track_exit_code ||
 	echo 'environmental var MC_DB_PASS_RADIO not set'
-	track_exit_code
 	return "$fnExitCode"
 }
 
@@ -844,42 +850,41 @@ server_env_check() (
 
 __dev_env_check_recommended__() {
 	#possibly problems if missing
-	[ -z "$MC_REPO_URL" ] &&
+	[ -n "$MC_REPO_URL" ] ||
 	echo 'environmental var MC_REPO_URL not set'
-	[ -z "$__DB_SETUP_PASS__" ] &&
+	[ -n "$__DB_SETUP_PASS__" ] ||
 	echo 'environmental var __DB_SETUP_PASS__ not set in keys'
-	[ -z "$MC_DB_PASS_OWNER" ] &&
+	[ -n "$MC_DB_PASS_OWNER" ] ||
 	echo 'environmental var MC_DB_PASS_OWNER not set in keys'
 }
 
 
 __dev_env_check_required__() {
 	#definitely problems if missing
-	[ -z "$MC_LOCAL_REPO_DIR" ] &&
+	[ -n "$MC_LOCAL_REPO_DIR" ]
+	fnExitCode="$?"
+	track_exit_code ||
 	echo 'environmental var MC_LOCAL_REPO_DIR not set'
-	fnExitCode="$?"
-	track_exit_code
 
-	[ -z $(__get_domain_name__) ] &&
+	[ -n "$(__get_domain_name__)" ]
+	track_exit_code ||
 	echo 'top level domain for app has not been set. Check __get_domain_name__'
-	track_exit_code
 
-	[ -z "$MC_ENV" ] &&
+	[ -n "$MC_ENV" ]
+	track_exit_code ||
 	echo 'environmental var MC_ENV not set'
-	fnExitCode="$?"
-	track_exit_code
 	#db
-	[ -z "$MC_DB_PASS_API" ] &&
+	[ -n "$MC_DB_PASS_API" ]
+	track_exit_code ||
 	echo 'environmental var MC_DB_PASS_API not set'
-	track_exit_code
 
 	#for encrypting app token
-	[ -z "$MC_AUTH_SECRET_KEY" ] &&
+	[ -n "$MC_AUTH_SECRET_KEY" ]
+	track_exit_code ||
 	echo 'environmental var MC_AUTH_SECRET_KEY not set'
-	track_exit_code
-	[ -z "$MC_NAMESPACE_UUID" ] &&
+	[ -n "$MC_NAMESPACE_UUID" ]
+	track_exit_code ||
 	echo 'deployment var MC_NAMESPACE_UUID not set in keys'
-	track_exit_code
 
 	return "$fnExitCode"
 }
@@ -960,7 +965,7 @@ __get_s3_api_key__() (
 		return
 	fi
 	perl -ne 'print "$1\n" if /AWS_ACCESS_KEY_ID=(\w+)/' \
-		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
 
@@ -970,7 +975,7 @@ __get_s3_secret__() (
 		return
 	fi
 	perl -ne 'print "$1\n" if /AWS_SECRET_ACCESS_KEY=([\w\/]+)/' \
-		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
 
@@ -980,7 +985,7 @@ __get_s3_bucket_name__() (
 		return
 	fi
 	perl -ne 'print "$1\n" if /S3_BUCKET_NAME=([\w\-]+)/' \
-		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
 
@@ -990,7 +995,7 @@ __get_s3_region_name__() (
 		return
 	fi
 	perl -ne 'print "$1\n" if /S3_REGION_NAME=([\w\-]+)/' \
-		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
 
@@ -1000,7 +1005,7 @@ __get_s3_endpoint__() (
 		return
 	fi
 	perl -ne 'print "$1\n" if /S3_ENDPOINT=([\w\-]+)/' \
-		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
 
@@ -1020,7 +1025,7 @@ __get_namespace_uuid__() (
 		return
 	fi
 	perl -ne 'print "$1\n" if /MC_NAMESPACE_UUID=([\w\-]+)/' \
-		"$(__get_app_root__)"/keys/"$MC_NAMESPACE_UUID"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
 
@@ -1078,7 +1083,7 @@ __get_radio_db_user_key__() (
 		return
 	fi
 	perl -ne 'print "$1\n" if /MC_DB_PASS_RADIO=(\w+)/' \
-		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
 

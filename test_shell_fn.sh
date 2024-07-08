@@ -16,8 +16,8 @@ fi
 . "$radioCommonPath"
 
 ### replace below with function to be tested ###
-process_global_vars "$@" &&
+process_global_vars "$@" 
 
-echo "$(__get_app_root__)"/keys/"$MC_PROJ_NAME"
 
-echo $(__get_s3_region_name__)
+deployment_env_check && echo 'yes' || echo 'no'
+

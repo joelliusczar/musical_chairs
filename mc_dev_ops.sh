@@ -2052,7 +2052,6 @@ startup_api() (
 startup_radio() (
 	set_env_vars "$@" &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
-	link_to_music_files &&
 	setup_radio &&
 	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	for conf in "$(__get_app_root__)"/"$MC_ICES_CONFIGS_DIR"/*.conf; do

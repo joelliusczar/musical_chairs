@@ -148,6 +148,11 @@ if is_ssh; then
 		. ./mc_dev_ops.sh &&
 		run_initial_install
 		echo "finished setup"
+	elif [ "$__SETUP_LVL__" = 'ices' ]; then
+		echo "$__SETUP_LVL__"
+		. ./mc_dev_ops.sh &&
+		install_ices_unchecked
+		echo "finished setup"
 	else
 		echo "$__SETUP_LVL__"
 		. ./mc_dev_ops.sh &&

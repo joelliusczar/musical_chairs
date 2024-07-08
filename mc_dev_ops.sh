@@ -440,17 +440,22 @@ is_ices_version_good() {
 	[ "$icesMajor" -ge 0 ] && [ "$icesMinor" -ge 6 ] && [ "$icesPatch" -ge 1 ]
 }
 
+install_ices_unchecked() (
+	set_env_vars "$@" &&
+	shutdown_all_stations &&
+	projDir="$(__get_app_root__)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
+	folderPath="$projDir"/compiled_dependencies &&
+	if [  ! -f "$folderPath"/build_ices.sh ]; then
+		folderPath="$PWD"/compiled_dependencies
+	fi &&
+	sh "$folderPath"/build_ices.sh "$__ICES_BRANCH__"
+)
+
 
 install_ices() (
 	set_env_vars "$@" &&
 	if ! mc-ices -V 2>/dev/null || ! is_ices_version_good; then
-		shutdown_all_stations &&
-		projDir="$(__get_app_root__)"/"$MC_BUILD_DIR"/"$MC_PROJ_NAME" &&
-		folderPath="$projDir"/compiled_dependencies &&
-		if [  ! -f "$folderPath"/build_ices.sh ]; then
-			folderPath="$PWD"/compiled_dependencies
-		fi &&
-		sh "$folderPath"/build_ices.sh "$__ICES_BRANCH__"
+		install_ices_unchecked
 	fi
 )
 

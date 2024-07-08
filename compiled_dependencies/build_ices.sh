@@ -83,10 +83,10 @@ case $(uname) in
 esac
 
 case $(uname) in
-	Darwin*)
+	(Darwin*)
 		PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH"
 		;;
-	*) ;;
+	(*) ;;
 esac
 icesBuildDir="$(__get_app_root__)"/"$MC_BUILD_DIR"/ices
 (

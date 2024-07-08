@@ -30,7 +30,7 @@ export const buildArrayQueryStrFromObj = (
 };
 
 export const getListenAddress = (station: StationInfo) => {
-	const stationName = `${station.owner?.username || ""}_${station.name}`;
+	const stationName = `${station.owner?.username || ""}/${station.name}`;
 	return `${baseAddress}/listen/stream/${stationName}`;
 };
 

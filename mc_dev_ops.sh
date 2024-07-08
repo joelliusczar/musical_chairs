@@ -1088,17 +1088,17 @@ __get_radio_db_user_key__() (
 
 
 __get_remote_private_key__() (
-	echo "/etc/ssl/private/${MC_PROJ_NAME_0}.private.key.pem"
+	echo "/etc/ssl/private/${MC_PROJ_NAME_SNAKE}.private.key.pem"
 )
 
 
 __get_remote_public_key__() (
-	echo "/etc/ssl/certs/${MC_PROJ_NAME_0}.public.key.pem"
+	echo "/etc/ssl/certs/${MC_PROJ_NAME_SNAKE}.public.key.pem"
 )
 
 
 __get_remote_intermediate_key__() (
-	echo "/etc/ssl/certs/${MC_PROJ_NAME_0}.intermediate.key.pem"
+	echo "/etc/ssl/certs/${MC_PROJ_NAME_SNAKE}.intermediate.key.pem"
 )
 
 
@@ -1951,7 +1951,7 @@ print_nginx_conf_location() (
 	process_global_vars "$@" >/dev/null &&
 	confDirInclude=$(get_nginx_conf_dir_include) &&
 	confDir=$(get_abs_path_from_nginx_include "$confDirInclude") 2>/dev/null
-	echo "$confDir"/"$MC".conf
+	echo "$confDir"/"$MC_APP".conf
 )
 
 

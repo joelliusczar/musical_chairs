@@ -443,7 +443,7 @@ is_ices_version_good() {
 install_ices_unchecked() (
 	set_env_vars "$@" &&
 	shutdown_all_stations &&
-	sh "$(get_repo_path)"compiled_dependencies/build_ices.sh "$__ICES_BRANCH__"
+	sh "$(get_repo_path)"/compiled_dependencies/build_ices.sh "$__ICES_BRANCH__"
 )
 
 

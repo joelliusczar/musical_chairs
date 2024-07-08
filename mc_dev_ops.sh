@@ -2149,16 +2149,56 @@ setup_radio() (
 	shutdown_all_stations &&
 	sync_requirement_list &&
 	sync_utility_scripts &&
+	sync_station_module &&
 
 	create_py_env_in_app_trunk &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DEST" &&
 	setup_database &&
+	regen_station_configs &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&
 	setup_icecast_confs "$icecastName" &&
 	echo "done setting up radio"
 )
 
+sync_station_module() (
+	process_global_vars "$@" &&
+	cp "$(__get_app_root__)"/"$MC_TEMPLATES_DEST"/socket_template.py\
+		 "$MC_PY_MODULE_DIR)"/station.py
+)
+
+regen_station_configs() (
+	process_global_vars "$@" &&
+	__install_py_env_if_needed__ &&
+	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	(python <<EOF
+from musical_chairs_libs.services import (
+	StationService,
+	EnvManager,
+	TemplateService
+)
+
+envManager = EnvManager()
+conn = envManager.get_configured_api_connection("musical_chairs_db")
+try:
+	stationService = StationService(conn)
+	templateService = TemplateService()
+	stations = list(stationService.get_stations())
+	for station in stations:
+		templateService.create_station_files(
+			0,
+			station.name,
+			station.displayname,
+			station.owner.username
+		)
+
+finally:
+	conn.close()
+
+EOF
+	)
+
+)
 
 kill_process_using_port() (
 	portNum="$1"

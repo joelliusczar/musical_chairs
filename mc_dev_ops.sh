@@ -12,7 +12,7 @@ export __INCLUDE_COUNT__
 install_package() (
 	pkgName="$1"
 	echo "Try to install --${pkgName}--"
-	case $(uname) in
+	case $(uname) in #()
 		(Linux*)
 			if which pacman >/dev/null 2>&1; then
 				yes | sudo -p 'Pass required for pacman install: ' \
@@ -21,10 +21,10 @@ install_package() (
 				sudo -p 'Pass required for apt-get install: ' \
 					DEBIAN_FRONTEND=noninteractive apt-get -y install "$pkgName"
 			fi
-			;;
+			;; #()
 		(Darwin*)
 			yes | brew install "$pkgName"
-			;;
+			;; #()
 		(*)
 			;;
 	esac
@@ -57,7 +57,7 @@ disable_wordsplitting() {
 str_contains() (
 	haystackStr="$1"
 	needleStr="$2"
-	case "$haystackStr" in
+	case "$haystackStr" in #()
 		(*"$needleStr"*)
 			return 0
 	esac
@@ -72,10 +72,10 @@ array_contains() (
 	searchValue="$1"
 	shift
 	while [ ! -z "$1" ]; do
-		case $1 in
+		case $1 in #()
 			("$searchValue")
 				return 0
-				;;
+				;; #()
 			(*)
 			;;
 		esac
@@ -178,12 +178,12 @@ empty_dir_contents() (
 
 get_bin_path() (
 	pkg="$1"
-	case $(uname) in
+	case $(uname) in #()
 		(Darwin*)
 			brew info "$pkg" \
 			| grep -A1 'has been installed as' \
 			| awk 'END{ print $1 }'
-			;;
+			;; #()
 		(*) which "$pkg" ;;
 	esac
 )
@@ -332,14 +332,14 @@ set_env_vars() {
 }
 
 
-get_localhost_key_dir() (
-	case $(uname) in
+get_localhost_ssh_dir() (
+	case $(uname) in #()
 		(Darwin*)
 			echo "$HOME"/.ssh
-			;;
+			;; #()
 		(Linux*)
 			echo "$HOME"/.ssh
-			;;
+			;; #()
 		(*) ;;
 	esac
 )
@@ -427,9 +427,9 @@ set_ices_version_const() {
 
 get_icecast_name() (
 	pkgMgrChoice="$1"
-	case "$pkgMgrChoice" in
-    ("$MC_PACMAN_CONST") echo 'icecast';;
-    ("$MC_APT_CONST") echo 'icecast2';;
+	case "$pkgMgrChoice" in #()
+    ("$MC_PACMAN_CONST") echo 'icecast';; #()
+    ("$MC_APT_CONST") echo 'icecast2';; #()
     (*) echo 'icecast2';;
 	esac
 )
@@ -458,13 +458,13 @@ install_ices() (
 start_icecast_service() (
 	echo 'starting icecast service'
 	icecastName="$1"
-	case $(uname) in
+	case $(uname) in #()
 		(Linux*)
 			if ! systemctl is-active --quiet "$icecastName"; then
 				sudo -p "enabling ${icecastName}" systemctl enable "$icecastName"
 				sudo -p "starting ${icecastName}" systemctl start "$icecastName"
 			fi
-			;;
+			;; #()
 		(*) ;;
 	esac &&
 	echo 'done starting icecast service'
@@ -473,7 +473,7 @@ start_icecast_service() (
 
 get_icecast_conf() (
 	icecastName="$1"
-	case $(uname) in
+	case $(uname) in #()
 		(Linux*)
 			if ! systemctl status "$icecastName" >/dev/null 2>&1; then
 					echo "$icecastName is not running at the moment"
@@ -481,12 +481,12 @@ get_icecast_conf() (
 			fi
 				systemctl status "$icecastName" | grep -A2 CGroup | \
 					head -n2 | tail -n1 | awk '{ print $NF }'
-			;;
+			;; #()
 		(Darwin*)
 			#we don't have icecast on the mac anyway so we'll just return the
 			#source code location
 			echo "$MC_TEMPLATES_SRC"/icecast.xml
-			;;
+			;; #()
 		(*) ;;
 	esac
 )
@@ -634,7 +634,7 @@ __is_current_dir_repo__() {
 
 get_pkg_mgr() {
 	define_consts >&2
-	case $(uname) in
+	case $(uname) in #()
 		(Linux*)
 			if  which pacman >/dev/null 2>&1; then
 				echo "$MC_PACMAN"
@@ -643,11 +643,11 @@ get_pkg_mgr() {
 				echo "$MC_APT_CONST"
 				return 0
 			fi
-			;;
+			;; #()
 		(Darwin*)
 			echo "$MC_HOMEBREW"
 			return 0
-			;;
+			;; #()
 		(*)
 			;;
 	esac
@@ -658,11 +658,11 @@ get_pkg_mgr() {
 brew_is_installed() (
 	pkg="$1"
 	echo "checking about $pkg"
-	case $(uname) in
+	case $(uname) in #()
 		(Darwin*)
 			brew info "$pkg" >/dev/null 2>&1 &&
 			! brew info "$pkg" | grep 'Not installed' >/dev/null
-			;;
+			;; #()
 		(*) return 0 ;;
 	esac
 )
@@ -682,13 +682,13 @@ track_exit_code() {
 __deployment_env_check_recommended__() {
 	#possibly problems if missing
 
-	[ -n $(__get_ices_branch__) ] ||
+	[ -n "$(__get_ices_branch__)" ] ||
 	echo 'environmental var __ICES_BRANCH__ not set'
 	[ -n "$MC_LOCAL_REPO_DIR" ] ||
 	echo 'environmental var MC_LOCAL_REPO_DIR not set'
-	[ -n $(__get_db_setup_key__) ] ||
+	[ -n "$(__get_db_setup_key__)" ] ||
 	echo 'deployment var __DB_SETUP_PASS__ not set in keys'
-	[ -n $(__get_db_owner_key__) ] ||
+	[ -n "$(__get_db_owner_key__)" ] ||
 	echo 'deployment var MC_DB_PASS_OWNER not set in keys'
 }
 
@@ -696,6 +696,7 @@ __deployment_env_check_recommended__() {
 __deployment_env_check_required__() {
 	#definitely problems if missing
 	keyFile="$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
+	echo "key file: ${keyFile}"
 	if [ ! -s "$keyFile" ]; then
 		echo "key file not setup. ${keyFile}"
 		return 1
@@ -703,7 +704,7 @@ __deployment_env_check_required__() {
 	[ -n "$MC_REPO_URL" ] ||
 	echo 'environmental var MC_REPO_URL not set'
 	fnExitCode="$?"
-	
+
 	track_exit_code
 	[ -n "$(__get_domain_name__)" ]
 	track_exit_code ||
@@ -748,7 +749,7 @@ __deployment_env_check_required__() {
 	echo 'deployment var S3_REGION_NAME not set in keys'
 	[ -n "$(__get_s3_endpoint__)" ]
 	track_exit_code ||
-	echo 'deployment var S3_ENDPOINT not set in keys'
+	echo 'deployment var AWS_ENDPOINT_URL not set in keys'
 
 	#db
 	[ -n "$(__get_api_db_user_key__)" ]
@@ -763,6 +764,7 @@ __deployment_env_check_required__() {
 
 deployment_env_check() (
 	echo 'checking environment vars before deployment'
+	define_consts >&2
 	__deployment_env_check_recommended__
 	__deployment_env_check_required__
 )
@@ -788,6 +790,8 @@ __server_env_check_required__() {
 	track_exit_code ||
 	echo 'environmental var MC_REPO_URL not set'
 
+	#__get_domain_name__ is not based on env variables,
+	#but we want to ensure it's building okay
 	[ -n "$(__get_domain_name__)" ]
 	track_exit_code ||
 	echo 'top level domain for app has not been set. Check __get_domain_name__'
@@ -827,9 +831,9 @@ __server_env_check_required__() {
 	[ -n "$S3_REGION_NAME" ]
 	track_exit_code ||
 	echo 'environmental var S3_REGION_NAME not set'
-	[ -n "$S3_ENDPOINT" ]
+	[ -n "$AWS_ENDPOINT_URL" ]
 	track_exit_code ||
-	echo 'environmental var S3_ENDPOINT not set'
+	echo 'environmental var AWS_ENDPOINT_URL not set'
 
 	#db
 	[ -n "$MC_DB_PASS_API" ]
@@ -843,6 +847,7 @@ __server_env_check_required__() {
 
 server_env_check() (
 	echo 'checking environment vars on server'
+	define_consts >&2
 	__server_env_check_recommended__
 	__server_env_check_required__
 )
@@ -878,6 +883,23 @@ __dev_env_check_required__() {
 	track_exit_code ||
 	echo 'environmental var MC_DB_PASS_API not set'
 
+		#s3
+	[ -n "$(__get_s3_api_key__)" ]
+	track_exit_code ||
+	echo 'environmental var AWS_ACCESS_KEY_ID not set in keys'
+	[ -n "$(__get_s3_secret__)" ]
+	track_exit_code ||
+	echo 'environmental var AWS_SECRET_ACCESS_KEY not set in keys'
+	[ -n "$(__get_s3_bucket_name__)" ]
+	track_exit_code ||
+	echo 'environmental var S3_BUCKET_NAME not set in keys'
+	[ -n "$(__get_s3_region_name__)" ]
+	track_exit_code ||
+	echo 'environmental var S3_REGION_NAME not set in keys'
+	[ -n "$(__get_s3_endpoint__)" ]
+	track_exit_code ||
+	echo 'environmental var AWS_ENDPOINT_URL not set in keys'
+
 	#for encrypting app token
 	[ -n "$MC_AUTH_SECRET_KEY" ]
 	track_exit_code ||
@@ -892,6 +914,7 @@ __dev_env_check_required__() {
 
 dev_env_check() (
 	echo 'checking environment vars on local dev environment'
+	define_consts >&2
 	__dev_env_check_recommended__
 	__dev_env_check_required__
 )
@@ -1000,11 +1023,11 @@ __get_s3_region_name__() (
 
 
 __get_s3_endpoint__() (
-	if [ -n "$S3_ENDPOINT" ] && [ "$MC_APP_ENV" != 'local' ]; then
-		echo "$S3_ENDPOINT"
+	if [ -n "$AWS_ENDPOINT_URL" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$AWS_ENDPOINT_URL"
 		return
 	fi
-	perl -ne 'print "$1\n" if /S3_ENDPOINT=([\w\-]+)/' \
+	perl -ne 'print "$1\n" if /AWS_ENDPOINT_URL=(.+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
@@ -1201,11 +1224,11 @@ link_app_python_if_not_linked() {
 		if [ ! -e "$(__get_app_root__)"/"$MC_BIN_DIR" ]; then
 			sudo_mkdir "$(__get_app_root__)"/"$MC_BIN_DIR" || return "$?"
 		fi
-		case $(uname) in
+		case $(uname) in #()
 			(Darwin*)
 				ln -sf $(get_bin_path python@3.9) \
 					"$(__get_app_root__)"/"$MC_BIN_DIR"/mc-python
-				;;
+				;; #()
 			(*)
 				ln -sf $(get_bin_path python3) \
 					"$(__get_app_root__)"/"$MC_BIN_DIR"/mc-python
@@ -1275,19 +1298,19 @@ setup_env_api_file() (
 
 start_db_service() (
 	echo 'starting database service'
-	case $(uname) in
+	case $(uname) in #()
 		(Linux*)
 			if ! systemctl is-active --quiet mariadb; then
 				sudo -p 'enabling mariadb' 'systemctl enable mariadb'
 				sudo -p 'starting mariadb' 'systemctl start mariadb'
 			fi
-			;;
+			;; #()
 		(Darwin*)
 			status=brew services list | grep mariadb | awk '{ print $2 }'
 			if [ status = 'none' ]; then
 				brew services start mariadb
 			fi
-			;;
+			;; #()
 		(*) ;;
 	esac &&
 	echo 'done starting database service'
@@ -1392,7 +1415,7 @@ __get_debug_cert_name__() (
 
 
 __get_debug_cert_path__() (
-	echo $(get_localhost_key_dir)/$(__get_debug_cert_name__)
+	echo $(get_localhost_ssh_dir)/$(__get_debug_cert_name__)
 )
 
 
@@ -1402,7 +1425,7 @@ __get_local_nginx_cert_name__() (
 
 
 __get_local_nginx_cert_path__() (
-	echo $(get_localhost_key_dir)/$(__get_local_nginx_cert_name__)
+	echo $(get_localhost_ssh_dir)/$(__get_local_nginx_cert_name__)
 )
 
 
@@ -1413,7 +1436,8 @@ is_cert_expired() (
 
 extract_sha256_from_cert() (
 	openssl x509 -fingerprint -sha256 \
-	| perl -ne 'print "$1\n" if /SHA256 Fingerprint=([A-F0-9:]+)/' | tr -d ':'
+	| perl -ne 'print "$1\n" if /(?:SHA|sha)256 Fingerprint=([A-F0-9:]+)/' \
+	| tr -d ':'
 )
 
 
@@ -1433,11 +1457,11 @@ scan_pems_for_common_name() (
 
 certs_matching_name() (
 	commonName="$1"
-		case $(uname) in
+		case $(uname) in #()
 		(Darwin*)
 			security find-certificate -a -p -c "$commonName" \
 				$(__get_keychain_osx__)
-			;;
+			;; #()
 		(*)
 			scan_pems_for_common_name "$commonName"
 			;;
@@ -1454,13 +1478,13 @@ __certs_matching_name_exact__() (
 
 
 __get_openssl_default_conf__() (
-	case $(uname) in
+	case $(uname) in #()
 		(Darwin*)
 			echo '/System/Library/OpenSSL/openssl.cnf'
-			;;
+			;; #()
 		(Linux*)
 			echo '/etc/ssl/openssl.cnf'
-			;;
+			;; #()
 		(*) ;;
 	esac
 )
@@ -1571,7 +1595,7 @@ __clean_up_invalid_cert__() (
 	commonName="$1" &&
 	certName="$2" &&
 	echo "Clean up certs for ${commonName} if needed"
-	case $(uname) in
+	case $(uname) in #()
 		(Darwin*)
 			cert=''
 			#turns out the d flag is not posix compliant :<
@@ -1582,11 +1606,12 @@ __clean_up_invalid_cert__() (
 						sha256Value=$(echo "$cert" | extract_sha256_from_cert) &&
 						echo "$cert" | is_cert_expired &&
 						sudo security delete-certificate \
-							-Z "$sha256Value" -t $(__get_keychain_osx__)
+							-Z "$sha256Value" -t $(__get_keychain_osx__) ||
+						echo "Failed to delete for sha256: ${sha256Value}"
 						cert=''
 					fi
 				done
-			;;
+			;; #()
 		(*)
 				cert=''
 				#turns out the d flag is not posix compliant :<
@@ -1610,6 +1635,7 @@ __clean_up_invalid_cert__() (
 					done
 			;;
 	esac
+	echo 'Done cleaning up certs'
 	return 0
 )
 
@@ -1620,13 +1646,13 @@ __setup_ssl_cert_local__() (
 	publicKeyFile="$3" &&
 	privateKeyFile="$4" &&
 
-	case $(uname) in
+	case $(uname) in #()
 		(Darwin*)
 			__openssl_gen_cert__ "$commonName" "$domain" \
 				"$publicKeyFile" "$privateKeyFile" &&
 			__install_local_cert_osx__ "$publicKeyFile" ||
 			return 1
-			;;
+			;; #()
 		(*)
 			if [ -f '/etc/debian_version' ]; then
 				__openssl_gen_cert__ "$commonName" "$domain" \
@@ -1660,7 +1686,7 @@ print_ssl_cert_info() (
 	process_global_vars "$@" &&
 	domain=$(__get_domain_name__ "$MC_ENV" 'omitPort') &&
 	echo "$domain"
-	case "$MC_ENV" in
+	case "$MC_ENV" in #()
 		(local*)
 			isDebugServer=${1#is_debug_server=}
 			if [ -n "$isDebugServer" ]; then
@@ -1691,7 +1717,7 @@ print_ssl_cert_info() (
 							cert=''
 						fi
 					done
-			;;
+			;; #()
 		(*)
 			publicKeyFile=$(__get_remote_public_key__) &&
 			cat "$publicKeyFile" | openssl x509 -enddate -subject -noout
@@ -1716,7 +1742,8 @@ add_test_url_to_hosts() (
 setup_ssl_cert_nginx() (
 	process_global_vars "$@" &&
 	domain=$(__get_domain_name__ "$MC_ENV" 'omitPort') &&
-	case "$MC_ENV" in
+	echo "setting up certs for ${domain}"
+	case "$MC_ENV" in #()
 		(local*)
 			add_test_url_to_hosts "$domain"
 			publicKeyFile=$(__get_local_nginx_cert_path__).public.key.crt &&
@@ -1725,12 +1752,13 @@ setup_ssl_cert_nginx() (
 			# we\'re leaving off the && because what would that even mean here?
 			__clean_up_invalid_cert__ "$domain" $(__get_local_nginx_cert_name__)
 			if [ -z $(__certs_matching_name_exact__ "$domain") ]; then
+				echo 'setting up new certs'
 				__setup_ssl_cert_local__ \
 				"$domain" "$domain" "$publicKeyFile" "$privateKeyFile"
 			fi
 			publicKeyName=$(__get_local_nginx_cert_name__).public.key.crt &&
 			__set_firefox_cert_policy__ "$publicKeyName"
-			;;
+			;; #()
 		(*)
 			publicKeyFile=$(__get_remote_public_key__) &&
 			privateKeyFile=$(__get_remote_private_key__) &&
@@ -1858,10 +1886,10 @@ update_nginx_conf() (
 	appConfFile="$1"
 	error_check_all_paths "$MC_TEMPLATES_SRC" "$appConfFile" &&
 	__copy_and_update_nginx_template__ &&
-	case "$MC_ENV" in
+	case "$MC_ENV" in #()
 		(local*)
 			__set_local_nginx_app_conf__
-			;;
+			;; #()
 		(*)
 			__set_deployed_nginx_app_conf__
 			;;
@@ -1923,10 +1951,10 @@ enable_nginx_include() (
 
 restart_nginx() (
 	echo 'starting/restarting up nginx'
-	case $(uname) in
+	case $(uname) in #()
 		(Darwin*)
 			nginx -s reload
-			;;
+			;; #()
 		(Linux*)
 			if systemctl is-active --quiet nginx; then
 				sudo -p 'starting nginx. Need pass:' systemctl restart nginx
@@ -1934,7 +1962,7 @@ restart_nginx() (
 				sudo -p 'enabling nginx. Need pass:' systemctl enable nginx
 				sudo -p 'restarting nginx. Need pass:' systemctl start nginx
 			fi
-			;;
+			;; #()
 		(*) ;;
 	esac &&
 	echo 'Done starting/restarting up nginx'
@@ -2020,7 +2048,7 @@ __get_remote_export_script__() (
 	output="${output} export MC_DB_PASS_RADIO='$(__get_radio_db_user_key__)';" &&
 	output="${output} export S3_BUCKET_NAME='$(__get_s3_bucket_name__)';" &&
 	output="${output} export S3_REGION_NAME='$(__get_s3_region_name__)';" &&
-	output="${output} export S3_ENDPOINT='$(__get_s3_endpoint__)';" &&
+	output="${output} export AWS_ENDPOINT_URL='$(__get_s3_endpoint__)';" &&
 	output="${output} export __ICES_BRANCH__='$(__get_ices_branch__)';"
 	echo "$output"
 )
@@ -2209,7 +2237,7 @@ kill_process_using_port() (
 
 
 create_swap_if_needed() (
-		case $(uname) in
+		case $(uname) in #()
 		(Linux*)
 			if [ ! -e /swapfile ]; then
 				sudo dd if=/dev/zero of=/swapfile bs=128M count=24 &&
@@ -2217,7 +2245,7 @@ create_swap_if_needed() (
 				sudo mkswap /swapfile &&
 				sudo swapon /swapfile
 			fi
-			;;
+			;; #()
 		(*) ;;
 	esac
 )
@@ -2385,13 +2413,13 @@ debug_print() (
 
 
 get_rc_candidate() {
-	case $(uname) in
+	case $(uname) in #()
 		(Linux*)
 			echo "$HOME"/.bashrc
-			;;
+			;; #()
 		(Darwin*)
 			echo "$HOME"/.zshrc
-			;;
+			;; #()
 		(*) ;;
 	esac
 }
@@ -2411,15 +2439,15 @@ get_web_root() (
 		echo "$MC_TEST_ROOT"
 		return
 	fi
-	case $(uname) in
+	case $(uname) in #()
 		(Linux*)
 			echo "${MC_WEB_ROOT_OVERRIDE:-/srv}"
 			return
-			;;
+			;; #()
 		(Darwin*)
 			echo "${MC_WEB_ROOT_OVERRIDE:-/Library/WebServer}"
 			return
-			;;
+			;; #()
 		(*) ;;
 	esac
 )
@@ -2448,45 +2476,45 @@ process_global_args() {
 	#in case need to pass the args to a remote script. example
 	__GLOBAL_ARGS__=''
 	while [ ! -z "$1" ]; do
-		case "$1" in
+		case "$1" in #()
 			#build out to test_trash rather than the normal directories
 			#sets MC_APP_ROOT and MC_WEB_ROOT_OVERRIDE
 			#without having to set them explicitly
 			(test)
 				export __TEST_FLAG__='true'
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} test"
-				;;
+				;; #()
 			(replace=*)
 				export __REPLACE__=${1#replace=}
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} replace='${__REPLACE__}'"
-				;;
+				;; #()
 			(clean) #tells setup functions to delete files/dirs before installing
 				export __CLEAN_FLAG='clean'
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} clean"
-				;;
+				;; #()
 			#activates debug_print. Also tells deploy script to use the diag branch
 			(diag)
 				export __DIAG_FLAG__='true'
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} diag"
 				echo '' > diag_out_"$__INCLUDE_COUNT__"
-				;;
+				;; #()
 			(setuplvl=*) #affects which setup scripst to run
 				export __SETUP_LVL__=${1#setuplvl=}
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} setuplvl='${__SETUP_LVL__}'"
-				;;
+				;; #()
 			#when I want to conditionally run with some experimental code
 			(experiment=*)
 				export __EXPERIMENT_NAME__=${1#experiment=}
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} experiment='${__EXPERIMENT_NAME__}'"
-				;;
+				;; #()
 			(skip=*)
 				export __SKIP__=${1#skip=}
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} skip='${__SKIP__}'"
-				;;
+				;; #()
 			(dbsetuppass=*)
 				export __DB_SETUP_PASS__=${1#dbsetuppass=}
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} dbsetuppass='${__DB_SETUP_PASS__}'"
-				;;
+				;; #()
 			(*) ;;
 		esac
 		shift
@@ -2565,35 +2593,20 @@ __get_domain_name__() (
 		echo "tld has not been setup for this app yet" >&2
 		echo ""
 	fi
-	case "$envArg" in
+	case "$envArg" in #()
 		(local*)
 			if [ -n "$omitPort" ]; then
 				urlSuffix="-local.${tld}"
 			else
 				urlSuffix="-local.${tld}:8080"
 			fi
-			;;
+			;; #()
 		(*)
 			urlSuffix=".${tld}"
 			;;
 	esac
 	echo "${urlBase}${urlSuffix}"
 )
-
-
-
-define_repo_paths() {
-	export MC_SRC="$(get_repo_path)/src"
-	export MC_API_SRC="$MC_SRC/api"
-	export MC_CLIENT_SRC="$MC_SRC/client"
-	export MC_LIB_SRC="$MC_SRC/$MC_LIB"
-	export MC_DEV_OPS_LIB_SRC="$(get_repo_path)/$MC_DEV_OPS_LIB"
-	export MC_TEMPLATES_SRC="$(get_repo_path)/templates"
-	export MC_SQL_SCRIPTS_SRC="$(get_repo_path)/sql_scripts"
-	export MC_REFERENCE_SRC="$(get_repo_path)/reference"
-	export MC_TEST_ROOT="$(get_repo_path)/test_trash"
-	echo "source paths defined"
-}
 
 
 setup_app_directories() {
@@ -2627,11 +2640,23 @@ __setup_api_dir__() {
 
 define_directory_vars() {
 	[ -z "$__DIRECTORY_VARS_SET__" ] || return 0
-	export MC_LOCAL_REPO_DIR=$(get_repo_path) &&
 	define_repo_paths
 	export __DIRECTORY_VARS_SET__='true'
 }
 
+
+define_repo_paths() {
+	export MC_SRC="$(get_repo_path)/src"
+	export MC_API_SRC="$MC_SRC/api"
+	export MC_CLIENT_SRC="$MC_SRC/client"
+	export MC_LIB_SRC="$MC_SRC/$MC_LIB"
+	export MC_DEV_OPS_LIB_SRC="$(get_repo_path)/$MC_DEV_OPS_LIB"
+	export MC_TEMPLATES_SRC="$(get_repo_path)/templates"
+	export MC_SQL_SCRIPTS_SRC="$(get_repo_path)/sql_scripts"
+	export MC_REFERENCE_SRC="$(get_repo_path)/reference"
+	export MC_TEST_ROOT="$(get_repo_path)/test_trash"
+	echo "source paths defined"
+}
 
 process_global_vars() {
 	process_global_args "$@" || return
@@ -2668,15 +2693,15 @@ unset_globals() {
 					echo "leaving $constant"
 					continue
 				fi
-				case "$constant" in
+				case "$constant" in #()
 					(MC_*)
 						echo "unsetting ${constant}"
 						unset "$constant"
-						;;
+						;; #()
 					(__*)
 						echo "unsetting ${constant}"
 						unset "$constant"
-						;;
+						;; #()
 					(*)
 						;;
 					esac

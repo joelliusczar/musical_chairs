@@ -63,8 +63,6 @@ mkfifo env_var_fifo clone_repo_fifo script_select_fifo remote_cleanup_fifo \
 export expName="$expName" &&
 export AWS_ACCESS_KEY_ID=$(__get_s3_api_key__) &&
 export AWS_SECRET_ACCESS_KEY=$(__get_s3_secret__) &&
-export S3_ACCESS_KEY_ID=$(__get_s3_api_key__) &&
-export S3_SECRET_ACCESS_KEY=$(__get_s3_secret__) &&
 export PB_SECRET=$(__get_pb_secret__) &&
 export PB_API_KEY=$(__get_pb_api_key__) &&
 export MC_AUTH_SECRET_KEY=$(__get_api_auth_key__) &&
@@ -76,7 +74,7 @@ export MC_DB_PASS_API=$(__get_api_db_user_key__) &&
 export MC_DB_PASS_RADIO=$(__get_radio_db_user_key__) &&
 export S3_BUCKET_NAME=$(__get_s3_bucket_name__) &&
 export S3_REGION_NAME=$(__get_s3_region_name__) &&
-export S3_ENDPOINT=$(__get_s3_endpoint__) &&
+export AWS_ENDPOINT_URL=$(__get_s3_endpoint__) &&
 export __ICES_BRANCH__=$(__get_ices_branch__) &&
 
 RemoteScriptEOF0

@@ -40,7 +40,7 @@ class EnvManager:
 	@classmethod
 	def db_pass_owner(cls) -> str:
 		return os.environ.get("MC_DB_PASS_OWNER", "")
-	
+
 	@classmethod
 	def namespace_uuid(cls) -> UUID:
 		return UUID(os.environ.get("MC_NAMESPACE_UUID", ""))
@@ -84,7 +84,7 @@ class EnvManager:
 
 	@classmethod
 	def s3_endpoint(cls) -> str:
-		return os.environ["S3_ENDPOINT"]
+		return os.environ["AWS_ENDPOINT_URL"]
 
 	@classmethod
 	def test_flag(cls) -> bool:

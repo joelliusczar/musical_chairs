@@ -50,12 +50,14 @@ import { cookieToObjectURIDecoded } from "../../Helpers/browser_helpers";
 import { notNullPredicate } from "../../Helpers/array_helpers";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { SongListener } from "./SongListener";
 
 const treeId = "song-tree";
 
 const styles = {
 	toolbar: css`
 		display: flex;
+		align-items: center;
 	`,
 };
 
@@ -369,6 +371,7 @@ export const SongTree = withCacheProvider<
 		const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
 			useState<PathsActionRule[]>([]);
+
 		const { treeData, updateTree, expandedNodes, setExpandedNodes } = useTree<
 			ListData<SongTreeNodeInfo>
 		>();
@@ -378,7 +381,7 @@ export const SongTree = withCacheProvider<
 		const queryStr = location.search;
 		const queryObj = new URLSearchParams(queryStr);
 		const urlNodeId = queryObj.get("nodeid");
-		const selectedPrefix = selectedNodes.length == 1 ? 
+		const selectedPrefix = selectedNodes.length == 1 ?
 			urlSafeBase64ToUnicode(selectedNodes[0]) :
 			null;
 
@@ -400,7 +403,7 @@ export const SongTree = withCacheProvider<
 					if (isNodeDirectory(songNodeInfo)) {
 						updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
 						const expandedCopy = [...expandedNodes];
-						const expandedFoundIdx = 
+						const expandedFoundIdx =
 							expandedNodes.findIndex(n => n === nodeIds[0]);
 						if (expandedFoundIdx === -1) {
 							expandedCopy.push(nodeIds[0]);
@@ -461,12 +464,6 @@ export const SongTree = withCacheProvider<
 			if (selectedNodes.length !== 1) return DomRoutes.pathUsers();
 			const nodeId = selectedNodes[0];
 			return `${DomRoutes.pathUsers()}?nodeid=${nodeId}`;
-		};
-
-		const downloadSong = async () => {
-			const requestObj = songDownloadUrl({id : selectedSongIds[0]});
-			const url = await requestObj.call();
-			window?.open(url, "_blank")?.focus();
 		};
 
 		const selectedSongIds = getSelectedSongIds();
@@ -586,11 +583,9 @@ export const SongTree = withCacheProvider<
 						>
 							Edit Song Info
 						</Button>}
-						{canDownloadSelection() &&<Button
-							onClick={downloadSong}
-						>
-							Download song
-						</Button>}
+						{canDownloadSelection() &&  <SongListener
+							audioId={selectedSongIds[0]}
+						/>}
 						{canAssignUsers() && <Button
 							component={Link}
 							to={getUserAssignUrl()}

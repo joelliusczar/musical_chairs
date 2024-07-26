@@ -11,7 +11,7 @@ from sqlalchemy import (
 	String,
 	ForeignKey,
 	Index,
-	Text
+	Text,
 )
 from sqlalchemy.sql.schema import Column
 
@@ -108,6 +108,7 @@ songs = Table("songs", metadata,
 		nullable=True),
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
 	Column("internalpath", String(255), nullable=False),
+	Column("hash", LargeBinary, nullable=True),
 )
 
 sg = songs.c

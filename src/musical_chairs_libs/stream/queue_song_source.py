@@ -53,7 +53,7 @@ def get_song_info(
 
 
 def load_data(
-		stationId: int, 
+		stationId: int,
 		songPopper: SongPopper,
 		fileService: FileService
 	):
@@ -62,7 +62,7 @@ def load_data(
 	try:
 		currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		for queueItem in get_song_info(
-			stationId, 
+			stationId,
 			songPopper
 		):
 			if stopRunning:

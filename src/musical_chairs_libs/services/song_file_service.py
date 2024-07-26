@@ -47,7 +47,7 @@ from sqlalchemy.sql.expression import (
 )
 from musical_chairs_libs.tables import (
 	songs as songs_tbl,
-	sg_pk, sg_name, sg_path,
+	sg_pk, sg_name, sg_path, sg_internalpath,
 	st_pk
 )
 from .env_manager import EnvManager
@@ -112,8 +112,9 @@ class SongFileService:
 				"suffix"
 			)
 		self.delete_overlaping_placeholder_dirs(path)
-		internalPath = str(uuid.uuid4())
-		songAboutInfo = self.file_service.save_song(internalPath, file)
+		cleanedSuffix = re.sub(r"[^\w\.]+","-",suffix).casefold()
+		internalPath = f"{str(uuid.uuid4())}-{cleanedSuffix}"
+		songAboutInfo, fileHash = self.file_service.save_song(internalPath, file)
 		stmt = insert(songs_tbl).values(
 			path = path,
 			internalpath = internalPath,
@@ -125,7 +126,8 @@ class SongFileService:
 			genre = songAboutInfo.genre,
 			duration = songAboutInfo.duration,
 			lastmodifiedbyuserfk = userId,
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
+			lastmodifiedtimestamp = self.get_datetime().timestamp(),
+			hash = fileHash
 		)
 		result = self.conn.execute(stmt)
 		if result.inserted_primary_key and songAboutInfo.primaryartist:
@@ -180,12 +182,12 @@ class SongFileService:
 	) -> Iterator[SongTreeNode]:
 		records = self.conn.execute(query).mappings()
 		for row in records:
-			normalizedPrefix = normalize_opening_slash(cast(str,row["prefix"]))
+			normalizedPrefix = normalize_opening_slash(cast(str, row["prefix"]))
 			if not permittedPathsTree.matches(normalizedPrefix)\
 			:
 				continue
 			nomalizedControlPath = normalize_opening_slash(
-				cast(str,row["control_path"])
+				cast(str, row["control_path"])
 			)
 			if nomalizedControlPath == normalizedPrefix:
 				yield SongTreeNode(
@@ -205,9 +207,9 @@ class SongFileService:
 						permittedPathsTree.values(normalizedPrefix) for r in p
 					]
 				)
-	
+
 	"""
-		Lists the items in a "directory".  
+		Lists the items in a "directory".
 	"""
 	def song_ls(
 		self,
@@ -310,6 +312,24 @@ class SongFileService:
 		else:
 			yield from (cast(str,row[0]) for row in results)
 
+	def get_internal_song_paths(
+		self,
+		itemIds: Union[Iterable[int], int],
+		useFullSystemPath: bool=False
+	) -> Iterator[str]:
+		query = select(sg_internalpath)
+		if isinstance(itemIds, Iterable):
+			query = query.where(sg_pk.in_(itemIds))
+		else:
+			query = query.where(sg_pk == itemIds)
+		results = self.conn.execute(query)
+		if useFullSystemPath:
+			yield from (f"{EnvManager.absolute_content_home()}/{row[0]}" \
+				for row in results
+			)
+		else:
+			yield from (cast(str,row[0]) for row in results)
+
 	def get_parents_of_path(self, path: str) -> Iterator[Tuple[int, str]]:
 		normalizedPrefix = normalize_opening_slash(path)
 		addSlash = True
@@ -341,7 +361,7 @@ class SongFileService:
 				.where(st_pk != id)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
-	
+
 	def __are_paths_used__(
 		self,
 		paths: ReusableIterable[SongPathInfo]
@@ -349,19 +369,19 @@ class SongFileService:
 		addSlash=True
 		query = select(sg_pk, sg_path).where(
 			func.normalize_opening_slash(
-				sg_path, 
+				sg_path,
 				addSlash
 			).in_(p.path for p in paths))
 		rows = self.conn.execute(query)
 		pathToId = {
-			normalize_opening_slash(cast(str, r[1])): cast(int, r[0]) 
+			normalize_opening_slash(cast(str, r[1])): cast(int, r[0])
 			for r in rows
 		}
 		return {
-			Path(p.path).name: (pathToId.get(p.path, p.id) != p.id) 
+			Path(p.path).name: (pathToId.get(p.path, p.id) != p.id)
 			for p in paths
 		}
-	
+
 	def are_paths_used(
 		self,
 		prefix: str,
@@ -376,7 +396,7 @@ class SongFileService:
 						)
 					)
 				)
-			) 
+			)
 			for p in suffixes
 		]
 		return self.__are_paths_used__(cleanedPaths)
@@ -392,7 +412,7 @@ class SongFileService:
 		if not cleanedPath:
 			return True
 		return self.__is_path_used(id, cleanedPath)
-	
+
 	def delete_prefix(
 		self,
 		prefix: str,
@@ -419,7 +439,7 @@ class SongFileService:
 			)
 		parentPrefix = str(Path(prefix).parent)
 		return self.song_ls_parents(user, parentPrefix, includeTop=False)
-		
+
 
 	def move_path(
 		self,
@@ -454,7 +474,5 @@ class SongFileService:
 			)
 		self.conn.execute(statement)
 		self.conn.commit()
-		
-		
+
 		return self.song_ls_parents(user, newprefix, includeTop=False)
-		

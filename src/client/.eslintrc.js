@@ -64,5 +64,6 @@ module.exports = {
 		"react-hooks/rules-of-hooks": "error",
 		"react-hooks/exhaustive-deps": "error",
 		"react-refresh/only-export-components": "warn",
+		"react/no-unknown-property": ["error", { ignore: ["css"] }],
 	},
 };

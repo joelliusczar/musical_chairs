@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Box, Button, AppBar, Toolbar } from "@mui/material";
-import { TreeView, TreeItem } from "@mui/lab";
-import { 
+import { Button } from "@mui/material";
+import { css } from "@emotion/react";
+import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
+import {
 	fetchSongsLs,
 	fetchSongLsParents,
 	songDownloadUrl,
@@ -10,8 +11,7 @@ import {
 } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
-import { drawerWidth } from "../../style_config";
-import { 
+import {
 	useTree,
 } from "../../Context_Providers/TreeCacheContext/TreeCacheContext";
 import {
@@ -27,8 +27,7 @@ import { useSnackbar } from "notistack";
 import {
 	useCurrentUser,
 } from "../../Context_Providers/AuthContext/AuthContext";
-import { 
-	base64ToUnicode,
+import {
 	normalizeOpeningSlash,
 	unicodeToUrlSafeBase64,
 	urlSafeBase64ToUnicode,
@@ -53,6 +52,12 @@ import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
 const treeId = "song-tree";
+
+const styles = {
+	toolbar: css`
+		display: flex;
+	`,
+};
 
 
 const isNodeDirectory = (node: SongTreeNodeInfo) => {
@@ -85,7 +90,7 @@ type SongTreeNodeProps = {
 	prefix: string
 	songNodeInfo: SongTreeNodeInfo
 	nodeId: string,
-	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void, 
+	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void,
 };
 
 const SongTreeNode = (props: SongTreeNodeProps) => {
@@ -172,7 +177,8 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 			ref={dropRef}
 		>
 			<TreeItem
-				nodeId={nodeId}
+				className="song-tree-item"
+				itemId={nodeId}
 				label={label}
 				ref={dragRef}
 			>
@@ -186,7 +192,7 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 type SongDirectoryProps = {
 	prefix: string
 	level: number,
-	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void, 
+	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void,
 };
 
 const SongDirectory = (props: SongDirectoryProps) => {
@@ -194,8 +200,9 @@ const SongDirectory = (props: SongDirectoryProps) => {
 	const { state, dispatch, setExpandedNodes } = useTree<
 		ListData<SongTreeNodeInfo>
 	>();
-	
-	const storedAtPrefix = normalizeOpeningSlash(prefix) in state ? 
+
+
+	const storedAtPrefix = normalizeOpeningSlash(prefix) in state ?
 		state[normalizeOpeningSlash(prefix)] : null;
 	const prefixData = storedAtPrefix?.data;
 
@@ -569,18 +576,10 @@ export const SongTree = withCacheProvider<
 		},[urlNodeId, setSelectedNodes, scrollToNode]);
 
 		return (
-			<DndProvider backend={HTML5Backend}>
-				{(!!selectedSongIds.length || selectedPrefixRules) &&
-				<AppBar
-					sx={{
-						top: (theme) => theme.spacing(6),
-						backgroundColor: (theme) => theme.palette.background.default,
-						width: `calc(100% - ${drawerWidth}px)`,
-						ml: `${drawerWidth}px`,
-						height: (theme) => theme.spacing(4),
-					}}
-				>
-					<Toolbar variant="dense" sx={{ pb: 1, alignItems: "baseline"}}>
+			<>
+				<DndProvider backend={HTML5Backend}>
+					{(!!selectedSongIds.length || selectedPrefixRules) &&
+					<div css={styles.toolbar}>
 						{canEditSongInfo() && <Button
 							component={Link}
 							to={getSongEditUrl(selectedSongIds)}
@@ -599,14 +598,14 @@ export const SongTree = withCacheProvider<
 							Assign users
 						</Button>}
 						{isDirectorySelected() && selectedPrefix &&
-							<DirectoryNewModalOpener 
+							<DirectoryNewModalOpener
 								add={addEmptyDirectory}
-								prefix={selectedPrefix} 
+								prefix={selectedPrefix}
 							/>}
 						{isDirectorySelected() && selectedPrefix &&
-							<SongUploadNewModalOpener 
+							<SongUploadNewModalOpener
 								add={onAddNewSong}
-								prefix={selectedPrefix} 
+								prefix={selectedPrefix}
 							/>}
 						{canDeletePath() && <YesNoModalOpener
 							promptLabel="Delete Path"
@@ -614,22 +613,21 @@ export const SongTree = withCacheProvider<
 							onYes={() => deleteNode()}
 							onNo={() => {}}
 						/>}
-					</Toolbar>
-				</AppBar>}
-				<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />
-				<TreeView
-					selected={selectedNodes}
-					expanded={expandedNodes}
-					onNodeSelect={onNodeSelect}
-					multiSelect
-					id={treeId}
-				>
-					<SongDirectory
-						prefix=""
-						level={0}
-						onNodeLoaded={onNodeLoaded}
-					/>
-				</TreeView>
-			</DndProvider>
+					</div>}
+					<SimpleTreeView
+						selectedItems={selectedNodes}
+						expandedItems={expandedNodes}
+						onSelectedItemsChange={onNodeSelect}
+						multiSelect
+						id={treeId}
+					>
+						<SongDirectory
+							prefix=""
+							level={0}
+							onNodeLoaded={onNodeLoaded}
+						/>
+					</SimpleTreeView>
+				</DndProvider>
+			</>
 		);
 	});

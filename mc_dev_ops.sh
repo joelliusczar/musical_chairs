@@ -684,6 +684,10 @@ __deployment_env_check_recommended__() {
 
 	[ -n "$(__get_ices_branch__)" ] ||
 	echo 'environmental var __ICES_BRANCH__ not set'
+	# reading MC_LOCAL_REPO_DIR from env vars
+	# instead of keys because I don't want to accidenly
+	# replace what is on server.
+	# Server needs its own MC_LOCAL_REPO_DIR
 	[ -n "$MC_LOCAL_REPO_DIR" ] ||
 	echo 'environmental var MC_LOCAL_REPO_DIR not set'
 	[ -n "$(__get_db_setup_key__)" ] ||
@@ -997,7 +1001,7 @@ __get_s3_secret__() (
 		echo "$AWS_SECRET_ACCESS_KEY"
 		return
 	fi
-	perl -ne 'print "$1\n" if /AWS_SECRET_ACCESS_KEY=([\w\/]+)/' \
+	perl -ne 'print "$1\n" if /AWS_SECRET_ACCESS_KEY=([\w\/\+]+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
@@ -1292,6 +1296,21 @@ setup_env_api_file() (
 	perl -pi -e \
 		"s@^(MC_NAMESPACE_UUID=).*\$@\1'${MC_NAMESPACE_UUID}'@" \
 		"$envFile" &&
+	perl -pi -e \
+		"s@^(AWS_ACCESS_KEY_ID=).*\$@\1'${AWS_ACCESS_KEY_ID}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(AWS_SECRET_ACCESS_KEY=).*\$@\1'${AWS_SECRET_ACCESS_KEY}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(S3_BUCKET_NAME=).*\$@\1'${S3_BUCKET_NAME}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(S3_REGION_NAME=).*\$@\1'${S3_REGION_NAME}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(AWS_ENDPOINT_URL=).*\$@\1'${AWS_ENDPOINT_URL}'@" \
+		"$envFile" &&
 	echo 'done setting up .env file'
 )
 
@@ -1337,7 +1356,7 @@ set_db_root_initial_password() (
 setup_database() (
 	echo 'initial db setup'
 	process_global_vars "$@" &&
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DEST" &&
+	__replace_sql_script__ &&
 	__install_py_env_if_needed__ &&
 	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	#going to allow an error as a valid result by redirecting error to out
@@ -2310,7 +2329,7 @@ get_hash_of_file() (
 	file="$1"
 	pyScript=$(cat <<-END
 		import sys, hashlib
-		print(hashlib.md5(sys.stdin.read().encode("utf-8")).hexdigest())
+		print(hashlib.sha256(sys.stdin.read().encode("utf-8")).hexdigest())
 	END
 	)
 	cat "$file" | python3 -c "$pyScript"
@@ -2346,11 +2365,15 @@ regen_file_reference_file() (
 	printf '\t\treturn self.value[1]\n' >> "$outputFile"
 )
 
+__replace_sql_script__() {
+	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DEST"
+}
+
 
 replace_sql_script() (
 	process_global_vars "$@" &&
 	setup_app_directories
-	copy_dir "$MC_SQL_SCRIPTS_SRC" "$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DEST"
+	__replace_sql_script__
 )
 
 
@@ -2368,8 +2391,7 @@ setup_unit_test_env() (
 	__create_fake_keys_file__
 
 	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DEST" &&
-	copy_dir "$MC_SQL_SCRIPTS_SRC" \
-		"$(__get_app_root__)"/"$MC_SQL_SCRIPTS_DEST" &&
+	__replace_sql_script__ &&
 	sync_requirement_list
 	setup_env_api_file
 	pyEnvPath="$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"

@@ -35,8 +35,7 @@ from musical_chairs_libs.protocols import (
 	FileService
 )
 from musical_chairs_libs.services.fs import (
-	S3FileService,
-	LocalFileService,
+	S3FileService
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
@@ -142,7 +141,7 @@ def file_service(
 	artistService: ArtistService = Depends(artist_service),
 	albumService: AlbumService = Depends(album_service)
 ) -> FileService:
-	return LocalFileService(artistService, albumService)
+	return S3FileService(artistService, albumService)
 
 def dl_url_file_service(
 	artistService: ArtistService = Depends(artist_service),

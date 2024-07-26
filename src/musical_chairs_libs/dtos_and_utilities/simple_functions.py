@@ -20,6 +20,7 @@ from email_validator import ValidatedEmail
 from collections import Counter
 from .type_aliases import (s2sDict)
 from .sentinel import (missing)
+from pathlib import Path
 
 T = TypeVar("T")
 
@@ -176,7 +177,7 @@ def int_or_str(s: Union[int, str]) -> Union[int, str]:
 		return i
 	except:
 		return s
-	
+
 def interweave(
 	it1: Iterable[T],
 	it2: Iterable[T],
@@ -234,12 +235,23 @@ def common_prefix(
 	s1: Union[Iterable[T], str],
 	s2: Union[Iterable[T], str]
 ) -> Union[Iterable[T], str]:
-	
+
 	if type(s1) == str and type(s2) == str:
-		return "".join(__common_prefix__(s1, s2)) 
+		return "".join(__common_prefix__(s1, s2))
 	elif not isinstance(s1, str) and not isinstance(s2, str):
 		return __common_prefix__(s1, s2)
 	else:
 		raise ValueError(
 			"Input types must either both be strings or both iterables"
 		)
+
+def guess_contenttype(filename: str) -> str:
+	extension = Path(filename).suffix.casefold()
+	if extension == ".mp3":
+		return "audio/mpeg"
+	elif extension == ".flac":
+		return "audio/flac"
+	elif extension == ".ogg":
+		return "audio/ogg"
+
+	return "application/octet-stream"

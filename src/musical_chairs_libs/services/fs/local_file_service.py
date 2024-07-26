@@ -1,7 +1,8 @@
 #pyright: reportMissingTypeStubs=false
+import hashlib
 from tinytag import TinyTag
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Tuple
 from ..env_manager import EnvManager
 from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import SongAboutInfo
@@ -60,15 +61,18 @@ class LocalFileService(FileService):
 			print(e)
 			return SongAboutInfo()
 
-
-	def save_song(self, keyPath: str, file: BinaryIO) -> SongAboutInfo:
+	def save_song(self,
+		keyPath: str,
+		file: BinaryIO
+	) -> Tuple[SongAboutInfo, bytes]:
 		self.__create_missing_directories__(keyPath)
 		savedPath = f"{EnvManager.absolute_content_home()}/{keyPath}"
 		with open(savedPath, "wb") as out:
 			for chunk in file:
 				out.write(chunk)
 		with open(savedPath, "rb") as savedFile:
-			return self.extract_song_info(savedFile)
+			fileHash = hashlib.sha256(savedFile.read()).digest()
+			return self.extract_song_info(savedFile), fileHash
 
 
 	def open_song(self, keyPath: str) -> BinaryIO:

@@ -201,7 +201,7 @@ class DbOwnerConnectionService:
 		).replace("<dbName>", self.dbName)\
 		.replace("|","")\
 		.replace("DELIMITER","")
-		
+
 		self.conn.exec_driver_sql(script)
 
 	def add_internalpath_column(self):
@@ -215,6 +215,14 @@ class DbOwnerConnectionService:
 	def drop_placeholderdir_column(self):
 		script = TemplateService.load_sql_script_content(
 			SqlScripts.DROP_PLACEHOLDERDIR
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
+		self.conn.exec_driver_sql(script)
+
+	def add_file_hash_column(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.ADD_SONG_FILE_HASH
 		).replace("<dbName>", self.dbName)\
 		.replace("|","")\
 		.replace("DELIMITER","")
@@ -237,3 +245,4 @@ def setup_database(dbName: str):
 		ownerConnService.drop_requestedtimestamp_column()
 		ownerConnService.add_internalpath_column()
 		ownerConnService.drop_placeholderdir_column()
+		ownerConnService.add_file_hash_column()

@@ -48,7 +48,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TableData,
 	PathsActionRule,
 	SongPathInfo,
-	DirectoryTransfer
+	DirectoryTransfer,
+	get_path_owner_roles
 )
 from song_validation import (
 	extra_validated_song,
@@ -70,7 +71,15 @@ def song_ls(
 	),
 	songInfoService: SongFileService = Depends(song_file_service)
 ) -> ListData[SongTreeNode]:
-	return ListData(items=list(songInfoService.song_ls(user, prefix)))
+	items = list(songInfoService.song_ls(user, prefix))
+	if not prefix and len(items) < 1:
+		items = [SongTreeNode(
+			path=user.dirrootOrDefault,
+			totalChildCount= 0,
+			directChildren=[],
+			rules=list(get_path_owner_roles(user.dirrootOrDefault)),
+		)]
+	return ListData(items=items)
 
 
 @router.get("/songs/ls_parents")
@@ -85,7 +94,7 @@ def song_ls_parents(
 	result = {
 		x[0]:ListData(
 			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
-		) for x 
+		) for x
 		in songInfoService.song_ls_parents(user, prefix).items()
 	}
 	return result
@@ -153,7 +162,7 @@ def download_song(
 	songFileService: SongFileService = Depends(song_file_service),
 	fileService: FileService = Depends(dl_url_file_service)
 ) -> str:
-	path = next(songFileService.get_song_path(id, useFullSystemPath=False), None)
+	path = next(songFileService.get_internal_song_paths(id), None)
 	if path:
 		url = fileService.download_url(path)
 		if url:
@@ -345,7 +354,7 @@ def create_directory(
 		result = {
 		x[0]:ListData(
 			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
-			) for x 
+			) for x
 			in songFileService.create_directory(prefix, suffix, user).items()
 		}
 		return result
@@ -375,7 +384,7 @@ def delete_prefix(
 	result = {
 		x[0]:ListData(
 			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
-		) for x 
+		) for x
 		in songFileService.delete_prefix(prefix, user).items()
 	}
 	return result
@@ -389,7 +398,7 @@ def move_path(
 	result = {
 		x[0]:ListData(
 			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
-		) for x 
+		) for x
 		in songFileService.move_path(transfer, user).items()
 	}
 	return result

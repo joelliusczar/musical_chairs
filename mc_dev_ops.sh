@@ -814,7 +814,7 @@ __server_env_check_required__() {
 	echo 'environmental var MC_AUTH_SECRET_KEY not set'
 	[ -n "$MC_NAMESPACE_UUID" ]
 	track_exit_code ||
-	echo 'deployment var MC_NAMESPACE_UUID not set in keys'
+	echo 'environmental var MC_NAMESPACE_UUID not set in keys'
 
 	#s3
 	[ -n "$AWS_ACCESS_KEY_ID" ]
@@ -823,12 +823,6 @@ __server_env_check_required__() {
 	[ -n "$AWS_SECRET_ACCESS_KEY" ]
 	track_exit_code ||
 	echo 'environmental var AWS_SECRET_ACCESS_KEY not set'
-	[ -n "$S3_ACCESS_KEY_ID" ]
-	track_exit_code ||
-	echo 'environmental var S3_ACCESS_KEY_ID not set'
-	[ -n "$S3_SECRET_ACCESS_KEY" ]
-	track_exit_code ||
-	echo 'environmental var S3_SECRET_ACCESS_KEY not set'
 	[ -n "$S3_BUCKET_NAME" ]
 	track_exit_code ||
 	echo 'environmental var S3_BUCKET_NAME not set'
@@ -910,7 +904,7 @@ __dev_env_check_required__() {
 	echo 'environmental var MC_AUTH_SECRET_KEY not set'
 	[ -n "$MC_NAMESPACE_UUID" ]
 	track_exit_code ||
-	echo 'deployment var MC_NAMESPACE_UUID not set in keys'
+	echo 'environmental var MC_NAMESPACE_UUID not set in keys'
 
 	return "$fnExitCode"
 }

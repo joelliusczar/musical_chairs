@@ -161,6 +161,6 @@ class ProcessService:
 		elif platform.system() == "Darwin":
 			#we don't have icecast on the mac anyway so we'll just return the
 			#source code location
-			return f"{EnvManager.templates_dir}/icecast.xml"
+			return f"{EnvManager.templates_dir()}/icecast.xml"
 		err = "icecast logic has not been configured for this os"
 		raise NotImplementedError(err)

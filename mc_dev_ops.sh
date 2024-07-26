@@ -778,8 +778,6 @@ __server_env_check_recommended__() {
 	#possibly problems if missing
 	[ -n "$__ICES_BRANCH__" ] ||
 	echo 'environmental var __ICES_BRANCH__ not set'
-	[ -n "$MC_LOCAL_REPO_DIR" ] ||
-	echo 'environmental var MC_LOCAL_REPO_DIR not set'
 	[ -n "$__DB_SETUP_PASS__" ] ||
 	echo 'environmental var __DB_SETUP_PASS__ not set in keys'
 	[ -n "$MC_DB_PASS_OWNER" ] ||
@@ -793,6 +791,8 @@ __server_env_check_required__() {
 	fnExitCode="$?"
 	track_exit_code ||
 	echo 'environmental var MC_REPO_URL not set'
+	[ -n "$MC_LOCAL_REPO_DIR" ] ||
+	echo 'environmental var MC_LOCAL_REPO_DIR not set'
 
 	#__get_domain_name__ is not based on env variables,
 	#but we want to ensure it's building okay
@@ -2587,7 +2587,7 @@ define_consts() {
 
 create_install_directory() {
 	if [ -z "$MC_LOCAL_REPO_DIR" ]; then
-		echo 'MC_LOCAL_REPO_DIR is set. '
+		echo 'MC_LOCAL_REPO_DIR is not set. '
 		echo 'create_install_directory may have been run out of sequence'
 		exit 1
 	fi
@@ -2656,6 +2656,7 @@ __setup_api_dir__() {
 
 define_directory_vars() {
 	[ -z "$__DIRECTORY_VARS_SET__" ] || return 0
+	export MC_LOCAL_REPO_DIR=$(get_repo_path) &&
 	define_repo_paths
 	export __DIRECTORY_VARS_SET__='true'
 }

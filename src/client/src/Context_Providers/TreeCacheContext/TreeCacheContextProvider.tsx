@@ -1,12 +1,19 @@
 import React,
 {
+	useCallback,
 	useMemo,
+	useState,
 } from "react";
 import {
+	keyedDataDispatches as dispatches,
 	useKeyedDataWaitingReducer,
 } from "../../Reducers/keyedDataWaitingReducer";
 import { TreeCacheContext } from "./TreeCacheContext";
 import { Dictionary } from "../../Types/generic_types";
+import { 
+	normalizeOpeningSlash,
+} from "../../Helpers/string_helpers";
+
 
 
 
@@ -18,6 +25,9 @@ type CacheContextProviderProps = {
 export const CacheContextProvider = <T,>(props: CacheContextProviderProps) => {
 	const { children } = props;
 	const [state, dispatch] = useKeyedDataWaitingReducer<T>();
+	const [expandedNodes, setExpandedNodes] = useState<
+			string[]
+		>([]); 
 
 	const treeData = useMemo(() => {
 		const data: Dictionary<T | null> = {};
@@ -27,12 +37,28 @@ export const CacheContextProvider = <T,>(props: CacheContextProviderProps) => {
 		return data;
 	}, [state]);
 
+	const updateTree = useCallback((nodes: Dictionary<T>) => {
+		Object.keys(nodes).forEach(key => {
+			dispatch(dispatches.done({
+				[normalizeOpeningSlash(key)]: nodes[key],
+			}));
+		});
+	},[dispatch]);
+
 	const contextValue = useMemo(() => ({
-		state, dispatch, treeData,
+		state, 
+		dispatch, 
+		treeData, 
+		updateTree,
+		setExpandedNodes,
+		expandedNodes,
 	}),[
 		state,
 		dispatch,
 		treeData,
+		updateTree,
+		setExpandedNodes,
+		expandedNodes,
 	]);
 
 	return (

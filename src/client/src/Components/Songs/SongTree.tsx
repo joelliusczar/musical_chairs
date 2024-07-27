@@ -1,17 +1,18 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Box, Button, AppBar, Toolbar } from "@mui/material";
-import { TreeView, TreeItem } from "@mui/lab";
-import { 
+import { Button } from "@mui/material";
+import { css } from "@emotion/react";
+import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
+import {
 	fetchSongsLs,
 	fetchSongLsParents,
 	songDownloadUrl,
 	deletePrefix,
+	movePath,
 } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
-import { drawerWidth } from "../../style_config";
-import { 
-	useCache,
+import {
+	useTree,
 } from "../../Context_Providers/TreeCacheContext/TreeCacheContext";
 import {
 	withCacheProvider,
@@ -26,14 +27,14 @@ import { useSnackbar } from "notistack";
 import {
 	useCurrentUser,
 } from "../../Context_Providers/AuthContext/AuthContext";
-import { 
+import {
 	normalizeOpeningSlash,
 	unicodeToUrlSafeBase64,
 	urlSafeBase64ToUnicode,
 } from "../../Helpers/string_helpers";
 import {
 	SongTreeNodeInfo,
-	DirectoryInfoNodeInfo,
+	DirectoryTransferSource,
 } from "../../Types/song_info_types";
 import { IdValue, Dictionary, KeyValue } from "../../Types/generic_types";
 import { ListData } from "../../Types/pageable_types";
@@ -47,8 +48,18 @@ import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { isCallPending } from "../../Helpers/request_helpers";
 import { cookieToObjectURIDecoded } from "../../Helpers/browser_helpers";
 import { notNullPredicate } from "../../Helpers/array_helpers";
+import { useDrag, useDrop, DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { SongListener } from "./SongListener";
 
 const treeId = "song-tree";
+
+const styles = {
+	toolbar: css`
+		display: flex;
+		align-items: center;
+	`,
+};
 
 
 const isNodeDirectory = (node: SongTreeNodeInfo) => {
@@ -63,19 +74,16 @@ const songTreeParentInfoToNodeIds = (
 	for (let i = 0; i < keys.length; i++) {
 		const currentKey = keys[i];
 		if (!currentKey) continue;
-
-		const currentNode = treeInfo[currentKey];
-		const foundIdx = currentNode
-			.items
-			.findIndex(p => p.path === currentKey);
-		result.push({
-			path: currentKey,
-			nodeId: unicodeToUrlSafeBase64(normalizeOpeningSlash(currentKey)),
-			rules: foundIdx > 0 ? currentNode.items[foundIdx].rules : [],
-		});
-
+		result.push(unicodeToUrlSafeBase64(normalizeOpeningSlash(currentKey)));
 	}
 	return result;
+};
+
+const firstNode = (nodes: ListData<SongTreeNodeInfo>) => {
+	if (nodes.items.length) {
+		return nodes.items[0];
+	}
+	return null;
 };
 
 
@@ -84,18 +92,76 @@ type SongTreeNodeProps = {
 	prefix: string
 	songNodeInfo: SongTreeNodeInfo
 	nodeId: string,
-	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void, 
+	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void,
 };
 
 const SongTreeNode = (props: SongTreeNodeProps) => {
 	const { children, songNodeInfo, prefix, nodeId, onNodeLoaded } = props;
-	const { dispatch } = useCache<
-		SongTreeNodeInfo | ListData<SongTreeNodeInfo>
+	const { dispatch , updateTree, setExpandedNodes } = useTree<
+		ListData<SongTreeNodeInfo>
 	>();
+	const { enqueueSnackbar } = useSnackbar();
+
+	const [, dragRef] = useDrag<DirectoryTransferSource>({
+		type: "branch",
+		item: { prefix, path: songNodeInfo.path },
+	});
+
+	const dropPath = songNodeInfo.path;
+
+	const [{ isOver },dropRef] = useDrop<
+	DirectoryTransferSource,
+		unknown,
+		{ isOver: boolean }
+	>(() => ({
+		accept: "branch",
+		drop: async (item, monitor) => {
+			if(!monitor.didDrop()) {
+				try {
+					const requestObj = movePath({
+						...item,
+						newprefix: dropPath,
+					});
+					const result = await requestObj.call();
+					updateTree(result);
+
+					const expanded = dropPath
+						.split("/")
+						// .filter(s => !!s)
+						.reduce((a, c) => {
+							if (a.length) {
+								const last = a[a.length - 1];
+								a.push(`${last}${c}/`);
+								return a;
+							}
+							else {
+								a.push(`${c}/`);
+								return a;
+							}
+						},[] as string[]);
+					expanded.pop();
+					setExpandedNodes(expanded.map(p => unicodeToUrlSafeBase64(
+						normalizeOpeningSlash(p)
+					)));
+				}
+				catch (err) {
+					enqueueSnackbar(formatError(err),{ variant: "error"});
+				}
+			}
+		},
+		canDrop: (item) => {
+			if (!dropPath.endsWith("/")) return false;
+			if (dropPath === item.path) return false;
+			return true;
+		},
+		collect: (monitor) => ({
+			isOver: !!monitor.isOver({ shallow: true }) && !!monitor.canDrop(),
+		}),
+	}));
 
 	useEffect(() => {
 		dispatch(dispatches.done({
-			[nodeId] : songNodeInfo,
+			[nodeId] : { items: [songNodeInfo], totalRows: 1 },
 		}));
 	},[dispatch, songNodeInfo, nodeId]);
 
@@ -108,12 +174,19 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 		songNodeInfo.name : songNodeInfo.path.replace(prefix, "");
 
 	return (
-		<TreeItem 
-			nodeId={nodeId} 
-			label={label}
+		<div
+			style={ isOver ? { border: "1px solid"} : {}}
+			ref={dropRef}
 		>
-			{children}
-		</TreeItem>
+			<TreeItem
+				className="song-tree-item"
+				itemId={nodeId}
+				label={label}
+				ref={dragRef}
+			>
+				{children}
+			</TreeItem>
+		</div>
 	);
 };
 
@@ -121,17 +194,17 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 type SongDirectoryProps = {
 	prefix: string
 	level: number,
-	setExpandedNodes: (p: DirectoryInfoNodeInfo[]) => void,
-	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void, 
+	onNodeLoaded: (node: SongTreeNodeInfo, nodeId: string) => void,
 };
 
 const SongDirectory = (props: SongDirectoryProps) => {
-	const { prefix, level, setExpandedNodes, onNodeLoaded } = props;
-	const { state, dispatch } = useCache<
+	const { prefix, level, onNodeLoaded } = props;
+	const { state, dispatch, setExpandedNodes } = useTree<
 		ListData<SongTreeNodeInfo>
 	>();
-	
-	const storedAtPrefix = normalizeOpeningSlash(prefix) in state ? 
+
+
+	const storedAtPrefix = normalizeOpeningSlash(prefix) in state ?
 		state[normalizeOpeningSlash(prefix)] : null;
 	const prefixData = storedAtPrefix?.data;
 
@@ -144,6 +217,7 @@ const SongDirectory = (props: SongDirectoryProps) => {
 	const queryObj = new URLSearchParams(queryStr);
 	const urlNodeId = queryObj.get("nodeid");
 	const urlSegement = `${location.pathname}${queryStr}`;
+	const navigate = useNavigate();
 
 	const currentUser = useCurrentUser();
 	const cookieObj = cookieToObjectURIDecoded(document.cookie);
@@ -190,6 +264,9 @@ const SongDirectory = (props: SongDirectoryProps) => {
 					const cacheAdditions: {
 						[key: KeyValue]: ListData<SongTreeNodeInfo>
 					} = {};
+					if (Object.keys(data).length < 1) {
+						navigate("", { replace: true, relative: "path" });
+					}
 					//only setting this to flip the callstatus
 					//don't think we're actually using it
 					cacheAdditions[normalizeOpeningSlash(urlPrefix)] = { items: []};
@@ -224,6 +301,7 @@ const SongDirectory = (props: SongDirectoryProps) => {
 		enqueueSnackbar,
 		setExpandedNodes,
 		isPending,
+		navigate,
 	]);
 
 	useEffect(() => {
@@ -281,7 +359,6 @@ const SongDirectory = (props: SongDirectoryProps) => {
 							<SongDirectory
 								prefix={d.path}
 								level={level + 1}
-								setExpandedNodes={setExpandedNodes}
 								onNodeLoaded={onNodeLoaded}
 							/>}
 					</SongTreeNode>
@@ -296,14 +373,12 @@ export const SongTree = withCacheProvider<
 	SongTreeNodeInfo | ListData<SongTreeNodeInfo>
 >()(
 	() => {
-		const [expandedNodes, setExpandedNodes] = useState<
-			DirectoryInfoNodeInfo[]
-		>([]); 
 		const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
 			useState<PathsActionRule[]>([]);
-		const { dispatch, treeData } = useCache<
-			SongTreeNodeInfo | ListData<SongTreeNodeInfo>
+
+		const { treeData, updateTree, expandedNodes, setExpandedNodes } = useTree<
+			ListData<SongTreeNodeInfo>
 		>();
 		const { enqueueSnackbar } = useSnackbar();
 		const navigate = useNavigate();
@@ -311,10 +386,9 @@ export const SongTree = withCacheProvider<
 		const queryStr = location.search;
 		const queryObj = new URLSearchParams(queryStr);
 		const urlNodeId = queryObj.get("nodeid");
-		const selectedPrefix = selectedNodes.length == 1 ? 
+		const selectedPrefix = selectedNodes.length == 1 ?
 			urlSafeBase64ToUnicode(selectedNodes[0]) :
 			null;
-
 
 		const updateUrl = (path: string) => {
 			const nodeId = unicodeToUrlSafeBase64(path);
@@ -326,7 +400,7 @@ export const SongTree = withCacheProvider<
 
 		const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
 			if(nodeIds.length === 1) {
-				const songNodeInfo = treeData[nodeIds[0]];
+				const songNodeInfo = firstNode(treeData[nodeIds[0]]);
 				if(selectedNodes[0] === nodeIds[0]) { //unselect
 					setSelectedNodes([]);
 				}
@@ -334,17 +408,14 @@ export const SongTree = withCacheProvider<
 					if (isNodeDirectory(songNodeInfo)) {
 						updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
 						const expandedCopy = [...expandedNodes];
-						const expandedFoundIdx = 
-							expandedNodes.findIndex(n => n.nodeId === nodeIds[0]);
+						const expandedFoundIdx =
+							expandedNodes.findIndex(n => n === nodeIds[0]);
 						if (expandedFoundIdx === -1) {
-							expandedCopy.push({
-								path: songNodeInfo.path,
-								nodeId: nodeIds[0],
-							});
+							expandedCopy.push(nodeIds[0]);
 						}
 						else {
 							const isFoundSelected = selectedNodes
-								.some(n => n === expandedNodes[expandedFoundIdx].nodeId);
+								.some(n => n === expandedNodes[expandedFoundIdx]);
 							if (isFoundSelected) {
 								expandedCopy.splice(expandedFoundIdx, 1);
 							}
@@ -373,7 +444,7 @@ export const SongTree = withCacheProvider<
 
 		const getSelectedSongIds = () => {
 			return selectedNodes.map(s => {
-				const value = treeData[s];
+				const value = firstNode(treeData[s]);
 				if (value && "id" in value) {
 					return value?.id;
 				}
@@ -383,7 +454,7 @@ export const SongTree = withCacheProvider<
 
 		const isDirectorySelected = () => {
 			if (selectedNodes.length !== 1) return false;
-			const songNodeInfo = treeData[selectedNodes[0]];
+			const songNodeInfo = firstNode(treeData[selectedNodes[0]]);
 			if (!songNodeInfo) return false;
 			if (!("path" in songNodeInfo)) return false;
 			return isNodeDirectory(songNodeInfo);
@@ -398,12 +469,6 @@ export const SongTree = withCacheProvider<
 			if (selectedNodes.length !== 1) return DomRoutes.pathUsers();
 			const nodeId = selectedNodes[0];
 			return `${DomRoutes.pathUsers()}?nodeid=${nodeId}`;
-		};
-
-		const downloadSong = async () => {
-			const requestObj = songDownloadUrl({id : selectedSongIds[0]});
-			const url = await requestObj.call();
-			window?.open(url, "_blank")?.focus();
 		};
 
 		const selectedSongIds = getSelectedSongIds();
@@ -444,7 +509,7 @@ export const SongTree = withCacheProvider<
 		const canDownloadSelection = () => {
 			if (isDirectorySelected()) return false;
 			if (selectedNodes.length !== 1) return false;
-			const songNodeInfo = treeData[selectedNodes[0]];
+			const songNodeInfo = firstNode(treeData[selectedNodes[0]]);
 			if (songNodeInfo && "rules" in songNodeInfo) {
 				const canDownloadThisSong = anyConformsToAnyRule(
 					songNodeInfo?.rules,
@@ -463,14 +528,6 @@ export const SongTree = withCacheProvider<
 		const onAddNewSong = (nodes: SongTreeNodeInfo[]) => {
 			const nodeIds = nodes.map(n => n.id).filter(notNullPredicate);
 			navigate(getSongEditUrl(nodeIds));
-		};
-
-		const updateTree = (nodes: Dictionary<ListData<SongTreeNodeInfo>>) => {
-			Object.keys(nodes).forEach(key => {
-				dispatch(dispatches.done({
-					[normalizeOpeningSlash(key)]: nodes[key],
-				}));
-			});
 		};
 
 		const scrollToNode = useCallback((nodeId: string) => {
@@ -522,28 +579,18 @@ export const SongTree = withCacheProvider<
 
 		return (
 			<>
-				{(!!selectedSongIds.length || selectedPrefixRules) &&
-				<AppBar
-					sx={{
-						top: (theme) => theme.spacing(6),
-						backgroundColor: (theme) => theme.palette.background.default,
-						width: `calc(100% - ${drawerWidth}px)`,
-						ml: `${drawerWidth}px`,
-						height: (theme) => theme.spacing(4),
-					}}
-				>
-					<Toolbar variant="dense" sx={{ pb: 1, alignItems: "baseline"}}>
+				<DndProvider backend={HTML5Backend}>
+					{(!!selectedSongIds.length || selectedPrefixRules) &&
+					<div css={styles.toolbar}>
 						{canEditSongInfo() && <Button
 							component={Link}
 							to={getSongEditUrl(selectedSongIds)}
 						>
 							Edit Song Info
 						</Button>}
-						{canDownloadSelection() &&<Button
-							onClick={downloadSong}
-						>
-							Download song
-						</Button>}
+						{canDownloadSelection() &&  <SongListener
+							audioId={selectedSongIds[0]}
+						/>}
 						{canAssignUsers() && <Button
 							component={Link}
 							to={getUserAssignUrl()}
@@ -551,14 +598,14 @@ export const SongTree = withCacheProvider<
 							Assign users
 						</Button>}
 						{isDirectorySelected() && selectedPrefix &&
-							<DirectoryNewModalOpener 
+							<DirectoryNewModalOpener
 								add={addEmptyDirectory}
-								prefix={selectedPrefix} 
+								prefix={selectedPrefix}
 							/>}
 						{isDirectorySelected() && selectedPrefix &&
-							<SongUploadNewModalOpener 
+							<SongUploadNewModalOpener
 								add={onAddNewSong}
-								prefix={selectedPrefix} 
+								prefix={selectedPrefix}
 							/>}
 						{canDeletePath() && <YesNoModalOpener
 							promptLabel="Delete Path"
@@ -566,23 +613,21 @@ export const SongTree = withCacheProvider<
 							onYes={() => deleteNode()}
 							onNo={() => {}}
 						/>}
-					</Toolbar>
-				</AppBar>}
-				<Box sx={{ height: (theme) => theme.spacing(3), width: "100%"}} />
-				<TreeView
-					selected={selectedNodes}
-					expanded={expandedNodes.map(n => n.nodeId)}
-					onNodeSelect={onNodeSelect}
-					multiSelect
-					id={treeId}
-				>
-					<SongDirectory
-						prefix=""
-						level={0}
-						setExpandedNodes={setExpandedNodes}
-						onNodeLoaded={onNodeLoaded}
-					/>
-				</TreeView>
+					</div>}
+					<SimpleTreeView
+						selectedItems={selectedNodes}
+						expandedItems={expandedNodes}
+						onSelectedItemsChange={onNodeSelect}
+						multiSelect
+						id={treeId}
+					>
+						<SongDirectory
+							prefix=""
+							level={0}
+							onNodeLoaded={onNodeLoaded}
+						/>
+					</SimpleTreeView>
+				</DndProvider>
 			</>
 		);
 	});

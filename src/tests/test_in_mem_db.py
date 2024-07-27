@@ -7,7 +7,7 @@ from sqlalchemy import select
 from .constant_fixtures_for_test import *
 from .common_fixtures import (
 	fixture_setup_db as fixture_setup_db,
-	fixture_db_conn_in_mem as fixture_db_conn_in_mem,
+	fixture_conn_cardboarddb as fixture_conn_cardboarddb,
 	fixture_db_queryer as fixture_db_queryer
 )
 from musical_chairs_libs.services import DbOwnerConnectionService
@@ -45,10 +45,10 @@ def fixture_db_populate_factory(
 
 @pytest.mark.populateFnName("fixture_db_populate_factory")
 @pytest.mark.echo(False)
-def test_in_mem_db(fixture_db_conn_in_mem: Connection) -> None:
+def test_in_mem_db(fixture_conn_cardboarddb: Connection) -> None:
 	a = artists.columns
 	query = select(artists).order_by(a.name)
-	res = fixture_db_conn_in_mem.execute(query).fetchall()
+	res = fixture_conn_cardboarddb.execute(query).fetchall()
 	assert res[0].name == "alpha_artist"
 	assert res[0].pk == 1
 	assert res[1].name == "bravo_artist"
@@ -93,7 +93,7 @@ def test_data_view(
 	pass
 
 def test_data_in_db(
-	fixture_db_conn_in_mem: Connection,
+	fixture_conn_cardboarddb: Connection,
 	fixture_db_queryer: Callable[[str], None]):
 	# this test exists as a convience to run sql queires on
 	# the test data

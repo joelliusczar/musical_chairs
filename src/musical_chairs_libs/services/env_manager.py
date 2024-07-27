@@ -1,5 +1,6 @@
 import os
 import re
+from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
@@ -17,7 +18,7 @@ class EnvManager:
 	
 	@classmethod
 	def relative_content_home(cls) -> str:
-		contentHome = os.environ["MC_CONTENT_HOME"]
+		contentHome = os.environ["MC_CONTENT_DIR"]
 		return contentHome
 
 	@classmethod
@@ -41,8 +42,12 @@ class EnvManager:
 		return os.environ.get("MC_DB_PASS_OWNER", "")
 
 	@classmethod
+	def namespace_uuid(cls) -> UUID:
+		return UUID(os.environ.get("MC_NAMESPACE_UUID", ""))
+
+	@classmethod
 	def templates_dir(cls) -> str:
-		templateDir = os.environ["MC_TEMPLATES_DIR_CL"]
+		templateDir = os.environ["MC_TEMPLATES_DEST"]
 		return f"{EnvManager.app_root()}/{templateDir}"
 
 	@classmethod
@@ -57,7 +62,7 @@ class EnvManager:
 
 	@classmethod
 	def sql_script_dir(cls) -> str:
-		moduleDir = os.environ["MC_SQL_SCRIPTS_DIR_CL"]
+		moduleDir = os.environ["MC_SQL_SCRIPTS_DEST"]
 		return f"{EnvManager.app_root()}/{moduleDir}"
 
 	@classmethod
@@ -76,6 +81,10 @@ class EnvManager:
 	@classmethod
 	def s3_region_name(cls) -> str:
 		return os.environ["S3_REGION_NAME"]
+
+	@classmethod
+	def s3_endpoint(cls) -> str:
+		return os.environ["AWS_ENDPOINT_URL"]
 
 	@classmethod
 	def test_flag(cls) -> bool:

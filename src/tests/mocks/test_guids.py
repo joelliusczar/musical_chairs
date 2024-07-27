@@ -110,7 +110,25 @@ song_guids = [
 	UUID('0bd4e960-db58-42aa-9286-62da034aa18b'),
 	UUID('2bc241e4-74e9-47ea-a49a-d0455f09c66a'),
 	UUID('0414db8d-434e-4653-ad49-da4716a3fd32'),
-	UUID('dc131a18-2d90-4774-b5f9-0a404736c103')
+	UUID('dc131a18-2d90-4774-b5f9-0a404736c103'),
+	UUID('25217120-cfce-47be-9f85-c089ee055c76'),
+	UUID('eb35dcf3-94b5-4c10-9df7-454d3346092b'),
+	UUID('bf9ea4c6-7678-40bb-96e0-90e28e6a4460'),
+	UUID('779e8f95-dd6c-4a57-902a-064f4c4acfc3'),
+	UUID('f1636c4e-df14-4d56-81b0-d57911ceed81'),
+	UUID('4a73fd4a-f0ce-488f-8de8-43582d18d016'),
+	UUID('6ecbe3e1-f52c-48cd-963a-8698b87f2026'),
+	UUID('8fa48298-e353-43fb-8aad-c73d6658bb86'),
+	UUID('92db7eb8-0ad3-46a4-8140-795afa80c726'),
+	UUID('c71319a4-f069-4537-a41b-0f2b21680799'),
+	UUID('72990f3c-e9ad-4a2e-b80b-eda00eaf6f05'),
+	UUID('32fc8611-9886-4c84-b8ef-7434e6afe1c1'),
+	UUID('755c6b12-452b-46c5-ab55-17f9a7ef872b'),
+	UUID('efa51109-06e2-49b0-8836-19cc8e22fd77'),
+	UUID('f7f5be72-58ec-47fb-8071-edea1fe922ff'),
+	UUID('aa4d406e-9ea5-4e76-be36-66403353f1a7'),
+	UUID('5a4995fe-f999-4de9-a9a5-834cb668b943')
+
 ]
 
 song_artist_guids = [

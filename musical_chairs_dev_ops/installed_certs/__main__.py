@@ -40,6 +40,5 @@ def certs_matching_name(commonName: str) -> Iterator[bytes]:
 if __name__ == "__main__":
 	commonName = sys.argv[1]
 
-
 	for cert in certs_matching_name(commonName):
 		print(cert.decode())

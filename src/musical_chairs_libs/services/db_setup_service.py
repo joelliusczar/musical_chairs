@@ -198,5 +198,51 @@ class DbOwnerConnectionService:
 	def drop_requestedtimestamp_column(self):
 		script = TemplateService.load_sql_script_content(
 			SqlScripts.DROP_REQUESTED_TIMESTAMP
-		).replace("<dbName>", self.dbName)
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
+
 		self.conn.exec_driver_sql(script)
+
+	def add_internalpath_column(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.ADD_INTERNAL_PATH
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
+		self.conn.exec_driver_sql(script)
+
+	def drop_placeholderdir_column(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.DROP_PLACEHOLDERDIR
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
+		self.conn.exec_driver_sql(script)
+
+	def add_file_hash_column(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.ADD_SONG_FILE_HASH
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
+		self.conn.exec_driver_sql(script)
+
+def setup_database(dbName: str):
+	with DbRootConnectionService() as rootConnService:
+		rootConnService.create_db(dbName)
+		rootConnService.create_owner()
+		rootConnService.create_app_users()
+		rootConnService.grant_owner_roles(dbName)
+
+	with DbOwnerConnectionService(dbName, echo=False) as ownerConnService:
+		ownerConnService.create_tables()
+		ownerConnService.add_path_permission_index()
+		ownerConnService.grant_api_roles()
+		ownerConnService.grant_radio_roles()
+		ownerConnService.add_next_directory_level_func()
+		ownerConnService.add_normalize_opening_slash()
+		ownerConnService.drop_requestedtimestamp_column()
+		ownerConnService.add_internalpath_column()
+		ownerConnService.drop_placeholderdir_column()
+		ownerConnService.add_file_hash_column()

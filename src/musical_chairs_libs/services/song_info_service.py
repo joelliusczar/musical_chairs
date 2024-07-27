@@ -53,7 +53,7 @@ from musical_chairs_libs.tables import (
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
-	sg_genre, sg_lyrics, sg_sampleRate, sg_track,
+	sg_genre, sg_lyrics, sg_sampleRate, sg_track, sg_internalpath,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
 	users as user_tbl
 )
@@ -84,6 +84,7 @@ class SongInfoService:
 			sg_pk,
 			sg_name,
 			sg_path,
+			sg_internalpath,
 			ab_name.label("album"),
 			ar_name.label("artist")
 		)\
@@ -97,11 +98,12 @@ class SongInfoService:
 		if not row:
 			return None
 		return SongListDisplayItem(
-			id=cast(int,row[sg_pk]),
-			path=cast(str,row[sg_path]),
-			name=cast(str,row[sg_name]),
-			album=cast(str,row["album"]),
-			artist=cast(str,row["artist"]),
+			id=row[sg_pk],
+			path=row[sg_path],
+			internalpath=row[sg_internalpath],
+			name=row[sg_name],
+			album=row["album"],
+			artist=row["artist"],
 			queuedtimestamp=0
 		)
 

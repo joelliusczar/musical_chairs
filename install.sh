@@ -1,13 +1,11 @@
 #!/bin/sh
 echo "top of install script"
-if [ -e ./radio_common.sh ]; then
-	. ./radio_common.sh
-elif [ -e ../radio_common.sh ]; then
-	. ../radio_common.sh
-elif [ -e "$HOME"/radio/radio_common.sh ]; then
-	. "$HOME"/radio/radio_common.sh
+if [ -e ./mc_dev_ops.sh ]; then
+	. ./mc_dev_ops.sh
+elif [ -e ../mc_dev_ops.sh ]; then
+	. ../mc_dev_ops.sh
 else
-  echo "radio_common.sh not found"
+  echo "mc_dev_ops.sh not found"
   exit 1
 fi
 
@@ -33,7 +31,7 @@ case $(uname) in
 	(Darwin*)
 		if ! brew --version 2>/dev/null; then
 			#-f = -fail - fails quietly, i.e. no error page ...I think?
-			#-s = -silent - don't show any sort of loading bar or such
+			#-s = -silent - don\'t show any sort of loading bar or such
 			#-S = -show-error - idk
 			#-L = -location - if page gets redirect, try again at new location
 			/bin/bash -c "$(curl -fsSL \
@@ -134,15 +132,6 @@ echo '##### node #####'
 if ! nvm run node --version 2>/dev/null; then
 	nvm install node
 fi
-
-# if ! s3fs --version 2>/dev/null; then
-# 	case $(uname) in
-# 		(Linux*)
-# 				install_package s3fs
-# 			;;
-# 	esac
-# fi
-
 
 echo '##### mariadb #####'
 if ! mariadb -V 2>/dev/null; then
@@ -255,8 +244,6 @@ if [ ! -e "$HOME"/keys/"$MC_PROJ_NAME" ]; then
 	echo "PB_API_KEY=${PB_API_KEY}" >> "$HOME"/keys/"$MC_PROJ_NAME"
 fi
 
-echo "$AWS_ACCESS_KEY_ID":"$AWS_SECRET_ACCESS_KEY" > "$HOME"/.passwd-s3fs
-chmod 600 "$HOME"/.passwd-s3fs
 
 output_env_vars
 

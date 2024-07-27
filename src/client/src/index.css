@@ -12,6 +12,27 @@ code {
 		monospace;
 }
 
+.MuiButton-textPrimary.MuiButton-text,
+.MuiListItem-root {
+	color: hsl(150 100% 30% / 1);
+}
+
+.MuiButton-textPrimary.MuiButton-text:hover,
+.MuiListItem-root:hover,
+.song-tree-item .MuiTreeItem-content.Mui-selected,
+.song-tree-item .MuiTreeItem-content.Mui-selected:hover,
+.song-tree-item .MuiTreeItem-content.Mui-selected.Mui-focused {
+	background-color: hsl(150 100% 30% / .1);
+}
+
+.MuiButton-containedPrimary.MuiButton-colorPrimary {
+	background-color: #0A5;
+}
+
+.MuiButton-containedPrimary.MuiButton-colorPrimary:hover {
+	background-color: hsl(150 100% 30% / 1);
+}
+
 
 .station-menu.MuiGrid-item{
 	flex-basis: min-content;
@@ -27,7 +48,7 @@ code {
 }
 
 .form-select.select-subtext, .form-select.select-subtext.MuiAutocomplete-paper {
-	line-height: unset;	
+	line-height: unset;
 }
 
 .role-item {

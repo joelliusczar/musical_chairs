@@ -1,17 +1,12 @@
 import React, { createRef, useState } from "react";
-import "./App.css";
+import { css } from "@emotion/react";
 import {
-	AppBar,
-	Drawer,
 	ThemeProvider,
-	Typography,
-	Box,
-	Toolbar,
 	Button,
 	Tooltip,
 } from "@mui/material";
 import { AppRoutes, NavMenu } from "./Components/Navigation/NavRoutes";
-import { theme, drawerWidth } from "./style_config";
+import { theme } from "./style_config";
 import { SnackbarProvider } from "notistack";
 import { UserMenu } from "./Components/Accounts/UserMenu";
 import {
@@ -48,16 +43,37 @@ function AppTrunk() {
 		)}`;
 	};
 
+	const styles = {
+		parent: css`
+			display: grid;
+			grid-template-columns: 240px 1fr;
+			grid-template-rows: 1fr;
+		`,
+		content: css`
+			padding-inline-start: 25px;
+		`,
+		header: css`
+			padding-inline-start: 25px;
+			background-color: #0A5;
+			color: #FFF;
+			`,
+		header_h1: css`
+			font-family: "Monoton", sans-serif;
+			font-weight: 400;
+			font-style: normal;
+			display: inline;
+		`,
+	};
+
 
 	return (
-		<Box sx={{ display: "flex" }}>
-			<AppBar
-				color="primary"
-				position="fixed"
-				sx={{ width: `calc(100% - ${drawerWidth}px)`, ml: `${drawerWidth}px`}}
-			>
-				<Toolbar>
-					<Typography variant="h1">Musical Chairs</Typography>
+		<div css={styles.parent}>
+			<div>
+				<NavMenu />
+			</div>
+			<div>
+				<div css={styles.header}>
+					<h1 css={styles.header_h1}>Musical Chairs</h1>
 					{!(!!currentUser.username || !!displayNameCookie) ? <Button
 						color="inherit"
 						onClick={() => openLoginPrompt()}
@@ -65,7 +81,7 @@ function AppTrunk() {
 						Login
 					</Button> :
 						<>
-							<Tooltip 
+							<Tooltip
 								title={logginTooltipMsg}
 								onOpen={() => setLogginTooltipMsg(loggedInTimespan())}
 							>
@@ -75,29 +91,12 @@ function AppTrunk() {
 							</Tooltip>
 						</>
 					}
-				</Toolbar>
-			</AppBar>
-			<Drawer
-				variant="permanent"
-				anchor="left"
-				sx={{
-					width: drawerWidth,
-					flexShrink: 0,
-				}}
-				classes={{
-					paper: "drawer",
-				}}
-			>
-				<NavMenu />
-			</Drawer>
-			<Box
-				component="main"
-				sx={{ flexFlow: 1, p: 3}}
-			>
-				<Toolbar />
-				<AppRoutes />
-			</Box>
-		</Box>
+				</div>
+				<div css={styles.content}>
+					<AppRoutes />
+				</div>
+			</div>
+		</div>
 	);
 }
 

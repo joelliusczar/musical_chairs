@@ -23,7 +23,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
 
-cors_allowed_origins=["https://127.0.0.1", "https://localhost:3000"]
+cors_allowed_origins=[
+	"https://127.0.0.1",
+	"https://localhost:3000",
+	"https://www.musicalchairs.radio.fm"
+]
 
 app = FastAPI()
 app.add_middleware(

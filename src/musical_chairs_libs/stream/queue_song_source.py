@@ -53,7 +53,7 @@ def get_song_info(
 
 
 def load_data(
-		stationId: int, 
+		stationId: int,
 		songPopper: SongPopper,
 		fileService: FileService
 	):
@@ -62,14 +62,14 @@ def load_data(
 	try:
 		currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		for queueItem in get_song_info(
-			stationId, 
+			stationId,
 			songPopper
 		):
 			if stopRunning:
 				logging.radioLogger.info(f"Stop running flag encountered")
 				break
 			logging.queueLogger.info(f"queued: {queueItem.name}")
-			with fileService.open_song(queueItem.path) as src:
+			with fileService.open_song(queueItem.internalpath) as src:
 				for chunk in src:
 					currentFile.write(chunk)
 			fileQueue.put((currentFile, queueItem), lambda _: not stopRunning)

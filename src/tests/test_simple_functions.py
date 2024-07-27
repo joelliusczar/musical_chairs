@@ -3,7 +3,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	seconds_to_tuple,
 	next_directory_level,
 	squash_sequential_duplicate_chars,
-	interweave
+	interweave,
+	common_prefix
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy import\
@@ -113,9 +114,15 @@ def test_next_directory_level():
 	result = next_directory_level(path, "Pop/Pop_A-F/Beatles,_The/Abbey_Road/")
 	assert result == "Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
 		"01._Come_Together_-_The_Beatles.flac"
+	path = "/Pop/Pop_A-F/Beatles,_The/Abbey_Road/"\
+		"01._Come_Together_-_The_Beatles.flac"
+	result = next_directory_level(path)
+	pass
+	
 
-def test_populate_model_from_datarow(fixture_db_conn_in_mem: Connection):
-	conn = fixture_db_conn_in_mem
+
+def test_populate_model_from_datarow(fixture_conn_cardboarddb: Connection):
+	conn = fixture_conn_cardboarddb
 	query = select(sg_pk.label("id"), sg_name, sg_path)
 	row = conn.execute(query).fetchone() #pyright: ignore reportUnknownMemberType
 	print("oh hai")
@@ -197,3 +204,28 @@ def test_interweave():
 	arr2 = [5]
 	result = list(interweave(arr1, arr2, lambda x, y: x < y))
 	assert result == [1, 2, 3, 4, 5, 6]
+
+def test_common_prefix():
+	result = common_prefix("different", "no shared")
+	assert result == ""
+
+	result = common_prefix("astart", "almost")
+	assert result == "a"
+
+	result = common_prefix("astart", "ass")
+	assert result == "as"
+
+	result = common_prefix("astart", "asst")
+	assert result == "as"
+
+	result = common_prefix("astart", "astar")
+	assert result == "astar"
+
+	result = common_prefix("ast", "astar")
+	assert result == "ast"
+
+	result = common_prefix("astr", "astar")
+	assert result == "ast"
+
+	result = common_prefix("astronomy", "astrology")
+	assert result == "astro"

@@ -8,9 +8,9 @@ cd into project directory and run script `install_setup.sh`
 
 Open terminal in root of project
 
-source radio_common
+source mc_dev_ops
 ```
-. ./radio_common.sh
+. ./mc_dev_ops.sh
 ```
 
 Need to run this so that https will work
@@ -26,15 +26,15 @@ setup_unit_test_env
 
 It is also required to run that if we need to update the .env_api template file.
 If we update .env_api, we also need to update the setup_env_api_file and
-startup_api functions in radio_common.sh
+startup_api functions in mc_dev_ops.sh
 
 # Ways to run api
 
-After having sourced radio_common, run
+After having sourced mc_dev_ops, run
 ```
 sync_utility_scripts
 ```
-to copy radio_common to a more central location. Alternatively, you can just cd
+to copy mc_dev_ops to a more central location. Alternatively, you can just cd
 to your home directory to run the setup functions.
 
 Next run the start up full web function
@@ -42,10 +42,7 @@ Next run the start up full web function
 startup_full_web
 ```
 
-If testing and database has been modified
-```
-startup_full_web replace='sqlite_file'
-```
+
 
 ## end nginx process
 If we need to test stuff locally some more but there is an instance running on
@@ -58,7 +55,7 @@ Use debug launch profile "Python: API"
 
 ## Fresh Server
 ```
-./deploy_to_server.sh setuplvl=install
+./deploy.sh setuplvl=install
 ```
 
 ## Testing new changes

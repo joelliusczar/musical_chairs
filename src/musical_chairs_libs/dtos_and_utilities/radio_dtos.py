@@ -62,6 +62,7 @@ class SongListDisplayItem(QueuedItem):
 	album: Optional[str]
 	artist: Optional[str]
 	path: str
+	internalpath: str
 	playedtimestamp: Optional[float]=None
 	rules: list[ActionRule]=Field(default_factory=list, frozen=False)
 
@@ -315,3 +316,7 @@ class ValidatedSongAboutInfo(SongAboutInfo):
 				"but it is only legal to add it once."
 			)
 		return self
+	
+class DirectoryTransfer(MCBaseClass):
+	path: str
+	newprefix: str

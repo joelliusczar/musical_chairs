@@ -19,7 +19,8 @@ from .validation_functions import min_length_validator_factory
 from .simple_functions import (
 	get_duplicates,
 	validate_email,
-	normalize_opening_slash
+	normalize_opening_slash,
+	normalize_closing_slash
 )
 from .generic_dtos import FrozenIdItem, FrozenBaseClass
 from .action_rule_dtos import (
@@ -104,6 +105,12 @@ def get_path_owner_roles(
 				priority=RulePriorityLevel.OWNER.value,
 				path=ownerDir,
 			)
+		if not scopes or UserRoleDef.PATH_UPLOAD.value in scopes:
+			yield PathsActionRule(
+				name=UserRoleDef.PATH_UPLOAD.value,
+				priority=RulePriorityLevel.OWNER.value,
+				path=ownerDir,
+			)
 
 
 
@@ -119,6 +126,12 @@ class AccountInfoSecurity(AccountInfoBase):
 	@property
 	def preferredName(self) -> str:
 		return self.displayname or self.username
+
+	@property
+	def dirrootOrDefault(self) -> str:
+		return normalize_opening_slash(normalize_closing_slash(
+			self.dirroot or self.username
+		))
 
 	@property
 	def isadmin(self) -> bool:
@@ -158,7 +171,7 @@ class AccountInfoSecurity(AccountInfoBase):
 			):
 				return False
 		return True
-	
+
 	@field_serializer(
 		"roles",
 		return_type=SerializeAsAny[List[Union[ActionRule, PathsActionRule]]]

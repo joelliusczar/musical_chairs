@@ -8,6 +8,7 @@ import {
 	SongInfoForm,
 	AlbumCreationInfo,
 	UploadInfo,
+	DirectoryTransfer,
 } from "../Types/song_info_types";
 import { 
 	IdValue,
@@ -377,6 +378,24 @@ export const deletePrefix = ({ nodeId }:{ nodeId: string}) => {
 						params: {
 							nodeId,
 						},
+						signal: abortController.signal,
+					}
+				);
+			return response.data;
+		},
+	};
+};
+
+export const movePath = (transferObj:DirectoryTransfer) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const response = await webClient
+				.post<Dictionary<ListData<SongTreeNodeInfo>>>(
+					"/song-info/path/move",
+					transferObj,
+					{ 
 						signal: abortController.signal,
 					}
 				);

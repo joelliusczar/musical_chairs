@@ -217,6 +217,7 @@ const SongDirectory = (props: SongDirectoryProps) => {
 	const queryObj = new URLSearchParams(queryStr);
 	const urlNodeId = queryObj.get("nodeid");
 	const urlSegement = `${location.pathname}${queryStr}`;
+	const navigate = useNavigate();
 
 	const currentUser = useCurrentUser();
 	const cookieObj = cookieToObjectURIDecoded(document.cookie);
@@ -263,6 +264,9 @@ const SongDirectory = (props: SongDirectoryProps) => {
 					const cacheAdditions: {
 						[key: KeyValue]: ListData<SongTreeNodeInfo>
 					} = {};
+					if (Object.keys(data).length < 1) {
+						navigate("", { replace: true, relative: "path" });
+					}
 					//only setting this to flip the callstatus
 					//don't think we're actually using it
 					cacheAdditions[normalizeOpeningSlash(urlPrefix)] = { items: []};
@@ -297,6 +301,7 @@ const SongDirectory = (props: SongDirectoryProps) => {
 		enqueueSnackbar,
 		setExpandedNodes,
 		isPending,
+		navigate,
 	]);
 
 	useEffect(() => {

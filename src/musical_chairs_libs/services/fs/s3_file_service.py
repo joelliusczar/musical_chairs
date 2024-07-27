@@ -12,6 +12,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from ..artist_service import ArtistService
 from ..album_service import AlbumService
 from tinytag import TinyTag
+from tempfile import TemporaryFile
 
 
 class S3FileService(FileService):
@@ -76,13 +77,15 @@ class S3FileService(FileService):
 			bucket_name=EnvManager.s3_bucket_name(),
 			key=keyPath,
 		)
-
-		s3_obj.put(Body=file, ContentType=guess_contenttype(keyPath)) #pyright: ignore [reportUnknownMemberType]
-		file.seek(0)
-		fileHash = hashlib.sha256(file.read()).digest()
-		s3_obj.wait_until_exists() #pyright: ignore [reportUnknownMemberType]
-		file.seek(0)
-		return self.extract_song_info(file), fileHash
+		with TemporaryFile() as tmp:
+			for chunk in file:
+				tmp.write(chunk)
+				s3_obj.put(Body=tmp, ContentType=guess_contenttype(keyPath)) #pyright: ignore [reportUnknownMemberType]
+				tmp.seek(0)
+			fileHash = hashlib.sha256(tmp.read()).digest()
+			s3_obj.wait_until_exists() #pyright: ignore [reportUnknownMemberType]
+			tmp.seek(0)
+			return self.extract_song_info(tmp), fileHash
 
 
 

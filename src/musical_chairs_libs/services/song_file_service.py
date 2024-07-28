@@ -71,14 +71,13 @@ class SongFileService:
 			songArtistService = SongArtistService(conn)
 		self.song_artist_service = songArtistService
 
-
-
-	def create_directory(
+	def __create_directory__(
 		self,
 		prefix: str,
 		suffix: str,
+		name: str,
 		user: AccountInfo,
-	) -> Mapping[str, Collection[SongTreeNode]]:
+	):
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
@@ -87,11 +86,19 @@ class SongFileService:
 		stmt = insert(songs_tbl).values(
 			path = path,
 			internalpath = str(uuid.uuid4()),
-			name = suffix,
+			name = name,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt)
+
+	def create_directory(
+		self,
+		prefix: str,
+		suffix: str,
+		user: AccountInfo,
+	) -> Mapping[str, Collection[SongTreeNode]]:
+		self.__create_directory__(prefix, suffix, suffix, user)
 		self.conn.commit()
 		return self.song_ls_parents(user, prefix, includeTop=False)
 
@@ -106,7 +113,7 @@ class SongFileService:
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}", "/"),
 			addSlash=False
 		)
-		if self.__is_path_used(None, path=SavedNameString(path)):
+		if self.__is_path_used__(path=SavedNameString(path)):
 			raise AlreadyUsedError.build_error(
 				f"{path} is already used",
 				"suffix"
@@ -157,7 +164,7 @@ class SongFileService:
 		likePrefix = prefix.replace("_","\\_").replace("%","\\%")
 		query = select(
 				func.next_directory_level(
-					sg_path,
+					func.normalize_opening_slash(sg_path, hasOpenSlash),
 					prefix,
 					type_=String
 				).label("prefix"),
@@ -355,14 +362,21 @@ class SongFileService:
 		stmt = delete(songs_tbl).where(sg_pk.in_(r[0] for r in overlap))
 		self.conn.execute(stmt)
 
-	def __is_path_used(
+	def __is_path_used__(
 		self,
-		id: Optional[int],
-		path: SavedNameString
+		path: SavedNameString,
+		id: Optional[int] = None,
 	) -> bool:
 		queryAny = select(func.count(1))\
 				.where(sg_path == str(path))\
 				.where(st_pk != id)
+		countRes = self.conn.execute(queryAny).scalar()
+		return countRes > 0 if countRes else False
+
+	def __is_prefix_for_any__(self, prefix: str) -> bool:
+		lPrefix = prefix.replace("_","\\_").replace("%","\\%")
+		queryAny = select(func.count(1))\
+			.where(sg_path.like(f"{lPrefix}%"))
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
@@ -415,7 +429,7 @@ class SongFileService:
 		cleanedPath = SavedNameString(path)
 		if not cleanedPath:
 			return True
-		return self.__is_path_used(id, cleanedPath)
+		return self.__is_path_used__(cleanedPath, id)
 
 	def delete_prefix(
 		self,
@@ -452,26 +466,28 @@ class SongFileService:
 		transfer: DirectoryTransfer,
 		user: AccountInfo
 	) -> Mapping[str, Collection[SongTreeNode]]:
+		if not transfer.newprefix or transfer.newprefix.isspace():
+			raise ValueError("Cannot move to that directory")
 		newprefix = normalize_opening_slash(
 			squash_sequential_duplicate_chars(transfer.newprefix, "/")
 		)
 		isSrcPathBlank= not transfer.path or transfer.path.isspace()
 		if isSrcPathBlank or transfer.path == user.dirroot:
 			raise ValueError("Cannot move that directory")
-		if not transfer.newprefix or transfer.newprefix.isspace():
-			raise ValueError("Cannot move to that directory")
 		path = squash_sequential_duplicate_chars(transfer.path, "/")
 		prefix = normalize_opening_slash(
 			normalize_closing_slash(str(Path(path).parent)),
 			addSlash=False
 		)
-		nPath = normalize_opening_slash(path).replace("_","\\_").replace("%","\\%")
+		nPath = normalize_opening_slash(path)
+		lPath = nPath.replace("_","\\_").replace("%","\\%")
 		addSlash = True
+		self.delete_overlaping_placeholder_dirs(newprefix)
 		statement = update(songs_tbl)\
 			.where(func.normalize_opening_slash(
 				sg_path,
 				addSlash
-			).like(f"{nPath}%"))\
+			).like(f"{lPath}%"))\
 			.values(
 				path = sg_path.regexp_replace(
 					f"^/?{prefix}",
@@ -479,6 +495,13 @@ class SongFileService:
 				)
 			)
 		self.conn.execute(statement)
+		if not self.__is_prefix_for_any__(prefix):
+			self.__create_directory__(
+				prefix="",
+				suffix=prefix,
+				name=Path(prefix).stem,
+				user=user
+			)
 		self.conn.commit()
 
 		return self.song_ls_parents(user, newprefix, includeTop=False)

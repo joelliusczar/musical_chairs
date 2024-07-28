@@ -392,7 +392,10 @@ def delete_prefix(
 @router.post("/path/move")
 def move_path(
 	transfer: DirectoryTransfer,
-	user: AccountInfo = Depends(check_directory_transfer),
+	user: AccountInfo = Security(
+		check_directory_transfer,
+		scopes=[UserRoleDef.PATH_MOVE.value]
+	),
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, ListData[SongTreeNode]]:
 	result = {

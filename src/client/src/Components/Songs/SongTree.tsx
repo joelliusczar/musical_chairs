@@ -48,7 +48,9 @@ import { isCallPending } from "../../Helpers/request_helpers";
 import { cookieToObjectURIDecoded } from "../../Helpers/browser_helpers";
 import { notNullPredicate } from "../../Helpers/array_helpers";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
-import { HTML5Backend, NativeTypes } from "react-dnd-html5-backend";
+import {
+	HTML5Backend,
+} from "react-dnd-html5-backend";
 import { SongListener } from "./SongListener";
 
 const treeId = "song-tree";
@@ -616,21 +618,32 @@ export const SongTree = withCacheProvider<
 						onNo={() => {}}
 					/>}
 				</div>}
-				<DndProvider backend={HTML5Backend}>
-					<SimpleTreeView
-						selectedItems={selectedNodes}
-						expandedItems={expandedNodes}
-						onSelectedItemsChange={onNodeSelect}
-						multiSelect
-						id={treeId}
+				<div id="dndRoot">
+					{/*
+						conditiionally render on document.getElementById
+						so that it exists when passed as rootElement in options
+					*/}
+					{!!document.getElementById("dndRoot") && <DndProvider
+						backend={HTML5Backend}
+						options={{
+							rootElement: document.getElementById("dndRoot"),
+						}}
 					>
-						<SongDirectory
-							prefix=""
-							level={0}
-							onNodeLoaded={onNodeLoaded}
-						/>
-					</SimpleTreeView>
-				</DndProvider>
+						<SimpleTreeView
+							selectedItems={selectedNodes}
+							expandedItems={expandedNodes}
+							onSelectedItemsChange={onNodeSelect}
+							multiSelect
+							id={treeId}
+						>
+							<SongDirectory
+								prefix=""
+								level={0}
+								onNodeLoaded={onNodeLoaded}
+							/>
+						</SimpleTreeView>
+					</DndProvider>}
+				</div>
 			</>
 		);
 	});

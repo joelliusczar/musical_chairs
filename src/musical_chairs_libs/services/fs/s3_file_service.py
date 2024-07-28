@@ -80,6 +80,7 @@ class S3FileService(FileService):
 		with TemporaryFile() as tmp:
 			for chunk in file:
 				tmp.write(chunk)
+			tmp.seek(0)
 			s3_obj.put(Body=tmp, ContentType=guess_contenttype(keyPath)) #pyright: ignore [reportUnknownMemberType]
 			tmp.seek(0)
 			fileHash = hashlib.sha256(tmp.read()).digest()

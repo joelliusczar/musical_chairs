@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button, FormHelperText } from "@mui/material";
 import {
 	useController,
@@ -10,6 +10,7 @@ import {
 	FileListEvent,
 	CustomFileAttachEvent,
 } from "../../Types/browser_types";
+import { css } from "@emotion/react";
 
 type TransformType<
 T extends File | { file: File } = File,
@@ -28,7 +29,7 @@ U = T extends File ? File : { file: File }
 		output: (e) => ({
 			target: {
 				name: e.target.name,
-				value: e.target.value ? 
+				value: e.target.value ?
 					[...e.target.value].map(f => ({ file: f })) : [],
 			},
 		}),
@@ -59,6 +60,13 @@ export const FormFileUpload = <
 	) => {
 	const { name, formMethods, transform, ...otherProps } = props;
 	const { control } = formMethods;
+	const [over, setOver] = useState(false);
+
+	const styles = {
+		fileUpload: css`
+			background-color: ${over ? "hsl(150 100% 30% / .1)": "inherit"}
+		`,
+	};
 
 	const { fieldState: { error }, field }
 		= useController({
@@ -70,20 +78,24 @@ export const FormFileUpload = <
 		...defaultTransformFactory<T>(),
 		...(transform || {}),
 	};
-	
 
 	return (
-		<Button>
+		<Button  css={styles.fileUpload}>
 			<input
 				id={field.name}
 				name={field.name}
 				defaultValue=""
-				onChange={(e) => field.onChange(_transform.output({
-					target: { name: field.name, value: e.target.files} ,
-				}))}
+				onChange={(e) => {
+					field.onChange(_transform.output({
+						target: { name: field.name, value: e.target.files} ,
+					}));
+				}}
 				onBlur={field.onBlur}
 				// value={_transform.input(field.value)}
 				type="file"
+				onDragEnter={() => setOver(true)}
+				onDragLeave={() => setOver(false)}
+				onDrop={() => setOver(false)}
 				{...otherProps}
 			/>
 			{error && <FormHelperText error={true}>

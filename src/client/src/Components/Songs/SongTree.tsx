@@ -381,6 +381,7 @@ export const SongTree = withCacheProvider<
 		const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
 			useState<PathsActionRule[]>([]);
+		const [showDndRoot, setShowDndRoot] = useState(false);
 
 		const { treeData, updateTree, expandedNodes, setExpandedNodes } = useTree<
 			ListData<SongTreeNodeInfo>
@@ -582,6 +583,12 @@ export const SongTree = withCacheProvider<
 			scrollToNode(escapedNodeId);
 		},[urlNodeId, setSelectedNodes, scrollToNode]);
 
+		useEffect(() => {
+			setTimeout(() => {
+				setShowDndRoot(true);
+			});
+		},[setShowDndRoot]);
+
 		return (
 			<>
 				{(!!selectedSongIds.length || selectedPrefixRules) &&
@@ -623,7 +630,7 @@ export const SongTree = withCacheProvider<
 						conditiionally render on document.getElementById
 						so that it exists when passed as rootElement in options
 					*/}
-					{!!document.getElementById("dndRoot") && <DndProvider
+					{showDndRoot && <DndProvider
 						backend={HTML5Backend}
 						options={{
 							rootElement: document.getElementById("dndRoot"),

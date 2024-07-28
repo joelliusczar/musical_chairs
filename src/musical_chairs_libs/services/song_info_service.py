@@ -186,9 +186,10 @@ class SongInfoService:
 			if type(stationKey) == int:
 				query = query.where(stsg_stationFk == stationKey)
 			elif type(stationKey) is str:
+				lStationKey = stationKey.replace("_","\\_").replace("%","\\%")
 				query = query.join(stations_tbl, stsg_stationFk == st_pk)
 				query = query.join(stations_tbl, st_pk == stsg_stationFk).where(
-					st_name.like(f"%{stationKey}%")
+					st_name.like(f"%{lStationKey}%")
 				)
 		if songIds:
 			query = query.where(sg_pk.in_(songIds))

@@ -285,7 +285,8 @@ class AccountsService:
 		).offset(offset)
 
 		if searchTerm is not None:
-			normalizedStr = searchTerm.replace(" ","")
+			normalizedStr = searchTerm.replace(" ","")\
+				.replace("_","\\_").replace("%","\\%")
 			query = query.where(
 				func.replace(coalesce(u_displayName, u_username)," ","")
 					.like(f"{normalizedStr}%")

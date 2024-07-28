@@ -5,7 +5,6 @@ import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
 import {
 	fetchSongsLs,
 	fetchSongLsParents,
-	songDownloadUrl,
 	deletePrefix,
 	movePath,
 } from "../../API_Calls/songInfoCalls";
@@ -49,7 +48,7 @@ import { isCallPending } from "../../Helpers/request_helpers";
 import { cookieToObjectURIDecoded } from "../../Helpers/browser_helpers";
 import { notNullPredicate } from "../../Helpers/array_helpers";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { HTML5Backend, NativeTypes } from "react-dnd-html5-backend";
 import { SongListener } from "./SongListener";
 
 const treeId = "song-tree";
@@ -58,6 +57,10 @@ const styles = {
 	toolbar: css`
 		display: flex;
 		align-items: center;
+		position: sticky;
+		top: 0;
+		background-color: #FFF;
+		z-index: 2;
 	`,
 };
 
@@ -579,41 +582,41 @@ export const SongTree = withCacheProvider<
 
 		return (
 			<>
+				{(!!selectedSongIds.length || selectedPrefixRules) &&
+				<div css={styles.toolbar}>
+					{canEditSongInfo() && <Button
+						component={Link}
+						to={getSongEditUrl(selectedSongIds)}
+					>
+						Edit Song Info
+					</Button>}
+					{canDownloadSelection() &&  <SongListener
+						audioId={selectedSongIds[0]}
+					/>}
+					{canAssignUsers() && <Button
+						component={Link}
+						to={getUserAssignUrl()}
+					>
+						Assign users
+					</Button>}
+					{isDirectorySelected() && selectedPrefix &&
+						<DirectoryNewModalOpener
+							add={addEmptyDirectory}
+							prefix={selectedPrefix}
+						/>}
+					{isDirectorySelected() && selectedPrefix &&
+						<SongUploadNewModalOpener
+							add={onAddNewSong}
+							prefix={selectedPrefix}
+						/>}
+					{canDeletePath() && <YesNoModalOpener
+						promptLabel="Delete Path"
+						message={`Are you sure you want to delete ${selectedPrefix}`}
+						onYes={() => deleteNode()}
+						onNo={() => {}}
+					/>}
+				</div>}
 				<DndProvider backend={HTML5Backend}>
-					{(!!selectedSongIds.length || selectedPrefixRules) &&
-					<div css={styles.toolbar}>
-						{canEditSongInfo() && <Button
-							component={Link}
-							to={getSongEditUrl(selectedSongIds)}
-						>
-							Edit Song Info
-						</Button>}
-						{canDownloadSelection() &&  <SongListener
-							audioId={selectedSongIds[0]}
-						/>}
-						{canAssignUsers() && <Button
-							component={Link}
-							to={getUserAssignUrl()}
-						>
-							Assign users
-						</Button>}
-						{isDirectorySelected() && selectedPrefix &&
-							<DirectoryNewModalOpener
-								add={addEmptyDirectory}
-								prefix={selectedPrefix}
-							/>}
-						{isDirectorySelected() && selectedPrefix &&
-							<SongUploadNewModalOpener
-								add={onAddNewSong}
-								prefix={selectedPrefix}
-							/>}
-						{canDeletePath() && <YesNoModalOpener
-							promptLabel="Delete Path"
-							message={`Are you sure you want to delete ${selectedPrefix}`}
-							onYes={() => deleteNode()}
-							onNo={() => {}}
-						/>}
-					</div>}
 					<SimpleTreeView
 						selectedItems={selectedNodes}
 						expandedItems={expandedNodes}

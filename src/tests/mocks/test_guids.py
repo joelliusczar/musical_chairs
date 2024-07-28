@@ -127,8 +127,11 @@ song_guids = [
 	UUID('efa51109-06e2-49b0-8836-19cc8e22fd77'),
 	UUID('f7f5be72-58ec-47fb-8071-edea1fe922ff'),
 	UUID('aa4d406e-9ea5-4e76-be36-66403353f1a7'),
-	UUID('5a4995fe-f999-4de9-a9a5-834cb668b943')
-
+	UUID('5a4995fe-f999-4de9-a9a5-834cb668b943'),
+	UUID('531fac8e-1154-4854-aa5e-d089702723f2'),
+	UUID('0090bb04-f7ff-4c2b-beba-9a4c3020ec96'),
+	UUID('31ca777b-6c17-4038-b717-b1899510cecf'),
+	UUID('611da8b5-4f91-4188-98bf-ae98835d416f')
 ]
 
 song_artist_guids = [

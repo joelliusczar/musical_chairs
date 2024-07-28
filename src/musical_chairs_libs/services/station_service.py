@@ -302,8 +302,9 @@ class StationService:
 		elif type(stationKeys) is str and not ownerId:
 			raise ValueError("user must be provided when using station name")
 		elif type(stationKeys) is str:
+			lStationKey = stationKeys.replace("_","\\_").replace("%","\\%")
 			query = query\
-				.where(st_name.like(f"%{stationKeys}%"))
+				.where(st_name.like(f"%{lStationKey}%"))
 		query = query.order_by(st_pk)
 		records = self.conn.execute(query).mappings()
 

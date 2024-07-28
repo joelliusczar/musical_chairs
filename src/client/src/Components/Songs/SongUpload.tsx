@@ -131,7 +131,7 @@ export const SongUpload = (props: SongUploadProps) => {
 						label="Name"
 						formMethods={formMethods}
 					/>
-					<Loader 
+					<Loader
 						status={get(uploadState, `${idx}.callStatus`)}
 						error={get(uploadState, `${idx}.error`)}
 					>

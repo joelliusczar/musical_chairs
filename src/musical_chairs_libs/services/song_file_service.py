@@ -150,7 +150,11 @@ class SongFileService:
 		prefix: Optional[str]=""
 	) -> Select[Tuple[str, str, int, int, str]]:
 		hasOpenSlash = False
-		prefix = normalize_opening_slash(prefix, hasOpenSlash)
+		prefix = normalize_opening_slash(
+			prefix or "",
+			hasOpenSlash
+		)
+		likePrefix = prefix.replace("_","\\_").replace("%","\\%")
 		query = select(
 				func.next_directory_level(
 					sg_path,
@@ -165,7 +169,7 @@ class SongFileService:
 				func.normalize_opening_slash(
 					sg_path,
 					hasOpenSlash
-				).like(f"{prefix}%")
+				).like(f"{likePrefix}%")
 			)\
 			.group_by(
 				func.next_directory_level(
@@ -420,11 +424,13 @@ class SongFileService:
 	) -> Mapping[str, Collection[SongTreeNode]]:
 		_prefix = normalize_closing_slash(normalize_opening_slash(
 				squash_sequential_duplicate_chars(prefix, "/")
-			))
+			))\
+				.replace("_","\\_")\
+				.replace("%","\\%")
 		addSlash = True
 		query = select(sg_pk)\
 			.where(func.normalize_opening_slash(
-				sg_path, 
+				sg_path,
 				addSlash
 			).like(f"{_prefix}%"))
 		rows = self.conn.execute(query).fetchall()
@@ -459,11 +465,11 @@ class SongFileService:
 			normalize_closing_slash(str(Path(path).parent)),
 			addSlash=False
 		)
-		nPath = normalize_opening_slash(path)
+		nPath = normalize_opening_slash(path).replace("_","\\_").replace("%","\\%")
 		addSlash = True
 		statement = update(songs_tbl)\
 			.where(func.normalize_opening_slash(
-				sg_path, 
+				sg_path,
 				addSlash
 			).like(f"{nPath}%"))\
 			.values(

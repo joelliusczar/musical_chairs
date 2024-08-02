@@ -1,4 +1,7 @@
-import { notNullPredicate } from "./array_helpers";
+import {
+	notNullPredicate,
+	squash_sequential_duplicate_chars,
+} from "./array_helpers";
 
 export function normalizeOpeningSlash(
 	path: string,
@@ -59,4 +62,20 @@ export const urlSafeBase64ToUnicode = (id: string) => {
 		.replaceAll("-", "+")
 		.replaceAll("_", "/");
 	return base64ToUnicode(base64);
+};
+
+
+export const prefix_split  = (prefix: string) => {
+	const split = prefix.split("/").filter(s => !!s);
+	if (split.length < 1) {
+		return [];
+	}
+	let combined = split[0];
+	const result = [squash_sequential_duplicate_chars(`/${combined}/`, "/")];
+	for (let idx = 1; idx < split.length; idx++) {
+		const part = split[idx];
+		combined += `/${part}`;
+		result.push(squash_sequential_duplicate_chars(`/${combined}/`, "/"));
+	}
+	return result;
 };

@@ -30,10 +30,12 @@ import {
 	normalizeOpeningSlash,
 	unicodeToUrlSafeBase64,
 	urlSafeBase64ToUnicode,
+	prefix_split,
 } from "../../Helpers/string_helpers";
 import {
 	SongTreeNodeInfo,
 	DirectoryTransferSource,
+	BreadcrumbNodeInfo,
 } from "../../Types/song_info_types";
 import { IdValue, Dictionary, KeyValue } from "../../Types/generic_types";
 import { ListData } from "../../Types/pageable_types";
@@ -56,11 +58,23 @@ import { SongListener } from "./SongListener";
 const treeId = "song-tree";
 
 const styles = {
-	toolbar: css`
+	breadcrumb: css`
 		display: flex;
 		align-items: center;
 		position: sticky;
 		top: 0;
+		background-color: #FFF;
+		z-index: 2;
+		height: 1.5em;
+	`,
+	breadcrumbBtn: css`
+
+	`,
+	toolbar: (order: number) => css`
+		display: flex;
+		align-items: center;
+		position: sticky;
+		top: calc(${order} * 1.5em);
 		background-color: #FFF;
 		z-index: 2;
 	`,
@@ -382,6 +396,7 @@ export const SongTree = withCacheProvider<
 		const [selectedPrefixRules, setSelectedPrefixRules] =
 			useState<PathsActionRule[]>([]);
 		const [showDndRoot, setShowDndRoot] = useState(false);
+		const [breadcrumb, setBreadcrumb] = useState<BreadcrumbNodeInfo[]>([]);
 
 		const { treeData, updateTree, expandedNodes, setExpandedNodes } = useTree<
 			ListData<SongTreeNodeInfo>
@@ -404,6 +419,17 @@ export const SongTree = withCacheProvider<
 			);
 		};
 
+		const updateBreadcrumb = useCallback((path: string) => {
+			setBreadcrumb(prefix_split(path).map(p => {
+				const split = p.split("/").filter(s => !!s);
+				return {
+					path: p,
+					nodeId: unicodeToUrlSafeBase64(p),
+					segment: split.length > 0 ? split[split.length - 1] : "",
+				};
+			}));
+		},[setBreadcrumb]);
+
 		const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
 			if(nodeIds.length === 1) {
 				const songNodeInfo = firstNode(treeData[nodeIds[0]]);
@@ -413,6 +439,7 @@ export const SongTree = withCacheProvider<
 				if (!!songNodeInfo && "path" in songNodeInfo) {
 					if (isNodeDirectory(songNodeInfo)) {
 						updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
+						updateBreadcrumb(songNodeInfo?.path);
 						const expandedCopy = [...expandedNodes];
 						const expandedFoundIdx =
 							expandedNodes.findIndex(n => n === nodeIds[0]);
@@ -581,7 +608,8 @@ export const SongTree = withCacheProvider<
 			if (nodeId !== urlNodeId) return;
 			setSelectedNodes([nodeId]);
 			scrollToNode(escapedNodeId);
-		},[urlNodeId, setSelectedNodes, scrollToNode]);
+			updateBreadcrumb(urlSafeBase64ToUnicode(nodeId));
+		},[urlNodeId, setSelectedNodes, scrollToNode, updateBreadcrumb]);
 
 		useEffect(() => {
 			setTimeout(() => {
@@ -591,8 +619,25 @@ export const SongTree = withCacheProvider<
 
 		return (
 			<>
+				<div css={styles.breadcrumb}>
+					{breadcrumb.map(b => {
+						return <div key={`breadcrumb-${b.nodeId}`}>
+							<Button
+								css={styles.breadcrumbBtn}
+								onClick={() => {
+									const escapedNodeId = b.nodeId.replaceAll("=","\=");
+									scrollToNode(escapedNodeId);
+								}}
+							>
+								{b.segment}
+							</Button>
+							&gt;
+						</div>
+						;
+					})}
+				</div>
 				{(!!selectedSongIds.length || selectedPrefixRules) &&
-				<div css={styles.toolbar}>
+				<div css={styles.toolbar(!breadcrumb ? 0 : 1)}>
 					{canEditSongInfo() && <Button
 						component={Link}
 						to={getSongEditUrl(selectedSongIds)}
@@ -624,7 +669,8 @@ export const SongTree = withCacheProvider<
 						onYes={() => deleteNode()}
 						onNo={() => {}}
 					/>}
-				</div>}
+				</div>
+				}
 				<div id="dndRoot">
 					{/*
 						conditiionally render on document.getElementById

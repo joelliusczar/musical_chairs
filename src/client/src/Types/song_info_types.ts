@@ -71,6 +71,10 @@ export interface DirectoryInfoNodeInfo {
 	nodeId: string
 };
 
+export interface BreadcrumbNodeInfo extends DirectoryInfoNodeInfo {
+	segment: string,
+};
+
 export interface DirectoryTransferSource {
 	path: string,
 	prefix: string

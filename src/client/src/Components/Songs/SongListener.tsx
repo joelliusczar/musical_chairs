@@ -28,7 +28,7 @@ export const SongListener = (props: SongListenerProps) => {
 				Download song
 			</Button>
 				:
-				<audio controls src={dlUrl}></audio>
+				<audio controls src={dlUrl} crossOrigin="anonymous"></audio>
 			}
 		</>
 	);

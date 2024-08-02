@@ -5,7 +5,6 @@ import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
 import {
 	fetchSongsLs,
 	fetchSongLsParents,
-	songDownloadUrl,
 	deletePrefix,
 	movePath,
 } from "../../API_Calls/songInfoCalls";
@@ -49,7 +48,9 @@ import { isCallPending } from "../../Helpers/request_helpers";
 import { cookieToObjectURIDecoded } from "../../Helpers/browser_helpers";
 import { notNullPredicate } from "../../Helpers/array_helpers";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import {
+	HTML5Backend,
+} from "react-dnd-html5-backend";
 import { SongListener } from "./SongListener";
 
 const treeId = "song-tree";
@@ -58,6 +59,10 @@ const styles = {
 	toolbar: css`
 		display: flex;
 		align-items: center;
+		position: sticky;
+		top: 0;
+		background-color: #FFF;
+		z-index: 2;
 	`,
 };
 
@@ -376,6 +381,7 @@ export const SongTree = withCacheProvider<
 		const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
 			useState<PathsActionRule[]>([]);
+		const [showDndRoot, setShowDndRoot] = useState(false);
 
 		const { treeData, updateTree, expandedNodes, setExpandedNodes } = useTree<
 			ListData<SongTreeNodeInfo>
@@ -577,57 +583,74 @@ export const SongTree = withCacheProvider<
 			scrollToNode(escapedNodeId);
 		},[urlNodeId, setSelectedNodes, scrollToNode]);
 
+		useEffect(() => {
+			setTimeout(() => {
+				setShowDndRoot(true);
+			});
+		},[setShowDndRoot]);
+
 		return (
 			<>
-				<DndProvider backend={HTML5Backend}>
-					{(!!selectedSongIds.length || selectedPrefixRules) &&
-					<div css={styles.toolbar}>
-						{canEditSongInfo() && <Button
-							component={Link}
-							to={getSongEditUrl(selectedSongIds)}
-						>
-							Edit Song Info
-						</Button>}
-						{canDownloadSelection() &&  <SongListener
-							audioId={selectedSongIds[0]}
-						/>}
-						{canAssignUsers() && <Button
-							component={Link}
-							to={getUserAssignUrl()}
-						>
-							Assign users
-						</Button>}
-						{isDirectorySelected() && selectedPrefix &&
-							<DirectoryNewModalOpener
-								add={addEmptyDirectory}
-								prefix={selectedPrefix}
-							/>}
-						{isDirectorySelected() && selectedPrefix &&
-							<SongUploadNewModalOpener
-								add={onAddNewSong}
-								prefix={selectedPrefix}
-							/>}
-						{canDeletePath() && <YesNoModalOpener
-							promptLabel="Delete Path"
-							message={`Are you sure you want to delete ${selectedPrefix}`}
-							onYes={() => deleteNode()}
-							onNo={() => {}}
-						/>}
-					</div>}
-					<SimpleTreeView
-						selectedItems={selectedNodes}
-						expandedItems={expandedNodes}
-						onSelectedItemsChange={onNodeSelect}
-						multiSelect
-						id={treeId}
+				{(!!selectedSongIds.length || selectedPrefixRules) &&
+				<div css={styles.toolbar}>
+					{canEditSongInfo() && <Button
+						component={Link}
+						to={getSongEditUrl(selectedSongIds)}
 					>
-						<SongDirectory
-							prefix=""
-							level={0}
-							onNodeLoaded={onNodeLoaded}
-						/>
-					</SimpleTreeView>
-				</DndProvider>
+						Edit Song Info
+					</Button>}
+					{canDownloadSelection() &&  <SongListener
+						audioId={selectedSongIds[0]}
+					/>}
+					{canAssignUsers() && <Button
+						component={Link}
+						to={getUserAssignUrl()}
+					>
+						Assign users
+					</Button>}
+					{isDirectorySelected() && selectedPrefix &&
+						<DirectoryNewModalOpener
+							add={addEmptyDirectory}
+							prefix={selectedPrefix}
+						/>}
+					{isDirectorySelected() && selectedPrefix &&
+						<SongUploadNewModalOpener
+							add={onAddNewSong}
+							prefix={selectedPrefix}
+						/>}
+					{canDeletePath() && <YesNoModalOpener
+						promptLabel="Delete Path"
+						message={`Are you sure you want to delete ${selectedPrefix}`}
+						onYes={() => deleteNode()}
+						onNo={() => {}}
+					/>}
+				</div>}
+				<div id="dndRoot">
+					{/*
+						conditiionally render on document.getElementById
+						so that it exists when passed as rootElement in options
+					*/}
+					{showDndRoot && <DndProvider
+						backend={HTML5Backend}
+						options={{
+							rootElement: document.getElementById("dndRoot"),
+						}}
+					>
+						<SimpleTreeView
+							selectedItems={selectedNodes}
+							expandedItems={expandedNodes}
+							onSelectedItemsChange={onNodeSelect}
+							multiSelect
+							id={treeId}
+						>
+							<SongDirectory
+								prefix=""
+								level={0}
+								onNodeLoaded={onNodeLoaded}
+							/>
+						</SimpleTreeView>
+					</DndProvider>}
+				</div>
 			</>
 		);
 	});

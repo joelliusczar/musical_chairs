@@ -10,7 +10,8 @@ from .constant_fixtures_for_test import (
 from .mocks.db_data import kilo_user_id, station_saver_user_id
 from musical_chairs_libs.dtos_and_utilities import (
 	MinItemSecurityLevel,
-	UserRoleDef
+	UserRoleDef,
+	path_owner_rules
 )
 
 
@@ -124,7 +125,7 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	assert items[0]["path"] == "foo/"
 	rules = items[0]["rules"]
 	assert rules
-	assert len(rules) == 6
+	assert len(rules) == len(path_owner_rules)
 
 
 	headers_no_owner = login_test_user("testUser_bravo", client)
@@ -862,22 +863,26 @@ def test_get_path_users(
 	assert len(items) == 4
 	assert items[0]["username"] == "testUser_alpha"
 	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
-	assert len(rules) == 6
-	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
-	assert rules[1]["name"] == UserRoleDef.PATH_LIST.value
-	assert rules[2]["name"] == UserRoleDef.PATH_UPLOAD.value
-	assert rules[3]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
-	assert rules[4]["name"] == UserRoleDef.PATH_USER_LIST.value
-	assert rules[5]["name"] == UserRoleDef.PATH_VIEW.value
+	assert len(rules) == len(path_owner_rules)
+	assert rules[0]["name"] == UserRoleDef.PATH_DELETE.value
+	assert rules[1]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[2]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[3]["name"] == UserRoleDef.PATH_MOVE.value
+	assert rules[4]["name"] == UserRoleDef.PATH_UPLOAD.value
+	assert rules[5]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
+	assert rules[6]["name"] == UserRoleDef.PATH_USER_LIST.value
+	assert rules[7]["name"] == UserRoleDef.PATH_VIEW.value
 	assert items[1]["username"] == "testUser_kilo"
 	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
-	assert len(rules) == 6
-	assert rules[0]["name"] == UserRoleDef.PATH_EDIT.value
-	assert rules[1]["name"] == UserRoleDef.PATH_LIST.value
-	assert rules[2]["name"] == UserRoleDef.PATH_UPLOAD.value
-	assert rules[3]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
-	assert rules[4]["name"] == UserRoleDef.PATH_USER_LIST.value
-	assert rules[5]["name"] == UserRoleDef.PATH_VIEW.value
+	assert len(rules) == len(path_owner_rules)
+	assert rules[0]["name"] == UserRoleDef.PATH_DELETE.value
+	assert rules[1]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[2]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[3]["name"] == UserRoleDef.PATH_MOVE.value
+	assert rules[4]["name"] == UserRoleDef.PATH_UPLOAD.value
+	assert rules[5]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
+	assert rules[6]["name"] == UserRoleDef.PATH_USER_LIST.value
+	assert rules[7]["name"] == UserRoleDef.PATH_VIEW.value
 	assert items[2]["username"] == "testUser_mike"
 	rules = sorted(items[2]["roles"], key=lambda r: r["name"])
 	assert len(rules) == 2
@@ -899,7 +904,7 @@ def test_get_path_users(
 	assert len(items) == 6
 	assert items[0]["username"] == "testUser_alpha"
 	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
-	assert len(rules) == 6
+	assert len(rules) == len(path_owner_rules)
 	assert items[1]["username"] == "testUser_foxtrot"
 	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
 	assert len(rules) == 1
@@ -907,7 +912,7 @@ def test_get_path_users(
 
 	assert items[2]["username"] == "testUser_kilo"
 	rules = sorted(items[2]["roles"], key=lambda r: r["name"])
-	assert len(rules) == 6
+	assert len(rules) == len(path_owner_rules)
 
 	assert items[3]["username"] == "testUser_lima"
 	rules = sorted(items[3]["roles"], key=lambda r: r["name"])
@@ -934,11 +939,11 @@ def test_get_path_users(
 	assert len(items) == 2
 	assert items[0]["username"] == "testUser_alpha"
 	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
-	assert len(rules) == 6
+	assert len(rules) == len(path_owner_rules)
 
 	assert items[1]["username"] == "testUser_kilo"
 	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
-	assert len(rules) == 6
+	assert len(rules) == len(path_owner_rules)
 
 	headers = login_test_user("tossedSlash_testUser", client)
 	getResponse = client.get(
@@ -951,8 +956,8 @@ def test_get_path_users(
 	assert len(items) == 2
 	assert items[0]["username"] == "testUser_alpha"
 	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
-	assert len(rules) == 6
+	assert len(rules) == len(path_owner_rules)
 
 	assert items[1]["username"] == "tossedSlash_testUser"
 	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
-	assert len(rules) == 6
+	assert len(rules) == len(path_owner_rules)

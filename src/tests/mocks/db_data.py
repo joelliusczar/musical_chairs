@@ -463,6 +463,10 @@ album_params = [
 # 	foo/dude/
 # 		foo/dude/dog/
 # 			foo/dude/dog/papa2
+#			foo/dude/alpha_bravo/
+#			foo/dude/alpha-bravo/
+#			foo/dude/al%bravo/
+#			foo/dude/alphajanerobravo/
 # 	foo/bar/
 # 		foo/bar/baz/
 # 			foo/bar/baz/romeo2
@@ -1139,6 +1143,26 @@ song_params = [
 		"internalpath": str(song_guids[86]),
 		"path": "jazz/overloop/spoon/barn_soup",
 		"name": "barn_soup_song",
+	},
+	{ "pk": 87,
+		"internalpath": str(song_guids[87]),
+		"path": "foo/dude/alpha_bravo/",
+		"name": "underbar_song",
+	},
+	{ "pk": 88,
+		"internalpath": str(song_guids[88]),
+		"path": "foo/dude/alpha-bravo/",
+		"name": "dash_song",
+	},
+	{ "pk": 89,
+		"internalpath": str(song_guids[89]),
+		"path": "foo/dude/al%bravo/",
+		"name": "wild_song",
+	},
+	{ "pk": 90,
+		"internalpath": str(song_guids[90]),
+		"path": "foo/dude/alphajanerobravo/",
+		"name": "normal_song",
 	},
 ]
 

@@ -633,3 +633,22 @@ def test_move_path(
 	with pytest.raises(ValueError):
 		songFileService.move_path(transfer, user)
 	pass
+
+def test_song_ls_with_wild_cards(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_alpha")
+	assert user
+	paths = sorted(
+		songFileService.song_ls(user, "foo/dude/alpha_"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1
+	paths = sorted(
+		songFileService.song_ls(user, "foo/dude/al%"),
+		key=lambda d: d.path
+	)
+	assert len(paths) == 1

@@ -144,20 +144,7 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 					const result = await requestObj.call();
 					updateTree(result);
 
-					const expanded = dropPath
-						.split("/")
-						// .filter(s => !!s)
-						.reduce((a, c) => {
-							if (a.length) {
-								const last = a[a.length - 1];
-								a.push(`${last}${c}/`);
-								return a;
-							}
-							else {
-								a.push(`${c}/`);
-								return a;
-							}
-						},[] as string[]);
+					const expanded = prefix_split(dropPath);
 					expanded.pop();
 					setExpandedNodes(expanded.map(p => unicodeToUrlSafeBase64(
 						normalizeOpeningSlash(p)
@@ -424,7 +411,7 @@ export const SongTree = withCacheProvider<
 				const split = p.split("/").filter(s => !!s);
 				return {
 					path: p,
-					nodeId: unicodeToUrlSafeBase64(p),
+					nodeId: unicodeToUrlSafeBase64(normalizeOpeningSlash(p)),
 					segment: split.length > 0 ? split[split.length - 1] : "",
 				};
 			}));
@@ -625,7 +612,7 @@ export const SongTree = withCacheProvider<
 							<Button
 								css={styles.breadcrumbBtn}
 								onClick={() => {
-									const escapedNodeId = b.nodeId.replaceAll("=","\=");
+									const escapedNodeId = b.nodeId.replaceAll("=","\\=");
 									scrollToNode(escapedNodeId);
 								}}
 							>

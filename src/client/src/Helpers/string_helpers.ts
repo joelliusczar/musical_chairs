@@ -66,16 +66,19 @@ export const urlSafeBase64ToUnicode = (id: string) => {
 
 
 export const prefix_split  = (prefix: string) => {
-	const split = prefix.split("/").filter(s => !!s);
-	if (split.length < 1) {
-		return [];
-	}
-	let combined = split[0];
-	const result = [squash_sequential_duplicate_chars(`/${combined}/`, "/")];
-	for (let idx = 1; idx < split.length; idx++) {
-		const part = split[idx];
-		combined += `/${part}`;
-		result.push(squash_sequential_duplicate_chars(`/${combined}/`, "/"));
-	}
+	const result = prefix
+		.split("/")
+		.filter(s => !!s)
+		.reduce((a, c) => {
+			if (a.length) {
+				const last = a[a.length - 1];
+				a.push(`${last}${c}/`);
+				return a;
+			}
+			else {
+				a.push(`${c}/`);
+				return a;
+			}
+		},[] as string[]);
 	return result;
 };

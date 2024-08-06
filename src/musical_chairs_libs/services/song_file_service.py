@@ -374,9 +374,14 @@ class SongFileService:
 		return countRes > 0 if countRes else False
 
 	def __is_prefix_for_any__(self, prefix: str) -> bool:
-		lPrefix = prefix.replace("_","\\_").replace("%","\\%")
+		lPrefix = normalize_opening_slash(prefix)\
+			.replace("_","\\_").replace("%","\\%")
+		addSlash = True
 		queryAny = select(func.count(1))\
-			.where(sg_path.like(f"{lPrefix}%"))
+			.where(
+				func.normalize_opening_slash(sg_path, addSlash)
+				.like(f"{lPrefix}%")
+			)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 

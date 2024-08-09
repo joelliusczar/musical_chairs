@@ -117,7 +117,8 @@ class QueueService:
 			.group_by(sg_pk, sg_path) \
 			.order_by(
 				desc(func.max(uah_queuedTimestamp)),
-				desc(coalesce[int](func.max(uah_timestamp), func.rand()))
+				desc(func.max(uah_timestamp)),
+				func.rand()
 			)
 
 		rows = self.conn.execute(query).mappings().fetchall()

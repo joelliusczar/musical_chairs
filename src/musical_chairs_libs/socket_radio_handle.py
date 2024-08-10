@@ -44,11 +44,21 @@ class SocketRadioHandle:
 			sys.stderr.write("Listener is closed?\n")
 			return ""
 		sockfile = socket.SocketIO(self.client, "r")
-		self.songFullPath = sockfile.readline().rstrip(b"\n").decode()
-		self.display = sockfile.readline().rstrip(b"\n").decode()
-		print(f"recieved display {self.display}")
-		print(f"recieved full path {self.songFullPath}")
-		return self.songFullPath
+		songFullPath = None
+		display = None
+		try:
+			songFullPath = sockfile.readline()
+			display = sockfile.readline()
+			self.songFullPath = songFullPath.rstrip(b"\n").decode()
+			self.display = display.rstrip(b"\n").decode()
+			print(f"recieved display {self.display}")
+			print(f"recieved full path {self.songFullPath}")
+			return self.songFullPath
+		except:
+			print("Error")
+			print(songFullPath)
+			print(display)
+			raise
 
 	# This function, if defined, returns the string you'd like used
 	# as metadata (ie for title streaming) for the current song. You may

@@ -2468,7 +2468,7 @@ get_web_root() (
 	esac
 )
 
-
+#call set_env_vars after connecting
 connect_remote() (
 	process_global_vars "$@" &&
 	echo "connectiong to $(__get_address__) using $(__get_id_file__)" &&

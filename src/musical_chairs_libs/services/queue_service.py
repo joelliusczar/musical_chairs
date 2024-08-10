@@ -296,7 +296,7 @@ class QueueService:
 			if loaded and item in loaded:
 				continue
 			return item
-		
+
 		raise RuntimeError("No unskipped songs available.")
 
 	def __add_song_to_queue__(

@@ -27,6 +27,7 @@ def __start_ices__(
 		env={
 				"MC_STATION_PORT": portNumber,
 			 "PATH": os.environ["PATH"],
+			 "LANG": os.environ["LANG"],
 			 "MC_CONTENT_HOME": EnvManager.relative_content_home(),
 			 "MC_APP_ROOT": EnvManager.app_root(),
 			 "MC_DB_PASS_RADIO": EnvManager.db_pass_radio(),

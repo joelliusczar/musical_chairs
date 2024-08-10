@@ -1201,6 +1201,7 @@ __install_py_env_if_needed__() {
 	fi
 }
 
+
 activate_mc_env() {
 	if [ -n "$VIRTUAL_ENV" ]; then
 		deactivate 2>&1 1>/dev/null
@@ -1242,8 +1243,6 @@ copy_lib_to_test() (
 	copy_dir "$MC_LIB_SRC" \
 		"$(get_libs_dest_dir "$MC_UTEST_ENV_DIR")"/"$MC_LIB"
 )
-
-
 
 
 #test runner needs to read .env

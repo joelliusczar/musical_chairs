@@ -46,7 +46,7 @@ export const fetchStationForEdit = (
 		call: async () => {
 
 			const response = await webClient.get<StationInfo>(
-				`stations/${ownerkey}/${stationkey}/`,
+				`stations/${ownerkey}/${stationkey}`,
 				{ signal: abortController.signal }
 			);
 			return response.data;

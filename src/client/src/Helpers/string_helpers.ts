@@ -1,6 +1,5 @@
 import {
 	notNullPredicate,
-	squash_sequential_duplicate_chars,
 } from "./array_helpers";
 
 export function normalizeOpeningSlash(

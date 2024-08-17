@@ -33,34 +33,3 @@ export const notNullPredicate =
 		return value !== null && value !== undefined;
 	};
 
-export const  squash_sequential_duplicates = <T>(
-	compressura: T[],
-	pattern: T
-) => {
-	if (!compressura.length) {
-		return [];
-	}
-	if (compressura.length === 1) {
-		return [...compressura];
-	}
-	let previous = compressura[0];
-	const result = [previous];
-	for (let idx = 1; idx < compressura.length; idx++) {
-		if (compressura[idx] === previous && compressura[idx] == pattern) {
-			continue;
-		}
-		previous = compressura[idx];
-		result.push(compressura[idx]);
-	}
-
-	return result;
-};
-
-export const squash_sequential_duplicate_chars = (
-	compressura: string,
-	pattern: string
-) => {
-	const arr = [...compressura];
-
-	return squash_sequential_duplicates(arr, pattern).join("");
-};

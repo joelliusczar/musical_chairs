@@ -74,6 +74,7 @@ export const Queue = () => {
 
 	const rowButton = (item: SongListDisplayItem, idx?: number) => {
 		const rowButtonOptions = [];
+		const isSongSkippable = typeof(idx) === "number";
 
 		const canEditThisSong = anyConformsToAnyRule(
 			item?.rules,
@@ -84,10 +85,12 @@ export const Queue = () => {
 			label: "Edit",
 			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
 		});
-		if (canSkipSongs || canSkipSongsForStation) rowButtonOptions.push({
-			label: "Skip",
-			onClick:() => handleRemoveSongFromQueue(item),
-		});
+		if ((canSkipSongs || canSkipSongsForStation) && isSongSkippable) {
+			rowButtonOptions.push({
+				label: "Skip",
+				onClick:() => handleRemoveSongFromQueue(item),
+			});
+		}
 
 		const canDownloadThisSong = anyConformsToAnyRule(
 			item?.rules,

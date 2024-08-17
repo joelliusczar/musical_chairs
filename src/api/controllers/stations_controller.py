@@ -246,7 +246,8 @@ def disable_stations(
 		user.id if includeAll else None
 	)
 
-@router.post("/{ownerkey}/{stationkey}/play_next",
+@router.post(
+	"/{ownerkey}/{stationkey}/play_next",
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[
 		Security(

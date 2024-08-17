@@ -72,7 +72,7 @@ export const Queue = () => {
 
 	const urlBuilder = new UrlBuilder(DomRoutes.queue);
 
-	const rowButton = (item: SongListDisplayItem, idx: number) => {
+	const rowButton = (item: SongListDisplayItem, idx?: number) => {
 		const rowButtonOptions = [];
 
 		const canEditThisSong = anyConformsToAnyRule(
@@ -195,8 +195,15 @@ export const Queue = () => {
 					status={queueCallStatus}
 					error={queueState.error}
 				>
-					<Typography>Now Playing</Typography>
+					<Typography>
+						Now Playing
+					</Typography>
 					<NowPlaying nowPlaying={queueState?.data?.nowplaying}/>
+					<>
+						{!!queueState?.data?.nowplaying &&
+							rowButton(queueState?.data?.nowplaying)
+						}
+					</>
 					{queueState?.data?.items?.length > 0 ? <>
 						<TableContainer>
 							<Table size="small">

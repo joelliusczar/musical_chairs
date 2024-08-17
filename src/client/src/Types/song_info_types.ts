@@ -44,7 +44,7 @@ export interface SongListDisplayItem extends NamedIdItem {
 export interface CurrentPlayingInfo
 	extends StationTableData<SongListDisplayItem>
 {
-	nowplaying: NowPlayingInfo | null
+	nowplaying: SongListDisplayItem | null
 }
 
 
@@ -58,9 +58,14 @@ export class InitialQueueState extends VoidStore {
 			totalrows: 0,
 			stationrules: [],
 			nowplaying: {
+				id: 0,
 				name: "",
 				album: "",
 				artist: "",
+				queuedtimestamp: 0,
+				playedtimestamp: null,
+				rules: [],
+				path: "",
 			},
 		};
 	}

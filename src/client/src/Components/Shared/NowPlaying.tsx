@@ -1,9 +1,8 @@
 import React from "react";
-import PropTypes from "prop-types";
 import { Typography } from "@mui/material";
-import { NowPlayingInfo } from "../../Types/song_info_types";
+import { SongListDisplayItem } from "../../Types/song_info_types";
 
-const formatNowPlaying = (nowPlaying: NowPlayingInfo | null) => {
+const formatNowPlaying = (nowPlaying: SongListDisplayItem | null) => {
 	if(!nowPlaying) return "No song info available";
 	const song = nowPlaying.name || "{No song name}";
 	const album = nowPlaying.album || "{No album name}";
@@ -13,7 +12,7 @@ const formatNowPlaying = (nowPlaying: NowPlayingInfo | null) => {
 };
 
 type NowPlayingProps = {
-	nowPlaying: NowPlayingInfo | null
+	nowPlaying: SongListDisplayItem | null
 };
 
 export const NowPlaying = (props: NowPlayingProps) => {
@@ -23,12 +22,4 @@ export const NowPlaying = (props: NowPlayingProps) => {
 			{formatNowPlaying(nowPlaying)}
 		</Typography>
 	);
-};
-
-NowPlaying.propTypes = {
-	nowPlaying: PropTypes.shape({
-		name: PropTypes.string,
-		album: PropTypes.string,
-		artist: PropTypes.string,
-	}),
 };

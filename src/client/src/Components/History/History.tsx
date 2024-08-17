@@ -128,7 +128,7 @@ export const History = () => {
 		const requestObj = fetchHistory({
 			stationkey: pathVars.stationkey,
 			ownerkey: pathVars.ownerkey,
-			page: page - 1,
+			page: page,
 			limit: limit,
 		});
 		const fetch = async () => {

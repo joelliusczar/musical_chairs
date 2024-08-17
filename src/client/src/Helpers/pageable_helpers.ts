@@ -1,3 +1,4 @@
+import { PrimitiveObject } from "../Types/generic_types";
 import { PageableParams } from "../Types/pageable_types";
 
 export class UrlBuilder<T extends PageableParams> {
@@ -21,21 +22,16 @@ export class UrlBuilder<T extends PageableParams> {
 	): string
 	{
 		const queryObj = new URLSearchParams(currentLocation);
-		if(params.page) {
-			queryObj.set("page", params.page as unknown as string);
-		}
-		if(params.rows) {
-			queryObj.set("rows", params.rows as unknown as string);
-		}
-		if(params.id) {
-			queryObj.set("id", params.id as unknown as string);
-		}
-		if(params.name) {
-			queryObj.set("name", params.name);
-		}
-		else if (params.name === "") {
-			queryObj.delete("name");
-		}
+		Object.keys(params).forEach((key) => {
+			if (params[key]) {
+				queryObj.set(key, params[key] as string);
+			}
+			else if (! ["page", "rows", "id"].some(k => k === key)) {
+				if (params[key] === "") {
+					queryObj.delete(key);
+				}
+			}
+		});
 		const queryStr = `?${queryObj.toString()}`;
 		return queryStr;
 	}
@@ -56,7 +52,6 @@ export class UrlBuilder<T extends PageableParams> {
 	}
 }
 
-
 export const getRowsCount = (currentLocation: string) => {
 	const queryObj = new URLSearchParams(currentLocation);
 	return parseInt(queryObj.get("rows") || "50");
@@ -69,4 +64,21 @@ export const getPageCount = (currentLocation: string, totalRows: number) => {
 		return 0;
 	}
 	return Math.floor(totalRows / rows);
+};
+
+export const getSearchParams = (currentLocation: string) => {
+	const queryObj = new URLSearchParams(currentLocation);
+	const searchTerms: PrimitiveObject = {};
+	for (const [key, value] of queryObj) {
+		if (key === "page") {
+			searchTerms[key] = parseInt(value || "1");
+		}
+		else if (key === "rows") {
+			searchTerms[key] = parseInt(value || "50");
+		}
+		else {
+			searchTerms[key] = value;
+		}
+	}
+	return searchTerms;
 };

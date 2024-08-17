@@ -2475,16 +2475,19 @@ connect_remote() (
 		$(__get_remote_export_script__) bash -l
 )
 
+
+connect_sftp() (
+	process_global_vars "$@" >&2 &&
+	sftp -6 -i $(__get_id_file__) "root@[$(__get_address__)]"
+)
+
+
 print_exported_env_vars() (
 	process_global_vars "$@" &&
 	echo "App root: $(__get_app_root__)"
 	__get_remote_export_script__ "$@"
 )
 
-connect_sftp() (
-	process_global_vars "$@" >&2 &&
-	sftp -6 -i $(__get_id_file__) "root@[$(__get_address__)]"
-)
 
 
 process_global_args() {

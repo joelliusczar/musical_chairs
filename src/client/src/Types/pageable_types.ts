@@ -1,4 +1,4 @@
-import { IdValue } from "./generic_types";
+import { IdValue, PrimitiveObject } from "./generic_types";
 
 export interface ListData<T> {
 	items: T[]
@@ -8,7 +8,7 @@ export interface TableData<T> extends ListData<T> {
 	totalrows: number
 }
 
-export interface PageableParams {
+export type PageableParams = PrimitiveObject & {
 	searchTerm?: string
 	page?: number | null
 	pageSize?: number

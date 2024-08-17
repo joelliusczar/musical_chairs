@@ -37,7 +37,8 @@ from api_dependencies import (
 	get_optional_user_from_token,
 	get_from_query_subject_user,
 	get_station_user_2,
-	get_stations_by_ids
+	get_stations_by_ids,
+	get_page
 )
 from station_validation import (
 	validate_station_rule,
@@ -61,8 +62,8 @@ def station_list(
 
 @router.get("/{ownerkey}/{stationkey}/history/")
 def history(
-	page: int = 0,
 	limit: int = 50,
+	page: int = Depends(get_page),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
@@ -110,25 +111,26 @@ def queue(
 
 @router.get("/{ownerkey}/{stationkey}/catalogue/")
 def song_catalogue(
-	page: int = 0,
 	limit: int = 50,
+	song: str = "",
+	album: str = "",
+	artist: str = "",
+	page: int = Depends(get_page),
 	user: AccountInfo = Depends(get_station_user),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service)
 ) -> StationTableData[SongListDisplayItem]:
 	if not station:
 		return StationTableData(totalrows=0, items=[], stationrules=[])
-	songs = list(
-		stationService.get_station_song_catalogue(
+	songs, totalRows = stationService.get_station_song_catalogue(
 			stationId = station.id,
 			page = page,
 			limit = limit,
+			song=song,
+			album=album,
+			artist=artist,
 			user=user
 		)
-	)
-	totalRows = stationService.song_catalogue_count(
-		stationId = station.id
-	)
 	rules = ActionRule.sorted(
 		station.rules
 	)

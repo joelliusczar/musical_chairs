@@ -16,11 +16,11 @@ import {
 	PageableListDataShape,
 } from "./reducerTypes";
 
-export interface OwnedStationParams extends OwnerParams {
+export type OwnedStationParams = OwnerParams & {
 	stationkey?: KeyValue
 }
 
-export interface RequiredStationParams extends OwnedStationParams {
+export type RequiredStationParams = OwnedStationParams & {
 	stationkey: KeyValue
 }
 

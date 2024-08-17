@@ -38,6 +38,10 @@ export interface StringObject {
 	[key: string]: string
 }
 
+export interface PrimitiveObject {
+	[key: string]: string | number | null
+}
+
 export interface DontCareMap {
 	[key: string]: unknown
 }
@@ -47,7 +51,7 @@ export interface Dictionary<T> {
 }
 
 export type SortCallback<T> = (a:T, b:T) => number;
-export type SortCallbackFactory = 
+export type SortCallbackFactory =
 <T, K extends keyof T>(key: K) => SortCallback<T>
 
 export type Flags<Type> = {

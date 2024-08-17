@@ -23,7 +23,7 @@ import {
 } from "../../Reducers/dataWaitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
-import { UrlBuilder } from "../../Helpers/pageable_helpers";
+import { UrlBuilder, getSearchParams } from "../../Helpers/pageable_helpers";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
@@ -38,6 +38,9 @@ import { StationInfo, StationTableData } from "../../Types/station_types";
 import { SongListDisplayItem } from "../../Types/song_info_types";
 import { IdValue } from "../../Types/generic_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
+import { SearchTextField } from "../Shared/SearchTextFIeld";
+
+
 
 export const SongCatalogue = () => {
 
@@ -150,16 +153,12 @@ export const SongCatalogue = () => {
 
 	useEffect(() => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
-		const queryObj = new URLSearchParams(location.search);
 		if (!pathVars.stationkey || !pathVars.ownerkey) return;
-
-		const page = parseInt(queryObj.get("page") || "1");
-		const limit = parseInt(queryObj.get("rows") || "50");
+		const queryObj = getSearchParams(location.search);
 		const requestObj = fetchSongCatalogue({
 			stationkey: pathVars.stationkey,
 			ownerkey: pathVars.ownerkey,
-			page: page - 1,
-			limit: limit,
+			...queryObj,
 		}
 		);
 		const fetch = async () => {
@@ -214,6 +213,27 @@ export const SongCatalogue = () => {
 										<TableCell>Song</TableCell>
 										<TableCell>Album</TableCell>
 										<TableCell>Artist</TableCell>
+										<TableCell></TableCell>
+									</TableRow>
+									<TableRow>
+										<TableCell>
+											<SearchTextField
+												name="song"
+												getPageUrl={getPageUrl.getThisUrl}
+											/>
+										</TableCell>
+										<TableCell>
+											<SearchTextField
+												name="album"
+												getPageUrl={getPageUrl.getThisUrl}
+											/>
+										</TableCell>
+										<TableCell>
+											<SearchTextField
+												name="artist"
+												getPageUrl={getPageUrl.getThisUrl}
+											/>
+										</TableCell>
 										<TableCell></TableCell>
 									</TableRow>
 								</TableHead>

@@ -62,7 +62,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_rules_query,
 	row_to_action_rule,
 	generate_user_and_rules_from_rows,
-	normalize_opening_slash
+	normalize_opening_slash,
+	clean_search_term_for_like
 )
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
@@ -318,47 +319,18 @@ class StationService:
 			for row in records:
 				yield self.__row_to_station__(row)
 
-	def __attach_catalogue_joins(
+	def __attach_catalogue_joins__(
 		self,
-		baseQuery: Any,
-		stationId: int
+		stationId: int,
+		song: str = "",
+		album: str = "",
+		artist: str = "",
 	) -> Any:
-		query = baseQuery\
-			.select_from(stations_tbl) \
-			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
-			.join(songs, sg_pk == stsg_songFk) \
-			.join(albums, sg_albumFk == ab_pk, isouter=True) \
-			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
-			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
-			.where(st_pk == stationId)
 
-		return query
-
-	def song_catalogue_count(
-		self,
-		stationId: int,
-	) -> int:
-		baseQuery = select(sg_pk)
-		query = self.__attach_catalogue_joins(baseQuery, stationId)\
-			.group_by(sg_pk)
-		subquery = query.subquery()
-		query = select(func.count(1)).select_from(subquery)
-		count = self.conn.execute(query).scalar() or 0 #pyright: ignore [reportUnknownMemberType]
-		return count
-
-	def get_station_song_catalogue(
-		self,
-		stationId: int,
-		page: int = 0,
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
-	) -> Iterator[SongListDisplayItem]:
-		offset = page * limit if limit else 0
-		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
-
-		baseQuery = select(
+		lsong = clean_search_term_for_like(song)
+		lalbum = clean_search_term_for_like(album)
+		lartist = clean_search_term_for_like(artist)
+		query = select(
 			sg_pk,
 			sg_path,
 			sg_internalpath,
@@ -369,21 +341,61 @@ class StationService:
 				partition_by=sg_pk,
 				order_by=[sgar_isPrimaryArtist.desc(), ar_name]
 			).label("rownum")
+		)\
+			.select_from(stations_tbl) \
+			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
+			.join(songs, sg_pk == stsg_songFk) \
+			.join(albums, sg_albumFk == ab_pk, isouter=True) \
+			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
+			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
+			.where(st_pk == stationId)\
+
+		if lsong:
+			query = query.where(sg_name.like(f"%{lsong}%"))
+
+		if lalbum:
+			query = query.where(ab_name.like(f"%{lalbum}%"))
+
+		if lartist:
+			query = query.where(ar_name.like(f"%{lartist}%"))
+
+		return query
+
+	def get_station_song_catalogue(
+		self,
+		stationId: int,
+		page: int = 0,
+		song: str = "",
+		album: str = "",
+		artist: str = "",
+		limit: Optional[int]=None,
+		user: Optional[AccountInfo]=None
+	) -> Tuple[list[SongListDisplayItem], int]:
+		offset = page * limit if limit else 0
+		pathRuleTree = None
+		if user:
+			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+
+		query = self.__attach_catalogue_joins__(
+			stationId,
+			song,
+			album,
+			artist
 		)
-		query = self.__attach_catalogue_joins(baseQuery, stationId)
 		subquery = query.subquery()
 		query = select(*subquery.c)\
 			.where(subquery.c.rownum < 2)\
 			.offset(offset)\
 			.limit(limit)
 		records = self.conn.execute(query).mappings()
+		result: list[SongListDisplayItem] = []
 		for row in records:
 			rules = []
 			if pathRuleTree:
 				rules = list(pathRuleTree.valuesFlat(
 					normalize_opening_slash(cast(str, row["path"])))
 				)
-			yield SongListDisplayItem(
+			result.append(SongListDisplayItem(
 				id=cast(int, row["pk"]),
 				path=cast(str, row["path"]),
 				internalpath=cast(str, row["internalpath"]),
@@ -392,7 +404,12 @@ class StationService:
 				artist=cast(str, row["artist"]),
 				queuedtimestamp=0,
 				rules=rules
-			)
+			))
+		countQuery = select(func.count(1))\
+			.select_from(subquery)\
+			.where(subquery.c.rownum < 2)
+		count = self.conn.execute(countQuery).scalar() or 0 #pyright: ignore [reportUnknownMemberType]
+		return result, count
 
 	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:
 		query = select(func.count(1)).select_from(stations_songs_tbl)\

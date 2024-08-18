@@ -144,7 +144,7 @@ export const History = () => {
 			}
 		};
 		fetch();
-		
+
 		return () => requestObj.abortController.abort();
 	},[
 		historyDispatch,
@@ -195,7 +195,11 @@ export const History = () => {
 												<TableCell>
 													{item.artist || "{No artist name}"}
 												</TableCell>
-												<TableCell></TableCell>
+												<TableCell>
+													{!!item.playedtimestamp && new Date(
+														item.playedtimestamp * 1000
+													).toLocaleString()}
+												</TableCell>
 												<TableCell>
 													{rowButton(item, idx)}
 												</TableCell>

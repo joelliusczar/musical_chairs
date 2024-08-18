@@ -216,7 +216,6 @@ export const Queue = () => {
 										<TableCell>Album</TableCell>
 										<TableCell>Artist</TableCell>
 										<TableCell>Added</TableCell>
-										<TableCell>Requested</TableCell>
 										<TableCell></TableCell>
 									</TableRow>
 								</TableHead>
@@ -233,8 +232,11 @@ export const Queue = () => {
 												<TableCell>
 													{item.artist || "{No artist name}"}
 												</TableCell>
-												<TableCell></TableCell>
-												<TableCell></TableCell>
+												<TableCell>
+													{new Date(
+														item.queuedtimestamp * 1000
+													).toLocaleString()}
+												</TableCell>
 												<TableCell>
 													{rowButton(item, idx)}
 												</TableCell>

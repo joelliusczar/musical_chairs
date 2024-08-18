@@ -439,6 +439,7 @@ class QueueService:
 		query = select(
 			sg_pk.label("id"),
 			uah_queuedTimestamp.label("queuedtimestamp"),
+			uah_timestamp.label("playedtimestamp"),
 			coalesce[str](sg_name, "").label("name"),
 			ab_name.label("album"),
 			ar_name.label("artist"),

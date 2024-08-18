@@ -80,3 +80,7 @@ class LocalFileService(FileService):
 
 	def download_url(self, keyPath: str) -> str:
 		return keyPath
+
+	def delete_song(self, keyPath: str):
+		path = Path(keyPath)
+		path.unlink()

@@ -122,3 +122,18 @@ class S3FileService(FileService):
 			HttpMethod = 'get'
 		)
 		return cast(str, url)
+
+	def delete_song(self, keyPath: str):
+		resource = boto3.resource( #pyright: ignore [reportUnknownMemberType]
+			"s3",
+			config=Config(
+				signature_version='s3v4',
+				region_name=EnvManager.s3_region_name()
+			)
+		)
+		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
+			bucket_name=EnvManager.s3_bucket_name(),
+			key=keyPath
+		)
+		s3_obj.delete() #pyright: ignore [reportUnknownMemberType]
+		pass

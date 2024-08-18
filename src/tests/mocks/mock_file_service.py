@@ -21,3 +21,6 @@ class MockFileService(FileService):
 
 	def download_url(self, keyPath: str) -> str:
 		return keyPath
+
+	def delete_song(self, keyPath: str):
+		pass

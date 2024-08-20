@@ -38,6 +38,7 @@ from musical_chairs_libs.tables import (
 	artists, ar_name, ar_pk,
 	song_artist, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
+	stsg_lastmodifiedtimestamp,
 	station_user_permissions as station_user_permissions_tbl, stup_userFk,
 	stup_stationFk, stup_role,
 	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
@@ -350,6 +351,7 @@ class StationService:
 			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
 			.where(st_pk == stationId)\
 
+
 		if lsong:
 			query = query.where(sg_name.like(f"%{lsong}%"))
 
@@ -359,7 +361,7 @@ class StationService:
 		if lartist:
 			query = query.where(ar_name.like(f"%{lartist}%"))
 
-		return query
+		return query.order_by(stsg_lastmodifiedtimestamp.desc())
 
 	def get_station_song_catalogue(
 		self,

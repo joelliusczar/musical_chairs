@@ -199,6 +199,9 @@ stsg = stations_songs.c
 
 stsg_songFk = cast(Column[Integer], stations_songs.c.songfk)
 stsg_stationFk = cast(Column[Integer], stations_songs.c.stationfk)
+stsg_lastmodifiedtimestamp = cast(
+	Column[Double[float]], stations_songs.c.lastmodifiedtimestamp
+)
 Index("idx_stationssongs", stsg_songFk, stsg_stationFk, unique=True)
 
 userRoles = Table("userroles", metadata,

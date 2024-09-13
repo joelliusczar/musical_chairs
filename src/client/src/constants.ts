@@ -6,8 +6,10 @@ import { StringObject } from "./Types/generic_types";
 //these vars need to be prefixed VITE
 export const baseAddress = import.meta.env.VITE_BASE_ADDRESS;
 export const apiVersion = import.meta.env.VITE_API_VERSION;
-export const apiAddress = import.meta.env.DEV ?
-	baseAddress : `${baseAddress}/api/${apiVersion}`;
+export const overrideAddress = import.meta.env.VITE_OVERRIDE_ADDRESS;
+export const apiAddress = import.meta.env.DEV && ! overrideAddress ?
+	baseAddress :
+	!! overrideAddress ? overrideAddress : `${baseAddress}/api/${apiVersion}`;
 
 
 

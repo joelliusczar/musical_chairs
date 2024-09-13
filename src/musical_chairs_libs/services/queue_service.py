@@ -109,14 +109,17 @@ class QueueService:
 			.join(songs, sg_pk == stsg_songFk) \
 			.join(station_queue, (q_stationFk == st_pk) \
 				& (q_songFk == sg_pk), isouter=True) \
-			.join(user_action_history_tbl, 
+			.join(user_action_history_tbl,
 				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
 				isouter=True
 			)\
 			.where(st_pk == stationPk) \
 			.group_by(sg_pk, sg_path) \
-			.order_by(desc(func.max(uah_queuedTimestamp))) \
-			.order_by(desc(func.max(uah_timestamp)))
+			.order_by(
+				desc(func.max(uah_queuedTimestamp)),
+				desc(func.max(uah_timestamp)),
+				func.rand()
+			)
 
 		rows = self.conn.execute(query).mappings().fetchall()
 		return rows
@@ -233,7 +236,7 @@ class QueueService:
 
 		if limit:
 			query = query.limit(limit)
-		
+
 		records = self.conn.execute(query).mappings()
 		for row in records:
 			yield SongListDisplayItem(
@@ -252,17 +255,17 @@ class QueueService:
 		stationId: int,
 		limit: Optional[int]=None
 	) -> Iterator[QueuedItem]:
-		
+
 		query = select(
 			q_songFk,
-			uah_queuedTimestamp, 
+			uah_queuedTimestamp,
 		).select_from(station_queue)\
 			.join(user_action_history_tbl,uah_pk == q_userActionHistoryFk)\
 			.where(q_stationFk == stationId)\
 			.where(uah_action == UserRoleDef.STATION_SKIP.value)\
 			.order_by(uah_queuedTimestamp)\
 			.limit(limit)
-		
+
 		records = self.conn.execute(query)
 		for row in records:
 			yield QueuedItem(
@@ -293,7 +296,7 @@ class QueueService:
 			if loaded and item in loaded:
 				continue
 			return item
-		
+
 		raise RuntimeError("No unskipped songs available.")
 
 	def __add_song_to_queue__(
@@ -436,6 +439,7 @@ class QueueService:
 		query = select(
 			sg_pk.label("id"),
 			uah_queuedTimestamp.label("queuedtimestamp"),
+			uah_timestamp.label("playedtimestamp"),
 			coalesce[str](sg_name, "").label("name"),
 			ab_name.label("album"),
 			ar_name.label("artist"),

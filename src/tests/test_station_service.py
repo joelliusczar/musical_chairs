@@ -602,8 +602,9 @@ def test_get_station_catalogue_multi_artist(
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("unruledStation_testUser")
 	assert user
+	items, totalSongs = stationService.get_station_song_catalogue(23)
 	songs = sorted(
-		stationService.get_station_song_catalogue(23),
+		items,
 		key=lambda s: s.id
 	)
 	assert len(songs) == 5
@@ -613,7 +614,4 @@ def test_get_station_catalogue_multi_artist(
 	assert multiArtistSong.artist == "z-bravo_artist"
 	noArtistSong = next(s for s in songs if s.id == 76)
 	assert noArtistSong.artist == None
-	totalSongs = stationService.song_catalogue_count(
-		stationId = 23
-	)
 	assert totalSongs == 5

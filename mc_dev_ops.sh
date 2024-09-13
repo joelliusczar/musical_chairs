@@ -1201,6 +1201,7 @@ __install_py_env_if_needed__() {
 	fi
 }
 
+
 activate_mc_env() {
 	if [ -n "$VIRTUAL_ENV" ]; then
 		deactivate 2>&1 1>/dev/null
@@ -1242,8 +1243,6 @@ copy_lib_to_test() (
 	copy_dir "$MC_LIB_SRC" \
 		"$(get_libs_dest_dir "$MC_UTEST_ENV_DIR")"/"$MC_LIB"
 )
-
-
 
 
 #test runner needs to read .env
@@ -2468,7 +2467,7 @@ get_web_root() (
 	esac
 )
 
-
+#call set_env_vars after connecting
 connect_remote() (
 	process_global_vars "$@" &&
 	echo "connectiong to $(__get_address__) using $(__get_id_file__)" &&
@@ -2476,16 +2475,19 @@ connect_remote() (
 		$(__get_remote_export_script__) bash -l
 )
 
+
+connect_sftp() (
+	process_global_vars "$@" >&2 &&
+	sftp -6 -i $(__get_id_file__) "root@[$(__get_address__)]"
+)
+
+
 print_exported_env_vars() (
 	process_global_vars "$@" &&
 	echo "App root: $(__get_app_root__)"
 	__get_remote_export_script__ "$@"
 )
 
-connect_sftp() (
-	process_global_vars "$@" >&2 &&
-	sftp -6 -i $(__get_id_file__) "root@[$(__get_address__)]"
-)
 
 
 process_global_args() {

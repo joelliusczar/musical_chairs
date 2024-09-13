@@ -26,7 +26,7 @@ if ! aclocal --version 2>/dev/null; then
 fi
 
 
-case $(uname) in
+case $(uname) in #()
 	(Darwin*)
 		if ! brew_is_installed libtool; then
 			install_package libtool
@@ -37,7 +37,7 @@ case $(uname) in
 		if ! brew_is_installed libshout; then
 			install_package libshout
 		fi
-		;;
+		;; #()
 	(Linux*)
 		if [ "$pkgMgrChoice" = "$MC_APT_CONST" ] \
 		&& ! libtool --version 2>/dev/null; then
@@ -78,14 +78,14 @@ case $(uname) in
 			install_package python"$pyMajor"."$pyMinor"-dev
 		fi #continue even if python3.x-dev is not found bc if we compiled python,
 		#it may not actually exist
-		;;
+		;; #()
 	(*) ;;
 esac
 
-case $(uname) in
+case $(uname) in #()
 	(Darwin*)
 		PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH"
-		;;
+		;; #()
 	(*) ;;
 esac
 icesBuildDir="$(__get_app_root__)"/"$MC_BUILD_DIR"/ices

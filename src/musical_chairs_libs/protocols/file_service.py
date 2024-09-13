@@ -15,3 +15,6 @@ class FileService(Protocol):
 
 	def download_url(self, keyPath: str) -> str:
 		...
+
+	def delete_song(self, keyPath: str):
+		...

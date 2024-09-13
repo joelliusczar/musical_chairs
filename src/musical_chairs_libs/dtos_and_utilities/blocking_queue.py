@@ -26,7 +26,7 @@ class BlockingQueue(Generic[T]):
 	def qsize(self) -> int:
 		with self.__count_lock__:
 			return self.__count__
-		
+
 	def __get__(
 		self,
 		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
@@ -57,7 +57,7 @@ class BlockingQueue(Generic[T]):
 		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
 	) -> "DelayedDecrementReader[T]":
 		return DelayedDecrementReader(self, shouldContinue)
-	
+
 	def get_unblocked(self) -> Optional[T]:
 		try:
 			item = self.__queue__.get(block=False)
@@ -67,7 +67,7 @@ class BlockingQueue(Generic[T]):
 			return item
 		except EmptyException:
 			return None
-	
+
 	def put(self,
 		item: T,
 		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
@@ -81,7 +81,7 @@ class BlockingQueue(Generic[T]):
 		self.__increment__()
 		with self.__condition__:
 			self.__condition__.notify()
-			
+
 class DelayedDecrementReader(Generic[T]):
 
 	def __init__(
@@ -94,11 +94,11 @@ class DelayedDecrementReader(Generic[T]):
 		self.__item__ = missing
 
 	def __enter__(
-		self,	
+		self,
 	) -> T:
 		self.__item__ = self.__queue__.__get__(self.__shouldContinue__)
 		return self.__item__
-	
+
 	def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
 		if self.__item__ != missing:
 			self.__queue__.__unblock_after_get__()

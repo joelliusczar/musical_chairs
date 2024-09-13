@@ -72,8 +72,9 @@ export const Queue = () => {
 
 	const urlBuilder = new UrlBuilder(DomRoutes.queue);
 
-	const rowButton = (item: SongListDisplayItem, idx: number) => {
+	const rowButton = (item: SongListDisplayItem, idx?: number) => {
 		const rowButtonOptions = [];
+		const isSongSkippable = typeof(idx) === "number";
 
 		const canEditThisSong = anyConformsToAnyRule(
 			item?.rules,
@@ -84,10 +85,12 @@ export const Queue = () => {
 			label: "Edit",
 			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
 		});
-		if (canSkipSongs || canSkipSongsForStation) rowButtonOptions.push({
-			label: "Skip",
-			onClick:() => handleRemoveSongFromQueue(item),
-		});
+		if ((canSkipSongs || canSkipSongsForStation) && isSongSkippable) {
+			rowButtonOptions.push({
+				label: "Skip",
+				onClick:() => handleRemoveSongFromQueue(item),
+			});
+		}
 
 		const canDownloadThisSong = anyConformsToAnyRule(
 			item?.rules,
@@ -195,8 +198,15 @@ export const Queue = () => {
 					status={queueCallStatus}
 					error={queueState.error}
 				>
-					<Typography>Now Playing</Typography>
+					<Typography>
+						Now Playing
+					</Typography>
 					<NowPlaying nowPlaying={queueState?.data?.nowplaying}/>
+					<>
+						{!!queueState?.data?.nowplaying &&
+							rowButton(queueState?.data?.nowplaying)
+						}
+					</>
 					{queueState?.data?.items?.length > 0 ? <>
 						<TableContainer>
 							<Table size="small">
@@ -206,7 +216,6 @@ export const Queue = () => {
 										<TableCell>Album</TableCell>
 										<TableCell>Artist</TableCell>
 										<TableCell>Added</TableCell>
-										<TableCell>Requested</TableCell>
 										<TableCell></TableCell>
 									</TableRow>
 								</TableHead>
@@ -223,8 +232,11 @@ export const Queue = () => {
 												<TableCell>
 													{item.artist || "{No artist name}"}
 												</TableCell>
-												<TableCell></TableCell>
-												<TableCell></TableCell>
+												<TableCell>
+													{new Date(
+														item.queuedtimestamp * 1000
+													).toLocaleString()}
+												</TableCell>
 												<TableCell>
 													{rowButton(item, idx)}
 												</TableCell>

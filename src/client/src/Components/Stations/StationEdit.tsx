@@ -12,7 +12,7 @@ import { formatError } from "../../Helpers/error_formatter";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate, useParams } from "react-router-dom";
-import { 
+import {
 	useVoidWaitingReducer,
 	voidDispatches as dispatches,
 } from "../../Reducers/voidWaitingReducer";

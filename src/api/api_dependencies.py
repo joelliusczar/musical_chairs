@@ -653,3 +653,9 @@ def get_prefix_if_owner(
 	):
 		raise build_wrong_permissions_error()
 	return prefix
+
+def get_page(
+	page: int = 1,
+) -> int:
+	page -= 1
+	return page

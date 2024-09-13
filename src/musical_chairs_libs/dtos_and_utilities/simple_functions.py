@@ -255,3 +255,6 @@ def guess_contenttype(filename: str) -> str:
 		return "audio/ogg"
 
 	return "application/octet-stream"
+
+def clean_search_term_for_like(searchTerm: str) -> str:
+	return searchTerm.replace("_","\\_").replace("%","\\%")

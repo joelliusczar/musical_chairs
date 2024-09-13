@@ -48,7 +48,10 @@ from sqlalchemy.sql.expression import (
 from musical_chairs_libs.tables import (
 	songs as songs_tbl,
 	sg_pk, sg_name, sg_path, sg_internalpath,
-	st_pk
+	st_pk,
+	song_artist as song_artist_tbl, sgar_songFk,
+	stations_songs as stations_songs_tbl, stsg_songFk,
+	station_queue as station_queue_tbl, q_songFk
 )
 from .env_manager import EnvManager
 from .song_artist_service import SongArtistService
@@ -374,9 +377,14 @@ class SongFileService:
 		return countRes > 0 if countRes else False
 
 	def __is_prefix_for_any__(self, prefix: str) -> bool:
-		lPrefix = prefix.replace("_","\\_").replace("%","\\%")
+		lPrefix = normalize_opening_slash(prefix)\
+			.replace("_","\\_").replace("%","\\%")
+		addSlash = True
 		queryAny = select(func.count(1))\
-			.where(sg_path.like(f"{lPrefix}%"))
+			.where(
+				func.normalize_opening_slash(sg_path, addSlash)
+				.like(f"{lPrefix}%")
+			)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
@@ -431,18 +439,26 @@ class SongFileService:
 			return True
 		return self.__is_path_used__(cleanedPath, id)
 
+	def __remove_song_references__(self, songId: int):
+		stmt = delete(song_artist_tbl).where(sgar_songFk == songId)
+		self.conn.execute(stmt)
+		stmt = delete(station_queue_tbl).where(q_songFk == songId)
+		self.conn.execute(stmt)
+		stmt = delete(stations_songs_tbl).where(stsg_songFk == songId)
+		self.conn.execute(stmt)
+
 	def delete_prefix(
 		self,
 		prefix: str,
 		user: AccountInfo
 	) -> Mapping[str, Collection[SongTreeNode]]:
-		_prefix = normalize_closing_slash(normalize_opening_slash(
+		_prefix = normalize_opening_slash(
 				squash_sequential_duplicate_chars(prefix, "/")
-			))\
+			)\
 				.replace("_","\\_")\
 				.replace("%","\\%")
 		addSlash = True
-		query = select(sg_pk)\
+		query = select(sg_pk, sg_internalpath)\
 			.where(func.normalize_opening_slash(
 				sg_path,
 				addSlash
@@ -450,12 +466,15 @@ class SongFileService:
 		rows = self.conn.execute(query).fetchall()
 		if len(rows) == 1:
 			songId = cast(int, rows[0][0])
+			if not prefix.endswith("/"):
+				self.file_service.delete_song(rows[0][1])
+				self.__remove_song_references__(songId)
 			stmt = delete(songs_tbl).where(sg_pk == songId)
 			self.conn.execute(stmt)
 			self.conn.commit()
 		else:
 			raise MCNotImplementedError(
-				"Deleting songs or populated directories not currently Supported"
+				"Deleting populated directories not currently Supported"
 			)
 		parentPrefix = str(Path(prefix).parent)
 		return self.song_ls_parents(user, parentPrefix, includeTop=False)

@@ -5,7 +5,7 @@ export interface OwnerOnlyParam {
 	ownerkey: string | number
 }
 
-export interface OwnerParams extends PageableParams, OwnerOnlyParam {}
+export type OwnerParams = PageableParams & OwnerOnlyParam
 
 export interface SubjectUserParams {
 	subjectuserkey: string | number

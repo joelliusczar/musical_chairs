@@ -60,7 +60,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			ownerName,
 			portNumber
 		)
-	
+
 	readingConn = EnvManager.get_configured_radio_connection(
 		dbName,
 		isolationLevel = "READ COMMITTED"
@@ -75,7 +75,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			"station with owner"
 			f" {ownerName} and name {stationName} not found"
 		)
-	
+
 	artistService = ArtistService(readingConn)
 	albumService = AlbumService(readingConn)
 	fileService = S3FileService(artistService, albumService)

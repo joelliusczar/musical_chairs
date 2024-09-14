@@ -2144,6 +2144,42 @@ EOF
 	echo "Done ending all stations"
 )
 
+trim_radio_history() (
+	process_global_vars "$@" &&
+		__install_py_env_if_needed__ &&
+	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
+	(python <<EOF
+from musical_chairs_libs.services import (
+	StationService,
+	QueueService,
+	EnvManager,
+)
+from datetime import datetime, timedelta
+
+envManager = EnvManager()
+conn = envManager.get_configured_api_connection("musical_chairs_db")
+try:
+	stationService = StationService(conn)
+	queueService = QueueService(conn, stationService)
+	stations = list(stationService.get_stations())
+	dt = datetime.now()
+	cutoffDate = (dt - timedelta(days=7)).timestamp()
+	for station in stations:
+		result = queueService.squash_station_history(station.id, cutoffDate)
+		print(f"Added count: {result[0]}")
+		print(f"Updated count: {result[1]}")
+		print(f"Deleted from queue count: {result[3]}")
+		print(f"Deleted from history count: {result[4]}")
+
+finally:
+	conn.close()
+
+EOF
+	)
+
+
+)
+
 
 startup_nginx_for_debug() (
 	process_global_vars "$@" &&

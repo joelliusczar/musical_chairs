@@ -9,18 +9,18 @@ from musical_chairs_libs.services import QueueService
 def test_adding_song_to_queue(fixture_queue_service: QueueService):
 	queueService = fixture_queue_service
 	queueService.fil_up_queue(1, queueService.queue_size)
-	queue1 = list(queueService.get_queue_for_station(1))
+	queue1, _ = queueService.get_queue_for_station(1)
 	assert len(queue1) == 15 #only 19 songs in test db
 	result = queueService.__add_song_to_queue__(15, 1, 1)
 	assert result == 1
-	queue1 = list(queueService.get_queue_for_station(1))
+	queue1, _ = queueService.get_queue_for_station(1)
 	assert len(queue1) == 16
 
 
 def test_queue_of_songs_without_artists(fixture_queue_service: QueueService):
 	queueService = fixture_queue_service
 	queueService.fil_up_queue(8, queueService.queue_size)
-	queue1 = list(queueService.get_queue_for_station(8))
+	queue1, _ = queueService.get_queue_for_station(8)
 	assert len(queue1) == 4
 
 # def test_queue_with_skips_and_offsets(fixture_queue_service: QueueService):
@@ -40,7 +40,7 @@ def test_queue_of_songs_without_artists(fixture_queue_service: QueueService):
 # 		nowPlaying.queuedtimestamp
 # 	)
 # 	assert moved
-	
+
 # 	assert len(loaded) == 2
 # 	assert loaded[0].id == originalQueue[1].id
 

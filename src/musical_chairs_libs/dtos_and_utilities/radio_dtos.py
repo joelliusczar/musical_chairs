@@ -50,7 +50,7 @@ class QueuedItem(NamedIdItem):
 
 	def __hash__(self) -> int:
 		return hash((self.id, self.name, self.queuedtimestamp))
-	
+
 	def __eq__(self, value: Any) -> bool:
 		if not value:
 			return False
@@ -65,8 +65,10 @@ class SongListDisplayItem(QueuedItem):
 	internalpath: str
 	playedtimestamp: Optional[float]=None
 	rules: list[ActionRule]=Field(default_factory=list, frozen=False)
+	historyid: Optional[int]=None
 
-	def display(self) -> str:	
+
+	def display(self) -> str:
 		if self.name:
 				display = f"{self.name} - {self.album} - {self.artist}"
 		else:
@@ -178,18 +180,18 @@ class SongTreeNode(FrozenBaseClass):
 
 	def __hash__(self) -> int:
 		return hash(self.path)
-	
+
 	def __eq__(self, other: Any) -> bool:
 		if not other:
 			return False
 		return self.path == other.path
-	
+
 	@staticmethod
 	def same_level_sort_key(node: "SongTreeNode") -> str:
 		if node.name:
 			return node.name
 		return Path(node.path).stem
-	
+
 
 
 class StationSongTuple:
@@ -213,7 +215,7 @@ class StationSongTuple:
 
 	def __hash__(self) -> int:
 		return hash((self.songid, self.stationid))
-	
+
 	def __eq__(self, other: Any) -> bool:
 		if not other:
 			return False
@@ -244,7 +246,7 @@ class SongArtistTuple:
 
 	def __hash__(self) -> int:
 		return hash((self.songid, self.artistid))
-	
+
 	def __eq__(self, other: Any) -> bool:
 		if not other:
 			return False
@@ -280,7 +282,7 @@ class SongAboutInfo(MCBaseClass):
 			yield self.primaryartist
 		yield from (a for a in self.artists or [])
 
-	
+
 
 class SongEditInfo(SongAboutInfo, SongPathInfo):
 	rules: list[ActionRule]=Field(default_factory=list)
@@ -300,7 +302,7 @@ class ValidatedSongAboutInfo(SongAboutInfo):
 				"but it is only legal to add it once."
 			)
 		return v
-	
+
 	@model_validator(mode="after") # type: ignore
 	def root_validator(self) -> "ValidatedSongAboutInfo":
 		artists = self.artists or []
@@ -316,7 +318,12 @@ class ValidatedSongAboutInfo(SongAboutInfo):
 				"but it is only legal to add it once."
 			)
 		return self
-	
+
 class DirectoryTransfer(MCBaseClass):
 	path: str
 	newprefix: str
+
+class LastPlayedItem(MCBaseClass):
+	songid: int
+	timestamp: float
+	historyid: int

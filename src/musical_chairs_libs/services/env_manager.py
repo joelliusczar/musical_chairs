@@ -38,6 +38,10 @@ class EnvManager:
 		return os.environ.get("MC_DB_PASS_RADIO", "")
 
 	@classmethod
+	def db_pass_janitor(cls) -> str:
+		return os.environ.get("MC_DB_PASS_JANITOR", "")
+
+	@classmethod
 	def db_pass_owner(cls) -> str:
 		return os.environ.get("MC_DB_PASS_OWNER", "")
 
@@ -105,6 +109,22 @@ class EnvManager:
 			raise RuntimeError("The system is not configured correctly for that.")
 		engine = create_engine(
 			f"mysql+pymysql://{DbUsers.API_USER()}:{dbPass}@localhost/{dbName}",
+			echo=echo,
+		)
+		conn = engine.connect()
+		return conn
+
+	@classmethod
+	def get_configured_janitor_connection(
+		cls,
+		dbName: str,
+		echo: bool=False
+	) -> Connection:
+		dbPass = EnvManager.db_pass_janitor()
+		if not dbPass:
+			raise RuntimeError("The system is not configured correctly for that.")
+		engine = create_engine(
+			f"mysql+pymysql://{DbUsers.JANITOR_USER()}:{dbPass}@localhost/{dbName}",
 			echo=echo,
 		)
 		conn = engine.connect()

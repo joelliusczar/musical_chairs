@@ -235,6 +235,12 @@ gen_pass() (
 )
 
 
+gen_pass_2() {
+	pass_len=${1:-16}
+	openssl rand -hex "$pass_len"
+}
+
+
 is_ssh() (
 	[ -n "$SSH_CONNECTION" ]
 )
@@ -762,6 +768,9 @@ __deployment_env_check_required__() {
 	[ -n "$(__get_radio_db_user_key__)" ]
 	track_exit_code ||
 	echo 'deployment var MC_DB_PASS_RADIO not set in keys'
+	[ -n "$(__get_janitor_db_user_key__)" ]
+	track_exit_code ||
+	echo 'deployment var MC_DB_PASS_JANITOR not set in keys'
 	return "$fnExitCode"
 }
 
@@ -840,6 +849,9 @@ __server_env_check_required__() {
 	[ -n "$MC_DB_PASS_RADIO" ]
 	track_exit_code ||
 	echo 'environmental var MC_DB_PASS_RADIO not set'
+	[ -n "$MC_DB_PASS_JANITOR" ]
+	track_exit_code ||
+	echo 'environmental var MC_DB_PASS_JANITOR not set'
 	return "$fnExitCode"
 }
 
@@ -880,6 +892,9 @@ __dev_env_check_required__() {
 	[ -n "$MC_DB_PASS_API" ]
 	track_exit_code ||
 	echo 'environmental var MC_DB_PASS_API not set'
+	[ -n "$MC_DB_PASS_JANITOR" ]
+	track_exit_code ||
+	echo 'environmental var MC_DB_PASS_JANITOR not set'
 
 		#s3
 	[ -n "$(__get_s3_api_key__)" ]
@@ -1108,6 +1123,15 @@ __get_radio_db_user_key__() (
 )
 
 
+__get_janitor_db_user_key__() (
+	if [ -n "$MC_DB_PASS_JANITOR" ] && [ "$MC_APP_ENV" != 'local' ]; then
+		echo "$MC_DB_PASS_JANITOR"
+		return
+	fi
+	perl -ne 'print "$1\n" if /MC_DB_PASS_JANITOR=(\w+)/' \
+		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
+)
+
 __get_remote_private_key__() (
 	echo "/etc/ssl/private/${MC_PROJ_NAME_SNAKE}.private.key.pem"
 )
@@ -1276,6 +1300,9 @@ setup_env_api_file() (
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(MC_DB_PASS_API=).*\$@\1'${MC_DB_PASS_API}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_DB_PASS_JANITOR=).*\$@\1'${MC_DB_PASS_JANITOR}'@" \
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(MC_DB_PASS_RADIO=).*\$@\1'${MC_DB_PASS_RADIO}'@" \
@@ -2053,6 +2080,7 @@ __get_remote_export_script__() (
 	output="${output} export __DB_SETUP_PASS__='$(__get_db_setup_key__)';" &&
 	output="${output} export MC_DB_PASS_OWNER='$(__get_db_owner_key__)';" &&
 	output="${output} export MC_DB_PASS_API='$(__get_api_db_user_key__)';" &&
+	output="${output} export MC_DB_PASS_JANITOR='$(__get_janitor_db_user_key__)';" &&
 	output="${output} export AWS_ACCESS_KEY_ID='$(__get_s3_api_key__)';" &&
 	output="${output} export AWS_SECRET_ACCESS_KEY='$(__get_s3_secret__)';" &&
 	output="${output} export S3_ACCESS_KEY_ID='$(__get_s3_api_key__)';" &&
@@ -2144,7 +2172,7 @@ EOF
 	echo "Done ending all stations"
 )
 
-trim_radio_history() (
+squish_radio_history() (
 	process_global_vars "$@" &&
 		__install_py_env_if_needed__ &&
 	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
@@ -2157,7 +2185,7 @@ from musical_chairs_libs.services import (
 from datetime import datetime, timedelta
 
 envManager = EnvManager()
-conn = envManager.get_configured_api_connection("musical_chairs_db")
+conn = envManager.get_configured_janitor_connection("musical_chairs_db")
 try:
 	stationService = StationService(conn)
 	queueService = QueueService(conn, stationService)
@@ -2165,7 +2193,7 @@ try:
 	dt = datetime.now()
 	cutoffDate = (dt - timedelta(days=7)).timestamp()
 	for station in stations:
-		result = queueService.squash_station_history(station.id, cutoffDate)
+		result = queueService.squish_station_history(station.id, cutoffDate)
 		print(f"Added count: {result[0]}")
 		print(f"Updated count: {result[1]}")
 		print(f"Deleted from queue count: {result[3]}")
@@ -2349,7 +2377,7 @@ startup_full_web() (
 
 
 __create_fake_keys_file__() {
-	echo "mc_auth_key=$(openssl rand -hex 32)" \
+	echo "mc_auth_key=$(`gen_pass_2` 32)" \
 		> "$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 }
 
@@ -2732,6 +2760,7 @@ unset_globals() {
 		MC_AUTH_SECRET_KEY
 		MC_NAMESPACE_UUID
 		MC_DB_PASS_API
+		MC_DB_PASS_JANITOR
 		MC_DB_PASS_OWNER
 		MC_LOCAL_REPO_DIR
 		MC_REPO_URL

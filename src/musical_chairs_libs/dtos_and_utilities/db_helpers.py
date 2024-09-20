@@ -38,6 +38,7 @@ class DbUsers(Enum):
 	OWNER_USER = "mc_owner"
 	API_USER = "api_user"
 	RADIO_USER = "radio_user"
+	JANITOR_USER = "janitor_user"
 
 	def format_user(self, host:str="localhost") -> str:
 		return f"'{self.value}'@'{host}'"

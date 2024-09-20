@@ -71,6 +71,7 @@ export MC_DATABASE_NAME='musical_chairs_db';
 export __DB_SETUP_PASS__="$(__get_db_setup_key__)" &&
 export MC_DB_PASS_OWNER="$(__get_db_owner_key__)" &&
 export MC_DB_PASS_API="$(__get_api_db_user_key__)" &&
+export MC_DB_PASS_JANITOR="$(__get_janitor_db_user_key__)" &&
 export MC_DB_PASS_RADIO="$(__get_radio_db_user_key__)" &&
 export S3_BUCKET_NAME="$(__get_s3_bucket_name__)" &&
 export S3_REGION_NAME="$(__get_s3_region_name__)" &&

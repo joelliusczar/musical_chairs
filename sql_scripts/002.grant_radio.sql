@@ -16,3 +16,5 @@ GRANT SELECT ON TABLE `<dbName>`.`stationqueue` TO <radioUser>;
 GRANT UPDATE ON TABLE `<dbName>`.`useractionhistory` TO <radioUser>;
 GRANT INSERT ON TABLE `<dbName>`.`useractionhistory` TO <radioUser>;
 GRANT SELECT ON TABLE `<dbName>`.`useractionhistory` TO <radioUser>;
+
+GRANT SELECT ON TABLE `<dbName>`.`lastplayed` TO <radioUser>;

@@ -556,7 +556,7 @@ class QueueService:
 		return qDeletedCount, hDeletedCount
 
 
-	def squash_station_history(
+	def squish_station_history(
 		self,
 		stationid: int,
 		beforeTimestamp: float

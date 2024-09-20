@@ -6,11 +6,11 @@ from enum import Enum
 class SqlScripts(Enum):
 	GRANT_API = (
 		"001.grant_api.sql",
-		"a043986f8b0ab29b62d646cfd2fff542c5c20c2d77dc71d4e2650ce614ec099d"
+		"49e32f7b58a88e6b9c670e8135b2731369fac92b0875b5172b107019d0182ab8"
 	)
 	GRANT_RADIO = (
 		"002.grant_radio.sql",
-		"60cf7e3962ce8d7ae63ea2432c256a99ccf29118d69925c41f1855da735a0894"
+		"b47b5d523512386597a18b3ee5937befec75e01917e10916830a5ee836af3b44"
 	)
 	PATH_USER_INDEXES = (
 		"003.path_user_indexes.sql",
@@ -40,9 +40,9 @@ class SqlScripts(Enum):
 		"009.add_song_file_hash.sql",
 		"9714741c4021d6a03c98b833d97f7a640733474f82f8f8b76365432dff7e6133"
 	)
-	LAST_PLAYED_TABLE = (
-		"010.last_played_table.sql",
-		"b04f58b17b35b6d915111293758a2488f8f91988b37ec7cdcc8b0fb1139b8f3d"
+	GRANT_JANITOR = (
+		"010.grant_janitor.sql",
+		"f9d1717cebfae298217c583bd16ca525f4ef3933b99cda7ee5e460a63fcaad2b"
 	)
 
 	@property

@@ -996,7 +996,7 @@ __get_pb_secret__() (
 
 
 __get_s3_api_key__() (
-	if [ -n "$AWS_ACCESS_KEY_ID" ] && [ "$MC_APP_ENV" != 'local' ]; then
+	if [ -n "$AWS_ACCESS_KEY_ID" ] && [ "$MC_ENV" != 'local' ]; then
 		echo "$AWS_ACCESS_KEY_ID"
 		return
 	fi
@@ -1006,7 +1006,7 @@ __get_s3_api_key__() (
 
 
 __get_s3_secret__() (
-	if [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ "$MC_APP_ENV" != 'local' ]; then
+	if [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ "$MC_ENV" != 'local' ]; then
 		echo "$AWS_SECRET_ACCESS_KEY"
 		return
 	fi
@@ -1016,7 +1016,7 @@ __get_s3_secret__() (
 
 
 __get_s3_bucket_name__() (
-	if [ -n "$S3_BUCKET_NAME" ] && [ "$MC_APP_ENV" != 'local' ]; then
+	if [ -n "$S3_BUCKET_NAME" ] && [ "$MC_ENV" != 'local' ]; then
 		echo "$S3_BUCKET_NAME"
 		return
 	fi
@@ -1026,7 +1026,7 @@ __get_s3_bucket_name__() (
 
 
 __get_s3_region_name__() (
-	if [ -n "$S3_REGION_NAME" ] && [ "$MC_APP_ENV" != 'local' ]; then
+	if [ -n "$S3_REGION_NAME" ] && [ "$MC_ENV" != 'local' ]; then
 		echo "$S3_REGION_NAME"
 		return
 	fi
@@ -1036,7 +1036,7 @@ __get_s3_region_name__() (
 
 
 __get_s3_endpoint__() (
-	if [ -n "$AWS_ENDPOINT_URL" ] && [ "$MC_APP_ENV" != 'local' ]; then
+	if [ -n "$AWS_ENDPOINT_URL" ] && [ "$MC_ENV" != 'local' ]; then
 		echo "$AWS_ENDPOINT_URL"
 		return
 	fi
@@ -1114,7 +1114,7 @@ __get_api_db_user_key__() (
 
 
 __get_radio_db_user_key__() (
-	if [ -n "$MC_DB_PASS_RADIO" ] && [ "$MC_APP_ENV" != 'local' ]; then
+	if [ -n "$MC_DB_PASS_RADIO" ] && [ "$MC_ENV" != 'local' ]; then
 		echo "$MC_DB_PASS_RADIO"
 		return
 	fi
@@ -1124,7 +1124,7 @@ __get_radio_db_user_key__() (
 
 
 __get_janitor_db_user_key__() (
-	if [ -n "$MC_DB_PASS_JANITOR" ] && [ "$MC_APP_ENV" != 'local' ]; then
+	if [ -n "$MC_DB_PASS_JANITOR" ] && [ "$MC_ENV" != 'local' ]; then
 		echo "$MC_DB_PASS_JANITOR"
 		return
 	fi
@@ -2660,6 +2660,7 @@ create_install_directory() {
 	[ -d "$MC_LOCAL_REPO_DIR" ] ||
 	mkdir -pv "$MC_LOCAL_REPO_DIR"
 }
+
 
 __get_url_base__() (
 	echo 'musicalchairs'

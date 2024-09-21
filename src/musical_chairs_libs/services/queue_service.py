@@ -542,6 +542,8 @@ class QueueService:
 		beforeTimestamp: float
 	) -> Tuple[int, int]:
 		historyQuery = select(uah_pk)\
+			.join(station_queue, uah_pk == q_userActionHistoryFk)\
+			.where(q_stationFk == stationid)\
 			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
 			.where(uah_timestamp < beforeTimestamp)
 
@@ -550,8 +552,7 @@ class QueueService:
 			.where(q_userActionHistoryFk.in_(historyQuery))
 		qDeletedCount = self.conn.execute(delStmt).rowcount
 		delStmt = delete(user_action_history_tbl)\
-			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
-			.where(uah_timestamp < beforeTimestamp)
+			.where(uah_pk.in_(historyQuery))
 		hDeletedCount = self.conn.execute(delStmt).rowcount
 		return qDeletedCount, hDeletedCount
 

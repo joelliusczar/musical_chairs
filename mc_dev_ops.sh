@@ -1372,8 +1372,11 @@ set_db_root_initial_password() (
 	fi
 )
 
+setup_db() (
+	__setup_db_mysql__
+)
 
-setup_database() (
+__setup_db_mysql__() (
 	echo 'initial db setup'
 	process_global_vars "$@" &&
 	__replace_sql_script__ &&
@@ -2227,7 +2230,7 @@ setup_api() (
 	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DEST" &&
 	copy_dir "$MC_API_SRC" "$(get_web_root)"/"$MC_API_DEST" &&
 	create_py_env_in_app_trunk &&
-	setup_database &&
+	setup_db &&
 	setup_nginx_confs &&
 	echo "done setting up api"
 )
@@ -2244,7 +2247,7 @@ setup_radio() (
 
 	create_py_env_in_app_trunk &&
 	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DEST" &&
-	setup_database &&
+	setup_db &&
 	regen_station_configs &&
 	pkgMgrChoice=$(get_pkg_mgr) &&
 	icecastName=$(get_icecast_name "$pkgMgrChoice") &&

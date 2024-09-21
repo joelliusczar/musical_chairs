@@ -1274,7 +1274,7 @@ copy_lib_to_test() (
 
 
 #test runner needs to read .env
-setup_env_api_file() (
+__setup_env_api_file__() (
 	echo 'setting up .env file'
 	envFile="$(__get_app_root__)"/"$MC_CONFIG_DIR"/.env
 	error_check_all_paths "$MC_TEMPLATES_SRC"/.env_api "$envFile" &&
@@ -2201,8 +2201,7 @@ from datetime import datetime, timedelta, timezone
 
 envManager = EnvManager()
 conn = envManager.get_configured_janitor_connection(
-	"musical_chairs_db",
-	echo=True
+	"musical_chairs_db"
 )
 try:
 	stationService = StationService(conn)
@@ -2468,7 +2467,7 @@ setup_unit_test_env() (
 	copy_dir "$MC_TEMPLATES_SRC" "$(__get_app_root__)"/"$MC_TEMPLATES_DEST" &&
 	__replace_sql_script__ &&
 	sync_requirement_list
-	setup_env_api_file
+	__setup_env_api_file__
 	pyEnvPath="$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"
 	#redirect stderr into stdout so that missing env will also trigger redeploy
 	srcChanges=$(find "$MC_LIB_SRC" -newer "$pyEnvPath" 2>&1)

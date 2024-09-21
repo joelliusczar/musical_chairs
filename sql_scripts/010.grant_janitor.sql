@@ -15,5 +15,5 @@ GRANT SELECT ON TABLE `<dbName>`.`stationqueue` TO <janitorUser>;
 GRANT DELETE ON TABLE `<dbName>`.`stationqueue` TO <janitorUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`useractionhistory` TO <janitorUser>;
-GRANT DELETE ON TABLE `<dbName>`.`stationqueue` TO <janitorUser>;
+GRANT DELETE ON TABLE `<dbName>`.`useractionhistory` TO <janitorUser>;
 

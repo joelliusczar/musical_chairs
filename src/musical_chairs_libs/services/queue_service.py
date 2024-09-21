@@ -548,7 +548,6 @@ class QueueService:
 			.where(uah_timestamp < beforeTimestamp)
 
 		delStmt = delete(station_queue)\
-			.where(q_stationFk == stationid)\
 			.where(q_userActionHistoryFk.in_(historyQuery))
 		qDeletedCount = self.conn.execute(delStmt).rowcount
 		delStmt = delete(user_action_history_tbl)\

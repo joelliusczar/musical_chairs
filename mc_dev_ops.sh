@@ -2197,7 +2197,7 @@ from musical_chairs_libs.services import (
 	QueueService,
 	EnvManager,
 )
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 envManager = EnvManager()
 conn = envManager.get_configured_janitor_connection(

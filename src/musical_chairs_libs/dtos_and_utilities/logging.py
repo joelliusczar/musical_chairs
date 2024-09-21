@@ -1,12 +1,21 @@
 import logging as builtin_logging
 import sys
+import os
 
+api_log_level = os.environ.get(
+	"MC_API_LOG_LEVEL",
+	builtin_logging.getLevelName(builtin_logging.WARNING)
+)
+radio_log_level = os.environ.get(
+	"MC_RADIO_LOG_LEVEL",
+	builtin_logging.getLevelName(builtin_logging.WARNING)
+)
 
 
 formatter = builtin_logging.Formatter(
 	"[%(asctime)s][%(levelname)s][%(funcName)s]: %(message)s"
 )
-	
+
 
 handler = builtin_logging.FileHandler(
 	"musical_chairs.log",
@@ -19,20 +28,20 @@ handler.setFormatter(formatter)
 logger = builtin_logging.getLogger("mc")
 
 
-logger.setLevel(builtin_logging.INFO)
+logger.setLevel(api_log_level)
 logger.addHandler(handler)
 
 
 
 radioLogger = builtin_logging.getLogger("mc_radio")
-radioLogger.setLevel(builtin_logging.DEBUG)
+radioLogger.setLevel(radio_log_level)
 
 radioDefaultHandler = builtin_logging.FileHandler(
 	"musical_chairs_radio.log",
 	encoding="utf-8"
 )
 radioDefaultHandler.setFormatter(formatter)
-radioDefaultHandler.setLevel(builtin_logging.DEBUG)
+radioDefaultHandler.setLevel(radio_log_level)
 
 stdOutHandler = builtin_logging.StreamHandler(sys.stderr)
 stdOutHandler.setFormatter(formatter)

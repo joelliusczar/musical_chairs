@@ -76,6 +76,8 @@ export MC_DB_PASS_RADIO="$(__get_radio_db_user_key__)" &&
 export S3_BUCKET_NAME="$(__get_s3_bucket_name__)" &&
 export S3_REGION_NAME="$(__get_s3_region_name__)" &&
 export AWS_ENDPOINT_URL="$(__get_s3_endpoint__)" &&
+export MC_API_LOG_LEVEL="$MC_API_LOG_LEVEL" &&
+export MC_RADIO_LOG_LEVEL="$MC_RADIO_LOG_LEVEL" &&
 export __ICES_BRANCH__="$(__get_ices_branch__)" &&
 
 RemoteScriptEOF0

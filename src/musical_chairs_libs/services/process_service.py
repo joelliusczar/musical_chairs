@@ -22,6 +22,8 @@ def __start_ices__(
 	stationConf: str,
 	portNumber: str
 ) -> subprocess.Popen[bytes]:
+	if not os.path.isfile(stationConf):
+		raise LookupError(f"Station conf not found at: {stationConf}")
 	return subprocess.Popen(
 		["mc-ices", "-c", f"{stationConf}"],
 		env={
@@ -81,8 +83,6 @@ class ProcessService:
 	 			" nor try to launch process"
 			)
 			return #pyright: ignore [reportReturnType]
-		if not os.path.isfile(stationConf):
-			raise LookupError(f"Station not found at: {stationConf}")
 		return __start_ices__(stationConf, portNumber)
 
 	@staticmethod
@@ -99,12 +99,6 @@ class ProcessService:
 			stderr=subprocess.DEVNULL,
 			stdin=subprocess.DEVNULL
 		)
-
-		# stationProc = ProcessService.start_station_mc_ices(
-		# 	stationName,
-		# 	ownerName,
-		# 	"0"
-		# )
 
 		try:
 			stationProc.wait(ProcessService.stream_timeout)

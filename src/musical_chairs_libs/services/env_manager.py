@@ -4,7 +4,9 @@ from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
-	DbUsers
+	DbUsers,
+	api_log_level,
+	radio_log_level
 )
 
 
@@ -15,7 +17,7 @@ class EnvManager:
 		if EnvManager.test_flag():
 			return os.environ["MC_TEST_ROOT"]
 		return os.environ["MC_APP_ROOT"]
-	
+
 	@classmethod
 	def relative_content_home(cls) -> str:
 		contentHome = os.environ["MC_CONTENT_DIR"]
@@ -77,11 +79,11 @@ class EnvManager:
 	@classmethod
 	def db_name(cls) -> str:
 		return os.environ["MC_DATABASE_NAME"]
-	
+
 	@classmethod
 	def s3_bucket_name(cls) -> str:
 		return os.environ["S3_BUCKET_NAME"]
-	
+
 	@classmethod
 	def s3_region_name(cls) -> str:
 		return os.environ["S3_REGION_NAME"]
@@ -97,6 +99,14 @@ class EnvManager:
 	@classmethod
 	def secret_key(cls) -> str:
 		return os.environ["MC_AUTH_SECRET_KEY"]
+
+	@classmethod
+	def api_log_level(cls) -> str:
+		return api_log_level
+
+	@classmethod
+	def radio_log_level(cls) -> str:
+		return radio_log_level
 
 	@classmethod
 	def get_configured_api_connection(

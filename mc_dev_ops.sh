@@ -700,6 +700,10 @@ __deployment_env_check_recommended__() {
 	echo 'deployment var __DB_SETUP_PASS__ not set in keys'
 	[ -n "$(__get_db_owner_key__)" ] ||
 	echo 'deployment var MC_DB_PASS_OWNER not set in keys'
+	[ -n "$MC_API_LOG_LEVEL" ] ||
+	echo 'deployment var MC_API_LOG_LEVEL not set in keys'
+	[ -n "$MC_RADIO_LOG_LEVEL" ] ||
+	echo 'deployment var MC_API_LOG_LEVEL not set in keys'
 }
 
 
@@ -1330,6 +1334,12 @@ setup_env_api_file() (
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(AWS_ENDPOINT_URL=).*\$@\1'${AWS_ENDPOINT_URL}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_API_LOG_LEVEL=).*\$@\1'${MC_API_LOG_LEVEL}'@" \
+		"$envFile" &&
+	perl -pi -e \
+		"s@^(MC_RADIO_LOG_LEVEL=).*\$@\1'${MC_RADIO_LOG_LEVEL}'@" \
 		"$envFile" &&
 	echo 'done setting up .env file'
 )
@@ -2092,6 +2102,8 @@ __get_remote_export_script__() (
 	output="${output} export S3_BUCKET_NAME='$(__get_s3_bucket_name__)';" &&
 	output="${output} export S3_REGION_NAME='$(__get_s3_region_name__)';" &&
 	output="${output} export AWS_ENDPOINT_URL='$(__get_s3_endpoint__)';" &&
+	output="${output} export MC_API_LOG_LEVEL='${MC_API_LOG_LEVEL}';" &&
+	output="${output} export MC_RADIO_LOG_LEVEL='${MC_RADIO_LOG_LEVEL}';" &&
 	output="${output} export __ICES_BRANCH__='$(__get_ices_branch__)';"
 	echo "$output"
 )
@@ -2207,7 +2219,6 @@ finally:
 
 EOF
 	)
-
 
 )
 
@@ -2534,6 +2545,7 @@ get_web_root() (
 	esac
 )
 
+
 #call set_env_vars after connecting
 connect_remote() (
 	process_global_vars "$@" &&
@@ -2554,7 +2566,6 @@ print_exported_env_vars() (
 	echo "App root: $(__get_app_root__)"
 	__get_remote_export_script__ "$@"
 )
-
 
 
 process_global_args() {

@@ -42,7 +42,7 @@ class SqlScripts(Enum):
 	)
 	GRANT_JANITOR = (
 		"010.grant_janitor.sql",
-		"16ba08f9218279df1c58c3aca979d5bcb9ee972e703bc444829ff9d1ff217bc6"
+		"5a722a5c383e1a99c1210bdb5f7eeaa2bf82f075adda368d8fd0c193fb6c97be"
 	)
 
 	@property

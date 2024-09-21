@@ -5,6 +5,7 @@ GRANT SELECT ON TABLE `<dbName>`.`albums` TO <janitorUser>;
 GRANT SELECT ON TABLE `<dbName>`.`artists` TO <janitorUser>;
 GRANT SELECT ON TABLE `<dbName>`.`songsartists` TO <janitorUser>;
 GRANT SELECT ON TABLE `<dbName>`.`stations` TO <janitorUser>;
+GRANT SELECT ON TABLE `<dbName>`.`users` TO <janitorUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`lastplayed` TO <janitorUser>;
 GRANT INSERT ON TABLE `<dbName>`.`lastplayed` TO <janitorUser>;

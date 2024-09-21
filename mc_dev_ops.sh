@@ -2391,7 +2391,7 @@ startup_full_web() (
 
 
 __create_fake_keys_file__() {
-	echo "mc_auth_key=$(`gen_pass_2` 32)" \
+	echo "mc_auth_key=$(gen_pass_2 32)" \
 		> "$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 }
 

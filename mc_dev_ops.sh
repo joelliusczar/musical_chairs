@@ -2200,19 +2200,23 @@ from musical_chairs_libs.services import (
 from datetime import datetime, timedelta
 
 envManager = EnvManager()
-conn = envManager.get_configured_janitor_connection("musical_chairs_db")
+conn = envManager.get_configured_janitor_connection(
+	"musical_chairs_db",
+	echo=True
+)
 try:
 	stationService = StationService(conn)
 	queueService = QueueService(conn, stationService)
 	stations = list(stationService.get_stations())
-	dt = datetime.now()
+	dt = datetime.now(timezone.utc)
 	cutoffDate = (dt - timedelta(days=7)).timestamp()
+	print(f"Cut off date: {cutoffDate}")
 	for station in stations:
 		result = queueService.squish_station_history(station.id, cutoffDate)
 		print(f"Added count: {result[0]}")
 		print(f"Updated count: {result[1]}")
-		print(f"Deleted from queue count: {result[3]}")
-		print(f"Deleted from history count: {result[4]}")
+		print(f"Deleted from queue count: {result[2]}")
+		print(f"Deleted from history count: {result[3]}")
 
 finally:
 	conn.close()

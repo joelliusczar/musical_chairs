@@ -589,8 +589,8 @@ class QueueService:
 		}.values())
 		addedCount = self.add_to_last_played(stationid, addura)
 		updatedCount = self.update_last_played_timestamps(stationid, updatera)
-		deletedCount = self.trim_recently_played(stationid, beforeTimestamp)
-		return (addedCount, updatedCount, *deletedCount)
+		deletedCounts = self.trim_recently_played(stationid, beforeTimestamp)
+		return (addedCount, updatedCount, *deletedCounts)
 
 
 

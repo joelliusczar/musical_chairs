@@ -124,7 +124,7 @@ sudo_rm_contents() (
 )
 
 
-rm_contents_if_exist() (
+rm_contents_if_filled() (
 	dirEmptira="$1"
 	if ! is_dir_empty "$dirEmptira"; then
 		sudo_rm_contents "$dirEmptira"
@@ -168,7 +168,7 @@ empty_dir_contents() (
 	echo "emptying '${dirEmptira}'"
 	error_check_path "$dirEmptira" &&
 	if [ -e "$dirEmptira" ]; then
-		rm_contents_if_exist || return "$?"
+		rm_contents_if_filled "$dirEmptira" || return "$?"
 	else
 		sudo_mkdir "$dirEmptira" || return "$?"
 	fi &&

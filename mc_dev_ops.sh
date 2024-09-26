@@ -396,7 +396,7 @@ get_ssl_public() (
 
 set_python_version_const() {
 	#python version info
-	if mc-python -V >/dev/null 2>&1; then
+	if mc-python -V >/dev/null 2>&1 && [ -z "$VIRTUAL_ENV" ]; then
 		pyVersion=$(mc-python -V)
 	elif python3 -V >/dev/null 2>&1; then
 		pyVersion=$(python3 -V)
@@ -627,14 +627,16 @@ update_all_ices_confs() (
 )
 
 
-__is_current_dir_repo__() {
+is_current_dir_repo() {
 	dir="$1"
-	[ -f "$dir"/dev_ops.sh ] &&
+	[ -f "$dir"/mc_dev_ops.sh ] &&
 	[ -f "$dir"/README.md ] &&
-	[ -f "$dir"/deploy_to_server.sh ] &&
+	[ -f "$dir"/deploy.sh ] &&
 	[ -d "$dir"/.vscode ] &&
 	[ -d "$dir"/src ] &&
-	[ -d "$dir"/src/musical_chairs ]
+	[ -d "$dir"/sql_scripts ] &&
+	[ -d "$dir"/test_trash ] &&
+	[ -d "$dir"/src/musical_chairs_libs ]
 }
 
 
@@ -941,7 +943,7 @@ get_repo_path() (
 	if [ -n "$MC_LOCAL_REPO_DIR" ]; then
 		echo "$MC_LOCAL_REPO_DIR"
 		return
-	elif __is_current_dir_repo__ "$PWD"; then
+	elif is_current_dir_repo "$PWD"; then
 		echo "$PWD"
 		return
 	else
@@ -950,7 +952,7 @@ get_repo_path() (
 				-path "$MC_BUILD_DIR"/"$MC_PROJ_NAME_SNAKE"
 				);
 		do
-			if __is_current_dir_repo__ "$guess"; then
+			if is_current_dir_repo "$guess"; then
 				echo "$guess"
 				return
 			fi
@@ -1210,32 +1212,54 @@ install_py_env() {
 }
 
 
-__replace_lib_files__() {
+__replace_dev_ops_lib_files__() {
 	envRoot="$(__get_app_root__)"/"$MC_TRUNK"
-	regen_file_reference_file &&
-	copy_dir "$MC_LIB_SRC" \
-		"$(get_libs_dest_dir "$envRoot")""$MC_LIB"
 	copy_dir "$MC_DEV_OPS_LIB_SRC" \
 		"$(get_libs_dest_dir "$envRoot")""$MC_DEV_OPS_LIB"
 }
 
 
+__replace_lib_files__() {
+	__replace_dev_ops_lib_files__ &&
+	regen_file_reference_file &&
+	envRoot="$(__get_app_root__)"/"$MC_TRUNK" &&
+	copy_dir "$MC_LIB_SRC" \
+		"$(get_libs_dest_dir "$envRoot")""$MC_LIB"
+}
+
+
 __install_py_env_if_needed__() {
+	libChoice=${1:-all}
+	tmpVirturalEnv="$VIRTUAL_ENV"
 	if [ ! -e "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate ]; then
 		__install_py_env__
 	else
 		echo "replacing musical_chairs files"
-		__replace_lib_files__ >/dev/null #only replace my code
+		if [ -z "$VIRTUAL_ENV" ]; then
+			echo "activate environment"
+			. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate
+		fi &&
+		if [ "$libChoice" = 'all' ]; then
+			__replace_lib_files__ >/dev/null #only replace my code
+		elif [ "$libChoice" = 'devops' ]; then
+			__replace_dev_ops_lib_files__
+		fi
+		#if we're in env and we opened it, deactivate it.
+		if [ -n "$VIRTUAL_ENV" ] && [ -z "$tmpVirturalEnv"]; then
+			echo "deactivate environment"
+			deactivate 2>&1 1>/dev/null
+		fi
 	fi
 }
 
 
 activate_mc_env() {
+	libChoice="$1"
 	if [ -n "$VIRTUAL_ENV" ]; then
 		deactivate 2>&1 1>/dev/null
 	fi
 	set_env_vars "$@" &&
-	__install_py_env_if_needed__ &&
+	__install_py_env_if_needed__ "$libChoice" &&
 	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate
 }
 
@@ -1501,7 +1525,7 @@ extract_commonName_from_cert() (
 
 scan_pems_for_common_name() (
 	commonName="$1"
-	activate_mc_env &&
+	activate_mc_env 'devops' &&
 	python -m 'musical_chairs_dev_ops.installed_certs' "$commonName" \
 		< /etc/ssl/certs/ca-certificates.crt
 )
@@ -2189,7 +2213,7 @@ EOF
 
 squish_radio_history() (
 	process_global_vars "$@" &&
-		__install_py_env_if_needed__ &&
+	__install_py_env_if_needed__ &&
 	. "$(__get_app_root__)"/"$MC_TRUNK"/"$MC_PY_ENV"/bin/activate &&
 	(python <<EOF
 from musical_chairs_libs.services import (
@@ -2214,8 +2238,7 @@ try:
 		result = queueService.squish_station_history(station.id, cutoffDate)
 		print(f"Added count: {result[0]}")
 		print(f"Updated count: {result[1]}")
-		print(f"Deleted from queue count: {result[2]}")
-		print(f"Deleted from history count: {result[3]}")
+		print(f"Deleted count: {result[2]}")
 
 finally:
 	conn.close()
@@ -2413,30 +2436,9 @@ get_hash_of_file() (
 regen_file_reference_file() (
 	process_global_vars "$@" &&
 	outputFile="$MC_LIB_SRC"/dtos_and_utilities/file_reference.py
-	printf '####### This file is generated. #######\n' > "$outputFile"
-	printf '# edit regen_file_reference_file #\n' >> "$outputFile"
-	printf '# in mc_dev_ops.sh and rerun\n' >> "$outputFile"
-	printf 'from enum import Enum\n\n' >> "$outputFile"
-	printf 'class SqlScripts(Enum):\n' >> "$outputFile"
-	for script in "$MC_SQL_SCRIPTS_SRC"/*.sql; do
-		enumName=$(basename "$script" '.sql' | \
-			sed -e 's/[0-9]*.\(.*\)/\1/' | \
-			perl -pe 'chomp if eof' | \
-			tr '[:punct:][:space:]' '_' | \
-			tr '[:lower:]' '[:upper:]'
-		)
-		fileName=$(basename "$script")
-		hashValue=$(get_hash_of_file "$script")
-		printf \
-		"\t${enumName} = (\n\t\t\"${fileName}\",\n\t\t\"${hashValue}\"\n\t)\n" \
-			>> "$outputFile"
-	done
-	printf '\n\t@property\n' >> "$outputFile"
-	printf '\tdef file_name(self) -> str:\n' >> "$outputFile"
-	printf '\t\treturn self.value[0]\n\n' >> "$outputFile"
-	printf '\t@property\n' >> "$outputFile"
-	printf '\tdef checksum(self) -> str:\n' >> "$outputFile"
-	printf '\t\treturn self.value[1]\n' >> "$outputFile"
+	activate_mc_env 'devops' &&
+	python -m 'musical_chairs_dev_ops.regen_file_reference_file'\
+		"$MC_SQL_SCRIPTS_SRC" "$outputFile"
 )
 
 __replace_sql_script__() {
@@ -2662,6 +2664,11 @@ define_consts() {
 
 	export MC_SERVER_NAME=$(__get_domain_name__ "$MC_ENV")
 	export MC_FULL_URL="https://${MC_SERVER_NAME}"
+
+	if is_current_dir_repo "$PWD" && [ "$MC_ENV" = 'local' ]; then
+		echo "Running inside build dir. Setting test flag"
+		export __TEST_FLAG__='true'
+	fi
 
 	export __MC_CONSTANTS_SET__='true'
 	echo "constants defined"

@@ -42,7 +42,11 @@ class SqlScripts(Enum):
 	)
 	GRANT_JANITOR = (
 		"010.grant_janitor.sql",
-		"4b16d6c39a9811afed82264b498ce49f64893cf1cb5987f4b97553a71ee7e924"
+		"b389086e4fd53da68499fc83bb97f92bf72ec0c44be3be9313979aaefcd7a7cd"
+	)
+	TRIM_STATION_QUEUE_HISTORY = (
+		"runtime/trim_station_queue_history.sql",
+		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"
 	)
 
 	@property

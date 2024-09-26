@@ -8,6 +8,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	api_log_level,
 	radio_log_level
 )
+#https://github.com/PyMySQL/PyMySQL/issues/590
+from pymysql.constants import CLIENT
 
 
 class EnvManager:
@@ -136,6 +138,9 @@ class EnvManager:
 		engine = create_engine(
 			f"mysql+pymysql://{DbUsers.JANITOR_USER()}:{dbPass}@localhost/{dbName}",
 			echo=echo,
+			connect_args={
+				"client_flag": CLIENT.MULTI_STATEMENTS | CLIENT.MULTI_RESULTS
+			},
 		)
 		conn = engine.connect()
 		return conn

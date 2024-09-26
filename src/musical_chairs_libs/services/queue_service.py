@@ -22,7 +22,6 @@ from sqlalchemy import (
 	literal,
 	union_all,
 	true,
-	delete
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import RowMapping
@@ -31,6 +30,7 @@ from .station_service import StationService
 from .accounts_service import AccountsService
 from .song_info_service import SongInfoService
 from .path_rule_service import PathRuleService
+from .template_service import TemplateService
 from musical_chairs_libs.tables import (
 	songs,
 	stations,
@@ -57,10 +57,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	UserRoleDef,
 	LastPlayedItem,
+	SqlScripts
 )
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 )
+
 
 
 
@@ -514,13 +516,15 @@ class QueueService:
 		addura: Iterable[LastPlayedItem]
 	) -> int:
 		lastPlayedInsert = insert(last_played)
-		return self.conn.execute(lastPlayedInsert, [
+		values = [
 			{
 				"stationfk": stationid,
 				"songfk": e.songid,
 				"timestamp": e.timestamp,
 			} for e in addura]
-		).rowcount
+		if not values:
+			return 0
+		return self.conn.execute(lastPlayedInsert, values).rowcount
 
 	def update_last_played_timestamps(
 		self,
@@ -540,27 +544,23 @@ class QueueService:
 		self,
 		stationid: int,
 		beforeTimestamp: float
-	) -> Tuple[int, int]:
-		historyQuery = select(uah_pk)\
-			.join(station_queue, uah_pk == q_userActionHistoryFk)\
-			.where(q_stationFk == stationid)\
-			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
-			.where(uah_timestamp < beforeTimestamp)
-
-		delStmt = delete(station_queue)\
-			.where(q_userActionHistoryFk.in_(historyQuery))
-		qDeletedCount = self.conn.execute(delStmt).rowcount
-		delStmt = delete(user_action_history_tbl)\
-			.where(uah_pk.in_(historyQuery))
-		hDeletedCount = self.conn.execute(delStmt).rowcount
-		return qDeletedCount, hDeletedCount
+	) -> int:
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.TRIM_STATION_QUEUE_HISTORY
+		)
+		count = self.conn.exec_driver_sql(script, {
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"stationid": stationid,
+			"timestamp": beforeTimestamp
+		}).rowcount
+		return count
 
 
 	def squish_station_history(
 		self,
 		stationid: int,
 		beforeTimestamp: float
-	) -> Tuple[int, int, int, int]:
+	) -> Tuple[int, int, int]:
 		unsquashed, _ = self.get_history_for_station(
 			stationid,
 			limit=None,
@@ -568,29 +568,29 @@ class QueueService:
 		)
 
 		squashed = {row[0]:row[1] for row in self.get_old_last_played(stationid)}
-		addura = (v for v in {
+		addura = [v for v in {
 			e.id:LastPlayedItem(
 				songid = e.id,
 				timestamp = e.playedtimestamp or 0,
 				historyid = e.historyid or 0
 			)
-			for e in unsquashed if not e.id in squashed
-		}.values())
+			for e in reversed(unsquashed) if e.id not in squashed
+		}.values()]
 		updatera = (v for v in {
 			e.id:LastPlayedItem(
 				songid = e.id,
 				timestamp = e.playedtimestamp or 0,
 				historyid = e.historyid or 0
 			)
-			for e in unsquashed
+			for e in reversed(unsquashed)
 			if e.id in squashed and e.playedtimestamp and
 				squashed[e.id] < e.playedtimestamp
 		}.values())
 		addedCount = self.add_to_last_played(stationid, addura)
 		updatedCount = self.update_last_played_timestamps(stationid, updatera)
-		deletedCounts = self.trim_recently_played(stationid, beforeTimestamp)
-		self.conn.rollback()
-		return (addedCount, updatedCount, *deletedCounts)
+		deletedCount = self.trim_recently_played(stationid, beforeTimestamp)
+		self.conn.commit()
+		return (addedCount, updatedCount, deletedCount)
 
 
 

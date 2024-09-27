@@ -157,7 +157,7 @@ export const Queue = () => {
 		const requestObj = fetchQueue({
 			stationkey: pathVars.stationkey,
 			ownerkey: pathVars.ownerkey,
-			page: page - 1,
+			page: page,
 			limit: limit,
 		});
 		const fetch = async () => {

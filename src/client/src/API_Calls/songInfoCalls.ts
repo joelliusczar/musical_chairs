@@ -10,7 +10,7 @@ import {
 	UploadInfo,
 	DirectoryTransfer,
 } from "../Types/song_info_types";
-import { 
+import {
 	IdValue,
 	StringObject,
 	Flags,

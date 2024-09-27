@@ -777,6 +777,11 @@ __deployment_env_check_required__() {
 	[ -n "$(__get_janitor_db_user_key__)" ]
 	track_exit_code ||
 	echo 'deployment var MC_DB_PASS_JANITOR not set in keys'
+
+	if [ -n "$__TEST_FLAG__" ]; then
+		echo 'TEST FLAG active'
+	fi
+
 	return "$fnExitCode"
 }
 
@@ -2665,10 +2670,11 @@ define_consts() {
 	export MC_SERVER_NAME=$(__get_domain_name__ "$MC_ENV")
 	export MC_FULL_URL="https://${MC_SERVER_NAME}"
 
-	if is_current_dir_repo "$PWD" && [ "$MC_ENV" = 'local' ]; then
-		echo "Running inside build dir. Setting test flag"
-		export __TEST_FLAG__='true'
-	fi
+	##  uncomment out as needed
+	# if is_current_dir_repo "$PWD" && [ "$MC_ENV" = 'local' ]; then
+	# 	echo "Running inside build dir. Setting test flag"
+	# 	export __TEST_FLAG__='true'
+	# fi
 
 	export __MC_CONSTANTS_SET__='true'
 	echo "constants defined"

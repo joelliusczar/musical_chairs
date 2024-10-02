@@ -31,7 +31,7 @@ class EnvManager:
 
 	@classmethod
 	def db_setup_pass(cls) -> str:
-		return os.environ.get("__DB_SETUP_PASS__", "")
+		return os.environ.get("MC_DB_PASS_SETUP", "")
 
 	@classmethod
 	def db_pass_api(cls) -> str:

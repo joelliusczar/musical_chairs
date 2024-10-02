@@ -135,7 +135,7 @@ fi
 
 echo '##### mariadb #####'
 if ! mariadb -V 2>/dev/null; then
-	if [ -n "$__DB_SETUP_PASS__" ]; then
+	if [ -n "$MC_DB_PASS_SETUP" ]; then
 		case $(uname) in
 			(Linux*)
 				if [ "$pkgMgrChoice" = "$MC_APT_CONST" ]; then
@@ -150,7 +150,7 @@ if ! mariadb -V 2>/dev/null; then
 		sudo -p 'Updating db root password' mysql -u root -e \
 			"REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'mysql'@'localhost'" &&
 		sudo -p 'Updating db root password' mysql -u root -e \
-			"SET PASSWORD FOR root@localhost = PASSWORD('${__DB_SETUP_PASS__}');"
+			"SET PASSWORD FOR root@localhost = PASSWORD('${MC_DB_PASS_SETUP}');"
 	else
 		show_err_and_exit 'Need a password for root db account to install database'
 	fi

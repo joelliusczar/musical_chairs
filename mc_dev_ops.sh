@@ -699,7 +699,7 @@ __deployment_env_check_recommended__() {
 	[ -n "$MC_LOCAL_REPO_DIR" ] ||
 	echo 'environmental var MC_LOCAL_REPO_DIR not set'
 	[ -n "$(__get_db_setup_key__)" ] ||
-	echo 'deployment var __DB_SETUP_PASS__ not set in keys'
+	echo 'deployment var MC_DB_PASS_SETUP not set in keys'
 	[ -n "$(__get_db_owner_key__)" ] ||
 	echo 'deployment var MC_DB_PASS_OWNER not set in keys'
 	[ -n "$MC_API_LOG_LEVEL" ] ||
@@ -798,8 +798,8 @@ __server_env_check_recommended__() {
 	#possibly problems if missing
 	[ -n "$__ICES_BRANCH__" ] ||
 	echo 'environmental var __ICES_BRANCH__ not set'
-	[ -n "$__DB_SETUP_PASS__" ] ||
-	echo 'environmental var __DB_SETUP_PASS__ not set in keys'
+	[ -n "$MC_DB_PASS_SETUP" ] ||
+	echo 'environmental var MC_DB_PASS_SETUP not set in keys'
 	[ -n "$MC_DB_PASS_OWNER" ] ||
 	echo 'environmental var MC_DB_PASS_OWNER not set in keys'
 }
@@ -878,8 +878,8 @@ __dev_env_check_recommended__() {
 	#possibly problems if missing
 	[ -n "$MC_REPO_URL" ] ||
 	echo 'environmental var MC_REPO_URL not set'
-	[ -n "$__DB_SETUP_PASS__" ] ||
-	echo 'environmental var __DB_SETUP_PASS__ not set in keys'
+	[ -n "$MC_DB_PASS_SETUP" ] ||
+	echo 'environmental var MC_DB_PASS_SETUP not set in keys'
 	[ -n "$MC_DB_PASS_OWNER" ] ||
 	echo 'environmental var MC_DB_PASS_OWNER not set in keys'
 }
@@ -1096,11 +1096,11 @@ __get_id_file__() (
 )
 
 __get_db_setup_key__() (
-	if [ -n "$__DB_SETUP_PASS__" ] && [ "$MC_ENV" != 'local' ]; then
-		echo "$__DB_SETUP_PASS__"
+	if [ -n "$MC_DB_PASS_SETUP" ] && [ "$MC_ENV" != 'local' ]; then
+		echo "$MC_DB_PASS_SETUP"
 		return
 	fi
-	perl -ne 'print "$1\n" if /__DB_SETUP_PASS__=(\w+)/' \
+	perl -ne 'print "$1\n" if /MC_DB_PASS_SETUP=(\w+)/' \
 		"$(__get_app_root__)"/keys/"$MC_PROJ_NAME_SNAKE"
 )
 
@@ -1326,7 +1326,7 @@ __setup_env_api_file__() (
 		"s@^(MC_PY_MODULE_DIR=).*\$@\1'${MC_PY_MODULE_DIR}'@" \
 		"$envFile" &&
 	perl -pi -e \
-		"s@^(__DB_SETUP_PASS__=).*\$@\1'${__DB_SETUP_PASS__}'@" \
+		"s@^(MC_DB_PASS_SETUP=).*\$@\1'${MC_DB_PASS_SETUP}'@" \
 		"$envFile" &&
 	perl -pi -e \
 		"s@^(MC_DB_PASS_OWNER=).*\$@\1'${MC_DB_PASS_OWNER}'@" \
@@ -1402,9 +1402,9 @@ revoke_default_db_accounts() (
 
 
 set_db_root_initial_password() (
-	if [ -n "$__DB_SETUP_PASS__" ]; then
+	if [ -n "$MC_DB_PASS_SETUP" ]; then
 		sudo -p 'Updating db root password' mysql -u root -e \
-			"SET PASSWORD FOR root@localhost = PASSWORD('${__DB_SETUP_PASS__}');"
+			"SET PASSWORD FOR root@localhost = PASSWORD('${MC_DB_PASS_SETUP}');"
 	else
 		echo 'Need a password for root db account'
 		return 1
@@ -2119,7 +2119,7 @@ __get_remote_export_script__() (
 	output="${output} export MC_AUTH_SECRET_KEY='$(__get_api_auth_key__)';" &&
 	output="${output} export MC_NAMESPACE_UUID='$(__get_namespace_uuid__)';" &&
 	output="${output} export MC_DATABASE_NAME='musical chairs_db';" &&
-	output="${output} export __DB_SETUP_PASS__='$(__get_db_setup_key__)';" &&
+	output="${output} export MC_DB_PASS_SETUP='$(__get_db_setup_key__)';" &&
 	output="${output} export MC_DB_PASS_OWNER='$(__get_db_owner_key__)';" &&
 	output="${output} export MC_DB_PASS_API='$(__get_api_db_user_key__)';" &&
 	output="${output} export MC_DB_PASS_JANITOR='$(__get_janitor_db_user_key__)';" &&
@@ -2618,8 +2618,8 @@ process_global_args() {
 				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} skip='${__SKIP__}'"
 				;; #()
 			(dbsetuppass=*)
-				export __DB_SETUP_PASS__=${1#dbsetuppass=}
-				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} dbsetuppass='${__DB_SETUP_PASS__}'"
+				export MC_DB_PASS_SETUP=${1#dbsetuppass=}
+				__GLOBAL_ARGS__="${__GLOBAL_ARGS__} dbsetuppass='${MC_DB_PASS_SETUP}'"
 				;; #()
 			(*) ;;
 		esac
@@ -2797,7 +2797,7 @@ unset_globals() {
 		MC_REPO_URL
 		MC_SERVER_KEY_FILE
 		MC_SERVER_SSH_ADDRESS
-		__DB_SETUP_PASS__
+		MC_DB_PASS_SETUP
 	EOF
 	)
 	cat "$(get_repo_path)"/mc_dev_ops.sh | grep export \

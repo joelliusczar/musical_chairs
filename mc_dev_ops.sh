@@ -382,6 +382,7 @@ stdin_json_top_level_keys() (
 
 
 #other keys: 'intermediatecertificate', 'certificatechain'
+#apparently 'intermediatecertificate' is not valid anymore
 get_ssl_private() (
 	process_global_vars "$@" >&2 &&
 	get_ssl_vars | stdin_json_extract_value 'privatekey'
@@ -1152,7 +1153,7 @@ __get_remote_public_key__() (
 	echo "/etc/ssl/certs/${MC_PROJ_NAME_SNAKE}.public.key.pem"
 )
 
-
+#apparently intermediate is no longer valid for porkbun
 __get_remote_intermediate_key__() (
 	echo "/etc/ssl/certs/${MC_PROJ_NAME_SNAKE}.intermediate.key.pem"
 )
@@ -1843,7 +1844,7 @@ setup_ssl_cert_nginx() (
 		(*)
 			publicKeyFile=$(__get_remote_public_key__) &&
 			privateKeyFile=$(__get_remote_private_key__) &&
-			intermediateKeyFile=$(__get_remote_intermediate_key__) &&
+			# intermediateKeyFile=$(__get_remote_intermediate_key__) &&
 
 			if [ ! -e "$publicKeyFile" ] || [ ! -e "$privateKeyFile" ] ||
 			cat "$publicKeyFile" | is_cert_expired ||
@@ -1851,13 +1852,14 @@ setup_ssl_cert_nginx() (
 				echo "downloading new certs"
 				sslVars=$(get_ssl_vars)
 				echo "$sslVars" | stdin_json_extract_value 'privatekey' | \
-				perl -pe 'chomp if eof' > "$privateKeyFile" &&
+					perl -pe 'chomp if eof' > "$privateKeyFile" &&
 				echo "$sslVars" | \
-				stdin_json_extract_value 'certificatechain' | \
-				perl -pe 'chomp if eof' > "$publicKeyFile" &&
-				echo "$sslVars" | \
-				stdin_json_extract_value 'intermediatecertificate' | \
-				perl -pe 'chomp if eof' > "$intermediateKeyFile"
+					stdin_json_extract_value 'certificatechain' | \
+					perl -pe 'chomp if eof' > "$publicKeyFile"
+				## apparently intermediate is no longer needed
+				# echo "$sslVars" | \
+				# stdin_json_extract_value 'intermediatecertificate' | \
+				# perl -pe 'chomp if eof' > "$intermediateKeyFile"
 			fi
 			;;
 	esac
@@ -1951,10 +1953,11 @@ __set_deployed_nginx_app_conf__() {
 		perl -pi -e \
 		"s@<ssl_private_key>@$(__get_remote_private_key__)@" \
 		"$appConfFile" &&
-	sudo -p "update ${appConfFile}" \
-		perl -pi -e \
-		"s@<ssl_intermediate>@$(__get_remote_intermediate_key__)@" \
-		"$appConfFile" &&
+	## apparently intermediate is no longer needed
+	# sudo -p "update ${appConfFile}" \
+	# 	perl -pi -e \
+	# 	"s@<ssl_intermediate>@$(__get_remote_intermediate_key__)@" \
+	# 	"$appConfFile" &&
 	sudo -p "update ${appConfFile}" \
 		perl -pi -e \
 		's/#ssl_trusted_certificate/ssl_trusted_certificate/' \

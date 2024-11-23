@@ -657,5 +657,6 @@ def get_prefix_if_owner(
 def get_page(
 	page: int = 1,
 ) -> int:
-	page -= 1
+	if page > 0:
+		page -= 1
 	return page

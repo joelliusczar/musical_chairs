@@ -4,8 +4,12 @@ from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
-	DbUsers
+	DbUsers,
+	api_log_level,
+	radio_log_level
 )
+#https://github.com/PyMySQL/PyMySQL/issues/590
+from pymysql.constants import CLIENT
 
 
 class EnvManager:
@@ -15,7 +19,7 @@ class EnvManager:
 		if EnvManager.test_flag():
 			return os.environ["MC_TEST_ROOT"]
 		return os.environ["MC_APP_ROOT"]
-	
+
 	@classmethod
 	def relative_content_home(cls) -> str:
 		contentHome = os.environ["MC_CONTENT_DIR"]
@@ -27,7 +31,7 @@ class EnvManager:
 
 	@classmethod
 	def db_setup_pass(cls) -> str:
-		return os.environ.get("__DB_SETUP_PASS__", "")
+		return os.environ.get("MC_DB_PASS_SETUP", "")
 
 	@classmethod
 	def db_pass_api(cls) -> str:
@@ -36,6 +40,10 @@ class EnvManager:
 	@classmethod
 	def db_pass_radio(cls) -> str:
 		return os.environ.get("MC_DB_PASS_RADIO", "")
+
+	@classmethod
+	def db_pass_janitor(cls) -> str:
+		return os.environ.get("MC_DB_PASS_JANITOR", "")
 
 	@classmethod
 	def db_pass_owner(cls) -> str:
@@ -73,11 +81,11 @@ class EnvManager:
 	@classmethod
 	def db_name(cls) -> str:
 		return os.environ["MC_DATABASE_NAME"]
-	
+
 	@classmethod
 	def s3_bucket_name(cls) -> str:
 		return os.environ["S3_BUCKET_NAME"]
-	
+
 	@classmethod
 	def s3_region_name(cls) -> str:
 		return os.environ["S3_REGION_NAME"]
@@ -95,6 +103,14 @@ class EnvManager:
 		return os.environ["MC_AUTH_SECRET_KEY"]
 
 	@classmethod
+	def api_log_level(cls) -> str:
+		return api_log_level
+
+	@classmethod
+	def radio_log_level(cls) -> str:
+		return radio_log_level
+
+	@classmethod
 	def get_configured_api_connection(
 		cls,
 		dbName: str,
@@ -106,6 +122,25 @@ class EnvManager:
 		engine = create_engine(
 			f"mysql+pymysql://{DbUsers.API_USER()}:{dbPass}@localhost/{dbName}",
 			echo=echo,
+		)
+		conn = engine.connect()
+		return conn
+
+	@classmethod
+	def get_configured_janitor_connection(
+		cls,
+		dbName: str,
+		echo: bool=False
+	) -> Connection:
+		dbPass = EnvManager.db_pass_janitor()
+		if not dbPass:
+			raise RuntimeError("The system is not configured correctly for that.")
+		engine = create_engine(
+			f"mysql+pymysql://{DbUsers.JANITOR_USER()}:{dbPass}@localhost/{dbName}",
+			echo=echo,
+			connect_args={
+				"client_flag": CLIENT.MULTI_STATEMENTS | CLIENT.MULTI_RESULTS
+			},
 		)
 		conn = engine.connect()
 		return conn

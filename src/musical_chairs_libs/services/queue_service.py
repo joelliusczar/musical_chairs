@@ -9,7 +9,9 @@ from typing import (
 	cast,
 	Collection,
 	Sequence,
-	Set
+	Set,
+	Tuple,
+	Iterable
 )
 from sqlalchemy import (
 	select,
@@ -19,6 +21,7 @@ from sqlalchemy import (
 	update,
 	literal,
 	union_all,
+	true,
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import RowMapping
@@ -27,6 +30,7 @@ from .station_service import StationService
 from .accounts_service import AccountsService
 from .song_info_service import SongInfoService
 from .path_rule_service import PathRuleService
+from .template_service import TemplateService
 from musical_chairs_libs.tables import (
 	songs,
 	stations,
@@ -41,7 +45,8 @@ from musical_chairs_libs.tables import (
 	sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath,
 	st_pk, st_name,
 	ar_pk, ar_name,
-	ab_pk, ab_name
+	ab_pk, ab_name,
+	last_played, lp_songFk, lp_stationFk, lp_timestamp
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
@@ -51,10 +56,13 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem,
 	StationInfo,
 	UserRoleDef,
+	LastPlayedItem,
+	SqlScripts
 )
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 )
+
 
 
 
@@ -109,6 +117,9 @@ class QueueService:
 			.join(songs, sg_pk == stsg_songFk) \
 			.join(station_queue, (q_stationFk == st_pk) \
 				& (q_songFk == sg_pk), isouter=True) \
+			.join(last_played, (lp_stationFk == st_pk) \
+				& (lp_songFk == sg_pk), isouter=True
+			)\
 			.join(user_action_history_tbl,
 				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
 				isouter=True
@@ -116,8 +127,9 @@ class QueueService:
 			.where(st_pk == stationPk) \
 			.group_by(sg_pk, sg_path) \
 			.order_by(
-				desc(func.max(uah_queuedTimestamp)),
-				desc(func.max(uah_timestamp)),
+				func.max(uah_queuedTimestamp),
+				func.max(uah_timestamp),
+				lp_timestamp,
 				func.rand()
 			)
 
@@ -201,8 +213,9 @@ class QueueService:
 	def get_queue_for_station(
 		self,
 		stationId: int,
+		page: int = 0,
 		limit: Optional[int]=None
-	) -> Iterator[SongListDisplayItem]:
+	) -> Tuple[list[SongListDisplayItem], int]:
 		primaryArtistGroupQuery = select(
 			func.max(sgar_pk).label("pk"),
 			func.max(sgar_isPrimaryArtist).label("isprimary"),
@@ -232,14 +245,16 @@ class QueueService:
 				.where(q_stationFk == stationId)\
 				.where(uah_timestamp.is_(None))\
 				.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
-				.order_by(uah_queuedTimestamp)
+				.order_by(uah_queuedTimestamp)\
+
+		offset = page * limit if limit else 0
+		offsetQuery = query.offset(offset)
 
 		if limit:
-			query = query.limit(limit)
+			offsetQuery = offsetQuery.limit(limit)
 
-		records = self.conn.execute(query).mappings()
-		for row in records:
-			yield SongListDisplayItem(
+		records = self.conn.execute(offsetQuery).mappings()
+		result = [SongListDisplayItem(
 				id=row[sg_pk],
 				name=row[sg_name] or "",
 				album=row["album"],
@@ -248,7 +263,11 @@ class QueueService:
 				internalpath=row[sg_internalpath],
 				queuedtimestamp=row[uah_queuedTimestamp],
 				playedtimestamp=row[uah_timestamp],
-			)
+			) for row in records]
+		countQuery = select(func.count(1))\
+			.select_from(query.subquery())
+		count = self.conn.execute(countQuery).scalar() or 0
+		return result, count
 
 	def __get_skipped__(
 		self,
@@ -287,7 +306,7 @@ class QueueService:
 			self.conn.commit()
 
 
-		results = self.get_queue_for_station(
+		results, _ = self.get_queue_for_station(
 			stationId,
 			limit=self.queue_size
 		)
@@ -361,23 +380,31 @@ class QueueService:
 	def get_now_playing_and_queue(
 		self,
 		stationId: int,
+		page: int = 0,
+		limit: Optional[int]=50,
 		user: Optional[AccountInfo]=None
 	) -> CurrentPlayingInfo:
 		pathRuleTree = None
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
-		queue: list[SongListDisplayItem] = []
-		for song in self.get_queue_for_station(stationId):
+		queue, count = self.get_queue_for_station(
+			stationId,
+			page,
+			limit
+		)
+		for song in queue:
 			if pathRuleTree:
 				song.rules = list(pathRuleTree.valuesFlat(song.path))
-			queue.append(song)
-		playing = next(self.get_history_for_station(stationId, limit=1), None)
+		playing = next(
+			iter(self.get_history_for_station(stationId, limit=1)[0]),
+			None
+		)
 		if pathRuleTree and playing:
 				playing.rules = list(pathRuleTree.valuesFlat(playing.path))
 		return CurrentPlayingInfo(
 			nowplaying=playing,
 			items=queue,
-			totalrows=self.queue_count(stationId),
+			totalrows=count,
 			stationrules=[]
 		)
 
@@ -429,9 +456,10 @@ class QueueService:
 		stationId: int,
 		page: int = 0,
 		limit: Optional[int]=50,
-		user: Optional[AccountInfo]=None
-	) -> Iterator[SongListDisplayItem]:
-		offset = page * limit if limit else 0
+		user: Optional[AccountInfo]=None,
+		beforeTimestamp: Optional[float]=None
+	) -> Tuple[list[SongListDisplayItem], int]:
+
 		pathRuleTree = None
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
@@ -445,6 +473,7 @@ class QueueService:
 			ar_name.label("artist"),
 			sg_path.label("path"),
 			sg_internalpath.label("internalpath"),
+			uah_pk.label("historyid")
 		).select_from(station_queue) \
 			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 			.join(songs, q_songFk == sg_pk) \
@@ -454,26 +483,116 @@ class QueueService:
 			.where(uah_timestamp.isnot(None))\
 			.where(q_stationFk == stationId)\
 			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
+			.where(uah_timestamp < beforeTimestamp if beforeTimestamp else true)\
 			.order_by(desc(uah_timestamp)) \
-			.offset(offset)\
-			.limit(limit)
-		records = self.conn.execute(query).mappings()
+
+		offset = page * limit if limit else 0
+		offsetQuery = query.offset(offset)
+		if limit:
+			offsetQuery =	offsetQuery.limit(limit)
+		records = self.conn.execute(offsetQuery).mappings()
+		result: list[SongListDisplayItem] = []
 		for row in records:
 			rules = []
 			if pathRuleTree:
 				rules = list(pathRuleTree.valuesFlat(cast(str, row["path"])))
-			yield SongListDisplayItem(**row, rules=rules) #pyright: ignore [reportUnknownArgumentType]
+			result.append(SongListDisplayItem(**row, rules=rules))
+		countQuery = select(func.count(1))\
+			.select_from(query.subquery())
+		count = self.conn.execute(countQuery).scalar() or 0
+		return result, count
 
-	def history_count(
+	def get_old_last_played(self, stationid: int) -> Iterator[Tuple[int, float]]:
+		query = select(
+			lp_songFk,
+			lp_timestamp
+		).where(lp_stationFk == stationid)
+		records = self.conn.execute(query)
+		yield from ((row[0], row[1]) for row in records)
+
+	def add_to_last_played(
 		self,
-		stationId: int
+		stationid: int,
+		addura: Iterable[LastPlayedItem]
 	) -> int:
-		query = select(func.count(1)).select_from(station_queue)\
-			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
-			.where(q_stationFk == stationId)
-		query = query.where(uah_timestamp.isnot(None))
-		count = self.conn.execute(query).scalar() or 0
+		lastPlayedInsert = insert(last_played)
+		values = [
+			{
+				"stationfk": stationid,
+				"songfk": e.songid,
+				"timestamp": e.timestamp,
+			} for e in addura]
+		if not values:
+			return 0
+		return self.conn.execute(lastPlayedInsert, values).rowcount
+
+	def update_last_played_timestamps(
+		self,
+		stationid: int,
+		updatera: Iterable[LastPlayedItem]
+	) -> int:
+		updateCount = 0
+		for item in updatera:
+			stmt = update(last_played) \
+				.values(timestamp = item.timestamp) \
+				.where(lp_stationFk == stationid)\
+				.where(lp_songFk == item.songid)
+			updateCount += self.conn.execute(stmt).rowcount
+		return updateCount
+
+	def trim_recently_played(
+		self,
+		stationid: int,
+		beforeTimestamp: float
+	) -> int:
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.TRIM_STATION_QUEUE_HISTORY
+		)
+		count = self.conn.exec_driver_sql(script, {
+			"action": UserRoleDef.STATION_REQUEST.value,
+			"stationid": stationid,
+			"timestamp": beforeTimestamp
+		}).rowcount
 		return count
+
+
+	def squish_station_history(
+		self,
+		stationid: int,
+		beforeTimestamp: float
+	) -> Tuple[int, int, int]:
+		unsquashed, _ = self.get_history_for_station(
+			stationid,
+			limit=None,
+			beforeTimestamp=beforeTimestamp
+		)
+
+		squashed = {row[0]:row[1] for row in self.get_old_last_played(stationid)}
+		addura = [v for v in {
+			e.id:LastPlayedItem(
+				songid = e.id,
+				timestamp = e.playedtimestamp or 0,
+				historyid = e.historyid or 0
+			)
+			for e in reversed(unsquashed) if e.id not in squashed
+		}.values()]
+		updatera = (v for v in {
+			e.id:LastPlayedItem(
+				songid = e.id,
+				timestamp = e.playedtimestamp or 0,
+				historyid = e.historyid or 0
+			)
+			for e in reversed(unsquashed)
+			if e.id in squashed and e.playedtimestamp and
+				squashed[e.id] < e.playedtimestamp
+		}.values())
+		addedCount = self.add_to_last_played(stationid, addura)
+		updatedCount = self.update_last_played_timestamps(stationid, updatera)
+		deletedCount = self.trim_recently_played(stationid, beforeTimestamp)
+		self.conn.commit()
+		return (addedCount, updatedCount, deletedCount)
+
+
 
 
 if __name__ == "__main__":

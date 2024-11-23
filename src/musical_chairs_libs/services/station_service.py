@@ -410,7 +410,7 @@ class StationService:
 		countQuery = select(func.count(1))\
 			.select_from(subquery)\
 			.where(subquery.c.rownum < 2)
-		count = self.conn.execute(countQuery).scalar() or 0 #pyright: ignore [reportUnknownMemberType]
+		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
 
 	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:

@@ -65,8 +65,8 @@ export type SingleOrList<OutT, InT extends OutT | OutT[] | null> =
 
 
 type PropsCoercedToPorNeverOnO<P, O> = {
-	[ k in keyof O]: O[k] extends P ? k : never 
-}[keyof O];	
+	[ k in keyof O]: O[k] extends P ? k : never
+}[keyof O];
 
 export type PropsOfTypePOnO<P, O>= {
 	[k in PropsCoercedToPorNeverOnO<P, O> ]: P

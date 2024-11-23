@@ -66,3 +66,5 @@ GRANT SELECT ON TABLE `<dbName>`.`userroles` TO <apiUser>;
 GRANT UPDATE ON TABLE `<dbName>`.`users` TO <apiUser>;
 GRANT INSERT ON TABLE `<dbName>`.`users` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`users` TO <apiUser>;
+
+GRANT SELECT ON TABLE `<dbName>`.`lastplayed` TO <apiUser>;

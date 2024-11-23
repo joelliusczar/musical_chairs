@@ -68,13 +68,16 @@ export PB_API_KEY="$(__get_pb_api_key__)" &&
 export MC_AUTH_SECRET_KEY="$(__get_api_auth_key__)" &&
 export MC_NAMESPACE_UUID="$(__get_namespace_uuid__)" &&
 export MC_DATABASE_NAME='musical_chairs_db';
-export __DB_SETUP_PASS__="$(__get_db_setup_key__)" &&
+export MC_DB_PASS_SETUP="$(__get_db_setup_key__)" &&
 export MC_DB_PASS_OWNER="$(__get_db_owner_key__)" &&
 export MC_DB_PASS_API="$(__get_api_db_user_key__)" &&
+export MC_DB_PASS_JANITOR="$(__get_janitor_db_user_key__)" &&
 export MC_DB_PASS_RADIO="$(__get_radio_db_user_key__)" &&
 export S3_BUCKET_NAME="$(__get_s3_bucket_name__)" &&
 export S3_REGION_NAME="$(__get_s3_region_name__)" &&
 export AWS_ENDPOINT_URL="$(__get_s3_endpoint__)" &&
+export MC_API_LOG_LEVEL="$MC_API_LOG_LEVEL" &&
+export MC_RADIO_LOG_LEVEL="$MC_RADIO_LOG_LEVEL" &&
 export __ICES_BRANCH__="$(__get_ices_branch__)" &&
 
 RemoteScriptEOF0

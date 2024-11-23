@@ -68,7 +68,7 @@ class SongArtistService:
 				row[sgar_isPrimaryArtist]
 			)
 			for row in records)
-		
+
 	def remove_songs_for_artists(
 		self,
 		songArtists: Union[

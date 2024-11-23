@@ -1,46 +1,27 @@
-import tracemalloc
-from musical_chairs_libs.services import EnvManager
-from sqlalchemy import (
-	select,
-	
+from musical_chairs_libs.services import (
+	StationService,
+	QueueService,
+	EnvManager,
 )
-from musical_chairs_libs.dtos_and_utilities import UserRoleDef
-from musical_chairs_libs.tables import (
-	q_userActionHistoryFk, q_stationFk, q_songFk, uah_pk,
-	uah_queuedTimestamp, uah_action, user_action_history,
-  songs
+from datetime import datetime, timedelta, timezone
+
+envManager = EnvManager()
+conn = envManager.get_configured_janitor_connection(
+	"musical_chairs_db"
 )
-
-
-conn = EnvManager.get_configured_api_connection("musical_chairs_db")
-
-subquery = select(q_userActionHistoryFk.label("fkBob"))\
-	.where(q_stationFk == 3)\
-	.where(q_songFk == 3603)
-
-query = select(user_action_history.c)\
-.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
-.where(uah_pk.in_(subquery))
-# .where(uah_queuedTimestamp == 1716127797.993587)\
-
-query = select(songs.c)
-
-
-tracemalloc.start()
-print(tracemalloc.get_traced_memory())
-result = conn.execution_options().execute(query)
-
-for row in result:
-	pass
-# while row := result.fetchone():
-#     pass
-
-print([round(v/1024) for v in tracemalloc.get_traced_memory()])
-
-# snapshot = tracemalloc.take_snapshot()
-# snapshot.filter_traces([tracemalloc.Filter(True, "sqlalchemy/engine/result")])
-# top_stats = snapshot.statistics("lineno")
-
-# for stat in top_stats:
-#     print(f"{stat.traceback.format()}\n{round(stat.size /1024)}KiB")
-# pass
+try:
+	stationService = StationService(conn)
+	queueService = QueueService(conn, stationService)
+	stations = list(stationService.get_stations())
+	dt = datetime.now(timezone.utc)
+	cutoffDate = (dt - timedelta(days=7)).timestamp()
+	print(f"Cut off date: {cutoffDate}")
+	for station in stations:
+		result = queueService.squish_station_history(station.id, cutoffDate)
+		print(f"Added count: {result[0]}")
+		print(f"Updated count: {result[1]}")
+		print(f"Deleted from queue count: {result[2]}")
+except Exception as e:
+	print(e)
+finally:
+	conn.close()

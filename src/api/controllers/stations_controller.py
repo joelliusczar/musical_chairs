@@ -71,16 +71,15 @@ def history(
 ) -> StationTableData[SongListDisplayItem]:
 	if not station:
 		return StationTableData(totalrows=0, items=[], stationrules=[])
-	history = list(queueService.get_history_for_station(
+	history, totalRows = queueService.get_history_for_station(
 			stationId=station.id,
 			page = page,
 			limit = limit,
 			user=user
-		))
+		)
 	rules =  ActionRule.sorted(
 		station.rules
 	)
-	totalRows = queueService.history_count(stationId=station.id)
 	return StationTableData(
 		totalrows=totalRows,
 		items=history,
@@ -89,6 +88,8 @@ def history(
 
 @router.get("/{ownerkey}/{stationkey}/queue/")
 def queue(
+	limit: int = 50,
+	page: int = Depends(get_page),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
@@ -102,6 +103,8 @@ def queue(
 		)
 	queue = queueService.get_now_playing_and_queue(
 		stationId=station.id,
+		page=page,
+		limit=limit,
 		user=user
 	)
 	queue.stationrules = ActionRule.sorted(

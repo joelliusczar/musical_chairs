@@ -341,5 +341,25 @@ Index(
 	unique=True
 )
 
+last_played = Table('lastplayed', metadata,
+	Column('pk', Integer, primary_key=True, autoincrement=True),
+	Column('stationfk', Integer, ForeignKey('stations.pk'), nullable=False),
+	Column('songfk', Integer, ForeignKey('songs.pk'), nullable=False),
+	Column('timestamp', Double[float], nullable=False)
+)
+
+lp = last_played.c
+lp_stationFk = cast(Column[Integer], lp.stationfk)
+lp_songFk = cast(Column[Integer], lp.songfk)
+lp_timestamp = cast(Column[Double[float]], lp.timestamp)
+
+Index(
+	"idx_lastplayed",
+	lp_stationFk,
+	lp_songFk,
+	unique=True
+)
+
+
 
 

@@ -26,7 +26,7 @@ class DbRootConnectionService:
 	def get_root_connection(self) -> Connection:
 		dbPass = EnvManager.db_setup_pass()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Root: The system is not configured correctly for that.")
 		engineAsRoot = create_engine(
 			f"mysql+pymysql://root:{dbPass}@localhost",
 			#not fully sure why this was needed, but mariadb/sqlalchemy/somebody
@@ -60,7 +60,7 @@ class DbRootConnectionService:
 	def create_app_users(self):
 		dbPass = EnvManager.db_pass_api()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("API: The system is not configured correctly for that.")
 		self.create_db_user(
 			DbUsers.API_USER.value,
 			"localhost",
@@ -69,7 +69,7 @@ class DbRootConnectionService:
 
 		dbPass = EnvManager.db_pass_radio()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Radio:The system is not configured correctly for that.")
 		self.create_db_user(
 			DbUsers.RADIO_USER.value,
 			"localhost",
@@ -78,7 +78,7 @@ class DbRootConnectionService:
 
 		dbPass = EnvManager.db_pass_janitor()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Janitor: The system is not configured correctly for that.")
 		self.create_db_user(
 			DbUsers.JANITOR_USER.value,
 			"localhost",
@@ -88,7 +88,7 @@ class DbRootConnectionService:
 	def create_owner(self):
 		dbPass = EnvManager.db_pass_owner()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("OWNER: The system is not configured correctly for that.")
 		self.create_db_user(
 			DbUsers.OWNER_USER.value,
 			"localhost",
@@ -143,7 +143,7 @@ class DbOwnerConnectionService:
 	def get_owner_connection(self) -> Connection:
 		dbPass = EnvManager.db_pass_owner()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Owner: The system is not configured correctly for that.")
 		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
 		owner = DbUsers.OWNER_USER.value

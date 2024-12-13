@@ -118,7 +118,7 @@ class EnvManager:
 	) -> Connection:
 		dbPass = EnvManager.db_pass_api()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("API: The system is not configured correctly for that.")
 		engine = create_engine(
 			f"mysql+pymysql://{DbUsers.API_USER()}:{dbPass}@localhost/{dbName}",
 			echo=echo,
@@ -134,7 +134,7 @@ class EnvManager:
 	) -> Connection:
 		dbPass = EnvManager.db_pass_janitor()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Janitor: The system is not configured correctly for that.")
 		engine = create_engine(
 			f"mysql+pymysql://{DbUsers.JANITOR_USER()}:{dbPass}@localhost/{dbName}",
 			echo=echo,
@@ -154,7 +154,7 @@ class EnvManager:
 	) -> Connection:
 		dbPass = EnvManager.db_pass_radio()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Radio: The system is not configured correctly for that.")
 		engine = create_engine(
 			f"mysql+pymysql://{DbUsers.RADIO_USER()}:{dbPass}@localhost/{dbName}",
 			echo=echo,

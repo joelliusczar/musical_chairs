@@ -1,0 +1,27 @@
+GIT
+  remote: https://github.com/joelliusczar/salad_prep
+  revision: 26857b0a3864c861ce5ca351c8ca5258a6e9b762
+  specs:
+    salad_prep (0.9.29)
+      base64 (~> 0.2)
+      bigdecimal (~> 3.1)
+      ostruct (~> 0.6)
+      ruby-mysql (~> 4.1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    base64 (0.2.0)
+    bigdecimal (3.1.8)
+    ostruct (0.6.1)
+    ruby-mysql (4.1.0)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  salad_prep!
+
+BUNDLED WITH
+   2.5.16

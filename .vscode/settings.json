@@ -4,7 +4,7 @@
   "workbench.colorCustomizations": {
     "editorRuler.foreground": "#ef40ff"
   },
-  "python.analysis.extraPaths": ["src/tests"],
+  "python.analysis.extraPaths": ["src/tests", "src/api"],
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "strict",
   "python.analysis.indexing": true,
@@ -14,6 +14,10 @@
     "PTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
     "MC_LIB_NAME": "musical_chairs_libs",
     "MC_APP_NAME": "musical_chairs_app",
+    "MC_TEST_ROOT": "${workspaceFolder}/test_trash"
+  },
+  "terminal.integrated.env.linux": {
+    "PTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
     "MC_TEST_ROOT": "${workspaceFolder}/test_trash"
   },
   "python.testing.unittestEnabled": false,

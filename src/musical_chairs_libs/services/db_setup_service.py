@@ -110,8 +110,8 @@ class DbRootConnectionService:
 		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
 	#this method can only be used on test databases
-	def drop_database(self, dbName: str):
-		if not dbName.startswith("test_"):
+	def drop_database(self, dbName: str, force: bool = False):
+		if not dbName.startswith("test_") and not force:
 			raise RuntimeError("only test databases can be removed")
 		if not is_db_name_safe(dbName):
 			raise RuntimeError("Invalid name was used:")

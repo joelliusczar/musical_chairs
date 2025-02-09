@@ -26,19 +26,10 @@ ARGV.clear
 # 	puts(Provincial.egg.ices_config_dir)
 # end
 
-# remote.connect_root
+remote.connect_root
 
 
 
-# connect_root
-# exec(
-# 	"ssh",
-# 	"-ti",
-# 	Provincial.egg.ssh_id_file,
-# 	"root@#{Provincial.egg.ssh_address}",
-# 	"bash -l",
-# )
 
 
-
-remote.deploy(setuplvl, update_salad_prep: true, print_env: true)
+# remote.deploy(setuplvl, update_salad_prep: true, print_env: true)

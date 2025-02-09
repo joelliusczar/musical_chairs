@@ -144,7 +144,7 @@ def test_login_fail(fixture_api_test_client: TestClient):
 	assert data["detail"][0]["msg"] == \
 		"Incorrect username or password"
 
-	formData = {}
+	formData: dict[str, str] = {}
 	response = client.post("/accounts/open", data=formData)
 	data = json.loads(response.content)
 	assert response.status_code == 422

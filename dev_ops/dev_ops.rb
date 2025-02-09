@@ -2,19 +2,18 @@ require "fileutils"
 require "salad_prep"
 
 module Provincial
-	using SaladPrep::Strink
+	using SaladPrep::StringEx
 
 	PackageManagers = SaladPrep::Enums::PackageManagers
+	SetupLvls = SaladPrep::Enums::SetupLvls
+	NODE_VERSION = "22.13.1"
+
+	module SetupLvls
+
+	end
 	
 	class MCEgg < SaladPrep::Egg
-
-		attr_reader :ices_branch
-
-		def initialize(ices_branch:nil, **rest)
-			super(**rest)
-			@ices_branch = ices_branch
-		end
-		
+	
 		def lib
 			"#{project_name_snake}_libs"
 		end
@@ -22,162 +21,92 @@ module Provincial
 		def lib_import
 			"#{project_name_snake}_libs"
 		end
-
-		def s3_api_key(prefer_keys_file: true)
-			env_find(
-				"AWS_ACCESS_KEY_ID",
-				/AWS_ACCESS_KEY_ID=(\w+)/,
-				prefer_keys_file:
-			)
+	
+		mark_for(:init_rq, :deploy_sg, default: nil)
+		def ices_branch
+			@ices_branch
 		end
-
-		def s3_secret_key(prefer_keys_file: true)
-			env_find(
-				"AWS_SECRET_ACCESS_KEY",
-				/AWS_SECRET_ACCESS_KEY=([\w\/\+]+)/,
-				prefer_keys_file:
-			)
-		end
-
-		def s3_bucket_name(prefer_keys_file: true)
-			env_find(
-				"S3_BUCKET_NAME",
-				/S3_BUCKET_NAME=([\w\-]+)/,
-				prefer_keys_file:
-			)
-		end
-
-		def s3_region_name(prefer_keys_file: true)
-			env_find(
-				"S3_REGION_NAME",
-				/S3_REGION_NAME=([\w\-]+)/,
-				prefer_keys_file:
-			)
-		end
-
-		def s3_endpoint(prefer_keys_file: true)
-			env_find(
-				"AWS_ENDPOINT_URL",
-				/AWS_ENDPOINT_URL=(.+)/,
-				prefer_keys_file:
-			)
-		end
-
-		def radio_db_user_key(prefer_keys_file: true)
-			env_find(
-				"MC_DB_PASS_RADIO",
-				/DB_PASS_RADIO=(\w+)/,
-				prefer_keys_file:
-			)
-		end
-
-		def radio_log_level
-			ENV["#{env_prefix}_RADIO_LOG_LEVEL"]
-		end
-
+	
+		mark_for(:server_rq, :deploy_rq, :env_enum)
+		def_env_find(
+			:s3_api_key,
+			"AWS_ACCESS_KEY_ID",
+			nil,
+			:env_key
+		)
+	
+		mark_for(:server_rq, :deploy_rq, :env_enum)
+		def_env_find(
+			:s3_secret_key,
+			"AWS_SECRET_ACCESS_KEY",
+			nil,
+			:env_key
+		)
+	
+		mark_for(:server_rq, :deploy_rq, :env_enum)
+		def_env_find(
+			:s3_bucket_name,
+			"S3_BUCKET_NAME",
+			nil,
+			:env_key
+		)
+	
+		mark_for(:server_rq, :deploy_rq, :env_enum)
+		def_env_find(
+			:s3_region_name,
+			"S3_REGION_NAME",
+			nil,
+			:env_key
+		)
+	
+		mark_for(:server_rq, :deploy_rq, :env_enum)
+		def_env_find(
+			:s3_endpoint,
+			"AWS_ENDPOINT_URL",
+			nil,
+			:env_key
+		)
+	
+		mark_for(
+			:server_rq,
+			:deploy_rq,
+			:env_enum,
+			gen_key: SecureRandom.alphanumeric(32)
+		)
+		def_env_find(
+			:radio_db_user_key,
+			"DB_PASS_RADIO",
+			/DB_PASS_RADIO=(\w+)/
+		)
+	
+		mark_for(:deploy_sg, :env_enum)
+		def_env_find(:radio_log_level, "RADIO_LOG_LEVEL")
+	
+		mark_for(
+			fixed_dir: false,
+			prefixed_env_key: "ICES_CONFIGS_DIR"
+		)
 		def ices_config_dir(abs:true)
 			suffix = File.join(app_trunk, "ices_configs")
 			abs_suffix(suffix, abs)
 		end
-
+	
+		mark_for(
+			fixed_dir: false,
+			prefixed_env_key: "PY_MODULE_DIR"
+		)
 		def py_modules_dir(abs:true)
 			suffix = File.join(app_trunk, "pyModules")
 			abs_suffix(suffix, abs)
 		end
 
-		def env_hash(prefer_keys_file: true)
-			{
-				**super,
-
-				"AWS_ACCESS_KEY_ID" =>
-					s3_api_key(prefer_keys_file:),
-
-				"AWS_SECRET_ACCESS_KEY" => 
-					s3_secret_key(prefer_keys_file:),
-
-				"S3_BUCKET_NAME" =>
-					s3_bucket_name(prefer_keys_file:),
-
-				"S3_REGION_NAME" =>
-					s3_region_name(prefer_keys_file:),
-
-				"AWS_ENDPOINT_URL" =>
-					s3_endpoint(prefer_keys_file:),
-
-				"MC_DB_PASS_RADIO" =>
-					radio_db_user_key(prefer_keys_file:)
-			}
-		end
-
-		def local_env_hash
-			{
-				**super,
-				"MC_ICES_CONFIGS_DIR" => ices_config_dir(abs: false),
-				"MC_PY_MODULE_DIR" => py_modules_dir(abs: false)
-			}
-		end
-
-		def generate_initial_keys_file
-			super do |file|
-			end
-		end
-
-		def server_env_check_recommended
-			result = super
-			result.push("ices_branch") if ices_branch.zero?
-			result
-		end
-
-		def server_env_check_required
-			result = super
-			result.push("s3_api_key") if s3_api_key(prefer_keys_file: false).zero?
-			result.push("s3_secret_key") \
-				if s3_secret_key(prefer_keys_file: false).zero?
-			result.push("s3_bucket_name") \
-				if s3_bucket_name(prefer_keys_file: false).zero?
-			result.push("s3_region_name") \
-				if s3_region_name(prefer_keys_file: false).zero?
-			result.push("s3_endpoint") if s3_endpoint(prefer_keys_file: false).zero?
-			result.push("radio_db_user_key") \
-				if radio_db_user_key(prefer_keys_file: false).zero?
-			result
-		end
-
-		def deployment_env_check_recommended
-			result = super
-			result.push("radio_log_level") if radio_log_level.zero?
-			result
-		end
-
-		def deployment_env_check_required
-			result = super
-			result.push("s3_api_key") if s3_api_key.zero?
-			result.push("s3_secret_key") if s3_secret_key.zero?
-			result.push("s3_bucket_name") if s3_bucket_name.zero?
-			result.push("s3_region_name") if s3_region_name.zero?
-			result.push("s3_endpoint") if s3_endpoint.zero?
-			result.push("radio_db_user_key") if radio_db_user_key.zero?
-			result
-		end
-
-		def dev_env_check_required
-			result = super
-			result.push("s3_api_key") if s3_api_key(prefer_keys_file: false).zero?
-			result.push("s3_secret_key") \
-				if s3_secret_key(prefer_keys_file: false).zero?
-			result.push("s3_bucket_name") \
-				if s3_bucket_name(prefer_keys_file: false).zero?
-			result.push("s3_region_name") \
-				if s3_region_name(prefer_keys_file: false).zero?
-			result.push("s3_endpoint") if s3_endpoint(prefer_keys_file: false).zero?
-			result.push("radio_db_user_key") \
-				if radio_db_user_key(prefer_keys_file: false).zero?
-			result
+		def app_lvl_definitions_script_path
+			__FILE__
 		end
 		
 	end
 
-	class MCBrickStack < SaladPrep::BrickStack
+	class MCBoxBox < SaladPrep::BoxBox
 		def setup_app_directories
 			super
 			FileUtils.mkdir_p(@egg.ices_config_dir)
@@ -260,15 +189,15 @@ module Provincial
 			(installed_version <=> min_version) > -1
 		end
 
-		def install_ices()
+		def install()
 			if ! SaladPrep::BoxBox.is_installed?(ices_command) \
 				|| ! is_installed_version_good?
 			then
-				install_ices_unchecked()
+				install_unchecked()
 			end
 		end
 
-		def install_ices_unchecked()
+		def install_unchecked()
 			@radio_launcher.shutdown_all_stations
 			install_dependencies
 			ices_build_dir = File.join(@egg.build_dir, "ices")
@@ -314,20 +243,32 @@ module Provincial
 			egg:,
 			monty:,
 			ices_installer:,
-			radio_launcher:
+			radio_launcher:,
+			w_spoon:
 		)
 			super(egg)
 			@monty = monty
 			@ices_installer = ices_installer
 			@radio_launcher = radio_launcher
+			@w_spoon = w_spoon
 		end
 
 		def install_dependencies
 			self.class.curl
-			self.class.nodejs
 			self.class.python_full(@egg, @monty)
+			self.class.nodejs(NODE_VERSION)
+			self.class.mariadb(@egg.db_setup_key(prefer_keys_file: false))
+			self.class.sqlite
 			self.class.icecast(@radio_launcher)
-			@ices_installer.install_ices()
+			@ices_installer.install()
+			self.class.openssl
+			self.class.ca_certificates
+			self.class.nginx_and_setup(@egg, @w_spoon)
+		end
+
+		def install_local_dependencies
+			super
+			self.class.nodejs(NODE_VERSION)
 		end
 
 		def self.icecast(radio_launcher)
@@ -358,12 +299,12 @@ module Provincial
 		def initialize(
 			egg:,
 			monty:,
-			brick_stack:,
+			box_box:,
 			dbass:
 		)
 			@egg = egg
 			@monty = monty
-			@brick_stack = brick_stack
+			@box_box = box_box
 			@dbass = dbass
 		end
 
@@ -396,8 +337,10 @@ module Provincial
 			case Gem::Platform::local.os
 				when SaladPrep::Enums::BoxOSes::LINUX
 					if ! system("systemctl", "is-active", "--quiet", service_name)
-						system("systemctl", "enable", service_name)
-						system("systemctl", "start", service_name)
+						SaladPrep::BoxBox.run_root_block do
+							system("sudo","systemctl", "enable", service_name)
+							system("sudo","systemctl", "start", service_name)
+						end
 					end
 				else
 					raise "OS is not configured icecast"
@@ -430,17 +373,19 @@ module Provincial
 			relay_pass,
 			admin_pass
 		)
-			FileHerder::update_in_place(icecast_conf_path) do |l|
-				if /source-password/ =~ l
-					l.gsub(/>\w*/,">#{src_pass}")
-				elsif /relay-password/ =~ l
-					l.gsub(/>\w*/,">#{relay_pass}")
-				elsif /admin-password/ =~ l
-					l.gsub(/>\w*/,">#{admin_pass}")
-				elsif /<bind-address>/ =~ l
-					l.gsub(%r{^([ \t]*)<.*},"\1<bind-address>::</bind-address>")
-				else
-					l
+			SaladPrep::BoxBox.run_root_block do
+				SaladPrep::FileHerder::update_in_place(icecast_conf_path) do |l|
+					if /source-password/ =~ l
+						l.gsub(/>\w*/,">#{src_pass}")
+					elsif /relay-password/ =~ l
+						l.gsub(/>\w*/,">#{relay_pass}")
+					elsif /admin-password/ =~ l
+						l.gsub(/>\w*/,">#{admin_pass}")
+					elsif /<bind-address>/ =~ l
+						l.gsub(%r{^([ \t]*)<.*},"\1<bind-address>::</bind-address>")
+					else
+						l
+					end
 				end
 			end
 		end
@@ -473,13 +418,15 @@ module Provincial
 				src_pass
 			)
 			update_all_ices_confs(src_pass)
-			system("systemctl", "restart", name, exception: true)
+			SaladPrep::BoxBox.run_root_block do
+				system("sudo","systemctl", "restart", name, exception: true)
+			end
 		end
 
 		def setup_radio
 			shutdown_all_stations
 			@monty.sync_requirement_list
-			@brick_stack.sync_utility_scripts
+			@box_box.sync_utility_scripts
 			@monty.create_py_env_in_app_trunk
 			FileHerder.copy_dir(
 				@egg.templates_src,
@@ -613,6 +560,10 @@ module Provincial
 			@monty = monty
 		end
 
+		def backup_db(backup_lvl: Enums::BackupLvl::ALL)
+			super(backup_lvl:, has_bin: true)
+		end
+
 		def setup_db
 			replace_sql_scripts
 			root_hash=`mysql -srN -e \
@@ -631,7 +582,7 @@ module Provincial
 			@monty.run_python_script(script)
 		end
 
-		def teardown_db
+		def teardown_db(force: false)
 			script = <<~CODE
 				from musical_chairs_libs.services import (
 					DbRootConnectionService,
@@ -640,68 +591,50 @@ module Provincial
 
 				with DbRootConnectionService() as rootConnService:
 					rootConnService.drop_all_users()
-					rootConnService.drop_database("musical chairs_db")
+					rootConnService.drop_database(
+						"musical_chairs_db",
+						#{force ? "True" : "False"}
+					)
 			CODE
 			@monty.run_python_script(script)
 		end
 
+		def backup_tables_list
+			[
+				"users",
+				"artists",
+				"albums",
+				"songs",
+				"songsartists",
+				"songcovers",
+				"stations",
+				"stationssongs",
+				"userroles",
+				"stationuserpermissions",
+				"pathuserpermissions",
+				"frienduserpermissions"
+			]
+		end
+
 	end
 
-	module SaladPrep::Enums::SetupLvls
+	module SetupLvls
 		RADIO = "radio"
 		ICES = "ices"
 	end
 
 	class MCRemote < SaladPrep::Remote
-		def ruby_script(setup_lvl, current_branch)
-			ruby_content = SaladPrep::Resorcerer.ruby_template_compile(
-				setup_lvl:setup_lvl,
-				current_branch: current_branch
-			)
-			dev_ops_path = File.join(
-				@egg.repo_path,
-				"dev_ops",
-				"dev_ops.rb"
-			)
-			File.open(dev_ops_path).read ^ ruby_content
-		end
 	
-	end
-	
-	class MCFarPort < SaladPrep::FarPort
-
-		def initialize(
-			radio_launcher:,
-			ices_installer:,
-			**rest
-		)
-			super(**rest)
-			@radio_launcher = radio_launcher
-			@ices_installer =  ices_installer
-		end
-
-		def remote_setup_path(setup_lvl)
-			super(setup_lvl) do 
-				if setup_lvl == saladPrep::Enums::SetupLvls.RADIO
-					@radio_launcher.setup_radio
-				elsif setup_lvl == saladPrep::Enums::SetupLvls.ICES
-					@ices_installer.install_ices_unchecked()
-				end
-			end
-		end
-
 	end
 
 	class MCBinstallion < SaladPrep::Binstallion
 
-		def install_bins
+		def build_actions
 			super
-			install_py_env_if_needed
+			yield install_py_env_if_needed
 		end
 
 	end
-	
-	
 	
 	@egg = MCEgg.new(
 		project_name_0: "musical chairs",
@@ -716,24 +649,28 @@ module Provincial
 	generated_file_dir = File.join(@egg.lib_src, "dtos_and_utilities")
 	
 	
-	@brick_stack = MCBrickStack.new(@egg)
+	@box_box = MCBoxBox.new(@egg)
 	@monty = SaladPrep::Monty.new(
 		@egg, 
 		generated_file_dir: generated_file_dir
 	)
 	@dbass = MCDbAss.new(@egg, @monty)
 	@w_spoon = SaladPrep::WSpoon.new(@egg, SaladPrep::Resorcerer)
+	@remote = MCRemote.new(@egg)
 	@api_launcher = SaladPrep::PyAPILauncher.new(
 		egg: @egg,
 		dbass: @dbass,
 		w_spoon: @w_spoon,
 		monty: @monty
 	)
-	@client_launcher = SaladPrep::ClientLauncher.new(@egg)
+	@client_launcher = SaladPrep::NodeClientLauncher.new(
+		@egg, 
+		node_version: NODE_VERSION
+	)
 	@radio_launcher = RadioLauncher.new(
 		egg: @egg,
 		monty: @monty,
-		brick_stack: @brick_stack,
+		box_box: @box_box,
 		dbass: @dbass
 	)
 	@ices_installer = IcesInstaller.new(
@@ -747,15 +684,8 @@ module Provincial
 		egg: @egg,
 		monty: @monty,
 		ices_installer: @ices_installer,
-		radio_launcher: @radio_launcher
-	)
-	@far_port = MCFarPort.new(
-		egg: @egg,
-		api_launcher: @api_launcher,
-		client_launcher: @client_launcher,
 		radio_launcher: @radio_launcher,
-		installer: @installer,
-		ices_installer: @ices_installer
+		w_spoon: @w_spoon
 	)
 	@binstallion = MCBinstallion.new(
 		@egg,
@@ -765,13 +695,19 @@ module Provincial
 			"dev_ops.rb"
 		)
 	)
+	@test_honcho = SaladPrep::PyTestHoncho.new(
+		egg: @egg,
+		dbass: @dbass,
+		box_box: @box_box,
+		monty: @monty
+	)
 
 	def self.egg
 		@egg
 	end
 
-	def self.brick_stack
-		@brick_stack
+	def self.box_box
+		@box_box
 	end
 
 	def self.dbass
@@ -786,6 +722,10 @@ module Provincial
 		@monty
 	end
 
+	def self.remote
+		@remote
+	end
+
 	def self.api_launcher
 		@api_launcher
 	end
@@ -798,12 +738,26 @@ module Provincial
 		@radio_launcher
 	end
 
-	def self.far_port
-		@far_port
+	def self.installion
+		@installer
 	end
 
 	def self.binstallion
 		@binstallion
 	end
+
+	def self.test_honcho
+		@test_honcho
+	end
+
+	def self.w_spoon
+		@w_spoon
+	end
+
+	Resorcerer = SaladPrep::Resorcerer
+	Canary = SaladPrep::Canary
+	BoxBox = SaladPrep::BoxBox
+	Toob = SaladPrep::Toob
+
 
 end

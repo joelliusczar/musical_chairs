@@ -425,8 +425,6 @@ module Provincial
 
 		def setup_radio
 			shutdown_all_stations
-			@monty.sync_requirement_list
-			@box_box.sync_utility_scripts
 			@monty.create_py_env_in_app_trunk
 			FileHerder.copy_dir(
 				@egg.templates_src,

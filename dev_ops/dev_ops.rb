@@ -709,8 +709,7 @@ module Provincial
 		@egg,
 		File.join(
 			@egg.repo_path,
-			"dev_ops",
-			"dev_ops.rb"
+			"dev_ops"
 		)
 	)
 	@test_honcho = SaladPrep::PyTestHoncho.new(

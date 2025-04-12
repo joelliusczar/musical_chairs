@@ -17,12 +17,12 @@ class EnvManager:
 	@classmethod
 	def app_root(cls) -> str:
 		if EnvManager.test_flag():
-			return os.environ["MC_TEST_ROOT"]
-		return os.environ["MC_APP_ROOT"]
+			return os.environ["MCR_TEST_ROOT"]
+		return os.environ["MCR_APP_ROOT"]
 
 	@classmethod
 	def relative_content_home(cls) -> str:
-		contentHome = os.environ["MC_CONTENT_DIR"]
+		contentHome = os.environ["MCR_CONTENT_DIR"]
 		return contentHome
 
 	@classmethod
@@ -31,56 +31,56 @@ class EnvManager:
 
 	@classmethod
 	def db_setup_pass(cls) -> str:
-		return os.environ.get("MC_DB_PASS_SETUP", "")
+		return os.environ.get("MCR_DB_PASS_SETUP", "")
 
 	@classmethod
 	def db_pass_api(cls) -> str:
-		return os.environ.get("MC_DB_PASS_API", "")
+		return os.environ.get("MCR_DB_PASS_API", "")
 
 	@classmethod
 	def db_pass_radio(cls) -> str:
-		return os.environ.get("MC_DB_PASS_RADIO", "")
+		return os.environ.get("MCR_DB_PASS_RADIO", "")
 
 	@classmethod
 	def db_pass_janitor(cls) -> str:
-		return os.environ.get("MC_DB_PASS_JANITOR", "")
+		return os.environ.get("MCR_DB_PASS_JANITOR", "")
 
 	@classmethod
 	def db_pass_owner(cls) -> str:
-		return os.environ.get("MC_DB_PASS_OWNER", "")
+		return os.environ.get("MCR_DB_PASS_OWNER", "")
 
 	@classmethod
 	def namespace_uuid(cls) -> UUID:
-		return UUID(os.environ.get("MC_NAMESPACE_UUID", ""))
+		return UUID(os.environ.get("MCR_NAMESPACE_UUID", ""))
 
 	@classmethod
 	def templates_dir(cls) -> str:
-		templateDir = os.environ["MC_TEMPLATES_DEST"]
+		templateDir = os.environ["MCR_TEMPLATES_DEST"]
 		return f"{EnvManager.app_root()}/{templateDir}"
 
 	@classmethod
 	def station_config_dir(cls) -> str:
-		configDir = os.environ["MC_ICES_CONFIGS_DIR"]
+		configDir = os.environ["MCR_ICES_CONFIGS_DIR"]
 		return f"{EnvManager.app_root()}/{configDir}"
 
 	@classmethod
 	def station_module_dir(cls) -> str:
-		moduleDir = os.environ["MC_PY_MODULE_DIR"]
+		moduleDir = os.environ["MCR_PY_MODULE_DIR"]
 		return f"{EnvManager.app_root()}/{moduleDir}"
 
 	@classmethod
 	def sql_script_dir(cls) -> str:
-		moduleDir = os.environ["MC_SQL_SCRIPTS_DEST"]
+		moduleDir = os.environ["MCR_SQL_SCRIPTS_DEST"]
 		return f"{EnvManager.app_root()}/{moduleDir}"
 
 	@classmethod
 	def radio_logs_dir(cls) -> str:
-		radioLogDir = os.environ["MC_RADIO_LOG_DIR_CL"]
+		radioLogDir = os.environ["MCR_RADIO_LOG_DIR_CL"]
 		return f"{EnvManager.app_root()}/{radioLogDir}"
 
 	@classmethod
 	def db_name(cls) -> str:
-		return os.environ["MC_DATABASE_NAME"]
+		return os.environ["MCR_DATABASE_NAME"]
 
 	@classmethod
 	def s3_bucket_name(cls) -> str:
@@ -100,7 +100,7 @@ class EnvManager:
 
 	@classmethod
 	def secret_key(cls) -> str:
-		return os.environ["MC_AUTH_SECRET_KEY"]
+		return os.environ["MCR_AUTH_SECRET_KEY"]
 
 	@classmethod
 	def api_log_level(cls) -> str:

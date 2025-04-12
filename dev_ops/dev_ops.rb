@@ -629,18 +629,36 @@ module Provincial
 
 	class MCBinstallion < SaladPrep::Binstallion
 
-		def build_actions
-			super
-			yield install_py_env_if_needed
+		mark_for(:sh_cmd)
+		def_cmd("deploy_radio") do
+			body = <<~CODE
+				current_branch = args_hash["-branch"]
+				if current_branch.zero?
+					current_branch = `git branch --show-current 2>/dev/null`.strip
+				end
+				Provincial.egg.load_env
+				return unless Provincial.remote.pre_deployment_check(
+					current_branch:,
+					test_honcho: Provincial.test_honcho
+				)
+				remote_script = Provincial.egg.env_exports
+				remote_script ^= "asdf shell ruby <%= @ruby_version %>"
+				remote_script ^= wrap_ruby(<<~REMOTE, args_hash)
+					Provincial.box_box.setup_build_dir
+					Provincial.radio_launcher.setup_radio
+				REMOTE
+				Provincial.remote.run_remote(remote_script)
+			CODE
+			ERB.new(body, trim_mode:">").result(binding)
 		end
 
 	end
 	
 	@egg = MCEgg.new(
 		project_name_0: "musical chairs",
-		local_repo_path: ENV["MC_LOCAL_REPO_DIR"],
-		repo_url: ENV["MC_REPO_URL"],
-		env_prefix: "MC",
+		local_repo_path: ENV["MCR_LOCAL_REPO_DIR"],
+		repo_url: ENV["MCR_REPO_URL"],
+		env_prefix: "MCR",
 		url_base: "musicalchairs",
 		tld: "radio.fm",
 		db_owner_name: "mc_owner"

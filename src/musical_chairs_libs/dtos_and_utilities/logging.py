@@ -3,11 +3,11 @@ import sys
 import os
 
 api_log_level = os.environ.get(
-	"MC_API_LOG_LEVEL",
+	"MCR_API_LOG_LEVEL",
 	""
 ) or builtin_logging.getLevelName(builtin_logging.WARNING)
 radio_log_level = os.environ.get(
-	"MC_RADIO_LOG_LEVEL",
+	"MCR_RADIO_LOG_LEVEL",
 	""
 ) or builtin_logging.getLevelName(builtin_logging.WARNING)
 

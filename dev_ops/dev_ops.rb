@@ -391,7 +391,7 @@ module Provincial
 		end
 
 		def update_ices_config(conf, src_pass)
-			FileHerder::update_in_place(conf) do |l|
+			SaladPrep::FileHerder::update_in_place(conf) do |l|
 				if /Password/ =~ l
 					l.gsub(/>\w*/,">#{src_pass}")
 				else
@@ -426,7 +426,7 @@ module Provincial
 		def setup_radio
 			shutdown_all_stations
 			@monty.create_py_env_in_app_trunk
-			FileHerder.copy_dir(
+			SaladPrep::FileHerder.copy_dir(
 				@egg.templates_src,
 				@egg.template_dest
 			)

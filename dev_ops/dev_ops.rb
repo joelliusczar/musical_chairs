@@ -324,7 +324,7 @@ module Provincial
 		def sync_station_module
 			src = File.join(
 				@egg.template_dest,
-				socket_template.py
+				"socket_template.py"
 			)
 			dest = File.join(
 				@egg.py_modules_dir(abs: false),

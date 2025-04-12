@@ -634,7 +634,7 @@ module Provincial
 			body = <<~CODE
 				current_branch = args_hash["-branch"]
 				if current_branch.zero?
-					current_branch = `git branch --show-current 2>/dev/null`.strip
+					current_branch = get_current_branch
 				end
 				Provincial.egg.load_env
 				return unless Provincial.remote.pre_deployment_check(
@@ -644,7 +644,7 @@ module Provincial
 				remote_script = Provincial.egg.env_exports
 				remote_script ^= "asdf shell ruby <%= @ruby_version %>"
 				remote_script ^= wrap_ruby(<<~REMOTE, args_hash)
-					Provincial.box_box.setup_build_dir
+					Provincial.box_box.setup_build_dir(current_branch: "\\${current_branch}")
 					Provincial.radio_launcher.setup_radio
 				REMOTE
 				Provincial.remote.run_remote(remote_script)

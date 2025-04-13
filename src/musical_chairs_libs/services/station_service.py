@@ -8,7 +8,8 @@ from typing import (
 	Iterable,
 	Union,
 	Collection,
-	Tuple
+	Tuple,
+	Sequence
 )
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import RowMapping
@@ -445,7 +446,7 @@ class StationService:
 		return self.__is_stationName_used__(id, cleanedStationName, userId)
 
 	def __create_initial_owner_rules__(self, stationId: int, userId: int):
-		rules = [{
+		rules: list[dict[str, Any]] = [{
 				"userfk": userId,
 				"stationfk": stationId,
 				"role": UserRoleDef.STATION_FLIP.value,
@@ -644,7 +645,7 @@ class StationService:
 	def unset_station_procs(
 		self,
 		procIds: Optional[Iterable[int]]=None,
-		stationIds: Union[int,Iterable[int], None]=None,
+		stationIds: Union[int,Sequence[int], None]=None,
 	) -> None:
 		stmt = update(stations_tbl)\
 			.values(procid = None)
@@ -717,6 +718,7 @@ class StationService:
 		stationIds: Iterable[int],
 		ownerKey: Union[int, str, None]=None
 	) -> None:
+		stationIds = list(stationIds)
 		logging.radioLogger.debug(f"disable {stationIds}")
 		query = select(st_procId).where(st_procId.is_not(None))
 		if ownerKey:

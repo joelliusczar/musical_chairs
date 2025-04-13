@@ -1,5 +1,12 @@
 import sys
-from typing import (Any, Optional, Iterable, Iterator, Callable)
+from typing import (
+	Any, 
+	Optional, 
+	Iterable, 
+	Iterator, 
+	Callable,
+	Type
+)
 from .generic_dtos import MCBaseClass
 from .user_role_def import UserRoleDomain, RulePriorityLevel
 from itertools import groupby, chain
@@ -247,7 +254,7 @@ class PathsActionRule(ActionRule):
 		return self.score >= other.score
 
 
-action_rule_class_map = {
+action_rule_class_map: dict[str, Type[ActionRule]] = {
 	UserRoleDomain.Path.value: PathsActionRule,
 	UserRoleDomain.Station.value: StationActionRule,
 	UserRoleDomain.Site.value: ActionRule

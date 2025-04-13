@@ -310,11 +310,11 @@ module Provincial
 
 
 		def icecast_name
-			if SaladPrep::BoxBox.is_installed(
+			if SaladPrep::BoxBox.is_installed?(
 				SaladPrep::Enums::PackageManagers::APTGET
 			) then
 				"icecast2"
-			elsif SaladPrep::BoxBox.is_installed(
+			elsif SaladPrep::BoxBox.is_installed?(
 				SaladPrep::Enums::PackageManagers::PACMAN
 			) then
 				"icecast"

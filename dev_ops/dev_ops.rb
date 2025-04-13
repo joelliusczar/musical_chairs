@@ -409,7 +409,7 @@ module Provincial
 		def setup_icecast_confs
 			name = icecast_name
 			start_icecast_service(name)
-			icecast_conf_path = get_icecast_conf(name)
+			icecast_conf_path = icecast_conf(name)
 			src_pass = SecureRandom.alphanumeric(32)
 			update_icecast_conf(
 				icecast_conf_path,

@@ -33,7 +33,6 @@ def __start_ices__(
 			 "MCR_CONTENT_HOME": EnvManager.relative_content_home(),
 			 "MCR_APP_ROOT": EnvManager.app_root(),
 			 "MCR_DB_PASS_RADIO": EnvManager.db_pass_radio(),
-			 "MCR_RADIO_LOG_DIR_CL": EnvManager.radio_logs_dir(),
 			 "MCR_DATABASE_NAME": EnvManager.db_name()
 			}
 	)
@@ -63,8 +62,8 @@ class ProcessService:
 			logging.radioLogger.info(f"Sending signal to end process {procId}")
 			os.kill(procId, 15)
 		except Exception as ex:
-			logging.radioLogger.warn("Encountered issue when killing process")
-			logging.radioLogger.warn(ex)
+			logging.radioLogger.warning("Encountered issue when killing process")
+			logging.radioLogger.warning(ex)
 
 	@staticmethod
 	def start_station_mc_ices(

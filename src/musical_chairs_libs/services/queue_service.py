@@ -516,7 +516,7 @@ class QueueService:
 		addura: Iterable[LastPlayedItem]
 	) -> int:
 		lastPlayedInsert = insert(last_played)
-		values = [
+		values: list[dict[str, Any]] = [
 			{
 				"stationfk": stationid,
 				"songfk": e.songid,

@@ -74,11 +74,6 @@ class EnvManager:
 		return f"{EnvManager.app_root()}/{moduleDir}"
 
 	@classmethod
-	def radio_logs_dir(cls) -> str:
-		radioLogDir = os.environ["MCR_RADIO_LOG_DIR_CL"]
-		return f"{EnvManager.app_root()}/{radioLogDir}"
-
-	@classmethod
 	def db_name(cls) -> str:
 		return os.environ["MCR_DATABASE_NAME"]
 

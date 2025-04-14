@@ -39,7 +39,7 @@ def close_db_connection(conn: Connection, connName: str):
 	try:
 		conn.close()
 	except:
-		logging.radioLogger.warning("Could not close the  {connName} connection")
+		logging.radioLogger.warning(f"Could not close the  {connName} connection")
 
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):

@@ -651,6 +651,52 @@ module Provincial
 		end
 
 	end
+
+	Resorcerer.class_eval do
+		def self.nginx_template
+			conf = <<~CONF
+				server {
+					listen [::]:80;
+					server_name <SERVER_NAME>;
+
+					return 301 https://$host$request_uri;
+				}
+
+				server {
+					listen <listen>;
+					#should be the public key
+					ssl_certificate <ssl_public_key>;
+					#should be the private key
+					ssl_certificate_key <ssl_private_key>;
+					#should be the intermediate key if relevant
+					#apparently this isn't needed anymore with porkbun?
+					#ssl_trusted_certificate <ssl_intermediate>;
+					client_max_body_size 0;
+					location /api/<API_VERSION>/ {
+						proxy_pass http://127.0.0.1:<API_PORT>/;
+					}
+
+					location /docs {
+						proxy_pass http://127.0.0.1:<API_PORT>/docs;
+					}
+
+					location /openapi.json {
+						proxy_pass http://127.0.0.1:<API_PORT>;
+					}
+
+					location /listen/stream/ {
+						proxy_pass http://127.0.0.1:8000/;
+					}
+
+					location / {
+						root <CLIENT_DEST>;
+						try_files $uri /index.html =404;
+					}
+					server_name <SERVER_NAME>;
+				}
+			CONF
+		end
+	end
 	
 	@egg = MCEgg.new(
 		project_name_0: "musical chairs",

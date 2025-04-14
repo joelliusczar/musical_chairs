@@ -35,7 +35,7 @@ class SocketRadioHandle:
 	def ices_get_next(self) -> str:
 		if not self.client:
 			host = "127.0.0.1"
-			portNumber = int(os.environ["MC_STATION_PORT"])
+			portNumber = int(os.environ["MCR_STATION_PORT"])
 			self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			self.client.connect((host, portNumber))
 		try:

@@ -164,7 +164,7 @@ def send_next(
 					logging.radioLogger.error("mc-ices errored out.")
 					break
 				if stopRunning:
-						logging.radioLogger.warn("stopLoading is set")
+						logging.radioLogger.warning("stopLoading is set")
 						break
 				#don't want to wait for 'next' signal from ices when it doesn't
 				#hasn't had anything to process

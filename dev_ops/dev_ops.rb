@@ -4,6 +4,7 @@ require "salad_prep"
 module Provincial
 	using SaladPrep::StringEx
 
+	Resorcerer = SaladPrep::Resorcerer
 	PackageManagers = SaladPrep::Enums::PackageManagers
 	SetupLvls = SaladPrep::Enums::SetupLvls
 	NODE_VERSION = "22.13.1"

@@ -816,7 +816,6 @@ module Provincial
 		@w_spoon
 	end
 
-	Resorcerer = SaladPrep::Resorcerer
 	Canary = SaladPrep::Canary
 	BoxBox = SaladPrep::BoxBox
 	Toob = SaladPrep::Toob

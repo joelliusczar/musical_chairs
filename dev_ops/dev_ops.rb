@@ -631,7 +631,7 @@ module Provincial
 		mark_for(:sh_cmd)
 		def_cmd("deploy_radio") do
 			body = <<~CODE
-				current_branch = args_hash["-branch"]
+				current_branch = @args_hash["-branch"]
 				if current_branch.zero?
 					current_branch = get_current_branch
 				end
@@ -642,7 +642,7 @@ module Provincial
 				)
 				remote_script = Provincial.egg.env_exports
 				remote_script ^= "asdf shell ruby <%= @ruby_version %>"
-				remote_script ^= wrap_ruby(<<~REMOTE, args_hash)
+				remote_script ^= wrap_ruby(<<~REMOTE)
 					Provincial.box_box.setup_build_dir(current_branch: "\#{current_branch}")
 					Provincial.radio_launcher.setup_radio
 				REMOTE

@@ -2,7 +2,7 @@
 import boto3
 import hashlib
 from botocore.client import Config
-from typing import BinaryIO, cast, Tuple
+from typing import BinaryIO, cast, Tuple, Any
 from ..env_manager import EnvManager
 from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import (
@@ -28,7 +28,7 @@ class S3FileService(FileService):
 	def extract_song_info(self, file: BinaryIO) -> SongAboutInfo:
 		try:
 			songAboutInfo = SongAboutInfo()
-			tag = TinyTag.get(file_obj=file) #pyright: ignore [reportUnknownMemberType]
+			tag = cast(Any, TinyTag.get(file_obj=file)) #pyright: ignore [reportUnknownMemberType]
 			artist = next(
 				self.artist_service.get_artists(
 					artistKeys=tag.artist,

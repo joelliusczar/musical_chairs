@@ -53,6 +53,11 @@ export const ArtistEdit = (props: ArtistEditProps) => {
 					name="name"
 					label="Name"
 					formMethods={formMethods}
+					onKeyUp={e => {
+						if (e.code === "Enter") {
+							callSubmit(e);
+						}
+					}}
 				/>
 			</Box>
 			<Box sx={inputField} >

@@ -2,7 +2,7 @@
 import hashlib
 from tinytag import TinyTag
 from pathlib import Path
-from typing import BinaryIO, Tuple
+from typing import BinaryIO, Tuple, Any, cast
 from ..env_manager import EnvManager
 from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import SongAboutInfo
@@ -28,7 +28,7 @@ class LocalFileService(FileService):
 	def extract_song_info(self, file: BinaryIO) -> SongAboutInfo:
 		try:
 			songAboutInfo = SongAboutInfo()
-			tag = TinyTag.get(file_obj=file) #pyright: ignore [reportUnknownMemberType]
+			tag = cast(Any, TinyTag.get(file_obj=file)) #pyright: ignore [reportUnknownMemberType]
 			artist = next(
 				self.artist_service.get_artists(
 					artistKeys=tag.artist,

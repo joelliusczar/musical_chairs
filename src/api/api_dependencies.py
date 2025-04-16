@@ -143,12 +143,6 @@ def file_service(
 ) -> FileService:
 	return S3FileService(artistService, albumService)
 
-def dl_url_file_service(
-	artistService: ArtistService = Depends(artist_service),
-	albumService: AlbumService = Depends(album_service)
-) -> FileService:
-	return S3FileService(artistService, albumService)
-
 def song_file_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	fileService: FileService=Depends(file_service)

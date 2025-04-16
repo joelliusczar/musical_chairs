@@ -113,6 +113,11 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 					name="suffix"
 					label="Name"
 					formMethods={formMethods}
+					onKeyUp={e => {
+						if (e.code === "Enter") {
+							callSubmit(e);
+						}
+					}}
 				/>
 			</Box>
 

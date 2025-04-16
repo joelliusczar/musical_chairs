@@ -391,7 +391,13 @@ export const SongEdit = () => {
 					</Box>
 					<>
 						{canEditSongs && <Box sx={inputField}>
-							<ArtistNewModalOpener add={addArtist} />
+							<ArtistNewModalOpener add={(artist) => {
+								addArtist(artist);
+								const primaryArtist = watch("primaryArtist");
+								if (!primaryArtist) {
+									setValue("primaryartist", artist);
+								}
+							}} />
 						</Box>}
 					</>
 				</Loader>
@@ -417,7 +423,10 @@ export const SongEdit = () => {
 					<>
 						{canEditSongs && <Box sx={inputField}>
 							<AlbumNewModalOpener
-								add={addAlbum}
+								add={(album) => {
+									addAlbum(album);
+									setValue("album", album);
+								}}
 								formArtists={formAllArtists}
 							/>
 						</Box>}

@@ -14,7 +14,9 @@ type FormTextFieldProps<FormT extends FieldValues> = {
 	className?: string
 	type?: string
 	min?: string | number
-	disabled?: boolean
+	disabled?: boolean,
+	onKeyUp?: (e: React.KeyboardEvent<HTMLDivElement>) 
+		=> void
 };
 
 export function FormTextField<FormT extends FieldValues>(

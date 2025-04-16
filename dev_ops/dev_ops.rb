@@ -383,7 +383,7 @@ module Provincial
 					elsif /admin-password/ =~ l
 						l.gsub(/>\w*/,">#{admin_pass}")
 					elsif /<bind-address>/ =~ l
-						l.gsub(%r{^([ \t]*)<.*},"\1<bind-address>::</bind-address>")
+						l.gsub(%r{^([ \t]*)<.*},"\\1<bind-address>::</bind-address>")
 					else
 						l
 					end
@@ -631,14 +631,15 @@ module Provincial
 		mark_for(:sh_cmd)
 		def_cmd("deploy_radio") do
 			body = <<~CODE
-				current_branch = @args_hash["-branch"]
+				current_branch = @args_hash["--branch"]
+				run_tests = @args_hash["--skip-tests"].zero?
 				if current_branch.zero?
 					current_branch = get_current_branch
 				end
 				Provincial.egg.load_env
 				return unless Provincial.remote.pre_deployment_check(
 					current_branch:,
-					test_honcho: Provincial.test_honcho
+					test_honcho: run_tests ? Provincial.test_honcho : nil
 				)
 				remote_script = Provincial.egg.env_exports
 				remote_script ^= "asdf shell ruby <%= @ruby_version %>"

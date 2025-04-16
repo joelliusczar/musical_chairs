@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/joelliusczar/salad_prep
-  revision: eea48ac034d0165739fde1525d591d626990ea34
+  revision: 798a5d9bef48ee7a49a73612d719ce4941eec333
   specs:
-    salad_prep (0.31.2)
+    salad_prep (0.31.4)
       base64 (~> 0.2)
       bigdecimal (~> 3.1)
       ostruct (~> 0.6)

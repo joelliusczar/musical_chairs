@@ -19,7 +19,7 @@ from api_dependencies import (
 	get_from_query_subject_user,
 	get_prefix_if_owner,
 	path_rule_service,
-	dl_url_file_service,
+	file_service,
 	album_service,
 	artist_service,
 	get_optional_prefix,
@@ -160,7 +160,7 @@ def get_songs_for_multi_edit(
 def download_song(
 	id: int,
 	songFileService: SongFileService = Depends(song_file_service),
-	fileService: FileService = Depends(dl_url_file_service)
+	fileService: FileService = Depends(file_service)
 ) -> str:
 	path = next(songFileService.get_internal_song_paths(id), None)
 	if path:

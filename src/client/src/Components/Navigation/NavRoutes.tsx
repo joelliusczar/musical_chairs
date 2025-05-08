@@ -28,6 +28,8 @@ import {
 import {
 	SiteUserRoleAssignmentTable,
 } from "../Users/SiteUserRoleAssignmentTable";
+import { AlbumTableView } from "../Albums/AlbumTableView";
+import { AlbumEditScreen } from "../Albums/AlbumEditScreen";
 
 
 export function NavMenu() {
@@ -74,6 +76,12 @@ export function NavMenu() {
 				to={DomRoutes.songTree()}>
 				Song Directory
 			</ListItem>
+			<ListItem 
+				component={NavLink}
+				to={DomRoutes.albumPage()}
+			>
+				Albums
+			</ListItem>
 			{canOpenAccountList &&
 			<ListItem component={NavLink} to={DomRoutes.accountsList()}>
 				Accounts List
@@ -93,8 +101,18 @@ export function AppRoutes() {
 
 	return (
 		<Routes>
+			<Route 
+				path={DomRoutes.albumPage()}
+				element={<AlbumTableView />}
+			/>
+			<Route 
+				path={DomRoutes.album({
+					id: ":id",
+				})}
+				element={<AlbumEditScreen />}
+			/>
 			<Route
-				path={`${DomRoutes.queue({
+				path={`${DomRoutes.queue({ 
 					stationkey: ":stationkey",
 					ownerkey: ":ownerkey",
 				})}`}

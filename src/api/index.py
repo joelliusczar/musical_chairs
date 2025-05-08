@@ -13,7 +13,8 @@ from fastapi.requests import Request
 from controllers import (
 	stations_controller,
 	accounts_controller,
-	song_info_controller
+	song_info_controller,
+	albums_controller
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
@@ -41,6 +42,7 @@ app.add_middleware(
 app.include_router(stations_controller.router)
 app.include_router(accounts_controller.router)
 app.include_router(song_info_controller.router)
+app.include_router(albums_controller.router)
 
 def get_cors_origin_or_default(origin: str) -> str:
 	allowedOriginSet = set(cors_allowed_origins)

@@ -288,7 +288,7 @@ class SongInfoService:
 		self.remove_songs_for_stations(outPairs)
 		if not inPairs: #if no songs - stations have been linked
 			return existingPairs - outPairs
-		params = [{
+		params: list[dict[str, Any]] = [{
 			"songfk": p.songid,
 			"stationfk": p.stationid,
 			"lastmodifiedbyuserfk": userId,

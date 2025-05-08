@@ -161,7 +161,7 @@ class AccountsService:
 		self.remove_roles_for_user(userId, (r.name for r in outRoles))
 		if not inRoles:
 			return uniqueRoles
-		roleParams = [{
+		roleParams: list[dict[str, Any]] = [{
 				"userfk": userId,
 				"role": r.name,
 				"span": r.span,
@@ -345,10 +345,9 @@ class AccountsService:
 		self.conn.execute(stmt)
 		self.conn.commit()
 		return AccountInfo(
-			**{**currentUser.model_dump(), #pyright: ignore [reportArgumentType]
-				"displayname": updatedInfo.displayname,
-				"email": updatedEmail
-			}
+			**currentUser.model_dump(exclude=["displayname", "email"]), #pyright: ignore [reportArgumentType]
+				displayname = updatedInfo.displayname,
+				email = updatedEmail
 		)
 
 	def update_password(

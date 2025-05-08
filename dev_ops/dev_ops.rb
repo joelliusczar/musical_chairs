@@ -28,7 +28,7 @@ module Provincial
 			@ices_branch
 		end
 	
-		mark_for(:server_rq, :deploy_rq, :env_enum)
+		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_api_key,
 			"AWS_ACCESS_KEY_ID",
@@ -36,7 +36,7 @@ module Provincial
 			:env_key
 		)
 	
-		mark_for(:server_rq, :deploy_rq, :env_enum)
+		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_secret_key,
 			"AWS_SECRET_ACCESS_KEY",
@@ -44,7 +44,7 @@ module Provincial
 			:env_key
 		)
 	
-		mark_for(:server_rq, :deploy_rq, :env_enum)
+		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_bucket_name,
 			"S3_BUCKET_NAME",
@@ -52,7 +52,7 @@ module Provincial
 			:env_key
 		)
 	
-		mark_for(:server_rq, :deploy_rq, :env_enum)
+		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_region_name,
 			"S3_REGION_NAME",
@@ -60,7 +60,7 @@ module Provincial
 			:env_key
 		)
 	
-		mark_for(:server_rq, :deploy_rq, :env_enum)
+		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_endpoint,
 			"AWS_ENDPOINT_URL",
@@ -72,6 +72,7 @@ module Provincial
 			:server_rq,
 			:deploy_rq,
 			:env_enum,
+			:sanitize,
 			gen_key: SecureRandom.alphanumeric(32)
 		)
 		def_env_find(

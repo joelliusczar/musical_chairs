@@ -33,4 +33,10 @@
     "**/test_trash": true
   },
   "editor.insertSpaces": false,
+  "github.copilot.enable": {
+    "*": false,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false
+  },
 }

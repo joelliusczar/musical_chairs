@@ -20,6 +20,7 @@ export interface AlbumInfo {
 	owner: User
 }
 
+
 export interface AlbumCreationInfo {
 	name: string
 	year?: number
@@ -36,6 +37,7 @@ export interface SongListDisplayItem extends NamedIdItem {
 	album: string | null
 	artist: string | null
 	path: string
+	track?: string | null
 	queuedtimestamp: number
 	playedtimestamp: number | null
 	rules: ActionRule[]
@@ -114,6 +116,7 @@ export interface SongInfoBase extends Named {
 	album: AlbumInfo
 	stations: StationInfo[]
 	genre: string
+	track: string
 }
 
 export interface SongInfoForm extends SongInfoBase, FieldValues {
@@ -141,4 +144,8 @@ export interface MultiUploadInfo {
 
 export interface UploadInfo extends DirectoryInfo {
 	files: File[] | null
+}
+
+export interface SongsAlbumInfo extends AlbumInfo{
+	songs: SongListDisplayItem[],
 }

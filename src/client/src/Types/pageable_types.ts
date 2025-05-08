@@ -2,11 +2,13 @@ import { IdValue, PrimitiveObject } from "./generic_types";
 
 export interface ListData<T> {
 	items: T[]
-}
+};
+
 
 export interface TableData<T> extends ListData<T> {
 	totalrows: number
-}
+};
+
 
 export type PageableParams = PrimitiveObject & {
 	searchTerm?: string
@@ -16,4 +18,4 @@ export type PageableParams = PrimitiveObject & {
 	id?: IdValue
 	name?: string
 	limit?: number
-}
+};

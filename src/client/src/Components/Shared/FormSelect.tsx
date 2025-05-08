@@ -164,6 +164,7 @@ FreeSolo extends boolean | undefined = false,
 			{...params}
 			label={label}
 			variant="standard"
+			sx={{ maxWidth: 320 }}
 		/>;
 	};
 	const {

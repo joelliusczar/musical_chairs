@@ -69,7 +69,7 @@ tossed_slash_user_id = 47
 unruled_station_user_id = 48
 
 
-artist_params = [
+artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 1,
 		"name": "alpha_artist",
@@ -261,7 +261,7 @@ artist_params = [
 	}
 ]
 
-albumParams1 = [
+albumParams1: list[dict[str, Any]] = [
 	{
 		"pk": 1,
 		"name": "broo_album",
@@ -318,7 +318,7 @@ albumParams1 = [
 	},
 ]
 
-albumParams2 = [
+albumParams2: list[dict[str, Any]] = [
 	{
 		"pk": 4,
 		"name": "soo_album",
@@ -345,7 +345,7 @@ albumParams2 = [
 	},
 ]
 
-albumParams3 = [
+albumParams3: list[dict[str, Any]] = [
 	{
 		"pk": 5,
 		"name": "doo_album",
@@ -369,7 +369,7 @@ albumParams3 = [
 	}
 ]
 
-albumParams4 = [
+albumParams4: list[dict[str, Any]] = [
 	{
 		"pk": 3,
 		"name": "juliet_album",
@@ -539,7 +539,7 @@ album_params = [
 # 			tossedSlash/trap/bang(pow)_1/boo
 
 
-song_params = [
+song_params: list[dict[str, Any]] = [
 	{ "pk": 1,
 		"internalpath": str(song_guids[1]),
 		"path": "foo/goo/boo/sierra",
@@ -1235,7 +1235,7 @@ songArtistParams2 = [
 
 songArtistParamsAll = [*songArtistParams, *songArtistParams2]
 
-station_params = [
+station_params: list[dict[str, Any]] = [
 	{ "pk": 1,
 		"name": "oscar_station",
 		"displayname": "Oscar the grouch",
@@ -1452,6 +1452,8 @@ stationSongParams = [
 	{ "songfk": 86, "stationfk": 23 },
 	{ "songfk": 10, "stationfk": 23 },
 ]
+
+users_params: list[dict[str, Any]] = [] # this is needed for weird syntax reasons
 
 def get_user_params(
 	orderedTestDates: List[datetime],
@@ -2436,10 +2438,11 @@ def get_station_permission_params(
 		},
 	]
 
+
 def get_path_permission_params(
 	orderedTestDates: List[datetime]
 )  -> list[dict[Any, Any]]:
-	pathPermissions = [
+	pathPermissions: list[dict[str, Any]] = [
 		{
 			"pk":1,
 			"userfk": lima_user_id,

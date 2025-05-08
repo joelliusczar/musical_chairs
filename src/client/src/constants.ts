@@ -1,6 +1,6 @@
 import { OwnedStationParams } from "./Types/station_types";
 import { OwnerParams, SubjectUserParams } from "./Types/user_types";
-import { StringObject } from "./Types/generic_types";
+import { StringObject, ParamItem } from "./Types/generic_types";
 
 
 //these vars need to be prefixed VITE
@@ -22,6 +22,8 @@ export const CallStatus = {
 };
 
 export const DomRoutes = {
+	albumPage: () => "/albums/page",
+	album: ({ id }: ParamItem) => `/albums/${id}`,
 	queue: ({ stationkey, ownerkey }: OwnedStationParams) =>
 		`/stations/queue/${ownerkey}/${stationkey ? `${stationkey}/` : ""}`,
 	history: ({ stationkey, ownerkey }: OwnedStationParams) =>

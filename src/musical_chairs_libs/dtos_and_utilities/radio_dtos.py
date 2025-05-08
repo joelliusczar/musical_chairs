@@ -45,6 +45,7 @@ class AlbumInfo(FrozenNamedIdItem):
 	year: Optional[int]=None
 	albumartist: Optional[ArtistInfo]=None
 
+
 class QueuedItem(NamedIdItem):
 	queuedtimestamp: float=Field(frozen=True)
 
@@ -63,6 +64,7 @@ class SongListDisplayItem(QueuedItem):
 	artist: Optional[str]
 	path: str
 	internalpath: str
+	track: Optional[str]=None
 	playedtimestamp: Optional[float]=None
 	rules: list[ActionRule]=Field(default_factory=list, frozen=False)
 	historyid: Optional[int]=None
@@ -327,3 +329,6 @@ class LastPlayedItem(MCBaseClass):
 	songid: int
 	timestamp: float
 	historyid: int
+
+class SongsAlbumInfo(AlbumInfo):
+	songs: list[SongListDisplayItem]=Field(default_factory=list, frozen=False)

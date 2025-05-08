@@ -5,6 +5,7 @@ from typing import (
 	Union,
 	cast,
 	Iterable,
+	Tuple
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
@@ -16,17 +17,28 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	AccountInfo,
 	OwnerInfo,
+	SongsAlbumInfo,
+	SongListDisplayItem,
+	DictDotMap,
+	normalize_opening_slash
 )
 from .artist_service import ArtistService
+from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
 	insert,
 	update,
-	Integer
+	Integer,
+	func,
+	delete,
+	and_,
+	literal,
 )
 from sqlalchemy.sql.expression import (
 	Update,
+	cast as dbCast,
 )
+from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.schema import Column
@@ -35,7 +47,10 @@ from musical_chairs_libs.tables import (
 	artists as artists_tbl,
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
-	users as user_tbl, u_pk, u_username, u_displayName
+	users as user_tbl, u_pk, u_username, u_displayName,
+	sg_pk, sg_name, sg_track, sg_albumFk, sg_path, sg_internalpath,
+	song_artist as song_artist_tbl, sgar_songFk, sgar_artistFk, 
+	sgar_isPrimaryArtist
 )
 
 
@@ -45,15 +60,19 @@ class AlbumService:
 	def __init__(
 		self,
 		conn: Connection,
-		artistService: Optional[ArtistService]=None
+		artistService: Optional[ArtistService]=None,
+		pathRuleService: Optional[PathRuleService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		if not artistService:
 			artistService = ArtistService(conn)
+		if not pathRuleService:
+			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.artist_service = artistService
+		self.path_rule_service = pathRuleService
 
 	def get_albums(self,
 		page: int = 0,
@@ -132,6 +151,68 @@ class AlbumService:
 			username=data[u_username],
 			displayname=data[u_displayName]
 		)
+	
+	def get_albums_page(
+		self,
+		page: int = 0,
+		album: str = "",
+		artist: str = "",
+		limit: Optional[int]=None,
+		user: Optional[AccountInfo]=None
+	) -> Tuple[list[AlbumInfo], int]:
+		result = list(self.get_albums(page, limit, album))
+		countQuery = select(func.count(1))\
+			.select_from(albums_tbl)
+		count = self.conn.execute(countQuery).scalar() or 0
+		return result, count
+
+	def get_album(
+			self,
+			albumId: int,
+			user: Optional[AccountInfo]=None
+		) -> SongsAlbumInfo:
+		albumInfo = next(self.get_albums(albumKeys=albumId))
+		songsQuery = select(
+			sg_pk.label("id"),
+			sg_name,
+			sg_path,
+			sg_internalpath,
+			sg_track,
+			coalesce[str](ar_name, "").label("artist"),
+			literal(0).label("queuedtimestamp"),
+			literal(albumInfo.name).label("album")
+		)\
+			.join(
+				song_artist_tbl,
+				and_(sgar_songFk == sg_pk, sgar_isPrimaryArtist == 1),
+				isouter=True
+			)\
+			.join(
+				artists_tbl,
+				ar_pk == sgar_artistFk,
+				isouter=True
+			)\
+			.where(sg_albumFk == albumId)\
+			.where()\
+			.order_by(dbCast(sg_track, Integer))
+		songsResult = self.conn.execute(songsQuery).mappings().all()
+		pathRuleTree = None
+		if user:
+			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+
+		songs = [
+			SongListDisplayItem(
+				**DictDotMap.unflatten(dict(row), omitNulls=True)
+			) for row in songsResult
+		]
+		if pathRuleTree:
+			for song in songs:
+				song.rules = list(pathRuleTree.valuesFlat(
+						normalize_opening_slash(song.path))
+					)
+
+		return SongsAlbumInfo(**albumInfo.model_dump(), songs=songs)
+
 
 	def save_album(
 		self,
@@ -177,6 +258,13 @@ class AlbumService:
 				f"{album.name} is already used for artist.",
 				"body->name"
 			)
+		
+	def delete_album(self, albumkey: int) -> int:
+		if not albumkey:
+			return 0
+		delStmt = delete(albums_tbl).where(ab_pk == albumkey)
+		return self.conn.execute(delStmt).rowcount
+
 
 	def get_or_save_album(
 		self,

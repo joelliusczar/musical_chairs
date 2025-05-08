@@ -366,6 +366,12 @@ export const songDownloadUrl = ({ id }:{ id: IdValue}) => {
 	};
 };
 
+export const downloadSong = async (songId: number) => {
+	const requestObj = songDownloadUrl({id : songId });
+	const url = await requestObj.call();
+	window?.open(url, "_blank")?.focus();
+};
+
 export const deletePrefix = ({ nodeId }:{ nodeId: string}) => {
 	const abortController = new AbortController();
 	return {

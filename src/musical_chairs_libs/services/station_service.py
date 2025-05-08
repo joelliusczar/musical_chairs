@@ -405,6 +405,7 @@ class StationService:
 				name=cast(str, row["name"]),
 				album=cast(str, row["album"]),
 				artist=cast(str, row["artist"]),
+				track=None,
 				queuedtimestamp=0,
 				rules=rules
 			))

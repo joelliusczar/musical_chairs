@@ -19,9 +19,9 @@ type FormTextFieldProps<FormT extends FieldValues> = {
 		=> void
 };
 
-export function FormTextField<FormT extends FieldValues>(
+export const FormTextField = <FormT extends FieldValues>(
 	props: FormTextFieldProps<FormT>
-) {
+) => {
 	const { name, label, formMethods, ...otherProps } = props;
 	const { control, register } = formMethods;
 
@@ -46,4 +46,4 @@ export function FormTextField<FormT extends FieldValues>(
 			{...otherProps}
 		/>
 	);
-}
+};

@@ -124,13 +124,8 @@ class AccountsService:
 		)
 		res = self.conn.execute(stmt)
 		insertedPk = res.lastrowid
-		# insertedRows = self.save_roles(
-		# 	insertedPk,
-		# 	[UserRoleDef.STATION_REQUEST.v]
-		# )
 		accountDict = accountInfo.scrubed_dict()
 		accountDict["id"] = insertedPk #pyright: ignore [reportGeneralTypeIssues]
-		# accountDict["roles"] = insertedRows #pyright: ignore [reportGeneralTypeIssues]
 		resultDto = AccountInfo(**accountDict)
 		self.conn.commit()
 		return resultDto

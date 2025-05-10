@@ -37,7 +37,7 @@ export const fetchStations = (params?: OwnerParam) => {
 	};
 };
 
-export const fetchStationForEdit = (
+export const getRecordCaller = (
 	{ ownerkey, stationkey }: { ownerkey: KeyValue, stationkey: KeyValue}
 ) => {
 	const abortController = new AbortController();
@@ -54,7 +54,7 @@ export const fetchStationForEdit = (
 	};
 };
 
-export const checkValues = (
+export const checkValuesCaller = (
 	{ id, values }: { id: IdValue, values: StringObject }
 ) => {
 	const abortController = new AbortController();
@@ -76,8 +76,8 @@ export const checkValues = (
 	};
 };
 
-export const saveStation = (
-	{ values, id}: { values: StationCreationInfo, id?: IdValue | null }
+export const saveCaller = (
+	{ values, id }: { values: StationCreationInfo, id?: IdValue | null }
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -291,6 +291,39 @@ export const removeStationUserRule = ({
 				params: { subjectuserkey, rulename },
 				signal: abortController.signal,
 			});
+			return response.data;
+		},
+	};
+};
+
+export const removeRecordCaller = ({ id }: { id: IdValue }) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+
+			const response = await webClient.delete(
+				`/stations/${id}`,
+				{ signal: abortController.signal }
+			);
+			return response.data;
+		},
+	};
+};
+
+export const copyRecordCaller = (
+	{ values, id }: { values: StationCreationInfo, id: IdValue }
+) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+
+			const response = await webClient.post(
+				`/stations/copy/${id}`,
+				values,
+				{ signal: abortController.signal }
+			);
 			return response.data;
 		},
 	};

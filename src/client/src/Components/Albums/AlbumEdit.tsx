@@ -31,7 +31,7 @@ type AlbumEditProps = {
 };
 
 
-export const AlbumEdit = <T extends AlbumInfo>(
+export const AlbumEdit = (
 	props: AlbumEditProps
 ) => {
 	const { formMethods, callSubmit, onCancel, formArtists = [] } = props;

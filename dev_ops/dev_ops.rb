@@ -653,6 +653,7 @@ module Provincial
 			ERB.new(body, trim_mode:">").result(binding)
 		end
 
+
 	end
 
 	Resorcerer.class_eval do
@@ -782,6 +783,10 @@ module Provincial
 		@w_spoon
 	end
 	
+	def self.libby
+		@monty
+	end
+
 	def self.monty
 		@monty
 	end

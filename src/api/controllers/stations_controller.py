@@ -36,14 +36,17 @@ from api_dependencies import (
 	get_user_with_simple_scopes,
 	get_optional_user_from_token,
 	get_from_query_subject_user,
-	get_station_user_2,
+	get_multi_station_user,
 	get_stations_by_ids,
-	get_page
+	get_page_num,
+	build_error_obj,
+	get_station_user_by_id
 )
 from station_validation import (
 	validate_station_rule,
 	validate_station_rule_for_remove
 )
+from sqlalchemy.exc import IntegrityError
 
 
 router = APIRouter(prefix="/stations")
@@ -63,7 +66,7 @@ def station_list(
 @router.get("/{ownerkey}/{stationkey}/history/")
 def history(
 	limit: int = 50,
-	page: int = Depends(get_page),
+	page: int = Depends(get_page_num),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
@@ -89,7 +92,7 @@ def history(
 @router.get("/{ownerkey}/{stationkey}/queue/")
 def queue(
 	limit: int = 50,
-	page: int = Depends(get_page),
+	page: int = Depends(get_page_num),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
@@ -118,7 +121,7 @@ def song_catalogue(
 	song: str = "",
 	album: str = "",
 	artist: str = "",
-	page: int = Depends(get_page),
+	page: int = Depends(get_page_num),
 	user: AccountInfo = Depends(get_station_user),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	stationService: StationService = Depends(station_service)
@@ -229,7 +232,7 @@ def enable_stations(
 	stations: Collection[StationInfo] = Depends(get_stations_by_ids),
 	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
-		get_station_user_2,
+		get_multi_station_user,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
 	stationService: StationService = Depends(station_service)
@@ -241,7 +244,7 @@ def disable_stations(
 	stations: Collection[StationInfo] = Depends(get_stations_by_ids),
 	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
-		get_station_user_2,
+		get_multi_station_user,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
 	stationService: StationService = Depends(station_service)
@@ -317,3 +320,43 @@ def remove_user_rule(
 		stationInfo.id,
 		rulename
 	)
+
+@router.delete(
+	"/{stationid}",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[Security(
+		get_station_user_by_id,
+		scopes=[UserRoleDef.STATION_EDIT.value]
+	)]
+)
+def delete(
+	stationid: int,
+	clearStation: bool=False,
+	stationService: StationService = Depends(station_service),
+):
+	try:
+		if stationService.delete_station(stationid, clearStation) == 0:
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail=[build_error_obj(f"Station not found")
+				]
+			)
+	except IntegrityError:
+		raise HTTPException(
+			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,	
+			detail=[build_error_obj(f"Station cannot be deleted")
+			]
+		)
+	
+@router.post("/copy/{stationid}")
+def copy_station(
+	stationid: int,
+	station: ValidatedStationCreationInfo = Body(default=None),
+	stationService: StationService = Depends(station_service),
+	user: AccountInfo = Security(
+		get_user_with_rate_limited_scope,
+		scopes=[UserRoleDef.STATION_CREATE.value]
+	)
+) -> StationInfo:
+	result = stationService.copy_station(stationid, station, user=user)
+	return result or StationInfo(id=-1,name="", displayname="")

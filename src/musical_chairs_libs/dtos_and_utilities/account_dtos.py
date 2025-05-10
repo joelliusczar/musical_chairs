@@ -173,6 +173,7 @@ class AuthenticatedAccount(AccountInfoSecurity):
 	'''
 	This AccountInfo is only returned after successful authentication.
 	'''
+	id: int
 	access_token: str=""
 	token_type: str=""
 	lifetime: float=0

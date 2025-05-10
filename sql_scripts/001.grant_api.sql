@@ -68,3 +68,4 @@ GRANT INSERT ON TABLE `<dbName>`.`users` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`users` TO <apiUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`lastplayed` TO <apiUser>;
+GRANT DELETE ON TABLE `<dbName>`.`lastplayed` TO <apiUser>;

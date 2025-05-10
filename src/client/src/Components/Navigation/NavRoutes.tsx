@@ -30,6 +30,8 @@ import {
 } from "../Users/SiteUserRoleAssignmentTable";
 import { AlbumTableView } from "../Albums/AlbumTableView";
 import { AlbumEditScreen } from "../Albums/AlbumEditScreen";
+import { ArtistTableView } from "../Artists/ArtistTableView";
+import { ArtistEditScreen } from "../Artists/ArtistEditScreen";
 
 
 export function NavMenu() {
@@ -82,6 +84,12 @@ export function NavMenu() {
 			>
 				Albums
 			</ListItem>
+			<ListItem 
+				component={NavLink}
+				to={DomRoutes.artistPage()}
+			>
+				Artists
+			</ListItem>
 			{canOpenAccountList &&
 			<ListItem component={NavLink} to={DomRoutes.accountsList()}>
 				Accounts List
@@ -101,6 +109,16 @@ export function AppRoutes() {
 
 	return (
 		<Routes>
+			<Route 
+				path={DomRoutes.artistPage()}
+				element={<ArtistTableView />}
+			/>
+			<Route 
+				path={DomRoutes.artist({
+					id: ":id",
+				})}
+				element={<ArtistEditScreen />}
+			/>
 			<Route 
 				path={DomRoutes.albumPage()}
 				element={<AlbumTableView />}

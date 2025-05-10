@@ -292,6 +292,22 @@ def get_owner_from_path(
 ) -> Optional[AccountInfo]:
 	return __open_user_from_request__(ownerkey, accountsService)
 
+
+def get_station_by_id(
+		stationid: int=Path(),
+		stationService: StationService = Depends(station_service),
+) -> StationInfo:
+	station = next(stationService.get_stations(stationKeys=stationid), None)
+	if not station:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(
+				f"station not found for id {stationid}"
+			)]
+		)
+	return station
+
+
 def get_stations_by_ids(
 	stationids: list[int]=Query(default=[]),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
@@ -526,14 +542,12 @@ def get_multi_path_user(
 		)
 	return user
 
-
-def get_station_user(
+def __get_station_user__(
 	securityScopes: SecurityScopes,
-	station: StationInfo=Depends(get_station_by_name_and_owner),
-	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
-	userActionHistoryService: UserActionsHistoryService=
-		Depends(user_actions_history_service)
-) -> Optional[AccountInfo]:
+	station: StationInfo,
+	user: Optional[AccountInfo],
+	userActionHistoryService: UserActionsHistoryService
+)-> Optional[AccountInfo]:
 	minScope = (not securityScopes.scopes or\
 		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
 	)
@@ -571,7 +585,38 @@ def get_station_user(
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
 
-def get_station_user_2(
+
+def get_station_user_by_id(
+	securityScopes: SecurityScopes,
+	station: StationInfo=Depends(get_station_by_id),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	userActionHistoryService: UserActionsHistoryService=
+		Depends(user_actions_history_service)
+)-> Optional[AccountInfo]:
+	return __get_station_user__(
+		securityScopes,
+		station,
+		user,
+		userActionHistoryService
+	)
+
+
+def get_station_user(
+	securityScopes: SecurityScopes,
+	station: StationInfo=Depends(get_station_by_name_and_owner),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	userActionHistoryService: UserActionsHistoryService=
+		Depends(user_actions_history_service)
+) -> Optional[AccountInfo]:
+	return __get_station_user__(
+		securityScopes,
+		station,
+		user,
+		userActionHistoryService
+	)
+
+
+def get_multi_station_user(
 	securityScopes: SecurityScopes,
 	stations: Collection[StationInfo]=Depends(get_stations_by_ids),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
@@ -648,9 +693,20 @@ def get_prefix_if_owner(
 		raise build_wrong_permissions_error()
 	return prefix
 
-def get_page(
+def get_page_num(
 	page: int = 1,
 ) -> int:
 	if page > 0:
 		page -= 1
 	return page
+
+def user_for_filters(
+	securityScopes: SecurityScopes,
+	user: AccountInfo = Depends(get_current_user_simple)
+) -> Optional[AccountInfo]:
+	if user.isadmin:
+		return None
+	scopeSet = {s for s in securityScopes.scopes}
+	if any(r.name in scopeSet for r in user.roles):
+		return None
+	return user

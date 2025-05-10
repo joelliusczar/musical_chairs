@@ -149,3 +149,7 @@ export interface UploadInfo extends DirectoryInfo {
 export interface SongsAlbumInfo extends AlbumInfo{
 	songs: SongListDisplayItem[],
 }
+
+export interface SongsArtistInfo extends ArtistInfo{
+	songs: SongListDisplayItem[],
+}

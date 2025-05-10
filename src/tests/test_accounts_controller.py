@@ -116,7 +116,7 @@ def test_login_success(fixture_api_test_client: TestClient):
 	response = client.post("/accounts/open", data=formData)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert len(data.keys()) == 9
+	assert len(data.keys()) == 10
 	assert "access_token" in data
 	assert "login_timestamp" in data
 	assert data["token_type"] == "bearer"

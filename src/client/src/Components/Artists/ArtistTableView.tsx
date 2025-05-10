@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { getPage } from "../../API_Calls/albumCalls";
+import { getPage } from "../../API_Calls/artistCalls";
 import {
 	Table,
 	TableBody,
@@ -31,7 +31,7 @@ import { UserRoleDef } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
-	AlbumInfo,
+	ArtistInfo,
 } from "../../Types/song_info_types";
 import {
 	PageableListDataShape,
@@ -39,26 +39,25 @@ import {
 
 
 
-export const AlbumTableView = () => {
+export const ArtistTableView = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
+	const canEditArtists = useHasAnyRoles([UserRoleDef.ARTIST_EDIT]);
 	const currentUser = useCurrentUser();
-	const canEditAlbums = useHasAnyRoles([UserRoleDef.ALBUM_EDIT]);
-
 
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 
 
 	const [tableDataState, tableDataDispatch] = useDataWaitingReducer(
-		new RequiredDataStore<PageableListDataShape<AlbumInfo>>({
+		new RequiredDataStore<PageableListDataShape<ArtistInfo>>({
 			items: [],
 			totalrows: 0,
 		})
 	);
 
-	const { callStatus: queueCallStatus } = tableDataState;
+	const { callStatus } = tableDataState;
 
 
 	const authReset = useCallback(() => {
@@ -69,15 +68,16 @@ export const AlbumTableView = () => {
 
 	const urlBuilder = new UrlBuilder(DomRoutes.queue);
 
-	const rowButton = (item: AlbumInfo, idx?: number) => {
+	const rowButton = (item: ArtistInfo, idx?: number) => {
 		const rowButtonOptions = [];
 
 
-		const canEditThisAlbum = canEditAlbums && currentUser.id == item.owner.id;
+		const canEditThisArtist = canEditArtists && currentUser.id == item.owner.id;
+	
 
-		if (canEditThisAlbum) rowButtonOptions.push({
+		if (canEditThisArtist) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.album({ id: item.id})}`,
+			link: `${DomRoutes.artist({ id: item.id})}`,
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton
@@ -87,15 +87,15 @@ export const AlbumTableView = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.album({ id: item.id})}`}
+				to={`${DomRoutes.artist({ id: item.id})}`}
 			>
-				{canEditThisAlbum ? "Edit" : "View"}
+				{canEditThisArtist ? "Edit" : "View"}
 			</Button>);
 	};
 
 
 	useEffect(() => {
-		document.title = "Musical Chairs - Albums";
+		document.title = "Musical Chairs - Artists";
 	},[]);
 
 
@@ -135,10 +135,10 @@ export const AlbumTableView = () => {
 
 	return (
 		<>
-			<h1>Albums</h1>
+			<h1>Artists</h1>
 			<Box m={1}>
 				<Loader
-					status={queueCallStatus}
+					status={callStatus}
 					error={tableDataState.error}
 				>
 					{tableDataState?.data?.items?.length > 0 ? <>
@@ -146,7 +146,6 @@ export const AlbumTableView = () => {
 							<Table size="small">
 								<TableHead>
 									<TableRow>
-										<TableCell>Album</TableCell>
 										<TableCell>Artist</TableCell>
 										<TableCell></TableCell>
 									</TableRow>
@@ -154,12 +153,9 @@ export const AlbumTableView = () => {
 								<TableBody>
 									{tableDataState.data?.items?.map((item, idx) => {
 										return (
-											<TableRow key={`song_${idx}`}>
+											<TableRow key={`artist_${idx}`}>
 												<TableCell>
-													{item.name || "{No song name}"}
-												</TableCell>
-												<TableCell>
-													{item.albumartist?.name}
+													{item.name || "{No artist name}"}
 												</TableCell>
 												<TableCell>
 												</TableCell>

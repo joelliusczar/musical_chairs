@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect } from "react";
-import { AlbumEdit } from "../Albums/AlbumEdit";
+import { ArtistEdit } from "../Artists/ArtistEdit";
 import {
-	useAlbumData,
+	useArtistData,
 } from "../../Context_Providers/AppContext/AppContext";
 import { 
-	update as saveAlbum, 
-	get as fetchAlbum,
-	remove as deleteAlbum,
-} from "../../API_Calls/albumCalls";
+	update as saveArtist, 
+	get as fetchArtist,
+	remove as deleteArtist,
+} from "../../API_Calls/artistCalls";
 import { downloadSong } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import {
-	AlbumInfo,
+	ArtistInfo,
 	SongListDisplayItem,
 } from "../../Types/song_info_types";
 import { Link, useParams, useNavigate } from "react-router-dom";
@@ -45,12 +45,11 @@ import { OptionsButton } from "../Shared/OptionsButton";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
 
 
-
 const initialValues = {
 	name: "",
 };
 
-export const AlbumEditScreen = () => {
+export const ArtistEditScreen = () => {
 
 	const id  = parseInt((useParams().id || "0"));
 	const { enqueueSnackbar } = useSnackbar();
@@ -68,9 +67,9 @@ export const AlbumEditScreen = () => {
 	const currentUser = useCurrentUser();
 
 	const {
-		add: addAlbum,
-		remove: removeAlbum,
-	} = useAlbumData();
+		add: addArtist,
+		remove: removeArtist,
+	} = useArtistData();
 
 	const rowButton = (item: SongListDisplayItem, idx: number) => {
 		const rowButtonOptions = [];
@@ -105,23 +104,20 @@ export const AlbumEditScreen = () => {
 			</Button>);
 	};
 
-	const formMethods = useForm<AlbumInfo>({
+	const formMethods = useForm<ArtistInfo>({
 		defaultValues: {
 			name: "",
-			albumartist: null,
 		},
 	});
 	const { handleSubmit, reset, getValues } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = saveAlbum({ id, data: {
+			const requestObj = saveArtist({ id, data: {
 				name: values.name,
-				year: values.year || undefined,
-				albumartist: values.albumartist || undefined,
 			} });
-			const album = await requestObj.call();
+			const artist = await requestObj.call();
 			enqueueSnackbar("Save successful", { variant: "success"});
-			addAlbum(album);
+			addArtist(artist);
 		}
 		catch(err) {
 			enqueueSnackbar(formatError(err), { variant: "error"});
@@ -129,8 +125,6 @@ export const AlbumEditScreen = () => {
 		}
 	});
 
-
-	
 	const canDeleteItem = () => {
 		const ownerId = getValues("owner.id");
 		if (currentUser.id === ownerId) return true;
@@ -139,10 +133,10 @@ export const AlbumEditScreen = () => {
 
 	const deleteItem = async () => {
 		try {
-			const requestObj = deleteAlbum({ id });
+			const requestObj = deleteArtist({ id });
 			await requestObj.call();
-			removeAlbum(getValues());
-			navigate(DomRoutes.albumPage(), { replace: true });
+			removeArtist(getValues());
+			navigate(DomRoutes.artistPage(), { replace: true });
 		}
 		catch (err) {
 			enqueueSnackbar(formatError(err),{ variant: "error"});
@@ -157,7 +151,7 @@ export const AlbumEditScreen = () => {
 
 	useEffect(() => {
 		if(id) {
-			const requestObj = fetchAlbum({
+			const requestObj = fetchArtist({
 				id,
 			});
 			if (!isPending) return;
@@ -189,13 +183,13 @@ export const AlbumEditScreen = () => {
 
 
 	return <Loader status={callStatus} error={error}>
-		<AlbumEdit 
+		<ArtistEdit 
 			formMethods={formMethods}
 			callSubmit={callSubmit}
 		/>
 		<>
 			{canDeleteItem() && <YesNoModalOpener
-				promptLabel="Delete Album"
+				promptLabel="Delete Artist"
 				message={`Are you sure you want to delete ${""}?`}
 				onYes={() => deleteItem()}
 				onNo={() => {}}
@@ -206,7 +200,6 @@ export const AlbumEditScreen = () => {
 				<Table>
 					<TableHead>
 						<TableRow>
-							<TableCell>Track</TableCell>
 							<TableCell>Song</TableCell>
 							<TableCell>Artist</TableCell>
 							<TableCell></TableCell>
@@ -215,7 +208,6 @@ export const AlbumEditScreen = () => {
 					<TableBody>
 						{state.data.map((item,idx) => {
 							return <TableRow key={`song_${idx}`}>
-								<TableCell>{item.track}</TableCell>
 								<TableCell>{item.name}</TableCell>
 								<TableCell>{item.artist}</TableCell>
 								<TableCell>{rowButton(item, idx)}</TableCell>

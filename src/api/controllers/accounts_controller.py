@@ -82,6 +82,7 @@ def login(
 		max_age=tokenLifetime
 	)
 	return AuthenticatedAccount(
+		id = user.id,
 		access_token=token,
 		token_type="bearer",
 		username=user.username,
@@ -102,6 +103,7 @@ def login_with_cookie(
 	try:
 		user, expiration = get_user_from_token(uriDecodedToken, accountsService)
 		return AuthenticatedAccount(
+			id = user.id,
 			access_token=access_token,
 			token_type="bearer",
 			username=user.username,
@@ -113,6 +115,7 @@ def login_with_cookie(
 		)
 	except:
 		return AuthenticatedAccount(
+			id=0,
 			access_token="",
 			token_type="bearer",
 			username="",

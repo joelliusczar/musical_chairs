@@ -22,6 +22,8 @@ export const CallStatus = {
 };
 
 export const DomRoutes = {
+	artistPage: () => "/artists/page",
+	artist: ({ id }: ParamItem) => `/artists/${id}`,
 	albumPage: () => "/albums/page",
 	album: ({ id }: ParamItem) => `/albums/${id}`,
 	queue: ({ stationkey, ownerkey }: OwnedStationParams) =>
@@ -66,6 +68,10 @@ export const UserRoleDef: StringObject = {
 	SONG_EDIT: "song:edit",
 	SONG_DOWNLOAD: "song:download",
 	SONG_TREE_LIST: "songtree:list",
+	ALBUM_EDIT: "album:edit",
+	ALBUM_VIEW_ALL: "album:view_all",
+	ARTIST_EDIT: "artist:edit",
+	ARTIST_VIEW_ALL: "artist:view_all",
 	STATION_VIEW: `${UserRoleDomain.STATION}:view`,
 	STATION_CREATE: `${UserRoleDomain.STATION}:create`,
 	STATION_EDIT: `${UserRoleDomain.STATION}:edit`,

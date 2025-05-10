@@ -9,7 +9,8 @@ from typing import (
 	Union,
 	Collection,
 	Tuple,
-	Sequence
+	Sequence,
+	overload
 )
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import RowMapping
@@ -43,7 +44,9 @@ from musical_chairs_libs.tables import (
 	station_user_permissions as station_user_permissions_tbl, stup_userFk,
 	stup_stationFk, stup_role,
 	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
-	u_disabled
+	u_disabled,
+	station_queue, q_stationFk,
+	last_played, lp_stationFk
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
@@ -446,37 +449,64 @@ class StationService:
 			return True
 		return self.__is_stationName_used__(id, cleanedStationName, userId)
 
-	def __create_initial_owner_rules__(self, stationId: int, userId: int):
-		rules: list[dict[str, Any]] = [{
-				"userfk": userId,
-				"stationfk": stationId,
-				"role": UserRoleDef.STATION_FLIP.value,
-				"span":3600,
-				"count":3,
-				"priority": None,
-				"creationtimestamp": self.get_datetime().timestamp()
-			},
+	def __create_initial_owner_rules__(
+		self,
+		stationId: int,
+		userId: int
+	) -> list[ActionRule]:
+		rules = [
+			ActionRule(
+				domain=UserRoleDomain.Station.value,
+				name=UserRoleDef.STATION_FLIP.value,
+				span=3600,
+				count=3,
+				priority=None
+			),
+			ActionRule(
+				domain=UserRoleDomain.Station.value,
+				name=UserRoleDef.STATION_REQUEST.value,
+				span=300,
+				count=1,
+				priority=None
+			),
+			ActionRule(
+				domain=UserRoleDomain.Station.value,
+				name=UserRoleDef.STATION_SKIP.value,
+				span=900,
+				count=1,
+				priority=None
+			)
+		]
+		params: list[dict[str, Any]] = [
 			{
+				**rule.model_dump(exclude={"name", "domain"}),
+				"role": rule.name,
 				"userfk": userId,
 				"stationfk": stationId,
-				"role": UserRoleDef.STATION_REQUEST.value,
-				"span":300,
-				"count":1,
-				"priority": None,
 				"creationtimestamp": self.get_datetime().timestamp()
-			},
-			{
-				"userfk": userId,
-				"stationfk": stationId,
-				"role": UserRoleDef.STATION_SKIP.value,
-				"span":900,
-				"count":1,
-				"priority": None,
-				"creationtimestamp": self.get_datetime().timestamp()
-			}
+			} for rule in rules
 		]
 		stmt = insert(station_user_permissions_tbl)
-		self.conn.execute(stmt, rules) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt, params) #pyright: ignore [reportUnknownMemberType]
+		return rules
+
+
+	@overload
+	def save_station(
+		self,
+		station: StationCreationInfo,
+		user: AccountInfo,
+		stationId: int,
+	) -> Optional[StationInfo]:
+		...
+
+	@overload
+	def save_station(
+		self,
+		station: StationCreationInfo,
+		user: AccountInfo,
+	) -> StationInfo:
+		...
 
 	def save_station(
 		self,
@@ -510,8 +540,12 @@ class StationService:
 				str(savedDisplayName),
 				user.username
 			)
+			rules = []
 			if not stationId:
-				self.__create_initial_owner_rules__(affectedId, user.id)
+				rules = list({
+						*self.__create_initial_owner_rules__(affectedId, user.id),
+						*get_station_owner_rules()
+					})
 			self.conn.commit()
 		except IntegrityError:
 			raise AlreadyUsedError.build_error(
@@ -525,7 +559,8 @@ class StationService:
 			displayname=str(savedDisplayName),
 			owner=user,
 			viewsecuritylevel=station.viewsecuritylevel,
-			requestsecuritylevel=station.requestsecuritylevel
+			requestsecuritylevel=station.requestsecuritylevel,
+			rules=rules
 		)
 
 	def get_station_users(
@@ -738,3 +773,52 @@ class StationService:
 			ProcessService.end_process(pid)
 		self.unset_station_procs(stationIds=stationIds)
 		self.conn.commit()
+
+	def delete_station(self, stationId: int, clearStation: bool=False) -> int:
+		if not stationId:
+			return 0
+		delCount = 0
+		if clearStation:
+			delCount = self.clear_station(stationId)
+		delStmt = delete(station_user_permissions_tbl)\
+			.where(stup_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		delStmt = delete(stations_tbl).where(st_pk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		self.conn.commit()
+		return delCount
+
+	def clear_station(self, stationId: int) -> int:
+		if not stationId:
+			return 0
+		delCount = 0
+		delStmt = delete(stations_songs_tbl).where(stsg_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		delStmt = delete(station_queue).where(q_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		delStmt = delete(last_played).where(lp_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		self.conn.commit()
+		return delCount
+		
+	def copy_station(
+		self, 
+		stationId: int, 
+		copy: StationCreationInfo,
+		user: AccountInfo,
+	) -> Optional[StationInfo]:
+		songIdsQuery = select(stsg_songFk).where(stsg_stationFk == stationId)
+		rows = self.conn.execute(songIdsQuery)
+		songIds = [cast(int,row[0]) for row in rows]
+		if not any(songIds):
+			return None
+		created = self.save_station(copy, user)
+		params = [{
+			"stationfk": created.id,
+			"songfk": s
+		} for s in songIds]
+		insertStmt = insert(stations_songs_tbl)
+		self.conn.execute(insertStmt, params)
+		self.conn.commit()
+		return created
+

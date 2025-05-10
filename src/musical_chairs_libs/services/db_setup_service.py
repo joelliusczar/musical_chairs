@@ -110,20 +110,22 @@ class DbRootConnectionService:
 		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
 	#this method can only be used on test databases
-	def drop_database(self, dbName: str, force: bool = False):
+	def drop_database(self, dbName: str, force: bool=False):
 		if not dbName.startswith("test_") and not force:
 			raise RuntimeError("only test databases can be removed")
 		if not is_db_name_safe(dbName):
 			raise RuntimeError("Invalid name was used:")
+		# self.revoke_all_roles(dbName, force)
 		self.conn.exec_driver_sql(f"DROP DATABASE IF EXISTS {dbName}")
 
-	def revoke_all_roles(self):
+	def revoke_all_roles(self, dbName: str, force: bool=False):
+		if not dbName.startswith("test_") and not force:
+			raise RuntimeError("only test databases can be removed")
+		if not is_db_name_safe(dbName):
+			raise RuntimeError("Invalid name was used:")
 		self.conn.exec_driver_sql(
-			f"REVOKE ALL PRIVILEGES, GRANT OPTION "
-			f"FROM {DbUsers.API_USER.format_user()}, "
-			f"{DbUsers.RADIO_USER.format_user()}, "
-			f"{DbUsers.JANITOR_USER.format_user()}, "
-			f"{DbUsers.OWNER_USER.format_user()}"
+			f"REVOKE IF EXISTS ALL PRIVILEGES ON `{dbName}`.* "
+			f"FROM {DbUsers.API_USER.format_user()}"
 		)
 
 	def drop_user(self, user: DbUsers):

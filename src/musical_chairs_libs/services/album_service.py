@@ -138,7 +138,7 @@ class AlbumService:
 			) if row["albumartistid"] else None
 			) for row in records)
 
-	def __get_album_owner__(self, albumId: int) -> OwnerInfo:
+	def get_album_owner(self, albumId: int) -> OwnerInfo:
 		query = select(ab_ownerFk, u_username, u_displayName)\
 			.select_from(albums_tbl)\
 			.join(user_tbl, u_pk == ab_ownerFk)\
@@ -170,8 +170,10 @@ class AlbumService:
 			self,
 			albumId: int,
 			user: Optional[AccountInfo]=None
-		) -> SongsAlbumInfo:
-		albumInfo = next(self.get_albums(albumKeys=albumId))
+		) -> Optional[SongsAlbumInfo]:
+		albumInfo = next(self.get_albums(albumKeys=albumId), None)
+		if not albumInfo:
+			return None
 		songsQuery = select(
 			sg_pk.label("id"),
 			sg_name,
@@ -195,7 +197,7 @@ class AlbumService:
 			.where(sg_albumFk == albumId)\
 			.where()\
 			.order_by(dbCast(sg_track, Integer))
-		songsResult = self.conn.execute(songsQuery).mappings().all()
+		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
@@ -219,7 +221,7 @@ class AlbumService:
 		album: AlbumCreationInfo,
 		user: AccountInfo,
 		albumId: Optional[int]=None
-	) -> AlbumInfo:
+	) -> Optional[AlbumInfo]:
 		if not album and not albumId:
 			raise ValueError("No album info to save")
 		upsert = update if albumId else insert
@@ -234,7 +236,7 @@ class AlbumService:
 		owner = user
 		if albumId and isinstance(stmt, Update):
 			stmt = stmt.where(ab_pk == albumId)
-			owner = self.__get_album_owner__(albumId)
+			owner = self.get_album_owner(albumId)
 		else:
 			stmt = stmt.values(ownerfk = user.id)
 		try:
@@ -246,6 +248,8 @@ class AlbumService:
 				artistKeys=album.albumartist.id
 			), None) if album.albumartist else None
 			self.conn.commit()
+			if res.rowcount == 0:
+				return None
 			return AlbumInfo(
 				id=affectedPk,
 				name=str(savedName),
@@ -263,7 +267,10 @@ class AlbumService:
 		if not albumkey:
 			return 0
 		delStmt = delete(albums_tbl).where(ab_pk == albumkey)
-		return self.conn.execute(delStmt).rowcount
+		delCount = self.conn.execute(delStmt).rowcount
+		self.conn.commit()
+		return delCount
+
 
 
 	def get_or_save_album(

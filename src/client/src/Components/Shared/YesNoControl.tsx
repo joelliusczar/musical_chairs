@@ -12,7 +12,7 @@ interface YesNoControlProps {
 	yesLabel?: string,
 	onYes: (e: ButtonClickEvent) => void,
 	noLabel?: string,
-	onNo: (e: ButtonClickEvent) => void
+	onNo: (e: ButtonClickEvent) => void,
 }
 
 export const YesNoControl = (props: YesNoControlProps) => {
@@ -26,11 +26,12 @@ export const YesNoControl = (props: YesNoControlProps) => {
 
 interface YesNoControlModalProps extends YesNoControlProps {
 	promptLabel: string,
+	disabled?: boolean
 }
 
 export const YesNoModalOpener = (props: YesNoControlModalProps) => {
 
-	const { onYes, onNo, promptLabel } = props;
+	const { onYes, onNo, promptLabel, disabled = false } = props;
 
 	const [itemNewOpen, setItemNewOpen ] = useState(false);
 
@@ -48,7 +49,12 @@ export const YesNoModalOpener = (props: YesNoControlModalProps) => {
 	return (
 		<>
 			<Box>
-				<Button onClick={() => setItemNewOpen(true)}>{promptLabel}</Button>
+				<Button 
+					onClick={() => setItemNewOpen(true)}
+					disabled={disabled}
+				>
+					{promptLabel}
+				</Button>
 			</Box>
 			<Dialog open={itemNewOpen} onClose={_onNo} scroll="body">
 				<YesNoControl

@@ -332,3 +332,6 @@ class LastPlayedItem(MCBaseClass):
 
 class SongsAlbumInfo(AlbumInfo):
 	songs: list[SongListDisplayItem]=Field(default_factory=list, frozen=False)
+
+class SongsArtistInfo(ArtistInfo):
+	songs: list[SongListDisplayItem]=Field(default_factory=list, frozen=False)

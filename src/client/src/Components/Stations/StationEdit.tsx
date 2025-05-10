@@ -3,9 +3,11 @@ import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
 import {
-	saveStation,
-	checkValues,
-	fetchStationForEdit,
+	saveCaller,
+	checkValuesCaller,
+	getRecordCaller,
+	removeRecordCaller,
+	copyRecordCaller,
 } from "../../API_Calls/stationCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
@@ -13,9 +15,10 @@ import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-	useVoidWaitingReducer,
-	voidDispatches as dispatches,
-} from "../../Reducers/voidWaitingReducer";
+	useDataWaitingReducer,
+	dataDispatches as dispatches,
+} from "../../Reducers/dataWaitingReducer";
+import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
 	DomRoutes,
 	CallStatus,
@@ -36,7 +39,7 @@ import {
 } from "../../Types/station_types";
 import { SubmitButton } from "../Shared/SubmitButton";
 import { isCallPending } from "../../Helpers/request_helpers";
-
+import { YesNoModalOpener } from "../Shared/YesNoControl";
 
 
 const inputField = {
@@ -79,7 +82,7 @@ const validatePhraseIsUnused = async (
 ) => {
 	const id = context?.parent?.id;
 	if (!value) return true;
-	const requestObj = checkValues({ id, values: {
+	const requestObj = checkValuesCaller({ id, values: {
 		[context.path]: value,
 	}});
 	const used = await requestObj.call();
@@ -130,11 +133,28 @@ export const StationEdit = (props: StationEditProps) => {
 	const currentUser = useCurrentUser();
 
 
-	const [state, dispatch] = useVoidWaitingReducer();
+	const [state, dispatch] = useDataWaitingReducer<StationInfo>(
+		new RequiredDataStore({
+			id: 0,
+			name: "",
+			displayname: "",
+			isrunning: false,
+			owner: {
+				id: 0,
+				username: "",
+				email: "",
+				roles: [],
+			},
+			rules: [],
+			viewsecuritylevel: 0,
+			requestsecuritylevel: 0,
+		})
+	);
 	const { callStatus, error } = state;
 	const {
 		add: addStation,
 		update: updateStation,
+		remove: removeStation,
 	} = useStationData();
 	const isPending = isCallPending(callStatus);
 
@@ -158,7 +178,7 @@ export const StationEdit = (props: StationEditProps) => {
 		reValidateMode: "onSubmit",
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset, watch, formState } = formMethods;
+	const { handleSubmit, reset, watch, formState, getValues } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const stationId = values.id || null;
@@ -170,7 +190,7 @@ export const StationEdit = (props: StationEditProps) => {
 			};
 			saveData.viewsecuritylevel = viewsecuritylevel.id;
 			saveData.requestsecuritylevel = requestsecuritylevel.id;
-			const requestObj = saveStation({ values: saveData, id: stationId });
+			const requestObj = saveCaller({ values: saveData, id: stationId });
 			const data = await requestObj.call();
 			afterSubmit(data);
 			if (stationId) {
@@ -186,6 +206,60 @@ export const StationEdit = (props: StationEditProps) => {
 			console.error(err);
 		}
 	});
+	const callSubmitCopy = handleSubmit(async values => {
+		try {
+			const stationId = values.id;
+			if (!stationId) {
+				console.error("Station id is missing");
+				return;
+			}
+			const {viewsecuritylevel, requestsecuritylevel } = values;
+			const saveData = {
+				...values,
+				viewsecuritylevel: viewsecuritylevel.id,
+				requestsecuritylevel: requestsecuritylevel.id,
+			};
+			saveData.viewsecuritylevel = viewsecuritylevel.id;
+			saveData.requestsecuritylevel = requestsecuritylevel.id;
+			const requestObj = copyRecordCaller({ values: saveData, id: stationId });
+			const data = await requestObj.call();
+			afterSubmit(data);
+			addStation(data);
+			enqueueSnackbar("Save successful", { variant: "success"});
+		}
+		catch(err) {
+			enqueueSnackbar(formatError(err), { variant: "error"});
+			console.error(err);
+		}
+	});
+
+	const savedId = watch("id");
+
+	const canCopyRecord = () => {
+		if (!savedId) return false;
+		return true;
+	};
+
+	const canDeleteItem = () => {
+		const ownerkey = pathVars.ownerkey?.trim();
+		if (currentUser.username === ownerkey) return true;
+		return false;
+	};
+
+	const deleteRecord = async () => {
+		try {
+			if (!savedId) return;
+
+			const requestObj = removeRecordCaller({  id: savedId });
+			await requestObj.call();
+			removeStation(state.data);
+			navigate(DomRoutes.stations(), { replace: true });
+		}
+		catch (err) {
+			enqueueSnackbar(formatError(err),{ variant: "error"});
+		}
+	};
+
 
 	const authReset = useCallback(() => {
 		dispatch(dispatches.restart());
@@ -195,7 +269,7 @@ export const StationEdit = (props: StationEditProps) => {
 
 	useEffect(() => {
 		if(pathVars.stationkey && pathVars.ownerkey) {
-			const requestObj = fetchStationForEdit({
+			const requestObj = getRecordCaller({
 				ownerkey: pathVars.ownerkey,
 				stationkey: pathVars.stationkey,
 			});
@@ -206,7 +280,7 @@ export const StationEdit = (props: StationEditProps) => {
 					const data = await requestObj.call();
 					const formData = stationInfoToFormData(data);
 					reset(formData);
-					dispatch(dispatches.done());
+					dispatch(dispatches.done(data));
 				}
 				catch(err) {
 					enqueueSnackbar(formatError(err), { variant: "error"});
@@ -237,7 +311,6 @@ export const StationEdit = (props: StationEditProps) => {
 		return accumulator;
 	}, {});
 
-	const savedId = watch("id");
 
 	return (
 		<Loader status={loadStatus} error={error}>
@@ -245,6 +318,14 @@ export const StationEdit = (props: StationEditProps) => {
 				<Typography variant="h1">
 					{savedId ? "Edit" : "Create"} a station
 				</Typography>
+			</Box>
+			<Box>
+				{canDeleteItem() && <YesNoModalOpener
+					promptLabel="Delete Station"
+					message={`Are you sure you want to delete ${""}?`}
+					onYes={() => deleteRecord()}
+					onNo={() => {}}
+				/>}
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
@@ -287,10 +368,14 @@ export const StationEdit = (props: StationEditProps) => {
 					getOptionDisabled={o => o.id in bannedRequestLevels}
 				/>
 			</Box>
-			<Box>
-
-			</Box>
 			<Box sx={inputField} >
+				{canCopyRecord() && <YesNoModalOpener
+					promptLabel="Copy Station"
+					message={`Are you sure you want to Copy ${""}?`}
+					onYes={callSubmitCopy}
+					onNo={() => {}}
+					disabled={!formState.isDirty}
+				/>}
 				<SubmitButton
 					loading={formState.isSubmitting}
 					onClick={callSubmit}

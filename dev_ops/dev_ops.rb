@@ -775,11 +775,11 @@ module Provincial
 		@cert_retriever,
 		@spoon_handle
 	)
-
+	@where_spoon = @egg.is_local? ? @local_spoon : @remote_spoon
 	@spoon_phone = SaladPrep::NginxPhone.new(
 		@egg,
 		SaladPrep::Resorcerer,
-		@egg.is_local? ? @local_spoon : @remote_spoon
+		@where_spoon
 	)
 	@w_spoon = SaladPrep::WSpoon.new(@egg, @where_spoon, @spoon_phone)
 	@remote = MCRemote.new(@egg)

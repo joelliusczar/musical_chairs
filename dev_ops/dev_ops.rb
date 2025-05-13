@@ -764,7 +764,6 @@ module Provincial
 	@browser_trust_introducer = SaladPrep::FirefoxTrustIntroducer.new
 	@cert_retriever = SaladPrep::PorkbunCertRetriever.new(@egg)
 	@spoon_handle = SaladPrep::WSpoon.spoon_handle(@egg)
-	@where_spoon = nil
 	@local_spoon = SaladPrep::LocalSpoon.new(
 		@egg,
 		@browser_trust_introducer,
@@ -772,8 +771,8 @@ module Provincial
 	)
 	@remote_spoon = SaladPrep::RemoteSpoon.new(
 		@egg,
-		@cert_retriever,
-		@spoon_handle
+		@spoon_handle,
+		@cert_retriever
 	)
 	@where_spoon = @egg.is_local? ? @local_spoon : @remote_spoon
 	@spoon_phone = SaladPrep::NginxPhone.new(

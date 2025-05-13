@@ -18,16 +18,19 @@ module Provincial
 		def lib
 			"#{project_name_snake}_libs"
 		end
-		
+
+
 		def lib_import
 			"#{project_name_snake}_libs"
 		end
-	
+
+
 		mark_for(:init_rq, :deploy_sg, default: nil)
 		def ices_branch
 			@ices_branch
 		end
-	
+
+
 		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_api_key,
@@ -35,7 +38,8 @@ module Provincial
 			nil,
 			:env_key
 		)
-	
+
+
 		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_secret_key,
@@ -43,7 +47,8 @@ module Provincial
 			nil,
 			:env_key
 		)
-	
+
+
 		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_bucket_name,
@@ -51,7 +56,8 @@ module Provincial
 			nil,
 			:env_key
 		)
-	
+
+
 		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_region_name,
@@ -59,7 +65,8 @@ module Provincial
 			nil,
 			:env_key
 		)
-	
+
+
 		mark_for(:server_rq, :deploy_rq, :env_enum, :sanitize)
 		def_env_find(
 			:s3_endpoint,
@@ -67,7 +74,8 @@ module Provincial
 			nil,
 			:env_key
 		)
-	
+
+
 		mark_for(
 			:server_rq,
 			:deploy_rq,
@@ -80,7 +88,8 @@ module Provincial
 			"DB_PASS_RADIO",
 			/DB_PASS_RADIO=(\w+)/
 		)
-	
+
+
 		mark_for(:deploy_sg, :env_enum)
 		def_env_find(:radio_log_level, "RADIO_LOG_LEVEL")
 	
@@ -92,7 +101,8 @@ module Provincial
 			suffix = File.join(app_trunk, "ices_configs")
 			abs_suffix(suffix, abs)
 		end
-	
+
+
 		mark_for(
 			fixed_dir: false,
 			prefixed_env_key: "PY_MODULE_DIR"
@@ -101,6 +111,7 @@ module Provincial
 			suffix = File.join(app_trunk, "pyModules")
 			abs_suffix(suffix, abs)
 		end
+
 
 		def app_lvl_definitions_script_path
 			__FILE__
@@ -135,6 +146,7 @@ module Provincial
 			@ices_branch = ices_branch
 			@clean = false
 		end
+
 
 		def install_dependencies
 			if ! system("aclocal --version 2>/dev/null") 
@@ -173,9 +185,11 @@ module Provincial
 			end
 		end
 
+
 		def ices_command
 			"#{@egg.env_prefix}-ices".downcase
 		end
+
 
 		def ices_version
 			begin
@@ -185,11 +199,13 @@ module Provincial
 			end
 		end
 
+
 		def is_installed_version_good?
 			min_version = @min_ices_version.split(".").take(3).map(&:to_i)
 			installed_version = ices_version.take(3).map(&:to_i)
 			(installed_version <=> min_version) > -1
 		end
+
 
 		def install()
 			if ! SaladPrep::BoxBox.is_installed?(ices_command) \
@@ -198,6 +214,7 @@ module Provincial
 				install_unchecked()
 			end
 		end
+
 
 		def install_unchecked()
 			@radio_launcher.shutdown_all_stations
@@ -268,10 +285,12 @@ module Provincial
 			self.class.nginx_and_setup(@egg, @w_spoon)
 		end
 
+
 		def install_local_dependencies
 			super
 			self.class.nodejs(NODE_VERSION)
 		end
+
 
 		def self.icecast(radio_launcher)
 			case Gem::Platform::local.os
@@ -323,6 +342,7 @@ module Provincial
 			end
 		end
 
+
 		def sync_station_module
 			src = File.join(
 				@egg.template_dest,
@@ -334,6 +354,7 @@ module Provincial
 			)
 			FileUtils.cp(src, dest)
 		end
+
 
 		def start_icecast_service(service_name)
 			case Gem::Platform::local.os
@@ -348,6 +369,7 @@ module Provincial
 					raise "OS is not configured icecast"
 			end
 		end
+
 
 		def icecast_conf(service_name)
 			case Gem::Platform::local.os
@@ -368,6 +390,7 @@ module Provincial
 				raise "OS is not configured icecast"
 			end
 		end
+
 
 		def update_icecast_conf(
 			icecast_conf_path,
@@ -392,6 +415,7 @@ module Provincial
 			end
 		end
 
+
 		def update_ices_config(conf, src_pass)
 			SaladPrep::FileHerder::update_in_place(conf) do |l|
 				if /Password/ =~ l
@@ -402,11 +426,13 @@ module Provincial
 			end
 		end
 
+
 		def update_all_ices_confs(src_pass)
 			Dir["#{@egg.ices_config_dir}/*.conf"].each do |conf|
 				update_ices_config(conf, src_pass)
 			end
 		end
+
 
 		def setup_icecast_confs
 			name = icecast_name
@@ -425,6 +451,7 @@ module Provincial
 			end
 		end
 
+
 		def setup_radio
 			shutdown_all_stations
 			@monty.create_py_env_in_app_trunk
@@ -436,6 +463,7 @@ module Provincial
 			@dbass.setup_db
 			setup_icecast_confs
 		end
+
 
 		def shutdown_all_stations
 			if ! File.exist?(@monty.py_env_activate_path)
@@ -459,6 +487,7 @@ module Provincial
 			@monty.run_python_script(script)
 		end
 
+
 		def show_icecast_log
 			script = <<~CODE
 				from musical_chairs_libs.services import ProcessService
@@ -476,6 +505,7 @@ module Provincial
 			CODE
 			@monty.run_python_script(script)
 		end
+
 
 		def show_icecast_log
 			script = <<~CODE
@@ -510,6 +540,7 @@ module Provincial
 			@monty.run_python_script(script)
 		end
 
+
 		def show_ices_station_log
 			script = <<~CODE
 				from musical_chairs_libs.services import EnvManager
@@ -521,6 +552,7 @@ module Provincial
 			CODE
 			@monty.run_python_script(script)
 		end
+
 
 		def regen_station_configs
 			script = <<~CODE
@@ -553,6 +585,7 @@ module Provincial
 
 	end
 
+
 	class MCDbAss < SaladPrep::MyAss
 
 		def initialize(egg, monty)
@@ -563,6 +596,7 @@ module Provincial
 		def backup_db(backup_lvl: Enums::BackupLvl::ALL)
 			super(backup_lvl:, has_bin: true)
 		end
+
 
 		def setup_db
 			replace_sql_scripts
@@ -582,6 +616,7 @@ module Provincial
 			@monty.run_python_script(script)
 		end
 
+
 		def teardown_db(force: false)
 			script = <<~CODE
 				from musical_chairs_libs.services import (
@@ -598,6 +633,7 @@ module Provincial
 			CODE
 			@monty.run_python_script(script)
 		end
+
 
 		def backup_tables_list
 			[
@@ -618,14 +654,17 @@ module Provincial
 
 	end
 
+
 	module SetupLvls
 		RADIO = "radio"
 		ICES = "ices"
 	end
 
+
 	class MCRemote < SaladPrep::Remote
 	
 	end
+
 
 	class MCBinstallion < SaladPrep::Binstallion
 
@@ -655,6 +694,7 @@ module Provincial
 
 
 	end
+
 
 	Resorcerer.class_eval do
 		def self.nginx_template
@@ -721,7 +761,27 @@ module Provincial
 		generated_file_dir: generated_file_dir
 	)
 	@dbass = MCDbAss.new(@egg, @monty)
-	@w_spoon = SaladPrep::WSpoon.new(@egg, SaladPrep::Resorcerer)
+	@browser_trust_introducer = SaladPrep::FirefoxTrustIntroducer.new
+	@cert_retriever = SaladPrep::PorkbunCertRetriever.new(@egg)
+	@spoon_handle = SaladPrep::WSpoon.spoon_handle(@egg)
+	@where_spoon = nil
+	@local_spoon = SaladPrep::LocalSpoon.new(
+		@egg,
+		@browser_trust_introducer,
+		@spoon_handle
+	)
+	@remote_spoon = SaladPrep::RemoteSpoon.new(
+		@egg,
+		@cert_retriever,
+		@spoon_handle
+	)
+
+	@spoon_phone = SaladPrep::NginxPhone.new(
+		@egg,
+		SaladPrep::Resorcerer,
+		@egg.is_local? ? @local_spoon : @remote_spoon
+	)
+	@w_spoon = SaladPrep::WSpoon.new(@egg, @where_spoon, @spoon_phone)
 	@remote = MCRemote.new(@egg)
 	@api_launcher = SaladPrep::PyAPILauncher.new(
 		egg: @egg,
@@ -767,17 +827,21 @@ module Provincial
 		monty: @monty
 	)
 
+
 	def self.egg
 		@egg
 	end
+
 
 	def self.box_box
 		@box_box
 	end
 
+
 	def self.dbass
 		@dbass
 	end
+
 
 	def self.w_spoon
 		@w_spoon
@@ -787,40 +851,54 @@ module Provincial
 		@monty
 	end
 
+
 	def self.monty
 		@monty
 	end
+
 
 	def self.remote
 		@remote
 	end
 
+
 	def self.api_launcher
 		@api_launcher
 	end
+
 
 	def self.client_launcher
 		@client_launcher
 	end
 
+
 	def self.radio_launcher
 		@radio_launcher
 	end
+
 
 	def self.installion
 		@installer
 	end
 
+
 	def self.binstallion
 		@binstallion
 	end
+
 
 	def self.test_honcho
 		@test_honcho
 	end
 
+
 	def self.w_spoon
 		@w_spoon
+	end
+
+
+	def self.local_spoon
+		@local_spoon
 	end
 
 	Canary = SaladPrep::Canary

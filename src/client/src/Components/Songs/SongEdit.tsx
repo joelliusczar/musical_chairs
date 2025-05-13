@@ -181,6 +181,7 @@ export const SongEdit = () => {
 		watch,
 		setValue,
 		formState,
+		getValues,
 	} = formMethods;
 
 	const songRules = watch("rules");
@@ -393,7 +394,7 @@ export const SongEdit = () => {
 						{canEditSongs && <Box sx={inputField}>
 							<ArtistNewModalOpener add={(artist) => {
 								addArtist(artist);
-								const primaryArtist = watch("primaryArtist");
+								const primaryArtist = getValues("primaryartist");
 								if (!primaryArtist) {
 									setValue("primaryartist", artist);
 								}

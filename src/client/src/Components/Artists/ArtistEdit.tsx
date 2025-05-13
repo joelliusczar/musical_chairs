@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
-import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
 import { saveArtist } from "../../API_Calls/songInfoCalls";
 import { useForm, UseFormReturn } from "react-hook-form";
@@ -86,7 +85,7 @@ export const ArtistNewModalOpener = (props: ArtistNewModalOpenerProps) => {
 			name: "",
 		},
 	});
-	const { handleSubmit, formState } = formMethods;
+	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const requestObj = saveArtist({ name: values.name });

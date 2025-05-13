@@ -66,7 +66,7 @@ export function NavMenu() {
 				to={DomRoutes.stations({
 					ownerkey: currentUser.username,
 				})}>
-				Stations
+				My Stations
 			</ListItem>}
 			<ListItem
 				component={NavLink}

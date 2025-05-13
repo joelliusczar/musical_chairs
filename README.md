@@ -8,7 +8,7 @@ Next run,
 
 `bundle update`
 
-`bundle exec ruby './bininstall.rb'`
+`bundle exec ruby './binstall.rb'`
 
 
 # Set up API for testing
@@ -62,9 +62,8 @@ Use debug launch profile "Python: API"
 ```
 mcr_dev deploy_install
 
-./deploy.sh deploy_install
 
-mcr_dev startup_api
+mcr_dev deploy_api
 ```
 
 ## Testing new changes

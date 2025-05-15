@@ -137,6 +137,7 @@ export const AlbumEditScreen = () => {
 		return false;
 	};
 
+
 	const deleteItem = async () => {
 		try {
 			const requestObj = deleteAlbum({ id });
@@ -148,6 +149,7 @@ export const AlbumEditScreen = () => {
 			enqueueSnackbar(formatError(err),{ variant: "error"});
 		}
 	};
+
 
 	const authReset = useCallback(() => {
 		dispatch(dispatches.restart());

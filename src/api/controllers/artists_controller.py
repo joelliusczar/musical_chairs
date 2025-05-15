@@ -13,7 +13,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ArtistInfo,
 	SongsArtistInfo,
 	ListData,
-	build_error_obj
+	build_error_obj,
+	FrozenNamed
 )
 from musical_chairs_libs.services import (
 	ArtistService,
@@ -119,12 +120,12 @@ def create_artist(
 @router.put("/{artistKey}")
 def update_artist(
 	artistKey: int,
-	name: str,
+	artistInfoUpdate: FrozenNamed,
 	artistService: ArtistService = Depends(artist_service),
 	user: AccountInfo = Depends(can_edit_artist)
 ) -> ArtistInfo:
 	artistInfo = artistService.save_artist(
-		artistName=name,
+		artistName=artistInfoUpdate.name,
 		user=user,
 		artistId=artistKey
 	)

@@ -64,7 +64,7 @@ export const add = ({ data }: { data: AlbumCreationInfo}) => {
 		call: async () => {
 
 			const response = await webClient.post<AlbumInfo>(
-				"/albums/",
+				"/albums",
 				data,
 				{ signal: abortController.signal }
 			);

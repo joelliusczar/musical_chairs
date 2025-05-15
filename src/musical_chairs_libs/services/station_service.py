@@ -785,6 +785,10 @@ class StationService:
 		delCount += self.conn.execute(delStmt).rowcount
 		delStmt = delete(stations_tbl).where(st_pk == stationId)
 		delCount += self.conn.execute(delStmt).rowcount
+		delStmt = delete(station_queue).where(q_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		delStmt = delete(last_played).where(lp_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
 		self.conn.commit()
 		return delCount
 
@@ -793,10 +797,6 @@ class StationService:
 			return 0
 		delCount = 0
 		delStmt = delete(stations_songs_tbl).where(stsg_stationFk == stationId)
-		delCount += self.conn.execute(delStmt).rowcount
-		delStmt = delete(station_queue).where(q_stationFk == stationId)
-		delCount += self.conn.execute(delStmt).rowcount
-		delStmt = delete(last_played).where(lp_stationFk == stationId)
 		delCount += self.conn.execute(delStmt).rowcount
 		self.conn.commit()
 		return delCount

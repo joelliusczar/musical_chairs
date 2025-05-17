@@ -87,3 +87,4 @@ export function LoginForm(props: LoginFormProps) {
 	);
 }
 
+export default LoginForm;

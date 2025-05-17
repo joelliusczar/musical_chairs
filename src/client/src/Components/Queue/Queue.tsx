@@ -40,7 +40,7 @@ import { StationInfo } from "../../Types/station_types";
 
 
 
-export const Queue = () => {
+const Queue = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
@@ -259,3 +259,5 @@ export const Queue = () => {
 		</>
 	);
 };
+
+export default Queue;

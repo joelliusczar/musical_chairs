@@ -17,7 +17,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongsArtistInfo,
 	SongListDisplayItem,
 	DictDotMap,
-	normalize_opening_slash
+	normalize_opening_slash,
+	SearchNameString
 )
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
@@ -77,12 +78,14 @@ class ArtistService:
 		if type(artistKeys) == int:
 			query = query.where(ar_pk == artistKeys)
 		elif type(artistKeys) is str:
-			if exactStrMatch:
-				query = query\
-					.where(ar_name == artistKeys)
-			else:
-				query = query\
-					.where(ar_name.like(f"%{artistKeys}%"))
+			if artistKeys:
+				searchStr = SearchNameString.format_name_for_search(artistKeys)
+				if exactStrMatch:
+					query = query\
+						.where(ar_name == searchStr)
+				else:
+					query = query\
+						.where(ar_name.like(f"%{searchStr}%"))
 		#check speficially if instance because [] is falsy
 		elif isinstance(artistKeys, Iterable) :
 			query = query.where(ar_pk.in_(artistKeys))
@@ -139,7 +142,6 @@ class ArtistService:
 	def get_artist_page(
 		self,
 		page: int = 0,
-		album: str = "",
 		artist: str = "",
 		limit: Optional[int]=None,
 		user: Optional[AccountInfo]=None
@@ -230,11 +232,12 @@ class ArtistService:
 				f"{artistName} is already used.",
 				"path->name"
 			)
-		
-	def delete_album(self, artistkey: int) -> int:
-		if not artistkey:
+
+
+	def delete_album(self, artistid: int) -> int:
+		if not artistid:
 			return 0
-		delStmt = delete(artists_tbl).where(ar_pk == artistkey)
+		delStmt = delete(artists_tbl).where(ar_pk == artistid)
 		delCount = self.conn.execute(delStmt).rowcount
 		self.conn.commit()
 		return delCount

@@ -783,11 +783,11 @@ class StationService:
 		delStmt = delete(station_user_permissions_tbl)\
 			.where(stup_stationFk == stationId)
 		delCount += self.conn.execute(delStmt).rowcount
-		delStmt = delete(stations_tbl).where(st_pk == stationId)
-		delCount += self.conn.execute(delStmt).rowcount
 		delStmt = delete(station_queue).where(q_stationFk == stationId)
 		delCount += self.conn.execute(delStmt).rowcount
 		delStmt = delete(last_played).where(lp_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		delStmt = delete(stations_tbl).where(st_pk == stationId)
 		delCount += self.conn.execute(delStmt).rowcount
 		self.conn.commit()
 		return delCount

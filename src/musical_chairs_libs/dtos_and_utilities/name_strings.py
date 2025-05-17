@@ -3,6 +3,7 @@ from typing import\
 	Optional
 import unicodedata
 from unidecode import unidecode
+from .simple_functions import clean_search_term_for_like
 
 # moved from musical_chairs_libs/dtos.py
 
@@ -50,4 +51,4 @@ class SearchNameString:
 		transformed = unidecode(value, errors="preserve")
 		trimed = transformed.strip()
 		lower = trimed.lower()
-		return lower
+		return clean_search_term_for_like(lower)

@@ -166,3 +166,4 @@ export const SiteUserRoleAssignmentTable = () => {
 };
 
 
+export default SiteUserRoleAssignmentTable;

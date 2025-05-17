@@ -19,9 +19,10 @@ import {
 	useDataWaitingReducer,
 } from "../../Reducers/dataWaitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
-import { UrlBuilder } from "../../Helpers/pageable_helpers";
+import { UrlBuilder, getSearchParams } from "../../Helpers/pageable_helpers";
 import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
+import { SearchTextField } from "../Shared/SearchTextFIeld";
 import {
 	useCurrentUser,
 	useHasAnyRoles,
@@ -66,7 +67,7 @@ export const AlbumTableView = () => {
 
 	useAuthViewStateChange(authReset);
 
-	const urlBuilder = new UrlBuilder(DomRoutes.queue);
+	const urlBuilder = new UrlBuilder(DomRoutes.albumPage);
 
 	const rowButton = (item: AlbumInfo, idx?: number) => {
 		const rowButtonOptions = [];
@@ -100,13 +101,9 @@ export const AlbumTableView = () => {
 
 	useEffect(() => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
-		const queryObj = new URLSearchParams(location.search);
-
-		const page = parseInt(queryObj.get("page") || "1");
-		const limit = parseInt(queryObj.get("rows") || "50");
+		const queryObj = getSearchParams(location.search);
 		const requestObj = getPage({
-			page: page,
-			limit: limit,
+			...queryObj,
 		});
 		const fetch = async () => {
 			tableDataDispatch(dispatches.started());
@@ -149,13 +146,28 @@ export const AlbumTableView = () => {
 										<TableCell>Artist</TableCell>
 										<TableCell></TableCell>
 									</TableRow>
+									<TableRow>
+										<TableCell>
+											<SearchTextField
+												name="name"
+												getPageUrl={urlBuilder.getThisUrl}
+											/>
+										</TableCell>
+										<TableCell>
+											<SearchTextField
+												name="artist"
+												getPageUrl={urlBuilder.getThisUrl}
+											/>
+										</TableCell>
+										<TableCell></TableCell>
+									</TableRow>
 								</TableHead>
 								<TableBody>
 									{tableDataState.data?.items?.map((item, idx) => {
 										return (
-											<TableRow key={`song_${idx}`}>
+											<TableRow key={`album_${idx}`}>
 												<TableCell>
-													{item.name || "{No song name}"}
+													{item.name || "{No album name}"}
 												</TableCell>
 												<TableCell>
 													{item.albumartist?.name}
@@ -184,3 +196,5 @@ export const AlbumTableView = () => {
 		</>
 	);
 };
+
+export default AlbumTableView;

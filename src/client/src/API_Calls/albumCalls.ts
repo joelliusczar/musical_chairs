@@ -27,7 +27,7 @@ export const get = ({ id }: { id: IdValue }) => {
 	};
 };
 
-export const getPage = (params: PageableParams) => {
+export const getPage = (params: PageableParams & { artist?: string }) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,

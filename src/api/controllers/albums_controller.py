@@ -34,7 +34,7 @@ from sqlalchemy.exc import IntegrityError
 router = APIRouter(prefix="/albums")
 
 def can_edit_album(
-	albumkey: int,
+	albumid: int,
 	user: AccountInfo = Security(
 		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.ALBUM_EDIT.value]
@@ -43,7 +43,7 @@ def can_edit_album(
 ) -> AccountInfo:
 	if user.isadmin:
 		return user
-	owner = albumService.get_album_owner(albumkey)
+	owner = albumService.get_album_owner(albumid)
 	if owner.id == user.id:
 		return user
 	raise build_wrong_permissions_error()
@@ -52,6 +52,8 @@ def can_edit_album(
 
 @router.get("/page")
 def get_page(
+	name: str="",
+	artist: str="",
 	limit: int = 50,
 	page: int = Depends(get_page_num),
 	user: Optional[AccountInfo] = Security(
@@ -62,6 +64,8 @@ def get_page(
 ) -> TableData[AlbumInfo]:
 
 	data, totalRows = albumService.get_albums_page(
+			album=name,
+			artist=artist,
 			page = page,
 			limit = limit,
 			user=user
@@ -70,6 +74,7 @@ def get_page(
 		totalrows=totalRows,
 		items=data
 	)
+
 
 @router.get("/list")
 def get_list(
@@ -80,6 +85,7 @@ def get_list(
 	)
 ) -> ListData[AlbumInfo]:
 	return ListData(items=list(albumService.get_albums(userId=user.id)))
+
 
 @router.get("/{albumkey}")
 def get(
@@ -118,16 +124,16 @@ def create_album(
 
 @router.put("/{albumkey}")
 def update_album(
-	albumkey: int,
+	albumid: int,
 	album: AlbumCreationInfo,
 	albumService: AlbumService = Depends(album_service),
 	user: AccountInfo = Depends(can_edit_album)
 ) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, user=user, albumId=albumkey)
+	albumInfo = albumService.save_album(album, user=user, albumId=albumid)
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"Album with key {albumkey} not found")
+			detail=[build_error_obj(f"Album with key {albumid} not found")
 			]
 		)
 	return albumInfo

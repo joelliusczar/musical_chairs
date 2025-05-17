@@ -142,6 +142,7 @@ def song_catalogue(
 	)
 	return StationTableData(totalrows=totalRows, items=songs, stationrules=rules)
 
+
 @router.post("/{ownerkey}/{stationkey}/request/{songid}")
 def request_song(
 	songid: int,
@@ -159,6 +160,7 @@ def request_song(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail = str(ex)
 		)
+
 
 @router.delete("/{ownerkey}/{stationkey}/request",
 	dependencies=[
@@ -202,6 +204,7 @@ def get_station_for_edit(
 ) -> StationInfo:
 	return stationInfo
 
+
 @router.post("")
 def create_station(
 	station: ValidatedStationCreationInfo = Body(default=None),
@@ -213,6 +216,7 @@ def create_station(
 ) -> StationInfo:
 	result = stationService.save_station(station, user=user)
 	return result or StationInfo(id=-1,name="", displayname="")
+
 
 @router.put("/{stationkey}")
 def update_station(
@@ -227,6 +231,7 @@ def update_station(
 	result = stationService.save_station(station,user, stationkey)
 	return result or StationInfo(id=-1,name="",displayname="")
 
+
 @router.put("/enable/")
 def enable_stations(
 	stations: Collection[StationInfo] = Depends(get_stations_by_ids),
@@ -238,6 +243,7 @@ def enable_stations(
 	stationService: StationService = Depends(station_service)
 ) -> list[StationInfo]:
 	return list(stationService.enable_stations(stations, user, includeAll))
+
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
 def disable_stations(

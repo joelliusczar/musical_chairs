@@ -1,17 +1,17 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Route, Routes, NavLink, useNavigate } from "react-router-dom";
 import { List, ListItem } from "@mui/material";
-import { Queue } from "../Queue/Queue";
-import { History } from "../History/History";
-import { Stations } from "../Stations/Stations";
-import { SongCatalogue } from "../Song_Catalogue/SongCatalogue";
-import { AccountsNew } from "../Accounts/AccountsNew";
-import { AccountsEdit } from "../Accounts/AccountsEdit";
-import { LoginForm } from "../Accounts/AccountsLoginForm";
-import { AccountsList } from "../Accounts/AccountsList";
-import { StationEdit } from "../Stations/StationEdit";
-import { SongTree } from "../Songs/SongTree";
-import { SongEdit } from "../Songs/SongEdit";
+const Queue = lazy(() => import("../Queue/Queue"));
+const History = lazy(() => import("../History/History"));
+const Stations = lazy(() => import("../Stations/Stations"));
+const SongCatalogue = lazy(() => import("../Song_Catalogue/SongCatalogue"));
+const AccountsNew = lazy(() => import("../Accounts/AccountsNew"));
+const AccountsEdit = lazy(() => import("../Accounts/AccountsEdit"));
+const LoginForm = lazy(() => import("../Accounts/AccountsLoginForm"));
+const AccountsList = lazy(() => import("../Accounts/AccountsList"));
+const StationEdit = lazy(() => import("../Stations/StationEdit"));
+const SongTree = lazy(() => import("../Songs/SongTree"));
+const SongEdit = lazy(() => import("../Songs/SongEdit"));
 import { NotFound } from "../Shared/RoutingErrors";
 import { DomRoutes, UserRoleDef } from "../../constants";
 import { PrivateRoute } from "../Shared/PrivateRoute";
@@ -19,19 +19,16 @@ import {
 	useCurrentUser,
 	useHasAnyRoles,
 } from "../../Context_Providers/AuthContext/AuthContext";
-import {
-	StationUserRoleAssignmentTable,
-} from "../Stations/StationUserRoleAssigmentTable";
-import {
-	PathUserRoleAssignmentTable,
-} from "../Songs/PathUserRoleAssigmentTable";
-import {
-	SiteUserRoleAssignmentTable,
-} from "../Users/SiteUserRoleAssignmentTable";
-import { AlbumTableView } from "../Albums/AlbumTableView";
-import { AlbumEditScreen } from "../Albums/AlbumEditScreen";
-import { ArtistTableView } from "../Artists/ArtistTableView";
-import { ArtistEditScreen } from "../Artists/ArtistEditScreen";
+const StationUserRoleAssignmentTable = 
+	lazy(() => import("../Stations/StationUserRoleAssigmentTable"));
+const PathUserRoleAssignmentTable =
+	lazy(() => import("../Songs/PathUserRoleAssigmentTable"));
+const SiteUserRoleAssignmentTable =
+	lazy(() => import("../Users/SiteUserRoleAssignmentTable"));
+const AlbumTableView = lazy(() => import("../Albums/AlbumTableView"));
+const AlbumEditScreen = lazy(() => import("../Albums/AlbumEditScreen"));
+const ArtistEditScreen = lazy(() => import("../Artists/ArtistEditScreen"));
+const ArtistTableView = lazy(() => import("../Artists/ArtistTableView"));
 
 
 export function NavMenu() {
@@ -111,81 +108,137 @@ export function AppRoutes() {
 		<Routes>
 			<Route 
 				path={DomRoutes.artistPage()}
-				element={<ArtistTableView />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<ArtistTableView />
+					</Suspense>
+				}
 			/>
 			<Route 
 				path={DomRoutes.artist({
 					id: ":id",
 				})}
-				element={<ArtistEditScreen />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<ArtistEditScreen />
+					</Suspense>
+				}
 			/>
 			<Route 
 				path={DomRoutes.albumPage()}
-				element={<AlbumTableView />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<AlbumTableView />
+					</Suspense>
+				}
 			/>
 			<Route 
 				path={DomRoutes.album({
 					id: ":id",
 				})}
-				element={<AlbumEditScreen />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<AlbumEditScreen />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.queue({ 
 					stationkey: ":stationkey",
 					ownerkey: ":ownerkey",
 				})}`}
-				element={<Queue />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<Queue />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.queue({
 					ownerkey: ":ownerkey",
 				})}`}
-				element={<Queue />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<Queue />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.history({
 					stationkey: ":stationkey?",
 					ownerkey: ":ownerkey",
 				})}`}
-				element={<History />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<History />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.stations()}`}
-				element={<Stations />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<Stations />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.stations({
 					ownerkey: ":ownerkey",
 				})}`}
-				element={<Stations />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<Stations />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.songCatalogue({
 					stationkey: ":stationkey",
 					ownerkey: ":ownerkey",
 				})}`}
-				element={<SongCatalogue />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<SongCatalogue />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.songCatalogue({
 					ownerkey: ":ownerkey",
 				})}`}
-				element={<SongCatalogue />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<SongCatalogue />
+					</Suspense>
+				}
 			/>
 			{currentUser.username && <Route
 				path={DomRoutes.stationUsers({
 					stationkey: ":stationkey",
 					ownerkey: ":ownerkey",
 				})}
-				element={<StationUserRoleAssignmentTable />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<StationUserRoleAssignmentTable />
+					</Suspense>
+				}
 			/>}
 			{currentUser.username && <Route
 				path={DomRoutes.pathUsers()}
-				element={<PathUserRoleAssignmentTable />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<PathUserRoleAssignmentTable />
+					</Suspense>
+				}
 			/>}
 			{!currentUser.username &&<Route
 				path={DomRoutes.accountsNew()}
-				element={<AccountsNew />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<AccountsNew />
+					</Suspense>
+				}
 			/>}
 			{!currentUser.username && <Route
 				path={DomRoutes.accountsLogin()}
@@ -198,14 +251,22 @@ export function AppRoutes() {
 				path={DomRoutes.accountsEdit({
 					subjectuserkey: ":subjectuserkey",
 				})}
-				element={<AccountsEdit />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<AccountsEdit />
+					</Suspense>
+				}
 			/>}
 			<Route
 				path={DomRoutes.accountsList()}
 				element={
 					<PrivateRoute
 						scopes={[UserRoleDef.USER_LIST, UserRoleDef.USER_EDIT]}
-						element={<AccountsList />}
+						element={
+							<Suspense fallback={<div>Loading...</div>}>
+								<AccountsList />
+							</Suspense>
+						}
 					/>
 				}
 			/>

@@ -35,7 +35,7 @@ router = APIRouter(prefix="/artists")
 
 
 def can_edit_artist(
-	artistKey: int,
+	artistid: int,
 	user: AccountInfo = Security(
 		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.ARTIST_EDIT.value]
@@ -44,7 +44,7 @@ def can_edit_artist(
 ) -> AccountInfo:
 	if user.isadmin:
 		return user
-	owner = artistService.get_artist_owner(artistKey)
+	owner = artistService.get_artist_owner(artistid)
 	if owner.id == user.id:
 		return user
 	raise build_wrong_permissions_error()
@@ -53,6 +53,7 @@ def can_edit_artist(
 
 @router.get("/page")
 def get_page(
+	name: str = "",
 	limit: int = 50,
 	page: int = Depends(get_page_num),
 	user: Optional[AccountInfo] = Security(
@@ -63,6 +64,7 @@ def get_page(
 ) -> TableData[ArtistInfo]:
 
 	data, totalRows = artistService.get_artist_page(
+			artist=name,
 			page = page,
 			limit = limit,
 			user=user
@@ -119,7 +121,7 @@ def create_artist(
 
 @router.put("/{artistKey}")
 def update_artist(
-	artistKey: int,
+	artistid: int,
 	artistInfoUpdate: FrozenNamed,
 	artistService: ArtistService = Depends(artist_service),
 	user: AccountInfo = Depends(can_edit_artist)
@@ -127,31 +129,31 @@ def update_artist(
 	artistInfo = artistService.save_artist(
 		artistName=artistInfoUpdate.name,
 		user=user,
-		artistId=artistKey
+		artistId=artistid
 	)
 	if not artistInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"Artist with key {artistKey} not found")
+			detail=[build_error_obj(f"Artist with key {artistid} not found")
 			]
 		)
 	return artistInfo
 
 
 @router.delete(
-	"/{artistKey}",
+	"/{artistid}",
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[Depends(can_edit_artist)]
 )
 def delete(
-	artistKey: int,
+	artistid: int,
 	albumService: ArtistService = Depends(artist_service)
 ):
 	try:
-		if albumService.delete_album(artistKey) == 0:
+		if albumService.delete_album(artistid) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
-				detail=[build_error_obj(f"Artist with key {artistKey} not found")
+				detail=[build_error_obj(f"Artist with key {artistid} not found")
 				]
 			)
 	except IntegrityError:

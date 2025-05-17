@@ -6,7 +6,7 @@ import {
 import { 
 	update as saveArtist, 
 	get as fetchArtist,
-	remove as deleteArtist,
+	removeRecordCaller as deleteArtist,
 } from "../../API_Calls/artistCalls";
 import { downloadSong } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
@@ -136,6 +136,7 @@ export const ArtistEditScreen = () => {
 			const requestObj = deleteArtist({ id });
 			await requestObj.call();
 			removeArtist(getValues());
+			enqueueSnackbar("Delete successful", { variant: "success"});
 			navigate(DomRoutes.artistPage(), { replace: true });
 		}
 		catch (err) {
@@ -220,3 +221,5 @@ export const ArtistEditScreen = () => {
 		}
 	</Loader>;
 };
+
+export default ArtistEditScreen;

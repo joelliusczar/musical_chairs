@@ -78,6 +78,7 @@ class AlbumService:
 		page: int = 0,
 		pageSize: Optional[int]=None,
 		albumKeys: Union[int, str, Iterable[int], None]=None,
+		artistKeys: Union[int, str, Iterable[int], None]=None,
 		userId: Optional[int]=None,
 		exactStrMatch: bool=False
 	) -> Iterator[AlbumInfo]:
@@ -104,15 +105,29 @@ class AlbumService:
 		if type(albumKeys) == int:
 			query = query.where(ab_pk == albumKeys)
 		elif type(albumKeys) is str:
-			searchStr = SearchNameString.format_name_for_search(albumKeys)
-			if exactStrMatch:
-				query = query\
-					.where(ab_name == searchStr)
-			else:
-				query = query\
-					.where(ab_name.like(f"%{searchStr}%"))
+			if albumKeys:
+				searchStr = SearchNameString.format_name_for_search(albumKeys)
+				if exactStrMatch:
+					query = query\
+						.where(ab_name == searchStr)
+				else:
+					query = query\
+						.where(ab_name.like(f"%{searchStr}%"))
 		elif isinstance(albumKeys, Iterable):
 			query = query.where(ab_pk.in_(albumKeys))
+		if type(artistKeys) == int:
+			query = query.where(ab_albumArtistFk == artistKeys)
+		elif type(artistKeys) is str:
+			if artistKeys:
+				searchStr = SearchNameString.format_name_for_search(artistKeys)
+				if exactStrMatch:
+					query = query\
+						.where(ar_name == searchStr)
+				else:
+					query = query\
+						.where(ar_name.like(f"%{searchStr}%"))
+		elif isinstance(artistKeys, Iterable):
+			query = query.where(ab_albumArtistFk.in_(artistKeys))
 		if userId:
 			query = query.where(ab_ownerFk == userId)
 		offset = page * pageSize if pageSize else 0
@@ -160,7 +175,7 @@ class AlbumService:
 		limit: Optional[int]=None,
 		user: Optional[AccountInfo]=None
 	) -> Tuple[list[AlbumInfo], int]:
-		result = list(self.get_albums(page, limit, album))
+		result = list(self.get_albums(page, limit, album, artist))
 		countQuery = select(func.count(1))\
 			.select_from(albums_tbl)
 		count = self.conn.execute(countQuery).scalar() or 0

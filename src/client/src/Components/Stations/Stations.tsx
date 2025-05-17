@@ -313,3 +313,5 @@ export const Stations = () => {
 		</Loader>
 	</>);
 };
+
+export default Stations;

@@ -27,7 +27,7 @@ export const get = ({ id }: { id: IdValue }) => {
 	};
 };
 
-export const getPage = (params: PageableParams) => {
+export const getPageCaller = (params: PageableParams) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,
@@ -57,6 +57,7 @@ export const getList = ({ params }: { params?: object}) => {
 	};
 };
 
+
 export const add = ({ data }: { data: AlbumCreationInfo}) => {
 	const abortController = new AbortController();
 	return {
@@ -72,6 +73,7 @@ export const add = ({ data }: { data: AlbumCreationInfo}) => {
 		},
 	};
 };
+
 
 export const update = (
 	{ id, data }: { id: IdValue, data: AlbumCreationInfo }
@@ -92,7 +94,7 @@ export const update = (
 };
 
 
-export const remove = ({ id }: { id: IdValue }) => {
+export const removeRecordCaller = ({ id }: { id: IdValue }) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,

@@ -481,3 +481,5 @@ export const SongEdit = () => {
 		</Box>
 	</Loader>);
 };
+
+export default SongEdit;

@@ -302,5 +302,4 @@ export const StationUserRoleAssignmentTable = () => {
 	);
 };
 
-StationUserRoleAssignmentTable.propTypes = {
-};
+export default StationUserRoleAssignmentTable;

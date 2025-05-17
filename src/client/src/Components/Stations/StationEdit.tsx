@@ -425,4 +425,4 @@ export const StationNewModalOpener = (props: StationNewModalOpenerProps) => {
 		</>);
 };
 
-
+export default StationEdit;

@@ -143,6 +143,7 @@ export const AlbumEditScreen = () => {
 			const requestObj = deleteAlbum({ id });
 			await requestObj.call();
 			removeAlbum(getValues());
+			enqueueSnackbar("Delete successful", { variant: "success"});
 			navigate(DomRoutes.albumPage(), { replace: true });
 		}
 		catch (err) {
@@ -230,3 +231,5 @@ export const AlbumEditScreen = () => {
 		}
 	</Loader>;
 };
+
+export default AlbumEditScreen;

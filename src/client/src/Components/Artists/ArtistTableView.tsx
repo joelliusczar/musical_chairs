@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { getPage } from "../../API_Calls/artistCalls";
+import { getPageCaller as getPage } from "../../API_Calls/artistCalls";
 import {
 	Table,
 	TableBody,
@@ -19,9 +19,12 @@ import {
 	useDataWaitingReducer,
 } from "../../Reducers/dataWaitingReducer";
 import { formatError } from "../../Helpers/error_formatter";
-import { UrlBuilder } from "../../Helpers/pageable_helpers";
-import { UrlPagination } from "../Shared/UrlPagination";
-import { OptionsButton } from "../Shared/OptionsButton";
+import { UrlBuilder, getSearchParams } from "../../Helpers/pageable_helpers";
+import {
+	UrlPagination,
+	OptionsButton,
+	SearchTextField,
+} from "../Shared";
 import {
 	useCurrentUser,
 	useHasAnyRoles,
@@ -38,7 +41,7 @@ import {
 
 
 
-export const ArtistTableView = () => {
+const ArtistTableView = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
@@ -100,13 +103,10 @@ export const ArtistTableView = () => {
 
 	useEffect(() => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
-		const queryObj = new URLSearchParams(location.search);
+		const queryObj = getSearchParams(location.search);
 
-		const page = parseInt(queryObj.get("page") || "1");
-		const limit = parseInt(queryObj.get("rows") || "50");
 		const requestObj = getPage({
-			page: page,
-			limit: limit,
+			...queryObj,
 		});
 		const fetch = async () => {
 			tableDataDispatch(dispatches.started());
@@ -148,6 +148,15 @@ export const ArtistTableView = () => {
 										<TableCell>Artist</TableCell>
 										<TableCell></TableCell>
 									</TableRow>
+									<TableRow>
+										<TableCell>
+											<SearchTextField
+												name="name"
+												getPageUrl={urlBuilder.getThisUrl}
+											/>
+										</TableCell>
+										<TableCell></TableCell>
+									</TableRow>
 								</TableHead>
 								<TableBody>
 									{tableDataState.data?.items?.map((item, idx) => {
@@ -180,3 +189,5 @@ export const ArtistTableView = () => {
 		</>
 	);
 };
+
+export default ArtistTableView;

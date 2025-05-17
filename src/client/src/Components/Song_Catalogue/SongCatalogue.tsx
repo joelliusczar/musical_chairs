@@ -273,3 +273,5 @@ export const SongCatalogue = () => {
 		</>
 	);
 };
+
+export default SongCatalogue;

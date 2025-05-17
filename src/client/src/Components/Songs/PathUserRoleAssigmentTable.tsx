@@ -262,6 +262,4 @@ export const PathUserRoleAssignmentTable = () => {
 	);
 };
 
-PathUserRoleAssignmentTable.propTypes = {
-};
-
+export default PathUserRoleAssignmentTable;

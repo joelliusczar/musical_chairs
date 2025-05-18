@@ -242,9 +242,13 @@ export function AppRoutes() {
 			/>}
 			{!currentUser.username && <Route
 				path={DomRoutes.accountsLogin()}
-				element={<LoginForm
-					afterSubmit={() => navigate("")}
-				/>}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<LoginForm
+							afterSubmit={() => navigate("")}
+						/>
+					</Suspense>
+				}
 			/>}
 			{currentUser.username &&
 			<Route
@@ -274,7 +278,11 @@ export function AppRoutes() {
 				path={DomRoutes.accountsRoles({ subjectuserkey: ":subjectuserkey"})}
 				element={
 					<PrivateRoute
-						element={<SiteUserRoleAssignmentTable />}
+						element={
+							<Suspense fallback={<div>Loading...</div>}>
+								<SiteUserRoleAssignmentTable />
+							</Suspense>
+						}
 						scopes={[UserRoleDef.ADMIN, UserRoleDef.SITE_USER_ASSIGN]}
 					/>
 				}
@@ -283,39 +291,66 @@ export function AppRoutes() {
 				path={`${DomRoutes.stationsEdit({
 					ownerkey: ":ownerkey",
 				})}`}
-				element={<StationEdit />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<StationEdit />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.stationsEdit({
 					stationkey: ":stationkey",
 					ownerkey: ":ownerkey",
 				})}`}
-				element={<StationEdit />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<StationEdit />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={`${DomRoutes.stationsAdd()}`}
 				element={
 					<PrivateRoute
-						element={<StationEdit />}
+						element={
+							<Suspense fallback={<div>Loading...</div>}>
+								<StationEdit />
+							</Suspense>
+						}
 						scopes={[UserRoleDef.STATION_CREATE]}
 					/>
 				}
 			/>
 			<Route
 				path={`${DomRoutes.songEdit()}`}
-				element={<SongEdit />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<SongEdit />
+					</Suspense>
+				}
 			/>
 			<Route
 				path={DomRoutes.songTree()}
 				element={
-					<SongTree />
+					<Suspense fallback={<div>Loading...</div>}>
+						<SongTree />
+					</Suspense>
 				}
 			/>
 			<Route
 				path="/"
-				element={<Stations />}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<Stations />
+					</Suspense>}
 			/>
-			<Route path="*" element={<NotFound />} />
+			<Route 
+				path="*" 
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<NotFound />
+					</Suspense>
+				} />
 		</Routes>
 	);
 }

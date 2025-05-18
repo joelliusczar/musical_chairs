@@ -4,7 +4,6 @@ import {
 	ThemeProvider,
 	Button,
 	Tooltip,
-	useMediaQuery,
 } from "@mui/material";
 import { AppRoutes, NavMenu } from "./Components/Navigation/NavRoutes";
 import { theme } from "./style_config";
@@ -30,8 +29,6 @@ const AppTrunk = () => {
 	const [logginTooltipMsg, setLogginTooltipMsg] = useState("");
 	const cookieObj = cookieToObject(document.cookie);
 	const usernameCookie = decodeURIComponent(cookieObj["username"] || "");
-
-	const matches = useMediaQuery("(min-width:600px)");
 
 	const displayNameCookie = decodeURIComponent(
 		cookieObj["displayname"] || ""

@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import re
 from typing import (
 	Iterator,
 	Tuple,
@@ -50,7 +51,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	StationInfo,
 	int_or_str,
-	DirectoryTransfer
+	DirectoryTransfer,
+	TrackingInfo
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -63,6 +65,7 @@ from api_error import (
 )
 from datetime import datetime
 from base64 import urlsafe_b64decode
+import musical_chairs_libs.dtos_and_utilities.logging as logging
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -710,3 +713,15 @@ def user_for_filters(
 	if any(r.name in scopeSet for r in user.roles):
 		return None
 	return user
+
+def get_tracking_info(request: Request):
+	userAgent = request.headers["user-agent"]
+	ipv4Address = ""
+	ipv6Address = ""
+	headers = "\n".join((f"{k}:{v}" for k,v in request.headers.items()))
+	logging.logger.info(headers)
+	return TrackingInfo(
+		userAgent,
+		ipv4Address=ipv4Address,
+		ipv6Address=ipv6Address
+	)

@@ -36,7 +36,16 @@ app.add_middleware(
 	CORSMiddleware,
 	allow_origins=cors_allowed_origins,
 	allow_methods=["*"],
-	allow_headers=["Authorization", "Cookie"],
+	allow_headers=[
+		"Authorization",
+		"Cookie",
+		"Forwarded",
+		"True-Client-Ip",
+		"Via",
+		"X-Client-IP",
+		"X-Forwarded-For",
+		"X-Real-IP"
+	],
 	expose_headers=["x-authexpired"],
 	allow_credentials=True
 )

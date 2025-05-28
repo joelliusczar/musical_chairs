@@ -6,6 +6,7 @@ from typing import (
 	Union,
 	Collection
 )
+from enum import Enum
 from pydantic import (
 	field_validator,
 	field_serializer,
@@ -29,6 +30,13 @@ from .action_rule_dtos import (
 	StationActionRule,
 )
 from .absorbent_trie import ChainedAbsorbentTrie
+
+class UserActions(Enum):
+	CHANGE_PASS = "change-password"
+	LOGIN = "login"
+	ACCOUNT_UPDATE = "account-update"
+	ADD_SITE_RULE = "add-site-rule"
+	REMOVE_SITE_RULE = "remove-site-rule"
 
 
 def get_station_owner_rules(

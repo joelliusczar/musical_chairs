@@ -22,7 +22,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfoBase,
 	build_error_obj,
 	PasswordInfo,
-	ActionRule
+	ActionRule,
+	TrackingInfo
 )
 from api_dependencies import (
 	accounts_service,
@@ -31,7 +32,8 @@ from api_dependencies import (
 	get_user_from_token,
 	get_optional_user_from_token,
 	get_from_path_subject_user,
-	datetime_provider
+	datetime_provider,
+	get_tracking_info
 )
 from datetime import datetime
 
@@ -45,7 +47,8 @@ def login(
 	response: Response,
 	formData: OAuth2PasswordRequestForm=Depends(),
 	accountService: AccountsService=Depends(accounts_service),
-	getDatetime: Callable[[], datetime]=Depends(datetime_provider)
+	getDatetime: Callable[[], datetime]=Depends(datetime_provider),
+	tracking_info: TrackingInfo=Depends(get_tracking_info)
 ) -> AuthenticatedAccount:
 	user = accountService.authenticate_user(
 		formData.username,
@@ -57,7 +60,7 @@ def login(
 			detail=[build_error_obj("Incorrect username or password")],
 			headers={"WWW-Authenticate": "Bearer"}
 		)
-	token = accountService.create_access_token(user.username)
+	token = accountService.create_access_token(user)
 	tokenLifetime = ACCESS_TOKEN_EXPIRE_MINUTES * 60
 	response.set_cookie(
 		key="access_token",

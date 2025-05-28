@@ -63,9 +63,9 @@ class UserActionsHistoryService:
 		self,
 		userId: int,
 		fromTimestamp: float,
+		stationIds: None=None,
 		actions: Iterable[str]=[],
 		limit: Optional[int]=None,
-		stationIds: None=None
 	) -> Iterator[UserHistoryActionItem]:
 		...
 
@@ -74,9 +74,9 @@ class UserActionsHistoryService:
 		self,
 		userId: int,
 		fromTimestamp: float,
+		stationIds: Iterable[int],
 		actions: Iterable[str]=[],
 		limit: Optional[int]=None,
-		stationIds: Iterable[int]=[]
 	) -> Iterator[StationHistoryActionItem]:
 		...
 
@@ -84,9 +84,9 @@ class UserActionsHistoryService:
 		self,
 		userId: int,
 		fromTimestamp: float,
+		stationIds: Optional[Iterable[int]]=None,
 		actions: Iterable[str]=[],
-		limit: Optional[int]=None,
-		stationIds: Optional[Iterable[int]]=None
+		limit: Optional[int]=None
 	) -> Union[
 				Iterator[UserHistoryActionItem],
 				Iterator[StationHistoryActionItem]
@@ -140,11 +140,17 @@ class UserActionsHistoryService:
 				for row in records
 			)
 
-	def add_user_action_history_item(self, userId: int, action: str):
+	def add_user_action_history_item(
+			self,
+			userId: int,
+			action: str
+		):
+		timestamp = self.get_datetime().timestamp()
 		stmt = insert(user_action_history).values(
-			userFk = userId,
+			userfk = userId,
 			action = action,
-			timestamp = self.get_datetime().timestamp(),
+			timestamp = timestamp,
+			queuedtimestamp = timestamp
 		)
 		res = self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
 
@@ -162,8 +168,8 @@ class UserActionsHistoryService:
 		actionGen = self.get_user_action_history(
 			userid,
 			fromTimestamp,
-			(r.name for r in rules),
-			maxLimit
+			actions=(r.name for r in rules),
+			limit=maxLimit
 		)
 		presorted = {g[0]:[i.timestamp for i in g[1]] for g in groupby(
 			actionGen,
@@ -194,9 +200,9 @@ class UserActionsHistoryService:
 		actionGen = self.get_user_action_history(
 			userId,
 			fromTimestamp,
+			(s.id for s in stations),
 			{r.name for s in stations for r in s.rules},
 			maxLimit,
-			(s.id for s in stations)
 		)
 		presorted = {s[0]:{
 				a[0]:[i.timestamp for i in a[1]] for a in

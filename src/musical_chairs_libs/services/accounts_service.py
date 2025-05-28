@@ -26,8 +26,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDomain,
 	RulePriorityLevel,
 	MinItemSecurityLevel,
-	generate_user_and_rules_from_rows
+	generate_user_and_rules_from_rows,
+	UserActions
 )
+from .user_actions_history_service import UserActionsHistoryService
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql.functions import coalesce
@@ -52,13 +54,17 @@ ALGORITHM = "HS256"
 class AccountsService:
 
 	def __init__(self,
-		conn: Connection
+		conn: Connection,
+		userActionsHistoryService: Optional[UserActionsHistoryService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
+		if not userActionsHistoryService:
+			userActionsHistoryService = UserActionsHistoryService(conn)
 		self.conn = conn
 		self._system_user: Optional[AccountInfo] = None
 		self.get_datetime = get_datetime
+		self.user_actions_history_service = userActionsHistoryService
 
 
 	def get_account_for_login(
@@ -171,15 +177,19 @@ class AccountsService:
 		return uniqueRoles
 
 
-	def create_access_token(self, userName: str) -> str:
+	def create_access_token(self, user: AccountInfo) -> str:
 		expire = self.get_datetime() \
 			+ timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 		token: str = jwt.encode({
-				"sub": SavedNameString.format_name_for_save(userName),
+				"sub": SavedNameString.format_name_for_save(user.username),
 				"exp": expire
 			},
 			EnvManager.secret_key(),
 			ALGORITHM
+		)
+		self.user_actions_history_service.add_user_action_history_item(
+			user.id,
+			UserActions.LOGIN.value
 		)
 		return token
 
@@ -338,6 +348,10 @@ class AccountsService:
 			email = updatedEmail
 		).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
+		self.user_actions_history_service.add_user_action_history_item(
+			currentUser.id,
+			UserActions.ACCOUNT_UPDATE.value
+		)
 		self.conn.commit()
 		return AccountInfo(
 			**currentUser.model_dump(exclude=["displayname", "email"]), #pyright: ignore [reportArgumentType]
@@ -359,6 +373,10 @@ class AccountsService:
 		hash = hashpw(passwordInfo.newpassword.encode())
 		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
+		self.user_actions_history_service.add_user_action_history_item(
+			currentUser.id,
+			UserActions.CHANGE_PASS.value
+		)
 		self.conn.commit()
 		return True
 
@@ -415,6 +433,10 @@ class AccountsService:
 			creationtimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt)
+		self.user_actions_history_service.add_user_action_history_item(
+			addedUserId,
+			UserActions.ADD_SITE_RULE.value
+		)
 		self.conn.commit()
 
 		return ActionRule(
@@ -434,4 +456,8 @@ class AccountsService:
 		if ruleName:
 			delStmt = delStmt.where(ur_role == ruleName)
 		self.conn.execute(delStmt)
+		self.user_actions_history_service.add_user_action_history_item(
+			userId,
+			UserActions.REMOVE_SITE_RULE.value
+		)
 		self.conn.commit()

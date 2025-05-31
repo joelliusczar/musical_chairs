@@ -611,6 +611,7 @@ module Provincial
 				from musical_chairs_libs.services import (
 					setup_database
 				)
+				print("python: setup_db")
 				dbName="musical_chairs_db"
 				setup_database(dbName)
 			CODE

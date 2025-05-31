@@ -48,7 +48,7 @@ def login(
 	formData: OAuth2PasswordRequestForm=Depends(),
 	accountService: AccountsService=Depends(accounts_service),
 	getDatetime: Callable[[], datetime]=Depends(datetime_provider),
-	tracking_info: TrackingInfo=Depends(get_tracking_info)
+	trackingInfo: TrackingInfo=Depends(get_tracking_info)
 ) -> AuthenticatedAccount:
 	user = accountService.authenticate_user(
 		formData.username,
@@ -60,7 +60,7 @@ def login(
 			detail=[build_error_obj("Incorrect username or password")],
 			headers={"WWW-Authenticate": "Bearer"}
 		)
-	token = accountService.create_access_token(user)
+	token = accountService.create_access_token(user, trackingInfo)
 	tokenLifetime = ACCESS_TOKEN_EXPIRE_MINUTES * 60
 	response.set_cookie(
 		key="access_token",
@@ -187,9 +187,14 @@ def update_account(
 		get_account_if_has_scope,
 		scopes=[UserRoleDef.USER_EDIT.value]
 	),
-	accountsService: AccountsService = Depends(accounts_service)
+	accountsService: AccountsService = Depends(accounts_service),
+	trackingInfo: TrackingInfo=Depends(get_tracking_info)
 ) -> AccountInfo:
-	return accountsService.update_account_general_changes(updatedInfo, prev)
+	return accountsService.update_account_general_changes(
+		updatedInfo,
+		prev,
+		trackingInfo
+	)
 
 
 @router.put("/update-password/{subjectuserkey}")
@@ -199,9 +204,10 @@ def update_password(
 		get_account_if_has_scope,
 		scopes=[UserRoleDef.USER_EDIT.value]
 	),
-	accountsService: AccountsService = Depends(accounts_service)
+	accountsService: AccountsService = Depends(accounts_service),
+	trackingInfo: TrackingInfo=Depends(get_tracking_info)
 ) -> bool:
-	if accountsService.update_password(passwordInfo, currentUser):
+	if accountsService.update_password(passwordInfo, currentUser, trackingInfo):
 		return True
 	raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -279,8 +285,9 @@ def add_user_rule(
 	user: AccountInfo = Depends(get_from_path_subject_user),
 	rule: ActionRule = Depends(validate_site_rule),
 	accountsService: AccountsService = Depends(accounts_service),
+	trackingInfo: TrackingInfo=Depends(get_tracking_info)
 ) -> ActionRule:
-	return accountsService.add_user_rule(user.id, rule)
+	return accountsService.add_user_rule(user.id, rule, trackingInfo)
 
 
 @router.delete("/site-roles/user_role/{subjectuserkey}",
@@ -296,6 +303,7 @@ def remove_user_rule(
 	rulename: str,
 	user: AccountInfo = Depends(get_from_path_subject_user),
 	accountsService: AccountsService = Depends(accounts_service),
+	trackingInfo: TrackingInfo=Depends(get_tracking_info)
 ):
 	if not user:
 		raise HTTPException(
@@ -306,5 +314,6 @@ def remove_user_rule(
 		)
 	accountsService.remove_user_site_rule(
 		user.id,
-		rulename
+		rulename,
+		trackingInfo
 	)

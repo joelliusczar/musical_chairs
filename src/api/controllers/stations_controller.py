@@ -19,7 +19,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	ActionRule,
 	TableData,
-	StationActionRule
+	StationActionRule,
+	TrackingInfo
 )
 from musical_chairs_libs.services import (
 	StationService,
@@ -40,7 +41,8 @@ from api_dependencies import (
 	get_stations_by_ids,
 	get_page_num,
 	build_error_obj,
-	get_station_user_by_id
+	get_station_user_by_id,
+	get_tracking_info
 )
 from station_validation import (
 	validate_station_rule,
@@ -151,10 +153,11 @@ def request_song(
 	user: AccountInfo = Security(
 		get_station_user,
 		scopes=[UserRoleDef.STATION_REQUEST.value]
-	)
+	),
+	trackingInfo: TrackingInfo=Depends(get_tracking_info)
 ):
 	try:
-		queueService.add_song_to_queue(songid, station, user)
+		queueService.add_song_to_queue(songid, station, user, trackingInfo)
 	except (LookupError, RuntimeError) as ex:
 		raise HTTPException(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,

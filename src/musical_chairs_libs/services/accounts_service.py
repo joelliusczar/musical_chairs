@@ -27,7 +27,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	RulePriorityLevel,
 	MinItemSecurityLevel,
 	generate_user_and_rules_from_rows,
-	UserActions
+	UserActions,
+	TrackingInfo
 )
 from .user_actions_history_service import UserActionsHistoryService
 from .env_manager import EnvManager
@@ -177,7 +178,11 @@ class AccountsService:
 		return uniqueRoles
 
 
-	def create_access_token(self, user: AccountInfo) -> str:
+	def create_access_token(
+		self,
+		user: AccountInfo,
+		trackingInfo: TrackingInfo
+	) -> str:
 		expire = self.get_datetime() \
 			+ timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 		token: str = jwt.encode({
@@ -189,8 +194,10 @@ class AccountsService:
 		)
 		self.user_actions_history_service.add_user_action_history_item(
 			user.id,
-			UserActions.LOGIN.value
+			UserActions.LOGIN.value,
+			trackingInfo
 		)
+		self.conn.commit()
 		return token
 
 	def has_expired(self, timestamp: float) -> bool:
@@ -332,7 +339,8 @@ class AccountsService:
 	def update_account_general_changes(
 		self,
 		updatedInfo: AccountInfoBase,
-		currentUser: AccountInfo
+		currentUser: AccountInfo,
+		trackingInfo: TrackingInfo
 	) -> AccountInfo:
 		if not updatedInfo:
 			return currentUser
@@ -350,7 +358,8 @@ class AccountsService:
 		self.conn.execute(stmt)
 		self.user_actions_history_service.add_user_action_history_item(
 			currentUser.id,
-			UserActions.ACCOUNT_UPDATE.value
+			UserActions.ACCOUNT_UPDATE.value,
+			trackingInfo
 		)
 		self.conn.commit()
 		return AccountInfo(
@@ -362,7 +371,8 @@ class AccountsService:
 	def update_password(
 		self,
 		passwordInfo: PasswordInfo,
-		currentUser: AccountInfo
+		currentUser: AccountInfo,
+		trackingInfo: TrackingInfo
 	) -> bool:
 		authenticated = self.authenticate_user(
 			currentUser.username,
@@ -375,7 +385,8 @@ class AccountsService:
 		self.conn.execute(stmt)
 		self.user_actions_history_service.add_user_action_history_item(
 			currentUser.id,
-			UserActions.CHANGE_PASS.value
+			UserActions.CHANGE_PASS.value,
+			trackingInfo
 		)
 		self.conn.commit()
 		return True
@@ -422,7 +433,8 @@ class AccountsService:
 	def add_user_rule(
 		self,
 		addedUserId: int,
-		rule: ActionRule
+		rule: ActionRule,
+		trackingInfo: TrackingInfo
 	) -> ActionRule:
 		stmt = insert(userRoles).values(
 			userfk = addedUserId,
@@ -435,7 +447,8 @@ class AccountsService:
 		self.conn.execute(stmt)
 		self.user_actions_history_service.add_user_action_history_item(
 			addedUserId,
-			UserActions.ADD_SITE_RULE.value
+			UserActions.ADD_SITE_RULE.value,
+			trackingInfo
 		)
 		self.conn.commit()
 
@@ -449,7 +462,8 @@ class AccountsService:
 	def remove_user_site_rule(
 		self,
 		userId: int,
-		ruleName: Optional[str]
+		ruleName: Optional[str],
+		trackingInfo: TrackingInfo
 	):
 		delStmt = delete(userRoles)\
 			.where(ur_userFk == userId)
@@ -458,6 +472,7 @@ class AccountsService:
 		self.conn.execute(delStmt)
 		self.user_actions_history_service.add_user_action_history_item(
 			userId,
-			UserActions.REMOVE_SITE_RULE.value
+			UserActions.REMOVE_SITE_RULE.value,
+			trackingInfo
 		)
 		self.conn.commit()

@@ -3,6 +3,7 @@ from .constant_fixtures_for_test import *
 from .common_fixtures import fixture_queue_service as fixture_queue_service
 from .common_fixtures import *
 from musical_chairs_libs.services import QueueService
+from musical_chairs_libs.dtos_and_utilities import TrackingInfo
 
 
 
@@ -11,7 +12,8 @@ def test_adding_song_to_queue(fixture_queue_service: QueueService):
 	queueService.fil_up_queue(1, queueService.queue_size)
 	queue1, _ = queueService.get_queue_for_station(1)
 	assert len(queue1) == 15 #only 19 songs in test db
-	result = queueService.__add_song_to_queue__(15, 1, 1)
+	trackingInfo = TrackingInfo()
+	result = queueService.__add_song_to_queue__(15, 1, 1, trackingInfo)
 	assert result == 1
 	queue1, _ = queueService.get_queue_for_station(1)
 	assert len(queue1) == 16

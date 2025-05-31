@@ -251,6 +251,30 @@ class DbOwnerConnectionService:
 		.replace("DELIMITER","")
 		self.conn.exec_driver_sql(script)
 
+	def add_user_ipv4address_column(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.ADD_IP4ADDRESS
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
+		self.conn.exec_driver_sql(script)
+
+	def add_user_ipv6address_column(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.ADD_IP6ADDRESS
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
+		self.conn.exec_driver_sql(script)
+
+	def add_user_agent_fk_column(self):
+		script = TemplateService.load_sql_script_content(
+			SqlScripts.ADD_USERAGENT_FK
+		).replace("<dbName>", self.dbName)\
+		.replace("|","")\
+		.replace("DELIMITER","")
+		self.conn.exec_driver_sql(script)
+
 def setup_database(dbName: str):
 	with DbRootConnectionService() as rootConnService:
 		rootConnService.create_db(dbName)
@@ -270,3 +294,6 @@ def setup_database(dbName: str):
 		ownerConnService.add_internalpath_column()
 		ownerConnService.drop_placeholderdir_column()
 		ownerConnService.add_file_hash_column()
+		ownerConnService.add_user_ipv4address_column()
+		ownerConnService.add_user_ipv6address_column()
+		ownerConnService.add_user_agent_fk_column()

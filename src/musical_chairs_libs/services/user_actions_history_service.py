@@ -1,3 +1,4 @@
+import hashlib
 from typing import (
 	Optional,
 	Iterator,
@@ -13,7 +14,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserHistoryActionItem,
 	StationHistoryActionItem,
 	ActionRule,
-	StationInfo
+	StationInfo,
+	TrackingInfo
 )
 from sqlalchemy import (
 	select,
@@ -23,7 +25,8 @@ from sqlalchemy import (
 from musical_chairs_libs.tables import (
 	user_action_history, uah_userFk, uah_action, uah_pk,
 	uah_queuedTimestamp,
-	station_queue, q_stationFk, q_userActionHistoryFk
+	station_queue, q_stationFk, q_userActionHistoryFk,
+	user_agents, uag_pk, uag_content, uag_hash, uag_length
 )
 from itertools import groupby
 
@@ -140,19 +143,47 @@ class UserActionsHistoryService:
 				for row in records
 			)
 
+	def add_user_agent(self, userAgent: str) -> Optional[int]:
+		userAgentHash = hashlib.md5(userAgent.encode()).digest()
+		userAgentLen = len(userAgent)
+		query = select(uag_pk, uag_content)\
+			.where(uag_hash == userAgentHash)\
+			.where(uag_length == userAgentLen)
+		results = self.conn.execute(query).mappings()
+		for row in results:
+			if userAgent == row[uag_content]:
+				return row[uag_pk]
+		stmt = insert(user_agents).values(
+			content = userAgent,
+			hash = userAgentHash,
+			length = userAgentLen
+		)
+		insertedIdRow = self.conn.execute(stmt).inserted_primary_key
+		if insertedIdRow:
+			return insertedIdRow[0]
+
+
 	def add_user_action_history_item(
 			self,
 			userId: int,
-			action: str
-		):
+			action: str,
+			trackingInfo: TrackingInfo
+		) -> Optional[int]:
+		userAgentId = self.add_user_agent(trackingInfo.userAgent)
 		timestamp = self.get_datetime().timestamp()
 		stmt = insert(user_action_history).values(
 			userfk = userId,
 			action = action,
-			timestamp = timestamp,
-			queuedtimestamp = timestamp
+			queuedtimestamp = timestamp,
+			ipv4address = trackingInfo.ipv4Address,
+			ipv6address = trackingInfo.ipv6Address,
+			useragentsfk = userAgentId
 		)
-		res = self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
+		insertedIdRow = self.conn.execute(stmt).inserted_primary_key
+		if insertedIdRow:
+			return insertedIdRow[0]
+
+
 
 	def calc_lookup_for_when_user_can_next_do_action(
 		self,

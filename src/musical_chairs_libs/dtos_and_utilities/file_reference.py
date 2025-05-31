@@ -6,7 +6,7 @@ from enum import Enum
 class SqlScripts(Enum):
 	GRANT_API = (
 		"001.grant_api.sql",
-		"01d77db8b9ff3ca13221eeff8aab6a3f8b75d0072d66e31f27d29414f27888cb"
+		"36195c78a8f001f617954ca94fa1467d667eadc00e97786e088d2f5b487e6c12"
 	)
 	GRANT_RADIO = (
 		"002.grant_radio.sql",
@@ -43,6 +43,18 @@ class SqlScripts(Enum):
 	GRANT_JANITOR = (
 		"010.grant_janitor.sql",
 		"b389086e4fd53da68499fc83bb97f92bf72ec0c44be3be9313979aaefcd7a7cd"
+	)
+	ADD_IP4ADDRESS = (
+		"011.add_ip4address.sql",
+		"4c44d1a57369986eafa90ba20202114b40f3ad0e1d4356d785bd64809c13bb08"
+	)
+	ADD_IP6ADDRESS = (
+		"012.add_ip6address.sql",
+		"4901552b86eed5dc5226516c9ca12146fe801bc79a5cb02fe779760ec74d21e6"
+	)
+	ADD_USERAGENT_FK = (
+		"013.add_useragent_fk.sql",
+		"8444071f34a7fe908125f3778a6b71261f8736121b3d5db28949aff0dd06cfcf"
 	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",

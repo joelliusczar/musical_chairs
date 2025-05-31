@@ -14,7 +14,7 @@ from sqlalchemy import (
 	Text,
 )
 from sqlalchemy.sql.schema import Column
-
+from sqlalchemy.dialects.mysql import BINARY
 
 
 metadata = MetaData()
@@ -108,7 +108,7 @@ songs = Table("songs", metadata,
 		nullable=True),
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
 	Column("internalpath", String(255), nullable=False),
-	Column("hash", LargeBinary, nullable=True),
+	Column("hash", BINARY(64), nullable=True),
 )
 
 sg = songs.c
@@ -219,12 +219,29 @@ ur_count = cast(Column[Float[float]], userRoles.c.count)
 ur_priority = cast(Column[Integer], userRoles.c.priority)
 Index("idx_userroles", ur_userFk, ur_role, unique=True)
 
+user_agents = Table("useragents",metadata,
+	Column("pk", Integer, primary_key=True),
+	Column("content", Text, nullable=False),
+	Column("hash", BINARY(16), nullable=False),
+	Column("length", Integer, nullable=False),
+)
+
+uag_pk = cast(Column[Integer], user_agents.c.pk)
+uag_content = cast(Column[String], user_agents.c.content)
+uag_hash = cast(Column[BINARY], user_agents.c.hash)
+uag_length = cast(Column[Integer], user_agents.c.length)
+
+Index("idx_useragenthash", uag_hash)
+
 user_action_history = Table("useractionhistory", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("userfk", Integer, ForeignKey("users.pk"), nullable=True),
 	Column("action", String(50), nullable=False),
 	Column("timestamp", Double[float], nullable=True),
-	Column("queuedtimestamp", Double[float], nullable=False)
+	Column("queuedtimestamp", Double[float], nullable=False),
+	Column("ipv4address", String(24), nullable=True),
+	Column("ipv6address", String(50), nullable=True),
+	Column("useragentsfk", Integer, ForeignKey("useragents.pk"), nullable=True),
 )
 
 uah = user_action_history.c

@@ -58,7 +58,7 @@ export const getList = ({ params }: { params?: object}) => {
 };
 
 
-export const add = ({ data }: { data: AlbumCreationInfo}) => {
+export const add = ({ name }: { name: string })  => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,
@@ -66,8 +66,13 @@ export const add = ({ data }: { data: AlbumCreationInfo}) => {
 
 			const response = await webClient.post<ArtistInfo>(
 				"/artists",
-				data,
-				{ signal: abortController.signal }
+				null,
+				{
+					params: {
+						name,
+					},
+					signal: abortController.signal,
+				}
 			);
 			return response.data;
 		},

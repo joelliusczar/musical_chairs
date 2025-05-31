@@ -123,41 +123,6 @@ export const fetchAlbumList = ({ params }: { params?: object}) => {
 	};
 };
 
-export const saveArtist = ({ name }: { name: string }) => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-			const response = await webClient.post<ArtistInfo>(
-				"/song-info/artists",
-				null,
-				{
-					params: {
-						name,
-					},
-					signal: abortController.signal,
-				}
-			);
-			return response.data;
-		},
-	};
-};
-
-export const saveAlbum = ({ data }: { data: AlbumCreationInfo}) => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-
-			const response = await webClient.post<AlbumInfo>(
-				"/song-info/albums",
-				data,
-				{ signal: abortController.signal }
-			);
-			return response.data;
-		},
-	};
-};
 
 export const fetchSongsLs = ({ nodeId }: { nodeId: string }) => {
 	const abortController = new AbortController();

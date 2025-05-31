@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
-import { saveArtist } from "../../API_Calls/songInfoCalls";
+import { add as saveArtist } from "../../API_Calls/artistCalls";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import { ArtistInfo } from "../../Types/song_info_types";

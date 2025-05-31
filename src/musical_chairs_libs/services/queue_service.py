@@ -31,6 +31,7 @@ from .accounts_service import AccountsService
 from .song_info_service import SongInfoService
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
+from .user_actions_history_service import UserActionsHistoryService
 from musical_chairs_libs.tables import (
 	songs,
 	stations,
@@ -57,7 +58,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	UserRoleDef,
 	LastPlayedItem,
-	SqlScripts
+	SqlScripts,
+	TrackingInfo
 )
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
@@ -86,6 +88,7 @@ class QueueService:
 		songInfoService: Optional[SongInfoService]=None,
 		choiceSelector: Optional[Callable[[List[Any], int], Collection[Any]]]=None,
 		pathRuleService: Optional[PathRuleService]=None,
+		userActionsHistoryService: Optional[UserActionsHistoryService]=None,
 	) -> None:
 			if not conn:
 				raise RuntimeError("No connection provided")
@@ -99,6 +102,8 @@ class QueueService:
 				choiceSelector = choice
 			if not pathRuleService:
 				pathRuleService = PathRuleService(conn)
+			if not userActionsHistoryService:
+				userActionsHistoryService = UserActionsHistoryService(conn)
 			self.conn = conn
 			self.station_service = stationService
 			self.account_service = accountService
@@ -106,6 +111,7 @@ class QueueService:
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.path_rule_service = pathRuleService
+			self.user_actions_history_service = userActionsHistoryService
 			self.queue_size = 50
 
 	def get_all_station_song_possibilities(
@@ -322,21 +328,20 @@ class QueueService:
 		self,
 		songId: int,
 		stationId: int,
-		userId: int
+		userId: int,
+		trackingInfo: TrackingInfo
 	) -> int:
-		queuedtimestamp = self.get_datetime().timestamp()
-
-		stmt = insert(user_action_history_tbl).values(
-			queuedtimestamp = queuedtimestamp,
-			userfk = userId,
-			action = UserRoleDef.STATION_REQUEST.value,
+		insertedPk = self.user_actions_history_service.add_user_action_history_item(
+			userId,
+			UserRoleDef.STATION_REQUEST.value,
+			trackingInfo
 		)
-		insertedPk = self.conn.execute(stmt).inserted_primary_key
+
 		if insertedPk:
 			stmt = insert(station_queue).values(
 				stationfk = stationId,
 				songfk = songId,
-				useractionhistoryfk = insertedPk[0]
+				useractionhistoryfk = insertedPk
 			)
 			return self.conn.execute(stmt).rowcount
 		else:
@@ -345,7 +350,8 @@ class QueueService:
 	def add_song_to_queue(self,
 		songId: int,
 		station: StationInfo,
-		user: AccountInfo
+		user: AccountInfo,
+		trackingInfo: TrackingInfo
 	):
 		songInfo = self.song_info_service.song_info(songId)
 		songName = songInfo.name if songInfo else "Song"
@@ -354,7 +360,7 @@ class QueueService:
 				songId,
 				station.id
 			):
-			self.__add_song_to_queue__(songId, station.id, user.id)
+			self.__add_song_to_queue__(songId, station.id, user.id, trackingInfo)
 			self.conn.commit()
 			return
 		raise LookupError(f"{songName} cannot be added to {station.name}")

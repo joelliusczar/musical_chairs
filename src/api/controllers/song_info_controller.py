@@ -13,7 +13,6 @@ from api_dependencies import (
 	song_file_service,
 	get_path_rule_loaded_current_user,
 	get_multi_path_user,
-	get_user_with_simple_scopes,
 	check_optional_path_for_current_user,
 	get_current_user_simple,
 	get_from_query_subject_user,
@@ -38,7 +37,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongTreeNode,
 	ListData,
 	AlbumInfo,
-	AlbumCreationInfo,
 	ArtistInfo,
 	AccountInfo,
 	UserRoleDef,
@@ -228,29 +226,6 @@ def get_all_artists(
 ) -> ListData[ArtistInfo]:
 	return ListData(items=list(artistService.get_artists(userId=user.id)))
 
-@router.post("/artists")
-def create_artist(
-	name: str,
-	artistService: ArtistService = Depends(artist_service),
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.PATH_EDIT.value]
-	)
-) -> ArtistInfo:
-	artistInfo = artistService.save_artist(user, name)
-	return artistInfo
-
-@router.post("/albums")
-def create_album(
-	album: AlbumCreationInfo,
-	albumService: AlbumService = Depends(album_service),
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.PATH_EDIT.value]
-	)
-) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, user=user)
-	return albumInfo
 
 @router.get("/albums/list")
 def get_all_albums(

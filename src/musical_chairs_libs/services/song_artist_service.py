@@ -5,7 +5,8 @@ from typing import (
 	cast,
 	Iterable,
 	Tuple,
-	Callable
+	Callable,
+	Any
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
@@ -151,7 +152,7 @@ class SongArtistService:
 		self.remove_songs_for_artists(outPairs)
 		if not inPairs: #if no songs - artist have been linked
 			return existingPairs - outPairs
-		params = [{
+		params: list[dict[str, Any]] = [{
 			"songfk": p.songid,
 			"artistfk": p.artistid,
 			"isprimaryartist": p.isprimaryartist,

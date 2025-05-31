@@ -1,5 +1,5 @@
 #pyright: reportMissingTypeStubs=false
-import re
+import ipaddress
 from typing import (
 	Iterator,
 	Tuple,
@@ -65,7 +65,7 @@ from api_error import (
 )
 from datetime import datetime
 from base64 import urlsafe_b64decode
-import musical_chairs_libs.dtos_and_utilities.logging as logging
+
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -714,14 +714,28 @@ def user_for_filters(
 		return None
 	return user
 
+def extract_ip_address(request: Request) -> Tuple[str, str]:
+	candidate = request.headers.get("x-real-ip", "")
+	if not candidate and request.client:
+		candidate = request.client.host
+	try:
+		address = ipaddress.ip_address(candidate)
+		if isinstance(address, ipaddress.IPv4Address):
+			return (candidate, "")
+		else:
+			return ("", candidate)
+	except:
+		return ("","")
+
+
+
+
 def get_tracking_info(request: Request):
 	userAgent = request.headers["user-agent"]
-	ipv4Address = ""
-	ipv6Address = ""
-	headers = "\n".join((f"{k}:{v}" for k,v in request.headers.items()))
-	logging.logger.info(headers)
+	ipaddresses = extract_ip_address(request)
+	
 	return TrackingInfo(
 		userAgent,
-		ipv4Address=ipv4Address,
-		ipv6Address=ipv6Address
+		ipv4Address=ipaddresses[0],
+		ipv6Address=ipaddresses[1]
 	)

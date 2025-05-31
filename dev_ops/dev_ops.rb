@@ -599,6 +599,7 @@ module Provincial
 
 
 		def setup_db
+			SaladPrep::Toob.diag&.puts("### setup_db ###")
 			replace_sql_scripts
 			root_hash=`mysql -srN -e \
 				"SELECT password FROM mysql.user WHERE user = 'root' LIMIT 1" 2>&1

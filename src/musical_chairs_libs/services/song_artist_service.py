@@ -24,7 +24,7 @@ from sqlalchemy.engine import Connection
 from itertools import groupby
 from musical_chairs_libs.tables import (
 	song_artist as song_artist_tbl,
-	sg_pk, ar_pk,
+	sg_pk, sg_deletedTimstamp, ar_pk,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
 
 )
@@ -104,9 +104,11 @@ class SongArtistService:
 			(sa.artistid for sa in songArtistsSet if sa.isprimaryartist),
 			-1
 		)
-		songQuery = select(sg_pk).where(
-			sg_pk.in_(s.songid for s in songArtistsSet)
-		)
+		songQuery = select(sg_pk)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(
+				sg_pk.in_(s.songid for s in songArtistsSet)
+			)
 		artistsQuery = select(ar_pk).where(
 			ar_pk.in_(a.artistid for a in songArtistsSet)
 		)

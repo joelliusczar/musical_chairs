@@ -40,6 +40,7 @@ from musical_chairs_libs.tables import (
 	ar_name, ar_pk, ar_ownerFk,
 	users as user_tbl, u_pk, u_username, u_displayName,
 	sg_pk, sg_name, sg_track, sg_albumFk, sg_path, sg_internalpath,
+	sg_deletedTimstamp,
 	song_artist as song_artist_tbl, sgar_songFk, sgar_artistFk, 
 )
 
@@ -178,8 +179,8 @@ class ArtistService:
 				artists_tbl,
 				ar_pk == sgar_artistFk,
 			)\
-			.where(sg_albumFk == artistId)\
-			.where()
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(sg_albumFk == artistId)
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
 		if user:
@@ -232,7 +233,6 @@ class ArtistService:
 				f"{artistName} is already used.",
 				"path->name"
 			)
-
 
 	def delete_album(self, artistid: int) -> int:
 		if not artistid:

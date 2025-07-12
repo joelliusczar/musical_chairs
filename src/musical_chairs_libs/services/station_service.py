@@ -35,7 +35,8 @@ from sqlalchemy import (
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
 	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel,
-	songs, sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath,
+	songs, sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath, 
+	sg_deletedTimstamp,
 	albums, ab_name, ab_pk,
 	artists, ar_name, ar_pk,
 	song_artist, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
@@ -353,6 +354,7 @@ class StationService:
 			.join(albums, sg_albumFk == ab_pk, isouter=True) \
 			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
 			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
+			.where(sg_deletedTimstamp.is_(None))\
 			.where(st_pk == stationId)\
 
 
@@ -420,6 +422,8 @@ class StationService:
 
 	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:
 		query = select(func.count(1)).select_from(stations_songs_tbl)\
+			.join(songs, stsg_songFk == sg_pk)\
+			.where(sg_deletedTimstamp.is_(None))\
 			.where(stsg_songFk == songId)\
 			.where(stsg_stationFk == stationId)
 		countRes = self.conn.execute(query).scalar()
@@ -656,7 +660,9 @@ class StationService:
 		stationIds: Union[int, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
 	) -> Iterator[Tuple[int, int]]:
-		query = select(stsg_stationFk, func.count(stsg_songFk))
+		query = select(stsg_stationFk, func.count(stsg_songFk))\
+			.join(songs, stsg_songFk == sg_pk)\
+			.where(sg_deletedTimstamp.is_(None))
 
 		if type(stationIds) == int:
 			query = query.where(stsg_stationFk == stationIds)

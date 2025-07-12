@@ -47,7 +47,7 @@ from sqlalchemy.sql.expression import (
 )
 from musical_chairs_libs.tables import (
 	songs as songs_tbl,
-	sg_pk, sg_name, sg_path, sg_internalpath,
+	sg_pk, sg_name, sg_path, sg_internalpath, sg_deletedTimstamp,
 	st_pk,
 	song_artist as song_artist_tbl, sgar_songFk,
 	stations_songs as stations_songs_tbl, stsg_songFk,
@@ -175,7 +175,9 @@ class SongFileService:
 				func.count(sg_pk).label("totalChildCount"),
 				func.max(sg_pk).label("pk"),
 				func.max(sg_path).label("control_path")
-		).where(
+		)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(
 				func.normalize_opening_slash(
 					sg_path,
 					hasOpenSlash
@@ -281,7 +283,7 @@ class SongFileService:
 		permittedPathTree = user.get_permitted_paths_tree()
 		queryList: list[Select[Tuple[str, str, int, int, str]]] = []
 
-		prefixSplit =  reversed([p for p in self.__prefix_split__(prefix)])
+		prefixSplit = reversed([p for p in self.__prefix_split__(prefix)])
 
 		limited = prefixSplit if includeTop else islice(prefixSplit, 3)
 		for p in limited:
@@ -313,7 +315,7 @@ class SongFileService:
 		itemIds: Union[Iterable[int], int],
 		useFullSystemPath: bool=True
 	) -> Iterator[str]:
-		query = select(sg_path)
+		query = select(sg_path).where(sg_deletedTimstamp.is_(None))
 		if isinstance(itemIds, Iterable):
 			query = query.where(sg_pk.in_(itemIds))
 		else:
@@ -331,7 +333,7 @@ class SongFileService:
 		itemIds: Union[Iterable[int], int],
 		useFullSystemPath: bool=False
 	) -> Iterator[str]:
-		query = select(sg_internalpath)
+		query = select(sg_internalpath).where(sg_deletedTimstamp.is_(None))
 		if isinstance(itemIds, Iterable):
 			query = query.where(sg_pk.in_(itemIds))
 		else:
@@ -348,6 +350,7 @@ class SongFileService:
 		normalizedPrefix = normalize_opening_slash(path)
 		addSlash = True
 		query = select(sg_pk, sg_path)\
+			.where(sg_deletedTimstamp.is_(None))\
 			.where(func.substring(
 				normalizedPrefix,
 				1,
@@ -362,7 +365,9 @@ class SongFileService:
 		overlap = [*self.get_parents_of_path(path)]
 		if any(r for r in overlap if not r[1].endswith("/")):
 			raise RuntimeError("Cannot delete song entries")
-		stmt = delete(songs_tbl).where(sg_pk.in_(r[0] for r in overlap))
+		stmt = delete(songs_tbl)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(sg_pk.in_(r[0] for r in overlap))
 		self.conn.execute(stmt)
 
 	def __is_path_used__(
@@ -371,6 +376,7 @@ class SongFileService:
 		id: Optional[int] = None,
 	) -> bool:
 		queryAny = select(func.count(1))\
+				.where(sg_deletedTimstamp.is_(None))\
 				.where(sg_path == str(path))\
 				.where(st_pk != id)
 		countRes = self.conn.execute(queryAny).scalar()
@@ -381,6 +387,7 @@ class SongFileService:
 			.replace("_","\\_").replace("%","\\%")
 		addSlash = True
 		queryAny = select(func.count(1))\
+			.where(sg_deletedTimstamp.is_(None))\
 			.where(
 				func.normalize_opening_slash(sg_path, addSlash)
 				.like(f"{lPrefix}%")
@@ -393,7 +400,9 @@ class SongFileService:
 		paths: ReusableIterable[SongPathInfo]
 	) -> dict[str, bool]:
 		addSlash=True
-		query = select(sg_pk, sg_path).where(
+		query = select(sg_pk, sg_path)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(
 			func.normalize_opening_slash(
 				sg_path,
 				addSlash

@@ -218,62 +218,45 @@ class DbOwnerConnectionService:
 		).replace("<apiUser>", DbUsers.API_USER("localhost"))
 		self.conn.exec_driver_sql(script)
 
-	def drop_requestedtimestamp_column(self):
+	def run_defined_script(self, scriptId: SqlScripts):
 		script = TemplateService.load_sql_script_content(
-			SqlScripts.DROP_REQUESTED_TIMESTAMP
+			scriptId
 		).replace("<dbName>", self.dbName)\
 		.replace("|","")\
 		.replace("DELIMITER","")
 
 		self.conn.exec_driver_sql(script)
+
+	def drop_requestedtimestamp_column(self):
+		self.run_defined_script(SqlScripts.DROP_REQUESTED_TIMESTAMP)
 
 	def add_internalpath_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.ADD_INTERNAL_PATH
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
-		self.conn.exec_driver_sql(script)
+		self.run_defined_script(SqlScripts.ADD_INTERNAL_PATH)
 
 	def drop_placeholderdir_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.DROP_PLACEHOLDERDIR
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
-		self.conn.exec_driver_sql(script)
+		self.run_defined_script(SqlScripts.DROP_PLACEHOLDERDIR)
 
 	def add_file_hash_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.ADD_SONG_FILE_HASH
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
-		self.conn.exec_driver_sql(script)
+		self.run_defined_script(SqlScripts.ADD_SONG_FILE_HASH)
 
 	def add_user_ipv4address_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.ADD_IP4ADDRESS
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
-		self.conn.exec_driver_sql(script)
+		self.run_defined_script(SqlScripts.ADD_IP4ADDRESS)
 
 	def add_user_ipv6address_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.ADD_IP6ADDRESS
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
-		self.conn.exec_driver_sql(script)
+		self.run_defined_script(SqlScripts.ADD_IP6ADDRESS)
 
 	def add_user_agent_fk_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.ADD_USERAGENT_FK
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
-		self.conn.exec_driver_sql(script)
+		self.run_defined_script(SqlScripts.ADD_USERAGENT_FK)
+
+	def add_song_deleted_timestamp(self):
+		self.run_defined_script(SqlScripts.ADD_SONG_DELETEDTIMESTAMP)
+
+	def add_album_version(self):
+		self.run_defined_script(SqlScripts.ADD_ALBUM_VERSION)
+
+	def add_station_type(self):
+		self.run_defined_script(SqlScripts.ADD_STATION_TYPE)
+
 
 def setup_database(dbName: str):
 	with DbRootConnectionService() as rootConnService:
@@ -297,3 +280,6 @@ def setup_database(dbName: str):
 		ownerConnService.add_user_ipv4address_column()
 		ownerConnService.add_user_ipv6address_column()
 		ownerConnService.add_user_agent_fk_column()
+		ownerConnService.add_song_deleted_timestamp()
+		ownerConnService.add_album_version()
+		ownerConnService.add_station_type()

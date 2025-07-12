@@ -49,11 +49,12 @@ from musical_chairs_libs.tables import (
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	stations as stations_tbl, st_name, st_pk, st_displayName, st_ownerFk,
 	st_requestSecurityLevel, st_viewSecurityLevel,
-	sg_pk, sg_name, sg_path,
+	sg_pk, sg_name, sg_path, 
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track, sg_internalpath,
+	sg_deletedTimstamp,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
 	users as user_tbl
 )
@@ -93,6 +94,7 @@ class SongInfoService:
 			.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
 			.join(artists_tbl, sgar_artistFk == ar_pk, isouter=True)\
 			.where(sg_pk == songPk)\
+			.where(sg_deletedTimstamp.is_(None))\
 			.limit(1)
 		row = self.conn.execute(query).mappings().fetchone()
 		if not row:
@@ -117,7 +119,8 @@ class SongInfoService:
 			sg_pk,
 			sg_path,
 			sg_name
-		).select_from(songs_tbl)
+		).select_from(songs_tbl)\
+			.where(sg_deletedTimstamp.is_(None))
 		if type(songName) is str or songName is None:
 			#allow null through
 			savedName = SavedNameString.format_name_for_save(songName) if songName\
@@ -139,6 +142,7 @@ class SongInfoService:
 		timestamp = self.get_datetime().timestamp()
 		songUpdate = update(songs_tbl) \
 				.where(sg_pk == songInfo.id) \
+				.where(sg_deletedTimstamp.is_(None))\
 				.values(
 					name = savedName,
 					albumfk = songInfo.albumId,
@@ -179,7 +183,8 @@ class SongInfoService:
 		songIds: Optional[Iterable[int]]=None
 	) -> Iterator[int]:
 		offset = page * pageSize if pageSize else 0
-		query = select(sg_pk).select_from(songs_tbl)
+		query = select(sg_pk).select_from(songs_tbl)\
+			.where(sg_deletedTimstamp.is_(None))
 		#add joins
 		if stationKey:
 			query = query.join(stations_songs_tbl, stsg_songFk == sg_pk)
@@ -206,7 +211,9 @@ class SongInfoService:
 		query = select(
 			stsg_songFk,
 			stsg_stationFk
-		)
+		)\
+			.join(songs_tbl, stsg_songFk == sg_pk)\
+			.where(sg_deletedTimstamp.is_(None))
 
 		if type(songIds) == int:
 			query = query.where(stsg_songFk == songIds)
@@ -254,9 +261,11 @@ class SongInfoService:
 		if not stationSongs:
 			return iter([])
 		stationSongSet = set(stationSongs)
-		songQuery = select(sg_pk).where(
-			sg_pk.in_((s.songid for s in stationSongSet))
-		)
+		songQuery = select(sg_pk)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(
+				sg_pk.in_((s.songid for s in stationSongSet))
+			)
 		stationQuery = select(st_pk).where(
 			st_pk.in_((s.stationid for s in stationSongSet))
 		)
@@ -413,6 +422,7 @@ class SongInfoService:
 					isouter=True
 				) \
 				.where(sg_pk.in_(songIds))\
+				.where(sg_deletedTimstamp.is_(None))\
 				.order_by(sg_pk)
 		return query
 
@@ -520,7 +530,9 @@ class SongInfoService:
 			songInfo.touched.add("albumfk")
 		stmt = update(songs_tbl).values(
 			**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
-		).where(sg_pk.in_(ids))
+		)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(sg_pk.in_(ids))
 		self.conn.execute(stmt)
 		if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
 			self.song_artist_service.link_songs_with_artists(

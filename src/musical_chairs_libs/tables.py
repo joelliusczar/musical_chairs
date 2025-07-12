@@ -71,7 +71,8 @@ albums = Table("albums", metadata,
 	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
 		nullable=False),
 	Column("lastmodifiedtimestamp", Double[float], nullable=False),
-	Column("ownerfk", Integer, ForeignKey("users.pk"), nullable=False)
+	Column("ownerfk", Integer, ForeignKey("users.pk"), nullable=False),
+	Column("versionnote", String(200), nullable=True),
 )
 
 ab = albums.c
@@ -109,6 +110,7 @@ songs = Table("songs", metadata,
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
 	Column("internalpath", String(255), nullable=False),
 	Column("hash", BINARY(64), nullable=True),
+	Column("deletedtimestamp", Double[float], nullable=True),
 )
 
 sg = songs.c
@@ -127,6 +129,7 @@ sg_lyrics = cast(Column[Optional[String]], sg.lyrics)
 sg_duration = cast(Column[Optional[Float[float]]], sg.duration)
 sg_sampleRate = cast(Column[Optional[Float[float]]], sg.samplerate)
 sg_isdirplacholhder = cast(Column[Boolean], sg.isdirectoryplaceholder)
+sg_deletedTimstamp = cast(Column[Boolean], sg.deletedtimestamp)
 
 Index("idx_uniquesongpath", sg_path, unique=True)
 
@@ -174,7 +177,7 @@ stations = Table("stations", metadata,
   Column("ownerfk", Integer, ForeignKey("users.pk"), nullable=False),
   Column("requestsecuritylevel", Integer, nullable=True),
   Column("viewsecuritylevel", Integer, nullable=True),
-
+	Column("typeid", Integer, nullable=True),
 )
 
 st = stations.c
@@ -375,6 +378,14 @@ Index(
 	lp_stationFk,
 	lp_songFk,
 	unique=True
+)
+
+jobs = Table('jobs', metadata,
+	Column('pk', Integer, primary_key=True, autoincrement=True),
+	Column("jobtype", String(50), nullable=False),
+	Column("status", String(50), nullable=False),
+	Column("comment", String(2000), nullable=True),
+	Column('timestamp', Double[float], nullable=False)
 )
 
 

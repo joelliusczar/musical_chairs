@@ -19,3 +19,8 @@ GRANT DELETE ON TABLE `<dbName>`.`useractionhistory` TO <janitorUser>;
 
 GRANT CREATE TEMPORARY TABLES ON `<dbName>`.* TO <janitorUser>;
 
+GRANT SELECT ON TABLE `<dbName>`.`jobs` TO <janitorUser>;
+GRANT DELETE ON TABLE `<dbName>`.`jobs` TO <janitorUser>;
+GRANT UPDATE ON TABLE `<dbName>`.`jobs` TO <janitorUser>;
+
+

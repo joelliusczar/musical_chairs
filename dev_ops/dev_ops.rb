@@ -717,10 +717,13 @@ module Provincial
 					#should be the intermediate key if relevant
 					#apparently this isn't needed anymore with porkbun?
 					#ssl_trusted_certificate <ssl_intermediate>;
-					client_max_body_size 0;
 					proxy_set_header X-Real-IP $remote_addr;
 					location /api/<API_VERSION>/ {
 						proxy_pass http://127.0.0.1:<API_PORT>/;
+						
+						location /song-info/upload {
+							client_max_body_size 0;
+						}
 					}
 
 					location /docs {

@@ -49,6 +49,7 @@ from musical_chairs_libs.tables import (
 	ar_name, ar_pk, ar_ownerFk,
 	users as user_tbl, u_pk, u_username, u_displayName,
 	sg_pk, sg_name, sg_track, sg_albumFk, sg_path, sg_internalpath,
+	sg_deletedTimstamp,
 	song_artist as song_artist_tbl, sgar_songFk, sgar_artistFk, 
 	sgar_isPrimaryArtist
 )
@@ -210,7 +211,7 @@ class AlbumService:
 				isouter=True
 			)\
 			.where(sg_albumFk == albumId)\
-			.where()\
+			.where(sg_deletedTimstamp.is_(None))\
 			.order_by(dbCast(sg_track, Integer))
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
@@ -285,7 +286,6 @@ class AlbumService:
 		delCount = self.conn.execute(delStmt).rowcount
 		self.conn.commit()
 		return delCount
-
 
 
 	def get_or_save_album(

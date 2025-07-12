@@ -43,7 +43,7 @@ from musical_chairs_libs.tables import (
 	artists,
 	song_artist,
 	sgar_pk, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
-	sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath,
+	sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath, sg_deletedTimstamp,
 	st_pk, st_name,
 	ar_pk, ar_name,
 	ab_pk, ab_name,
@@ -130,6 +130,7 @@ class QueueService:
 				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
 				isouter=True
 			)\
+			.where(sg_deletedTimstamp.is_(None))\
 			.where(st_pk == stationPk) \
 			.group_by(sg_pk, sg_path) \
 			.order_by(
@@ -249,6 +250,7 @@ class QueueService:
 				.join(artists, sgar_artistFk == ar_pk, isouter=True)\
 				.join(subq, subq.c.pk == coalesce(sgar_pk, -1))\
 				.where(q_stationFk == stationId)\
+				.where(sg_deletedTimstamp.is_(None))\
 				.where(uah_timestamp.is_(None))\
 				.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
 				.order_by(uah_queuedTimestamp)\
@@ -371,7 +373,8 @@ class QueueService:
 		stationName: Optional[str]=None
 	) -> int:
 		query = select(func.count(1)).select_from(station_queue)\
-			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)
+			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
+			.join(songs, sg_pk == q_songFk)
 		if stationId:
 			query = query.where(q_stationFk == stationId)
 		elif stationName:
@@ -379,7 +382,9 @@ class QueueService:
 				.where(st_name == stationName)
 		else:
 			raise ValueError("Either stationName or id must be provided")
-		query = query.where(uah_timestamp.is_(None))
+		query = query\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(uah_timestamp.is_(None))
 		count = self.conn.execute(query).scalar() or 0
 		return count
 

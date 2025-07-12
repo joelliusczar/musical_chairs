@@ -70,3 +70,7 @@ mcr_dev deploy_api
 If need to test a new feature, we just run`mcr_dev startup_api` while that branch
 is checked out in git.
 Run `mcr_dev deploy_client` to setup the client.
+
+## Update database
+First, run `mcr_dev regen_files` to update the file reference,
+then run `mcr_dev setup_db`

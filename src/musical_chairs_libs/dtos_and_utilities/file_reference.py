@@ -6,7 +6,7 @@ from enum import Enum
 class SqlScripts(Enum):
 	GRANT_API = (
 		"001.grant_api.sql",
-		"36195c78a8f001f617954ca94fa1467d667eadc00e97786e088d2f5b487e6c12"
+		"80fe0aff5c69df65426138b69f04952d53c4501977f15d8af836e1199afef47c"
 	)
 	GRANT_RADIO = (
 		"002.grant_radio.sql",
@@ -42,7 +42,7 @@ class SqlScripts(Enum):
 	)
 	GRANT_JANITOR = (
 		"010.grant_janitor.sql",
-		"b389086e4fd53da68499fc83bb97f92bf72ec0c44be3be9313979aaefcd7a7cd"
+		"deba3f9aeecf5d4829477a1629bab8ce17095b802bdb34ccda0ad9d54f1c8d2b"
 	)
 	ADD_IP4ADDRESS = (
 		"011.add_ip4address.sql",
@@ -55,6 +55,18 @@ class SqlScripts(Enum):
 	ADD_USERAGENT_FK = (
 		"013.add_useragent_fk.sql",
 		"8444071f34a7fe908125f3778a6b71261f8736121b3d5db28949aff0dd06cfcf"
+	)
+	ADD_SONG_DELETEDTIMESTAMP = (
+		"014.add_song_deletedtimestamp.sql",
+		"253a5504c86561a76083974f3a6332d2e7da2f15bbfc6c6019e2e6ea13da8c3b"
+	)
+	ADD_ALBUM_VERSION = (
+		"015.add_album_version.sql",
+		"aa6e370ebbe9243dffc2c609f5dd3385772b62275d2e24e8265bb7903781980e"
+	)
+	ADD_STATION_TYPE = (
+		"016.add_station_type.sql",
+		"4ff9fc92900e5f234aadec2bf2abb603cc3e2c8bbc41260fbbe77b871a6b3b17"
 	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",

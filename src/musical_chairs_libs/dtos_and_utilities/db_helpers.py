@@ -1,5 +1,4 @@
 from typing import Optional, cast, Iterable, Iterator, Tuple
-from enum import Enum
 from sqlalchemy.sql.expression import Select, false, CompoundSelect
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
@@ -34,19 +33,7 @@ from .account_dtos import (
 )
 from .simple_functions import normalize_opening_slash
 
-class DbUsers(Enum):
-	OWNER_USER = "mc_owner"
-	API_USER = "api_user"
-	RADIO_USER = "radio_user"
-	JANITOR_USER = "janitor_user"
 
-	def format_user(self, host:str="localhost") -> str:
-		return f"'{self.value}'@'{host}'"
-
-	def __call__(self, host:Optional[str]=None) -> str:
-		if host:
-			return self.format_user(host)
-		return self.value
 
 __station_permissions_query__ = select(
 	stup_userFk.label("rule_userfk"),

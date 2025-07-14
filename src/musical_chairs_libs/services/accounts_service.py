@@ -27,9 +27,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	RulePriorityLevel,
 	MinItemSecurityLevel,
 	generate_user_and_rules_from_rows,
-	UserActions,
 	TrackingInfo
 )
+from musical_chairs_libs.dtos_and_utilities.constants import UserActions
 from .user_actions_history_service import UserActionsHistoryService
 from .env_manager import EnvManager
 from sqlalchemy.engine import Connection

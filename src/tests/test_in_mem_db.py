@@ -2,7 +2,7 @@
 #pyright: reportMissingTypeStubs=false
 import pytest
 import sqlite3
-from typing import Callable
+from typing import Callable, Any
 from sqlalchemy import select
 from .constant_fixtures_for_test import *
 from .common_fixtures import (
@@ -13,7 +13,15 @@ from .common_fixtures import (
 from musical_chairs_libs.services import DbOwnerConnectionService
 from musical_chairs_libs.tables import artists
 from sqlalchemy.engine import Connection
-from .mocks.db_data import *
+from .mocks.db_data import (
+	album_params,
+	artist_params,
+	get_path_permission_params,
+	get_station_permission_params,
+	get_user_params,
+	get_user_role_params,
+	song_params
+)
 from .mocks import db_population
 from .constant_fixtures_for_test import (
 	fixture_mock_password as fixture_mock_password,\
@@ -25,7 +33,7 @@ from .constant_fixtures_for_test import (
 def fixture_db_populate_factory(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str,
-	fixture_mock_ordered_date_list: List[datetime],
+	fixture_mock_ordered_date_list: list[datetime],
 	fixture_primary_user: AccountInfo,
 	fixture_mock_password: bytes
 ) -> Callable[[], None]:
@@ -65,7 +73,7 @@ def test_in_mem_db(fixture_conn_cardboarddb: Connection) -> None:
 	assert res[6].pk == 7
 
 def test_data_view(
-	fixture_mock_ordered_date_list: List[datetime],
+	fixture_mock_ordered_date_list: list[datetime],
 	fixture_primary_user: AccountInfo,
 	fixture_mock_password: bytes
 ):

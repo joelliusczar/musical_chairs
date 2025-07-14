@@ -73,7 +73,7 @@ def test_validatedSongAboutInfo():
 	songInfo = ValidatedSongAboutInfo(name="Test", album=None)
 	assert songInfo
 	with pytest.raises(ValidationError):
-		songInfo = ValidatedSongAboutInfo(name="Test", album=AlbumInfo()) #pyright: ignore [reportGeneralTypeIssues]
+		songInfo = ValidatedSongAboutInfo(name="Test", album=AlbumInfo()) #pyright: ignore [reportCallIssue]
 
 
 def test_action_rule_ordering():

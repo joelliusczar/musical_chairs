@@ -5,9 +5,9 @@ from sqlalchemy import create_engine, NullPool
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
 	is_name_safe,
-	DbUsers,
 	SqlScripts
 )
+from musical_chairs_libs.dtos_and_utilities.constants import DbUsers
 from musical_chairs_libs.tables import metadata
 #https://github.com/PyMySQL/PyMySQL/issues/590
 from pymysql.constants import CLIENT

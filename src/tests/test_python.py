@@ -34,7 +34,7 @@ def test_use_side_effect():
 
 
 
-def getKeyedObjects():
+def getKeyedObjects() -> list[dict[str, Any]]:
 	return [
 		{
 			"name": "bob",

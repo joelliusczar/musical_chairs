@@ -675,7 +675,7 @@ def test_rule_adding_validation(
 	#can request on station 3
 	headers = login_test_user("testUser_oomdwell", client)
 
-	rule = {
+	rule: dict[str, Any] = {
 		"name": UserRoleDef.STATION_VIEW.value,
 		"span": 0,
 		"count": 0,

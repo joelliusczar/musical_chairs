@@ -174,7 +174,6 @@ class SongInfoService:
 		except IntegrityError: pass
 		return count
 
-
 	def get_songIds(
 		self,
 		page: int = 0,
@@ -308,7 +307,6 @@ class SongInfoService:
 		return self.get_station_songs(
 			songIds={st.songid for st in uniquePairs}
 		)
-
 
 	def _prepare_song_row_for_model(self, row: RowMapping) -> dict[str, Any]:
 		songDict: dict[Any, Any] = {**row}

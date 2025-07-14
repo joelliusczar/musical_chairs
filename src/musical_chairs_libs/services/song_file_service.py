@@ -10,7 +10,8 @@ from typing import (
 	Iterable,
 	overload,
 	Collection,
-	Mapping
+	Mapping,
+	Any
 )
 from pathlib import Path
 from sqlalchemy.engine import Connection
@@ -29,9 +30,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	SongPathInfo,
 	ReusableIterable,
-	MCNotImplementedError,
 	DirectoryTransfer,
 )
+from musical_chairs_libs.dtos_and_utilities.constants import JobTypes
 from sqlalchemy import (
 	select,
 	insert,
@@ -51,7 +52,8 @@ from musical_chairs_libs.tables import (
 	st_pk,
 	song_artist as song_artist_tbl, sgar_songFk,
 	stations_songs as stations_songs_tbl, stsg_songFk,
-	station_queue as station_queue_tbl, q_songFk
+	station_queue as station_queue_tbl, q_songFk,
+	jobs as jobs_tbl
 )
 from .env_manager import EnvManager
 from .song_artist_service import SongArtistService
@@ -482,9 +484,8 @@ class SongFileService:
 			self.conn.execute(stmt)
 			self.conn.commit()
 		else:
-			raise MCNotImplementedError(
-				"Deleting populated directories not currently Supported"
-			)
+			self.schedule_song_deletes(r[1] for r in rows)
+			self.soft_delete_songs(r[0] for r in rows)
 		parentPrefix = str(Path(prefix).parent)
 		return self.song_ls_parents(user, parentPrefix, includeTop=False)
 
@@ -533,3 +534,21 @@ class SongFileService:
 		self.conn.commit()
 
 		return self.song_ls_parents(user, newprefix, includeTop=False)
+	
+	def schedule_song_deletes(self, internalPaths: Iterable[str]):
+		params: list[dict[str, Any]] = [
+			{
+				"jobtype": JobTypes.SONG_DELETE.value,
+				"comment": path,
+				"timestamp": self.get_datetime().timestamp()
+			} for path in internalPaths
+		]
+		stmt = insert(jobs_tbl)
+		self.conn.execute(stmt, params)
+
+	def soft_delete_songs(self, songIds: Iterable[int]):
+		stmt = update(songs_tbl).values(
+			deletedtimestamp = self.get_datetime().timestamp()
+		)\
+		.where(sg_pk.in_(songIds))
+		self.conn.execute(stmt)

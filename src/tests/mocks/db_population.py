@@ -17,7 +17,25 @@ from musical_chairs_libs.tables import (
 	station_queue
 )
 from sqlalchemy import insert
-from .db_data import *
+from .db_data import (
+	album_params,
+	albumParams1,
+	albumParams2,
+	albumParams3,
+	albumParams4,
+	artist_params,
+	song_params,
+	songArtistParams,
+	songArtistParams2,
+	station_params,
+	stationSongParams,
+	get_actions_history,
+	get_path_permission_params,
+	get_station_permission_params,
+	get_station_queue,
+	get_user_params,
+	get_user_role_params
+)
 from .constant_values_defs import (
 	mock_ordered_date_list,
 	primary_user,

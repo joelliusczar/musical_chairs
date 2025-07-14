@@ -388,6 +388,9 @@ jobs = Table('jobs', metadata,
 	Column('timestamp', Double[float], nullable=False)
 )
 
+j = jobs.c
+j_type = cast(Column[String], j.jobtype)
+j_comment = cast(Column[String], j.comment)
 
 
 

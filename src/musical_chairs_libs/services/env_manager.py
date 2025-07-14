@@ -4,10 +4,10 @@ from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
-	DbUsers,
 	api_log_level,
 	radio_log_level
 )
+from musical_chairs_libs.dtos_and_utilities.constants import DbUsers
 #https://github.com/PyMySQL/PyMySQL/issues/590
 from pymysql.constants import CLIENT
 

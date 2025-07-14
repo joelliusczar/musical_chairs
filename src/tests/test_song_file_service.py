@@ -583,6 +583,16 @@ def test_delete_directory(
 	assert len(result["foo/goo/"]) == 11
 	assert "foo/goo/testdir/" not in (p.path for p in result["foo/goo/"])
 
+# def test_delete_dir_with_songs(
+# 	fixture_song_file_service: SongFileService,
+# 	fixture_account_service: AccountsService
+# ):
+# 	songFileService = fixture_song_file_service
+# 	accountService = fixture_account_service
+# 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+# 	assert user
+
+
 def test_parent_ls_with_placeholder_dir(
 	fixture_song_file_service: SongFileService,
 	fixture_account_service: AccountsService

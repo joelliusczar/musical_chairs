@@ -31,6 +31,7 @@ from musical_chairs_libs.services import (
 	PathRuleService,
 	ArtistService,
 	AlbumService,
+	JobsService
 )
 from musical_chairs_libs.protocols import (
 	FileService
@@ -151,6 +152,12 @@ def song_file_service(
 	fileService: FileService=Depends(file_service)
 ) -> SongFileService:
 	return SongFileService(conn, fileService)
+
+def job_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	fileService: FileService=Depends(file_service)
+) -> JobsService:
+	return JobsService(conn, fileService)
 
 def queue_service(
 	conn: Connection=Depends(get_configured_db_connection)

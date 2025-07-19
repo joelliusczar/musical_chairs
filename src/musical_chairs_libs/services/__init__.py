@@ -12,3 +12,4 @@ from .path_rule_service import *
 from .artist_service import *
 from .album_service import *
 from .song_artist_service import *
+from .jobs_service import *

@@ -6,7 +6,7 @@ from enum import Enum
 class SqlScripts(Enum):
 	GRANT_API = (
 		"001.grant_api.sql",
-		"80fe0aff5c69df65426138b69f04952d53c4501977f15d8af836e1199afef47c"
+		"6d3d393becbd42a4fd6ef74277e7ea280bfb920f755b3635bc41a2c91dff571b"
 	)
 	GRANT_RADIO = (
 		"002.grant_radio.sql",
@@ -67,6 +67,10 @@ class SqlScripts(Enum):
 	ADD_STATION_TYPE = (
 		"016.add_station_type.sql",
 		"4ff9fc92900e5f234aadec2bf2abb603cc3e2c8bbc41260fbbe77b871a6b3b17"
+	)
+	ADD_SONG_DELETEDBYUSERID = (
+		"017.add_song_deletedbyuserid.sql",
+		"e354453b26a884eeded27d0408a9682d8beca3a8a2b10974fd1235b3f14a13c2"
 	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",

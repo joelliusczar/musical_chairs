@@ -111,6 +111,8 @@ songs = Table("songs", metadata,
 	Column("internalpath", String(255), nullable=False),
 	Column("hash", BINARY(64), nullable=True),
 	Column("deletedtimestamp", Double[float], nullable=True),
+	Column("deletedbyuserfk", Integer, ForeignKey("users.pk"), \
+		nullable=True),
 )
 
 sg = songs.c
@@ -383,14 +385,19 @@ Index(
 jobs = Table('jobs', metadata,
 	Column('pk', Integer, primary_key=True, autoincrement=True),
 	Column("jobtype", String(50), nullable=False),
-	Column("status", String(50), nullable=False),
-	Column("comment", String(2000), nullable=True),
-	Column('timestamp', Double[float], nullable=False)
+	Column("status", String(50), nullable=True),
+	Column("instructions", String(2000), nullable=True),
+	Column("queuedtimestamp", Double[float], nullable=False),
+	Column('completedtimestamp', Double[float], nullable=True)
 )
 
 j = jobs.c
+j_pk = cast(Column[Integer], j.pk)
 j_type = cast(Column[String], j.jobtype)
-j_comment = cast(Column[String], j.comment)
+j_status = cast(Column[String], j.status)
+j_instructions = cast(Column[String], j.instructions)
+j_queuedtimestamp = cast(Column[Double[float]], j.queuedtimestamp)
+j_completedtimestamp = cast(Column[Double[float]], j.completedtimestamp)
 
 
 

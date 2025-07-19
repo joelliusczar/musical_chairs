@@ -136,4 +136,3 @@ class S3FileService(FileService):
 			key=keyPath
 		)
 		s3_obj.delete() #pyright: ignore [reportUnknownMemberType]
-		pass

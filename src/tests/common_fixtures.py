@@ -20,7 +20,8 @@ from musical_chairs_libs.services import (
 	PathRuleService,
 	ArtistService,
 	AlbumService,
-	SongArtistService
+	SongArtistService,
+	JobsService
 )
 
 from musical_chairs_libs.radio_handle import RadioHandle
@@ -30,6 +31,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_path_owner_roles,
 	normalize_opening_slash
 )
+from musical_chairs_libs.protocols import FileService
 from sqlalchemy.engine import Connection
 from .mocks.mock_db_constructors import (
 	setup_in_mem_tbls,
@@ -176,13 +178,17 @@ def fixture_path_rule_service(
 	return pathRuleService
 
 @pytest.fixture
+def fixture_file_service() -> FileService:
+	return MockFileService()
+
+@pytest.fixture
 def fixture_song_file_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_file_service: FileService
 ) -> SongFileService:
-	fileService = MockFileService()
 	songFileService = SongFileService(
 		fixture_conn_cardboarddb,
-		fileService
+		fixture_file_service
 	)
 	return songFileService
 
@@ -190,6 +196,18 @@ def fixture_song_file_service(
 def fixture_template_service() -> TemplateService:
 	templateService = TemplateService()
 	return templateService
+
+@pytest.fixture
+def fixture_job_service(
+	fixture_conn_cardboarddb: Connection,
+	fixture_file_service: FileService
+) -> JobsService:
+	jobsService = JobsService(
+		fixture_conn_cardboarddb,
+		fixture_file_service
+	)
+	return jobsService
+
 
 @pytest.fixture
 def fixture_user_actions_history_service(

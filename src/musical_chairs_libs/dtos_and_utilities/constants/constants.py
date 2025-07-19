@@ -24,3 +24,8 @@ class DbUsers(Enum):
 	
 class JobTypes(Enum):
 	SONG_DELETE = "song-delete"
+
+class JobStatusTypes(Enum):
+	STARTED = "started"
+	COMPLETED = "completed"
+	FAILED = "failed"

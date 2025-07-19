@@ -257,6 +257,9 @@ class DbOwnerConnectionService:
 	def add_station_type(self):
 		self.run_defined_script(SqlScripts.ADD_STATION_TYPE)
 
+	def add_song_deleted_by_userId(self):
+		self.run_defined_script(SqlScripts.ADD_SONG_DELETEDBYUSERID)
+
 
 def setup_database(dbName: str):
 	with DbRootConnectionService() as rootConnService:
@@ -283,3 +286,4 @@ def setup_database(dbName: str):
 		ownerConnService.add_song_deleted_timestamp()
 		ownerConnService.add_album_version()
 		ownerConnService.add_station_type()
+		ownerConnService.add_song_deleted_by_userId()

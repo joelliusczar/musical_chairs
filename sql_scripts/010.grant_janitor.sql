@@ -1,6 +1,10 @@
 GRANT INSERT ON TABLE `<dbName>`.`pathuserpermissions` TO <janitorUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`songs` TO <janitorUser>;
+GRANT INSERT ON TABLE `<dbName>`.`songs` TO <janitorUser>;
+GRANT UPDATE ON TABLE `<dbName>`.`songs` TO <janitorUser>;
+GRANT DELETE ON TABLE `<dbName>`.`songs` TO <janitorUser>;
+
 GRANT SELECT ON TABLE `<dbName>`.`albums` TO <janitorUser>;
 GRANT SELECT ON TABLE `<dbName>`.`artists` TO <janitorUser>;
 GRANT SELECT ON TABLE `<dbName>`.`songsartists` TO <janitorUser>;

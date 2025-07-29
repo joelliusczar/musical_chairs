@@ -53,6 +53,11 @@ GRANT INSERT ON TABLE `<dbName>`.`stationssongs` TO <apiUser>;
 GRANT DELETE ON TABLE `<dbName>`.`stationssongs` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`stationssongs` TO <apiUser>;
 
+GRANT UPDATE ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
+GRANT INSERT ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
+GRANT DELETE ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
+GRANT SELECT ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
+
 GRANT UPDATE ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;
 GRANT INSERT ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;

@@ -4,6 +4,7 @@ from .path_user_roles import *
 from .special_strings_reference import *
 from .songs import *
 from .stations_songs import *
+from .stations_albums import *
 from .station_user_roles import *
 from .user_ids import *
 from .test_guids import *

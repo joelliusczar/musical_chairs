@@ -11,6 +11,7 @@ from musical_chairs_libs.tables import (
 	users,
 	userRoles,
 	stations_songs,
+	stations_albums,
 	station_user_permissions,
 	path_user_permissions,
 	user_action_history,
@@ -29,6 +30,7 @@ from .db_data import (
 	songArtistParams2,
 	station_params,
 	stationSongParams,
+	station_album_params,
 	get_actions_history,
 	get_path_permission_params,
 	get_station_permission_params,
@@ -215,6 +217,10 @@ def populate_stations(conn: Connection):
 def populate_stations_songs(conn: Connection):
 	stmt = insert(stations_songs)
 	conn.execute(stmt, stationSongParams) #pyright: ignore [reportUnknownMemberType]
+
+def populate_station_albums(conn: Connection):
+	stmt = insert(stations_albums)
+	conn.execute(stmt,station_album_params)
 
 def populate_users(
 	conn: Connection,

@@ -81,6 +81,7 @@ ab_name = cast(Column[Optional[String]],ab.name)
 ab_year = cast(Column[Optional[Integer]], ab.year)
 ab_albumArtistFk = cast(Column[Optional[Integer]], ab.albumartistfk)
 ab_ownerFk = cast(Column[Integer], ab.ownerfk)
+ab_versionnote = cast(Column[String], ab.versionnote)
 
 Index(
 	"idx_uniquealbumnameforartist",
@@ -179,7 +180,7 @@ stations = Table("stations", metadata,
   Column("ownerfk", Integer, ForeignKey("users.pk"), nullable=False),
   Column("requestsecuritylevel", Integer, nullable=True),
   Column("viewsecuritylevel", Integer, nullable=True),
-	Column("typeid", Integer, nullable=True),
+	Column("typeid", Integer, nullable=True, default=0),
 )
 
 st = stations.c
@@ -190,6 +191,7 @@ st_procId = cast(Column[Integer],st.procid)
 st_ownerFk = cast(Column[Integer],st.ownerfk)
 st_requestSecurityLevel = cast(Column[Integer],st.requestsecuritylevel)
 st_viewSecurityLevel = cast(Column[Integer],st.viewsecuritylevel)
+st_typeid = cast(Column[Integer],st.typeid)
 Index("idx_uniquestationname", st_name, st_ownerFk, unique=True)
 
 stations_songs = Table("stationssongs", metadata,
@@ -208,6 +210,24 @@ stsg_lastmodifiedtimestamp = cast(
 	Column[Double[float]], stations_songs.c.lastmodifiedtimestamp
 )
 Index("idx_stationssongs", stsg_songFk, stsg_stationFk, unique=True)
+
+stations_albums = Table("stationsalbums",metadata,
+	Column("albumfk", Integer, ForeignKey("albums.pk"), nullable=False),
+	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
+		Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
+		nullable=True),
+	Column("lastmodifiedtimestamp", Double[float], nullable=True)
+)
+stab = stations_albums.c
+
+stab_albumFk = cast(Column[Integer], stab.albumfk)
+stab_stationFk = cast(Column[Integer], stab.stationfk)
+stab_lastmodifiedtimestamp = cast(
+	Column[Double[float]],
+	stab.lastmodifiedtimestamp
+)
+Index("idx_stationsalbums", stab_albumFk, stab_stationFk, unique=True)
+
 
 userRoles = Table("userroles", metadata,
 	Column("userfk", Integer, ForeignKey("users.pk"), nullable=False),

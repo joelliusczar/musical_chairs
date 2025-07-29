@@ -29,3 +29,7 @@ class JobStatusTypes(Enum):
 	STARTED = "started"
 	COMPLETED = "completed"
 	FAILED = "failed"
+
+class StationTypes(Enum):
+	DEFAULT = 0
+	ALBUM = 1

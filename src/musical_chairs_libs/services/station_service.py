@@ -34,13 +34,14 @@ from sqlalchemy import (
 )
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
-	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel,
+	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel, st_typeid,
 	songs, sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath, 
 	sg_deletedTimstamp,
-	albums, ab_name, ab_pk,
+	albums, ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_versionnote,
 	artists, ar_name, ar_pk,
 	song_artist, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
+	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
 	stsg_lastmodifiedtimestamp,
 	station_user_permissions as station_user_permissions_tbl, stup_userFk,
 	stup_stationFk, stup_role,
@@ -69,8 +70,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	row_to_action_rule,
 	generate_user_and_rules_from_rows,
 	normalize_opening_slash,
-	clean_search_term_for_like
+	clean_search_term_for_like,
+	AlbumListDisplayItem
 )
+from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
 from .song_info_service import SongInfoService
@@ -419,13 +422,72 @@ class StationService:
 			.where(subquery.c.rownum < 2)
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
+	
+	def get_album_catalogue(
+		self,
+		stationId: int,
+		page: int = 0,
+		album: str = "",
+		artist: str = "",
+		limit: Optional[int]=None,
+		user: Optional[AccountInfo]=None
+	) -> Tuple[list[AlbumListDisplayItem], int]:
+		offset = page * limit if limit else 0
+		lalbum = clean_search_term_for_like(album)
+		lartist = clean_search_term_for_like(artist)
+
+		query = select(
+			ab_pk.label("id"),
+			ab_name.label("name"),
+			ar_name.label("albumartist"),
+			ab_year.label("year"),
+			ab_versionnote.label("versionnote")
+		)\
+			.select_from(stations_tbl) \
+			.join(stations_songs_tbl, st_pk == stab_stationFk) \
+			.join(albums, stab_albumFk == ab_pk) \
+			.join(artists, ab_albumArtistFk == ar_pk, isouter=True) \
+			.where(st_pk == stationId)
+		
+		if lalbum:
+			query = query.where(ab_name.like(f"%{lalbum}%"))
+
+		if lartist:
+			query = query.where(ar_name.like(f"%{lartist}%"))
+
+		limitedQuery = query\
+			.offset(offset)\
+			.limit(limit)
+
+		records = self.conn.execute(limitedQuery).mappings()
+
+		result = [AlbumListDisplayItem(**r) for r in records]
+		countQuery = select(func.count(1))\
+			.select_from(cast(Any, query))
+		count = self.conn.execute(countQuery).scalar() or 0
+		return result, count
 
 	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:
 		query = select(func.count(1)).select_from(stations_songs_tbl)\
 			.join(songs, stsg_songFk == sg_pk)\
+			.join(stations_tbl, st_pk == stsg_stationFk)\
+			.where(st_typeid == StationTypes.DEFAULT.value)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.where(stsg_songFk == songId)\
 			.where(stsg_stationFk == stationId)
+		countRes = self.conn.execute(query).scalar()
+		return True if countRes and countRes > 0 else False
+	
+	def can_album_be_queued_to_station(
+		self,
+		albumId: int,
+		stationId: int
+	) -> bool:
+		query = select(func.count(1)).select_from(stations_albums_tbl)\
+			.join(stations_tbl, stab_stationFk == st_pk)\
+			.where(st_typeid == StationTypes.ALBUM.value)\
+			.where(stab_albumFk == albumId)\
+			.where(stab_stationFk == stationId)
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
 
@@ -493,7 +555,6 @@ class StationService:
 		stmt = insert(station_user_permissions_tbl)
 		self.conn.execute(stmt, params) #pyright: ignore [reportUnknownMemberType]
 		return rules
-
 
 	@overload
 	def save_station(

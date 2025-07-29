@@ -94,8 +94,12 @@ class EnvManager:
 		return os.environ.get("__TEST_FLAG__","false") == "true"
 
 	@classmethod
-	def secret_key(cls) -> str:
+	def auth_key(cls) -> str:
 		return os.environ["MCR_AUTH_SECRET_KEY"]
+	
+	@classmethod
+	def back_key(cls) -> str:
+		return os.environ["MCR_BACK_KEY"]
 
 	@classmethod
 	def api_log_level(cls) -> str:

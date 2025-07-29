@@ -25,6 +25,13 @@ def test_queue_of_songs_without_artists(fixture_queue_service: QueueService):
 	queue1, _ = queueService.get_queue_for_station(8)
 	assert len(queue1) == 4
 
+def test_adding_album_to_queue(fixture_queue_service: QueueService):
+	queueService = fixture_queue_service
+	queueService.fil_up_album_queue(26,3)
+	queue1, _ = queueService.get_queue_for_station(26)
+	pass
+
+
 # def test_queue_with_skips_and_offsets(fixture_queue_service: QueueService):
 # 	queueService = fixture_queue_service
 # 	queueService.fil_up_queue(26, queueService.queue_size)

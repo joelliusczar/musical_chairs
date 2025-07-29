@@ -287,7 +287,6 @@ class AlbumService:
 		self.conn.commit()
 		return delCount
 
-
 	def get_or_save_album(
 		self,
 		name: Optional[str],

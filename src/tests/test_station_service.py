@@ -35,7 +35,7 @@ def test_if_song_can_be_added_to_station(
 def test_get_stations_list(fixture_station_service: StationService):
 	stationService = fixture_station_service
 	data = list(stationService.get_stations())
-	assert len(data) == 11
+	assert len(data) == 12
 
 def test_get_stations_list_with_admin(
 	fixture_station_service: StationService,
@@ -270,26 +270,6 @@ def test_get_stations_with_view_security(
 		stationService.get_stations(),
 		key=lambda s:s.id
 	)
-	assert len(data) == 11
-	assert data[0].name == "oscar_station"
-	assert data[1].name == "papa_station"
-	assert data[2].name == "romeo_station"
-	assert data[3].name == "sierra_station"
-	assert data[4].name == "tango_station"
-	assert data[5].name == "yankee_station"
-	assert data[6].name == "uniform_station"
-	assert data[7].name == "victor_station"
-	assert data[8].name == "whiskey_station"
-	assert data[9].name == "xray_station"
-	assert data[10].name == "zulu_station"
-
-	#user no roles
-	user,_ = accountService.get_account_for_login("testUser_romeo")
-	assert user
-	data = sorted(
-		stationService.get_stations(user=user),
-		key=lambda s:s.id
-	)
 	assert len(data) == 12
 	assert data[0].name == "oscar_station"
 	assert data[1].name == "papa_station"
@@ -302,7 +282,29 @@ def test_get_stations_with_view_security(
 	assert data[8].name == "whiskey_station"
 	assert data[9].name == "xray_station"
 	assert data[10].name == "zulu_station"
+	assert data[11].name == "album_public_station_alpha"
+
+	#user no roles
+	user,_ = accountService.get_account_for_login("testUser_romeo")
+	assert user
+	data = sorted(
+		stationService.get_stations(user=user),
+		key=lambda s:s.id
+	)
+	assert len(data) == 13
+	assert data[0].name == "oscar_station"
+	assert data[1].name == "papa_station"
+	assert data[2].name == "romeo_station"
+	assert data[3].name == "sierra_station"
+	assert data[4].name == "tango_station"
+	assert data[5].name == "yankee_station"
+	assert data[6].name == "uniform_station"
+	assert data[7].name == "victor_station"
+	assert data[8].name == "whiskey_station"
+	assert data[9].name == "xray_station"
+	assert data[10].name == "zulu_station"
 	assert data[11].name == "bravo_station_rerun"
+	assert data[12].name == "album_public_station_alpha"
 
 	#user with a site rule
 	user,_ = accountService.get_account_for_login("testUser_whiskey")
@@ -311,7 +313,7 @@ def test_get_stations_with_view_security(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 14
 	assert data[0].name == "oscar_station"
 	assert data[1].name == "papa_station"
 	assert data[2].name == "romeo_station"
@@ -325,6 +327,7 @@ def test_get_stations_with_view_security(
 	assert data[10].name == "zulu_station"
 	assert data[11].name == "alpha_station_rerun"
 	assert data[12].name == "bravo_station_rerun"
+	assert data[13].name == "album_public_station_alpha"
 
 	#user invited to see a station
 	user,_ = accountService.get_account_for_login("testUser_xray")
@@ -333,7 +336,7 @@ def test_get_stations_with_view_security(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 14
 	assert data[0].name == "oscar_station"
 	assert data[1].name == "papa_station"
 	assert data[2].name == "romeo_station"
@@ -347,6 +350,7 @@ def test_get_stations_with_view_security(
 	assert data[10].name == "zulu_station"
 	assert data[11].name == "bravo_station_rerun"
 	assert data[12].name == "charlie_station_rerun"
+	assert data[13].name == "album_public_station_alpha"
 
 	#owner a station
 	user,_ = accountService.get_account_for_login("testUser_yankee")
@@ -355,7 +359,7 @@ def test_get_stations_with_view_security(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 14
 	assert data[0].name == "oscar_station"
 	assert data[1].name == "papa_station"
 	assert data[2].name == "romeo_station"
@@ -369,6 +373,7 @@ def test_get_stations_with_view_security(
 	assert data[10].name == "zulu_station"
 	assert data[11].name == "bravo_station_rerun"
 	assert data[12].name == "delta_station_rerun"
+	assert data[13].name == "album_public_station_alpha"
 	pass
 
 	user,_ = accountService.get_account_for_login("testUser_juliet")
@@ -377,7 +382,7 @@ def test_get_stations_with_view_security(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 14
 
 
 def test_get_stations_with_scopes(
@@ -404,7 +409,7 @@ def test_get_stations_with_scopes(
 			user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 12
+	assert len(data) == 13
 
 	data = sorted(
 		stationService.get_stations(
@@ -421,7 +426,7 @@ def test_get_stations_with_scopes(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 14
 
 	data = sorted(
 		stationService.get_stations(
@@ -430,7 +435,7 @@ def test_get_stations_with_scopes(
 		),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 14
 	assert data[0].name == "oscar_station"
 	assert data[1].name == "papa_station"
 	assert data[2].name == "romeo_station"
@@ -453,7 +458,7 @@ def test_get_stations_with_scopes(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 12
+	assert len(data) == 13
 
 	data = sorted(
 		stationService.get_stations(
@@ -479,7 +484,7 @@ def test_get_stations_with_odd_priority(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 12
+	assert len(data) == 13
 
 	user,_ = accountService.get_account_for_login("testUser_alice")
 	assert user
@@ -488,7 +493,7 @@ def test_get_stations_with_odd_priority(
 		stationService.get_stations(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 12
+	assert len(data) == 13
 
 def test_get_station_user_list(
 	fixture_station_service: StationService,

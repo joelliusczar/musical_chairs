@@ -225,7 +225,8 @@ def test_song_save(
 			"id": 6,
 			"name": "foxtrot_artist",
 			"owner": {"id":kilo_user_id },
-		}
+		},
+		"versionnote": ""
 	}
 	sendData["genre"] = "pop_update"
 	sendData["comment"] = "Kazoos make good swimmers update"
@@ -578,7 +579,7 @@ def test_song_save_for_multi_edit(
 	)
 	assert stationsLen == 5
 
-	sendData = {
+	sendData: dict[str, Any] = {
 		"album": {
 			"id": 12, "name": "garoo_album", "owner": {"id": kilo_user_id }
 		},
@@ -712,7 +713,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	)
 	assert stationsLen == 2
 
-	sendData = {
+	sendData: dict[str, Any] = {
 		"album": {
 			"id": 12, "name": "garoo_album","owner": { "id": kilo_user_id}
 		},

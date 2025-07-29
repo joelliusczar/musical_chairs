@@ -6,11 +6,11 @@ from enum import Enum
 class SqlScripts(Enum):
 	GRANT_API = (
 		"001.grant_api.sql",
-		"6d3d393becbd42a4fd6ef74277e7ea280bfb920f755b3635bc41a2c91dff571b"
+		"0735b8469b52ff581232a764470a961ee8919ab807488689a155c24b5df0d64d"
 	)
 	GRANT_RADIO = (
 		"002.grant_radio.sql",
-		"b47b5d523512386597a18b3ee5937befec75e01917e10916830a5ee836af3b44"
+		"9ab82773b4be59130aab517604abf69c19e1c91ebae41ad69914724880ead9a6"
 	)
 	PATH_USER_INDEXES = (
 		"003.path_user_indexes.sql",
@@ -66,7 +66,7 @@ class SqlScripts(Enum):
 	)
 	ADD_STATION_TYPE = (
 		"016.add_station_type.sql",
-		"4ff9fc92900e5f234aadec2bf2abb603cc3e2c8bbc41260fbbe77b871a6b3b17"
+		"72f7a6d41ab46e18c05d4649484d52a75c4ba66086b1ac44d8fc54962f7c10fc"
 	)
 	ADD_SONG_DELETEDBYUSERID = (
 		"017.add_song_deletedbyuserid.sql",

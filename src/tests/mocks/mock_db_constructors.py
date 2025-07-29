@@ -9,6 +9,7 @@ from .db_population import (
 	populate_songs,
 	populate_songs_artists,
 	populate_stations_songs,
+	populate_station_albums,
 	populate_stations,
 	populate_users,
 	populate_user_roles,
@@ -49,6 +50,7 @@ def setup_in_mem_tbls(
 	populate_songs_artists(conn)
 	populate_stations(conn)
 	populate_stations_songs(conn)
+	populate_station_albums(conn)
 	populate_user_roles(conn, orderedTestDates, primaryUser)
 	populate_station_permissions(conn, orderedTestDates)
 	populate_path_permissions(conn, orderedTestDates)

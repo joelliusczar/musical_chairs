@@ -177,6 +177,13 @@ def int_or_str(s: Union[int, str]) -> Union[int, str]:
 		return i
 	except:
 		return s
+	
+def int_or_default(s: Union[int, str], default: int = 0) -> int:
+	try:
+		return int(s)
+	except:
+		return default
+
 
 def interweave(
 	it1: Iterable[T],

@@ -189,7 +189,7 @@ class AccountsService:
 				"sub": SavedNameString.format_name_for_save(user.username),
 				"exp": expire
 			},
-			EnvManager.secret_key(),
+			EnvManager.auth_key(),
 			ALGORITHM
 		)
 		self.user_actions_history_service.add_user_action_history_item(
@@ -212,7 +212,7 @@ class AccountsService:
 			return None, 0
 		decoded: dict[Any, Any] = jwt.decode(
 			token,
-			EnvManager.secret_key(),
+			EnvManager.auth_key(),
 			algorithms=[ALGORITHM]
 		)
 		expiration = decoded.get("exp") or 0

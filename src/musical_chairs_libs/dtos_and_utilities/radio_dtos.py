@@ -39,11 +39,18 @@ class ArtistInfo(FrozenNamedIdItem):
 class AlbumCreationInfo(FrozenNamed):
 	year: Optional[int]=None
 	albumartist: Optional[ArtistInfo]=None
+	versionnote: Optional[str]=""
 
 class AlbumInfo(FrozenNamedIdItem):
 	owner: OwnerType
 	year: Optional[int]=None
 	albumartist: Optional[ArtistInfo]=None
+	versionnote: Optional[str]=""
+
+class AlbumListDisplayItem(FrozenNamedIdItem):
+	year: Optional[int]=None
+	albumartist: Optional[str]=None
+	versionnote: Optional[str]=""
 
 
 class QueuedItem(NamedIdItem):
@@ -68,6 +75,7 @@ class SongListDisplayItem(QueuedItem):
 	playedtimestamp: Optional[float]=None
 	rules: list[ActionRule]=Field(default_factory=list, frozen=False)
 	historyid: Optional[int]=None
+	disc: Optional[int]=None
 
 
 	def display(self) -> str:

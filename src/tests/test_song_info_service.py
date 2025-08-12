@@ -862,3 +862,10 @@ def test_get_song_with_owner_info(
 	station1Owner = results.stations[1].owner
 	assert station1Owner
 	assert station1Owner.displayname == "julietDisplay"
+
+def test_get_all_songs(
+	fixture_song_info_service: SongInfoService
+):
+	songInfoService = fixture_song_info_service
+	songs = list(songInfoService.get_all_songs(limit=30))
+	assert songs

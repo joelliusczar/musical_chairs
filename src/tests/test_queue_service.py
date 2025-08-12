@@ -29,7 +29,7 @@ def test_adding_album_to_queue(fixture_queue_service: QueueService):
 	queueService = fixture_queue_service
 	queueService.fil_up_album_queue(26,3)
 	queue1, _ = queueService.get_queue_for_station(26)
-	pass
+	assert queue1
 
 
 # def test_queue_with_skips_and_offsets(fixture_queue_service: QueueService):

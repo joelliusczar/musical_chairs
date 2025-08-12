@@ -23,7 +23,9 @@ from api_dependencies import (
 	artist_service,
 	get_optional_prefix,
 	get_prefix,
-	check_directory_transfer
+	check_directory_transfer,
+	get_page_num,
+	check_back_key
 )
 
 from musical_chairs_libs.services import (
@@ -117,16 +119,27 @@ def get_song_for_edit(
 
 #not sure if this will actually be used anywhere. It's mostly a testing
 #convenience
-@router.get("/songs/list/")
+@router.get("/songs/list/", dependencies=[Depends(check_back_key)])
 def get_songs_list(
-	itemIds: list[int] = Query(default=[]),
+	limit: Optional[int] = None,
+	song: str = "",
+	album: str = "",
+	artist: str = "",
+	page: int = Depends(get_page_num),
+	user: AccountInfo = Depends(get_current_user_simple),
+	itemIds: Optional[list[int]] = Query(default=None),
 	songInfoService: SongInfoService = Depends(song_info_service),
-	user: AccountInfo = Security(
-		get_multi_path_user,
-		scopes=[UserRoleDef.PATH_VIEW.value]
-	)
 ) -> list[SongEditInfo]:
-	return list(songInfoService.get_songs_for_edit(itemIds, user))
+	return list(songInfoService.get_all_songs(
+		stationId=None,
+		page=page,
+		song=song,
+		songIds=itemIds,
+		album=album,
+		artist=artist,
+		limit=limit,
+		user=user
+	))
 
 @router.get("/songs/multi/")
 def get_songs_for_multi_edit(

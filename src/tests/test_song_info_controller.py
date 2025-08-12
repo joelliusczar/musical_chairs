@@ -13,6 +13,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	path_owner_rules
 )
+from musical_chairs_libs.services import (
+	EnvManager
+)
 
 
 
@@ -225,6 +228,7 @@ def test_song_save(
 			"id": 6,
 			"name": "foxtrot_artist",
 			"owner": {"id":kilo_user_id },
+			"isprimaryartist": False
 		},
 		"versionnote": ""
 	}
@@ -234,36 +238,55 @@ def test_song_save(
 		"id": 10,
 		"name": "juliet_artist",
 		"owner": { "id": kilo_user_id},
+		"isprimaryartist": True
 	}
 	sendData["stations"] = [
 		{ "id": 2,
 			"name": "papa_station",
 			"displayname": "Come to papa",
 			"owner": None,
-			"requestsecuritylevel": None,
-			"viewsecuritylevel": None
+			"requestsecuritylevel": 9,
+			"viewsecuritylevel": 0,
+			"isrunning": False
 		},
 		{
 			"id": 7,
 			"name": "uniform_station",
 			"displayname": "Asshole at the wheel",
 			"owner": None,
-			"requestsecuritylevel": None,
-			"viewsecuritylevel": None
+			"requestsecuritylevel": 9,
+			"viewsecuritylevel": 0,
+			"isrunning": False
 		},
 		{
 			"id": 10,
 			"name": "xray_station",
 			"displayname": "Pentagular",
 			"owner": None,
-			"requestsecuritylevel": None,
-			"viewsecuritylevel": None
+			"requestsecuritylevel": 9,
+			"viewsecuritylevel": 0,
+			"isrunning": False
 		}
 	]
 	sendData["artists"] = [
-		{ "id": 9, "name": "india_artist", "owner": { "id": kilo_user_id } },
-		{ "id": 13, "name": "november_artist", "owner": { "id": kilo_user_id } },
-		{ "id": 3, "name": "charlie_artist", "owner": { "id": kilo_user_id } }
+		{ 
+			"id": 9, 
+			"name": "india_artist", 
+			"owner": { "id": kilo_user_id },
+			"isprimaryartist": False
+		},
+		{ 
+			"id": 13, 
+			"name": "november_artist", 
+			"owner": { "id": kilo_user_id },
+			"isprimaryartist": False
+		},
+		{ 
+			"id": 3, 
+			"name": "charlie_artist", 
+			"owner": { "id": kilo_user_id },
+			"isprimaryartist": False
+		}
 	]
 
 	putResponse = client.put(
@@ -493,7 +516,8 @@ def test_get_songs_for_multi_edit(
 			"id": kilo_user_id,
 			"username": "testUser_kilo",
 			"displayname": None
-		}
+		},
+		"isprimaryartist": False
 	}]
 	assert "artists" in touched
 	assert data["covers"] == []
@@ -513,7 +537,7 @@ def test_get_songs_for_multi_edit(
 	assert "duration" in touched
 	assert data["explicit"] == None
 	assert "explicit" not in touched
-	assert data["lyrics"] == None
+	assert data["lyrics"] == ""
 	assert "lyrics" in touched
 	assert data["stations"] == [
 		{ "id": 1,
@@ -526,8 +550,8 @@ def test_get_songs_for_multi_edit(
 				"displayname": "Bravo Test User"
 			},
 			"rules": [],
-			"requestsecuritylevel": None,
-			"viewsecuritylevel": None
+			"requestsecuritylevel": 9,
+			"viewsecuritylevel": 0
 		}
 	]
 	assert "stations" in touched
@@ -538,6 +562,9 @@ def test_song_save_for_multi_edit(
 ):
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_india", client)
+	envManager = EnvManager()
+	back_key = envManager.back_key()
+	headers["x-back-key"] = back_key
 
 	idList = "?itemIds=10&itemIds=4&itemIds=17&itemIds=11&itemIds=15"
 
@@ -599,7 +626,8 @@ def test_song_save_for_multi_edit(
 			"id": 14,
 			"name":
 			"oscar_artist",
-			"owner": {"id": kilo_user_id }
+			"owner": {"id": kilo_user_id },
+			"isprimaryartist": True
 		},
 		"artists": [
 			{ "id": 8, "name": "hotel_artist", "owner": {"id": kilo_user_id } },
@@ -671,6 +699,9 @@ def test_song_save_for_multi_edit_artist_to_primary(
 ):
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_india", client)
+	envManager = EnvManager()
+	back_key = envManager.back_key()
+	headers["x-back-key"] = back_key
 
 	idList = "?itemIds=29&itemIds=28&itemIds=27"\
 		"&itemIds=26&itemIds=25&itemIds=24&itemIds=23"

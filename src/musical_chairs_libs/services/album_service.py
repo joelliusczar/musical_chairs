@@ -75,7 +75,8 @@ class AlbumService:
 		self.artist_service = artistService
 		self.path_rule_service = pathRuleService
 
-	def get_albums(self,
+	def get_albums(
+		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
 		albumKeys: Union[int, str, Iterable[int], None]=None,

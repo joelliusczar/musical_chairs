@@ -16,7 +16,8 @@ from fastapi import (
 	status,
 	Query,
 	Request,
-	Path
+	Path,
+	Header
 )
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
@@ -735,8 +736,6 @@ def extract_ip_address(request: Request) -> Tuple[str, str]:
 		return ("","")
 
 
-
-
 def get_tracking_info(request: Request):
 	userAgent = request.headers["user-agent"]
 	ipaddresses = extract_ip_address(request)
@@ -746,3 +745,12 @@ def get_tracking_info(request: Request):
 		ipv4Address=ipaddresses[0],
 		ipv6Address=ipaddresses[1]
 	)
+
+def check_back_key(
+	x_back_key: str = Header(),
+	envManager: EnvManager=Depends(EnvManager)
+):
+	if not envManager:
+		envManager = EnvManager()
+	if envManager.back_key() != x_back_key:
+		raise build_wrong_permissions_error()

@@ -35,14 +35,12 @@ from sqlalchemy import (
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
 	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel, st_typeid,
-	songs, sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath, 
+	songs, sg_pk,
 	sg_deletedTimstamp,
 	albums, ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_versionnote,
 	artists, ar_name, ar_pk,
-	song_artist, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
-	stsg_lastmodifiedtimestamp,
 	station_user_permissions as station_user_permissions_tbl, stup_userFk,
 	stup_stationFk, stup_role,
 	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
@@ -69,7 +67,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_rules_query,
 	row_to_action_rule,
 	generate_user_and_rules_from_rows,
-	normalize_opening_slash,
 	clean_search_term_for_like,
 	AlbumListDisplayItem
 )
@@ -328,49 +325,7 @@ class StationService:
 			for row in records:
 				yield self.__row_to_station__(row)
 
-	def __attach_catalogue_joins__(
-		self,
-		stationId: int,
-		song: str = "",
-		album: str = "",
-		artist: str = "",
-	) -> Any:
 
-		lsong = clean_search_term_for_like(song)
-		lalbum = clean_search_term_for_like(album)
-		lartist = clean_search_term_for_like(artist)
-		query = select(
-			sg_pk,
-			sg_path,
-			sg_internalpath,
-			coalesce[str](sg_name, "").label("name"),
-			ab_name.label("album"),
-			ar_name.label("artist"),
-			func.row_number().over( #pyright: ignore [reportUnknownMemberType]
-				partition_by=sg_pk,
-				order_by=[sgar_isPrimaryArtist.desc(), ar_name]
-			).label("rownum")
-		)\
-			.select_from(stations_tbl) \
-			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
-			.join(songs, sg_pk == stsg_songFk) \
-			.join(albums, sg_albumFk == ab_pk, isouter=True) \
-			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
-			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
-			.where(sg_deletedTimstamp.is_(None))\
-			.where(st_pk == stationId)\
-
-
-		if lsong:
-			query = query.where(sg_name.like(f"%{lsong}%"))
-
-		if lalbum:
-			query = query.where(ab_name.like(f"%{lalbum}%"))
-
-		if lartist:
-			query = query.where(ar_name.like(f"%{lartist}%"))
-
-		return query.order_by(stsg_lastmodifiedtimestamp.desc())
 
 	def get_station_song_catalogue(
 		self,
@@ -382,46 +337,16 @@ class StationService:
 		limit: Optional[int]=None,
 		user: Optional[AccountInfo]=None
 	) -> Tuple[list[SongListDisplayItem], int]:
-		offset = page * limit if limit else 0
-		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
-
-		query = self.__attach_catalogue_joins__(
+		data, count = self.song_info_service.get_song_catalogue(
 			stationId,
+			page,
 			song,
 			album,
-			artist
+			artist,
+			limit,
+			user
 		)
-		subquery = query.subquery()
-		query = select(*subquery.c)\
-			.where(subquery.c.rownum < 2)\
-			.offset(offset)\
-			.limit(limit)
-		records = self.conn.execute(query).mappings()
-		result: list[SongListDisplayItem] = []
-		for row in records:
-			rules = []
-			if pathRuleTree:
-				rules = list(pathRuleTree.valuesFlat(
-					normalize_opening_slash(cast(str, row["path"])))
-				)
-			result.append(SongListDisplayItem(
-				id=cast(int, row["pk"]),
-				path=cast(str, row["path"]),
-				internalpath=cast(str, row["internalpath"]),
-				name=cast(str, row["name"]),
-				album=cast(str, row["album"]),
-				artist=cast(str, row["artist"]),
-				track=None,
-				queuedtimestamp=0,
-				rules=rules
-			))
-		countQuery = select(func.count(1))\
-			.select_from(subquery)\
-			.where(subquery.c.rownum < 2)
-		count = self.conn.execute(countQuery).scalar() or 0
-		return result, count
+		return (data,count)
 	
 	def get_album_catalogue(
 		self,

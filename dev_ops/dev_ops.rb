@@ -81,6 +81,7 @@ module Provincial
 			:deploy_rq,
 			:env_enum,
 			:sanitize,
+			:db_pass,
 			gen_key: SecureRandom.alphanumeric(32)
 		)
 		def_env_find(

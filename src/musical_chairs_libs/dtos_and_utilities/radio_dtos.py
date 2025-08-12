@@ -35,6 +35,7 @@ from pathlib import Path
 
 class ArtistInfo(FrozenNamedIdItem):
 	owner: OwnerType
+	isprimaryartist: bool=False
 
 class AlbumCreationInfo(FrozenNamed):
 	year: Optional[int]=None
@@ -234,7 +235,6 @@ class StationSongTuple:
 
 class SongArtistTuple:
 
-
 	def __init__(
 		self,
 		songid: int,
@@ -266,6 +266,7 @@ class SongArtistTuple:
 
 class SongPathInfo(IdItem):
 	path: str
+	internalpath: str
 
 
 class SongAboutInfo(MCBaseClass):
@@ -284,7 +285,7 @@ class SongAboutInfo(MCBaseClass):
 	explicit: Optional[bool]=None
 	lyrics: Optional[str]=""
 	stations: Optional[list[StationInfo]]=Field(default_factory=list)
-	touched: Optional[set[str]]=None
+
 
 	@property
 	def allArtists(self) -> Iterable[ArtistInfo]:
@@ -292,13 +293,17 @@ class SongAboutInfo(MCBaseClass):
 			yield self.primaryartist
 		yield from (a for a in self.artists or [])
 
+class SongFullQueryInfo(SongAboutInfo, SongPathInfo):
+	pass
 
+class ChangeTrackedSongInfo(SongAboutInfo):
+	touched: Optional[set[str]]=None
 
-class SongEditInfo(SongAboutInfo, SongPathInfo):
+class SongEditInfo(ChangeTrackedSongInfo, SongPathInfo):
 	rules: list[ActionRule]=Field(default_factory=list)
 
 
-class ValidatedSongAboutInfo(SongAboutInfo):
+class ValidatedSongAboutInfo(ChangeTrackedSongInfo):
 
 	@field_validator("stations")
 	def check_stations_duplicates(cls, v: List[StationInfo]) -> List[StationInfo]:

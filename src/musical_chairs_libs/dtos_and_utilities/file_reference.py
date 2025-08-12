@@ -42,7 +42,7 @@ class SqlScripts(Enum):
 	)
 	GRANT_JANITOR = (
 		"010.grant_janitor.sql",
-		"deba3f9aeecf5d4829477a1629bab8ce17095b802bdb34ccda0ad9d54f1c8d2b"
+		"4c12581aea1a6454c5cf85ceb266a41869144c0060ee7ecfc09ad04808526b48"
 	)
 	ADD_IP4ADDRESS = (
 		"011.add_ip4address.sql",

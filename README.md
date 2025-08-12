@@ -16,10 +16,10 @@ Next run,
 
 Need to run this so that https will work
 ```
-mcr_dev setup_debug
+mcr_dev setup_debug_certs
 ```
 
-or if you're in `dev_ops`, run `./mcr_dev_dev setup_debug`
+or if you're in the `dev_ops` dir, run `./mcr_dev_dev setup_debug_certs`
 
 ```
 To prime the automated tests 

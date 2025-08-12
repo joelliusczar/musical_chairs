@@ -264,4 +264,6 @@ def guess_contenttype(filename: str) -> str:
 	return "application/octet-stream"
 
 def clean_search_term_for_like(searchTerm: str) -> str:
+	if not searchTerm:
+		return ""
 	return searchTerm.replace("_","\\_").replace("%","\\%")

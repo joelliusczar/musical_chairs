@@ -1,12 +1,11 @@
 GIT
   remote: https://github.com/joelliusczar/salad_prep
-  revision: 267dbcd0c9aa55558b199d8f591b0e86c58bda07
+  revision: 969fc6b1c0d68880af496e757777d4cd9ef6c400
   specs:
-    salad_prep (0.36.8)
+    salad_prep (0.36.9)
       base64 (~> 0.2)
       bigdecimal (~> 3.1)
       ostruct (~> 0.6)
-      pg (~> 1.5.9)
       ruby-mysql (~> 4.1)
 
 GEM
@@ -15,7 +14,6 @@ GEM
     base64 (0.3.0)
     bigdecimal (3.2.2)
     ostruct (0.6.3)
-    pg (1.5.9)
     ruby-mysql (4.2.0)
 
 PLATFORMS

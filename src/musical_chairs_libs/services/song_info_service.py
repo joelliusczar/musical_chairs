@@ -547,7 +547,9 @@ class SongInfoService:
 		song: str = "",
 		songIds: Optional[Iterable[int]]=None,
 		album: str = "",
+		albumId: Optional[int]=None,
 		artist: str = "",
+		artistId: Optional[int]=None
 	) -> Any:
 
 
@@ -565,8 +567,14 @@ class SongInfoService:
 		if lalbum:
 			query = query.where(ab_name.like(f"%{lalbum}%"))
 
+		if albumId:
+			query = query.where(ab_pk == albumId)
+
 		if lartist:
 			query = query.where(ar_name.like(f"%{lartist}%"))
+
+		if artistId:
+			query = query.where(ar_pk == artistId)
 
 		if songIds:
 			query = query.where(sg_pk.in_(songIds))
@@ -588,7 +596,9 @@ class SongInfoService:
 		song: str = "",
 		songIds: Optional[Iterable[int]]=None,
 		album: str = "",
+		albumId: Optional[int]=None,
 		artist: str = "",
+		artistId: Optional[int]=None,
 		limit: Optional[int]=None,
 		user: Optional[AccountInfo]=None
 	) -> Iterator[SongEditInfo]:
@@ -603,7 +613,9 @@ class SongInfoService:
 			song,
 			songIds,
 			album,
-			artist
+			albumId,
+			artist,
+			artistId
 		)
 		query = query\
 			.offset(offset)
@@ -669,14 +681,13 @@ class SongInfoService:
 		count = self.conn.execute(countQuery).scalar() or 0
 
 		return self.get_all_songs(
-			stationId,
-			page,
-			song,
-			None,
-			album,
-			artist,
-			limit,
-			user
+			stationId=stationId,
+			page=page,
+			song=song,
+			album=album,
+			artist=artist,
+			limit=limit,
+			user=user
 		), count
 
 		

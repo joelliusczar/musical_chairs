@@ -124,7 +124,9 @@ def get_songs_list(
 	limit: Optional[int] = None,
 	song: str = "",
 	album: str = "",
+	albumId: Optional[int]=None,
 	artist: str = "",
+	artistId: Optional[int]=None,
 	page: int = Depends(get_page_num),
 	user: AccountInfo = Depends(get_current_user_simple),
 	itemIds: Optional[list[int]] = Query(default=None),
@@ -136,7 +138,9 @@ def get_songs_list(
 		song=song,
 		songIds=itemIds,
 		album=album,
+		albumId=albumId,
 		artist=artist,
+		artistId=artistId,
 		limit=limit,
 		user=user
 	))

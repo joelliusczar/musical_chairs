@@ -609,6 +609,7 @@ module Provincial
 				SaladPrep::MyAssRoot.set_db_root_initial_password(@egg.db_setup_key)
 			end
 			script = <<~CODE
+				print("wtf")
 				from musical_chairs_libs.services import (
 					setup_database
 				)
@@ -722,7 +723,7 @@ module Provincial
 					location /api/<API_VERSION>/ {
 						proxy_pass http://127.0.0.1:<API_PORT>/;
 						
-						location /song-info/upload {
+						location /api/<API_VERSION>/song-info/upload {
 							client_max_body_size 0;
 						}
 					}

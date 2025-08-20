@@ -485,7 +485,7 @@ module Provincial
 					print("Could not import something")
 				print("Done")
 			CODE
-			@monty.run_python_script(script)
+			@monty.run_script(script)
 		end
 
 
@@ -504,7 +504,7 @@ module Provincial
 				)
 				print(f"{logdir}/{errorlog}")
 			CODE
-			@monty.run_python_script(script)
+			@monty.run_script(script)
 		end
 
 
@@ -538,7 +538,7 @@ module Provincial
 					conn.close()
 
 			CODE
-			@monty.run_python_script(script)
+			@monty.run_script(script)
 		end
 
 
@@ -551,7 +551,7 @@ module Provincial
 				)
 				print(f"{logdir}/ices.log")
 			CODE
-			@monty.run_python_script(script)
+			@monty.run_script(script)
 		end
 
 
@@ -581,7 +581,7 @@ module Provincial
 					conn.close()
 
 			CODE
-			@monty.run_python_script(script)
+			@monty.run_script(script)
 		end
 
 	end
@@ -617,7 +617,7 @@ module Provincial
 				dbName="musical_chairs_db"
 				setup_database(dbName)
 			CODE
-			@monty.run_python_script(script)
+			@monty.run_script(script)
 		end
 
 
@@ -635,7 +635,7 @@ module Provincial
 						#{force ? "True" : "False"}
 					)
 			CODE
-			@monty.run_python_script(script)
+			@monty.run_script(script)
 		end
 
 

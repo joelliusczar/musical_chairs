@@ -100,6 +100,14 @@ class EnvManager:
 	@classmethod
 	def back_key(cls) -> str:
 		return os.environ["MCR_BACK_KEY"]
+	
+	@classmethod
+	def dev_app_user_name(cls) -> str:
+		return os.environ["MCR_DEV_APP_USER_NAME"]
+
+	@classmethod
+	def dev_app_user_pw(cls) -> str:
+		return os.environ["MCR_DEV_APP_USER_PW"]
 
 	@classmethod
 	def api_log_level(cls) -> str:

@@ -869,3 +869,10 @@ def test_get_all_songs(
 	songInfoService = fixture_song_info_service
 	songs = list(songInfoService.get_all_songs(limit=30))
 	assert songs
+
+def test_get_all_songs_songless_artist(
+	fixture_song_info_service: SongInfoService
+):
+	songInfoService = fixture_song_info_service
+	songs = list(songInfoService.get_all_songs(limit=30, artistId=28))
+	assert songs == []

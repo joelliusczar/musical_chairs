@@ -94,7 +94,8 @@ class ProcessService:
 				stationName,
 				ownerName
 			],
-			stdout=subprocess.DEVNULL,
+			#need to close the io so that the parent process can let go, irc
+			stdout=subprocess.DEVNULL, 
 			stderr=subprocess.DEVNULL,
 			stdin=subprocess.DEVNULL
 		)

@@ -78,8 +78,10 @@ class PathDict(MutableMapping[str, Any]):
 		pivotKey: str,
 		*prefixes: str
 	) -> Iterator["PathDict"]:
-		copy = PathDict()
+		copy = None
 		for d in dicts:
+			if not copy:
+				copy = PathDict()
 			if pivotKey in copy.__store__\
 				and d.__store__[pivotKey] != copy.__store__[pivotKey]\
 			:
@@ -102,8 +104,9 @@ class PathDict(MutableMapping[str, Any]):
 						copy.__store__[prefix] = set([IdDict(v[pivotKey], v)])
 				else:
 					copy[k] = v
-		for prefix in prefixes:
-			if prefix in copy.__store__:
-				copy.__store__[prefix] = list(copy.__store__[prefix])
-		yield copy
+		if copy:
+			for prefix in prefixes:
+				if prefix in copy.__store__:
+					copy.__store__[prefix] = list(copy.__store__[prefix])
+			yield copy
 						

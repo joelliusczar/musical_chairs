@@ -6,7 +6,7 @@
 		{
 			"label": "Set unit test env",
 			"type": "shell",
-			"command": "./dev_ops/mcr_dev_dev setup_tests",
+			"command": " ./dev_ops/mcr_dev_dev setup_tests",
 			"problemMatcher": [],
 			"presentation": {
 				"reveal": "silent",

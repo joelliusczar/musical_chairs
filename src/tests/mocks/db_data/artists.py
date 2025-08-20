@@ -195,5 +195,12 @@ artist_params: list[dict[str, Any]] = [
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
+	},
+	{
+		"pk": 28,
+		"name": "no-songs_artist",
+		"ownerfk": user_ids.jazzDirOwnerId,
+		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
+		"lastmodifiedtimestamp": 0,
 	}
 ]

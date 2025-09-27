@@ -1,0 +1,41 @@
+---
+# tasks file for repo-check
+- name: Check for uncommitted changes
+  command: git status --porcelain
+  register: uncommitted
+- name: Prompt if should continue
+  pause:
+    prompt: |
+     There are uncommited changes that will not be apart of the deploy.
+     Continue?
+  register: uncommitted_choice
+  when: uncommitted.stdout != ""
+- name: Fetch latest
+  command: git fetch
+  changed_when: false
+- name: Determine if should leave early
+  block:
+    - name: Set skip.
+      set_fact:
+        skip_to_exit: true
+    - name: Exiting
+      meta: end_play
+  when: uncommitted_choice.user_input|lower != 'y'
+- name: Check for unpushed changes
+  shell: '[ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]'
+  register: unpushed
+  failed_when: unpushed.stderr != ""
+- name: Prompt if should continue
+  pause:
+    prompt: |
+      Remote branch may not have latest set of commits.
+      Continue?
+  register: unpushed_choice
+- name: Determine if should leave early
+  block:
+    - name: Set skip.
+      set_fact:
+        skip_to_exit: true
+    - name: Exiting
+      meta: end_play
+  when: unpushed_choice.user_input|lower != 'y'

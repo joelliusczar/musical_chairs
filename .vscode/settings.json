@@ -11,13 +11,13 @@
   "python.analysis.useLibraryCodeForTypes": true,
   "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/musical_chairs/mcr_env/bin/python",
   "terminal.integrated.env.osx": {
-    "PTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
+    "PYTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
     "MC_LIB_NAME": "musical_chairs_libs",
     "MC_APP_NAME": "musical_chairs_app",
     "MCR_TEST_ROOT": "${workspaceFolder}/test_trash"
   },
   "terminal.integrated.env.linux": {
-    "PTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
+    "PYTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
     "MCR_TEST_ROOT": "${workspaceFolder}/test_trash"
   },
   "python.testing.unittestEnabled": false,

@@ -1,0 +1,50 @@
+---
+# tasks file for mysql-setup
+- name: Replace SQL scripts
+  synchronize:
+    src: '{{src_dirs["sql_scripts"]}}'
+    dest: '{{item}}'
+    delete: true
+  when: item != test_trunk|default(omit) or inventory_hostname in ["127.0.0.1", "localhost"]
+  loop:
+    - '{{app_trunk}}'
+    - '{{test_trunk|default(omit)}}'
+- name: Install Maria DB
+  become: true
+  package: 
+    name: '{{packages["mysql"]}}'
+# - name: Revoke roles from mysql user
+#   become: true
+#   mysql_user:
+#     name: mysql
+#     login_user: root
+#     login_password: ''
+#     subtract_privs: true
+#     priv: 
+- name: Install PyMySQL
+  become: true
+  apt:
+    name: '{{packages["pymysql"]}}'
+    state: present
+  #going to allow an error as a valid result by redirecting error to out
+- name: Check root password
+  become: true
+  shell: 
+    cmd: |
+      rootHash=$(mysql -srN -e \
+        "SELECT password FROM mysql.user WHERE user = 'root' LIMIT 1" 2>&1
+      )
+      touch /tmp/ansible-mysql-root-pw-check
+      echo "$rootHash"
+  changed_when: false
+  register: result
+- name: Change root password
+  become: true
+  become_user: root
+  mysql_user:
+    name: root
+    password: '{{setup_pass}}'
+    config_file: ''
+    check_implicit_admin: true
+    login_unix_socket: '{{socket_path}}'
+  when: 'not result.stdout or result.stdout == "invalid"'

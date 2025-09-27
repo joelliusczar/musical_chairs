@@ -435,7 +435,8 @@ class SongFileService:
 							squash_sequential_duplicate_chars(f"{prefix}/{p.path}", "/")
 						)
 					)
-				)
+				),
+				internalpath=""
 			)
 			for p in suffixes
 		]
@@ -489,6 +490,7 @@ class SongFileService:
 		else:
 			self.job_service.add(r[1] for r in rows)
 			self.soft_delete_songs((r[0] for r in rows), user)
+			self.conn.commit()
 		parentPrefix = str(Path(prefix).parent)
 		return self.song_ls_parents(user, parentPrefix, includeTop=False)
 

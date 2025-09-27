@@ -60,9 +60,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	UserRoleDef,
 	LastPlayedItem,
-	SqlScripts,
 	TrackingInfo
 )
+from musical_chairs_libs.file_reference import SqlScripts
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]

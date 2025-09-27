@@ -1,0 +1,28 @@
+---
+# tasks file for python-setup
+- name: Install virtualenv
+  become: true
+  package:
+    name: virtualenv
+    state: present
+- name: Install rsync
+  become: true
+  package:
+    name: rsync
+- name: Regen Reference file
+  script: >
+    regen_file_reference_file.py
+    '{{sql_scripts_src}}'
+    '{{reference_file_out_path}}'
+  args:
+    executable: python3
+    creates: '{{reference_file_out_path}}'
+  delegate_to: localhost
+- name: Loop through the python library deployment locations.
+  include_tasks: env_copy.yml
+  vars:
+    working_dir: '{{item}}'
+  when: item != test_trunk|default(omit) or inventory_hostname in ["127.0.0.1", "localhost"]
+  loop:
+    - '{{app_trunk}}'
+    - '{{test_trunk|default(omit)}}'

@@ -1,3 +1,5 @@
+import os
+print(os.environ["DSF_APP_ROOT"])
 import json
 from musical_chairs_libs.dtos_and_utilities import UserRoleDef
 from .api_test_dependencies import\

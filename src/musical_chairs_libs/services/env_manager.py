@@ -17,65 +17,61 @@ class EnvManager:
 	@classmethod
 	def app_root(cls) -> str:
 		if EnvManager.test_flag():
-			return os.environ["MCR_TEST_ROOT"]
-		return os.environ["MCR_APP_ROOT"]
-
-	@classmethod
-	def relative_content_home(cls) -> str:
-		contentHome = os.environ["MCR_CONTENT_DIR"]
-		return contentHome
+			return os.environ["DSF_TEST_ROOT"]
+		return os.environ["DSF_APP_ROOT"]
 
 	@classmethod
 	def absolute_content_home(cls) -> str:
-		return f"{EnvManager.app_root()}/{EnvManager.relative_content_home()}"
+		contentHome = os.environ["DSF_CONTENT_DIR"]
+		return contentHome
 
 	@classmethod
 	def db_setup_pass(cls) -> str:
-		return os.environ.get("MCR_DB_PASS_SETUP", "")
+		return os.environ.get("DSF_DB_PASS_SETUP", "")
 
 	@classmethod
 	def db_pass_api(cls) -> str:
-		return os.environ.get("MCR_DB_PASS_API", "")
+		return os.environ.get("DSF_DB_PASS_API", "")
 
 	@classmethod
 	def db_pass_radio(cls) -> str:
-		return os.environ.get("MCR_DB_PASS_RADIO", "")
+		return os.environ.get("DSF_DB_PASS_RADIO", "")
 
 	@classmethod
 	def db_pass_janitor(cls) -> str:
-		return os.environ.get("MCR_DB_PASS_JANITOR", "")
+		return os.environ.get("DSF_DB_PASS_JANITOR", "")
 
 	@classmethod
 	def db_pass_owner(cls) -> str:
-		return os.environ.get("MCR_DB_PASS_OWNER", "")
+		return os.environ.get("DSF_DB_PASS_OWNER", "")
 
 	@classmethod
 	def namespace_uuid(cls) -> UUID:
-		return UUID(os.environ.get("MCR_NAMESPACE_UUID", ""))
+		return UUID(os.environ.get("DSF_NAMESPACE_UUID", ""))
 
 	@classmethod
 	def templates_dir(cls) -> str:
-		templateDir = os.environ["MCR_TEMPLATES_DEST"]
-		return f"{EnvManager.app_root()}/{templateDir}"
+		templateDir = os.environ["DSF_TEMPLATES_DEST"]
+		return templateDir
 
 	@classmethod
 	def station_config_dir(cls) -> str:
-		configDir = os.environ["MCR_ICES_CONFIGS_DIR"]
-		return f"{EnvManager.app_root()}/{configDir}"
+		configDir = os.environ["DSF_ICES_CONFIGS_DIR"]
+		return configDir
 
 	@classmethod
 	def station_module_dir(cls) -> str:
-		moduleDir = os.environ["MCR_PY_MODULE_DIR"]
-		return f"{EnvManager.app_root()}/{moduleDir}"
+		moduleDir = os.environ["DSF_PY_MODULE_DIR"]
+		return moduleDir
 
 	@classmethod
 	def sql_script_dir(cls) -> str:
-		moduleDir = os.environ["MCR_SQL_SCRIPTS_DEST"]
-		return f"{EnvManager.app_root()}/{moduleDir}"
+		moduleDir = os.environ["DSF_SQL_SCRIPTS_DEST"]
+		return moduleDir
 
 	@classmethod
 	def db_name(cls) -> str:
-		return os.environ["MCR_DATABASE_NAME"]
+		return os.environ["DSF_DATABASE_NAME"]
 
 	@classmethod
 	def s3_bucket_name(cls) -> str:
@@ -95,19 +91,19 @@ class EnvManager:
 
 	@classmethod
 	def auth_key(cls) -> str:
-		return os.environ["MCR_AUTH_SECRET_KEY"]
+		return os.environ["DSF_AUTH_SECRET_KEY"]
 	
 	@classmethod
 	def back_key(cls) -> str:
-		return os.environ["MCR_BACK_KEY"]
+		return os.environ["DSF_BACK_KEY"]
 	
 	@classmethod
 	def dev_app_user_name(cls) -> str:
-		return os.environ["MCR_DEV_APP_USER_NAME"]
+		return os.environ["DSF_DEV_APP_USER_NAME"]
 
 	@classmethod
 	def dev_app_user_pw(cls) -> str:
-		return os.environ["MCR_DEV_APP_USER_PW"]
+		return os.environ["DSF_DEV_APP_USER_PW"]
 
 	@classmethod
 	def api_log_level(cls) -> str:

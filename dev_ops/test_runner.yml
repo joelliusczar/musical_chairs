@@ -1,0 +1,98 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - vars/vault.yml
+    - vars/globals.yml
+
+
+  pre_tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/os_vars_default.yml'
+    - include_vars: 'vars/vault.yml'
+    - include_vars: 
+        file: 'vars/local_keys.yml'
+        hash_behaviour: merge
+    - include_vars:
+        file: vars/local_paths.yml
+    - name: Install rsync
+      become: true
+      package:
+        name: rsync
+    - name: Create app directory
+      file:
+        path: '{{item}}'
+        state: directory
+      loop:
+        - '{{app_trunk}}'
+        - '{{test_trunk}}'
+
+
+  vars:
+    app_trunk: '{{dest_dirs["app_root"]|default("~")}}/{{app_details["name"]}}'
+    test_trunk: '../test_trash/{{app_details["name"]}}'
+
+  roles:
+    - repo-check
+    - role: mysql-setup
+      setup_pass: '{{keys["db_pass_setup"]}}'
+      socket_path: '{{dev_files["mysql_socket"]}}'
+    - role: python-setup
+      sql_scripts_src: ../sql_scripts
+      reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
+      env_name: '{{app_details["prefix"]|lower}}_env'
+      engine_src: '{{src_dirs["engine"]}}/'
+
+  tasks:
+    - name: Copy templates folder
+      synchronize:
+        src: '{{src_dirs["templates"]}}'
+        dest: '{{item}}'
+        delete: true
+      when: item != test_trunk or inventory_hostname in ["127.0.0.1", "localhost"]
+      loop:
+        - '{{app_trunk}}'
+        - '{{test_trunk}}'
+    - name: Create ices config directory
+      file:
+        path: '{{item}}/ices_configs'
+        state: directory
+      when: item != test_trunk or inventory_hostname in ["127.0.0.1", "localhost"]
+      loop:
+        - '{{app_trunk}}'
+        - '{{test_trunk}}'
+    - name: Create py modules directory
+      file:
+        path: '{{item}}/pyModules'
+        state: directory
+      when: item != test_trunk or inventory_hostname in ["127.0.0.1", "localhost"]
+      loop:
+        - '{{app_trunk}}'
+        - '{{test_trunk}}'
+    - name: Run unit tests
+      command:
+        chdir: ../src/tests
+        argv:
+          - '../{{test_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - pytest
+          - -s
+      environment:
+        DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
+        DSF_DB_PASS_OWNER: '{{keys["db_pass_owner"]}}'
+        DSF_DB_PASS_API: '{{keys["db_pass_api"]}}'
+        DSF_DB_PASS_RADIO: '{{keys["db_pass_radio"]}}'
+        DSF_DB_PASS_JANITOR: '{{keys["db_pass_janitor"]}}'
+        DSF_SQL_SCRIPTS_DEST: '../{{test_trunk}}/sql_scripts'
+        DSF_APP_ROOT: '{{test_trunk}}'
+        DSF_TEMPLATES_DEST: '../{{test_trunk}}/files'
+        DSF_ICES_CONFIGS_DIR: '../{{test_trunk}}/ices_configs'
+        DSF_AUTH_SECRET_KEY: '{{keys["auth_secret_key"]}}'
+        DSF_BACK_KEY: '{keys["back_key"]}'
+        DSF_CONTENT_DIR: '../{{test_trunk}}/content'
+        DSF_PY_MODULE_DIR: '../{{test_trunk}}/pyModules'
+      when: skip_tests|default(omit)|bool != true
+        # PYTHONPATH: '"{{local_paths["repo"]}}/src/":"{{local_paths["repo"]}}/src/api/":"{{local_paths["repo"]}}/src/tests/"'
+  

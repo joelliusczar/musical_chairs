@@ -15,10 +15,21 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.dialects.mysql import BINARY
+from sqlalchemy.engine import Connection
+from sqlalchemy.schema import CreateTable, CreateIndex
 
 
 metadata = MetaData()
 
+def get_ddl_scripts(conn: Connection) -> str:
+	
+	result = ""
+	for table in metadata.sorted_tables:
+		result += str(CreateTable(table).compile(conn))
+		for index in sorted(table.indexes or [], key=lambda i: i.name or ""):
+			result += (str(CreateIndex(index).compile(conn)) + "\n")
+
+	return result
 
 users = Table("users", metadata,
 	Column("pk", Integer, primary_key=True),
@@ -31,6 +42,8 @@ users = Table("users", metadata,
 	Column("creationtimestamp", Double[float](), nullable=False),
 	Column("viewsecuritylevel", Integer, nullable=True),
 )
+
+
 
 u = users.c
 u_pk = cast(Column[Integer],u.pk)

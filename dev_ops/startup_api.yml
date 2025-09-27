@@ -1,0 +1,152 @@
+---
+- hosts: all
+
+
+  vars:
+    app_trunk: '{{dest_dirs["app_root"]|default("~")}}/{{app_details["name"]}}'
+    test_trunk: '../test_trash/{{app_details["name"]}}'
+    dev_envs:
+      - name: "model" 
+        port: 8033
+        url: 'https://{{url_segments["base"]}}-model.{{url_segments["tld"]}}:8080'
+        client_dir: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}/client-model/'
+        server_name: '{{url_segments["base"]}}-model.{{url_segments["tld"]}}'
+        common_name: '{{url_segments["base"]}}-model.{{url_segments["tld"]}}'
+      - name: "rebug"
+        port: 8032
+        url: 'https://{{url_segments["base"]}}-rebug.{{url_segments["tld"]}}:8080'
+        client_dir: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}/client-rebug/'
+        server_name: '{{url_segments["base"]}}-rebug.{{url_segments["tld"]}}'
+        common_name: '{{url_segments["base"]}}-rebug.{{url_segments["tld"]}}'
+      - name: "debug"
+        port: 8032
+        url: 'localhost'
+        client_dir: ''
+        server_name: ''
+        common_name: 'localhost'
+    remote_envs:
+      - name: "remote"
+        port: 8033
+        url: 'https://{{url_segments["base"]}}.{{url_segments["tld"]}}'
+        client_dir: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}/client/'
+        server_name: '{{url_segments["base"]}}.{{url_segments["tld"]}}'
+        common_name: ''
+      - name: "vm"
+        port: 8033
+        url: 'https://{{url_segments["base"]}}-vm.{{url_segments["tld"]}}'
+        client_dir: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}/client/'
+        server_name: '{{url_segments["base"]}}-vm.{{url_segments["tld"]}}'
+        common_name: '{{url_segments["base"]}}-vm.{{url_segments["tld"]}}'
+
+
+  vars_files:
+    - vars/vault.yml
+    - vars/globals.yml
+
+  pre_tasks:
+    - name: End early?
+      meta: end_play
+      when: hostvars.localhost.skip_to_exit|default(omit) == true
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/os_vars_default.yml'
+    - include_vars: 'vars/vault.yml'
+    - include_vars: 
+        file: 'vars/local_keys.yml'
+        hash_behaviour: merge
+      when: inventory_hostname in ["127.0.0.1", "localhost"]
+    - name: Install rsync
+      become: true
+      package:
+        name: rsync
+
+  tasks:
+    - name: Replace API files
+      become: true
+      synchronize:
+        src: ../src/api
+        dest: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}'
+        delete: true
+    - name: Python setup.
+      include_role:
+        name: python-setup
+      vars:
+        sql_scripts_src: ../sql_scripts
+        reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
+        env_name: '{{app_details["prefix"]|lower}}_env'
+        engine_src: '{{src_dirs["engine"]}}/'
+    - name: MySql setup
+      include_role:
+        name: mysql-setup
+      vars:
+        setup_pass: '{{keys["db_pass_setup"]}}'
+        socket_path: '{{dev_files["mysql_socket"]}}'
+    - name: Get database schema hash.
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_print'
+          - --hash
+      environment:
+        DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
+      register: result
+      changed_when: false
+    - name: Setup App Specific Db stuff.
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_setup'
+          - '{{app_details["db"]}}'
+        creates: '/tmp/{{result.stdout}}'
+      environment:
+        DSF_APP_ROOT: '{{app_trunk}}'
+        DSF_DB_PASS_API: '{{keys["db_pass_api"]}}'
+        DSF_DB_PASS_JANITOR: '{{keys["db_pass_janitor"]}}'
+        DSF_DB_PASS_OWNER: '{{keys["db_pass_owner"]}}'
+        DSF_DB_PASS_RADIO: '{{keys["db_pass_radio"]}}'
+        DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
+        DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
+    - name: Start FastAPI server
+      shell: >
+        . {{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/activate &&
+        nohup uvicorn --app-dir {{dev_dirs["web_root"]}}/{{app_details["name"]}}/api
+        --root-path /api/v1
+        --host 0.0.0.0
+        --port 8033
+        index:app
+        </dev/null
+        >api.out 2>&1 &
+      args:
+        chdir: '{{app_trunk}}'
+      async: 0
+      poll: 0
+      environment:
+        AWS_ENDPOINT_URL: '{{keys["aws_endpoint_url"]}}'
+        DSF_APP_ROOT: '{{app_trunk}}'
+        DSF_DB_PASS_API: '{{keys["db_pass_api"]}}'
+        DSF_DB_PASS_RADIO: '{{keys["db_pass_radio"]}}'
+        DSF_NAMESPACE_UUID: '{{keys["namespace_uuid"]}}'
+        DSF_TEMPLATES_DEST: '{{app_trunk}}/{{app_details["name"]}}/templates'
+        DSF_ICES_CONFIGS_DIR: '{{app_trunk}}/{{app_details["name"]}}/ices_configs'
+        DSF_PY_MODULE_DIR: '{{app_trunk}}/{{app_details["name"]}}/pyModules'
+        DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/{{app_details["name"]}}/sql_scripts'
+        DSF_DATABASE_NAME: '{{app_details["db"]}}'
+        DSF_AUTH_SECRET_KEY: '{{keys["auth_secret_key"]}}'
+        DSF_BACK_KEY: '{{keys["back_key"]}}'
+        S3_BUCKET_NAME: '{{keys["s3_bucket_name"]}}'
+        S3_REGION_NAME: '{{keys["s3_region_name"]}}'
+    - name: Nginx setup
+      include_role:
+        name: nginx-setup
+    - name: Client code setup
+      include_role:
+        name: client-setup
+      vars:
+        api_version: '{{app_details["api_version"]}}'
+        full_url: '{{item["url"]}}'
+        dest_dir: '{{item["client_dir"]}}'
+      loop: '{{(inventory_hostname in ["127.0.0.1", "localhost"])|ternary(dev_envs, remote_envs)}}'
+
+

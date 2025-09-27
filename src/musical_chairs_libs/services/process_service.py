@@ -27,13 +27,13 @@ def __start_ices__(
 	return subprocess.Popen(
 		["mc-ices", "-c", f"{stationConf}"],
 		env={
-				"MCR_STATION_PORT": portNumber,
+				"DSF_STATION_PORT": portNumber,
 			 "PATH": os.environ["PATH"],
 			 "LANG": os.environ["LANG"],
-			 "MCR_CONTENT_HOME": EnvManager.relative_content_home(),
-			 "MCR_APP_ROOT": EnvManager.app_root(),
-			 "MCR_DB_PASS_RADIO": EnvManager.db_pass_radio(),
-			 "MCR_DATABASE_NAME": EnvManager.db_name()
+			 "DSF_CONTENT_HOME": EnvManager.absolute_content_home(),
+			 "DSF_APP_ROOT": EnvManager.app_root(),
+			 "DSF_DB_PASS_RADIO": EnvManager.db_pass_radio(),
+			 "DSF_DATABASE_NAME": EnvManager.db_name()
 			}
 	)
 

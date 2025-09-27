@@ -1,19 +1,30 @@
+import hashlib
 from typing import Any
 from .env_manager import EnvManager
 from .template_service import TemplateService
 from sqlalchemy import create_engine, NullPool
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
-	is_name_safe,
-	SqlScripts
+	is_name_safe
 )
+from musical_chairs_libs import SqlScripts
 from musical_chairs_libs.dtos_and_utilities.constants import DbUsers
-from musical_chairs_libs.tables import metadata
+from musical_chairs_libs.tables import metadata, get_ddl_scripts
 #https://github.com/PyMySQL/PyMySQL/issues/590
 from pymysql.constants import CLIENT
+from pathlib import Path
 
 def is_db_name_safe(dbName: str) -> bool:
 	return is_name_safe(dbName, maxLen=100)
+
+def get_schema_hash() -> str:
+	with DbRootConnectionService() as rootConnService:
+		content = get_ddl_scripts(rootConnService.conn)
+		for scriptEnum in sorted(SqlScripts, key=lambda e: e.value[0]):
+			content += (scriptEnum.value[1] + "\n")
+
+		hashStr = hashlib.sha256(content.encode("utf-8")).hexdigest()
+		return hashStr
 
 """
 This class will mostly exist for the sake of unit tests
@@ -287,3 +298,5 @@ def setup_database(dbName: str):
 		ownerConnService.add_album_version()
 		ownerConnService.add_station_type()
 		ownerConnService.add_song_deleted_by_userId()
+
+		Path(f"/tmp/{get_schema_hash()}").touch()

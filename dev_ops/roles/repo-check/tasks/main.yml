@@ -3,6 +3,7 @@
 - name: Check for uncommitted changes
   command: git status --porcelain
   register: uncommitted
+  delegate_to: localhost
 - name: Prompt if should continue
   pause:
     prompt: |
@@ -13,6 +14,7 @@
 - name: Fetch latest
   command: git fetch
   changed_when: false
+  delegate_to: localhost
 - name: Determine if should leave early
   block:
     - name: Set skip.
@@ -25,6 +27,7 @@
   shell: '[ "$(git rev-parse @)" != "$(git rev-parse @{u})" ]'
   register: unpushed
   failed_when: unpushed.stderr != ""
+  delegate_to: localhost
 - name: Prompt if should continue
   pause:
     prompt: |
@@ -39,3 +42,7 @@
     - name: Exiting
       meta: end_play
   when: unpushed_choice.user_input|lower != 'y'
+- name: Ensure skip_to_exit has value
+  set_fact:
+    skip_to_exit: false
+  when: skip_to_exit|default(omit) == omit

@@ -1,4 +1,4 @@
-from typing import Optional, cast, Iterable, Iterator, Tuple
+from typing import Optional, cast, Iterable, Iterator, Tuple, Union
 from sqlalchemy.sql.expression import Select, false, CompoundSelect
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
@@ -10,7 +10,7 @@ from sqlalchemy import (
 	case,
 	or_
 )
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, String, Float
 from musical_chairs_libs.tables import (
 	stup_role, stup_stationFk, stup_userFk, stup_count, stup_span, stup_priority,
 	ur_userFk, ur_role, ur_count, ur_span, ur_priority,
@@ -63,8 +63,8 @@ __path_permissions_query__ = select(
 
 def __build_placeholder_select__(
 	domain:UserRoleDomain
-) -> Select[Tuple[int, String, float, float, int, str]]:
-	ruleNameCol = cast(Column[String], dbLiteral(UserRoleDef.STATION_VIEW.value) \
+) -> Select[Tuple[int, str, float, float, int, str]]:
+	ruleNameCol = cast(Column[str], dbLiteral(UserRoleDef.STATION_VIEW.value) \
 		if domain == UserRoleDomain.Station \
 			else dbLiteral(UserRoleDef.PATH_VIEW.value))
 	query = select(
@@ -83,7 +83,13 @@ def __build_placeholder_select__(
 def build_rules_query(
 	domain:UserRoleDomain,
 	userId: Optional[int]=None
-) -> CompoundSelect:
+) -> Union[
+		CompoundSelect[Tuple[int, str, float, float, int, str]],
+		CompoundSelect[
+			Tuple[
+				Integer, String, Float[float], Float[float], Integer, str, Integer]
+		]
+	]:
 
 	user_rules_base_query = select(
 		ur_userFk.label("rule_userfk"),

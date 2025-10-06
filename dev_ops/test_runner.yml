@@ -23,12 +23,8 @@
         name: rsync
     - name: Create app directory
       file:
-        path: '{{item}}'
+        path: '{{test_trunk}}'
         state: directory
-      loop:
-        - '{{app_trunk}}'
-        - '{{test_trunk}}'
-
 
   vars:
     app_trunk: '{{dest_dirs["app_root"]|default("~")}}/{{app_details["name"]}}'
@@ -39,7 +35,6 @@
     - role: mysql-setup
       setup_pass: '{{keys["db_pass_setup"]}}'
       socket_path: '{{dev_files["mysql_socket"]}}'
-    - role: python-setup
       sql_scripts_src: ../sql_scripts
       reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
       env_name: '{{app_details["prefix"]|lower}}_env'
@@ -49,28 +44,25 @@
     - name: Copy templates folder
       synchronize:
         src: '{{src_dirs["templates"]}}'
-        dest: '{{item}}'
+        dest: '{{test_trunk}}'
         delete: true
-      when: item != test_trunk or inventory_hostname in ["127.0.0.1", "localhost"]
-      loop:
-        - '{{app_trunk}}'
-        - '{{test_trunk}}'
     - name: Create ices config directory
       file:
-        path: '{{item}}/ices_configs'
+        path: '{{test_trunk}}/ices_configs'
         state: directory
-      when: item != test_trunk or inventory_hostname in ["127.0.0.1", "localhost"]
-      loop:
-        - '{{app_trunk}}'
-        - '{{test_trunk}}'
     - name: Create py modules directory
       file:
-        path: '{{item}}/pyModules'
+        path: '{{test_trunk}}/pyModules'
         state: directory
-      when: item != test_trunk or inventory_hostname in ["127.0.0.1", "localhost"]
-      loop:
-        - '{{app_trunk}}'
-        - '{{test_trunk}}'
+    - name: Setup python code to be tested
+      include_role:
+        name: python-setup
+      vars:
+        sql_scripts_src: ../sql_scripts
+        reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
+        env_name: '{{app_details["prefix"]|lower}}_env'
+        engine_src: '{{src_dirs["engine"]}}/'
+        working_dir: '{{test_trunk}}'
     - name: Run unit tests
       command:
         chdir: ../src/tests
@@ -93,6 +85,6 @@
         DSF_BACK_KEY: '{keys["back_key"]}'
         DSF_CONTENT_DIR: '../{{test_trunk}}/content'
         DSF_PY_MODULE_DIR: '../{{test_trunk}}/pyModules'
-      when: skip_tests|default(omit)|bool != true
+      when: skip_tests|default(false)|bool != true
         # PYTHONPATH: '"{{local_paths["repo"]}}/src/":"{{local_paths["repo"]}}/src/api/":"{{local_paths["repo"]}}/src/tests/"'
-  
+    

@@ -14,43 +14,25 @@
   copy:
     src: templates/nginx_evil.conf
     dest: /etc/nginx/sites-enabled//nginx_evil.conf
-- name: Loop through testing config types
+- name: Tasks for a local server
   include_tasks: local.yml
   vars:
-    env_name: '{{item["name"]}}'
-    server_name: '{{item["server_name"]}}'
-    api_port: '{{item["port"]}}'
-    common_name: '{{item["common_name"]}}'
-    ssh_dir: '{{dev_dirs["ssh"]|expanduser()}}'
-    cert_prefix: '{{app_details["name"]|to_snake()}}_localhost_{{item["name"]}}'
-    conf_name: '{{app_details["name"]|to_snake()}}_{{item["name"]}}'
-    serve_dir: '{{item["client_dir"]}}'
-  loop: '{{dev_envs}}'
+    cert_prefix: '{{app_details["name"]|to_snake()}}_localhost_{{env_name}}'
+    conf_name: '{{app_details["name"]|to_snake()}}_{{env_name}}'
   when: ansible_host in ["127.0.0.1", "localhost"]
 
 - name: VM setup
   include_tasks: vm.yml
   vars:
-    server_name: '{{item["server_name"]}}'
-    api_port: 8033
-    common_name: '{{item["common_name"]}}'
     cert_prefix: '{{app_details["name"]|to_snake()}}'
-    ssh_dir: '{{dev_dirs["ssh"]|expanduser()}}'
     conf_name: '{{app_details["name"]|to_snake()}}'
-    serve_dir: '{{item["client_dir"]}}'
-  loop: '{{remote_envs}}'
-  when: ansible_host not in ["127.0.0.1", "localhost"] and ansible_host in groups['vms']|default([])
+  when: ansible_host not in ["127.0.0.1", "localhost"] and "192.168.0.0/16"|ansible.utils.network_in_usable(ansible_host)
 
 - name: Remote setup
   include_tasks: remote.yml
   vars:
-    server_name: '{{item["server_name"]}}'
-    api_port: 8033
     cert_prefix: '{{app_details["name"]|to_snake()}}'
-    ssh_dir: '{{dev_dirs["ssh"]|expanduser()}}'
     conf_name: '{{app_details["name"]|to_snake()}}'
-    serve_dir: '{{item["client_dir"]}}'
-  loop: '{{remote_envs}}'
-  when: ansible_host not in ["127.0.0.1", "localhost"] and ansible_host not in groups['vms']|default([])
+  when: ansible_host not in ["127.0.0.1", "localhost"] and not "192.168.0.0/16"|ansible.utils.network_in_usable(ansible_host)
 
 

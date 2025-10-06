@@ -251,7 +251,7 @@ class AccountsService:
 			self._is_username_used(username)
 
 	def _is_email_used(self, email: ValidatedEmail) -> bool:
-		emailStr = cast(str, email.email)
+		emailStr = email.email
 		queryAny = select(func.count(1)).select_from(users)\
 				.where(func.lower(u_email) == emailStr)
 		countRes = self.conn.execute(queryAny).scalar()
@@ -270,7 +270,7 @@ class AccountsService:
 				return True
 
 			logggedInEmail = loggedInUser.email if loggedInUser else None
-			cleanedEmailStr = cast(str, cleanedEmail.email)
+			cleanedEmailStr = cleanedEmail.email
 			return logggedInEmail != cleanedEmailStr and\
 				self._is_email_used(cleanedEmail)
 		except EmailNotValidError:
@@ -345,7 +345,7 @@ class AccountsService:
 		if not updatedInfo:
 			return currentUser
 		validEmail = validate_email(updatedInfo.email)
-		updatedEmail = cast(str, validEmail.email)
+		updatedEmail = validEmail.email
 		if updatedEmail != currentUser.email and self._is_email_used(validEmail):
 			raise AlreadyUsedError.build_error(
 				f"{updatedInfo.email} is already used.",

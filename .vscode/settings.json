@@ -18,7 +18,7 @@
   },
   "terminal.integrated.env.linux": {
     "PYTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
-    "MCR_TEST_ROOT": "${workspaceFolder}/test_trash"
+    "MCR_TEST_ROOT": "${workspaceFolder}/test_trash",
   },
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
@@ -28,7 +28,7 @@
     "-s", "-p", "no:warnings"
   ],
   "python.terminal.activateEnvironment": false,
-  "python.envFile": "${workspaceFolder}/test_trash/musical_chairs/config/.env",
+  "python.envFile": "${workspaceFolder}/.env",
   "search.exclude": {
     "**/test_trash": true
   },

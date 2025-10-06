@@ -1,20 +1,23 @@
 ---
-- hosts: localhost
-  connection: local
+- hosts: all
+  # connection: local
 
   vars: 
     charlie: Chunk
+    url_base: washpenny
+    tld: com
 
-  vars_files:
-    - vars/debugo.yml
 
   tasks:
     - debug:
-        msg: '{{bravo}}'
-    - name: Sub tasks
-      include_tasks: ./debug2.yml
-      vars:
-        charlie: '{{charlie}}'
+        msg: "{{ '192.168.0.0/24' | ansible.utils.network_in_usable( '192.168.0.0' ) }}"
+    # - debug:
+    #     msg: '{{bravo}}'
+    # - name: Sub tasks
+    #   include_tasks: ./debug2.yml
+    #   vars:
+    #     charlie: '{{charlie}}'
+        
 
 
     # - name: Loop condition
@@ -59,20 +62,19 @@
     
 
     
-    # - name: Download updated certificates
-    #   uri:
-    #     url: 'https://api.porkbun.com/api/json/v3/ssl/retrieve/{{url_base}}.{{tld}}'
-    #     body_format: json
-    #     method: POST
-    #     body:
-    #       secretapikey: '{{pb_secret}}'
-    #       apikey: '{{pb_api_key}}'
-        # body: '{"secretapikey": "{{pb_secret}}", "apikey": "{{pb_api_key}}"}'
-        # headers:
-        #   Content-Type: application/json
-    #   register: fetched
-    # - debug:
-    #     msg: '{{fetched}}'
+    - name: Download updated certificates
+      uri:
+        url: 'https://api.porkbun.com/api/json/v3/ssl/retrieve/{{url_base}}.{{tld}}'
+        body_format: json
+        method: POST
+        body:
+          secretapikey: '{{pb_secret}}'
+          apikey: '{{pb_api_key}}'
+        headers:
+          Content-Type: application/json
+      register: fetched
+    - debug:
+        msg: '{{fetched}}'
     # - debug:
     #     msg: '{{(fetched.json["privatekey"])}}'
     # - include_vars: 'vars/globals.yml'

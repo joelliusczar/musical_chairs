@@ -6,7 +6,7 @@
   "configurations": [
     {
       "name": "Python: Current File",
-      "type": "python",
+      "type": "debugpy",
       "python": "${command:python.interpreterPath}",
       "request": "launch",
       "program": "${file}",
@@ -19,7 +19,7 @@
     },
     {
       "name": "Python: API",
-      "type": "python",
+      "type": "debugpy",
       "python": "${command:python.interpreterPath}",
       "request": "launch",
       "program": "${workspaceFolder}/src/api/index.py",
@@ -36,7 +36,7 @@
     },
     {
       "name": "Python: nginx API",
-      "type": "python",
+      "type": "debugpy",
       "python": "${command:python.interpreterPath}",
       "request": "launch",
       "program": "${workspaceFolder}/src/api/index.py",
@@ -48,10 +48,14 @@
     },
     {
       "name": "Debug Unit Test",
-      "type": "python",
-      "preLaunchTask": "Set unit test env",
+      "type": "debugpy",
+      // "preLaunchTask": "Set unit test env",
       "request": "test",
       "justMyCode": true,
-  },
+      "envFile": "",
+      // "env": {
+      //   "DSF_DB_PASS_SETUP":"${LT_DB_PASS_SETUP}"
+      // }
+    },
   ]
 }

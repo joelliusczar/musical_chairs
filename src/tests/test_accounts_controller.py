@@ -1,5 +1,3 @@
-import os
-print(os.environ["DSF_APP_ROOT"])
 import json
 from musical_chairs_libs.dtos_and_utilities import UserRoleDef
 from .api_test_dependencies import\
@@ -91,7 +89,7 @@ def test_create_account_fail_email(fixture_api_test_client: TestClient):
 	assert response.status_code == 422
 	assert data["detail"][0]["field"] == "body->email"
 	assert data["detail"][0]["msg"] == \
-		"The email address is not valid. It must have exactly one @-sign."
+		"An email address must have an @-sign."
 
 	testUser["email"] = "testPerson@fucky"
 	response = client.post("/accounts/new", json=testUser)
@@ -99,7 +97,7 @@ def test_create_account_fail_email(fixture_api_test_client: TestClient):
 	assert response.status_code == 422
 	assert data["detail"][0]["field"] == "body->email"
 	assert data["detail"][0]["msg"] == \
-		"The domain name fucky is not valid. It should have a period."
+		"The part after the @-sign is not valid. It should have a period."
 
 	testUser["email"] = "test4@test.com"
 	response = client.post("/accounts/new", json=testUser)

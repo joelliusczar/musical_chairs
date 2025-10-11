@@ -11,6 +11,7 @@
     - vars/vault.yml
     - vars/globals.yml
 
+
   pre_tasks:
     - name: Check that latest is pushed up.
       include_role:

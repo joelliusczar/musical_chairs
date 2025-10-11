@@ -9,8 +9,11 @@
 
 
   tasks:
-    - debug:
-        msg: "{{ '192.168.0.0/24' | ansible.utils.network_in_usable( '192.168.0.0' ) }}"
+    - name: fact scope
+      set_fact:
+        dumdum: 'buffalo bill'
+    # - debug:
+    #     msg: "{{ '192.168.0.0/24' | ansible.utils.network_in_usable( '192.168.0.0' ) }}"
     # - debug:
     #     msg: '{{bravo}}'
     # - name: Sub tasks
@@ -62,19 +65,19 @@
     
 
     
-    - name: Download updated certificates
-      uri:
-        url: 'https://api.porkbun.com/api/json/v3/ssl/retrieve/{{url_base}}.{{tld}}'
-        body_format: json
-        method: POST
-        body:
-          secretapikey: '{{pb_secret}}'
-          apikey: '{{pb_api_key}}'
-        headers:
-          Content-Type: application/json
-      register: fetched
-    - debug:
-        msg: '{{fetched}}'
+    # - name: Download updated certificates
+    #   uri:
+    #     url: 'https://api.porkbun.com/api/json/v3/ssl/retrieve/{{url_base}}.{{tld}}'
+    #     body_format: json
+    #     method: POST
+    #     body:
+    #       secretapikey: '{{pb_secret}}'
+    #       apikey: '{{pb_api_key}}'
+    #     headers:
+    #       Content-Type: application/json
+    #   register: fetched
+    # - debug:
+    #     msg: '{{fetched}}'
     # - debug:
     #     msg: '{{(fetched.json["privatekey"])}}'
     # - include_vars: 'vars/globals.yml'

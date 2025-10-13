@@ -34,6 +34,7 @@
       Remote branch may not have latest set of commits.
       Continue?
   register: unpushed_choice
+  when: unpushed.stdout != ""
 - name: Determine if should leave early
   block:
     - name: Set skip.

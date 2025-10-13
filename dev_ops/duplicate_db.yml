@@ -1,0 +1,55 @@
+---
+- hosts: src_server
+
+  vars_files:
+    - ../vars/vault.yml
+    - ../vars/globals.yml
+  
+  pre_tasks:
+    - name: Enforce only one src server
+      fail:
+      when: groups["src_server"]|length != 1
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/os_vars_default.yml'
+    - name: Install PyMySQL
+      become: true
+      apt:
+        name: '{{packages["pymysql"]}}'
+        state: present
+      delegate_to: '{{ item }}'
+      loop: '{{ groups["dest_servers"] }}'
+  
+  tasks:
+    - name: Dump MySQL database
+      community.mysql.mysql_db:
+        login_user: '{{ app_details["db_owner"] }}'
+        login_password: '{{ keys["db_pass_owner"] }}'
+        name: '{{ app_details["db"] }}'
+        state: dump
+        target: /tmp/backup.sql
+        dump_extra_args: "{{ dump_args|default('') }}"
+    - name: Fetched the dumped sql
+      fetch:
+        src: /tmp/backup.sql
+        dest: ~/Documents/mysql_dumps/{{ now(fmt='%Y%m%d')}}_backup.sql
+        flat: true
+    - name: Clean up the dumped sql
+      file:
+        path: /tmp/backup.sql
+        state: absent
+    - name: Copy MySQL dump file to remote host
+      copy:
+        src: ~/Documents/mysql_dumps/{{ now(fmt='%Y%m%d')}}_backup.sql
+        dest: /tmp/mysql_dump.sql
+      delegate_to: '{{ item }}'
+      loop: '{{ groups["dest_servers"] }}'
+    - name: Import MySQL dump into database
+      community.mysql.mysql_db:
+        name: '{{ app_details["db"] }}'
+        state: import
+        target: /tmp/mysql_dump.sql
+        login_user: '{{ app_details["db_owner"] }}'
+        login_password: '{{ keys["db_pass_owner"] }}'
+      delegate_to: '{{ item }}'
+      loop: '{{ groups["dest_servers"] }}'

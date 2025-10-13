@@ -9,6 +9,9 @@
 
 
   tasks:
+    - debug:
+        var: ansible_facts
+
     - name: fact scope
       set_fact:
         dumdum: 'buffalo bill'

@@ -15,15 +15,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	Sentinel,
 	missing,
-	AlbumInfo,
-	ArtistInfo,
 	SongAboutInfo,
 	SongEditInfo,
 	ChangeTrackedSongInfo,
 	StationSongTuple,
 	SongArtistTuple,
 	AccountInfo,
-	OwnerInfo,
 	normalize_opening_slash,
 	clean_search_term_for_like,
 	PathDict
@@ -41,8 +38,6 @@ from sqlalchemy.sql.expression import (
 	Select,
 )
 from sqlalchemy.engine import Connection
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.engine.row import RowMapping
 from itertools import chain
 from musical_chairs_libs.tables import (
 	albums as albums_tbl,
@@ -53,7 +48,7 @@ from musical_chairs_libs.tables import (
 	stsg_lastmodifiedtimestamp,
 	stations as stations_tbl, st_name, st_pk, st_displayName, st_ownerFk,
 	st_requestSecurityLevel, st_viewSecurityLevel,
-	sg_pk, sg_name, sg_path, 
+	sg_pk, sg_name, sg_path, sg_trackNum,
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
@@ -140,43 +135,6 @@ class SongInfoService:
 					path=row[sg_path],
 					name=SavedNameString.format_name_for_save(row[sg_name])
 				)
-
-	def update_song_info(self, songInfo: ScanningSongItem) -> int:
-		savedName =  SavedNameString.format_name_for_save(songInfo.name)
-		timestamp = self.get_datetime().timestamp()
-		songUpdate = update(songs_tbl) \
-				.where(sg_pk == songInfo.id) \
-				.where(sg_deletedTimstamp.is_(None))\
-				.values(
-					name = savedName,
-					albumfk = songInfo.albumId,
-					track = songInfo.track,
-					disc = songInfo.disc,
-					bitrate = songInfo.bitrate,
-					comment = songInfo.comment,
-					genre = songInfo.genre,
-					duration = songInfo.duration,
-					samplerate = songInfo.samplerate,
-					lastmodifiedtimestamp = timestamp,
-					lastmodifiedbyuserfk = None
-				)
-		count = self.conn.execute(songUpdate).rowcount
-		try:
-			songComposerInsert = insert(song_artist_tbl)\
-				.values(songfk = songInfo.id, artistFk = songInfo.artistId)
-			self.conn.execute(songComposerInsert)
-		except IntegrityError: pass
-		try:
-			songComposerInsert = insert(song_artist_tbl)\
-				.values(
-					songfk = songInfo.id,
-					artistfk = songInfo.composerId,
-					comment = "composer"
-				)
-			self.conn.execute(songComposerInsert)
-			self.conn.commit()
-		except IntegrityError: pass
-		return count
 
 	def get_songIds(
 		self,
@@ -312,46 +270,6 @@ class SongInfoService:
 			songIds={st.songid for st in uniquePairs}
 		)
 
-	def _prepare_song_row_for_model(self, row: RowMapping) -> dict[str, Any]:
-		songDict: dict[Any, Any] = {**row}
-		albumArtistId = songDict.pop("album.albumartistid", 0) or 0
-		albumArtistName = songDict.pop("album.albumartist.name", "")
-		albumArtistOwner = OwnerInfo(
-			id=songDict.pop("album.albumartist.ownerid", 0) or 0,
-			username=songDict.pop("album.albumartist.ownername", ""),
-			displayname=songDict.pop("album.albumartist.ownerdisplayname", ""),
-		)
-		album = AlbumInfo(
-			id=songDict.pop("album.id", 0) or 0,
-			name=songDict.pop("album.name", None) or "",
-			owner=OwnerInfo(
-				id=songDict.pop("album.ownerid", 0) or 0,
-				username=songDict.pop("album.ownername", ""),
-				displayname=songDict.pop("album.ownerdisplayname", ""),
-			),
-			year=songDict.pop("album.year", None),
-			albumartist=ArtistInfo(
-				id=albumArtistId,
-				name=albumArtistName,
-				owner=albumArtistOwner,
-			) if albumArtistId else None
-		)
-		if album.id:
-			songDict["album"] = album
-		songDict.pop("artist.id", None)
-		songDict.pop("artist.name", None)
-		songDict.pop("artist.ownerid", None)
-		songDict.pop("artist.ownername", None)
-		songDict.pop("artist.ownerdisplayname", None)
-		songDict.pop("station.id", None)
-		songDict.pop("station.name", None)
-		songDict.pop("station.displayname", None)
-		songDict.pop("station.ownerid", None)
-		songDict.pop("station.ownername", None)
-		songDict.pop("station.ownerdisplayname", None)
-		songDict.pop(sgar_isPrimaryArtist.description, None) #pyright: ignore reportUnknownMemberType
-		return songDict
-
 	def __get_query_for_songs_for_edit__(
 		self
 	) -> Select[Any]:
@@ -372,6 +290,7 @@ class SongInfoService:
 			sg_path.label("path"),
 			sg_internalpath.label("internalpath"),
 			sg_track.label("track"),
+			sg_trackNum.label("trackNum"),
 			sg_disc.label("disc"),
 			sg_genre.label("genre"),
 			sg_explicit.label("explicit"),

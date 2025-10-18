@@ -39,30 +39,10 @@
       reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
       env_name: '{{app_details["prefix"]|lower}}_env'
       engine_src: '{{src_dirs["engine"]}}/'
+    - role: tests-setup
 
   tasks:
-    - name: Copy templates folder
-      synchronize:
-        src: '{{src_dirs["templates"]}}'
-        dest: '{{test_trunk}}'
-        delete: true
-    - name: Create ices config directory
-      file:
-        path: '{{test_trunk}}/ices_configs'
-        state: directory
-    - name: Create py modules directory
-      file:
-        path: '{{test_trunk}}/pyModules'
-        state: directory
-    - name: Setup python code to be tested
-      include_role:
-        name: python-setup
-      vars:
-        sql_scripts_src: ../sql_scripts
-        reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
-        env_name: '{{app_details["prefix"]|lower}}_env'
-        engine_src: '{{src_dirs["engine"]}}/'
-        working_dir: '{{test_trunk}}'
+    
     - name: Run unit tests
       command:
         chdir: ../src/tests

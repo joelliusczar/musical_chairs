@@ -72,6 +72,10 @@ class SqlScripts(Enum):
 		"017.add_song_deletedbyuserid.sql",
 		"e354453b26a884eeded27d0408a9682d8beca3a8a2b10974fd1235b3f14a13c2"
 	)
+	ADD_SONG_TRACKNUM = (
+		"018.add_song_tracknum.sql",
+		"e0af4c167d515870fa04747f1680ff59429e4bf129af708ad32d0ca4472abad8"
+	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",
 		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"

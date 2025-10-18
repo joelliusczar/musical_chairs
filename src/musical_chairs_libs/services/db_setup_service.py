@@ -238,40 +238,6 @@ class DbOwnerConnectionService:
 
 		self.conn.exec_driver_sql(script)
 
-	def drop_requestedtimestamp_column(self):
-		self.run_defined_script(SqlScripts.DROP_REQUESTED_TIMESTAMP)
-
-	def add_internalpath_column(self):
-		self.run_defined_script(SqlScripts.ADD_INTERNAL_PATH)
-
-	def drop_placeholderdir_column(self):
-		self.run_defined_script(SqlScripts.DROP_PLACEHOLDERDIR)
-
-	def add_file_hash_column(self):
-		self.run_defined_script(SqlScripts.ADD_SONG_FILE_HASH)
-
-	def add_user_ipv4address_column(self):
-		self.run_defined_script(SqlScripts.ADD_IP4ADDRESS)
-
-	def add_user_ipv6address_column(self):
-		self.run_defined_script(SqlScripts.ADD_IP6ADDRESS)
-
-	def add_user_agent_fk_column(self):
-		self.run_defined_script(SqlScripts.ADD_USERAGENT_FK)
-
-	def add_song_deleted_timestamp(self):
-		self.run_defined_script(SqlScripts.ADD_SONG_DELETEDTIMESTAMP)
-
-	def add_album_version(self):
-		self.run_defined_script(SqlScripts.ADD_ALBUM_VERSION)
-
-	def add_station_type(self):
-		self.run_defined_script(SqlScripts.ADD_STATION_TYPE)
-
-	def add_song_deleted_by_userId(self):
-		self.run_defined_script(SqlScripts.ADD_SONG_DELETEDBYUSERID)
-
-
 def setup_database(dbName: str):
 	with DbRootConnectionService() as rootConnService:
 		rootConnService.create_db(dbName)
@@ -287,16 +253,18 @@ def setup_database(dbName: str):
 		ownerConnService.grant_janitor_roles()
 		ownerConnService.add_next_directory_level_func()
 		ownerConnService.add_normalize_opening_slash()
-		ownerConnService.drop_requestedtimestamp_column()
-		ownerConnService.add_internalpath_column()
-		ownerConnService.drop_placeholderdir_column()
-		ownerConnService.add_file_hash_column()
-		ownerConnService.add_user_ipv4address_column()
-		ownerConnService.add_user_ipv6address_column()
-		ownerConnService.add_user_agent_fk_column()
-		ownerConnService.add_song_deleted_timestamp()
-		ownerConnService.add_album_version()
-		ownerConnService.add_station_type()
-		ownerConnService.add_song_deleted_by_userId()
+		
+		ownerConnService.run_defined_script(SqlScripts.DROP_REQUESTED_TIMESTAMP)
+		ownerConnService.run_defined_script(SqlScripts.ADD_INTERNAL_PATH)
+		ownerConnService.run_defined_script(SqlScripts.DROP_PLACEHOLDERDIR)
+		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_FILE_HASH)
+		ownerConnService.run_defined_script(SqlScripts.ADD_IP4ADDRESS)
+		ownerConnService.run_defined_script(SqlScripts.ADD_IP6ADDRESS)
+		ownerConnService.run_defined_script(SqlScripts.ADD_USERAGENT_FK)
+		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDTIMESTAMP)
+		ownerConnService.run_defined_script(SqlScripts.ADD_ALBUM_VERSION)
+		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_TYPE)
+		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDBYUSERID)
+		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_TRACKNUM)
 
 		Path(f"/tmp/{get_schema_hash()}").touch()

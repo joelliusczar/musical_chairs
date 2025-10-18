@@ -110,6 +110,7 @@ songs = Table("songs", metadata,
 	Column("name", String(200), nullable=True),
 	Column("albumfk", Integer, ForeignKey("albums.pk"), nullable=True),
 	Column("track", String(20), nullable=True),
+	Column("tracknum", Float[float], nullable=False, default=0),
 	Column("disc", Integer, nullable=True),
 	Column("genre", String(50), nullable=True),
 	Column("explicit", Boolean, nullable=True),
@@ -135,7 +136,8 @@ sg_name = cast(Column[Optional[String]],sg.name)
 sg_path = cast(Column[String],sg.path)
 sg_internalpath = cast(Column[String],sg.internalpath)
 sg_albumFk = cast(Column[Optional[Integer]], sg.albumfk)
-sg_track = cast(Column[Optional[Integer]], sg.track)
+sg_track = cast(Column[Optional[String]], sg.track)
+sg_trackNum = cast(Column[Float[float]], sg.tracknum)
 sg_disc = cast(Column[Optional[Integer]], sg.disc)
 sg_genre = cast(Column[Optional[String]], sg.genre)
 sg_explicit = cast(Column[Optional[Integer]], sg.explicit)

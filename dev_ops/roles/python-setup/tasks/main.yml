@@ -5,10 +5,12 @@
   package:
     name: virtualenv
     state: present
+  tags: entitled
 - name: Install rsync
   become: true
   package:
     name: rsync
+  tags: entitled
 - name: Regen Reference file
   script: >
     regen_file_reference_file.py

@@ -13,6 +13,7 @@
   become: true
   package: 
     name: '{{packages["mysql"]}}'
+  tags: entitled
 # - name: Revoke roles from mysql user
 #   become: true
 #   mysql_user:
@@ -26,6 +27,7 @@
   apt:
     name: '{{packages["pymysql"]}}'
     state: present
+  tags: entitled
   #going to allow an error as a valid result by redirecting error to out
 - name: Check root password
   become: true
@@ -38,6 +40,7 @@
       echo "$rootHash"
   changed_when: false
   register: result
+  tags: entitled
 - name: Change root password
   become: true
   become_user: root
@@ -49,3 +52,4 @@
     login_unix_socket: '{{socket_path}}'
     column_case_sensitive: true
   when: 'not result.stdout or result.stdout == "invalid"'
+  tags: entitled

@@ -11,6 +11,7 @@ from typing import (
 	Iterable,
 	List,
 	Any,
+	cast
 )
 from itertools import chain
 from .validation_functions import min_length_validator_factory
@@ -74,7 +75,10 @@ class SongListDisplayItem(QueuedItem):
 	internalpath: str
 	track: Optional[str]=None
 	playedtimestamp: Optional[float]=None
-	rules: list[ActionRule]=Field(default_factory=list, frozen=False)
+	rules: list[ActionRule]=cast(
+		list[ActionRule],
+		Field(default_factory=list, frozen=False)
+	)
 	historyid: Optional[int]=None
 	disc: Optional[int]=None
 
@@ -121,9 +125,9 @@ class StationInfo(MCBaseClass):
 	isrunning: bool=Field(default=False, frozen=False)
 	#don't expect this to ever actually null
 	owner: Optional[OwnerType]=Field(default=None, frozen=False)
-	rules: list[ActionRule]=Field(
+	rules: list[ActionRule]=cast(list[ActionRule], Field(
 		default_factory=list, frozen=False
-	)
+	))
 	requestsecuritylevel: Optional[int]=Field(
 		default=MinItemSecurityLevel.ANY_USER.value, frozen=False
 	)
@@ -184,10 +188,9 @@ class SongTreeNode(FrozenBaseClass):
 	totalChildCount: int
 	id: Optional[int]=None
 	name: Optional[str]=None
-	directChildren: list["SongTreeNode"]=Field(default_factory=list)
-	rules: list[PathsActionRule]=Field(
-		default_factory=list, frozen=True
-	)
+	trackNum: float=0
+	directChildren: list["SongTreeNode"]=cast(list["SongTreeNode"], Field(default_factory=list))
+	rules: list[PathsActionRule]=cast(list[PathsActionRule], Field(default_factory=list, frozen=True))
 
 	def __hash__(self) -> int:
 		return hash(self.path)
@@ -202,7 +205,6 @@ class SongTreeNode(FrozenBaseClass):
 		if node.name:
 			return node.name
 		return Path(node.path).stem
-
 
 
 class StationSongTuple:
@@ -273,9 +275,10 @@ class SongAboutInfo(MCBaseClass):
 	name: Optional[str]=None
 	album: Optional[AlbumInfo]=None
 	primaryartist: Optional[ArtistInfo]=None
-	artists: Optional[list[ArtistInfo]]=Field(default_factory=list)
-	covers: Optional[list[int]]=Field(default_factory=list)
+	artists: Optional[list[ArtistInfo]]=cast(list[ArtistInfo], Field(default_factory=list))
+	covers: Optional[list[int]]=cast(list[int], Field(default_factory=list))
 	track: Optional[str]=None
+	tracknum: float=0
 	disc: Optional[int]=None
 	genre: Optional[str]=None
 	bitrate: Optional[float]=None
@@ -284,14 +287,14 @@ class SongAboutInfo(MCBaseClass):
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 	lyrics: Optional[str]=""
-	stations: Optional[list[StationInfo]]=Field(default_factory=list)
+	stations: Optional[list[StationInfo]]=cast(list[StationInfo], Field(default_factory=list))
 
 
 	@property
 	def allArtists(self) -> Iterable[ArtistInfo]:
 		if self.primaryartist:
 			yield self.primaryartist
-		yield from (a for a in self.artists or [])
+		yield from self.artists or []
 
 class SongFullQueryInfo(SongAboutInfo, SongPathInfo):
 	pass
@@ -300,7 +303,7 @@ class ChangeTrackedSongInfo(SongAboutInfo):
 	touched: Optional[set[str]]=None
 
 class SongEditInfo(ChangeTrackedSongInfo, SongPathInfo):
-	rules: list[ActionRule]=Field(default_factory=list)
+	rules: list[ActionRule]=cast(list[ActionRule], Field(default_factory=list))
 
 
 class ValidatedSongAboutInfo(ChangeTrackedSongInfo):
@@ -323,9 +326,11 @@ class ValidatedSongAboutInfo(ChangeTrackedSongInfo):
 		artists = self.artists or []
 		primaryArtist = self.primaryartist or None
 
-		duplicate = next(get_duplicates(
-			a.id for a in chain(artists, (primaryArtist,) if primaryArtist else ())),
-			None
+		duplicate = next(
+			get_duplicates(
+				a.id for a in chain(artists, (primaryArtist,) if primaryArtist else ())
+			),
+			None,
 		)
 		if duplicate:
 			raise ValueError(
@@ -333,6 +338,7 @@ class ValidatedSongAboutInfo(ChangeTrackedSongInfo):
 				"but it is only legal to add it once."
 			)
 		return self
+
 
 class DirectoryTransfer(MCBaseClass):
 	path: str
@@ -344,7 +350,7 @@ class LastPlayedItem(MCBaseClass):
 	historyid: int
 
 class SongsAlbumInfo(AlbumInfo):
-	songs: list[SongListDisplayItem]=Field(default_factory=list, frozen=False)
+	songs: list[SongListDisplayItem]=cast(list[SongListDisplayItem], Field(default_factory=list, frozen=False))
 
 class SongsArtistInfo(ArtistInfo):
-	songs: list[SongListDisplayItem]=Field(default_factory=list, frozen=False)
+	songs: list[SongListDisplayItem]=cast(list[SongListDisplayItem], Field(default_factory=list, frozen=False))

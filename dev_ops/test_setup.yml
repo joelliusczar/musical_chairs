@@ -1,0 +1,35 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - vars/globals.yml
+
+
+  pre_tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/os_vars_default.yml'
+    - include_vars: 
+        file: 'vars/local_keys.yml'
+        hash_behaviour: merge
+    - include_vars:
+        file: vars/local_paths.yml
+    - name: Create app directory
+      file:
+        path: '{{test_trunk}}'
+        state: directory
+
+  vars:
+    app_trunk: '{{dest_dirs["app_root"]|default("~")}}/{{app_details["name"]}}'
+    test_trunk: '../test_trash/{{app_details["name"]}}'
+
+  roles:
+    - role: mysql-setup
+      setup_pass: '{{keys["db_pass_setup"]}}'
+      socket_path: '{{dev_files["mysql_socket"]}}'
+      sql_scripts_src: ../sql_scripts
+      reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
+      env_name: '{{app_details["prefix"]|lower}}_env'
+      engine_src: '{{src_dirs["engine"]}}/'
+    - role: tests-setup

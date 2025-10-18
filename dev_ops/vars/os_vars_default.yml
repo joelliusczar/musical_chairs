@@ -4,10 +4,25 @@ packages:
   pymysql: python3-pymysql
   firefox: firefox-esr
   nginx: nginx-full
+  icecast: icecast2
+  ices_dependencies:
+    libtool: libtool-bin
+    build_essential: build-essential
+    libxml2: libxml2-dev
+    libogg: libogg-dev
+    libvorbis: libvorbis-dev
+    libshout3: libshout3-dev
+    libmp3lame: libmp3lame-dev
+    libflac: libflac-dev
+    libfaad: libfaad-dev
+    libperl: libperl-dev
+    python3_distutils: python3-distutils
+
 dev_files:
   openssl_default_config: /etc/ssl/openssl.cnf
   mysql_socket: /var/run/mysqld/mysqld.sock
   cert_src: /etc/ssl/certs/ca-certificates.crt
+  icecast_config: /etc/icecast2/icecast.xml
 dev_dirs:
   ssh: ~/.ssh
   certs: /usr/local/share/ca-certificates

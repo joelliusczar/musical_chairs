@@ -9,12 +9,15 @@
 
 
   tasks:
-    - debug:
-        var: ansible_facts
-
-    - name: fact scope
-      set_fact:
-        dumdum: 'buffalo bill'
+    - name: Clone the ices repo
+      git:
+        dest: /tmp/build/ices
+        repo: https://github.com/joelliusczar/ices0.git
+        version: restructure-logging
+    - name: Aclocal
+      command:
+        cmd: aclocal
+        chdir: /tmp/build/ices
     # - debug:
     #     msg: "{{ '192.168.0.0/24' | ansible.utils.network_in_usable( '192.168.0.0' ) }}"
     # - debug:

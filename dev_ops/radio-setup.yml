@@ -1,0 +1,93 @@
+---
+- hosts: all
+
+  vars:
+    app_trunk: '{{dest_dirs["app_root"]|default("~")}}/{{app_details["name"]}}'
+    test_trunk: '../test_trash/{{app_details["name"]}}'
+
+  vars_files:
+    - vars/vault.yml
+    - vars/globals.yml
+
+  handlers:
+    - name: Restart icecast
+      become: true
+      service:
+        name: '{{packages["icecast"]}}'
+        state: reloaded
+
+  pre_tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/os_vars_default.yml'
+
+  tasks:
+    - name: install icecast
+      package: '{{packages["icecast"]}}'
+      become: true
+    - name: Python setup.
+      include_role:
+        name: python-setup
+      vars:
+        sql_scripts_src: ../sql_scripts
+        reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
+        env_name: '{{app_details["prefix"]|lower}}_env'
+        engine_src: '{{src_dirs["engine"]}}/'
+        working_dir: '{{app_trunk}}'
+    - name: Extract python version string.
+      command: 
+        argv:
+          - '{{app_trunk}}/{{env_name}}/bin/python'
+          - -V
+      check_mode: false
+      register: python_version
+    - name: Extract python minor version and env path
+      set_fact:
+        py_minor_version: '{{python_version.stdout.split(" ")[1].split(".")[1]}}'
+    - name: Install ices
+      include_role:
+        name: ices-install
+      vars:
+        ices_dependencies: '{{packages["ices_dependencies"]}}'
+        build_path: /tmp/build/ices
+        install_path: '{{~/.local}}'
+        python_path: '{{app_trunk}}/{{env_name}}/bin/python'
+        python_module_dir: '{{app_trunk}}/{{app_details["name"]}}/pyModules'
+        prefix: '{{app_details["prefix"]}}'
+    - name: Generate source password
+      command: openssl rand -hex 16
+      register: source_password
+    - name: Generate relay password
+      command: openssl rand -hex 16
+      register: relay_password
+    - name: Generate admin password
+      command: openssl rand -hex 16
+      register: admin_password
+    - name: Shutdown all stations
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.shutdown_stations'
+    - name: Update icecast config
+      lineinfile:
+        dest: '{{dev_files["icecast_config"]}}'
+        regexp: '{{item.regexp}}'
+        line: '{{item.line}}'
+        state: present
+      become: true
+      loop:
+        - regexp: '<source-password>\w*</source-password>'
+          line: '<source-password>{{source_password.stdout}}</source-password>'
+        - regexp: '<relay-password>\w*</relay-password>'
+          line: '<relay-password>{{relay_password.stdout}}</relay-password>'
+        - regexp: '<admin-password>\w*</admin-password>'
+          line: '<admin-password>{{admin_password.stdout}}</admin-password>'
+    - name: Update the ices configs
+      lineinfile:
+        dest: '{{item}}'
+        regexp: '<Password>\w*</Password>'
+        line: '<Password>{{source_password.stdout}}</Password>'
+        state: present
+      with_fileglob: '{{app_trunk}}/{{app_details["name"]}}/ices_configs/*.conf'
+    

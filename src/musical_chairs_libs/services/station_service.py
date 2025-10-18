@@ -128,7 +128,7 @@ class StationService:
 				Integer,
 				String,
 				Union[String, None],
-				int,
+				Integer,
 				Integer
 			]
 		],
@@ -143,7 +143,7 @@ class StationService:
 				Integer,
 				String,
 				Union[String, None],
-				int,
+				Integer,
 				Integer
 			]
 		]:
@@ -280,7 +280,7 @@ class StationService:
 			st_ownerFk,
 			u_username,
 			u_displayName,
-			coalesce[int](
+			coalesce[Integer](
 				st_requestSecurityLevel,
 				case(
 					(st_viewSecurityLevel == MinItemSecurityLevel.PUBLIC.value, None),
@@ -728,6 +728,17 @@ class StationService:
 					else:
 						if not self.conn.engine.url.database:
 							raise RuntimeError("db Name is missing")
+						
+						if not self.template_service.does_station_config_exist(
+							station.name,
+							owner.username
+						):
+							self.template_service.create_station_files(
+								station.id,
+								station.name,
+								station.displayname,
+								owner.username
+							)
 
 						ProcessService.start_song_queue_process(
 							self.conn.engine.url.database,
@@ -743,11 +754,15 @@ class StationService:
 
 	def disable_stations(
 		self,
-		stationIds: Iterable[int],
+		stationIds: Optional[Iterable[int]],
 		ownerKey: Union[int, str, None]=None
 	) -> None:
-		stationIds = list(stationIds)
-		logging.radioLogger.debug(f"disable {stationIds}")
+		#explicitly checking that stationIds is not null rather
+		#simply if stationIds because we want want [] to trigger the all case
+		stationIds = list(stationIds) if stationIds is not None else None
+		logging.radioLogger.debug(
+			f"disable {stationIds if stationIds is not None else 'All'}"
+		)
 		query = select(st_procId).where(st_procId.is_not(None))
 		if ownerKey:
 			if type(ownerKey) == int:
@@ -756,7 +771,9 @@ class StationService:
 				query = query.join(user_tbl, u_pk == st_ownerFk)\
 					.where(u_username == ownerKey)
 		else:
-			query = query.where(st_pk.in_(stationIds))
+			if stationIds is not None:
+				query = query.where(st_pk.in_(stationIds))
+			
 
 		rows = self.conn.execute(query)
 		pids = [cast(int, row[0]) for row in rows]

@@ -100,7 +100,7 @@
       blockinfile:
         path: ~/.ssh/config
         marker: '# {mark} ANSIBLE - {{config_host_name|upper}}'
-        block: >
+        block: |
           Host {{config_host_name}} 
             Hostname {{inventory_hostname}}
             AddKeysToAgent yes
@@ -111,8 +111,4 @@
     - name: Add key to local agent
       command: 'ssh-add {{local_ssh_key_paths["private"]}}'
       delegate_to: localhost
-    # - name: Add to known hosts
-    #   known_hosts:
-    #     name: '[{{ inventory_hostname }}]:{{domain["port"]}}'
-    #     key: '[{{ inventory_hostname }}]:{{domain["port"]}} {{user_info.ssh_public_key}}'
-    #   delegate_to: localhost
+

@@ -50,6 +50,21 @@ class TemplateService:
 	def __create_ices_python_module_content__(self, stationId: int) -> str:
 		pythonModuleTemplate = self.__load_ices_python_module_template__()
 		return pythonModuleTemplate.replace("<station_id>",str(stationId))
+	
+	def station_config_path(
+		self, 
+		internalName: str, 
+		username: str
+	) -> Path:
+		filename_base = f"{username}_{internalName}"
+		return Path(f"{EnvManager.station_config_dir()}/ices.{filename_base}.conf")
+
+	def does_station_config_exist(
+		self, 
+		internalName: str, 
+		username: str
+	) -> bool:
+		return self.station_config_path(internalName, username).exists()
 
 	def create_station_files(
 		self,
@@ -69,9 +84,7 @@ class TemplateService:
 			sourcePassword,
 			username
 		)
-		filename_base = f"{username}_{internalName}"
-		Path(f"{EnvManager.station_config_dir()}/ices.{filename_base}.conf")\
-			.write_text(configContent)
+		self.station_config_path(internalName, username).write_text(configContent)
 
 	@staticmethod
 	def load_sql_script_content(script: SqlScripts) -> str:

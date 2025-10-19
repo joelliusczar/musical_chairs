@@ -8,7 +8,6 @@ IF (SELECT COUNT(1) = 0 FROM information_schema.COLUMNS
 	BEGIN NOT ATOMIC
 		ALTER TABLE `songs`
 		ADD COLUMN `tracknum` DOUBLE DEFAULT 0;
-		ALTER TABLE `songs`
 	END;	
 END IF|
 DELIMITER ;

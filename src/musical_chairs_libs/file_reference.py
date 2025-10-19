@@ -74,7 +74,7 @@ class SqlScripts(Enum):
 	)
 	ADD_SONG_TRACKNUM = (
 		"018.add_song_tracknum.sql",
-		"e0af4c167d515870fa04747f1680ff59429e4bf129af708ad32d0ca4472abad8"
+		"cba9102c5602f8a0f01bb1002be50580eaf91f1a09159140cca4d35be98c7519"
 	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",

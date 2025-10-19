@@ -33,13 +33,13 @@ def get_track(song: SongEditInfo) -> int:
 	except:
 		print(song)
 		return 0
-songResponse = requests.get(
-		f"{baseUrl}song-info/songs/list/?albumId=97", 
-		headers=headers
-	)
+
+# songResponse = requests.get(
+# 		f"{baseUrl}song-info/songs/list/?albumId=97", 
+# 		headers=headers
+# 	)
 # songData = json.loads(songResponse.content)
 # print(songData)
-
 
 
 

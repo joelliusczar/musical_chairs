@@ -37,6 +37,34 @@ def test_add_artists(fixture_artist_service: ArtistService):
 	pk = artistService.get_or_save_artist("hotel_artist")
 	assert pk == 8
 
+def test_change_song_tracknum(
+		fixture_song_info_service: SongInfoService,
+		fixture_account_service: AccountsService
+):
+		songInfoService = fixture_song_info_service
+		accountService = fixture_account_service
+
+		# Get a user for the test
+		user, _ = accountService.get_account_for_login("testUser_november")	# random user
+		assert user
+
+		# Fetch the song for editing
+		songInfo = next(songInfoService.get_songs_for_edit([84], user))
+		assert songInfo
+		assert songInfo.tracknum == 0
+
+		# Modify the trackNum
+		copy = songInfo.model_copy()
+		copy.tracknum = 5	# Change the trackNum to a new value
+
+		# Save the changes
+		afterSaved = next(songInfoService.save_songs([84], copy, user))
+		assert afterSaved.tracknum == 5	# Verify the trackNum was updated
+
+		# Refetch the song and verify the change persisted
+		refetched = next(songInfoService.get_songs_for_edit([84], user))
+		assert refetched.tracknum == 5
+
 def test_save_song_remove_1_artists(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService

@@ -290,7 +290,7 @@ class SongInfoService:
 			sg_path.label("path"),
 			sg_internalpath.label("internalpath"),
 			sg_track.label("track"),
-			sg_trackNum.label("trackNum"),
+			sg_trackNum.label("tracknum"),
 			sg_disc.label("disc"),
 			sg_genre.label("genre"),
 			sg_explicit.label("explicit"),

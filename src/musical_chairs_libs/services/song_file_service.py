@@ -1,6 +1,7 @@
 import re
 import uuid
 from typing import (
+	Any,
 	BinaryIO,
 	Iterator,
 	cast,
@@ -30,6 +31,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongPathInfo,
 	ReusableIterable,
 	DirectoryTransfer,
+	int_or_default
 )
 
 from sqlalchemy import (
@@ -40,6 +42,7 @@ from sqlalchemy import (
 	func,
 	union_all,
 	String,
+	Integer,
 	CompoundSelect
 )
 from sqlalchemy.sql.expression import (
@@ -136,6 +139,7 @@ class SongFileService:
 			name = songAboutInfo.name,
 			albumfk = songAboutInfo.album.id if songAboutInfo.album else None,
 			track = songAboutInfo.track,
+			tracknum = int_or_default(songAboutInfo.track),
 			disc = songAboutInfo.disc,
 			bitrate = songAboutInfo.bitrate,
 			genre = songAboutInfo.genre,
@@ -163,7 +167,7 @@ class SongFileService:
 	def __song_ls_query__(
 		self,
 		prefix: Optional[str]=""
-	) -> Select[Tuple[str, str, int, int, str]]:
+	) -> Select[Tuple[str, Optional[String], int, Integer, String]]:
 		hasOpenSlash = False
 		prefix = normalize_opening_slash(
 			prefix or "",
@@ -198,7 +202,10 @@ class SongFileService:
 
 	def __query_to_treeNodes__(
 		self,
-		query: Union[Select[Tuple[str, str, int, int, str]], CompoundSelect],
+		query: Union[
+			Select[Tuple[str, Optional[String], int, Integer, String]], 
+			CompoundSelect[Any]
+		],
 		permittedPathsTree: ChainedAbsorbentTrie[PathsActionRule]
 	) -> Iterator[SongTreeNode]:
 		records = self.conn.execute(query).mappings()
@@ -246,7 +253,9 @@ class SongFileService:
 				next((s for s in p.split("/") if s), "") if p else p for p in \
 				permittedPathTree.shortest_paths()
 			}
-			queryList: list[Select[Tuple[str, str, int, int, str]]] = []
+			queryList: list[Select[Tuple[
+				str, Optional[String], int, Integer, String]]
+			] = []
 			for p in prefixes:
 				queryList.append(self.__song_ls_query__(p))
 			if queryList:
@@ -286,7 +295,9 @@ class SongFileService:
 		includeTop: bool=True
 	) -> Mapping[str, Collection[SongTreeNode]]:
 		permittedPathTree = user.get_permitted_paths_tree()
-		queryList: list[Select[Tuple[str, str, int, int, str]]] = []
+		queryList: list[
+			Select[Tuple[str, Optional[String], int, Integer, String]]
+		] = []
 
 		prefixSplit = reversed([p for p in self.__prefix_split__(prefix)])
 

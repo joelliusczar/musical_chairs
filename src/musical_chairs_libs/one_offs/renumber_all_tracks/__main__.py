@@ -52,14 +52,33 @@ for album in (AlbumInfo(**d) for d in data["items"]):
 	songData = json.loads(songResponse.content)
 	# print(songData)
 	try:
+		easySongs: list[SongEditInfo] = []
 		for song in (SongEditInfo(**d) for d in songData):
 			# print(get_track(song))
 			try:
 				int(song.track or "$")
+				easySongs.append(song)
 			except:
-				print(song.track)
-				print(album.id)
-				print(album.name)
+				print(f"album name: {album.name}")
+				print(f"track: {song.track}")
+				print(f"album id: {album.id}")
 				break
-	except:
-		print(songData)
+		if len(easySongs) == len(songData):
+			for song in easySongs:
+				song.tracknum = int(song.track or "$")
+				saveResponse = requests.put(
+					f"{baseUrl}song-info/songs/multi/?itemIds={song.id}",
+					headers=headers,
+					data=song.model_dump_json()
+				)
+				print(saveResponse.status_code)
+				# print(saveResponse.content)
+				assert saveResponse.status_code == 200
+		else:
+			print(f"album name: {album.name} is short")
+			print(len((songData)))
+			print(len(easySongs))
+			print(f"album id: {album.id}")
+
+	except Exception as e:
+		print(e)

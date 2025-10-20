@@ -67,6 +67,14 @@ class QueuedItem(NamedIdItem):
 		return self.id == value.id \
 			and self.name == value.name \
 			and self.queuedtimestamp == value.queuedtimestamp
+	
+class PlaylistCreationInfo(FrozenNamed):
+	owner: OwnerType
+	description: Optional[str]=""
+
+class PlaylistInfo(FrozenNamedIdItem):
+	owner: OwnerType
+	description: Optional[str]=""
 
 class SongListDisplayItem(QueuedItem):
 	album: Optional[str]
@@ -350,7 +358,16 @@ class LastPlayedItem(MCBaseClass):
 	historyid: int
 
 class SongsAlbumInfo(AlbumInfo):
-	songs: list[SongListDisplayItem]=cast(list[SongListDisplayItem], Field(default_factory=list, frozen=False))
+	songs: list[SongListDisplayItem]=cast(
+		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
+	)
 
 class SongsArtistInfo(ArtistInfo):
-	songs: list[SongListDisplayItem]=cast(list[SongListDisplayItem], Field(default_factory=list, frozen=False))
+	songs: list[SongListDisplayItem]=cast(
+		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
+	)
+
+class SongsPlaylistInfo(PlaylistInfo):
+	songs: list[SongListDisplayItem]=cast(
+		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
+	)

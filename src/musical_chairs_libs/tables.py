@@ -104,6 +104,25 @@ Index(
 	unique=True
 )
 
+playlists = Table('playlists', metadata,
+	Column('pk', Integer, primary_key=True, autoincrement=True),
+	Column("name", String(100), nullable=False),
+	Column("description", String(1000), nullable=True),
+	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
+		nullable=False),
+	Column("lastmodifiedtimestamp", Double[float], nullable=False),
+	Column("ownerfk", Integer, ForeignKey("users.pk"), nullable=False),
+)
+
+pl = playlists.c
+pl_pk = cast(Column[Integer],pl.pk)
+pl_name = cast(Column[Optional[String]],pl.name)
+pl_description = cast(Column[Optional[String]],pl.description)
+pl_ownerFk = cast(Column[Integer], pl.ownerfk)
+
+
+
+
 songs = Table("songs", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("path", String(2000), nullable=False),
@@ -163,7 +182,6 @@ song_artist = Table("songsartists", metadata,
 	Column("lastmodifiedtimestamp", Double[float], nullable=True)
 )
 
-
 sgar = song_artist.c
 sgar_pk = cast(Column[Integer] ,sgar.pk)
 sgar_songFk = cast(Column[Integer] ,sgar.songfk)
@@ -171,6 +189,19 @@ sgar_artistFk = cast(Column[Integer] ,sgar.artistfk)
 sgar_isPrimaryArtist = cast(Column[Optional[Boolean]],sgar.isprimaryartist)
 
 Index("idx_songsartists", sgar_songFk, sgar_artistFk, unique=True)
+
+song_playlist = Table("songsplaylists", metadata,
+	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=False),
+	Column("playlistfk", Integer, ForeignKey("playlists.pk"), nullable=False),
+	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
+		nullable=True),
+	Column("lastmodifiedtimestamp", Double[float], nullable=True)
+)
+
+sgpl = song_playlist.c
+sgpl_songFk = cast(Column[Integer] ,sgpl.songfk)
+sgpl_playlistFk = cast(Column[Integer] ,sgpl.playlistfk)
+
 
 song_covers = Table("songcovers", metadata,
 	Column("pk", Integer, primary_key=True),
@@ -192,9 +223,9 @@ stations = Table("stations", metadata,
 	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
 		nullable=True),
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
-  Column("ownerfk", Integer, ForeignKey("users.pk"), nullable=False),
-  Column("requestsecuritylevel", Integer, nullable=True),
-  Column("viewsecuritylevel", Integer, nullable=True),
+	Column("ownerfk", Integer, ForeignKey("users.pk"), nullable=False),
+	Column("requestsecuritylevel", Integer, nullable=True),
+	Column("viewsecuritylevel", Integer, nullable=True),
 	Column("typeid", Integer, nullable=True, default=0),
 )
 
@@ -242,6 +273,23 @@ stab_lastmodifiedtimestamp = cast(
 	stab.lastmodifiedtimestamp
 )
 Index("idx_stationsalbums", stab_albumFk, stab_stationFk, unique=True)
+
+stations_playlists = Table("stationsplaylists",metadata,
+	Column("playlistfk", Integer, ForeignKey("playlists.pk"), nullable=False),
+	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
+		Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
+		nullable=True),
+	Column("lastmodifiedtimestamp", Double[float], nullable=True)
+)
+stpl = stations_playlists.c
+
+stpl_playlistFk = cast(Column[Integer], stpl.playlistfk)
+stpl_stationFk = cast(Column[Integer], stpl.stationfk)
+stpl_lastmodifiedtimestamp = cast(
+	Column[Double[float]],
+	stpl.lastmodifiedtimestamp
+)
+Index("idx_stationsplaylists", stpl_playlistFk, stpl_stationFk, unique=True)
 
 
 userRoles = Table("userroles", metadata,
@@ -292,7 +340,7 @@ uah_timestamp = cast(Column[Optional[Double[float]]],uah.timestamp)
 uah_queuedTimestamp = cast(Column[Double[float]], uah.queuedtimestamp)
 
 station_queue = Table("stationqueue", metadata,
-  Column("useractionhistoryfk",
+	Column("useractionhistoryfk",
 		Integer,
 		ForeignKey("useractionhistory.pk"),
 		nullable=False
@@ -335,6 +383,34 @@ Index(
 	stup_stationFk,
 	stup_userFk,
 	stup_role,
+	unique=True
+)
+
+playlist_user_permissions = Table("playlistuserpermissions", metadata,
+	Column("pk", Integer, primary_key=True),
+	Column("playlistfk", Integer, ForeignKey("playlists.pk"), nullable=False),
+	Column("userfk", Integer, ForeignKey("users.pk"), nullable=False),
+	Column("role", String(50)),
+	Column("span", Float[float], nullable=False),
+	Column("count", Float[float], nullable=False),
+	Column("priority", Integer),
+	Column("creationtimestamp", Double[float], nullable=False)
+)
+
+plup = playlist_user_permissions.c
+plup_playlistFk = cast(Column[Integer], plup.playlistfk)
+plup_pk = cast(Column[Integer], plup.pk)
+plup_userFk = cast(Column[Integer], plup.userfk)
+plup_role = cast(Column[String], plup.role)
+plup_span = cast(Column[Float[float]], plup.span)
+plup_count = cast(Column[Float[float]], plup.count)
+plup_priority = cast(Column[Integer], plup.priority)
+
+Index(
+	"idx_playlistpermissions",
+	plup_playlistFk,
+	plup_userFk,
+	plup_role,
 	unique=True
 )
 
@@ -433,6 +509,4 @@ j_status = cast(Column[String], j.status)
 j_instructions = cast(Column[String], j.instructions)
 j_queuedtimestamp = cast(Column[Double[float]], j.queuedtimestamp)
 j_completedtimestamp = cast(Column[Double[float]], j.completedtimestamp)
-
-
 

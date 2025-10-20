@@ -161,6 +161,10 @@ def everything_else(
 	)
 	return response
 
+@app.get("canary")
+def canary() -> str:
+	return "First Canary"
+
 if __name__ == "__main__":
 	if len(sys.argv) > 2:
 		privateKey = sys.argv[1]

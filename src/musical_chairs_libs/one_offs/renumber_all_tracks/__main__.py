@@ -71,9 +71,9 @@ for album in (AlbumInfo(**d) for d in data["items"]):
 					headers=headers,
 					data=song.model_dump_json()
 				)
-				print(saveResponse.status_code)
-				# print(saveResponse.content)
 				assert saveResponse.status_code == 200
+				print(saveResponse.status_code)
+				print(saveResponse.content)
 		else:
 			print(f"album name: {album.name} is short")
 			print(len((songData)))

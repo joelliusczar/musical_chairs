@@ -33,6 +33,7 @@ from sqlalchemy import (
 	delete,
 	and_,
 	literal,
+	String
 )
 from sqlalchemy.sql.expression import (
 	Update,
@@ -197,7 +198,7 @@ class AlbumService:
 			sg_path,
 			sg_internalpath,
 			sg_track,
-			coalesce[str](ar_name, "").label("artist"),
+			coalesce[String](ar_name, "").label("artist"),
 			literal(0).label("queuedtimestamp"),
 			literal(albumInfo.name).label("album")
 		)\

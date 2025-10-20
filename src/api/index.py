@@ -161,7 +161,7 @@ def everything_else(
 	)
 	return response
 
-@app.get("canary")
+@app.get("/canary")
 def canary() -> str:
 	return "First Canary"
 

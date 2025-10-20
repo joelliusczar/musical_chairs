@@ -24,7 +24,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/src/api/index.py",
       "console": "integratedTerminal",
-      "preLaunchTask": "Set unit test env",
+      // "preLaunchTask": "Set unit test env",
       "justMyCode": false,
       "env": {
         "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"

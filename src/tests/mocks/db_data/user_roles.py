@@ -106,8 +106,24 @@ def get_user_role_params(
 			"priority": None
 		},
 		{
+			"userfk": user_ids.juliet_user_id,
+			"role": UserRoleDef.PLAYLIST_EDIT.value,
+			"creationtimestamp": orderedTestDates[0].timestamp(),
+			"span": 0,
+			"count": 0,
+			"priority": None
+		},
+		{
 			"userfk": user_ids.bravo_user_id,
 			"role": UserRoleDef.STATION_CREATE.value,
+			"creationtimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": None
+		},
+		{
+			"userfk": user_ids.bravo_user_id,
+			"role": UserRoleDef.PLAYLIST_CREATE.value,
 			"creationtimestamp": orderedTestDates[0].timestamp(),
 			"span":0,
 			"count":0,
@@ -146,6 +162,14 @@ def get_user_role_params(
 			"priority": RulePriorityLevel.SITE.value + 1
 		},
 		{
+			"userfk": user_ids.india_user_id,
+			"role": UserRoleDef.PLAYLIST_ASSIGN.value,
+			"creationtimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.SITE.value + 1
+		},
+		{
 			"userfk": user_ids.hotel_user_id,
 			"role": UserRoleDef.PATH_VIEW.value,
 			"creationtimestamp": orderedTestDates[0].timestamp(),
@@ -164,6 +188,14 @@ def get_user_role_params(
 		{
 			"userfk": user_ids.whiskey_user_id,
 			"role": UserRoleDef.STATION_VIEW.value,
+			"creationtimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": None
+		},
+		{
+			"userfk": user_ids.whiskey_user_id,
+			"role": UserRoleDef.PLAYLIST_VIEW.value,
 			"creationtimestamp": orderedTestDates[0].timestamp(),
 			"span":0,
 			"count":0,

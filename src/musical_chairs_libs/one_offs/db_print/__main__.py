@@ -14,7 +14,7 @@ def print_schema_hash():
 	print(get_schema_hash())
 
 if __name__ == "__main__":
-	choice = sys.argv[1]
+	choice = sys.argv[1] if len(sys.argv) > 1 else ""
 	if choice == "--hash":
 		print_schema_hash()
 	else:

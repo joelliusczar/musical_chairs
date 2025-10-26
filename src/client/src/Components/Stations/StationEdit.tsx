@@ -22,7 +22,7 @@ import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
 	DomRoutes,
 	CallStatus,
-	MinItemSecurityLevel,
+	RulePriorityLevel,
 } from "../../constants";
 import {
 	useStationData,
@@ -48,19 +48,19 @@ const inputField = {
 
 const viewSecurityOptions = [
 	{
-		id: MinItemSecurityLevel.PUBLIC,
+		id: RulePriorityLevel.PUBLIC,
 		name: "Public",
 	},
 	{
-		id: MinItemSecurityLevel.ANY_USER,
+		id: RulePriorityLevel.ANY_USER,
 		name: "Any User",
 	},
 	{
-		id: MinItemSecurityLevel.INVITED_USER,
+		id: RulePriorityLevel.INVITED_USER,
 		name: "Invited Users Only",
 	},
 	{
-		id: MinItemSecurityLevel.OWENER_USER,
+		id: RulePriorityLevel.OWENER_USER,
 		name: "Private",
 	},
 ];
@@ -99,7 +99,7 @@ const schema = Yup.object().shape({
 		"requestsecuritylevel",
 		"Request Security cannot be public or lower than view security",
 		(value, context) => {
-			return (value.id) !== MinItemSecurityLevel.PUBLIC
+			return (value.id) !== RulePriorityLevel.PUBLIC
 				&& value.id >= context.parent.viewsecuritylevel.id;
 		}
 	),
@@ -305,7 +305,7 @@ export const StationEdit = (props: StationEditProps) => {
 	const loadStatus = pathVars.stationkey ? callStatus: CallStatus.done;
 	const viewSecurityLevel = watch("viewsecuritylevel");
 	const bannedRequestLevels = viewSecurityOptions.filter(o =>
-		o.id < viewSecurityLevel.id || o.id === MinItemSecurityLevel.PUBLIC
+		o.id < viewSecurityLevel.id || o.id === RulePriorityLevel.PUBLIC
 	).reduce<{[id: number]: boolean}>((accumulator, current) => {
 		accumulator[current.id] = true;
 		return accumulator;

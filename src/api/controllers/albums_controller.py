@@ -92,8 +92,8 @@ def get(
 	albumkey: int,
 	albumService: AlbumService = Depends(album_service)
 ) -> SongsAlbumInfo:
-
-	albumInfo = albumService.get_album(albumkey)
+	_albumkey = None if albumkey == 0 else albumkey
+	albumInfo = albumService.get_album(_albumkey)
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,

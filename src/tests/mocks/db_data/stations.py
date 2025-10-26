@@ -1,6 +1,6 @@
 from typing import Any
 from musical_chairs_libs.dtos_and_utilities import (
-	MinItemSecurityLevel
+	RulePriorityLevel
 )
 
 try:
@@ -91,105 +91,105 @@ station_params: list[dict[str, Any]] = [
 		"name": "alpha_station_rerun",
 		"displayname": "We rerun again and again",
 		"ownerfk": user_ids.victor_user_id,
-		"viewsecuritylevel": MinItemSecurityLevel.RULED_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.RULED_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 13,
 		"name": "bravo_station_rerun",
 		"displayname": "We rerun again and again",
 		"ownerfk": user_ids.victor_user_id,
-		"viewsecuritylevel": MinItemSecurityLevel.ANY_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.ANY_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 14,
 		"name": "charlie_station_rerun",
 		"displayname": "The Wide World of Sports",
 		"ownerfk": user_ids.victor_user_id,
-		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.INVITED_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 15,
 		"name": "delta_station_rerun",
 		"displayname": "Dookie Dan strikes again",
 		"ownerfk": user_ids.yankee_user_id,
-		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.OWENER_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 16,
 		"name": "foxtrot_station_rerun",
 		"displayname": "fucked six ways to Sunday",
 		"ownerfk": user_ids.yankee_user_id,
-		"viewsecuritylevel": MinItemSecurityLevel.LOCKED.value,
+		"viewsecuritylevel": RulePriorityLevel.LOCKED.value,
 		"typeid": 0
 	},
 	{ "pk": 17,
 		"name": "golf_station_rerun",
 		"displayname": "goliath bam bam",
 		"ownerfk": user_ids.ingo_user_id,
-		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.INVITED_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 18,
 		"name": "hotel_station_rerun",
 		"displayname": "hella cool radio station",
 		"ownerfk": user_ids.ingo_user_id,
-		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.INVITED_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 19,
 		"name": "india_station_rerun",
 		"displayname": "bitchingly fast!",
 		"ownerfk": user_ids.station_saver_user_id,
-		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.INVITED_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 20,
 		"name": "juliet_station_rerun",
 		"displayname": "Neptune, how could you?",
 		"ownerfk": user_ids.unruled_station_user_id,
-		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.INVITED_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 21,
 		"name": "kilo_station_rerun",
 		"displayname": "kilo bam",
 		"ownerfk": user_ids.jazzDirOwnerId,
-		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.OWENER_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 22,
 		"name": "lima_station_rerun",
 		"displayname": "Peruvian nuts",
 		"ownerfk": user_ids.jazzDirOwnerId,
-		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.OWENER_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 23,
 		"name": "mike_station_rerun",
 		"displayname": "Milk",
 		"ownerfk": user_ids.jazzDirOwnerId,
-		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.OWENER_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 24,
 		"name": "november_station_rerun",
 		"displayname": "Nancy",
 		"ownerfk": user_ids.jazzDirOwnerId,
-		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.OWENER_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 25,
 		"name": "oscar_station_rerun",
 		"displayname": "oodle laylee",
 		"ownerfk": user_ids.jazzDirOwnerId,
-		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.OWENER_USER.value,
 		"typeid": 0
 	},
 	{ "pk": 26,
 		"name": "album_public_station_alpha",
 		"displayname": "album station alpha",
 		"ownerfk": user_ids.jazzDirOwnerId,
-		"viewsecuritylevel": MinItemSecurityLevel.PUBLIC.value,
+		"viewsecuritylevel": RulePriorityLevel.PUBLIC.value,
 		"typeid": 1,
 	}
 ]

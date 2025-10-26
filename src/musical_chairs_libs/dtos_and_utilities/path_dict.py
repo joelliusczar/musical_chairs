@@ -14,13 +14,18 @@ class PathDict(MutableMapping[str, Any]):
 
 	def __init__(self,
 		paths: Optional[Mapping[str, Any]] = None,
-		omitNulls: bool = False
+		omitNulls: bool = False,
+		defaultValues: Optional[Mapping[str, Any]] = None,
 	) -> None:
 		self.__store__: dict[str, Any] = {}
 		if paths:
 			for k, v in paths.items():
-				if omitNulls and v == None:
-					continue
+				if v == None:
+					if defaultValues and k in defaultValues:
+						self[k] = defaultValues[k]
+						continue
+					elif omitNulls:
+						continue
 				self[k] = v
 
 

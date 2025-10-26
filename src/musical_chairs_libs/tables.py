@@ -112,6 +112,7 @@ playlists = Table('playlists', metadata,
 		nullable=False),
 	Column("lastmodifiedtimestamp", Double[float], nullable=False),
 	Column("ownerfk", Integer, ForeignKey("users.pk"), nullable=False),
+	Column("viewsecuritylevel", Integer, nullable=True),
 )
 
 pl = playlists.c
@@ -119,7 +120,7 @@ pl_pk = cast(Column[Integer],pl.pk)
 pl_name = cast(Column[Optional[String]],pl.name)
 pl_description = cast(Column[Optional[String]],pl.description)
 pl_ownerFk = cast(Column[Integer], pl.ownerfk)
-
+pl_viewSecurityLevel = cast(Column[Integer],pl.viewsecuritylevel)
 
 
 
@@ -195,12 +196,14 @@ song_playlist = Table("songsplaylists", metadata,
 	Column("playlistfk", Integer, ForeignKey("playlists.pk"), nullable=False),
 	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
 		nullable=True),
-	Column("lastmodifiedtimestamp", Double[float], nullable=True)
+	Column("lastmodifiedtimestamp", Double[float], nullable=True),
+	Column("order", Float[float], nullable=False, default=0),
 )
 
 sgpl = song_playlist.c
 sgpl_songFk = cast(Column[Integer] ,sgpl.songfk)
 sgpl_playlistFk = cast(Column[Integer] ,sgpl.playlistfk)
+sgpl_order = cast(Column[Float[float]], sgpl.order)
 
 
 song_covers = Table("songcovers", metadata,

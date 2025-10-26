@@ -108,6 +108,7 @@ class SongInfoService:
 			queuedtimestamp=0
 		)
 
+
 	def get_song_refs(
 		self,
 		songName: Union[Optional[str], Sentinel]=missing,
@@ -135,6 +136,7 @@ class SongInfoService:
 					path=row[sg_path],
 					name=SavedNameString.format_name_for_save(row[sg_name])
 				)
+
 
 	def get_songIds(
 		self,
@@ -193,6 +195,7 @@ class SongInfoService:
 			)
 			for row in records)
 
+
 	def remove_songs_for_stations(
 		self,
 		stationSongs: Union[
@@ -214,6 +217,7 @@ class SongInfoService:
 		else:
 			return 0
 		return self.conn.execute(delStmt).rowcount
+
 
 	def validate_stations_songs(
 		self,
@@ -239,6 +243,7 @@ class SongInfoService:
 		) for songRow in songRecords 
 			for stationRow in stationRecords
 		) if t in stationSongSet)
+
 
 	def link_songs_with_stations(
 		self,
@@ -269,6 +274,7 @@ class SongInfoService:
 		return self.get_station_songs(
 			songIds={st.songid for st in uniquePairs}
 		)
+
 
 	def __get_query_for_songs_for_edit__(
 		self
@@ -346,12 +352,14 @@ class SongInfoService:
 				.where(sg_deletedTimstamp.is_(None))
 		return query
 
+
 	def get_songs_for_edit(
 		self,
 		songIds: Iterable[int],
 		user: AccountInfo,
 	) -> Iterator[SongEditInfo]:
 		yield from self.get_all_songs(songIds=songIds, user=user)
+
 
 	def save_songs(
 		self,
@@ -418,6 +426,7 @@ class SongInfoService:
 			if fetched:
 				yield fetched
 
+
 	def get_songs_for_multi_edit(
 		self,
 		songIds: Iterable[int],
@@ -458,6 +467,7 @@ class SongInfoService:
 			)
 		else:
 			return SongEditInfo(id=0, path="", internalpath="", touched=touched)
+
 
 	def __attach_catalogue_joins__(
 		self,
@@ -507,7 +517,8 @@ class SongInfoService:
 			return query.order_by(
 				sg_pk
 			)
-	
+
+
 	def get_all_songs(
 		self,
 		stationId: Optional[int]=None,
@@ -580,6 +591,7 @@ class SongInfoService:
 				)
 			yield songResult
 
+
 	def get_fullsongs_page(
 		self,
 		stationId: Optional[int]=None,
@@ -609,7 +621,6 @@ class SongInfoService:
 			user=user
 		), count
 
-		
 
 	def get_song_catalogue(
 		self,

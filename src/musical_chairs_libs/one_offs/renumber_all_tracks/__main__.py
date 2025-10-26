@@ -1,19 +1,24 @@
 import json
 import requests
+import re
+import warnings
 from musical_chairs_libs.services import EnvManager
 from musical_chairs_libs.dtos_and_utilities import (AlbumInfo, SongEditInfo)
 
+
+warnings.filterwarnings(action="ignore")
 print(EnvManager.dev_app_user_name())
 
 formData = {
 	"username": EnvManager.dev_app_user_name(),
 	"password": EnvManager.dev_app_user_pw()
 }
-
 baseUrl = "https://musicalchairs.radio.fm/api/v1/"
-# baseUrl = "https://localhost:8032/"
+#baseUrl = "https://localhost:8032/"
 
-response = requests.post(f"{baseUrl}accounts/open", data=formData)
+verify = True
+
+response = requests.post(f"{baseUrl}accounts/open", data=formData, verify=verify)
 data = json.loads(response.content)
 print(data)
 accessToken = data["access_token"]
@@ -22,7 +27,7 @@ headers = {
 	"x-back-key": EnvManager.back_key()
 }
 
-response = requests.get(f"{baseUrl}albums/list", headers=headers)
+response = requests.get(f"{baseUrl}albums/list", headers=headers, verify=verify)
 # response = requests.get(f"{baseUrl}albums/97", headers=headers)
 data = json.loads(response.content)
 # print(data)
@@ -43,42 +48,86 @@ def get_track(song: SongEditInfo) -> int:
 
 
 
+flaggedAlbums: list[tuple[AlbumInfo, list[SongEditInfo]]] = []
 for album in (AlbumInfo(**d) for d in data["items"]):
 	albumId = album.id
 	songResponse = requests.get(
 		f"{baseUrl}song-info/songs/list/?albumId={albumId}", 
-		headers=headers
+		headers=headers,
+		verify=verify
 	)
 	songData = json.loads(songResponse.content)
+
+	songList = [SongEditInfo(**d) for d in songData]
 	# print(songData)
 	try:
-		easySongs: list[SongEditInfo] = []
-		for song in (SongEditInfo(**d) for d in songData):
+		for song in songList:
 			# print(get_track(song))
 			try:
 				int(song.track or "$")
-				easySongs.append(song)
 			except:
-				print(f"album name: {album.name}")
-				print(f"track: {song.track}")
-				print(f"album id: {album.id}")
+				print(album.name)
+				flaggedAlbums.append((album, songList))
 				break
-		if len(easySongs) == len(songData):
-			for song in easySongs:
-				song.tracknum = int(song.track or "$")
-				saveResponse = requests.put(
-					f"{baseUrl}song-info/songs/multi/?itemIds={song.id}",
-					headers=headers,
-					data=song.model_dump_json()
-				)
-				assert saveResponse.status_code == 200
-				print(saveResponse.status_code)
-				print(saveResponse.content)
-		else:
-			print(f"album name: {album.name} is short")
-			print(len((songData)))
-			print(len(easySongs))
-			print(f"album id: {album.id}")
 
 	except Exception as e:
 		print(e)
+for album in flaggedAlbums:
+	discMap: dict[str, list[SongEditInfo]] = {}
+	for song in album[1]:
+		discSegment = song.path.split("/")[-2]
+		discList = discMap.get(discSegment, [])
+		discList.append(song)
+		discMap[discSegment] = discList
+	
+	discCount = len(discMap)
+	for i, discSegment in enumerate(sorted(discMap.keys())):
+		songs = discMap[discSegment]
+		songs = sorted(songs, key=lambda s: s.track or s.path.split("/")[-1])
+		print(f"{album[0].name} id: {album[0].id}")
+		for j, song in enumerate(songs):
+			song.disc = i + 1
+			if song.tracknum:
+				continue
+			print(song.path.split("/")[-1])
+			print(song.track)
+			try:
+				if song.track is None:
+					song.track = str(j)
+				song.tracknum = float(song.track or j)
+			except:
+				if match := re.match(r"(\d+)([a-zA-Z])([a-zA-Z]*)", song.track or ""):
+					groups = match.groups()
+					print(groups)
+					s1 = int(match.group(1))
+					s2 = ord(match.group(2).lower()) - ord("a") + 1
+					s3 = (ord(match.group(3).lower()) - ord("a") + 1) \
+						if len(groups)  > 2 and groups[2] else 0
+					song.tracknum = s1 + (s2/10) + (s3/100)
+				elif match := re.match(r"\D(\d+)-(\d+)", song.track or ""):
+					s1 = int(match.group(1) + match.group(2))
+					song.tracknum = s1
+				elif match := re.match(r"s(\d+)", song.track or ""):
+					s1 = int(match.group(1))
+					song.tracknum = s1
+					discCount += 1
+					song.disc = discCount
+				else:
+					raise
+				
+			saveResponse = requests.put(
+				f"{baseUrl}song-info/songs/{song.id}",
+				headers=headers,
+				data=json.dumps(song.model_dump()),
+				verify=verify
+			)
+			print(saveResponse.status_code)
+			print(song.track)
+			print(song.tracknum)
+			if saveResponse.status_code != 200:
+				# print(song.model_dump_json())
+				print(saveResponse.content)
+				
+			assert saveResponse.status_code == 200
+			
+

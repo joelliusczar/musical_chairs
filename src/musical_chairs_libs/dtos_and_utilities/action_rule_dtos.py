@@ -5,13 +5,15 @@ from typing import (
 	Iterable, 
 	Iterator, 
 	Callable,
-	Type
+	Type,
+	cast
 )
 from .generic_dtos import MCBaseClass
 from .user_role_def import UserRoleDomain, RulePriorityLevel
 from itertools import groupby, chain
 from operator import attrgetter
-
+from sqlalchemy.engine.row import RowMapping
+from .user_role_def import RulePriorityLevel
 
 
 
@@ -145,10 +147,29 @@ class ActionRule(MCBaseClass):
 	) -> Iterator["ActionRule"]:
 		yield from (next(g[1]) for g in groupby(rules, key=lambda k: k.name))
 
+	@staticmethod
+	def row_to_action_rule(row: RowMapping) -> "ActionRule":
+		clsConstructor = action_rule_class_map.get(
+			row["rule_domain"],
+			ActionRule
+		)
+
+		return clsConstructor(
+			name=row["rule_name"],
+			span=row["rule_span"],
+			count=row["rule_count"],
+			#if priortity is explict use that
+			#otherwise, prefer station specific rule vs non station specific rule
+			priority=cast(int,row["rule_priority"]) if row["rule_priority"] \
+				else RulePriorityLevel.STATION_PATH.value
+		)
+
 
 class StationActionRule(ActionRule):
 	domain: str=UserRoleDomain.Station.value
 
+class PlaylistActionRule(ActionRule):
+	domain: str=UserRoleDomain.Playlist.value
 
 class PathsActionRule(ActionRule):
 	path: Optional[str]=None
@@ -257,5 +278,6 @@ class PathsActionRule(ActionRule):
 action_rule_class_map: dict[str, Type[ActionRule]] = {
 	UserRoleDomain.Path.value: PathsActionRule,
 	UserRoleDomain.Station.value: StationActionRule,
+	UserRoleDomain.Playlist.value: PlaylistActionRule,
 	UserRoleDomain.Site.value: ActionRule
 }

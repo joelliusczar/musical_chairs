@@ -1,9 +1,12 @@
 from typing import (
 	List,
 	TypeVar,
-	Generic
+	Generic,
+	Optional,
+	cast,
 )
 from pydantic import BaseModel as MCBaseClass, ConfigDict, Field
+from .action_rule_dtos import ActionRule
 
 
 T = TypeVar("T")
@@ -40,3 +43,10 @@ class Named(MCBaseClass):
 
 class NamedIdItem(IdItem, Named):
 	...
+
+
+class RuledEntity(MCBaseClass):
+	rules: list[ActionRule]=cast(list[ActionRule], Field(
+		default_factory=list, frozen=False
+	))
+	viewsecuritylevel: Optional[int]=Field(default=0, frozen=False)

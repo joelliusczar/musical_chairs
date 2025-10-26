@@ -9,7 +9,7 @@ from .constant_fixtures_for_test import (
 )
 from .mocks.db_data import kilo_user_id, station_saver_user_id
 from musical_chairs_libs.dtos_and_utilities import (
-	MinItemSecurityLevel,
+	RulePriorityLevel,
 	UserRoleDef,
 	path_owner_rules
 )
@@ -473,8 +473,8 @@ def test_song_save_different_station_owner(
 		},
 		"isrunning": False,
 		"rules": [],
-		"requestsecuritylevel": MinItemSecurityLevel.INVITED_USER.value,
-		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value
+		"requestsecuritylevel": RulePriorityLevel.INVITED_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.INVITED_USER.value
 	})
 	putResponse = client.put(
 		f"song-info/songs/{51}",

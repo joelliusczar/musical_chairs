@@ -94,7 +94,7 @@ export const UserRoleDef: StringObject = {
 	PATH_UPLOAD: `${UserRoleDomain.PATH}:upload`,
 };
 
-export const MinItemSecurityLevel = {
+export const RulePriorityLevel = {
 	PUBLIC: 0,
 	// SITE permissions should be able to overpower ANY_USER level restrictions
 	ANY_USER: 9,

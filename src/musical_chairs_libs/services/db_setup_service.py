@@ -266,5 +266,7 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_TYPE)
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDBYUSERID)
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_TRACKNUM)
+		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLIST_VIEWSECURITY)
+		ownerConnService.run_defined_script(SqlScripts.ADD_SONGSPLAYLISTS_ORDER)
 
 		Path(f"/tmp/{get_schema_hash()}").touch()

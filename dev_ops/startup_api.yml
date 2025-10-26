@@ -178,6 +178,7 @@
         api_version: '{{app_details["api_version"]}}'
         full_url: '{{item["url"]}}'
         dest_dir: '{{item["client_dir"]}}'
+      when: 'item.name != "debug"'
       loop: '{{env_list}}'
 
 

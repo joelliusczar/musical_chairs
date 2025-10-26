@@ -1,0 +1,81 @@
+from sqlalchemy.engine.row import RowMapping
+from pydantic import (
+	Field,
+)
+from typing import (
+	Iterator,
+	Iterable,
+	Optional,
+	cast,
+	Collection,
+)
+from .generic_dtos import (
+	RuledEntity,
+	Named,
+	NamedIdItem
+)
+from musical_chairs_libs.tables import (
+	pl_description, pl_viewSecurityLevel,
+	pl_name, pl_pk, pl_ownerFk,
+	u_username, u_displayName
+)
+from .account_dtos import OwnerType, OwnerInfo, get_playlist_owner_roles
+from .user_role_def import RulePriorityLevel
+from .radio_dtos import SongListDisplayItem
+from .action_rule_dtos import ActionRule
+
+class PlaylistCreationInfo(Named):
+	description: Optional[str]=""
+
+class PlaylistInfo(NamedIdItem, RuledEntity):
+	owner: OwnerType
+	description: Optional[str]=""
+
+	@classmethod
+	def row_to_playlist(cls, row: RowMapping) -> "PlaylistInfo":
+		return PlaylistInfo(
+			id=row[pl_pk],
+			name=row[pl_name],
+			description=row[pl_description],
+			owner=OwnerInfo(
+				id=row[pl_ownerFk],
+				username=row[u_username],
+				displayname=row[u_displayName]
+			),
+			viewsecuritylevel=row[pl_viewSecurityLevel] \
+				or RulePriorityLevel.PUBLIC.value,
+		)
+	
+	@classmethod
+	def generate_playlist_and_rules_from_rows(
+		cls,
+		rows: Iterable[RowMapping],
+		userId: Optional[int],
+		scopes: Optional[Collection[str]]=None
+	) -> Iterator["PlaylistInfo"]:
+		currentPlaylist = None
+		for row in rows:
+			if not currentPlaylist or currentPlaylist.id != cast(int,row[pl_pk]):
+				if currentPlaylist:
+					playlistOwner = currentPlaylist.owner
+					if playlistOwner and playlistOwner.id == userId:
+						currentPlaylist.rules.extend(get_playlist_owner_roles(scopes))
+					currentPlaylist.rules = ActionRule.sorted(currentPlaylist.rules)
+					yield currentPlaylist
+				currentPlaylist = cls.row_to_playlist(row)
+				if cast(str,row["rule_domain"]) != "shim":
+					currentPlaylist.rules.append(ActionRule.row_to_action_rule(row))
+			elif cast(str,row["rule_domain"]) != "shim":
+				currentPlaylist.rules.append(ActionRule.row_to_action_rule(row))
+		if currentPlaylist:
+			playlistOwner = currentPlaylist.owner
+			if playlistOwner and playlistOwner.id == userId:
+				currentPlaylist.rules.extend(get_playlist_owner_roles(scopes))
+			currentPlaylist.rules = ActionRule.sorted(currentPlaylist.rules)
+			yield currentPlaylist
+	
+
+class SongsPlaylistInfo(PlaylistInfo):
+	songs: list[SongListDisplayItem]=cast(
+		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
+	)

@@ -15,7 +15,10 @@ from musical_chairs_libs.tables import (
 	station_user_permissions,
 	path_user_permissions,
 	user_action_history,
-	station_queue
+	station_queue,
+	playlists,
+	song_playlist,
+	playlist_user_permissions
 )
 from sqlalchemy import insert
 from .db_data import (
@@ -28,12 +31,15 @@ from .db_data import (
 	song_params,
 	songArtistParams,
 	songArtistParams2,
+	songPlaylistParams,
 	station_params,
 	stationSongParams,
 	station_album_params,
+	playlists_params,
 	get_actions_history,
 	get_path_permission_params,
 	get_station_permission_params,
+	get_playlist_permission_params,
 	get_station_queue,
 	get_user_params,
 	get_user_role_params
@@ -222,6 +228,16 @@ def populate_station_albums(conn: Connection):
 	stmt = insert(stations_albums)
 	conn.execute(stmt,station_album_params)
 
+def populate_playlists(conn: Connection):
+	stmt = insert(playlists)
+	conn.execute(stmt, playlists_params) #pyright: ignore [reportUnknownMemberType]
+
+def populate_songs_playlists(conn: Connection):
+	stmt = insert(song_playlist)
+	conn.execute(stmt, songPlaylistParams) #pyright: ignore [reportUnknownMemberType]
+
+
+
 def populate_users(
 	conn: Connection,
 	orderedTestDates: List[datetime],
@@ -248,6 +264,14 @@ def populate_station_permissions(
 	stationPermissionParams = get_station_permission_params(orderedTestDates)
 	stmt = insert(station_user_permissions)
 	conn.execute(stmt, stationPermissionParams) #pyright: ignore [reportUnknownMemberType]
+
+def populate_playlist_permissions(
+	conn: Connection,
+	orderedTestDates: List[datetime]
+):
+	playlistPermissionParams = get_playlist_permission_params(orderedTestDates)
+	stmt = insert(playlist_user_permissions)
+	conn.execute(stmt, playlistPermissionParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_path_permissions(
 	conn: Connection,
@@ -282,6 +306,9 @@ def populate_station_queue(
 	conn.execute(stmt, stationQueueParams) #pyright: ignore [reportUnknownMemberType]
 
 def get_initial_stations() -> list[dict[Any, Any]]:
+	return station_params
+
+def get_initial_playlists() -> list[dict[Any, Any]]:
 	return station_params
 
 def get_initial_songs() -> list[dict[Any, Any]]:

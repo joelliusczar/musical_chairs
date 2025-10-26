@@ -3,7 +3,7 @@ from pydantic import (
 	field_validator,
 	model_validator,
 	ValidationInfo,
-	Field
+	Field,
 )
 from typing import (
 	Iterator,
@@ -25,12 +25,14 @@ from .generic_dtos import (
 	NamedIdItem,
 	FrozenNamed,
 	FrozenNamedIdItem,
-	IdItem
+	IdItem,
+	RuledEntity
 )
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule, PathsActionRule
-from .user_role_def import MinItemSecurityLevel
+from .user_role_def import RulePriorityLevel
 from pathlib import Path
+
 
 
 
@@ -67,14 +69,6 @@ class QueuedItem(NamedIdItem):
 		return self.id == value.id \
 			and self.name == value.name \
 			and self.queuedtimestamp == value.queuedtimestamp
-	
-class PlaylistCreationInfo(FrozenNamed):
-	owner: OwnerType
-	description: Optional[str]=""
-
-class PlaylistInfo(FrozenNamedIdItem):
-	owner: OwnerType
-	description: Optional[str]=""
 
 class SongListDisplayItem(QueuedItem):
 	album: Optional[str]
@@ -126,20 +120,16 @@ class CurrentPlayingInfo(StationTableData[SongListDisplayItem]):
 
 
 
-class StationInfo(MCBaseClass):
+class StationInfo(RuledEntity):
 	id: int=Field(frozen=True)
 	name: str=Field(frozen=True)
 	displayname: str=Field(default="", frozen=False)
 	isrunning: bool=Field(default=False, frozen=False)
 	#don't expect this to ever actually null
 	owner: Optional[OwnerType]=Field(default=None, frozen=False)
-	rules: list[ActionRule]=cast(list[ActionRule], Field(
-		default_factory=list, frozen=False
-	))
 	requestsecuritylevel: Optional[int]=Field(
-		default=MinItemSecurityLevel.ANY_USER.value, frozen=False
+		default=RulePriorityLevel.ANY_USER.value, frozen=False
 	)
-	viewsecuritylevel: Optional[int]=Field(default=0, frozen=False)
 
 	def __hash__(self) -> int:
 		return hash((self.id, self.name))
@@ -155,7 +145,7 @@ class StationCreationInfo(MCBaseClass):
 	displayname: Optional[str]=""
 	viewsecuritylevel: Optional[int]=Field(default=0)
 	requestsecuritylevel: Optional[int]=Field(
-		default=MinItemSecurityLevel.OWENER_USER.value
+		default=RulePriorityLevel.OWENER_USER.value
 	)
 
 	@field_validator("requestsecuritylevel")
@@ -166,7 +156,7 @@ class StationCreationInfo(MCBaseClass):
 		validationInfo: ValidationInfo
 	) -> int:
 		if v < validationInfo.data["viewsecuritylevel"] \
-			or v == MinItemSecurityLevel.PUBLIC.value:
+			or v == RulePriorityLevel.PUBLIC.value:
 			raise ValueError(
 				"Request Security cannot be public or lower than view security"
 			)
@@ -313,7 +303,8 @@ class ChangeTrackedSongInfo(SongAboutInfo):
 class SongEditInfo(ChangeTrackedSongInfo, SongPathInfo):
 	rules: list[ActionRule]=cast(list[ActionRule], Field(default_factory=list))
 
-
+#The path info is left out because I don't want to deal with the 
+#validation errors. I suppose they could be added a optional properties though.
 class ValidatedSongAboutInfo(ChangeTrackedSongInfo):
 
 	@field_validator("stations")
@@ -363,11 +354,6 @@ class SongsAlbumInfo(AlbumInfo):
 	)
 
 class SongsArtistInfo(ArtistInfo):
-	songs: list[SongListDisplayItem]=cast(
-		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
-	)
-
-class SongsPlaylistInfo(PlaylistInfo):
 	songs: list[SongListDisplayItem]=cast(
 		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
 	)

@@ -19,8 +19,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	OwnerInfo,
 	SongsAlbumInfo,
 	SongListDisplayItem,
-	DictDotMap,
-	normalize_opening_slash
+	normalize_opening_slash,
+	Sentinel,
+	missing,
+	PathDict,
 )
 from .artist_service import ArtistService
 from .path_rule_service import PathRuleService
@@ -80,7 +82,7 @@ class AlbumService:
 		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		albumKeys: Union[int, str, Iterable[int], None]=None,
+		albumKeys: Union[int, str, Iterable[int], None, Sentinel]=missing,
 		artistKeys: Union[int, str, Iterable[int], None]=None,
 		userId: Optional[int]=None,
 		exactStrMatch: bool=False
@@ -105,7 +107,7 @@ class AlbumService:
 			.join(artists_tbl, ar_pk == ab_albumArtistFk, isouter=True) \
 			.join(album_owner, albumOwnerId == ab_ownerFk, isouter=True) \
 			.join(artist_owner, artistOwnerId == ar_ownerFk, isouter=True)
-		if type(albumKeys) == int:
+		if type(albumKeys) == int or albumKeys is None:
 			query = query.where(ab_pk == albumKeys)
 		elif type(albumKeys) is str:
 			if albumKeys:
@@ -186,12 +188,18 @@ class AlbumService:
 
 	def get_album(
 			self,
-			albumId: int,
+			albumId: Optional[int],
 			user: Optional[AccountInfo]=None
 		) -> Optional[SongsAlbumInfo]:
 		albumInfo = next(self.get_albums(albumKeys=albumId), None)
 		if not albumInfo:
-			return None
+			albumInfo = AlbumInfo(
+				id=0,
+				name="(Missing)",
+				owner=OwnerInfo(
+					id=0,
+				)
+			)
 		songsQuery = select(
 			sg_pk.label("id"),
 			sg_name,
@@ -222,7 +230,7 @@ class AlbumService:
 
 		songs = [
 			SongListDisplayItem(
-				**DictDotMap.unflatten(dict(row), omitNulls=True)
+				**PathDict(dict(row), omitNulls=True, defaultValues={"name": "(blank)"})
 			) for row in songsResult
 		]
 		if pathRuleTree:
@@ -232,7 +240,6 @@ class AlbumService:
 					)
 
 		return SongsAlbumInfo(**albumInfo.model_dump(), songs=songs)
-
 
 	def save_album(
 		self,

@@ -11,7 +11,7 @@
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
-      // "preLaunchTask": "Set unit test env",
+      "preLaunchTask": "Set unit test env",
       "justMyCode": false,
       "env": {
         "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
@@ -30,8 +30,8 @@
         "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
       },
       "args": [
-        "${userHome}/.ssh/musical_chairs_localhost_debug.private.key.pem",
-        "${userHome}/.ssh/musical_chairs_localhost_debug.public.key.crt"
+        "${userHome}/.ssh/musical_chairs_localhost_debug.private.pem",
+        "${userHome}/.ssh/musical_chairs_localhost_debug.public.pem"
       ]
     },
     {

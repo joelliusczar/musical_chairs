@@ -32,7 +32,8 @@ from musical_chairs_libs.services import (
 	PathRuleService,
 	ArtistService,
 	AlbumService,
-	JobsService
+	JobsService,
+	PlaylistService
 )
 from musical_chairs_libs.protocols import (
 	FileService
@@ -54,7 +55,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	int_or_str,
 	DirectoryTransfer,
-	TrackingInfo
+	TrackingInfo,
+	PlaylistInfo,
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -103,6 +105,11 @@ def station_key_path(
 ) -> Union[int, str]:
 	return int_or_str(stationkey)
 
+def playlist_key_path(
+	playlistkey: Union[int, str]
+) -> Union[int, str]:
+	return int_or_str(playlistkey)
+
 def datetime_provider() -> Callable[[], datetime]:
 	return get_datetime
 
@@ -121,6 +128,11 @@ def station_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> StationService:
 	return StationService(conn)
+
+def playlist_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> PlaylistService:
+	return PlaylistService(conn)
 
 def song_info_service(
 	conn: Connection=Depends(get_configured_db_connection)
@@ -317,6 +329,20 @@ def get_station_by_id(
 			)]
 		)
 	return station
+
+def get_playlist_by_id(
+		playlistid: int=Path(),
+		playlistService: PlaylistService = Depends(playlist_service),
+) -> PlaylistInfo:
+	playlist = next(playlistService.get_playlists(playlistKeys=playlistid), None)
+	if not playlist:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(
+				f"station not found for id {playlistid}"
+			)]
+		)
+	return playlist
 
 
 def get_stations_by_ids(
@@ -596,7 +622,6 @@ def __get_station_user__(
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
 
-
 def get_station_user_by_id(
 	securityScopes: SecurityScopes,
 	station: StationInfo=Depends(get_station_by_id),
@@ -610,7 +635,6 @@ def get_station_user_by_id(
 		user,
 		userActionHistoryService
 	)
-
 
 def get_station_user(
 	securityScopes: SecurityScopes,
@@ -754,3 +778,41 @@ def check_back_key(
 		envManager = EnvManager()
 	if envManager.back_key() != x_back_key:
 		raise build_wrong_permissions_error()
+	
+def __get_playlist_user__(
+	securityScopes: SecurityScopes,
+	playlist: PlaylistInfo,
+	user: Optional[AccountInfo]
+)-> Optional[AccountInfo]:
+	minScope = (not securityScopes.scopes or\
+		securityScopes.scopes[0] == UserRoleDef.PLAYLIST_VIEW.value
+	)
+	if not playlist.viewsecuritylevel and minScope:
+		return user
+	if not user:
+		raise build_not_logged_in_error()
+	if user.isadmin:
+		return user
+	scopes = {s for s in securityScopes.scopes \
+		if UserRoleDomain.Station.conforms(s)
+	}
+	rules = ActionRule.aggregate(
+		playlist.rules,
+		filter=lambda r: r.name in scopes
+	)
+	if not rules:
+		raise build_wrong_permissions_error()
+	userDict = user.model_dump()
+	userDict["roles"] = rules
+	return AccountInfo(**userDict)
+
+def get_playlist_user_by_id(
+	securityScopes: SecurityScopes,
+	playlist: PlaylistInfo=Depends(get_playlist_by_id),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token)
+)-> Optional[AccountInfo]:
+	return __get_playlist_user__(
+		securityScopes,
+		playlist,
+		user
+	)

@@ -21,7 +21,8 @@ from musical_chairs_libs.services import (
 	ArtistService,
 	AlbumService,
 	SongArtistService,
-	JobsService
+	JobsService,
+	PlaylistService
 )
 
 from musical_chairs_libs.radio_handle import RadioHandle
@@ -141,6 +142,13 @@ def fixture_station_service(
 ) -> StationService:
 	stationService = StationService(fixture_conn_cardboarddb)
 	return stationService
+
+@pytest.fixture
+def fixture_playlist_service(
+	fixture_conn_cardboarddb: Connection
+) -> PlaylistService:
+	service = PlaylistService(fixture_conn_cardboarddb)
+	return service
 
 @pytest.fixture
 def fixture_song_info_service(

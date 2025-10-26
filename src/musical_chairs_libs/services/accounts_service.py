@@ -21,12 +21,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PasswordInfo,
 	ActionRule,
 	AlreadyUsedError,
-	build_rules_query,
+	build_site_rules_query,
 	row_to_action_rule,
-	UserRoleDomain,
 	RulePriorityLevel,
-	MinItemSecurityLevel,
-	generate_user_and_rules_from_rows,
+	generate_path_user_and_rules_from_rows,
 	TrackingInfo
 )
 from musical_chairs_libs.dtos_and_utilities.constants import UserActions
@@ -225,7 +223,7 @@ class AccountsService:
 		return user, expiration
 
 	def __get_roles__(self, userId: int) -> Iterable[ActionRule]:
-		rulesQuery = build_rules_query(UserRoleDomain.Site, userId=userId)
+		rulesQuery = build_site_rules_query(userId=userId)
 		rows = self.conn.execute(rulesQuery).mappings().fetchall()
 
 		return (row_to_action_rule(r) for r in rows)
@@ -396,7 +394,7 @@ class AccountsService:
 		userId: Optional[int]=None,
 		owner: Optional[AccountInfo]=None
 	) -> Iterator[AccountInfo]:
-		rulesQuery = build_rules_query(UserRoleDomain.Site).cte()
+		rulesQuery = build_site_rules_query().cte()
 		query = select(
 			u_pk,
 			u_username,
@@ -418,15 +416,14 @@ class AccountsService:
 			coalesce(
 				rulesQuery.c.rule_priority,
 				RulePriorityLevel.USER.value
-			) > MinItemSecurityLevel.RULED_USER.value
+			) > RulePriorityLevel.RULED_USER.value
 		)
 		if userId is not None:
 			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings().fetchall()
-		yield from generate_user_and_rules_from_rows(
+		yield from generate_path_user_and_rules_from_rows(
 			records,
-			UserRoleDomain.Path,
 			owner.id if owner else None
 		)
 

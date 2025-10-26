@@ -63,10 +63,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_station_owner_rules,
 	RulePriorityLevel,
 	OwnerInfo,
-	MinItemSecurityLevel,
-	build_rules_query,
+	build_station_rules_query,
 	row_to_action_rule,
-	generate_user_and_rules_from_rows,
+	generate_station_user_and_rules_from_rows,
 	clean_search_term_for_like,
 	AlbumListDisplayItem
 )
@@ -147,7 +146,7 @@ class StationService:
 				Integer
 			]
 		]:
-		rulesQuery = build_rules_query(UserRoleDomain.Station, userId)
+		rulesQuery = build_station_rules_query(userId)
 		rulesSubquery = rulesQuery.cte(name="rulesQuery")
 		canViewQuery= select(
 			rulesSubquery.c.rule_stationfk, #pyright: ignore [reportUnknownMemberType]
@@ -179,7 +178,7 @@ class StationService:
 			or_(
 				coalesce(
 					st_viewSecurityLevel,
-					MinItemSecurityLevel.INVITED_USER.value
+					RulePriorityLevel.INVITED_USER.value
 				) < select(coalesce[int](
 							func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
 							RulePriorityLevel.NONE.value
@@ -191,18 +190,18 @@ class StationService:
 						),
 					coalesce(
 						st_viewSecurityLevel,
-						MinItemSecurityLevel.RULED_USER.value
+						RulePriorityLevel.RULED_USER.value
 					) < select(topSiteRule.c.max).scalar_subquery() #pyright: ignore [reportUnknownMemberType]
 				),
 				coalesce(
 					st_viewSecurityLevel,
-					MinItemSecurityLevel.ANY_USER.value
+					RulePriorityLevel.ANY_USER.value
 				) < RulePriorityLevel.USER.value,
 				and_(
 					st_ownerFk == userId,
 					coalesce(
 						st_viewSecurityLevel,
-						MinItemSecurityLevel.OWENER_USER.value
+						RulePriorityLevel.OWENER_USER.value
 					) < RulePriorityLevel.OWNER.value
 				)
 			),
@@ -235,7 +234,7 @@ class StationService:
 			),
 			requestsecuritylevel=row["requestsecuritylevel"],
 			viewsecuritylevel=row[st_viewSecurityLevel] \
-				or MinItemSecurityLevel.PUBLIC.value,
+				or RulePriorityLevel.PUBLIC.value,
 		)
 
 	def __generate_station_and_rules_from_rows__(
@@ -283,10 +282,10 @@ class StationService:
 			coalesce[Integer](
 				st_requestSecurityLevel,
 				case(
-					(st_viewSecurityLevel == MinItemSecurityLevel.PUBLIC.value, None),
+					(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
 					else_=st_viewSecurityLevel
 				),
-				MinItemSecurityLevel.ANY_USER.value
+				RulePriorityLevel.ANY_USER.value
 			).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
 			st_viewSecurityLevel
 		).select_from(stations_tbl)\
@@ -558,7 +557,7 @@ class StationService:
 		station: StationInfo,
 		userId: Optional[int]=None
 	) -> Iterator[AccountInfo]:
-		rulesQuery = build_rules_query(UserRoleDomain.Station).cte()
+		rulesQuery = build_station_rules_query().cte()
 		query = select(
 			u_pk,
 			u_username,
@@ -590,7 +589,7 @@ class StationService:
 				coalesce(
 					rulesQuery.c.rule_priority,
 					RulePriorityLevel.SITE.value
-				) > MinItemSecurityLevel.INVITED_USER.value,
+				) > RulePriorityLevel.INVITED_USER.value,
 				(u_pk == station.owner.id) if station.owner else false()
 			)
 		)
@@ -598,9 +597,8 @@ class StationService:
 			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings()
-		yield from generate_user_and_rules_from_rows(
+		yield from generate_station_user_and_rules_from_rows(
 			records,
-			UserRoleDomain.Station,
 			station.owner.id if station.owner else None
 		)
 

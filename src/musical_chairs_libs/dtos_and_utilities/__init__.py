@@ -18,3 +18,4 @@ from .dict_dot_map import *
 from .path_dict import *
 from .web_dtos import *
 from .jobs import *
+from .playlist_dtos import *

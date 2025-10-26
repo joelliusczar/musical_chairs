@@ -11,33 +11,31 @@ from .type_aliases import (
 )
 from .simple_functions import role_dict
 
-class MinItemSecurityLevel(Enum):
-	#these values should align with RulePriorityLevel
-	PUBLIC = 0
-	# SITE permissions should be able to overpower ANY_USER level restrictions
-	ANY_USER = 9
-	# ANY_STATION should be able to overpower RULED_USER
-	RULED_USER = 19
-	FRIEND_USER = 29 # not used
-	# STATION_PATH should be able to overpower INVITED_USER
-	INVITED_USER = 39
-	OWENER_USER = 49
-	#only admins should be able to see these items
-	LOCKED = 59
 
 class RulePriorityLevel(Enum):
 	NONE = 0
+	PUBLIC = 0
+	ANY_USER = 9
 	USER = 10
+	#rule_user is for a site wide privilage that requires some sort of explicit grant
+	RULED_USER = 19
 	SITE = 20
+	FRIEND_USER = 29 # not used
 	FRIEND_STATION = 30
+	INVITED_USER = 39
+	# STATION_PATH should be able to overpower INVITED_USER
 	STATION_PATH = 40
+	OWENER_USER = 49
 	OWNER = 50
+	#only admins should be able to see these items
+	LOCKED = 59
 	SUPER = 60
 
 class UserRoleDomain(Enum):
 	Site = "site"
 	Station = "station"
 	Path = "path"
+	Playlist = "playlist"
 
 	def conforms(self, candidate: str) -> bool:
 		return candidate.startswith(self.value)
@@ -77,6 +75,13 @@ class UserRoleDef(Enum):
 	PATH_DOWNLOAD = f"{UserRoleDomain.Path.value}:download"
 	PATH_UPLOAD = f"{UserRoleDomain.Path.value}:upload"
 	PATH_MOVE = f"{UserRoleDomain.Path.value}:move"
+	PLAYLIST_VIEW = f"{UserRoleDomain.Playlist.value}:view"
+	PLAYLIST_CREATE = f"{UserRoleDomain.Playlist.value}:create"
+	PLAYLIST_EDIT = f"{UserRoleDomain.Playlist.value}:edit"
+	PLAYLIST_DELETE = f"{UserRoleDomain.Playlist.value}:delete"
+	PLAYLIST_ASSIGN = f"{UserRoleDomain.Playlist.value}:assign"
+	PLAYLIST_USER_ASSIGN = f"{UserRoleDomain.Playlist.value}:userassign"
+	PLAYLIST_USER_LIST = f"{UserRoleDomain.Playlist.value}:userlist"
 
 	def __call__(self, **kwargs: Union[str, int]) -> str:
 		return self.modded_value(**kwargs)

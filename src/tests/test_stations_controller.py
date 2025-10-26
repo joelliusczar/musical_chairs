@@ -16,8 +16,7 @@ from .constant_fixtures_for_test import mock_ordered_date_list
 from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	RulePriorityLevel,
-	UserRoleDomain,
-	MinItemSecurityLevel
+	UserRoleDomain
 )
 
 
@@ -378,8 +377,8 @@ def test_post_with_invalid_security_levels(
 	headers = login_test_user("testUser_tango", client)
 	testData: dict[str, Any] = {
 		"name": "test_station",
-		"viewsecuritylevel": MinItemSecurityLevel.OWENER_USER.value,
-		"requestsecuritylevel": MinItemSecurityLevel.ANY_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.OWENER_USER.value,
+		"requestsecuritylevel": RulePriorityLevel.ANY_USER.value,
 	}
 
 	response = client.post(
@@ -396,8 +395,8 @@ def test_post_with_invalid_security_levels(
 
 	testData: dict[str, Any] = {
 		"name": "test_station",
-		"viewsecuritylevel": MinItemSecurityLevel.PUBLIC.value,
-		"requestsecuritylevel": MinItemSecurityLevel.PUBLIC.value,
+		"viewsecuritylevel": RulePriorityLevel.PUBLIC.value,
+		"requestsecuritylevel": RulePriorityLevel.PUBLIC.value,
 	}
 
 	response = client.post(
@@ -413,8 +412,8 @@ def test_post_with_invalid_security_levels(
 
 	testData: dict[str, Any] = {
 		"name": "test_station",
-		"viewSecurityLevel": MinItemSecurityLevel.ANY_USER.value,
-		"requestsecuritylevel": MinItemSecurityLevel.ANY_USER.value,
+		"viewSecurityLevel": RulePriorityLevel.ANY_USER.value,
+		"requestsecuritylevel": RulePriorityLevel.ANY_USER.value,
 	}
 
 	response = client.post(
@@ -439,8 +438,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 3
 	assert data["name"] == "romeo_station"
 	assert data["owner"]["username"] == "testUser_bravo"
-	assert data["requestsecuritylevel"] == MinItemSecurityLevel.ANY_USER.value
-	assert data["viewsecuritylevel"] == MinItemSecurityLevel.PUBLIC.value
+	assert data["requestsecuritylevel"] == RulePriorityLevel.ANY_USER.value
+	assert data["viewsecuritylevel"] == RulePriorityLevel.PUBLIC.value
 	assert data["rules"] == []
 
 	response = client.get(
@@ -470,8 +469,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 13
 	assert data["name"] == "bravo_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
-	assert data["requestsecuritylevel"] == MinItemSecurityLevel.ANY_USER.value
-	assert data["viewsecuritylevel"] == MinItemSecurityLevel.ANY_USER.value
+	assert data["requestsecuritylevel"] == RulePriorityLevel.ANY_USER.value
+	assert data["viewsecuritylevel"] == RulePriorityLevel.ANY_USER.value
 	assert data["rules"] == []
 
 	response = client.get(
@@ -521,8 +520,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 12
 	assert data["name"] == "alpha_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
-	assert data["requestsecuritylevel"] == MinItemSecurityLevel.RULED_USER.value
-	assert data["viewsecuritylevel"] == MinItemSecurityLevel.RULED_USER.value
+	assert data["requestsecuritylevel"] == RulePriorityLevel.RULED_USER.value
+	assert data["viewsecuritylevel"] == RulePriorityLevel.RULED_USER.value
 	assert data["rules"] == [{
 			"name": UserRoleDef.STATION_VIEW.value,
 			"span":0,
@@ -565,8 +564,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 14
 	assert data["name"] == "charlie_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
-	assert data["requestsecuritylevel"] == MinItemSecurityLevel.INVITED_USER.value
-	assert data["viewsecuritylevel"] == MinItemSecurityLevel.INVITED_USER.value
+	assert data["requestsecuritylevel"] == RulePriorityLevel.INVITED_USER.value
+	assert data["viewsecuritylevel"] == RulePriorityLevel.INVITED_USER.value
 	assert data["rules"] == [{
 			"name": UserRoleDef.STATION_VIEW.value,
 			"span":0,
@@ -620,8 +619,8 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 15
 	assert data["name"] == "delta_station_rerun"
 	assert data["owner"]["username"] == "testUser_yankee"
-	assert data["requestsecuritylevel"] == MinItemSecurityLevel.OWENER_USER.value
-	assert data["viewsecuritylevel"] == MinItemSecurityLevel.OWENER_USER.value
+	assert data["requestsecuritylevel"] == RulePriorityLevel.OWENER_USER.value
+	assert data["viewsecuritylevel"] == RulePriorityLevel.OWENER_USER.value
 	assert sorted(data["rules"], key=lambda d: d["name"]) == [
 		{
 			"name": UserRoleDef.STATION_ASSIGN.value,

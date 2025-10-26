@@ -76,6 +76,14 @@ class SqlScripts(Enum):
 		"018.add_song_tracknum.sql",
 		"cba9102c5602f8a0f01bb1002be50580eaf91f1a09159140cca4d35be98c7519"
 	)
+	ADD_PLAYLIST_VIEWSECURITY = (
+		"019.add_playlist_viewsecurity.sql",
+		"8b148e07872691319f43cda47d54cf0c1647f274d0b6009bc09d334384990de0"
+	)
+	ADD_SONGSPLAYLISTS_ORDER = (
+		"020.add_songsplaylists_order.sql",
+		"adea305fd2f856cb3b4e9079a2db0bae0f0a32999f672de4cf9d21af49a7ee23"
+	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",
 		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"

@@ -66,7 +66,7 @@ class SqlScripts(Enum):
 	)
 	ADD_STATION_TYPE = (
 		"016.add_station_type.sql",
-		"72f7a6d41ab46e18c05d4649484d52a75c4ba66086b1ac44d8fc54962f7c10fc"
+		"981fc1b8d3edd2adb3c26fa6f0e2c420f5ce9b1d0995748e0877b39bcd99e257"
 	)
 	ADD_SONG_DELETEDBYUSERID = (
 		"017.add_song_deletedbyuserid.sql",
@@ -74,7 +74,7 @@ class SqlScripts(Enum):
 	)
 	ADD_SONG_TRACKNUM = (
 		"018.add_song_tracknum.sql",
-		"cba9102c5602f8a0f01bb1002be50580eaf91f1a09159140cca4d35be98c7519"
+		"06424fe484636e17fca472b9a238a4af01af9919edfef22a524eb4f0853c9053"
 	)
 	ADD_PLAYLIST_VIEWSECURITY = (
 		"019.add_playlist_viewsecurity.sql",
@@ -82,7 +82,7 @@ class SqlScripts(Enum):
 	)
 	ADD_SONGSPLAYLISTS_ORDER = (
 		"020.add_songsplaylists_order.sql",
-		"adea305fd2f856cb3b4e9079a2db0bae0f0a32999f672de4cf9d21af49a7ee23"
+		"2f4133e5024ed92187c99862361fd14caa962661cfc2a0e41c4cf88a059e8a44"
 	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",

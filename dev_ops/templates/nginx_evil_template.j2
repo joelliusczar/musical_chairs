@@ -1,0 +1,16 @@
+server {
+	listen 80;
+	server_name "";
+	return 444;
+}
+
+
+#server {
+#	listen 443;
+#should be the public key
+#ssl_certificate {{cert_files["public"]}};
+#should be the private key
+#	ssl_certificate_key {{cert_files["private"]}};
+#	server_name "";
+#	return 444;
+#}

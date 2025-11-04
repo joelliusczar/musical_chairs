@@ -107,3 +107,10 @@ export const RulePriorityLevel = {
 	//only admins should be able to see these items
 	LOCKED: 59,
 };
+
+export const StationTypes = {
+	SONGS_ONLY: 0,
+	ALBUMS_ONLY: 1,
+	PLAYLISTS_ONLY: 2,
+	ALBUMS_AND_PLAYLISTS: 3,
+};

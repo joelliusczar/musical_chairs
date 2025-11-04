@@ -23,6 +23,7 @@ import {
 	DomRoutes,
 	CallStatus,
 	RulePriorityLevel,
+	StationTypes,
 } from "../../constants";
 import {
 	useStationData,
@@ -65,6 +66,25 @@ const viewSecurityOptions = [
 	},
 ];
 
+const stationTypeOptions = [
+	{
+		id: StationTypes.SONGS_ONLY,
+		name: "Songs Only (Default)",
+	},
+	{
+		id: StationTypes.ALBUMS_ONLY,
+		name: "Albums Only",
+	},
+	{
+		id: StationTypes.PLAYLISTS_ONLY,
+		name: "Playlists Only",
+	},
+	{
+		id: StationTypes.ALBUMS_AND_PLAYLISTS,
+		name: "Playlists and Albums",
+	},
+];
+
 const requestSecurityOptions = viewSecurityOptions;
 
 const initialValues = {
@@ -72,6 +92,7 @@ const initialValues = {
 	displayname: "",
 	viewsecuritylevel: viewSecurityOptions[0],
 	requestsecuritylevel: requestSecurityOptions[1],
+	typeOption: stationTypeOptions[0],
 };
 
 
@@ -110,12 +131,16 @@ const stationInfoToFormData = (data: StationInfo) => {
 		.filter(o => o.id === data.viewsecuritylevel);
 	const requestSecurityLevel = viewSecurityOptions
 		.filter(o => o.id === data.requestsecuritylevel);
+	const typeOptions = stationTypeOptions
+		.filter(o => o.id === data.typeid);
 	const formData = {
 		...data,
 		viewsecuritylevel: viewSecurityLevel.length ?
 			viewSecurityLevel[0] : viewSecurityOptions[0],
 		requestsecuritylevel: requestSecurityLevel.length ?
 			requestSecurityLevel[0] : viewSecurityOptions[1],
+		typeOption: typeOptions.length ?
+			typeOptions[0] : stationTypeOptions[0],
 	};
 	return formData;
 };
@@ -148,6 +173,7 @@ export const StationEdit = (props: StationEditProps) => {
 			rules: [],
 			viewsecuritylevel: 0,
 			requestsecuritylevel: 0,
+			typeid: 0,
 		})
 	);
 	const { callStatus, error } = state;

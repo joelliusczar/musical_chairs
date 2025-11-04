@@ -1,0 +1,16 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for local-cert-setup
+- name: Tasks for a local server
+  include_tasks: local.yml
+  vars:
+    __cert_prefix_lcs__: 'localhost_{{local_env_name}}'
+    __common_name_lcs__: '{{local_common_name}}'
+  when: ansible_host in ["127.0.0.1", "localhost"]
+
+- name: VM setup
+  include_tasks: vm.yml
+  vars:
+    __cert_prefix_lcs__: '{{local_cert_prefix}}'
+    __common_name_lcs__: '{{local_common_name}}'
+  when: ansible_host not in ["127.0.0.1", "localhost"] and "192.168.0.0/16"|ansible.utils.network_in_usable(ansible_host)

@@ -1,0 +1,57 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for schedule-setup
+# /etc/systemd/system for root
+- name: Set service folder
+  set_fact:
+    service_folder: '/home/{{service_owner}}/.config/systemd/user'
+- name: "Find uid of user"
+  command: "id -u {{service_owner}}"
+  register: the_user_uid
+  check_mode: no # Run even in check mode, otherwise the playbook fails with --check.
+  changed_when: false
+  become: true
+  become_user: '{{service_owner}}'
+- name: Setup user directory
+  file:
+    path: '{{service_folder}}'
+    state: directory
+    owner: '{{service_owner}}'
+    group: '{{service_group}}'
+  become: true
+- name: Add service file
+  copy:
+    dest: '{{service_folder}}/{{service_name}}.service'
+    owner: '{{service_owner}}'
+    group: '{{service_group}}'
+    content: |
+      [Unit]
+      Description={{service_description}}
+
+      [Service]
+      EnvironmentFile={{env_file}}
+      ExecStart='{{service_command}}'
+
+      [Install]
+      WantedBy=default.target
+  become: true
+  notify: Systemd Restart
+- name: Add timer
+  copy:
+    dest: '{{service_folder}}/{{service_name}}.timer'
+    owner: '{{service_owner}}'
+    group: '{{service_group}}'
+    content: |
+      [Unit]
+      Description={{service_description}}
+
+      [Timer]
+      OnCalendar={{schedule}}
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  when: schedule|default("") != ""
+  become: true
+  notify: Systemd Restart
+

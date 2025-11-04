@@ -3,6 +3,7 @@ from pydantic import (
 	Field,
 )
 from typing import (
+	Any,
 	Iterator,
 	Iterable,
 	Optional,
@@ -79,3 +80,31 @@ class SongsPlaylistInfo(PlaylistInfo):
 	songs: list[SongListDisplayItem]=cast(
 		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
 	)
+
+class SongPlaylistTuple:
+
+	def __init__(
+		self,
+		songid: int,
+		playlistid: int,
+		islinked: bool=False
+	) -> None:
+		self.songid = songid
+		self.playlistid = playlistid
+		self.islinked = islinked
+
+	def __len__(self) -> int:
+		return 2
+
+	def __iter__(self) -> Iterator[Any]:
+		yield self.songid
+		yield self.playlistid
+
+	def __hash__(self) -> int:
+		return hash((self.songid, self.playlistid))
+
+	def __eq__(self, other: Any) -> bool:
+		if not other:
+			return False
+		return self.songid == other.songid \
+			and self.playlistid == other.playlistid

@@ -35,7 +35,6 @@ from pathlib import Path
 
 
 
-
 class ArtistInfo(FrozenNamedIdItem):
 	owner: OwnerType
 	isprimaryartist: bool=False
@@ -109,15 +108,12 @@ class ScanningSongItem(FrozenIdItem):
 	explicit: Optional[bool]=None
 
 
-
 class StationTableData(TableData[T]):
 	stationrules: list[ActionRule]
 
 
 class CurrentPlayingInfo(StationTableData[SongListDisplayItem]):
 	nowplaying: Optional[SongListDisplayItem]
-
-
 
 
 class StationInfo(RuledEntity):

@@ -1,13 +1,12 @@
 from typing import Protocol
-from typing import BinaryIO, Tuple
-from musical_chairs_libs.dtos_and_utilities import SongAboutInfo
+from typing import BinaryIO
 
 class FileService(Protocol):
 
 	def save_song(self,
 		keyPath: str,
 		file: BinaryIO
-	) -> Tuple[SongAboutInfo, bytes]:
+	) -> BinaryIO:
 		...
 
 	def open_song(self, keyPath: str) -> BinaryIO:

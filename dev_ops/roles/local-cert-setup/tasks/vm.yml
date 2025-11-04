@@ -1,0 +1,49 @@
+---
+- name: Assign cert file paths to vars
+  set_fact:
+    cert_files:
+      public: '/etc/ssl/certs/{{__cert_prefix_lcs__}}.public.key.pem'
+      private: '/etc/ssl/private/{{__cert_prefix_lcs__}}.private.key.pem'
+      csr: /tmp/vm.csr
+- name: Generate an OpenSSL private key.
+  become: true
+  openssl_privatekey:
+    path: '{{cert_files["private"]}}'
+- name: Generate an OpenSSL CSR.
+  become: true
+  openssl_csr:
+    path: '{{cert_files["csr"]}}'
+    privatekey_path: '{{cert_files["private"]}}'
+    common_name: '{{__common_name_lcs__}}'
+- name: Fetch private key
+  become: true
+  fetch:
+    src: '{{cert_files["private"]}}'
+    dest: /tmp/private.key.pem
+    flat: true
+- name: Fetch csr
+  fetch:
+    src: '{{cert_files["csr"]}}'
+    dest: /tmp/vm.csr
+    flat: true
+- name: Generate a Self Signed OpenSSL certificate.
+  openssl_certificate:
+    path: /tmp/public.key.pem
+    privatekey_path: /tmp/private.key.pem
+    csr_path: /tmp/vm.csr
+    provider: selfsigned
+    selfsigned_not_after: "+7d"
+  delegate_to: localhost
+- name: Copy public key
+  become: true
+  copy:
+    src: /tmp/public.key.pem
+    dest: '{{cert_files["public"]}}'
+- name: Ensure Browser can see certificate
+  become: true
+  script: >
+    firefox_cert_installer.py
+    /tmp/public.key.pem
+  args:
+    executable: python3
+  delegate_to: localhost

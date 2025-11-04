@@ -30,7 +30,6 @@ import {
 	saveSongEdits,
 	fetchSongsForMultiEdit,
 	saveSongsEditsMulti,
-	songDownloadUrl,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import {
@@ -53,6 +52,7 @@ import {
 import { Named, IdValue } from "../../Types/generic_types";
 import { SubmitButton } from "../Shared/SubmitButton";
 import { isCallPending } from "../../Helpers/request_helpers";
+import { getDownloadAddress } from "../../Helpers/request_helpers";
 
 
 const inputField = {
@@ -209,9 +209,8 @@ export const SongEdit = () => {
 		return false;
 	};
 
-	const downloadSong = async (songId: number) => {
-		const requestObj = songDownloadUrl({id : songId });
-		const url = await requestObj.call();
+	const downloadSong =  (songId: number) => {
+		const url = getDownloadAddress(songId);
 		window?.open(url, "_blank")?.focus();
 	};
 

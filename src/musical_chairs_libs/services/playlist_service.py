@@ -83,6 +83,7 @@ class PlaylistService:
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
 
+
 	def __attach_user_joins__(
 		self,
 		query: Select[
@@ -185,6 +186,7 @@ class PlaylistService:
 		)
 		return query
 
+
 	def get_playlists(
 		self,
 		playlistKeys: Union[int, str, Iterable[int], None]=None,
@@ -240,6 +242,7 @@ class PlaylistService:
 			for row in records:
 				yield PlaylistInfo.row_to_playlist(row)
 
+
 	def get_playlist_owner(self, playlistId: int) -> OwnerInfo:
 		query = select(pl_ownerFk, u_username, u_displayName)\
 			.select_from(playlists_tbl)\
@@ -253,7 +256,8 @@ class PlaylistService:
 			username=data[u_username],
 			displayname=data[u_displayName]
 		)
-	
+
+
 	def get_playlists_page(
 		self,
 		page: int = 0,
@@ -270,6 +274,7 @@ class PlaylistService:
 			.select_from(playlists_tbl)
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
+
 
 	def get_playlist(
 			self,
@@ -362,7 +367,8 @@ class PlaylistService:
 				f"{playlist.name} is already used for artist.",
 				"body->name"
 			)
-		
+
+
 	def delete_playlist(self, playlistkey: int) -> int:
 		if not playlistkey:
 			return 0
@@ -370,6 +376,7 @@ class PlaylistService:
 		delCount = self.conn.execute(delStmt).rowcount
 		self.conn.commit()
 		return delCount
+
 
 	def get_playlist_users(
 		self,
@@ -421,6 +428,7 @@ class PlaylistService:
 			playlist.owner.id if playlist.owner else None
 		)
 
+
 	def add_user_rule_to_playlist(
 		self,
 		addedUserId: int,
@@ -444,6 +452,7 @@ class PlaylistService:
 			count=rule.count,
 			priority=RulePriorityLevel.STATION_PATH.value
 		)
+
 
 	def remove_user_rule_from_playlist(
 		self,

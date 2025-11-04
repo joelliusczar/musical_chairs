@@ -30,8 +30,8 @@
         "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
       },
       "args": [
-        "${userHome}/.ssh/musical_chairs_localhost_debug.private.pem",
-        "${userHome}/.ssh/musical_chairs_localhost_debug.public.pem"
+        "${userHome}/.ssh/localhost_debug.private.pem",
+        "${userHome}/.ssh/localhost_debug.public.pem"
       ]
     },
     {

@@ -35,6 +35,7 @@ export interface StationInfo extends NamedIdItem {
 	rules: ActionRule[]
 	viewsecuritylevel: IdValue
 	requestsecuritylevel: IdValue
+	typeid: IdValue
 }
 
 export interface StationInfoForm extends Named {

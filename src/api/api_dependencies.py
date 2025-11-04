@@ -154,11 +154,8 @@ def path_rule_service(
 ) -> PathRuleService:
 	return PathRuleService(conn)
 
-def file_service(
-	artistService: ArtistService = Depends(artist_service),
-	albumService: AlbumService = Depends(album_service)
-) -> FileService:
-	return S3FileService(artistService, albumService)
+def file_service() -> FileService:
+	return S3FileService()
 
 def song_file_service(
 	conn: Connection=Depends(get_configured_db_connection),

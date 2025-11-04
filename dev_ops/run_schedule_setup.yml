@@ -1,0 +1,95 @@
+---
+
+  vars_files:
+    - vars/vault.yml
+
+  pre_tasks:
+    - include_vars: 
+        file: 'vars/local_keys.yml'
+        hash_behaviour: merge
+      when: inventory_hostname in ["127.0.0.1", "localhost"]
+
+  tasks:
+    - name: Add group
+      become: true
+      group:
+        name: '{{domain["cron_group"]}}'
+        state: present
+    - name: Add existing user to group 
+      user:
+        name: '{{domain["user"]}}'
+        groups: '{{domain["cron_group"]}}'
+        append: true
+      become: true
+    - name: Create directories
+      file:
+        path: {{item}}
+        state: directory
+      loop:
+        - '{{exports_dir}}'
+        - '/home/{{domain["user"]}}/scripts'
+    - name: Copy pb keys
+      copy:
+        path: '{{domain["exports_dir"]}}/{{domain["envs"]["refresh_certs_key"]}}'
+        owner: root
+        group: 'domain["cron_group"]'
+        content: |
+          PB_API_KEY='{{keys["pb_api_key"]}}'
+          PB_SECRET='{{keys["pb_secret"]}}'
+    - name: Copy the refresh certs script
+      copy: 
+        path: scripts/refresh_certs.py
+        dest: /home/{{domain["user"]}}/scripts/refresh_certs.py
+    - name: Refresh certs extra vars
+      set_fact:
+        app_python: '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python
+        py_script: '/home/{{domain["user"]}}/scripts/refresh_certs.py'
+        app_url_base: '{{url_segments["base"]}}.{{url_segments["tld"]}}'
+        public_key_path: '/etc/ssl/certs/{{app_details["name"]|to_snake()}}.public.key.pem'
+        private_key_path: '/etc/ssl/private/{{app_details["name"]|to_snake()}}.private.key.pem'
+    - name: Schedule cert refresh
+      include_role:
+        name: schedule-setup
+      vars:
+        service_name: refresh-certs
+        service_owner: root
+        service_group: 'domain["cron_group"]'
+        service_description: Refetch the ssl certs
+        env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["refresh_certs_key"]}}'
+        service_command: python3 '{{py_script}}' '{{app_url_base}}' '{{public_key_path}}' '{{private_key_path}}'
+        schedule: '*-*-* 4:17:00'
+    - name: Copy jobs keys
+      copy:
+        path: '{{domain["exports_dir"]}}/{{domain["envs"]["jobs_key"]}}'
+        owner: root
+        group: 'domain["cron_group"]'
+        content: |
+          AWS_ENDPOINT_URL='{{keys["aws_endpoint_url"]}}'
+          DSF_SQL_SCRIPTS_DEST='{{app_trunk}}/{{app_details["name"]}}/sql_scripts'
+          DSF_DATABASE_NAME='{{app_details["db"]}}'
+          S3_BUCKET_NAME='{{keys["s3_bucket_name"]}}'
+          S3_REGION_NAME='{{keys["s3_region_name"]}}'
+          DSF_APP_ROOT='{{app_trunk}}'
+          DSF_DB_PASS_JANITOR='{{keys["db_pass_janitor"]}}'
+    - name: Add squish history service
+      include_role:
+        name: schedule-setup
+      vars:
+        service_name: squish-history
+        service_owner: root
+        service_group: 'domain["cron_group"]'
+        service_description: Squish the radio history
+        env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["jobs_key"]}}'
+        service_command: '{{app_python}} -m {{app_details["engine"]}}.one_offs.squish_radio_history'
+        schedule: '*-*-27 23:17:00'
+    - name: Process song deletes service
+      include_role:
+        name: schedule-setup
+      vars:
+        service_name: process-jobs
+        service_owner: root
+        service_group: 'domain["cron_group"]'
+        service_description: Delete the files for marked songs
+        env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["jobs_key"]}}'
+        service_command: '{{app_python}} -m {{app_details["engine"]}}.one_offs.process_jobs'
+        schedule: 'weekly'

@@ -55,7 +55,12 @@ class DbRootConnectionService:
 	def create_db(self, dbName: str):
 		if not is_db_name_safe(dbName):
 			raise RuntimeError("Invalid name was used")
-		self.conn.exec_driver_sql(f"CREATE DATABASE IF NOT EXISTS {dbName}")
+		#once the server is using a new db version, 
+		#we will want to update the COLLATE value
+		self.conn.exec_driver_sql(
+			f"CREATE DATABASE IF NOT EXISTS {dbName} "\
+			"COLLATE = utf8mb4_general_ci" 
+		)
 
 	def create_db_user(self, username: str, host: str, userPass: str):
 		if not is_name_safe(username):

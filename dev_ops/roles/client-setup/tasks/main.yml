@@ -6,8 +6,6 @@
   register: asdf_result
   changed_when: false
   delegate_to: localhost
-- debug:
-    msg: 'git {{asdf_result}}'
 - name: Pull asdf
   git:
     repo: https://github.com/asdf-vm/asdf.git

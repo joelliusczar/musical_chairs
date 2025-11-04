@@ -6,8 +6,9 @@ from fastapi import (
 	HTTPException,
 	status,
 	Query,
-	UploadFile
+	UploadFile,
 )
+from fastapi.responses import StreamingResponse
 from api_dependencies import (
 	song_info_service,
 	song_file_service,
@@ -176,12 +177,12 @@ def download_song(
 	id: int,
 	songFileService: SongFileService = Depends(song_file_service),
 	fileService: FileService = Depends(file_service)
-) -> str:
+) -> StreamingResponse:
 	path = next(songFileService.get_internal_song_paths(id), None)
 	if path:
-		url = fileService.download_url(path)
-		if url:
-			return url
+		data = fileService.open_song(path)
+		if data:
+			return StreamingResponse(chunk for chunk in data)
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail=[build_error_obj(f"File not found for {id}", "song file")]

@@ -23,3 +23,9 @@
     env_name: '{{app_details["prefix"]|lower}}_env'
     engine_src: '{{src_dirs["engine"]}}/'
     working_dir: '{{test_trunk}}'
+- name: Setup self signed certificate for manual testing
+  include_role:
+    name: local-cert-setup
+  vars:
+    env_name: debug
+    common_name: localhost

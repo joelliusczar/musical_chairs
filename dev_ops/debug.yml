@@ -1,6 +1,6 @@
 ---
 - hosts: all
-  # connection: local
+  connection: local
 
   vars: 
     charlie: Chunk
@@ -9,15 +9,18 @@
 
 
   tasks:
-    - name: Clone the ices repo
-      git:
-        dest: /tmp/build/ices
-        repo: https://github.com/joelliusczar/ices0.git
-        version: restructure-logging
-    - name: Aclocal
-      command:
-        cmd: aclocal
-        chdir: /tmp/build/ices
+    - name: Handler test
+      include_role: 
+        name: debug
+    # - name: Clone the ices repo
+    #   git:
+    #     dest: /tmp/build/ices
+    #     repo: https://github.com/joelliusczar/ices0.git
+    #     version: restructure-logging
+    # - name: Aclocal
+    #   command:
+    #     cmd: aclocal
+    #     chdir: /tmp/build/ices
     # - debug:
     #     msg: "{{ '192.168.0.0/24' | ansible.utils.network_in_usable( '192.168.0.0' ) }}"
     # - debug:

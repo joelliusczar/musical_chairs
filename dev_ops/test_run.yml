@@ -15,8 +15,9 @@
     - include_vars: 
         file: 'vars/local_keys.yml'
         hash_behaviour: merge
-    - include_vars:
-        file: vars/local_paths.yml
+    - name: Switch app trunk
+      set_fact:
+        app_trunk: '~/{{app_details["name"]}}'
     - name: Install rsync
       become: true
       package:
@@ -29,6 +30,7 @@
   vars:
     app_trunk: '{{dest_dirs["app_root"]|default("~")}}/{{app_details["name"]}}'
     test_trunk: '../test_trash/{{app_details["name"]}}'
+    ansible_user: '{{lookup("env", "USER")}}'
 
   roles:
     - repo-check
@@ -66,5 +68,5 @@
         DSF_CONTENT_DIR: '../{{test_trunk}}/content'
         DSF_PY_MODULE_DIR: '../{{test_trunk}}/pyModules'
       when: skip_tests|default(false)|bool != true
-        # PYTHONPATH: '"{{local_paths["repo"]}}/src/":"{{local_paths["repo"]}}/src/api/":"{{local_paths["repo"]}}/src/tests/"'
+        # PYTHONPATH: '"{{dest_dirs["repo"]}}/src/":"{{dest_dirs["repo"]}}/src/api/":"{{dest_dirs["repo"]}}/src/tests/"'
     

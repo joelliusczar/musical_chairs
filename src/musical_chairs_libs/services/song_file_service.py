@@ -1,5 +1,7 @@
+#pyright: reportMissingTypeStubs=false
 import re
 import uuid
+import hashlib
 from typing import (
 	Any,
 	BinaryIO,
@@ -31,7 +33,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongPathInfo,
 	ReusableIterable,
 	DirectoryTransfer,
-	int_or_default
+	int_or_default,
+	SongAboutInfo
 )
 
 from sqlalchemy import (
@@ -59,7 +62,11 @@ from musical_chairs_libs.tables import (
 from .env_manager import EnvManager
 from .song_artist_service import SongArtistService
 from .jobs_service import JobsService
+from .album_service import AlbumService
+from .artist_service import ArtistService
+from .path_rule_service import PathRuleService
 from itertools import islice
+from tinytag import TinyTag
 
 class SongFileService:
 
@@ -68,7 +75,10 @@ class SongFileService:
 		conn: Connection,
 		fileService: FileService,
 		songArtistService: Optional[SongArtistService]=None,
-		jobService: Optional[JobsService]=None
+		jobService: Optional[JobsService]=None,
+		pathRuleService: Optional[PathRuleService]=None,
+		artistService: Optional[ArtistService]=None,
+		albumService: Optional[AlbumService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -79,8 +89,16 @@ class SongFileService:
 			songArtistService = SongArtistService(conn)
 		if not jobService:
 			jobService = JobsService(conn, fileService)
+		if not pathRuleService:
+			pathRuleService = PathRuleService(conn)
+		if not artistService:
+			artistService = ArtistService(conn, pathRuleService)
+		if not albumService:
+			albumService = AlbumService(conn, artistService, pathRuleService)
 		self.song_artist_service = songArtistService
 		self.job_service = jobService
+		self.artist_service = artistService
+		self.album_service = albumService
 
 	def __create_directory__(
 		self,
@@ -112,6 +130,42 @@ class SongFileService:
 		self.__create_directory__(prefix, suffix, suffix, user)
 		self.conn.commit()
 		return self.song_ls_parents(user, prefix, includeTop=False)
+	
+	def extract_song_info(self, file: BinaryIO) -> SongAboutInfo:
+		try:
+			songAboutInfo = SongAboutInfo()
+			tag = cast(Any, TinyTag.get(file_obj=file)) #pyright: ignore [reportUnknownMemberType]
+			artist = next(
+				self.artist_service.get_artists(
+					artistKeys=tag.artist,
+					exactStrMatch=True
+				),
+				None
+			)
+			album = next(
+				self.album_service.get_albums(
+					albumKeys=tag.album,
+					exactStrMatch=True
+				),
+				None
+			)
+			songAboutInfo.primaryartist = artist
+			songAboutInfo.album = album
+			songAboutInfo.bitrate = float(tag.bitrate) \
+				if type(tag.bitrate) == float else None #pyright: ignore [reportUnknownArgumentType, reportUnknownMemberType]
+			try:
+				songAboutInfo.disc = int(tag.disc or "")
+			except:
+				pass
+			songAboutInfo.genre = tag.genre
+			songAboutInfo.duration = tag.duration \
+				if type(tag.duration) == float else None #pyright: ignore [reportUnknownArgumentType, reportUnknownMemberType]
+			songAboutInfo.name = tag.title
+			songAboutInfo.track = tag.track
+			return songAboutInfo
+		except Exception as e:
+			print(e)
+			return SongAboutInfo()
 
 	def save_song_file(
 			self,
@@ -132,7 +186,10 @@ class SongFileService:
 		self.delete_overlaping_placeholder_dirs(path)
 		cleanedSuffix = re.sub(r"[^\w\.]+","-",suffix).casefold()
 		internalPath = f"{str(uuid.uuid4())}-{cleanedSuffix}"
-		songAboutInfo, fileHash = self.file_service.save_song(internalPath, file)
+		with self.file_service.save_song(internalPath, file) as uploaded:
+			fileHash = hashlib.sha256(uploaded.read()).digest()
+			uploaded.seek(0)
+			songAboutInfo = self.extract_song_info(uploaded)
 		stmt = insert(songs_tbl).values(
 			path = path,
 			internalpath = internalPath,

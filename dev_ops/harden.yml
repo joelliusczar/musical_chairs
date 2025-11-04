@@ -43,6 +43,11 @@
       group:
         name: '{{domain["group"]}}'
         state: present
+    - name: Add group
+      become: true
+      group:
+        name: '{{domain["cron_group"]}}'
+        state: present
     - name: Add user
       user:
         name: '{{domain["user"]}}'
@@ -95,6 +100,8 @@
           line: 'PermitRootLogin no'
         - regexp: '^Port'
           line: 'Port {{domain["port"]}}'
+        - regexp: '^DenyUsers'
+          line: 'DenyUsers {{domain["server_user"]}}'
       notify: restart ssh
     - name: Update local ssh config
       blockinfile:

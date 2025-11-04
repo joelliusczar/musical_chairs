@@ -18,7 +18,6 @@
     '{{reference_file_out_path}}'
   args:
     executable: python3
-    creates: '{{reference_file_out_path}}'
   delegate_to: localhost
 - name: Set up py env.
   command: 

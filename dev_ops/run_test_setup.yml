@@ -13,8 +13,6 @@
     - include_vars: 
         file: 'vars/local_keys.yml'
         hash_behaviour: merge
-    - include_vars:
-        file: vars/local_paths.yml
     - name: Create app directory
       file:
         path: '{{test_trunk}}'

@@ -3,7 +3,7 @@
 
 
   vars:
-    app_trunk: '{{dest_dirs["app_root"]|default("~")}}/{{app_details["name"]}}'
+    app_trunk: '{{domain["app_root"]|default("~")}}/{{app_details["name"]}}'
     test_trunk: '../test_trash/{{app_details["name"]}}'
     ansible_common_remote_group: '{{domain["group"]}}'
 
@@ -24,7 +24,9 @@
     - include_vars: "{{ item }}"
       with_first_found:
         - 'vars/os_vars_default.yml'
-    - include_vars: 'vars/vault.yml'
+    - include_vars: 
+        file: 'vars/vault.yml'
+        hash_behaviour: merge
     - include_vars: 
         file: 'vars/local_keys.yml'
         hash_behaviour: merge
@@ -120,6 +122,7 @@
       loop:
         - '{{app_trunk}}'
         - '{{domain["exports_dir"]}}'
+        - '/home/{{domain["server_user"]}}/scripts'
     - name: Python setup.
       include_role:
         name: python-setup
@@ -182,13 +185,13 @@
           DSF_BACK_KEY='{{keys["back_key"]}}'
           S3_BUCKET_NAME='{{keys["s3_bucket_name"]}}'
           S3_REGION_NAME='{{keys["s3_region_name"]}}'
-      become_user: '{{domain["server_user"]}}'
+      #become_user: '{{domain["server_user"]}}'
     - name: Add API run script
       copy: 
         dest: '/home/{{domain["server_user"]}}/run_api.sh'
         content: |
           #!/bin/sh
-          
+
           . {{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/activate &&
           uvicorn --app-dir \
           {{dev_dirs["web_root"]}}/{{app_details["name"]}}/api \

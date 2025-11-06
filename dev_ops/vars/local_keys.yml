@@ -7,6 +7,3 @@ keys:
   db_pass_radio: radiopass
   db_pass_setup: setuppass
   namespace_uuid: 36b8bd47-a71e-42b1-9ff7-49ace41b4b50
-# dest_dirs:
-#   app_root: /home/joellius/Documents/Code/musical_chairs/test_trash
-#   test_root: /home/joellius/Documents/Code/musical_chairs/test_trash

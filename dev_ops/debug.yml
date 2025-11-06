@@ -9,9 +9,11 @@
 
 
   tasks:
-    - name: Handler test
-      include_role: 
-        name: debug
+    - name: touch
+      command: touch ~/butt
+      register: touch_res
+    - debug:
+        msg: '{{touch_res}}'
     # - name: Clone the ices repo
     #   git:
     #     dest: /tmp/build/ices
@@ -95,7 +97,7 @@
     # - debug:
     #     msg: '{{ (d | from_json)["b"] }}'
     # - debug:
-    #     msg: 'root: {{dest_dirs["app_root"]|default("")}}'
+    #     msg: 'root: {{domain["app_root"]|default("")}}'
     # - name: Env test
     #   command: echo "$VAR_SH_DUMB and "
     #   environment:

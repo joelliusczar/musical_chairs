@@ -5,8 +5,16 @@ deploy_app() (
 	ansible-playbook deploy_api.yml -i ~/.ansible/inventories/musical_chairs  --ask-vault-pass -K
 )
 
-deploy_vm_app() (
+setup_new_box_vm() (
+	ansible-playbook new_box.yml -i ~/.ansible/inventories/vms_inv  --ask-vault-pass -K
+)
+
+deploy_app_vm() (
 	ansible-playbook deploy_api.yml -i ~/.ansible/inventories/vms_inv  --ask-vault-pass -K
+)
+
+setup_schedules_vm() (
+	ansible-playbook setup_schedules.yml -i ~/.ansible/inventories/vms_inv  --ask-vault-pass
 )
 
 deploy_local_app() (

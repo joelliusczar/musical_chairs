@@ -5,6 +5,11 @@
 - name: Set service folder
   set_fact:
     service_folder: '/home/{{service_owner}}/.config/systemd/user'
+  when: service_scope|default("user") == "user"
+- name: Set service folder
+  set_fact:
+    service_folder: /etc/systemd/system
+  when: service_scope|default("user") == "system"
 - name: "Find uid of user"
   command: "id -u {{service_owner}}"
   register: the_user_uid
@@ -30,12 +35,12 @@
 
       [Service]
       EnvironmentFile={{env_file}}
-      ExecStart='{{service_command}}'
+      ExecStart={{service_command}}
 
       [Install]
       WantedBy=default.target
   become: true
-  notify: Systemd Restart
+  register: service_add_res
 - name: Add timer
   copy:
     dest: '{{service_folder}}/{{service_name}}.timer'
@@ -53,5 +58,17 @@
       WantedBy=timers.target
   when: schedule|default("") != ""
   become: true
-  notify: Systemd Restart
+  register: timer_add_res
+- name: 'Start Service: {{service_name}}'
+  systemd_service:
+    name: '{{service_name}}.{{(schedule|default("") != "")|ternary("timer","service")}}'
+    daemon_reload: true
+    enabled: true
+    state: '{{(schedule|default("") != "")|ternary("started","reloaded")}}'
+    scope: '{{service_scope|default("user")}}'
+  become: true
+  become_user: '{{service_owner}}'
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ the_user_uid.stdout }}"
+  when: service_add_res.changed or timer_add_res.changed
 

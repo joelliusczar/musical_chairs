@@ -19,7 +19,7 @@
         state: directory
 
   vars:
-    app_trunk: '{{dest_dirs["app_root"]|default("~")}}/{{app_details["name"]}}'
+    app_trunk: '{{domain["app_root"]|default("~")}}/{{app_details["name"]}}'
     test_trunk: '../test_trash/{{app_details["name"]}}'
 
   roles:

@@ -4,8 +4,6 @@
   gather_facts: false
 
   vars:
-    app_trunk: '{{dest_dirs["app_root"]|default("~")}}/{{app_details["name"]}}'
-    test_trunk: '../test_trash/{{app_details["name"]}}'
     ansible_port: 22
     ansible_user: root
 

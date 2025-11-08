@@ -84,6 +84,10 @@ class SqlScripts(Enum):
 		"020.add_songsplaylists_order.sql",
 		"2f4133e5024ed92187c99862361fd14caa962661cfc2a0e41c4cf88a059e8a44"
 	)
+	RENAME_PLAYLIST_SONG_TABLE = (
+		"021.rename_playlist_song_table.sql",
+		"8e5c4179024da07478d49ba4d51aa5bf2cac5322eace19c61e0e86031a965174"
+	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",
 		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"

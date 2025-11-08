@@ -15,5 +15,5 @@ from .song_artists import *
 from .albums import *
 from .user_actions_history import *
 from .playlists import *
-from .songs_playlists import *
+from .playlists_songs import *
 from .playlist_user_roles import *

@@ -273,5 +273,11 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_TRACKNUM)
 		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLIST_VIEWSECURITY)
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONGSPLAYLISTS_ORDER)
+		try:
+			#there doesn't seem to be a good if table exists, rename
+			#syntax, so we're just going to smother the error
+			ownerConnService.run_defined_script(SqlScripts.RENAME_PLAYLIST_SONG_TABLE)
+		except:
+			pass
 
 		Path(f"/tmp/{get_schema_hash()}").touch()

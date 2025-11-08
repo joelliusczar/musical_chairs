@@ -27,5 +27,5 @@
   include_role:
     name: local-cert-setup
   vars:
-    env_name: debug
-    common_name: localhost
+    local_env_name: debug
+    local_common_name: localhost

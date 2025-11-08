@@ -17,7 +17,7 @@ from musical_chairs_libs.tables import (
 	user_action_history,
 	station_queue,
 	playlists,
-	song_playlist,
+	playlists_songs,
 	playlist_user_permissions
 )
 from sqlalchemy import insert
@@ -31,7 +31,7 @@ from .db_data import (
 	song_params,
 	songArtistParams,
 	songArtistParams2,
-	songPlaylistParams,
+	PlaylistsSongsParams,
 	station_params,
 	stationSongParams,
 	station_album_params,
@@ -233,8 +233,8 @@ def populate_playlists(conn: Connection):
 	conn.execute(stmt, playlists_params) #pyright: ignore [reportUnknownMemberType]
 
 def populate_songs_playlists(conn: Connection):
-	stmt = insert(song_playlist)
-	conn.execute(stmt, songPlaylistParams) #pyright: ignore [reportUnknownMemberType]
+	stmt = insert(playlists_songs)
+	conn.execute(stmt, PlaylistsSongsParams) #pyright: ignore [reportUnknownMemberType]
 
 
 

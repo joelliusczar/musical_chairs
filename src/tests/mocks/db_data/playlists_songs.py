@@ -1,4 +1,4 @@
-songPlaylistParams = [
+PlaylistsSongsParams = [
 	{ "songfk": 43, "playlistfk": 1 },
 	{ "songfk": 43, "playlistfk": 2 },
 	{ "songfk": 43, "playlistfk": 3 },

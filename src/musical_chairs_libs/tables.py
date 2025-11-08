@@ -191,7 +191,7 @@ sgar_isPrimaryArtist = cast(Column[Optional[Boolean]],sgar.isprimaryartist)
 
 Index("idx_songsartists", sgar_songFk, sgar_artistFk, unique=True)
 
-song_playlist = Table("songsplaylists", metadata,
+playlists_songs = Table("playlistssongs", metadata,
 	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=False),
 	Column("playlistfk", Integer, ForeignKey("playlists.pk"), nullable=False),
 	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
@@ -200,10 +200,10 @@ song_playlist = Table("songsplaylists", metadata,
 	Column("order", Float[float], nullable=False, default=0),
 )
 
-sgpl = song_playlist.c
-sgpl_songFk = cast(Column[Integer] ,sgpl.songfk)
-sgpl_playlistFk = cast(Column[Integer] ,sgpl.playlistfk)
-sgpl_order = cast(Column[Float[float]], sgpl.order)
+plsg = playlists_songs.c
+plsg_songFk = cast(Column[Integer] ,plsg.songfk)
+plsg_playlistFk = cast(Column[Integer] ,plsg.playlistfk)
+plsg_order = cast(Column[Float[float]], plsg.order)
 
 
 song_covers = Table("songcovers", metadata,

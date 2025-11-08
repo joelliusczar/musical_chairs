@@ -95,6 +95,7 @@
           line: '<relay-password>{{relay_password.stdout}}</relay-password>'
         - regexp: '<admin-password>\w*</admin-password>'
           line: '<admin-password>{{admin_password.stdout}}</admin-password>'
+      no_log: true
     - name: Update the ices configs
       lineinfile:
         dest: '{{item}}'
@@ -102,4 +103,5 @@
         line: '<Password>{{source_password.stdout}}</Password>'
         state: present
       with_fileglob: '{{app_trunk}}/ices_configs/*.conf'
+      no_log: true
     

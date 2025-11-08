@@ -56,7 +56,7 @@ from musical_chairs_libs.tables import (
 	sg_deletedTimstamp,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
 	users as user_tbl,
-	song_playlist as song_playlist_tbl, sgpl_playlistFk, sgpl_songFk
+	playlists_songs as song_playlist_tbl, plsg_playlistFk, plsg_songFk
 )
 from .song_artist_service import SongArtistService
 
@@ -173,21 +173,21 @@ class SongInfoService:
 		playlistIds: Union[int, Iterable[int], None]=None,
 	) -> Iterable[SongPlaylistTuple]:
 		query = select(
-			sgpl_songFk,
-			sgpl_playlistFk
+			plsg_songFk,
+			plsg_playlistFk
 		)\
-			.join(songs_tbl, sgpl_songFk == sg_pk)\
+			.join(songs_tbl, plsg_songFk == sg_pk)\
 			.where(sg_deletedTimstamp.is_(None))
 
 		if type(songIds) == int:
-			query = query.where(sgpl_songFk == songIds)
+			query = query.where(plsg_songFk == songIds)
 		elif isinstance(songIds, Iterable):
-			query = query.where(sgpl_songFk.in_(songIds))
+			query = query.where(plsg_songFk.in_(songIds))
 		if type(playlistIds) == int:
-			query = query.where(sgpl_playlistFk == playlistIds)
+			query = query.where(plsg_playlistFk == playlistIds)
 		elif isinstance(playlistIds, Iterable):
-			query = query.where(sgpl_playlistFk.in_(playlistIds))
-		query = query.order_by(sgpl_songFk)
+			query = query.where(plsg_playlistFk.in_(playlistIds))
+		query = query.order_by(plsg_songFk)
 		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
 		yield from (SongPlaylistTuple(
 				cast(int, row[0]),
@@ -238,11 +238,11 @@ class SongInfoService:
 		delStmt = delete(song_playlist_tbl)
 		if isinstance(songsPlaylists, Iterable):
 			delStmt = delStmt\
-				.where(dbTuple(sgpl_songFk, sgpl_playlistFk).in_(songsPlaylists))
+				.where(dbTuple(plsg_songFk, plsg_playlistFk).in_(songsPlaylists))
 		elif isinstance(songIds, Iterable):
-			delStmt = delStmt.where(sgpl_songFk.in_(songIds))
+			delStmt = delStmt.where(plsg_songFk.in_(songIds))
 		elif type(songIds) is int:
-			delStmt = delStmt.where(sgpl_songFk == songIds)
+			delStmt = delStmt.where(plsg_songFk == songIds)
 		else:
 			return 0
 		return self.conn.execute(delStmt).rowcount

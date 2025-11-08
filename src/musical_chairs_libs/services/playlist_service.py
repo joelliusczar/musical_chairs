@@ -61,7 +61,7 @@ from musical_chairs_libs.tables import (
 	u_dirRoot, u_disabled, 
 	sg_pk, sg_name, sg_track, sg_path, sg_internalpath,
 	sg_deletedTimstamp,
-	song_playlist as song_playlist_tbl, sgpl_songFk, sgpl_playlistFk, 
+	playlists_songs as song_playlist_tbl, plsg_songFk, plsg_playlistFk, 
 	song_artist as song_artist_tbl, sgar_songFk, sgar_isPrimaryArtist,
 	playlist_user_permissions, plup_userFk, plup_playlistFk, plup_role
 )
@@ -301,10 +301,10 @@ class PlaylistService:
 			)\
 			.join(
 				song_playlist_tbl,
-				sgpl_songFk == sg_pk,
+				plsg_songFk == sg_pk,
 				isouter=True
 			)\
-			.where(sgpl_playlistFk == playlistId)\
+			.where(plsg_playlistFk == playlistId)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.order_by(dbCast(sg_track, Integer))
 		songsResult = self.conn.execute(songsQuery).mappings()

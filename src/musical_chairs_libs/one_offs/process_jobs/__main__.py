@@ -5,9 +5,8 @@ from musical_chairs_libs.services import (
 )
 from musical_chairs_libs.services.fs import S3FileService
 
-envManager = EnvManager()
-conn = envManager.get_configured_janitor_connection(
-	"musical_chairs_db"
+conn = EnvManager.get_configured_janitor_connection(
+	EnvManager.db_name()
 )
 
 fileService = S3FileService()

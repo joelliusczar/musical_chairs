@@ -59,6 +59,7 @@
         DSF_DB_PASS_API: '{{keys["db_pass_api"]}}'
         DSF_DB_PASS_RADIO: '{{keys["db_pass_radio"]}}'
         DSF_DB_PASS_JANITOR: '{{keys["db_pass_janitor"]}}'
+        DSF_DATABASE_NAME: '{{app_details["db"]}}'
         DSF_SQL_SCRIPTS_DEST: '../{{test_trunk}}/sql_scripts'
         DSF_APP_ROOT: '{{test_trunk}}'
         DSF_TEMPLATES_DEST: '../{{test_trunk}}/files'

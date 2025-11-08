@@ -1,13 +1,13 @@
 from typing import Any, Mapping
-from .sentinel import missing
+from .lost_found import Lost
 
 class DictDotMap:
 	@staticmethod
-	def get(d: dict[str, Any], path: str, default: Any=missing) -> Any:
+	def get(d: dict[str, Any], path: str, default: Any=Lost()) -> Any:
 		current = d
 		for segment in path.split("."):
 			if segment not in current:
-				if default == missing:
+				if default == Lost():
 					raise KeyError(f"{path} not found")
 				return default
 			current = current[segment]

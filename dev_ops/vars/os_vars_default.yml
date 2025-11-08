@@ -5,6 +5,7 @@ packages:
   firefox: firefox-esr
   nginx: nginx-full
   icecast: icecast2
+  git: git
   ices_dependencies:
     libtool: libtool-bin
     build_essential: build-essential
@@ -16,6 +17,7 @@ packages:
     libflac: libflac-dev
     libfaad: libfaad-dev
     libperl: libperl-dev
+    autoconf: autoconf
     python3_distutils: python3-distutils
 
 dev_files:

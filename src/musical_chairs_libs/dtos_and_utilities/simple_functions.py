@@ -19,7 +19,7 @@ from typing import (
 from email_validator import ValidatedEmail
 from collections import Counter
 from .type_aliases import (s2sDict)
-from .sentinel import (missing)
+from .lost_found import Lost
 from pathlib import Path
 
 T = TypeVar("T")
@@ -148,8 +148,8 @@ def squash_sequential_duplicates(
 	pattern: T
 ) -> Iterator[T]:
 	cIter = iter(compressura)
-	previous = next(cIter, missing)
-	if previous == missing:
+	previous = next(cIter, Lost())
+	if previous == Lost():
 		return
 	yield cast(T, previous)
 	for element in cIter:
@@ -226,7 +226,7 @@ def interweave(
 def __common_prefix__(s1: Iterable[T], s2: Iterable[T]) -> Iterable[T]:
 	s2Iter = iter(s2)
 	for e1 in s1:
-		e2 = next(s2Iter, missing)
+		e2 = next(s2Iter, Lost())
 		if e1 == e2:
 			yield e1
 		else:

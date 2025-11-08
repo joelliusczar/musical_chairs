@@ -67,7 +67,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	row_to_action_rule,
 	generate_station_user_and_rules_from_rows,
 	clean_search_term_for_like,
-	AlbumListDisplayItem
+	AlbumListDisplayItem,
+	Lost
 )
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from .path_rule_service import PathRuleService
@@ -671,7 +672,7 @@ class StationService:
 	def unset_station_procs(
 		self,
 		procIds: Optional[Iterable[int]]=None,
-		stationIds: Union[int,Sequence[int], None]=None,
+		stationIds: Union[int,Sequence[int], None, Lost]=Lost(),
 	) -> None:
 		stmt = update(stations_tbl)\
 			.values(procid = None)
@@ -682,7 +683,7 @@ class StationService:
 			stmt = stmt.where(st_pk == stationIds)
 		elif isinstance(stationIds, Iterable):
 			stmt = stmt.where(st_pk.in_(stationIds))
-		else:
+		elif stationIds is Lost():
 			raise ValueError("procIds, stationIds, or stationNames must be provided.")
 		self.conn.execute(stmt)
 

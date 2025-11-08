@@ -1,7 +1,13 @@
-from musical_chairs_libs.services.station_service import StationService
+from musical_chairs_libs.services import (
+	StationService,
+	EnvManager
+)
 from sqlalchemy.exc import OperationalError
 try:
-	stationService = StationService()
+	conn = EnvManager.get_configured_janitor_connection(
+		EnvManager.db_name()
+	)
+	stationService = StationService(conn)
 	stationService.disable_stations(stationIds=None)
 except OperationalError as ex:
 	print("Could not the shutdown operation."

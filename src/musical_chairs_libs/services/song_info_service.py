@@ -13,8 +13,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem,
 	ScanningSongItem,
 	get_datetime,
-	Sentinel,
-	missing,
+	Lost,
 	SongAboutInfo,
 	SongEditInfo,
 	ChangeTrackedSongInfo,
@@ -113,7 +112,7 @@ class SongInfoService:
 
 	def get_song_refs(
 		self,
-		songName: Union[Optional[str], Sentinel]=missing,
+		songName: Union[Optional[str], Lost]=Lost(),
 		page: int=0,
 		pageSize: Optional[int]=None,
 	) -> Iterator[ScanningSongItem]:

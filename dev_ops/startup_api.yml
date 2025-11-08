@@ -35,6 +35,10 @@
       become: true
       package:
         name: rsync
+    - name: Update apt cache if needed
+      apt: update_cache=true cache_valid_time=3600
+      become: true
+      when: ansible_os_family == "Debian"
     - name: Set local server settings
       set_fact:
         env_list:
@@ -166,6 +170,7 @@
         DSF_DB_PASS_OWNER: '{{keys["db_pass_owner"]}}'
         DSF_DB_PASS_RADIO: '{{keys["db_pass_radio"]}}'
         DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
+        DSF_DATABASE_NAME: '{{app_details["db"]}}'
         DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
     - name: Copy web app keys
       copy:

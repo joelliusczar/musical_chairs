@@ -10,7 +10,7 @@ from typing import (
 	Union
 )
 from collections import deque
-from .sentinel import missing, Sentinel, found
+from .lost_found import Lost, Found, Eitherton
 from .errors import AlternateValueError
 
 
@@ -18,7 +18,7 @@ T = TypeVar("T")
 TDefault = TypeVar("TDefault")
 
 keyValueIteratorList = list[Optional[Iterator[Tuple[int,"AbsorbentTrie[T]"]]]]
-storeValueType = Union[T, Sentinel]
+storeValueType = Union[T, Eitherton]
 extendIterable = Union[Iterable[str], Iterable[Tuple[str, T]]]
 
 class LinkedListNode(Generic[T]):
@@ -88,7 +88,7 @@ class AbsorbentTrie(Generic[T]):
 		self.__prefix_map__: dict[int, "AbsorbentTrie[T]"] = {}
 		self.__node_count__ = 0
 		self.key = key
-		self.path_store = missing
+		self.path_store = Lost()
 		if paths:
 			self.extend(paths)
 
@@ -162,20 +162,20 @@ class AbsorbentTrie(Generic[T]):
 						)
 						leafCount = 0
 
-	def add(self, path: str, value: storeValueType[T]=missing):
+	def add(self, path: str, value: storeValueType[T]=Lost()):
 		node = self.__node_at_path__(path, True)
-		node.path_store = value if value != missing else found
+		node.path_store = value if value != Lost() else Found()
 		self.__update_counts__()
 
 	def extend(self, paths: extendIterable[T]):
 		for path in paths:
 			if type(path) == str:
 				node = self.__node_at_path__(path, True)
-				node.path_store = found
+				node.path_store = Found()
 			else:
 				node = self.__node_at_path__(path[0], True)
 				value = cast(T, path[1])
-				node.path_store = value if value != missing else found
+				node.path_store = value if value != Lost() else Found()
 		self.__update_counts__()
 
 	def __contains__(self, path: str) -> bool:
@@ -192,7 +192,7 @@ class AbsorbentTrie(Generic[T]):
 	) -> storeValueType[T]:
 		if path:
 			node = self.__node_at_path__(path)
-			if node.path_store != missing:
+			if node.path_store != Lost():
 				return node.path_store
 			else:
 				raise KeyError()
@@ -222,12 +222,12 @@ class AbsorbentTrie(Generic[T]):
 	def has_prefix_for(self, path: str) -> bool:
 		# nodes = [*self.__nodes_along_path(path)]
 		return any(True for n in self.__nodes_along_path(path) \
-			if n.path_store != missing
+			if n.path_store != Lost()
 		)
 
 	def __getitem__(self, key: str) -> T:
 		value = self.__value_at_path__(key)
-		if value == found:
+		if value == Found():
 			raise AlternateValueError()
 		return cast(T, value)
 
@@ -254,7 +254,7 @@ class AbsorbentTrie(Generic[T]):
 
 	@property
 	def is_path_end(self) -> bool:
-		return self.path_store != missing
+		return self.path_store != Lost()
 
 	def all_paths(self) -> Iterator[str]:
 		return self.__traverse_path_optimized__("")
@@ -267,10 +267,10 @@ class AbsorbentTrie(Generic[T]):
 			for child in node.__prefix_map__.values():
 				llnode2 = LinkedListNode(child.key, llnode)
 				queue.append((child, llnode2))
-			if node.path_store != missing:
+			if node.path_store != Lost():
 				path = "".join(c for c in reversed(llnode))
 
-				if type(node.path_store) == Sentinel:
+				if type(node.path_store) == Eitherton:
 					yield (path, None)
 				else:
 					yield (path, cast(T, node.path_store))
@@ -278,9 +278,9 @@ class AbsorbentTrie(Generic[T]):
 	def values(self, path: Optional[str]=None) -> Iterator[Optional[T]]:
 		if path:
 			yield from (
-				(n.path_store if not isinstance(n.path_store, Sentinel) else None) \
+				(n.path_store if not isinstance(n.path_store, Eitherton) else None) \
 				for n in self.__nodes_along_path(path) \
-				if n.path_store != missing
+				if n.path_store != Lost()
 			)
 			return
 		yield from (pair[1] for pair in self.__line_order_values__())
@@ -355,7 +355,7 @@ class AbsorbentTrie(Generic[T]):
 		while stackPtr >= 0:
 			node = stack[stackPtr]
 			try:
-				if useShortestPath and node.path_store != missing:
+				if useShortestPath and node.path_store != Lost():
 					raise StopIteration()
 				childIter = iterStack[stackPtr]
 				if not childIter:
@@ -406,7 +406,7 @@ class AbsorbentTrie(Generic[T]):
 		iterTracker: dict[int, Iterator["AbsorbentTrie[T]"]] = {}
 		while stack:
 			node = stack[-1]
-			if node.isLeaf or node.path_store != missing:
+			if node.isLeaf or node.path_store != Lost():
 				yield node
 				stack.pop()
 			else:
@@ -424,7 +424,7 @@ class AbsorbentTrie(Generic[T]):
 	def shortest_paths(self) -> Iterator[str]:
 		depth = self.depth
 		if not depth:
-			if self.path_store != missing:
+			if self.path_store != Lost():
 				yield ""
 			return
 		resultSpace = [[""] * (depth)
@@ -451,11 +451,11 @@ class ChainedAbsorbentTrie(Generic[T]):
 		def add(
 				self,
 				path: str,
-				value: chainedStoreValueType[T]=missing,
+				value: chainedStoreValueType[T]=Lost(),
 				shouldEmptyUpdateTree: bool=True
 			):
 			added = self.__absorbentTrie__.__node_at_path__(path, True)
-			if isinstance(added.path_store, Sentinel):
+			if isinstance(added.path_store, Eitherton):
 				if isinstance(value, Iterable):
 					collection = cast(list[T],[*value])
 					if not shouldEmptyUpdateTree:
@@ -463,9 +463,9 @@ class ChainedAbsorbentTrie(Generic[T]):
 							return
 					added.path_store = collection
 				else:
-					added.path_store = [value] if not isinstance(value, Sentinel) else []
+					added.path_store = [value] if not isinstance(value, Eitherton) else []
 			else:
-				if not isinstance(value, Sentinel):
+				if not isinstance(value, Eitherton):
 					if isinstance(value, Iterable):
 						added.path_store.extend(cast(Iterable[T], value))
 					else:
@@ -476,15 +476,15 @@ class ChainedAbsorbentTrie(Generic[T]):
 			for path in paths:
 				if type(path) == str:
 					added = self.__absorbentTrie__.__node_at_path__(path, True)
-					if added.path_store == missing:
+					if added.path_store == Lost():
 						added.path_store = []
 				else:
 					added = self.__absorbentTrie__.__node_at_path__(path[0], True)
 					value = cast(T, path[1])
-					if isinstance(added.path_store ,Sentinel):
-						added.path_store = [value] if not isinstance(value, Sentinel) \
+					if isinstance(added.path_store ,Eitherton):
+						added.path_store = [value] if not isinstance(value, Eitherton) \
 							else []
-					elif not isinstance(value, Sentinel):
+					elif not isinstance(value, Eitherton):
 						added.path_store.append(value)
 			self.__absorbentTrie__.__update_counts__()
 

@@ -20,10 +20,19 @@
     - include_vars: "{{ item }}"
       with_first_found:
         - 'vars/os_vars_default.yml'
+    - name: Update apt cache if needed
+      apt: update_cache=true cache_valid_time=3600
+      become: true
+      when: ansible_os_family == "Debian"
 
   tasks:
+    - name: Create ices config directory
+      file:
+        path: '{{app_trunk}}/ices_configs'
+        state: directory
     - name: install icecast
-      package: '{{packages["icecast"]}}'
+      package: 
+        name: '{{packages["icecast"]}}'
       become: true
     - name: Python setup.
       include_role:
@@ -37,7 +46,7 @@
     - name: Extract python version string.
       command: 
         argv:
-          - '{{app_trunk}}/{{env_name}}/bin/python'
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
           - -V
       check_mode: false
       register: python_version
@@ -50,8 +59,8 @@
       vars:
         ices_dependencies: '{{packages["ices_dependencies"]}}'
         build_path: /tmp/build/ices
-        install_path: '{{~/.local}}'
-        python_path: '{{app_trunk}}/{{env_name}}/bin/python'
+        install_path: '{{app_trunk}}/.local'
+        python_path: '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
         python_module_dir: '{{app_trunk}}/{{app_details["name"]}}/pyModules'
         prefix: '{{app_details["prefix"]}}'
     - name: Generate source password
@@ -69,6 +78,9 @@
           - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
           - -m
           - '{{app_details["engine"]}}.one_offs.shutdown_stations'
+      environment:
+        DSF_DB_PASS_JANITOR: '{{keys["db_pass_janitor"]}}'
+        DSF_DATABASE_NAME: '{{app_details["db"]}}'
     - name: Update icecast config
       lineinfile:
         dest: '{{dev_files["icecast_config"]}}'
@@ -89,5 +101,5 @@
         regexp: '<Password>\w*</Password>'
         line: '<Password>{{source_password.stdout}}</Password>'
         state: present
-      with_fileglob: '{{app_trunk}}/{{app_details["name"]}}/ices_configs/*.conf'
+      with_fileglob: '{{app_trunk}}/ices_configs/*.conf'
     

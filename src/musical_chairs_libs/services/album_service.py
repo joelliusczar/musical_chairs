@@ -20,9 +20,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongsAlbumInfo,
 	SongListDisplayItem,
 	normalize_opening_slash,
-	Sentinel,
-	missing,
 	PathDict,
+	Lost
 )
 from .artist_service import ArtistService
 from .path_rule_service import PathRuleService
@@ -82,7 +81,7 @@ class AlbumService:
 		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		albumKeys: Union[int, str, Iterable[int], None, Sentinel]=missing,
+		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
 		artistKeys: Union[int, str, Iterable[int], None]=None,
 		userId: Optional[int]=None,
 		exactStrMatch: bool=False

@@ -3,11 +3,17 @@
 # tasks file for radio-setup
 
 - name: Install dependencies
-  package: '{{item.value}}'
+  package: 
+    name: '{{item.value}}'
   become: true
   loop: '{{ices_dependencies | dict2items}}'
 - name: Install python version specific binary
-  package: 'python3.{{py_minor_version}}-dev'
+  package: 
+    name: 'python3.{{py_minor_version}}-dev'
+  become: true
+- name: Install git
+  package:
+    name: '{{packages["git"]}}'
   become: true
 - name: Clone the ices repo
   git:
@@ -18,20 +24,20 @@
   command:
     cmd: aclocal
     chdir: '{{build_path}}'
-  creates: aclocal.m4
+    creates: aclocal.m4
 - name: Autoreconf
   command:
     cmd: autoreconf -fi
     chdir: '{{build_path}}'
-  create: configure
+    creates: configure
 - name: Run automake
   command:
     cmd: automake --add-missing
     chdir: '{{build_path}}'
 - name: Run configure
   command:
-    cmd: | 
-      configure 
+    cmd: >
+      ./configure 
       '--prefix={{install_path}}' 
       '--with-python={{python_path}}'
       '--with-moddir={{python_module_dir}}'
@@ -39,5 +45,6 @@
     chdir: '{{build_path}}'
     creates: Makefile
 - name: Compile
-  command: make
-  chdir: '{{build_path}}'
+  command: 
+    cmd: make
+    chdir: '{{build_path}}'

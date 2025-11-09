@@ -122,6 +122,7 @@
         owner: '{{domain["server_user"]}}'
         group: '{{domain["group"]}}'
         mode: 'g+w'
+      no_log: true
       become: true
       loop:
         - '{{app_trunk}}'
@@ -138,6 +139,8 @@
         working_dir: '{{item["engine_dir"]}}'
         owner: '{{domain["server_user"]}}'
       loop: '{{env_list}}'
+      loop_control:
+        label: '{{item.name}}'
     - name: MySql setup
       include_role:
         name: mysql-setup
@@ -232,6 +235,8 @@
         ssh_dir: '{{item["ssh_dir"]}}'
         serve_dir: '{{item["client_dir"]}}'
       loop: '{{env_list}}'
+      loop_control:
+        label: '{{item.name}}'
     - name: Client code setup
       include_role:
         name: client-setup
@@ -241,5 +246,7 @@
         dest_dir: '{{item["client_dir"]}}'
       when: item.name != "debug"
       loop: '{{env_list}}'
+      loop_control:
+        label: '{{item.name}}'
 
 

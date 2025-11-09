@@ -1,14 +1,59 @@
----
-- hosts: src_server
+# ---
+# - hosts: all
+#   gather_facts: false
+#   tasks:
+#     - name: Set src and dest host groups
+#       command: 'ansible-inventory -i {{db_copy_inventory}} --list'
+#       register: inventory_result
+#       delegate_to: localhost
+#     - name: Transform inventory_result
+#       set_fact:
+#         loaded_inventory: '{{inventory_result.stdout|from_json}}'
+#     - name: Add db copy source hosts
+#       add_host:
+#         hostname: '{{item}}'
+#         ansible_port: '{{loaded_inventory["_meta"]["hostvars"][item]["ansible_port"]}}'
+#         ansible_user: '{{loaded_inventory["_meta"]["hostvars"][item]["ansible_user"]}}'
+#         groups: src_server
+#       loop:
+#         '{{loaded_inventory["src_server"]["hosts"]}}'
+#       when: ansible_loop.first
+#       loop_control:
+#         extended: true
+#     - name: Add db copy destination hosts
+#       add_host:
+#         hostname: '{{inventory_hostname}}'
+#         ansible_port: '{{ansible_port}}'
+#         ansible_user: '{{ansible_user}}'
+#         groups: dest_servers
+
+
+
+- hosts: all
 
   vars_files:
     - ../vars/vault.yml
     - ../vars/globals.yml
   
   pre_tasks:
-    - name: Enforce only one src server
-      fail:
-      when: groups["src_server"]|length != 1
+    - name: Set src and dest host groups
+      command: 'ansible-inventory -i {{db_copy_inventory}} --list'
+      register: inventory_result
+      delegate_to: localhost
+    - name: Transform inventory_result
+      set_fact:
+        loaded_inventory: '{{inventory_result.stdout|from_json}}'
+    - name: Set source hostname
+      set_fact:
+        src_server_hostname: '{{loaded_inventory["src_server"]["hosts"][0]}}'
+    - debug:
+        msg: '{{src_server_hostname}}'
+    - name: Add db copy source hosts
+      set_fact:
+        src_server:
+          hostname: '{{src_server_hostname}}'
+          ansible_port: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_port"]}}'
+          ansible_user: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_user"]}}'
     - include_vars: "{{ item }}"
       with_first_found:
         - 'vars/os_vars_default.yml'
@@ -17,10 +62,10 @@
       apt:
         name: '{{packages["pymysql"]}}'
         state: present
-      delegate_to: '{{ item }}'
-      loop: '{{ groups["dest_servers"] }}'
   
   tasks:
+    - debug:
+        msg: '{{hostvars[inventory_hostname]["src_server"]}}'
     - name: Dump MySQL database
       community.mysql.mysql_db:
         login_user: '{{ app_details["db_owner"] }}'
@@ -29,21 +74,31 @@
         state: dump
         target: /tmp/backup.sql
         dump_extra_args: "{{ dump_args|default('') }}"
+      delegate_to: '{{src_server["hostname"]}}'
+      vars:
+        ansible_port: '{{hostvars[inventory_hostname]["src_server"]["ansible_port"]}}'
+        ansible_user: '{{hostvars[inventory_hostname]["src_server"]["ansible_user"]}}'
     - name: Fetched the dumped sql
       fetch:
         src: /tmp/backup.sql
         dest: ~/Documents/mysql_dumps/{{ now(fmt='%Y%m%d')}}_backup.sql
         flat: true
+      delegate_to: '{{src_server["hostname"]}}'
+      vars:
+        ansible_port: '{{hostvars[inventory_hostname]["src_server"]["ansible_port"]}}'
+        ansible_user: '{{hostvars[inventory_hostname]["src_server"]["ansible_user"]}}'
     - name: Clean up the dumped sql
       file:
         path: /tmp/backup.sql
         state: absent
+      delegate_to: '{{src_server["hostname"]}}'
+      vars:
+        ansible_port: '{{hostvars[inventory_hostname]["src_server"]["ansible_port"]}}'
+        ansible_user: '{{hostvars[inventory_hostname]["src_server"]["ansible_user"]}}'
     - name: Copy MySQL dump file to remote host
       copy:
         src: ~/Documents/mysql_dumps/{{ now(fmt='%Y%m%d')}}_backup.sql
         dest: /tmp/mysql_dump.sql
-      delegate_to: '{{ item }}'
-      loop: '{{ groups["dest_servers"] }}'
     - name: Import MySQL dump into database
       community.mysql.mysql_db:
         name: '{{ app_details["db"] }}'
@@ -51,5 +106,3 @@
         target: /tmp/mysql_dump.sql
         login_user: '{{ app_details["db_owner"] }}'
         login_password: '{{ keys["db_pass_owner"] }}'
-      delegate_to: '{{ item }}'
-      loop: '{{ groups["dest_servers"] }}'

@@ -33,7 +33,9 @@ from musical_chairs_libs.services import (
 	ArtistService,
 	AlbumService,
 	JobsService,
-	PlaylistService
+	PlaylistService,
+	StationsSongsService,
+	StationsUsersService,
 )
 from musical_chairs_libs.protocols import (
 	FileService
@@ -128,6 +130,16 @@ def station_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> StationService:
 	return StationService(conn)
+
+def stations_songs_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> StationsSongsService:
+	return StationsSongsService(conn)
+
+def stations_users_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> StationsUsersService:
+	return StationsUsersService(conn)
 
 def playlist_service(
 	conn: Connection=Depends(get_configured_db_connection)

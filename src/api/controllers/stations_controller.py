@@ -25,6 +25,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from musical_chairs_libs.services import (
 	StationService,
 	QueueService,
+	StationsUsersService,
 )
 from api_dependencies import (
 	station_service,
@@ -42,7 +43,8 @@ from api_dependencies import (
 	get_page_num,
 	build_error_obj,
 	get_station_user_by_id,
-	get_tracking_info
+	get_tracking_info,
+	stations_users_service
 )
 from station_validation import (
 	validate_station_rule,
@@ -286,9 +288,9 @@ def play_next(
 ])
 def get_station_user_list(
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
-	stationService: StationService = Depends(station_service),
+	stationsUsersService: StationsUsersService = Depends(stations_users_service),
 ) -> TableData[AccountInfo]:
-	stationUsers = list(stationService.get_station_users(stationInfo))
+	stationUsers = list(stationsUsersService.get_station_users(stationInfo))
 	return TableData(items=stationUsers, totalrows=len(stationUsers))
 
 
@@ -304,9 +306,13 @@ def add_user_rule(
 	user: AccountInfo = Depends(get_from_query_subject_user),
 	rule: StationActionRule = Depends(validate_station_rule),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
-	stationService: StationService = Depends(station_service),
+	stationsUsersService: StationsUsersService = Depends(stations_users_service),
 ) -> StationActionRule:
-	return stationService.add_user_rule_to_station(user.id, stationInfo.id, rule)
+	return stationsUsersService.add_user_rule_to_station(
+		user.id,
+		stationInfo.id,
+		rule
+	)
 
 
 @router.delete("/{ownerkey}/{stationkey}/user_role",
@@ -322,9 +328,9 @@ def remove_user_rule(
 	user: AccountInfo = Depends(get_from_query_subject_user),
 	rulename: Optional[str] = Depends(validate_station_rule_for_remove),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
-	stationService: StationService = Depends(station_service),
+	stationsUsersService: StationsUsersService = Depends(stations_users_service),
 ):
-	stationService.remove_user_rule_from_station(
+	stationsUsersService.remove_user_rule_from_station(
 		user.id,
 		stationInfo.id,
 		rulename

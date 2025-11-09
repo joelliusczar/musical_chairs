@@ -20,11 +20,12 @@
       wait_for:
         port: 22
         state: 'stopped'
-        host: '{{ inventory_hostname }}'
+        host: '{{inventory_hostname}}'
         connect_timeout: 3
         timeout: 3
       delegate_to: 'localhost'
       ignore_errors: true
+      no_log: true
       register: port_check
     - name: Exit if port 22 is closed
       meta: end_play
@@ -100,6 +101,8 @@
           line: 'Port {{domain["port"]}}'
         - regexp: '^DenyUsers'
           line: 'DenyUsers {{domain["server_user"]}}'
+      loop_control:
+        label: '{{item.regexp}}'
       notify: restart ssh
     - name: Update local ssh config
       blockinfile:

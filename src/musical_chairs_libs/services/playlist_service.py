@@ -61,7 +61,7 @@ from musical_chairs_libs.tables import (
 	u_dirRoot, u_disabled, 
 	sg_pk, sg_name, sg_track, sg_path, sg_internalpath,
 	sg_deletedTimstamp,
-	playlists_songs as song_playlist_tbl, plsg_songFk, plsg_playlistFk, 
+	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk, 
 	song_artist as song_artist_tbl, sgar_songFk, sgar_isPrimaryArtist,
 	playlist_user_permissions, plup_userFk, plup_playlistFk, plup_role
 )
@@ -300,7 +300,7 @@ class PlaylistService:
 				isouter=True
 			)\
 			.join(
-				song_playlist_tbl,
+				playlists_songs_tbl,
 				plsg_songFk == sg_pk,
 				isouter=True
 			)\

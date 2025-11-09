@@ -11,7 +11,10 @@
 
   tasks:
     - debug:
-        msg: '{{app_trunk}}'
+        msg: '{{groups["all"]}}'
+    - name: Check host
+      pause:
+        prompt: 'Which host? {{ansible_host}}'
     - name: Create directories
       file:
         path: '{{item}}'
@@ -19,6 +22,7 @@
         owner: '{{domain["server_user"]}}'
         group: '{{domain["group"]}}'
         mode: 'g+w'
+      no_log: true
       become: true
       loop:
         - '{{domain["exports_dir"]}}'

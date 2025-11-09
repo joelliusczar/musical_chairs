@@ -1,5 +1,10 @@
 ---
 - import_playbook: harden.yml
+- hosts: all
+  tasks:
+    - name: Flag as original host
+      set_fact:
+        original_host: true
 - import_playbook: run_test.yml
 - import_playbook: startup_api.yml
 - import_playbook: duplicate_db.yml

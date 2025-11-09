@@ -9,6 +9,7 @@
   loop:
     - '{{app_trunk}}'
     - '{{test_trunk|default(omit)}}'
+  no_log: true
 - name: Install Maria DB
   become: true
   package: 

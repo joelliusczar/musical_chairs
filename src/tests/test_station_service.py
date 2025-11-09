@@ -3,16 +3,18 @@ from musical_chairs_libs.services import (
 	StationService,
 	AccountsService,
 	UserRoleDef,
-	StationActionRule
+	StationsUsersService,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationCreationInfo,
-	RulePriorityLevel
+	RulePriorityLevel,
+	StationActionRule
 )
 from .constant_fixtures_for_test import *
 from .common_fixtures import (
 	fixture_station_service as fixture_station_service,
-	fixture_account_service as fixture_account_service
+	fixture_account_service as fixture_account_service,
+	fixture_stations_users_service as fixture_stations_users_service,
 )
 from .common_fixtures import *
 from .mocks.db_population import get_initial_stations
@@ -496,15 +498,20 @@ def test_get_stations_with_odd_priority(
 
 def test_get_station_user_list(
 	fixture_station_service: StationService,
-	fixture_account_service: AccountsService
+	fixture_account_service: AccountsService,
+	fixture_stations_users_service: StationsUsersService
 ):
 	stationService = fixture_station_service
 	accountService = fixture_account_service
+	stationsUsersService = fixture_stations_users_service
 	user,_ = accountService.get_account_for_login("ingo")
 	assert user
 
 	station = next(stationService.get_stations(17, user=user))
-	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
+	result = sorted(
+		stationsUsersService.get_station_users(station),
+		key=lambda u: u.id
+	)
 	assert len(result) == 5
 	assert result[0].username == "carl"
 	assert len(result[0].roles) == 1
@@ -542,7 +549,10 @@ def test_get_station_user_list(
 	assert rules[2].name == UserRoleDef.STATION_VIEW.value
 
 	station = next(stationService.get_stations(18, user=user))
-	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
+	result = sorted(
+		stationsUsersService.get_station_users(station),
+		key=lambda u: u.id
+	)
 	assert len(result) == 2
 	assert result[0].username == "ingo"
 	assert len(result[0].roles) == 6
@@ -564,7 +574,10 @@ def test_get_station_user_list(
 
 	user,_ = accountService.get_account_for_login("testUser_victor")
 	station = next(stationService.get_stations(12, user=user))
-	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
+	result = sorted(
+		stationsUsersService.get_station_users(station),
+		key=lambda u: u.id
+	)
 	assert len(result) == 1
 	assert result[0].username == "testUser_victor"
 	assert len(result[0].roles) == 6
@@ -579,15 +592,20 @@ def test_get_station_user_list(
 
 def test_get_station_user_list_station_no_users(
 	fixture_station_service: StationService,
-	fixture_account_service: AccountsService
+	fixture_account_service: AccountsService,
+	fixture_stations_users_service: StationsUsersService
 ):
 	stationService = fixture_station_service
 	accountService = fixture_account_service
+	stationsUsersService = fixture_stations_users_service
 	user,_ = accountService.get_account_for_login("unruledStation_testUser")
 	assert user
 
 	station = next(stationService.get_stations(20, user=user))
-	result = sorted(stationService.get_station_users(station), key=lambda u: u.id)
+	result = sorted(
+		stationsUsersService.get_station_users(station),
+		key=lambda u: u.id
+	)
 	assert len(result) == 1
 	rules = sorted(result[0].roles, key=lambda r: r.name)
 	assert rules[0].name == UserRoleDef.STATION_ASSIGN.value

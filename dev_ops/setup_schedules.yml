@@ -10,11 +10,6 @@
     - vars/globals.yml
 
   tasks:
-    - debug:
-        msg: '{{groups["all"]}}'
-    - name: Check host
-      pause:
-        prompt: 'Which host? {{ansible_host}}'
     - name: Create directories
       file:
         path: '{{item}}'

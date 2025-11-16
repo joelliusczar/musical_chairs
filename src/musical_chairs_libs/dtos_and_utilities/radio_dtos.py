@@ -1,8 +1,6 @@
-import os
 from pydantic import (
 	field_validator,
 	model_validator,
-	ValidationInfo,
 	Field,
 )
 from typing import (
@@ -14,82 +12,20 @@ from typing import (
 	cast
 )
 from itertools import chain
-from .validation_functions import min_length_validator_factory
-from .simple_functions import get_duplicates, get_non_simple_chars
+from .simple_functions import get_duplicates
 from .generic_dtos import (
 	FrozenIdItem,
-	TableData,
-	T,
 	FrozenBaseClass,
 	MCBaseClass,
-	NamedIdItem,
-	FrozenNamed,
-	FrozenNamedIdItem,
 	IdItem,
-	RuledEntity
 )
-from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule, PathsActionRule
-from .user_role_def import RulePriorityLevel
+from .station_dtos import StationInfo
 from pathlib import Path
+from .album_dtos import AlbumInfo
+from .artist_dtos import ArtistInfo
 
 
-
-class ArtistInfo(FrozenNamedIdItem):
-	owner: OwnerType
-	isprimaryartist: bool=False
-
-class AlbumCreationInfo(FrozenNamed):
-	year: Optional[int]=None
-	albumartist: Optional[ArtistInfo]=None
-	versionnote: Optional[str]=""
-
-class AlbumInfo(FrozenNamedIdItem):
-	owner: OwnerType
-	year: Optional[int]=None
-	albumartist: Optional[ArtistInfo]=None
-	versionnote: Optional[str]=""
-
-class AlbumListDisplayItem(FrozenNamedIdItem):
-	year: Optional[int]=None
-	albumartist: Optional[str]=None
-	versionnote: Optional[str]=""
-
-
-class QueuedItem(NamedIdItem):
-	queuedtimestamp: float=Field(frozen=True)
-
-	def __hash__(self) -> int:
-		return hash((self.id, self.name, self.queuedtimestamp))
-
-	def __eq__(self, value: Any) -> bool:
-		if not value:
-			return False
-		return self.id == value.id \
-			and self.name == value.name \
-			and self.queuedtimestamp == value.queuedtimestamp
-
-class SongListDisplayItem(QueuedItem):
-	album: Optional[str]
-	artist: Optional[str]
-	path: str
-	internalpath: str
-	track: Optional[str]=None
-	playedtimestamp: Optional[float]=None
-	rules: list[ActionRule]=cast(
-		list[ActionRule],
-		Field(default_factory=list, frozen=False)
-	)
-	historyid: Optional[int]=None
-	disc: Optional[int]=None
-
-
-	def display(self) -> str:
-		if self.name:
-				display = f"{self.name} - {self.album} - {self.artist}"
-		else:
-			display = os.path.splitext(os.path.split(self.path)[1])[0]
-		return display.replace("\n", "")
 
 
 class ScanningSongItem(FrozenIdItem):
@@ -106,75 +42,6 @@ class ScanningSongItem(FrozenIdItem):
 	comment: Optional[str]=None
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
-
-
-class StationTableData(TableData[T]):
-	stationrules: list[ActionRule]
-
-
-class CurrentPlayingInfo(StationTableData[SongListDisplayItem]):
-	nowplaying: Optional[SongListDisplayItem]
-
-
-class StationInfo(RuledEntity):
-	id: int=Field(frozen=True)
-	name: str=Field(frozen=True)
-	displayname: str=Field(default="", frozen=False)
-	isrunning: bool=Field(default=False, frozen=False)
-	#don't expect this to ever actually null
-	owner: Optional[OwnerType]=Field(default=None, frozen=False)
-	requestsecuritylevel: Optional[int]=Field(
-		default=RulePriorityLevel.ANY_USER.value, frozen=False
-	)
-
-	def __hash__(self) -> int:
-		return hash((self.id, self.name))
-	
-	def __eq__(self, other: Any) -> bool:
-		if not other:
-			return False
-		return self.id == other.id and self.name == other.name
-
-
-class StationCreationInfo(MCBaseClass):
-	name: str
-	displayname: Optional[str]=""
-	viewsecuritylevel: Optional[int]=Field(default=0)
-	requestsecuritylevel: Optional[int]=Field(
-		default=RulePriorityLevel.OWENER_USER.value
-	)
-
-	@field_validator("requestsecuritylevel")
-	@classmethod
-	def check_requestSecurityLevel(
-		cls,
-		v: int,
-		validationInfo: ValidationInfo
-	) -> int:
-		if v < validationInfo.data["viewsecuritylevel"] \
-			or v == RulePriorityLevel.PUBLIC.value:
-			raise ValueError(
-				"Request Security cannot be public or lower than view security"
-			)
-		return v
-
-
-class ValidatedStationCreationInfo(StationCreationInfo):
-
-	_name_len = field_validator(
-		"name"
-	)(min_length_validator_factory(2, "Station name"))
-
-	@field_validator("name")
-	@classmethod
-	def check_name_for_illegal_chars(cls, v: str) -> str:
-		if not v:
-			return ""
-
-		m = get_non_simple_chars(v)
-		if m:
-			raise ValueError(f"Illegal character used in station name: {m}")
-		return v
 
 
 class SongTreeNode(FrozenBaseClass):
@@ -201,40 +68,12 @@ class SongTreeNode(FrozenBaseClass):
 		return Path(node.path).stem
 
 
-class StationSongTuple:
-
-	def __init__(
-		self,
-		songid: int,
-		stationid: int,
-		islinked: bool=False
-	) -> None:
-		self.songid = songid
-		self.stationid = stationid
-		self.islinked = islinked
-
-	def __len__(self) -> int:
-		return 2
-
-	def __iter__(self) -> Iterator[Any]:
-		yield self.songid
-		yield self.stationid
-
-	def __hash__(self) -> int:
-		return hash((self.songid, self.stationid))
-
-	def __eq__(self, other: Any) -> bool:
-		if not other:
-			return False
-		return self.songid == other.songid \
-			and self.stationid == other.stationid
-
 class SongArtistTuple:
 
 	def __init__(
 		self,
 		songid: int,
-		artistid: int,
+		artistid: Optional[int],
 		isprimaryartist: bool=False,
 		islinked: bool=False
 	) -> None:
@@ -246,7 +85,7 @@ class SongArtistTuple:
 	def __len__(self) -> int:
 		return 2
 
-	def __iter__(self) -> Iterator[int]:
+	def __iter__(self) -> Iterator[Optional[int]]:
 		yield self.songid
 		yield self.artistid
 
@@ -258,6 +97,12 @@ class SongArtistTuple:
 			return False
 		return self.songid == other.songid \
 			and self.artistid == other.artistid
+	
+	def __str__(self) -> str:
+		return f"(songid={self.songid}, artistid={self.artistid})"
+	
+	def __repr__(self) -> str:
+		return str(self)
 
 
 class SongPathInfo(IdItem):
@@ -343,13 +188,3 @@ class LastPlayedItem(MCBaseClass):
 	songid: int
 	timestamp: float
 	historyid: int
-
-class SongsAlbumInfo(AlbumInfo):
-	songs: list[SongListDisplayItem]=cast(
-		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
-	)
-
-class SongsArtistInfo(ArtistInfo):
-	songs: list[SongListDisplayItem]=cast(
-		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
-	)

@@ -118,7 +118,8 @@ export const AlbumEditScreen = () => {
 				name: values.name,
 				year: values.year || undefined,
 				albumartist: values.albumartist || undefined,
-			} });
+				stations: values.stations,
+			}});
 			const album = await requestObj.call();
 			enqueueSnackbar("Save successful", { variant: "success"});
 			addAlbum(album);
@@ -192,7 +193,8 @@ export const AlbumEditScreen = () => {
 
 
 	return <Loader status={callStatus} error={error}>
-		<AlbumEdit 
+		<AlbumEdit
+			id={id}
 			formMethods={formMethods}
 			callSubmit={callSubmit}
 		/>

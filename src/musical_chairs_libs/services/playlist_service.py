@@ -20,13 +20,14 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem,
 	DictDotMap,
 	normalize_opening_slash,
-	build_playlist_rules_query,
 	generate_playlist_user_and_rules_from_rows,
 	RulePriorityLevel,
 	ActionRule,
 	PlaylistActionRule,
 	UserRoleDomain,
-	get_playlist_owner_roles
+	get_playlist_owner_roles,
+	UserRoleDef,
+	build_placeholder_select
 )
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
@@ -44,8 +45,11 @@ from sqlalchemy import (
 	or_,
 	true,
 	false,
+	union_all,
 )
 from sqlalchemy.sql.expression import (
+	case,
+	CompoundSelect,
 	Update,
 	cast as dbCast,
 )
@@ -55,10 +59,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.schema import Column
 from musical_chairs_libs.tables import (
 	playlists as playlists_tbl, pl_description, pl_viewSecurityLevel,
-	pl_name, pl_pk, pl_ownerFk,
+	pl_name, pl_pk, pl_ownerFk, plup_count, plup_span, plup_priority,
 	ar_name,
 	users as user_tbl, u_pk, u_username, u_displayName, u_email, 
-	u_dirRoot, u_disabled, 
+	u_dirRoot, u_disabled, ur_userFk, ur_role, ur_count, ur_span, ur_priority,
 	sg_pk, sg_name, sg_track, sg_path, sg_internalpath,
 	sg_deletedTimstamp,
 	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk, 
@@ -66,7 +70,59 @@ from musical_chairs_libs.tables import (
 	playlist_user_permissions, plup_userFk, plup_playlistFk, plup_role
 )
 
+__playlist_permissions_query__ = select(
+	plup_userFk.label("rule_userfk"),
+	plup_role.label("rule_name"),
+	plup_count.label("rule_count"),
+	plup_span.label("rule_span"),
+	coalesce[Integer](
+		plup_priority,
+		RulePriorityLevel.STATION_PATH.value
+	).label("rule_priority"),
+	dbLiteral(UserRoleDomain.Playlist.value).label("rule_domain"),
+	plup_playlistFk.label("rule_playlistfk")
+)
 
+def build_playlist_rules_query(
+	userId: Optional[int]=None
+) -> CompoundSelect[Tuple[int, str, float, float, int, str]]:
+	user_rules_query = select(
+		ur_userFk.label("rule_userfk"),
+		ur_role.label("rule_name"),
+		ur_count.label("rule_count"),
+		ur_span.label("rule_span"),
+		coalesce[Integer](
+			ur_priority,
+			case(
+				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
+				else_=RulePriorityLevel.SITE.value
+			)
+		).label("rule_priority"),
+		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
+		dbLiteral(None).label("rule_playlistfk")
+	).where(or_(
+			ur_role.like(f"{UserRoleDomain.Playlist.value}:%"),
+			ur_role == UserRoleDef.ADMIN.value
+		),
+	)
+	domain_permissions_query = __playlist_permissions_query__
+	placeholder_select = build_placeholder_select(
+		UserRoleDomain.Playlist
+	).add_columns(
+		dbLiteral(None).label("rule_playlistfk")
+	)
+
+	if userId is not None:
+		domain_permissions_query = \
+			domain_permissions_query.where(plup_userFk == userId)
+		user_rules_query = user_rules_query.where(ur_userFk == userId)
+		
+	query = union_all(
+		placeholder_select,
+		domain_permissions_query,
+		user_rules_query,
+	)
+	return query
 
 class PlaylistService:
 
@@ -82,7 +138,6 @@ class PlaylistService:
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
-
 
 	def __attach_user_joins__(
 		self,

@@ -34,6 +34,13 @@
       package: 
         name: '{{packages["icecast"]}}'
       become: true
+      notify: Restart icecast
+    - name: Grant read to icecast config
+      user:
+        name: '{{domain["server_user"]}}'
+        groups: icecast
+        append: true
+      become: true
     - name: Python setup.
       include_role:
         name: python-setup

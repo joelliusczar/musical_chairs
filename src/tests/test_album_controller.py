@@ -27,3 +27,29 @@ def test_fetch_null_album(
 	noAlbumSongs = [s for s in get_initial_songs() if "albumfk" not in s]
 	assert len(items) == len(noAlbumSongs)
 
+def test_album_update(
+	fixture_api_test_client: TestClient,
+	fixture_primary_user: AccountInfo,
+):
+	client = fixture_api_test_client
+
+	headers = login_test_user(fixture_primary_user.username, client)
+
+	response = client.get(
+		"/albums/7",
+		headers=headers
+	)
+	assert response.status_code == 200
+	data = json.loads(response.content)
+
+	data["versionnote"] = "from the bottom of my heart"
+
+	putRespose = client.put(
+		"/albums/7",
+		headers=headers,
+		json=data
+	)
+	data = json.loads(response.content)
+	assert putRespose.status_code == 200
+
+

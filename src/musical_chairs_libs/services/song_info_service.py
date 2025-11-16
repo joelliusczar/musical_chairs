@@ -289,7 +289,8 @@ class SongInfoService:
 		if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
 			self.song_artist_service.link_songs_with_artists(
 				chain(
-					(SongArtistTuple(sid, a.id) for a in songInfo.artists or []
+					(SongArtistTuple(sid, a.id if a else None) for a 
+						in songInfo.artists or [None] * len(ids)
 						for sid in ids
 					) if "artists" in songInfo.touched else (),
 					#we can't use allArtists here bc we need the primaryartist selection
@@ -299,16 +300,12 @@ class SongInfoService:
 				),
 				user.id
 			)
-			if not [*songInfo.allArtists]:
-				self.song_artist_service.remove_songs_for_artists(songIds=ids)
 		if "stations" in songInfo.touched:
 			self.stations_songs_service.link_songs_with_stations(
-				(StationSongTuple(sid, t.id)
-					for t in (songInfo.stations or []) for sid in ids),
+				(StationSongTuple(sid, t.id if t else None) 
+					for t in (songInfo.stations or [None] * len(ids)) for sid in ids),
 				user.id
 			)
-			if not songInfo.stations:
-				self.stations_songs_service.remove_songs_for_stations(songIds=ids)
 		self.conn.commit()
 		if len(ids) < 2:
 			yield from self.get_songs_for_edit(ids, user)

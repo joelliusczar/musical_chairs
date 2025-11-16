@@ -8,6 +8,7 @@ from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user
 )
 from .mocks.db_data import kilo_user_id, station_saver_user_id
+from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from musical_chairs_libs.dtos_and_utilities import (
 	RulePriorityLevel,
 	UserRoleDef,
@@ -247,7 +248,9 @@ def test_song_save(
 			"owner": None,
 			"requestsecuritylevel": 9,
 			"viewsecuritylevel": 0,
-			"isrunning": False
+			"isrunning": False,
+			"typeid": StationTypes.SONGS_ONLY.value,
+			"bitratekps": None
 		},
 		{
 			"id": 7,
@@ -256,7 +259,9 @@ def test_song_save(
 			"owner": None,
 			"requestsecuritylevel": 9,
 			"viewsecuritylevel": 0,
-			"isrunning": False
+			"isrunning": False,
+			"typeid": StationTypes.SONGS_ONLY.value,
+			"bitratekps": None
 		},
 		{
 			"id": 10,
@@ -265,7 +270,9 @@ def test_song_save(
 			"owner": None,
 			"requestsecuritylevel": 9,
 			"viewsecuritylevel": 0,
-			"isrunning": False
+			"isrunning": False,
+			"typeid": StationTypes.SONGS_ONLY.value,
+			"bitratekps": None
 		}
 	]
 	sendData["artists"] = [
@@ -551,7 +558,9 @@ def test_get_songs_for_multi_edit(
 			},
 			"rules": [],
 			"requestsecuritylevel": 9,
-			"viewsecuritylevel": 0
+			"viewsecuritylevel": 0,
+			"typeid": StationTypes.SONGS_ONLY.value,
+			"bitratekps": None
 		}
 	]
 	assert "stations" in touched

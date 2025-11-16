@@ -89,10 +89,8 @@ GRANT INSERT ON TABLE `<dbName>`.`playlists` TO <apiUser>;
 GRANT DELETE ON TABLE `<dbName>`.`playlists` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`playlists` TO <apiUser>;
 
-GRANT UPDATE ON TABLE `<dbName>`.`songsplaylists` TO <apiUser>;
-GRANT INSERT ON TABLE `<dbName>`.`songsplaylists` TO <apiUser>;
-GRANT DELETE ON TABLE `<dbName>`.`songsplaylists` TO <apiUser>;
-GRANT SELECT ON TABLE `<dbName>`.`songsplaylists` TO <apiUser>;
+--playlistssongs has been moved out of here because it was renamed
+
 
 GRANT UPDATE ON TABLE `<dbName>`.`stationsplaylists` TO <apiUser>;
 GRANT INSERT ON TABLE `<dbName>`.`stationsplaylists` TO <apiUser>;

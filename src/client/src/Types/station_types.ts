@@ -43,6 +43,8 @@ export interface StationInfoForm extends Named {
 	displayname: string | null
 	viewsecuritylevel: NamedIdItem
 	requestsecuritylevel: NamedIdItem
+	typeOption: NamedIdItem
+	bitratekps: number | null
 }
 
 export interface StationCreationInfo extends Named {

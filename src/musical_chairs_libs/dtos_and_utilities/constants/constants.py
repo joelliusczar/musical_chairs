@@ -31,5 +31,7 @@ class JobStatusTypes(Enum):
 	FAILED = "failed"
 
 class StationTypes(Enum):
-	DEFAULT = 0
-	ALBUM = 1
+	SONGS_ONLY = 0
+	ALBUMS_ONLY = 1
+	PLAYLISTS_ONLY = 2
+	ALBUMS_AND_PLAYLISTS = 3

@@ -91,11 +91,8 @@ const removeItemInState = <T extends NamedIdItem>(
 ) => {
 	const items = [...state.data.items];
 	const idx = items.findIndex(i => i.id === item.id);
-	console.log(items);
-	console.log(item);
 	if (idx > -1) {
 		items.splice(idx, 1);
-		console.log(items);
 		return {
 			...state,
 			data: {

@@ -25,6 +25,8 @@ from musical_chairs_libs.services import (
 	PlaylistService,
 	StationsSongsService,
 	StationsUsersService,
+	AlbumQueueService,
+	StationsAlbumsService
 )
 
 from musical_chairs_libs.radio_handle import RadioHandle
@@ -132,11 +134,21 @@ def fixture_queue_service(
 	queueService = QueueService(fixture_conn_cardboarddb)
 	return queueService
 
+
+@pytest.fixture
+def fixture_album_queue_service(
+	fixture_conn_cardboarddb: Connection
+) -> AlbumQueueService:
+	albumQueueService = AlbumQueueService(fixture_conn_cardboarddb)
+	return albumQueueService
+
+
 @pytest.fixture
 def fixture_account_service(
 	fixture_conn_cardboarddb: Connection) -> AccountsService:
 	accountService = AccountsService(fixture_conn_cardboarddb)
 	return accountService
+
 
 @pytest.fixture
 def fixture_station_service(
@@ -145,6 +157,7 @@ def fixture_station_service(
 	stationService = StationService(fixture_conn_cardboarddb)
 	return stationService
 
+
 @pytest.fixture
 def fixture_stations_songs_service(
 	fixture_conn_cardboarddb: Connection
@@ -152,12 +165,22 @@ def fixture_stations_songs_service(
 	stationsSongsService = StationsSongsService(fixture_conn_cardboarddb)
 	return stationsSongsService
 
+
+@pytest.fixture
+def fixture_stations_albums_service(
+	fixture_conn_cardboarddb: Connection
+) -> StationsAlbumsService:
+	stationsAlbumsService = StationsAlbumsService(fixture_conn_cardboarddb)
+	return stationsAlbumsService
+
+
 @pytest.fixture
 def fixture_stations_users_service(
 	fixture_conn_cardboarddb: Connection
 ) -> StationsUsersService:
 	stationsUsersService = StationsUsersService(fixture_conn_cardboarddb)
 	return stationsUsersService
+
 
 @pytest.fixture
 def fixture_playlist_service(

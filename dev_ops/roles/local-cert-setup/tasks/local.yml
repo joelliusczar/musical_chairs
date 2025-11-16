@@ -30,3 +30,4 @@
   args:
     executable: python3
   when: cert_files["public"] != ""
+  tags: entitled

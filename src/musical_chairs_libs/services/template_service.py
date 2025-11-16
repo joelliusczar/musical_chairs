@@ -30,7 +30,8 @@ class TemplateService:
 		internalName: str,
 		publicName: str,
 		sourcePassword: str,
-		username: str
+		username: str,
+		bitrate: int=128
 	) -> str:
 		icesConfigTemplate = self.__load_ices_config_template__()
 		return icesConfigTemplate.replace(
@@ -45,6 +46,9 @@ class TemplateService:
 		).replace(
 			"<Name>public_station_name</Name>",
 			f"<Name>{publicName}</Name>"
+		).replace(
+			"<Bitrate>128</Bitrate>",
+			f"<Bitrate>{bitrate}</Bitrate>"
 		)
 
 	def __create_ices_python_module_content__(self, stationId: int) -> str:
@@ -71,7 +75,8 @@ class TemplateService:
 		stationId: int,
 		internalName: str,
 		publicName: str,
-		username: str
+		username: str,
+		bitrate: int=128
 	):
 		icecastConfLocation = ProcessService.get_icecast_conf_location()
 		sourcePassword = EnvManager.read_config_value(
@@ -82,7 +87,8 @@ class TemplateService:
 			internalName,
 			publicName,
 			sourcePassword,
-			username
+			username,
+			bitrate
 		)
 		self.station_config_path(internalName, username).write_text(configContent)
 

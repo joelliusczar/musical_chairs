@@ -34,13 +34,11 @@ from sqlalchemy import (
 )
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
-	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel, st_typeid,
+	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel, st_typeid, 
+	st_bitrate,
 	songs, sg_pk,
 	sg_deletedTimstamp,
-	albums, ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_versionnote,
-	artists, ar_name, ar_pk,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
-	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
 	station_user_permissions as station_user_permissions_tbl,
 	stup_stationFk,
 	users as user_tbl, u_username, u_pk, u_displayName, 
@@ -63,8 +61,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	OwnerInfo,
 	build_station_rules_query,
 	row_to_action_rule,
-	clean_search_term_for_like,
-	AlbumListDisplayItem,
 	Lost
 )
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
@@ -233,6 +229,8 @@ class StationService:
 			requestsecuritylevel=row["requestsecuritylevel"],
 			viewsecuritylevel=row[st_viewSecurityLevel] \
 				or RulePriorityLevel.PUBLIC.value,
+			typeid=row[st_typeid] or StationTypes.SONGS_ONLY.value,
+			bitratekps=row[st_bitrate]
 		)
 
 	def __generate_station_and_rules_from_rows__(
@@ -285,7 +283,9 @@ class StationService:
 				),
 				RulePriorityLevel.ANY_USER.value
 			).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
-			st_viewSecurityLevel
+			st_viewSecurityLevel,
+			st_typeid,
+			st_bitrate,
 		).select_from(stations_tbl)\
 		.join(user_tbl, st_ownerFk == u_pk, isouter=True)
 
@@ -323,7 +323,6 @@ class StationService:
 				yield self.__row_to_station__(row)
 
 
-
 	def get_station_song_catalogue(
 		self,
 		stationId: int,
@@ -346,74 +345,6 @@ class StationService:
 		return (data,count)
 
 
-	def get_album_catalogue(
-		self,
-		stationId: int,
-		page: int = 0,
-		album: str = "",
-		artist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
-	) -> Tuple[list[AlbumListDisplayItem], int]:
-		offset = page * limit if limit else 0
-		lalbum = clean_search_term_for_like(album)
-		lartist = clean_search_term_for_like(artist)
-
-		query = select(
-			ab_pk.label("id"),
-			ab_name.label("name"),
-			ar_name.label("albumartist"),
-			ab_year.label("year"),
-			ab_versionnote.label("versionnote")
-		)\
-			.select_from(stations_tbl) \
-			.join(stations_songs_tbl, st_pk == stab_stationFk) \
-			.join(albums, stab_albumFk == ab_pk) \
-			.join(artists, ab_albumArtistFk == ar_pk, isouter=True) \
-			.where(st_pk == stationId)
-		
-		if lalbum:
-			query = query.where(ab_name.like(f"%{lalbum}%"))
-
-		if lartist:
-			query = query.where(ar_name.like(f"%{lartist}%"))
-
-		limitedQuery = query\
-			.offset(offset)\
-			.limit(limit)
-
-		records = self.conn.execute(limitedQuery).mappings()
-
-		result = [AlbumListDisplayItem(**r) for r in records]
-		countQuery = select(func.count(1))\
-			.select_from(cast(Any, query))
-		count = self.conn.execute(countQuery).scalar() or 0
-		return result, count
-
-	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:
-		query = select(func.count(1)).select_from(stations_songs_tbl)\
-			.join(songs, stsg_songFk == sg_pk)\
-			.join(stations_tbl, st_pk == stsg_stationFk)\
-			.where(st_typeid == StationTypes.DEFAULT.value)\
-			.where(sg_deletedTimstamp.is_(None))\
-			.where(stsg_songFk == songId)\
-			.where(stsg_stationFk == stationId)
-		countRes = self.conn.execute(query).scalar()
-		return True if countRes and countRes > 0 else False
-	
-	def can_album_be_queued_to_station(
-		self,
-		albumId: int,
-		stationId: int
-	) -> bool:
-		query = select(func.count(1)).select_from(stations_albums_tbl)\
-			.join(stations_tbl, stab_stationFk == st_pk)\
-			.where(st_typeid == StationTypes.ALBUM.value)\
-			.where(stab_albumFk == albumId)\
-			.where(stab_stationFk == stationId)
-		countRes = self.conn.execute(query).scalar()
-		return True if countRes and countRes > 0 else False
-
 	def __is_stationName_used__(
 		self,
 		id: Optional[int],
@@ -427,6 +358,7 @@ class StationService:
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
+
 	def is_stationName_used(
 		self,
 		id: Optional[int],
@@ -437,6 +369,7 @@ class StationService:
 		if not cleanedStationName:
 			return True
 		return self.__is_stationName_used__(id, cleanedStationName, userId)
+
 
 	def __create_initial_owner_rules__(
 		self,
@@ -496,6 +429,7 @@ class StationService:
 	) -> StationInfo:
 		...
 
+
 	def save_station(
 		self,
 		station: StationCreationInfo,
@@ -513,7 +447,9 @@ class StationService:
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp(),
 			viewsecuritylevel = station.viewsecuritylevel,
-			requestsecuritylevel = station.requestsecuritylevel
+			requestsecuritylevel = station.requestsecuritylevel,
+			typeid = station.typeid,
+			bitratekps = station.bitratekps
 		)
 		if stationId and isinstance(stmt, Update):
 			stmt = stmt.where(st_pk == stationId)
@@ -526,7 +462,8 @@ class StationService:
 				affectedId,
 				str(savedName),
 				str(savedDisplayName),
-				user.username
+				user.username,
+				station.bitratekps or 128
 			)
 			rules = []
 			if not stationId:
@@ -573,6 +510,7 @@ class StationService:
 		for row in records:
 			yield cast(int,row[0]), cast(int,row[1])
 
+
 	def set_station_proc(self, stationId: int) -> None:
 		pid = ProcessService.get_pid()
 		stmt = update(stations_tbl)\
@@ -580,6 +518,7 @@ class StationService:
 				.where(st_pk == stationId)
 		self.conn.execute(stmt)
 		self.conn.commit()
+
 
 	def unset_station_procs(
 		self,
@@ -599,6 +538,7 @@ class StationService:
 			raise ValueError("procIds, stationIds, or stationNames must be provided.")
 		self.conn.execute(stmt)
 
+
 	def __noop_startup__(self, stationName: str) -> None:
 		#for normal operations, this is handled in the ices process
 
@@ -607,6 +547,7 @@ class StationService:
 				.values(procid = pid) \
 				.where(func.lower(st_name) == func.lower(stationName))
 		self.conn.execute(stmt)
+
 
 	def enable_stations(self,
 		stations: Collection[StationInfo],
@@ -648,7 +589,8 @@ class StationService:
 								station.id,
 								station.name,
 								station.displayname,
-								owner.username
+								owner.username,
+								station.bitratekps or 128
 							)
 
 						ProcessService.start_song_queue_process(
@@ -662,6 +604,7 @@ class StationService:
 					raise
 		finally:
 			self.conn.commit()
+
 
 	def disable_stations(
 		self,
@@ -694,6 +637,7 @@ class StationService:
 		self.unset_station_procs(stationIds=stationIds)
 		self.conn.commit()
 
+
 	def delete_station(self, stationId: int, clearStation: bool=False) -> int:
 		if not stationId:
 			return 0
@@ -712,6 +656,7 @@ class StationService:
 		self.conn.commit()
 		return delCount
 
+
 	def clear_station(self, stationId: int) -> int:
 		if not stationId:
 			return 0
@@ -720,7 +665,8 @@ class StationService:
 		delCount += self.conn.execute(delStmt).rowcount
 		self.conn.commit()
 		return delCount
-		
+
+
 	def copy_station(
 		self, 
 		stationId: int, 

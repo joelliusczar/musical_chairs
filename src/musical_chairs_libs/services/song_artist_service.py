@@ -113,12 +113,14 @@ class SongArtistService:
 			ar_pk.in_(a.artistid for a in songArtistsSet)
 		)
 		songRecords = self.conn.execute(songQuery).fetchall()
-		artistRecords = self.conn.execute(artistsQuery).fetchall()
+		artistRecords = self.conn.execute(artistsQuery).fetchall()\
+			or [None] * len(songRecords)
 
 		yield from (t for t in (SongArtistTuple(
 			songRow[0],
-			artistRow[0],
-			isprimaryartist=cast(int, artistRow[0]) == primaryArtistId
+			artistRow[0] if artistRow else None,
+			isprimaryartist=(artistRow is not None) \
+				and cast(int, artistRow[0]) == primaryArtistId
 		) for songRow in songRecords
 			for artistRow in artistRecords
 		) if t in songArtistsSet)
@@ -160,9 +162,10 @@ class SongArtistService:
 			"isprimaryartist": p.isprimaryartist,
 			"lastmodifiedbyuserfk": userId,
 			"lastmodifiedtimestamp": self.get_datetime().timestamp()
-		} for p in inPairs]
-		stmt = insert(song_artist_tbl)
-		self.conn.execute(stmt, params)
+		} for p in inPairs if p.artistid]
+		if params:
+			stmt = insert(song_artist_tbl)
+			self.conn.execute(stmt, params)
 		return self.get_song_artists(
 			songIds={sa.songid for sa in uniquePairs}
 		)

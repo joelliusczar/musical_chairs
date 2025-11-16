@@ -34,7 +34,7 @@ from sqlalchemy.exc import IntegrityError
 router = APIRouter(prefix="/albums")
 
 def can_edit_album(
-	albumid: int,
+	albumkey: int,
 	user: AccountInfo = Security(
 		get_user_with_simple_scopes,
 		scopes=[UserRoleDef.ALBUM_EDIT.value]
@@ -43,7 +43,7 @@ def can_edit_album(
 ) -> AccountInfo:
 	if user.isadmin:
 		return user
-	owner = albumService.get_album_owner(albumid)
+	owner = albumService.get_album_owner(albumkey)
 	if owner.id == user.id:
 		return user
 	raise build_wrong_permissions_error()
@@ -124,35 +124,35 @@ def create_album(
 
 @router.put("/{albumkey}")
 def update_album(
-	albumid: int,
+	albumkey: int,
 	album: AlbumCreationInfo,
 	albumService: AlbumService = Depends(album_service),
 	user: AccountInfo = Depends(can_edit_album)
 ) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, user=user, albumId=albumid)
+	albumInfo = albumService.save_album(album, user=user, albumId=albumkey)
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"Album with key {albumid} not found")
+			detail=[build_error_obj(f"Album with key {albumkey} not found")
 			]
 		)
 	return albumInfo
 
 
 @router.delete(
-	"/{albumid}",
+	"/{albumkey}",
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[Depends(can_edit_album)]
 )
 def delete(
-	albumid: int,
+	albumkey: int,
 	albumService: AlbumService = Depends(album_service),
 ):
 	try:
-		if albumService.delete_album(albumid) == 0:
+		if albumService.delete_album(albumkey) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
-				detail=[build_error_obj(f"Album with key {albumid} not found")
+				detail=[build_error_obj(f"Album with key {albumkey} not found")
 				]
 			)
 	except IntegrityError:

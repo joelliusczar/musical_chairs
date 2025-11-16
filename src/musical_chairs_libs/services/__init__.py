@@ -16,3 +16,4 @@ from .jobs_service import *
 from .playlist_service import *
 from .stations_songs_service import *
 from .stations_users_service import *
+from .album_queue_service import *

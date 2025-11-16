@@ -22,7 +22,7 @@ from musical_chairs_libs.tables import (
 )
 from .account_dtos import OwnerType, OwnerInfo, get_playlist_owner_roles
 from .user_role_def import RulePriorityLevel
-from .radio_dtos import SongListDisplayItem
+from .queued_item import SongListDisplayItem
 from .action_rule_dtos import ActionRule
 
 class PlaylistCreationInfo(Named):

@@ -1,4 +1,5 @@
 import hashlib
+import re
 from typing import Any
 from .env_manager import EnvManager
 from .template_service import TemplateService
@@ -13,6 +14,7 @@ from musical_chairs_libs.tables import metadata, get_ddl_scripts
 #https://github.com/PyMySQL/PyMySQL/issues/590
 from pymysql.constants import CLIENT
 from pathlib import Path
+from contextlib import redirect_stderr
 
 def is_db_name_safe(dbName: str) -> bool:
 	return is_name_safe(dbName, maxLen=100)
@@ -181,16 +183,7 @@ class DbOwnerConnectionService:
 	def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
 		self.conn.close()
 
-	def grant_api_roles(self):
-		template = TemplateService.load_sql_script_content(SqlScripts.GRANT_API)
-		if not is_db_name_safe(self.dbName):
-			raise RuntimeError("Invalid name was used")
-		script = template.replace("<dbName>", self.dbName)\
-			.replace("<apiUser>", DbUsers.API_USER("localhost"))
-		self.conn.exec_driver_sql(script)
-		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
-
-	def grant_radio_roles(self):
+	def grant_radio_rolesx(self):
 		template = TemplateService.load_sql_script_content(SqlScripts.GRANT_RADIO)
 		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
@@ -199,47 +192,44 @@ class DbOwnerConnectionService:
 		self.conn.exec_driver_sql(script)
 		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
-	def grant_janitor_roles(self):
-		template = TemplateService.load_sql_script_content(
-			SqlScripts.GRANT_JANITOR
-		)
-		if not is_db_name_safe(self.dbName):
-			raise RuntimeError("Invalid name was used")
-		script = template.replace("<dbName>", self.dbName)\
-			.replace("<janitorUser>", DbUsers.JANITOR_USER("localhost"))
-		self.conn.exec_driver_sql(script)
+	def flush_privileges(self):
 		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
 	def create_tables(self):
 		metadata.create_all(self.conn.engine)
 
-	def add_path_permission_index(self):
-		template = TemplateService.load_sql_script_content(
-			SqlScripts.PATH_USER_INDEXES
-		)
+	def load_script_contents(self, scriptId: SqlScripts) -> str:
 		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
-		script = template.replace("<dbName>", self.dbName)
+		templateNoComments = re.sub(
+			r"^[ \t]*--.*\n",
+			"",
+			TemplateService.load_sql_script_content(
+				scriptId
+			),
+			flags=re.MULTILINE
+		)
+		return templateNoComments.replace("<dbName>", self.dbName)
+
+	def run_defined_api_user_script(self, scriptId: SqlScripts):
+		script = self.load_script_contents(scriptId)\
+			.replace("<apiUser>", DbUsers.API_USER("localhost"))
 		self.conn.exec_driver_sql(script)
 
-	def add_next_directory_level_func(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.NEXT_DIRECTORY_LEVEL
-		).replace("<apiUser>", DbUsers.API_USER("localhost"))
+	def run_defined_radio_user_script(self, scriptId: SqlScripts):
+		script = self.load_script_contents(scriptId)\
+			.replace("<radioUser>", DbUsers.RADIO_USER("localhost"))
 		self.conn.exec_driver_sql(script)
 
-	def add_normalize_opening_slash(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.NORMALIZE_OPENING_SLASH
-		).replace("<apiUser>", DbUsers.API_USER("localhost"))
+	def run_defined_janitor_user_script(self, scriptId: SqlScripts):
+		script = self.load_script_contents(scriptId)\
+			.replace("<janitorUser>", DbUsers.JANITOR_USER("localhost"))
 		self.conn.exec_driver_sql(script)
 
 	def run_defined_script(self, scriptId: SqlScripts):
-		script = TemplateService.load_sql_script_content(
-			scriptId
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
+		script = self.load_script_contents(scriptId)\
+			.replace("|","")\
+			.replace("DELIMITER","")
 
 		self.conn.exec_driver_sql(script)
 
@@ -252,12 +242,18 @@ def setup_database(dbName: str):
 
 	with DbOwnerConnectionService(dbName, echo=False) as ownerConnService:
 		ownerConnService.create_tables()
-		ownerConnService.add_path_permission_index()
-		ownerConnService.grant_api_roles()
-		ownerConnService.grant_radio_roles()
-		ownerConnService.grant_janitor_roles()
-		ownerConnService.add_next_directory_level_func()
-		ownerConnService.add_normalize_opening_slash()
+		ownerConnService.run_defined_script(SqlScripts.PATH_USER_INDEXES)
+		ownerConnService.run_defined_api_user_script(SqlScripts.GRANT_API)
+		ownerConnService.run_defined_radio_user_script(SqlScripts.GRANT_RADIO)
+		ownerConnService.run_defined_janitor_user_script(SqlScripts.GRANT_JANITOR)
+		ownerConnService.flush_privileges()
+
+		ownerConnService.run_defined_api_user_script(
+			SqlScripts.NEXT_DIRECTORY_LEVEL
+		)
+		ownerConnService.run_defined_api_user_script(
+			SqlScripts.NORMALIZE_OPENING_SLASH
+		)
 		
 		ownerConnService.run_defined_script(SqlScripts.DROP_REQUESTED_TIMESTAMP)
 		ownerConnService.run_defined_script(SqlScripts.ADD_INTERNAL_PATH)
@@ -272,12 +268,16 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDBYUSERID)
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_TRACKNUM)
 		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLIST_VIEWSECURITY)
-		ownerConnService.run_defined_script(SqlScripts.ADD_SONGSPLAYLISTS_ORDER)
+		#ADD_SONGSPLAYLISTS_ORDER used to be No.20, got moved to .23
+		#ownerConnService.run_defined_script(SqlScripts.ADD_SONGSPLAYLISTS_ORDER)
 		try:
 			#there doesn't seem to be a good if table exists, rename
 			#syntax, so we're just going to smother the error
-			ownerConnService.run_defined_script(SqlScripts.RENAME_PLAYLIST_SONG_TABLE)
+			with redirect_stderr(None):
+				ownerConnService.run_defined_script(SqlScripts.RENAME_PLAYLIST_SONG_TABLE)
 		except:
 			pass
+		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_BITRATE)
+		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLISTSSONGS_ORDER)
 
 		Path(f"/tmp/{get_schema_hash()}").touch()

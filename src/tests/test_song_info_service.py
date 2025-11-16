@@ -663,7 +663,7 @@ def test_get_artists_for_songs(
 	assert songArtists
 	assert len(songArtists) == 5
 	artists = sorted(artistService.get_artists(
-			artistKeys=(sa.artistid for sa in songArtists)
+			artistKeys=(sa.artistid or 0 for sa in songArtists)
 	), key=lambda a: a.id or 0)
 
 	assert len(artists) == 5
@@ -679,7 +679,7 @@ def test_get_artists_for_songs(
 	assert len(songArtists) == 3
 
 	artists = sorted(artistService.get_artists(
-			artistKeys=(sa.artistid for sa in songArtists)
+			artistKeys=(sa.artistid or 0 for sa in songArtists)
 	), key=lambda a: a.id or 0)
 
 	assert artists and len(artists) == 3

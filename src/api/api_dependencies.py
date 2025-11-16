@@ -36,6 +36,7 @@ from musical_chairs_libs.services import (
 	PlaylistService,
 	StationsSongsService,
 	StationsUsersService,
+	AlbumQueueService
 )
 from musical_chairs_libs.protocols import (
 	FileService
@@ -185,6 +186,11 @@ def queue_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> QueueService:
 	return QueueService(conn)
+
+def album_queue_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> AlbumQueueService:
+	return AlbumQueueService(conn)
 
 def accounts_service(
 	conn: Connection=Depends(get_configured_db_connection)

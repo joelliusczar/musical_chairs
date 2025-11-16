@@ -153,6 +153,9 @@ FreeSolo extends boolean | undefined = false,
 		if (option && typeof option === "string") {
 			return option;
 		}
+		else if (typeof option === "number") {
+			return option.toString();
+		}
 		else if(!!option && typeof option === "object" && "name" in option) {
 			return option.name as string;
 		}

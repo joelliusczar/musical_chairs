@@ -6,11 +6,11 @@ from enum import Enum
 class SqlScripts(Enum):
 	GRANT_API = (
 		"001.grant_api.sql",
-		"7996a69adc36ffb778d948c4df8016e80c3a0513f038c10da5296f1e546ee33e"
+		"77321d41fb61e0ca4197c05bfe2129df4a59567d5dd1749615d329b94498bf13"
 	)
 	GRANT_RADIO = (
 		"002.grant_radio.sql",
-		"52fc61bd5090b67b0e27582115f7ac9bb3239b24cb050fd14585dcf5153b838f"
+		"5b27ee6d145c7b1054a8a94105b4a4a7b47aff1df60cf6e205ff810462bd098f"
 	)
 	PATH_USER_INDEXES = (
 		"003.path_user_indexes.sql",
@@ -80,13 +80,17 @@ class SqlScripts(Enum):
 		"019.add_playlist_viewsecurity.sql",
 		"8b148e07872691319f43cda47d54cf0c1647f274d0b6009bc09d334384990de0"
 	)
-	ADD_SONGSPLAYLISTS_ORDER = (
-		"020.add_songsplaylists_order.sql",
-		"2f4133e5024ed92187c99862361fd14caa962661cfc2a0e41c4cf88a059e8a44"
-	)
 	RENAME_PLAYLIST_SONG_TABLE = (
 		"021.rename_playlist_song_table.sql",
-		"8e5c4179024da07478d49ba4d51aa5bf2cac5322eace19c61e0e86031a965174"
+		"0b784690f066ee79517b5c661b3745796d1899c1899c970eb5fe855bf0a7a84d"
+	)
+	ADD_STATION_BITRATE = (
+		"022.add_station_bitrate.sql",
+		"2d822eeb7b370bf1d5d1c2748883b40cbb2146d64a13177bfc0c81dd55dd2de7"
+	)
+	ADD_PLAYLISTSSONGS_ORDER = (
+		"023.add_playlistssongs_order.sql",
+		"0cf0a767eea4a75bd8d45c7f5b622bafb0a9942c7e6246737589f845f255ac8a"
 	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",

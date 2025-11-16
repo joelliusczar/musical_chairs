@@ -85,6 +85,8 @@ const stationTypeOptions = [
 	},
 ];
 
+const bitrateChoices = [64, 128, 192, 256, 320];
+
 const requestSecurityOptions = viewSecurityOptions;
 
 const initialValues = {
@@ -93,6 +95,7 @@ const initialValues = {
 	viewsecuritylevel: viewSecurityOptions[0],
 	requestsecuritylevel: requestSecurityOptions[1],
 	typeOption: stationTypeOptions[0],
+	bitratekps: bitrateChoices[1],
 };
 
 
@@ -111,11 +114,13 @@ const validatePhraseIsUnused = async (
 };
 
 const schema = Yup.object().shape({
-	name: Yup.string().required().test(
-		"name",
-		(value) => `${value.path} is already used`,
-		validatePhraseIsUnused
-	),
+	name: Yup.string().required()
+		.matches(/^[a-zA-Z0-9_]*$/, "Name can only contain a-zA-Z0-9_")
+		.test(
+			"name",
+			(value) => `${value.path} is already used`,
+			validatePhraseIsUnused
+		),
 	requestsecuritylevel: Yup.object().required().test(
 		"requestsecuritylevel",
 		"Request Security cannot be public or lower than view security",
@@ -204,15 +209,20 @@ export const StationEdit = (props: StationEditProps) => {
 		reValidateMode: "onSubmit",
 		resolver: yupResolver(schema),
 	});
-	const { handleSubmit, reset, watch, formState, getValues } = formMethods;
+	const { handleSubmit, reset, watch, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const stationId = values.id || null;
-			const {viewsecuritylevel, requestsecuritylevel } = values;
+			const {
+				viewsecuritylevel,
+				requestsecuritylevel,
+				typeOption,
+			} = values;
 			const saveData = {
 				...values,
 				viewsecuritylevel: viewsecuritylevel.id,
 				requestsecuritylevel: requestsecuritylevel.id,
+				typeid: typeOption.id,
 			};
 			saveData.viewsecuritylevel = viewsecuritylevel.id;
 			saveData.requestsecuritylevel = requestsecuritylevel.id;
@@ -239,7 +249,7 @@ export const StationEdit = (props: StationEditProps) => {
 				console.error("Station id is missing");
 				return;
 			}
-			const {viewsecuritylevel, requestsecuritylevel } = values;
+			const { viewsecuritylevel, requestsecuritylevel } = values;
 			const saveData = {
 				...values,
 				viewsecuritylevel: viewsecuritylevel.id,
@@ -378,6 +388,7 @@ export const StationEdit = (props: StationEditProps) => {
 						return option.id === value.id;
 					}}
 					defaultValue={viewSecurityOptions[0]}
+					disableClearable={true}
 				/>
 			</Box>
 			<Box sx={inputField}>
@@ -392,6 +403,32 @@ export const StationEdit = (props: StationEditProps) => {
 					}}
 					defaultValue={viewSecurityOptions[1]}
 					getOptionDisabled={o => o.id in bannedRequestLevels}
+					disableClearable={true}
+				/>
+			</Box>
+			<Box sx={inputField}>
+				<FormSelect
+					name="typeOption"
+					label="What can be queued to this station?"
+					sx={{ width: 250 }}
+					options={stationTypeOptions}
+					formMethods={formMethods}
+					isOptionEqualToValue={(option, value) => {
+						return option.id === value.id;
+					}}
+					defaultValue={stationTypeOptions[0]}
+					disableClearable={true}
+				/>
+			</Box>
+			<Box sx={inputField}>
+				<FormSelect
+					name="bitratekps"
+					label="Bitrate"
+					sx={{ width: 250 }}
+					options={bitrateChoices}
+					formMethods={formMethods}
+					defaultValue={bitrateChoices[1]}
+					disableClearable={true}
 				/>
 			</Box>
 			<Box sx={inputField} >

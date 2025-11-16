@@ -17,6 +17,8 @@ export interface AlbumInfo {
 	name: string
 	year: number | null
 	albumartist: ArtistInfo | null
+	versionnote: string
+	stations: StationInfo[]
 	owner: User
 }
 
@@ -25,6 +27,7 @@ export interface AlbumCreationInfo {
 	name: string
 	year?: number
 	albumartist?: ArtistInfo
+	stations: StationInfo[]
 }
 
 export interface NowPlayingInfo {

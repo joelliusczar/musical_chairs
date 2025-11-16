@@ -106,10 +106,11 @@ class StationsSongsService:
 		)
 
 		songRecords = self.conn.execute(songQuery).fetchall()
-		stationRecords = self.conn.execute(stationQuery).fetchall()
+		stationRecords = self.conn.execute(stationQuery).fetchall()\
+			or [None] * len(songRecords)
 		yield from (t for t in (StationSongTuple(
 			cast(int, songRow[0]),
-			cast(int, stationRow[0])
+			cast(Optional[int], stationRow[0] if stationRow else None)
 		) for songRow in songRecords 
 			for stationRow in stationRecords
 		) if t in stationSongSet)
@@ -137,9 +138,10 @@ class StationsSongsService:
 			"stationfk": p.stationid,
 			"lastmodifiedbyuserfk": userId,
 			"lastmodifiedtimestamp": self.get_datetime().timestamp()
-		} for p in inPairs]
-		stmt = insert(stations_songs_tbl)
-		self.conn.execute(stmt, params)
+		} for p in inPairs if p.stationid]
+		if params:
+			stmt = insert(stations_songs_tbl)
+			self.conn.execute(stmt, params)
 		return self.get_station_songs(
 			songIds={st.songid for st in uniquePairs}
 		)

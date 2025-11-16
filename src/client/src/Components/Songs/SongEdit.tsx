@@ -53,6 +53,7 @@ import { Named, IdValue } from "../../Types/generic_types";
 import { SubmitButton } from "../Shared/SubmitButton";
 import { isCallPending } from "../../Helpers/request_helpers";
 import { getDownloadAddress } from "../../Helpers/request_helpers";
+import { StationTypes } from "../../constants";
 
 
 const inputField = {
@@ -321,7 +322,7 @@ export const SongEdit = () => {
 	const stations = useCombinedContextAndFormItems(
 		contextStations,
 		formStations
-	);
+	).filter(s => s.typeid === StationTypes.SONGS_ONLY);
 
 	const artistMapper = useIdMapper(artists);
 	const albumMapper = useIdMapper(albums);
@@ -428,6 +429,7 @@ export const SongEdit = () => {
 									setValue("album", album);
 								}}
 								formArtists={formAllArtists}
+								formStations={formStations}
 							/>
 						</Box>}
 					</>

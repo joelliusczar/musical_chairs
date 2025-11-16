@@ -21,10 +21,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem,
 	normalize_opening_slash,
 	PathDict,
-	Lost
+	Lost,
+	StationAlbumTuple
 )
 from .artist_service import ArtistService
 from .path_rule_service import PathRuleService
+from .stations_albums_service import StationsAlbumsService
 from sqlalchemy import (
 	select,
 	insert,
@@ -64,7 +66,8 @@ class AlbumService:
 		self,
 		conn: Connection,
 		artistService: Optional[ArtistService]=None,
-		pathRuleService: Optional[PathRuleService]=None
+		pathRuleService: Optional[PathRuleService]=None,
+		stationsAlbumsService: Optional[StationsAlbumsService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -72,10 +75,13 @@ class AlbumService:
 			artistService = ArtistService(conn)
 		if not pathRuleService:
 			pathRuleService = PathRuleService(conn)
+		if not stationsAlbumsService:
+			stationsAlbumsService = StationsAlbumsService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.artist_service = artistService
 		self.path_rule_service = pathRuleService
+		self.stations_albums_service = stationsAlbumsService
 
 	def get_albums(
 		self,
@@ -184,21 +190,13 @@ class AlbumService:
 			.select_from(albums_tbl)
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
-
-	def get_album(
-			self,
-			albumId: Optional[int],
-			user: Optional[AccountInfo]=None
-		) -> Optional[SongsAlbumInfo]:
-		albumInfo = next(self.get_albums(albumKeys=albumId), None)
-		if not albumInfo:
-			albumInfo = AlbumInfo(
-				id=0,
-				name="(Missing)",
-				owner=OwnerInfo(
-					id=0,
-				)
-			)
+	
+	def get_album_songs(
+		self,
+		albumId: Optional[int],
+		albumInfo: AlbumInfo,
+		user: Optional[AccountInfo]=None
+	) -> Iterator[SongListDisplayItem]:
 		songsQuery = select(
 			sg_pk.label("id"),
 			sg_name,
@@ -227,18 +225,50 @@ class AlbumService:
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
 
-		songs = [
+		songs = (
 			SongListDisplayItem(
 				**PathDict(dict(row), omitNulls=True, defaultValues={"name": "(blank)"})
 			) for row in songsResult
-		]
+		)
 		if pathRuleTree:
 			for song in songs:
 				song.rules = list(pathRuleTree.valuesFlat(
 						normalize_opening_slash(song.path))
 					)
+				yield song
+		else:
+			yield from songs
 
-		return SongsAlbumInfo(**albumInfo.model_dump(), songs=songs)
+
+	def get_album(
+			self,
+			albumId: Optional[int],
+			user: Optional[AccountInfo]=None
+		) -> Optional[SongsAlbumInfo]:
+		albumInfo = next(self.get_albums(albumKeys=albumId), None)
+		if not albumInfo:
+			albumInfo = AlbumInfo(
+				id=0,
+				name="(Missing)",
+				owner=OwnerInfo(
+					id=0,
+				)
+			)
+		
+		songs = [*self.get_album_songs(albumId, albumInfo, user)]
+		if albumId:
+			stations = [
+				*self.stations_albums_service.get_stations_by_album(albumId, user)
+			]
+		else:
+			stations = []
+
+		return SongsAlbumInfo(
+			**albumInfo.model_dump(),
+			songs=songs,
+			stations=stations
+		)
+
 
 	def save_album(
 		self,
@@ -265,27 +295,32 @@ class AlbumService:
 			stmt = stmt.values(ownerfk = user.id)
 		try:
 			res = self.conn.execute(stmt)
-
-			affectedPk = albumId if albumId else res.lastrowid
-			artist = next(self.artist_service.get_artists(
-				userId=user.id,
-				artistKeys=album.albumartist.id
-			), None) if album.albumartist else None
-			self.conn.commit()
-			if res.rowcount == 0:
-				return None
-			return AlbumInfo(
-				id=affectedPk,
-				name=str(savedName),
-				owner=owner,
-				year=album.year,
-				albumartist=artist
-			)
 		except IntegrityError:
 			raise AlreadyUsedError.build_error(
 				f"{album.name} is already used for artist.",
 				"body->name"
 			)
+		affectedPk = albumId if albumId else res.lastrowid
+		artist = next(self.artist_service.get_artists(
+			userId=user.id,
+			artistKeys=album.albumartist.id
+		), None) if album.albumartist else None
+		self.stations_albums_service.link_albums_with_stations(
+			(StationAlbumTuple(affectedPk, t.id if t else None) 
+				for t in (album.stations or [None])),
+			user.id
+		)
+		self.conn.commit()
+		if res.rowcount == 0:
+			return None
+		return AlbumInfo(
+			id=affectedPk,
+			name=str(savedName),
+			owner=owner,
+			year=album.year,
+			albumartist=artist
+		)
+		
 		
 	def delete_album(self, albumkey: int) -> int:
 		if not albumkey:

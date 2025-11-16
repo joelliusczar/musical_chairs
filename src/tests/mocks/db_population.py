@@ -226,13 +226,13 @@ def populate_stations_songs(conn: Connection):
 
 def populate_station_albums(conn: Connection):
 	stmt = insert(stations_albums)
-	conn.execute(stmt,station_album_params)
+	conn.execute(stmt, station_album_params)
 
 def populate_playlists(conn: Connection):
 	stmt = insert(playlists)
 	conn.execute(stmt, playlists_params) #pyright: ignore [reportUnknownMemberType]
 
-def populate_songs_playlists(conn: Connection):
+def populate_playlists_songs(conn: Connection):
 	stmt = insert(playlists_songs)
 	conn.execute(stmt, PlaylistsSongsParams) #pyright: ignore [reportUnknownMemberType]
 
@@ -309,7 +309,7 @@ def get_initial_stations() -> list[dict[Any, Any]]:
 	return station_params
 
 def get_initial_playlists() -> list[dict[Any, Any]]:
-	return station_params
+	return playlists_params
 
 def get_initial_songs() -> list[dict[Any, Any]]:
 	return song_params

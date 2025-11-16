@@ -18,7 +18,7 @@ from .db_population import (
 	populate_user_actions_history,
 	populate_station_queue,
 	populate_playlists,
-	populate_songs_playlists,
+	populate_playlists_songs,
 	populate_playlist_permissions
 )
 
@@ -60,6 +60,6 @@ def setup_in_mem_tbls(
 	populate_user_actions_history(conn, orderedTestDates)
 	populate_station_queue(conn)
 	populate_playlists(conn)
-	populate_songs_playlists(conn)
+	populate_playlists_songs(conn)
 	populate_playlist_permissions(conn, orderedTestDates)
 	conn.commit()

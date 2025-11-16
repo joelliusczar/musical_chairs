@@ -29,7 +29,7 @@ deploy_local_app() (
 # 	rsync -avP --del ../sql_scripts "../test_trash/${app_name}"  &&
 
 setup_tests() (
-	ansible-playbook run_test_setup.yml --skip-tags  entitled
+	ansible-playbook setup_tests.yml --skip-tags  entitled
 )
 
 setup_schedules() (

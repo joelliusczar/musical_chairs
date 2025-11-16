@@ -230,6 +230,7 @@ stations = Table("stations", metadata,
 	Column("requestsecuritylevel", Integer, nullable=True),
 	Column("viewsecuritylevel", Integer, nullable=True),
 	Column("typeid", Integer, nullable=False, default=0),
+	Column("bitratekps", Integer, nullable=True),
 )
 
 st = stations.c
@@ -241,6 +242,7 @@ st_ownerFk = cast(Column[Integer],st.ownerfk)
 st_requestSecurityLevel = cast(Column[Integer],st.requestsecuritylevel)
 st_viewSecurityLevel = cast(Column[Integer],st.viewsecuritylevel)
 st_typeid = cast(Column[Integer],st.typeid)
+st_bitrate = cast(Column[Optional[Integer]], st.bitratekps)
 Index("idx_uniquestationname", st_name, st_ownerFk, unique=True)
 
 stations_songs = Table("stationssongs", metadata,

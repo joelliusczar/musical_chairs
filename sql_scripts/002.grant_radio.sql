@@ -22,8 +22,6 @@ GRANT SELECT ON TABLE `<dbName>`.`lastplayed` TO <radioUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`playlists` TO <radioUser>;
 
-GRANT SELECT ON TABLE `<dbName>`.`songsplaylists` TO <radioUser>;
-
 GRANT SELECT ON TABLE `<dbName>`.`stationsplaylists` TO <radioUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`playlistuserpermissions` TO <radioUser>;

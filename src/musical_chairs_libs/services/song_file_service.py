@@ -133,8 +133,8 @@ class SongFileService:
 	
 	def extract_song_info(self, file: BinaryIO) -> SongAboutInfo:
 		try:
-			songAboutInfo = SongAboutInfo()
 			tag = cast(Any, TinyTag.get(file_obj=file)) #pyright: ignore [reportUnknownMemberType]
+			songAboutInfo = SongAboutInfo(name=tag.title)
 			artist = next(
 				self.artist_service.get_artists(
 					artistKeys=tag.artist,
@@ -165,7 +165,7 @@ class SongFileService:
 			return songAboutInfo
 		except Exception as e:
 			print(e)
-			return SongAboutInfo()
+			return SongAboutInfo(name="missing")
 
 	def save_song_file(
 			self,

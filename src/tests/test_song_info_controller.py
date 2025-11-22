@@ -506,7 +506,7 @@ def test_get_songs_for_multi_edit(
 	assert response.status_code == 200
 	touched = data["touched"]
 	assert data["id"] == 0
-	assert data["name"] == None
+	assert data["name"] == ""
 	assert "name" not in touched
 	assert data["path"] == ""
 	assert "path" not in touched
@@ -616,6 +616,7 @@ def test_song_save_for_multi_edit(
 	assert stationsLen == 5
 
 	sendData: dict[str, Any] = {
+		"name": "",
 		"album": {
 			"id": 12, "name": "garoo_album", "owner": {"id": kilo_user_id }
 		},
@@ -754,6 +755,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	assert stationsLen == 2
 
 	sendData: dict[str, Any] = {
+		"name": "",
 		"album": {
 			"id": 12, "name": "garoo_album","owner": { "id": kilo_user_id}
 		},

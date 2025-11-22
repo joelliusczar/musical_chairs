@@ -67,8 +67,8 @@ def test_is_admin():
 	assert accountInfo.isadmin
 
 def test_validatedSongAboutInfo():
-	songInfo = ValidatedSongAboutInfo()
-	assert songInfo
+	with pytest.raises(ValidationError):
+		songInfo = ValidatedSongAboutInfo() #pyright: ignore [reportCallIssue]
 	songInfo = ValidatedSongAboutInfo(name="Test")
 	assert songInfo
 	songInfo = ValidatedSongAboutInfo(name="Test", album=None)

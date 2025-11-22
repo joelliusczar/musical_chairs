@@ -47,8 +47,6 @@
     - name: Set source hostname
       set_fact:
         src_server_hostname: '{{loaded_inventory["src_server"]["hosts"][0]}}'
-    - debug:
-        msg: '{{src_server_hostname}}'
     - name: Add db copy source hosts
       set_fact:
         src_server:
@@ -65,8 +63,13 @@
         state: present
   
   tasks:
-    - debug:
-        msg: '{{hostvars[inventory_hostname]["src_server"]}}'
+    - name: Check for previous import file
+      stat:
+        path: /tmp/mysql_dump.sql
+      register: file_check
+    - name: End early if evidence exists of having run the import already.
+      meta: end_play
+      when: file_check.stat.exists
     - name: Dump MySQL database
       community.mysql.mysql_db:
         login_user: '{{ app_details["db_owner"] }}'

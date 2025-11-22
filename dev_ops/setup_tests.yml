@@ -45,8 +45,6 @@
         DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
       register: result
       changed_when: false
-    - debug:
-        msg: '{{result.stdout}}'
     - name: Setup App Specific Db stuff.
       command:
         argv:

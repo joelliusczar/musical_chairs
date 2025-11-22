@@ -46,6 +46,15 @@ export interface SongListDisplayItem extends NamedIdItem {
 	rules: ActionRule[]
 }
 
+export interface CollectionQueuedItem extends NamedIdItem {
+	creator: string | null
+	itemtype: string
+	itemtypeid: number
+	year: number | null
+	description: string | null
+	rules: ActionRule[]
+}
+
 export interface CurrentPlayingInfo
 	extends StationTableData<SongListDisplayItem>
 {
@@ -112,6 +121,12 @@ export type TouchedObject = {
 	[key: string]: TouchTypes
 };
 
+export interface TrackListing {
+	name: string
+	tracknum: number
+	track: string | null
+}
+
 export interface SongInfoBase extends Named {
 	path: string
 	artists: ArtistInfo[]
@@ -120,11 +135,15 @@ export interface SongInfoBase extends Named {
 	stations: StationInfo[]
 	genre: string
 	track: string
+	tracknum: number
+	disc: number | null
 }
+
 
 export interface SongInfoForm extends SongInfoBase, FieldValues {
 	rules: ActionRule[]
 	touched: TouchedObject
+	trackinfo: {[id: IdValue]: TrackListing}
 }
 
 export interface SongInfoApiSavura extends SongInfoBase {

@@ -22,7 +22,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	normalize_opening_slash,
 	clean_search_term_for_like,
-	PathDict
+	PathDict,
+	TrackListing
 )
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
@@ -252,6 +253,14 @@ class SongInfoService:
 		yield from self.get_all_songs(songIds=songIds, user=user)
 
 
+	def update_track_nums(self, tracklistings: dict[int, TrackListing]):
+		for id, listing in tracklistings.items():
+			stmt = update(songs_tbl)\
+				.values(tracknum = listing.tracknum)\
+				.where(sg_pk == id)
+			self.conn.execute(stmt)
+
+
 	def save_songs(
 		self,
 		ids: Iterable[int],
@@ -275,6 +284,7 @@ class SongInfoService:
 		songInfoDict.pop("stations", None)
 		songInfoDict.pop("covers", None)
 		songInfoDict.pop("touched", None)
+		songInfoDict.pop("trackinfo", None)
 		songInfoDict["albumfk"] = songInfo.album.id if songInfo.album else None
 		songInfoDict["lastmodifiedbyuserfk"] = user.id
 		songInfoDict["lastmodifiedtimestamp"] = self.get_datetime().timestamp()
@@ -306,6 +316,8 @@ class SongInfoService:
 					for t in (songInfo.stations or [None] * len(ids)) for sid in ids),
 				user.id
 			)
+		if "trackinfo" in songInfo.touched:
+			self.update_track_nums(songInfo.trackinfo)
 		self.conn.commit()
 		if len(ids) < 2:
 			yield from self.get_songs_for_edit(ids, user)
@@ -326,6 +338,7 @@ class SongInfoService:
 		touched = {f for f in SongAboutInfo.model_fields }
 		removedFields: set[str] = set()
 		rules = None
+		trackInfo: dict[int, TrackListing] = {}
 		for songInfo in self.get_songs_for_edit(songIds, user):
 			if rules is None: #empty set means no permissions. Don't overwrite
 				rules = set(songInfo.rules)
@@ -333,6 +346,11 @@ class SongInfoService:
 				# only keep the set of rules that are common to
 				# each song
 				rules = rules & set(songInfo.rules)
+			trackInfo[songInfo.id] = TrackListing(
+				name=songInfo.name,
+				tracknum=songInfo.tracknum,
+				track=songInfo.track
+			) 
 			songInfoDict = songInfo.model_dump()
 			if not commonSongInfo:
 				commonSongInfo = songInfoDict
@@ -346,15 +364,23 @@ class SongInfoService:
 			removedFields.clear()
 		if commonSongInfo:
 			commonSongInfo["id"] = 0
+			commonSongInfo["name"] = ""
 			commonSongInfo["path"] = ""
-			del commonSongInfo["rules"]
+			commonSongInfo["internalpath"] = ""
+			commonSongInfo["rules"] = list(rules or [])
 			commonSongInfo["touched"] = touched
+			commonSongInfo["trackinfo"] = trackInfo
 			return SongEditInfo(
-				**commonSongInfo,
-				rules=list(rules or [])
+				**commonSongInfo
 			)
 		else:
-			return SongEditInfo(id=0, path="", internalpath="", touched=touched)
+			return SongEditInfo(
+				id=0,
+				name="Missing",
+				path="", 
+				internalpath="",
+				touched=touched
+			)
 
 
 	def __attach_catalogue_joins__(
@@ -467,16 +493,19 @@ class SongInfoService:
 					), 
 					None
 				)
+
 				if primaryArtistMatch:
 					songResult.primaryartist = primaryArtistMatch[1]
+
 				songResult.artists = sorted(
 					(a for a in songResult.artists if not a.isprimaryartist),
 					key=lambda a: a.name
 				)
-				songResult.stations = sorted(
-					songResult.stations or [],
-					key=lambda s: s.name
-				)
+			songResult.stations = sorted(
+				songResult.stations or [],
+				key=lambda s: s.name
+			)
+			
 			yield songResult
 
 
@@ -509,38 +538,4 @@ class SongInfoService:
 			user=user
 		), count
 
-
-	def get_song_catalogue(
-		self,
-		stationId: Optional[int]=None,
-		page: int = 0,
-		song: str = "",
-		album: str = "",
-		artist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
-	) -> Tuple[list[SongListDisplayItem], int]:
-		songs, count = self.get_fullsongs_page(
-			stationId,
-			page,
-			song,
-			album,
-			artist,
-			limit,
-			user
-		)
-
-		return [SongListDisplayItem(
-			id=s.id,
-			name=s.name or "Missing Name",
-			queuedtimestamp=0,
-			album=s.album.name if s.album else "No Album",
-			artist=s.primaryartist.name 
-				if s.primaryartist 
-				else next((a.name for a in s.artists or []), None),
-			path=s.path,
-			internalpath=s.internalpath,
-			track=s.track,
-			rules=s.rules
-		) for s in songs], count
 

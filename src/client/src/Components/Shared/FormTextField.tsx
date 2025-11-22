@@ -15,6 +15,7 @@ type FormTextFieldProps<FormT extends FieldValues> = {
 	type?: string
 	min?: string | number
 	disabled?: boolean,
+	sx?: object
 	onKeyUp?: (e: React.KeyboardEvent<HTMLDivElement>) 
 		=> void
 };

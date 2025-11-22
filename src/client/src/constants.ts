@@ -42,6 +42,10 @@ export const DomRoutes = {
 		const stationSegment = stationkey ? `${stationkey}/` : "";
 		return `/stations/song-catalogue/${ownerkey}/${stationSegment}`;
 	},
+	collectionCatalogue: ({ stationkey, ownerkey }: OwnedStationParams) => {
+		const stationSegment = stationkey ? `${stationkey}/` : "";
+		return `/stations/collection-catalogue/${ownerkey}/${stationSegment}`;
+	},
 	pathUsers: () => "/song-info/users",
 	songTree: () => "/song-info/tree/",
 	accountsNew: () => "/accounts/new",

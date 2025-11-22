@@ -6,16 +6,17 @@ import subprocess
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
-	AlbumService,
 	EnvManager,
-	ArtistService,
 	ProcessService,
 	QueueService,
 	StationService,
+	StationProcessService,
+	CollectionQueueService,
 )
 from threading import ExceptHookArgs, Thread
 from setproctitle import setproctitle
 import musical_chairs_libs.dtos_and_utilities.logging as logging
+from musical_chairs_libs.dtos_and_utilities import (StationTypes)
 from musical_chairs_libs.services.fs import S3FileService
 from sqlalchemy.engine import Connection
 
@@ -68,21 +69,25 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	updatingConn = EnvManager.get_configured_radio_connection(dbName)
 
 
-	readingStationService = StationService(readingConn)
-	stationId = readingStationService.get_station_id(stationName, ownerName)
+	stationService = StationService(readingConn)
+	stationId = stationService.get_station_id(stationName, ownerName)
 	if not stationId:
 		raise RuntimeError(
 			"station with owner"
 			f" {ownerName} and name {stationName} not found"
 		)
+	
+	station = next(stationService.get_stations(stationId))
 
-	artistService = ArtistService(readingConn)
-	albumService = AlbumService(readingConn)
-	fileService = S3FileService(artistService, albumService)
-	readingQueueService = QueueService(readingConn)
-	updatingQueueService = QueueService(updatingConn)
-	updatingStationService = StationService(updatingConn)
-	updatingStationService.set_station_proc(stationId)
+	queueServiceType = QueueService
+	if station.typeid == StationTypes.ALBUMS_ONLY.value:
+		queueServiceType = CollectionQueueService
+
+	fileService = S3FileService()
+	readingQueueService = queueServiceType(readingConn)
+	updatingQueueService = queueServiceType(updatingConn)
+	stationProcessService = StationProcessService(updatingConn)
+	stationProcessService.set_station_proc(stationId)
 
 	loadThread = Thread(
 		target=queue_song_source.load_data,
@@ -124,7 +129,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			f"Is sending thread alive? {sendThread.is_alive()}"
 		)
 		logging.radioLogger.info("Disabling the station")
-		updatingStationService.disable_stations([stationId])
+		stationProcessService.disable_stations([stationId])
 		logging.radioLogger.debug("Station disabled")
 		close_db_connection(readingConn, "reading")
 		close_db_connection(updatingConn, "updating")

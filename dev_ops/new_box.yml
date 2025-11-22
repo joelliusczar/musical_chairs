@@ -9,4 +9,4 @@
 - import_playbook: startup_api.yml
 - import_playbook: duplicate_db.yml
 - import_playbook: setup_schedules.yml
-- import_playbook: radio-setup.yml
+- import_playbook: setup_radio.yml

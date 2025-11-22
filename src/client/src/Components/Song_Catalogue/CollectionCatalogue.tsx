@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
-	fetchSongCatalogue,
-	sendSongRequestCaller,
+	fetchCollectionCatalogueCaller,
+	sendCollectionRequestCaller,
 } from "../../API_Calls/stationCalls";
 import {
 	Table,
@@ -32,20 +32,19 @@ import {
 	useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext/AuthContext";
 import { UserRoleDef } from "../../constants";
-import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo, StationTableData } from "../../Types/station_types";
-import { SongListDisplayItem } from "../../Types/song_info_types";
+import { CollectionQueuedItem } from "../../Types/song_info_types";
 import { IdValue } from "../../Types/generic_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import { SearchTextField } from "../Shared/SearchTextFIeld";
 
 
 
-export const SongCatalogue = () => {
+export const CollectionCatalogue = () => {
 
 	const [catalogueState, catalogueDispatch] = useDataWaitingReducer(
-		new RequiredDataStore<StationTableData<SongListDisplayItem>>(
+		new RequiredDataStore<StationTableData<CollectionQueuedItem>>(
 			{
 				items: [],
 				totalrows: 0,
@@ -66,28 +65,27 @@ export const SongCatalogue = () => {
 
 	useAuthViewStateChange(authReset);
 
-	const canRequestSongs = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
-	const canRequestSongsForStation = anyConformsToAnyRule(
+	const canRequest = useHasAnyRoles([UserRoleDef.STATION_REQUEST]);
+	const canRequestForStation = anyConformsToAnyRule(
 		catalogueState?.data?.stationrules,
 		[UserRoleDef.STATION_REQUEST]
 	);
-	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
-	const canDownloadSongs = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
-
 
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
 
-	const requestSong = async (songId: IdValue) => {
+	const requestCollection = async (collectionId: IdValue, typeid: IdValue) => {
 		if (!pathVars.stationkey || !pathVars.ownerkey ) {
 			enqueueSnackbar("A key is missing", {variant: "error" });
 			return;
 		}
 		try {
-			const requestObj = sendSongRequestCaller({
+			const requestObj = sendCollectionRequestCaller({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
-				songid: songId });
+				collectionId: collectionId,
+				typeId: typeid,
+			});
 			await requestObj.call();
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
 		}
@@ -98,33 +96,22 @@ export const SongCatalogue = () => {
 
 	const getPageUrl = new UrlBuilder(DomRoutes.songCatalogue);
 
-	const rowButton = (item: SongListDisplayItem, idx: number) => {
+	const rowButton = (item: CollectionQueuedItem, idx: number) => {
 		const rowButtonOptions = [];
 
-
-		if(canRequestSongs || canRequestSongsForStation) rowButtonOptions.push({
-			label: "Request",
-			onClick:() => requestSong(item.id),
-		});
-
-		const canEditThisSong = anyConformsToAnyRule(
+		const canEditThisAlbum = anyConformsToAnyRule(
 			item?.rules,
-			[UserRoleDef.PATH_EDIT]
+			[UserRoleDef.ALBUM_EDIT]
 		);
 
-		if (canEditSongs || canEditThisSong) rowButtonOptions.push({
+		if (canEditThisAlbum) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
+			link: `${DomRoutes.album({ id: item.id })}`,
 		});
 
-		const canDownloadThisSong = anyConformsToAnyRule(
-			item?.rules,
-			[UserRoleDef.PATH_DOWNLOAD]
-		);
-
-		if (canDownloadSongs || canDownloadThisSong) rowButtonOptions.push({
-			label: "Download",
-			href: getDownloadAddress(item.id),
+		if(canRequest || canRequestForStation) rowButtonOptions.push({
+			label: "Request",
+			onClick:() => requestCollection(item.id, item.itemtypeid),
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton
@@ -134,9 +121,9 @@ export const SongCatalogue = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.songEdit()}?ids=${item.id}`}
+				to={`${DomRoutes.album({ id: item.id })}`}
 			>
-				{(canEditSongs || canEditThisSong) ? "Edit" : "View"}
+				{(canEditThisAlbum) ? "Edit" : "View"}
 			</Button>);
 	};
 
@@ -148,14 +135,14 @@ export const SongCatalogue = () => {
 	useEffect(() => {
 		const stationTitle = `- ${selectedStation?.displayname || ""}`;
 		document.title =
-			`Musical Chairs - Song Catalogue${stationTitle}`;
+			`Musical Chairs - Album/Playlist Catalogue${stationTitle}`;
 	},[selectedStation]);
 
 	useEffect(() => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
 		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 		const queryObj = getSearchParams(location.search);
-		const requestObj = fetchSongCatalogue({
+		const requestObj = fetchCollectionCatalogueCaller({
 			stationkey: pathVars.stationkey,
 			ownerkey: pathVars.ownerkey,
 			...queryObj,
@@ -189,16 +176,17 @@ export const SongCatalogue = () => {
 	return (
 		<>
 			<h1>
-				Song Catalogue: {selectedStation?.displayname || ""}
+				Catalogue: {selectedStation?.displayname || ""}
 			</h1>
 			<h2>
-				{catalogueState?.data?.totalrows || ""} songs on this station.
+				{catalogueState?.data?.totalrows || ""} albums/playlists 
+					on this station.
 			</h2>
 			<Box m={1}>
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
 					onChange={setStationCallback}
-					stationTypes={[StationTypes.SONGS_ONLY]}
+					stationTypes={[StationTypes.ALBUMS_ONLY]}
 				/>
 			</Box>
 			<Box m={1}>
@@ -211,27 +199,28 @@ export const SongCatalogue = () => {
 							<Table size="small">
 								<TableHead>
 									<TableRow>
-										<TableCell>Song</TableCell>
-										<TableCell>Album</TableCell>
-										<TableCell>Artist</TableCell>
+										<TableCell>Name</TableCell>
+										<TableCell>Creator</TableCell>
+										<TableCell>Type</TableCell>
 										<TableCell></TableCell>
 									</TableRow>
 									<TableRow>
 										<TableCell>
 											<SearchTextField
-												name="song"
+												name="collection"
 												getPageUrl={getPageUrl.getThisUrl}
 											/>
 										</TableCell>
 										<TableCell>
 											<SearchTextField
-												name="album"
+												name="creator"
 												getPageUrl={getPageUrl.getThisUrl}
 											/>
 										</TableCell>
 										<TableCell>
 											<SearchTextField
-												name="artist"
+												name="_blank_"
+												disabled
 												getPageUrl={getPageUrl.getThisUrl}
 											/>
 										</TableCell>
@@ -243,13 +232,13 @@ export const SongCatalogue = () => {
 										return (
 											<TableRow key={`song_${idx}`}>
 												<TableCell>
-													{item.name || "{No song name}"}
+													{item.name || "{No name}"}
 												</TableCell>
 												<TableCell>
-													{item.album || "{No album name}"}
+													{item.creator || "{No name}"}
 												</TableCell>
 												<TableCell>
-													{item.artist || "{No artist name}"}
+													{item.itemtype || "{No type}"}
 												</TableCell>
 												<TableCell>
 													{rowButton(item, idx)}
@@ -275,4 +264,4 @@ export const SongCatalogue = () => {
 	);
 };
 
-export default SongCatalogue;
+export default CollectionCatalogue;

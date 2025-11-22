@@ -3,6 +3,8 @@
   # connection: local
 
   vars: 
+    target_version: '0.6.2'
+    prefix: 'mcr-'
     charlie: Chunk
     url_base: washpenny
     tld: com
@@ -13,18 +15,34 @@
 
 
   tasks:
-    - debug:
-        msg: 'marr og: {{marr}}'
-    - name: Copy
-      set_fact:
-        carr: '{{marr}}'
-    - name: Add to
+    - name: Get ices version
+      command: '{{prefix}}ices -V'
+      failed_when: false
+      register: ices_output 
+    - name: Extract version
       set_fact: 
-        marr: '{{marr + ["three"]}}'
+        ices_version: '{{ices_output.stdout.splitlines()[0].split(" ")[1]}}'
+      when: ices_output.rc == 0
     - debug:
-        msg: 'carr: {{carr}}'
-    - debug:
-        msg: 'marr: {{marr}}'
+        msg: '{{ices_output.stdout.splitlines()[0].split(" ")[1]}}'
+    # - debug:
+    #     msg: '{{ices_version}}'
+    - name: End early if already installed.
+      debug:
+        msg: 'end early'
+      when: ices_version is defined and ices_version is version(target_version)
+    # - debug:
+    #     msg: 'marr og: {{marr}}'
+    # - name: Copy
+    #   set_fact:
+    #     carr: '{{marr}}'
+    # - name: Add to
+    #   set_fact: 
+    #     marr: '{{marr + ["three"]}}'
+    # - debug:
+    #     msg: 'carr: {{carr}}'
+    # - debug:
+    #     msg: 'marr: {{marr}}'
     # - name: Set src and dest host groups
     #   command: 'ansible-inventory -i {{db_copy_inventory}} --list'
     #   register: inventory_result

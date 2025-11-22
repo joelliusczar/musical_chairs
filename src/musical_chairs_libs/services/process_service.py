@@ -4,6 +4,7 @@ import subprocess
 import random
 from enum import Enum
 from itertools import dropwhile, islice
+from pathlib import Path
 from typing import Optional
 from musical_chairs_libs.dtos_and_utilities import (
 	get_non_simple_chars
@@ -24,16 +25,18 @@ def __start_ices__(
 ) -> subprocess.Popen[bytes]:
 	if not os.path.isfile(stationConf):
 		raise LookupError(f"Station conf not found at: {stationConf}")
+	pythonLocation = str(Path(EnvManager.python_executable()).parent)
+	path = os.environ["PATH"]
 	return subprocess.Popen(
-		["mc-ices", "-c", f"{stationConf}"],
+		["mcr-ices", "-c", f"{stationConf}"],
 		env={
 				"DSF_STATION_PORT": portNumber,
-			 "PATH": os.environ["PATH"],
-			 "LANG": os.environ["LANG"],
-			 "DSF_CONTENT_HOME": EnvManager.absolute_content_home(),
-			 "DSF_APP_ROOT": EnvManager.app_root(),
-			 "DSF_DB_PASS_RADIO": EnvManager.db_pass_radio(),
-			 "DSF_DATABASE_NAME": EnvManager.db_name()
+				"PATH": f"{pythonLocation}:{path}",
+				"LANG": os.environ["LANG"],
+				"DSF_CONTENT_HOME": EnvManager.absolute_content_home(),
+				"DSF_APP_ROOT": EnvManager.app_root(),
+				"DSF_DB_PASS_RADIO": EnvManager.db_pass_radio(),
+				"DSF_DATABASE_NAME": EnvManager.db_name()
 			}
 	)
 
@@ -87,7 +90,7 @@ class ProcessService:
 	@staticmethod
 	def start_song_queue_process(dbName: str, stationName: str, ownerName: str):
 		stationProc = subprocess.Popen([
-				"python",
+				EnvManager.python_executable(),
 				"-m",
 				"musical_chairs_libs.stream",
 				dbName,

@@ -21,7 +21,6 @@ from sqlalchemy import (
 	literal,
 	union_all,
 	true,
-	distinct,
 	String
 )
 from sqlalchemy.engine import Connection
@@ -63,6 +62,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TrackingInfo
 )
 from musical_chairs_libs.file_reference import SqlScripts
+from musical_chairs_libs.protocols import SongPopper
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
@@ -81,7 +81,7 @@ def choice(
 	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
 	return numpy_choice(items, sampleSize, p = cast(Any,weights), replace=False).tolist()
 
-class QueueService:
+class QueueService(SongPopper):
 
 	def __init__(
 		self,
@@ -411,23 +411,15 @@ class QueueService:
 
 	def queue_count(
 		self,
-		stationId: Optional[int]=None,
-		stationtype: StationTypes = StationTypes.SONGS_ONLY
+		stationId: int,
 	) -> int:
-		if stationtype == StationTypes.ALBUMS_ONLY:
-			query = select(func.count(distinct(ab_pk)))
-		else:
-			query = select(func.count(1))
-		query = query.select_from(station_queue)\
+		query = select(func.count(1))\
+				.select_from(station_queue)\
 				.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
-				.join(songs, sg_pk == q_songFk)
-		if stationId:
-			query = query.where(q_stationFk == stationId)
-		else:
-			raise ValueError("Either stationName or id must be provided")
-		query = query\
-			.where(sg_deletedTimstamp.is_(None))\
-			.where(uah_timestamp.is_(None))
+				.join(songs, sg_pk == q_songFk)\
+				.where(q_stationFk == stationId)\
+				.where(sg_deletedTimstamp.is_(None))\
+				.where(uah_timestamp.is_(None))
 		count = self.conn.execute(query).scalar() or 0
 		return count
 
@@ -654,6 +646,7 @@ class QueueService:
 		self.conn.commit()
 		return (addedCount, updatedCount, deletedCount)
 
+
 	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:
 		query = select(func.count(1)).select_from(stations_songs_tbl)\
 			.join(songs, stsg_songFk == sg_pk)\
@@ -664,7 +657,37 @@ class QueueService:
 			.where(stsg_stationFk == stationId)
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
+	
+	def get_song_catalogue(
+		self,
+		stationId: Optional[int]=None,
+		page: int = 0,
+		song: str = "",
+		album: str = "",
+		artist: str = "",
+		limit: Optional[int]=None,
+		user: Optional[AccountInfo]=None
+	) -> Tuple[list[SongListDisplayItem], int]:
+		songs, count = self.song_info_service.get_fullsongs_page(
+			stationId,
+			page,
+			song,
+			album,
+			artist,
+			limit,
+			user
+		)
 
-
-if __name__ == "__main__":
-	pass
+		return [SongListDisplayItem(
+			id=s.id,
+			name=s.name or "Missing Name",
+			queuedtimestamp=0,
+			album=s.album.name if s.album else "No Album",
+			artist=s.primaryartist.name 
+				if s.primaryartist 
+				else next((a.name for a in s.artists or []), None),
+			path=s.path,
+			internalpath=s.internalpath,
+			track=s.track,
+			rules=s.rules
+		) for s in songs], count

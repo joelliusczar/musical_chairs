@@ -126,6 +126,9 @@ class EnvManager:
 	def radio_log_level(cls) -> str:
 		return radio_log_level
 	
+	@classmethod
+	def python_executable(cls) -> str:
+		return os.environ["DSF_PYTHON_EXECUTABLE"]
 
 
 	@classmethod

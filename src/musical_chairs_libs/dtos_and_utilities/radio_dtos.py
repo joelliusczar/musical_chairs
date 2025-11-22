@@ -109,9 +109,13 @@ class SongPathInfo(IdItem):
 	path: str
 	internalpath: str
 
+class TrackListing(MCBaseClass):
+	name: str
+	tracknum: float=0
+	track: Optional[str]=None
 
 class SongAboutInfo(MCBaseClass):
-	name: Optional[str]=None
+	name: str
 	album: Optional[AlbumInfo]=None
 	primaryartist: Optional[ArtistInfo]=None
 	artists: Optional[list[ArtistInfo]]=cast(list[ArtistInfo], Field(default_factory=list))
@@ -140,6 +144,7 @@ class SongFullQueryInfo(SongAboutInfo, SongPathInfo):
 
 class ChangeTrackedSongInfo(SongAboutInfo):
 	touched: Optional[set[str]]=None
+	trackinfo: dict[int, TrackListing]={}
 
 class SongEditInfo(ChangeTrackedSongInfo, SongPathInfo):
 	rules: list[ActionRule]=cast(list[ActionRule], Field(default_factory=list))

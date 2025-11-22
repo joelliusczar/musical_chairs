@@ -5,6 +5,9 @@ const Queue = lazy(() => import("../Queue/Queue"));
 const History = lazy(() => import("../History/History"));
 const Stations = lazy(() => import("../Stations/Stations"));
 const SongCatalogue = lazy(() => import("../Song_Catalogue/SongCatalogue"));
+const CollectionCatalogue = lazy(
+	() => import("../Song_Catalogue/CollectionCatalogue")
+);
 const AccountsNew = lazy(() => import("../Accounts/AccountsNew"));
 const AccountsEdit = lazy(() => import("../Accounts/AccountsEdit"));
 const LoginForm = lazy(() => import("../Accounts/AccountsLoginForm"));
@@ -200,6 +203,17 @@ export function AppRoutes() {
 				element={
 					<Suspense fallback={<div>Loading...</div>}>
 						<SongCatalogue />
+					</Suspense>
+				}
+			/>
+			<Route
+				path={`${DomRoutes.collectionCatalogue({
+					stationkey: ":stationkey",
+					ownerkey: ":ownerkey",
+				})}`}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<CollectionCatalogue />
 					</Suspense>
 				}
 			/>

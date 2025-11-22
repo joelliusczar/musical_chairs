@@ -54,10 +54,18 @@ import { SubmitButton } from "../Shared/SubmitButton";
 import { isCallPending } from "../../Helpers/request_helpers";
 import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { StationTypes } from "../../constants";
+import { guessTrackNumber } from "../../Helpers/song_helpers";
 
 
 const inputField = {
 	margin: 2,
+};
+
+const trackNumberField = {
+	"& .MuiInputBase-input": {
+		padding: 0,
+		fontSize: 10,
+	},
 };
 
 
@@ -171,6 +179,8 @@ export const SongEdit = () => {
 				id: 0,
 				name: "",
 			},
+			tracknum: 0,
+			disc: 1,
 			stations: [],
 			genre: "",
 		},
@@ -186,6 +196,7 @@ export const SongEdit = () => {
 	} = formMethods;
 
 	const songRules = watch("rules");
+	const trackinfoMap = watch("trackinfo");
 	const canEditSongs = anyConformsToAnyRule(
 		songRules, [UserRoleDef.PATH_EDIT]
 	);
@@ -328,6 +339,18 @@ export const SongEdit = () => {
 	const albumMapper = useIdMapper(albums);
 	const stationMapper = useIdMapper(stations);
 
+	const guessAllTrackNumbers = () => {
+		// guessTrackNumber
+		const trackInfoCopy = {...trackinfoMap};
+		if (!!trackinfoMap) {
+			for (const key in trackinfoMap) {
+				trackInfoCopy[key].tracknum = guessTrackNumber(trackinfoMap[key]);
+			}
+		}
+		setValue("trackinfo",trackinfoMap);
+		handleMutliSongTouchedCheck("trackinfo");
+	};
+
 	return (<Loader status={callStatus} error={state.error}>
 		<Box sx={inputField}>
 			<Typography variant="h1">
@@ -352,6 +375,25 @@ export const SongEdit = () => {
 					name="name"
 					formMethods={formMethods}
 					label="Name"
+					disabled={!canEditSongs}
+				/>
+			</Box>
+			{ids?.length == 1 && <Box sx={inputField}>
+				<FormTextField
+					name="tracknum"
+					formMethods={formMethods}
+					label="Track Number"
+					disabled={!canEditSongs}
+				/>
+			</Box>}
+			<Box sx={inputField}>
+				{ids?.length > 1 && <TouchedCheckbox
+					name="name"
+				/>}
+				<FormTextField
+					name="disc"
+					formMethods={formMethods}
+					label="Disc"
 					disabled={!canEditSongs}
 				/>
 			</Box>
@@ -472,6 +514,29 @@ export const SongEdit = () => {
 					disabled={!canEditSongs}
 				/>
 			</Box>
+			<Button
+				onClick={guessAllTrackNumbers}
+			>
+				Guess Track Numbers
+			</Button>
+			{ids?.length > 1 && <Box>
+				{!!trackinfoMap && Object.keys(trackinfoMap).map(k => {
+					return (
+						<Box 
+							key={`song_${k}_tracknum`}
+							
+						>
+							<FormTextField
+								sx={trackNumberField}
+								name={`trackinfo[${k}].tracknum`}
+								formMethods={formMethods}
+								label={`${trackinfoMap[parseInt(k)].name}`}
+								disabled={!canEditSongs}
+							/>
+						</Box>
+					);
+				})}
+			</Box>}
 			{canEditSongs && <Box sx={inputField} >
 				<SubmitButton
 					loading={formState.isSubmitting}

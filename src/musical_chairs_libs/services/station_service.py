@@ -1,5 +1,4 @@
 #pyright: reportMissingTypeStubs=false
-import musical_chairs_libs.dtos_and_utilities.logging as logging
 from typing import (
 	Any,
 	Iterator,
@@ -9,7 +8,6 @@ from typing import (
 	Union,
 	Collection,
 	Tuple,
-	Sequence,
 	overload
 )
 from sqlalchemy.exc import IntegrityError
@@ -47,7 +45,6 @@ from musical_chairs_libs.tables import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
-	SongListDisplayItem,
 	StationCreationInfo,
 	SavedNameString,
 	get_datetime,
@@ -60,14 +57,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	RulePriorityLevel,
 	OwnerInfo,
 	build_station_rules_query,
-	row_to_action_rule,
-	Lost
+	row_to_action_rule
 )
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
-from .song_info_service import SongInfoService
-from .process_service import ProcessService
+
 
 
 class StationService:
@@ -76,20 +71,16 @@ class StationService:
 		self,
 		conn: Optional[Connection]=None,
 		templateService: Optional[TemplateService]=None,
-		songInfoService: Optional[SongInfoService]=None,
 		pathRuleService: Optional[PathRuleService]=None
 	):
 		if not conn:
 			raise RuntimeError("No connection provided")
 		if not templateService:
 			templateService = TemplateService()
-		if not songInfoService:
-			songInfoService = SongInfoService(conn)
 		if not pathRuleService:
 			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.template_service = templateService
-		self.song_info_service = songInfoService
 		self.path_rule_service = pathRuleService
 		self.get_datetime = get_datetime
 
@@ -323,28 +314,6 @@ class StationService:
 				yield self.__row_to_station__(row)
 
 
-	def get_station_song_catalogue(
-		self,
-		stationId: int,
-		page: int = 0,
-		song: str = "",
-		album: str = "",
-		artist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
-	) -> Tuple[list[SongListDisplayItem], int]:
-		data, count = self.song_info_service.get_song_catalogue(
-			stationId,
-			page,
-			song,
-			album,
-			artist,
-			limit,
-			user
-		)
-		return (data,count)
-
-
 	def __is_stationName_used__(
 		self,
 		id: Optional[int],
@@ -509,133 +478,6 @@ class StationService:
 		records = self.conn.execute(query)
 		for row in records:
 			yield cast(int,row[0]), cast(int,row[1])
-
-
-	def set_station_proc(self, stationId: int) -> None:
-		pid = ProcessService.get_pid()
-		stmt = update(stations_tbl)\
-			.values(procid = pid) \
-				.where(st_pk == stationId)
-		self.conn.execute(stmt)
-		self.conn.commit()
-
-
-	def unset_station_procs(
-		self,
-		procIds: Optional[Iterable[int]]=None,
-		stationIds: Union[int,Sequence[int], None, Lost]=Lost(),
-	) -> None:
-		stmt = update(stations_tbl)\
-			.values(procid = None)
-
-		if isinstance(procIds, Iterable):
-			stmt = stmt.where(st_procId.in_(procIds))
-		elif type(stationIds) == int:
-			stmt = stmt.where(st_pk == stationIds)
-		elif isinstance(stationIds, Iterable):
-			stmt = stmt.where(st_pk.in_(stationIds))
-		elif stationIds is Lost():
-			raise ValueError("procIds, stationIds, or stationNames must be provided.")
-		self.conn.execute(stmt)
-
-
-	def __noop_startup__(self, stationName: str) -> None:
-		#for normal operations, this is handled in the ices process
-
-		pid = ProcessService.get_pid()
-		stmt = update(stations_tbl)\
-				.values(procid = pid) \
-				.where(func.lower(st_name) == func.lower(stationName))
-		self.conn.execute(stmt)
-
-
-	def enable_stations(self,
-		stations: Collection[StationInfo],
-		owner: AccountInfo,
-		includeAll: bool = False
-	) -> Iterator[StationInfo]:
-		stationsEnabled: Iterator[StationInfo] = iter([])
-		if includeAll:
-			canBeEnabled = {s[0] for s in  \
-				self.get_station_song_counts(ownerId=owner.id) \
-				if s[1] > 0
-			}
-			stationsEnabled = self.get_stations(
-				stationKeys=canBeEnabled,
-				ownerId=owner.id
-			)
-		else:
-			canBeEnabled = {s[0] for s in  \
-				self.get_station_song_counts(
-					stationIds=(s.id for s in stations)
-				) \
-				if s[1] > 0
-			}
-			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
-		try:
-			for station in stationsEnabled:
-				try:
-					if ProcessService.noop_mode():
-						self.__noop_startup__(station.name)
-					else:
-						if not self.conn.engine.url.database:
-							raise RuntimeError("db Name is missing")
-						
-						if not self.template_service.does_station_config_exist(
-							station.name,
-							owner.username
-						):
-							self.template_service.create_station_files(
-								station.id,
-								station.name,
-								station.displayname,
-								owner.username,
-								station.bitratekps or 128
-							)
-
-						ProcessService.start_song_queue_process(
-							self.conn.engine.url.database,
-							station.name,
-							owner.username
-						)
-					yield station
-				except RuntimeError:
-					self.unset_station_procs(stationIds=station.id)
-					raise
-		finally:
-			self.conn.commit()
-
-
-	def disable_stations(
-		self,
-		stationIds: Optional[Iterable[int]],
-		ownerKey: Union[int, str, None]=None
-	) -> None:
-		#explicitly checking that stationIds is not null rather
-		#simply if stationIds because we want want [] to trigger the all case
-		stationIds = list(stationIds) if stationIds is not None else None
-		logging.radioLogger.debug(
-			f"disable {stationIds if stationIds is not None else 'All'}"
-		)
-		query = select(st_procId).where(st_procId.is_not(None))
-		if ownerKey:
-			if type(ownerKey) == int:
-				query = query.where(st_ownerFk == ownerKey)
-			elif type(ownerKey) == str:
-				query = query.join(user_tbl, u_pk == st_ownerFk)\
-					.where(u_username == ownerKey)
-		else:
-			if stationIds is not None:
-				query = query.where(st_pk.in_(stationIds))
-			
-
-		rows = self.conn.execute(query)
-		pids = [cast(int, row[0]) for row in rows]
-		for pid in pids:
-			logging.radioLogger.debug(f"send signal to {pid}")
-			ProcessService.end_process(pid)
-		self.unset_station_procs(stationIds=stationIds)
-		self.conn.commit()
 
 
 	def delete_station(self, stationId: int, clearStation: bool=False) -> int:

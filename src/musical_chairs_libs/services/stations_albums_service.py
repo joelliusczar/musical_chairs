@@ -7,6 +7,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from musical_chairs_libs.tables import (
 	albums as albums_tbl, ab_pk,
+	songs as songs_tbl, sg_pk, sg_albumFk, sg_deletedTimstamp,
 	stations_albums as stations_albums_tbl,
 	stab_albumFk, stab_stationFk,
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId, 
@@ -18,7 +19,8 @@ from sqlalchemy import (
 	select,
 	insert,
 	delete,
-	Integer
+	Integer,
+	func
 )
 from sqlalchemy.sql.expression import case
 from sqlalchemy.sql.functions import coalesce
@@ -214,3 +216,25 @@ class StationsAlbumsService:
 		else:
 			for row in records:
 				yield self.station_service.__row_to_station__(row)
+
+	def get_station_song_counts(
+		self,
+		stationIds: Union[int, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+	) -> Iterator[Tuple[int, int]]:
+		query = select(stab_stationFk, func.count(sg_pk))\
+			.join(albums_tbl, stab_albumFk == ab_pk)\
+			.join(songs_tbl, stab_albumFk == sg_albumFk)\
+			.where(sg_deletedTimstamp.is_(None))
+
+		if type(stationIds) == int:
+			query = query.where(stab_stationFk == stationIds)
+		elif isinstance(stationIds, Iterable):
+			query = query.where(stab_stationFk.in_(stationIds))
+
+		if type(ownerId) == int:
+			query = query.join(stations_tbl, st_pk == stab_stationFk)\
+				.where(st_ownerFk == ownerId)
+		records = self.conn.execute(query)
+		for row in records:
+			yield cast(int,row[0]), cast(int,row[1])

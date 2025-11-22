@@ -20,12 +20,16 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	TableData,
 	StationActionRule,
-	TrackingInfo
+	TrackingInfo,
+	CollectionQueuedItem,
+	StationTypes,
 )
 from musical_chairs_libs.services import (
 	StationService,
 	QueueService,
 	StationsUsersService,
+	StationProcessService,
+	CollectionQueueService,
 )
 from api_dependencies import (
 	station_service,
@@ -44,7 +48,9 @@ from api_dependencies import (
 	build_error_obj,
 	get_station_user_by_id,
 	get_tracking_info,
-	stations_users_service
+	stations_users_service,
+	station_process_service,
+	collection_queue_service,
 )
 from station_validation import (
 	validate_station_rule,
@@ -128,11 +134,11 @@ def song_catalogue(
 	page: int = Depends(get_page_num),
 	user: AccountInfo = Depends(get_station_user),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
-	stationService: StationService = Depends(station_service)
+	queueService: QueueService = Depends(queue_service)
 ) -> StationTableData[SongListDisplayItem]:
 	if not station:
 		return StationTableData(totalrows=0, items=[], stationrules=[])
-	songs, totalRows = stationService.get_station_song_catalogue(
+	songs, totalRows = queueService.get_song_catalogue(
 			stationId = station.id,
 			page = page,
 			limit = limit,
@@ -145,6 +151,37 @@ def song_catalogue(
 		station.rules
 	)
 	return StationTableData(totalrows=totalRows, items=songs, stationrules=rules)
+
+
+@router.get("/{ownerkey}/{stationkey}/collection_catalogue/")
+def collection_catalogue(
+	limit: int = 50,
+	collection: str = "",
+	creator: str = "",
+	page: int = Depends(get_page_num),
+	user: AccountInfo = Depends(get_station_user),
+	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
+	collectionQueueService: CollectionQueueService = Depends(
+		collection_queue_service
+	)
+) -> StationTableData[CollectionQueuedItem]:
+	if not station:
+		return StationTableData(totalrows=0, items=[], stationrules=[])
+	collections, totalRows = collectionQueueService.get_catalogue(
+		stationId = station.id,
+		page = page,
+		limit = limit,
+		creator = creator,
+		collection = collection,
+	)
+	rules = ActionRule.sorted(
+		station.rules
+	)
+	return StationTableData(
+		totalrows=totalRows,
+		items=collections,
+		stationrules=rules
+	)
 
 
 @router.post("/{ownerkey}/{stationkey}/request/{songid}")
@@ -166,6 +203,33 @@ def request_song(
 			detail = str(ex)
 		)
 
+@router.post("/{ownerkey}/{stationkey}/request/{stationtypeid}/{collectionid}")
+def request_collection(
+	collectionid: int,
+	stationtypeid: int,
+	station: StationInfo = Depends(get_station_by_name_and_owner),
+	collectionQueueService: CollectionQueueService = Depends(
+		collection_queue_service
+	),
+	user: AccountInfo = Security(
+		get_station_user,
+		scopes=[UserRoleDef.STATION_REQUEST.value]
+	),
+	trackingInfo: TrackingInfo=Depends(get_tracking_info)
+):
+	try:
+		collectionQueueService.add_collection_to_queue(
+			collectionid,
+			station,
+			user,
+			StationTypes(stationtypeid),
+			trackingInfo
+		)
+	except (LookupError, RuntimeError) as ex:
+		raise HTTPException(
+			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail = str(ex)
+		)
 
 @router.delete("/{ownerkey}/{stationkey}/request",
 	dependencies=[
@@ -176,19 +240,32 @@ def remove_song_from_queue(
 	id: int,
 	queuedtimestamp: float,
 	station: StationInfo = Depends(get_station_by_name_and_owner),
-	queueService: QueueService = Depends(queue_service)
+	queueService: QueueService = Depends(queue_service),
+	collectionQueueService: CollectionQueueService = Depends(
+		collection_queue_service
+	),
 ) -> CurrentPlayingInfo:
-	queue = queueService.remove_song_from_queue(
-		id,
-		queuedtimestamp,
-		stationId=station.id
-	)
-	if queue:
-		return queue
+	if station.typeid == StationTypes.SONGS_ONLY.value:
+		queue = queueService.remove_song_from_queue(
+			id,
+			queuedtimestamp,
+			stationId=station.id
+		)
+		if queue:
+			return queue
+	else:
+		queue = collectionQueueService.remove_song_from_queue(
+			id,
+			queuedtimestamp,
+			stationId=station.id
+		)
+		if queue:
+			return queue
 	raise HTTPException(
 			status_code = status.HTTP_404_NOT_FOUND,
 			detail = f"Song: {id} not found at {queuedtimestamp} on {station.name}"
 		)
+
 
 
 @router.get("/check/")
@@ -245,9 +322,13 @@ def enable_stations(
 		get_multi_station_user,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
-	stationService: StationService = Depends(station_service)
+	stationProcessService: StationProcessService = Depends(
+		station_process_service
+	)
 ) -> list[StationInfo]:
-	return list(stationService.enable_stations(stations, user, includeAll))
+	return list(
+		stationProcessService.enable_stations(stations, user, includeAll)
+	)
 
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
@@ -258,9 +339,11 @@ def disable_stations(
 		get_multi_station_user,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
-	stationService: StationService = Depends(station_service)
+	stationProcessService: StationProcessService = Depends(
+		station_process_service
+	)
 ) -> None:
-	stationService.disable_stations(
+	stationProcessService.disable_stations(
 		(s.id for s in stations),
 		user.id if includeAll else None
 	)

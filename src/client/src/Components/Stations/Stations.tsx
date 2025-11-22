@@ -18,7 +18,10 @@ import {
 import {
 	useStationData,
 } from "../../Context_Providers/AppContext/AppContext";
-import { enableStations, disableStations } from "../../API_Calls/stationCalls";
+import { 
+	enableStationsCaller,
+	disableStations,
+} from "../../API_Calls/stationCalls";
 import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
 import { getListenAddress } from "../../Helpers/request_helpers";
@@ -26,7 +29,7 @@ import {
 	useKeyedVoidWaitingReducer,
 	keyedVoidDispatches as dispatches,
 } from "../../Reducers/keyedVoidWaitingReducer";
-import { CallStatus } from "../../constants";
+import { CallStatus, StationTypes } from "../../constants";
 import { YesNoControl } from "../Shared/YesNoControl";
 import { userKeyMatch } from "../../Helpers/compare_helpers";
 import {
@@ -111,11 +114,26 @@ export const Stations = () => {
 		e.stopPropagation();
 		try {
 			toggleDispatch(dispatches.started([station.id]));
-			const requestObj = enableStations({ ids: station.id});
-			await requestObj.call();
-			toggleDispatch(dispatches.done([station.id]));
-			enqueueSnackbar(`${name} is being enabled`, { variant: "success"});
-			updateStation({...station, isrunning: true});
+			const requestObj = enableStationsCaller({ ids: station.id});
+			const enabledStations = await requestObj.call();
+			if (enabledStations.some(s => s.id === station.id)) {
+				toggleDispatch(dispatches.done([station.id]));
+				enqueueSnackbar(
+					`${station.displayname} is being enabled`, { variant: "success"}
+				);
+				updateStation({...station, isrunning: true});
+			}
+			else {
+				toggleDispatch(
+					dispatches.failed([{
+						key: station.id,
+						msg: `${station.displayname} could not be enabled`,
+					}])
+				);
+				enqueueSnackbar(
+					`${station.displayname} could not be enabled`, {variant: "error" }
+				);
+			}
 		}
 		catch(err) {
 			const formattedError = formatError(err);
@@ -196,6 +214,11 @@ export const Stations = () => {
 			error={stationError}
 		>
 			{stations?.length ? stations.map((s: StationInfo, idx: number) => {
+
+				const catalogueRoute = s.typeid === StationTypes.SONGS_ONLY ? 
+					DomRoutes.songCatalogue :
+					DomRoutes.collectionCatalogue;
+
 				return (<Accordion
 					key={`station_${idx}`}
 					defaultExpanded={false}
@@ -241,7 +264,7 @@ export const Stations = () => {
 										color="primary"
 										variant="contained"
 										className="station-button"
-										to={`${DomRoutes.songCatalogue({
+										to={`${catalogueRoute({
 											stationkey: s.name,
 											ownerkey: s.owner?.username || "",
 										})}`}

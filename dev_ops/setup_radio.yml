@@ -2,12 +2,13 @@
 - hosts: all
 
   vars:
-    app_trunk: '{{domain["app_root"]|default("~")}}/{{app_details["name"]}}'
+    app_trunk: '{{domain["app_root"]}}/{{app_details["name"]}}'
     test_trunk: '../test_trash/{{app_details["name"]}}'
 
   vars_files:
     - vars/vault.yml
     - vars/globals.yml
+    - vars/os_paths.yml
 
   handlers:
     - name: Restart icecast
@@ -19,7 +20,17 @@
   pre_tasks:
     - include_vars: "{{ item }}"
       with_first_found:
-        - 'vars/os_vars_default.yml'
+        - 'vars/packages/vars_{{ansible_os_family}}{{ansible_distribution_major_version}}.yml'
+    - name: Set local host app app_trunk
+      set_fact:
+        app_trunk: '{{"~"|expanduser}}/{{app_details["name"]}}'
+        domain: '{{domain|combine(my_overrides, recursive=True)}}'
+      vars:
+        my_overrides:
+          app_root: '{{"~"|expanduser}}'
+      when: inventory_hostname in ["127.0.0.1", "localhost"]
+    - debug:
+        msg: '{{domain["app_root"]}}'
     - name: Update apt cache if needed
       apt: update_cache=true cache_valid_time=3600
       become: true
@@ -66,10 +77,15 @@
       vars:
         ices_dependencies: '{{packages["ices_dependencies"]}}'
         build_path: /tmp/build/ices
-        install_path: '{{app_trunk}}/.local'
+        install_path: '{{domain["app_root"]}}/.local'
         python_path: '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
-        python_module_dir: '{{app_trunk}}/{{app_details["name"]}}/pyModules'
-        prefix: '{{app_details["prefix"]}}'
+        python_module_dir: '{{app_trunk}}/ices_modules'
+        prefix: '{{app_details["prefix"]|lower}}-'
+        target_version: '0.6.2'
+    - name: Copy the python station modules
+      copy:
+        src: radio_handle.py
+        dest: '{{app_trunk}}/ices_modules/station.py'
     - name: Generate source password
       command: openssl rand -hex 16
       register: source_password
@@ -103,6 +119,7 @@
         - regexp: '<admin-password>\w*</admin-password>'
           line: '<admin-password>{{admin_password.stdout}}</admin-password>'
       no_log: true
+      notify: Restart icecast
     - name: Update the ices configs
       lineinfile:
         dest: '{{item}}'

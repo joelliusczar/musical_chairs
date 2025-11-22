@@ -21,6 +21,10 @@ deploy_local_app() (
 	ansible-playbook startup_api.yml -i ~/.ansible/inventories/testing  --ask-vault-pass -K
 )
 
+deploy_local_radio() (
+	ansible-playbook setup_radio.yml -i ~/.ansible/inventories/testing  --ask-vault-pass -K
+)
+
 # app_name='musical_chairs'
 # 	mkdir -p "../test_trash/${app_name}" &&
 # 	rsync -avP --del ./files "../test_trash/${app_name}"  &&

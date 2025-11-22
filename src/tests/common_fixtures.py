@@ -25,11 +25,10 @@ from musical_chairs_libs.services import (
 	PlaylistService,
 	StationsSongsService,
 	StationsUsersService,
-	AlbumQueueService,
+	CollectionQueueService,
 	StationsAlbumsService
 )
 
-from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
@@ -122,12 +121,6 @@ def fixture_populated_db_name(
 
 
 @pytest.fixture
-def fixture_radio_handle(fixture_populated_db_name: str) -> RadioHandle:
-	radioHandle = RadioHandle(1, fixture_populated_db_name)
-	return radioHandle
-
-
-@pytest.fixture
 def fixture_queue_service(
 	fixture_conn_cardboarddb: Connection
 ) -> QueueService:
@@ -136,11 +129,11 @@ def fixture_queue_service(
 
 
 @pytest.fixture
-def fixture_album_queue_service(
+def fixture_collection_queue_service(
 	fixture_conn_cardboarddb: Connection
-) -> AlbumQueueService:
-	albumQueueService = AlbumQueueService(fixture_conn_cardboarddb)
-	return albumQueueService
+) -> CollectionQueueService:
+	collectionQueueService = CollectionQueueService(fixture_conn_cardboarddb)
+	return collectionQueueService
 
 
 @pytest.fixture

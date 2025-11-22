@@ -1,7 +1,21 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for radio-setup
-
+- name: Get ices version
+  command: '{{prefix}}ices -V'
+  failed_when: false
+  register: ices_output 
+- name: Extract version
+  set_fact: 
+    ices_version: '{{ices_output.stdout.splitlines()[0].split(" ")[1]}}'
+  when: ices_output.rc == 0
+- name: End early if already installed.
+  meta: end_role
+  when: ices_version is defined and ices_version is version(target_version)
+- name: Clean out build files
+  file:
+    path: '{{build_path}}'
+    state: absent
 - name: Install dependencies
   package: 
     name: '{{item.value}}'
@@ -47,4 +61,8 @@
 - name: Compile
   command: 
     cmd: make
+    chdir: '{{build_path}}'
+- name: Install
+  command: 
+    cmd: make install
     chdir: '{{build_path}}'

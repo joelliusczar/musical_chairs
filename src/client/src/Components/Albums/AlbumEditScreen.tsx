@@ -43,6 +43,7 @@ import { UserRoleDef, DomRoutes } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
+import { buildArrayQueryStr } from "../../Helpers/request_helpers";
 
 
 
@@ -191,13 +192,12 @@ export const AlbumEditScreen = () => {
 		reset,
 	]);
 
+	const songIdQueryStr = state.data?.length > 0 ? 
+		buildArrayQueryStr("ids", state.data.map(i => i.id)) :
+		"";
+
 
 	return <Loader status={callStatus} error={error}>
-		<AlbumEdit
-			id={id}
-			formMethods={formMethods}
-			callSubmit={callSubmit}
-		/>
 		<>
 			{canDeleteItem() && <YesNoModalOpener
 				promptLabel="Delete Album"
@@ -206,6 +206,19 @@ export const AlbumEditScreen = () => {
 				onNo={() => {}}
 			/>}
 		</>
+		<AlbumEdit
+			id={id}
+			formMethods={formMethods}
+			callSubmit={callSubmit}
+		/>
+		<Button
+			component={Link}
+			to={
+				`${DomRoutes.songEdit()}${songIdQueryStr}`}
+			disabled={(state.data?.length || 0) < 1}
+		>
+			Batch Edit Songs
+		</Button>
 		{state.data?.length > 0 ? 
 			<TableContainer>
 				<Table>

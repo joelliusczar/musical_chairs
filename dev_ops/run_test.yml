@@ -5,12 +5,13 @@
   vars_files:
     - vars/vault.yml
     - vars/globals.yml
+    - vars/os_paths.yml
 
 
   pre_tasks:
     - include_vars: "{{ item }}"
       with_first_found:
-        - 'vars/os_vars_default.yml'
+        - 'vars/packages/vars_{{ansible_os_family}}{{ansible_distribution_major_version}}.yml'
     - include_vars: 'vars/vault.yml'
     - include_vars: 
         file: 'vars/local_keys.yml'
@@ -67,7 +68,7 @@
         DSF_AUTH_SECRET_KEY: '{{keys["auth_secret_key"]}}'
         DSF_BACK_KEY: '{keys["back_key"]}'
         DSF_CONTENT_DIR: '../{{test_trunk}}/content'
-        DSF_PY_MODULE_DIR: '../{{test_trunk}}/pyModules'
+        DSF_PY_MODULE_DIR: '../{{test_trunk}}/ices_modules'
       when: skip_tests|default(false)|bool != true
     
     

@@ -34,6 +34,7 @@
   vars_files:
     - ../vars/vault.yml
     - ../vars/globals.yml
+    - ../vars/os_paths.yml
   
   pre_tasks:
     - name: Set src and dest host groups
@@ -56,7 +57,7 @@
           ansible_user: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_user"]}}'
     - include_vars: "{{ item }}"
       with_first_found:
-        - 'vars/os_vars_default.yml'
+        - 'vars/packages/vars_{{ansible_os_family}}{{ansible_distribution_major_version}}.yml'
     - name: Install PyMySQL
       become: true
       apt:

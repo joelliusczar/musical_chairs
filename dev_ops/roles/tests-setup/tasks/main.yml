@@ -12,7 +12,7 @@
     state: directory
 - name: Create py modules directory
   file:
-    path: '{{test_trunk}}/pyModules'
+    path: '{{test_trunk}}/ices_modules'
     state: directory
 - name: Setup python code to be tested
   include_role:

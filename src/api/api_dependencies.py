@@ -36,7 +36,8 @@ from musical_chairs_libs.services import (
 	PlaylistService,
 	StationsSongsService,
 	StationsUsersService,
-	AlbumQueueService
+	CollectionQueueService,
+	StationProcessService,
 )
 from musical_chairs_libs.protocols import (
 	FileService
@@ -132,43 +133,57 @@ def station_service(
 ) -> StationService:
 	return StationService(conn)
 
+def station_process_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> StationProcessService:
+	return StationProcessService(conn)
+
+
 def stations_songs_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> StationsSongsService:
 	return StationsSongsService(conn)
+
 
 def stations_users_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> StationsUsersService:
 	return StationsUsersService(conn)
 
+
 def playlist_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> PlaylistService:
 	return PlaylistService(conn)
+
 
 def song_info_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> SongInfoService:
 	return SongInfoService(conn)
 
+
 def artist_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> ArtistService:
 	return ArtistService(conn)
+
 
 def album_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> AlbumService:
 	return AlbumService(conn)
 
+
 def path_rule_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> PathRuleService:
 	return PathRuleService(conn)
 
+
 def file_service() -> FileService:
 	return S3FileService()
+
 
 def song_file_service(
 	conn: Connection=Depends(get_configured_db_connection),
@@ -176,34 +191,41 @@ def song_file_service(
 ) -> SongFileService:
 	return SongFileService(conn, fileService)
 
+
 def job_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	fileService: FileService=Depends(file_service)
 ) -> JobsService:
 	return JobsService(conn, fileService)
 
+
 def queue_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> QueueService:
 	return QueueService(conn)
 
-def album_queue_service(
+
+def collection_queue_service(
 	conn: Connection=Depends(get_configured_db_connection)
-) -> AlbumQueueService:
-	return AlbumQueueService(conn)
+) -> CollectionQueueService:
+	return CollectionQueueService(conn)
+
 
 def accounts_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> AccountsService:
 	return AccountsService(conn)
 
+
 def process_service() -> ProcessService:
 	return ProcessService()
+
 
 def user_actions_history_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> UserActionsHistoryService:
 	return UserActionsHistoryService(conn)
+
 
 def get_optional_prefix(
 	prefix: Optional[str]=Query(None),
@@ -215,6 +237,7 @@ def get_optional_prefix(
 		translated = nodeId
 		decoded = urlsafe_b64decode(translated).decode()
 		return decoded
+
 
 def get_prefix(
 	prefix: Optional[str]=Query(None),
@@ -244,6 +267,7 @@ def get_user_from_token(
 	except ExpiredSignatureError:
 		raise build_expired_credentials_error()
 
+
 def get_current_user_simple(
 	request: Request,
 	token: str = Depends(oauth2_scheme),
@@ -255,6 +279,7 @@ def get_current_user_simple(
 		accountsService
 	)
 	return user
+
 
 def get_optional_user_from_token(
 	request: Request,
@@ -271,6 +296,7 @@ def get_optional_user_from_token(
 		return user
 	except ExpiredSignatureError:
 		raise build_expired_credentials_error()
+
 
 def __open_user_from_request__(
 	userkey: Union[int, str, None],

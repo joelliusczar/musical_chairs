@@ -4,6 +4,7 @@ from musical_chairs_libs.services import (
 	AccountsService,
 	UserRoleDef,
 	StationsUsersService,
+	QueueService,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationCreationInfo,
@@ -17,6 +18,7 @@ from .common_fixtures import (
 	fixture_station_service as fixture_station_service,
 	fixture_account_service as fixture_account_service,
 	fixture_stations_users_service as fixture_stations_users_service,
+	fixture_queue_service as fixture_queue_service,
 )
 from .common_fixtures import *
 from .mocks.db_population import get_initial_stations
@@ -631,14 +633,14 @@ def test_get_station_user_list_station_no_users(
 	assert rules[6].name == UserRoleDef.STATION_VIEW.value
 
 def test_get_station_catalogue_multi_artist(
-	fixture_station_service: StationService,
-	fixture_account_service: AccountsService
+	fixture_account_service: AccountsService,
+	fixture_queue_service: QueueService
 ):
-	stationService = fixture_station_service
 	accountService = fixture_account_service
+	queueService = fixture_queue_service
 	user,_ = accountService.get_account_for_login("unruledStation_testUser")
 	assert user
-	items, totalSongs = stationService.get_station_song_catalogue(23)
+	items, totalSongs = queueService.get_song_catalogue(23)
 	songs = sorted(
 		items,
 		key=lambda s: s.id

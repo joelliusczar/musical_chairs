@@ -8,10 +8,12 @@ import {
 	StationTableData,
 	StationRuleAddition,
 	StationRuleDeletion,
+	RequiredStationParamsOnly,
 } from "../Types/station_types";
 import {
 	CurrentPlayingInfo,
 	SongListDisplayItem,
+	CollectionQueuedItem,
 } from "../Types/song_info_types";
 import { Flags, StringObject } from "../Types/generic_types";
 import { ListData, TableData } from "../Types/pageable_types";
@@ -120,6 +122,28 @@ export const fetchSongCatalogue = ({
 	};
 };
 
+
+export const fetchCollectionCatalogueCaller = ({
+	stationkey,
+	ownerkey,
+	...params
+}: RequiredStationParams) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const url = `stations/${ownerkey}/${stationkey}/collection_catalogue/`;
+			const response = await webClient.get<
+				StationTableData<CollectionQueuedItem>
+			>(
+				url,
+				{ params: params, signal: abortController.signal }
+			);
+			return response.data;
+		},
+	};
+};
+
 export const fetchQueue = (
 	{ stationkey, ownerkey, ...params }: RequiredStationParams
 ) => {
@@ -155,8 +179,8 @@ export const fetchHistory = (
 	};
 };
 
-export const sendSongRequest = (
-	{ stationkey, ownerkey, songid}: RequiredStationParams & {songid: IdValue}
+export const sendSongRequestCaller = (
+	{ stationkey, ownerkey, songid}: RequiredStationParamsOnly & {songid: IdValue}
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -165,6 +189,30 @@ export const sendSongRequest = (
 			const response = await webClient
 				.post<void>(
 					`stations/${ownerkey}/${stationkey}/request/${songid}`,
+					null,
+					{ signal: abortController.signal }
+				);
+			return response.data;
+		},
+	};
+};
+
+export const sendCollectionRequestCaller = (
+	{ 
+		stationkey,
+		ownerkey,
+		collectionId,
+		typeId,
+	}: RequiredStationParamsOnly & {collectionId: IdValue, typeId: IdValue }
+) => {
+	const abortController = new AbortController();
+	const stationKeySegment = `${ownerkey}/${stationkey}`;
+	return {
+		abortController: abortController,
+		call: async () => {
+			const response = await webClient
+				.post<void>(
+					`stations/${stationKeySegment}/request/${typeId}/${collectionId}`,
 					null,
 					{ signal: abortController.signal }
 				);
@@ -199,7 +247,7 @@ export const removeSongFromQueue = (
 	};
 };
 
-export const enableStations = (
+export const enableStationsCaller = (
 	{ ids }: { ids: IdValue[] | IdValue }
 ) => {
 	const abortController = new AbortController();

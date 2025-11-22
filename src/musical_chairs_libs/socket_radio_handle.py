@@ -19,23 +19,25 @@ class SocketRadioHandle:
 	# Function called to shutdown your python enviroment.
 	# Return 1 if ok, 0 if something went wrong.
 	def ices_shutdown(self) -> int:
+		print('Executing shutdown() function...')
 		print(f"Station is shutting down on {self.display}")
 		print(self.songFullPath)
+		result = 1
 		if self.client:
 			try:
 				self.client.sendall(b"0")
 			except Exception:
 				sys.stderr.write("Listener is closed while shutting down?\n")
+				result = 0
 			self.client.close()
-		print('Executing shutdown() function...')
-		return 1
+		return result
 
 	# Function called to get the next filename to stream.
 	# Should return a string.
 	def ices_get_next(self) -> str:
 		if not self.client:
 			host = "127.0.0.1"
-			portNumber = int(os.environ["MCR_STATION_PORT"])
+			portNumber = int(os.environ["DSF_STATION_PORT"])
 			self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			self.client.connect((host, portNumber))
 		try:

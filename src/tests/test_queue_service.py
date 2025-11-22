@@ -1,11 +1,9 @@
 #pyright: reportMissingTypeStubs=false, reportPrivateUsage=false
-from .constant_fixtures_for_test import *
 from .common_fixtures import (
 	fixture_queue_service as fixture_queue_service,
-	fixture_album_queue_service as fixture_album_queue_service
 )
 from .common_fixtures import *
-from musical_chairs_libs.services import QueueService, AlbumQueueService
+from musical_chairs_libs.services import QueueService
 from musical_chairs_libs.dtos_and_utilities import TrackingInfo
 
 
@@ -28,15 +26,6 @@ def test_queue_of_songs_without_artists(fixture_queue_service: QueueService):
 	queue1, _ = queueService.get_queue_for_station(8)
 	assert len(queue1) == 4
 
-def test_adding_album_to_queue(
-	fixture_queue_service: QueueService,
-	fixture_album_queue_service: AlbumQueueService
-):
-	queueService = fixture_queue_service
-	albumQueueService = fixture_album_queue_service
-	albumQueueService.fil_up_album_queue(26,3)
-	queue1, _ = queueService.get_queue_for_station(26)
-	assert queue1
 
 def test_if_song_can_be_added_to_station(
 	fixture_queue_service: QueueService

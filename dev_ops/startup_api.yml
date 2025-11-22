@@ -11,6 +11,7 @@
   vars_files:
     - vars/vault.yml
     - vars/globals.yml
+    - vars/os_paths.yml
 
 
   pre_tasks:
@@ -23,7 +24,7 @@
       when: hostvars.localhost.skip_to_exit|default(omit) == true
     - include_vars: "{{ item }}"
       with_first_found:
-        - 'vars/os_vars_default.yml'
+        - 'vars/packages/vars_{{ansible_os_family}}{{ansible_distribution_major_version}}.yml'
     - include_vars: 
         file: 'vars/vault.yml'
         hash_behaviour: merge
@@ -186,13 +187,14 @@
           DSF_NAMESPACE_UUID='{{keys["namespace_uuid"]}}'
           DSF_TEMPLATES_DEST='{{app_trunk}}/{{app_details["name"]}}/templates'
           DSF_ICES_CONFIGS_DIR='{{app_trunk}}/{{app_details["name"]}}/ices_configs'
-          DSF_PY_MODULE_DIR='{{app_trunk}}/{{app_details["name"]}}/pyModules'
+          DSF_PY_MODULE_DIR='{{app_trunk}}/{{app_details["name"]}}/ices_modules'
           DSF_SQL_SCRIPTS_DEST='{{app_trunk}}/{{app_details["name"]}}/sql_scripts'
           DSF_DATABASE_NAME='{{app_details["db"]}}'
           DSF_AUTH_SECRET_KEY='{{keys["auth_secret_key"]}}'
           DSF_BACK_KEY='{{keys["back_key"]}}'
           S3_BUCKET_NAME='{{keys["s3_bucket_name"]}}'
           S3_REGION_NAME='{{keys["s3_region_name"]}}'
+          DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
       #become_user: '{{domain["server_user"]}}'
     - name: Add API run script
       copy: 

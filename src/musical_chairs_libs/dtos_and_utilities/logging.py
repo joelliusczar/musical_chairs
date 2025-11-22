@@ -13,7 +13,7 @@ radio_log_level = os.environ.get(
 
 
 formatter = builtin_logging.Formatter(
-	"[%(asctime)s][%(levelname)s][%(funcName)s]: %(message)s"
+	"[%(asctime)s][%(levelname)s][%(filename)s: %(funcName)s]: %(message)s"
 )
 
 

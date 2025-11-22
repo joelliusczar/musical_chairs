@@ -14,8 +14,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from musical_chairs_libs.protocols import SongPopper
 from musical_chairs_libs.tables import (
-	albums as albums_tbl, ab_pk, ab_name, ab_year, ab_albumArtistFk, ab_ownerFk,
-	artists as artists_tbl, ar_pk, ar_name,
+	ab_year,
+	ar_name,
 	songs,
 	stations as stations_tbl, st_typeid,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
@@ -25,7 +25,8 @@ from musical_chairs_libs.tables import (
 	sg_trackNum,
 	st_pk,
 	last_played, lp_songFk, lp_stationFk, lp_timestamp,
-	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
+	playlists as playlists_tbl, pl_pk, pl_ownerFk, pl_name, 
+	stab_stationFk,
 	stations_playlists as stations_playlists_tbl, stpl_playlistFk, stpl_stationFk,
 	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk,
 )
@@ -249,11 +250,9 @@ class PlaylistQueueService(SongPopper):
 		if not stationId:
 			raise ValueError("Station Id must be provided")
 
-		# songOffset = len(loaded) if loaded else 0
-		collectionOffset = len({l.album for l in loaded}) if loaded else 0
 
-		if self.is_queue_empty(stationId, collectionOffset):
-			self.fil_up_queue(stationId, self.queue_size + 1 - collectionOffset)
+		if self.is_queue_empty(stationId, 0):
+			self.fil_up_queue(stationId, self.queue_size)
 			self.conn.commit()
 
 		results, _ = self.queue_service.get_queue_for_station(
@@ -299,20 +298,19 @@ class PlaylistQueueService(SongPopper):
 		lcreator = clean_search_term_for_like(creator)
 
 		query = select(
-			ab_pk.label("id"),
-			ab_name.label("name"),
+			pl_pk.label("id"),
+			pl_name.label("name"),
 			ar_name.label("creator"),
 			ab_year.label("year"),
-			ab_ownerFk.label("ownerid")
+			pl_ownerFk.label("ownerid")
 		)\
 			.select_from(stations_tbl) \
-			.join(stations_albums_tbl, st_pk == stab_stationFk) \
-			.join(albums_tbl, stab_albumFk == ab_pk) \
-			.join(artists_tbl, ab_albumArtistFk == ar_pk, isouter=True) \
+			.join(stations_playlists_tbl, st_pk == stpl_stationFk) \
+			.join(playlists_tbl, stpl_playlistFk == pl_pk) \
 			.where(st_pk == stationId)
 		
 		if lcollection:
-			query = query.where(ab_name.like(f"%{lcollection}%"))
+			query = query.where(pl_name.like(f"%{lcollection}%"))
 
 		if lcreator:
 			query = query.where(ar_name.like(f"%{lcreator}%"))
@@ -327,8 +325,8 @@ class PlaylistQueueService(SongPopper):
 			id=r["id"],
 			name=r["name"] or "",
 			creator=r["creator"] or "",
-			itemtype="Album",
-			itemtypeid=StationTypes.ALBUMS_ONLY.value,
+			itemtype="Playlist",
+			itemtypeid=StationTypes.PLAYLISTS_ONLY.value,
 			queuedtimestamp=0,
 			rules=[] if user and r["ownerid"] != user.id else [
 				ActionRule(

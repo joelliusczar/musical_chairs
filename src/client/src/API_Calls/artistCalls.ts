@@ -1,10 +1,10 @@
 import { defaultWebClient as webClient } from "./api";
 import {
 	IdValue,
+	Named,
 } from "../Types/generic_types";
 import {
 	ArtistInfo,
-	AlbumCreationInfo,
 	SongsArtistInfo,
 } from "../Types/song_info_types";
 import { PageableParams, ListData } from "../Types/pageable_types";
@@ -58,7 +58,7 @@ export const getList = ({ params }: { params?: object}) => {
 };
 
 
-export const add = ({ name }: { name: string })  => {
+export const add = ({ name }: Named)  => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,
@@ -81,7 +81,7 @@ export const add = ({ name }: { name: string })  => {
 
 
 export const update = (
-	{ id, data }: { id: IdValue, data: AlbumCreationInfo }
+	{ id, data }: { id: IdValue, data: Named }
 ) => {
 	const abortController = new AbortController();
 	return {

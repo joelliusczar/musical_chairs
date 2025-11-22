@@ -7,7 +7,7 @@ import {
 	useDataWaitingReducer,
 } from "../../Reducers/dataWaitingReducer";
 import PropTypes from "prop-types";
-import { fetchArtistList } from "../../API_Calls/songInfoCalls";
+import { getList as fetchArtistList } from "../../API_Calls/artistCalls";
 import { getList as fetchAlbumList } from "../../API_Calls/albumCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import { fetchStations } from "../../API_Calls/stationCalls";

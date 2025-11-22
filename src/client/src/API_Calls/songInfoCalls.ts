@@ -1,12 +1,9 @@
 import { defaultWebClient as webClient } from "./api";
 import { buildArrayQueryStr } from "../Helpers/request_helpers";
 import {
-	AlbumInfo,
-	ArtistInfo,
 	SongTreeNodeInfo,
 	SongInfoApiSavura,
 	SongInfoForm,
-	AlbumCreationInfo,
 	UploadInfo,
 	DirectoryTransfer,
 } from "../Types/song_info_types";
@@ -85,39 +82,6 @@ export const saveSongsEditsMulti = (
 					data,
 					{ signal: abortController.signal }
 				);
-			return response.data;
-		},
-	};
-};
-
-export const fetchArtistList = ({ params }: { params?: object}) => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-			const response = await webClient.get<ListData<ArtistInfo>>(
-				"/song-info/artists/list",
-				{
-					params: params,
-					signal: abortController.signal,
-				});
-			return response.data;
-		},
-	};
-};
-
-
-export const fetchAlbumList = ({ params }: { params?: object}) => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-			const response = await webClient.get<ListData<AlbumInfo>>(
-				"/song-info/albums/list",
-				{
-					params: params,
-					signal: abortController.signal,
-				});
 			return response.data;
 		},
 	};
@@ -337,6 +301,7 @@ export const downloadSong = async (songId: number) => {
 	window?.open(url, "_blank")?.focus();
 };
 
+
 export const deletePrefix = ({ nodeId }:{ nodeId: string}) => {
 	const abortController = new AbortController();
 	return {
@@ -356,6 +321,7 @@ export const deletePrefix = ({ nodeId }:{ nodeId: string}) => {
 		},
 	};
 };
+
 
 export const movePath = (transferObj:DirectoryTransfer) => {
 	const abortController = new AbortController();

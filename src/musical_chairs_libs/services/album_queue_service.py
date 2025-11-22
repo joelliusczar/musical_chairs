@@ -116,6 +116,7 @@ class AlbumQueueService(SongPopper):
 			for r in rows
 		}
 
+
 	def get_all_station_album_possibilities(
 		self,
 		stationid: int
@@ -129,6 +130,7 @@ class AlbumQueueService(SongPopper):
 			key=lambda aid: lastPlayedMap[aid]
 		)
 
+
 	def get_random_albumIds(
 		self,
 		stationid: int,
@@ -140,7 +142,8 @@ class AlbumQueueService(SongPopper):
 			raise RuntimeError("No album possibilities were found")
 		selection = self.choice(ids, sampleSize)
 		return selection
-	
+
+
 	def queue_count(
 		self,
 		stationId: int,
@@ -154,6 +157,7 @@ class AlbumQueueService(SongPopper):
 				.where(uah_timestamp.is_(None))
 		count = self.conn.execute(query).scalar() or 0
 		return count
+
 
 	def fil_up_queue(self, stationId: int, queueSize: int) -> None:
 		
@@ -180,23 +184,20 @@ class AlbumQueueService(SongPopper):
 
 	def add_album_to_queue(
 		self,
-		collectionId: int,
+		albumId: int,
 		station: StationInfo,
 		user: AccountInfo,
-		stationType: StationTypes,
 		trackingInfo: TrackingInfo
 	):
 		if station and\
-			self.can_collection_be_queued_to_station(
-				collectionId,
-				station.id,
-				stationType
+			self.can_album_be_queued_to_station(
+				albumId,
+				station.id
 			):
 			query = select(sg_pk)\
 				.where(sg_deletedTimstamp.is_(None))\
-			
-			if stationType == StationTypes.ALBUMS_ONLY:
-				query = query.where(sg_albumFk == collectionId)
+				.where(sg_albumFk == albumId)
+
 			rows = self.conn.execute(query)
 			self.queue_service.queue_insert_songs(
 				[r[0] for r in rows],
@@ -207,22 +208,21 @@ class AlbumQueueService(SongPopper):
 			self.conn.commit()
 			return
 		raise LookupError(f"album cannot be added to {station.name}")
-	
-	def can_collection_be_queued_to_station(
+
+
+	def can_album_be_queued_to_station(
 		self,
-		collectionId: int,
-		stationId: int,
-		stationType: StationTypes
+		albumId: int,
+		stationId: int
 	) -> bool:
 		query = select(func.count(1)).select_from(stations_albums_tbl)\
 			.join(stations_tbl, stab_stationFk == st_pk)\
 			.where(stab_stationFk == stationId)\
-			.where(st_typeid == stationType.value)
-		
-		if stationType == StationTypes.ALBUMS_ONLY:
-			query = query.where(stab_albumFk == collectionId)
+			.where(st_typeid == StationTypes.ALBUMS_ONLY.value)\
+			.where(stab_albumFk == albumId)
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
+
 
 	def is_queue_empty(
 		self,
@@ -231,6 +231,7 @@ class AlbumQueueService(SongPopper):
 	) -> bool:
 		res = self.queue_count(stationId)
 		return res < (offset + 1)
+
 
 	def pop_next_queued(
 		self,
@@ -247,7 +248,6 @@ class AlbumQueueService(SongPopper):
 			self.fil_up_queue(stationId, self.queue_size + 1 - collectionOffset)
 			self.conn.commit()
 
-
 		results, _ = self.queue_service.get_queue_for_station(
 			stationId,
 			limit=self.queue_service.queue_size
@@ -259,7 +259,6 @@ class AlbumQueueService(SongPopper):
 			return item
 
 		raise RuntimeError("No unskipped songs available.")
-	
 
 
 	def move_from_queue_to_history(
@@ -286,7 +285,8 @@ class AlbumQueueService(SongPopper):
 		self.fil_up_queue(stationId, self.queue_size)
 		self.conn.commit()
 		return updCount > 0
-	
+
+
 	def get_catalogue(
 		self,
 		stationId: int,
@@ -344,7 +344,8 @@ class AlbumQueueService(SongPopper):
 			.select_from(cast(Any, query))
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
-	
+
+
 	def remove_song_from_queue(self,
 		songId: int,
 		queuedTimestamp: float,

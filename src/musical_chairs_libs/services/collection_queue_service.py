@@ -28,6 +28,7 @@ from musical_chairs_libs.tables import (
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
 )
 from .queue_service import QueueService
+from .station_service import StationService
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 )
@@ -65,6 +66,7 @@ class CollectionQueueService(SongPopper):
 		self,
 		conn: Optional[Connection]=None,
 		queueService: Optional[QueueService]=None,
+		stationService: Optional[StationService]=None,
 		choiceSelector: Optional[
 			Callable[[Sequence[Any], int], Collection[Any]]
 		]=None,
@@ -73,10 +75,13 @@ class CollectionQueueService(SongPopper):
 				raise RuntimeError("No connection provided")
 			if not queueService:
 				queueService = QueueService(conn)
+			if not stationService:
+				stationService = StationService(conn)
 			if not choiceSelector:
 				choiceSelector = choice
 			self.conn = conn
 			self.queue_service = queueService
+			self.station_service = stationService
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.queue_size = 3

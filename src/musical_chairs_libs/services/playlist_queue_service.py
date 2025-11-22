@@ -173,13 +173,14 @@ class PlaylistQueueService(SongPopper):
 		deficitSize = queueSize - count
 		if deficitSize < 1:
 			return
-		albumIds = self.get_random_playlistIds(stationId, deficitSize)
-		songAlbumQuery = select(sg_pk, sg_albumFk, sg_disc, sg_trackNum)\
-			.where(sg_albumFk.in_(albumIds))\
+		playlistIds = self.get_random_playlistIds(stationId, deficitSize)
+		songAlbumQuery = select(sg_pk, plsg_playlistFk, sg_disc, sg_trackNum)\
+			.join(playlists_songs_tbl,sg_pk == plsg_songFk)\
+			.where(plsg_playlistFk.in_(playlistIds))\
 			.where(sg_deletedTimstamp.is_(None))
 		
 		songTuples = self.conn.execute(songAlbumQuery).fetchall()
-		sortMap = {a[1]:a[0] for a in enumerate(albumIds)}
+		sortMap = {a[1]:a[0] for a in enumerate(playlistIds)}
 		sortedSongs = sorted(
 			(r for r in songTuples),
 			key=lambda r: (sortMap[r[1]], r[2] or 0, r[3])

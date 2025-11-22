@@ -174,13 +174,13 @@ class PlaylistQueueService(SongPopper):
 		if deficitSize < 1:
 			return
 		playlistIds = self.get_random_playlistIds(stationId, deficitSize)
-		songAlbumQuery = select(sg_pk, plsg_playlistFk, sg_disc, sg_trackNum)\
+		songPlaylistQuery = select(sg_pk, plsg_playlistFk, sg_disc, sg_trackNum)\
 			.join(playlists_songs_tbl,sg_pk == plsg_songFk)\
 			.where(plsg_playlistFk.in_(playlistIds))\
 			.where(sg_deletedTimstamp.is_(None))
 		
-		songTuples = self.conn.execute(songAlbumQuery).fetchall()
-		sortMap = {a[1]:a[0] for a in enumerate(playlistIds)}
+		songTuples = self.conn.execute(songPlaylistQuery).fetchall()
+		sortMap = {p[1]:p[0] for p in enumerate(playlistIds)}
 		sortedSongs = sorted(
 			(r for r in songTuples),
 			key=lambda r: (sortMap[r[1]], r[2] or 0, r[3])
@@ -190,21 +190,21 @@ class PlaylistQueueService(SongPopper):
 			stationId
 		)
 
-	def add_album_to_queue(
+	def add_playlist_to_queue(
 		self,
-		albumId: int,
+		playlistId: int,
 		station: StationInfo,
 		user: AccountInfo,
 		trackingInfo: TrackingInfo
 	):
 		if station and\
-			self.can_album_be_queued_to_station(
-				albumId,
+			self.can_playlist_be_queued_to_station(
+				playlistId,
 				station.id
 			):
 			query = select(sg_pk)\
 				.where(sg_deletedTimstamp.is_(None))\
-				.where(sg_albumFk == albumId)
+				.where(sg_albumFk == playlistId)
 
 			rows = self.conn.execute(query)
 			self.queue_service.queue_insert_songs(
@@ -218,16 +218,16 @@ class PlaylistQueueService(SongPopper):
 		raise LookupError(f"album cannot be added to {station.name}")
 
 
-	def can_album_be_queued_to_station(
+	def can_playlist_be_queued_to_station(
 		self,
-		albumId: int,
+		playlistId: int,
 		stationId: int
 	) -> bool:
 		query = select(func.count(1)).select_from(stations_albums_tbl)\
 			.join(stations_tbl, stab_stationFk == st_pk)\
 			.where(stab_stationFk == stationId)\
-			.where(st_typeid == StationTypes.ALBUMS_ONLY.value)\
-			.where(stab_albumFk == albumId)
+			.where(st_typeid == StationTypes.PLAYLISTS_ONLY.value)\
+			.where(stab_albumFk == playlistId)
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
 

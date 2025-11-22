@@ -214,12 +214,12 @@ class QueueService(SongPopper):
 		self.queue_insert_songs(songIds, stationId)
 
 
-	def move_from_queue_to_history(
+	def __move_from_queue_to_history__(
 		self,
 		stationId: int,
 		songId: int,
 		queueTimestamp: float
-	) -> bool:
+	) -> int:
 		query = select(uah_pk)\
 			.join(station_queue, uah_pk == q_userActionHistoryFk)\
 			.where(q_stationFk == stationId)\
@@ -234,7 +234,19 @@ class QueueService(SongPopper):
 		histUpdateStmt = update(user_action_history_tbl) \
 			.values(timestamp = currentTime) \
 			.where(uah_pk == userActionId)
-		updCount = self.conn.execute(histUpdateStmt).rowcount
+		return self.conn.execute(histUpdateStmt).rowcount
+
+	def move_from_queue_to_history(
+		self,
+		stationId: int,
+		songId: int,
+		queueTimestamp: float
+	) -> bool:
+		updCount = self.__move_from_queue_to_history__(
+			stationId,
+			songId,
+			queueTimestamp
+		)
 		self.fil_up_queue(stationId, self.queue_size)
 		self.conn.commit()
 		return updCount > 0
@@ -293,8 +305,6 @@ class QueueService(SongPopper):
 
 		if limit:
 			offsetQuery = offsetQuery.limit(limit)
-
-
 
 		records = self.conn.execute(offsetQuery).mappings()
 		result = [SongListDisplayItem(

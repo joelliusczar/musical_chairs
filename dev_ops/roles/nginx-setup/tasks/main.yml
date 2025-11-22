@@ -32,8 +32,8 @@
     __conf_name_ngx__: '{{app_prefix}}'
     __server_name_ngx__: '{{server_name}}'
     __keys_ngx__: 
-      pb_api_key: keys["pb_api_key"]
-      pb_secret: keys["pb_secret"]
+      pb_api_key: '{{keys["pb_api_key"]}}'
+      pb_secret: '{{keys["pb_secret"]}}'
   when: ansible_host not in ["127.0.0.1", "localhost"] and not "192.168.0.0/16"|ansible.utils.network_in_usable(ansible_host)
 
 

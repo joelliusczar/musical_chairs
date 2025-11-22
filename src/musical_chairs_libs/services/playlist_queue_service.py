@@ -19,7 +19,7 @@ from musical_chairs_libs.tables import (
 	songs,
 	stations as stations_tbl, st_typeid,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
-	uah_timestamp, uah_action,
+	uah_timestamp,
 	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk,
 	sg_disc, sg_pk, sg_albumFk, sg_deletedTimstamp,
 	sg_trackNum,
@@ -36,7 +36,6 @@ from numpy.random import (
 from sqlalchemy import (
 	select,
 	func,
-	update,
 	distinct,
 )
 from sqlalchemy.engine import Connection
@@ -203,8 +202,9 @@ class PlaylistQueueService(SongPopper):
 				station.id
 			):
 			query = select(sg_pk)\
+				.join(playlists_songs_tbl, sg_pk == plsg_songFk)\
 				.where(sg_deletedTimstamp.is_(None))\
-				.where(sg_albumFk == playlistId)
+				.where(plsg_playlistFk == playlistId)
 
 			rows = self.conn.execute(query)
 			self.queue_service.queue_insert_songs(
@@ -223,11 +223,11 @@ class PlaylistQueueService(SongPopper):
 		playlistId: int,
 		stationId: int
 	) -> bool:
-		query = select(func.count(1)).select_from(stations_albums_tbl)\
+		query = select(func.count(1)).select_from(stations_playlists_tbl)\
 			.join(stations_tbl, stab_stationFk == st_pk)\
 			.where(stab_stationFk == stationId)\
 			.where(st_typeid == StationTypes.PLAYLISTS_ONLY.value)\
-			.where(stab_albumFk == playlistId)
+			.where(stpl_playlistFk == playlistId)
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
 
@@ -275,21 +275,11 @@ class PlaylistQueueService(SongPopper):
 		songId: int,
 		queueTimestamp: float,
 	) -> bool:
-		query = select(uah_pk)\
-			.join(station_queue, uah_pk == q_userActionHistoryFk)\
-			.where(q_stationFk == stationId)\
-			.where(q_songFk == songId)\
-			.where(uah_queuedTimestamp == queueTimestamp)\
-			.where(uah_action == UserRoleDef.STATION_REQUEST.value)
-		userActionId = self.conn.execute(query).scalar_one_or_none()
-		if not userActionId:
-			return False
-		currentTime = self.get_datetime().timestamp()
-
-		histUpdateStmt = update(user_action_history_tbl) \
-			.values(timestamp = currentTime) \
-			.where(uah_pk == userActionId)
-		updCount = self.conn.execute(histUpdateStmt).rowcount
+		updCount = self.queue_service.__move_from_queue_to_history__(
+			stationId,
+			songId,
+			queueTimestamp
+		)
 		self.fil_up_queue(stationId, self.queue_size)
 		self.conn.commit()
 		return updCount > 0

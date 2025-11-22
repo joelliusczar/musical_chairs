@@ -37,10 +37,13 @@
       when: ansible_os_family == "Debian"
 
   tasks:
-    - name: Create ices config directory
+    - name: Create ices directories
       file:
-        path: '{{app_trunk}}/ices_configs'
+        path: '{{item}}'
         state: directory
+      loop:
+        - '{{app_trunk}}/ices_configs'
+        - '{{domain["app_root"]}}/.local'
     - name: install icecast
       package: 
         name: '{{packages["icecast"]}}'

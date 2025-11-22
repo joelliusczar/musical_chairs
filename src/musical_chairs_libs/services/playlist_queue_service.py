@@ -90,7 +90,7 @@ class PlaylistQueueService(SongPopper):
 	) -> dict[int, float]:
 
 		query = select(
-			sg_albumFk,
+			plsg_playlistFk,
 			func.max(uah_queuedTimestamp),
 			func.max(uah_timestamp),
 			func.max(lp_timestamp)
@@ -123,12 +123,12 @@ class PlaylistQueueService(SongPopper):
 		}
 
 
-	def get_all_station_album_possibilities(
+	def get_all_station_playlist_possibilities(
 		self,
 		stationid: int
 	) -> Sequence[int]:
-		query = select(stab_albumFk)\
-			.where(stab_stationFk == stationid)
+		query = select(stpl_playlistFk)\
+			.where(stpl_stationFk == stationid)
 		rows = self.conn.execute(query).fetchall()
 		lastPlayedMap = self.__get_playlist_played_timestamps__(stationid)
 		return sorted(
@@ -137,15 +137,15 @@ class PlaylistQueueService(SongPopper):
 		)
 
 
-	def get_random_albumIds(
+	def get_random_playlistIds(
 		self,
 		stationid: int,
 		deficitSize: int
 	) -> Collection[int]:
-		ids = self.get_all_station_album_possibilities(stationid)
+		ids = self.get_all_station_playlist_possibilities(stationid)
 		sampleSize = deficitSize if deficitSize < len(ids) else len(ids)
 		if not ids:
-			raise RuntimeError("No album possibilities were found")
+			raise RuntimeError("No playlist possibilities were found")
 		selection = self.choice(ids, sampleSize)
 		return selection
 
@@ -154,10 +154,11 @@ class PlaylistQueueService(SongPopper):
 		self,
 		stationId: int,
 	) -> int:
-		query = select(func.count(distinct(sg_albumFk)))\
+		query = select(func.count(distinct(plsg_playlistFk)))\
 				.select_from(station_queue)\
 				.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
+				.join(playlists_songs_tbl, sg_pk == plsg_songFk)\
 				.where(q_stationFk == stationId)\
 				.where(sg_deletedTimstamp.is_(None))\
 				.where(uah_timestamp.is_(None))
@@ -172,7 +173,7 @@ class PlaylistQueueService(SongPopper):
 		deficitSize = queueSize - count
 		if deficitSize < 1:
 			return
-		albumIds = self.get_random_albumIds(stationId, deficitSize)
+		albumIds = self.get_random_playlistIds(stationId, deficitSize)
 		songAlbumQuery = select(sg_pk, sg_albumFk, sg_disc, sg_trackNum)\
 			.where(sg_albumFk.in_(albumIds))\
 			.where(sg_deletedTimstamp.is_(None))

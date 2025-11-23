@@ -129,7 +129,7 @@
         src: '{{src_dirs["templates"]}}'
         dest: '{{app_trunk}}'
         delete: true
-    - name: Copy default app ices_config
+    - name: Copy default app config
       copy:
         dest: '{{app_trunk}}/app_conf.json'
         src: app_conf.json

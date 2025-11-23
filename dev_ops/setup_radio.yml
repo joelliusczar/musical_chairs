@@ -21,6 +21,7 @@
     - name: Reload groups
       become: true
       reboot:
+      when: ansible_host not in ["127.0.0.1", "localhost"] 
 
   pre_tasks:
     - include_vars: "{{ item }}"

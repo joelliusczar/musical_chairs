@@ -20,8 +20,7 @@
         state: reloaded
     - name: Reload groups
       become: true
-      become_user: '{{domain["server_user"]}}'
-      command: 'exec su -l {{domain["server_user"]}}'
+      reboot:
 
   pre_tasks:
     - include_vars: "{{ item }}"

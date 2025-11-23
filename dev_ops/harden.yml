@@ -36,6 +36,7 @@
   tasks:
     - name: Define host name
       set_fact:
+        #combining the app name with the last segment of the ip address
         config_host_name: '{{app_details["name"]}}-{{(inventory_hostname | regex_replace("[:.]", ":")).split(":")[-1]}}'
     - name: Add group
       become: true

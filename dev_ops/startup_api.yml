@@ -22,8 +22,6 @@
     - name: End early?
       meta: end_play
       when: hostvars.localhost.skip_to_exit|default(omit) == true
-    - debug:
-        msg: '{{ansible_distribution}}{{ansible_distribution_major_version}}'
     - include_vars: "{{ item }}"
       with_first_found:
         - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
@@ -89,29 +87,6 @@
 
 
   tasks:
-    - name: Add user
-      user:
-        name: '{{domain["server_user"]}}'
-        group: '{{domain["group"]}}'
-        shell: /bin/bash
-      become: true
-    - name: Allow login user to su as server user
-      blockinfile:
-        path: /etc/pam.d/su
-        insertafter: '^auth +sufficient pam_rootok.so'
-        marker: '# {mark} ANSIBLE - {{domain["server_user"]}}'
-        block: |
-          auth  [success=ignore default=1] pam_succeed_if.so user = {{domain["server_user"]}}
-          auth  sufficient                 pam_succeed_if.so use_uid user = {{domain["user"]}}
-      become: true
-    - name: Enable Linger for server user user
-      command: 
-        argv:
-          - loginctl 
-          - enable-linger 
-          - '{{domain["server_user"]}}'
-        creates: '/var/lib/systemd/linger/{{domain["server_user"]}}'
-      become: true
     - name: Replace API files?
       become: true
       synchronize:
@@ -197,7 +172,6 @@
           S3_BUCKET_NAME='{{keys["s3_bucket_name"]}}'
           S3_REGION_NAME='{{keys["s3_region_name"]}}'
           DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
-      #become_user: '{{domain["server_user"]}}'
     - name: Add API run script
       copy: 
         dest: '/home/{{domain["server_user"]}}/run_api.sh'

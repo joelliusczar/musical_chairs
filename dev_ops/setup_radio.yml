@@ -15,7 +15,12 @@
       become: true
       service:
         name: '{{packages["icecast"]}}'
+        enabled: true
         state: reloaded
+    - name: Reload groups
+      become: true
+      become_user: '{{domain["server_user"]}}'
+      command: 'exec su -l {{domain["server_user"]}}'
 
   pre_tasks:
     - include_vars: "{{ item }}"
@@ -59,6 +64,7 @@
         groups: icecast
         append: true
       become: true
+      notify: Reload groups
     - name: Python setup.
       include_role:
         name: python-setup

@@ -64,7 +64,7 @@
         group: '{{domain["group"]}}'
         content: |
           AWS_ENDPOINT_URL='{{keys["aws_endpoint_url"]}}'
-          DSF_SQL_SCRIPTS_DEST='{{app_trunk}}/{{app_details["name"]}}/sql_scripts'
+          DSF_SQL_SCRIPTS_DEST='{{app_trunk}}/sql_scripts'
           DSF_DATABASE_NAME='{{app_details["db"]}}'
           S3_BUCKET_NAME='{{keys["s3_bucket_name"]}}'
           S3_REGION_NAME='{{keys["s3_region_name"]}}'

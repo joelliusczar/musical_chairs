@@ -1,5 +1,5 @@
 import json
-import logging
+import logging as builtin_logging
 import os
 import re
 from uuid import UUID
@@ -122,14 +122,14 @@ class ConfigAcessors:
 		try:
 			return cls.live_config()["logLevels"]["api"]
 		except:
-			return logging.getLevelName(logging.WARNING)
+			return builtin_logging.getLevelName(builtin_logging.WARNING)
 
 	@classmethod
 	def radio_log_level(cls) -> str:
 		try:
 			return cls.live_config()["logLevels"]["radio"]
 		except:
-			return logging.getLevelName(logging.WARNING)
+			return builtin_logging.getLevelName(builtin_logging.WARNING)
 	
 	@classmethod
 	def python_executable(cls) -> str:

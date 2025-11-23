@@ -23,3 +23,4 @@ from .station_dtos import *
 from .queued_item import *
 from .artist_dtos import *
 from .album_dtos import *
+from .config_accessors import *

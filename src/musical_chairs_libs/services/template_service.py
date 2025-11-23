@@ -1,9 +1,9 @@
 import hashlib
 import re
 from pathlib import Path
-from .env_manager import EnvManager
 from .process_service import ProcessService
 from musical_chairs_libs import SqlScripts
+from musical_chairs_libs.dtos_and_utilities import ConfigAcessors
 
 
 class TemplateService:
@@ -12,17 +12,17 @@ class TemplateService:
 		pass
 
 	def __load_ices_config_template__(self) -> str:
-		templateDir = EnvManager.templates_dir()
+		templateDir = ConfigAcessors.templates_dir()
 		txt = Path(f"{templateDir}/ices.conf").read_text()
 		return txt
 
 	def __load_ices_python_module_template__(self) -> str:
-		templateDir = EnvManager.templates_dir()
+		templateDir = ConfigAcessors.templates_dir()
 		txt = Path(f"{templateDir}/template.py").read_text()
 		return txt
 	
 	def __load_icecast_config_template__(self) -> str:
-		templateDir = EnvManager.templates_dir()
+		templateDir = ConfigAcessors.templates_dir()
 		txt = Path(f"{templateDir}/icecast.xml").read_text()
 		return txt
 
@@ -64,7 +64,8 @@ class TemplateService:
 		username: str
 	) -> Path:
 		filename_base = f"{username}_{internalName}"
-		return Path(f"{EnvManager.station_config_dir()}/ices.{filename_base}.conf")
+		ices_filename = f"ices.{filename_base}.conf"
+		return Path(f"{ConfigAcessors.station_config_dir()}/{ices_filename}")
 
 
 	def does_station_config_exist(
@@ -120,14 +121,14 @@ class TemplateService:
 	@staticmethod
 	def extract_icecast_password():
 			icecastConfLocation = ProcessService.get_icecast_conf_location()
-			return EnvManager.read_config_value(
+			return ConfigAcessors.read_config_value(
 				icecastConfLocation,
 				"source-password"
 			)
 
 	@staticmethod
 	def load_sql_script_content(script: SqlScripts) -> str:
-		sqlScriptsDir = EnvManager.sql_script_dir()
+		sqlScriptsDir = ConfigAcessors.sql_script_dir()
 		txt = Path(f"{sqlScriptsDir}/{script.file_name}").expanduser().read_text()
 		checksum = hashlib.sha256(txt.encode("utf-8")).hexdigest()
 		if checksum != script.checksum:

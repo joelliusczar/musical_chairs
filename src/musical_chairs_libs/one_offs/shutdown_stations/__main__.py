@@ -1,11 +1,11 @@
 from musical_chairs_libs.services import (
 	StationProcessService,
-	EnvManager
 )
+from musical_chairs_libs.dtos_and_utilities import ConfigAcessors
 from sqlalchemy.exc import OperationalError
 try:
-	conn = EnvManager.get_configured_janitor_connection(
-		EnvManager.db_name()
+	conn = ConfigAcessors.get_configured_janitor_connection(
+		ConfigAcessors.db_name()
 	)
 	stationProcessService = StationProcessService(conn)
 	stationProcessService.disable_stations(stationIds=None)

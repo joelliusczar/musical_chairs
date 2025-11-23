@@ -1,11 +1,11 @@
 import hashlib
 import re
 from typing import Any
-from .env_manager import EnvManager
 from .template_service import TemplateService
 from sqlalchemy import create_engine, NullPool
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
+	ConfigAcessors,
 	is_name_safe
 )
 from musical_chairs_libs import SqlScripts
@@ -37,7 +37,7 @@ class DbRootConnectionService:
 		self.conn = self.conn = self.get_root_connection()
 
 	def get_root_connection(self) -> Connection:
-		dbPass = EnvManager.db_setup_pass()
+		dbPass = ConfigAcessors.db_setup_pass()
 		if not dbPass:
 			raise RuntimeError("Root: The system is not configured correctly for that.")
 		engineAsRoot = create_engine(
@@ -76,7 +76,7 @@ class DbRootConnectionService:
 		)
 
 	def create_app_users(self):
-		dbPass = EnvManager.db_pass_api()
+		dbPass = ConfigAcessors.db_pass_api()
 		if not dbPass:
 			raise RuntimeError("API: The system is not configured correctly for that.")
 		self.create_db_user(
@@ -85,7 +85,7 @@ class DbRootConnectionService:
 			dbPass
 		)
 
-		dbPass = EnvManager.db_pass_radio()
+		dbPass = ConfigAcessors.db_pass_radio()
 		if not dbPass:
 			raise RuntimeError("Radio:The system is not configured correctly for that.")
 		self.create_db_user(
@@ -94,7 +94,7 @@ class DbRootConnectionService:
 			dbPass
 		)
 
-		dbPass = EnvManager.db_pass_janitor()
+		dbPass = ConfigAcessors.db_pass_janitor()
 		if not dbPass:
 			raise RuntimeError("Janitor: The system is not configured correctly for that.")
 		self.create_db_user(
@@ -104,7 +104,7 @@ class DbRootConnectionService:
 		)
 
 	def create_owner(self):
-		dbPass = EnvManager.db_pass_owner()
+		dbPass = ConfigAcessors.db_pass_owner()
 		if not dbPass:
 			raise RuntimeError("OWNER: The system is not configured correctly for that.")
 		self.create_db_user(
@@ -161,7 +161,7 @@ class DbOwnerConnectionService:
 		self.conn = self.get_owner_connection()
 
 	def get_owner_connection(self) -> Connection:
-		dbPass = EnvManager.db_pass_owner()
+		dbPass = ConfigAcessors.db_pass_owner()
 		if not dbPass:
 			raise RuntimeError("Owner: The system is not configured correctly for that.")
 		if not is_db_name_safe(self.dbName):

@@ -2,16 +2,19 @@ import json
 import requests
 import re
 import warnings
-from musical_chairs_libs.services import EnvManager
-from musical_chairs_libs.dtos_and_utilities import (AlbumInfo, SongEditInfo)
+from musical_chairs_libs.dtos_and_utilities import (
+	AlbumInfo,
+	ConfigAcessors,
+	SongEditInfo
+)
 
 
 warnings.filterwarnings(action="ignore")
-print(EnvManager.dev_app_user_name())
+print(ConfigAcessors.dev_app_user_name())
 
 formData = {
-	"username": EnvManager.dev_app_user_name(),
-	"password": EnvManager.dev_app_user_pw()
+	"username": ConfigAcessors.dev_app_user_name(),
+	"password": ConfigAcessors.dev_app_user_pw()
 }
 baseUrl = "https://musicalchairs.radio.fm/api/v1/"
 #baseUrl = "https://localhost:8032/"
@@ -24,7 +27,7 @@ print(data)
 accessToken = data["access_token"]
 headers = {
 	"Authorization": f"Bearer {accessToken}",
-	"x-back-key": EnvManager.back_key()
+	"x-back-key": ConfigAcessors.back_key()
 }
 
 response = requests.get(f"{baseUrl}albums/list", headers=headers, verify=verify)

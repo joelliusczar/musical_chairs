@@ -1,3 +1,5 @@
+import json
+import logging
 import os
 import re
 from uuid import UUID
@@ -5,13 +7,10 @@ from typing import Any
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection
 from sqlalchemy.event import listens_for
-from musical_chairs_libs.dtos_and_utilities import (
-	api_log_level,
-	radio_log_level
-)
 from musical_chairs_libs.dtos_and_utilities.constants import DbUsers
 #https://github.com/PyMySQL/PyMySQL/issues/590
 from pymysql.constants import CLIENT
+from pathlib import Path
 
 collation_connection = "utf8mb4_general_ci"
 
@@ -25,11 +24,11 @@ def __on_connect__(**kw: dict[str, Any]):
 	#that seems to indicate that collation_connection is being overwritten
 	dbapi_connection.query(f"SET @@collation_connection='{collation_connection}'") #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue]
 
-class EnvManager:
+class ConfigAcessors:
 
 	@classmethod
 	def app_root(cls) -> str:
-		if EnvManager.test_flag():
+		if ConfigAcessors.test_flag():
 			return os.environ["DSF_TEST_ROOT"]
 		return os.environ["DSF_APP_ROOT"]
 
@@ -120,15 +119,30 @@ class EnvManager:
 
 	@classmethod
 	def api_log_level(cls) -> str:
-		return api_log_level
+		try:
+			return cls.live_config()["logLevels"]["api"]
+		except:
+			return logging.getLevelName(logging.WARNING)
 
 	@classmethod
 	def radio_log_level(cls) -> str:
-		return radio_log_level
+		try:
+			return cls.live_config()["logLevels"]["radio"]
+		except:
+			return logging.getLevelName(logging.WARNING)
 	
 	@classmethod
 	def python_executable(cls) -> str:
 		return os.environ["DSF_PYTHON_EXECUTABLE"]
+	
+	@classmethod
+	def live_config(cls) -> dict[str, Any]:
+		try:
+			config_path = os.environ["DSF_LIVE_CONFIG_PATH"]
+			contents = Path(config_path).read_text()
+			return json.loads(contents)
+		except:
+			return {}
 
 
 	@classmethod
@@ -137,7 +151,7 @@ class EnvManager:
 		dbName: str,
 		echo: bool=False
 	) -> Connection:
-		dbPass = EnvManager.db_pass_api()
+		dbPass = ConfigAcessors.db_pass_api()
 		if not dbPass:
 			raise RuntimeError("API: The system is not configured correctly for that.")
 		engine = create_engine(
@@ -157,7 +171,7 @@ class EnvManager:
 		dbName: str,
 		echo: bool=False
 	) -> Connection:
-		dbPass = EnvManager.db_pass_janitor()
+		dbPass = ConfigAcessors.db_pass_janitor()
 		if not dbPass:
 			raise RuntimeError("Janitor: The system is not configured correctly for that.")
 		engine = create_engine(
@@ -179,7 +193,7 @@ class EnvManager:
 		echo: bool=False,
 		isolationLevel: str="REPEATABLE READ"
 	) -> Connection:
-		dbPass = EnvManager.db_pass_radio()
+		dbPass = ConfigAcessors.db_pass_radio()
 		if not dbPass:
 			raise RuntimeError("Radio: The system is not configured correctly for that.")
 		engine = create_engine(

@@ -1,14 +1,14 @@
 #pyright: reportMissingTypeStubs=false
 from pathlib import Path
 from typing import BinaryIO
-from ..env_manager import EnvManager
 from musical_chairs_libs.protocols import FileService
+from musical_chairs_libs.dtos_and_utilities import ConfigAcessors
 
 
 class LocalFileService(FileService):
 
 	def __create_missing_directories__(self, keyPath: str):
-		savedPath = f"{EnvManager.absolute_content_home()}/{keyPath}"
+		savedPath = f"{ConfigAcessors.absolute_content_home()}/{keyPath}"
 		path = Path(savedPath)
 		path.parents[0].mkdir(parents=True, exist_ok=True)
 
@@ -18,7 +18,7 @@ class LocalFileService(FileService):
 		file: BinaryIO
 	) -> BinaryIO:
 		self.__create_missing_directories__(keyPath)
-		savedPath = f"{EnvManager.absolute_content_home()}/{keyPath}"
+		savedPath = f"{ConfigAcessors.absolute_content_home()}/{keyPath}"
 		with open(savedPath, "wb") as out:
 			for chunk in file:
 				out.write(chunk)
@@ -37,4 +37,4 @@ class LocalFileService(FileService):
 		path.unlink()
 
 	def song_absolute_path(self, keyPath: str) -> str:
-		return f"{EnvManager.absolute_content_home()}/{keyPath}"
+		return f"{ConfigAcessors.absolute_content_home()}/{keyPath}"

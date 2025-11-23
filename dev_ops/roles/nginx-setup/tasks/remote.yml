@@ -40,7 +40,7 @@
 - name: Copy evil config
   become: true
   template:
-    src: templates/nginx_evil_template.j2
+    src: nginx_evil_template.j2
     dest: /etc/nginx/sites-enabled/nginx_evil.conf
 - name: Replace web config
   become: true

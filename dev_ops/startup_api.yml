@@ -129,6 +129,13 @@
         src: '{{src_dirs["templates"]}}'
         dest: '{{app_trunk}}'
         delete: true
+    - name: Copy default app ices_config
+      copy:
+        dest: '{{app_trunk}}/app_conf.json'
+        src: app_conf.json
+        owner: '{{domain["server_user"]}}'
+        group: '{{domain["group"]}}'
+      become: true
     - name: Python setup.
       include_role:
         name: python-setup
@@ -176,6 +183,7 @@
         DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
         DSF_DATABASE_NAME: '{{app_details["db"]}}'
         DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
+        DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'
     - name: Copy web app keys
       copy:
         dest: '{{domain["exports_dir"]}}/{{domain["envs"]["web_app_key"]}}'
@@ -194,8 +202,9 @@
           DSF_BACK_KEY='{{keys["back_key"]}}'
           S3_BUCKET_NAME='{{keys["s3_bucket_name"]}}'
           S3_REGION_NAME='{{keys["s3_region_name"]}}'
-          DSF_CONTENT_DIR='/{{app_trunk}}/content'
+          DSF_CONTENT_DIR='{{app_trunk}}/content'
           DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
     - name: Add API run script
       copy: 
         dest: '/home/{{domain["server_user"]}}/run_api.sh'

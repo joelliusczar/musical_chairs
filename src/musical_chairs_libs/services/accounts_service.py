@@ -25,11 +25,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	row_to_action_rule,
 	RulePriorityLevel,
 	generate_path_user_and_rules_from_rows,
-	TrackingInfo
+	TrackingInfo,
+	ConfigAcessors
 )
 from musical_chairs_libs.dtos_and_utilities.constants import UserActions
 from .user_actions_history_service import UserActionsHistoryService
-from .env_manager import EnvManager
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
@@ -187,7 +187,7 @@ class AccountsService:
 				"sub": SavedNameString.format_name_for_save(user.username),
 				"exp": expire
 			},
-			EnvManager.auth_key(),
+			ConfigAcessors.auth_key(),
 			ALGORITHM
 		)
 		self.user_actions_history_service.add_user_action_history_item(
@@ -210,7 +210,7 @@ class AccountsService:
 			return None, 0
 		decoded: dict[Any, Any] = jwt.decode(
 			token,
-			EnvManager.auth_key(),
+			ConfigAcessors.auth_key(),
 			algorithms=[ALGORITHM]
 		)
 		expiration = decoded.get("exp") or 0

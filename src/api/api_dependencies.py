@@ -21,7 +21,6 @@ from fastapi import (
 )
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
-	EnvManager,
 	StationService,
 	QueueService,
 	SongInfoService,
@@ -48,6 +47,7 @@ from musical_chairs_libs.services.fs import (
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	build_error_obj,
+	ConfigAcessors,
 	UserRoleDomain,
 	ActionRule,
 	get_datetime,
@@ -118,10 +118,10 @@ def datetime_provider() -> Callable[[], datetime]:
 	return get_datetime
 
 def get_configured_db_connection(
-	envManager: EnvManager=Depends(EnvManager)
+	envManager: ConfigAcessors=Depends(ConfigAcessors)
 ) -> Iterator[Connection]:
 	if not envManager:
-		envManager = EnvManager()
+		envManager = ConfigAcessors()
 	conn = envManager.get_configured_api_connection("musical_chairs_db")
 	try:
 		yield conn
@@ -813,10 +813,10 @@ def get_tracking_info(request: Request):
 
 def check_back_key(
 	x_back_key: str = Header(),
-	envManager: EnvManager=Depends(EnvManager)
+	envManager: ConfigAcessors=Depends(ConfigAcessors)
 ):
 	if not envManager:
-		envManager = EnvManager()
+		envManager = ConfigAcessors()
 	if envManager.back_key() != x_back_key:
 		raise build_wrong_permissions_error()
 	

@@ -6,7 +6,6 @@ import subprocess
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
-	EnvManager,
 	ProcessService,
 	QueueService,
 	StationService,
@@ -16,7 +15,10 @@ from musical_chairs_libs.services import (
 from threading import ExceptHookArgs, Thread
 from setproctitle import setproctitle
 import musical_chairs_libs.dtos_and_utilities.logging as logging
-from musical_chairs_libs.dtos_and_utilities import (StationTypes)
+from musical_chairs_libs.dtos_and_utilities import (
+	ConfigAcessors,
+	StationTypes
+)
 from musical_chairs_libs.services.fs import S3FileService
 from sqlalchemy.engine import Connection
 
@@ -62,11 +64,11 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			portNumber
 		)
 
-	readingConn = EnvManager.get_configured_radio_connection(
+	readingConn = ConfigAcessors.get_configured_radio_connection(
 		dbName,
 		isolationLevel = "READ COMMITTED"
 	)
-	updatingConn = EnvManager.get_configured_radio_connection(dbName)
+	updatingConn = ConfigAcessors.get_configured_radio_connection(dbName)
 
 
 	stationService = StationService(readingConn)

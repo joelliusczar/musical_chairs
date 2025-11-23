@@ -10,13 +10,12 @@ from .constant_fixtures_for_test import (
 from .mocks.db_data import kilo_user_id, station_saver_user_id
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from musical_chairs_libs.dtos_and_utilities import (
+	ConfigAcessors,
 	RulePriorityLevel,
 	UserRoleDef,
 	path_owner_rules
 )
-from musical_chairs_libs.services import (
-	EnvManager
-)
+
 
 
 
@@ -571,7 +570,7 @@ def test_song_save_for_multi_edit(
 ):
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_india", client)
-	envManager = EnvManager()
+	envManager = ConfigAcessors()
 	back_key = envManager.back_key()
 	headers["x-back-key"] = back_key
 
@@ -709,7 +708,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 ):
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_india", client)
-	envManager = EnvManager()
+	envManager = ConfigAcessors()
 	back_key = envManager.back_key()
 	headers["x-back-key"] = back_key
 

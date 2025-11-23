@@ -7,9 +7,9 @@ from itertools import dropwhile, islice
 from pathlib import Path
 from typing import Optional
 from musical_chairs_libs.dtos_and_utilities import (
+	ConfigAcessors,
 	get_non_simple_chars
 )
-from .env_manager import EnvManager
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 
 
@@ -25,7 +25,7 @@ def __start_ices__(
 ) -> subprocess.Popen[bytes]:
 	if not os.path.isfile(stationConf):
 		raise LookupError(f"Station conf not found at: {stationConf}")
-	pythonLocation = str(Path(EnvManager.python_executable()).parent)
+	pythonLocation = str(Path(ConfigAcessors.python_executable()).parent)
 	path = os.environ["PATH"]
 	return subprocess.Popen(
 		["mcr-ices", "-c", f"{stationConf}"],
@@ -33,10 +33,10 @@ def __start_ices__(
 				"DSF_STATION_PORT": portNumber,
 				"PATH": f"{pythonLocation}:{path}",
 				"LANG": os.environ["LANG"],
-				"DSF_CONTENT_HOME": EnvManager.absolute_content_home(),
-				"DSF_APP_ROOT": EnvManager.app_root(),
-				"DSF_DB_PASS_RADIO": EnvManager.db_pass_radio(),
-				"DSF_DATABASE_NAME": EnvManager.db_name()
+				"DSF_CONTENT_HOME": ConfigAcessors.absolute_content_home(),
+				"DSF_APP_ROOT": ConfigAcessors.app_root(),
+				"DSF_DB_PASS_RADIO": ConfigAcessors.db_pass_radio(),
+				"DSF_DATABASE_NAME": ConfigAcessors.db_name()
 			}
 	)
 
@@ -78,7 +78,8 @@ class ProcessService:
 		m = get_non_simple_chars(filename_base)
 		if m:
 			raise RuntimeError("Invalid station name was used")
-		stationConf = f"{EnvManager.station_config_dir()}/ices.{filename_base}.conf"
+		ices_file_name = f"ices.{filename_base}.conf"
+		stationConf = f"{ConfigAcessors.station_config_dir()}/{ices_file_name}"
 		if ProcessService.noop_mode():
 			print(
 				"Noop mode. Won't search for station config"
@@ -90,7 +91,7 @@ class ProcessService:
 	@staticmethod
 	def start_song_queue_process(dbName: str, stationName: str, ownerName: str):
 		stationProc = subprocess.Popen([
-				EnvManager.python_executable(),
+				ConfigAcessors.python_executable(),
 				"-m",
 				"musical_chairs_libs.stream",
 				dbName,
@@ -159,6 +160,6 @@ class ProcessService:
 		elif platform.system() == "Darwin":
 			#we don't have icecast on the mac anyway so we'll just return the
 			#source code location
-			return f"{EnvManager.templates_dir()}/icecast.xml"
+			return f"{ConfigAcessors.templates_dir()}/icecast.xml"
 		err = "icecast logic has not been configured for this os"
 		raise NotImplementedError(err)

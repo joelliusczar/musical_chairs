@@ -2,8 +2,10 @@
 import pytest
 from musical_chairs_libs.services import (
 	TemplateService,
-	EnvManager,
 	ProcessService
+)
+from musical_chairs_libs.dtos_and_utilities import (
+	ConfigAcessors
 )
 from .constant_fixtures_for_test import *
 from .common_fixtures import(
@@ -16,7 +18,7 @@ from .common_fixtures import(
 @pytest.mark.usefixtures("ices_config_monkey_patch")
 def test_extract_source_password():
 
-	sourcePassword = EnvManager.read_config_value(
+	sourcePassword = ConfigAcessors.read_config_value(
 		ProcessService.get_icecast_conf_location(),
 		"source-password"
 	)

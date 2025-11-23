@@ -1,20 +1,16 @@
 from musical_chairs_libs.services import (
-	EnvManager,
 	JobsService,
-	ArtistService,
-	AlbumService,
 )
+from musical_chairs_libs.dtos_and_utilities import (ConfigAcessors)
 from musical_chairs_libs.services.fs import S3FileService
 
 
-conn = EnvManager.get_configured_janitor_connection(
-	EnvManager.db_name()
+conn = ConfigAcessors.get_configured_janitor_connection(
+	ConfigAcessors.db_name()
 )
 
-artistService = ArtistService(conn)
-albumService = AlbumService(conn, artistService)
 
-fileService = S3FileService(artistService, albumService)
+fileService = S3FileService()
 
 jobService = JobsService(conn, fileService)
 

@@ -62,3 +62,4 @@
         DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
         DSF_DATABASE_NAME: '{{app_details["db"]}}'
         DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
+        DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'

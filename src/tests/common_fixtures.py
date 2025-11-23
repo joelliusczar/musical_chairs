@@ -6,7 +6,6 @@ import subprocess
 from typing import Iterator, List, Any, Callable, cast
 from datetime import datetime
 from musical_chairs_libs.services import (
-	EnvManager,
 	QueueService,
 	AccountsService,
 	SongInfoService,
@@ -32,6 +31,7 @@ from musical_chairs_libs.services import (
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
+	ConfigAcessors,
 	get_path_owner_roles,
 	normalize_opening_slash
 )
@@ -102,7 +102,7 @@ def fixture_conn_cardboarddb(
 		if not requestPopulateFnName is None else "fixture_db_populate_factory"
 	populateFn = request.getfixturevalue(populateFnName)
 	populateFn()
-	envManager = EnvManager()
+	envManager = ConfigAcessors()
 	dbName=fixture_setup_db
 	conn = envManager.get_configured_api_connection(dbName, echo=echo)
 	try:
@@ -261,9 +261,9 @@ def fixture_user_actions_history_service(
 @pytest.fixture
 def fixture_clean_station_folders():
 	yield
-	for file in os.scandir(EnvManager.station_config_dir()):
+	for file in os.scandir(ConfigAcessors.station_config_dir()):
 		os.remove(file.path)
-	for file in os.scandir(EnvManager.station_module_dir()):
+	for file in os.scandir(ConfigAcessors.station_module_dir()):
 		os.remove(file.path)
 
 @pytest.fixture
@@ -350,7 +350,7 @@ def fixture_db_queryer(
 def ices_config_monkey_patch(
 	monkeypatch: pytest.MonkeyPatch
 ):
-	icecastTemplateLocation = f"{EnvManager.templates_dir()}/icecast.xml"
+	icecastTemplateLocation = f"{ConfigAcessors.templates_dir()}/icecast.xml"
 	cmdOutput = "     CGroup: /system.slice/icecast2.service\n"\
 		f"           └─966 /usr/bin/icecast2 -b -c {icecastTemplateLocation}"
 	def mock_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:

@@ -2,10 +2,10 @@
 import boto3
 from botocore.client import Config
 from typing import BinaryIO, cast
-from ..env_manager import EnvManager
 from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import (
-	guess_contenttype
+	guess_contenttype,
+	ConfigAcessors
 )
 from tempfile import TemporaryFile
 
@@ -20,11 +20,11 @@ class S3FileService(FileService):
 			"s3",
 			config=Config(
 				signature_version='s3v4',
-				region_name=EnvManager.s3_region_name(),
+				region_name=ConfigAcessors.s3_region_name(),
 			)
 		)
 		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
-			bucket_name=EnvManager.s3_bucket_name(),
+			bucket_name=ConfigAcessors.s3_bucket_name(),
 			key=keyPath,
 		)
 		tmp = TemporaryFile()
@@ -44,11 +44,11 @@ class S3FileService(FileService):
 			"s3",
 			config=Config(
 				signature_version='s3v4',
-				region_name=EnvManager.s3_region_name()
+				region_name=ConfigAcessors.s3_region_name()
 			)
 		)
 		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
-			bucket_name=EnvManager.s3_bucket_name(),
+			bucket_name=ConfigAcessors.s3_bucket_name(),
 			key=keyPath
 		)
 		body = s3_obj.get()["Body"] #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
@@ -60,13 +60,13 @@ class S3FileService(FileService):
 			"s3",
 			config=Config(
 				signature_version='s3v4',
-				region_name=EnvManager.s3_region_name()
+				region_name=ConfigAcessors.s3_region_name()
 			)
 		)
 		url = s3Client.generate_presigned_url( #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
 			'get_object',
 			Params = {
-				'Bucket': EnvManager.s3_bucket_name(),
+				'Bucket': ConfigAcessors.s3_bucket_name(),
 				'Key': keyPath
 			},
 			HttpMethod = 'get'
@@ -79,11 +79,11 @@ class S3FileService(FileService):
 			"s3",
 			config=Config(
 				signature_version='s3v4',
-				region_name=EnvManager.s3_region_name()
+				region_name=ConfigAcessors.s3_region_name()
 			)
 		)
 		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
-			bucket_name=EnvManager.s3_bucket_name(),
+			bucket_name=ConfigAcessors.s3_bucket_name(),
 			key=keyPath
 		)
 		s3_obj.delete() #pyright: ignore [reportUnknownMemberType]

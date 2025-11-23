@@ -69,6 +69,7 @@
         DSF_BACK_KEY: '{keys["back_key"]}'
         DSF_CONTENT_DIR: '../{{test_trunk}}/content'
         DSF_PY_MODULE_DIR: '../{{test_trunk}}/ices_modules'
+        DSF_LIVE_CONFIG_PATH: '../{{test_trunk}}/app_conf.json'
       when: skip_tests|default(false)|bool != true
     
     

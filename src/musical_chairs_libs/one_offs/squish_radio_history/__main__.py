@@ -1,11 +1,11 @@
 from musical_chairs_libs.services import (
 	StationService,
 	QueueService,
-	EnvManager,
 )
+from musical_chairs_libs.dtos_and_utilities import ConfigAcessors
 from datetime import datetime, timedelta, timezone
 
-envManager = EnvManager()
+envManager = ConfigAcessors()
 conn = envManager.get_configured_janitor_connection(
 	"musical_chairs_db"
 )

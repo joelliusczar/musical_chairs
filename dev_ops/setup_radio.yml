@@ -17,7 +17,7 @@
       service:
         name: '{{packages["icecast"]}}'
         enabled: true
-        state: reloaded
+        state: restarted
     - name: Reload groups
       become: true
       reboot:

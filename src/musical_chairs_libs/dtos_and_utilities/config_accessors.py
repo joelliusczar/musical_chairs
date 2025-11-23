@@ -120,14 +120,16 @@ class ConfigAcessors:
 	@classmethod
 	def api_log_level(cls) -> str:
 		try:
-			return cls.live_config()["logLevels"]["api"]
+			return cls.live_config()["logLevels"]["api"] or \
+				builtin_logging.getLevelName(builtin_logging.WARNING)
 		except:
 			return builtin_logging.getLevelName(builtin_logging.WARNING)
 
 	@classmethod
 	def radio_log_level(cls) -> str:
 		try:
-			return cls.live_config()["logLevels"]["radio"]
+			return cls.live_config()["logLevels"]["radio"] or \
+				builtin_logging.getLevelName(builtin_logging.WARNING)
 		except:
 			return builtin_logging.getLevelName(builtin_logging.WARNING)
 	

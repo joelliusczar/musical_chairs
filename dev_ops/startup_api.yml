@@ -205,7 +205,6 @@
           DSF_CONTENT_DIR='{{app_trunk}}/content'
           DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
           DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
-          #####
       notify: Restart API
     - name: Add API run script
       copy: 

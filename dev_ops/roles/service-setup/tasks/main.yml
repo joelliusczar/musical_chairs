@@ -16,7 +16,6 @@
   check_mode: no # Run even in check mode, otherwise the playbook fails with --check.
   changed_when: false
   become: true
-  become_user: '{{service_owner}}'
 - name: Setup user directory
   file:
     path: '{{service_folder}}'
@@ -59,6 +58,8 @@
   when: schedule|default("") != ""
   become: true
   register: timer_add_res
+#we couldn't have this as a handler because it was only firing for the first
+#service added
 - name: 'Start Service: {{service_name}}'
   systemd_service:
     name: '{{service_name}}.{{(schedule|default("") != "")|ternary("timer","service")}}'

@@ -53,3 +53,6 @@ class MockFileService(FileService):
 
 	def delete_song(self, keyPath: str):
 		pass
+
+	def song_absolute_path(self, keyPath: str) -> str:
+		return keyPath

@@ -554,7 +554,7 @@ def check_optional_path_for_current_user(
 		return user
 	if prefix is None:
 		if itemid:
-			prefix = next(songFileService.get_song_path(itemid, False), "")
+			prefix = next(songFileService.get_song_path(itemid), "")
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]
@@ -606,7 +606,7 @@ def get_multi_path_user(
 	if user.isadmin:
 		return user
 	userPrefixTrie = user.get_permitted_paths_tree()
-	prefixes = songFileService.get_song_path(itemids, False)
+	prefixes = songFileService.get_song_path(itemids)
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
 	]

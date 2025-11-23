@@ -87,3 +87,6 @@ class S3FileService(FileService):
 			key=keyPath
 		)
 		s3_obj.delete() #pyright: ignore [reportUnknownMemberType]
+
+	def song_absolute_path(self, keyPath: str) -> str:
+		return keyPath

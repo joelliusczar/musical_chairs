@@ -11,7 +11,6 @@ from typing import (
 	Tuple,
 	Union,
 	Iterable,
-	overload,
 	Collection,
 	Mapping
 )
@@ -59,7 +58,6 @@ from musical_chairs_libs.tables import (
 	stations_songs as stations_songs_tbl, stsg_songFk,
 	station_queue as station_queue_tbl, q_songFk,
 )
-from .env_manager import EnvManager
 from .song_artist_service import SongArtistService
 from .jobs_service import JobsService
 from .album_service import AlbumService
@@ -369,24 +367,9 @@ class SongFileService:
 		return result
 
 
-	@overload
 	def get_song_path(
 		self,
-		itemIds: int,
-		useFullSystemPath: bool=True
-	) -> Iterator[str]: ...
-
-	@overload
-	def get_song_path(
-		self,
-		itemIds: Iterable[int],
-		useFullSystemPath: bool=True
-	) -> Iterator[str]: ...
-
-	def get_song_path(
-		self,
-		itemIds: Union[Iterable[int], int],
-		useFullSystemPath: bool=True
+		itemIds: Union[Iterable[int], int]
 	) -> Iterator[str]:
 		query = select(sg_path).where(sg_deletedTimstamp.is_(None))
 		if isinstance(itemIds, Iterable):
@@ -394,17 +377,13 @@ class SongFileService:
 		else:
 			query = query.where(sg_pk == itemIds)
 		results = self.conn.execute(query)
-		if useFullSystemPath:
-			yield from (f"{EnvManager.absolute_content_home()}/{row[0]}" \
-				for row in results
-			)
-		else:
-			yield from (cast(str,row[0]) for row in results)
+		yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
+			for row in results
+		)
 
 	def get_internal_song_paths(
 		self,
 		itemIds: Union[Iterable[int], int],
-		useFullSystemPath: bool=False
 	) -> Iterator[str]:
 		query = select(sg_internalpath).where(sg_deletedTimstamp.is_(None))
 		if isinstance(itemIds, Iterable):
@@ -412,12 +391,10 @@ class SongFileService:
 		else:
 			query = query.where(sg_pk == itemIds)
 		results = self.conn.execute(query)
-		if useFullSystemPath:
-			yield from (f"{EnvManager.absolute_content_home()}/{row[0]}" \
-				for row in results
-			)
-		else:
-			yield from (cast(str,row[0]) for row in results)
+		yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
+			for row in results
+		)
+
 
 	def get_parents_of_path(self, path: str) -> Iterator[Tuple[int, str]]:
 		normalizedPrefix = normalize_opening_slash(path)

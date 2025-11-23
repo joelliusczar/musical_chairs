@@ -35,3 +35,6 @@ class LocalFileService(FileService):
 	def delete_song(self, keyPath: str):
 		path = Path(keyPath)
 		path.unlink()
+
+	def song_absolute_path(self, keyPath: str) -> str:
+		return f"{EnvManager.absolute_content_home()}/{keyPath}"

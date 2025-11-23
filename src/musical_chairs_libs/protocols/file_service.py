@@ -17,3 +17,6 @@ class FileService(Protocol):
 
 	def delete_song(self, keyPath: str):
 		...
+
+	def song_absolute_path(self, keyPath: str) -> str:
+		...

@@ -85,7 +85,24 @@
             engine_dir: '{{app_trunk}}'
             ssh_dir: ''
       when: ansible_host not in ["127.0.0.1", "localhost"] and "192.168.0.0/16"|ansible.utils.network_in_usable(ansible_host)
+    - name: "Find uid of user"
+      command: "id -u {{service_owner}}"
+      register: the_user_uid
+      check_mode: no # Run even in check mode, otherwise the playbook fails with --check.
+      changed_when: false
+      become: true
 
+  handlers:
+  - name: Restart API
+    systemd_service:
+      name: run-api.service
+      enabled: true
+      state: reloaded
+      scope: user
+    become: true
+    become_user: '{{service_owner}}'
+    environment:
+      XDG_RUNTIME_DIR: "/run/user/{{ the_user_uid.stdout }}"
 
   tasks:
     - name: Replace API files?
@@ -177,6 +194,7 @@
           DSF_BACK_KEY='{{keys["back_key"]}}'
           S3_BUCKET_NAME='{{keys["s3_bucket_name"]}}'
           S3_REGION_NAME='{{keys["s3_region_name"]}}'
+          DSF_CONTENT_DIR='/{{app_trunk}}/content'
           DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
     - name: Add API run script
       copy: 

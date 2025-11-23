@@ -1,36 +1,49 @@
 ---
 - hosts: all
-  # connection: local
 
-  vars: 
-    target_version: '0.6.2'
-    prefix: 'mcr-'
-    charlie: Chunk
-    url_base: washpenny
-    tld: com
-    marr:
-      - one
-      - two
+  vars_files:
+    - ../vars/vault.yml
+    - ../vars/globals.yml
+    - ../vars/os_paths.yml
+
 
 
 
   tasks:
-    - name: Get ices version
-      command: '{{prefix}}ices -V'
-      failed_when: false
-      register: ices_output 
-    - name: Extract version
-      set_fact: 
-        ices_version: '{{ices_output.stdout.splitlines()[0].split(" ")[1]}}'
-      when: ices_output.rc == 0
+    - name: Set src and dest host groups
+      command: 'ansible-inventory -i {{db_copy_inventory}} --list'
+      register: inventory_result
+      delegate_to: localhost
+    - name: Transform inventory_result
+      set_fact:
+        loaded_inventory: '{{inventory_result.stdout|from_json}}'
+    - name: Set source hostname
+      set_fact:
+        src_server_hostname: '{{loaded_inventory["src_server"]["hosts"][0]}}'
+    - name: Add db copy source hosts
+      set_fact:
+        src_server:
+          hostname: '{{src_server_hostname}}'
+          ansible_port: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_port"]}}'
+          ansible_user: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_user"]}}'
     - debug:
-        msg: '{{ices_output.stdout.splitlines()[0].split(" ")[1]}}'
+        msg: '{{src_server["hostname"]}}'
+    # - name: Get ices version
+    #   command: '{{prefix}}ices -V'
+    #   failed_when: false
+    #   register: ices_output 
+    # - name: Extract version
+    #   set_fact: 
+    #     ices_version: '{{ices_output.stdout.splitlines()[0].split(" ")[1]}}'
+    #   when: ices_output.rc == 0
     # - debug:
-    #     msg: '{{ices_version}}'
-    - name: End early if already installed.
-      debug:
-        msg: 'end early'
-      when: ices_version is defined and ices_version is version(target_version)
+    #     msg: '{{ices_output.stdout.splitlines()[0].split(" ")[1]}}'
+    # # - debug:
+    # #     msg: '{{ices_version}}'
+    # - name: End early if already installed.
+    #   debug:
+    #     msg: 'end early'
+    #   when: ices_version is defined and ices_version is version(target_version)
     # - debug:
     #     msg: 'marr og: {{marr}}'
     # - name: Copy

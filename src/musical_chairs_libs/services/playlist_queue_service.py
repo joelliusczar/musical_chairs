@@ -14,12 +14,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from musical_chairs_libs.protocols import SongPopper
 from musical_chairs_libs.tables import (
-	ab_year,
-	ar_name,
 	songs,
 	stations as stations_tbl, st_typeid,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp,
+	users as users_tbl, u_pk, u_displayName,
 	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk,
 	sg_disc, sg_pk, sg_albumFk, sg_deletedTimstamp,
 	sg_trackNum,
@@ -300,20 +299,20 @@ class PlaylistQueueService(SongPopper):
 		query = select(
 			pl_pk.label("id"),
 			pl_name.label("name"),
-			ar_name.label("creator"),
-			ab_year.label("year"),
+			u_displayName.label("creator"),
 			pl_ownerFk.label("ownerid")
 		)\
 			.select_from(stations_tbl) \
 			.join(stations_playlists_tbl, st_pk == stpl_stationFk) \
 			.join(playlists_tbl, stpl_playlistFk == pl_pk) \
+			.join(users_tbl, pl_ownerFk == u_pk)\
 			.where(st_pk == stationId)
 		
 		if lcollection:
 			query = query.where(pl_name.like(f"%{lcollection}%"))
 
 		if lcreator:
-			query = query.where(ar_name.like(f"%{lcreator}%"))
+			query = query.where(u_displayName.like(f"%{lcreator}%"))
 
 		limitedQuery = query\
 			.offset(offset)\
@@ -331,7 +330,7 @@ class PlaylistQueueService(SongPopper):
 			rules=[] if user and r["ownerid"] != user.id else [
 				ActionRule(
 					domain="",
-					name=UserRoleDef.ALBUM_EDIT.value,
+					name=UserRoleDef.PLAYLIST_EDIT.value,
 					priority=RulePriorityLevel.OWNER.value
 				)
 			]

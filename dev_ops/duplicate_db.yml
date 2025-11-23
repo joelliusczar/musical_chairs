@@ -38,7 +38,7 @@
   
   pre_tasks:
     - name: Set src and dest host groups
-      command: 'ansible-inventory -i {{db_copy_inventory}} --list'
+      command: 'ansible-inventory -i {{db_copy_inventory}} --list' #db_copy_inventory should bd defined in the inventory
       register: inventory_result
       delegate_to: localhost
     - name: Transform inventory_result

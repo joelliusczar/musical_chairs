@@ -86,7 +86,7 @@
             ssh_dir: ''
       when: ansible_host not in ["127.0.0.1", "localhost"] and "192.168.0.0/16"|ansible.utils.network_in_usable(ansible_host)
     - name: "Find uid of user"
-      command: "id -u {{service_owner}}"
+      command: 'id -u {{domain["server_user"]}}'
       register: the_user_uid
       check_mode: no # Run even in check mode, otherwise the playbook fails with --check.
       changed_when: false

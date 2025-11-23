@@ -4,6 +4,7 @@
   vars:
     app_trunk: '{{domain["app_root"]}}/{{app_details["name"]}}'
     test_trunk: '../test_trash/{{app_details["name"]}}'
+    ansible_common_remote_group: '{{domain["group"]}}'
 
   vars_files:
     - vars/vault.yml

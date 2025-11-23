@@ -5,6 +5,7 @@
   vars:
     app_trunk: '{{domain["app_root"]|default("~")}}/{{app_details["name"]}}'
     test_trunk: '../test_trash/{{app_details["name"]}}'
+    #ansible_common_remote_group is needed for become_user: notroot to work
     ansible_common_remote_group: '{{domain["group"]}}'
 
 
@@ -106,6 +107,11 @@
         - '{{app_trunk}}'
         - '{{domain["exports_dir"]}}'
         - '/home/{{domain["server_user"]}}/scripts'
+    - name: Copy templates folder
+      synchronize:
+        src: '{{src_dirs["templates"]}}'
+        dest: '{{app_trunk}}'
+        delete: true
     - name: Python setup.
       include_role:
         name: python-setup
@@ -162,7 +168,7 @@
           DSF_DB_PASS_API='{{keys["db_pass_api"]}}'
           DSF_DB_PASS_RADIO='{{keys["db_pass_radio"]}}'
           DSF_NAMESPACE_UUID='{{keys["namespace_uuid"]}}'
-          DSF_TEMPLATES_DEST='{{app_trunk}}/templates'
+          DSF_TEMPLATES_DEST='{{app_trunk}}/files'
           DSF_ICES_CONFIGS_DIR='{{app_trunk}}/ices_configs'
           DSF_PY_MODULE_DIR='{{app_trunk}}/ices_modules'
           DSF_SQL_SCRIPTS_DEST='{{app_trunk}}/sql_scripts'

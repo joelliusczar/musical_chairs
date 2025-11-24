@@ -42,7 +42,8 @@
         "DSF_AUTH_SECRET_KEY": "deadbeef",
         "DSF_APP_ROOT": "./test_trash",
         "DSF_PYTHON_EXECUTABLE": "./test_trash/musical_chairs/mcr_env/bin/python",
-        "DSF_DATABASE_NAME": "musical_chairs_db"
+        "DSF_DATABASE_NAME": "musical_chairs_db",
+        "DSF_ICES_EXECUTABLE": "~/.local/bin/mcr-ices"
       },
       "args": [
         "${userHome}/.ssh/localhost_debug.private.pem",

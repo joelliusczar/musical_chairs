@@ -204,6 +204,7 @@
           S3_REGION_NAME='{{keys["s3_region_name"]}}'
           DSF_CONTENT_DIR='{{app_trunk}}/content'
           DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          DSF_ICES_EXECUTABLE='{{domain["app_root"]}}/.local/bin/{{app_details["prefix"]|lower}}-ices'
           DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
       notify: Restart API
     - name: Add API run script

@@ -28,10 +28,10 @@ def __start_ices__(
 	pythonLocation = str(Path(ConfigAcessors.python_executable()).parent)
 	path = os.environ["PATH"]
 	return subprocess.Popen(
-		["mcr-ices", "-c", f"{stationConf}"],
+		[ConfigAcessors.ices_executable(), "-c", f"{stationConf}"],
 		env={
 				"DSF_STATION_PORT": portNumber,
-				"PATH": f"{pythonLocation}:{path}",
+				"PATH": f"{pythonLocation}::{path}",
 				"LANG": os.environ["LANG"],
 				"DSF_CONTENT_HOME": ConfigAcessors.absolute_content_home(),
 				"DSF_APP_ROOT": ConfigAcessors.app_root(),

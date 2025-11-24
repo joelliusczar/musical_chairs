@@ -138,6 +138,10 @@ class ConfigAcessors:
 		return os.environ["DSF_PYTHON_EXECUTABLE"]
 	
 	@classmethod
+	def ices_executable(cls) -> str:
+		return os.environ["DSF_ICES_EXECUTABLE"]
+	
+	@classmethod
 	def live_config(cls) -> dict[str, Any]:
 		try:
 			config_path = os.environ["DSF_LIVE_CONFIG_PATH"]

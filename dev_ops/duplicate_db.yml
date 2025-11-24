@@ -77,7 +77,7 @@
         name: '{{ app_details["db"] }}'
         state: dump
         target: /tmp/backup.sql
-        dump_extra_args: "{{ dump_args|default('--no-create-info') }}"
+        dump_extra_args: "{{ dump_args|default('--no-create-info --complete-insert') }}"
       delegate_to: '{{src_server["hostname"]}}'
       vars:
         ansible_port: '{{hostvars[inventory_hostname]["src_server"]["ansible_port"]}}'

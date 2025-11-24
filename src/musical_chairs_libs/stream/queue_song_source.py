@@ -72,6 +72,7 @@ def load_data(
 				logging.radioLogger.info(f"Stop running flag encountered")
 				break
 			logging.queueLogger.info(f"queued: {queueItem.name}")
+			logging.queueLogger.info(queueItem.internalpath)
 			with fileService.open_song(queueItem.internalpath) as src:
 				for chunk in src:
 					currentFile.write(chunk)

@@ -135,6 +135,7 @@
         src: app_conf.json
         owner: '{{domain["server_user"]}}'
         group: '{{domain["group"]}}'
+        force: false
       become: true
     - name: Python setup.
       include_role:

@@ -189,6 +189,8 @@
         dest: '{{domain["exports_dir"]}}/{{domain["envs"]["web_app_key"]}}'
         content: |
           AWS_ENDPOINT_URL='{{keys["aws_endpoint_url"]}}'
+          AWS_ACCESS_KEY_ID='{{keys["aws_access_key_id"]}}'
+          AWS_SECRET_ACCESS_KEY='{{keys["aws_secret_access_key"]}}'
           DSF_APP_ROOT='{{app_trunk}}'
           DSF_DB_PASS_API='{{keys["db_pass_api"]}}'
           DSF_DB_PASS_RADIO='{{keys["db_pass_radio"]}}'

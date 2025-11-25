@@ -437,7 +437,6 @@ export const StationEdit = (props: StationEditProps) => {
 					message={`Are you sure you want to Copy ${""}?`}
 					onYes={callSubmitCopy}
 					onNo={() => {}}
-					disabled={!formState.isDirty}
 				/>}
 				<SubmitButton
 					loading={formState.isSubmitting}

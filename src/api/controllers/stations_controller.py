@@ -300,17 +300,17 @@ def create_station(
 	return result or StationInfo(id=-1,name="", displayname="")
 
 
-@router.put("/{stationkey}")
+@router.put("/{stationid}")
 def update_station(
-	stationkey: int,
+	stationid: int, #this needs to match get_station_user_by_id
 	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
-		get_station_user,
+		get_station_user_by_id,
 		scopes=[UserRoleDef.STATION_EDIT.value]
 	)
 ) -> StationInfo:
-	result = stationService.save_station(station,user, stationkey)
+	result = stationService.save_station(station, user, stationid)
 	return result or StationInfo(id=-1,name="",displayname="")
 
 

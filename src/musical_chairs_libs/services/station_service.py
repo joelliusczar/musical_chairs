@@ -454,6 +454,7 @@ class StationService:
 			owner=user,
 			viewsecuritylevel=station.viewsecuritylevel,
 			requestsecuritylevel=station.requestsecuritylevel,
+			bitratekps=station.bitratekps,
 			rules=rules
 		)
 

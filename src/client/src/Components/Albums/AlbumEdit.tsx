@@ -110,6 +110,13 @@ export const AlbumEdit = (
 					<ArtistNewModalOpener add={addArtist} />
 				</Box>
 			</Loader>
+			<Box sx={inputField}>
+				<FormTextField
+					name="versionnote"
+					label="Version Note"
+					formMethods={formMethods}
+				/>
+			</Box>
 			<Box>
 				<Loader status={stationCallStatus} error={stationError}>
 					<Box sx={inputField}>
@@ -173,6 +180,7 @@ export const AlbumNewModalOpener = (props: AlbumNewModalOpenerProps) => {
 		defaultValues: {
 			name: "",
 			albumartist: null,
+			versionnote: "",
 		},
 	});
 	const { handleSubmit } = formMethods;
@@ -183,6 +191,7 @@ export const AlbumNewModalOpener = (props: AlbumNewModalOpenerProps) => {
 				year: values.year || undefined,
 				albumartist: values.albumartist || undefined,
 				stations: values.stations,
+				versionnote: values.versionnote,
 			} });
 			const album = await requestObj.call();
 			enqueueSnackbar("Save successful", { variant: "success"});

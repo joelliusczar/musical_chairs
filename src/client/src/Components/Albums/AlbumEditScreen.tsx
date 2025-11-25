@@ -110,6 +110,7 @@ export const AlbumEditScreen = () => {
 		defaultValues: {
 			name: "",
 			albumartist: null,
+			versionnote: "",
 		},
 	});
 	const { handleSubmit, reset, getValues } = formMethods;
@@ -120,6 +121,7 @@ export const AlbumEditScreen = () => {
 				year: values.year || undefined,
 				albumartist: values.albumartist || undefined,
 				stations: values.stations,
+				versionnote: values.versionnote,
 			}});
 			const album = await requestObj.call();
 			enqueueSnackbar("Save successful", { variant: "success"});

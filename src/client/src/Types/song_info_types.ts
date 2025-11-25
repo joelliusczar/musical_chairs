@@ -28,6 +28,7 @@ export interface AlbumCreationInfo {
 	year?: number
 	albumartist?: ArtistInfo
 	stations: StationInfo[]
+	versionnote: string
 }
 
 export interface NowPlayingInfo {

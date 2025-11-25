@@ -49,7 +49,7 @@ from sqlalchemy.sql.schema import Column
 from musical_chairs_libs.tables import (
 	albums as albums_tbl,
 	artists as artists_tbl,
-	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
+	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk, ab_versionnote,
 	ar_name, ar_pk, ar_ownerFk,
 	users as user_tbl, u_pk, u_username, u_displayName,
 	sg_pk, sg_name, sg_track, sg_albumFk, sg_path, sg_internalpath,
@@ -100,6 +100,7 @@ class AlbumService:
 			ab_pk.label("id"),
 			ab_name.label("name"),
 			ab_year.label("year"),
+			ab_versionnote.label("versionnote"),
 			ab_albumArtistFk.label("albumartistid"),
 			ab_ownerFk.label("album.ownerid"),
 			album_owner.c.username.label("album.ownername"),
@@ -146,6 +147,7 @@ class AlbumService:
 		yield from (AlbumInfo(
 			id=row["id"],
 			name=row["name"],
+			versionnote=row["versionnote"],
 			owner=OwnerInfo(
 				id=row["album.ownerid"],
 				username=row["album.ownername"],
@@ -283,6 +285,7 @@ class AlbumService:
 		stmt = upsert(albums_tbl).values(
 			name = str(savedName),
 			year = album.year,
+			versionnote = album.versionnote,
 			albumartistfk = album.albumartist.id if album.albumartist else None,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
@@ -318,7 +321,8 @@ class AlbumService:
 			name=str(savedName),
 			owner=owner,
 			year=album.year,
-			albumartist=artist
+			albumartist=artist,
+			versionnote=album.versionnote
 		)
 		
 		

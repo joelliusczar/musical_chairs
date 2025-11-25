@@ -38,11 +38,14 @@
       set_fact:
         #combining the app name with the last segment of the ip address
         config_host_name: '{{app_details["name"]}}-{{(inventory_hostname | regex_replace("[:.]", ":")).split(":")[-1]}}'
-    - name: Add group
+    - name: Add groups
       become: true
       group:
-        name: '{{domain["group"]}}'
+        name: '{{item}}'
         state: present
+      loop:
+        - '{{domain["group"]}}'
+        - '{{domain["user"]}}'
     - name: Add user
       user:
         name: '{{domain["user"]}}'

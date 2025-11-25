@@ -43,20 +43,21 @@
       group:
         name: '{{domain["group"]}}'
         state: present
-    - name: Add group
-      become: true
-      group:
-        name: '{{domain["cron_group"]}}'
-        state: present
     - name: Add user
       user:
         name: '{{domain["user"]}}'
-        group: '{{domain["group"]}}'
+        group: '{{domain["user"]}}'
         generate_ssh_key: true
         ssh_key_type: 'ed25519'
         shell: /bin/bash
         ssh_key_comment: 'ansible-generated for {{config_host_name}}'
       register: user_info
+    - name: Add user to group
+      user:
+        name: '{{domain["user"]}}'
+        groups: '{{domain["group"]}}'
+        append: true
+      become: true
     - name: Define local ssh key paths
       set_fact:
         local_ssh_key_paths:

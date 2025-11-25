@@ -9,6 +9,10 @@ setup_new_box_vm() (
 	ansible-playbook new_box.yml -i ~/.ansible/inventories/vms_inv  --ask-vault-pass -K
 )
 
+setup_new_box() (
+	ansible-playbook new_box.yml -i ~/.ansible/inventories/musical_chairs  --ask-vault-pass -K
+)
+
 deploy_app_vm() (
 	ansible-playbook deploy_api.yml -i ~/.ansible/inventories/vms_inv  --ask-vault-pass -K
 )

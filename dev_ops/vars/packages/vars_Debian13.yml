@@ -6,6 +6,7 @@ packages:
   nginx: nginx-full
   icecast: icecast2
   git: git
+  chrony: chrony
   ices_dependencies:
     libtool: libtool-bin
     build_essential: build-essential

@@ -56,7 +56,7 @@
         service_description: Refetch the ssl certs
         env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["refresh_certs_key"]}}'
         service_command: python3 '{{py_script}}' '{{app_url_base}}' '{{public_key_path}}' '{{private_key_path}}'
-        schedule: '*-*-* 4:17:00'
+        schedule: '*-*-* 9:17:00' #utc I think?
     - name: Copy jobs keys
       copy:
         dest: '{{domain["exports_dir"]}}/{{domain["envs"]["jobs_key"]}}'
@@ -82,7 +82,7 @@
         service_description: Squish the radio history
         env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["jobs_key"]}}'
         service_command: '{{app_python}} -m {{app_details["engine"]}}.one_offs.squish_radio_history'
-        schedule: '*-*-27 23:17:00'
+        schedule: '*-*-27 4:17:00'
     - name: Process song deletes service
       include_role:
         name: service-setup
@@ -93,4 +93,4 @@
         service_description: Delete the files for marked songs
         env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["jobs_key"]}}'
         service_command: '{{app_python}} -m {{app_details["engine"]}}.one_offs.process_jobs'
-        schedule: 'weekly'
+        schedule: '*-*-* 6:17:00'

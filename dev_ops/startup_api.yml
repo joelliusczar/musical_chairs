@@ -33,14 +33,23 @@
         file: 'vars/local_keys.yml'
         hash_behaviour: merge
       when: inventory_hostname in ["127.0.0.1", "localhost"]
-    - name: Install rsync
-      become: true
-      package:
-        name: rsync
     - name: Update apt cache if needed
       apt: update_cache=true cache_valid_time=3600
       become: true
       when: ansible_os_family == "Debian"
+    - name: Install rsync
+      become: true
+      package:
+        name: rsync
+    - name: Install Chrony
+      become: true
+      package:
+        name: '{{packages["chrony"]}}'
+    - name: Ensure chrony is running.
+      service:
+        name: chronyd
+        state: started
+        enabled: true
     - name: Set local server settings
       set_fact:
         env_list:

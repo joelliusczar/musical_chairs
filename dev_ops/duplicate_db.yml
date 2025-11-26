@@ -50,7 +50,7 @@
     - name: Create app shared directory
       file:
         state: directory
-        path: '/usr/local/share/{{app_details["name"}}'
+        path: '/usr/local/share/{{app_details["name"]}}'
     - name: Add db copy source hosts
       set_fact:
         src_server:
@@ -69,14 +69,14 @@
   tasks:
     - name: Check for previous import file
       stat:
-        path: '/usr/local/share/{{app_details["name"}}/mysql_dump.sql'
+        path: '/usr/local/share/{{app_details["name"]}}/mysql_dump.sql'
       register: file_check
     - name: End early if evidence exists of having run the import already.
       meta: end_play
       when: file_check.stat.exists
     - name: Dump MySQL database in src remote host
       community.mysql.mysql_db:
-        login_user: '{{app_details["db_owner"}}'
+        login_user: '{{app_details["db_owner"]}}'
         login_password: '{{keys["db_pass_owner"]}}'
         name: '{{app_details["db"]}}'
         state: dump
@@ -106,11 +106,11 @@
     - name: Copy MySQL dump file to destination remote host
       copy:
         src: ~/Documents/mysql_dumps/{{ now(fmt='%Y%m%d')}}_backup.sql
-        dest: '/usr/local/share/{{app_details["name"}}/mysql_dump.sql'
+        dest: '/usr/local/share/{{app_details["name"]}}/mysql_dump.sql'
     - name: Import MySQL dump into database
       community.mysql.mysql_db:
-        name: '{{ app_details["db"] }}'
+        name: '{{app_details["db"]}}'
         state: import
-        target: '/usr/local/share/{{app_details["name"}}/mysql_dump.sql'
-        login_user: '{{ app_details["db_owner"] }}'
-        login_password: '{{ keys["db_pass_owner"] }}'
+        target: '/usr/local/share/{{app_details["name"]}}/mysql_dump.sql'
+        login_user: '{{app_details["db_owner"]}}'
+        login_password: '{{keys["db_pass_owner"]}}'

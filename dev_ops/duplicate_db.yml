@@ -37,6 +37,9 @@
     - ../vars/os_paths.yml
   
   tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+      - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
     - name: Copy data from a source server
       include_role:
         name: mysql-data-copy

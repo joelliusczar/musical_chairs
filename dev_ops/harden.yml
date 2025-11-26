@@ -13,7 +13,11 @@
 
   handlers:
     - name: restart ssh
-      service: name=ssh state=restarted
+      service: 
+        name: ssh 
+        state: restarted
+        enabled: true
+      become: true
 
   pre_tasks:
     - name: Check if we're using the default SSH port

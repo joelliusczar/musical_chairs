@@ -39,6 +39,9 @@
 
 
   tasks:
+    - name: Add host to trusted
+      shell: "ssh-keyscan -H {{ inventory_hostname }} >> ~/.ssh/known_hosts"
+      delegate_to: localhost
     - name: Define host name
       set_fact:
         #combining the app name with the last segment of the ip address
@@ -51,6 +54,7 @@
       loop:
         - '{{domain["group"]}}'
         - '{{domain["user"]}}'
+      no_log: true
     - name: Add user
       user:
         name: '{{domain["user"]}}'

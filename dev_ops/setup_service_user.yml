@@ -26,26 +26,10 @@
       when: inventory_hostname in ["127.0.0.1", "localhost"]
 
   tasks:
-    - name: Add user
-      user:
-        name: '{{domain["server_user"]}}'
-        group: '{{domain["group"]}}'
-        shell: /bin/bash
-      become: true
-    - name: Allow login user to su as server user
-      blockinfile:
-        path: /etc/pam.d/su
-        insertafter: '^auth +sufficient pam_rootok.so'
-        marker: '# {mark} ANSIBLE - {{domain["server_user"]}}'
-        block: |
-          auth  [success=ignore default=1] pam_succeed_if.so user = {{domain["server_user"]}}
-          auth  sufficient                 pam_succeed_if.so use_uid user = {{domain["user"]}}
-      become: true
-    - name: Enable Linger for server user user
-      command: 
-        argv:
-          - loginctl 
-          - enable-linger 
-          - '{{domain["server_user"]}}'
-        creates: '/var/lib/systemd/linger/{{domain["server_user"]}}'
-      become: true
+    - name: Modify server access
+      include_role:
+        name: service-user-setup
+      vars:
+        server_user: '{{domain["server_user"]}}'
+        app_user: '{{domain["user"]}}'
+        app_group: '{{domain["group"]}}'

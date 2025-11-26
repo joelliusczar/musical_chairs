@@ -36,81 +36,16 @@
     - ../vars/globals.yml
     - ../vars/os_paths.yml
   
-  pre_tasks:
-    - name: Set src and dest host groups
-      command: 'ansible-inventory -i {{db_copy_inventory}} --list' #db_copy_inventory should bd defined in the inventory
-      register: inventory_result
-      delegate_to: localhost
-    - name: Transform inventory_result
-      set_fact:
-        loaded_inventory: '{{inventory_result.stdout|from_json}}'
-    - name: Set source hostname
-      set_fact:
-        src_server_hostname: '{{loaded_inventory["src_server"]["hosts"][0]}}'
-    - name: Create app shared directory
-      file:
-        state: directory
-        path: '/usr/local/share/{{app_details["name"]}}'
-    - name: Add db copy source hosts
-      set_fact:
-        src_server:
-          hostname: '{{src_server_hostname}}'
-          ansible_port: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_port"]}}'
-          ansible_user: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_user"]}}'
-    - include_vars: "{{ item }}"
-      with_first_found:
-        - 'vars/packages/vars_{{ansible_os_family}}{{ansible_distribution_major_version}}.yml'
-    - name: Install PyMySQL
-      become: true
-      apt:
-        name: '{{packages["pymysql"]}}'
-        state: present
-  
   tasks:
-    - name: Check for previous import file
-      stat:
-        path: '/usr/local/share/{{app_details["name"]}}/mysql_dump.sql'
-      register: file_check
-    - name: End early if evidence exists of having run the import already.
-      meta: end_play
-      when: file_check.stat.exists
-    - name: Dump MySQL database in src remote host
-      community.mysql.mysql_db:
-        login_user: '{{app_details["db_owner"]}}'
-        login_password: '{{keys["db_pass_owner"]}}'
-        name: '{{app_details["db"]}}'
-        state: dump
-        target: /tmp/backup.sql
-        dump_extra_args: "{{ dump_args|default('--no-create-info --complete-insert') }}"
-      delegate_to: '{{src_server["hostname"]}}'
+    - name: Copy data from a source server
+      include_role:
+        name: mysql-data-copy
       vars:
-        ansible_port: '{{hostvars[inventory_hostname]["src_server"]["ansible_port"]}}'
-        ansible_user: '{{hostvars[inventory_hostname]["src_server"]["ansible_user"]}}'
-    - name: Fetched the dumped sql from src host to localhost
-      fetch:
-        src: /tmp/backup.sql
-        dest: ~/Documents/mysql_dumps/{{ now(fmt='%Y%m%d')}}_backup.sql
-        flat: true
-      delegate_to: '{{src_server["hostname"]}}'
-      vars:
-        ansible_port: '{{hostvars[inventory_hostname]["src_server"]["ansible_port"]}}'
-        ansible_user: '{{hostvars[inventory_hostname]["src_server"]["ansible_user"]}}'
-    - name: Clean up the dumped sql on src host
-      file:
-        path: /tmp/backup.sql
-        state: absent
-      delegate_to: '{{src_server["hostname"]}}'
-      vars:
-        ansible_port: '{{hostvars[inventory_hostname]["src_server"]["ansible_port"]}}'
-        ansible_user: '{{hostvars[inventory_hostname]["src_server"]["ansible_user"]}}'
-    - name: Copy MySQL dump file to destination remote host
-      copy:
-        src: ~/Documents/mysql_dumps/{{ now(fmt='%Y%m%d')}}_backup.sql
-        dest: '/usr/local/share/{{app_details["name"]}}/mysql_dump.sql'
-    - name: Import MySQL dump into database
-      community.mysql.mysql_db:
-        name: '{{app_details["db"]}}'
-        state: import
-        target: '/usr/local/share/{{app_details["name"]}}/mysql_dump.sql'
-        login_user: '{{app_details["db_owner"]}}'
-        login_password: '{{keys["db_pass_owner"]}}'
+        seed_inventory_file: '{{src_server_inventory_file}}'
+        app_name: '{{app_details["name"]}}'
+        app_user: '{{domain["user"]}}'
+        pymysql_pkg: '{{packages["pymysql"]}}'
+        db_name: '{{app_details["db"]}}'
+        db_user: '{{app_details["db_owner"]}}'
+        db_pass: '{{keys["db_pass_owner"]}}'
+

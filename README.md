@@ -2,24 +2,13 @@ Interfaces to queue song paths for Moonbase59's implementation of ices0
 
 # First time setup
 
-cd into `dev_ops` and run script `ruby_dependency_install.sh.sh`
-
-Next run,
-
-`bundle update`
-
-`bundle exec ruby './binstall.rb'`
+cd into `dev_ops` and run script `./mcr_dev_ops.sh setup_tests`
 
 
 # Set up API for testing
 
 
 Need to run this so that https will work
-```
-mcr_dev setup_debug_certs
-```
-
-or if you're in the `dev_ops` dir, run `./mcr_dev_dev setup_debug_certs`
 
 ```
 To prime the automated tests 
@@ -31,15 +20,12 @@ To prime the automated tests
 
 # Ways to run api
 
-After having installed the mcr procs file, you can run the server through
+You can run the server through
 nginx
 ```
-mcr_dev startup_api
 
-mcr_dev setup_client
-
-#or from inside dev_ops
-# ./mcr_dev_dev startup_api
+#from inside dev_ops
+# ./mcr_dev_dev.ah deploy_local_app
 ```
 
 
@@ -60,17 +46,9 @@ Use debug launch profile "Python: API"
 
 ## Fresh Server
 ```
-mcr_dev deploy_install
+`./mcr_dev_ops.sh setup_new_box`
 
-
-mcr_dev deploy_api
 ```
 
-## Testing new changes
-If need to test a new feature, we just run`mcr_dev startup_api` while that branch
-is checked out in git.
-Run `mcr_dev deploy_client` to setup the client.
-
 ## Update database
-First, run `mcr_dev regen_files` to update the file reference,
-then run `mcr_dev setup_db`
+This functionality needs to be restored

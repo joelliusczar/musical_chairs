@@ -698,6 +698,6 @@ class QueueService(SongPopper):
 				else next((a.name for a in s.artists or []), None),
 			path=s.path,
 			internalpath=s.internalpath,
-			track=s.track,
+			track=s.tracknum,
 			rules=s.rules
 		) for s in songs], count

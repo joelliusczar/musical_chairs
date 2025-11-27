@@ -69,7 +69,7 @@ export const AlbumEditScreen = () => {
 	const currentUser = useCurrentUser();
 
 	const {
-		add: addAlbum,
+		update: updateAlbum,
 		remove: removeAlbum,
 	} = useAlbumData();
 
@@ -125,7 +125,7 @@ export const AlbumEditScreen = () => {
 			}});
 			const album = await requestObj.call();
 			enqueueSnackbar("Save successful", { variant: "success"});
-			addAlbum(album);
+			updateAlbum(album);
 		}
 		catch(err) {
 			enqueueSnackbar(formatError(err), { variant: "error"});
@@ -228,6 +228,7 @@ export const AlbumEditScreen = () => {
 						<TableRow>
 							<TableCell>Track</TableCell>
 							<TableCell>Song</TableCell>
+							<TableCell>Disc</TableCell>
 							<TableCell>Artist</TableCell>
 							<TableCell></TableCell>
 						</TableRow>
@@ -237,6 +238,7 @@ export const AlbumEditScreen = () => {
 							return <TableRow key={`song_${idx}`}>
 								<TableCell>{item.track}</TableCell>
 								<TableCell>{item.name}</TableCell>
+								<TableCell>{item.disc}</TableCell>
 								<TableCell>{item.artist}</TableCell>
 								<TableCell>{rowButton(item, idx)}</TableCell>
 							</TableRow>;

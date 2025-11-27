@@ -67,7 +67,7 @@ export const ArtistEditScreen = () => {
 	const currentUser = useCurrentUser();
 
 	const {
-		add: addArtist,
+		update: updateArtist,
 		remove: removeArtist,
 	} = useArtistData();
 
@@ -117,7 +117,7 @@ export const ArtistEditScreen = () => {
 			} });
 			const artist = await requestObj.call();
 			enqueueSnackbar("Save successful", { variant: "success"});
-			addArtist(artist);
+			updateArtist(artist);
 		}
 		catch(err) {
 			enqueueSnackbar(formatError(err), { variant: "error"});

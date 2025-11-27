@@ -359,6 +359,13 @@ export const SongEdit = () => {
 			<Typography>
 				Path: {songFilePath}
 			</Typography>
+			{canEditSongs && <Box sx={inputField} >
+				<SubmitButton
+					loading={formState.isSubmitting}
+					onClick={callSubmit}>
+					Submit
+				</SubmitButton>
+			</Box>}
 			<Box>
 				{canDownloadSongs && ids.length === 1 &&
 					<Button 
@@ -388,7 +395,7 @@ export const SongEdit = () => {
 			</Box>}
 			<Box sx={inputField}>
 				{ids?.length > 1 && <TouchedCheckbox
-					name="name"
+					name="disc"
 				/>}
 				<FormTextField
 					name="disc"
@@ -536,13 +543,6 @@ export const SongEdit = () => {
 						</Box>
 					);
 				})}
-			</Box>}
-			{canEditSongs && <Box sx={inputField} >
-				<SubmitButton
-					loading={formState.isSubmitting}
-					onClick={callSubmit}>
-					Submit
-				</SubmitButton>
 			</Box>}
 		</Box>
 	</Loader>);

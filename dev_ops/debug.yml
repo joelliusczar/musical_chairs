@@ -1,0 +1,209 @@
+---
+- hosts: all
+
+  vars_files:
+    - ../vars/vault.yml
+    - ../vars/globals.yml
+    - ../vars/os_paths.yml
+
+
+
+
+  tasks:
+    - name: Set src and dest host groups
+      command: 'ansible-inventory -i {{db_copy_inventory}} --list'
+      register: inventory_result
+      delegate_to: localhost
+    - name: Transform inventory_result
+      set_fact:
+        loaded_inventory: '{{inventory_result.stdout|from_json}}'
+    - name: Set source hostname
+      set_fact:
+        src_server_hostname: '{{loaded_inventory["src_server"]["hosts"][0]}}'
+    - name: Add db copy source hosts
+      set_fact:
+        src_server:
+          hostname: '{{src_server_hostname}}'
+          ansible_port: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_port"]}}'
+          ansible_user: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_user"]}}'
+    - debug:
+        msg: '{{src_server["hostname"]}}'
+    # - name: Get ices version
+    #   command: '{{prefix}}ices -V'
+    #   failed_when: false
+    #   register: ices_output 
+    # - name: Extract version
+    #   set_fact: 
+    #     ices_version: '{{ices_output.stdout.splitlines()[0].split(" ")[1]}}'
+    #   when: ices_output.rc == 0
+    # - debug:
+    #     msg: '{{ices_output.stdout.splitlines()[0].split(" ")[1]}}'
+    # # - debug:
+    # #     msg: '{{ices_version}}'
+    # - name: End early if already installed.
+    #   debug:
+    #     msg: 'end early'
+    #   when: ices_version is defined and ices_version is version(target_version)
+    # - debug:
+    #     msg: 'marr og: {{marr}}'
+    # - name: Copy
+    #   set_fact:
+    #     carr: '{{marr}}'
+    # - name: Add to
+    #   set_fact: 
+    #     marr: '{{marr + ["three"]}}'
+    # - debug:
+    #     msg: 'carr: {{carr}}'
+    # - debug:
+    #     msg: 'marr: {{marr}}'
+    # - name: Set src and dest host groups
+    #   command: 'ansible-inventory -i {{db_copy_inventory}} --list'
+    #   register: inventory_result
+    #   delegate_to: localhost
+    # - name: Transform inventory_result
+    #   set_fact:
+    #     loaded_inventory: '{{inventory_result.stdout|from_json}}'
+    # - debug:
+    #     msg: '{{item}}'
+    #   loop:
+    #     '{{loaded_inventory["src_server"]["hosts"]}}'
+    #   when: ansible_loop.first
+    #   loop_control:
+    #     extended: true
+    # - name: Clone the ices repo
+    #   git:
+    #     dest: /tmp/build/ices
+    #     repo: https://github.com/joelliusczar/ices0.git
+    #     version: restructure-logging
+    # - name: Aclocal
+    #   command:
+    #     cmd: aclocal
+    #     chdir: /tmp/build/ices
+    # - debug:
+    #     msg: "{{ '192.168.0.0/24' | ansible.utils.network_in_usable( '192.168.0.0' ) }}"
+    # - debug:
+    #     msg: '{{bravo}}'
+    # - name: Sub tasks
+    #   include_tasks: ./debug2.yml
+    #   vars:
+    #     charlie: '{{charlie}}'
+        
+
+
+    # - name: Loop condition
+    #   command: echo '{{item}}'
+    #   when: item != "tomato" and ansible_host in groups['testing']
+    #   loop:
+    #     - apple
+    #     - tomato
+    #     - corndog
+    # - name: Extract python version string.
+    #   command: 
+    #     argv:
+    #       - 'python3'
+    #       - -V
+    #   register: python_version
+    # - name: Extract python minor version and env path
+    #   set_fact:
+    #     py_minor_version: '{{python_version.stdout.split(" ")[1].split(".")[1]}}'
+    #     py_env_path: '{{app_trunk}}/{{app_details["prefix"]|lower}}_env'
+    #     file_reference_name: '{{src_dirs["engine"]}}/file_reference.py'
+    # - debug:
+    #     msg: Hello testing from {{ansible_host}}
+    #   when: ansible_host in groups['testing']
+    # - name: Dynamic set facts
+    #   set_fact:
+    #     '{{v}}_DUMB': Hallelujer
+    # - debug:
+    #     msg: 'This is {{grr_DUMB}}'
+    # - debug:
+    #     msg: 'tld in top level is {{tld}}'
+    # - name: Include dumb role
+    #   include_role: 
+    #     name: dumb
+    # - debug:
+    #     msg: 'tld in top level is {{tld}}'
+    # - name: Test test
+    #   shell: '[ "bob" = "bill" ]'
+    #   register: res
+    #   failed_when: false
+    # - debug:
+    #     msg: 'Test out: {{res.rc}}'
+    
+
+    
+    # - name: Download updated certificates
+    #   uri:
+    #     url: 'https://api.porkbun.com/api/json/v3/ssl/retrieve/{{url_base}}.{{tld}}'
+    #     body_format: json
+    #     method: POST
+    #     body:
+    #       secretapikey: '{{pb_secret}}'
+    #       apikey: '{{pb_api_key}}'
+    #     headers:
+    #       Content-Type: application/json
+    #   register: fetched
+    # - debug:
+    #     msg: '{{fetched}}'
+    # - debug:
+    #     msg: '{{(fetched.json["privatekey"])}}'
+    # - include_vars: 'vars/globals.yml'
+    # - debug: 
+    #     msg: 'os -> {{ansible_os_family}}'
+    # - debug:
+    #     msg: '{{ (d | from_json)["b"] }}'
+    # - debug:
+    #     msg: 'root: {{domain["app_root"]|default("")}}'
+    # - name: Env test
+    #   command: echo "$VAR_SH_DUMB and "
+    #   environment:
+    #     "VAR_{{ v | upper }}": "another_value"
+    #   ignore_errors: true
+    #   register: out
+    # - debug:
+    #     msg: '{{out}}'
+
+    # - name: Primpty
+    #   command: python3 -c 'print("")'
+    #   register: out
+    # - debug:
+    #     msg: Howdy
+    #   when: 'out.stdout != ""'
+    # - debug:
+    #     msg: Byedie
+    #   when: 'out.stdout == ""'
+    # - name: Package facts
+      # package_facts:
+    # - name: Print the package facts
+    #   ansible.builtin.debug:
+    #     var: ansible_facts.packages
+    # - name: Check whether a package called foobar is installed
+    #   ansible.builtin.debug:
+    #     msg: "{{ ansible_facts.packages['firefox'] | length }} versions of foobar are installed!"
+    #   when: "'firefox' in ansible_facts.packages"
+    # - include_vars: 'vars/local_vault.yml'
+    #   when: 'ansible_host == "127.0.0.1"'
+    # - include_vars: 'vars/vault.yml'
+    #   when: 'ansible_host != "127.0.0.1"'
+    # - debug:
+    #     msg: 'host is  {{ansible_host}} and the variabo: {{db_pass_owner}}'
+    # - name: Show all the hosts in the inventory
+    #   ansible.builtin.debug:
+    #     msg: "{{ item }}"
+    #   loop: "{{ ansible_play_batch }}"
+    # - name: tabs in jinja
+    #   lineinfile:
+    #     path: /tmp/linein
+    #     line: 'hello{{""|indent(8, True)}}bob'
+    #     insertafter: EOF
+    # - name: Command location test
+    #   command: ls
+    #   register: out
+    # - name: Loop out
+    #   debug:
+    #     msg: '#### xxxx {{item}}'
+    #   loop: '{{out.stdout.splitlines()}}'
+
+
+# - import_playbook: debug2.yml
+# - import_playbook: debug3.yml

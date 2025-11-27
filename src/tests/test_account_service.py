@@ -29,7 +29,7 @@ def _insert_row_into_history(conn: Connection, userPk: int):
 			minute=10,
 			tzinfo=timezone.utc
 		).timestamp()
-	historyParams = [{
+	historyParams: list[dict[str, Any]] = [{
 			"stationfk": 1,
 			"songfk": 15,
 			"playedtimestamp": datetime(
@@ -116,7 +116,7 @@ def _insert_row_into_queue(conn: Connection, userPk: int):
 			minute=10,
 			tzinfo=timezone.utc
 		).timestamp()
-	queueParams = [{
+	queueParams: list[dict[str, Any]] = [{
 			"stationfk": 1,
 			"songfk": 15,
 			"queuedtimestamp": queuedTimestamp,

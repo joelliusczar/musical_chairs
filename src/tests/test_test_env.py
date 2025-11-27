@@ -9,11 +9,11 @@ def test_show_path():
 
 
 def test_show_db_setup_pass():
-	from musical_chairs_libs.services import EnvManager
-	dbSetupPass = EnvManager.db_setup_pass()
-	dbOwnerPass = EnvManager.db_pass_owner()
-	dbApiPass = EnvManager.db_pass_api()
-	dbRadioPass = EnvManager.db_pass_radio()
+	from musical_chairs_libs.dtos_and_utilities import ConfigAcessors
+	dbSetupPass = ConfigAcessors.db_setup_pass()
+	dbOwnerPass = ConfigAcessors.db_pass_owner()
+	dbApiPass = ConfigAcessors.db_pass_api()
+	dbRadioPass = ConfigAcessors.db_pass_radio()
 	assert dbSetupPass
 	assert dbOwnerPass
 	assert dbApiPass

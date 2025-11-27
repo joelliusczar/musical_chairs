@@ -23,7 +23,7 @@ import { buildTimespanMsg, secondsToTuple } from "./Helpers/time_helper";
 import { cookieToObject } from "./Helpers/browser_helpers";
 
 
-function AppTrunk() {
+const AppTrunk = () => {
 	const currentUser = useCurrentUser();
 	const openLoginPrompt = useLoginPrompt();
 	const [logginTooltipMsg, setLogginTooltipMsg] = useState("");
@@ -56,6 +56,7 @@ function AppTrunk() {
 			padding-inline-start: 25px;
 			background-color: #0A5;
 			color: #FFF;
+			grid-column: 1 / 3
 			`,
 		header_h1: css`
 			font-family: "Monoton", sans-serif;
@@ -63,42 +64,47 @@ function AppTrunk() {
 			font-style: normal;
 			display: inline;
 		`,
+		menu_icon: css`
+			margin-right: 10px;
+		`,
+		floating_menu: css`
+			grid-column: 1
+		`,
 	};
+
 
 
 	return (
 		<div css={styles.parent}>
+			<div css={styles.header}>
+				<h1 css={styles.header_h1}>Musical Chairs</h1>
+				 	{!(!!currentUser.username || !!displayNameCookie) ? <Button
+		 				color="inherit"
+		 				onClick={() => openLoginPrompt()}
+		 			>
+		 				Login
+		 			</Button> :
+		 				<>
+						<Tooltip
+		 						title={logginTooltipMsg}
+		 						onOpen={() => setLogginTooltipMsg(loggedInTimespan())}
+		 					>
+		 						<UserMenu
+		 							btnLabel={currentUser.username || displayNameCookie}
+		 						/>
+		 					</Tooltip>
+		 				</>
+		 			}
+			</div>
 			<div>
 				<NavMenu />
 			</div>
 			<div>
-				<div css={styles.header}>
-					<h1 css={styles.header_h1}>Musical Chairs</h1>
-					{!(!!currentUser.username || !!displayNameCookie) ? <Button
-						color="inherit"
-						onClick={() => openLoginPrompt()}
-					>
-						Login
-					</Button> :
-						<>
-							<Tooltip
-								title={logginTooltipMsg}
-								onOpen={() => setLogginTooltipMsg(loggedInTimespan())}
-							>
-								<UserMenu
-									btnLabel={currentUser.username || displayNameCookie}
-								/>
-							</Tooltip>
-						</>
-					}
-				</div>
-				<div css={styles.content}>
-					<AppRoutes />
-				</div>
+				<AppRoutes />
 			</div>
 		</div>
 	);
-}
+};
 
 function AppRoot() {
 	const notistackRef = createRef<SnackbarProvider>();

@@ -1,6 +1,9 @@
+#pyright: reportMissingTypeStubs=false
 import re
 import uuid
+import hashlib
 from typing import (
+	Any,
 	BinaryIO,
 	Iterator,
 	cast,
@@ -8,7 +11,6 @@ from typing import (
 	Tuple,
 	Union,
 	Iterable,
-	overload,
 	Collection,
 	Mapping
 )
@@ -29,9 +31,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	SongPathInfo,
 	ReusableIterable,
-	MCNotImplementedError,
 	DirectoryTransfer,
+	int_or_default,
+	SongAboutInfo
 )
+
 from sqlalchemy import (
 	select,
 	insert,
@@ -40,6 +44,7 @@ from sqlalchemy import (
 	func,
 	union_all,
 	String,
+	Integer,
 	CompoundSelect
 )
 from sqlalchemy.sql.expression import (
@@ -47,15 +52,19 @@ from sqlalchemy.sql.expression import (
 )
 from musical_chairs_libs.tables import (
 	songs as songs_tbl,
-	sg_pk, sg_name, sg_path, sg_internalpath,
+	sg_pk, sg_name, sg_path, sg_internalpath, sg_deletedTimstamp,
 	st_pk,
 	song_artist as song_artist_tbl, sgar_songFk,
 	stations_songs as stations_songs_tbl, stsg_songFk,
-	station_queue as station_queue_tbl, q_songFk
+	station_queue as station_queue_tbl, q_songFk,
 )
-from .env_manager import EnvManager
 from .song_artist_service import SongArtistService
+from .jobs_service import JobsService
+from .album_service import AlbumService
+from .artist_service import ArtistService
+from .path_rule_service import PathRuleService
 from itertools import islice
+from tinytag import TinyTag
 
 class SongFileService:
 
@@ -63,7 +72,11 @@ class SongFileService:
 		self,
 		conn: Connection,
 		fileService: FileService,
-		songArtistService: Optional[SongArtistService]=None
+		songArtistService: Optional[SongArtistService]=None,
+		jobService: Optional[JobsService]=None,
+		pathRuleService: Optional[PathRuleService]=None,
+		artistService: Optional[ArtistService]=None,
+		albumService: Optional[AlbumService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -72,7 +85,18 @@ class SongFileService:
 		self.get_datetime = get_datetime
 		if not songArtistService:
 			songArtistService = SongArtistService(conn)
+		if not jobService:
+			jobService = JobsService(conn, fileService)
+		if not pathRuleService:
+			pathRuleService = PathRuleService(conn)
+		if not artistService:
+			artistService = ArtistService(conn, pathRuleService)
+		if not albumService:
+			albumService = AlbumService(conn, artistService, pathRuleService)
 		self.song_artist_service = songArtistService
+		self.job_service = jobService
+		self.artist_service = artistService
+		self.album_service = albumService
 
 	def __create_directory__(
 		self,
@@ -104,6 +128,42 @@ class SongFileService:
 		self.__create_directory__(prefix, suffix, suffix, user)
 		self.conn.commit()
 		return self.song_ls_parents(user, prefix, includeTop=False)
+	
+	def extract_song_info(self, file: BinaryIO) -> SongAboutInfo:
+		try:
+			tag = cast(Any, TinyTag.get(file_obj=file)) #pyright: ignore [reportUnknownMemberType]
+			songAboutInfo = SongAboutInfo(name=tag.title)
+			artist = next(
+				self.artist_service.get_artists(
+					artistKeys=tag.artist,
+					exactStrMatch=True
+				),
+				None
+			)
+			album = next(
+				self.album_service.get_albums(
+					albumKeys=tag.album,
+					exactStrMatch=True
+				),
+				None
+			)
+			songAboutInfo.primaryartist = artist
+			songAboutInfo.album = album
+			songAboutInfo.bitrate = float(tag.bitrate) \
+				if type(tag.bitrate) == float else None #pyright: ignore [reportUnknownArgumentType, reportUnknownMemberType]
+			try:
+				songAboutInfo.disc = int(tag.disc or "")
+			except:
+				pass
+			songAboutInfo.genre = tag.genre
+			songAboutInfo.duration = tag.duration \
+				if type(tag.duration) == float else None #pyright: ignore [reportUnknownArgumentType, reportUnknownMemberType]
+			songAboutInfo.name = tag.title
+			songAboutInfo.track = tag.track
+			return songAboutInfo
+		except Exception as e:
+			print(e)
+			return SongAboutInfo(name="missing")
 
 	def save_song_file(
 			self,
@@ -124,13 +184,17 @@ class SongFileService:
 		self.delete_overlaping_placeholder_dirs(path)
 		cleanedSuffix = re.sub(r"[^\w\.]+","-",suffix).casefold()
 		internalPath = f"{str(uuid.uuid4())}-{cleanedSuffix}"
-		songAboutInfo, fileHash = self.file_service.save_song(internalPath, file)
+		with self.file_service.save_song(internalPath, file) as uploaded:
+			fileHash = hashlib.sha256(uploaded.read()).digest()
+			uploaded.seek(0)
+			songAboutInfo = self.extract_song_info(uploaded)
 		stmt = insert(songs_tbl).values(
 			path = path,
 			internalpath = internalPath,
 			name = songAboutInfo.name,
 			albumfk = songAboutInfo.album.id if songAboutInfo.album else None,
 			track = songAboutInfo.track,
+			tracknum = int_or_default(songAboutInfo.track),
 			disc = songAboutInfo.disc,
 			bitrate = songAboutInfo.bitrate,
 			genre = songAboutInfo.genre,
@@ -158,7 +222,7 @@ class SongFileService:
 	def __song_ls_query__(
 		self,
 		prefix: Optional[str]=""
-	) -> Select[Tuple[str, str, int, int, str]]:
+	) -> Select[Tuple[str, Optional[String], int, Integer, String]]:
 		hasOpenSlash = False
 		prefix = normalize_opening_slash(
 			prefix or "",
@@ -175,7 +239,9 @@ class SongFileService:
 				func.count(sg_pk).label("totalChildCount"),
 				func.max(sg_pk).label("pk"),
 				func.max(sg_path).label("control_path")
-		).where(
+		)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(
 				func.normalize_opening_slash(
 					sg_path,
 					hasOpenSlash
@@ -191,7 +257,10 @@ class SongFileService:
 
 	def __query_to_treeNodes__(
 		self,
-		query: Union[Select[Tuple[str, str, int, int, str]], CompoundSelect],
+		query: Union[
+			Select[Tuple[str, Optional[String], int, Integer, String]], 
+			CompoundSelect[Any]
+		],
 		permittedPathsTree: ChainedAbsorbentTrie[PathsActionRule]
 	) -> Iterator[SongTreeNode]:
 		records = self.conn.execute(query).mappings()
@@ -239,7 +308,9 @@ class SongFileService:
 				next((s for s in p.split("/") if s), "") if p else p for p in \
 				permittedPathTree.shortest_paths()
 			}
-			queryList: list[Select[Tuple[str, str, int, int, str]]] = []
+			queryList: list[Select[Tuple[
+				str, Optional[String], int, Integer, String]]
+			] = []
 			for p in prefixes:
 				queryList.append(self.__song_ls_query__(p))
 			if queryList:
@@ -279,9 +350,11 @@ class SongFileService:
 		includeTop: bool=True
 	) -> Mapping[str, Collection[SongTreeNode]]:
 		permittedPathTree = user.get_permitted_paths_tree()
-		queryList: list[Select[Tuple[str, str, int, int, str]]] = []
+		queryList: list[
+			Select[Tuple[str, Optional[String], int, Integer, String]]
+		] = []
 
-		prefixSplit =  reversed([p for p in self.__prefix_split__(prefix)])
+		prefixSplit = reversed([p for p in self.__prefix_split__(prefix)])
 
 		limited = prefixSplit if includeTop else islice(prefixSplit, 3)
 		for p in limited:
@@ -294,60 +367,40 @@ class SongFileService:
 		return result
 
 
-	@overload
 	def get_song_path(
 		self,
-		itemIds: int,
-		useFullSystemPath: bool=True
-	) -> Iterator[str]: ...
-
-	@overload
-	def get_song_path(
-		self,
-		itemIds: Iterable[int],
-		useFullSystemPath: bool=True
-	) -> Iterator[str]: ...
-
-	def get_song_path(
-		self,
-		itemIds: Union[Iterable[int], int],
-		useFullSystemPath: bool=True
+		itemIds: Union[Iterable[int], int]
 	) -> Iterator[str]:
-		query = select(sg_path)
+		query = select(sg_path).where(sg_deletedTimstamp.is_(None))
 		if isinstance(itemIds, Iterable):
 			query = query.where(sg_pk.in_(itemIds))
 		else:
 			query = query.where(sg_pk == itemIds)
 		results = self.conn.execute(query)
-		if useFullSystemPath:
-			yield from (f"{EnvManager.absolute_content_home()}/{row[0]}" \
-				for row in results
-			)
-		else:
-			yield from (cast(str,row[0]) for row in results)
+		yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
+			for row in results
+		)
 
 	def get_internal_song_paths(
 		self,
 		itemIds: Union[Iterable[int], int],
-		useFullSystemPath: bool=False
 	) -> Iterator[str]:
-		query = select(sg_internalpath)
+		query = select(sg_internalpath).where(sg_deletedTimstamp.is_(None))
 		if isinstance(itemIds, Iterable):
 			query = query.where(sg_pk.in_(itemIds))
 		else:
 			query = query.where(sg_pk == itemIds)
 		results = self.conn.execute(query)
-		if useFullSystemPath:
-			yield from (f"{EnvManager.absolute_content_home()}/{row[0]}" \
-				for row in results
-			)
-		else:
-			yield from (cast(str,row[0]) for row in results)
+		yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
+			for row in results
+		)
+
 
 	def get_parents_of_path(self, path: str) -> Iterator[Tuple[int, str]]:
 		normalizedPrefix = normalize_opening_slash(path)
 		addSlash = True
 		query = select(sg_pk, sg_path)\
+			.where(sg_deletedTimstamp.is_(None))\
 			.where(func.substring(
 				normalizedPrefix,
 				1,
@@ -362,7 +415,9 @@ class SongFileService:
 		overlap = [*self.get_parents_of_path(path)]
 		if any(r for r in overlap if not r[1].endswith("/")):
 			raise RuntimeError("Cannot delete song entries")
-		stmt = delete(songs_tbl).where(sg_pk.in_(r[0] for r in overlap))
+		stmt = delete(songs_tbl)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(sg_pk.in_(r[0] for r in overlap))
 		self.conn.execute(stmt)
 
 	def __is_path_used__(
@@ -371,6 +426,7 @@ class SongFileService:
 		id: Optional[int] = None,
 	) -> bool:
 		queryAny = select(func.count(1))\
+				.where(sg_deletedTimstamp.is_(None))\
 				.where(sg_path == str(path))\
 				.where(st_pk != id)
 		countRes = self.conn.execute(queryAny).scalar()
@@ -381,6 +437,7 @@ class SongFileService:
 			.replace("_","\\_").replace("%","\\%")
 		addSlash = True
 		queryAny = select(func.count(1))\
+			.where(sg_deletedTimstamp.is_(None))\
 			.where(
 				func.normalize_opening_slash(sg_path, addSlash)
 				.like(f"{lPrefix}%")
@@ -393,7 +450,9 @@ class SongFileService:
 		paths: ReusableIterable[SongPathInfo]
 	) -> dict[str, bool]:
 		addSlash=True
-		query = select(sg_pk, sg_path).where(
+		query = select(sg_pk, sg_path)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(
 			func.normalize_opening_slash(
 				sg_path,
 				addSlash
@@ -421,7 +480,8 @@ class SongFileService:
 							squash_sequential_duplicate_chars(f"{prefix}/{p.path}", "/")
 						)
 					)
-				)
+				),
+				internalpath=""
 			)
 			for p in suffixes
 		]
@@ -473,9 +533,9 @@ class SongFileService:
 			self.conn.execute(stmt)
 			self.conn.commit()
 		else:
-			raise MCNotImplementedError(
-				"Deleting populated directories not currently Supported"
-			)
+			self.job_service.add(r[1] for r in rows)
+			self.soft_delete_songs((r[0] for r in rows), user)
+			self.conn.commit()
 		parentPrefix = str(Path(prefix).parent)
 		return self.song_ls_parents(user, parentPrefix, includeTop=False)
 
@@ -524,3 +584,13 @@ class SongFileService:
 		self.conn.commit()
 
 		return self.song_ls_parents(user, newprefix, includeTop=False)
+	
+
+
+	def soft_delete_songs(self, songIds: Iterable[int], user: AccountInfo):
+		stmt = update(songs_tbl).values(
+			deletedtimestamp = self.get_datetime().timestamp(),
+			deletedbyuserfk = user.id
+		)\
+		.where(sg_pk.in_(songIds))
+		self.conn.execute(stmt)

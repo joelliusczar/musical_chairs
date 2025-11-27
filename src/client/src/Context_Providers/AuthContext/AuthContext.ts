@@ -31,6 +31,7 @@ export type AuthContextType = {
 };
 
 const loggedOut = {
+	id: 0,
 	username: "",
 	roles: [],
 	access_token: "",

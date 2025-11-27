@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@mui/material";
 
-import {
-	songDownloadUrl,
-} from "../../API_Calls/songInfoCalls";
+import { getDownloadAddress } from "../../Helpers/request_helpers";
 
 type SongListenerProps = {
 	audioId: number,
@@ -14,9 +12,8 @@ export const SongListener = (props: SongListenerProps) => {
 	const { audioId } = props;
 	const [dlUrl, setDlUrl] = useState("");
 
-	const downloadSong = async () => {
-		const requestObj = songDownloadUrl({id : audioId});
-		const url = await requestObj.call();
+	const downloadSong = () => {
+		const url = getDownloadAddress(audioId);
 		setDlUrl(url);
 	};
 
@@ -28,7 +25,7 @@ export const SongListener = (props: SongListenerProps) => {
 				Download song
 			</Button>
 				:
-				<audio controls src={dlUrl} crossOrigin="anonymous"></audio>
+				<audio controls src={dlUrl}></audio>
 			}
 		</>
 	);

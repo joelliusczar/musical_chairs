@@ -8,10 +8,12 @@ import {
 	StationTableData,
 	StationRuleAddition,
 	StationRuleDeletion,
+	RequiredStationParamsOnly,
 } from "../Types/station_types";
 import {
 	CurrentPlayingInfo,
 	SongListDisplayItem,
+	CollectionQueuedItem,
 } from "../Types/song_info_types";
 import { Flags, StringObject } from "../Types/generic_types";
 import { ListData, TableData } from "../Types/pageable_types";
@@ -37,7 +39,7 @@ export const fetchStations = (params?: OwnerParam) => {
 	};
 };
 
-export const fetchStationForEdit = (
+export const getRecordCaller = (
 	{ ownerkey, stationkey }: { ownerkey: KeyValue, stationkey: KeyValue}
 ) => {
 	const abortController = new AbortController();
@@ -54,7 +56,7 @@ export const fetchStationForEdit = (
 	};
 };
 
-export const checkValues = (
+export const checkValuesCaller = (
 	{ id, values }: { id: IdValue, values: StringObject }
 ) => {
 	const abortController = new AbortController();
@@ -76,8 +78,8 @@ export const checkValues = (
 	};
 };
 
-export const saveStation = (
-	{ values, id}: { values: StationCreationInfo, id?: IdValue | null }
+export const saveCaller = (
+	{ values, id }: { values: StationCreationInfo, id?: IdValue | null }
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -111,6 +113,28 @@ export const fetchSongCatalogue = ({
 			const url = `stations/${ownerkey}/${stationkey}/catalogue/`;
 			const response = await webClient.get<
 				StationTableData<SongListDisplayItem>
+			>(
+				url,
+				{ params: params, signal: abortController.signal }
+			);
+			return response.data;
+		},
+	};
+};
+
+
+export const fetchCollectionCatalogueCaller = ({
+	stationkey,
+	ownerkey,
+	...params
+}: RequiredStationParams) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const url = `stations/${ownerkey}/${stationkey}/collection_catalogue/`;
+			const response = await webClient.get<
+				StationTableData<CollectionQueuedItem>
 			>(
 				url,
 				{ params: params, signal: abortController.signal }
@@ -155,8 +179,8 @@ export const fetchHistory = (
 	};
 };
 
-export const sendSongRequest = (
-	{ stationkey, ownerkey, songid}: RequiredStationParams & {songid: IdValue}
+export const sendSongRequestCaller = (
+	{ stationkey, ownerkey, songid}: RequiredStationParamsOnly & {songid: IdValue}
 ) => {
 	const abortController = new AbortController();
 	return {
@@ -165,6 +189,30 @@ export const sendSongRequest = (
 			const response = await webClient
 				.post<void>(
 					`stations/${ownerkey}/${stationkey}/request/${songid}`,
+					null,
+					{ signal: abortController.signal }
+				);
+			return response.data;
+		},
+	};
+};
+
+export const sendCollectionRequestCaller = (
+	{ 
+		stationkey,
+		ownerkey,
+		collectionId,
+		typeId,
+	}: RequiredStationParamsOnly & {collectionId: IdValue, typeId: IdValue }
+) => {
+	const abortController = new AbortController();
+	const stationKeySegment = `${ownerkey}/${stationkey}`;
+	return {
+		abortController: abortController,
+		call: async () => {
+			const response = await webClient
+				.post<void>(
+					`stations/${stationKeySegment}/request/${typeId}/${collectionId}`,
 					null,
 					{ signal: abortController.signal }
 				);
@@ -199,7 +247,7 @@ export const removeSongFromQueue = (
 	};
 };
 
-export const enableStations = (
+export const enableStationsCaller = (
 	{ ids }: { ids: IdValue[] | IdValue }
 ) => {
 	const abortController = new AbortController();
@@ -291,6 +339,39 @@ export const removeStationUserRule = ({
 				params: { subjectuserkey, rulename },
 				signal: abortController.signal,
 			});
+			return response.data;
+		},
+	};
+};
+
+export const removeRecordCaller = ({ id }: { id: IdValue }) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+
+			const response = await webClient.delete(
+				`/stations/${id}`,
+				{ signal: abortController.signal }
+			);
+			return response.data;
+		},
+	};
+};
+
+export const copyRecordCaller = (
+	{ values, id }: { values: StationCreationInfo, id: IdValue }
+) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+
+			const response = await webClient.post(
+				`/stations/copy/${id}`,
+				values,
+				{ signal: abortController.signal }
+			);
 			return response.data;
 		},
 	};

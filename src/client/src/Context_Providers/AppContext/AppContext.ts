@@ -85,6 +85,26 @@ const updateItemInState = <T extends NamedIdItem>(
 	return state;
 };
 
+const removeItemInState = <T extends NamedIdItem>(
+	state: RequiredDataStore<ListDataShape<T>>,
+	item: T
+) => {
+	const items = [...state.data.items];
+	const idx = items.findIndex(i => i.id === item.id);
+	if (idx > -1) {
+		items.splice(idx, 1);
+		return {
+			...state,
+			data: {
+				items: items,
+			},
+		};
+	}
+	console.error("Item was not found in local store.");
+	return state;
+};
+
+
 export const useAlbumData = () => {
 	const {
 		albumsState: { data: { items }, error, callStatus },
@@ -106,12 +126,19 @@ export const useAlbumData = () => {
 	[dispatch]
 	);
 
+	const remove = useCallback((item: AlbumInfo) => {
+		dispatch(dispatches.update((state) => {
+			return removeItemInState(state, item);
+		}));
+	},[dispatch]);
+
 	return {
 		items,
 		error,
 		callStatus,
 		add,
 		update,
+		remove,
 	};
 };
 
@@ -136,12 +163,19 @@ export const useStationData = () => {
 	[dispatch]
 	);
 
+	const remove = useCallback((item: StationInfo) => {
+		dispatch(dispatches.update((state) => {
+			return removeItemInState(state, item);
+		}));
+	},[dispatch]);
+
 	return {
 		items,
 		error,
 		callStatus,
 		add,
 		update,
+		remove,
 	};
 };
 
@@ -165,6 +199,12 @@ export const useArtistData = () => {
 	[dispatch]
 	);
 
+	const remove = useCallback((item: ArtistInfo) => {
+		dispatch(dispatches.update((state) => {
+			return removeItemInState(state, item);
+		}));
+	},[dispatch]);
+
 
 	return {
 		items,
@@ -172,6 +212,7 @@ export const useArtistData = () => {
 		callStatus,
 		add,
 		update,
+		remove,
 	};
 };
 

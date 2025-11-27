@@ -19,10 +19,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_path_owner_roles,
 	UserRoleDomain,
 	UserRoleDef,
-	build_rules_query,
+	build_path_rules_query,
 	get_datetime,
-	MinItemSecurityLevel,
-	generate_user_and_rules_from_rows
+	generate_path_user_and_rules_from_rows
 )
 from musical_chairs_libs.tables import (
 	path_user_permissions as path_user_permissions_tbl,
@@ -126,7 +125,7 @@ class PathRuleService:
 	) -> Iterator[AccountInfo]:
 		addSlash = True
 		normalizedPrefix = normalize_opening_slash(prefix)
-		rulesQuery = build_rules_query(UserRoleDomain.Path).cte()
+		rulesQuery = build_path_rules_query().cte()
 		query = select(
 			u_pk,
 			u_username,
@@ -170,7 +169,7 @@ class PathRuleService:
 				coalesce(
 					rulesQuery.c.rule_priority,
 					RulePriorityLevel.SITE.value
-				) > MinItemSecurityLevel.INVITED_USER.value,
+				) > RulePriorityLevel.INVITED_USER.value,
 					func.substring(
 						prefix,
 						1,
@@ -184,9 +183,8 @@ class PathRuleService:
 			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings()
-		yield from generate_user_and_rules_from_rows(
+		yield from generate_path_user_and_rules_from_rows(
 			records,
-			UserRoleDomain.Path,
 			owner.id if owner else None,
 			prefix
 		)

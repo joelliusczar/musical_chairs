@@ -1,14 +1,20 @@
 from musical_chairs_libs.services import (
 	SongFileService,
-	PathRuleService
+	PathRuleService,
+	JobsService,
+	QueueService,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	DirectoryTransfer
 )
+from musical_chairs_libs.dtos_and_utilities.constants import JobStatusTypes
 from .constant_fixtures_for_test import *
 from .common_fixtures import (
 	fixture_song_file_service as fixture_song_file_service,
-	fixture_path_rule_service as fixture_path_rule_service
+	fixture_path_rule_service as fixture_path_rule_service,
+	fixture_job_service as fixture_job_service,
+	fixture_queue_service as fixture_queue_service,
+	fixture_station_service as fixture_station_service
 )
 from .common_fixtures import *
 from io import BytesIO
@@ -582,6 +588,53 @@ def test_delete_directory(
 	result = songFileService.delete_prefix("foo/goo/testdir/", user)
 	assert len(result["foo/goo/"]) == 11
 	assert "foo/goo/testdir/" not in (p.path for p in result["foo/goo/"])
+
+def test_delete_dir_with_songs(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService,
+	fixture_job_service: JobsService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	jobService = fixture_job_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+	songFileService.delete_prefix("foo/goo/koo/", user)
+	jobs = list(jobService.get_all())
+	assert len(jobs) == 3
+	jobService.process_deleted_songs()
+	jobs = list(jobService.get_all())
+	assert all(j.status == JobStatusTypes.COMPLETED.value for j in jobs)
+	assert len(jobs) == 3
+
+
+def test_delete_song_in_station(
+	fixture_song_file_service: SongFileService,
+	fixture_account_service: AccountsService,
+	fixture_queue_service: QueueService
+):
+	songFileService = fixture_song_file_service
+	accountService = fixture_account_service
+	queueService = fixture_queue_service
+	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
+	assert user
+	deletedSongId = 41
+	stationId = 2
+	queueService.fil_up_queue(stationId, 50)
+	queue, _ = queueService.get_queue_for_station(stationId)
+	catalogue, _ = queueService.get_song_catalogue(stationId)
+	assert deletedSongId in (s.id for s in catalogue)
+	assert deletedSongId in (s.id for s in queue)
+	assert queueService.can_song_be_queued_to_station(deletedSongId, stationId)
+	songFileService.soft_delete_songs([deletedSongId], user)
+
+	queue2, _ = queueService.get_queue_for_station(stationId)
+	assert deletedSongId not in (s.id for s in queue2)
+	catalogue2, _ = queueService.get_song_catalogue(stationId)
+	assert deletedSongId not in (s.id for s in catalogue2)
+	assert not queueService.can_song_be_queued_to_station(deletedSongId, stationId)
+
+	
 
 def test_parent_ls_with_placeholder_dir(
 	fixture_song_file_service: SongFileService,

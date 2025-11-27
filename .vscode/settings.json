@@ -4,29 +4,51 @@
   "workbench.colorCustomizations": {
     "editorRuler.foreground": "#ef40ff"
   },
-  "python.analysis.extraPaths": ["src/tests"],
+  "python.analysis.extraPaths": ["src/tests", "src/api"],
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "strict",
   "python.analysis.indexing": true,
   "python.analysis.useLibraryCodeForTypes": true,
-  "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/musical_chairs/mc_env/bin/python",
+  "python.defaultInterpreterPath": "${workspaceFolder}/test_trash/musical_chairs/mcr_env/bin/python",
   "terminal.integrated.env.osx": {
-    "PTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
+    "PYTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
     "MC_LIB_NAME": "musical_chairs_libs",
     "MC_APP_NAME": "musical_chairs_app",
-    "MC_TEST_ROOT": "${workspaceFolder}/test_trash"
+    "MCR_TEST_ROOT": "${workspaceFolder}/test_trash"
+  },
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
+    "MCR_TEST_ROOT": "${workspaceFolder}/test_trash",
+    "DSF_DB_PASS_SETUP": "setuppass",
+    "DSF_DB_PASS_OWNER": "ownerpass",
+    "DSF_TEMPLATES_DEST": "./test_trash/musical_chairs/files",
+    "DSF_ICES_CONFIGS_DIR": "./test_trash/musical_chairs/ices_configs",
+    "DSF_SQL_SCRIPTS_DEST": "./test_trash/musical_chairs/sql_scripts",
+    "DSF_CONTENT_DIR": "./test_trash/musical_chairs/content",
+    "DSF_PY_MODULE_DIR": "./test_trash/musical_chairs/pyModules",
+    "DSF_DB_PASS_API": "apipass",
+    "DSF_DB_PASS_RADIO": "radiopass",
+    "DSF_DB_PASS_JANITOR": "janitorpass",
+    "DSF_AUTH_SECRET_KEY": "deadbeef",
+    "DSF_APP_ROOT": "./test_trash"
   },
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "python.testing.cwd": "${workspaceFolder}/src/tests",
-  "python.testing.pytestPath": "${workspaceFolder}/test_trash/musical_chairs/mc_env/bin/pytest",
+  "python.testing.pytestPath": "${workspaceFolder}/test_trash/musical_chairs/mcr_env/bin/pytest",
   "python.testing.pytestArgs": [
     "-s", "-p", "no:warnings"
   ],
   "python.terminal.activateEnvironment": false,
-  "python.envFile": "${workspaceFolder}/test_trash/musical_chairs/config/.env",
+  "python.envFile": "${workspaceFolder}/.env",
   "search.exclude": {
     "**/test_trash": true
   },
   "editor.insertSpaces": false,
+  "github.copilot.enable": {
+    "*": false,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false
+  },
 }

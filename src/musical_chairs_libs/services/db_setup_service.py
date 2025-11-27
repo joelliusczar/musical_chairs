@@ -1,19 +1,32 @@
+import hashlib
+import re
 from typing import Any
-from .env_manager import EnvManager
 from .template_service import TemplateService
 from sqlalchemy import create_engine, NullPool
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
-	is_name_safe,
-	DbUsers,
-	SqlScripts
+	ConfigAcessors,
+	is_name_safe
 )
-from musical_chairs_libs.tables import metadata
+from musical_chairs_libs import SqlScripts
+from musical_chairs_libs.dtos_and_utilities.constants import DbUsers
+from musical_chairs_libs.tables import metadata, get_ddl_scripts
 #https://github.com/PyMySQL/PyMySQL/issues/590
 from pymysql.constants import CLIENT
+from pathlib import Path
+from contextlib import redirect_stderr
 
 def is_db_name_safe(dbName: str) -> bool:
 	return is_name_safe(dbName, maxLen=100)
+
+def get_schema_hash() -> str:
+	with DbRootConnectionService() as rootConnService:
+		content = get_ddl_scripts(rootConnService.conn)
+		for scriptEnum in sorted(SqlScripts, key=lambda e: e.value[0]):
+			content += (scriptEnum.value[1] + "\n")
+
+		hashStr = hashlib.sha256(content.encode("utf-8")).hexdigest()
+		return hashStr
 
 """
 This class will mostly exist for the sake of unit tests
@@ -24,9 +37,9 @@ class DbRootConnectionService:
 		self.conn = self.conn = self.get_root_connection()
 
 	def get_root_connection(self) -> Connection:
-		dbPass = EnvManager.db_setup_pass()
+		dbPass = ConfigAcessors.db_setup_pass()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Root: The system is not configured correctly for that.")
 		engineAsRoot = create_engine(
 			f"mysql+pymysql://root:{dbPass}@localhost",
 			#not fully sure why this was needed, but mariadb/sqlalchemy/somebody
@@ -44,7 +57,12 @@ class DbRootConnectionService:
 	def create_db(self, dbName: str):
 		if not is_db_name_safe(dbName):
 			raise RuntimeError("Invalid name was used")
-		self.conn.exec_driver_sql(f"CREATE DATABASE IF NOT EXISTS {dbName}")
+		#once the server is using a new db version, 
+		#we will want to update the COLLATE value
+		self.conn.exec_driver_sql(
+			f"CREATE DATABASE IF NOT EXISTS {dbName} "\
+			"COLLATE = utf8mb4_general_ci" 
+		)
 
 	def create_db_user(self, username: str, host: str, userPass: str):
 		if not is_name_safe(username):
@@ -58,27 +76,27 @@ class DbRootConnectionService:
 		)
 
 	def create_app_users(self):
-		dbPass = EnvManager.db_pass_api()
+		dbPass = ConfigAcessors.db_pass_api()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("API: The system is not configured correctly for that.")
 		self.create_db_user(
 			DbUsers.API_USER.value,
 			"localhost",
 			dbPass
 		)
 
-		dbPass = EnvManager.db_pass_radio()
+		dbPass = ConfigAcessors.db_pass_radio()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Radio:The system is not configured correctly for that.")
 		self.create_db_user(
 			DbUsers.RADIO_USER.value,
 			"localhost",
 			dbPass
 		)
 
-		dbPass = EnvManager.db_pass_janitor()
+		dbPass = ConfigAcessors.db_pass_janitor()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Janitor: The system is not configured correctly for that.")
 		self.create_db_user(
 			DbUsers.JANITOR_USER.value,
 			"localhost",
@@ -86,9 +104,9 @@ class DbRootConnectionService:
 		)
 
 	def create_owner(self):
-		dbPass = EnvManager.db_pass_owner()
+		dbPass = ConfigAcessors.db_pass_owner()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("OWNER: The system is not configured correctly for that.")
 		self.create_db_user(
 			DbUsers.OWNER_USER.value,
 			"localhost",
@@ -110,20 +128,22 @@ class DbRootConnectionService:
 		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
 	#this method can only be used on test databases
-	def drop_database(self, dbName: str):
-		if not dbName.startswith("test_"):
+	def drop_database(self, dbName: str, force: bool=False):
+		if not dbName.startswith("test_") and not force:
 			raise RuntimeError("only test databases can be removed")
 		if not is_db_name_safe(dbName):
 			raise RuntimeError("Invalid name was used:")
+		# self.revoke_all_roles(dbName, force)
 		self.conn.exec_driver_sql(f"DROP DATABASE IF EXISTS {dbName}")
 
-	def revoke_all_roles(self):
+	def revoke_all_roles(self, dbName: str, force: bool=False):
+		if not dbName.startswith("test_") and not force:
+			raise RuntimeError("only test databases can be removed")
+		if not is_db_name_safe(dbName):
+			raise RuntimeError("Invalid name was used:")
 		self.conn.exec_driver_sql(
-			f"REVOKE ALL PRIVILEGES, GRANT OPTION "
-			f"FROM {DbUsers.API_USER.format_user()}, "
-			f"{DbUsers.RADIO_USER.format_user()}, "
-			f"{DbUsers.JANITOR_USER.format_user()}, "
-			f"{DbUsers.OWNER_USER.format_user()}"
+			f"REVOKE IF EXISTS ALL PRIVILEGES ON `{dbName}`.* "
+			f"FROM {DbUsers.API_USER.format_user()}"
 		)
 
 	def drop_user(self, user: DbUsers):
@@ -141,9 +161,9 @@ class DbOwnerConnectionService:
 		self.conn = self.get_owner_connection()
 
 	def get_owner_connection(self) -> Connection:
-		dbPass = EnvManager.db_pass_owner()
+		dbPass = ConfigAcessors.db_pass_owner()
 		if not dbPass:
-			raise RuntimeError("The system is not configured correctly for that.")
+			raise RuntimeError("Owner: The system is not configured correctly for that.")
 		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
 		owner = DbUsers.OWNER_USER.value
@@ -163,16 +183,7 @@ class DbOwnerConnectionService:
 	def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
 		self.conn.close()
 
-	def grant_api_roles(self):
-		template = TemplateService.load_sql_script_content(SqlScripts.GRANT_API)
-		if not is_db_name_safe(self.dbName):
-			raise RuntimeError("Invalid name was used")
-		script = template.replace("<dbName>", self.dbName)\
-			.replace("<apiUser>", DbUsers.API_USER("localhost"))
-		self.conn.exec_driver_sql(script)
-		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
-
-	def grant_radio_roles(self):
+	def grant_radio_rolesx(self):
 		template = TemplateService.load_sql_script_content(SqlScripts.GRANT_RADIO)
 		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
@@ -181,72 +192,45 @@ class DbOwnerConnectionService:
 		self.conn.exec_driver_sql(script)
 		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
-	def grant_janitor_roles(self):
-		template = TemplateService.load_sql_script_content(
-			SqlScripts.GRANT_JANITOR
-		)
-		if not is_db_name_safe(self.dbName):
-			raise RuntimeError("Invalid name was used")
-		script = template.replace("<dbName>", self.dbName)\
-			.replace("<janitorUser>", DbUsers.JANITOR_USER("localhost"))
-		self.conn.exec_driver_sql(script)
+	def flush_privileges(self):
 		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
 	def create_tables(self):
 		metadata.create_all(self.conn.engine)
 
-	def add_path_permission_index(self):
-		template = TemplateService.load_sql_script_content(
-			SqlScripts.PATH_USER_INDEXES
-		)
+	def load_script_contents(self, scriptId: SqlScripts) -> str:
 		if not is_db_name_safe(self.dbName):
 			raise RuntimeError("Invalid name was used")
-		script = template.replace("<dbName>", self.dbName)
+		templateNoComments = re.sub(
+			r"^[ \t]*--.*\n",
+			"",
+			TemplateService.load_sql_script_content(
+				scriptId
+			),
+			flags=re.MULTILINE
+		)
+		return templateNoComments.replace("<dbName>", self.dbName)
+
+	def run_defined_api_user_script(self, scriptId: SqlScripts):
+		script = self.load_script_contents(scriptId)\
+			.replace("<apiUser>", DbUsers.API_USER("localhost"))
 		self.conn.exec_driver_sql(script)
 
-	def add_next_directory_level_func(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.NEXT_DIRECTORY_LEVEL
-		).replace("<apiUser>", DbUsers.API_USER("localhost"))
+	def run_defined_radio_user_script(self, scriptId: SqlScripts):
+		script = self.load_script_contents(scriptId)\
+			.replace("<radioUser>", DbUsers.RADIO_USER("localhost"))
 		self.conn.exec_driver_sql(script)
 
-	def add_normalize_opening_slash(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.NORMALIZE_OPENING_SLASH
-		).replace("<apiUser>", DbUsers.API_USER("localhost"))
+	def run_defined_janitor_user_script(self, scriptId: SqlScripts):
+		script = self.load_script_contents(scriptId)\
+			.replace("<janitorUser>", DbUsers.JANITOR_USER("localhost"))
 		self.conn.exec_driver_sql(script)
 
-	def drop_requestedtimestamp_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.DROP_REQUESTED_TIMESTAMP
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
+	def run_defined_script(self, scriptId: SqlScripts):
+		script = self.load_script_contents(scriptId)\
+			.replace("|","")\
+			.replace("DELIMITER","")
 
-		self.conn.exec_driver_sql(script)
-
-	def add_internalpath_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.ADD_INTERNAL_PATH
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
-		self.conn.exec_driver_sql(script)
-
-	def drop_placeholderdir_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.DROP_PLACEHOLDERDIR
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
-		self.conn.exec_driver_sql(script)
-
-	def add_file_hash_column(self):
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.ADD_SONG_FILE_HASH
-		).replace("<dbName>", self.dbName)\
-		.replace("|","")\
-		.replace("DELIMITER","")
 		self.conn.exec_driver_sql(script)
 
 def setup_database(dbName: str):
@@ -258,13 +242,42 @@ def setup_database(dbName: str):
 
 	with DbOwnerConnectionService(dbName, echo=False) as ownerConnService:
 		ownerConnService.create_tables()
-		ownerConnService.add_path_permission_index()
-		ownerConnService.grant_api_roles()
-		ownerConnService.grant_radio_roles()
-		ownerConnService.grant_janitor_roles()
-		ownerConnService.add_next_directory_level_func()
-		ownerConnService.add_normalize_opening_slash()
-		ownerConnService.drop_requestedtimestamp_column()
-		ownerConnService.add_internalpath_column()
-		ownerConnService.drop_placeholderdir_column()
-		ownerConnService.add_file_hash_column()
+		ownerConnService.run_defined_script(SqlScripts.PATH_USER_INDEXES)
+		ownerConnService.run_defined_api_user_script(SqlScripts.GRANT_API)
+		ownerConnService.run_defined_radio_user_script(SqlScripts.GRANT_RADIO)
+		ownerConnService.run_defined_janitor_user_script(SqlScripts.GRANT_JANITOR)
+		ownerConnService.flush_privileges()
+
+		ownerConnService.run_defined_api_user_script(
+			SqlScripts.NEXT_DIRECTORY_LEVEL
+		)
+		ownerConnService.run_defined_api_user_script(
+			SqlScripts.NORMALIZE_OPENING_SLASH
+		)
+		
+		ownerConnService.run_defined_script(SqlScripts.DROP_REQUESTED_TIMESTAMP)
+		ownerConnService.run_defined_script(SqlScripts.ADD_INTERNAL_PATH)
+		ownerConnService.run_defined_script(SqlScripts.DROP_PLACEHOLDERDIR)
+		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_FILE_HASH)
+		ownerConnService.run_defined_script(SqlScripts.ADD_IP4ADDRESS)
+		ownerConnService.run_defined_script(SqlScripts.ADD_IP6ADDRESS)
+		ownerConnService.run_defined_script(SqlScripts.ADD_USERAGENT_FK)
+		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDTIMESTAMP)
+		ownerConnService.run_defined_script(SqlScripts.ADD_ALBUM_VERSION)
+		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_TYPE)
+		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDBYUSERID)
+		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_TRACKNUM)
+		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLIST_VIEWSECURITY)
+		#ADD_SONGSPLAYLISTS_ORDER used to be No.20, got moved to .23
+		#ownerConnService.run_defined_script(SqlScripts.ADD_SONGSPLAYLISTS_ORDER)
+		try:
+			#there doesn't seem to be a good if table exists, rename
+			#syntax, so we're just going to smother the error
+			with redirect_stderr(None):
+				ownerConnService.run_defined_script(SqlScripts.RENAME_PLAYLIST_SONG_TABLE)
+		except:
+			pass
+		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_BITRATE)
+		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLISTSSONGS_ORDER)
+
+		Path(f"/tmp/{get_schema_hash()}").touch()

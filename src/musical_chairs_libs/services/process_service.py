@@ -4,11 +4,12 @@ import subprocess
 import random
 from enum import Enum
 from itertools import dropwhile, islice
+from pathlib import Path
 from typing import Optional
 from musical_chairs_libs.dtos_and_utilities import (
+	ConfigAcessors,
 	get_non_simple_chars
 )
-from .env_manager import EnvManager
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 
 
@@ -24,17 +25,18 @@ def __start_ices__(
 ) -> subprocess.Popen[bytes]:
 	if not os.path.isfile(stationConf):
 		raise LookupError(f"Station conf not found at: {stationConf}")
+	pythonLocation = str(Path(ConfigAcessors.python_executable()).parent)
+	path = os.environ["PATH"]
 	return subprocess.Popen(
-		["mc-ices", "-c", f"{stationConf}"],
+		[ConfigAcessors.ices_executable(), "-c", f"{stationConf}"],
 		env={
-				"MC_STATION_PORT": portNumber,
-			 "PATH": os.environ["PATH"],
-			 "LANG": os.environ["LANG"],
-			 "MC_CONTENT_HOME": EnvManager.relative_content_home(),
-			 "MC_APP_ROOT": EnvManager.app_root(),
-			 "MC_DB_PASS_RADIO": EnvManager.db_pass_radio(),
-			 "MC_RADIO_LOG_DIR_CL": EnvManager.radio_logs_dir(),
-			 "MC_DATABASE_NAME": EnvManager.db_name()
+				"DSF_STATION_PORT": portNumber,
+				"PATH": f"{pythonLocation}::{path}",
+				"LANG": os.environ["LANG"],
+				"DSF_CONTENT_HOME": ConfigAcessors.absolute_content_home(),
+				"DSF_APP_ROOT": ConfigAcessors.app_root(),
+				"DSF_DB_PASS_RADIO": ConfigAcessors.db_pass_radio(),
+				"DSF_DATABASE_NAME": ConfigAcessors.db_name()
 			}
 	)
 
@@ -63,8 +65,8 @@ class ProcessService:
 			logging.radioLogger.info(f"Sending signal to end process {procId}")
 			os.kill(procId, 15)
 		except Exception as ex:
-			logging.radioLogger.warn("Encountered issue when killing process")
-			logging.radioLogger.warn(ex)
+			logging.radioLogger.warning("Encountered issue when killing process")
+			logging.radioLogger.warning(ex)
 
 	@staticmethod
 	def start_station_mc_ices(
@@ -76,7 +78,8 @@ class ProcessService:
 		m = get_non_simple_chars(filename_base)
 		if m:
 			raise RuntimeError("Invalid station name was used")
-		stationConf = f"{EnvManager.station_config_dir()}/ices.{filename_base}.conf"
+		ices_file_name = f"ices.{filename_base}.conf"
+		stationConf = f"{ConfigAcessors.station_config_dir()}/{ices_file_name}"
 		if ProcessService.noop_mode():
 			print(
 				"Noop mode. Won't search for station config"
@@ -88,14 +91,15 @@ class ProcessService:
 	@staticmethod
 	def start_song_queue_process(dbName: str, stationName: str, ownerName: str):
 		stationProc = subprocess.Popen([
-				"python",
+				ConfigAcessors.python_executable(),
 				"-m",
 				"musical_chairs_libs.stream",
 				dbName,
 				stationName,
 				ownerName
 			],
-			stdout=subprocess.DEVNULL,
+			#need to close the io so that the parent process can let go, irc
+			stdout=subprocess.DEVNULL, 
 			stderr=subprocess.DEVNULL,
 			stdin=subprocess.DEVNULL
 		)
@@ -156,6 +160,6 @@ class ProcessService:
 		elif platform.system() == "Darwin":
 			#we don't have icecast on the mac anyway so we'll just return the
 			#source code location
-			return f"{EnvManager.templates_dir()}/icecast.xml"
+			return f"{ConfigAcessors.templates_dir()}/icecast.xml"
 		err = "icecast logic has not been configured for this os"
 		raise NotImplementedError(err)

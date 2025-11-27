@@ -2,13 +2,13 @@ import React from "react";
 
 
 type ErrorBoundaryProps = {
-	setErrorInfo: (info: any) => any,
+	setErrorInfo: (info: unknown) => unknown,
 	children: React.ReactNode
 };
 
 type ErrorBoundaryState = {
-	error: any,
-	errorInfo: any
+	error: unknown,
+	errorInfo: unknown
 };
 
 export default class ErrorBoundary extends React.Component<
@@ -19,7 +19,7 @@ export default class ErrorBoundary extends React.Component<
 		this.state = { error: null, errorInfo: null};
 	}
 
-	componentDidCatch(error: any, errorInfo: any) {
+	componentDidCatch(error: unknown, errorInfo: unknown) {
 		this.setState({
 			error,
 			errorInfo,

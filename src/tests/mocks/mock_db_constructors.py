@@ -9,13 +9,17 @@ from .db_population import (
 	populate_songs,
 	populate_songs_artists,
 	populate_stations_songs,
+	populate_station_albums,
 	populate_stations,
 	populate_users,
 	populate_user_roles,
 	populate_station_permissions,
 	populate_path_permissions,
 	populate_user_actions_history,
-	populate_station_queue
+	populate_station_queue,
+	populate_playlists,
+	populate_playlists_songs,
+	populate_playlist_permissions
 )
 
 class ConnectionConstructor(Protocol):
@@ -49,9 +53,13 @@ def setup_in_mem_tbls(
 	populate_songs_artists(conn)
 	populate_stations(conn)
 	populate_stations_songs(conn)
+	populate_station_albums(conn)
 	populate_user_roles(conn, orderedTestDates, primaryUser)
 	populate_station_permissions(conn, orderedTestDates)
 	populate_path_permissions(conn, orderedTestDates)
 	populate_user_actions_history(conn, orderedTestDates)
 	populate_station_queue(conn)
+	populate_playlists(conn)
+	populate_playlists_songs(conn)
+	populate_playlist_permissions(conn, orderedTestDates)
 	conn.commit()

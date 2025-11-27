@@ -2,62 +2,75 @@ Interfaces to queue song paths for Moonbase59's implementation of ices0
 
 # First time setup
 
-cd into project directory and run script `install_setup.sh`
+cd into `dev_ops` and run script `ruby_dependency_install.sh.sh`
+
+Next run,
+
+`bundle update`
+
+`bundle exec ruby './binstall.rb'`
+
 
 # Set up API for testing
 
-Open terminal in root of project
-
-source mc_dev_ops
-```
-. ./mc_dev_ops.sh
-```
 
 Need to run this so that https will work
 ```
-setup_ssl_cert_local_debug
+mcr_dev setup_debug_certs
 ```
 
+or if you're in the `dev_ops` dir, run `./mcr_dev_dev setup_debug_certs`
+
 ```
-# call func to setup unit test environment
-# required for vs code test runner
-setup_unit_test_env
+To prime the automated tests 
+
+./mcr_dev_dev setup_tests
+
 ```
 
-It is also required to run that if we need to update the .env_api template file.
-If we update .env_api, we also need to update the setup_env_api_file and
-startup_api functions in mc_dev_ops.sh
 
 # Ways to run api
 
-After having sourced mc_dev_ops, run
+After having installed the mcr procs file, you can run the server through
+nginx
 ```
-sync_utility_scripts
-```
-to copy mc_dev_ops to a more central location. Alternatively, you can just cd
-to your home directory to run the setup functions.
+mcr_dev startup_api
 
-Next run the start up full web function
-```
-startup_full_web
-```
+mcr_dev setup_client
 
+#or from inside dev_ops
+# ./mcr_dev_dev startup_api
+```
 
 
-## end nginx process
-If we need to test stuff locally some more but there is an instance running on
-nginx, we can try to kill it by calling `kill_process_using_port 8032`
 
 ## VSCode debug
 Use debug launch profile "Python: API"
+
+### For client code
+
+#### First time
+`npm i`
+
+#### Starting front end
+
+`npm start`
 
 # Deploying to server
 
 ## Fresh Server
 ```
-./deploy.sh setuplvl=install
+mcr_dev deploy_install
+
+
+mcr_dev deploy_api
 ```
 
 ## Testing new changes
-If need to test a new feature, we just run deploy_to_server while that branch
-is checked out in git
+If need to test a new feature, we just run`mcr_dev startup_api` while that branch
+is checked out in git.
+Run `mcr_dev deploy_client` to setup the client.
+
+## Update database
+First, run `mcr_dev regen_files` to update the file reference,
+then run `mcr_dev setup_db`

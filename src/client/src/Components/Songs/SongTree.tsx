@@ -687,3 +687,5 @@ export const SongTree = withCacheProvider<
 			</>
 		);
 	});
+
+export default SongTree;

@@ -1,0 +1,29 @@
+---
+keys:
+  auth_secret_key: <>
+  aws_access_key_id: <>
+  aws_endpoint_url: https://<>
+  aws_secret_access_key: <>
+  back_key: <>
+  db_pass_api: <>
+  db_pass_janitor: <>
+  db_pass_owner: <>
+  db_pass_radio: <>
+  db_pass_setup: <>
+  pb_secret: <>
+  pb_api_key: <>
+  namespace_uuid: <8>-<4>-<4>-<4>-<12>
+  s3_bucket_name: <>
+  s3_region_name: <>
+domain:
+  app_root: /<>/
+  cron_group: <>
+  group: <>
+  user: <>
+  server_user: <>
+  port: <>
+  exports_dir: /<>/
+  envs:
+    refresh_certs_key: <>
+    jobs_key: <>
+    web_app_key: <>

@@ -4,7 +4,8 @@ from typing import (
 	Optional,
 	Iterator,
 	Union,
-	Collection
+	Collection,
+	cast
 )
 from pydantic import (
 	field_validator,
@@ -27,47 +28,32 @@ from .action_rule_dtos import (
 	ActionRule,
 	PathsActionRule,
 	StationActionRule,
+	PlaylistActionRule
 )
 from .absorbent_trie import ChainedAbsorbentTrie
 
+#STATION_CREATE, STATION_FLIP, STATION_REQUEST, STATION_SKIP
+	# left out of here on purpose
+	# for STATION_FLIP, STATION_REQUEST, STATION_SKIP, we should have
+	#explicit rules with defined limts
+station_owner_rules = [
+	UserRoleDef.STATION_ASSIGN,
+	UserRoleDef.STATION_DELETE,
+	UserRoleDef.STATION_EDIT,
+	UserRoleDef.STATION_VIEW,
+	UserRoleDef.STATION_USER_ASSIGN,
+	UserRoleDef.STATION_USER_LIST
+]
 
 def get_station_owner_rules(
 	scopes: Optional[Collection[str]]=None
 ) -> Iterator[ActionRule]:
-	#STATION_CREATE, STATION_FLIP, STATION_REQUEST, STATION_SKIP
-	# left out of here on purpose
-	# for STATION_FLIP, STATION_REQUEST, STATION_SKIP, we should have
-	#explicit rules with defined limts
-	if not scopes or UserRoleDef.STATION_ASSIGN.value in scopes:
-		yield StationActionRule(
-			name=UserRoleDef.STATION_ASSIGN.value,
-			priority=RulePriorityLevel.OWNER.value,
-		)
-	if not scopes or UserRoleDef.STATION_DELETE.value in scopes:
-		yield StationActionRule(
-			name=UserRoleDef.STATION_DELETE.value,
-			priority=RulePriorityLevel.OWNER.value,
-		)
-	if not scopes or UserRoleDef.STATION_EDIT.value in scopes:
-		yield StationActionRule(
-			name=UserRoleDef.STATION_EDIT.value,
-			priority=RulePriorityLevel.OWNER.value,
-		)
-	if not scopes or UserRoleDef.STATION_VIEW.value in scopes:
-		yield StationActionRule(
-			name=UserRoleDef.STATION_VIEW.value,
-			priority=RulePriorityLevel.OWNER.value,
-		)
-	if not scopes or UserRoleDef.STATION_USER_ASSIGN.value in scopes:
-		yield StationActionRule(
-			name=UserRoleDef.STATION_USER_ASSIGN.value,
-			priority=RulePriorityLevel.OWNER.value,
-		)
-	if not scopes or UserRoleDef.STATION_USER_LIST.value in scopes:
-		yield StationActionRule(
-			name=UserRoleDef.STATION_USER_LIST.value,
-			priority=RulePriorityLevel.OWNER.value,
-		)
+	for rule in station_owner_rules:
+		if not scopes or rule.value in scopes:
+			yield StationActionRule(
+				name=rule.value,
+				priority=RulePriorityLevel.OWNER.value,
+			)
 
 path_owner_rules = [
 	UserRoleDef.PATH_DELETE,
@@ -94,7 +80,25 @@ def get_path_owner_roles(
 						path=ownerDir,
 					)
 
+#create left out on purpose
+playlist_owner_rules = [
+	UserRoleDef.PLAYLIST_VIEW,
+	UserRoleDef.PLAYLIST_EDIT,
+	UserRoleDef.PLAYLIST_DELETE,
+	UserRoleDef.PLAYLIST_ASSIGN,
+	UserRoleDef.PLAYLIST_USER_ASSIGN,
+	UserRoleDef.PLAYLIST_USER_LIST,
+]
 
+def get_playlist_owner_roles(
+scopes: Optional[Collection[str]]=None
+) -> Iterator[PlaylistActionRule]:
+	for rule in playlist_owner_rules:
+		if not scopes or rule.value in scopes:
+			yield PlaylistActionRule(
+				name=rule.value,
+				priority=RulePriorityLevel.OWNER.value,
+			)
 
 class AccountInfoBase(FrozenBaseClass):
 	username: str
@@ -102,7 +106,9 @@ class AccountInfoBase(FrozenBaseClass):
 	displayname: Optional[str]=""
 
 class AccountInfoSecurity(AccountInfoBase):
-	roles: List[Union[ActionRule, PathsActionRule]]=Field(default_factory=list)
+	roles: List[Union[ActionRule, PathsActionRule]]=cast(
+		List[Union[ActionRule, PathsActionRule]],Field(default_factory=list)
+	)
 	dirroot: Optional[str]=None
 
 	@property
@@ -173,6 +179,7 @@ class AuthenticatedAccount(AccountInfoSecurity):
 	'''
 	This AccountInfo is only returned after successful authentication.
 	'''
+	id: int
 	access_token: str=""
 	token_type: str=""
 	lifetime: float=0

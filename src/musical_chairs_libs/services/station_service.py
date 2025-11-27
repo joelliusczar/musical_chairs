@@ -1,5 +1,4 @@
 #pyright: reportMissingTypeStubs=false
-import musical_chairs_libs.dtos_and_utilities.logging as logging
 from typing import (
 	Any,
 	Iterator,
@@ -8,7 +7,8 @@ from typing import (
 	Iterable,
 	Union,
 	Collection,
-	Tuple
+	Tuple,
+	overload
 )
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import RowMapping
@@ -32,44 +32,37 @@ from sqlalchemy import (
 )
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
-	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel,
-	songs, sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath,
-	albums, ab_name, ab_pk,
-	artists, ar_name, ar_pk,
-	song_artist, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
+	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel, st_typeid, 
+	st_bitrate,
+	songs, sg_pk,
+	sg_deletedTimstamp,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
-	stsg_lastmodifiedtimestamp,
-	station_user_permissions as station_user_permissions_tbl, stup_userFk,
-	stup_stationFk, stup_role,
-	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
-	u_disabled
+	station_user_permissions as station_user_permissions_tbl,
+	stup_stationFk,
+	users as user_tbl, u_username, u_pk, u_displayName, 
+	station_queue, q_stationFk,
+	last_played, lp_stationFk
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
-	SongListDisplayItem,
 	StationCreationInfo,
 	SavedNameString,
 	get_datetime,
 	AccountInfo,
 	ActionRule,
-	StationActionRule,
 	UserRoleDef,
 	AlreadyUsedError,
 	UserRoleDomain,
 	get_station_owner_rules,
 	RulePriorityLevel,
 	OwnerInfo,
-	MinItemSecurityLevel,
-	build_rules_query,
-	row_to_action_rule,
-	generate_user_and_rules_from_rows,
-	normalize_opening_slash,
-	clean_search_term_for_like
+	build_station_rules_query,
+	row_to_action_rule
 )
+from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
-from .song_info_service import SongInfoService
-from .process_service import ProcessService
+
 
 
 class StationService:
@@ -78,20 +71,16 @@ class StationService:
 		self,
 		conn: Optional[Connection]=None,
 		templateService: Optional[TemplateService]=None,
-		songInfoService: Optional[SongInfoService]=None,
 		pathRuleService: Optional[PathRuleService]=None
 	):
 		if not conn:
 			raise RuntimeError("No connection provided")
 		if not templateService:
 			templateService = TemplateService()
-		if not songInfoService:
-			songInfoService = SongInfoService(conn)
 		if not pathRuleService:
 			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.template_service = templateService
-		self.song_info_service = songInfoService
 		self.path_rule_service = pathRuleService
 		self.get_datetime = get_datetime
 
@@ -123,7 +112,7 @@ class StationService:
 				Integer,
 				String,
 				Union[String, None],
-				int,
+				Integer,
 				Integer
 			]
 		],
@@ -138,11 +127,11 @@ class StationService:
 				Integer,
 				String,
 				Union[String, None],
-				int,
+				Integer,
 				Integer
 			]
 		]:
-		rulesQuery = build_rules_query(UserRoleDomain.Station, userId)
+		rulesQuery = build_station_rules_query(userId)
 		rulesSubquery = rulesQuery.cte(name="rulesQuery")
 		canViewQuery= select(
 			rulesSubquery.c.rule_stationfk, #pyright: ignore [reportUnknownMemberType]
@@ -174,7 +163,7 @@ class StationService:
 			or_(
 				coalesce(
 					st_viewSecurityLevel,
-					MinItemSecurityLevel.INVITED_USER.value
+					RulePriorityLevel.INVITED_USER.value
 				) < select(coalesce[int](
 							func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
 							RulePriorityLevel.NONE.value
@@ -186,18 +175,18 @@ class StationService:
 						),
 					coalesce(
 						st_viewSecurityLevel,
-						MinItemSecurityLevel.RULED_USER.value
+						RulePriorityLevel.RULED_USER.value
 					) < select(topSiteRule.c.max).scalar_subquery() #pyright: ignore [reportUnknownMemberType]
 				),
 				coalesce(
 					st_viewSecurityLevel,
-					MinItemSecurityLevel.ANY_USER.value
+					RulePriorityLevel.ANY_USER.value
 				) < RulePriorityLevel.USER.value,
 				and_(
 					st_ownerFk == userId,
 					coalesce(
 						st_viewSecurityLevel,
-						MinItemSecurityLevel.OWENER_USER.value
+						RulePriorityLevel.OWENER_USER.value
 					) < RulePriorityLevel.OWNER.value
 				)
 			),
@@ -230,7 +219,9 @@ class StationService:
 			),
 			requestsecuritylevel=row["requestsecuritylevel"],
 			viewsecuritylevel=row[st_viewSecurityLevel] \
-				or MinItemSecurityLevel.PUBLIC.value,
+				or RulePriorityLevel.PUBLIC.value,
+			typeid=row[st_typeid] or StationTypes.SONGS_ONLY.value,
+			bitratekps=row[st_bitrate]
 		)
 
 	def __generate_station_and_rules_from_rows__(
@@ -275,15 +266,17 @@ class StationService:
 			st_ownerFk,
 			u_username,
 			u_displayName,
-			coalesce[int](
+			coalesce[Integer](
 				st_requestSecurityLevel,
 				case(
-					(st_viewSecurityLevel == MinItemSecurityLevel.PUBLIC.value, None),
+					(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
 					else_=st_viewSecurityLevel
 				),
-				MinItemSecurityLevel.ANY_USER.value
+				RulePriorityLevel.ANY_USER.value
 			).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
-			st_viewSecurityLevel
+			st_viewSecurityLevel,
+			st_typeid,
+			st_bitrate,
 		).select_from(stations_tbl)\
 		.join(user_tbl, st_ownerFk == u_pk, isouter=True)
 
@@ -320,105 +313,6 @@ class StationService:
 			for row in records:
 				yield self.__row_to_station__(row)
 
-	def __attach_catalogue_joins__(
-		self,
-		stationId: int,
-		song: str = "",
-		album: str = "",
-		artist: str = "",
-	) -> Any:
-
-		lsong = clean_search_term_for_like(song)
-		lalbum = clean_search_term_for_like(album)
-		lartist = clean_search_term_for_like(artist)
-		query = select(
-			sg_pk,
-			sg_path,
-			sg_internalpath,
-			coalesce[str](sg_name, "").label("name"),
-			ab_name.label("album"),
-			ar_name.label("artist"),
-			func.row_number().over( #pyright: ignore [reportUnknownMemberType]
-				partition_by=sg_pk,
-				order_by=[sgar_isPrimaryArtist.desc(), ar_name]
-			).label("rownum")
-		)\
-			.select_from(stations_tbl) \
-			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
-			.join(songs, sg_pk == stsg_songFk) \
-			.join(albums, sg_albumFk == ab_pk, isouter=True) \
-			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
-			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
-			.where(st_pk == stationId)\
-
-
-		if lsong:
-			query = query.where(sg_name.like(f"%{lsong}%"))
-
-		if lalbum:
-			query = query.where(ab_name.like(f"%{lalbum}%"))
-
-		if lartist:
-			query = query.where(ar_name.like(f"%{lartist}%"))
-
-		return query.order_by(stsg_lastmodifiedtimestamp.desc())
-
-	def get_station_song_catalogue(
-		self,
-		stationId: int,
-		page: int = 0,
-		song: str = "",
-		album: str = "",
-		artist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
-	) -> Tuple[list[SongListDisplayItem], int]:
-		offset = page * limit if limit else 0
-		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
-
-		query = self.__attach_catalogue_joins__(
-			stationId,
-			song,
-			album,
-			artist
-		)
-		subquery = query.subquery()
-		query = select(*subquery.c)\
-			.where(subquery.c.rownum < 2)\
-			.offset(offset)\
-			.limit(limit)
-		records = self.conn.execute(query).mappings()
-		result: list[SongListDisplayItem] = []
-		for row in records:
-			rules = []
-			if pathRuleTree:
-				rules = list(pathRuleTree.valuesFlat(
-					normalize_opening_slash(cast(str, row["path"])))
-				)
-			result.append(SongListDisplayItem(
-				id=cast(int, row["pk"]),
-				path=cast(str, row["path"]),
-				internalpath=cast(str, row["internalpath"]),
-				name=cast(str, row["name"]),
-				album=cast(str, row["album"]),
-				artist=cast(str, row["artist"]),
-				queuedtimestamp=0,
-				rules=rules
-			))
-		countQuery = select(func.count(1))\
-			.select_from(subquery)\
-			.where(subquery.c.rownum < 2)
-		count = self.conn.execute(countQuery).scalar() or 0
-		return result, count
-
-	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:
-		query = select(func.count(1)).select_from(stations_songs_tbl)\
-			.where(stsg_songFk == songId)\
-			.where(stsg_stationFk == stationId)
-		countRes = self.conn.execute(query).scalar()
-		return True if countRes and countRes > 0 else False
 
 	def __is_stationName_used__(
 		self,
@@ -433,6 +327,7 @@ class StationService:
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
+
 	def is_stationName_used(
 		self,
 		id: Optional[int],
@@ -444,37 +339,65 @@ class StationService:
 			return True
 		return self.__is_stationName_used__(id, cleanedStationName, userId)
 
-	def __create_initial_owner_rules__(self, stationId: int, userId: int):
-		rules = [{
-				"userfk": userId,
-				"stationfk": stationId,
-				"role": UserRoleDef.STATION_FLIP.value,
-				"span":3600,
-				"count":3,
-				"priority": None,
-				"creationtimestamp": self.get_datetime().timestamp()
-			},
+
+	def __create_initial_owner_rules__(
+		self,
+		stationId: int,
+		userId: int
+	) -> list[ActionRule]:
+		rules = [
+			ActionRule(
+				domain=UserRoleDomain.Station.value,
+				name=UserRoleDef.STATION_FLIP.value,
+				span=3600,
+				count=3,
+				priority=None
+			),
+			ActionRule(
+				domain=UserRoleDomain.Station.value,
+				name=UserRoleDef.STATION_REQUEST.value,
+				span=300,
+				count=1,
+				priority=None
+			),
+			ActionRule(
+				domain=UserRoleDomain.Station.value,
+				name=UserRoleDef.STATION_SKIP.value,
+				span=900,
+				count=1,
+				priority=None
+			)
+		]
+		params: list[dict[str, Any]] = [
 			{
+				**rule.model_dump(exclude={"name", "domain"}),
+				"role": rule.name,
 				"userfk": userId,
 				"stationfk": stationId,
-				"role": UserRoleDef.STATION_REQUEST.value,
-				"span":300,
-				"count":1,
-				"priority": None,
 				"creationtimestamp": self.get_datetime().timestamp()
-			},
-			{
-				"userfk": userId,
-				"stationfk": stationId,
-				"role": UserRoleDef.STATION_SKIP.value,
-				"span":900,
-				"count":1,
-				"priority": None,
-				"creationtimestamp": self.get_datetime().timestamp()
-			}
+			} for rule in rules
 		]
 		stmt = insert(station_user_permissions_tbl)
-		self.conn.execute(stmt, rules) #pyright: ignore [reportUnknownMemberType]
+		self.conn.execute(stmt, params) #pyright: ignore [reportUnknownMemberType]
+		return rules
+
+	@overload
+	def save_station(
+		self,
+		station: StationCreationInfo,
+		user: AccountInfo,
+		stationId: int,
+	) -> Optional[StationInfo]:
+		...
+
+	@overload
+	def save_station(
+		self,
+		station: StationCreationInfo,
+		user: AccountInfo,
+	) -> StationInfo:
+		...
+
 
 	def save_station(
 		self,
@@ -493,7 +416,9 @@ class StationService:
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp(),
 			viewsecuritylevel = station.viewsecuritylevel,
-			requestsecuritylevel = station.requestsecuritylevel
+			requestsecuritylevel = station.requestsecuritylevel,
+			typeid = station.typeid,
+			bitratekps = station.bitratekps
 		)
 		if stationId and isinstance(stmt, Update):
 			stmt = stmt.where(st_pk == stationId)
@@ -506,10 +431,15 @@ class StationService:
 				affectedId,
 				str(savedName),
 				str(savedDisplayName),
-				user.username
+				user.username,
+				station.bitratekps or 128
 			)
+			rules = []
 			if not stationId:
-				self.__create_initial_owner_rules__(affectedId, user.id)
+				rules = list({
+						*self.__create_initial_owner_rules__(affectedId, user.id),
+						*get_station_owner_rules()
+					})
 			self.conn.commit()
 		except IntegrityError:
 			raise AlreadyUsedError.build_error(
@@ -523,103 +453,20 @@ class StationService:
 			displayname=str(savedDisplayName),
 			owner=user,
 			viewsecuritylevel=station.viewsecuritylevel,
-			requestsecuritylevel=station.requestsecuritylevel
+			requestsecuritylevel=station.requestsecuritylevel,
+			bitratekps=station.bitratekps,
+			rules=rules
 		)
 
-	def get_station_users(
-		self,
-		station: StationInfo,
-		userId: Optional[int]=None
-	) -> Iterator[AccountInfo]:
-		rulesQuery = build_rules_query(UserRoleDomain.Station).cte()
-		query = select(
-			u_pk,
-			u_username,
-			u_displayName,
-			u_email,
-			u_dirRoot,
-			rulesQuery.c.rule_userfk,
-			rulesQuery.c.rule_name,
-			rulesQuery.c.rule_count,
-			rulesQuery.c.rule_span,
-			rulesQuery.c.rule_priority,
-			rulesQuery.c.rule_domain
-		).select_from(user_tbl).join(
-			rulesQuery,
-			or_(
-				and_(
-					(u_pk == station.owner.id) if station.owner else false(),
-					rulesQuery.c.rule_userfk == 0
-				),
-				and_(
-					rulesQuery.c.rule_userfk == u_pk,
-					rulesQuery.c.rule_stationfk == station.id
-				),
-			),
-			isouter=True
-		).where(or_(u_disabled.is_(None), u_disabled == False))\
-		.where(
-			or_(
-				coalesce(
-					rulesQuery.c.rule_priority,
-					RulePriorityLevel.SITE.value
-				) > MinItemSecurityLevel.INVITED_USER.value,
-				(u_pk == station.owner.id) if station.owner else false()
-			)
-		)
-		if userId is not None:
-			query = query.where(u_pk == userId)
-		query = query.order_by(u_username)
-		records = self.conn.execute(query).mappings()
-		yield from generate_user_and_rules_from_rows(
-			records,
-			UserRoleDomain.Station,
-			station.owner.id if station.owner else None
-		)
-
-	def add_user_rule_to_station(
-		self,
-		addedUserId: int,
-		stationId: int,
-		rule: ActionRule
-	) -> StationActionRule:
-		stmt = insert(station_user_permissions_tbl).values(
-			userfk = addedUserId,
-			stationfk = stationId,
-			role = rule.name,
-			span = rule.span,
-			count = rule.count,
-			priority = None,
-			creationtimestamp = self.get_datetime().timestamp()
-		)
-		self.conn.execute(stmt)
-		self.conn.commit()
-		return StationActionRule(
-			name=rule.name,
-			span=rule.span,
-			count=rule.count,
-			priority=RulePriorityLevel.STATION_PATH.value
-		)
-
-	def remove_user_rule_from_station(
-		self,
-		userId: int,
-		stationId: int,
-		ruleName: Optional[str]
-	):
-		delStmt = delete(station_user_permissions_tbl)\
-			.where(stup_userFk == userId)\
-			.where(stup_stationFk == stationId)
-		if ruleName:
-			delStmt = delStmt.where(stup_role == ruleName)
-		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]
 
 	def get_station_song_counts(
 		self,
 		stationIds: Union[int, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
 	) -> Iterator[Tuple[int, int]]:
-		query = select(stsg_stationFk, func.count(stsg_songFk))
+		query = select(stsg_stationFk, func.count(stsg_songFk))\
+			.join(songs, stsg_songFk == sg_pk)\
+			.where(sg_deletedTimstamp.is_(None))
 
 		if type(stationIds) == int:
 			query = query.where(stsg_stationFk == stationIds)
@@ -633,105 +480,54 @@ class StationService:
 		for row in records:
 			yield cast(int,row[0]), cast(int,row[1])
 
-	def set_station_proc(self, stationId: int) -> None:
-		pid = ProcessService.get_pid()
-		stmt = update(stations_tbl)\
-			.values(procid = pid) \
-				.where(st_pk == stationId)
-		self.conn.execute(stmt)
+
+	def delete_station(self, stationId: int, clearStation: bool=False) -> int:
+		if not stationId:
+			return 0
+		delCount = 0
+		if clearStation:
+			delCount = self.clear_station(stationId)
+		delStmt = delete(station_user_permissions_tbl)\
+			.where(stup_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		delStmt = delete(station_queue).where(q_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		delStmt = delete(last_played).where(lp_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
+		delStmt = delete(stations_tbl).where(st_pk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
 		self.conn.commit()
+		return delCount
 
-	def unset_station_procs(
-		self,
-		procIds: Optional[Iterable[int]]=None,
-		stationIds: Union[int,Iterable[int], None]=None,
-	) -> None:
-		stmt = update(stations_tbl)\
-			.values(procid = None)
 
-		if isinstance(procIds, Iterable):
-			stmt = stmt.where(st_procId.in_(procIds))
-		elif type(stationIds) == int:
-			stmt = stmt.where(st_pk == stationIds)
-		elif isinstance(stationIds, Iterable):
-			stmt = stmt.where(st_pk.in_(stationIds))
-		else:
-			raise ValueError("procIds, stationIds, or stationNames must be provided.")
-		self.conn.execute(stmt)
-
-	def __noop_startup__(self, stationName: str) -> None:
-		#for normal operations, this is handled in the ices process
-
-		pid = ProcessService.get_pid()
-		stmt = update(stations_tbl)\
-				.values(procid = pid) \
-				.where(func.lower(st_name) == func.lower(stationName))
-		self.conn.execute(stmt)
-
-	def enable_stations(self,
-		stations: Collection[StationInfo],
-		owner: AccountInfo,
-		includeAll: bool = False
-	) -> Iterator[StationInfo]:
-		stationsEnabled: Iterator[StationInfo] = iter([])
-		if includeAll:
-			canBeEnabled = {s[0] for s in  \
-				self.get_station_song_counts(ownerId=owner.id) \
-				if s[1] > 0
-			}
-			stationsEnabled = self.get_stations(
-				stationKeys=canBeEnabled,
-				ownerId=owner.id
-			)
-		else:
-			canBeEnabled = {s[0] for s in  \
-				self.get_station_song_counts(
-					stationIds=(s.id for s in stations)
-				) \
-				if s[1] > 0
-			}
-			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
-		try:
-			for station in stationsEnabled:
-				try:
-					if ProcessService.noop_mode():
-						self.__noop_startup__(station.name)
-					else:
-						if not self.conn.engine.url.database:
-							raise RuntimeError("db Name is missing")
-
-						ProcessService.start_song_queue_process(
-							self.conn.engine.url.database,
-							station.name,
-							owner.username
-						)
-					yield station
-				except RuntimeError:
-					self.unset_station_procs(stationIds=station.id)
-					raise
-		finally:
-			self.conn.commit()
-
-	def disable_stations(
-		self,
-		stationIds: Iterable[int],
-		ownerKey: Union[int, str, None]=None
-	) -> None:
-		logging.radioLogger.debug(f"disable {stationIds}")
-		query = select(st_procId).where(st_procId.is_not(None))
-		if ownerKey:
-			if type(ownerKey) == int:
-				query = query.where(st_ownerFk == ownerKey)
-			elif type(ownerKey) == str:
-				query = query.join(user_tbl, u_pk == st_ownerFk)\
-					.where(u_username == ownerKey)
-		else:
-			query = query.where(st_pk.in_(stationIds))
-
-		rows = self.conn.execute(query)
-		pids = [cast(int, row[0]) for row in rows]
-		for pid in pids:
-			logging.radioLogger.debug(f"send signal to {pid}")
-			ProcessService.end_process(pid)
-		self.unset_station_procs(stationIds=stationIds)
+	def clear_station(self, stationId: int) -> int:
+		if not stationId:
+			return 0
+		delCount = 0
+		delStmt = delete(stations_songs_tbl).where(stsg_stationFk == stationId)
+		delCount += self.conn.execute(delStmt).rowcount
 		self.conn.commit()
+		return delCount
+
+
+	def copy_station(
+		self, 
+		stationId: int, 
+		copy: StationCreationInfo,
+		user: AccountInfo,
+	) -> Optional[StationInfo]:
+		songIdsQuery = select(stsg_songFk).where(stsg_stationFk == stationId)
+		rows = self.conn.execute(songIdsQuery)
+		songIds = [cast(int,row[0]) for row in rows]
+		if not any(songIds):
+			return None
+		created = self.save_station(copy, user)
+		params = [{
+			"stationfk": created.id,
+			"songfk": s
+		} for s in songIds]
+		insertStmt = insert(stations_songs_tbl)
+		self.conn.execute(insertStmt, params)
+		self.conn.commit()
+		return created
+

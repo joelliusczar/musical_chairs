@@ -8,7 +8,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlbumInfo,
 	ActionRule,
 	PathsActionRule,
-	StationActionRule
+	StationActionRule,
+	Lost
 )
 from .common_fixtures import *
 from pydantic import (ValidationError)
@@ -66,14 +67,14 @@ def test_is_admin():
 	assert accountInfo.isadmin
 
 def test_validatedSongAboutInfo():
-	songInfo = ValidatedSongAboutInfo()
-	assert songInfo
+	with pytest.raises(ValidationError):
+		songInfo = ValidatedSongAboutInfo() #pyright: ignore [reportCallIssue]
 	songInfo = ValidatedSongAboutInfo(name="Test")
 	assert songInfo
 	songInfo = ValidatedSongAboutInfo(name="Test", album=None)
 	assert songInfo
 	with pytest.raises(ValidationError):
-		songInfo = ValidatedSongAboutInfo(name="Test", album=AlbumInfo()) #pyright: ignore [reportGeneralTypeIssues]
+		songInfo = ValidatedSongAboutInfo(name="Test", album=AlbumInfo()) #pyright: ignore [reportCallIssue]
 
 
 def test_action_rule_ordering():
@@ -669,3 +670,12 @@ def test_action_rule_set():
 
 	assert not r14 is r13
 	assert r14 in s1
+
+def fn_for_lost(u1: Lost, u2: Lost = Lost()):
+	assert u1 is u2
+
+def test_lost():
+	u1 = Lost()
+	u2 = Lost()
+	assert u1 is u2
+	fn_for_lost(u1)

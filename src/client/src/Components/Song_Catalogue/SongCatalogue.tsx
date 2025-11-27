@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
 	fetchSongCatalogue,
-	sendSongRequest,
+	sendSongRequestCaller,
 } from "../../API_Calls/stationCalls";
 import {
 	Table,
@@ -16,7 +16,7 @@ import {
 	Button,
 } from "@mui/material";
 import Loader from "../Shared/Loader";
-import { DomRoutes } from "../../constants";
+import { DomRoutes, StationTypes } from "../../constants";
 import {
 	dataDispatches as dispatches,
 	useDataWaitingReducer,
@@ -84,7 +84,7 @@ export const SongCatalogue = () => {
 			return;
 		}
 		try {
-			const requestObj = sendSongRequest({
+			const requestObj = sendSongRequestCaller({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				songid: songId });
@@ -198,6 +198,7 @@ export const SongCatalogue = () => {
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
 					onChange={setStationCallback}
+					stationTypes={[StationTypes.SONGS_ONLY]}
 				/>
 			</Box>
 			<Box m={1}>
@@ -273,3 +274,5 @@ export const SongCatalogue = () => {
 		</>
 	);
 };
+
+export default SongCatalogue;

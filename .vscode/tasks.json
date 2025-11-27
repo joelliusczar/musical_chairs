@@ -6,7 +6,8 @@
 		{
 			"label": "Set unit test env",
 			"type": "shell",
-			"command": ". ./mc_dev_ops.sh && setup_unit_test_env",
+			// "command": "ls ./dev_ops",
+			"command": "cd ./dev_ops && ./mcr_dev_ops.sh setup_tests",
 			"problemMatcher": [],
 			"presentation": {
 				"reveal": "silent",

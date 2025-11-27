@@ -1,3 +1,4 @@
+import hashlib
 from typing import (
 	Optional,
 	Iterator,
@@ -13,7 +14,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserHistoryActionItem,
 	StationHistoryActionItem,
 	ActionRule,
-	StationInfo
+	StationInfo,
+	TrackingInfo
 )
 from sqlalchemy import (
 	select,
@@ -23,7 +25,8 @@ from sqlalchemy import (
 from musical_chairs_libs.tables import (
 	user_action_history, uah_userFk, uah_action, uah_pk,
 	uah_queuedTimestamp,
-	station_queue, q_stationFk, q_userActionHistoryFk
+	station_queue, q_stationFk, q_userActionHistoryFk,
+	user_agents, uag_pk, uag_content, uag_hash, uag_length
 )
 from itertools import groupby
 
@@ -63,9 +66,9 @@ class UserActionsHistoryService:
 		self,
 		userId: int,
 		fromTimestamp: float,
+		stationIds: None=None,
 		actions: Iterable[str]=[],
 		limit: Optional[int]=None,
-		stationIds: None=None
 	) -> Iterator[UserHistoryActionItem]:
 		...
 
@@ -74,9 +77,9 @@ class UserActionsHistoryService:
 		self,
 		userId: int,
 		fromTimestamp: float,
+		stationIds: Iterable[int],
 		actions: Iterable[str]=[],
 		limit: Optional[int]=None,
-		stationIds: Iterable[int]=[]
 	) -> Iterator[StationHistoryActionItem]:
 		...
 
@@ -84,9 +87,9 @@ class UserActionsHistoryService:
 		self,
 		userId: int,
 		fromTimestamp: float,
+		stationIds: Optional[Iterable[int]]=None,
 		actions: Iterable[str]=[],
-		limit: Optional[int]=None,
-		stationIds: Optional[Iterable[int]]=None
+		limit: Optional[int]=None
 	) -> Union[
 				Iterator[UserHistoryActionItem],
 				Iterator[StationHistoryActionItem]
@@ -140,13 +143,47 @@ class UserActionsHistoryService:
 				for row in records
 			)
 
-	def add_user_action_history_item(self, userId: int, action: str):
-		stmt = insert(user_action_history).values(
-			userFk = userId,
-			action = action,
-			timestamp = self.get_datetime().timestamp(),
+	def add_user_agent(self, userAgent: str) -> Optional[int]:
+		userAgentHash = hashlib.md5(userAgent.encode()).digest()
+		userAgentLen = len(userAgent)
+		query = select(uag_pk, uag_content)\
+			.where(uag_hash == userAgentHash)\
+			.where(uag_length == userAgentLen)
+		results = self.conn.execute(query).mappings()
+		for row in results:
+			if userAgent == row[uag_content]:
+				return row[uag_pk]
+		stmt = insert(user_agents).values(
+			content = userAgent,
+			hash = userAgentHash,
+			length = userAgentLen
 		)
-		res = self.conn.execute(stmt) #pyright: ignore reportUnknownMemberType
+		insertedIdRow = self.conn.execute(stmt).inserted_primary_key
+		if insertedIdRow:
+			return insertedIdRow[0]
+
+
+	def add_user_action_history_item(
+			self,
+			userId: int,
+			action: str,
+			trackingInfo: TrackingInfo
+		) -> Optional[int]:
+		userAgentId = self.add_user_agent(trackingInfo.userAgent)
+		timestamp = self.get_datetime().timestamp()
+		stmt = insert(user_action_history).values(
+			userfk = userId,
+			action = action,
+			queuedtimestamp = timestamp,
+			ipv4address = trackingInfo.ipv4Address,
+			ipv6address = trackingInfo.ipv6Address,
+			useragentsfk = userAgentId
+		)
+		insertedIdRow = self.conn.execute(stmt).inserted_primary_key
+		if insertedIdRow:
+			return insertedIdRow[0]
+
+
 
 	def calc_lookup_for_when_user_can_next_do_action(
 		self,
@@ -162,8 +199,8 @@ class UserActionsHistoryService:
 		actionGen = self.get_user_action_history(
 			userid,
 			fromTimestamp,
-			(r.name for r in rules),
-			maxLimit
+			actions=(r.name for r in rules),
+			limit=maxLimit
 		)
 		presorted = {g[0]:[i.timestamp for i in g[1]] for g in groupby(
 			actionGen,
@@ -194,9 +231,9 @@ class UserActionsHistoryService:
 		actionGen = self.get_user_action_history(
 			userId,
 			fromTimestamp,
+			(s.id for s in stations),
 			{r.name for s in stations for r in s.rules},
 			maxLimit,
-			(s.id for s in stations)
 		)
 		presorted = {s[0]:{
 				a[0]:[i.timestamp for i in a[1]] for a in

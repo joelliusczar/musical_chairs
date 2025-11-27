@@ -1,45 +1,28 @@
 import React, { useState } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
-import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
-import { saveArtist } from "../../API_Calls/songInfoCalls";
-import { useForm } from "react-hook-form";
+import { add as saveArtist } from "../../API_Calls/artistCalls";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import { ArtistInfo } from "../../Types/song_info_types";
 import { SubmitButton  } from "../Shared/SubmitButton";
+
 
 const inputField = {
 	margin: 2,
 };
 
 type ArtistEditProps = {
-	onCancel: (e: unknown) => void
-	afterSubmit: (a: ArtistInfo) => void
+	formMethods: UseFormReturn<ArtistInfo>,
+	onCancel?: (e: unknown) => void
+	callSubmit: (e: React.BaseSyntheticEvent) => Promise<void>,
 };
 
 export const ArtistEdit = (props: ArtistEditProps) => {
-	const { afterSubmit, onCancel } = props;
-	const { enqueueSnackbar } = useSnackbar();
+	const { formMethods, callSubmit, onCancel } = props;
 
-	const formMethods = useForm<ArtistInfo>({
-		defaultValues: {
-			name: "",
-		},
-	});
-	const { handleSubmit, formState } = formMethods;
-	const callSubmit = handleSubmit(async values => {
-		try {
-			const requestObj = saveArtist({ name: values.name });
-			const artist = await requestObj.call();
-			enqueueSnackbar("Save successful", { variant: "success"});
-			afterSubmit(artist);
-		}
-		catch(err) {
-			enqueueSnackbar(formatError(err), { variant: "error"});
-			console.error(err);
-		}
-	});
+	const { formState } = formMethods;
 
 	return (
 		<>
@@ -53,6 +36,11 @@ export const ArtistEdit = (props: ArtistEditProps) => {
 					name="name"
 					label="Name"
 					formMethods={formMethods}
+					onKeyUp={e => {
+						if (e.code === "Enter") {
+							callSubmit(e);
+						}
+					}}
 				/>
 			</Box>
 			<Box sx={inputField} >
@@ -70,10 +58,6 @@ export const ArtistEdit = (props: ArtistEditProps) => {
 	);
 };
 
-ArtistEdit.propTypes = {
-	afterSubmit: PropTypes.func.isRequired,
-	onCancel: PropTypes.func,
-};
 
 type ArtistNewModalOpenerProps = {
 	add?: (a: ArtistInfo) => void;
@@ -82,6 +66,7 @@ type ArtistNewModalOpenerProps = {
 export const ArtistNewModalOpener = (props: ArtistNewModalOpenerProps) => {
 
 	const { add } = props;
+	const { enqueueSnackbar } = useSnackbar();
 
 	const [itemNewOpen, setItemNewOpen ] = useState(false);
 
@@ -94,13 +79,37 @@ export const ArtistNewModalOpener = (props: ArtistNewModalOpenerProps) => {
 		closeModal();
 	};
 
+
+	const formMethods = useForm<ArtistInfo>({
+		defaultValues: {
+			name: "",
+		},
+	});
+	const { handleSubmit } = formMethods;
+	const callSubmit = handleSubmit(async values => {
+		try {
+			const requestObj = saveArtist({ name: values.name });
+			const artist = await requestObj.call();
+			enqueueSnackbar("Save successful", { variant: "success"});
+			itemCreated(artist);
+		}
+		catch(err) {
+			enqueueSnackbar(formatError(err), { variant: "error"});
+			console.error(err);
+		}
+	});
+
 	return (
 		<>
 			<Box>
 				<Button onClick={() => setItemNewOpen(true)}>Add New Artist</Button>
 			</Box>
 			<Dialog open={itemNewOpen} onClose={closeModal} scroll="body">
-				<ArtistEdit afterSubmit={itemCreated} onCancel={closeModal} />
+				<ArtistEdit 
+					onCancel={closeModal}
+					formMethods={formMethods}
+					callSubmit={callSubmit}
+				/>
 			</Dialog>
 		</>);
 };

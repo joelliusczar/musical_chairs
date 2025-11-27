@@ -6,7 +6,7 @@
   "configurations": [
     {
       "name": "Python: Current File",
-      "type": "python",
+      "type": "debugpy",
       "python": "${command:python.interpreterPath}",
       "request": "launch",
       "program": "${file}",
@@ -19,24 +19,40 @@
     },
     {
       "name": "Python: API",
-      "type": "python",
+      "type": "debugpy",
       "python": "${command:python.interpreterPath}",
       "request": "launch",
       "program": "${workspaceFolder}/src/api/index.py",
       "console": "integratedTerminal",
-      "preLaunchTask": "Set unit test env",
+      // "preLaunchTask": "Set unit test env",
       "justMyCode": false,
       "env": {
-        "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs"
+        "PTHONPATH": "${workspaceFolder}/src/musical_chairs_libs",
+        "MCR_TEST_ROOT": "${workspaceFolder}/test_trash",
+        "DSF_DB_PASS_SETUP": "setuppass",
+        "DSF_DB_PASS_OWNER": "ownerpass",
+        "DSF_TEMPLATES_DEST": "./test_trash/musical_chairs/files",
+        "DSF_ICES_CONFIGS_DIR": "./test_trash/musical_chairs/ices_configs",
+        "DSF_SQL_SCRIPTS_DEST": "./test_trash/musical_chairs/sql_scripts",
+        "DSF_CONTENT_DIR": "./test_trash/musical_chairs/content",
+        "DSF_PY_MODULE_DIR": "./test_trash/musical_chairs/ices_mpdules",
+        "DSF_DB_PASS_API": "apipass",
+        "DSF_DB_PASS_RADIO": "radiopass",
+        "DSF_DB_PASS_JANITOR": "janitorpass",
+        "DSF_AUTH_SECRET_KEY": "deadbeef",
+        "DSF_APP_ROOT": "./test_trash",
+        "DSF_PYTHON_EXECUTABLE": "./test_trash/musical_chairs/mcr_env/bin/python",
+        "DSF_DATABASE_NAME": "musical_chairs_db",
+        "DSF_ICES_EXECUTABLE": "~/.local/bin/mcr-ices"
       },
       "args": [
-        "${userHome}/.ssh/musical_chairs_localhost_debug.private.key.pem",
-        "${userHome}/.ssh/musical_chairs_localhost_debug.public.key.crt"
+        "${userHome}/.ssh/localhost_debug.private.pem",
+        "${userHome}/.ssh/localhost_debug.public.pem"
       ]
     },
     {
       "name": "Python: nginx API",
-      "type": "python",
+      "type": "debugpy",
       "python": "${command:python.interpreterPath}",
       "request": "launch",
       "program": "${workspaceFolder}/src/api/index.py",
@@ -48,10 +64,14 @@
     },
     {
       "name": "Debug Unit Test",
-      "type": "python",
-      "preLaunchTask": "Set unit test env",
+      "type": "debugpy",
+      // "preLaunchTask": "Set unit test env",
       "request": "test",
       "justMyCode": true,
-  },
+      "envFile": "${workspaceFolder}/.env",
+      // "env": {
+      //   "DSF_DB_PASS_SETUP":"${LT_DB_PASS_SETUP}"
+      // }
+    },
   ]
 }

@@ -1,6 +1,6 @@
 import { OwnedStationParams } from "./Types/station_types";
 import { OwnerParams, SubjectUserParams } from "./Types/user_types";
-import { StringObject } from "./Types/generic_types";
+import { StringObject, ParamItem } from "./Types/generic_types";
 
 
 //these vars need to be prefixed VITE
@@ -22,6 +22,10 @@ export const CallStatus = {
 };
 
 export const DomRoutes = {
+	artistPage: () => "/artists/page",
+	artist: ({ id }: ParamItem) => `/artists/${id}`,
+	albumPage: () => "/albums/page",
+	album: ({ id }: ParamItem) => `/albums/${id}`,
 	queue: ({ stationkey, ownerkey }: OwnedStationParams) =>
 		`/stations/queue/${ownerkey}/${stationkey ? `${stationkey}/` : ""}`,
 	history: ({ stationkey, ownerkey }: OwnedStationParams) =>
@@ -37,6 +41,10 @@ export const DomRoutes = {
 	songCatalogue: ({ stationkey, ownerkey }: OwnedStationParams) => {
 		const stationSegment = stationkey ? `${stationkey}/` : "";
 		return `/stations/song-catalogue/${ownerkey}/${stationSegment}`;
+	},
+	collectionCatalogue: ({ stationkey, ownerkey }: OwnedStationParams) => {
+		const stationSegment = stationkey ? `${stationkey}/` : "";
+		return `/stations/collection-catalogue/${ownerkey}/${stationSegment}`;
 	},
 	pathUsers: () => "/song-info/users",
 	songTree: () => "/song-info/tree/",
@@ -64,6 +72,10 @@ export const UserRoleDef: StringObject = {
 	SONG_EDIT: "song:edit",
 	SONG_DOWNLOAD: "song:download",
 	SONG_TREE_LIST: "songtree:list",
+	ALBUM_EDIT: "album:edit",
+	ALBUM_VIEW_ALL: "album:view_all",
+	ARTIST_EDIT: "artist:edit",
+	ARTIST_VIEW_ALL: "artist:view_all",
 	STATION_VIEW: `${UserRoleDomain.STATION}:view`,
 	STATION_CREATE: `${UserRoleDomain.STATION}:create`,
 	STATION_EDIT: `${UserRoleDomain.STATION}:edit`,
@@ -86,7 +98,7 @@ export const UserRoleDef: StringObject = {
 	PATH_UPLOAD: `${UserRoleDomain.PATH}:upload`,
 };
 
-export const MinItemSecurityLevel = {
+export const RulePriorityLevel = {
 	PUBLIC: 0,
 	// SITE permissions should be able to overpower ANY_USER level restrictions
 	ANY_USER: 9,
@@ -98,4 +110,11 @@ export const MinItemSecurityLevel = {
 	OWENER_USER: 49,
 	//only admins should be able to see these items
 	LOCKED: 59,
+};
+
+export const StationTypes = {
+	SONGS_ONLY: 0,
+	ALBUMS_ONLY: 1,
+	PLAYLISTS_ONLY: 2,
+	ALBUMS_AND_PLAYLISTS: 3,
 };

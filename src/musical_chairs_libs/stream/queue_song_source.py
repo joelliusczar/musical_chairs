@@ -49,6 +49,9 @@ def get_song_info(
 		except Exception as e:
 			logging.radioLogger.error("Error getting song info")
 			logging.radioLogger.error(e)
+			logging.radioLogger.error(
+				"".join(TracebackException.from_exception(e).format())
+			)
 			break
 
 
@@ -128,7 +131,7 @@ def clean_up_ices_process():
 			logging.radioLogger.error("Error terminating sub process")
 			logging.radioLogger.error(procError)
 	else:
-		logging.radioLogger.error(
+		logging.radioLogger.warning(
 			"Can't clean up station process. It is null"
 		)
 
@@ -164,7 +167,7 @@ def send_next(
 					logging.radioLogger.error("mc-ices errored out.")
 					break
 				if stopRunning:
-						logging.radioLogger.warn("stopLoading is set")
+						logging.radioLogger.warning("stopLoading is set")
 						break
 				#don't want to wait for 'next' signal from ices when it doesn't
 				#hasn't had anything to process

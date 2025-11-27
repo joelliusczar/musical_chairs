@@ -49,7 +49,7 @@ export interface UserBasicUpdateApiParams extends SubjectUserKeyItem {
 	data: UserBasicUpdate
 }
 
-export interface LoggedInUser extends RoledEntity {
+export interface LoggedInUser extends RoledEntity, IdItem {
 	username: string,
 	access_token: string,
 	lifetime: number,

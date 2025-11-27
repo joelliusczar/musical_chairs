@@ -17,13 +17,18 @@ export interface AlbumInfo {
 	name: string
 	year: number | null
 	albumartist: ArtistInfo | null
+	versionnote: string
+	stations: StationInfo[]
 	owner: User
 }
+
 
 export interface AlbumCreationInfo {
 	name: string
 	year?: number
 	albumartist?: ArtistInfo
+	stations: StationInfo[]
+	versionnote: string
 }
 
 export interface NowPlayingInfo {
@@ -36,8 +41,18 @@ export interface SongListDisplayItem extends NamedIdItem {
 	album: string | null
 	artist: string | null
 	path: string
+	track?: string | null
 	queuedtimestamp: number
 	playedtimestamp: number | null
+	rules: ActionRule[]
+}
+
+export interface CollectionQueuedItem extends NamedIdItem {
+	creator: string | null
+	itemtype: string
+	itemtypeid: number
+	year: number | null
+	description: string | null
 	rules: ActionRule[]
 }
 
@@ -107,6 +122,12 @@ export type TouchedObject = {
 	[key: string]: TouchTypes
 };
 
+export interface TrackListing {
+	name: string
+	tracknum: number
+	track: string | null
+}
+
 export interface SongInfoBase extends Named {
 	path: string
 	artists: ArtistInfo[]
@@ -114,11 +135,16 @@ export interface SongInfoBase extends Named {
 	album: AlbumInfo
 	stations: StationInfo[]
 	genre: string
+	track: string
+	tracknum: number
+	disc: number | null
 }
+
 
 export interface SongInfoForm extends SongInfoBase, FieldValues {
 	rules: ActionRule[]
 	touched: TouchedObject
+	trackinfo: {[id: IdValue]: TrackListing}
 }
 
 export interface SongInfoApiSavura extends SongInfoBase {
@@ -141,4 +167,12 @@ export interface MultiUploadInfo {
 
 export interface UploadInfo extends DirectoryInfo {
 	files: File[] | null
+}
+
+export interface SongsAlbumInfo extends AlbumInfo{
+	songs: SongListDisplayItem[],
+}
+
+export interface SongsArtistInfo extends ArtistInfo{
+	songs: SongListDisplayItem[],
 }

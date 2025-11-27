@@ -5,6 +5,7 @@ from typing import (
 	Union,
 	cast,
 	Iterable,
+	Tuple
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
@@ -13,11 +14,20 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	AccountInfo,
 	OwnerInfo,
+	SongsArtistInfo,
+	SongListDisplayItem,
+	DictDotMap,
+	normalize_opening_slash,
+	SearchNameString
 )
+from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
 	insert,
 	update,
+	delete,
+	literal,
+	func
 )
 from sqlalchemy.sql.expression import (
 	Update,
@@ -28,7 +38,10 @@ from musical_chairs_libs.tables import (
 	artists as artists_tbl,
 	ab_pk,
 	ar_name, ar_pk, ar_ownerFk,
-	users as user_tbl, u_pk, u_username, u_displayName
+	users as user_tbl, u_pk, u_username, u_displayName,
+	sg_pk, sg_name, sg_track, sg_albumFk, sg_path, sg_internalpath,
+	sg_deletedTimstamp,
+	song_artist as song_artist_tbl, sgar_songFk, sgar_artistFk, 
 )
 
 
@@ -37,12 +50,16 @@ class ArtistService:
 
 	def __init__(
 		self,
-		conn: Connection
+		conn: Connection,
+		pathRuleService: Optional[PathRuleService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
+		if not pathRuleService:
+			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
+		self.path_rule_service = pathRuleService
 
 	def get_artists(self,
 		page: int = 0,
@@ -62,12 +79,14 @@ class ArtistService:
 		if type(artistKeys) == int:
 			query = query.where(ar_pk == artistKeys)
 		elif type(artistKeys) is str:
-			if exactStrMatch:
-				query = query\
-					.where(ar_name == artistKeys)
-			else:
-				query = query\
-					.where(ar_name.like(f"%{artistKeys}%"))
+			if artistKeys:
+				searchStr = SearchNameString.format_name_for_search(artistKeys)
+				if exactStrMatch:
+					query = query\
+						.where(ar_name == searchStr)
+				else:
+					query = query\
+						.where(ar_name.like(f"%{searchStr}%"))
 		#check speficially if instance because [] is falsy
 		elif isinstance(artistKeys, Iterable) :
 			query = query.where(ar_pk.in_(artistKeys))
@@ -107,7 +126,7 @@ class ArtistService:
 		self.conn.commit()
 		return insertedPk
 
-	def __get_artist_owner__(self, artistId: int) -> OwnerInfo:
+	def get_artist_owner(self, artistId: int) -> OwnerInfo:
 		query = select(ar_ownerFk, u_username, u_displayName)\
 			.select_from(artists_tbl)\
 			.join(user_tbl, u_pk == ar_ownerFk)\
@@ -120,13 +139,72 @@ class ArtistService:
 			username=data[u_username],
 			displayname=data[u_displayName]
 		)
+	
+	def get_artist_page(
+		self,
+		page: int = 0,
+		artist: str = "",
+		limit: Optional[int]=None,
+		user: Optional[AccountInfo]=None
+	) -> Tuple[list[ArtistInfo], int]:
+		result = list(self.get_artists(page, limit, artist))
+		countQuery = select(func.count(1))\
+			.select_from(artists_tbl)
+		count = self.conn.execute(countQuery).scalar() or 0
+		return result, count
+	
+	def get_artist(
+			self,
+			artistId: int,
+			user: Optional[AccountInfo]=None
+		) -> Optional[SongsArtistInfo]:
+		artistInfo = next(self.get_artists(artistKeys=artistId), None)
+		if not artistInfo:
+			return None
+		songsQuery = select(
+			sg_pk.label("id"),
+			sg_name,
+			sg_path,
+			sg_internalpath,
+			sg_track,
+			literal("").label("album"),
+			literal(0).label("queuedtimestamp"),
+			literal(artistInfo.name).label("artist")
+		)\
+			.join(
+				song_artist_tbl,
+				sgar_songFk == sg_pk,
+			)\
+			.join(
+				artists_tbl,
+				ar_pk == sgar_artistFk,
+			)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(sg_albumFk == artistId)
+		songsResult = self.conn.execute(songsQuery).mappings()
+		pathRuleTree = None
+		if user:
+			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+
+		songs = [
+			SongListDisplayItem(
+				**DictDotMap.unflatten(dict(row), omitNulls=True)
+			) for row in songsResult
+		]
+		if pathRuleTree:
+			for song in songs:
+				song.rules = list(pathRuleTree.valuesFlat(
+						normalize_opening_slash(song.path))
+					)
+
+		return SongsArtistInfo(**artistInfo.model_dump(), songs=songs)
 
 	def save_artist(
 		self,
 		user: AccountInfo,
 		artistName: str,
 		artistId: Optional[int]=None
-	) -> ArtistInfo:
+	) -> Optional[ArtistInfo]:
 		if not artistName and not artistId:
 			raise ValueError("No artist info to save")
 		upsert = update if artistId else insert
@@ -139,7 +217,7 @@ class ArtistService:
 		owner = user
 		if artistId and isinstance(stmt, Update):
 			stmt = stmt.where(ar_pk == artistId)
-			owner = self.__get_artist_owner__(artistId)
+			owner = self.get_artist_owner(artistId)
 		else:
 			stmt = stmt.values(ownerfk = user.id)
 		try:
@@ -147,9 +225,19 @@ class ArtistService:
 
 			affectedPk: int = artistId if artistId else res.lastrowid
 			self.conn.commit()
+			if res.rowcount == 0:
+				return None
 			return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
 		except IntegrityError:
 			raise AlreadyUsedError.build_error(
 				f"{artistName} is already used.",
 				"path->name"
 			)
+
+	def delete_album(self, artistid: int) -> int:
+		if not artistid:
+			return 0
+		delStmt = delete(artists_tbl).where(ar_pk == artistid)
+		delCount = self.conn.execute(delStmt).rowcount
+		self.conn.commit()
+		return delCount

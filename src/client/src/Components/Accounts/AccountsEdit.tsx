@@ -204,3 +204,5 @@ export const AccountsEdit = () => {
 		</Box>
 	</Loader>);
 };
+
+export default AccountsEdit;

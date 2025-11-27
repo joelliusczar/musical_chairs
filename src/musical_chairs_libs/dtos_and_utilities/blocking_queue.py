@@ -1,7 +1,7 @@
 from typing import Any, Generic, TypeVar, Optional, Callable
 from queue import SimpleQueue, Empty as EmptyException
 from threading import Condition, RLock
-from .sentinel import missing
+from .lost_found import Lost
 
 T = TypeVar("T")
 
@@ -91,7 +91,7 @@ class DelayedDecrementReader(Generic[T]):
 	) -> None:
 		self.__queue__ = queue
 		self.__shouldContinue__ = shouldContinue
-		self.__item__ = missing
+		self.__item__ = Lost()
 
 	def __enter__(
 		self,
@@ -100,5 +100,5 @@ class DelayedDecrementReader(Generic[T]):
 		return self.__item__
 
 	def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
-		if self.__item__ != missing:
+		if self.__item__ != Lost():
 			self.__queue__.__unblock_after_get__()

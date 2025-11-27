@@ -21,14 +21,15 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PasswordInfo,
 	ActionRule,
 	AlreadyUsedError,
-	build_rules_query,
+	build_site_rules_query,
 	row_to_action_rule,
-	UserRoleDomain,
 	RulePriorityLevel,
-	MinItemSecurityLevel,
-	generate_user_and_rules_from_rows
+	generate_path_user_and_rules_from_rows,
+	TrackingInfo,
+	ConfigAcessors
 )
-from .env_manager import EnvManager
+from musical_chairs_libs.dtos_and_utilities.constants import UserActions
+from .user_actions_history_service import UserActionsHistoryService
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
@@ -52,13 +53,17 @@ ALGORITHM = "HS256"
 class AccountsService:
 
 	def __init__(self,
-		conn: Connection
+		conn: Connection,
+		userActionsHistoryService: Optional[UserActionsHistoryService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
+		if not userActionsHistoryService:
+			userActionsHistoryService = UserActionsHistoryService(conn)
 		self.conn = conn
 		self._system_user: Optional[AccountInfo] = None
 		self.get_datetime = get_datetime
+		self.user_actions_history_service = userActionsHistoryService
 
 
 	def get_account_for_login(
@@ -124,13 +129,8 @@ class AccountsService:
 		)
 		res = self.conn.execute(stmt)
 		insertedPk = res.lastrowid
-		# insertedRows = self.save_roles(
-		# 	insertedPk,
-		# 	[UserRoleDef.STATION_REQUEST.v]
-		# )
 		accountDict = accountInfo.scrubed_dict()
 		accountDict["id"] = insertedPk #pyright: ignore [reportGeneralTypeIssues]
-		# accountDict["roles"] = insertedRows #pyright: ignore [reportGeneralTypeIssues]
 		resultDto = AccountInfo(**accountDict)
 		self.conn.commit()
 		return resultDto
@@ -161,7 +161,7 @@ class AccountsService:
 		self.remove_roles_for_user(userId, (r.name for r in outRoles))
 		if not inRoles:
 			return uniqueRoles
-		roleParams = [{
+		roleParams: list[dict[str, Any]] = [{
 				"userfk": userId,
 				"role": r.name,
 				"span": r.span,
@@ -176,16 +176,26 @@ class AccountsService:
 		return uniqueRoles
 
 
-	def create_access_token(self, userName: str) -> str:
+	def create_access_token(
+		self,
+		user: AccountInfo,
+		trackingInfo: TrackingInfo
+	) -> str:
 		expire = self.get_datetime() \
 			+ timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 		token: str = jwt.encode({
-				"sub": SavedNameString.format_name_for_save(userName),
+				"sub": SavedNameString.format_name_for_save(user.username),
 				"exp": expire
 			},
-			EnvManager.secret_key(),
+			ConfigAcessors.auth_key(),
 			ALGORITHM
 		)
+		self.user_actions_history_service.add_user_action_history_item(
+			user.id,
+			UserActions.LOGIN.value,
+			trackingInfo
+		)
+		self.conn.commit()
 		return token
 
 	def has_expired(self, timestamp: float) -> bool:
@@ -200,7 +210,7 @@ class AccountsService:
 			return None, 0
 		decoded: dict[Any, Any] = jwt.decode(
 			token,
-			EnvManager.secret_key(),
+			ConfigAcessors.auth_key(),
 			algorithms=[ALGORITHM]
 		)
 		expiration = decoded.get("exp") or 0
@@ -213,7 +223,7 @@ class AccountsService:
 		return user, expiration
 
 	def __get_roles__(self, userId: int) -> Iterable[ActionRule]:
-		rulesQuery = build_rules_query(UserRoleDomain.Site, userId=userId)
+		rulesQuery = build_site_rules_query(userId=userId)
 		rows = self.conn.execute(rulesQuery).mappings().fetchall()
 
 		return (row_to_action_rule(r) for r in rows)
@@ -239,7 +249,7 @@ class AccountsService:
 			self._is_username_used(username)
 
 	def _is_email_used(self, email: ValidatedEmail) -> bool:
-		emailStr = cast(str, email.email)
+		emailStr = email.email
 		queryAny = select(func.count(1)).select_from(users)\
 				.where(func.lower(u_email) == emailStr)
 		countRes = self.conn.execute(queryAny).scalar()
@@ -258,7 +268,7 @@ class AccountsService:
 				return True
 
 			logggedInEmail = loggedInUser.email if loggedInUser else None
-			cleanedEmailStr = cast(str, cleanedEmail.email)
+			cleanedEmailStr = cleanedEmail.email
 			return logggedInEmail != cleanedEmailStr and\
 				self._is_email_used(cleanedEmail)
 		except EmailNotValidError:
@@ -327,12 +337,13 @@ class AccountsService:
 	def update_account_general_changes(
 		self,
 		updatedInfo: AccountInfoBase,
-		currentUser: AccountInfo
+		currentUser: AccountInfo,
+		trackingInfo: TrackingInfo
 	) -> AccountInfo:
 		if not updatedInfo:
 			return currentUser
 		validEmail = validate_email(updatedInfo.email)
-		updatedEmail = cast(str, validEmail.email)
+		updatedEmail = validEmail.email
 		if updatedEmail != currentUser.email and self._is_email_used(validEmail):
 			raise AlreadyUsedError.build_error(
 				f"{updatedInfo.email} is already used.",
@@ -343,18 +354,23 @@ class AccountsService:
 			email = updatedEmail
 		).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
+		self.user_actions_history_service.add_user_action_history_item(
+			currentUser.id,
+			UserActions.ACCOUNT_UPDATE.value,
+			trackingInfo
+		)
 		self.conn.commit()
 		return AccountInfo(
-			**{**currentUser.model_dump(), #pyright: ignore [reportArgumentType]
-				"displayname": updatedInfo.displayname,
-				"email": updatedEmail
-			}
+			**currentUser.model_dump(exclude=["displayname", "email"]), #pyright: ignore [reportArgumentType]
+				displayname = updatedInfo.displayname,
+				email = updatedEmail
 		)
 
 	def update_password(
 		self,
 		passwordInfo: PasswordInfo,
-		currentUser: AccountInfo
+		currentUser: AccountInfo,
+		trackingInfo: TrackingInfo
 	) -> bool:
 		authenticated = self.authenticate_user(
 			currentUser.username,
@@ -365,6 +381,11 @@ class AccountsService:
 		hash = hashpw(passwordInfo.newpassword.encode())
 		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
+		self.user_actions_history_service.add_user_action_history_item(
+			currentUser.id,
+			UserActions.CHANGE_PASS.value,
+			trackingInfo
+		)
 		self.conn.commit()
 		return True
 
@@ -373,7 +394,7 @@ class AccountsService:
 		userId: Optional[int]=None,
 		owner: Optional[AccountInfo]=None
 	) -> Iterator[AccountInfo]:
-		rulesQuery = build_rules_query(UserRoleDomain.Site).cte()
+		rulesQuery = build_site_rules_query().cte()
 		query = select(
 			u_pk,
 			u_username,
@@ -395,22 +416,22 @@ class AccountsService:
 			coalesce(
 				rulesQuery.c.rule_priority,
 				RulePriorityLevel.USER.value
-			) > MinItemSecurityLevel.RULED_USER.value
+			) > RulePriorityLevel.RULED_USER.value
 		)
 		if userId is not None:
 			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings().fetchall()
-		yield from generate_user_and_rules_from_rows(
+		yield from generate_path_user_and_rules_from_rows(
 			records,
-			UserRoleDomain.Path,
 			owner.id if owner else None
 		)
 
 	def add_user_rule(
 		self,
 		addedUserId: int,
-		rule: ActionRule
+		rule: ActionRule,
+		trackingInfo: TrackingInfo
 	) -> ActionRule:
 		stmt = insert(userRoles).values(
 			userfk = addedUserId,
@@ -421,6 +442,11 @@ class AccountsService:
 			creationtimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt)
+		self.user_actions_history_service.add_user_action_history_item(
+			addedUserId,
+			UserActions.ADD_SITE_RULE.value,
+			trackingInfo
+		)
 		self.conn.commit()
 
 		return ActionRule(
@@ -433,11 +459,17 @@ class AccountsService:
 	def remove_user_site_rule(
 		self,
 		userId: int,
-		ruleName: Optional[str]
+		ruleName: Optional[str],
+		trackingInfo: TrackingInfo
 	):
 		delStmt = delete(userRoles)\
 			.where(ur_userFk == userId)
 		if ruleName:
 			delStmt = delStmt.where(ur_role == ruleName)
 		self.conn.execute(delStmt)
+		self.user_actions_history_service.add_user_action_history_item(
+			userId,
+			UserActions.REMOVE_SITE_RULE.value,
+			trackingInfo
+		)
 		self.conn.commit()

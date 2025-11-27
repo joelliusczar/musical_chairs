@@ -31,6 +31,9 @@ export const AlbumSelect = <FormT extends FieldValues>(
 								<FormHelperText className="form-select select-subtext">
 									Owner: {option.owner?.username}
 								</FormHelperText>
+								<FormHelperText className="form-select select-subtext">
+									Version: {option.versionnote}
+								</FormHelperText>
 							</Box>
 						</li>
 					);

@@ -19,11 +19,17 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	ActionRule,
 	TableData,
-	StationActionRule
+	StationActionRule,
+	TrackingInfo,
+	CollectionQueuedItem,
+	StationTypes,
 )
 from musical_chairs_libs.services import (
 	StationService,
 	QueueService,
+	StationsUsersService,
+	StationProcessService,
+	CollectionQueueService,
 )
 from api_dependencies import (
 	station_service,
@@ -36,14 +42,21 @@ from api_dependencies import (
 	get_user_with_simple_scopes,
 	get_optional_user_from_token,
 	get_from_query_subject_user,
-	get_station_user_2,
+	get_multi_station_user,
 	get_stations_by_ids,
-	get_page
+	get_page_num,
+	build_error_obj,
+	get_station_user_by_id,
+	get_tracking_info,
+	stations_users_service,
+	station_process_service,
+	collection_queue_service,
 )
 from station_validation import (
 	validate_station_rule,
 	validate_station_rule_for_remove
 )
+from sqlalchemy.exc import IntegrityError
 
 
 router = APIRouter(prefix="/stations")
@@ -63,7 +76,7 @@ def station_list(
 @router.get("/{ownerkey}/{stationkey}/history/")
 def history(
 	limit: int = 50,
-	page: int = Depends(get_page),
+	page: int = Depends(get_page_num),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
@@ -89,7 +102,7 @@ def history(
 @router.get("/{ownerkey}/{stationkey}/queue/")
 def queue(
 	limit: int = 50,
-	page: int = Depends(get_page),
+	page: int = Depends(get_page_num),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
@@ -118,14 +131,14 @@ def song_catalogue(
 	song: str = "",
 	album: str = "",
 	artist: str = "",
-	page: int = Depends(get_page),
+	page: int = Depends(get_page_num),
 	user: AccountInfo = Depends(get_station_user),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
-	stationService: StationService = Depends(station_service)
+	queueService: QueueService = Depends(queue_service)
 ) -> StationTableData[SongListDisplayItem]:
 	if not station:
 		return StationTableData(totalrows=0, items=[], stationrules=[])
-	songs, totalRows = stationService.get_station_song_catalogue(
+	songs, totalRows = queueService.get_song_catalogue(
 			stationId = station.id,
 			page = page,
 			limit = limit,
@@ -139,6 +152,38 @@ def song_catalogue(
 	)
 	return StationTableData(totalrows=totalRows, items=songs, stationrules=rules)
 
+
+@router.get("/{ownerkey}/{stationkey}/collection_catalogue/")
+def collection_catalogue(
+	limit: int = 50,
+	collection: str = "",
+	creator: str = "",
+	page: int = Depends(get_page_num),
+	user: AccountInfo = Depends(get_station_user),
+	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
+	collectionQueueService: CollectionQueueService = Depends(
+		collection_queue_service
+	)
+) -> StationTableData[CollectionQueuedItem]:
+	if not station:
+		return StationTableData(totalrows=0, items=[], stationrules=[])
+	collections, totalRows = collectionQueueService.get_catalogue(
+		stationId = station.id,
+		page = page,
+		limit = limit,
+		creator = creator,
+		collection = collection,
+	)
+	rules = ActionRule.sorted(
+		station.rules
+	)
+	return StationTableData(
+		totalrows=totalRows,
+		items=collections,
+		stationrules=rules
+	)
+
+
 @router.post("/{ownerkey}/{stationkey}/request/{songid}")
 def request_song(
 	songid: int,
@@ -147,10 +192,39 @@ def request_song(
 	user: AccountInfo = Security(
 		get_station_user,
 		scopes=[UserRoleDef.STATION_REQUEST.value]
-	)
+	),
+	trackingInfo: TrackingInfo=Depends(get_tracking_info)
 ):
 	try:
-		queueService.add_song_to_queue(songid, station, user)
+		queueService.add_song_to_queue(songid, station, user, trackingInfo)
+	except (LookupError, RuntimeError) as ex:
+		raise HTTPException(
+			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail = str(ex)
+		)
+
+@router.post("/{ownerkey}/{stationkey}/request/{stationtypeid}/{collectionid}")
+def request_collection(
+	collectionid: int,
+	stationtypeid: int,
+	station: StationInfo = Depends(get_station_by_name_and_owner),
+	collectionQueueService: CollectionQueueService = Depends(
+		collection_queue_service
+	),
+	user: AccountInfo = Security(
+		get_station_user,
+		scopes=[UserRoleDef.STATION_REQUEST.value]
+	),
+	trackingInfo: TrackingInfo=Depends(get_tracking_info)
+):
+	try:
+		collectionQueueService.add_collection_to_queue(
+			collectionid,
+			station,
+			user,
+			StationTypes(stationtypeid),
+			trackingInfo
+		)
 	except (LookupError, RuntimeError) as ex:
 		raise HTTPException(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -166,19 +240,32 @@ def remove_song_from_queue(
 	id: int,
 	queuedtimestamp: float,
 	station: StationInfo = Depends(get_station_by_name_and_owner),
-	queueService: QueueService = Depends(queue_service)
+	queueService: QueueService = Depends(queue_service),
+	collectionQueueService: CollectionQueueService = Depends(
+		collection_queue_service
+	),
 ) -> CurrentPlayingInfo:
-	queue = queueService.remove_song_from_queue(
-		id,
-		queuedtimestamp,
-		stationId=station.id
-	)
-	if queue:
-		return queue
+	if station.typeid == StationTypes.SONGS_ONLY.value:
+		queue = queueService.remove_song_from_queue(
+			id,
+			queuedtimestamp,
+			stationId=station.id
+		)
+		if queue:
+			return queue
+	else:
+		queue = collectionQueueService.remove_song_from_queue(
+			id,
+			queuedtimestamp,
+			stationId=station.id
+		)
+		if queue:
+			return queue
 	raise HTTPException(
 			status_code = status.HTTP_404_NOT_FOUND,
 			detail = f"Song: {id} not found at {queuedtimestamp} on {station.name}"
 		)
+
 
 
 @router.get("/check/")
@@ -199,6 +286,7 @@ def get_station_for_edit(
 ) -> StationInfo:
 	return stationInfo
 
+
 @router.post("")
 def create_station(
 	station: ValidatedStationCreationInfo = Body(default=None),
@@ -211,42 +299,51 @@ def create_station(
 	result = stationService.save_station(station, user=user)
 	return result or StationInfo(id=-1,name="", displayname="")
 
-@router.put("/{stationkey}")
+
+@router.put("/{stationid}")
 def update_station(
-	stationkey: int,
+	stationid: int, #this needs to match get_station_user_by_id
 	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
 	user: AccountInfo = Security(
-		get_station_user,
+		get_station_user_by_id,
 		scopes=[UserRoleDef.STATION_EDIT.value]
 	)
 ) -> StationInfo:
-	result = stationService.save_station(station,user, stationkey)
+	result = stationService.save_station(station, user, stationid)
 	return result or StationInfo(id=-1,name="",displayname="")
+
 
 @router.put("/enable/")
 def enable_stations(
 	stations: Collection[StationInfo] = Depends(get_stations_by_ids),
 	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
-		get_station_user_2,
+		get_multi_station_user,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
-	stationService: StationService = Depends(station_service)
+	stationProcessService: StationProcessService = Depends(
+		station_process_service
+	)
 ) -> list[StationInfo]:
-	return list(stationService.enable_stations(stations, user, includeAll))
+	return list(
+		stationProcessService.enable_stations(stations, user, includeAll)
+	)
+
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
 def disable_stations(
 	stations: Collection[StationInfo] = Depends(get_stations_by_ids),
 	includeAll: bool = Query(default=False),
 	user: AccountInfo = Security(
-		get_station_user_2,
+		get_multi_station_user,
 		scopes=[UserRoleDef.STATION_FLIP.value]
 	),
-	stationService: StationService = Depends(station_service)
+	stationProcessService: StationProcessService = Depends(
+		station_process_service
+	)
 ) -> None:
-	stationService.disable_stations(
+	stationProcessService.disable_stations(
 		(s.id for s in stations),
 		user.id if includeAll else None
 	)
@@ -274,9 +371,9 @@ def play_next(
 ])
 def get_station_user_list(
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
-	stationService: StationService = Depends(station_service),
+	stationsUsersService: StationsUsersService = Depends(stations_users_service),
 ) -> TableData[AccountInfo]:
-	stationUsers = list(stationService.get_station_users(stationInfo))
+	stationUsers = list(stationsUsersService.get_station_users(stationInfo))
 	return TableData(items=stationUsers, totalrows=len(stationUsers))
 
 
@@ -292,9 +389,13 @@ def add_user_rule(
 	user: AccountInfo = Depends(get_from_query_subject_user),
 	rule: StationActionRule = Depends(validate_station_rule),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
-	stationService: StationService = Depends(station_service),
+	stationsUsersService: StationsUsersService = Depends(stations_users_service),
 ) -> StationActionRule:
-	return stationService.add_user_rule_to_station(user.id, stationInfo.id, rule)
+	return stationsUsersService.add_user_rule_to_station(
+		user.id,
+		stationInfo.id,
+		rule
+	)
 
 
 @router.delete("/{ownerkey}/{stationkey}/user_role",
@@ -310,10 +411,50 @@ def remove_user_rule(
 	user: AccountInfo = Depends(get_from_query_subject_user),
 	rulename: Optional[str] = Depends(validate_station_rule_for_remove),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
-	stationService: StationService = Depends(station_service),
+	stationsUsersService: StationsUsersService = Depends(stations_users_service),
 ):
-	stationService.remove_user_rule_from_station(
+	stationsUsersService.remove_user_rule_from_station(
 		user.id,
 		stationInfo.id,
 		rulename
 	)
+
+@router.delete(
+	"/{stationid}",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[Security(
+		get_station_user_by_id,
+		scopes=[UserRoleDef.STATION_EDIT.value]
+	)]
+)
+def delete(
+	stationid: int,
+	clearStation: bool=False,
+	stationService: StationService = Depends(station_service),
+):
+	try:
+		if stationService.delete_station(stationid, clearStation) == 0:
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail=[build_error_obj(f"Station not found")
+				]
+			)
+	except IntegrityError:
+		raise HTTPException(
+			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,	
+			detail=[build_error_obj(f"Station cannot be deleted")
+			]
+		)
+	
+@router.post("/copy/{stationid}")
+def copy_station(
+	stationid: int,
+	station: ValidatedStationCreationInfo = Body(default=None),
+	stationService: StationService = Depends(station_service),
+	user: AccountInfo = Security(
+		get_user_with_rate_limited_scope,
+		scopes=[UserRoleDef.STATION_CREATE.value]
+	)
+) -> StationInfo:
+	result = stationService.copy_station(stationid, station, user=user)
+	return result or StationInfo(id=-1,name="", displayname="")

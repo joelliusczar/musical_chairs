@@ -1,0 +1,65 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - vars/globals.yml
+    - vars/os_paths.yml
+
+
+  pre_tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
+    - include_vars: 
+        file: 'vars/local_keys.yml'
+        hash_behaviour: merge
+    - name: Create app directory
+      file:
+        path: '{{test_trunk}}'
+        state: directory
+
+  vars:
+    app_trunk: '{{domain["app_root"]|default("~")}}/{{app_details["name"]}}'
+    test_trunk: '../test_trash/{{app_details["name"]}}'
+
+  roles:
+    - role: mysql-setup
+      setup_pass: '{{keys["db_pass_setup"]}}'
+      socket_path: '{{dev_files["mysql_socket"]}}'
+      sql_scripts_src: ../sql_scripts
+      reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
+      env_name: '{{app_details["prefix"]|lower}}_env'
+      engine_src: '{{src_dirs["engine"]}}/'
+    - role: tests-setup
+  
+  tasks:
+    - name: Get database schema hash.
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_print'
+          - --hash
+      environment:
+        DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
+      register: result
+      changed_when: false
+    - name: Setup App Specific Db stuff.
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_setup'
+          - '{{app_details["db"]}}'
+        creates: '/tmp/{{result.stdout}}'
+      environment:
+        DSF_APP_ROOT: '{{app_trunk}}'
+        DSF_DB_PASS_API: '{{keys["db_pass_api"]}}'
+        DSF_DB_PASS_JANITOR: '{{keys["db_pass_janitor"]}}'
+        DSF_DB_PASS_OWNER: '{{keys["db_pass_owner"]}}'
+        DSF_DB_PASS_RADIO: '{{keys["db_pass_radio"]}}'
+        DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
+        DSF_DATABASE_NAME: '{{app_details["db"]}}'
+        DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
+        DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'

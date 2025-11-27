@@ -35,6 +35,7 @@ export interface StationInfo extends NamedIdItem {
 	rules: ActionRule[]
 	viewsecuritylevel: IdValue
 	requestsecuritylevel: IdValue
+	typeid: IdValue
 }
 
 export interface StationInfoForm extends Named {
@@ -42,6 +43,8 @@ export interface StationInfoForm extends Named {
 	displayname: string | null
 	viewsecuritylevel: NamedIdItem
 	requestsecuritylevel: NamedIdItem
+	typeOption: NamedIdItem
+	bitratekps: number | null
 }
 
 export interface StationCreationInfo extends Named {

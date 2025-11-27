@@ -89,7 +89,7 @@ def test_create_account_fail_email(fixture_api_test_client: TestClient):
 	assert response.status_code == 422
 	assert data["detail"][0]["field"] == "body->email"
 	assert data["detail"][0]["msg"] == \
-		"The email address is not valid. It must have exactly one @-sign."
+		"An email address must have an @-sign."
 
 	testUser["email"] = "testPerson@fucky"
 	response = client.post("/accounts/new", json=testUser)
@@ -97,7 +97,7 @@ def test_create_account_fail_email(fixture_api_test_client: TestClient):
 	assert response.status_code == 422
 	assert data["detail"][0]["field"] == "body->email"
 	assert data["detail"][0]["msg"] == \
-		"The domain name fucky is not valid. It should have a period."
+		"The part after the @-sign is not valid. It should have a period."
 
 	testUser["email"] = "test4@test.com"
 	response = client.post("/accounts/new", json=testUser)
@@ -116,7 +116,7 @@ def test_login_success(fixture_api_test_client: TestClient):
 	response = client.post("/accounts/open", data=formData)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert len(data.keys()) == 9
+	assert len(data.keys()) == 10
 	assert "access_token" in data
 	assert "login_timestamp" in data
 	assert data["token_type"] == "bearer"
@@ -144,7 +144,7 @@ def test_login_fail(fixture_api_test_client: TestClient):
 	assert data["detail"][0]["msg"] == \
 		"Incorrect username or password"
 
-	formData = {}
+	formData: dict[str, str] = {}
 	response = client.post("/accounts/open", data=formData)
 	data = json.loads(response.content)
 	assert response.status_code == 422

@@ -1,19 +1,13 @@
 import logging as builtin_logging
 import sys
-import os
+from .config_accessors import ConfigAcessors
 
-api_log_level = os.environ.get(
-	"MC_API_LOG_LEVEL",
-	builtin_logging.getLevelName(builtin_logging.WARNING)
-)
-radio_log_level = os.environ.get(
-	"MC_RADIO_LOG_LEVEL",
-	builtin_logging.getLevelName(builtin_logging.WARNING)
-)
+api_log_level = ConfigAcessors.api_log_level()
+radio_log_level = ConfigAcessors.radio_log_level()
 
 
 formatter = builtin_logging.Formatter(
-	"[%(asctime)s][%(levelname)s][%(funcName)s]: %(message)s"
+	"[%(asctime)s][%(levelname)s][%(filename)s: %(funcName)s]: %(message)s"
 )
 
 

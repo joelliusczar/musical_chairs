@@ -6,7 +6,6 @@ import subprocess
 from typing import Iterator, List, Any, Callable, cast
 from datetime import datetime
 from musical_chairs_libs.services import (
-	EnvManager,
 	QueueService,
 	AccountsService,
 	SongInfoService,
@@ -20,16 +19,23 @@ from musical_chairs_libs.services import (
 	PathRuleService,
 	ArtistService,
 	AlbumService,
-	SongArtistService
+	SongArtistService,
+	JobsService,
+	PlaylistService,
+	StationsSongsService,
+	StationsUsersService,
+	CollectionQueueService,
+	StationsAlbumsService
 )
 
-from musical_chairs_libs.radio_handle import RadioHandle
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
+	ConfigAcessors,
 	get_path_owner_roles,
 	normalize_opening_slash
 )
+from musical_chairs_libs.protocols import FileService
 from sqlalchemy.engine import Connection
 from .mocks.mock_db_constructors import (
 	setup_in_mem_tbls,
@@ -96,7 +102,7 @@ def fixture_conn_cardboarddb(
 		if not requestPopulateFnName is None else "fixture_db_populate_factory"
 	populateFn = request.getfixturevalue(populateFnName)
 	populateFn()
-	envManager = EnvManager()
+	envManager = ConfigAcessors()
 	dbName=fixture_setup_db
 	conn = envManager.get_configured_api_connection(dbName, echo=echo)
 	try:
@@ -115,17 +121,20 @@ def fixture_populated_db_name(
 
 
 @pytest.fixture
-def fixture_radio_handle(fixture_populated_db_name: str) -> RadioHandle:
-	radioHandle = RadioHandle(1, fixture_populated_db_name)
-	return radioHandle
-
-
-@pytest.fixture
 def fixture_queue_service(
 	fixture_conn_cardboarddb: Connection
 ) -> QueueService:
 	queueService = QueueService(fixture_conn_cardboarddb)
 	return queueService
+
+
+@pytest.fixture
+def fixture_collection_queue_service(
+	fixture_conn_cardboarddb: Connection
+) -> CollectionQueueService:
+	collectionQueueService = CollectionQueueService(fixture_conn_cardboarddb)
+	return collectionQueueService
+
 
 @pytest.fixture
 def fixture_account_service(
@@ -133,12 +142,45 @@ def fixture_account_service(
 	accountService = AccountsService(fixture_conn_cardboarddb)
 	return accountService
 
+
 @pytest.fixture
 def fixture_station_service(
 	fixture_conn_cardboarddb: Connection
 ) -> StationService:
 	stationService = StationService(fixture_conn_cardboarddb)
 	return stationService
+
+
+@pytest.fixture
+def fixture_stations_songs_service(
+	fixture_conn_cardboarddb: Connection
+) -> StationsSongsService:
+	stationsSongsService = StationsSongsService(fixture_conn_cardboarddb)
+	return stationsSongsService
+
+
+@pytest.fixture
+def fixture_stations_albums_service(
+	fixture_conn_cardboarddb: Connection
+) -> StationsAlbumsService:
+	stationsAlbumsService = StationsAlbumsService(fixture_conn_cardboarddb)
+	return stationsAlbumsService
+
+
+@pytest.fixture
+def fixture_stations_users_service(
+	fixture_conn_cardboarddb: Connection
+) -> StationsUsersService:
+	stationsUsersService = StationsUsersService(fixture_conn_cardboarddb)
+	return stationsUsersService
+
+
+@pytest.fixture
+def fixture_playlist_service(
+	fixture_conn_cardboarddb: Connection
+) -> PlaylistService:
+	service = PlaylistService(fixture_conn_cardboarddb)
+	return service
 
 @pytest.fixture
 def fixture_song_info_service(
@@ -176,13 +218,17 @@ def fixture_path_rule_service(
 	return pathRuleService
 
 @pytest.fixture
+def fixture_file_service() -> FileService:
+	return MockFileService()
+
+@pytest.fixture
 def fixture_song_file_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_file_service: FileService
 ) -> SongFileService:
-	fileService = MockFileService()
 	songFileService = SongFileService(
 		fixture_conn_cardboarddb,
-		fileService
+		fixture_file_service
 	)
 	return songFileService
 
@@ -190,6 +236,18 @@ def fixture_song_file_service(
 def fixture_template_service() -> TemplateService:
 	templateService = TemplateService()
 	return templateService
+
+@pytest.fixture
+def fixture_job_service(
+	fixture_conn_cardboarddb: Connection,
+	fixture_file_service: FileService
+) -> JobsService:
+	jobsService = JobsService(
+		fixture_conn_cardboarddb,
+		fixture_file_service
+	)
+	return jobsService
+
 
 @pytest.fixture
 def fixture_user_actions_history_service(
@@ -203,9 +261,9 @@ def fixture_user_actions_history_service(
 @pytest.fixture
 def fixture_clean_station_folders():
 	yield
-	for file in os.scandir(EnvManager.station_config_dir()):
+	for file in os.scandir(ConfigAcessors.station_config_dir()):
 		os.remove(file.path)
-	for file in os.scandir(EnvManager.station_module_dir()):
+	for file in os.scandir(ConfigAcessors.station_module_dir()):
 		os.remove(file.path)
 
 @pytest.fixture
@@ -292,7 +350,7 @@ def fixture_db_queryer(
 def ices_config_monkey_patch(
 	monkeypatch: pytest.MonkeyPatch
 ):
-	icecastTemplateLocation = f"{EnvManager.templates_dir()}/icecast.xml"
+	icecastTemplateLocation = f"{ConfigAcessors.templates_dir()}/icecast.xml"
 	cmdOutput = "     CGroup: /system.slice/icecast2.service\n"\
 		f"           └─966 /usr/bin/icecast2 -b -c {icecastTemplateLocation}"
 	def mock_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:

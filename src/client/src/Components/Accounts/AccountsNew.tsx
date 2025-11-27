@@ -127,3 +127,5 @@ export function AccountsNew() {
 		</>
 	);
 }
+
+export default AccountsNew;

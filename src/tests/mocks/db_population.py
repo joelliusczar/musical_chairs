@@ -11,13 +11,39 @@ from musical_chairs_libs.tables import (
 	users,
 	userRoles,
 	stations_songs,
+	stations_albums,
 	station_user_permissions,
 	path_user_permissions,
 	user_action_history,
-	station_queue
+	station_queue,
+	playlists,
+	playlists_songs,
+	playlist_user_permissions
 )
 from sqlalchemy import insert
-from .db_data import *
+from .db_data import (
+	album_params,
+	albumParams1,
+	albumParams2,
+	albumParams3,
+	albumParams4,
+	artist_params,
+	song_params,
+	songArtistParams,
+	songArtistParams2,
+	PlaylistsSongsParams,
+	station_params,
+	stationSongParams,
+	station_album_params,
+	playlists_params,
+	get_actions_history,
+	get_path_permission_params,
+	get_station_permission_params,
+	get_playlist_permission_params,
+	get_station_queue,
+	get_user_params,
+	get_user_role_params
+)
 from .constant_values_defs import (
 	mock_ordered_date_list,
 	primary_user,
@@ -198,6 +224,20 @@ def populate_stations_songs(conn: Connection):
 	stmt = insert(stations_songs)
 	conn.execute(stmt, stationSongParams) #pyright: ignore [reportUnknownMemberType]
 
+def populate_station_albums(conn: Connection):
+	stmt = insert(stations_albums)
+	conn.execute(stmt, station_album_params)
+
+def populate_playlists(conn: Connection):
+	stmt = insert(playlists)
+	conn.execute(stmt, playlists_params) #pyright: ignore [reportUnknownMemberType]
+
+def populate_playlists_songs(conn: Connection):
+	stmt = insert(playlists_songs)
+	conn.execute(stmt, PlaylistsSongsParams) #pyright: ignore [reportUnknownMemberType]
+
+
+
 def populate_users(
 	conn: Connection,
 	orderedTestDates: List[datetime],
@@ -224,6 +264,14 @@ def populate_station_permissions(
 	stationPermissionParams = get_station_permission_params(orderedTestDates)
 	stmt = insert(station_user_permissions)
 	conn.execute(stmt, stationPermissionParams) #pyright: ignore [reportUnknownMemberType]
+
+def populate_playlist_permissions(
+	conn: Connection,
+	orderedTestDates: List[datetime]
+):
+	playlistPermissionParams = get_playlist_permission_params(orderedTestDates)
+	stmt = insert(playlist_user_permissions)
+	conn.execute(stmt, playlistPermissionParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_path_permissions(
 	conn: Connection,
@@ -259,6 +307,9 @@ def populate_station_queue(
 
 def get_initial_stations() -> list[dict[Any, Any]]:
 	return station_params
+
+def get_initial_playlists() -> list[dict[Any, Any]]:
+	return playlists_params
 
 def get_initial_songs() -> list[dict[Any, Any]]:
 	return song_params

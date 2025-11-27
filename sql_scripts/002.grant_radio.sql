@@ -4,6 +4,7 @@ GRANT SELECT ON TABLE `<dbName>`.`songcovers` TO <radioUser>;
 GRANT SELECT ON TABLE `<dbName>`.`songs` TO <radioUser>;
 GRANT SELECT ON TABLE `<dbName>`.`songsartists` TO <radioUser>;
 GRANT SELECT ON TABLE `<dbName>`.`stationssongs` TO <radioUser>;
+GRANT SELECT ON TABLE `<dbName>`.`stationsalbums` TO <radioUser>;
 GRANT SELECT ON TABLE `<dbName>`.`users` TO <radioUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`stations` TO <radioUser>;
@@ -18,3 +19,9 @@ GRANT INSERT ON TABLE `<dbName>`.`useractionhistory` TO <radioUser>;
 GRANT SELECT ON TABLE `<dbName>`.`useractionhistory` TO <radioUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`lastplayed` TO <radioUser>;
+
+GRANT SELECT ON TABLE `<dbName>`.`playlists` TO <radioUser>;
+
+GRANT SELECT ON TABLE `<dbName>`.`stationsplaylists` TO <radioUser>;
+
+GRANT SELECT ON TABLE `<dbName>`.`playlistuserpermissions` TO <radioUser>;

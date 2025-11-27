@@ -5,7 +5,8 @@ from typing import (
 	cast,
 	Iterable,
 	Tuple,
-	Callable
+	Callable,
+	Any
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
@@ -23,7 +24,7 @@ from sqlalchemy.engine import Connection
 from itertools import groupby
 from musical_chairs_libs.tables import (
 	song_artist as song_artist_tbl,
-	sg_pk, ar_pk,
+	sg_pk, sg_deletedTimstamp, ar_pk,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
 
 )
@@ -103,19 +104,23 @@ class SongArtistService:
 			(sa.artistid for sa in songArtistsSet if sa.isprimaryartist),
 			-1
 		)
-		songQuery = select(sg_pk).where(
-			sg_pk.in_(s.songid for s in songArtistsSet)
-		)
+		songQuery = select(sg_pk)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(
+				sg_pk.in_(s.songid for s in songArtistsSet)
+			)
 		artistsQuery = select(ar_pk).where(
 			ar_pk.in_(a.artistid for a in songArtistsSet)
 		)
 		songRecords = self.conn.execute(songQuery).fetchall()
-		artistRecords = self.conn.execute(artistsQuery).fetchall()
+		artistRecords = self.conn.execute(artistsQuery).fetchall()\
+			or [None] * len(songRecords)
 
 		yield from (t for t in (SongArtistTuple(
 			songRow[0],
-			artistRow[0],
-			isprimaryartist=cast(int, artistRow[0]) == primaryArtistId
+			artistRow[0] if artistRow else None,
+			isprimaryartist=(artistRow is not None) \
+				and cast(int, artistRow[0]) == primaryArtistId
 		) for songRow in songRecords
 			for artistRow in artistRecords
 		) if t in songArtistsSet)
@@ -151,15 +156,16 @@ class SongArtistService:
 		self.remove_songs_for_artists(outPairs)
 		if not inPairs: #if no songs - artist have been linked
 			return existingPairs - outPairs
-		params = [{
+		params: list[dict[str, Any]] = [{
 			"songfk": p.songid,
 			"artistfk": p.artistid,
 			"isprimaryartist": p.isprimaryartist,
 			"lastmodifiedbyuserfk": userId,
 			"lastmodifiedtimestamp": self.get_datetime().timestamp()
-		} for p in inPairs]
-		stmt = insert(song_artist_tbl)
-		self.conn.execute(stmt, params)
+		} for p in inPairs if p.artistid]
+		if params:
+			stmt = insert(song_artist_tbl)
+			self.conn.execute(stmt, params)
 		return self.get_song_artists(
 			songIds={sa.songid for sa in uniquePairs}
 		)

@@ -1,0 +1,20 @@
+---
+app_details:
+  db: musical_chairs_db
+  name: musical_chairs
+  prefix: MCR
+  db_owner: mc_owner
+  engine: musical_chairs_libs
+  api_version: v1
+src_dirs:
+  sql_scripts: ../sql_scripts
+  engine: ../src/musical_chairs_libs
+  templates: files
+dest_dirs:
+  engine_dir_name: musical_chairs_libs
+tech:
+  api_lang: python
+  db: mysql
+url_segments:
+  base: musicalchairs
+  tld: radio.fm

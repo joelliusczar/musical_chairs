@@ -12,34 +12,29 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
 	SongListDisplayItem,
 	ScanningSongItem,
-	StationInfo,
 	get_datetime,
-	Sentinel,
-	missing,
-	AlbumInfo,
-	ArtistInfo,
+	Lost,
 	SongAboutInfo,
 	SongEditInfo,
+	ChangeTrackedSongInfo,
 	StationSongTuple,
 	SongArtistTuple,
 	AccountInfo,
-	OwnerInfo,
-	normalize_opening_slash
+	normalize_opening_slash,
+	clean_search_term_for_like,
+	PathDict,
+	TrackListing
 )
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
-	insert,
 	update,
-	delete,
+	func,
 )
 from sqlalchemy.sql.expression import (
-	Tuple as dbTuple,
 	Select,
 )
 from sqlalchemy.engine import Connection
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.engine.row import RowMapping
 from itertools import chain
 from musical_chairs_libs.tables import (
 	albums as albums_tbl,
@@ -47,17 +42,20 @@ from musical_chairs_libs.tables import (
 	artists as artists_tbl,
 	songs as songs_tbl,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
+	stsg_lastmodifiedtimestamp,
 	stations as stations_tbl, st_name, st_pk, st_displayName, st_ownerFk,
 	st_requestSecurityLevel, st_viewSecurityLevel,
-	sg_pk, sg_name, sg_path,
+	sg_pk, sg_name, sg_path, sg_trackNum,
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
 	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track, sg_internalpath,
+	sg_deletedTimstamp,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
-	users as user_tbl
+	users as user_tbl,
 )
 from .song_artist_service import SongArtistService
+from .stations_songs_service import StationsSongsService
 
 
 class SongInfoService:
@@ -67,6 +65,7 @@ class SongInfoService:
 		conn: Connection,
 		pathRuleService: Optional[PathRuleService]=None,
 		songArtistService: Optional[SongArtistService]=None,
+		stationsSongsService: Optional[StationsSongsService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -75,8 +74,11 @@ class SongInfoService:
 			pathRuleService = PathRuleService(conn)
 		if not songArtistService:
 			songArtistService = SongArtistService(conn)
+		if not stationsSongsService:
+			stationsSongsService = StationsSongsService(conn)
 		self.path_rule_service = pathRuleService
 		self.song_artist_service = songArtistService
+		self.stations_songs_service = stationsSongsService
 		self.get_datetime = get_datetime
 
 	def song_info(self, songPk: int) -> Optional[SongListDisplayItem]:
@@ -93,6 +95,7 @@ class SongInfoService:
 			.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
 			.join(artists_tbl, sgar_artistFk == ar_pk, isouter=True)\
 			.where(sg_pk == songPk)\
+			.where(sg_deletedTimstamp.is_(None))\
 			.limit(1)
 		row = self.conn.execute(query).mappings().fetchone()
 		if not row:
@@ -107,9 +110,10 @@ class SongInfoService:
 			queuedtimestamp=0
 		)
 
+
 	def get_song_refs(
 		self,
-		songName: Union[Optional[str], Sentinel]=missing,
+		songName: Union[Optional[str], Lost]=Lost(),
 		page: int=0,
 		pageSize: Optional[int]=None,
 	) -> Iterator[ScanningSongItem]:
@@ -117,7 +121,8 @@ class SongInfoService:
 			sg_pk,
 			sg_path,
 			sg_name
-		).select_from(songs_tbl)
+		).select_from(songs_tbl)\
+			.where(sg_deletedTimstamp.is_(None))
 		if type(songName) is str or songName is None:
 			#allow null through
 			savedName = SavedNameString.format_name_for_save(songName) if songName\
@@ -134,42 +139,6 @@ class SongInfoService:
 					name=SavedNameString.format_name_for_save(row[sg_name])
 				)
 
-	def update_song_info(self, songInfo: ScanningSongItem) -> int:
-		savedName =  SavedNameString.format_name_for_save(songInfo.name)
-		timestamp = self.get_datetime().timestamp()
-		songUpdate = update(songs_tbl) \
-				.where(sg_pk == songInfo.id) \
-				.values(
-					name = savedName,
-					albumfk = songInfo.albumId,
-					track = songInfo.track,
-					disc = songInfo.disc,
-					bitrate = songInfo.bitrate,
-					comment = songInfo.comment,
-					genre = songInfo.genre,
-					duration = songInfo.duration,
-					samplerate = songInfo.samplerate,
-					lastmodifiedtimestamp = timestamp,
-					lastmodifiedbyuserfk = None
-				)
-		count = self.conn.execute(songUpdate).rowcount
-		try:
-			songComposerInsert = insert(song_artist_tbl)\
-				.values(songfk = songInfo.id, artistFk = songInfo.artistId)
-			self.conn.execute(songComposerInsert)
-		except IntegrityError: pass
-		try:
-			songComposerInsert = insert(song_artist_tbl)\
-				.values(
-					songfk = songInfo.id,
-					artistfk = songInfo.composerId,
-					comment = "composer"
-				)
-			self.conn.execute(songComposerInsert)
-			self.conn.commit()
-		except IntegrityError: pass
-		return count
-
 
 	def get_songIds(
 		self,
@@ -179,7 +148,8 @@ class SongInfoService:
 		songIds: Optional[Iterable[int]]=None
 	) -> Iterator[int]:
 		offset = page * pageSize if pageSize else 0
-		query = select(sg_pk).select_from(songs_tbl)
+		query = select(sg_pk).select_from(songs_tbl)\
+			.where(sg_deletedTimstamp.is_(None))
 		#add joins
 		if stationKey:
 			query = query.join(stations_songs_tbl, stsg_songFk == sg_pk)
@@ -198,152 +168,8 @@ class SongInfoService:
 		yield from (cast(int, row["pk"]) for row in records)
 
 
-	def get_station_songs(
-		self,
-		songIds: Union[int, Iterable[int], None]=None,
-		stationIds: Union[int, Iterable[int], None]=None,
-	) -> Iterable[StationSongTuple]:
-		query = select(
-			stsg_songFk,
-			stsg_stationFk
-		)
-
-		if type(songIds) == int:
-			query = query.where(stsg_songFk == songIds)
-		elif isinstance(songIds, Iterable):
-			query = query.where(stsg_songFk.in_(songIds))
-		if type(stationIds) == int:
-			query = query.where(stsg_stationFk == stationIds)
-		elif isinstance(stationIds, Iterable):
-			query = query.where(stsg_stationFk.in_(stationIds))
-		query = query.order_by(stsg_songFk)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		yield from (StationSongTuple(
-				cast(int, row[0]),
-				cast(int, row[1]),
-				True
-			)
-			for row in records)
-
-	def remove_songs_for_stations(
-		self,
-		stationSongs: Union[
-			Iterable[Union[StationSongTuple, Tuple[int, int]]],
-			None
-		]=None,
-		songIds: Union[int, Iterable[int], None]=None
-	) -> int:
-		if stationSongs is None and songIds is None:
-			raise ValueError("stationSongs or songIds must be provided")
-		delStmt = delete(stations_songs_tbl)
-		if isinstance(stationSongs, Iterable):
-			delStmt = delStmt\
-				.where(dbTuple(stsg_songFk, stsg_stationFk).in_(stationSongs))
-		elif isinstance(songIds, Iterable):
-			delStmt = delStmt.where(stsg_songFk.in_(songIds))
-		elif type(songIds) is int:
-			delStmt = delStmt.where(stsg_songFk == songIds)
-		else:
-			return 0
-		return self.conn.execute(delStmt).rowcount
-
-	def validate_stations_songs(
-		self,
-		stationSongs: Iterable[StationSongTuple]
-	) -> Iterable[StationSongTuple]:
-		if not stationSongs:
-			return iter([])
-		stationSongSet = set(stationSongs)
-		songQuery = select(sg_pk).where(
-			sg_pk.in_((s.songid for s in stationSongSet))
-		)
-		stationQuery = select(st_pk).where(
-			st_pk.in_((s.stationid for s in stationSongSet))
-		)
-
-		songRecords = self.conn.execute(songQuery).fetchall()
-		stationRecords = self.conn.execute(stationQuery).fetchall()
-		yield from (t for t in (StationSongTuple(
-			cast(int, songRow[0]),
-			cast(int, stationRow[0])
-		) for songRow in songRecords 
-			for stationRow in stationRecords
-		) if t in stationSongSet)
-
-	def link_songs_with_stations(
-		self,
-		stationSongs: Iterable[StationSongTuple],
-		userId: Optional[int]=None
-	) -> Iterable[StationSongTuple]:
-		if not stationSongs:
-			return []
-		uniquePairs = set(self.validate_stations_songs(stationSongs))
-		if not uniquePairs:
-			return []
-		existingPairs = set(self.get_station_songs(
-			songIds={st.songid for st in uniquePairs}
-		))
-		outPairs = existingPairs - uniquePairs
-		inPairs = uniquePairs - existingPairs
-		self.remove_songs_for_stations(outPairs)
-		if not inPairs: #if no songs - stations have been linked
-			return existingPairs - outPairs
-		params = [{
-			"songfk": p.songid,
-			"stationfk": p.stationid,
-			"lastmodifiedbyuserfk": userId,
-			"lastmodifiedtimestamp": self.get_datetime().timestamp()
-		} for p in inPairs]
-		stmt = insert(stations_songs_tbl)
-		self.conn.execute(stmt, params)
-		return self.get_station_songs(
-			songIds={st.songid for st in uniquePairs}
-		)
-
-
-	def _prepare_song_row_for_model(self, row: RowMapping) -> dict[str, Any]:
-		songDict: dict[Any, Any] = {**row}
-		albumArtistId = songDict.pop("album.albumartistid", 0) or 0
-		albumArtistName = songDict.pop("album.albumartist.name", "")
-		albumArtistOwner = OwnerInfo(
-			id=songDict.pop("album.albumartist.ownerid", 0) or 0,
-			username=songDict.pop("album.albumartist.ownername", ""),
-			displayname=songDict.pop("album.albumartist.ownerdisplayname", ""),
-		)
-		album = AlbumInfo(
-			id=songDict.pop("album.id", 0) or 0,
-			name=songDict.pop("album.name", None) or "",
-			owner=OwnerInfo(
-				id=songDict.pop("album.ownerid", 0) or 0,
-				username=songDict.pop("album.ownername", ""),
-				displayname=songDict.pop("album.ownerdisplayname", ""),
-			),
-			year=songDict.pop("album.year", None),
-			albumartist=ArtistInfo(
-				id=albumArtistId,
-				name=albumArtistName,
-				owner=albumArtistOwner,
-			) if albumArtistId else None
-		)
-		if album.id:
-			songDict["album"] = album
-		songDict.pop("artist.id", None)
-		songDict.pop("artist.name", None)
-		songDict.pop("artist.ownerid", None)
-		songDict.pop("artist.ownername", None)
-		songDict.pop("artist.ownerdisplayname", None)
-		songDict.pop("station.id", None)
-		songDict.pop("station.name", None)
-		songDict.pop("station.displayname", None)
-		songDict.pop("station.ownerid", None)
-		songDict.pop("station.ownername", None)
-		songDict.pop("station.ownerdisplayname", None)
-		songDict.pop(sgar_isPrimaryArtist.description, None) #pyright: ignore reportUnknownMemberType
-		return songDict
-
 	def __get_query_for_songs_for_edit__(
-		self,
-		songIds: Iterable[int]
+		self
 	) -> Select[Any]:
 		album_artist = artists_tbl.alias("albumartist")
 		albumArtistId = album_artist.c.pk
@@ -360,7 +186,9 @@ class SongInfoService:
 			sg_pk.label("id"),
 			sg_name.label("name"),
 			sg_path.label("path"),
+			sg_internalpath.label("internalpath"),
 			sg_track.label("track"),
+			sg_trackNum.label("tracknum"),
 			sg_disc.label("disc"),
 			sg_genre.label("genre"),
 			sg_explicit.label("explicit"),
@@ -371,29 +199,30 @@ class SongInfoService:
 			sg_sampleRate.label("samplerate"),
 			ab_pk.label("album.id"),
 			ab_name.label("album.name"),
-			ab_ownerFk.label("album.ownerid"),
-			albumOwner.c.username.label("album.ownername"),
-			albumOwner.c.displayname.label("album.ownerdisplayname"),
+			ab_ownerFk.label("album.owner.id"),
+			albumOwner.c.username.label("album.owner.username"),
+			albumOwner.c.displayname.label("album.owner.displayname"),
 			ab_year.label("album.year"),
-			ab_albumArtistFk.label("album.albumartistid"),
+			ab_albumArtistFk.label("album.albumartist.id"),
 			album_artist.c.name.label("album.albumartist.name"),
-			album_artist.c.ownerfk.label("album.albumartist.ownerid"),
-			albumArtistOwner.c.username.label("album.albumartist.ownername"),
-			albumArtistOwner.c.displayname.label("album.albumartist.ownerdisplayname"),
-			sgar_isPrimaryArtist,
-			ar_pk.label("artist.id"),
-			ar_name.label("artist.name"),
-			ar_ownerFk.label("artist.ownerid"),
-			artistOwner.c.username.label("artist.ownername"),
-			artistOwner.c.displayname.label("artist.ownerdisplayname"),
-			st_pk.label("station.id"),
-			st_name.label("station.name"),
-			st_ownerFk.label("station.ownerid"),
-			stationOwner.c.username.label("station.ownername"),
-			stationOwner.c.displayname.label("station.ownerdisplayname"),
-			st_displayName.label("station.displayname"),
-			st_requestSecurityLevel.label("station.requestsecuritylevel"),
-			st_viewSecurityLevel.label("station.viewsecuritylevel")
+			album_artist.c.ownerfk.label("album.albumartist.owner.id"),
+			albumArtistOwner.c.username.label("album.albumartist.owner.username"),
+			albumArtistOwner.c.displayname\
+				.label("album.albumartist.owner.displayname"),
+			sgar_isPrimaryArtist.label("artists.isprimaryartist"),
+			ar_pk.label("artists.id"),
+			ar_name.label("artists.name"),
+			ar_ownerFk.label("artists.owner.id"),
+			artistOwner.c.username.label("artists.owner.username"),
+			artistOwner.c.displayname.label("artists.owner.displayname"),
+			st_pk.label("stations.id"),
+			st_name.label("stations.name"),
+			st_ownerFk.label("stations.owner.id"),
+			stationOwner.c.username.label("stations.owner.username"),
+			stationOwner.c.displayname.label("stations.owner.displayname"),
+			st_displayName.label("stations.displayname"),
+			st_requestSecurityLevel.label("stations.requestsecuritylevel"),
+			st_viewSecurityLevel.label("stations.viewsecuritylevel")
 		).select_from(songs_tbl)\
 				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
 				.join(artists_tbl, ar_pk == sgar_artistFk, isouter=True)\
@@ -412,88 +241,30 @@ class SongInfoService:
 					albumArtistOwnerUserId == albumArtistOwnerId,
 					isouter=True
 				) \
-				.where(sg_pk.in_(songIds))\
-				.order_by(sg_pk)
+				.where(sg_deletedTimstamp.is_(None))
 		return query
+
 
 	def get_songs_for_edit(
 		self,
 		songIds: Iterable[int],
 		user: AccountInfo,
 	) -> Iterator[SongEditInfo]:
-		rulePathTree = self.path_rule_service.get_rule_path_tree(user)
-		query = self.__get_query_for_songs_for_edit__(songIds)
-		records = self.conn.execute(query).mappings()
-		currentSongRow = None
-		artists: set[ArtistInfo] = set()
-		stations: set[StationInfo] = set()
-		primaryArtist: Optional[ArtistInfo] = None
-		for row in records:
-			if not currentSongRow:
-				currentSongRow = row
-			elif row["id"] != currentSongRow["id"]:
-				songDict = self._prepare_song_row_for_model(currentSongRow)
-				rules = [*rulePathTree.valuesFlat(songDict["path"])]
-				yield SongEditInfo(**songDict,
-					primaryartist=primaryArtist,
-					artists=list(artists),
-					stations=list(stations),
-					rules=rules
-				)
-				currentSongRow = row
-				artists =  set()
-				stations = set()
-				primaryArtist = None
-			if row[sgar_isPrimaryArtist]:
-				primaryArtist = ArtistInfo(
-					id=row["artist.id"],
-					name=row["artist.name"],
-					owner=OwnerInfo(
-						id=row["artist.ownerid"],
-						username=row["artist.ownername"],
-						displayname=row["artist.ownerdisplayname"]
-					)
-				)
-			elif row["artist.id"]:
-				artists.add(ArtistInfo(
-						id=row["artist.id"],
-						name=row["artist.name"],
-						owner=OwnerInfo(
-							id=row["artist.ownerid"],
-							username=row["artist.ownername"],
-							displayname=row["artist.ownerdisplayname"]
-						)
-					)
-				)
-			if row["station.id"]:
-				stations.add(StationInfo(
-					id=row["station.id"],
-					name=row["station.name"],
-					displayname=row["station.displayname"],
-					owner=OwnerInfo(
-						id=row["station.ownerid"],
-						username=row["station.ownername"],
-						displayname=row["station.ownerdisplayname"]
-					),
-					requestsecuritylevel=row["station.requestsecuritylevel"],
-					viewsecuritylevel=row["station.viewsecuritylevel"]
-				))
-		if currentSongRow:
-			songDict = self._prepare_song_row_for_model(currentSongRow)
-			rules = [*rulePathTree.valuesFlat(
-				normalize_opening_slash(cast(str, songDict["path"]))
-			)]
-			yield SongEditInfo(**songDict,
-					primaryartist=primaryArtist,
-					artists=sorted(artists, key=lambda a: a.id if a else 0),
-					stations=sorted(stations, key=lambda t: t.id if t else 0),
-					rules=rules
-				)
+		yield from self.get_all_songs(songIds=songIds, user=user)
+
+
+	def update_track_nums(self, tracklistings: dict[int, TrackListing]):
+		for id, listing in tracklistings.items():
+			stmt = update(songs_tbl)\
+				.values(tracknum = listing.tracknum)\
+				.where(sg_pk == id)
+			self.conn.execute(stmt)
+
 
 	def save_songs(
 		self,
 		ids: Iterable[int],
-		songInfo: SongAboutInfo,
+		songInfo: ChangeTrackedSongInfo,
 		user: AccountInfo
 	) -> Iterator[SongEditInfo]:
 		if not ids:
@@ -513,6 +284,7 @@ class SongInfoService:
 		songInfoDict.pop("stations", None)
 		songInfoDict.pop("covers", None)
 		songInfoDict.pop("touched", None)
+		songInfoDict.pop("trackinfo", None)
 		songInfoDict["albumfk"] = songInfo.album.id if songInfo.album else None
 		songInfoDict["lastmodifiedbyuserfk"] = user.id
 		songInfoDict["lastmodifiedtimestamp"] = self.get_datetime().timestamp()
@@ -520,12 +292,15 @@ class SongInfoService:
 			songInfo.touched.add("albumfk")
 		stmt = update(songs_tbl).values(
 			**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
-		).where(sg_pk.in_(ids))
+		)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(sg_pk.in_(ids))
 		self.conn.execute(stmt)
 		if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
 			self.song_artist_service.link_songs_with_artists(
 				chain(
-					(SongArtistTuple(sid, a.id) for a in songInfo.artists or []
+					(SongArtistTuple(sid, a.id if a else None) for a 
+						in songInfo.artists or [None] * len(ids)
 						for sid in ids
 					) if "artists" in songInfo.touched else (),
 					#we can't use allArtists here bc we need the primaryartist selection
@@ -535,16 +310,14 @@ class SongInfoService:
 				),
 				user.id
 			)
-			if not [*songInfo.allArtists]:
-				self.song_artist_service.remove_songs_for_artists(songIds=ids)
 		if "stations" in songInfo.touched:
-			self.link_songs_with_stations(
-				(StationSongTuple(sid, t.id)
-					for t in (songInfo.stations or []) for sid in ids),
+			self.stations_songs_service.link_songs_with_stations(
+				(StationSongTuple(sid, t.id if t else None) 
+					for t in (songInfo.stations or [None] * len(ids)) for sid in ids),
 				user.id
 			)
-			if not songInfo.stations:
-				self.remove_songs_for_stations(songIds=ids)
+		if "trackinfo" in songInfo.touched:
+			self.update_track_nums(songInfo.trackinfo)
 		self.conn.commit()
 		if len(ids) < 2:
 			yield from self.get_songs_for_edit(ids, user)
@@ -552,6 +325,7 @@ class SongInfoService:
 			fetched = self.get_songs_for_multi_edit(ids, user)
 			if fetched:
 				yield fetched
+
 
 	def get_songs_for_multi_edit(
 		self,
@@ -564,6 +338,7 @@ class SongInfoService:
 		touched = {f for f in SongAboutInfo.model_fields }
 		removedFields: set[str] = set()
 		rules = None
+		trackInfo: dict[int, TrackListing] = {}
 		for songInfo in self.get_songs_for_edit(songIds, user):
 			if rules is None: #empty set means no permissions. Don't overwrite
 				rules = set(songInfo.rules)
@@ -571,6 +346,11 @@ class SongInfoService:
 				# only keep the set of rules that are common to
 				# each song
 				rules = rules & set(songInfo.rules)
+			trackInfo[songInfo.id] = TrackListing(
+				name=songInfo.name,
+				tracknum=songInfo.tracknum,
+				track=songInfo.track
+			) 
 			songInfoDict = songInfo.model_dump()
 			if not commonSongInfo:
 				commonSongInfo = songInfoDict
@@ -584,16 +364,178 @@ class SongInfoService:
 			removedFields.clear()
 		if commonSongInfo:
 			commonSongInfo["id"] = 0
+			commonSongInfo["name"] = ""
 			commonSongInfo["path"] = ""
-			del commonSongInfo["rules"]
+			commonSongInfo["internalpath"] = ""
+			commonSongInfo["rules"] = list(rules or [])
+			commonSongInfo["touched"] = touched
+			commonSongInfo["trackinfo"] = trackInfo
 			return SongEditInfo(
-				**commonSongInfo,
-				touched=touched,
-				rules=list(rules or [])
+				**commonSongInfo
 			)
 		else:
-			return SongEditInfo(id=0, path="", touched=touched)
+			return SongEditInfo(
+				id=0,
+				name="Missing",
+				path="", 
+				internalpath="",
+				touched=touched
+			)
 
 
+	def __attach_catalogue_joins__(
+		self,
+		query: Select[Any],
+		stationId: Optional[int]=None,
+		song: str = "",
+		songIds: Optional[Iterable[int]]=None,
+		album: str = "",
+		albumId: Optional[int]=None,
+		artist: str = "",
+		artistId: Optional[int]=None
+	) -> Any:
+
+
+		lsong = clean_search_term_for_like(song)
+		lalbum = clean_search_term_for_like(album)
+		lartist = clean_search_term_for_like(artist)
+			
+
+		if stationId:
+			query = query.where(st_pk == stationId)
+
+		if lsong:
+			query = query.where(sg_name.like(f"%{lsong}%"))
+
+		if lalbum:
+			query = query.where(ab_name.like(f"%{lalbum}%"))
+
+		if albumId:
+			query = query.where(ab_pk == albumId)
+
+		if lartist:
+			query = query.where(ar_name.like(f"%{lartist}%"))
+
+		if artistId:
+			query = query.where(ar_pk == artistId)
+
+		if songIds:
+			query = query.where(sg_pk.in_(songIds))
+
+		if stationId:
+			return query.order_by(
+				stsg_lastmodifiedtimestamp.desc(),
+				ar_name
+			)
+		else:
+			return query.order_by(
+				sg_pk
+			)
+
+
+	def get_all_songs(
+		self,
+		stationId: Optional[int]=None,
+		page: int = 0,
+		song: str = "",
+		songIds: Optional[Iterable[int]]=None,
+		album: str = "",
+		albumId: Optional[int]=None,
+		artist: str = "",
+		artistId: Optional[int]=None,
+		limit: Optional[int]=None,
+		user: Optional[AccountInfo]=None
+	) -> Iterator[SongEditInfo]:
+		offset = page * limit if limit else 0
+		pathRuleTree = None
+		if user:
+			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+
+		query = self.__attach_catalogue_joins__(
+			self.__get_query_for_songs_for_edit__(),
+			stationId,
+			song,
+			songIds,
+			album,
+			albumId,
+			artist,
+			artistId
+		)
+		query = query\
+			.offset(offset)
+		records = self.conn.execute(query).mappings()
+
+
+		for e in (
+			d[1] for d in enumerate(PathDict.prefix_merge_collect(
+				(
+					PathDict(dict(row), omitNulls=True) 
+					for row in records
+				),
+				"id",
+				"artists",
+				"stations"
+			)) if limit is None or d[0] < limit
+		):
+			rules = []
+			if pathRuleTree:
+				rules = list(pathRuleTree.valuesFlat(
+					normalize_opening_slash(cast(str, e["path"])))
+				)
+			songResult = SongEditInfo(
+				**e,
+				rules=rules
+			)
+			if songResult.artists:
+				primaryArtistMatch = next(
+					(i for i in 
+						enumerate(songResult.artists) if i[1].isprimaryartist
+					), 
+					None
+				)
+
+				if primaryArtistMatch:
+					songResult.primaryartist = primaryArtistMatch[1]
+
+				songResult.artists = sorted(
+					(a for a in songResult.artists if not a.isprimaryartist),
+					key=lambda a: a.name
+				)
+			songResult.stations = sorted(
+				songResult.stations or [],
+				key=lambda s: s.name
+			)
+			
+			yield songResult
+
+
+	def get_fullsongs_page(
+		self,
+		stationId: Optional[int]=None,
+		page: int = 0,
+		song: str = "",
+		album: str = "",
+		artist: str = "",
+		limit: Optional[int]=None,
+		user: Optional[AccountInfo]=None
+	) -> Tuple[Iterator[SongEditInfo], int]:
+		
+		countQuery = select(func.count(sg_pk))
+
+		if stationId:
+			countQuery = countQuery\
+				.join(stations_songs_tbl, stsg_songFk == sg_pk)\
+				.where(stsg_stationFk == stationId)
+		count = self.conn.execute(countQuery).scalar() or 0
+
+		return self.get_all_songs(
+			stationId=stationId,
+			page=page,
+			song=song,
+			album=album,
+			artist=artist,
+			limit=limit,
+			user=user
+		), count
 
 

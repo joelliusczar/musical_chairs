@@ -15,6 +15,7 @@ import {
 	StationInfo,
 	RequiredStationParams,
 } from "../../Types/station_types";
+import { StationTypes } from "../../constants";
 
 type StationRouteSelectProps = {
 	getPageUrl: (
@@ -22,12 +23,23 @@ type StationRouteSelectProps = {
 		currentLocation: string
 	) => string,
 	onChange?: (s: StationInfo | null) => void,
-	unrendered?: boolean
+	unrendered?: boolean,
+	stationTypes?: number[],
 };
 
 export const StationRouteSelect = (props: StationRouteSelectProps) => {
 
-	const { getPageUrl, onChange, unrendered } = props;
+	const { 
+		getPageUrl,
+		onChange,
+		unrendered,
+		stationTypes = [
+			StationTypes.SONGS_ONLY,
+			StationTypes.ALBUMS_ONLY,
+			StationTypes.PLAYLISTS_ONLY,
+			StationTypes.ALBUMS_AND_PLAYLISTS,
+		],
+	} = props;
 	const pathVars = useParams();
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -38,7 +50,9 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 	} = useStationData();
 
 
-	const stations = contextStations;
+	const stations = contextStations.filter(s => 
+		stationTypes.some(t => t === s.typeid)
+	);
 
 	const pathToStation = useCallback((path: string): StationInfo | null => {
 		const split = path.split("/");

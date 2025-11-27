@@ -1,7 +1,7 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Dialog } from "@mui/material";
-import { LoginForm } from "./AccountsLoginForm";
-import PropTypes from "prop-types";
+const LoginForm = lazy(() => import("./AccountsLoginForm"));;
+
 
 type LoginModalProps = {
 	open: boolean
@@ -25,13 +25,9 @@ export function LoginModal(props: LoginModalProps) {
 
 	return (
 		<Dialog open={open} onClose={handleCancel} >
-			<LoginForm afterSubmit={closeModal} onCancel={handleCancel}/>
+			<Suspense fallback={<div>Loading...</div>} >
+				<LoginForm afterSubmit={closeModal} onCancel={handleCancel}/>
+			</Suspense>
 		</Dialog>
 	);
 }
-
-LoginModal.propTypes = {
-	open: PropTypes.bool.isRequired,
-	setOpen: PropTypes.func.isRequired,
-	onCancel: PropTypes.func,
-};

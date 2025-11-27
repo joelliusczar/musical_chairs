@@ -3,7 +3,6 @@
 from typing import (
 	Any,
 	Callable,
-	List,
 	Optional,
 	Iterator,
 	cast,
@@ -22,6 +21,7 @@ from sqlalchemy import (
 	literal,
 	union_all,
 	true,
+	String
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import RowMapping
@@ -31,6 +31,7 @@ from .accounts_service import AccountsService
 from .song_info_service import SongInfoService
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
+from .user_actions_history_service import UserActionsHistoryService
 from musical_chairs_libs.tables import (
 	songs,
 	stations,
@@ -42,11 +43,12 @@ from musical_chairs_libs.tables import (
 	artists,
 	song_artist,
 	sgar_pk, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
-	sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath,
-	st_pk, st_name,
+	sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath, sg_deletedTimstamp,
+	sg_track,
+	stations as stations_tbl, st_pk, st_typeid,
 	ar_pk, ar_name,
 	ab_pk, ab_name,
-	last_played, lp_songFk, lp_stationFk, lp_timestamp
+	last_played, lp_songFk, lp_stationFk, lp_timestamp,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
@@ -57,8 +59,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	UserRoleDef,
 	LastPlayedItem,
-	SqlScripts
+	TrackingInfo
 )
+from musical_chairs_libs.file_reference import SqlScripts
+from musical_chairs_libs.protocols import SongPopper
+from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 )
@@ -67,7 +72,7 @@ from numpy.random import (
 
 
 def choice(
-	items: List[Any],
+	items: Sequence[Any],
 	sampleSize: int
 ) -> Collection[Any]:
 	aSize = len(items)
@@ -76,7 +81,7 @@ def choice(
 	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
 	return numpy_choice(items, sampleSize, p = cast(Any,weights), replace=False).tolist()
 
-class QueueService:
+class QueueService(SongPopper):
 
 	def __init__(
 		self,
@@ -84,8 +89,11 @@ class QueueService:
 		stationService: Optional[StationService]=None,
 		accountService: Optional[AccountsService]=None,
 		songInfoService: Optional[SongInfoService]=None,
-		choiceSelector: Optional[Callable[[List[Any], int], Collection[Any]]]=None,
+		choiceSelector: Optional[
+			Callable[[Sequence[Any], int], Collection[Any]]
+		]=None,
 		pathRuleService: Optional[PathRuleService]=None,
+		userActionsHistoryService: Optional[UserActionsHistoryService]=None,
 	) -> None:
 			if not conn:
 				raise RuntimeError("No connection provided")
@@ -99,6 +107,8 @@ class QueueService:
 				choiceSelector = choice
 			if not pathRuleService:
 				pathRuleService = PathRuleService(conn)
+			if not userActionsHistoryService:
+				userActionsHistoryService = UserActionsHistoryService(conn)
 			self.conn = conn
 			self.station_service = stationService
 			self.account_service = accountService
@@ -106,7 +116,9 @@ class QueueService:
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.path_rule_service = pathRuleService
+			self.user_actions_history_service = userActionsHistoryService
 			self.queue_size = 50
+			self.album_queue_size = 3
 
 	def get_all_station_song_possibilities(
 		self, stationPk: int
@@ -124,6 +136,7 @@ class QueueService:
 				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
 				isouter=True
 			)\
+			.where(sg_deletedTimstamp.is_(None))\
 			.where(st_pk == stationPk) \
 			.group_by(sg_pk, sg_path) \
 			.order_by(
@@ -135,6 +148,7 @@ class QueueService:
 
 		rows = self.conn.execute(query).mappings().fetchall()
 		return rows
+
 
 	def get_random_songIds(
 		self,
@@ -149,18 +163,16 @@ class QueueService:
 		selection = self.choice(songIds, sampleSize)
 		return selection
 
-	def fil_up_queue(self, stationId: int, queueSize: int) -> None:
-		queryQueueSize = select(func.count(1)).select_from(station_queue)\
-			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
-			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
-			.where(uah_timestamp.is_(None))\
-			.where(q_stationFk == stationId)
-		countRes = self.conn.execute(queryQueueSize).scalar()
-		count = countRes if countRes else 0
-		deficitSize = queueSize - count
-		if deficitSize < 1:
-			return
-		songIds = self.get_random_songIds(stationId, deficitSize)
+
+	def queue_insert_songs(
+		self,
+		songIds: Collection[int],
+		stationId: int,
+		userId: Optional[int]=None,
+		trackingInfo: Optional[TrackingInfo]=None
+	):
+		userAgentId = self.user_actions_history_service\
+			.add_user_agent(trackingInfo.userAgent) if trackingInfo else None
 		timestamp = self.get_datetime().timestamp()
 		insertedIds: list[int] = []
 		timestampOffset = 0.0
@@ -169,6 +181,11 @@ class QueueService:
 			insertedId = self.conn.execute(historyInsert, {
 					"queuedtimestamp": timestamp + timestampOffset,
 					"action": UserRoleDef.STATION_REQUEST.value,
+					"userfk": userId,
+					"ipv4address": trackingInfo.ipv4Address if trackingInfo else None,
+					"ipv6address": trackingInfo.ipv6Address if trackingInfo else None,
+					"useragentsfk": userAgentId
+
 				}).inserted_primary_key
 			timestampOffset += .1
 			if insertedId:
@@ -181,12 +198,28 @@ class QueueService:
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
 
-	def move_from_queue_to_history(
+
+	def fil_up_queue(self, stationId: int, queueSize: int) -> None:
+		queryQueueSize = select(func.count(1)).select_from(station_queue)\
+			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
+			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
+			.where(uah_timestamp.is_(None))\
+			.where(q_stationFk == stationId)
+		countRes = self.conn.execute(queryQueueSize).scalar()
+		count = countRes if countRes else 0
+		deficitSize = queueSize - count
+		if deficitSize < 1:
+			return
+		songIds = self.get_random_songIds(stationId, deficitSize)
+		self.queue_insert_songs(songIds, stationId)
+
+
+	def __move_from_queue_to_history__(
 		self,
 		stationId: int,
 		songId: int,
 		queueTimestamp: float
-	) -> bool:
+	) -> int:
 		query = select(uah_pk)\
 			.join(station_queue, uah_pk == q_userActionHistoryFk)\
 			.where(q_stationFk == stationId)\
@@ -201,14 +234,32 @@ class QueueService:
 		histUpdateStmt = update(user_action_history_tbl) \
 			.values(timestamp = currentTime) \
 			.where(uah_pk == userActionId)
-		updCount = self.conn.execute(histUpdateStmt).rowcount
+		return self.conn.execute(histUpdateStmt).rowcount
+
+	def move_from_queue_to_history(
+		self,
+		stationId: int,
+		songId: int,
+		queueTimestamp: float
+	) -> bool:
+		updCount = self.__move_from_queue_to_history__(
+			stationId,
+			songId,
+			queueTimestamp
+		)
 		self.fil_up_queue(stationId, self.queue_size)
 		self.conn.commit()
 		return updCount > 0
 
-	def is_queue_empty(self, stationId: int, offset: int = 0) -> bool:
+
+	def is_queue_empty(
+		self,
+		stationId: int,
+		offset: int = 0
+	) -> bool:
 		res = self.queue_count(stationId)
 		return res < (offset + 1)
+
 
 	def get_queue_for_station(
 		self,
@@ -231,6 +282,7 @@ class QueueService:
 				sg_path,
 				sg_internalpath,
 				sg_name,
+				sg_track,
 				ab_name.label("album"),
 				ar_name.label("artist"),
 				uah_queuedTimestamp,
@@ -243,6 +295,7 @@ class QueueService:
 				.join(artists, sgar_artistFk == ar_pk, isouter=True)\
 				.join(subq, subq.c.pk == coalesce(sgar_pk, -1))\
 				.where(q_stationFk == stationId)\
+				.where(sg_deletedTimstamp.is_(None))\
 				.where(uah_timestamp.is_(None))\
 				.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
 				.order_by(uah_queuedTimestamp)\
@@ -269,6 +322,7 @@ class QueueService:
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
 
+
 	def __get_skipped__(
 		self,
 		stationId: int,
@@ -293,14 +347,17 @@ class QueueService:
 				queuedtimestamp=row[1]
 			)
 
+
 	def pop_next_queued(
 		self,
 		stationId: int,
-		loaded: Optional[Set[SongListDisplayItem]]=None
+		loaded: Optional[Set[SongListDisplayItem]]=None,
 	) -> SongListDisplayItem:
 		if not stationId:
 			raise ValueError("Station Id must be provided")
+
 		offset = len(loaded) if loaded else 0
+
 		if self.is_queue_empty(stationId, offset):
 			self.fil_up_queue(stationId, self.queue_size + 1 - offset)
 			self.conn.commit()
@@ -318,64 +375,64 @@ class QueueService:
 
 		raise RuntimeError("No unskipped songs available.")
 
+
 	def __add_song_to_queue__(
 		self,
 		songId: int,
 		stationId: int,
-		userId: int
+		userId: int,
+		trackingInfo: TrackingInfo
 	) -> int:
-		queuedtimestamp = self.get_datetime().timestamp()
-
-		stmt = insert(user_action_history_tbl).values(
-			queuedtimestamp = queuedtimestamp,
-			userfk = userId,
-			action = UserRoleDef.STATION_REQUEST.value,
+		insertedPk = self.user_actions_history_service.add_user_action_history_item(
+			userId,
+			UserRoleDef.STATION_REQUEST.value,
+			trackingInfo
 		)
-		insertedPk = self.conn.execute(stmt).inserted_primary_key
+
 		if insertedPk:
 			stmt = insert(station_queue).values(
 				stationfk = stationId,
 				songfk = songId,
-				useractionhistoryfk = insertedPk[0]
+				useractionhistoryfk = insertedPk
 			)
 			return self.conn.execute(stmt).rowcount
 		else:
 			return 0
 
+
 	def add_song_to_queue(self,
 		songId: int,
 		station: StationInfo,
-		user: AccountInfo
+		user: AccountInfo,
+		trackingInfo: TrackingInfo
 	):
 		songInfo = self.song_info_service.song_info(songId)
 		songName = songInfo.name if songInfo else "Song"
 		if station and\
-			self.station_service.can_song_be_queued_to_station(
+			self.can_song_be_queued_to_station(
 				songId,
 				station.id
 			):
-			self.__add_song_to_queue__(songId, station.id, user.id)
+			self.__add_song_to_queue__(songId, station.id, user.id, trackingInfo)
 			self.conn.commit()
 			return
 		raise LookupError(f"{songName} cannot be added to {station.name}")
 
+
 	def queue_count(
 		self,
-		stationId: Optional[int]=None,
-		stationName: Optional[str]=None
+		stationId: int,
 	) -> int:
-		query = select(func.count(1)).select_from(station_queue)\
-			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)
-		if stationId:
-			query = query.where(q_stationFk == stationId)
-		elif stationName:
-			query.join(stations, st_pk == q_stationFk)\
-				.where(st_name == stationName)
-		else:
-			raise ValueError("Either stationName or id must be provided")
-		query = query.where(uah_timestamp.is_(None))
+		query = select(func.count(1))\
+				.select_from(station_queue)\
+				.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
+				.join(songs, sg_pk == q_songFk)\
+				.where(q_stationFk == stationId)\
+				.where(sg_deletedTimstamp.is_(None))\
+				.where(uah_timestamp.is_(None))
 		count = self.conn.execute(query).scalar() or 0
 		return count
+
 
 	def get_now_playing_and_queue(
 		self,
@@ -408,6 +465,7 @@ class QueueService:
 			stationrules=[]
 		)
 
+
 	def __mark_queued_song_skipped__(self,
 		songId: int,
 		queuedTimestamp: float,
@@ -436,6 +494,7 @@ class QueueService:
 
 		return updateCount == 1
 
+
 	def remove_song_from_queue(self,
 		songId: int,
 		queuedTimestamp: float,
@@ -450,6 +509,7 @@ class QueueService:
 		self.fil_up_queue(stationId, self.queue_size)
 		self.conn.commit()
 		return self.get_now_playing_and_queue(stationId)
+
 
 	def get_history_for_station(
 		self,
@@ -468,7 +528,7 @@ class QueueService:
 			sg_pk.label("id"),
 			uah_queuedTimestamp.label("queuedtimestamp"),
 			uah_timestamp.label("playedtimestamp"),
-			coalesce[str](sg_name, "").label("name"),
+			coalesce[Optional[String]](sg_name, "").label("name"),
 			ab_name.label("album"),
 			ar_name.label("artist"),
 			sg_path.label("path"),
@@ -502,6 +562,7 @@ class QueueService:
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
 
+
 	def get_old_last_played(self, stationid: int) -> Iterator[Tuple[int, float]]:
 		query = select(
 			lp_songFk,
@@ -510,13 +571,14 @@ class QueueService:
 		records = self.conn.execute(query)
 		yield from ((row[0], row[1]) for row in records)
 
+
 	def add_to_last_played(
 		self,
 		stationid: int,
 		addura: Iterable[LastPlayedItem]
 	) -> int:
 		lastPlayedInsert = insert(last_played)
-		values = [
+		values: list[dict[str, Any]] = [
 			{
 				"stationfk": stationid,
 				"songfk": e.songid,
@@ -525,6 +587,7 @@ class QueueService:
 		if not values:
 			return 0
 		return self.conn.execute(lastPlayedInsert, values).rowcount
+
 
 	def update_last_played_timestamps(
 		self,
@@ -539,6 +602,7 @@ class QueueService:
 				.where(lp_songFk == item.songid)
 			updateCount += self.conn.execute(stmt).rowcount
 		return updateCount
+
 
 	def trim_recently_played(
 		self,
@@ -593,7 +657,47 @@ class QueueService:
 		return (addedCount, updatedCount, deletedCount)
 
 
+	def can_song_be_queued_to_station(self, songId: int, stationId: int) -> bool:
+		query = select(func.count(1)).select_from(stations_songs_tbl)\
+			.join(songs, stsg_songFk == sg_pk)\
+			.join(stations_tbl, st_pk == stsg_stationFk)\
+			.where(st_typeid == StationTypes.SONGS_ONLY.value)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(stsg_songFk == songId)\
+			.where(stsg_stationFk == stationId)
+		countRes = self.conn.execute(query).scalar()
+		return True if countRes and countRes > 0 else False
+	
+	def get_song_catalogue(
+		self,
+		stationId: Optional[int]=None,
+		page: int = 0,
+		song: str = "",
+		album: str = "",
+		artist: str = "",
+		limit: Optional[int]=None,
+		user: Optional[AccountInfo]=None
+	) -> Tuple[list[SongListDisplayItem], int]:
+		songs, count = self.song_info_service.get_fullsongs_page(
+			stationId,
+			page,
+			song,
+			album,
+			artist,
+			limit,
+			user
+		)
 
-
-if __name__ == "__main__":
-	pass
+		return [SongListDisplayItem(
+			id=s.id,
+			name=s.name or "Missing Name",
+			queuedtimestamp=0,
+			album=s.album.name if s.album else "No Album",
+			artist=s.primaryartist.name 
+				if s.primaryartist 
+				else next((a.name for a in s.artists or []), None),
+			path=s.path,
+			internalpath=s.internalpath,
+			track=s.track,
+			rules=s.rules
+		) for s in songs], count

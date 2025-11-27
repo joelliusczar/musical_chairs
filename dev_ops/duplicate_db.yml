@@ -1,0 +1,54 @@
+# ---
+# - hosts: all
+#   gather_facts: false
+#   tasks:
+#     - name: Set src and dest host groups
+#       command: 'ansible-inventory -i {{db_copy_inventory}} --list'
+#       register: inventory_result
+#       delegate_to: localhost
+#     - name: Transform inventory_result
+#       set_fact:
+#         loaded_inventory: '{{inventory_result.stdout|from_json}}'
+#     - name: Add db copy source hosts
+#       add_host:
+#         hostname: '{{item}}'
+#         ansible_port: '{{loaded_inventory["_meta"]["hostvars"][item]["ansible_port"]}}'
+#         ansible_user: '{{loaded_inventory["_meta"]["hostvars"][item]["ansible_user"]}}'
+#         groups: src_server
+#       loop:
+#         '{{loaded_inventory["src_server"]["hosts"]}}'
+#       when: ansible_loop.first
+#       loop_control:
+#         extended: true
+#     - name: Add db copy destination hosts
+#       add_host:
+#         hostname: '{{inventory_hostname}}'
+#         ansible_port: '{{ansible_port}}'
+#         ansible_user: '{{ansible_user}}'
+#         groups: dest_servers
+
+
+
+- hosts: all
+
+  vars_files:
+    - ../vars/vault.yml
+    - ../vars/globals.yml
+    - ../vars/os_paths.yml
+  
+  tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+      - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
+    - name: Copy data from a source server
+      include_role:
+        name: mysql-data-copy
+      vars:
+        seed_inventory_file: '{{src_server_inventory_file}}'
+        app_name: '{{app_details["name"]}}'
+        app_user: '{{domain["user"]}}'
+        pymysql_pkg: '{{packages["pymysql"]}}'
+        db_name: '{{app_details["db"]}}'
+        db_user: '{{app_details["db_owner"]}}'
+        db_pass: '{{keys["db_pass_owner"]}}'
+

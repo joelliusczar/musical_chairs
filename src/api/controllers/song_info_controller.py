@@ -6,25 +6,27 @@ from fastapi import (
 	HTTPException,
 	status,
 	Query,
-	UploadFile
+	UploadFile,
 )
+from fastapi.responses import StreamingResponse
 from api_dependencies import (
 	song_info_service,
 	song_file_service,
 	get_path_rule_loaded_current_user,
 	get_multi_path_user,
-	get_user_with_simple_scopes,
 	check_optional_path_for_current_user,
 	get_current_user_simple,
 	get_from_query_subject_user,
 	get_prefix_if_owner,
 	path_rule_service,
-	dl_url_file_service,
+	file_service,
 	album_service,
 	artist_service,
 	get_optional_prefix,
 	get_prefix,
-	check_directory_transfer
+	check_directory_transfer,
+	get_page_num,
+	check_back_key
 )
 
 from musical_chairs_libs.services import (
@@ -38,7 +40,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongTreeNode,
 	ListData,
 	AlbumInfo,
-	AlbumCreationInfo,
 	ArtistInfo,
 	AccountInfo,
 	UserRoleDef,
@@ -119,16 +120,31 @@ def get_song_for_edit(
 
 #not sure if this will actually be used anywhere. It's mostly a testing
 #convenience
-@router.get("/songs/list/")
+@router.get("/songs/list/", dependencies=[Depends(check_back_key)])
 def get_songs_list(
-	itemIds: list[int] = Query(default=[]),
+	limit: Optional[int] = None,
+	song: str = "",
+	album: str = "",
+	albumId: Optional[int]=None,
+	artist: str = "",
+	artistId: Optional[int]=None,
+	page: int = Depends(get_page_num),
+	user: AccountInfo = Depends(get_current_user_simple),
+	itemIds: Optional[list[int]] = Query(default=None),
 	songInfoService: SongInfoService = Depends(song_info_service),
-	user: AccountInfo = Security(
-		get_multi_path_user,
-		scopes=[UserRoleDef.PATH_VIEW.value]
-	)
 ) -> list[SongEditInfo]:
-	return list(songInfoService.get_songs_for_edit(itemIds, user))
+	return list(songInfoService.get_all_songs(
+		stationId=None,
+		page=page,
+		song=song,
+		songIds=itemIds,
+		album=album,
+		albumId=albumId,
+		artist=artist,
+		artistId=artistId,
+		limit=limit,
+		user=user
+	))
 
 @router.get("/songs/multi/")
 def get_songs_for_multi_edit(
@@ -160,13 +176,13 @@ def get_songs_for_multi_edit(
 def download_song(
 	id: int,
 	songFileService: SongFileService = Depends(song_file_service),
-	fileService: FileService = Depends(dl_url_file_service)
-) -> str:
+	fileService: FileService = Depends(file_service)
+) -> StreamingResponse:
 	path = next(songFileService.get_internal_song_paths(id), None)
 	if path:
-		url = fileService.download_url(path)
-		if url:
-			return url
+		data = fileService.open_song(path)
+		if data:
+			return StreamingResponse(chunk for chunk in data)
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail=[build_error_obj(f"File not found for {id}", "song file")]
@@ -228,29 +244,6 @@ def get_all_artists(
 ) -> ListData[ArtistInfo]:
 	return ListData(items=list(artistService.get_artists(userId=user.id)))
 
-@router.post("/artists")
-def create_artist(
-	name: str,
-	artistService: ArtistService = Depends(artist_service),
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.PATH_EDIT.value]
-	)
-) -> ArtistInfo:
-	artistInfo = artistService.save_artist(user, name)
-	return artistInfo
-
-@router.post("/albums")
-def create_album(
-	album: AlbumCreationInfo,
-	albumService: AlbumService = Depends(album_service),
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.PATH_EDIT.value]
-	)
-) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, user=user)
-	return albumInfo
 
 @router.get("/albums/list")
 def get_all_albums(

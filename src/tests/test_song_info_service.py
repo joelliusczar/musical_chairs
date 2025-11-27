@@ -1,10 +1,14 @@
-from musical_chairs_libs.services import SongInfoService
+from musical_chairs_libs.services import (
+	SongInfoService,
+	StationsSongsService
+)
 from .constant_fixtures_for_test import *
 from .common_fixtures import(
 	fixture_song_info_service as fixture_song_info_service,
 	fixture_artist_service as fixture_artist_service,
 	fixture_album_service as fixture_album_service,
 	fixture_station_service as fixture_station_service,
+	fixture_stations_songs_service as fixture_stations_songs_service,
 )
 from .common_fixtures import *
 from .mocks.db_population import\
@@ -36,6 +40,34 @@ def test_add_artists(fixture_artist_service: ArtistService):
 	assert pk == 6
 	pk = artistService.get_or_save_artist("hotel_artist")
 	assert pk == 8
+
+def test_change_song_tracknum(
+		fixture_song_info_service: SongInfoService,
+		fixture_account_service: AccountsService
+):
+		songInfoService = fixture_song_info_service
+		accountService = fixture_account_service
+
+		# Get a user for the test
+		user, _ = accountService.get_account_for_login("testUser_november")	# random user
+		assert user
+
+		# Fetch the song for editing
+		songInfo = next(songInfoService.get_songs_for_edit([84], user))
+		assert songInfo
+		assert songInfo.tracknum == 0
+
+		# Modify the trackNum
+		copy = songInfo.model_copy()
+		copy.tracknum = 5	# Change the trackNum to a new value
+
+		# Save the changes
+		afterSaved = next(songInfoService.save_songs([84], copy, user))
+		assert afterSaved.tracknum == 5	# Verify the trackNum was updated
+
+		# Refetch the song and verify the change persisted
+		refetched = next(songInfoService.get_songs_for_edit([84], user))
+		assert refetched.tracknum == 5
 
 def test_save_song_remove_1_artists(
 	fixture_song_info_service: SongInfoService,
@@ -305,9 +337,11 @@ def test_save_song_swap_station(
 	assert len(refetched.stations) == 1
 	assert refetched.stations[0].id == 25
 
-def test_get_song_stations_linked(fixture_song_info_service: SongInfoService):
-	songInfoService = fixture_song_info_service
-	result = list(songInfoService.get_station_songs(
+def test_get_song_stations_linked(
+	fixture_stations_songs_service: StationsSongsService
+):
+	stationsSongsService = fixture_stations_songs_service
+	result = list(stationsSongsService.get_station_songs(
 		songIds=43,
 		stationIds=1
 	))
@@ -315,7 +349,7 @@ def test_get_song_stations_linked(fixture_song_info_service: SongInfoService):
 	assert result[0].songid == 43
 	assert result[0].stationid == 1
 
-	result = sorted(songInfoService.get_station_songs(
+	result = sorted(stationsSongsService.get_station_songs(
 		songIds=[43, 1],
 		stationIds=[1, 2]
 	), key=lambda x: (x.songid, x.stationid))
@@ -329,7 +363,7 @@ def test_get_song_stations_linked(fixture_song_info_service: SongInfoService):
 	assert result[2].stationid == 2
 
 
-	result = sorted(songInfoService.get_station_songs(
+	result = sorted(stationsSongsService.get_station_songs(
 		songIds=[43, 1, 2],
 		stationIds=[1, 2]
 	), key=lambda x: (x.songid, x.stationid))
@@ -344,7 +378,7 @@ def test_get_song_stations_linked(fixture_song_info_service: SongInfoService):
 	assert result[3].songid == 43
 	assert result[3].stationid == 2
 
-	result = sorted(songInfoService.get_station_songs(
+	result = sorted(stationsSongsService.get_station_songs(
 		stationIds=[1, 3, 2],
 		songIds=[24, 43, 1, 2]
 	), key=lambda x: (x.songid, x.stationid))
@@ -364,10 +398,12 @@ def test_get_song_stations_linked(fixture_song_info_service: SongInfoService):
 	assert result[5].stationid == 3
 
 
-def test_get_song_stations_unlinked(fixture_song_info_service: SongInfoService):
-	songInfoService = fixture_song_info_service
+def test_get_song_stations_unlinked(
+		fixture_stations_songs_service: StationsSongsService
+	):
+	stationsSongsService = fixture_stations_songs_service
 
-	result = sorted(songInfoService.get_station_songs(
+	result = sorted(stationsSongsService.get_station_songs(
 		songIds=[43, 1, 2, 21],
 		stationIds=[1, 2, 3]
 	), key=lambda x: (x.songid, x.stationid))
@@ -387,10 +423,10 @@ def test_get_song_stations_unlinked(fixture_song_info_service: SongInfoService):
 	assert result[5].stationid == 3
 
 def test_get_song_stations_extra_filters(
-	fixture_song_info_service: SongInfoService
+	fixture_stations_songs_service: StationsSongsService
 ):
-	songInfoService = fixture_song_info_service
-	result = sorted(songInfoService.get_station_songs(
+	stationsSongsService = fixture_stations_songs_service
+	result = sorted(stationsSongsService.get_station_songs(
 		songIds=[1, 2, 24, 43],
 		stationIds=1
 	), key=lambda x: x.songid)
@@ -401,7 +437,7 @@ def test_get_song_stations_extra_filters(
 	assert result[1].songid == 43
 	assert result[1].stationid == 1
 
-	result = sorted(songInfoService.get_station_songs(
+	result = sorted(stationsSongsService.get_station_songs(
 		songIds=[43, 1, 2, 24, 32, 33],
 		stationIds=[1,4]
 	), key=lambda x: x.songid)
@@ -416,7 +452,7 @@ def test_get_song_stations_extra_filters(
 	assert result[3].songid == 43
 	assert result[3].stationid == 1
 
-	result = sorted(songInfoService.get_station_songs(
+	result = sorted(stationsSongsService.get_station_songs(
 		stationIds=[1,4],
 		songIds=43
 	), key=lambda x: x.songid)
@@ -425,7 +461,7 @@ def test_get_song_stations_extra_filters(
 	assert result[0].songid == 43
 	assert result[0].stationid == 1
 
-	result = sorted(songInfoService.get_station_songs(
+	result = sorted(stationsSongsService.get_station_songs(
 		stationIds=[1,4],
 		songIds=[43,32]
 	), key=lambda x: x.songid)
@@ -438,12 +474,12 @@ def test_get_song_stations_extra_filters(
 
 
 def test_get_song_stations_missing_ids(
-	fixture_song_info_service: SongInfoService
+	fixture_stations_songs_service: StationsSongsService
 ):
-	songInfoService = fixture_song_info_service
+	stationsSongsService = fixture_stations_songs_service
 	badStationId = len(get_initial_stations()) + 1
 
-	result = sorted(songInfoService.get_station_songs(
+	result = sorted(stationsSongsService.get_station_songs(
 		songIds=[43, 2, 1, 21, 33],
 		stationIds=[1, 2, 3, badStationId]
 	), key=lambda x: x.songid)
@@ -464,7 +500,7 @@ def test_get_song_stations_missing_ids(
 
 	badSongId = len(get_initial_songs()) + 1
 
-	result = sorted(songInfoService.get_station_songs(
+	result = sorted(stationsSongsService.get_station_songs(
 		songIds=[43, 1, 2, 21, badSongId],
 		stationIds=[1, 2, 3, badStationId]
 	), key=lambda x: x.songid)
@@ -484,22 +520,31 @@ def test_get_song_stations_missing_ids(
 	assert result[5].stationid == 3
 
 
-def test_remove_songs_for_stations(fixture_song_info_service: SongInfoService):
+def test_remove_songs_for_stations(
+	fixture_song_info_service: SongInfoService,
+	fixture_stations_songs_service: StationsSongsService
+):
 	songInfoService = fixture_song_info_service
+	stationsSongsService = fixture_stations_songs_service
 	songs = sorted(songInfoService.get_songIds(stationKey=3))
 	assert len(songs) == 11
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 34, 36, 43] == songs
-	result = songInfoService.remove_songs_for_stations([(43, 3),StationSongTuple(34, 3)]
+	result = stationsSongsService.remove_songs_for_stations(
+		[(43, 3),StationSongTuple(34, 3)]
 	)
 	assert result == 2
 	songs = sorted(songInfoService.get_songIds(stationKey=3))
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 36] == songs
 
-def test_link_songs_with_station(fixture_song_info_service: SongInfoService):
+def test_link_songs_with_station(
+	fixture_song_info_service: SongInfoService,
+	fixture_stations_songs_service: StationsSongsService
+):
 	songInfoService = fixture_song_info_service
+	stationsSongsService = fixture_stations_songs_service
 	songs = sorted(songInfoService.get_songIds(stationKey=7))
 	assert len(songs) == 0
-	songInfoService.link_songs_with_stations(
+	stationsSongsService.link_songs_with_stations(
 		[StationSongTuple(34, 7),StationSongTuple(43, 7)]
 	)
 	songs = sorted(songInfoService.get_songIds(stationKey=7))
@@ -507,13 +552,16 @@ def test_link_songs_with_station(fixture_song_info_service: SongInfoService):
 	assert songs[0] == 34
 	assert songs[1] == 43
 
+
 def test_link_songs_with_station_duplicates(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_stations_songs_service: StationsSongsService
 ):
 	songInfoService = fixture_song_info_service
+	stationsSongService = fixture_stations_songs_service
 	songs = list(songInfoService.get_songIds(stationKey=7))
 	assert len(songs) == 0
-	songInfoService.link_songs_with_stations(
+	stationsSongService.link_songs_with_stations(
 		[StationSongTuple(34, 7),StationSongTuple(43, 7), StationSongTuple(43, 7)]
 	)
 	songs = sorted(songInfoService.get_songIds(stationKey=7))
@@ -521,13 +569,16 @@ def test_link_songs_with_station_duplicates(
 	assert songs[0] == 34
 	assert songs[1] == 43
 
+
 def test_link_songs_with_station_nonexistent_songs(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_stations_songs_service: StationsSongsService
 ):
 	songInfoService = fixture_song_info_service
+	stationsSongService = fixture_stations_songs_service
 	initialSongs = get_initial_songs()
 	badId = max(s["pk"] for s in initialSongs) + 1
-	songInfoService.link_songs_with_stations(
+	stationsSongService.link_songs_with_stations(
 		[StationSongTuple(34, 7), StationSongTuple(43, 7), StationSongTuple(badId, 7)]
 	)
 	songs = sorted(songInfoService.get_songIds(stationKey=7))
@@ -537,22 +588,24 @@ def test_link_songs_with_station_nonexistent_songs(
 
 
 def test_link_songs_with_station_nonexistent_station(
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_stations_songs_service: StationsSongsService
 ):
 	songInfoService = fixture_song_info_service
+	stationsSongService = fixture_stations_songs_service
 	initialStations = get_initial_stations()
 	badId = len(initialStations) + 1
-	results = list(songInfoService\
+	results = list(stationsSongService\
 		.link_songs_with_stations([StationSongTuple(34, badId), StationSongTuple(43, badId)]))
 	assert len(results) == 0
 	songs = list(songInfoService.get_songIds(stationKey=badId))
 	assert len(songs) == 0
 
 def test_link_already_linked_songs_with_stations(
-	fixture_song_info_service: SongInfoService
+	fixture_stations_songs_service: StationsSongsService
 ):
-	songInfoService = fixture_song_info_service
-	results = list(songInfoService\
+	stationsSongService = fixture_stations_songs_service
+	results = list(stationsSongService\
 		.link_songs_with_stations([StationSongTuple(27, 3), StationSongTuple(20, 2)]))
 	assert len(results) == 2
 
@@ -610,7 +663,7 @@ def test_get_artists_for_songs(
 	assert songArtists
 	assert len(songArtists) == 5
 	artists = sorted(artistService.get_artists(
-			artistKeys=(sa.artistid for sa in songArtists)
+			artistKeys=(sa.artistid or 0 for sa in songArtists)
 	), key=lambda a: a.id or 0)
 
 	assert len(artists) == 5
@@ -626,7 +679,7 @@ def test_get_artists_for_songs(
 	assert len(songArtists) == 3
 
 	artists = sorted(artistService.get_artists(
-			artistKeys=(sa.artistid for sa in songArtists)
+			artistKeys=(sa.artistid or 0 for sa in songArtists)
 	), key=lambda a: a.id or 0)
 
 	assert artists and len(artists) == 3
@@ -862,3 +915,17 @@ def test_get_song_with_owner_info(
 	station1Owner = results.stations[1].owner
 	assert station1Owner
 	assert station1Owner.displayname == "julietDisplay"
+
+def test_get_all_songs(
+	fixture_song_info_service: SongInfoService
+):
+	songInfoService = fixture_song_info_service
+	songs = list(songInfoService.get_all_songs(limit=30))
+	assert songs
+
+def test_get_all_songs_songless_artist(
+	fixture_song_info_service: SongInfoService
+):
+	songInfoService = fixture_song_info_service
+	songs = list(songInfoService.get_all_songs(limit=30, artistId=28))
+	assert songs == []

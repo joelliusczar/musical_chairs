@@ -1,0 +1,21 @@
+---
+- hosts: all
+  ignore_unreachable: true
+  gather_facts: false
+
+  vars_files:
+    - vars/vault.yml
+    - vars/globals.yml
+
+
+  tasks:
+    - name: Modify server access
+      include_role:
+        name: harden
+      vars:
+        app_name: '{{app_details["name"]}}'
+        app_group: '{{domain["group"]}}'
+        app_user: '{{domain["user"]}}'
+        access_port: '{{domain["port"]}}'
+        server_user: '{{domain["server_user"]}}'
+

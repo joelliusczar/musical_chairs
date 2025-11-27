@@ -6,10 +6,10 @@ from fastapi import (
 	Request
 )
 from musical_chairs_libs.services import (
-	SongInfoService,
 	StationService,
 	ArtistService,
-	AlbumService
+	AlbumService,
+	StationsSongsService
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
@@ -22,12 +22,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_path_owner_roles
 )
 from api_dependencies import (
-	song_info_service,
 	station_service,
 	get_path_rule_loaded_current_user,
 	get_from_query_subject_user,
 	album_service,
 	artist_service,
+	stations_songs_service,
 )
 
 
@@ -72,18 +72,18 @@ def get_song_ids(request: Request) -> Iterable[int]:
 		)
 	return result
 
-def __validate_song_stations(
+def __validate_song_stations__(
 	song: ValidatedSongAboutInfo,
 	songIds: Iterable[int],
 	user: AccountInfo,
 	stationService: StationService,
-	songInfoService: SongInfoService,
+	stationsSongsService: StationsSongsService,
 ):
 	if not song.stations:
 		return
 	stationIds = {s.id for s in song.stations or []}
 	linkedStationIds = {s.stationid for s in \
-		songInfoService.get_station_songs(songIds=songIds)}
+		stationsSongsService.get_station_songs(songIds=songIds)}
 	permittedStations = {s.id for s in \
 			stationService.get_stations(
 			stationIds,
@@ -165,16 +165,16 @@ def extra_validated_song(
 	songIds: Iterable[int] = Depends(get_song_ids),
 	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
 	stationService: StationService = Depends(station_service),
-	songInfoService: SongInfoService = Depends(song_info_service),
+	stationsSongsService: StationsSongsService = Depends(stations_songs_service),
 	artistService: ArtistService = Depends(artist_service),
 	albumService: AlbumService = Depends(album_service)
 ) -> ValidatedSongAboutInfo:
-	__validate_song_stations(
+	__validate_song_stations__(
 		song,
 		songIds,
 		user,
 		stationService,
-		songInfoService
+		stationsSongsService
 	)
 	__validate_song_artists(song, user, artistService)
 	__validate_song_album(song, user, albumService)

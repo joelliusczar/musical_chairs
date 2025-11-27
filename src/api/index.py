@@ -13,7 +13,9 @@ from fastapi.requests import Request
 from controllers import (
 	stations_controller,
 	accounts_controller,
-	song_info_controller
+	song_info_controller,
+	albums_controller,
+	artists_controller
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
@@ -34,13 +36,25 @@ app.add_middleware(
 	CORSMiddleware,
 	allow_origins=cors_allowed_origins,
 	allow_methods=["*"],
-	allow_headers=["Authorization", "Cookie"],
+	allow_headers=[
+		"Authorization",
+		"Cookie",
+		"Forwarded",
+		"True-Client-Ip",
+		"Via",
+		"X-Client-IP",
+		"X-Forwarded-For",
+		"X-Real-IP"
+	],
 	expose_headers=["x-authexpired"],
 	allow_credentials=True
 )
 app.include_router(stations_controller.router)
 app.include_router(accounts_controller.router)
 app.include_router(song_info_controller.router)
+app.include_router(albums_controller.router)
+app.include_router(artists_controller.router)
+
 
 def get_cors_origin_or_default(origin: str) -> str:
 	allowedOriginSet = set(cors_allowed_origins)
@@ -146,6 +160,10 @@ def everything_else(
 		}
 	)
 	return response
+
+@app.get("/canary")
+def canary() -> str:
+	return "Second Canary"
 
 if __name__ == "__main__":
 	if len(sys.argv) > 2:

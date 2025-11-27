@@ -1,0 +1,277 @@
+---
+- hosts: all
+
+
+  vars:
+    app_trunk: '{{domain["app_root"]|default("~")}}/{{app_details["name"]}}'
+    test_trunk: '../test_trash/{{app_details["name"]}}'
+    #ansible_common_remote_group is needed for become_user: notroot to work
+    ansible_common_remote_group: '{{domain["group"]}}'
+
+
+  vars_files:
+    - vars/vault.yml
+    - vars/globals.yml
+    - vars/os_paths.yml
+
+
+  pre_tasks:
+    - name: Check that latest is pushed up.
+      include_role:
+        name: repo-check
+      when: hostvars.localhost.skip_to_exit is not defined
+    - name: End early?
+      meta: end_play
+      when: hostvars.localhost.skip_to_exit|default(omit) == true
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
+    - include_vars: 
+        file: 'vars/vault.yml'
+        hash_behaviour: merge
+    - include_vars: 
+        file: 'vars/local_keys.yml'
+        hash_behaviour: merge
+      when: inventory_hostname in ["127.0.0.1", "localhost"]
+    - name: Update apt cache if needed
+      apt: update_cache=true cache_valid_time=3600
+      become: true
+      when: ansible_os_family == "Debian"
+    - name: Install rsync
+      become: true
+      package:
+        name: rsync
+    - name: Install Chrony
+      become: true
+      package:
+        name: '{{packages["chrony"]}}'
+    - name: Ensure chrony is running.
+      service:
+        name: chronyd
+        state: started
+        enabled: true
+    - name: Set local server settings
+      set_fact:
+        env_list:
+        - name: "model" #api and client delivered from nginx
+          port: 8033
+          url: 'https://{{url_segments["base"]}}-model.{{url_segments["tld"]}}:8080'
+          client_dir: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}/client-model/'
+          server_name: '{{url_segments["base"]}}-model.{{url_segments["tld"]}}'
+          common_name: '{{url_segments["base"]}}-model.{{url_segments["tld"]}}'
+          engine_dir: '{{app_trunk}}'
+          ssh_dir: '{{dev_dirs["ssh"]|expanduser}}'
+        - name: "rebug" #client delivered from nginx but api is from vs-code debugger
+          port: 8032
+          url: 'https://{{url_segments["base"]}}-rebug.{{url_segments["tld"]}}:8080'
+          client_dir: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}/client-rebug/'
+          server_name: '{{url_segments["base"]}}-rebug.{{url_segments["tld"]}}'
+          common_name: '{{url_segments["base"]}}-rebug.{{url_segments["tld"]}}'
+          engine_dir: '{{app_trunk}}'
+          ssh_dir: '{{dev_dirs["ssh"]|expanduser}}'
+      when: inventory_hostname in ["127.0.0.1", "localhost"]
+    - name: Set remote server settings
+      set_fact:
+        env_list:
+          - name: "remote"
+            port: 8033
+            url: 'https://{{url_segments["base"]}}.{{url_segments["tld"]}}'
+            client_dir: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}/client/'
+            server_name: '{{url_segments["base"]}}.{{url_segments["tld"]}}'
+            common_name: ''
+            engine_dir: '{{app_trunk}}'
+            ssh_dir: ''
+      when: ansible_host not in ["127.0.0.1", "localhost"] and not "192.168.0.0/16"|ansible.utils.network_in_usable(ansible_host)
+    - name: Set VM server settings
+      set_fact:
+        env_list:
+          - name: "vm"
+            port: 8033
+            url: 'https://{{url_segments["base"]}}-vm.{{url_segments["tld"]}}'
+            client_dir: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}/client/'
+            server_name: '{{url_segments["base"]}}-vm.{{url_segments["tld"]}}'
+            common_name: '{{url_segments["base"]}}-vm.{{url_segments["tld"]}}'
+            engine_dir: '{{app_trunk}}'
+            ssh_dir: ''
+      when: ansible_host not in ["127.0.0.1", "localhost"] and "192.168.0.0/16"|ansible.utils.network_in_usable(ansible_host)
+    - name: "Find uid of user"
+      command: 'id -u {{domain["server_user"]}}'
+      register: the_user_uid
+      check_mode: no # Run even in check mode, otherwise the playbook fails with --check.
+      changed_when: false
+      become: true
+
+  handlers:
+  - name: Restart API
+    systemd_service:
+      name: run-api.service
+      enabled: true
+      state: restarted
+      scope: user
+    become: true
+    become_user: '{{domain["server_user"]}}'
+    environment:
+      XDG_RUNTIME_DIR: "/run/user/{{ the_user_uid.stdout }}"
+
+  tasks:
+    - name: Replace API files?
+      become: true
+      synchronize:
+        src: ../src/api
+        dest: '{{dev_dirs["web_root"]}}/{{app_details["name"]}}'
+        delete: true
+    - name: Create directories
+      file:
+        path: '{{item}}'
+        state: directory
+        owner: '{{domain["server_user"]}}'
+        group: '{{domain["group"]}}'
+        mode: 'g+w'
+      no_log: true
+      become: true
+      loop:
+        - '{{app_trunk}}'
+        - '{{domain["exports_dir"]}}'
+        - '/home/{{domain["server_user"]}}/scripts'
+    - name: Copy templates folder
+      synchronize:
+        src: '{{src_dirs["templates"]}}'
+        dest: '{{app_trunk}}'
+        delete: true
+    - name: Copy default app config
+      copy:
+        dest: '{{app_trunk}}/app_conf.json'
+        src: app_conf.json
+        owner: '{{domain["server_user"]}}'
+        group: '{{domain["group"]}}'
+        force: false
+      become: true
+    - name: Python setup.
+      include_role:
+        name: python-setup
+      vars:
+        sql_scripts_src: ../sql_scripts
+        reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
+        env_name: '{{app_details["prefix"]|lower}}_env'
+        engine_src: '{{src_dirs["engine"]}}/'
+        working_dir: '{{item["engine_dir"]}}'
+        owner: '{{domain["server_user"]}}'
+      loop: '{{env_list}}'
+      loop_control:
+        label: '{{item.name}}'
+    - name: MySql setup
+      include_role:
+        name: mysql-setup
+      vars:
+        setup_pass: '{{keys["db_pass_setup"]}}'
+        socket_path: '{{dev_files["mysql_socket"]}}'
+    - name: Get database schema hash.
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_print'
+          - --hash
+      environment:
+        DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
+      register: result
+      changed_when: false
+    - name: Setup App Specific Db stuff.
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_setup'
+          - '{{app_details["db"]}}'
+        creates: '/tmp/{{result.stdout}}'
+      environment:
+        DSF_APP_ROOT: '{{app_trunk}}'
+        DSF_DB_PASS_API: '{{keys["db_pass_api"]}}'
+        DSF_DB_PASS_JANITOR: '{{keys["db_pass_janitor"]}}'
+        DSF_DB_PASS_OWNER: '{{keys["db_pass_owner"]}}'
+        DSF_DB_PASS_RADIO: '{{keys["db_pass_radio"]}}'
+        DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
+        DSF_DATABASE_NAME: '{{app_details["db"]}}'
+        DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
+        DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'
+    - name: Copy web app keys
+      copy:
+        dest: '{{domain["exports_dir"]}}/{{domain["envs"]["web_app_key"]}}'
+        content: |
+          AWS_ENDPOINT_URL='{{keys["aws_endpoint_url"]}}'
+          AWS_ACCESS_KEY_ID='{{keys["aws_access_key_id"]}}'
+          AWS_SECRET_ACCESS_KEY='{{keys["aws_secret_access_key"]}}'
+          DSF_APP_ROOT='{{app_trunk}}'
+          DSF_DB_PASS_API='{{keys["db_pass_api"]}}'
+          DSF_DB_PASS_RADIO='{{keys["db_pass_radio"]}}'
+          DSF_NAMESPACE_UUID='{{keys["namespace_uuid"]}}'
+          DSF_TEMPLATES_DEST='{{app_trunk}}/files'
+          DSF_ICES_CONFIGS_DIR='{{app_trunk}}/ices_configs'
+          DSF_PY_MODULE_DIR='{{app_trunk}}/ices_modules'
+          DSF_SQL_SCRIPTS_DEST='{{app_trunk}}/sql_scripts'
+          DSF_DATABASE_NAME='{{app_details["db"]}}'
+          DSF_AUTH_SECRET_KEY='{{keys["auth_secret_key"]}}'
+          DSF_BACK_KEY='{{keys["back_key"]}}'
+          S3_BUCKET_NAME='{{keys["s3_bucket_name"]}}'
+          S3_REGION_NAME='{{keys["s3_region_name"]}}'
+          DSF_CONTENT_DIR='{{app_trunk}}/content'
+          DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          DSF_ICES_EXECUTABLE='{{domain["app_root"]}}/.local/bin/{{app_details["prefix"]|lower}}-ices'
+          DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
+      notify: Restart API
+    - name: Add API run script
+      copy: 
+        dest: '/home/{{domain["server_user"]}}/run_api.sh'
+        content: |
+          #!/bin/sh
+
+          . {{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/activate &&
+          uvicorn --app-dir \
+          {{dev_dirs["web_root"]}}/{{app_details["name"]}}/api \
+          --root-path /api/v1 \
+          --host 0.0.0.0 \
+          --port 8033 \
+          index:app \
+          </dev/null 
+          #>api.out 2>&1
+        owner: '{{domain["server_user"]}}'
+        group: '{{domain["group"]}}'
+        mode: 'u+x'
+      become: true
+    - name: App API Service
+      include_role:
+        name: service-setup
+      vars:
+        service_name: run-api
+        service_owner: '{{domain["server_user"]}}'
+        service_group: '{{domain["group"]}}'
+        service_description: Run the api
+        env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["web_app_key"]}}'
+        service_command: '/home/{{domain["server_user"]}}/run_api.sh'
+    - name: Nginx setup
+      include_role:
+        name: nginx-setup
+      vars:
+        env_name: '{{item["name"]}}'
+        server_name: '{{item["server_name"]}}'
+        app_prefix: '{{app_details["name"]|to_snake()}}'
+        api_port: '{{item["port"]}}'
+        common_name: '{{item["common_name"]}}'
+        ssh_dir: '{{item["ssh_dir"]}}'
+        serve_dir: '{{item["client_dir"]}}'
+      loop: '{{env_list}}'
+      loop_control:
+        label: '{{item.name}}'
+    - name: Client code setup
+      include_role:
+        name: client-setup
+      vars:
+        api_version: '{{app_details["api_version"]}}'
+        full_url: '{{item["url"]}}'
+        dest_dir: '{{item["client_dir"]}}'
+      when: item.name != "debug"
+      loop: '{{env_list}}'
+      loop_control:
+        label: '{{item.name}}'
+
+

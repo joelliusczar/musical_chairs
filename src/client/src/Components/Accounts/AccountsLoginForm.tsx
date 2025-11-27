@@ -65,6 +65,11 @@ export function LoginForm(props: LoginFormProps) {
 					label="Password"
 					name="password"
 					type="password"
+					onKeyUp={e => {
+						if (e.code === "Enter") {
+							callSubmit(e);
+						}
+					}}
 				/>
 			</Box>
 			<Box>
@@ -82,3 +87,4 @@ export function LoginForm(props: LoginFormProps) {
 	);
 }
 
+export default LoginForm;

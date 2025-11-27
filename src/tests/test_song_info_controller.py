@@ -8,11 +8,14 @@ from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user
 )
 from .mocks.db_data import kilo_user_id, station_saver_user_id
+from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from musical_chairs_libs.dtos_and_utilities import (
-	MinItemSecurityLevel,
+	ConfigAcessors,
+	RulePriorityLevel,
 	UserRoleDef,
 	path_owner_rules
 )
+
 
 
 
@@ -225,7 +228,9 @@ def test_song_save(
 			"id": 6,
 			"name": "foxtrot_artist",
 			"owner": {"id":kilo_user_id },
-		}
+			"isprimaryartist": False
+		},
+		"versionnote": ""
 	}
 	sendData["genre"] = "pop_update"
 	sendData["comment"] = "Kazoos make good swimmers update"
@@ -233,36 +238,61 @@ def test_song_save(
 		"id": 10,
 		"name": "juliet_artist",
 		"owner": { "id": kilo_user_id},
+		"isprimaryartist": True
 	}
 	sendData["stations"] = [
 		{ "id": 2,
 			"name": "papa_station",
 			"displayname": "Come to papa",
 			"owner": None,
-			"requestsecuritylevel": None,
-			"viewsecuritylevel": None
+			"requestsecuritylevel": 9,
+			"viewsecuritylevel": 0,
+			"isrunning": False,
+			"typeid": StationTypes.SONGS_ONLY.value,
+			"bitratekps": None
 		},
 		{
 			"id": 7,
 			"name": "uniform_station",
 			"displayname": "Asshole at the wheel",
 			"owner": None,
-			"requestsecuritylevel": None,
-			"viewsecuritylevel": None
+			"requestsecuritylevel": 9,
+			"viewsecuritylevel": 0,
+			"isrunning": False,
+			"typeid": StationTypes.SONGS_ONLY.value,
+			"bitratekps": None
 		},
 		{
 			"id": 10,
 			"name": "xray_station",
 			"displayname": "Pentagular",
 			"owner": None,
-			"requestsecuritylevel": None,
-			"viewsecuritylevel": None
+			"requestsecuritylevel": 9,
+			"viewsecuritylevel": 0,
+			"isrunning": False,
+			"typeid": StationTypes.SONGS_ONLY.value,
+			"bitratekps": None
 		}
 	]
 	sendData["artists"] = [
-		{ "id": 9, "name": "india_artist", "owner": { "id": kilo_user_id } },
-		{ "id": 13, "name": "november_artist", "owner": { "id": kilo_user_id } },
-		{ "id": 3, "name": "charlie_artist", "owner": { "id": kilo_user_id } }
+		{ 
+			"id": 9, 
+			"name": "india_artist", 
+			"owner": { "id": kilo_user_id },
+			"isprimaryartist": False
+		},
+		{ 
+			"id": 13, 
+			"name": "november_artist", 
+			"owner": { "id": kilo_user_id },
+			"isprimaryartist": False
+		},
+		{ 
+			"id": 3, 
+			"name": "charlie_artist", 
+			"owner": { "id": kilo_user_id },
+			"isprimaryartist": False
+		}
 	]
 
 	putResponse = client.put(
@@ -449,8 +479,8 @@ def test_song_save_different_station_owner(
 		},
 		"isrunning": False,
 		"rules": [],
-		"requestsecuritylevel": MinItemSecurityLevel.INVITED_USER.value,
-		"viewsecuritylevel": MinItemSecurityLevel.INVITED_USER.value
+		"requestsecuritylevel": RulePriorityLevel.INVITED_USER.value,
+		"viewsecuritylevel": RulePriorityLevel.INVITED_USER.value
 	})
 	putResponse = client.put(
 		f"song-info/songs/{51}",
@@ -475,7 +505,7 @@ def test_get_songs_for_multi_edit(
 	assert response.status_code == 200
 	touched = data["touched"]
 	assert data["id"] == 0
-	assert data["name"] == None
+	assert data["name"] == ""
 	assert "name" not in touched
 	assert data["path"] == ""
 	assert "path" not in touched
@@ -492,7 +522,8 @@ def test_get_songs_for_multi_edit(
 			"id": kilo_user_id,
 			"username": "testUser_kilo",
 			"displayname": None
-		}
+		},
+		"isprimaryartist": False
 	}]
 	assert "artists" in touched
 	assert data["covers"] == []
@@ -512,7 +543,7 @@ def test_get_songs_for_multi_edit(
 	assert "duration" in touched
 	assert data["explicit"] == None
 	assert "explicit" not in touched
-	assert data["lyrics"] == None
+	assert data["lyrics"] == ""
 	assert "lyrics" in touched
 	assert data["stations"] == [
 		{ "id": 1,
@@ -525,8 +556,10 @@ def test_get_songs_for_multi_edit(
 				"displayname": "Bravo Test User"
 			},
 			"rules": [],
-			"requestsecuritylevel": None,
-			"viewsecuritylevel": None
+			"requestsecuritylevel": 9,
+			"viewsecuritylevel": 0,
+			"typeid": StationTypes.SONGS_ONLY.value,
+			"bitratekps": None
 		}
 	]
 	assert "stations" in touched
@@ -537,6 +570,9 @@ def test_song_save_for_multi_edit(
 ):
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_india", client)
+	envManager = ConfigAcessors()
+	back_key = envManager.back_key()
+	headers["x-back-key"] = back_key
 
 	idList = "?itemIds=10&itemIds=4&itemIds=17&itemIds=11&itemIds=15"
 
@@ -578,7 +614,8 @@ def test_song_save_for_multi_edit(
 	)
 	assert stationsLen == 5
 
-	sendData = {
+	sendData: dict[str, Any] = {
+		"name": "",
 		"album": {
 			"id": 12, "name": "garoo_album", "owner": {"id": kilo_user_id }
 		},
@@ -598,7 +635,8 @@ def test_song_save_for_multi_edit(
 			"id": 14,
 			"name":
 			"oscar_artist",
-			"owner": {"id": kilo_user_id }
+			"owner": {"id": kilo_user_id },
+			"isprimaryartist": True
 		},
 		"artists": [
 			{ "id": 8, "name": "hotel_artist", "owner": {"id": kilo_user_id } },
@@ -670,6 +708,9 @@ def test_song_save_for_multi_edit_artist_to_primary(
 ):
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_india", client)
+	envManager = ConfigAcessors()
+	back_key = envManager.back_key()
+	headers["x-back-key"] = back_key
 
 	idList = "?itemIds=29&itemIds=28&itemIds=27"\
 		"&itemIds=26&itemIds=25&itemIds=24&itemIds=23"
@@ -712,7 +753,8 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	)
 	assert stationsLen == 2
 
-	sendData = {
+	sendData: dict[str, Any] = {
+		"name": "",
 		"album": {
 			"id": 12, "name": "garoo_album","owner": { "id": kilo_user_id}
 		},

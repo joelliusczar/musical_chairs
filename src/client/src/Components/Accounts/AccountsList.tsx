@@ -122,3 +122,5 @@ export const AccountsList = () => {
 		</>
 	);
 };
+
+export default AccountsList;

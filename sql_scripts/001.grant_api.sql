@@ -53,6 +53,11 @@ GRANT INSERT ON TABLE `<dbName>`.`stationssongs` TO <apiUser>;
 GRANT DELETE ON TABLE `<dbName>`.`stationssongs` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`stationssongs` TO <apiUser>;
 
+GRANT UPDATE ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
+GRANT INSERT ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
+GRANT DELETE ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
+GRANT SELECT ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
+
 GRANT UPDATE ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;
 GRANT INSERT ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;
@@ -68,3 +73,31 @@ GRANT INSERT ON TABLE `<dbName>`.`users` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`users` TO <apiUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`lastplayed` TO <apiUser>;
+GRANT DELETE ON TABLE `<dbName>`.`lastplayed` TO <apiUser>;
+
+GRANT UPDATE ON TABLE `<dbName>`.`useragents` TO <apiUser>;
+GRANT INSERT ON TABLE `<dbName>`.`useragents` TO <apiUser>;
+GRANT SELECT ON TABLE `<dbName>`.`useragents` TO <apiUser>;
+GRANT DELETE ON TABLE `<dbName>`.`useragents` TO <apiUser>;
+
+GRANT SELECT ON TABLE `<dbName>`.`jobs` TO <apiUser>;
+GRANT UPDATE ON TABLE `<dbName>`.`jobs` TO <apiUser>;
+GRANT INSERT ON TABLE `<dbName>`.`jobs` TO <apiUser>;
+
+GRANT UPDATE ON TABLE `<dbName>`.`playlists` TO <apiUser>;
+GRANT INSERT ON TABLE `<dbName>`.`playlists` TO <apiUser>;
+GRANT DELETE ON TABLE `<dbName>`.`playlists` TO <apiUser>;
+GRANT SELECT ON TABLE `<dbName>`.`playlists` TO <apiUser>;
+
+--playlistssongs has been moved out of here because it was renamed
+
+
+GRANT UPDATE ON TABLE `<dbName>`.`stationsplaylists` TO <apiUser>;
+GRANT INSERT ON TABLE `<dbName>`.`stationsplaylists` TO <apiUser>;
+GRANT DELETE ON TABLE `<dbName>`.`stationsplaylists` TO <apiUser>;
+GRANT SELECT ON TABLE `<dbName>`.`stationsplaylists` TO <apiUser>;
+
+GRANT UPDATE ON TABLE `<dbName>`.`playlistuserpermissions` TO <apiUser>;
+GRANT INSERT ON TABLE `<dbName>`.`playlistuserpermissions` TO <apiUser>;
+GRANT DELETE ON TABLE `<dbName>`.`playlistuserpermissions` TO <apiUser>;
+GRANT SELECT ON TABLE `<dbName>`.`playlistuserpermissions` TO <apiUser>;

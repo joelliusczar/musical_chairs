@@ -242,6 +242,7 @@ export const StationEdit = (props: StationEditProps) => {
 			console.error(err);
 		}
 	});
+
 	const callSubmitCopy = handleSubmit(async values => {
 		try {
 			const stationId = values.id;

@@ -39,8 +39,7 @@ from sqlalchemy import (
 	String
 )
 from sqlalchemy.sql.expression import (
-	Update,
-	cast as dbCast,
+	Update
 )
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
@@ -52,8 +51,8 @@ from musical_chairs_libs.tables import (
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk, ab_versionnote,
 	ar_name, ar_pk, ar_ownerFk,
 	users as user_tbl, u_pk, u_username, u_displayName,
-	sg_pk, sg_name, sg_track, sg_albumFk, sg_path, sg_internalpath,
-	sg_deletedTimstamp,
+	sg_pk, sg_name, sg_albumFk, sg_path, sg_internalpath,
+	sg_deletedTimstamp, sg_disc, sg_trackNum,
 	song_artist as song_artist_tbl, sgar_songFk, sgar_artistFk, 
 	sgar_isPrimaryArtist
 )
@@ -204,7 +203,8 @@ class AlbumService:
 			sg_name,
 			sg_path,
 			sg_internalpath,
-			sg_track,
+			sg_trackNum.label("track"),
+			sg_disc,
 			coalesce[String](ar_name, "").label("artist"),
 			literal(0).label("queuedtimestamp"),
 			literal(albumInfo.name).label("album")
@@ -221,7 +221,7 @@ class AlbumService:
 			)\
 			.where(sg_albumFk == albumId)\
 			.where(sg_deletedTimstamp.is_(None))\
-			.order_by(dbCast(sg_track, Integer))
+			.order_by(sg_disc, sg_trackNum)
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
 		if user:

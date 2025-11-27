@@ -53,7 +53,7 @@ export const AlbumEdit = (
 		items: contextArtists,
 		callStatus: artistCallStatus,
 		error: artistError,
-		update: addArtist,
+		add: addArtist,
 	} = useArtistData();
 
 	const {

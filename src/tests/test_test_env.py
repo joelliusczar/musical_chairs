@@ -1,12 +1,3 @@
-import sys
-import os
-import pytest
-
-@pytest.mark.skip()
-def test_show_path():
-	print(os.environ['PYTHONPATH'])
-	print(sys.path)
-
 
 def test_show_db_setup_pass():
 	from musical_chairs_libs.dtos_and_utilities import ConfigAcessors

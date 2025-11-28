@@ -75,6 +75,7 @@
         env_name: '{{app_details["prefix"]|lower}}_env'
         engine_src: '{{src_dirs["engine"]}}/'
         working_dir: '{{app_trunk}}'
+        app_group: '{{domain["group"]}}'
     - name: Extract python version string.
       command: 
         argv:

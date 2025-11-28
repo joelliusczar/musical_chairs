@@ -206,69 +206,69 @@ export const SongCatalogue = () => {
 					status={catalogueCallStatus}
 					error={catalogueState.error}
 				>
-					{catalogueState?.data?.items?.length > 0 ? <>
-						<TableContainer>
-							<Table size="small">
-								<TableHead>
-									<TableRow>
-										<TableCell>Song</TableCell>
-										<TableCell>Album</TableCell>
-										<TableCell>Artist</TableCell>
-										<TableCell></TableCell>
-									</TableRow>
-									<TableRow>
-										<TableCell>
-											<SearchTextField
-												name="song"
-												getPageUrl={getPageUrl.getThisUrl}
-											/>
-										</TableCell>
-										<TableCell>
-											<SearchTextField
-												name="album"
-												getPageUrl={getPageUrl.getThisUrl}
-											/>
-										</TableCell>
-										<TableCell>
-											<SearchTextField
-												name="artist"
-												getPageUrl={getPageUrl.getThisUrl}
-											/>
-										</TableCell>
-										<TableCell></TableCell>
-									</TableRow>
-								</TableHead>
-								<TableBody>
-									{catalogueState.data.items.map((item, idx) => {
-										return (
-											<TableRow key={`song_${idx}`}>
-												<TableCell>
-													{item.name || "{No song name}"}
-												</TableCell>
-												<TableCell>
-													{item.album || "{No album name}"}
-												</TableCell>
-												<TableCell>
-													{item.artist || "{No artist name}"}
-												</TableCell>
-												<TableCell>
-													{rowButton(item, idx)}
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-						</TableContainer>
-						<Box sx={{ display: "flex" }}>
-							<UrlPagination
-								getPageUrl={getPageUrl.getThisUrl}
-								totalRows={catalogueState.data?.totalrows}
-							/>
-						</Box>
-					</>:
-						<Typography>No records</Typography>
+					<TableContainer>
+						<Table size="small">
+							<TableHead>
+								<TableRow>
+									<TableCell>Song</TableCell>
+									<TableCell>Album</TableCell>
+									<TableCell>Artist</TableCell>
+									<TableCell></TableCell>
+								</TableRow>
+								<TableRow>
+									<TableCell>
+										<SearchTextField
+											name="song"
+											getPageUrl={getPageUrl.getThisUrl}
+										/>
+									</TableCell>
+									<TableCell>
+										<SearchTextField
+											name="album"
+											getPageUrl={getPageUrl.getThisUrl}
+										/>
+									</TableCell>
+									<TableCell>
+										<SearchTextField
+											name="artist"
+											getPageUrl={getPageUrl.getThisUrl}
+										/>
+									</TableCell>
+									<TableCell></TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								{catalogueState?.data?.items?.map((item, idx) => {
+									return (
+										<TableRow key={`song_${idx}`}>
+											<TableCell>
+												{item.name || "{No song name}"}
+											</TableCell>
+											<TableCell>
+												{item.album || "{No album name}"}
+											</TableCell>
+											<TableCell>
+												{item.artist || "{No artist name}"}
+											</TableCell>
+											<TableCell>
+												{rowButton(item, idx)}
+											</TableCell>
+										</TableRow>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</TableContainer>
+					{(catalogueState?.data?.items?.length || 0) === 0 ?
+						<Typography>No records</Typography> :
+						<></>
 					}
+					<Box sx={{ display: "flex" }}>
+						<UrlPagination
+							getPageUrl={getPageUrl.getThisUrl}
+							totalRows={catalogueState.data?.totalrows}
+						/>
+					</Box>
 				</Loader>
 			</Box>
 		</>

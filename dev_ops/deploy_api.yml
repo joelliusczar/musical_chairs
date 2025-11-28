@@ -1,5 +1,4 @@
 ---
-- import_playbook: harden.yml
 - import_playbook: run_test.yml
 - import_playbook: startup_api.yml
-# - import_playbook: debug2.yml
+- import_playbook: setup_schedules.yml

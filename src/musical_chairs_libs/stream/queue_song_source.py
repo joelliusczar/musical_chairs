@@ -19,7 +19,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from tempfile import NamedTemporaryFile
 from threading import Condition, Lock
-from traceback import TracebackException
+#seeing if I can get away with not using TracebackException with new
+#log handlers
+#from traceback import TracebackException
 
 
 fileQueue = BlockingQueue[
@@ -49,9 +51,6 @@ def get_song_info(
 		except Exception as e:
 			logging.radioLogger.error("Error getting song info")
 			logging.radioLogger.error(e)
-			logging.radioLogger.error(
-				"".join(TracebackException.from_exception(e).format())
-			)
 			break
 
 
@@ -80,9 +79,7 @@ def load_data(
 		fileQueue.put((None, None), lambda _: not stopRunning)
 	except Exception as e:
 		logging.radioLogger.error("Error while trying to load data")
-		logging.radioLogger.error(
-			"".join(TracebackException.from_exception(e).format())
-		)
+		logging.radioLogger.error(e)
 	finally:
 		stopRunning = True
 
@@ -207,9 +204,7 @@ def send_next(
 					conn.sendall(b"\n\n")
 					break
 	except Exception as e:
-		logging.radioLogger.error(
-			"".join(TracebackException.from_exception(e).format())
-		)
+		logging.radioLogger.error(e)
 	finally:
 		logging.radioLogger.debug("send_next finally")
 		stopRunning = True

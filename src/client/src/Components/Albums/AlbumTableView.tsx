@@ -137,60 +137,61 @@ export const AlbumTableView = () => {
 					status={queueCallStatus}
 					error={tableDataState.error}
 				>
-					{tableDataState?.data?.items?.length > 0 ? <>
-						<TableContainer>
-							<Table size="small">
-								<TableHead>
-									<TableRow>
-										<TableCell>Album</TableCell>
-										<TableCell>Artist</TableCell>
-										<TableCell></TableCell>
-									</TableRow>
-									<TableRow>
-										<TableCell>
-											<SearchTextField
-												name="name"
-												getPageUrl={urlBuilder.getThisUrl}
-											/>
-										</TableCell>
-										<TableCell>
-											<SearchTextField
-												name="artist"
-												getPageUrl={urlBuilder.getThisUrl}
-											/>
-										</TableCell>
-										<TableCell></TableCell>
-									</TableRow>
-								</TableHead>
-								<TableBody>
-									{tableDataState.data?.items?.map((item, idx) => {
-										return (
-											<TableRow key={`album_${idx}`}>
-												<TableCell>
-													{item.name || "{No album name}"}
-												</TableCell>
-												<TableCell>
-													{item.albumartist?.name}
-												</TableCell>
-												<TableCell>
-												</TableCell>
-												<TableCell>
-													{rowButton(item, idx)}
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-						</TableContainer>
-						<Box sx={{ display: "flex" }}>
-							<UrlPagination
-								getPageUrl={urlBuilder.getThisUrl}
-								totalRows={tableDataState.data?.totalrows}
-							/>
-						</Box>
-					</> :
-						<Typography>No records</Typography>}
+					<TableContainer>
+						<Table size="small">
+							<TableHead>
+								<TableRow>
+									<TableCell>Album</TableCell>
+									<TableCell>Artist</TableCell>
+									<TableCell></TableCell>
+								</TableRow>
+								<TableRow>
+									<TableCell>
+										<SearchTextField
+											name="name"
+											getPageUrl={urlBuilder.getThisUrl}
+										/>
+									</TableCell>
+									<TableCell>
+										<SearchTextField
+											name="artist"
+											getPageUrl={urlBuilder.getThisUrl}
+										/>
+									</TableCell>
+									<TableCell></TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								{tableDataState?.data?.items?.map((item, idx) => {
+									return (
+										<TableRow key={`album_${idx}`}>
+											<TableCell>
+												{item.name || "{No album name}"}
+											</TableCell>
+											<TableCell>
+												{item.albumartist?.name}
+											</TableCell>
+											<TableCell>
+											</TableCell>
+											<TableCell>
+												{rowButton(item, idx)}
+											</TableCell>
+										</TableRow>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</TableContainer>
+					{(tableDataState?.data?.items?.length || 0) === 0 ?
+						<Typography>No records</Typography> :
+						<></>
+					}
+					<Box sx={{ display: "flex" }}>
+						<UrlPagination
+							getPageUrl={urlBuilder.getThisUrl}
+							totalRows={tableDataState.data?.totalrows}
+						/>
+					</Box>
 				</Loader>
 			</Box>
 		</>

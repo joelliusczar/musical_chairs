@@ -8,10 +8,13 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	JobInfo
 )
+from musical_chairs_libs.dtos_and_utilities.logging import (
+	scheduledServiceLogger
+)
 from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	JobTypes,
-	JobStatusTypes
+	JobStatusTypes,
 )
 
 from sqlalchemy import (
@@ -24,7 +27,6 @@ from musical_chairs_libs.tables import (
 	jobs as jobs_tbl, j_pk, j_instructions, j_type, j_status, j_queuedtimestamp,
 	j_completedtimestamp
 )
-
 
 
 class JobsService:
@@ -99,7 +101,8 @@ class JobsService:
 			try:
 				self.file_service.delete_song(job.instructions)
 				self.__set_status__(job.id, JobStatusTypes.COMPLETED.value)
-			except:
+			except Exception as e:
+				scheduledServiceLogger.error(e)
 				self.__set_status__(job.id, JobStatusTypes.FAILED.value)
 
 

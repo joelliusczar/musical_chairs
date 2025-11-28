@@ -33,3 +33,4 @@
         server_user: '{{domain["server_user"]}}'
         app_user: '{{domain["user"]}}'
         app_group: '{{domain["group"]}}'
+        access_port: '{{domain["port"]}}'

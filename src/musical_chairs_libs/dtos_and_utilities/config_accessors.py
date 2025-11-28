@@ -28,7 +28,7 @@ class ConfigAcessors:
 
 	@classmethod
 	def app_root(cls) -> str:
-		if ConfigAcessors.test_flag():
+		if ConfigAcessors.__test_flag__():
 			return os.environ["DSF_TEST_ROOT"]
 		return os.environ["DSF_APP_ROOT"]
 
@@ -98,7 +98,7 @@ class ConfigAcessors:
 		return os.environ["AWS_ENDPOINT_URL"]
 
 	@classmethod
-	def test_flag(cls) -> bool:
+	def __test_flag__(cls) -> bool:
 		return os.environ.get("__TEST_FLAG__","false") == "true"
 
 	@classmethod

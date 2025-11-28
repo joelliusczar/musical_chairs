@@ -44,7 +44,7 @@ class SongListDisplayItem(QueuedItem):
 	artist: Optional[str]
 	path: str
 	internalpath: str
-d	track: Optional[float]=None
+	track: Optional[float]=None
 	playedtimestamp: Optional[float]=None
 	rules: list[ActionRule]=cast(
 		list[ActionRule],

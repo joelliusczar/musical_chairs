@@ -155,7 +155,7 @@
         env_name: '{{app_details["prefix"]|lower}}_env'
         engine_src: '{{src_dirs["engine"]}}/'
         working_dir: '{{item["engine_dir"]}}'
-        owner: '{{domain["server_user"]}}'
+        app_group: '{{domain["group"]}}'
       loop: '{{env_list}}'
       loop_control:
         label: '{{item.name}}'

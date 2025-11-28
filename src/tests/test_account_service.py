@@ -366,16 +366,6 @@ def test_save_roles(
 	)
 	assert fetched[1] == ActionRule(name=UserRoleDef.USER_LIST.value)
 
-@pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
-def test_get_ambiguous_key(
-	fixture_account_service_mock_current_time: AccountsService
-):
-	pass
-	# accountService = fixture_account_service_mock_current_time
-	# accountInfo = accountService.get_account_for_edit("7")
-	# assert accountInfo
-	# assert accountInfo.displayname == "seven"
-
 def test_user_search(
 	fixture_account_service_mock_current_time: AccountsService
 ):

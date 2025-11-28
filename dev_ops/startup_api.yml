@@ -101,18 +101,6 @@
       changed_when: false
       become: true
 
-  handlers:
-  - name: Restart API
-    systemd_service:
-      name: run-api.service
-      enabled: true
-      state: restarted
-      scope: user
-    become: true
-    become_user: '{{domain["server_user"]}}'
-    environment:
-      XDG_RUNTIME_DIR: "/run/user/{{ the_user_uid.stdout }}"
-
   tasks:
     - name: Replace API files?
       become: true
@@ -248,6 +236,16 @@
         service_description: Run the api
         env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["web_app_key"]}}'
         service_command: '/home/{{domain["server_user"]}}/run_api.sh'
+    - name: Restart API
+      service:
+        name: run-api.service
+        enabled: true
+        state: restarted
+        scope: user
+      become: true
+      become_user: '{{domain["server_user"]}}'
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ the_user_uid.stdout }}"
     - name: Nginx setup
       include_role:
         name: nginx-setup

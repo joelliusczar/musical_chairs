@@ -13,6 +13,7 @@ from .album_service import *
 from .song_artist_service import *
 from .jobs_service import *
 from .playlist_service import *
+from .playlist_users_service import *
 from .stations_songs_service import *
 from .stations_users_service import *
 from .collection_queue_service import *

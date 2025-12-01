@@ -1,0 +1,190 @@
+#pyright: reportMissingTypeStubs=false
+from typing import Dict, List, Optional
+from fastapi import (
+	APIRouter,
+	Depends,
+	Security,
+	HTTPException,
+	status,
+	Body,
+)
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	UserRoleDef,
+	TableData,
+	StationActionRule,
+	PlaylistInfo,
+	ValidatedPlaylistCreationInfo,
+	PlaylistActionRule,
+)
+from musical_chairs_libs.services import (
+	PlaylistService,
+	PlaylistsUserService,
+)
+from api_dependencies import (
+	get_station_user,
+	get_owner_from_query,
+	get_playlist_by_name_and_owner,
+	get_user_with_rate_limited_scope,
+	get_optional_user_from_token,
+	get_from_query_subject_user,
+	build_error_obj,
+	get_station_user_by_id,
+	get_playlist_user_by_id,
+	playlists_users_service,
+	playlist_service,
+	get_playlist_user,
+)
+from playlist_validation import (
+	validate_playlist_rule,
+	validate_playlist_rule_for_remove
+)
+from sqlalchemy.exc import IntegrityError
+
+
+router = APIRouter(prefix="/playlists")	
+
+@router.get("/list")
+def playlist_list(
+	user: AccountInfo = Depends(get_optional_user_from_token),
+	owner: Optional[AccountInfo] = Depends(get_owner_from_query),
+	playlistService: PlaylistService = Depends(playlist_service),
+) -> Dict[str, List[PlaylistInfo]]:
+	playlists = list(playlistService.get_playlists(None,
+		ownerId=owner.id if owner else None,
+		user=user
+	))
+	return { "items": playlists }
+
+
+
+
+# @router.get("/check/")
+# def is_phrase_used(
+# 	id: Optional[int]=None,
+# 	name: str = "",
+# 	user: AccountInfo = Depends(get_current_user_simple),
+# 	playlistService: PlaylistService = Depends(playlist_service)
+# ) -> dict[str, bool]:
+# 	return {
+# 		"name": playlistService.(id, name, user.id)
+# 	}
+
+
+@router.get("/{ownerkey}/{stationkey}")
+def get_playlist_for_edit(
+	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner)
+) -> PlaylistInfo:
+	return playlistInfo
+
+
+@router.post("")
+def create_playlist(
+	playlist: ValidatedPlaylistCreationInfo = Body(default=None),
+	playlistService: PlaylistService = Depends(playlist_service),
+	user: AccountInfo = Security(
+		get_user_with_rate_limited_scope,
+		scopes=[UserRoleDef.PLAYLIST_CREATE.value]
+	)
+) -> PlaylistInfo:
+	result = playlistService.save_playlist(playlist, user=user)
+	return result or PlaylistInfo(id=-1,name="", owner=user)
+
+
+@router.put("/{playlistid}")
+def update_playlist(
+	playlistid: int, #this needs to match get_station_user_by_id
+	playlist: ValidatedPlaylistCreationInfo = Body(default=None),
+	playlistService: PlaylistService = Depends(playlist_service),
+	user: AccountInfo = Security(
+		get_station_user_by_id,
+		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
+	)
+) -> PlaylistInfo:
+	result = playlistService.save_playlist(playlist, user, playlistid)
+	return result or PlaylistInfo(id=-1,name="",owner=user)
+
+
+
+@router.get("/{ownerkey}/{stationkey}/user_list",dependencies=[
+	Security(
+		get_playlist_user,
+		scopes=[UserRoleDef.PLAYLIST_USER_LIST.value]
+	)
+])
+def get_playlist_user_list(
+	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
+	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
+) -> TableData[AccountInfo]:
+	playlistUsers = list(playlistsUsersService.get_playlist_users(playlistInfo))
+	return TableData(items=playlistUsers, totalrows=len(playlistUsers))
+
+
+@router.post("/{ownerkey}/{playlistkey}/user_role",
+	dependencies=[
+		Security(
+			get_playlist_user,
+			scopes=[UserRoleDef.PLAYLIST_USER_ASSIGN.value]
+		)
+	]
+)
+def add_user_rule(
+	user: AccountInfo = Depends(get_from_query_subject_user),
+	rule: StationActionRule = Depends(validate_playlist_rule),
+	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
+	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
+) -> PlaylistActionRule:
+	return playlistsUsersService.add_user_rule_to_playlist(
+		user.id,
+		playlistInfo.id,
+		rule
+	)
+
+
+@router.delete("/{ownerkey}/{playlistkey}/user_role",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[
+		Security(
+			get_station_user,
+			scopes=[UserRoleDef.PLAYLIST_USER_ASSIGN.value]
+		)
+	]
+)
+def remove_user_rule(
+	user: AccountInfo = Depends(get_from_query_subject_user),
+	rulename: Optional[str] = Depends(validate_playlist_rule_for_remove),
+	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
+	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
+):
+	playlistsUsersService.remove_user_rule_from_playlist(
+		user.id,
+		playlistInfo.id,
+		rulename
+	)
+
+@router.delete(
+	"/{playlistid}",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[Security(
+		get_playlist_user_by_id,
+		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
+	)]
+)
+def delete(
+	playlistid: int,
+	playlistService: PlaylistService = Depends(playlist_service),
+):
+	try:
+		if playlistService.delete_playlist(playlistid) == 0:
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail=[build_error_obj(f"Playlist not found")
+				]
+			)
+	except IntegrityError:
+		raise HTTPException(
+			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,	
+			detail=[build_error_obj(f"Playlist cannot be deleted")
+			]
+		)
+	

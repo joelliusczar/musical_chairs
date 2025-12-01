@@ -20,6 +20,7 @@ import {
 	SubjectUserRoleDeletion,
 	PathsActionRule,
 } from "../Types/user_types";
+import { getDownloadAddress } from "../Helpers/request_helpers";
 
 
 export const fetchSongForEdit = ({ id }: { id: IdValue}) => {
@@ -281,26 +282,27 @@ export const uploadSong = (
 	};
 };
 
-export const songDownloadUrl = ({ id }:{ id: IdValue}) => {
+export const songDownload = ({ id }:{ id: IdValue}) => {
 	const abortController = new AbortController();
 	return {
 		abortController: abortController,
 		call: async () => {
-			const response = await webClient.get<string>(
+			const response = await webClient.get(
 				`/song-info/songs/download/${id}`,
-				{ signal: abortController.signal }
+				{ 
+					signal: abortController.signal,
+					responseType: "arraybuffer",
+				}
 			);
-			return response.data;
+			return response.data as ArrayBuffer;
 		},
 	};
 };
 
-export const downloadSong = async (songId: number) => {
-	const requestObj = songDownloadUrl({id : songId });
-	const url = await requestObj.call();
+export const openSongInTab =  (songId: number) => {
+	const url = getDownloadAddress(songId);
 	window?.open(url, "_blank")?.focus();
 };
-
 
 export const deletePrefix = ({ nodeId }:{ nodeId: string}) => {
 	const abortController = new AbortController();

@@ -33,6 +33,7 @@ from musical_chairs_libs.services import (
 	AlbumService,
 	JobsService,
 	PlaylistService,
+	PlaylistsUserService,
 	StationsSongsService,
 	StationsUsersService,
 	CollectionQueueService,
@@ -155,6 +156,12 @@ def playlist_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> PlaylistService:
 	return PlaylistService(conn)
+
+
+def playlists_users_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> PlaylistsUserService:
+	return PlaylistsUserService(conn)
 
 
 def song_info_service(
@@ -397,6 +404,34 @@ def get_stations_by_ids(
 		stationids,
 		user=user
 	))
+
+def get_playlist_by_name_and_owner(
+	playlistkey: Union[int, str] = Depends(playlist_key_path),
+	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	playlistService: PlaylistService = Depends(playlist_service),
+) -> PlaylistInfo:
+	if type(playlistkey) == str and not owner:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(
+				f"owner for station with key {playlistkey} not found"
+			)]
+		)
+	#owner id is okay to be null if stationKey is an int
+	ownerId = owner.id if owner else None
+	playlist = next(playlistService.get_playlists(
+		playlistkey,
+		ownerId=ownerId,
+		user=user
+	),None)
+	if not playlist:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"station with key {playlistkey} not found")
+			]
+		)
+	return playlist
 
 def get_station_by_name_and_owner(
 	stationkey: Union[int, str] = Depends(station_key_path),
@@ -847,11 +882,25 @@ def __get_playlist_user__(
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
 
+
 def get_playlist_user_by_id(
 	securityScopes: SecurityScopes,
 	playlist: PlaylistInfo=Depends(get_playlist_by_id),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token)
 )-> Optional[AccountInfo]:
+	return __get_playlist_user__(
+		securityScopes,
+		playlist,
+		user
+	)
+
+def get_playlist_user(
+	securityScopes: SecurityScopes,
+	playlist: PlaylistInfo=Depends(get_playlist_by_name_and_owner),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	userActionHistoryService: UserActionsHistoryService=
+		Depends(user_actions_history_service)
+) -> Optional[AccountInfo]:
 	return __get_playlist_user__(
 		securityScopes,
 		playlist,

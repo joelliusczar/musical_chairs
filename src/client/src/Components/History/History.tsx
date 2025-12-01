@@ -35,7 +35,8 @@ import {
 } from "../../Types/reducerTypes";
 import { SongListDisplayItem } from "../../Types/song_info_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
-import { songDownloadUrl } from "../../API_Calls/songInfoCalls";
+import { openSongInTab } from "../../API_Calls/songInfoCalls";
+
 
 
 export const History = () => {
@@ -68,11 +69,7 @@ export const History = () => {
 
 	const getPageUrl = new UrlBuilder(DomRoutes.history);
 
-	const downloadSong = async (songId: number) => {
-		const requestObj = songDownloadUrl({id : songId });
-		const url = await requestObj.call();
-		window?.open(url, "_blank")?.focus();
-	};
+	
 
 	const rowButton = (item: SongListDisplayItem, idx: number) => {
 		const rowButtonOptions = [];
@@ -91,7 +88,7 @@ export const History = () => {
 
 		if (canDownloadAnySong || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
-			onClick: () => downloadSong(item.id),
+			onClick: () => openSongInTab(item.id),
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton

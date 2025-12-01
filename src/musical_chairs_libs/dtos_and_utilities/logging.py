@@ -66,6 +66,7 @@ class JsonFormatter(Formatter):
 
 		entry = {
 			key: getattr(record, val) for key, val in self.fmt_keys.items()
+				if hasattr(record, val)
 		}
 
 		entry.update(alwaysFields)

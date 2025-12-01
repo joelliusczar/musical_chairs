@@ -1,6 +1,7 @@
 from sqlalchemy.engine.row import RowMapping
 from pydantic import (
 	Field,
+	field_validator,
 )
 from typing import (
 	Any,
@@ -24,6 +25,8 @@ from .account_dtos import OwnerType, OwnerInfo, get_playlist_owner_roles
 from .user_role_def import RulePriorityLevel
 from .queued_item import SongListDisplayItem
 from .action_rule_dtos import ActionRule
+from .validation_functions import min_length_validator_factory
+from .simple_functions import get_non_simple_chars
 
 class PlaylistCreationInfo(Named):
 	description: Optional[str]=""
@@ -80,6 +83,25 @@ class SongsPlaylistInfo(PlaylistInfo):
 	songs: list[SongListDisplayItem]=cast(
 		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
 	)
+
+
+class ValidatedPlaylistCreationInfo(PlaylistCreationInfo):
+
+	_name_len = field_validator(
+		"name"
+	)(min_length_validator_factory(2, "Station name"))
+
+	@field_validator("name")
+	@classmethod
+	def check_name_for_illegal_chars(cls, v: str) -> str:
+		if not v:
+			return ""
+
+		m = get_non_simple_chars(v)
+		if m:
+			raise ValueError(f"Illegal character used in station name: {m}")
+		return v
+
 
 class SongPlaylistTuple:
 

@@ -30,13 +30,13 @@ import {
 	useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext/AuthContext";
 import { UserRoleDef } from "../../constants";
-import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	SongListDisplayItem,
 	InitialQueueState,
 } from "../../Types/song_info_types";
 import { StationInfo } from "../../Types/station_types";
+import { openSongInTab } from "../../API_Calls/songInfoCalls";
 
 
 
@@ -99,7 +99,7 @@ const Queue = () => {
 
 		if (canDownloadSongs || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
-			href: getDownloadAddress(item.id),
+			onClick: () => openSongInTab(item.id),
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton

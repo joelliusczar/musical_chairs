@@ -30,6 +30,7 @@ import {
 	saveSongEdits,
 	fetchSongsForMultiEdit,
 	saveSongsEditsMulti,
+	openSongInTab,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import {
@@ -52,7 +53,6 @@ import {
 import { Named, IdValue } from "../../Types/generic_types";
 import { SubmitButton } from "../Shared/SubmitButton";
 import { isCallPending } from "../../Helpers/request_helpers";
-import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { StationTypes } from "../../constants";
 import { guessTrackNumber } from "../../Helpers/song_helpers";
 
@@ -221,11 +221,6 @@ export const SongEdit = () => {
 		return false;
 	};
 
-	const downloadSong =  (songId: number) => {
-		const url = getDownloadAddress(songId);
-		window?.open(url, "_blank")?.focus();
-	};
-
 	// eslint-disable-next-line react/prop-types
 	const TouchedCheckbox = ({ name }: Named) => {
 		return <Checkbox
@@ -369,7 +364,7 @@ export const SongEdit = () => {
 			<Box>
 				{canDownloadSongs && ids.length === 1 &&
 					<Button 
-						onClick={() => downloadSong(ids[0])}
+						onClick={() => openSongInTab(ids[0])}
 					>
 						Download
 					</Button>}

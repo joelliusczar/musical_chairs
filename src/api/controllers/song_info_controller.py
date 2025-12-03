@@ -180,13 +180,13 @@ def download_song(
 ) -> StreamingResponse:
 	path = next(songFileService.get_internal_song_paths(id), None)
 	if path:
-		data = fileService.open_song(path)
-		if data:
-			return StreamingResponse(chunk for chunk in data)
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"File not found for {id}", "song file")]
-		)
+		with fileService.open_song(path) as data:
+			if data:
+				return StreamingResponse(chunk for chunk in data)
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail=[build_error_obj(f"File not found for {id}", "song file")]
+			)
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"{id} not found", "id")]

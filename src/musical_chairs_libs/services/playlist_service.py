@@ -136,6 +136,7 @@ class PlaylistService:
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
 
+
 	def __attach_user_joins__(
 		self,
 		query: Select[
@@ -273,8 +274,6 @@ class PlaylistService:
 			query = query.where(pl_pk == playlistKeys)
 		elif isinstance(playlistKeys, Iterable) and not isinstance(playlistKeys, str):
 			query = query.where(pl_pk.in_(playlistKeys))
-		elif type(playlistKeys) is str and not ownerId:
-			raise ValueError("user must be provided when using playlist name")
 		elif type(playlistKeys) is str:
 			lPlaylistKey = playlistKeys.replace("_","\\_").replace("%","\\%")
 			query = query\
@@ -430,3 +429,27 @@ class PlaylistService:
 		return delCount
 
 
+	def __is_playlistName_used__(
+		self,
+		id: Optional[int],
+		playlistName: SavedNameString,
+		userId: int,
+	) -> bool:
+		queryAny = select(func.count(1)).select_from(playlists_tbl)\
+				.where(pl_name == str(playlistName))\
+				.where(pl_ownerFk == userId)\
+				.where(pl_pk != id)
+		countRes = self.conn.execute(queryAny).scalar()
+		return countRes > 0 if countRes else False
+
+
+	def is_playlistName_used(
+		self,
+		id: Optional[int],
+		playlistName: str,
+		userId: int
+	) -> bool:
+		cleanedPlaylistName = SavedNameString(playlistName)
+		if not cleanedPlaylistName:
+			return True
+		return self.__is_playlistName_used__(id, cleanedPlaylistName, userId)

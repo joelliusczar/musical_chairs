@@ -22,18 +22,19 @@ from musical_chairs_libs.services import (
 	PlaylistsUserService,
 )
 from api_dependencies import (
-	get_station_user,
 	get_owner_from_query,
 	get_playlist_by_name_and_owner,
 	get_user_with_rate_limited_scope,
 	get_optional_user_from_token,
 	get_from_query_subject_user,
 	build_error_obj,
-	get_station_user_by_id,
 	get_playlist_user_by_id,
 	playlists_users_service,
 	playlist_service,
 	get_playlist_user,
+	get_page_num,
+	user_for_filters,
+	get_current_user_simple,
 )
 from playlist_validation import (
 	validate_playlist_rule,
@@ -43,6 +44,31 @@ from sqlalchemy.exc import IntegrityError
 
 
 router = APIRouter(prefix="/playlists")	
+
+
+@router.get("/page")
+def get_page(
+	name: str="",
+	artist: str="",
+	limit: int = 50,
+	page: int = Depends(get_page_num),
+	user: Optional[AccountInfo] = Security(
+		user_for_filters,
+		scopes=[UserRoleDef.PLAYLIST_VIEW.value]
+	),
+	playService: PlaylistService = Depends(playlist_service)
+) -> TableData[PlaylistInfo]:
+
+	data, totalRows = playService.get_playlists_page(
+			page = page,
+			limit = limit,
+			user=user
+		)
+	return TableData(
+		totalrows=totalRows,
+		items=data
+	)
+
 
 @router.get("/list")
 def playlist_list(
@@ -59,19 +85,19 @@ def playlist_list(
 
 
 
-# @router.get("/check/")
-# def is_phrase_used(
-# 	id: Optional[int]=None,
-# 	name: str = "",
-# 	user: AccountInfo = Depends(get_current_user_simple),
-# 	playlistService: PlaylistService = Depends(playlist_service)
-# ) -> dict[str, bool]:
-# 	return {
-# 		"name": playlistService.(id, name, user.id)
-# 	}
+@router.get("/check/")
+def is_phrase_used(
+	id: Optional[int]=None,
+	name: str = "",
+	user: AccountInfo = Depends(get_current_user_simple),
+	playlistService: PlaylistService = Depends(playlist_service)
+) -> dict[str, bool]:
+	return {
+		"name": playlistService.is_playlistName_used(id, name, user.id)
+	}
 
 
-@router.get("/{ownerkey}/{stationkey}")
+@router.get("/{ownerkey}/{playlistkey}")
 def get_playlist_for_edit(
 	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner)
 ) -> PlaylistInfo:
@@ -93,11 +119,11 @@ def create_playlist(
 
 @router.put("/{playlistid}")
 def update_playlist(
-	playlistid: int, #this needs to match get_station_user_by_id
+	playlistid: int, #this needs to match get_playlist_user_by_id
 	playlist: ValidatedPlaylistCreationInfo = Body(default=None),
 	playlistService: PlaylistService = Depends(playlist_service),
 	user: AccountInfo = Security(
-		get_station_user_by_id,
+		get_playlist_user_by_id,
 		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
 	)
 ) -> PlaylistInfo:
@@ -145,7 +171,7 @@ def add_user_rule(
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[
 		Security(
-			get_station_user,
+			get_playlist_user,
 			scopes=[UserRoleDef.PLAYLIST_USER_ASSIGN.value]
 		)
 	]

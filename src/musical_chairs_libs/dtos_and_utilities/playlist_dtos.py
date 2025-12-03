@@ -89,7 +89,7 @@ class ValidatedPlaylistCreationInfo(PlaylistCreationInfo):
 
 	_name_len = field_validator(
 		"name"
-	)(min_length_validator_factory(2, "Station name"))
+	)(min_length_validator_factory(2, "Playlist name"))
 
 	@field_validator("name")
 	@classmethod
@@ -99,7 +99,7 @@ class ValidatedPlaylistCreationInfo(PlaylistCreationInfo):
 
 		m = get_non_simple_chars(v)
 		if m:
-			raise ValueError(f"Illegal character used in station name: {m}")
+			raise ValueError(f"Illegal character used in playlist name: {m}")
 		return v
 
 

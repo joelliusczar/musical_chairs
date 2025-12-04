@@ -12,7 +12,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	UserRoleDef,
 	TableData,
-	StationActionRule,
 	PlaylistInfo,
 	ValidatedPlaylistCreationInfo,
 	PlaylistActionRule,
@@ -132,7 +131,7 @@ def update_playlist(
 
 
 
-@router.get("/{ownerkey}/{stationkey}/user_list",dependencies=[
+@router.get("/{ownerkey}/{playlistkey}/user_list",dependencies=[
 	Security(
 		get_playlist_user,
 		scopes=[UserRoleDef.PLAYLIST_USER_LIST.value]
@@ -156,7 +155,7 @@ def get_playlist_user_list(
 )
 def add_user_rule(
 	user: AccountInfo = Depends(get_from_query_subject_user),
-	rule: StationActionRule = Depends(validate_playlist_rule),
+	rule: PlaylistActionRule = Depends(validate_playlist_rule),
 	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
 	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
 ) -> PlaylistActionRule:

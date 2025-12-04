@@ -1,5 +1,5 @@
 import { defaultWebClient as webClient } from "./api";
-import { PageableParams } from "../Types/pageable_types";
+import { PageableParams, ListData } from "../Types/pageable_types";
 import {
 	PageableListDataShape,
 } from "../Types/reducerTypes";
@@ -47,6 +47,21 @@ export const getPage = (params: PageableParams) => {
 	};
 };
 
+export const getList = ({ params }: { params?: object}) => {
+	const abortController = new AbortController();
+	return {
+		abortController: abortController,
+		call: async () => {
+			const response = await webClient.get<ListData<PlaylistInfo>>(
+				"playlists/list",
+				{
+					params: params,
+					signal: abortController.signal,
+				});
+			return response.data;
+		},
+	};
+};
 
 export const add = ({ data }: { data: PlaylistCreationInfo}) => {
 	const abortController = new AbortController();

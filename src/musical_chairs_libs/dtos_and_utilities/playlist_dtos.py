@@ -108,7 +108,7 @@ class SongPlaylistTuple:
 	def __init__(
 		self,
 		songid: int,
-		playlistid: int,
+		playlistid: Optional[int]=None,
 		islinked: bool=False
 	) -> None:
 		self.songid = songid

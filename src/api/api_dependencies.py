@@ -34,6 +34,7 @@ from musical_chairs_libs.services import (
 	JobsService,
 	PlaylistService,
 	PlaylistsUserService,
+	PlaylistsSongsService,
 	StationsSongsService,
 	StationsUsersService,
 	CollectionQueueService,
@@ -162,6 +163,12 @@ def playlists_users_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> PlaylistsUserService:
 	return PlaylistsUserService(conn)
+
+
+def playlists_songs_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> PlaylistsSongsService:
+	return PlaylistsSongsService(conn)
 
 
 def song_info_service(
@@ -605,10 +612,10 @@ def check_optional_path_for_current_user(
 		)
 	return user
 
+
 def check_directory_transfer(
 	transfer: DirectoryTransfer,
 	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
-	songFileService: SongFileService = Depends(song_file_service),
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
@@ -629,6 +636,7 @@ def check_directory_transfer(
 			userActionHistoryService
 		)
 	return user
+
 
 def get_multi_path_user(
 	securityScopes: SecurityScopes,
@@ -654,6 +662,8 @@ def get_multi_path_user(
 			userActionHistoryService
 		)
 	return user
+
+filter_permitter_query_songs = get_multi_path_user
 
 def __get_station_user__(
 	securityScopes: SecurityScopes,
@@ -698,6 +708,7 @@ def __get_station_user__(
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
 
+
 def get_station_user_by_id(
 	securityScopes: SecurityScopes,
 	station: StationInfo=Depends(get_station_by_id),
@@ -711,6 +722,7 @@ def get_station_user_by_id(
 		user,
 		userActionHistoryService
 	)
+
 
 def get_station_user(
 	securityScopes: SecurityScopes,
@@ -769,6 +781,7 @@ def get_multi_station_user(
 					raise build_too_many_requests_error(int(timeleft))
 	return user
 
+
 def get_account_if_has_scope(
 	securityScopes: SecurityScopes,
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
@@ -791,6 +804,7 @@ def get_account_if_has_scope(
 		)
 	return prev
 
+
 def get_prefix_if_owner(
 	prefix: str=Depends(get_prefix),
 	currentUser: AccountInfo = Depends(get_current_user_simple),
@@ -804,12 +818,14 @@ def get_prefix_if_owner(
 		raise build_wrong_permissions_error()
 	return prefix
 
+
 def get_page_num(
 	page: int = 1,
 ) -> int:
 	if page > 0:
 		page -= 1
 	return page
+
 
 def user_for_filters(
 	securityScopes: SecurityScopes,
@@ -898,11 +914,10 @@ def get_playlist_user(
 	securityScopes: SecurityScopes,
 	playlist: PlaylistInfo=Depends(get_playlist_by_name_and_owner),
 	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
-	userActionHistoryService: UserActionsHistoryService=
-		Depends(user_actions_history_service)
 ) -> Optional[AccountInfo]:
 	return __get_playlist_user__(
 		securityScopes,
 		playlist,
 		user
 	)
+

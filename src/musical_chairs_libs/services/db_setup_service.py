@@ -279,5 +279,11 @@ def setup_database(dbName: str):
 			pass
 		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_BITRATE)
 		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLISTSSONGS_ORDER)
+		ownerConnService.run_defined_api_user_script(
+			SqlScripts.GRANT_API_PLAYLISTSSONGS
+		)
+		ownerConnService.run_defined_radio_user_script(
+			SqlScripts.GRANT_RADIO_PLAYLISTSSONGS
+		)
 
 		Path(f"/tmp/{get_schema_hash()}").touch()

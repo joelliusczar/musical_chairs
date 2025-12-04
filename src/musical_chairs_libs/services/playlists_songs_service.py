@@ -1,26 +1,39 @@
 from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	DictDotMap,
 	get_datetime,
-	SongPlaylistTuple
+	normalize_opening_slash,
+	SongPlaylistTuple,
+	SongListDisplayItem,
 )
 from musical_chairs_libs.tables import (
-	songs as songs_tbl, sg_pk, sg_deletedTimstamp,
+	ar_name,
+	songs as songs_tbl, sg_pk, sg_deletedTimstamp, sg_name, sg_path,
+	sg_internalpath, sg_trackNum,
+	song_artist as song_artist_tbl, sgar_songFk, sgar_isPrimaryArtist,
 	playlists_songs as playlists_songs_tbl,
-	plsg_songFk, plsg_playlistFk,
+	plsg_songFk, plsg_playlistFk, plsg_order,
 	st_pk
 )
+from .path_rule_service import PathRuleService
 from sqlalchemy import (
+	and_,
 	select,
 	insert,
 	delete,
+	literal as dbLiteral,
+	String,
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql.expression import (
 	Tuple as dbTuple,
 )
+from sqlalchemy.sql.functions import coalesce
 from typing import (
 	Any,
 	cast,
 	Iterable,
+	Iterator,
 	Optional,
 	Tuple,
 	Union
@@ -30,12 +43,62 @@ class PlaylistsSongsService:
 
 	def __init__(
 		self,
-		conn: Connection
+		conn: Connection,
+		pathRuleService: Optional[PathRuleService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
+		if not pathRuleService:
+			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
+		self.path_rule_service = pathRuleService
+
+	def get_songs(
+			self,
+			playlistId: int,
+			user: Optional[AccountInfo]=None
+		) -> Iterator[SongListDisplayItem]:
+		
+		songsQuery = select(
+			sg_pk.label("id"),
+			sg_name,
+			sg_path,
+			sg_internalpath,
+			sg_trackNum,
+			coalesce[String](ar_name, "").label("artist"),
+			dbLiteral(0).label("queuedtimestamp"),
+		)\
+			.join(
+				song_artist_tbl,
+				and_(sgar_songFk == sg_pk, sgar_isPrimaryArtist == 1),
+				isouter=True
+			)\
+			.join(
+				playlists_songs_tbl,
+				plsg_songFk == sg_pk,
+				isouter=True
+			)\
+			.where(plsg_playlistFk == playlistId)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.order_by(plsg_order)
+		songsResult = self.conn.execute(songsQuery).mappings()
+		pathRuleTree = None
+		if user:
+			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+
+		for row in songsResult:
+
+			song = SongListDisplayItem(
+				**DictDotMap.unflatten(dict(row), omitNulls=True)
+			) 
+			if pathRuleTree:
+				song.rules = list(pathRuleTree.valuesFlat(
+					normalize_opening_slash(song.path))
+				)
+			yield song
+
+
 
 	def get_playlist_songs(
 		self,

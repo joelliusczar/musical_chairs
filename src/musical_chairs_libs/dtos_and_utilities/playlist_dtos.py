@@ -5,11 +5,12 @@ from pydantic import (
 )
 from typing import (
 	Any,
-	Iterator,
-	Iterable,
-	Optional,
 	cast,
 	Collection,
+	Iterable,
+	Iterator,
+	Optional,
+	Tuple
 )
 from .generic_dtos import (
 	RuledEntity,
@@ -109,11 +110,11 @@ class SongPlaylistTuple:
 		self,
 		songid: int,
 		playlistid: Optional[int]=None,
-		islinked: bool=False
+		rank: str=""
 	) -> None:
 		self.songid = songid
 		self.playlistid = playlistid
-		self.islinked = islinked
+		self.lexorder = rank
 
 	def __len__(self) -> int:
 		return 2
@@ -123,10 +124,24 @@ class SongPlaylistTuple:
 		yield self.playlistid
 
 	def __hash__(self) -> int:
-		return hash((self.songid, self.playlistid))
+		return hash((self.songid, self.playlistid, self.lexorder))
 
 	def __eq__(self, other: Any) -> bool:
 		if not other:
 			return False
 		return self.songid == other.songid \
-			and self.playlistid == other.playlistid
+			and self.playlistid == other.playlistid \
+			and self.lexorder == other.rank
+	
+	def __as_tuple__(self) -> Tuple[int, str, int]:
+		return (self.playlistid or 0, self.lexorder, self.songid)
+	
+	def __lt__(self, other: "SongPlaylistTuple") -> bool:
+		return self.__as_tuple__() < other.__as_tuple__()
+	
+	def __str__(self) -> str:
+		return f"(playlistid={self.playlistid}, songid={self.songid},"\
+			f" rank={self.lexorder})"
+	
+	def __repr__(self) -> str:
+		return str(self)

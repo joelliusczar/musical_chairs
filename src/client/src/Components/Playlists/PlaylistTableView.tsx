@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { getPage } from "../../API_Calls/playlistCalls";
+import { Calls } from "../../API_Calls/playlistCalls";
 import {
 	Table,
 	TableBody,
@@ -109,7 +109,7 @@ export const PlaylistTableView = () => {
 	useEffect(() => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
 		const queryObj = getSearchParams(location.search);
-		const requestObj = getPage({
+		const requestObj = Calls.getPage({
 			...queryObj,
 		});
 		const fetch = async () => {

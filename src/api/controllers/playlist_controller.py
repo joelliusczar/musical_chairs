@@ -7,6 +7,7 @@ from fastapi import (
 	HTTPException,
 	status,
 	Body,
+	Query,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
@@ -15,10 +16,13 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PlaylistInfo,
 	ValidatedPlaylistCreationInfo,
 	PlaylistActionRule,
+	SongsPlaylistInfo,
+	SongPlaylistTuple
 )
 from musical_chairs_libs.services import (
 	PlaylistService,
 	PlaylistsUserService,
+	PlaylistsSongsService
 )
 from api_dependencies import (
 	get_owner_from_query,
@@ -34,6 +38,7 @@ from api_dependencies import (
 	get_page_num,
 	user_for_filters,
 	get_current_user_simple,
+	playlists_songs_service
 )
 from playlist_validation import (
 	validate_playlist_rule,
@@ -98,9 +103,16 @@ def is_phrase_used(
 
 @router.get("/{ownerkey}/{playlistkey}")
 def get_playlist_for_edit(
-	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner)
-) -> PlaylistInfo:
-	return playlistInfo
+	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
+	playlistsSongsService: PlaylistsSongsService = Depends(
+		playlists_songs_service
+	)
+) -> SongsPlaylistInfo:
+	songs = [*playlistsSongsService.get_songs(playlistInfo.id)]
+	return SongsPlaylistInfo(
+		**playlistInfo.model_dump(),
+		songs=songs
+	)
 
 
 @router.post("")
@@ -192,7 +204,7 @@ def remove_user_rule(
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[Security(
 		get_playlist_user_by_id,
-		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
+		scopes=[UserRoleDef.PLAYLIST_DELETE.value]
 	)]
 )
 def delete(
@@ -213,3 +225,42 @@ def delete(
 			]
 		)
 	
+
+@router.delete("/{playlistid}/songs",
+	status_code=status.HTTP_204_NO_CONTENT,
+	dependencies=[
+		Security(
+			get_playlist_user_by_id,
+			scopes=[UserRoleDef.PLAYLIST_EDIT.value]
+		)
+	]
+)
+def remove_songs(
+	playlistid: int,
+	songids: list[int]=Query(default=[]),
+	playlistsSongsService: PlaylistsSongsService = Depends(
+		playlists_songs_service
+	)
+):
+	playlistsSongsService.remove_songs_for_playlists((
+		SongPlaylistTuple(s, playlistid)  for s in songids
+	))
+
+@router.post(
+	"/{playlistid}/move/{songid}/to/{order}",
+	dependencies=[
+		Security(
+			get_playlist_user_by_id,
+			scopes=[UserRoleDef.PLAYLIST_EDIT.value]
+		)
+	]
+)
+def move_songs(
+	playlistid: int,
+	songid: int,
+	order: int,
+	playlistsSongsService: PlaylistsSongsService = Depends(
+		playlists_songs_service
+	)
+):
+	playlistsSongsService.move_song(playlistid, songid, order)

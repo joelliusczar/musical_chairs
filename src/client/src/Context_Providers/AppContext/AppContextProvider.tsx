@@ -9,7 +9,9 @@ import {
 import PropTypes from "prop-types";
 import { getList as fetchArtistList } from "../../API_Calls/artistCalls";
 import { getList as fetchAlbumList } from "../../API_Calls/albumCalls";
-import { getList as fetchPlaylists } from "../../API_Calls/playlistCalls";
+import {
+	Calls as PlaylistApiRequestBuilder,
+} from "../../API_Calls/playlistCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import { fetchStations } from "../../API_Calls/stationCalls";
 import { useCurrentUser } from "../AuthContext/AuthContext";
@@ -96,7 +98,7 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 
 	useEffect(() => {
 		if (!loggedIn) return;
-		const requestObj = fetchPlaylists({});
+		const requestObj = PlaylistApiRequestBuilder.getList({});
 		const fetch = async () => {
 			try {
 				playlistsDispatch(dispatches.started());

@@ -11,6 +11,7 @@ export const overrideAddress = import.meta.env.VITE_OVERRIDE_ADDRESS;
 export const apiAddress = import.meta.env.DEV && ! overrideAddress ?
 	baseAddress :
 	!! overrideAddress ? overrideAddress : `${baseAddress}/api/${apiVersion}`;
+export const API_ROOT = `/api/${apiVersion}`;
 
 
 

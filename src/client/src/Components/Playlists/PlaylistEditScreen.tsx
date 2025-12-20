@@ -1,11 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { PlaylistEdit } from "./PlaylistEdit";
 import {
-	checkValuesCaller,
-	get as getPlaylist,
-	add as addPlaylist,
-	update as updatePlaylist,
-	remove as deletePlaylist,
+	Calls,
 } from "../../API_Calls/playlistCalls";
 import { useForm } from "react-hook-form";
 import {
@@ -20,7 +16,6 @@ import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
 import {
 	useCurrentUser,
-	useHasAnyRoles,
 	useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext/AuthContext";
 import {
@@ -42,40 +37,27 @@ import {
 } from "@mui/material";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import { 
-	UserRoleDef,
 	DomRoutes,
-	RulePriorityLevel,
 	CallStatus,
 } from "../../constants";
-import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
-import { OptionsButton } from "../Shared/OptionsButton";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
 import {
 	buildArrayQueryStr,
 } from "../../Helpers/request_helpers";
 import { PlaylistListener } from "./PlaylistListener";
-import { openSongInTab } from "../../API_Calls/songInfoCalls";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { validatePhraseIsUnused, viewSecurityOptions } from "./common";
+import {
+	usePlaylistData,
+} from "../../Context_Providers/AppContext/AppContext";
+import { DndProvider } from "react-dnd";
+import {
+	HTML5Backend,
+} from "react-dnd-html5-backend";
+import { PlaylistSongRow } from "./PlaylistSongRow";
+import { IdValue } from "../../Types/generic_types";
 
-const viewSecurityOptions = [
-	{
-		id: RulePriorityLevel.PUBLIC,
-		name: "Public",
-	},
-	{
-		id: RulePriorityLevel.ANY_USER,
-		name: "Any User",
-	},
-	{
-		id: RulePriorityLevel.INVITED_USER,
-		name: "Invited Users Only",
-	},
-	{
-		id: RulePriorityLevel.OWENER_USER,
-		name: "Private",
-	},
-];
 
 const playlistInfoToFormData = (data: PlaylistInfo) => {
 	const viewSecurityLevel = viewSecurityOptions
@@ -86,19 +68,6 @@ const playlistInfoToFormData = (data: PlaylistInfo) => {
 			viewSecurityLevel[0] : viewSecurityOptions[0],
 	};
 	return formData;
-};
-
-const validatePhraseIsUnused = async (
-	value: string | undefined,
-	context: Yup.TestContext<Partial<PlaylistInfoForm>>
-) => {
-	const id = context?.parent?.id;
-	if (!value) return true;
-	const requestObj = checkValuesCaller({ id, values: {
-		[context.path]: value,
-	}});
-	const used = await requestObj.call();
-	return !(context.path in used) || !used[context.path];
 };
 
 const initialValues = {
@@ -121,42 +90,6 @@ export const PlaylistEditScreen = () => {
 	const isPending = isCallPending(callStatus);
 	const [nextUpIndex, setNextUpIndex] = useState<number>(0);
 
-	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
-	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
-
-
-	const rowButton = (item: SongListDisplayItem, idx: number) => {
-		const rowButtonOptions = [];
-		const canEditThisSong = anyConformsToAnyRule(
-			item?.rules,
-			[UserRoleDef.PATH_EDIT]
-		);
-		const canDownloadThisSong = anyConformsToAnyRule(
-			item?.rules,
-			[UserRoleDef.PATH_DOWNLOAD]
-		);
-		if (canEditSongs || canEditThisSong) rowButtonOptions.push({
-			label: "Edit",
-			link: `${DomRoutes.songEdit()}?ids=${item.id}`,
-		});
-
-		if (canDownloadAnySong || canDownloadThisSong) rowButtonOptions.push({
-			label: "Download",
-			onClick: () => openSongInTab(item.id),
-		});
-
-		return (rowButtonOptions.length > 1 ? <OptionsButton
-			id={`queue-row-btn-${idx}`}
-			options={rowButtonOptions}
-		/> :
-			<Button
-				variant="contained"
-				component={Link}
-				to={`${DomRoutes.songEdit()}?ids=${item.id}`}
-			>
-				{(canEditSongs || canEditThisSong) ? "Edit" : "View"}
-			</Button>);
-	};
 
 	const schema = Yup.object().shape({
 		name: Yup.string().required()
@@ -166,15 +99,14 @@ export const PlaylistEditScreen = () => {
 				(value) => `${value.path} is already used`,
 				validatePhraseIsUnused
 			),
-		requestsecuritylevel: Yup.object().required().test(
-			"requestsecuritylevel",
-			"Request Security cannot be public or lower than view security",
-			(value, context) => {
-				return (value.id) !== RulePriorityLevel.PUBLIC
-					&& value.id >= context.parent.viewsecuritylevel.id;
-			}
-		),
 	});
+
+	const {
+		items: playlists,
+		add: addPlaylist,
+		update: updatePlaylist,
+		remove: removePlaylist,
+	} = usePlaylistData();
 
 	const getPageUrl = (params: { name: string }) => {
 		return DomRoutes.playlistEdit({
@@ -198,7 +130,7 @@ export const PlaylistEditScreen = () => {
 	const callSubmit = handleSubmit(async values => {
 		try {
 			if (values.id) {
-				const requestObj = updatePlaylist({
+				const requestObj = Calls.update({
 					id: values.id, 
 					data: {
 						name: values.name,
@@ -209,9 +141,10 @@ export const PlaylistEditScreen = () => {
 				const playlist = await requestObj.call();
 				enqueueSnackbar("Save successful", { variant: "success" });
 				afterSubmit(playlist);
+				updatePlaylist(playlist);
 			}
 			else {
-				const requestObj = addPlaylist({
+				const requestObj = Calls.add({
 					data: {
 						name: values.name,
 						description: values.description,
@@ -221,6 +154,7 @@ export const PlaylistEditScreen = () => {
 				const playlist = await requestObj.call();
 				enqueueSnackbar("Save successful", { variant: "success" });
 				afterSubmit(playlist);
+				addPlaylist(playlist);
 			}
 		}
 		catch (err) {
@@ -242,10 +176,66 @@ export const PlaylistEditScreen = () => {
 		try {
 			if (!savedId) return;
 
-			const requestObj = deletePlaylist({ id: savedId });
+			const requestObj = Calls.remove({ id: savedId });
 			await requestObj.call();
 			enqueueSnackbar("Delete successful", { variant: "success" });
+			const deletedPlaylist = playlists.filter(p => p.id === savedId);
+			if (deletedPlaylist.length) {
+				removePlaylist(deletedPlaylist[0]);
+			}
 			navigate(DomRoutes.playlistsPage(), { replace: true });
+		}
+		catch (err) {
+			enqueueSnackbar(formatError(err), { variant: "error" });
+		}
+	};
+
+	const removeSong = async (item: SongListDisplayItem) => {
+		if (!savedId) return;
+		try {
+			const requestObj = Calls.removeSongs({
+				ids: [item.id],
+				playlistid: savedId,
+			});
+			await requestObj.call();
+			enqueueSnackbar("Removal successful", { variant: "success" });
+			dispatch(dispatches.update((state) => {
+				const songs = [...state.data].filter(s => s.id !== item.id);
+
+				return {
+					...state,
+					data: songs,
+				};
+			}));
+		}
+		catch (err) {
+			enqueueSnackbar(formatError(err), { variant: "error" });
+		}
+	};
+
+	const moveSong = async (songId: IdValue, order: number) => {
+		if (!savedId) return;
+		try {
+			const requestObj = Calls.moveSong({
+				playlistid: savedId,
+				songid: songId,
+				order,
+			});
+			await requestObj.call();
+			enqueueSnackbar("Removal successful", { variant: "success" });
+			dispatch(dispatches.update((state) => {
+				
+				const songs = [...state.data];
+				const movedSongOldIdx = songs.findIndex(s => s.id === songId);
+				const song = songs[movedSongOldIdx];
+				songs.splice(movedSongOldIdx, 1);
+				songs.splice(order, 0, song);
+
+				return {
+					...state,
+					data: songs,
+				};
+			}));
 		}
 		catch (err) {
 			enqueueSnackbar(formatError(err), { variant: "error" });
@@ -262,7 +252,7 @@ export const PlaylistEditScreen = () => {
 
 	useEffect(() => {
 		if(pathVars.playlistkey && pathVars.ownerkey) {
-			const requestObj = getPlaylist({
+			const playlistRequestObj = Calls.get({
 				ownerkey: pathVars.ownerkey,
 				playlistkey: pathVars.playlistkey,
 			});
@@ -270,7 +260,7 @@ export const PlaylistEditScreen = () => {
 			const fetch = async () => {
 				try {
 					dispatch(dispatches.started());
-					const data = await requestObj.call();
+					const data = await playlistRequestObj.call();
 					const formData = playlistInfoToFormData(data);
 					reset(formData);
 					dispatch(dispatches.done(data.songs));
@@ -281,7 +271,7 @@ export const PlaylistEditScreen = () => {
 				}
 			};
 			fetch();
-			return () => requestObj.abortController.abort();
+			return () => playlistRequestObj.abortController.abort();
 		}
 		else {
 			reset(initialValues);
@@ -347,30 +337,35 @@ export const PlaylistEditScreen = () => {
 						playNext={playNext}
 					/>
 				</Box>
-				<TableContainer>
-					<Table>
-						<TableHead>
-							<TableRow>
-								<TableCell>Track</TableCell>
-								<TableCell>Song</TableCell>
-								<TableCell>Disc</TableCell>
-								<TableCell>Artist</TableCell>
-								<TableCell></TableCell>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							{state.data.map((item, idx) => {
-								return <TableRow key={`song_${idx}`}>
-									<TableCell>{item.track}</TableCell>
-									<TableCell>{item.name}</TableCell>
-									<TableCell>{item.disc}</TableCell>
-									<TableCell>{item.artist}</TableCell>
-									<TableCell>{rowButton(item, idx)}</TableCell>
-								</TableRow>;
-							})}
-						</TableBody>
-					</Table>
-				</TableContainer>
+				<DndProvider
+					backend={HTML5Backend}
+				>
+					<TableContainer>
+						<Table>
+							<TableHead>
+								<TableRow>
+									<TableCell>Track</TableCell>
+									<TableCell>Song</TableCell>
+									<TableCell>Disc</TableCell>
+									<TableCell>Artist</TableCell>
+									<TableCell></TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								{state.data.map((item, idx) => 
+									<PlaylistSongRow 
+										key={`song_${idx}`}
+										song={item}
+										idx={idx}
+										order={idx}
+										removeSong={removeSong}
+										moveSong={moveSong}
+									/>)
+								}
+							</TableBody>
+						</Table>
+					</TableContainer>
+				</DndProvider>
 			</> :
 			<Typography>No Songs</Typography>
 		}

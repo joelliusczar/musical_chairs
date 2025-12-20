@@ -100,6 +100,14 @@ class SqlScripts(Enum):
 		"025.grant_radio_playlistssongs.sql",
 		"e86d10cb8ac811f077fb5e8c97e164d18ed1605cf4e7d6d73c73046b80db57be"
 	)
+	DROP_PLAYLISTSSONGS_ORDER = (
+		"026.drop_playlistssongs_order.sql",
+		"e343fe40c42ffbc132e540e6f90ca5d2f95419107a083029bf6e54821bb2071d"
+	)
+	ADD_PLAYLISTSSONGS_LEXORDER = (
+		"027.add_playlistssongs_lexorder.sql",
+		"4d011ce716594f980414780dbae3255659365183b4d7f58b4a95d65a67deb99b"
+	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",
 		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"

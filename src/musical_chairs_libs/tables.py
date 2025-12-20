@@ -197,13 +197,21 @@ playlists_songs = Table("playlistssongs", metadata,
 	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
 		nullable=True),
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
-	Column("order", Float[float], nullable=False, default=0),
+	Column(
+		"lexorder",
+		BINARY(200),
+		nullable=False,
+		default=""
+	),
 )
 
 plsg = playlists_songs.c
 plsg_songFk = cast(Column[Integer] ,plsg.songfk)
 plsg_playlistFk = cast(Column[Integer] ,plsg.playlistfk)
-plsg_order = cast(Column[Float[float]], plsg.order)
+plsg_lexorder = cast(Column[BINARY], plsg.lexorder)
+plsg_lastmodifiedtimestamp = cast(
+	Column[Float[float]], plsg.lastmodifiedtimestamp
+)
 
 
 song_covers = Table("songcovers", metadata,

@@ -23,6 +23,7 @@ from musical_chairs_libs.services import (
 	JobsService,
 	PlaylistService,
 	PlaylistsUserService,
+	PlaylistsSongsService,
 	StationsSongsService,
 	StationsUsersService,
 	CollectionQueueService,
@@ -181,6 +182,14 @@ def fixture_playlist_service(
 	fixture_conn_cardboarddb: Connection
 ) -> PlaylistService:
 	service = PlaylistService(fixture_conn_cardboarddb)
+	return service
+
+
+@pytest.fixture
+def fixture_playlists_songs_service(
+	fixture_conn_cardboarddb: Connection
+) -> PlaylistsSongsService:
+	service = PlaylistsSongsService(fixture_conn_cardboarddb)
 	return service
 
 

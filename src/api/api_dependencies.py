@@ -331,6 +331,7 @@ def __open_user_from_request__(
 		)
 	return None
 
+
 def get_from_path_subject_user(
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
 	accountsService: AccountsService = Depends(accounts_service)
@@ -344,6 +345,7 @@ def get_from_path_subject_user(
 		)
 	return user
 
+
 def get_from_query_subject_user(
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_query),
 	accountsService: AccountsService = Depends(accounts_service)
@@ -356,6 +358,7 @@ def get_from_query_subject_user(
 			]
 		)
 	return user
+
 
 def get_owner_from_query(
 	ownerkey: Union[int, str, None] = Depends(owner_key_query),
@@ -385,6 +388,7 @@ def get_station_by_id(
 		)
 	return station
 
+
 def get_playlist_by_id(
 		playlistid: int=Path(),
 		playlistService: PlaylistService = Depends(playlist_service),
@@ -411,6 +415,7 @@ def get_stations_by_ids(
 		stationids,
 		user=user
 	))
+
 
 def get_playlist_by_name_and_owner(
 	playlistkey: Union[int, str] = Depends(playlist_key_path),
@@ -439,6 +444,7 @@ def get_playlist_by_name_and_owner(
 			]
 		)
 	return playlist
+
 
 def get_station_by_name_and_owner(
 	stationkey: Union[int, str] = Depends(station_key_path),
@@ -474,6 +480,7 @@ def get_current_user(
 ) -> AccountInfo:
 	return user
 
+
 def get_user_with_simple_scopes(
 	securityScopes: SecurityScopes,
 	user: AccountInfo = Depends(get_current_user_simple)
@@ -484,6 +491,7 @@ def get_user_with_simple_scopes(
 		if not any(r for r in user.roles if r.name == scope):
 			raise build_wrong_permissions_error()
 	return user
+
 
 def get_user_with_rate_limited_scope(
 	securityScopes: SecurityScopes,
@@ -513,6 +521,7 @@ def get_user_with_rate_limited_scope(
 				raise build_too_many_requests_error(int(timeleft))
 	return user
 
+
 def impersonated_user_id(
 	impersonateduserid: Optional[int],
 	user: AccountInfo = Depends(get_current_user_simple)
@@ -521,6 +530,7 @@ def impersonated_user_id(
 			for r in user.roles):
 		return impersonateduserid
 	return None
+
 
 def check_if_can_use_path(
 	scopes: Iterable[str],
@@ -582,6 +592,7 @@ def get_path_rule_loaded_current_user(
 		**userDict,
 	)
 	return resultUser
+
 
 def check_optional_path_for_current_user(
 	securityScopes: SecurityScopes,

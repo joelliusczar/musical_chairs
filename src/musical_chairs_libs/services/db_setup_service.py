@@ -285,5 +285,8 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_radio_user_script(
 			SqlScripts.GRANT_RADIO_PLAYLISTSSONGS
 		)
+		ownerConnService.run_defined_script(SqlScripts.DROP_PLAYLISTSSONGS_ORDER)
+		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLISTSSONGS_LEXORDER)
 
-		Path(f"/tmp/{get_schema_hash()}").touch()
+		if not dbName.startswith("test_"):
+			Path(f"/tmp/{get_schema_hash()}").touch()

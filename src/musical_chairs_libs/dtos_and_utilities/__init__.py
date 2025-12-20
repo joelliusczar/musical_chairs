@@ -24,3 +24,4 @@ from .queued_item import *
 from .artist_dtos import *
 from .album_dtos import *
 from .config_accessors import *
+from .rank_translator import *

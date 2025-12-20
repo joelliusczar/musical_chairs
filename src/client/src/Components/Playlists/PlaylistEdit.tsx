@@ -3,45 +3,24 @@ import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
 import {
-	add as addPlaylist,
+	Calls,
 } from "../../API_Calls/playlistCalls";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
-import {
-	RulePriorityLevel,
-} from "../../constants";
 import { FormSelect } from "../Shared/FormSelect";
 import {
 	PlaylistInfo,
 	PlaylistInfoForm,
 } from "../../Types/playlist_types";
 import { SubmitButton } from "../Shared/SubmitButton";
+import * as Yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { validatePhraseIsUnused, viewSecurityOptions } from "./common";
 
 
 const inputField = {
 	margin: 2,
 };
-
-const viewSecurityOptions = [
-	{
-		id: RulePriorityLevel.PUBLIC,
-		name: "Public",
-	},
-	{
-		id: RulePriorityLevel.ANY_USER,
-		name: "Any User",
-	},
-	{
-		id: RulePriorityLevel.INVITED_USER,
-		name: "Invited Users Only",
-	},
-	{
-		id: RulePriorityLevel.OWENER_USER,
-		name: "Private",
-	},
-];
-
-
 
 
 type PlaylistEditProps = {
@@ -129,15 +108,28 @@ export const PlaylistNewModalOpener = (props: PlaylistNewModalOpenerProps) => {
 		closeModal();
 	};
 
+	const schema = Yup.object().shape({
+		name: Yup.string().required()
+			.matches(/^[a-zA-Z0-9_]*$/, "Name can only contain a-zA-Z0-9_")
+			.test(
+				"name",
+				(value) => `${value.path} is already used`,
+				validatePhraseIsUnused
+			),
+	});
+
 	const formMethods = useForm<PlaylistInfoForm>({
 		defaultValues: {
 			name: "",
+			viewsecuritylevel: viewSecurityOptions[0],
 		},
+		reValidateMode: "onSubmit",
+		resolver: yupResolver(schema),
 	});
 	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = addPlaylist({
+			const requestObj = Calls.add({
 				data: {
 					name: values.name,
 					description: values.description,

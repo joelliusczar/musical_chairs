@@ -201,7 +201,7 @@ export const AlbumEditScreen = () => {
 		reset,
 	]);
 
-	const playNext = useCallback((step: number) => {
+	const queueNext = useCallback((step: number) => {
 		setNextUpIndex(index => {
 			return index + step;
 		});
@@ -248,7 +248,8 @@ export const AlbumEditScreen = () => {
 					<PlaylistListener
 						audioItems={state.data}
 						nextUp={getNextUp()}
-						playNext={playNext}
+						queueNext={queueNext}
+						parentId={id}
 					/>
 				</Box>
 				<TableContainer>

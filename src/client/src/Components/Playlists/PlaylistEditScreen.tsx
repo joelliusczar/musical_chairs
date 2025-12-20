@@ -287,7 +287,7 @@ export const PlaylistEditScreen = () => {
 
 	const loadStatus = pathVars.playlistkey ? callStatus: CallStatus.done;
 
-	const playNext = useCallback((step: number) => {
+	const queueNext = useCallback((step: number) => {
 		setNextUpIndex(index => {
 			return index + step;
 		});
@@ -334,7 +334,8 @@ export const PlaylistEditScreen = () => {
 					<PlaylistListener
 						audioItems={state.data}
 						nextUp={getNextUp()}
-						playNext={playNext}
+						queueNext={queueNext}
+						parentId={savedId || 0}
 					/>
 				</Box>
 				<DndProvider

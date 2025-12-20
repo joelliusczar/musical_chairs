@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Iterator, Optional
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -185,13 +185,17 @@ def download_song(
 	print(f"Used memory: {mem_mib:.2f} MiB")
 	path = next(songFileService.get_internal_song_paths(id), None)
 	if path:
-		data = fileService.open_song(path)
-		if data:
-			return StreamingResponse(chunk for chunk in data)
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"File not found for {id}", "song file")]
-		)
+		def iterfile() -> Iterator[bytes]:
+			with fileService.open_song(path) as data:
+				if not data:
+					raise HTTPException(
+						status_code=status.HTTP_404_NOT_FOUND,
+						detail=[build_error_obj(f"File not found for {id}", "song file")]
+					)
+				yield from data
+
+		return StreamingResponse(iterfile())
+		
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"{id} not found", "id")]

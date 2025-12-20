@@ -46,12 +46,13 @@ class JsonFormatter(Formatter):
 
 	@override
 	def format(self, record: builtin_logging.LogRecord) -> str:
+		
 		entry = self.__prepare_log_dict__(record)
-		return json.dumps(entry)
+		return json.dumps(entry, default=str)
 	
 	def __prepare_log_dict__(self, record: builtin_logging.LogRecord):
 		alwaysFields = {
-			"message": record.message,
+			"message": record.getMessage(),
 			"timestamp": datetime.fromtimestamp(
 				record.created,
 				tz=timezone.utc

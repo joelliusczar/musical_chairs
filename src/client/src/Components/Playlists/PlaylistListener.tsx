@@ -1,28 +1,37 @@
 import React, { 
-	useCallback,
 	useEffect,
-	useState,
+	useRef,
 } from "react";
 import { Button } from "@mui/material";
-import { songDownload } from "../../API_Calls/songInfoCalls";
 import { SongListDisplayItem } from "../../Types/song_info_types";
+import { getDownloadAddress } from "../../Helpers/request_helpers";
+import { IdValue } from "../../Types/generic_types";
 
 type PlaylistListenerProps = {
 	audioItems: SongListDisplayItem[],
 	nextUp: SongListDisplayItem | null,
-	playNext: (steps: number) => void,
+	queueNext: (steps: number) => void,
+	parentId: IdValue,
 };
+
+const getAudioElement = (className: string) => {
+	const audioSelection = 
+			document.getElementsByClassName(className);
+	if (audioSelection.length) {
+		const audioElement = audioSelection[0] as HTMLAudioElement;
+		return audioElement;
+	}
+	return null;
+};
+
 
 export const PlaylistListener = (props: PlaylistListenerProps) => {
 
-	const { nextUp, playNext } = props;
-	const [isPlaying, setIsPlaying] = useState(false);
-	const [loadedFiles, setLoadedFiles] = useState<ArrayBuffer[]>([]);
-	const [audioCtx, setAudioCtx] =  useState<AudioContext | null>(null);
-	const [currentTime, setCurrentTime] = useState(0);
-	const [totalTime, setTotalTime] = useState(0);
-	const [currentDuration, setCurrentDuration] = useState(0);
-	const [loadedTitles, setLoadedTitles] = useState<string[]>([""]);
+	const { nextUp, queueNext, parentId } = props;
+
+	const timeDisplayCtl = useRef<HTMLSpanElement>(null);
+	const playButtonCtl = useRef<HTMLButtonElement>(null);
+
 
 	const formatTime = (seconds: number) => {
 		const minutes = Math.floor(seconds / 60);
@@ -30,134 +39,118 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 		return `${minutes}:${String(wholeSeconds).padStart(2,"0")}`;
 	};
 
-	useEffect(() => {
-		const requestObj = songDownload({ id: nextUp?.id || 0 });
-
-		if (nextUp) {
-			const fetch = async () => {
-				const data = await requestObj.call();
-
-				setLoadedFiles(l => {
-					const copy = l.slice(-3);
-					copy.push(data);
-					return copy;
-				});
-				setLoadedTitles(l => [...l, nextUp.name]);
-			};
-			fetch();
+	const songEnd = () => {
+		const previousAudio = getAudioElement("previous-audio");
+		if (previousAudio) {
+			const audioParent = 
+					document.getElementById(`playlist-listener-${parentId}`);
+			if (audioParent) {
+				audioParent.removeChild(previousAudio);
+			}
 		}
-		return () => requestObj.abortController.abort();
-	},[nextUp, setLoadedFiles, setLoadedTitles]);
+		const currentAudio = getAudioElement("current-audio");
+		if (currentAudio) {
+			currentAudio.classList.remove("current-audio");
+			currentAudio.classList.add("previous-audio");
+		}
+		const nextAudio = getAudioElement("next-audio");
+		if (nextAudio) {
+			nextAudio.classList.remove("next-audio");
+			nextAudio.classList.add("current-audio");
+			nextAudio.play();
+		}
+	};
+	
 
+	const timeUpdate = () => {
+		const currentAudio = getAudioElement("current-audio");
+		if (currentAudio) {
+			const currentTime = currentAudio.currentTime;
+			const duration = currentAudio.duration;
+			if (timeDisplayCtl.current) {
+				const timeDisplay = 
+					`${formatTime(currentTime)}/${formatTime(duration)}`;
+				timeDisplayCtl.current.innerText = timeDisplay;
+			}
 
-	useEffect(() => {
-		let hasQueuedNext = false;
-		const intervalId = setInterval(() => {
-			if (currentDuration)
-			{
-				const currentTime = (audioCtx?.currentTime || 0) - totalTime;
-				const progress = currentTime / currentDuration;
-				setCurrentTime(currentTime);
-				if (currentDuration < 30 || progress > .8) {
-					if (!hasQueuedNext) {
-						playNext(1);
-						hasQueuedNext = true;
+			if (duration < 30 || (currentTime / duration) > .8) {
+				const audioParent = 
+					document.getElementById(`playlist-listener-${parentId}`);
+				if (audioParent) {
+					const existingNextAudio = getAudioElement("next-audio");
+					if (!existingNextAudio) {
+						const nextAudio = document.createElement("audio");
+						nextAudio.addEventListener("timeupdate", timeUpdate);
+						nextAudio.classList.add("next-audio");
+						nextAudio.preload = "auto";
+						nextAudio.style = "display: none";
+						queueNext(1);
+						audioParent.appendChild(nextAudio);
+					}
+					else {
+						const remainingTime = duration - currentTime;
+						if (remainingTime < .2) {
+							songEnd();
+						}
 					}
 				}
 			}
-		}, 1000);
-
-		return () => clearInterval(intervalId);
-	},[currentDuration, totalTime, playNext, audioCtx, setCurrentTime]);
-
-
-	const startNext = useCallback(async (audioCtx: AudioContext) => {
-
-		if (!loadedFiles.length) return;
-
-		const loadedFile = loadedFiles[loadedFiles.length - 1];
-		const buffer = await audioCtx.decodeAudioData(loadedFile.slice(0));
-		const source = audioCtx.createBufferSource();
-		source.buffer = buffer;
-		source.connect(audioCtx.destination);
-		
-
-		setCurrentDuration(buffer.duration);
-		setCurrentTime(0);
-
-		source.start();
-			
-
-	},[loadedFiles, setCurrentDuration, setCurrentTime]);
-
-
+		}
+	};
 
 	useEffect(() => {
-		setCurrentTime(t => {
-			setCurrentDuration(duration => {
-				if (!audioCtx) return duration;
-				const remainingTime = (duration - t);
-				setTimeout(() => {
-					setTotalTime(a => a + duration);
-					setLoadedTitles(l => l.slice(1));
-					startNext(audioCtx);
-				},remainingTime * 1000);
-				return duration;
-			});
-			return t;
-		});
-	},[
-		startNext, 
-		audioCtx, 
-		setCurrentDuration, 
-		setCurrentTime, 
-		setTotalTime,
-		setLoadedTitles,
-	]);
+		if (!nextUp) return;
+		const nextAudio = getAudioElement("next-audio");
+		if (nextAudio) {
+			nextAudio.src = getDownloadAddress(nextUp.id);
+			nextAudio.load();
+		}
+	},[nextUp]);
 
-	useEffect(() => {
-		return () => {
-			if (audioCtx?.state !== "closed") {
-				audioCtx?.close();
-			}
-		};
-	}, [audioCtx]);
-
-	const formattedCurrentTime = formatTime(currentTime);
-	const formattedDuration = formatTime(currentDuration || 0);
-
+	
 	return (
 		<>
 			<Button
-				disabled={loadedFiles.length === 0}
-				onClick={async () => {
-					if (!audioCtx) {
-						const ctx = new AudioContext();
-						ctx.onstatechange = () => {
-							setIsPlaying(ctx.state === "running");
-						};
-						setAudioCtx(ctx);
-						await startNext(ctx);
-					}
-					else {
-						if (audioCtx.state === "running") {
-							audioCtx.suspend();
+				ref={playButtonCtl}
+				onClick={() => {
+					const currentAudio = getAudioElement("current-audio");
+					if (currentAudio) {
+						if (!currentAudio.src && !!nextUp) {
+							currentAudio.src = getDownloadAddress(nextUp.id);
+						}
+						if (currentAudio.paused) {
+							currentAudio.play();
+							if (playButtonCtl.current) {
+								playButtonCtl.current.innerText = "Pause";
+							}
+							if (timeDisplayCtl.current) {
+								timeDisplayCtl.current.innerText = "Loading...";
+							}
 						}
 						else {
-							audioCtx.resume();
+							currentAudio.pause();
+							if (playButtonCtl.current) {
+								playButtonCtl.current.innerText = "Play";
+							}
 						}
 					}
 				}}
 			>
-				{isPlaying ?
-					"Pause" :
-					"Play"
-				}
+				Play
 			</Button>
-			<span>
-				{`${formattedCurrentTime}/${formattedDuration}`}
+			<span ref={timeDisplayCtl}>
 			</span>
-			<span>{loadedTitles.length > 0 ? loadedTitles[0] : ""}</span>
+			<div id={`playlist-listener-${parentId}`}>
+				<>
+					{!!nextUp && <audio
+						className="current-audio"
+						controls
+						preload="auto"
+						style={{display: "none"}}
+						onTimeUpdate={timeUpdate}
+					/>}
+				</>
+			</div>
 		</>
 	);
 };

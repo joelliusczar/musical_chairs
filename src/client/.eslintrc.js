@@ -58,6 +58,7 @@ module.exports = {
 			},
 		],
 		"@typescript-eslint/no-unused-vars": ["warn"],
+		"@typescript-eslint/ban-ts-comment": "off",
 		"no-console": ["warn", { "allow": ["warn", "error", "info"]}],
 		"array-callback-return": "error",
 		"max-len": ["error", { "code": 80, "tabWidth": 2 }],

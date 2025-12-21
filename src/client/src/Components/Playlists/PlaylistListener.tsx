@@ -86,7 +86,8 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 						//typescript doesn't like me
 						//setting style directly
 						//and doesn't warn until the build step.
-						(nextAudio as HTMLElement).style = "display: none";
+						// @ts-ignore
+						nextAudio.style = "display: none";
 						queueNext(1);
 						audioParent.appendChild(nextAudio);
 					}

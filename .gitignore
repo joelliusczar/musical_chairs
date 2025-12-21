@@ -18,6 +18,7 @@ musical_chairs_radio.log
 musical_chairs_queue.log
 
 musical_chairs.jsonl
+musical_chairs.jsonl.*
 
 dev_ops/bundle.rb
 dev_ops/provincial.rb

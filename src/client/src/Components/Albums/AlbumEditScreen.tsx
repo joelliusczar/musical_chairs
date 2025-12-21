@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { AlbumEdit } from "../Albums/AlbumEdit";
 import {
 	useAlbumData,
 } from "../../Context_Providers/AppContext/AppContext";
-import { 
-	update as saveAlbum, 
+import {
+	update as saveAlbum,
 	get as fetchAlbum,
 	remove as deleteAlbum,
 } from "../../API_Calls/albumCalls";
@@ -28,6 +28,7 @@ import {
 import { isCallPending } from "../../Helpers/request_helpers";
 import { Loader } from "../Shared/Loader";
 import {
+	Box,
 	Table,
 	TableBody,
 	TableContainer,
@@ -44,8 +45,9 @@ import { OptionsButton } from "../Shared/OptionsButton";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
 import {
 	buildArrayQueryStr,
-	getDownloadAddress,
 } from "../../Helpers/request_helpers";
+import { PlaylistListener } from "../Playlists/PlaylistListener";
+import { openSongInTab } from "../../API_Calls/songInfoCalls";
 
 
 
@@ -55,7 +57,7 @@ const initialValues = {
 
 export const AlbumEditScreen = () => {
 
-	const id  = parseInt((useParams().id || "0"));
+	const id = parseInt((useParams().id || "0"));
 	const { enqueueSnackbar } = useSnackbar();
 	const navigate = useNavigate();
 
@@ -64,6 +66,7 @@ export const AlbumEditScreen = () => {
 	);
 	const { callStatus, error } = state;
 	const isPending = isCallPending(callStatus);
+	const [nextUpIndex, setNextUpIndex] = useState<number>(0);
 
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
@@ -92,7 +95,7 @@ export const AlbumEditScreen = () => {
 
 		if (canDownloadAnySong || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
-			href: getDownloadAddress(item.id),
+			onClick: () => openSongInTab(item.id),
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton
@@ -118,25 +121,27 @@ export const AlbumEditScreen = () => {
 	const { handleSubmit, reset, getValues } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = saveAlbum({ id, data: {
-				name: values.name,
-				year: values.year || undefined,
-				albumartist: values.albumartist || undefined,
-				stations: values.stations,
-				versionnote: values.versionnote,
-			}});
+			const requestObj = saveAlbum({
+				id, data: {
+					name: values.name,
+					year: values.year || undefined,
+					albumartist: values.albumartist || undefined,
+					stations: values.stations,
+					versionnote: values.versionnote,
+				},
+			});
 			const album = await requestObj.call();
-			enqueueSnackbar("Save successful", { variant: "success"});
+			enqueueSnackbar("Save successful", { variant: "success" });
 			updateAlbum(album);
 		}
-		catch(err) {
-			enqueueSnackbar(formatError(err), { variant: "error"});
+		catch (err) {
+			enqueueSnackbar(formatError(err), { variant: "error" });
 			console.error(err);
 		}
 	});
 
 
-	
+
 	const canDeleteItem = () => {
 		const ownerId = getValues("owner.id");
 		if (currentUser.id === ownerId) return true;
@@ -149,11 +154,11 @@ export const AlbumEditScreen = () => {
 			const requestObj = deleteAlbum({ id });
 			await requestObj.call();
 			removeAlbum(getValues());
-			enqueueSnackbar("Delete successful", { variant: "success"});
+			enqueueSnackbar("Delete successful", { variant: "success" });
 			navigate(DomRoutes.albumPage(), { replace: true });
 		}
 		catch (err) {
-			enqueueSnackbar(formatError(err),{ variant: "error"});
+			enqueueSnackbar(formatError(err), { variant: "error" });
 		}
 	};
 
@@ -165,7 +170,7 @@ export const AlbumEditScreen = () => {
 	useAuthViewStateChange(authReset);
 
 	useEffect(() => {
-		if(id) {
+		if (id) {
 			const requestObj = fetchAlbum({
 				id,
 			});
@@ -177,8 +182,8 @@ export const AlbumEditScreen = () => {
 					reset(data);
 					dispatch(dispatches.done(data.songs));
 				}
-				catch(err) {
-					enqueueSnackbar(formatError(err), { variant: "error"});
+				catch (err) {
+					enqueueSnackbar(formatError(err), { variant: "error" });
 					dispatch(dispatches.failed(formatError(err)));
 				}
 			};
@@ -196,7 +201,21 @@ export const AlbumEditScreen = () => {
 		reset,
 	]);
 
-	const songIdQueryStr = state.data?.length > 0 ? 
+	const queueNext = useCallback((step: number) => {
+		setNextUpIndex(index => {
+			return index + step;
+		});
+	},[setNextUpIndex]);
+
+	const getNextUp = () => {
+		if (!state.data) return null;
+		if (nextUpIndex < state.data.length && nextUpIndex >= 0) {
+			return state.data[nextUpIndex];
+		}
+		return null;
+	};
+
+	const songIdQueryStr = state.data?.length > 0 ?
 		buildArrayQueryStr("ids", state.data.map(i => i.id)) :
 		"";
 
@@ -207,7 +226,7 @@ export const AlbumEditScreen = () => {
 				promptLabel="Delete Album"
 				message={`Are you sure you want to delete ${""}?`}
 				onYes={() => deleteItem()}
-				onNo={() => {}}
+				onNo={() => { }}
 			/>}
 		</>
 		<AlbumEdit
@@ -223,31 +242,41 @@ export const AlbumEditScreen = () => {
 		>
 			Batch Edit Songs
 		</Button>
-		{state.data?.length > 0 ? 
-			<TableContainer>
-				<Table>
-					<TableHead>
-						<TableRow>
-							<TableCell>Track</TableCell>
-							<TableCell>Song</TableCell>
-							<TableCell>Disc</TableCell>
-							<TableCell>Artist</TableCell>
-							<TableCell></TableCell>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						{state.data.map((item,idx) => {
-							return <TableRow key={`song_${idx}`}>
-								<TableCell>{item.track}</TableCell>
-								<TableCell>{item.name}</TableCell>
-								<TableCell>{item.disc}</TableCell>
-								<TableCell>{item.artist}</TableCell>
-								<TableCell>{rowButton(item, idx)}</TableCell>
-							</TableRow>;
-						})}
-					</TableBody>
-				</Table>
-			</TableContainer> :
+		{state.data?.length > 0 ?
+			<>
+				<Box>
+					<PlaylistListener
+						audioItems={state.data}
+						nextUp={getNextUp()}
+						queueNext={queueNext}
+						parentId={id}
+					/>
+				</Box>
+				<TableContainer>
+					<Table>
+						<TableHead>
+							<TableRow>
+								<TableCell>Track</TableCell>
+								<TableCell>Song</TableCell>
+								<TableCell>Disc</TableCell>
+								<TableCell>Artist</TableCell>
+								<TableCell></TableCell>
+							</TableRow>
+						</TableHead>
+						<TableBody>
+							{state.data.map((item, idx) => {
+								return <TableRow key={`song_${idx}`}>
+									<TableCell>{item.track}</TableCell>
+									<TableCell>{item.name}</TableCell>
+									<TableCell>{item.disc}</TableCell>
+									<TableCell>{item.artist}</TableCell>
+									<TableCell>{rowButton(item, idx)}</TableCell>
+								</TableRow>;
+							})}
+						</TableBody>
+					</Table>
+				</TableContainer>
+			</> :
 			<Typography>No Songs</Typography>
 		}
 	</Loader>;

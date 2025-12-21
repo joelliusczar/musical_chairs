@@ -23,9 +23,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	normalize_opening_slash,
 	clean_search_term_for_like,
 	PathDict,
-	TrackListing
+	TrackListing,
+	SongPlaylistTuple,
 )
 from .path_rule_service import PathRuleService
+from .playlists_songs_service import PlaylistsSongsService
 from sqlalchemy import (
 	select,
 	update,
@@ -54,6 +56,10 @@ from musical_chairs_libs.tables import (
 	sg_deletedTimstamp,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
 	users as user_tbl,
+	playlists as playlists_tbl, pl_pk, pl_name, pl_viewSecurityLevel,
+	pl_description, pl_ownerFk,
+	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk
+
 )
 from .song_artist_service import SongArtistService
 from .stations_songs_service import StationsSongsService
@@ -69,6 +75,8 @@ artist_owner = user_tbl.alias("artistowner")
 artist_owner_id = artist_owner.c.pk
 station_owner = user_tbl.alias("stationowner")
 station_owner_id = station_owner.c.pk
+playlist_owner = user_tbl.alias("playlistowner")
+playlist_owner_id = playlist_owner.c.pk
 
 
 class SongInfoService:
@@ -78,7 +86,8 @@ class SongInfoService:
 		conn: Connection,
 		pathRuleService: Optional[PathRuleService]=None,
 		songArtistService: Optional[SongArtistService]=None,
-		stationsSongsService: Optional[StationsSongsService]=None
+		stationsSongsService: Optional[StationsSongsService]=None,
+		playlistsSongsService: Optional[PlaylistsSongsService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -89,9 +98,12 @@ class SongInfoService:
 			songArtistService = SongArtistService(conn)
 		if not stationsSongsService:
 			stationsSongsService = StationsSongsService(conn)
+		if not playlistsSongsService:
+			playlistsSongsService = PlaylistsSongsService(conn, pathRuleService)
 		self.path_rule_service = pathRuleService
 		self.song_artist_service = songArtistService
 		self.stations_songs_service = stationsSongsService
+		self.playlists_songs_service = playlistsSongsService
 		self.get_datetime = get_datetime
 
 
@@ -152,7 +164,6 @@ class SongInfoService:
 					path=row[sg_path],
 					name=SavedNameString.format_name_for_save(row[sg_name])
 				)
-
 
 	def get_songIds(
 		self,
@@ -226,7 +237,14 @@ class SongInfoService:
 			station_owner.c.displayname.label("stations.owner.displayname"),
 			st_displayName.label("stations.displayname"),
 			st_requestSecurityLevel.label("stations.requestsecuritylevel"),
-			st_viewSecurityLevel.label("stations.viewsecuritylevel")
+			st_viewSecurityLevel.label("stations.viewsecuritylevel"),
+			pl_pk.label("playlists.id"),
+			pl_name.label("playlists.name"),
+			pl_description.label("playlists.description"),
+			pl_viewSecurityLevel.label("playlists.viewsecuritylevel"),
+			pl_ownerFk.label("playlists.owner.id"),
+			playlist_owner.c.username.label("playlists..owner.username"),
+			playlist_owner.c.displayname.label("playlists.owner.displayname")
 		)
 		return query
 
@@ -268,6 +286,7 @@ class SongInfoService:
 		songInfoDict.pop("id", None)
 		songInfoDict.pop("album", None)
 		songInfoDict.pop("stations", None)
+		songInfoDict.pop("playlists", None)
 		songInfoDict.pop("covers", None)
 		songInfoDict.pop("touched", None)
 		songInfoDict.pop("trackinfo", None)
@@ -300,6 +319,12 @@ class SongInfoService:
 			self.stations_songs_service.link_songs_with_stations(
 				(StationSongTuple(sid, t.id if t else None) 
 					for t in (songInfo.stations or [None] * len(ids)) for sid in ids),
+				user.id
+			)
+		if "playlists" in songInfo.touched:
+			self.playlists_songs_service.link_songs_with_playlists(
+				(SongPlaylistTuple(sid, p.id if p else None) 
+					for p in (songInfo.playlists or [None] * len(ids)) for sid in ids),
 				user.id
 			)
 		if "trackinfo" in songInfo.touched:
@@ -398,7 +423,10 @@ class SongInfoService:
 				.join(album_artist_owner,
 					album_artist_owner_user_id == album_artist_owner_id,
 					isouter=True
-				) \
+				)\
+				.join(playlists_songs_tbl, sg_pk == plsg_songFk, isouter=True)\
+				.join(playlists_tbl, plsg_playlistFk == pl_pk, isouter=True)\
+				.join(playlist_owner, playlist_owner_id == pl_ownerFk, isouter=True)\
 				.where(sg_deletedTimstamp.is_(None))
 
 		lsong = clean_search_term_for_like(song)
@@ -435,10 +463,10 @@ class SongInfoService:
 		else:
 			return query.order_by(
 				sg_pk
-			)		
+			)
 		
 		
-	def __query_to_full_object(
+	def __query_to_full_object__(
 		self,
 		query: Select[Any],
 		page: int = 0,
@@ -465,7 +493,8 @@ class SongInfoService:
 				),
 				"id",
 				"artists",
-				"stations"
+				"stations",
+				"playlists"
 			)) if limit is None or d[0] < limit
 		):
 			rules = []
@@ -525,7 +554,7 @@ class SongInfoService:
 			artistId
 		)
 		
-		return self.__query_to_full_object(query, page, limit, user)
+		return self.__query_to_full_object__(query, page, limit, user)
 
 
 	def get_fullsongs_page(

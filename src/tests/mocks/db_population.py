@@ -31,7 +31,7 @@ from .db_data import (
 	song_params,
 	songArtistParams,
 	songArtistParams2,
-	PlaylistsSongsParams,
+	playlistsSongsParams,
 	station_params,
 	stationSongParams,
 	station_album_params,
@@ -234,7 +234,7 @@ def populate_playlists(conn: Connection):
 
 def populate_playlists_songs(conn: Connection):
 	stmt = insert(playlists_songs)
-	conn.execute(stmt, PlaylistsSongsParams) #pyright: ignore [reportUnknownMemberType]
+	conn.execute(stmt, playlistsSongsParams) #pyright: ignore [reportUnknownMemberType]
 
 
 

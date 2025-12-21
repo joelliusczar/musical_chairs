@@ -13,12 +13,14 @@ import {
 	useArtistData,
 	useAlbumData,
 	useStationData,
+	usePlaylistData,
 	useIdMapper,
 } from "../../Context_Providers/AppContext/AppContext";
 import Loader from "../Shared/Loader";
 import { ArtistNewModalOpener } from "../Artists/ArtistEdit";
 import { AlbumNewModalOpener } from "../Albums/AlbumEdit";
 import { StationNewModalOpener } from "../Stations/StationEdit";
+import { PlaylistNewModalOpener } from "../Playlists/PlaylistEdit";
 import { useLocation } from "react-router-dom";
 import { 
 	useVoidWaitingReducer,
@@ -30,6 +32,7 @@ import {
 	saveSongEdits,
 	fetchSongsForMultiEdit,
 	saveSongsEditsMulti,
+	openSongInTab,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import {
@@ -44,6 +47,7 @@ import {
 import { AlbumSelect } from "../Albums/AlbumSelect";
 import { ArtistSelect } from "../Artists/ArtistSelect";
 import { StationSelect } from "../Stations/StationSelect";
+import { PlaylistSelect } from "../Playlists/PlaylistSelect";
 import {
 	SongInfoForm,
 	TouchTypes,
@@ -52,7 +56,6 @@ import {
 import { Named, IdValue } from "../../Types/generic_types";
 import { SubmitButton } from "../Shared/SubmitButton";
 import { isCallPending } from "../../Helpers/request_helpers";
-import { getDownloadAddress } from "../../Helpers/request_helpers";
 import { StationTypes } from "../../constants";
 import { guessTrackNumber } from "../../Helpers/song_helpers";
 
@@ -167,6 +170,13 @@ export const SongEdit = () => {
 		add: addStation,
 	} = useStationData();
 
+	const {
+		items: contextPlaylists,
+		callStatus: playlistCallStatus,
+		error: playlistError,
+		add: addPlaylist,
+	} = usePlaylistData();
+
 	const formMethods = useForm<SongInfoForm>({
 		defaultValues: {
 			name: "",
@@ -182,6 +192,7 @@ export const SongEdit = () => {
 			tracknum: 0,
 			disc: 1,
 			stations: [],
+			playlists: [],
 			genre: "",
 		},
 		resolver: yupResolver(schema),
@@ -219,11 +230,6 @@ export const SongEdit = () => {
 		const value = multiSongTouchedField[name];
 		if (value === TouchTypes.edited || value === TouchTypes.set) return true;
 		return false;
-	};
-
-	const downloadSong =  (songId: number) => {
-		const url = getDownloadAddress(songId);
-		window?.open(url, "_blank")?.focus();
 	};
 
 	// eslint-disable-next-line react/prop-types
@@ -335,9 +341,16 @@ export const SongEdit = () => {
 		formStations
 	).filter(s => s.typeid === StationTypes.SONGS_ONLY);
 
+	const formPlaylists = watch("playlists");
+	const playlists = useCombinedContextAndFormItems(
+		contextPlaylists,
+		formPlaylists
+	);
+
 	const artistMapper = useIdMapper(artists);
 	const albumMapper = useIdMapper(albums);
 	const stationMapper = useIdMapper(stations);
+	const playlistMapper = useIdMapper(playlists);
 
 	const guessAllTrackNumbers = () => {
 		// guessTrackNumber
@@ -369,7 +382,7 @@ export const SongEdit = () => {
 			<Box>
 				{canDownloadSongs && ids.length === 1 &&
 					<Button 
-						onClick={() => downloadSong(ids[0])}
+						onClick={() => openSongInTab(ids[0])}
 					>
 						Download
 					</Button>}
@@ -506,6 +519,32 @@ export const SongEdit = () => {
 					<>
 						{canEditSongs && <Box sx={inputField}>
 							<StationNewModalOpener add={addStation} />
+						</Box>}
+					</>
+				</Loader>
+			</Box>
+			<Box>
+				<Loader status={playlistCallStatus} error={playlistError}>
+					<Box sx={inputField}>
+						{ids?.length > 1 && <TouchedCheckbox
+							name="playlists"
+						/>}
+						<PlaylistSelect
+							name="playlists"
+							options={playlists}
+							formMethods={formMethods}
+							label="Playlists"
+							transform={{input: playlistMapper}}
+							classes={{
+								root: "dropdown-field",
+							}}
+							multiple
+							disabled={!canEditSongs}
+						/>
+					</Box>
+					<>
+						{canEditSongs && <Box sx={inputField}>
+							<PlaylistNewModalOpener add={addPlaylist} />
 						</Box>}
 					</>
 				</Loader>

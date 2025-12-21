@@ -1,5 +1,6 @@
 from musical_chairs_libs.services import (
 	PlaylistService,
+	PlaylistsUserService,
 	AccountsService,
 	UserRoleDef,
 )
@@ -10,7 +11,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 from .constant_fixtures_for_test import *
 from .common_fixtures import (
 	fixture_playlist_service as fixture_playlist_service,
-	fixture_account_service as fixture_account_service
+	fixture_account_service as fixture_account_service,
+	fixture_playlists_users_service as fixture_playlists_users_service,
 )
 from .common_fixtures import *
 from .mocks.db_population import get_initial_playlists
@@ -118,7 +120,7 @@ def test_save_playlist(
 	julietUser = AccountInfo(
 		id = juliet_user_id,
 		username="testUser_juliet",
-		email="test10@test.com"
+		email="test10@munchopuncho.com"
 	)
 	result = playlistService.save_playlist(testData, julietUser)
 	assert result and result.id == len(get_initial_playlists()) + 1
@@ -143,7 +145,7 @@ def test_save_playlist(
 	bravoUser = AccountInfo(
 		id = bravo_user_id,
 		username="testUser_bravo",
-		email="test2@test.com"
+		email="test2@munchopuncho.com"
 	)
 	result = playlistService.save_playlist(testData, bravoUser, 2)
 	assert result and result.id == 2
@@ -400,15 +402,20 @@ def test_get_playlists_with_odd_priority(
 
 def test_get_playlist_user_list(
 	fixture_playlist_service: PlaylistService,
-	fixture_account_service: AccountsService
+	fixture_account_service: AccountsService,
+	fixture_playlists_users_service: PlaylistsUserService
 ):
 	playlistService = fixture_playlist_service
+	playlistsUserService = fixture_playlists_users_service
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("ingo")
 	assert user
 
 	playlist = next(playlistService.get_playlists(17, user=user))
-	result = sorted(playlistService.get_playlist_users(playlist), key=lambda u: u.id)
+	result = sorted(
+		playlistsUserService.get_playlist_users(playlist),
+		key=lambda u: u.id
+	)
 	assert len(result) == 4
 
 	assert result[0].username == "george"
@@ -438,7 +445,10 @@ def test_get_playlist_user_list(
 	assert rules[1].name == UserRoleDef.PLAYLIST_VIEW.value
 
 	playlist = next(playlistService.get_playlists(18, user=user))
-	result = sorted(playlistService.get_playlist_users(playlist), key=lambda u: u.id)
+	result = sorted(
+		playlistsUserService.get_playlist_users(playlist),
+		key=lambda u: u.id
+	)
 	assert len(result) == 2
 	assert result[0].username == "ingo"
 	assert len(result[0].roles) == 6
@@ -457,7 +467,10 @@ def test_get_playlist_user_list(
 
 	user,_ = accountService.get_account_for_login("testUser_victor")
 	playlist = next(playlistService.get_playlists(12, user=user))
-	result = sorted(playlistService.get_playlist_users(playlist), key=lambda u: u.id)
+	result = sorted(
+		playlistsUserService.get_playlist_users(playlist),
+		key=lambda u: u.id
+	)
 	assert len(result) == 1
 	assert result[0].username == "testUser_victor"
 	assert len(result[0].roles) == 6
@@ -471,15 +484,20 @@ def test_get_playlist_user_list(
 
 def test_get_playlist_user_list_playlist_no_users(
 	fixture_playlist_service: PlaylistService,
+	fixture_playlists_users_service: PlaylistsUserService,
 	fixture_account_service: AccountsService
 ):
 	playlistService = fixture_playlist_service
+	playlistsUserService = fixture_playlists_users_service
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("unruledStation_testUser")
 	assert user
 
 	playlist = next(playlistService.get_playlists(20, user=user))
-	result = sorted(playlistService.get_playlist_users(playlist), key=lambda u: u.id)
+	result = sorted(
+		playlistsUserService.get_playlist_users(playlist),
+		key=lambda u: u.id
+	)
 	assert len(result) == 1
 	rules = sorted(result[0].roles, key=lambda r: r.name)
 	assert rules[0].name == UserRoleDef.PLAYLIST_ASSIGN.value

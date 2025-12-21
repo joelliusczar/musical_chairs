@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Iterator, Optional
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -28,6 +28,7 @@ from api_dependencies import (
 	get_page_num,
 	check_back_key
 )
+import resource
 
 from musical_chairs_libs.services import (
 	SongInfoService,
@@ -118,6 +119,7 @@ def get_song_for_edit(
 		detail=[build_error_obj(f"{itemId} not found", "id")]
 	)
 
+
 #not sure if this will actually be used anywhere. It's mostly a testing
 #convenience
 @router.get("/songs/list/", dependencies=[Depends(check_back_key)])
@@ -145,6 +147,7 @@ def get_songs_list(
 		limit=limit,
 		user=user
 	))
+
 
 @router.get("/songs/multi/")
 def get_songs_for_multi_edit(
@@ -178,19 +181,26 @@ def download_song(
 	songFileService: SongFileService = Depends(song_file_service),
 	fileService: FileService = Depends(file_service)
 ) -> StreamingResponse:
+	mem_mib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 ** 2
+	print(f"Used memory: {mem_mib:.2f} MiB")
 	path = next(songFileService.get_internal_song_paths(id), None)
 	if path:
-		data = fileService.open_song(path)
-		if data:
-			return StreamingResponse(chunk for chunk in data)
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"File not found for {id}", "song file")]
-		)
+		def iterfile() -> Iterator[bytes]:
+			with fileService.open_song(path) as data:
+				if not data:
+					raise HTTPException(
+						status_code=status.HTTP_404_NOT_FOUND,
+						detail=[build_error_obj(f"File not found for {id}", "song file")]
+					)
+				yield from data
+
+		return StreamingResponse(iterfile())
+		
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"{id} not found", "id")]
 	)
+
 
 @router.put("/songs/{itemid}")
 def update_song(
@@ -213,6 +223,7 @@ def update_song(
 		detail=[build_error_obj(f"{itemid} not found", "id")]
 	)
 
+
 @router.put("/songs/multi/")
 def update_songs_multi(
 	itemIds: list[int] = Query(default=[]),
@@ -233,6 +244,7 @@ def update_songs_multi(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"{itemIds} not found", "id")]
 	)
+
 
 @router.get("/artists/list")
 def get_all_artists(
@@ -269,6 +281,7 @@ def get_path_user_list(
 	pathUsers = list(pathRuleService.get_users_of_path(prefix))
 	return TableData(items=pathUsers, totalrows=len(pathUsers))
 
+
 @router.post("/path/user_role",
 	dependencies=[
 		Security(
@@ -284,6 +297,7 @@ def add_user_rule(
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> PathsActionRule:
 	return pathRuleService.add_user_rule_to_path(user.id, prefix, rule)
+
 
 @router.delete("/path/user_role",
 	status_code=status.HTTP_204_NO_CONTENT,
@@ -305,6 +319,7 @@ def remove_user_rule(
 		prefix,
 		rulename
 	)
+
 
 @router.get("/check/",
 	dependencies=[
@@ -364,6 +379,7 @@ def upload_song(
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> SongTreeNode:
 	return songFileService.save_song_file(file.file, prefix, suffix, user.id)
+
 
 @router.delete("/path/delete_prefix")
 def delete_prefix(

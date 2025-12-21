@@ -15,7 +15,7 @@ def primary_user() -> AccountInfo:
 	return AccountInfo(
 		id=1,
 		username="testUser_alpha",
-		email="test@test.com"
+		email="test@munchopuncho.com"
 	)
 
 mock_ordered_date_list = [

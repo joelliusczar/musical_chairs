@@ -128,8 +128,8 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 
 	const dropPath = songNodeInfo.path;
 
-	const [{ isOver },dropRef] = useDrop<
-	DirectoryTransferSource,
+	const [{ isOver }, dropRef] = useDrop<
+		DirectoryTransferSource,
 		unknown,
 		{ isOver: boolean }
 	>(() => ({

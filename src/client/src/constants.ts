@@ -1,6 +1,7 @@
 import { OwnedStationParams } from "./Types/station_types";
 import { OwnerParams, SubjectUserParams } from "./Types/user_types";
 import { StringObject, ParamItem } from "./Types/generic_types";
+import { OwnedPlaylistParams } from "./Types/playlist_types";
 
 
 //these vars need to be prefixed VITE
@@ -10,6 +11,7 @@ export const overrideAddress = import.meta.env.VITE_OVERRIDE_ADDRESS;
 export const apiAddress = import.meta.env.DEV && ! overrideAddress ?
 	baseAddress :
 	!! overrideAddress ? overrideAddress : `${baseAddress}/api/${apiVersion}`;
+export const API_ROOT = `/api/${apiVersion}`;
 
 
 
@@ -30,6 +32,10 @@ export const DomRoutes = {
 		`/stations/queue/${ownerkey}/${stationkey ? `${stationkey}/` : ""}`,
 	history: ({ stationkey, ownerkey }: OwnedStationParams) =>
 		`/stations/history/${ownerkey}/${stationkey ? `${stationkey}/` : ""}`,
+	playlistEdit: ({ playlistkey, ownerkey }: OwnedPlaylistParams) =>
+		`/playlists/edit/${ownerkey}/${playlistkey}`,
+	playlistAdd: () => "/playlist/edit/",
+	playlistsPage: () => "/playlists/page",
 	stations: (params?: OwnerParams) =>
 		`/stations/list/${params?.ownerkey || ""}`,
 	stationsEdit: ({ stationkey, ownerkey }: OwnedStationParams) =>
@@ -96,6 +102,14 @@ export const UserRoleDef: StringObject = {
 	PATH_USER_LIST: `${UserRoleDomain.PATH}:userlist`,
 	PATH_DOWNLOAD: `${UserRoleDomain.PATH}:download`,
 	PATH_UPLOAD: `${UserRoleDomain.PATH}:upload`,
+
+	PLAYLIST_VIEW: `${UserRoleDomain.Playlist}:view`,
+	PLAYLIST_CREATE: `${UserRoleDomain.Playlist}:create`,
+	PLAYLIST_EDIT: `${UserRoleDomain.Playlist}:edit`,
+	PLAYLIST_DELETE: `${UserRoleDomain.Playlist}:delete`,
+	PLAYLIST_ASSIGN: `${UserRoleDomain.Playlist}:assign`,
+	PLAYLIST_USER_ASSIGN: `${UserRoleDomain.Playlist}:userassign`,
+	PLAYLIST_USER_LIST: `${UserRoleDomain.Playlist}:userlist`,
 };
 
 export const RulePriorityLevel = {

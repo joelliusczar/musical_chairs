@@ -9,6 +9,9 @@ import {
 import PropTypes from "prop-types";
 import { getList as fetchArtistList } from "../../API_Calls/artistCalls";
 import { getList as fetchAlbumList } from "../../API_Calls/albumCalls";
+import {
+	Calls as PlaylistApiRequestBuilder,
+} from "../../API_Calls/playlistCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import { fetchStations } from "../../API_Calls/stationCalls";
 import { useCurrentUser } from "../AuthContext/AuthContext";
@@ -16,6 +19,7 @@ import {
 	initialAlbumState,
 	initialArtistState,
 	initialStationState,
+	initialPlaylistsState,
 	AppContext,
 } from "./AppContext";
 
@@ -36,6 +40,10 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 
 	const [artistState, artistDispatch] = useDataWaitingReducer(
 		initialArtistState
+	);
+
+	const [playlistsState, playlistsDispatch] = useDataWaitingReducer(
+		initialPlaylistsState
 	);
 
 	useEffect(() => {
@@ -88,6 +96,23 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 		return () => requestObj.abortController.abort();
 	}, [artistDispatch, loggedIn]);
 
+	useEffect(() => {
+		if (!loggedIn) return;
+		const requestObj = PlaylistApiRequestBuilder.getList({});
+		const fetch = async () => {
+			try {
+				playlistsDispatch(dispatches.started());
+				const data = await requestObj.call();
+				playlistsDispatch(dispatches.done(data));
+			}
+			catch(err) {
+				playlistsDispatch(dispatches.failed(formatError(err)));
+			}
+		};
+		fetch();
+		return () => requestObj.abortController.abort();
+	}, [playlistsDispatch, loggedIn]);
+
 	const contextValue = useMemo(() => ({
 		albumsState,
 		albumsDispatch,
@@ -95,6 +120,8 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 		stationsDispatch,
 		artistState,
 		artistDispatch,
+		playlistsState,
+		playlistsDispatch,
 	}),[
 		stationsState,
 		albumsState,
@@ -102,6 +129,8 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 		artistState,
 		artistDispatch,
 		stationsDispatch,
+		playlistsState,
+		playlistsDispatch,
 	]);
 
 	return <AppContext.Provider value={contextValue}>

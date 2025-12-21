@@ -24,6 +24,7 @@ from .station_dtos import StationInfo
 from pathlib import Path
 from .album_dtos import AlbumInfo
 from .artist_dtos import ArtistInfo
+from .playlist_dtos import PlaylistInfo
 
 
 
@@ -130,7 +131,12 @@ class SongAboutInfo(MCBaseClass):
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 	lyrics: Optional[str]=""
-	stations: Optional[list[StationInfo]]=cast(list[StationInfo], Field(default_factory=list))
+	stations: Optional[list[StationInfo]]=cast(
+		list[StationInfo], Field(default_factory=list)
+	)
+	playlists: Optional[list[PlaylistInfo]]=cast(
+		list[PlaylistInfo], Field(default_factory=list)
+	)
 
 
 	@property

@@ -8,7 +8,6 @@ import {
 	get as fetchArtist,
 	removeRecordCaller as deleteArtist,
 } from "../../API_Calls/artistCalls";
-import { downloadSong } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import {
 	ArtistInfo,
@@ -26,7 +25,10 @@ import {
 	useDataWaitingReducer,
 	dataDispatches as dispatches,
 } from "../../Reducers/dataWaitingReducer";
-import { isCallPending } from "../../Helpers/request_helpers";
+import {
+	isCallPending,
+	getDownloadAddress,
+} from "../../Helpers/request_helpers";
 import { Loader } from "../Shared/Loader";
 import {
 	Table,
@@ -43,6 +45,7 @@ import { UserRoleDef, DomRoutes } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
+import { openSongInTab } from "../../API_Calls/songInfoCalls";
 
 
 const initialValues = {
@@ -88,7 +91,7 @@ export const ArtistEditScreen = () => {
 
 		if (canDownloadAnySong || canDownloadThisSong) rowButtonOptions.push({
 			label: "Download",
-			onClick: () => downloadSong(item.id),
+			onClick: () => openSongInTab(item.id),
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton

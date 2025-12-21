@@ -19,6 +19,7 @@ import {
 	DataActionPayload as ActionPayload,
 	dataDispatches as dispatches,
 } from "../../Reducers/dataWaitingReducer";
+import { PlaylistInfo } from "../../Types/playlist_types";
 
 
 type AppContextType = {
@@ -34,6 +35,10 @@ type AppContextType = {
 	artistDispatch: React.Dispatch<
 		ActionPayload<ListDataShape<ArtistInfo>>
 	>,
+	playlistsState: RequiredDataStore<ListDataShape<PlaylistInfo>>,
+	playlistsDispatch: React.Dispatch<
+		ActionPayload<ListDataShape<PlaylistInfo>>
+	>,
 };
 
 export const initialAlbumState =
@@ -42,6 +47,8 @@ export const initialStationState =
 	new RequiredDataStore<ListDataShape<StationInfo>>({ items: []});
 export const initialArtistState =
 	new RequiredDataStore<ListDataShape<ArtistInfo>>({ items: []});
+export const initialPlaylistsState =
+	new RequiredDataStore<ListDataShape<PlaylistInfo>>({ items: []});
 
 export const AppContext = createContext<AppContextType>({
 	albumsState: initialAlbumState,
@@ -50,6 +57,8 @@ export const AppContext = createContext<AppContextType>({
 	stationsDispatch: ({ }) => {},
 	artistState: initialArtistState,
 	artistDispatch: ({ }) => {},
+	playlistsState: initialPlaylistsState,
+	playlistsDispatch: ({ }) => {},
 });
 
 const addItemToState = <T extends NamedIdItem>(
@@ -200,6 +209,43 @@ export const useArtistData = () => {
 	);
 
 	const remove = useCallback((item: ArtistInfo) => {
+		dispatch(dispatches.update((state) => {
+			return removeItemInState(state, item);
+		}));
+	},[dispatch]);
+
+
+	return {
+		items,
+		error,
+		callStatus,
+		add,
+		update,
+		remove,
+	};
+};
+
+export const usePlaylistData = () => {
+	const {
+		playlistsState: { data: { items }, error, callStatus },
+		playlistsDispatch: dispatch,
+	} = useContext(AppContext);
+
+	const add = useCallback((item: PlaylistInfo) => 
+		dispatch(dispatches.update(state => {
+			return addItemToState(state, item);
+		})),
+	[dispatch]
+	);
+
+	const update = useCallback((item: PlaylistInfo) =>
+		dispatch(dispatches.update((state) => {
+			return updateItemInState(state, item);
+		})),
+	[dispatch]
+	);
+
+	const remove = useCallback((item: PlaylistInfo) => {
 		dispatch(dispatches.update((state) => {
 			return removeItemInState(state, item);
 		}));

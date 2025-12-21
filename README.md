@@ -5,18 +5,12 @@ Interfaces to queue song paths for Moonbase59's implementation of ices0
 cd into `dev_ops` and run script `./mcr_dev_ops.sh setup_tests`
 
 
-# Set up API for testing
+## Database setup/update
+`./mcr_dev_ops.sh setup_tests` will also ensure that the database has latest 
+available schema changes
 
-
-Need to run this so that https will work
-
-```
-To prime the automated tests 
-
-./mcr_dev_dev setup_tests
-
-```
-
+## Self-signed certificates
+`./mcr_dev_ops.sh setup_tests` will also ensure that a current certificate exists.
 
 # Ways to run api
 
@@ -49,6 +43,3 @@ Use debug launch profile "Python: API"
 `./mcr_dev_ops.sh setup_new_box`
 
 ```
-
-## Update database
-This functionality needs to be restored

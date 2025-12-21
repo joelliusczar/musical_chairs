@@ -9,18 +9,14 @@ from typing import (
 	Collection
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	SavedNameString,
 	get_datetime,
 	PlaylistInfo,
-	PlaylistCreationInfo,
-	AlreadyUsedError,
 	AccountInfo,
 	OwnerInfo,
-	SongsPlaylistInfo,
-	SongListDisplayItem,
-	DictDotMap,
-	normalize_opening_slash,
+	generate_playlist_user_and_rules_from_rows,
 	RulePriorityLevel,
+	ActionRule,
+	PlaylistActionRule,
 	UserRoleDomain,
 	get_playlist_owner_roles,
 	UserRoleDef,
@@ -31,7 +27,6 @@ from sqlalchemy import (
 	select,
 	Select,
 	insert,
-	update,
 	Integer,
 	func,
 	Float,
@@ -47,24 +42,16 @@ from sqlalchemy import (
 from sqlalchemy.sql.expression import (
 	case,
 	CompoundSelect,
-	Update,
-	cast as dbCast,
 )
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.schema import Column
 from musical_chairs_libs.tables import (
 	playlists as playlists_tbl, pl_description, pl_viewSecurityLevel,
 	pl_name, pl_pk, pl_ownerFk, plup_count, plup_span, plup_priority,
-	ar_name,
-	users as user_tbl, u_pk, u_username, u_displayName, 
-	ur_userFk, ur_role, ur_count, ur_span, ur_priority,
-	sg_pk, sg_name, sg_track, sg_path, sg_internalpath,
-	sg_deletedTimstamp,
-	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk, 
-	song_artist as song_artist_tbl, sgar_songFk, sgar_isPrimaryArtist,
-	plup_userFk, plup_playlistFk, plup_role
+	users as user_tbl, u_pk, u_username, u_displayName, u_email, 
+	u_dirRoot, u_disabled, ur_userFk, ur_role, ur_count, ur_span, ur_priority,
+	playlist_user_permissions, plup_userFk, plup_playlistFk, plup_role
 )
 
 __playlist_permissions_query__ = select(
@@ -121,7 +108,7 @@ def build_playlist_rules_query(
 	)
 	return query
 
-class PlaylistService:
+class PlaylistsUserService:
 
 	def __init__(
 		self,
@@ -135,7 +122,6 @@ class PlaylistService:
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
-
 
 	def __attach_user_joins__(
 		self,
@@ -274,6 +260,8 @@ class PlaylistService:
 			query = query.where(pl_pk == playlistKeys)
 		elif isinstance(playlistKeys, Iterable) and not isinstance(playlistKeys, str):
 			query = query.where(pl_pk.in_(playlistKeys))
+		elif type(playlistKeys) is str and not ownerId:
+			raise ValueError("user must be provided when using playlist name")
 		elif type(playlistKeys) is str:
 			lPlaylistKey = playlistKeys.replace("_","\\_").replace("%","\\%")
 			query = query\
@@ -309,147 +297,91 @@ class PlaylistService:
 		)
 
 
-	def get_playlists_page(
+	def get_playlist_users(
 		self,
-		page: int = 0,
-		playlist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
-	) -> Tuple[list[PlaylistInfo], int]:
-		result = list(self.get_playlists(
-			page=page,
-			pageSize=limit,
-			playlistKeys=playlist
-		))
-		countQuery = select(func.count(1))\
-			.select_from(playlists_tbl)
-		count = self.conn.execute(countQuery).scalar() or 0
-		return result, count
-
-
-	def get_playlist(
-			self,
-			playlistId: int,
-			user: Optional[AccountInfo]=None
-		) -> Optional[SongsPlaylistInfo]:
-		playlistInfo = next(self.get_playlists(playlistKeys=playlistId), None)
-		if not playlistInfo:
-			return None
-		songsQuery = select(
-			sg_pk.label("id"),
-			sg_name,
-			sg_path,
-			sg_internalpath,
-			sg_track,
-			coalesce[String](ar_name, "").label("artist"),
-			dbLiteral(0).label("queuedtimestamp"),
-			dbLiteral(playlistInfo.name).label("playlist")
-		)\
-			.join(
-				song_artist_tbl,
-				and_(sgar_songFk == sg_pk, sgar_isPrimaryArtist == 1),
-				isouter=True
-			)\
-			.join(
-				playlists_songs_tbl,
-				plsg_songFk == sg_pk,
-				isouter=True
-			)\
-			.where(plsg_playlistFk == playlistId)\
-			.where(sg_deletedTimstamp.is_(None))\
-			.order_by(dbCast(sg_track, Integer))
-		songsResult = self.conn.execute(songsQuery).mappings()
-		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
-
-		songs = [
-			SongListDisplayItem(
-				**DictDotMap.unflatten(dict(row), omitNulls=True)
-			) for row in songsResult
-		]
-		if pathRuleTree:
-			for song in songs:
-				song.rules = list(pathRuleTree.valuesFlat(
-						normalize_opening_slash(song.path))
-					)
-
-		return SongsPlaylistInfo(**playlistInfo.model_dump(), songs=songs)
-
-
-	def save_playlist(
-		self,
-		playlist: PlaylistCreationInfo,
-		user: AccountInfo,
-		playlistId: Optional[int]=None
-	) -> Optional[PlaylistInfo]:
-		if not playlist and not playlistId:
-			raise ValueError("No playlist info to save")
-		upsert = update if playlistId else insert
-		savedName = SavedNameString(playlist.name)
-		stmt = upsert(playlists_tbl).values(
-			name = str(savedName),
-			description = playlist.description,
-			lastmodifiedbyuserfk = user.id,
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
+		playlist: PlaylistInfo,
+		userId: Optional[int]=None
+	) -> Iterator[AccountInfo]:
+		rulesQuery = build_playlist_rules_query().cte()
+		query = select(
+			u_pk,
+			u_username,
+			u_displayName,
+			u_email,
+			u_dirRoot,
+			rulesQuery.c.rule_userfk,
+			rulesQuery.c.rule_name,
+			rulesQuery.c.rule_count,
+			rulesQuery.c.rule_span,
+			rulesQuery.c.rule_priority,
+			rulesQuery.c.rule_domain
+		).select_from(user_tbl).join(
+			rulesQuery,
+			or_(
+				and_(
+					u_pk == playlist.owner.id,
+					rulesQuery.c.rule_userfk == 0
+				),
+				and_(
+					rulesQuery.c.rule_userfk == u_pk,
+					rulesQuery.c.rule_playlistfk == playlist.id
+				),
+			),
+			isouter=True
+		).where(or_(u_disabled.is_(None), u_disabled == False))\
+		.where(
+			or_(
+				coalesce(
+					rulesQuery.c.rule_priority,
+					RulePriorityLevel.SITE.value
+				) > RulePriorityLevel.INVITED_USER.value,
+				u_pk == playlist.owner.id
+			)
 		)
-		owner = user
-		if playlistId and isinstance(stmt, Update):
-			stmt = stmt.where(pl_pk == playlistId)
-			owner = self.get_playlist_owner(playlistId)
-		else:
-			stmt = stmt.values(ownerfk = user.id)
-		try:
-			res = self.conn.execute(stmt)
-
-			affectedPk = playlistId if playlistId else res.lastrowid
-
-			self.conn.commit()
-			if res.rowcount == 0:
-				return None
-			return PlaylistInfo(
-				id=affectedPk,
-				name=str(savedName),
-				owner=owner,
-				description=playlist.description
-			)
-		except IntegrityError:
-			raise AlreadyUsedError.build_error(
-				f"{playlist.name} is already used for artist.",
-				"body->name"
-			)
+		if userId is not None:
+			query = query.where(u_pk == userId)
+		query = query.order_by(u_username)
+		records = self.conn.execute(query).mappings()
+		yield from generate_playlist_user_and_rules_from_rows(
+			records,
+			playlist.owner.id if playlist.owner else None
+		)
 
 
-	def delete_playlist(self, playlistkey: int) -> int:
-		if not playlistkey:
-			return 0
-		delStmt = delete(playlists_tbl).where(pl_pk == playlistkey)
-		delCount = self.conn.execute(delStmt).rowcount
+	def add_user_rule_to_playlist(
+		self,
+		addedUserId: int,
+		playlistId: int,
+		rule: ActionRule
+	) -> PlaylistActionRule:
+		stmt = insert(playlist_user_permissions).values(
+			userfk = addedUserId,
+			playlistfk = playlistId,
+			role = rule.name,
+			span = rule.span,
+			count = rule.count,
+			priority = None,
+			creationtimestamp = self.get_datetime().timestamp()
+		)
+		self.conn.execute(stmt)
 		self.conn.commit()
-		return delCount
+		return PlaylistActionRule(
+			name=rule.name,
+			span=rule.span,
+			count=rule.count,
+			priority=RulePriorityLevel.STATION_PATH.value
+		)
 
 
-	def __is_playlistName_used__(
+	def remove_user_rule_from_playlist(
 		self,
-		id: Optional[int],
-		playlistName: SavedNameString,
 		userId: int,
-	) -> bool:
-		queryAny = select(func.count(1)).select_from(playlists_tbl)\
-				.where(pl_name == str(playlistName))\
-				.where(pl_ownerFk == userId)\
-				.where(pl_pk != id)
-		countRes = self.conn.execute(queryAny).scalar()
-		return countRes > 0 if countRes else False
-
-
-	def is_playlistName_used(
-		self,
-		id: Optional[int],
-		playlistName: str,
-		userId: int
-	) -> bool:
-		cleanedPlaylistName = SavedNameString(playlistName)
-		if not cleanedPlaylistName:
-			return True
-		return self.__is_playlistName_used__(id, cleanedPlaylistName, userId)
+		playlistId: int,
+		ruleName: Optional[str]
+	):
+		delStmt = delete(playlist_user_permissions)\
+			.where(plup_userFk == userId)\
+			.where(plup_playlistFk == playlistId)
+		if ruleName:
+			delStmt = delStmt.where(plup_role == ruleName)
+		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]

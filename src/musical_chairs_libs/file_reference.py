@@ -82,7 +82,7 @@ class SqlScripts(Enum):
 	)
 	RENAME_PLAYLIST_SONG_TABLE = (
 		"021.rename_playlist_song_table.sql",
-		"0b784690f066ee79517b5c661b3745796d1899c1899c970eb5fe855bf0a7a84d"
+		"29e7bf5f38dbb9e64aeabbacdd8bf203655e67b4ac1276175f3371a7461f6432"
 	)
 	ADD_STATION_BITRATE = (
 		"022.add_station_bitrate.sql",
@@ -91,6 +91,22 @@ class SqlScripts(Enum):
 	ADD_PLAYLISTSSONGS_ORDER = (
 		"023.add_playlistssongs_order.sql",
 		"0cf0a767eea4a75bd8d45c7f5b622bafb0a9942c7e6246737589f845f255ac8a"
+	)
+	GRANT_API_PLAYLISTSSONGS = (
+		"024.grant_api_playlistssongs.sql",
+		"55c76cc6941b5584a38abb4199002ab4ff3544bc242ea9da66b065489d67f3e0"
+	)
+	GRANT_RADIO_PLAYLISTSSONGS = (
+		"025.grant_radio_playlistssongs.sql",
+		"e86d10cb8ac811f077fb5e8c97e164d18ed1605cf4e7d6d73c73046b80db57be"
+	)
+	DROP_PLAYLISTSSONGS_ORDER = (
+		"026.drop_playlistssongs_order.sql",
+		"e343fe40c42ffbc132e540e6f90ca5d2f95419107a083029bf6e54821bb2071d"
+	)
+	ADD_PLAYLISTSSONGS_LEXORDER = (
+		"027.add_playlistssongs_lexorder.sql",
+		"c3e575de46266f14741ecc3dfd90f69f580e52a0a90c5a1a0bdcd99cfe1bd122"
 	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",

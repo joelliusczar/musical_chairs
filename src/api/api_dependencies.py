@@ -33,6 +33,8 @@ from musical_chairs_libs.services import (
 	AlbumService,
 	JobsService,
 	PlaylistService,
+	PlaylistsUserService,
+	PlaylistsSongsService,
 	StationsSongsService,
 	StationsUsersService,
 	CollectionQueueService,
@@ -155,6 +157,18 @@ def playlist_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> PlaylistService:
 	return PlaylistService(conn)
+
+
+def playlists_users_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> PlaylistsUserService:
+	return PlaylistsUserService(conn)
+
+
+def playlists_songs_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> PlaylistsSongsService:
+	return PlaylistsSongsService(conn)
 
 
 def song_info_service(
@@ -317,6 +331,7 @@ def __open_user_from_request__(
 		)
 	return None
 
+
 def get_from_path_subject_user(
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
 	accountsService: AccountsService = Depends(accounts_service)
@@ -330,6 +345,7 @@ def get_from_path_subject_user(
 		)
 	return user
 
+
 def get_from_query_subject_user(
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_query),
 	accountsService: AccountsService = Depends(accounts_service)
@@ -342,6 +358,7 @@ def get_from_query_subject_user(
 			]
 		)
 	return user
+
 
 def get_owner_from_query(
 	ownerkey: Union[int, str, None] = Depends(owner_key_query),
@@ -371,6 +388,7 @@ def get_station_by_id(
 		)
 	return station
 
+
 def get_playlist_by_id(
 		playlistid: int=Path(),
 		playlistService: PlaylistService = Depends(playlist_service),
@@ -397,6 +415,36 @@ def get_stations_by_ids(
 		stationids,
 		user=user
 	))
+
+
+def get_playlist_by_name_and_owner(
+	playlistkey: Union[int, str] = Depends(playlist_key_path),
+	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+	playlistService: PlaylistService = Depends(playlist_service),
+) -> PlaylistInfo:
+	if type(playlistkey) == str and not owner:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(
+				f"owner for station with key {playlistkey} not found"
+			)]
+		)
+	#owner id is okay to be null if stationKey is an int
+	ownerId = owner.id if owner else None
+	playlist = next(playlistService.get_playlists(
+		playlistkey,
+		ownerId=ownerId,
+		user=user
+	),None)
+	if not playlist:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"station with key {playlistkey} not found")
+			]
+		)
+	return playlist
+
 
 def get_station_by_name_and_owner(
 	stationkey: Union[int, str] = Depends(station_key_path),
@@ -432,6 +480,7 @@ def get_current_user(
 ) -> AccountInfo:
 	return user
 
+
 def get_user_with_simple_scopes(
 	securityScopes: SecurityScopes,
 	user: AccountInfo = Depends(get_current_user_simple)
@@ -442,6 +491,7 @@ def get_user_with_simple_scopes(
 		if not any(r for r in user.roles if r.name == scope):
 			raise build_wrong_permissions_error()
 	return user
+
 
 def get_user_with_rate_limited_scope(
 	securityScopes: SecurityScopes,
@@ -471,6 +521,7 @@ def get_user_with_rate_limited_scope(
 				raise build_too_many_requests_error(int(timeleft))
 	return user
 
+
 def impersonated_user_id(
 	impersonateduserid: Optional[int],
 	user: AccountInfo = Depends(get_current_user_simple)
@@ -479,6 +530,7 @@ def impersonated_user_id(
 			for r in user.roles):
 		return impersonateduserid
 	return None
+
 
 def check_if_can_use_path(
 	scopes: Iterable[str],
@@ -541,6 +593,7 @@ def get_path_rule_loaded_current_user(
 	)
 	return resultUser
 
+
 def check_optional_path_for_current_user(
 	securityScopes: SecurityScopes,
 	prefix: Optional[str]=Depends(get_optional_prefix),
@@ -570,10 +623,10 @@ def check_optional_path_for_current_user(
 		)
 	return user
 
+
 def check_directory_transfer(
 	transfer: DirectoryTransfer,
 	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
-	songFileService: SongFileService = Depends(song_file_service),
 	userActionHistoryService: UserActionsHistoryService =
 		Depends(user_actions_history_service)
 ) -> AccountInfo:
@@ -594,6 +647,7 @@ def check_directory_transfer(
 			userActionHistoryService
 		)
 	return user
+
 
 def get_multi_path_user(
 	securityScopes: SecurityScopes,
@@ -619,6 +673,8 @@ def get_multi_path_user(
 			userActionHistoryService
 		)
 	return user
+
+filter_permitter_query_songs = get_multi_path_user
 
 def __get_station_user__(
 	securityScopes: SecurityScopes,
@@ -663,6 +719,7 @@ def __get_station_user__(
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
 
+
 def get_station_user_by_id(
 	securityScopes: SecurityScopes,
 	station: StationInfo=Depends(get_station_by_id),
@@ -676,6 +733,7 @@ def get_station_user_by_id(
 		user,
 		userActionHistoryService
 	)
+
 
 def get_station_user(
 	securityScopes: SecurityScopes,
@@ -734,6 +792,7 @@ def get_multi_station_user(
 					raise build_too_many_requests_error(int(timeleft))
 	return user
 
+
 def get_account_if_has_scope(
 	securityScopes: SecurityScopes,
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
@@ -756,6 +815,7 @@ def get_account_if_has_scope(
 		)
 	return prev
 
+
 def get_prefix_if_owner(
 	prefix: str=Depends(get_prefix),
 	currentUser: AccountInfo = Depends(get_current_user_simple),
@@ -769,12 +829,14 @@ def get_prefix_if_owner(
 		raise build_wrong_permissions_error()
 	return prefix
 
+
 def get_page_num(
 	page: int = 1,
 ) -> int:
 	if page > 0:
 		page -= 1
 	return page
+
 
 def user_for_filters(
 	securityScopes: SecurityScopes,
@@ -847,6 +909,7 @@ def __get_playlist_user__(
 	userDict["roles"] = rules
 	return AccountInfo(**userDict)
 
+
 def get_playlist_user_by_id(
 	securityScopes: SecurityScopes,
 	playlist: PlaylistInfo=Depends(get_playlist_by_id),
@@ -857,3 +920,15 @@ def get_playlist_user_by_id(
 		playlist,
 		user
 	)
+
+def get_playlist_user(
+	securityScopes: SecurityScopes,
+	playlist: PlaylistInfo=Depends(get_playlist_by_name_and_owner),
+	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
+) -> Optional[AccountInfo]:
+	return __get_playlist_user__(
+		securityScopes,
+		playlist,
+		user
+	)
+

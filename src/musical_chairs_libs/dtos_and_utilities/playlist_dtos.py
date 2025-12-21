@@ -1,14 +1,16 @@
 from sqlalchemy.engine.row import RowMapping
 from pydantic import (
 	Field,
+	field_validator,
 )
 from typing import (
 	Any,
-	Iterator,
-	Iterable,
-	Optional,
 	cast,
 	Collection,
+	Iterable,
+	Iterator,
+	Optional,
+	Tuple
 )
 from .generic_dtos import (
 	RuledEntity,
@@ -24,6 +26,8 @@ from .account_dtos import OwnerType, OwnerInfo, get_playlist_owner_roles
 from .user_role_def import RulePriorityLevel
 from .queued_item import SongListDisplayItem
 from .action_rule_dtos import ActionRule
+from .validation_functions import min_length_validator_factory
+from .simple_functions import get_non_simple_chars
 
 class PlaylistCreationInfo(Named):
 	description: Optional[str]=""
@@ -81,17 +85,36 @@ class SongsPlaylistInfo(PlaylistInfo):
 		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
 	)
 
+
+class ValidatedPlaylistCreationInfo(PlaylistCreationInfo):
+
+	_name_len = field_validator(
+		"name"
+	)(min_length_validator_factory(2, "Playlist name"))
+
+	@field_validator("name")
+	@classmethod
+	def check_name_for_illegal_chars(cls, v: str) -> str:
+		if not v:
+			return ""
+
+		m = get_non_simple_chars(v)
+		if m:
+			raise ValueError(f"Illegal character used in playlist name: {m}")
+		return v
+
+
 class SongPlaylistTuple:
 
 	def __init__(
 		self,
 		songid: int,
-		playlistid: int,
-		islinked: bool=False
+		playlistid: Optional[int]=None,
+		rank: str=""
 	) -> None:
 		self.songid = songid
 		self.playlistid = playlistid
-		self.islinked = islinked
+		self.lexorder = rank
 
 	def __len__(self) -> int:
 		return 2
@@ -101,10 +124,24 @@ class SongPlaylistTuple:
 		yield self.playlistid
 
 	def __hash__(self) -> int:
-		return hash((self.songid, self.playlistid))
+		return hash((self.songid, self.playlistid, self.lexorder))
 
 	def __eq__(self, other: Any) -> bool:
 		if not other:
 			return False
 		return self.songid == other.songid \
-			and self.playlistid == other.playlistid
+			and self.playlistid == other.playlistid \
+			and self.lexorder == other.lexorder
+	
+	def __as_tuple__(self) -> Tuple[int, str, int]:
+		return (self.playlistid or 0, self.lexorder, self.songid)
+	
+	def __lt__(self, other: "SongPlaylistTuple") -> bool:
+		return self.__as_tuple__() < other.__as_tuple__()
+	
+	def __str__(self) -> str:
+		return f"(playlistid={self.playlistid}, songid={self.songid},"\
+			f" rank={self.lexorder})"
+	
+	def __repr__(self) -> str:
+		return str(self)

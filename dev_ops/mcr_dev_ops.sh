@@ -44,6 +44,18 @@ setup_schedules() (
 	ansible-playbook run_schedule_setup.yml -i ~/.ansible/inventories/musical_chairs  --ask-vault-pass -K
 )
 
+print_db_hash() (
+	cd ../src/musical_chairs_libs/one_offs
+	python_exe='../../../test_trash/musical_chairs/mcr_env/bin/python'
+	"$python_exe" -m db_print --hash
+)
+
+regen_reference_file() (
+	cd ../src/musical_chairs_libs/one_offs
+	python_exe='../../../test_trash/musical_chairs/mcr_env/bin/python'
+	"$python_exe" -m regen_file_reference_file
+)
+
 
 command="$1"
 shift

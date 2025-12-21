@@ -129,7 +129,7 @@ def test_save_station(
 	julietUser = AccountInfo(
 		id = juliet_user_id,
 		username="testUser_juliet",
-		email="test10@test.com"
+		email="test10@munchopuncho.com"
 	)
 	result = stationService.save_station(testData, julietUser)
 	assert result and result.id == len(get_initial_stations()) + 1
@@ -154,7 +154,7 @@ def test_save_station(
 	bravoUser = AccountInfo(
 		id = bravo_user_id,
 		username="testUser_bravo",
-		email="test2@test.com"
+		email="test2@munchopuncho.com"
 	)
 	result = stationService.save_station(testData, bravoUser, 2)
 	assert result and result.id == 2

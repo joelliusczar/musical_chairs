@@ -32,6 +32,9 @@ const AlbumTableView = lazy(() => import("../Albums/AlbumTableView"));
 const AlbumEditScreen = lazy(() => import("../Albums/AlbumEditScreen"));
 const ArtistEditScreen = lazy(() => import("../Artists/ArtistEditScreen"));
 const ArtistTableView = lazy(() => import("../Artists/ArtistTableView"));
+const PlaylistTableView = lazy(() => import("../Playlists/PlaylistTableView"));
+const PlaylistEditScreen = 
+	lazy(() => import("../Playlists/PlaylistEditScreen"));
 
 
 export function NavMenu() {
@@ -65,13 +68,19 @@ export function NavMenu() {
 				component={NavLink}
 				to={DomRoutes.stations({
 					ownerkey: currentUser.username,
-				})}>
+				})}
+			>
 				My Stations
 			</ListItem>}
 			<ListItem
 				component={NavLink}
 				to={DomRoutes.stations()}>
 				All Stations
+			</ListItem>
+			<ListItem
+				component={NavLink}
+				to={DomRoutes.playlistsPage()}>
+				All Playlists
 			</ListItem>
 			<ListItem
 				component={NavLink}
@@ -142,6 +151,33 @@ export function AppRoutes() {
 				element={
 					<Suspense fallback={<div>Loading...</div>}>
 						<AlbumEditScreen />
+					</Suspense>
+				}
+			/>
+			<Route 
+				path={DomRoutes.playlistsPage()}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<PlaylistTableView />
+					</Suspense>
+				}
+			/>
+			<Route
+				path={`${DomRoutes.playlistEdit({ 
+					playlistkey: ":playlistkey",
+					ownerkey: ":ownerkey",
+				})}`}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<PlaylistEditScreen />
+					</Suspense>
+				}
+			/>
+			<Route
+				path={`${DomRoutes.playlistAdd()}`}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<PlaylistEditScreen />
 					</Suspense>
 				}
 			/>

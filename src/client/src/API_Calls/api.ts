@@ -1,9 +1,10 @@
 import axios from "axios";
-import { apiAddress } from "../constants";
+import { API_ROOT } from "../constants";
+import { StringObject } from "../Types/generic_types";
 
 export const constructWebClient = () => {
 	return axios.create({
-		baseURL: apiAddress,
+		baseURL: API_ROOT,
 		withCredentials: true,
 	});
 };
@@ -11,3 +12,7 @@ export const constructWebClient = () => {
 export const defaultWebClient = constructWebClient();
 
 export default defaultWebClient;
+
+export const sharedHeaders: StringObject = {
+
+};

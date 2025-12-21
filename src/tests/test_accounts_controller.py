@@ -99,13 +99,13 @@ def test_create_account_fail_email(fixture_api_test_client: TestClient):
 	assert data["detail"][0]["msg"] == \
 		"The part after the @-sign is not valid. It should have a period."
 
-	testUser["email"] = "test4@test.com"
+	testUser["email"] = "test4@munchopuncho.com"
 	response = client.post("/accounts/new", json=testUser)
 	data = json.loads(response.content)
 	assert response.status_code == 422
 	assert data["detail"][0]["field"] == "body->email"
 	assert data["detail"][0]["msg"] == \
-		"test4@test.com is already used."
+		"test4@munchopuncho.com is already used."
 
 def test_login_success(fixture_api_test_client: TestClient):
 	client = fixture_api_test_client
@@ -122,7 +122,7 @@ def test_login_success(fixture_api_test_client: TestClient):
 	assert data["token_type"] == "bearer"
 	assert len(data["roles"]) == 3
 	assert data["lifetime"] ==  1800 or data["lifetime"] == 604800.0
-	assert data["email"] == "test6@test.com"
+	assert data["email"] == "test6@munchopuncho.com"
 
 
 def test_login_fail(fixture_api_test_client: TestClient):
@@ -195,19 +195,19 @@ def test_update_account(fixture_api_test_client: TestClient):
 		headers=headers,
 		json={
 			"username": "testUser_golf",
-			"email": "test_golf@test.com",
+			"email": "test_golf@munchopuncho.com",
 		}
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["email"] == "test_golf@test.com"
+	assert data["email"] == "test_golf@munchopuncho.com"
 
 	#try to update email without being logged in
 	response = client.put(
 		"/accounts/account/7",
 		json={
 			"username": "testUser_golf",
-			"email": "test_golf@test.com",
+			"email": "test_golf@munchopuncho.com",
 		},
 	)
 	data = json.loads(response.content)
@@ -221,7 +221,7 @@ def test_update_account(fixture_api_test_client: TestClient):
 		headers=headers,
 		json={
 			"username": "testUser_golf",
-			"email": "test_golf@test.com",
+			"email": "test_golf@munchopuncho.com",
 		}
 	)
 	data = json.loads(response.content)
@@ -236,13 +236,13 @@ def test_update_account(fixture_api_test_client: TestClient):
 		headers=headers,
 		json={
 			"username": "testUser_golf",
-			"email": "test_golf_again@test.com",
+			"email": "test_golf_again@munchopuncho.com",
 			"displayname": "Golf-Test-User"
 		}
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["email"] == "test_golf_again@test.com"
+	assert data["email"] == "test_golf_again@munchopuncho.com"
 	assert data["displayname"] == "Golf-Test-User"
 
 def test_change_roles(fixture_api_test_client: TestClient):

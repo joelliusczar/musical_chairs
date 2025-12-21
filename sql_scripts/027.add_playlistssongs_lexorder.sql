@@ -7,7 +7,7 @@ IF (SELECT COUNT(1) = 0 FROM information_schema.COLUMNS
 	) THEN
 	BEGIN NOT ATOMIC
 		ALTER TABLE `playlistssongs`
-		ADD COLUMN `lexorder` BINARY(200) DEFAULT '';
+		ADD COLUMN `lexorder` VARBINARY(200) DEFAULT '';
 	END;
 END IF|
 DELIMITER ;

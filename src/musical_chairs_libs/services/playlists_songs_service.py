@@ -134,7 +134,7 @@ class PlaylistsSongsService:
 		yield from (SongPlaylistTuple(
 				cast(int, row[0]),
 				cast(int, row[1]),
-				row[2]
+				row[2].decode()
 			)
 			for row in records)
 
@@ -214,7 +214,7 @@ class PlaylistsSongsService:
 			params.append({
 				"songfk": p.songid,
 				"playlistfk": p.playlistid,
-				"rank": startOrder,
+				"lexorder": startOrder.encode(),
 				"lastmodifiedbyuserfk": userId,
 				"lastmodifiedtimestamp": self.get_datetime().timestamp()
 			})
@@ -241,9 +241,9 @@ class PlaylistsSongsService:
 		if any(r[0] == songid and r[1] == order for r in records):
 			return
 		
-		upper = records[1][1][-1] if len(records) > 1 else records[0][1][-1]
-		lower = records[0][1][-1] if len(records) > 1 else ""
-		mid = calc_order_between(lower, upper)
+		upper = records[1][1] if len(records) > 1 else records[0][1]
+		lower = records[0][1] if len(records) > 1 else b""
+		mid = calc_order_between(lower.strip().decode(), upper.strip().decode())
 		stmt = update(playlists_songs_tbl).values(lexorder = mid.encode())\
 			.where(plsg_playlistFk == playlistid)\
 			.where(plsg_songFk == songid)

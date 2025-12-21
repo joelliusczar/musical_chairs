@@ -12,6 +12,7 @@ from sqlalchemy import (
 	ForeignKey,
 	Index,
 	Text,
+	VARBINARY,
 )
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.dialects.mysql import BINARY
@@ -199,7 +200,7 @@ playlists_songs = Table("playlistssongs", metadata,
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
 	Column(
 		"lexorder",
-		BINARY(200),
+		VARBINARY(200),
 		nullable=False,
 		default=""
 	),
@@ -208,7 +209,7 @@ playlists_songs = Table("playlistssongs", metadata,
 plsg = playlists_songs.c
 plsg_songFk = cast(Column[Integer] ,plsg.songfk)
 plsg_playlistFk = cast(Column[Integer] ,plsg.playlistfk)
-plsg_lexorder = cast(Column[BINARY], plsg.lexorder)
+plsg_lexorder = cast(Column[VARBINARY], plsg.lexorder)
 plsg_lastmodifiedtimestamp = cast(
 	Column[Float[float]], plsg.lastmodifiedtimestamp
 )

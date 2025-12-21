@@ -96,6 +96,7 @@ def login(
 		login_timestamp=loginTimestamp
 	)
 
+
 @router.post("/open_cookie")
 def login_with_cookie(
 	access_token: str  = Cookie(default=None),
@@ -128,6 +129,7 @@ def login_with_cookie(
 			email=""
 		)
 
+
 @router.get("/check")
 def is_phrase_used(
 	username: str = "",
@@ -140,12 +142,14 @@ def is_phrase_used(
 		"email": accountsService.is_email_used(email, loggedInUser)
 	}
 
+
 @router.post("/new")
 def create_new_account(
 	accountInfo: AccountCreationInfo,
 	accountsService: AccountsService = Depends(accounts_service)
 ) -> AccountInfo:
 	return accountsService.create_account(accountInfo)
+
 
 @router.get("/list", dependencies=[
 	Security(get_user_with_simple_scopes, scopes=[UserRoleDef.USER_LIST.value])
@@ -164,6 +168,7 @@ def get_user_list(
 	totalRows = accountsService.get_accounts_count()
 	return TableData(totalrows=totalRows, items=accounts)
 
+
 @router.get("/search", dependencies=[
 	# Security(get_user_with_simple_scopes, scopes=[UserRoleDef.USER_LIST.value])
 ])
@@ -179,6 +184,7 @@ def search_users(
 		pageSize=pageSize
 	))
 	return accounts
+
 
 @router.put("/account/{subjectuserkey}")
 def update_account(
@@ -218,6 +224,7 @@ def update_password(
 				)],
 		)
 
+
 @router.put("/update-roles/{subjectuserkey}")
 def update_roles(
 	roles: list[ActionRule],
@@ -230,6 +237,7 @@ def update_roles(
 	addedRoles = list(accountsService.save_roles(prev.id, roles))
 	return AccountInfo(**prev.model_dump(exclude=["roles"]), roles = addedRoles) #pyright: ignore [reportArgumentType, reportGeneralTypeIssues]
 
+
 @router.get("/account/{subjectuserkey}")
 def get_account(
 	accountInfo: AccountInfo = Security(
@@ -238,6 +246,7 @@ def get_account(
 	)
 ) -> AccountInfo:
 	return accountInfo
+
 
 @router.get("/site-roles/user_list",dependencies=[
 	Security(
@@ -272,6 +281,7 @@ def validate_site_rule(
 			)],
 		)
 	return rule
+
 
 @router.post("/site-roles/user_role/{subjectuserkey}",
 	dependencies=[

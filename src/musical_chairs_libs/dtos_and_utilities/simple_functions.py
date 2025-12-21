@@ -41,7 +41,7 @@ def checkpw(guess: bytes, hash: bytes) -> bool:
 	return bcrypt.checkpw(guess, hash)
 
 def validate_email(email: str) -> ValidatedEmail:
-	return email_validator.validate_email(email) #pyright: ignore reportUnknownMemberType
+	return email_validator.validate_email(email, check_deliverability=False) #pyright: ignore reportUnknownMemberType
 
 def seconds_to_tuple(seconds: int) -> Tuple[int, int, int, int]:
 	m, s = divmod(seconds, 60)

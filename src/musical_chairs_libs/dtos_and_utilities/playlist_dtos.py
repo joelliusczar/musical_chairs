@@ -131,7 +131,7 @@ class SongPlaylistTuple:
 			return False
 		return self.songid == other.songid \
 			and self.playlistid == other.playlistid \
-			and self.lexorder == other.rank
+			and self.lexorder == other.lexorder
 	
 	def __as_tuple__(self) -> Tuple[int, str, int]:
 		return (self.playlistid or 0, self.lexorder, self.songid)

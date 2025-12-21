@@ -120,7 +120,7 @@ def test_save_playlist(
 	julietUser = AccountInfo(
 		id = juliet_user_id,
 		username="testUser_juliet",
-		email="test10@test.com"
+		email="test10@munchopuncho.com"
 	)
 	result = playlistService.save_playlist(testData, julietUser)
 	assert result and result.id == len(get_initial_playlists()) + 1
@@ -145,7 +145,7 @@ def test_save_playlist(
 	bravoUser = AccountInfo(
 		id = bravo_user_id,
 		username="testUser_bravo",
-		email="test2@test.com"
+		email="test2@munchopuncho.com"
 	)
 	result = playlistService.save_playlist(testData, bravoUser, 2)
 	assert result and result.id == 2

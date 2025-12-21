@@ -106,7 +106,7 @@ class SqlScripts(Enum):
 	)
 	ADD_PLAYLISTSSONGS_LEXORDER = (
 		"027.add_playlistssongs_lexorder.sql",
-		"4d011ce716594f980414780dbae3255659365183b4d7f58b4a95d65a67deb99b"
+		"c3e575de46266f14741ecc3dfd90f69f580e52a0a90c5a1a0bdcd99cfe1bd122"
 	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",

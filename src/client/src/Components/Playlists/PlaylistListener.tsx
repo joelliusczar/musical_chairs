@@ -83,7 +83,10 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 						nextAudio.addEventListener("timeupdate", timeUpdate);
 						nextAudio.classList.add("next-audio");
 						nextAudio.preload = "auto";
-						nextAudio.style = "display: none";
+						//typescript doesn't like me
+						//setting style directly
+						//and doesn't warn until the build step.
+						(nextAudio as HTMLElement).style = "display: none";
 						queueNext(1);
 						audioParent.appendChild(nextAudio);
 					}

@@ -17,12 +17,13 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ValidatedPlaylistCreationInfo,
 	PlaylistActionRule,
 	SongsPlaylistInfo,
-	SongPlaylistTuple
+	SongPlaylistTuple,
 )
 from musical_chairs_libs.services import (
 	PlaylistService,
 	PlaylistsUserService,
-	PlaylistsSongsService
+	PlaylistsSongsService,
+	StationsPlaylistsService,
 )
 from api_dependencies import (
 	get_owner_from_query,
@@ -38,7 +39,8 @@ from api_dependencies import (
 	get_page_num,
 	user_for_filters,
 	get_current_user_simple,
-	playlists_songs_service
+	playlists_songs_service,
+	stations_playlists_service,
 )
 from playlist_validation import (
 	validate_playlist_rule,
@@ -106,12 +108,19 @@ def get_playlist_for_edit(
 	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
 	playlistsSongsService: PlaylistsSongsService = Depends(
 		playlists_songs_service
+	),
+	stationsPlaylistsService: StationsPlaylistsService = Depends(
+		stations_playlists_service
 	)
 ) -> SongsPlaylistInfo:
 	songs = [*playlistsSongsService.get_songs(playlistInfo.id)]
+	stations = [
+		*stationsPlaylistsService.get_stations_by_playlist(playlistInfo.id)
+	]
 	return SongsPlaylistInfo(
 		**playlistInfo.model_dump(),
-		songs=songs
+		songs=songs,
+		stations=stations
 	)
 
 
@@ -119,13 +128,27 @@ def get_playlist_for_edit(
 def create_playlist(
 	playlist: ValidatedPlaylistCreationInfo = Body(default=None),
 	playlistService: PlaylistService = Depends(playlist_service),
+	playlistsSongsService: PlaylistsSongsService = Depends(
+		playlists_songs_service
+	),
+	stationsPlaylistsService: StationsPlaylistsService = Depends(
+		stations_playlists_service
+	),
 	user: AccountInfo = Security(
 		get_user_with_rate_limited_scope,
 		scopes=[UserRoleDef.PLAYLIST_CREATE.value]
 	)
-) -> PlaylistInfo:
+) -> SongsPlaylistInfo:
 	result = playlistService.save_playlist(playlist, user=user)
-	return result or PlaylistInfo(id=-1,name="", owner=user)
+	songs = [*playlistsSongsService.get_songs(result.id)]
+	stations = [
+		*stationsPlaylistsService.get_stations_by_playlist(result.id)
+	]
+	return SongsPlaylistInfo(
+		**result.model_dump(),
+		songs=songs,
+		stations=stations
+	)
 
 
 @router.put("/{playlistid}")
@@ -133,13 +156,27 @@ def update_playlist(
 	playlistid: int, #this needs to match get_playlist_user_by_id
 	playlist: ValidatedPlaylistCreationInfo = Body(default=None),
 	playlistService: PlaylistService = Depends(playlist_service),
+	playlistsSongsService: PlaylistsSongsService = Depends(
+		playlists_songs_service
+	),
+	stationsPlaylistsService: StationsPlaylistsService = Depends(
+		stations_playlists_service
+	),
 	user: AccountInfo = Security(
 		get_playlist_user_by_id,
 		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
 	)
-) -> PlaylistInfo:
+) -> SongsPlaylistInfo:
 	result = playlistService.save_playlist(playlist, user, playlistid)
-	return result or PlaylistInfo(id=-1,name="",owner=user)
+	songs = [*playlistsSongsService.get_songs(result.id)]
+	stations = [
+		*stationsPlaylistsService.get_stations_by_playlist(result.id)
+	]
+	return SongsPlaylistInfo(
+		**result.model_dump(),
+		songs=songs,
+		stations=stations
+	)
 
 
 

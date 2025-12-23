@@ -287,6 +287,12 @@ def setup_database(dbName: str):
 		)
 		ownerConnService.run_defined_script(SqlScripts.DROP_PLAYLISTSSONGS_ORDER)
 		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLISTSSONGS_LEXORDER)
+		ownerConnService.run_defined_script(
+			SqlScripts.DROP_UNIQUE_ALBUM_INDEX_ORDER
+		)
+		ownerConnService.run_defined_script(
+			SqlScripts.READD_UNIQUE_ALBUM_INDEX_ORDER
+		)
 
 		if not dbName.startswith("test_"):
 			Path(f"/tmp/{get_schema_hash()}").touch()

@@ -181,6 +181,7 @@ export const AlbumNewModalOpener = (props: AlbumNewModalOpenerProps) => {
 			name: "",
 			albumartist: null,
 			versionnote: "",
+			stations: [],
 		},
 	});
 	const { handleSubmit } = formMethods;

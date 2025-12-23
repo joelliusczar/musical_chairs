@@ -19,8 +19,7 @@ import {
 	useStationData,
 } from "../../Context_Providers/AppContext/AppContext";
 import { 
-	enableStationsCaller,
-	disableStations,
+	Calls,
 } from "../../API_Calls/stationCalls";
 import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
@@ -64,7 +63,7 @@ export const Stations = () => {
 		const ids = stations.map(s => s.id);
 		try {
 			toggleDispatch(dispatches.started(ids));
-			const requestObj = disableStations({ includeAll: true });
+			const requestObj = Calls.disableStations({ includeAll: true });
 			await requestObj.call();
 			toggleDispatch(dispatches.done(ids));
 			enqueueSnackbar("All stations are being disabled", { variant: "success"});
@@ -88,7 +87,7 @@ export const Stations = () => {
 		try {
 			
 			toggleDispatch(dispatches.started([station.id]));
-			const requestObj = disableStations({ ids: [station.id]});
+			const requestObj = Calls.disableStations({ ids: [station.id]});
 			await requestObj.call();
 			toggleDispatch(dispatches.done([station.id]));
 			enqueueSnackbar(
@@ -114,7 +113,7 @@ export const Stations = () => {
 		e.stopPropagation();
 		try {
 			toggleDispatch(dispatches.started([station.id]));
-			const requestObj = enableStationsCaller({ ids: station.id});
+			const requestObj = Calls.enableStation({ ids: station.id});
 			const enabledStations = await requestObj.call();
 			if (enabledStations.some(s => s.id === station.id)) {
 				toggleDispatch(dispatches.done([station.id]));
@@ -227,7 +226,7 @@ export const Stations = () => {
 					<AccordionSummary
 						expandIcon={<ExpandMoreIcon />}
 					>
-						<Typography>
+						<span>
 							{s.displayname || s.name} -
 							{waitConfirm === s.name ?
 								<YesNoControl
@@ -245,9 +244,10 @@ export const Stations = () => {
 									{s.isrunning ? "Online!": "Offline"}
 								</Button>
 							}
-						</Typography>
+						</span>
 						<Typography>
 							<Button
+								onClick={e => e.stopPropagation()}
 								component="a"
 								href={getListenAddress(s)}
 							>

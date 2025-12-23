@@ -7,6 +7,7 @@ import {
 	fetchSongLsParents,
 	deletePrefix,
 	movePath,
+	openSongInTab,
 } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
@@ -631,9 +632,11 @@ export const SongTree = withCacheProvider<
 					>
 						Edit Song Info
 					</Button>}
-					{canDownloadSelection() &&  <SongListener
-						audioId={selectedSongIds[0]}
-					/>}
+					{canDownloadSelection() && <Button
+						onClick={() => openSongInTab(selectedSongIds[0])}
+					>
+						Download
+					</Button>}
 					{canAssignUsers() && <Button
 						component={Link}
 						to={getUserAssignUrl()}

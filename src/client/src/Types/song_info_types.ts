@@ -48,10 +48,11 @@ export interface SongListDisplayItem extends NamedIdItem {
 	rules: ActionRule[]
 }
 
-export interface CollectionQueuedItem extends NamedIdItem {
+export interface CatalogueItem extends NamedIdItem {
+	parentName: string
 	creator: string | null
 	itemtype: string
-	itemtypeid: number
+	requesttypeid: number
 	year: number | null
 	description: string | null
 	rules: ActionRule[]

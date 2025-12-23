@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
-	fetchCollectionCatalogueCaller,
-	sendCollectionRequestCaller,
+	Calls,
 } from "../../API_Calls/stationCalls";
 import {
 	Table,
@@ -34,7 +33,7 @@ import {
 import { UserRoleDef } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo, StationTableData } from "../../Types/station_types";
-import { CollectionQueuedItem } from "../../Types/song_info_types";
+import { CatalogueItem } from "../../Types/song_info_types";
 import { IdValue } from "../../Types/generic_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import { SearchTextField } from "../Shared/SearchTextFIeld";
@@ -44,7 +43,7 @@ import { SearchTextField } from "../Shared/SearchTextFIeld";
 export const CollectionCatalogue = () => {
 
 	const [catalogueState, catalogueDispatch] = useDataWaitingReducer(
-		new RequiredDataStore<StationTableData<CollectionQueuedItem>>(
+		new RequiredDataStore<StationTableData<CatalogueItem>>(
 			{
 				items: [],
 				totalrows: 0,
@@ -74,17 +73,20 @@ export const CollectionCatalogue = () => {
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
 
-	const requestCollection = async (collectionId: IdValue, typeid: IdValue) => {
+	const requestCollection = async (
+		collectionId: IdValue,
+		requesttypeid: IdValue
+	) => {
 		if (!pathVars.stationkey || !pathVars.ownerkey ) {
 			enqueueSnackbar("A key is missing", {variant: "error" });
 			return;
 		}
 		try {
-			const requestObj = sendCollectionRequestCaller({
+			const requestObj = Calls.queueRequest({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
-				collectionId: collectionId,
-				typeId: typeid,
+				itemid: collectionId,
+				requesttypeid: requesttypeid,
 			});
 			await requestObj.call();
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
@@ -96,7 +98,7 @@ export const CollectionCatalogue = () => {
 
 	const getPageUrl = new UrlBuilder(DomRoutes.songCatalogue);
 
-	const rowButton = (item: CollectionQueuedItem, idx: number) => {
+	const rowButton = (item: CatalogueItem, idx: number) => {
 		const rowButtonOptions = [];
 
 		const canEditThisAlbum = anyConformsToAnyRule(
@@ -111,7 +113,7 @@ export const CollectionCatalogue = () => {
 
 		if(canRequest || canRequestForStation) rowButtonOptions.push({
 			label: "Request",
-			onClick:() => requestCollection(item.id, item.itemtypeid),
+			onClick:() => requestCollection(item.id, item.requesttypeid),
 		});
 
 		return (rowButtonOptions.length > 1 ? <OptionsButton
@@ -142,7 +144,7 @@ export const CollectionCatalogue = () => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
 		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 		const queryObj = getSearchParams(location.search);
-		const requestObj = fetchCollectionCatalogueCaller({
+		const requestObj = Calls.getCatalogue({
 			stationkey: pathVars.stationkey,
 			ownerkey: pathVars.ownerkey,
 			...queryObj,

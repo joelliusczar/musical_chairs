@@ -295,12 +295,13 @@ class SongInfoService:
 		songInfoDict["lastmodifiedtimestamp"] = self.get_datetime().timestamp()
 		if "album" in songInfo.touched:
 			songInfo.touched.add("albumfk")
-		stmt = update(songs_tbl).values(
-			**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
-		)\
-			.where(sg_deletedTimstamp.is_(None))\
-			.where(sg_pk.in_(ids))
-		self.conn.execute(stmt)
+		if any(k for k in songInfoDict.keys() if k in songInfo.touched):
+			stmt = update(songs_tbl).values(
+				**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
+			)\
+				.where(sg_deletedTimstamp.is_(None))\
+				.where(sg_pk.in_(ids))
+			self.conn.execute(stmt)
 		if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
 			self.song_artist_service.link_songs_with_artists(
 				chain(

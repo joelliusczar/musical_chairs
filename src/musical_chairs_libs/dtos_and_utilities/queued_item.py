@@ -28,10 +28,11 @@ class QueuedItem(NamedIdItem):
 			and self.name == value.name \
 			and self.queuedtimestamp == value.queuedtimestamp
 	
-class CollectionQueuedItem(QueuedItem):
+class CatalogueItem(QueuedItem):
 	creator: str
+	parentName: str
 	itemtype: str
-	itemtypeid: int
+	requesttypeid: int
 	year: Optional[int]=None
 	rules: list[ActionRule]=cast(
 		list[ActionRule],

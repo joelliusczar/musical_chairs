@@ -108,6 +108,14 @@ class SqlScripts(Enum):
 		"027.add_playlistssongs_lexorder.sql",
 		"c3e575de46266f14741ecc3dfd90f69f580e52a0a90c5a1a0bdcd99cfe1bd122"
 	)
+	DROP_UNIQUE_ALBUM_INDEX_ORDER = (
+		"028.drop_unique_album_index_order.sql",
+		"86cd90a037119ca3bd662d5a9e7ab90169279c8cd89056997ad5ae69c8b87eb3"
+	)
+	READD_UNIQUE_ALBUM_INDEX_ORDER = (
+		"029.readd_unique_album_index_order.sql",
+		"ca563fb91887145524688c9710396101b4075eee16a73d159a2bf45b2ae0a7c2"
+	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",
 		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"

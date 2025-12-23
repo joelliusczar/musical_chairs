@@ -52,6 +52,7 @@ from musical_chairs_libs.tables import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
+	CatalogueItem,
 	CurrentPlayingInfo,
 	get_datetime,
 	QueuedItem,
@@ -62,8 +63,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TrackingInfo
 )
 from musical_chairs_libs.file_reference import SqlScripts
-from musical_chairs_libs.protocols import SongPopper
-from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
+from musical_chairs_libs.protocols import SongPopper, RadioPusher
+from musical_chairs_libs.dtos_and_utilities.constants import (
+	StationRequestTypes,
+	StationTypes
+)
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 )
@@ -81,7 +85,7 @@ def choice(
 	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
 	return numpy_choice(items, sampleSize, p = cast(Any,weights), replace=False).tolist()
 
-class QueueService(SongPopper):
+class QueueService(SongPopper, RadioPusher):
 
 	def __init__(
 		self,
@@ -120,7 +124,7 @@ class QueueService(SongPopper):
 			self.queue_size = 50
 			self.album_queue_size = 3
 
-	def get_all_station_song_possibilities(
+	def get_all_station_possibilities(
 		self, stationPk: int
 	) -> Sequence[RowMapping]:
 		query = select(sg_pk, sg_path) \
@@ -155,7 +159,7 @@ class QueueService(SongPopper):
 		stationId: int,
 		deficitSize: int
 	) -> Collection[int]:
-		rows = self.get_all_station_song_possibilities(stationId)
+		rows = self.get_all_station_possibilities(stationId)
 		sampleSize = deficitSize if deficitSize < len(rows) else len(rows)
 		songIds = [r[sg_pk] for r in rows]
 		if not songIds:
@@ -400,20 +404,21 @@ class QueueService(SongPopper):
 			return 0
 
 
-	def add_song_to_queue(self,
-		songId: int,
+	def add_to_queue(self,
+		itemId: int,
 		station: StationInfo,
 		user: AccountInfo,
-		trackingInfo: TrackingInfo
+		trackingInfo: TrackingInfo,
+		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
 	):
-		songInfo = self.song_info_service.song_info(songId)
+		songInfo = self.song_info_service.song_info(itemId)
 		songName = songInfo.name if songInfo else "Song"
 		if station and\
 			self.can_song_be_queued_to_station(
-				songId,
+				itemId,
 				station.id
 			):
-			self.__add_song_to_queue__(songId, station.id, user.id, trackingInfo)
+			self.__add_song_to_queue__(itemId, station.id, user.id, trackingInfo)
 			self.conn.commit()
 			return
 		raise LookupError(f"{songName} cannot be added to {station.name}")
@@ -668,36 +673,39 @@ class QueueService(SongPopper):
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
 	
-	def get_song_catalogue(
+	def get_catalogue(
 		self,
-		stationId: Optional[int]=None,
+		stationId: int,
 		page: int = 0,
-		song: str = "",
-		album: str = "",
-		artist: str = "",
+		name: str = "",
+		parentName: str = "",
+		creator: str = "",
 		limit: Optional[int]=None,
 		user: Optional[AccountInfo]=None
-	) -> Tuple[list[SongListDisplayItem], int]:
+	) -> Tuple[list[CatalogueItem], int]:
 		songs, count = self.song_info_service.get_fullsongs_page(
 			stationId,
 			page,
-			song,
-			album,
-			artist,
+			name,
+			parentName,
+			creator,
 			limit,
 			user
 		)
 
-		return [SongListDisplayItem(
+		return [CatalogueItem(
 			id=s.id,
 			name=s.name or "Missing Name",
+			itemtype="Songs",
+			requesttypeid=StationTypes.SONGS_ONLY.value,
 			queuedtimestamp=0,
-			album=s.album.name if s.album else "No Album",
-			artist=s.primaryartist.name 
+			parentName=s.album.name if s.album else "No Album",
+			creator=s.primaryartist.name 
 				if s.primaryartist 
-				else next((a.name for a in s.artists or []), None),
-			path=s.path,
-			internalpath=s.internalpath,
-			track=s.tracknum,
+				else next((a.name for a in s.artists or []), ""),
 			rules=s.rules
 		) for s in songs], count
+
+
+	def accepted_request_types(self) -> set[StationRequestTypes]:
+		return { StationRequestTypes.SONG }

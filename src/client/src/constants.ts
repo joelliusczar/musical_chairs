@@ -132,3 +132,9 @@ export const StationTypes = {
 	PLAYLISTS_ONLY: 2,
 	ALBUMS_AND_PLAYLISTS: 3,
 };
+
+export const StationRequestTypes = {
+	SONG: 0,
+	ALBUM: 1,
+	PLAYLIST: 2 ,
+};

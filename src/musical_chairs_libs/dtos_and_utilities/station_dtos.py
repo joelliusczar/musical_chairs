@@ -152,3 +152,38 @@ class StationAlbumTuple:
 	
 	def __repr__(self) -> str:
 		return str(self)
+
+
+class StationPlaylistTuple:
+
+	def __init__(
+		self,
+		playlistid: int,
+		stationid: Optional[int],
+		islinked: bool=False
+	) -> None:
+		self.playlistid = playlistid
+		self.stationid = stationid
+		self.islinked = islinked
+
+	def __len__(self) -> int:
+		return 2
+
+	def __iter__(self) -> Iterator[Optional[int]]:
+		yield self.playlistid
+		yield self.stationid
+
+	def __hash__(self) -> int:
+		return hash((self.playlistid, self.stationid))
+
+	def __eq__(self, other: Any) -> bool:
+		if not other:
+			return False
+		return self.playlistid == other.playlistid \
+			and self.stationid == other.stationid
+	
+	def __str__(self) -> str:
+		return f"(playlistid={self.playlistid}, stationid={self.stationid})"
+	
+	def __repr__(self) -> str:
+		return str(self)

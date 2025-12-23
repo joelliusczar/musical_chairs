@@ -622,7 +622,7 @@ def test_delete_song_in_station(
 	stationId = 2
 	queueService.fil_up_queue(stationId, 50)
 	queue, _ = queueService.get_queue_for_station(stationId)
-	catalogue, _ = queueService.get_song_catalogue(stationId)
+	catalogue, _ = queueService.get_catalogue(stationId)
 	assert deletedSongId in (s.id for s in catalogue)
 	assert deletedSongId in (s.id for s in queue)
 	assert queueService.can_song_be_queued_to_station(deletedSongId, stationId)
@@ -630,7 +630,7 @@ def test_delete_song_in_station(
 
 	queue2, _ = queueService.get_queue_for_station(stationId)
 	assert deletedSongId not in (s.id for s in queue2)
-	catalogue2, _ = queueService.get_song_catalogue(stationId)
+	catalogue2, _ = queueService.get_catalogue(stationId)
 	assert deletedSongId not in (s.id for s in catalogue2)
 	assert not queueService.can_song_be_queued_to_station(deletedSongId, stationId)
 

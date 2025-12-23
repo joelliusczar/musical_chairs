@@ -142,6 +142,7 @@ export const AlbumTableView = () => {
 							<TableHead>
 								<TableRow>
 									<TableCell>Album</TableCell>
+									<TableCell>Version</TableCell>
 									<TableCell>Artist</TableCell>
 									<TableCell></TableCell>
 								</TableRow>
@@ -149,6 +150,12 @@ export const AlbumTableView = () => {
 									<TableCell>
 										<SearchTextField
 											name="name"
+											getPageUrl={urlBuilder.getThisUrl}
+										/>
+									</TableCell>
+									<TableCell>
+										<SearchTextField
+											name="versionnote"
 											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
@@ -167,6 +174,9 @@ export const AlbumTableView = () => {
 										<TableRow key={`album_${idx}`}>
 											<TableCell>
 												{item.name || "{No album name}"}
+											</TableCell>
+											<TableCell>
+												{item.versionnote || ""}
 											</TableCell>
 											<TableCell>
 												{item.albumartist?.name}

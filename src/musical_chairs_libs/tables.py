@@ -102,6 +102,7 @@ Index(
 	ab_name,
 	ab_albumArtistFk,
 	ab_ownerFk,
+	ab_versionnote,
 	unique=True
 )
 
@@ -120,6 +121,9 @@ pl = playlists.c
 pl_pk = cast(Column[Integer],pl.pk)
 pl_name = cast(Column[Optional[String]],pl.name)
 pl_description = cast(Column[Optional[String]],pl.description)
+pl_lastmodifiedtimestamp = lastmodifiedtimestamp = cast(
+	Column[Float[float]], pl.lastmodifiedtimestamp
+)
 pl_ownerFk = cast(Column[Integer], pl.ownerfk)
 pl_viewSecurityLevel = cast(Column[Integer],pl.viewsecuritylevel)
 

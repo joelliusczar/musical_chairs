@@ -1,12 +1,14 @@
 import { Named, NamedIdItem, KeyValue, IdValue } from "./generic_types";
 import { User, OwnerParams } from "./user_types";
 import { SongListDisplayItem } from "./song_info_types";
+import { StationInfo } from "./station_types";
 
 
 
 export interface PlaylistCreationInfo extends Named {
 	description: string
 	viewsecuritylevel: IdValue
+	stations: StationInfo[]
 }
 
 export interface PlaylistInfo extends NamedIdItem {
@@ -28,4 +30,5 @@ export interface PlaylistInfoForm extends Named {
 	description: string
 	owner: User
 	viewsecuritylevel: NamedIdItem
+	stations: StationInfo[]
 }

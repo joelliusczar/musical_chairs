@@ -26,7 +26,7 @@ from musical_chairs_libs.services import (
 	PlaylistsSongsService,
 	StationsSongsService,
 	StationsUsersService,
-	CollectionQueueService,
+	AlbumQueueService,
 	StationsAlbumsService
 )
 
@@ -131,11 +131,11 @@ def fixture_queue_service(
 
 
 @pytest.fixture
-def fixture_collection_queue_service(
+def fixture_album_queue_service(
 	fixture_conn_cardboarddb: Connection
-) -> CollectionQueueService:
-	collectionQueueService = CollectionQueueService(fixture_conn_cardboarddb)
-	return collectionQueueService
+) -> AlbumQueueService:
+	albumQueueService = AlbumQueueService(fixture_conn_cardboarddb)
+	return albumQueueService
 
 
 @pytest.fixture

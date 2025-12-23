@@ -120,7 +120,7 @@ our_config: dict[str, Any] = {
 			"level": api_log_level,
 			"formatter": "boring",
 			"filename": "musical_chairs.log",
-			"maxBytes": 10000,
+			"maxBytes": 2500000,
       "backupCount": 3
 		},
 		"json": {
@@ -128,7 +128,7 @@ our_config: dict[str, Any] = {
 			"level": api_log_level,
 			"formatter": "json",
 			"filename": "musical_chairs.jsonl",
-			"maxBytes": 10000,
+			"maxBytes": 2500000,
       "backupCount": 3
 		},
 		"stdout": {

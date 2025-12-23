@@ -71,9 +71,19 @@ def load_data(
 				logging.radioLogger.info(f"Stop running flag encountered")
 				break
 			logging.queueLogger.info(f"queued: {queueItem.name}")
-			with fileService.open_song(queueItem.internalpath) as src:
-				for chunk in src:
-					currentFile.write(chunk)
+			attempts = 0
+			while True:
+				try:
+					with fileService.open_song(queueItem.internalpath) as src:
+						for chunk in src:
+							currentFile.write(chunk)
+					break
+				except Exception as e:
+					logging.radioLogger.warning(e)
+					attempts += 1
+					if attempts > 2:
+						logging.radioLogger.error("Retried 2 times to download song")
+						raise
 			fileQueue.put((currentFile, queueItem), lambda _: not stopRunning)
 			currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		fileQueue.put((None, None), lambda _: not stopRunning)

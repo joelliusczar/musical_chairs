@@ -640,16 +640,16 @@ def test_get_station_catalogue_multi_artist(
 	queueService = fixture_queue_service
 	user,_ = accountService.get_account_for_login("unruledStation_testUser")
 	assert user
-	items, totalSongs = queueService.get_song_catalogue(23)
+	items, totalSongs = queueService.get_catalogue(23)
 	songs = sorted(
 		items,
 		key=lambda s: s.id
 	)
 	assert len(songs) == 5
 	multiArtistPrimarySong = next(s for s in songs if s.id == 84)
-	assert multiArtistPrimarySong.artist == "victor_artist"
+	assert multiArtistPrimarySong.creator == "victor_artist"
 	multiArtistSong = next(s for s in songs if s.id == 86)
-	assert multiArtistSong.artist == "z-bravo_artist"
+	assert multiArtistSong.creator == "z-bravo_artist"
 	noArtistSong = next(s for s in songs if s.id == 76)
-	assert noArtistSong.artist == None
+	assert noArtistSong.creator == None
 	assert totalSongs == 5

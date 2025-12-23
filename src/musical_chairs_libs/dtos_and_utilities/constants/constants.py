@@ -35,3 +35,8 @@ class StationTypes(Enum):
 	ALBUMS_ONLY = 1
 	PLAYLISTS_ONLY = 2
 	ALBUMS_AND_PLAYLISTS = 3
+
+class StationRequestTypes(Enum):
+	SONG = 0
+	ALBUM = 1
+	PLAYLIST =2 

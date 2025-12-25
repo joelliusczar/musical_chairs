@@ -10,7 +10,7 @@ from typing import (
 	Sequence,
 	Set,
 	Tuple,
-	Iterable
+	Iterable,
 )
 from sqlalchemy import (
 	select,
@@ -39,6 +39,7 @@ from musical_chairs_libs.tables import (
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp, uah_action,
 	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk,
+	q_itemType, q_parentKey,
 	albums,
 	artists,
 	song_artist,
@@ -47,8 +48,8 @@ from musical_chairs_libs.tables import (
 	sg_track,
 	stations as stations_tbl, st_pk, st_typeid,
 	ar_pk, ar_name,
-	ab_pk, ab_name,
-	last_played, lp_songFk, lp_stationFk, lp_timestamp,
+	ab_pk, ab_name, ab_versionnote,
+	last_played, lp_songFk, lp_stationFk, lp_timestamp, lp_itemType, lp_parentKey
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
@@ -60,7 +61,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	UserRoleDef,
 	LastPlayedItem,
-	TrackingInfo
+	TrackingInfo,
+	QueueRequest
 )
 from musical_chairs_libs.file_reference import SqlScripts
 from musical_chairs_libs.protocols import SongPopper, RadioPusher
@@ -170,7 +172,7 @@ class QueueService(SongPopper, RadioPusher):
 
 	def queue_insert_songs(
 		self,
-		songIds: Collection[int],
+		songIds: Collection[QueueRequest],
 		stationId: int,
 		userId: Optional[int]=None,
 		trackingInfo: Optional[TrackingInfo]=None
@@ -194,11 +196,13 @@ class QueueService(SongPopper, RadioPusher):
 			timestampOffset += .1
 			if insertedId:
 				insertedIds.append(cast(int,insertedId[0]))
-		params = [{
+		params: list[dict[str, Any]] = [{
 			"stationfk": stationId,
-			"songfk": s[0],
-			"useractionhistoryfk": s[1]
-		} for s in zip(songIds,insertedIds)]
+			"songfk": s[0].id,
+			"useractionhistoryfk": s[1],
+			"itemtype": s[0].itemtype,
+			"parentkey": s[0].parentKey
+		} for s in zip(songIds, insertedIds)]
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
 
@@ -215,7 +219,15 @@ class QueueService(SongPopper, RadioPusher):
 		if deficitSize < 1:
 			return
 		songIds = self.get_random_songIds(stationId, deficitSize)
-		self.queue_insert_songs(songIds, stationId)
+		self.queue_insert_songs([
+			QueueRequest(
+					id=s,
+					itemtype=StationRequestTypes.SONG.lower(),
+					parentKey=None
+				) 
+				for s in songIds], 
+			stationId
+		)
 
 
 	def __move_from_queue_to_history__(
@@ -287,10 +299,15 @@ class QueueService(SongPopper, RadioPusher):
 				sg_internalpath,
 				sg_name,
 				sg_track,
-				ab_name.label("album"),
+				func.concat(
+					coalesce(ab_name, ""),
+					"(", coalesce(ab_versionnote, ""), ")"
+				).label("album"),
 				ar_name.label("artist"),
 				uah_queuedTimestamp,
-				uah_timestamp
+				uah_timestamp,
+				q_itemType,
+				q_parentKey
 			).select_from(station_queue)\
 				.join(user_action_history_tbl,uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
@@ -309,20 +326,21 @@ class QueueService(SongPopper, RadioPusher):
 
 		if limit:
 			offsetQuery = offsetQuery.limit(limit)
-
 		records = self.conn.execute(offsetQuery).mappings()
 		result = [SongListDisplayItem(
 				id=row[sg_pk],
 				name=row[sg_name] or "",
-				album=row["album"],
+				album=row["album"].removesuffix("()"),
 				artist=row["artist"],
 				path=row[sg_path],
 				internalpath=row[sg_internalpath],
 				queuedtimestamp=row[uah_queuedTimestamp],
 				playedtimestamp=row[uah_timestamp],
+				itemtype=row[q_itemType],
+				parentkey=row[q_parentKey]
 			) for row in records]
 		countQuery = select(func.count(1))\
-			.select_from(query.subquery())
+			.select_from(query.cte())
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
 
@@ -412,7 +430,7 @@ class QueueService(SongPopper, RadioPusher):
 		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
 	):
 		songInfo = self.song_info_service.song_info(itemId)
-		songName = songInfo.name if songInfo else "Song"
+		songName = songInfo.name if songInfo else "song"
 		if station and\
 			self.can_song_be_queued_to_station(
 				itemId,
@@ -493,8 +511,6 @@ class QueueService(SongPopper, RadioPusher):
 			.where(uah_queuedTimestamp == queuedTimestamp)\
 			.where(uah_action == UserRoleDef.STATION_REQUEST.value)
 
-
-
 		updateCount = self.conn.execute(stmt).rowcount
 
 		return updateCount == 1
@@ -538,7 +554,9 @@ class QueueService(SongPopper, RadioPusher):
 			ar_name.label("artist"),
 			sg_path.label("path"),
 			sg_internalpath.label("internalpath"),
-			uah_pk.label("historyid")
+			uah_pk.label("historyid"),
+			q_itemType.label("itemtype"),
+			q_parentKey.label("parentkey"),
 		).select_from(station_queue) \
 			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 			.join(songs, q_songFk == sg_pk) \
@@ -568,13 +586,21 @@ class QueueService(SongPopper, RadioPusher):
 		return result, count
 
 
-	def get_old_last_played(self, stationid: int) -> Iterator[Tuple[int, float]]:
+	def get_old_last_played(self, stationid: int) -> Iterator[LastPlayedItem]:
 		query = select(
 			lp_songFk,
-			lp_timestamp
+			lp_timestamp,
+			lp_itemType,
+			lp_parentKey,
 		).where(lp_stationFk == stationid)
 		records = self.conn.execute(query)
-		yield from ((row[0], row[1]) for row in records)
+		yield from (LastPlayedItem(
+			songid=row[0],
+			timestamp=row[1],
+			historyid=0,
+			itemtype=row[2],
+			parentkey=row[3]
+		) for row in records)
 
 
 	def add_to_last_played(
@@ -588,6 +614,8 @@ class QueueService(SongPopper, RadioPusher):
 				"stationfk": stationid,
 				"songfk": e.songid,
 				"timestamp": e.timestamp,
+				"itemtype": e.itemtype,
+				"parentkey": e.parentkey
 			} for e in addura]
 		if not values:
 			return 0
@@ -604,7 +632,9 @@ class QueueService(SongPopper, RadioPusher):
 			stmt = update(last_played) \
 				.values(timestamp = item.timestamp) \
 				.where(lp_stationFk == stationid)\
-				.where(lp_songFk == item.songid)
+				.where(lp_songFk == item.songid)\
+				.where(lp_itemType == item.itemtype)\
+				.where(lp_parentKey == item.parentkey)
 			updateCount += self.conn.execute(stmt).rowcount
 		return updateCount
 
@@ -636,24 +666,32 @@ class QueueService(SongPopper, RadioPusher):
 			beforeTimestamp=beforeTimestamp
 		)
 
-		squashed = {row[0]:row[1] for row in self.get_old_last_played(stationid)}
+		squashed = {
+			(item.songid, item.itemtype, item.parentkey):item.timestamp
+			for item in self.get_old_last_played(stationid)
+		}
 		addura = [v for v in {
 			e.id:LastPlayedItem(
 				songid = e.id,
 				timestamp = e.playedtimestamp or 0,
-				historyid = e.historyid or 0
+				historyid = e.historyid or 0,
+				itemtype = e.itemtype,
+				parentkey = e.parentkey
 			)
-			for e in reversed(unsquashed) if e.id not in squashed
+			for e in reversed(unsquashed) 
+				if (e.id, e.itemtype, e.parentkey) not in squashed
 		}.values()]
 		updatera = (v for v in {
 			e.id:LastPlayedItem(
 				songid = e.id,
 				timestamp = e.playedtimestamp or 0,
-				historyid = e.historyid or 0
+				historyid = e.historyid or 0,
+				itemtype = e.itemtype,
+				parentkey = e.parentkey
 			)
 			for e in reversed(unsquashed)
-			if e.id in squashed and e.playedtimestamp and
-				squashed[e.id] < e.playedtimestamp
+			if (e.id, e.itemtype, e.parentkey) in squashed and e.playedtimestamp and
+				squashed[(e.id, e.itemtype, e.parentkey)] < e.playedtimestamp
 		}.values())
 		addedCount = self.add_to_last_played(stationid, addura)
 		updatedCount = self.update_last_played_timestamps(stationid, updatera)
@@ -696,7 +734,7 @@ class QueueService(SongPopper, RadioPusher):
 		return [CatalogueItem(
 			id=s.id,
 			name=s.name or "Missing Name",
-			itemtype="Songs",
+			itemtype=StationRequestTypes.SONG.lower(),
 			requesttypeid=StationTypes.SONGS_ONLY.value,
 			queuedtimestamp=0,
 			parentName=s.album.name if s.album else "No Album",

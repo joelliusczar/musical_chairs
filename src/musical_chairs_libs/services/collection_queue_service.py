@@ -11,6 +11,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TrackingInfo,
 	CatalogueItem,
 	CurrentPlayingInfo,
+	QueueRequest,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes,
@@ -24,7 +25,8 @@ from musical_chairs_libs.tables import (
 	stations as stations_tbl,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp, uah_action,
-	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk,
+	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk, q_itemType,
+	q_parentKey,
 	sg_disc, sg_pk, sg_albumFk, sg_deletedTimstamp,
 	sg_trackNum,
 	st_pk,
@@ -34,7 +36,9 @@ from musical_chairs_libs.tables import (
 	plsg_lexorder,
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
 	stations_playlists as stations_playlists_tbl, stpl_playlistFk, stpl_stationFk,
-	users as users_tbl, u_pk, u_displayName
+	users as users_tbl, u_pk, u_displayName,
+	last_played as last_played_tbl, lp_timestamp, lp_stationFk, lp_itemType,
+	lp_parentKey,
 )
 from .queue_service import QueueService
 from .station_service import StationService
@@ -119,51 +123,79 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			self.queue_size = 3
 
 
-	def __get_played_timestamps__(
-		self,
-		stationid: int
-	) -> dict[str, float]:
-		albumQuery = self.album_queue_service\
-			.get_played_timestamps_query(stationid)\
-			.add_columns(dbLiteral("album").label("itemtype"))
-		
-		playlistQuery = self.playlist_queue_service\
-			.get_played_timestamps_query(stationid)\
-			.add_columns(dbLiteral("playlist").label("itemtype"))
-		
-		sub = union_all(albumQuery, playlistQuery).cte()
-
-		query = select(
-			sub.c.key,
-			sub.c.queuedtimestamp,
-			sub.c.timestamp,
-			sub.c.lastplayedtimestamp,
-			sub.c.itemtype
-		)
-
-		rows = self.conn.execute(query).fetchall()
-		return {
-			f"{r[4]}{r[0]}":cast(float,max(r[1] or 0, r[2] or 0, r[3] or 0)) 
-			for r in rows
-		}
-
 
 	def get_all_station_possibilities(
 		self,
 		stationid: int
 	) -> Sequence[Tuple[int, str]]:
-		query = union_all(
-			select(stab_albumFk, dbLiteral("album"))\
-				.where(stab_stationFk == stationid),
-			select(stpl_playlistFk, dbLiteral("playlist"))\
-				.where(stpl_stationFk == stationid)
-		)
+		
+		albumQuery = select(
+			stab_albumFk.label("key"),
+			func.max(uah_queuedTimestamp).label("queuedtimestamp"),
+			func.max(uah_timestamp).label("timestamp"),
+			func.max(lp_timestamp).label("lastplayed"),
+			dbLiteral(StationRequestTypes.ALBUM.lower()).label("itemtype")
+		) \
+			.select_from(stations_tbl) \
+			.join(stations_albums_tbl, st_pk == stab_stationFk) \
+			.join(songs, sg_albumFk == stab_albumFk) \
+			.join(station_queue, (q_stationFk == st_pk) \
+				& (q_parentKey == stab_albumFk) \
+				& (q_itemType == StationRequestTypes.ALBUM.lower()), isouter=True) \
+			.join(last_played_tbl, (lp_stationFk == st_pk) \
+				& (lp_parentKey == stab_albumFk)
+				& (lp_itemType == StationRequestTypes.ALBUM.lower()), isouter=True
+			)\
+			.join(user_action_history_tbl,
+				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
+				isouter=True
+			)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(st_pk == stationid) \
+			.group_by(stab_albumFk)
+		
+		playlistQuery = select(
+			stpl_playlistFk.label("key"),
+			func.max(uah_queuedTimestamp).label("queuedtimestamp"),
+			func.max(uah_timestamp).label("timestamp"),
+			func.max(lp_timestamp).label("lastplayed"),
+			dbLiteral(StationRequestTypes.PLAYLIST.lower()).label("itemtype")
+		) \
+			.select_from(stations_tbl) \
+			.join(stations_playlists_tbl, st_pk == stpl_stationFk) \
+			.join(playlists_songs_tbl, plsg_playlistFk == stpl_playlistFk) \
+			.join(songs, sg_pk == plsg_songFk) \
+			.join(station_queue, (q_stationFk == st_pk) \
+				& (q_parentKey == stpl_playlistFk) \
+				& (q_itemType == StationRequestTypes.PLAYLIST.lower()), isouter=True) \
+			.join(last_played_tbl, (lp_stationFk == st_pk) \
+				& (lp_parentKey == stpl_playlistFk)
+				& (lp_itemType == StationRequestTypes.PLAYLIST.lower()), isouter=True
+			)\
+			.join(user_action_history_tbl,
+				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
+				isouter=True
+			)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.where(st_pk == stationid) \
+			.group_by(stpl_playlistFk)
+
+		sub = union_all(
+			albumQuery,
+			playlistQuery
+		).cte()
+
+		query = select(sub.c.key, sub.c.itemtype)\
+			.group_by(sub.c.key, sub.c.itemtype)\
+			.order_by(
+				func.max(sub.c.queuedtimestamp),
+				func.max(sub.c.timestamp),
+				func.max(sub.c.lastplayed),
+				func.rand()
+			)
 		rows = self.conn.execute(query).fetchall()
-		lastPlayedMap = self.__get_played_timestamps__(stationid)
-		return sorted(
-			((cast(int,r[0]),r[1]) for r in rows),
-			key=lambda t: lastPlayedMap.get(f"{t[0]}{t[1]}", 0)
-		)
+
+		return [(row[0], row[1]) for row in rows]
 
 
 	def get_random_collectionIds(
@@ -185,19 +217,20 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		self,
 		stationId: int,
 	) -> int:
-		albumQuery = select(func.count(distinct(sg_albumFk)))\
+		albumQuery = select(func.count(distinct(q_parentKey)))\
 				.select_from(station_queue)\
 				.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
 				.where(q_stationFk == stationId)\
+				.where(q_itemType == StationRequestTypes.ALBUM.lower())\
 				.where(sg_deletedTimstamp.is_(None))\
 				.where(uah_timestamp.is_(None))
 		
-		playlistQuery = select(func.count(distinct(plsg_playlistFk)))\
+		playlistQuery = select(func.count(distinct(q_parentKey)))\
 				.select_from(station_queue)\
 				.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
-				.join(playlists_songs_tbl, sg_pk == plsg_songFk)\
+				.where(q_itemType == StationRequestTypes.PLAYLIST.lower())\
 				.where(q_stationFk == stationId)\
 				.where(sg_deletedTimstamp.is_(None))\
 				.where(uah_timestamp.is_(None))
@@ -215,7 +248,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			return
 		collectionIds = self.get_random_collectionIds(stationId, deficitSize)
 
-		albumIds = [a[0] for a in collectionIds if a[1] == "album"]
+		albumIds = [
+			a[0] for a in collectionIds 
+			if a[1] == StationRequestTypes.ALBUM.lower()
+		]
 		songAlbumQuery = select(sg_pk, sg_albumFk, sg_disc, sg_trackNum)\
 			.where(sg_albumFk.in_(albumIds))\
 			.where(sg_deletedTimstamp.is_(None))
@@ -224,7 +260,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		for row in albumSongTuples:
 			albumsMap[row[1]].append(row)
 		
-		playlistIds = [a[0] for a in collectionIds if a[1] == "playlist"]
+		playlistIds = [
+			a[0] for a in collectionIds 
+			if a[1] == StationRequestTypes.PLAYLIST.lower()
+		]
 		songPlaylistQuery = select(sg_pk, plsg_playlistFk, plsg_lexorder)\
 			.join(playlists_songs_tbl,sg_pk == plsg_songFk)\
 			.where(plsg_playlistFk.in_(playlistIds))\
@@ -234,23 +273,36 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		for row in playlistSongTuples:
 			playlistsMap[row[1]].append(row)
 
-		songIds: list[int] = []
+		requests: list[QueueRequest] = []
+		
+		def albumSortKey(r: list[Any]):
+			return (r[2] or 0, r[3])
+		
+		def playlistSortKey(r: list[Any]):
+			return r[2] or b""
+
 		for collectionId in collectionIds:
-			if collectionId[1] == "album":
-				sortedSongs = sorted(
-					albumsMap[collectionId[0]],
-					key=lambda r: (r[2] or 0, r[3])
-				)
-				songIds.extend(r[0] for r in sortedSongs)
-			if collectionId[1] == "playlist":
-				sortedSongs = sorted(
-					playlistsMap[collectionId[0]],
-					key=lambda r: r[2] or b""
-				)
-				songIds.extend(r[0] for r in sortedSongs)
+			sortKey = albumSortKey \
+				if collectionId[1] == StationRequestTypes.ALBUM.lower() \
+				else playlistSortKey
+			collectionMap = albumsMap \
+				if collectionId[1] == StationRequestTypes.ALBUM.lower() \
+				else playlistsMap
+			sortedSongs = sorted(
+				collectionMap[collectionId[0]],
+				key=sortKey
+			)
+			requests.extend(
+				QueueRequest(
+					id=r[0],
+					itemtype=collectionId[1].lower(),
+					parentKey=collectionId[0]
+				) for r in sortedSongs
+			)
+
 
 		self.queue_service.queue_insert_songs(
-			songIds,
+			requests,
 			stationId
 		)
 
@@ -320,7 +372,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			raise ValueError("Station Id must be provided")
 
 		# songOffset = len(loaded) if loaded else 0
-		collectionOffset = len({l.album for l in loaded}) if loaded else 0
+		collectionOffset = len({(l.parentkey, l.itemtype) for l in loaded})\
+			if loaded else 0
 
 		if self.is_queue_empty(stationId, collectionOffset):
 			self.fil_up_queue(stationId, self.queue_size + 1 - collectionOffset)

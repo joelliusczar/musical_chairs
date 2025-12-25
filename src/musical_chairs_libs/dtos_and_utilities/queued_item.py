@@ -5,6 +5,7 @@ from .generic_dtos import (
 	TableData,
 	T,
 	NamedIdItem,
+	IdItem,
 )
 from pydantic import (
 	Field,
@@ -17,6 +18,8 @@ from typing import (
 
 class QueuedItem(NamedIdItem):
 	queuedtimestamp: float=Field(frozen=True)
+	itemtype: str=Field(default="song") #for display?
+	parentkey: Optional[int]=None
 
 	def __hash__(self) -> int:
 		return hash((self.id, self.name, self.queuedtimestamp))
@@ -31,8 +34,7 @@ class QueuedItem(NamedIdItem):
 class CatalogueItem(QueuedItem):
 	creator: str
 	parentName: str
-	itemtype: str
-	requesttypeid: int
+	requesttypeid: int #so that the front end knows what to equest
 	year: Optional[int]=None
 	rules: list[ActionRule]=cast(
 		list[ActionRule],
@@ -61,7 +63,7 @@ class SongListDisplayItem(QueuedItem):
 		else:
 			display = os.path.splitext(os.path.split(self.path)[1])[0]
 		return display.replace("\n", "")
-
+	
 
 class StationTableData(TableData[T]):
 	stationrules: list[ActionRule]
@@ -75,3 +77,7 @@ class SongsArtistInfo(ArtistInfo):
 	songs: list[SongListDisplayItem]=cast(
 		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
 	)
+
+class QueueRequest(IdItem):
+	itemtype: str
+	parentKey: Optional[int]

@@ -288,11 +288,22 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_script(SqlScripts.DROP_PLAYLISTSSONGS_ORDER)
 		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLISTSSONGS_LEXORDER)
 		ownerConnService.run_defined_script(
-			SqlScripts.DROP_UNIQUE_ALBUM_INDEX_ORDER
+			SqlScripts.DROP_UNIQUE_ALBUM_INDEX
 		)
 		ownerConnService.run_defined_script(
-			SqlScripts.READD_UNIQUE_ALBUM_INDEX_ORDER
+			SqlScripts.READD_UNIQUE_ALBUM_INDEX
 		)
+		ownerConnService.run_defined_script(SqlScripts.ADD_STATIONQUEUE_ITEMTYPE)
+		ownerConnService.run_defined_script(SqlScripts.ADD_STATIONQUEUE_PARENTKEY)
+		ownerConnService.run_defined_script(SqlScripts.ADD_LASTPLAYED_ITEMTYPE)
+		ownerConnService.run_defined_script(SqlScripts.ADD_LASTPLATED_PARENTKEY)
+		ownerConnService.run_defined_script(
+			SqlScripts.DROP_UNIQUE_LASTPLAYED_INDEX
+		)
+		ownerConnService.run_defined_script(
+			SqlScripts.READD_UNIQUE_LASTPLAYED_INDEX
+		)
+
 
 		if not dbName.startswith("test_"):
 			Path(f"/tmp/{get_schema_hash()}").touch()

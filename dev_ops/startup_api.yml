@@ -206,7 +206,7 @@
           DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
           DSF_ICES_EXECUTABLE='{{domain["app_root"]}}/.local/bin/{{app_details["prefix"]|lower}}-ices'
           DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
-      notify: Restart API
+      notify: Restart API #not sure this exists as a handler anymore
     - name: Add API run script
       copy: 
         dest: '/home/{{domain["server_user"]}}/run_api.sh'

@@ -364,13 +364,17 @@ station_queue = Table("stationqueue", metadata,
 		nullable=False
 	),
 	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
-	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=True)
+	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=True),
+	Column("itemtype", String(50), nullable=False, default="song"),
+	Column("parentkey", Integer, nullable=True)
 )
 
 q = station_queue.c
 q_userActionHistoryFk = cast(Column[Integer], q.useractionhistoryfk)
 q_songFk = cast(Column[Integer], q.songfk)
 q_stationFk = cast(Column[Integer], q.stationfk)
+q_itemType = cast(Column[String], q.itemtype)
+q_parentKey = cast(Column[Integer], q.parentkey)
 
 Index("idx_stationqueuestations", q_stationFk)
 
@@ -496,18 +500,24 @@ last_played = Table('lastplayed', metadata,
 	Column('pk', Integer, primary_key=True, autoincrement=True),
 	Column('stationfk', Integer, ForeignKey('stations.pk'), nullable=False),
 	Column('songfk', Integer, ForeignKey('songs.pk'), nullable=False),
-	Column('timestamp', Double[float], nullable=False)
+	Column('timestamp', Double[float], nullable=False),
+	Column("itemtype", String(50), nullable=False, default="song"),
+	Column("parentkey", Integer, nullable=True)
 )
 
 lp = last_played.c
 lp_stationFk = cast(Column[Integer], lp.stationfk)
 lp_songFk = cast(Column[Integer], lp.songfk)
 lp_timestamp = cast(Column[Double[float]], lp.timestamp)
+lp_itemType = cast(Column[String], lp.itemtype)
+lp_parentKey = cast(Column[Integer], lp.parentkey)
 
 Index(
 	"idx_lastplayed",
 	lp_stationFk,
 	lp_songFk,
+	lp_itemType,
+	lp_parentKey,
 	unique=True
 )
 

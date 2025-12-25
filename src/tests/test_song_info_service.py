@@ -31,7 +31,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 def test_songs_query(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
 	songs = list(songInfoService.get_song_refs(songName=None))
-	assert len(songs) == 6
+	assert len(songs) == 5
 
 def test_song_query_paging(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service

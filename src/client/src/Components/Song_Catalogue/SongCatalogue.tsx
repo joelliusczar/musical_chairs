@@ -93,7 +93,7 @@ export const SongCatalogue = () => {
 		}
 	};
 
-	const getPageUrl = new UrlBuilder(DomRoutes.songCatalogue);
+	const urlBuilder = new UrlBuilder(DomRoutes.songCatalogue);
 
 
 	const rowButton = (item: CatalogueItem, idx: number) => {
@@ -194,7 +194,7 @@ export const SongCatalogue = () => {
 			</h2>
 			<Box m={1}>
 				<StationRouteSelect
-					getPageUrl={getPageUrl.getOtherUrl}
+					getPageUrl={urlBuilder.getOtherUrl}
 					onChange={setStationCallback}
 					stationTypes={[StationTypes.SONGS_ONLY]}
 				/>
@@ -217,19 +217,19 @@ export const SongCatalogue = () => {
 									<TableCell>
 										<SearchTextField
 											name="song"
-											getPageUrl={getPageUrl.getThisUrl}
+											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
 									<TableCell>
 										<SearchTextField
 											name="album"
-											getPageUrl={getPageUrl.getThisUrl}
+											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
 									<TableCell>
 										<SearchTextField
 											name="artist"
-											getPageUrl={getPageUrl.getThisUrl}
+											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
 									<TableCell></TableCell>
@@ -263,7 +263,7 @@ export const SongCatalogue = () => {
 					}
 					<Box sx={{ display: "flex" }}>
 						<UrlPagination
-							getPageUrl={getPageUrl.getThisUrl}
+							getPageUrl={urlBuilder.getThisUrl}
 							totalRows={catalogueState.data?.totalrows}
 						/>
 					</Box>

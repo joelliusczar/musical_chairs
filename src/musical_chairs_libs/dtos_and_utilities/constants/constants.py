@@ -30,13 +30,22 @@ class JobStatusTypes(Enum):
 	COMPLETED = "completed"
 	FAILED = "failed"
 
+#these types are for the station itself
 class StationTypes(Enum):
 	SONGS_ONLY = 0
 	ALBUMS_ONLY = 1
 	PLAYLISTS_ONLY = 2
 	ALBUMS_AND_PLAYLISTS = 3
 
+#these types are for the songs and help differentiate between an album id
+#and a playlist id
 class StationRequestTypes(Enum):
 	SONG = 0
 	ALBUM = 1
 	PLAYLIST =2 
+
+	def title(self):
+		return self.name.title()
+
+	def lower(self):
+		return self.name.lower()

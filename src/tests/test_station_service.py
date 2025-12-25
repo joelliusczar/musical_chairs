@@ -651,5 +651,5 @@ def test_get_station_catalogue_multi_artist(
 	multiArtistSong = next(s for s in songs if s.id == 86)
 	assert multiArtistSong.creator == "z-bravo_artist"
 	noArtistSong = next(s for s in songs if s.id == 76)
-	assert noArtistSong.creator == None
+	assert noArtistSong.creator == ""
 	assert totalSongs == 5

@@ -10,6 +10,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TrackingInfo,
 	CatalogueItem,
 	CurrentPlayingInfo,
+	QueueRequest,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationTypes,
@@ -23,11 +24,12 @@ from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_typeid,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp, uah_action,
-	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk,
+	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk, q_parentKey,
+	q_itemType,
 	sg_disc, sg_pk, sg_albumFk, sg_deletedTimstamp,
 	sg_trackNum,
 	st_pk,
-	last_played, lp_songFk, lp_stationFk, lp_timestamp,
+	last_played, lp_stationFk, lp_timestamp, lp_itemType, lp_parentKey,
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
 )
 from .queue_service import QueueService
@@ -85,60 +87,45 @@ class AlbumQueueService(SongPopper, RadioPusher):
 			self.get_datetime = get_datetime
 			self.queue_size = 3
 
-
 	@staticmethod
-	def get_played_timestamps_query(
+	def get_station_possibilities_query(
 		stationid: int
 	):
-		query = select(
-			sg_albumFk.label("key"),
-			func.max(uah_queuedTimestamp).label("queuedtimestamp"),
-			func.max(uah_timestamp).label("timestamp"),
-			func.max(lp_timestamp).label("lastplayedtimestamp")
-		)\
-			.select_from(songs)\
-			.join(stations_albums_tbl, stab_albumFk == sg_albumFk)\
-			.join(stations_tbl, st_pk == stab_stationFk)\
-			.join(
-				station_queue,
-				q_songFk == sg_pk & q_stationFk == st_pk,
-				isouter=True
-			)\
+		query = select(stab_albumFk) \
+			.select_from(stations_tbl) \
+			.join(stations_albums_tbl, st_pk == stab_stationFk) \
+			.join(songs, sg_albumFk == stab_albumFk) \
+			.join(station_queue, (q_stationFk == st_pk) \
+				& (q_parentKey == stab_albumFk) \
+				& (q_itemType == StationRequestTypes.ALBUM.lower()), isouter=True) \
 			.join(last_played, (lp_stationFk == st_pk) \
-				& (lp_songFk == sg_pk), isouter=True
+				& (lp_parentKey == stab_albumFk)
+				& (lp_itemType == StationRequestTypes.ALBUM.lower()), isouter=True
 			)\
 			.join(user_action_history_tbl,
 				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
 				isouter=True
 			)\
 			.where(sg_deletedTimstamp.is_(None))\
-			.where(st_pk == stationid)\
-			.where(st_typeid == StationTypes.ALBUMS_ONLY.value)\
-			.group_by(sg_albumFk)
+			.where(st_pk == stationid) \
+			.group_by(stab_albumFk) \
+			.order_by(
+				func.max(uah_queuedTimestamp),
+				func.max(uah_timestamp),
+				lp_timestamp,
+				func.rand()
+			)
 		return query
-
-	def __get_played_timestamps__(self, stationid: int) -> dict[int, float]:
-
-		query = self.get_played_timestamps_query(stationid)
-		
-		rows = self.conn.execute(query)
-		return {
-			cast(int,r[0]):cast(float,max(r[1] or 0, r[2] or 0, r[3] or 0)) 
-			for r in rows
-		}
 
 	def get_all_station_possibilities(
 		self,
 		stationid: int
 	) -> Sequence[int]:
-		query = select(stab_albumFk)\
-			.where(stab_stationFk == stationid)
-		rows = self.conn.execute(query).fetchall()
-		lastPlayedMap = self.__get_played_timestamps__(stationid)
-		return sorted(
-			(cast(int,r[0]) for r in rows),
-			key=lambda aid: lastPlayedMap[aid]
-		)
+
+		query = self.get_station_possibilities_query(stationid)
+
+		rows = self.conn.execute(query).mappings().fetchall()
+		return [row[stab_albumFk] for row in rows]
 
 	def get_random_albumIds(
 		self,
@@ -185,7 +172,11 @@ class AlbumQueueService(SongPopper, RadioPusher):
 			key=lambda r: (sortMap[r[1]], r[2] or 0, r[3])
 		)
 		self.queue_service.queue_insert_songs(
-			[r[0] for r in sortedSongs],
+			[QueueRequest(
+				id=r[0],
+				parentKey=r[1],
+				itemtype=StationRequestTypes.ALBUM.lower()
+			) for r in sortedSongs],
 			stationId
 		)
 
@@ -208,7 +199,11 @@ class AlbumQueueService(SongPopper, RadioPusher):
 			
 			rows = self.conn.execute(query)
 			self.queue_service.queue_insert_songs(
-				[r[0] for r in rows],
+				[QueueRequest(
+					id=r[0],
+					itemtype=StationRequestTypes.ALBUM.lower(),
+					parentKey=itemId
+				) for r in rows],
 				station.id,
 				user.id,
 				trackingInfo
@@ -251,7 +246,8 @@ class AlbumQueueService(SongPopper, RadioPusher):
 			raise ValueError("Station Id must be provided")
 
 		# songOffset = len(loaded) if loaded else 0
-		albumOffset = len({l.album for l in loaded}) if loaded else 0
+		albumOffset = len({(l.parentkey, l.itemtype) for l in loaded})\
+			if loaded else 0
 
 		if self.is_queue_empty(stationId, albumOffset):
 			self.fil_up_queue(stationId, self.queue_size + 1 - albumOffset)

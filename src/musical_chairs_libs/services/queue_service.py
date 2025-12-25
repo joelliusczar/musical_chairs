@@ -62,7 +62,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	LastPlayedItem,
 	TrackingInfo,
-	QueueRequest
+	QueueRequest,
+	OwnerInfo
 )
 from musical_chairs_libs.file_reference import SqlScripts
 from musical_chairs_libs.protocols import SongPopper, RadioPusher
@@ -741,7 +742,8 @@ class QueueService(SongPopper, RadioPusher):
 			creator=s.primaryartist.name 
 				if s.primaryartist 
 				else next((a.name for a in s.artists or []), ""),
-			rules=s.rules
+			rules=s.rules,
+			owner=OwnerInfo(id=0, username="", displayname="NA")
 		) for s in songs], count
 
 

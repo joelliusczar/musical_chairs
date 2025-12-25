@@ -15,7 +15,7 @@ import {
 	Button,
 } from "@mui/material";
 import Loader from "../Shared/Loader";
-import { DomRoutes, StationTypes } from "../../constants";
+import { DomRoutes, StationTypes, StationRequestTypes } from "../../constants";
 import {
 	dataDispatches as dispatches,
 	useDataWaitingReducer,
@@ -108,7 +108,13 @@ export const CollectionCatalogue = () => {
 
 		if (canEditThisAlbum) rowButtonOptions.push({
 			label: "Edit",
-			link: `${DomRoutes.album({ id: item.id })}`,
+			link: item.requesttypeid === StationRequestTypes.ALBUM
+				? `${DomRoutes.album({ id: item.id })}`
+				: `${DomRoutes.playlistEdit(
+					{ 
+						playlistkey: item.name, 
+						ownerkey: item.owner.username,
+					})}`,
 		});
 
 		if(canRequest || canRequestForStation) rowButtonOptions.push({
@@ -123,7 +129,15 @@ export const CollectionCatalogue = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.album({ id: item.id })}`}
+				to={
+					item.requesttypeid === StationRequestTypes.ALBUM
+						? `${DomRoutes.album({ id: item.id })}`
+						: `${DomRoutes.playlistEdit(
+							{ 
+								playlistkey: item.name, 
+								ownerkey: item.owner.username,
+							})}`
+				} 
 			>
 				{(canEditThisAlbum) ? "Edit" : "View"}
 			</Button>);

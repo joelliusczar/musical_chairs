@@ -1,4 +1,5 @@
 import os
+from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule
 from .artist_dtos import ArtistInfo
 from .generic_dtos import (
@@ -40,6 +41,7 @@ class CatalogueItem(QueuedItem):
 		list[ActionRule],
 		Field(default_factory=list, frozen=False)
 	)
+	owner: OwnerType
 
 
 class SongListDisplayItem(QueuedItem):

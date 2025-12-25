@@ -12,6 +12,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CatalogueItem,
 	CurrentPlayingInfo,
 	QueueRequest,
+	OwnerInfo,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes,
@@ -36,7 +37,7 @@ from musical_chairs_libs.tables import (
 	plsg_lexorder,
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
 	stations_playlists as stations_playlists_tbl, stpl_playlistFk, stpl_stationFk,
-	users as users_tbl, u_pk, u_displayName,
+	users as users_tbl, u_pk, u_username, u_displayName,
 	last_played as last_played_tbl, lp_timestamp, lp_stationFk, lp_itemType,
 	lp_parentKey,
 )
@@ -440,12 +441,15 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			ar_name.label("creator"),
 			ab_year.label("year"),
 			ab_ownerFk.label("ownerid"),
+			u_username.label("ownerusername"),
+			u_displayName.label("ownerdisplayname"),
 			dbLiteral("Album").label("itemtype")
 		)\
 			.select_from(stations_tbl) \
 			.join(stations_albums_tbl, st_pk == stab_stationFk) \
 			.join(albums_tbl, stab_albumFk == ab_pk) \
 			.join(artists_tbl, ab_albumArtistFk == ar_pk, isouter=True) \
+			.join(users_tbl, u_pk == ab_ownerFk, isouter=True)\
 			.where(st_pk == stationId)
 		
 		playlistQuery = select(
@@ -454,6 +458,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			u_displayName.label("creator"),
 			func.FROM_UNIXTIME(pl_lastmodifiedtimestamp, "%Y").label("year"),
 			pl_ownerFk.label("ownerid"),
+			u_username.label("ownerusername"),
+			u_displayName.label("ownerdisplayname"),
 			dbLiteral("Playlist").label("itemtype")
 		)\
 			.select_from(stations_tbl) \
@@ -470,6 +476,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			sub.c.creator.label("creator"),
 			sub.c.year.label("year"),
 			sub.c.ownerid.label("ownerid"),
+			sub.c.ownerusername.label("ownerusername"),
+			sub.c.ownerdisplayname.label("ownerdisplayname"),
 			sub.c.itemtype.label("itemtype")
 		)
 		
@@ -499,7 +507,12 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					name=UserRoleDef.ALBUM_EDIT.value,
 					priority=RulePriorityLevel.OWNER.value
 				)
-			]
+			],
+			owner=OwnerInfo(
+				id=r["ownerid"],
+				username=r["ownerusername"],
+				displayname=r["ownerdisplayname"]
+			)
 			) for r in records]
 		countQuery = select(func.count(1))\
 			.select_from(cast(Any, query))

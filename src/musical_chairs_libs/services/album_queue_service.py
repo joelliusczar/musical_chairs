@@ -11,6 +11,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CatalogueItem,
 	CurrentPlayingInfo,
 	QueueRequest,
+	OwnerInfo,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationTypes,
@@ -31,6 +32,7 @@ from musical_chairs_libs.tables import (
 	st_pk,
 	last_played, lp_stationFk, lp_timestamp, lp_itemType, lp_parentKey,
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
+	users as users_tbl, u_pk, u_username, u_displayName
 )
 from .queue_service import QueueService
 from numpy.random import (
@@ -312,12 +314,15 @@ class AlbumQueueService(SongPopper, RadioPusher):
 			ab_name.label("name"),
 			ar_name.label("creator"),
 			ab_year.label("year"),
-			ab_ownerFk.label("ownerid")
+			ab_ownerFk.label("ownerid"),
+			u_username,
+			u_displayName,
 		)\
 			.select_from(stations_tbl) \
 			.join(stations_albums_tbl, st_pk == stab_stationFk) \
 			.join(albums_tbl, stab_albumFk == ab_pk) \
 			.join(artists_tbl, ab_albumArtistFk == ar_pk, isouter=True) \
+			.join(users_tbl, u_pk == ab_ownerFk, isouter=True)\
 			.where(st_pk == stationId)
 		
 		if lcollection:
@@ -346,7 +351,12 @@ class AlbumQueueService(SongPopper, RadioPusher):
 					name=UserRoleDef.ALBUM_EDIT.value,
 					priority=RulePriorityLevel.OWNER.value
 				)
-			]
+			],
+			owner=OwnerInfo(
+				id=r["ownerid"],
+				username=r[u_username],
+				displayname=r[u_displayName]
+			)
 			) for r in records]
 		countQuery = select(func.count(1))\
 			.select_from(cast(Any, query))

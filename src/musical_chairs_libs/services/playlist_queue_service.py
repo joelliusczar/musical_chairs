@@ -11,6 +11,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CatalogueItem,
 	CurrentPlayingInfo,
 	QueueRequest,
+	OwnerInfo,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes,
@@ -22,7 +23,7 @@ from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_typeid,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp, uah_action,
-	users as users_tbl, u_pk, u_displayName,
+	users as users_tbl, u_pk, u_displayName, u_username,
 	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk, q_parentKey,
 	q_itemType,
 	sg_pk, sg_deletedTimstamp,
@@ -323,7 +324,9 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 			pl_pk.label("id"),
 			pl_name.label("name"),
 			u_displayName.label("creator"),
-			pl_ownerFk.label("ownerid")
+			pl_ownerFk.label("ownerid"),
+			u_pk,
+			u_username,
 		)\
 			.select_from(stations_tbl) \
 			.join(stations_playlists_tbl, st_pk == stpl_stationFk) \
@@ -351,13 +354,18 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 			itemtype="Playlist",
 			requesttypeid=StationTypes.PLAYLISTS_ONLY.value,
 			queuedtimestamp=0,
-			rules=[] if user and r["ownerid"] != user.id else [
+			rules=[] if user and r[u_pk] != user.id else [
 				ActionRule(
 					domain="",
 					name=UserRoleDef.PLAYLIST_EDIT.value,
 					priority=RulePriorityLevel.OWNER.value
 				)
-			]
+			],
+			owner=OwnerInfo(
+				id=r[u_pk],
+				username=r[u_username],
+				displayname=r["ownerid"]
+			)
 			) for r in records]
 		countQuery = select(func.count(1))\
 			.select_from(cast(Any, query))

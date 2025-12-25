@@ -34,11 +34,14 @@ export interface RoledUser extends IdItem, RoledEntity {};
 
 export interface UserBase extends IdItem {
 	username: string
-	email: string
 	displayname?: string
 }
 
-export interface User extends UserBase, RoledUser {};
+export interface EmailableUser extends UserBase {
+	email: string
+}
+
+export interface User extends EmailableUser, RoledUser {};
 
 export interface UserBasicUpdate {
 	email: string

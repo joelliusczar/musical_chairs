@@ -19,6 +19,7 @@ from musical_chairs_libs.tables import (
 	pl_pk,
 	plsg_songFk, plsg_playlistFk, plsg_lexorder, plsg_lastmodifiedtimestamp,
 )
+from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	and_,
@@ -50,6 +51,7 @@ class PlaylistsSongsService:
 	def __init__(
 		self,
 		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
 		pathRuleService: Optional[PathRuleService]=None
 	) -> None:
 		if not conn:
@@ -57,6 +59,7 @@ class PlaylistsSongsService:
 		if not pathRuleService:
 			pathRuleService = PathRuleService(conn)
 		self.conn = conn
+		self.current_user_provider = currentUserProvider
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
 
@@ -177,6 +180,7 @@ class PlaylistsSongsService:
 		self.conn.commit()
 		return res
 
+
 	def validate_songs_playlists(
 		self,
 		songsPlaylists: Iterable[SongPlaylistTuple]
@@ -263,6 +267,8 @@ class PlaylistsSongsService:
 		upper = records[1][1] if len(records) > 1 else records[0][1]
 		lower = records[0][1] if len(records) > 1 else b""
 		mid = calc_order_between(lower.strip().decode(), upper.strip().decode())
+		if len(mid) > 199:
+			self.rebalance(playlistid)
 		stmt = update(playlists_songs_tbl).values(lexorder = mid.encode())\
 			.where(plsg_playlistFk == playlistid)\
 			.where(plsg_songFk == songid)
@@ -270,5 +276,25 @@ class PlaylistsSongsService:
 		self.conn.commit()
 
 
-
-		
+	def rebalance(self, playlistid: int):
+		query = select(plsg_songFk)\
+			.where(plsg_playlistFk == playlistid)\
+			.order_by(plsg_lexorder, plsg_lastmodifiedtimestamp)
+		records = self.conn.execute(query).fetchall()
+		delStmt = delete(playlists_songs_tbl).where(plsg_playlistFk == playlistid)
+		self.conn.execute(delStmt)
+		startOrder = "1"
+		params: list[dict[str, Any]] = []
+		for record in records:
+			params.append({
+				"songfk": record[0],
+				"playlistfk": playlistid,
+				"lexorder": startOrder.encode(),
+				"lastmodifiedbyuserfk": self.current_user_provider.userId,
+				"lastmodifiedtimestamp": self.get_datetime().timestamp()
+			})
+			startOrder = calc_order_next(startOrder)
+		if params:
+			stmt = insert(playlists_songs_tbl)
+			self.conn.execute(stmt, params)
+		self.conn.commit()

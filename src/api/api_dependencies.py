@@ -42,6 +42,7 @@ from musical_chairs_libs.services import (
 	StationProcessService,
 	PlaylistQueueService,
 	CollectionQueueService,
+	CurrentUserProvider,
 )
 from musical_chairs_libs.protocols import (
 	FileService,
@@ -180,12 +181,6 @@ def playlists_users_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> PlaylistsUserService:
 	return PlaylistsUserService(conn)
-
-
-def playlists_songs_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> PlaylistsSongsService:
-	return PlaylistsSongsService(conn)
 
 
 def song_info_service(
@@ -982,3 +977,15 @@ def get_playlist_user(
 		user
 	)
 
+
+def current_user_provider(
+	user: AccountInfo = Depends(get_current_user_simple)
+) -> CurrentUserProvider:
+	return CurrentUserProvider(user.id)
+
+
+def playlists_songs_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+) -> PlaylistsSongsService:
+	return PlaylistsSongsService(conn, currentUserProvider)

@@ -1,5 +1,7 @@
 from typing import Optional
 
+# even though lexorder is styled as bytes, it's easier to operate on str
+
 num_rank_map = [
 	*(str(i) for i in range(0, 10)),
 	*(chr(ord("A") + i - 10) for i in range(10, 36)),
@@ -84,10 +86,7 @@ def calc_order_between(
 		beforeDigit = digit_extract(before2[idx])
 		afterDigit = digit_extract(after2[idx])
 		midPoint, remainder = divmod((beforeDigit + afterDigit), 2)
-		if num_rank_map[midPoint] == "0":
-			result += "0V"
-		else:
-			result += num_rank_map[midPoint]
-	if remainder:
+		result += num_rank_map[midPoint % len(num_rank_map)]
+	if remainder and (result == before or result[-1] == "0"):
 		result += num_rank_map[len(num_rank_map) // 2]
 	return result

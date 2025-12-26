@@ -22,3 +22,4 @@ from .stations_users_service import *
 from .album_queue_service import *
 from .station_process_service import *
 from .collection_queue_service import *
+from .current_user_provider import *

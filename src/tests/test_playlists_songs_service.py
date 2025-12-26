@@ -74,3 +74,26 @@ def test_move_songs_1(
 	assert results[12].songid == 14
 	assert results[13].songid == 15
 	assert results[14].songid == 16
+
+
+def test_move_songs_2(
+	fixture_playlists_songs_service: PlaylistsSongsService,
+	fixture_account_service: AccountsService
+):
+	playlistsSongsService = fixture_playlists_songs_service
+	accountService = fixture_account_service
+	user,_ = accountService.get_account_for_login("testUser_alpha")
+	assert user
+	results = [*playlistsSongsService.get_playlist_songs(playlistIds=27)]
+	assert len(results) == 3
+	assert results[0].songid == 1
+	assert results[1].songid == 42
+	assert results[2].songid == 86
+	playlistsSongsService.rebalance(27)
+	results = [*playlistsSongsService.get_playlist_songs(playlistIds=27)]
+	assert results[0].lexorder == "1"
+	assert results[1].lexorder == "2"
+	assert results[2].lexorder == "3"
+	playlistsSongsService.move_song(27, 42, 1)
+	results = [*playlistsSongsService.get_playlist_songs(playlistIds=27)]
+	pass

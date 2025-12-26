@@ -147,9 +147,9 @@ class QueueService(SongPopper, RadioPusher):
 			.where(st_pk == stationPk) \
 			.group_by(sg_pk, sg_path) \
 			.order_by(
-				func.max(uah_queuedTimestamp),
-				func.max(uah_timestamp),
-				lp_timestamp,
+				desc(func.max(uah_queuedTimestamp)),
+				desc(func.max(uah_timestamp)),
+				desc(lp_timestamp),
 				func.rand()
 			)
 

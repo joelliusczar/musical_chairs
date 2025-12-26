@@ -18,7 +18,8 @@ from musical_chairs_libs.tables import (
 	station_queue,
 	playlists,
 	playlists_songs,
-	playlist_user_permissions
+	playlist_user_permissions,
+	stations_playlists,
 )
 from sqlalchemy import insert
 from .db_data import (
@@ -36,6 +37,7 @@ from .db_data import (
 	stationSongParams,
 	station_album_params,
 	playlists_params,
+	stations_playlists_params,
 	get_actions_history,
 	get_path_permission_params,
 	get_station_permission_params,
@@ -228,14 +230,20 @@ def populate_station_albums(conn: Connection):
 	stmt = insert(stations_albums)
 	conn.execute(stmt, station_album_params)
 
+
+def populate_station_playlists(conn: Connection):
+	stmt = insert(stations_playlists)
+	conn.execute(stmt, stations_playlists_params)
+
+
 def populate_playlists(conn: Connection):
 	stmt = insert(playlists)
 	conn.execute(stmt, playlists_params) #pyright: ignore [reportUnknownMemberType]
 
+
 def populate_playlists_songs(conn: Connection):
 	stmt = insert(playlists_songs)
 	conn.execute(stmt, playlistsSongsParams) #pyright: ignore [reportUnknownMemberType]
-
 
 
 def populate_users(

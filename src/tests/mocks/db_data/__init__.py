@@ -17,3 +17,4 @@ from .user_actions_history import *
 from .playlists import *
 from .playlists_songs import *
 from .playlist_user_roles import *
+from .stations_playlists import *

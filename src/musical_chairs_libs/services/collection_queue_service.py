@@ -26,8 +26,8 @@ from musical_chairs_libs.tables import (
 	stations as stations_tbl,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp, uah_action,
-	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk, q_itemType,
-	q_parentKey,
+	station_queue as station_queue_tbl, q_userActionHistoryFk, q_songFk, 
+	q_stationFk, q_itemType, q_parentKey,
 	sg_disc, sg_pk, sg_albumFk, sg_deletedTimstamp,
 	sg_trackNum,
 	st_pk,
@@ -49,6 +49,7 @@ from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 )
 from sqlalchemy import (
+	desc,
 	select,
 	literal as dbLiteral,
 	func,
@@ -57,9 +58,11 @@ from sqlalchemy import (
 	union_all,
 )
 from sqlalchemy.engine import Connection
+from sqlalchemy.sql.functions import coalesce
 from typing import (
 	Any,
 	Callable,
+	Iterator,
 	Optional,
 	cast,
 	Collection,
@@ -132,15 +135,15 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		
 		albumQuery = select(
 			stab_albumFk.label("key"),
-			func.max(uah_queuedTimestamp).label("queuedtimestamp"),
-			func.max(uah_timestamp).label("timestamp"),
-			func.max(lp_timestamp).label("lastplayed"),
+			func.max(coalesce(uah_queuedTimestamp,0)).label("queuedtimestamp"),
+			func.max(coalesce(uah_timestamp,0)).label("timestamp"),
+			func.max(coalesce(lp_timestamp,0)).label("lastplayed"),
 			dbLiteral(StationRequestTypes.ALBUM.lower()).label("itemtype")
 		) \
 			.select_from(stations_tbl) \
 			.join(stations_albums_tbl, st_pk == stab_stationFk) \
 			.join(songs, sg_albumFk == stab_albumFk) \
-			.join(station_queue, (q_stationFk == st_pk) \
+			.join(station_queue_tbl, (q_stationFk == st_pk) \
 				& (q_parentKey == stab_albumFk) \
 				& (q_itemType == StationRequestTypes.ALBUM.lower()), isouter=True) \
 			.join(last_played_tbl, (lp_stationFk == st_pk) \
@@ -148,7 +151,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				& (lp_itemType == StationRequestTypes.ALBUM.lower()), isouter=True
 			)\
 			.join(user_action_history_tbl,
-				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
+				(uah_pk == q_userActionHistoryFk),
 				isouter=True
 			)\
 			.where(sg_deletedTimstamp.is_(None))\
@@ -157,16 +160,16 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		
 		playlistQuery = select(
 			stpl_playlistFk.label("key"),
-			func.max(uah_queuedTimestamp).label("queuedtimestamp"),
-			func.max(uah_timestamp).label("timestamp"),
-			func.max(lp_timestamp).label("lastplayed"),
+			func.max(coalesce(uah_queuedTimestamp,0)).label("queuedtimestamp"),
+			func.max(coalesce(uah_timestamp,0)).label("timestamp"),
+			func.max(coalesce(lp_timestamp,0)).label("lastplayed"),
 			dbLiteral(StationRequestTypes.PLAYLIST.lower()).label("itemtype")
 		) \
 			.select_from(stations_tbl) \
 			.join(stations_playlists_tbl, st_pk == stpl_stationFk) \
 			.join(playlists_songs_tbl, plsg_playlistFk == stpl_playlistFk) \
 			.join(songs, sg_pk == plsg_songFk) \
-			.join(station_queue, (q_stationFk == st_pk) \
+			.join(station_queue_tbl, (q_stationFk == st_pk) \
 				& (q_parentKey == stpl_playlistFk) \
 				& (q_itemType == StationRequestTypes.PLAYLIST.lower()), isouter=True) \
 			.join(last_played_tbl, (lp_stationFk == st_pk) \
@@ -174,7 +177,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				& (lp_itemType == StationRequestTypes.PLAYLIST.lower()), isouter=True
 			)\
 			.join(user_action_history_tbl,
-				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
+				(uah_pk == q_userActionHistoryFk),
 				isouter=True
 			)\
 			.where(sg_deletedTimstamp.is_(None))\
@@ -189,9 +192,9 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		query = select(sub.c.key, sub.c.itemtype)\
 			.group_by(sub.c.key, sub.c.itemtype)\
 			.order_by(
-				func.max(sub.c.queuedtimestamp),
-				func.max(sub.c.timestamp),
-				func.max(sub.c.lastplayed),
+				desc(func.max(sub.c.queuedtimestamp)),
+				desc(func.max(sub.c.timestamp)),
+				desc(func.max(sub.c.lastplayed)),
 				func.rand()
 			)
 		rows = self.conn.execute(query).fetchall()
@@ -205,6 +208,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		deficitSize: int
 	) -> Collection[Tuple[int, str]]:
 		ids = self.get_all_station_possibilities(stationid)
+		#immediately chop off the most recent so there are no back-to-backs
+		ids = ids[1:] if len(ids) > 1 else ids
 		sampleSize = deficitSize if deficitSize < len(ids) else len(ids)
 		if not ids:
 			raise RuntimeError("No collection possibilities were found")
@@ -219,7 +224,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		stationId: int,
 	) -> int:
 		albumQuery = select(func.count(distinct(q_parentKey)))\
-				.select_from(station_queue)\
+				.select_from(station_queue_tbl)\
 				.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
 				.where(q_stationFk == stationId)\
@@ -228,7 +233,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				.where(uah_timestamp.is_(None))
 		
 		playlistQuery = select(func.count(distinct(q_parentKey)))\
-				.select_from(station_queue)\
+				.select_from(station_queue_tbl)\
 				.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
 				.where(q_itemType == StationRequestTypes.PLAYLIST.lower())\
@@ -402,7 +407,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		queueTimestamp: float,
 	) -> bool:
 		query = select(uah_pk)\
-			.join(station_queue, uah_pk == q_userActionHistoryFk)\
+			.join(station_queue_tbl, uah_pk == q_userActionHistoryFk)\
 			.where(q_stationFk == stationId)\
 			.where(q_songFk == songId)\
 			.where(uah_queuedTimestamp == queueTimestamp)\
@@ -533,6 +538,38 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		self.fil_up_queue(stationId, self.queue_size)
 		self.conn.commit()
 		return self.queue_service.get_now_playing_and_queue(stationId)
-	
+
+
 	def accepted_request_types(self) -> set[StationRequestTypes]:
 		return { StationRequestTypes.ALBUM, StationRequestTypes.PLAYLIST }
+
+
+	def get_queue_for_station(
+		self,
+		stationId: int
+	) -> Iterator[dict[str, Any]]:
+		query = select(
+			q_songFk,
+			q_itemType,
+			q_parentKey,
+			uah_queuedTimestamp,
+		)\
+			.select_from(station_queue_tbl)\
+			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
+			.where(q_stationFk == stationId)\
+			.where(uah_timestamp.is_(None))\
+			.order_by(uah_queuedTimestamp)
+
+		records = self.conn.execute(query)
+		yield from (
+			{
+				"songId": record[0],
+				"itemType": record[1], 
+				"parentKey": record[2],
+				"queuedTimestamp": record[3],
+			}
+			for record in records)
+
+
+
+

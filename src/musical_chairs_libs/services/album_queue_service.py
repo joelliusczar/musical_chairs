@@ -39,6 +39,7 @@ from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 )
 from sqlalchemy import (
+	desc,
 	select,
 	func,
 	update,
@@ -46,6 +47,7 @@ from sqlalchemy import (
 	or_,
 )
 from sqlalchemy.engine import Connection
+from sqlalchemy.sql.functions import coalesce
 from typing import (
 	Any,
 	Callable,
@@ -105,16 +107,16 @@ class AlbumQueueService(SongPopper, RadioPusher):
 				& (lp_itemType == StationRequestTypes.ALBUM.lower()), isouter=True
 			)\
 			.join(user_action_history_tbl,
-				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
+				(uah_pk == q_userActionHistoryFk),
 				isouter=True
 			)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.where(st_pk == stationid) \
 			.group_by(stab_albumFk) \
 			.order_by(
-				func.max(uah_queuedTimestamp),
-				func.max(uah_timestamp),
-				lp_timestamp,
+				desc(func.max(coalesce(uah_queuedTimestamp))),
+				desc(func.max(coalesce(uah_timestamp))),
+				desc(coalesce(lp_timestamp)),
 				func.rand()
 			)
 		return query
@@ -135,6 +137,8 @@ class AlbumQueueService(SongPopper, RadioPusher):
 		deficitSize: int
 	) -> Collection[int]:
 		ids = self.get_all_station_possibilities(stationid)
+		#immediately chop off the most recent so there are no back-to-backs
+		ids = ids[1:] if len(ids) > 1 else ids
 		sampleSize = deficitSize if deficitSize < len(ids) else len(ids)
 		if not ids:
 			raise RuntimeError("No album possibilities were found")

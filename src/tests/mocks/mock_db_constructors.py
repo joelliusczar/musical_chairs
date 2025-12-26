@@ -19,7 +19,8 @@ from .db_population import (
 	populate_station_queue,
 	populate_playlists,
 	populate_playlists_songs,
-	populate_playlist_permissions
+	populate_playlist_permissions,
+	populate_station_playlists
 )
 
 class ConnectionConstructor(Protocol):
@@ -60,6 +61,7 @@ def setup_in_mem_tbls(
 	populate_user_actions_history(conn, orderedTestDates)
 	populate_station_queue(conn)
 	populate_playlists(conn)
+	populate_station_playlists(conn)
 	populate_playlists_songs(conn)
 	populate_playlist_permissions(conn, orderedTestDates)
 	conn.commit()

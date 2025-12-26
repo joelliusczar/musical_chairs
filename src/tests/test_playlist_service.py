@@ -22,7 +22,7 @@ from .mocks.db_data import bravo_user_id, juliet_user_id
 def test_get_playlists_list(fixture_playlist_service: PlaylistService):
 	playlistService = fixture_playlist_service
 	data = list(playlistService.get_playlists())
-	assert len(data) == 12
+	assert len(data) == 14
 
 def test_get_playlists_list_with_admin(
 	fixture_playlist_service: PlaylistService,
@@ -176,7 +176,7 @@ def test_get_playlists_with_view_security(
 		playlistService.get_playlists(),
 		key=lambda s:s.id
 	)
-	assert len(data) == 12
+	assert len(data) == 14
 	assert data[0].name == "oscar_playlist"
 	assert data[1].name == "papa_playlist"
 	assert data[2].name == "romeo_playlist"
@@ -189,6 +189,7 @@ def test_get_playlists_with_view_security(
 	assert data[9].name == "xray_playlist"
 	assert data[10].name == "zulu_playlist"
 	assert data[11].name == "album_public_playlist_alpha"
+	assert data[12].name == "public_playlist_unordered"
 
 	#user no roles
 	user,_ = accountService.get_account_for_login("testUser_romeo")
@@ -197,7 +198,7 @@ def test_get_playlists_with_view_security(
 		playlistService.get_playlists(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 15
 	assert data[0].name == "oscar_playlist"
 	assert data[1].name == "papa_playlist"
 	assert data[2].name == "romeo_playlist"
@@ -211,6 +212,7 @@ def test_get_playlists_with_view_security(
 	assert data[10].name == "zulu_playlist"
 	assert data[11].name == "bravo_playlist_rerun"
 	assert data[12].name == "album_public_playlist_alpha"
+	assert data[13].name == "public_playlist_unordered"
 
 	#user with a site rule
 	user,_ = accountService.get_account_for_login("testUser_whiskey")
@@ -219,7 +221,7 @@ def test_get_playlists_with_view_security(
 		playlistService.get_playlists(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 14
+	assert len(data) == 16
 	assert data[0].name == "oscar_playlist"
 	assert data[1].name == "papa_playlist"
 	assert data[2].name == "romeo_playlist"
@@ -234,6 +236,7 @@ def test_get_playlists_with_view_security(
 	assert data[11].name == "alpha_playlist_rerun"
 	assert data[12].name == "bravo_playlist_rerun"
 	assert data[13].name == "album_public_playlist_alpha"
+	assert data[14].name == "public_playlist_unordered"
 
 	#user invited to see a playlist
 	user,_ = accountService.get_account_for_login("testUser_xray")
@@ -242,7 +245,7 @@ def test_get_playlists_with_view_security(
 		playlistService.get_playlists(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 14
+	assert len(data) == 16
 	assert data[0].name == "oscar_playlist"
 	assert data[1].name == "papa_playlist"
 	assert data[2].name == "romeo_playlist"
@@ -257,6 +260,7 @@ def test_get_playlists_with_view_security(
 	assert data[11].name == "bravo_playlist_rerun"
 	assert data[12].name == "charlie_playlist_rerun"
 	assert data[13].name == "album_public_playlist_alpha"
+	assert data[14].name == "public_playlist_unordered"
 
 	#owner a playlist
 	user,_ = accountService.get_account_for_login("testUser_yankee")
@@ -265,7 +269,7 @@ def test_get_playlists_with_view_security(
 		playlistService.get_playlists(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 14
+	assert len(data) == 16
 	assert data[0].name == "oscar_playlist"
 	assert data[1].name == "papa_playlist"
 	assert data[2].name == "romeo_playlist"
@@ -280,6 +284,7 @@ def test_get_playlists_with_view_security(
 	assert data[11].name == "bravo_playlist_rerun"
 	assert data[12].name == "delta_playlist_rerun"
 	assert data[13].name == "album_public_playlist_alpha"
+	assert data[14].name == "public_playlist_unordered"
 	pass
 
 	user,_ = accountService.get_account_for_login("testUser_juliet")
@@ -288,7 +293,7 @@ def test_get_playlists_with_view_security(
 		playlistService.get_playlists(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 14
+	assert len(data) == 16
 
 def test_get_playlists_with_scopes(
 	fixture_playlist_service: PlaylistService,
@@ -314,7 +319,7 @@ def test_get_playlists_with_scopes(
 			user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 15
 
 	data = sorted(
 		playlistService.get_playlists(
@@ -331,7 +336,7 @@ def test_get_playlists_with_scopes(
 		playlistService.get_playlists(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 14
+	assert len(data) == 16
 
 	data = sorted(
 		playlistService.get_playlists(
@@ -340,7 +345,7 @@ def test_get_playlists_with_scopes(
 		),
 		key=lambda s:s.id
 	)
-	assert len(data) == 14
+	assert len(data) == 16
 	assert data[0].name == "oscar_playlist"
 	assert data[1].name == "papa_playlist"
 	assert data[2].name == "romeo_playlist"
@@ -354,6 +359,7 @@ def test_get_playlists_with_scopes(
 	assert data[10].name == "zulu_playlist"
 	assert data[11].name == "alpha_playlist_rerun"
 	assert data[12].name == "bravo_playlist_rerun"
+	assert data[14].name == "public_playlist_unordered"
 	for playlist in data:
 		assert len(playlist.rules) == 1
 
@@ -363,7 +369,7 @@ def test_get_playlists_with_scopes(
 		playlistService.get_playlists(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 15
 
 	data = sorted(
 		playlistService.get_playlists(
@@ -389,7 +395,7 @@ def test_get_playlists_with_odd_priority(
 		playlistService.get_playlists(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 15
 
 	user,_ = accountService.get_account_for_login("testUser_alice")
 	assert user
@@ -398,7 +404,7 @@ def test_get_playlists_with_odd_priority(
 		playlistService.get_playlists(user=user),
 		key=lambda s:s.id
 	)
-	assert len(data) == 13
+	assert len(data) == 15
 
 def test_get_playlist_user_list(
 	fixture_playlist_service: PlaylistService,

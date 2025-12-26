@@ -3,11 +3,7 @@ import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
 import {
-	saveCaller,
-	checkValuesCaller,
-	getRecordCaller,
-	removeRecordCaller,
-	copyRecordCaller,
+	Calls,
 } from "../../API_Calls/stationCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
@@ -106,7 +102,7 @@ const validatePhraseIsUnused = async (
 ) => {
 	const id = context?.parent?.id;
 	if (!value) return true;
-	const requestObj = checkValuesCaller({ id, values: {
+	const requestObj = Calls.checkValues({ id, values: {
 		[context.path]: value,
 	}});
 	const used = await requestObj.call();
@@ -226,7 +222,7 @@ export const StationEdit = (props: StationEditProps) => {
 			};
 			saveData.viewsecuritylevel = viewsecuritylevel.id;
 			saveData.requestsecuritylevel = requestsecuritylevel.id;
-			const requestObj = saveCaller({ values: saveData, id: stationId });
+			const requestObj = Calls.save({ values: saveData, id: stationId });
 			const data = await requestObj.call();
 			afterSubmit(data);
 			if (stationId) {
@@ -258,7 +254,7 @@ export const StationEdit = (props: StationEditProps) => {
 			};
 			saveData.viewsecuritylevel = viewsecuritylevel.id;
 			saveData.requestsecuritylevel = requestsecuritylevel.id;
-			const requestObj = copyRecordCaller({ values: saveData, id: stationId });
+			const requestObj = Calls.copy({ values: saveData, id: stationId });
 			const data = await requestObj.call();
 			afterSubmit(data);
 			addStation(data);
@@ -287,7 +283,7 @@ export const StationEdit = (props: StationEditProps) => {
 		try {
 			if (!savedId) return;
 
-			const requestObj = removeRecordCaller({  id: savedId });
+			const requestObj = Calls.remove({  id: savedId });
 			await requestObj.call();
 			removeStation(state.data);
 			navigate(DomRoutes.stations(), { replace: true });
@@ -306,7 +302,7 @@ export const StationEdit = (props: StationEditProps) => {
 
 	useEffect(() => {
 		if(pathVars.stationkey && pathVars.ownerkey) {
-			const requestObj = getRecordCaller({
+			const requestObj = Calls.get({
 				ownerkey: pathVars.ownerkey,
 				stationkey: pathVars.stationkey,
 			});

@@ -50,7 +50,7 @@ def get_song_info(
 			yield queueItem
 		except Exception as e:
 			logging.radioLogger.error("Error getting song info")
-			logging.radioLogger.error(e)
+			logging.radioLogger.error(e, exc_info=True)
 			break
 
 
@@ -71,15 +71,25 @@ def load_data(
 				logging.radioLogger.info(f"Stop running flag encountered")
 				break
 			logging.queueLogger.info(f"queued: {queueItem.name}")
-			with fileService.open_song(queueItem.internalpath) as src:
-				for chunk in src:
-					currentFile.write(chunk)
+			attempts = 0
+			while True:
+				try:
+					with fileService.open_song(queueItem.internalpath) as src:
+						for chunk in src:
+							currentFile.write(chunk)
+					break
+				except Exception as e:
+					logging.radioLogger.warning(e)
+					attempts += 1
+					if attempts > 2:
+						logging.radioLogger.error("Retried 2 times to download song")
+						raise
 			fileQueue.put((currentFile, queueItem), lambda _: not stopRunning)
 			currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		fileQueue.put((None, None), lambda _: not stopRunning)
 	except Exception as e:
 		logging.radioLogger.error("Error while trying to load data")
-		logging.radioLogger.error(e)
+		logging.radioLogger.error(e, exc_info=True)
 	finally:
 		stopRunning = True
 
@@ -126,7 +136,7 @@ def clean_up_ices_process():
 			logging.radioLogger.info("Process successfully terminated")
 		except Exception as procError:
 			logging.radioLogger.error("Error terminating sub process")
-			logging.radioLogger.error(procError)
+			logging.radioLogger.error(procError, exc_info=True)
 	else:
 		logging.radioLogger.warning(
 			"Can't clean up station process. It is null"
@@ -204,7 +214,7 @@ def send_next(
 					conn.sendall(b"\n\n")
 					break
 	except Exception as e:
-		logging.radioLogger.error(e)
+		logging.radioLogger.error(e, exc_info=True)
 	finally:
 		logging.radioLogger.debug("send_next finally")
 		stopRunning = True

@@ -21,16 +21,18 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TableData,
 	StationActionRule,
 	TrackingInfo,
-	CollectionQueuedItem,
-	StationTypes,
+	CatalogueItem,
+)
+from musical_chairs_libs.dtos_and_utilities.constants import (
+	StationRequestTypes
 )
 from musical_chairs_libs.services import (
 	StationService,
 	QueueService,
 	StationsUsersService,
 	StationProcessService,
-	CollectionQueueService,
 )
+from musical_chairs_libs.protocols import RadioPusher
 from api_dependencies import (
 	station_service,
 	queue_service,
@@ -50,7 +52,8 @@ from api_dependencies import (
 	get_tracking_info,
 	stations_users_service,
 	station_process_service,
-	collection_queue_service,
+	validated_station_request_type,
+	station_radio_pusher,
 )
 from station_validation import (
 	validate_station_rule,
@@ -126,69 +129,41 @@ def queue(
 	return queue
 
 @router.get("/{ownerkey}/{stationkey}/catalogue/")
-def song_catalogue(
+def catalogue(
 	limit: int = 50,
-	song: str = "",
-	album: str = "",
-	artist: str = "",
+	name: str = "",
+	parentName: str = "",
+	creator: str = "",
 	page: int = Depends(get_page_num),
 	user: AccountInfo = Depends(get_station_user),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
-	queueService: QueueService = Depends(queue_service)
-) -> StationTableData[SongListDisplayItem]:
+	queueService: RadioPusher = Depends(station_radio_pusher),
+) -> StationTableData[CatalogueItem]:
 	if not station:
 		return StationTableData(totalrows=0, items=[], stationrules=[])
-	songs, totalRows = queueService.get_song_catalogue(
+	items, totalRows = queueService.get_catalogue(
 			stationId = station.id,
 			page = page,
 			limit = limit,
-			song=song,
-			album=album,
-			artist=artist,
+			name=name,
+			parentName=parentName,
+			creator=creator,
 			user=user
 		)
 	rules = ActionRule.sorted(
 		station.rules
 	)
-	return StationTableData(totalrows=totalRows, items=songs, stationrules=rules)
+	return StationTableData(totalrows=totalRows, items=items, stationrules=rules)
 
 
-@router.get("/{ownerkey}/{stationkey}/collection_catalogue/")
-def collection_catalogue(
-	limit: int = 50,
-	collection: str = "",
-	creator: str = "",
-	page: int = Depends(get_page_num),
-	user: AccountInfo = Depends(get_station_user),
-	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
-	collectionQueueService: CollectionQueueService = Depends(
-		collection_queue_service
-	)
-) -> StationTableData[CollectionQueuedItem]:
-	if not station:
-		return StationTableData(totalrows=0, items=[], stationrules=[])
-	collections, totalRows = collectionQueueService.get_catalogue(
-		stationId = station.id,
-		page = page,
-		limit = limit,
-		creator = creator,
-		collection = collection,
-	)
-	rules = ActionRule.sorted(
-		station.rules
-	)
-	return StationTableData(
-		totalrows=totalRows,
-		items=collections,
-		stationrules=rules
-	)
-
-
-@router.post("/{ownerkey}/{stationkey}/request/{songid}")
-def request_song(
-	songid: int,
+@router.post(
+	"/{ownerkey}/{stationkey}/request/{requesttypeid}/{itemid}"
+)
+def request_item(
+	itemid: int,
 	station: StationInfo = Depends(get_station_by_name_and_owner),
-	queueService: QueueService = Depends(queue_service),
+	requestType: StationRequestTypes = Depends(validated_station_request_type),
+	queueService: RadioPusher = Depends(station_radio_pusher),
 	user: AccountInfo = Security(
 		get_station_user,
 		scopes=[UserRoleDef.STATION_REQUEST.value]
@@ -196,40 +171,19 @@ def request_song(
 	trackingInfo: TrackingInfo=Depends(get_tracking_info)
 ):
 	try:
-		queueService.add_song_to_queue(songid, station, user, trackingInfo)
-	except (LookupError, RuntimeError) as ex:
-		raise HTTPException(
-			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail = str(ex)
-		)
-
-@router.post("/{ownerkey}/{stationkey}/request/{stationtypeid}/{collectionid}")
-def request_collection(
-	collectionid: int,
-	stationtypeid: int,
-	station: StationInfo = Depends(get_station_by_name_and_owner),
-	collectionQueueService: CollectionQueueService = Depends(
-		collection_queue_service
-	),
-	user: AccountInfo = Security(
-		get_station_user,
-		scopes=[UserRoleDef.STATION_REQUEST.value]
-	),
-	trackingInfo: TrackingInfo=Depends(get_tracking_info)
-):
-	try:
-		collectionQueueService.add_collection_to_queue(
-			collectionid,
+		queueService.add_to_queue(
+			itemid,
 			station,
 			user,
-			StationTypes(stationtypeid),
-			trackingInfo
+			trackingInfo,
+			requestType
 		)
 	except (LookupError, RuntimeError) as ex:
 		raise HTTPException(
 			status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail = str(ex)
 		)
+
 
 @router.delete("/{ownerkey}/{stationkey}/request",
 	dependencies=[
@@ -240,27 +194,15 @@ def remove_song_from_queue(
 	id: int,
 	queuedtimestamp: float,
 	station: StationInfo = Depends(get_station_by_name_and_owner),
-	queueService: QueueService = Depends(queue_service),
-	collectionQueueService: CollectionQueueService = Depends(
-		collection_queue_service
-	),
+	queueService: RadioPusher = Depends(station_radio_pusher)
 ) -> CurrentPlayingInfo:
-	if station.typeid == StationTypes.SONGS_ONLY.value:
-		queue = queueService.remove_song_from_queue(
-			id,
-			queuedtimestamp,
-			stationId=station.id
-		)
-		if queue:
-			return queue
-	else:
-		queue = collectionQueueService.remove_song_from_queue(
-			id,
-			queuedtimestamp,
-			stationId=station.id
-		)
-		if queue:
-			return queue
+	queue = queueService.remove_song_from_queue(
+		id,
+		queuedtimestamp,
+		stationId=station.id
+	)
+	if queue:
+		return queue
 	raise HTTPException(
 			status_code = status.HTTP_404_NOT_FOUND,
 			detail = f"Song: {id} not found at {queuedtimestamp} on {station.name}"

@@ -35,13 +35,18 @@ from musical_chairs_libs.services import (
 	PlaylistService,
 	PlaylistsUserService,
 	PlaylistsSongsService,
+	StationsPlaylistsService,
 	StationsSongsService,
 	StationsUsersService,
-	CollectionQueueService,
+	AlbumQueueService,
 	StationProcessService,
+	PlaylistQueueService,
+	CollectionQueueService,
+	CurrentUserProvider,
 )
 from musical_chairs_libs.protocols import (
-	FileService
+	FileService,
+	RadioPusher
 )
 from musical_chairs_libs.services.fs import (
 	S3FileService
@@ -63,6 +68,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	DirectoryTransfer,
 	TrackingInfo,
 	PlaylistInfo,
+)
+from musical_chairs_libs.dtos_and_utilities.constants import (
+	StationRequestTypes,
+	StationTypes,
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -119,6 +128,7 @@ def playlist_key_path(
 def datetime_provider() -> Callable[[], datetime]:
 	return get_datetime
 
+
 def get_configured_db_connection(
 	envManager: ConfigAcessors=Depends(ConfigAcessors)
 ) -> Iterator[Connection]:
@@ -130,10 +140,12 @@ def get_configured_db_connection(
 	finally:
 		conn.close()
 
+
 def station_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> StationService:
 	return StationService(conn)
+
 
 def station_process_service(
 	conn: Connection=Depends(get_configured_db_connection)
@@ -145,6 +157,12 @@ def stations_songs_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> StationsSongsService:
 	return StationsSongsService(conn)
+
+
+def stations_playlists_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> StationsPlaylistsService:
+	return StationsPlaylistsService(conn)
 
 
 def stations_users_service(
@@ -163,12 +181,6 @@ def playlists_users_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> PlaylistsUserService:
 	return PlaylistsUserService(conn)
-
-
-def playlists_songs_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> PlaylistsSongsService:
-	return PlaylistsSongsService(conn)
 
 
 def song_info_service(
@@ -219,10 +231,10 @@ def queue_service(
 	return QueueService(conn)
 
 
-def collection_queue_service(
+def album_queue_service(
 	conn: Connection=Depends(get_configured_db_connection)
-) -> CollectionQueueService:
-	return CollectionQueueService(conn)
+) -> AlbumQueueService:
+	return AlbumQueueService(conn)
 
 
 def accounts_service(
@@ -473,6 +485,39 @@ def get_station_by_name_and_owner(
 			]
 		)
 	return station
+
+def station_radio_pusher(
+	station: StationInfo = Depends(get_station_by_name_and_owner),
+	conn: Connection = Depends(get_configured_db_connection)
+) -> RadioPusher:
+	if station.typeid == StationTypes.SONGS_ONLY.value:
+		return QueueService(conn)
+	if station.typeid == StationTypes.ALBUMS_ONLY.value:
+		return AlbumQueueService(conn)
+	if station.typeid == StationTypes.PLAYLISTS_ONLY.value:
+		return PlaylistQueueService(conn)
+	if station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
+		return CollectionQueueService(conn)
+	raise HTTPException(
+		status_code=status.HTTP_404_NOT_FOUND,
+		detail=[build_error_obj(f"Station type: {station.typeid} not found")
+		]
+	)
+
+def validated_station_request_type(
+	requesttypeid: int = Path(),
+	radioPusher: RadioPusher = Depends(station_radio_pusher)
+) -> StationRequestTypes:
+	requestType = StationRequestTypes(requesttypeid)
+	if requestType not in radioPusher.accepted_request_types():
+		raise HTTPException(
+				status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+				detail=[build_error_obj(
+					f"{requestType.name} cannot be requested of that station"
+					)
+				]
+			)
+	return requestType
 
 
 def get_current_user(
@@ -932,3 +977,15 @@ def get_playlist_user(
 		user
 	)
 
+
+def current_user_provider(
+	user: AccountInfo = Depends(get_current_user_simple)
+) -> CurrentUserProvider:
+	return CurrentUserProvider(user.id)
+
+
+def playlists_songs_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+) -> PlaylistsSongsService:
+	return PlaylistsSongsService(conn, currentUserProvider)

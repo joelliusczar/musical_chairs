@@ -28,9 +28,13 @@ from .queued_item import SongListDisplayItem
 from .action_rule_dtos import ActionRule
 from .validation_functions import min_length_validator_factory
 from .simple_functions import get_non_simple_chars
+from .station_dtos import StationInfo
 
 class PlaylistCreationInfo(Named):
 	description: Optional[str]=""
+	stations: list[StationInfo]=cast(
+		list[StationInfo], Field(default_factory=list)
+	)
 
 class PlaylistInfo(NamedIdItem, RuledEntity):
 	owner: OwnerType
@@ -83,6 +87,9 @@ class PlaylistInfo(NamedIdItem, RuledEntity):
 class SongsPlaylistInfo(PlaylistInfo):
 	songs: list[SongListDisplayItem]=cast(
 		list[SongListDisplayItem], Field(default_factory=list, frozen=False)
+	)
+	stations: list[StationInfo]=cast(
+		list[StationInfo], Field(default_factory=list)
 	)
 
 

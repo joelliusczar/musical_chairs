@@ -10,7 +10,9 @@ from musical_chairs_libs.services import (
 	QueueService,
 	StationService,
 	StationProcessService,
+	AlbumQueueService,
 	CollectionQueueService,
+	PlaylistQueueService
 )
 from threading import ExceptHookArgs, Thread
 from setproctitle import setproctitle
@@ -83,6 +85,10 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 
 	queueServiceType = QueueService
 	if station.typeid == StationTypes.ALBUMS_ONLY.value:
+		queueServiceType = AlbumQueueService
+	elif station.typeid == StationTypes.PLAYLISTS_ONLY.value:
+		queueServiceType = PlaylistQueueService
+	elif station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
 		queueServiceType = CollectionQueueService
 
 	fileService = S3FileService()
@@ -145,6 +151,8 @@ if __name__ == "__main__":
 	stationName = sys.argv[2]
 	ownerName = sys.argv[3]
 
-
-	start_song_queue(dbName, stationName, ownerName)
+	try:
+		start_song_queue(dbName, stationName, ownerName)
+	except Exception as e:
+		logging.radioLogger.error(e, exc_info=True)
 	logging.radioLogger.info("End of station queue process")

@@ -63,7 +63,7 @@ export const getPageCount = (currentLocation: string, totalRows: number) => {
 	if(rows < 1) {
 		return 0;
 	}
-	return Math.floor(totalRows / rows);
+	return Math.ceil(totalRows / rows);
 };
 
 export const getSearchParams = (currentLocation: string) => {

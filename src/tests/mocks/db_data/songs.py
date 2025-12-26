@@ -521,6 +521,7 @@ song_params: list[dict[str, Any]] = [
 		"path": "foo/rude/rog/november2",
 	},
 	{ "pk": 48,
+		"name": "munchopuncho",
 		"internalpath": str(song_guids[48]),
 		"path": "foo/rude/rog/oscar2",
 	},

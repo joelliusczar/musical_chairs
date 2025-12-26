@@ -1,9 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import {
-	fetchSongCatalogue,
-	sendSongRequestCaller,
-} from "../../API_Calls/stationCalls";
+import { Calls } from "../../API_Calls/stationCalls";
 import {
 	Table,
 	TableBody,
@@ -34,7 +31,7 @@ import {
 import { UserRoleDef } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo, StationTableData } from "../../Types/station_types";
-import { SongListDisplayItem } from "../../Types/song_info_types";
+import { CatalogueItem } from "../../Types/song_info_types";
 import { IdValue } from "../../Types/generic_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import { SearchTextField } from "../Shared/SearchTextFIeld";
@@ -45,7 +42,7 @@ import { openSongInTab } from "../../API_Calls/songInfoCalls";
 export const SongCatalogue = () => {
 
 	const [catalogueState, catalogueDispatch] = useDataWaitingReducer(
-		new RequiredDataStore<StationTableData<SongListDisplayItem>>(
+		new RequiredDataStore<StationTableData<CatalogueItem>>(
 			{
 				items: [],
 				totalrows: 0,
@@ -84,10 +81,10 @@ export const SongCatalogue = () => {
 			return;
 		}
 		try {
-			const requestObj = sendSongRequestCaller({
+			const requestObj = Calls.queueRequest({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
-				songid: songId });
+				itemid: songId });
 			await requestObj.call();
 			enqueueSnackbar("Request has been queued.", { variant: "success"});
 		}
@@ -96,10 +93,10 @@ export const SongCatalogue = () => {
 		}
 	};
 
-	const getPageUrl = new UrlBuilder(DomRoutes.songCatalogue);
+	const urlBuilder = new UrlBuilder(DomRoutes.songCatalogue);
 
 
-	const rowButton = (item: SongListDisplayItem, idx: number) => {
+	const rowButton = (item: CatalogueItem, idx: number) => {
 		const rowButtonOptions = [];
 
 
@@ -156,7 +153,7 @@ export const SongCatalogue = () => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
 		if (!pathVars.stationkey || !pathVars.ownerkey) return;
 		const queryObj = getSearchParams(location.search);
-		const requestObj = fetchSongCatalogue({
+		const requestObj = Calls.getCatalogue({
 			stationkey: pathVars.stationkey,
 			ownerkey: pathVars.ownerkey,
 			...queryObj,
@@ -197,7 +194,7 @@ export const SongCatalogue = () => {
 			</h2>
 			<Box m={1}>
 				<StationRouteSelect
-					getPageUrl={getPageUrl.getOtherUrl}
+					getPageUrl={urlBuilder.getOtherUrl}
 					onChange={setStationCallback}
 					stationTypes={[StationTypes.SONGS_ONLY]}
 				/>
@@ -220,19 +217,19 @@ export const SongCatalogue = () => {
 									<TableCell>
 										<SearchTextField
 											name="song"
-											getPageUrl={getPageUrl.getThisUrl}
+											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
 									<TableCell>
 										<SearchTextField
 											name="album"
-											getPageUrl={getPageUrl.getThisUrl}
+											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
 									<TableCell>
 										<SearchTextField
 											name="artist"
-											getPageUrl={getPageUrl.getThisUrl}
+											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
 									<TableCell></TableCell>
@@ -246,10 +243,10 @@ export const SongCatalogue = () => {
 												{item.name || "{No song name}"}
 											</TableCell>
 											<TableCell>
-												{item.album || "{No album name}"}
+												{item.parentName || "{No album name}"}
 											</TableCell>
 											<TableCell>
-												{item.artist || "{No artist name}"}
+												{item.creator || "{No artist name}"}
 											</TableCell>
 											<TableCell>
 												{rowButton(item, idx)}
@@ -266,7 +263,7 @@ export const SongCatalogue = () => {
 					}
 					<Box sx={{ display: "flex" }}>
 						<UrlPagination
-							getPageUrl={getPageUrl.getThisUrl}
+							getPageUrl={urlBuilder.getThisUrl}
 							totalRows={catalogueState.data?.totalrows}
 						/>
 					</Box>

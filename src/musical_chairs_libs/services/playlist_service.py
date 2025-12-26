@@ -24,9 +24,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDomain,
 	get_playlist_owner_roles,
 	UserRoleDef,
-	build_placeholder_select
+	build_placeholder_select,
+	StationPlaylistTuple,
 )
 from .path_rule_service import PathRuleService
+from .stations_playlists_service import StationsPlaylistsService
 from sqlalchemy import (
 	select,
 	Select,
@@ -126,15 +128,19 @@ class PlaylistService:
 	def __init__(
 		self,
 		conn: Connection,
-		pathRuleService: Optional[PathRuleService]=None
+		pathRuleService: Optional[PathRuleService]=None,
+		stationsPlaylistsService: Optional[StationsPlaylistsService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		if not pathRuleService:
 			pathRuleService = PathRuleService(conn)
+		if not stationsPlaylistsService:
+			stationsPlaylistsService = StationsPlaylistsService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
+		self.stations_playlists_service = stationsPlaylistsService
 
 
 	def __attach_user_joins__(
@@ -368,13 +374,23 @@ class PlaylistService:
 				**DictDotMap.unflatten(dict(row), omitNulls=True)
 			) for row in songsResult
 		]
+		stations = [
+			*self.stations_playlists_service.get_stations_by_playlist(
+				playlistId,
+				user
+			)
+		]
 		if pathRuleTree:
 			for song in songs:
 				song.rules = list(pathRuleTree.valuesFlat(
 						normalize_opening_slash(song.path))
 					)
 
-		return SongsPlaylistInfo(**playlistInfo.model_dump(), songs=songs)
+		return SongsPlaylistInfo(
+			**playlistInfo.model_dump(), 
+			songs=songs,
+			stations=stations
+		)
 
 
 	def save_playlist(
@@ -382,7 +398,7 @@ class PlaylistService:
 		playlist: PlaylistCreationInfo,
 		user: AccountInfo,
 		playlistId: Optional[int]=None
-	) -> Optional[PlaylistInfo]:
+	) -> PlaylistInfo:
 		if not playlist and not playlistId:
 			raise ValueError("No playlist info to save")
 		upsert = update if playlistId else insert
@@ -403,10 +419,14 @@ class PlaylistService:
 			res = self.conn.execute(stmt)
 
 			affectedPk = playlistId if playlistId else res.lastrowid
-
+			self.stations_playlists_service.link_playlists_with_stations(
+				(StationPlaylistTuple(affectedPk, t.id if t else None) 
+					for t in (playlist.stations or [None])),
+				user.id
+			)
 			self.conn.commit()
 			if res.rowcount == 0:
-				return None
+				raise RuntimeError("Failed to create playlist")
 			return PlaylistInfo(
 				id=affectedPk,
 				name=str(savedName),
@@ -415,7 +435,7 @@ class PlaylistService:
 			)
 		except IntegrityError:
 			raise AlreadyUsedError.build_error(
-				f"{playlist.name} is already used for artist.",
+				f"{playlist.name} is already used for playlist.",
 				"body->name"
 			)
 

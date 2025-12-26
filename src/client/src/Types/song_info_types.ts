@@ -1,5 +1,5 @@
 import { IdValue, Named, NamedIdItem } from "./generic_types";
-import { PathsActionRule, ActionRule, User } from "./user_types";
+import { PathsActionRule, ActionRule, User, UserBase } from "./user_types";
 import { StationTableData, StationInfo } from "./station_types";
 import { VoidStore } from "../Reducers/reducerStores";
 import {
@@ -48,13 +48,15 @@ export interface SongListDisplayItem extends NamedIdItem {
 	rules: ActionRule[]
 }
 
-export interface CollectionQueuedItem extends NamedIdItem {
+export interface CatalogueItem extends NamedIdItem {
+	parentName: string
 	creator: string | null
 	itemtype: string
-	itemtypeid: number
+	requesttypeid: number
 	year: number | null
 	description: string | null
 	rules: ActionRule[]
+	owner: UserBase
 }
 
 export interface CurrentPlayingInfo

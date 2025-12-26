@@ -102,7 +102,7 @@ class JobsService:
 				self.file_service.delete_song(job.instructions)
 				self.__set_status__(job.id, JobStatusTypes.COMPLETED.value)
 			except Exception as e:
-				scheduledServiceLogger.error(e)
+				scheduledServiceLogger.error(e, exc_info=True)
 				self.__set_status__(job.id, JobStatusTypes.FAILED.value)
 
 

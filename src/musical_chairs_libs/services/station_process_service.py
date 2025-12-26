@@ -83,43 +83,37 @@ class StationProcessService:
 				if s[1] > 0
 			}
 			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
-		try:
 			for station in stationsEnabled:
-				try:
-					if ProcessService.noop_mode():
-						self.__noop_startup__(station.name)
-					else:
-						if not self.conn.engine.url.database:
-							raise RuntimeError("db Name is missing")
-						
-						if not self.template_service.does_station_config_exist(
+				if ProcessService.noop_mode():
+					self.__noop_startup__(station.name)
+					self.conn.commit()
+				else:
+					if not self.conn.engine.url.database:
+						raise RuntimeError("db Name is missing")
+					
+					if not self.template_service.does_station_config_exist(
+						station.name,
+						owner.username
+					):
+						self.template_service.create_station_files(
+							station.id,
 							station.name,
-							owner.username
-						):
-							self.template_service.create_station_files(
-								station.id,
-								station.name,
-								station.displayname,
-								owner.username,
-								station.bitratekps or 128
-							)
-						
-						self.template_service.sync_station_password(
-							station.name,
-							owner.username
+							station.displayname,
+							owner.username,
+							station.bitratekps or 128
 						)
+					
+					self.template_service.sync_station_password(
+						station.name,
+						owner.username
+					)
 
-						ProcessService.start_song_queue_process(
-							self.conn.engine.url.database,
-							station.name,
-							owner.username
-						)
-					yield station
-				except RuntimeError:
-					self.unset_station_procs(stationIds=station.id)
-					raise
-		finally:
-			self.conn.commit()
+					ProcessService.start_song_queue_process(
+						self.conn.engine.url.database,
+						station.name,
+						owner.username
+					)
+				yield station
 
 	def __noop_startup__(self, stationName: str) -> None:
 		#for normal operations, this is handled in the ices process

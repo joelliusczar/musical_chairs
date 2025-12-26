@@ -23,7 +23,7 @@ def test_get_album(
 	data = albumService.get_album(7)
 	assert data
 	assert data.name == "koo_album"
-	assert len(data.stations) == 2
+	assert len(data.stations) == 3
 	
 def test_get_null_album(fixture_album_service: AlbumService):
 	albumService = fixture_album_service
@@ -66,7 +66,7 @@ def test_save_album_add_stations(
 	data2 = albumService.get_album(7)
 	assert data2
 
-	assert len(data2.stations) == 4
+	assert len(data2.stations) == 5
 
 def test_save_album_remove_1_stations(
 	fixture_album_service: AlbumService,
@@ -95,7 +95,7 @@ def test_save_album_remove_1_stations(
 	data2 = albumService.get_album(7)
 	assert data2
 
-	assert len(data2.stations) == 1
+	assert len(data2.stations) == 2
 	assert data2.stations[0].id == 29
 
 def test_save_album_remove_all_stations(
@@ -155,7 +155,7 @@ def test_save_album_remove_1_add_1_stations(
 	data2 = albumService.get_album(7)
 	assert data2
 
-	assert len(data2.stations) == 2
+	assert len(data2.stations) == 3
 	assert data2.stations[0].id == 27
 	assert data2.stations[1].id == 29
 

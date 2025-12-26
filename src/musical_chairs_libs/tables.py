@@ -98,10 +98,11 @@ ab_ownerFk = cast(Column[Integer], ab.ownerfk)
 ab_versionnote = cast(Column[String], ab.versionnote)
 
 Index(
-	"idx_uniquealbumnameforartist",
+	"idx_uniquealbumnameforartist2",
 	ab_name,
 	ab_albumArtistFk,
 	ab_ownerFk,
+	ab_versionnote,
 	unique=True
 )
 
@@ -120,6 +121,9 @@ pl = playlists.c
 pl_pk = cast(Column[Integer],pl.pk)
 pl_name = cast(Column[Optional[String]],pl.name)
 pl_description = cast(Column[Optional[String]],pl.description)
+pl_lastmodifiedtimestamp = lastmodifiedtimestamp = cast(
+	Column[Float[float]], pl.lastmodifiedtimestamp
+)
 pl_ownerFk = cast(Column[Integer], pl.ownerfk)
 pl_viewSecurityLevel = cast(Column[Integer],pl.viewsecuritylevel)
 
@@ -227,6 +231,7 @@ _sc_songFk = cast(Column[Integer],song_covers.c.songfk)
 _sc_coverSongFk = cast(Column[Integer],song_covers.c.coversongfk)
 Index("idx_songcovers", _sc_songFk, _sc_coverSongFk, unique=True)
 
+
 stations = Table("stations", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("name", String(100), nullable=False),
@@ -254,6 +259,7 @@ st_typeid = cast(Column[Integer],st.typeid)
 st_bitrate = cast(Column[Optional[Integer]], st.bitratekps)
 Index("idx_uniquestationname", st_name, st_ownerFk, unique=True)
 
+
 stations_songs = Table("stationssongs", metadata,
 	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=False),
 	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
@@ -263,13 +269,13 @@ stations_songs = Table("stationssongs", metadata,
 )
 stsg = stations_songs.c
 
-
 stsg_songFk = cast(Column[Integer], stations_songs.c.songfk)
 stsg_stationFk = cast(Column[Integer], stations_songs.c.stationfk)
 stsg_lastmodifiedtimestamp = cast(
 	Column[Double[float]], stations_songs.c.lastmodifiedtimestamp
 )
 Index("idx_stationssongs", stsg_songFk, stsg_stationFk, unique=True)
+
 
 stations_albums = Table("stationsalbums",metadata,
 	Column("albumfk", Integer, ForeignKey("albums.pk"), nullable=False),
@@ -287,6 +293,7 @@ stab_lastmodifiedtimestamp = cast(
 	stab.lastmodifiedtimestamp
 )
 Index("idx_stationsalbums", stab_albumFk, stab_stationFk, unique=True)
+
 
 stations_playlists = Table("stationsplaylists",metadata,
 	Column("playlistfk", Integer, ForeignKey("playlists.pk"), nullable=False),
@@ -321,6 +328,7 @@ ur_count = cast(Column[Float[float]], userRoles.c.count)
 ur_priority = cast(Column[Integer], userRoles.c.priority)
 Index("idx_userroles", ur_userFk, ur_role, unique=True)
 
+
 user_agents = Table("useragents",metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("content", Text, nullable=False),
@@ -334,6 +342,7 @@ uag_hash = cast(Column[BINARY], user_agents.c.hash)
 uag_length = cast(Column[Integer], user_agents.c.length)
 
 Index("idx_useragenthash", uag_hash)
+
 
 user_action_history = Table("useractionhistory", metadata,
 	Column("pk", Integer, primary_key=True),
@@ -353,6 +362,7 @@ uah_action = cast(Column[String], uah.action)
 uah_timestamp = cast(Column[Optional[Double[float]]],uah.timestamp)
 uah_queuedTimestamp = cast(Column[Double[float]], uah.queuedtimestamp)
 
+
 station_queue = Table("stationqueue", metadata,
 	Column("useractionhistoryfk",
 		Integer,
@@ -360,13 +370,17 @@ station_queue = Table("stationqueue", metadata,
 		nullable=False
 	),
 	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
-	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=True)
+	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=True),
+	Column("itemtype", String(50), nullable=False, default="song"),
+	Column("parentkey", Integer, nullable=True)
 )
 
 q = station_queue.c
 q_userActionHistoryFk = cast(Column[Integer], q.useractionhistoryfk)
 q_songFk = cast(Column[Integer], q.songfk)
 q_stationFk = cast(Column[Integer], q.stationfk)
+q_itemType = cast(Column[String], q.itemtype)
+q_parentKey = cast(Column[Integer], q.parentkey)
 
 Index("idx_stationqueuestations", q_stationFk)
 
@@ -400,6 +414,7 @@ Index(
 	unique=True
 )
 
+
 playlist_user_permissions = Table("playlistuserpermissions", metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("playlistfk", Integer, ForeignKey("playlists.pk"), nullable=False),
@@ -427,6 +442,7 @@ Index(
 	plup_role,
 	unique=True
 )
+
 
 path_user_permissions = Table("pathuserpermissions", metadata,
 	Column("pk", Integer, primary_key=True),
@@ -488,24 +504,32 @@ Index(
 	unique=True
 )
 
+
 last_played = Table('lastplayed', metadata,
 	Column('pk', Integer, primary_key=True, autoincrement=True),
 	Column('stationfk', Integer, ForeignKey('stations.pk'), nullable=False),
 	Column('songfk', Integer, ForeignKey('songs.pk'), nullable=False),
-	Column('timestamp', Double[float], nullable=False)
+	Column('timestamp', Double[float], nullable=False),
+	Column("itemtype", String(50), nullable=False, default="song"),
+	Column("parentkey", Integer, nullable=True)
 )
 
 lp = last_played.c
 lp_stationFk = cast(Column[Integer], lp.stationfk)
 lp_songFk = cast(Column[Integer], lp.songfk)
 lp_timestamp = cast(Column[Double[float]], lp.timestamp)
+lp_itemType = cast(Column[String], lp.itemtype)
+lp_parentKey = cast(Column[Integer], lp.parentkey)
 
 Index(
-	"idx_lastplayed",
+	"idx_lastplayed2",
 	lp_stationFk,
 	lp_songFk,
+	lp_itemType,
+	lp_parentKey,
 	unique=True
 )
+
 
 jobs = Table('jobs', metadata,
 	Column('pk', Integer, primary_key=True, autoincrement=True),

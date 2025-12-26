@@ -13,7 +13,9 @@ import {
 	Calls as PlaylistApiRequestBuilder,
 } from "../../API_Calls/playlistCalls";
 import { formatError } from "../../Helpers/error_formatter";
-import { fetchStations } from "../../API_Calls/stationCalls";
+import { 
+	Calls as StationApiRequestBuilder,
+} from "../../API_Calls/stationCalls";
 import { useCurrentUser } from "../AuthContext/AuthContext";
 import {
 	initialAlbumState,
@@ -64,7 +66,7 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 	},[albumsDispatch, loggedIn]);
 
 	useEffect(() => {
-		const requestObj = fetchStations();
+		const requestObj = StationApiRequestBuilder.getList();
 		const fetch = async () => {
 			try {
 				stationsDispatch(dispatches.started());

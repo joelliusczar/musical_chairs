@@ -26,8 +26,10 @@ from musical_chairs_libs.services import (
 	PlaylistsSongsService,
 	StationsSongsService,
 	StationsUsersService,
+	AlbumQueueService,
+	StationsAlbumsService,
+	CurrentUserProvider,
 	CollectionQueueService,
-	StationsAlbumsService
 )
 
 from musical_chairs_libs.dtos_and_utilities import (
@@ -114,6 +116,33 @@ def fixture_conn_cardboarddb(
 		conn.close()
 
 @pytest.fixture
+def fixture_account_service(
+	fixture_conn_cardboarddb: Connection) -> AccountsService:
+	accountService = AccountsService(fixture_conn_cardboarddb)
+	return accountService
+
+
+@pytest.fixture
+def fixture_current_user_provider(
+	fixture_account_service: AccountsService,
+	fixture_primary_user: AccountInfo,
+	request: pytest.FixtureRequest
+) -> CurrentUserProvider:
+	currentUserIdMark = request.node.get_closest_marker("current_user_id")
+	if currentUserIdMark:
+		currentUserId = currentUserIdMark.args[0]
+		return CurrentUserProvider(currentUserId)
+	currentUsernameMark = request.node.get_closest_marker("current_username")
+	if currentUsernameMark:
+		user, _ = fixture_account_service.get_account_for_login(
+			currentUsernameMark.args[0]
+		)
+		if user:
+			return CurrentUserProvider(user.id)
+	return CurrentUserProvider(fixture_primary_user.id)
+
+
+@pytest.fixture
 def fixture_populated_db_name(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str
@@ -131,18 +160,11 @@ def fixture_queue_service(
 
 
 @pytest.fixture
-def fixture_collection_queue_service(
+def fixture_album_queue_service(
 	fixture_conn_cardboarddb: Connection
-) -> CollectionQueueService:
-	collectionQueueService = CollectionQueueService(fixture_conn_cardboarddb)
-	return collectionQueueService
-
-
-@pytest.fixture
-def fixture_account_service(
-	fixture_conn_cardboarddb: Connection) -> AccountsService:
-	accountService = AccountsService(fixture_conn_cardboarddb)
-	return accountService
+) -> AlbumQueueService:
+	albumQueueService = AlbumQueueService(fixture_conn_cardboarddb)
+	return albumQueueService
 
 
 @pytest.fixture
@@ -187,9 +209,13 @@ def fixture_playlist_service(
 
 @pytest.fixture
 def fixture_playlists_songs_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider
 ) -> PlaylistsSongsService:
-	service = PlaylistsSongsService(fixture_conn_cardboarddb)
+	service = PlaylistsSongsService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
 	return service
 
 
@@ -276,6 +302,13 @@ def fixture_user_actions_history_service(
 		fixture_conn_cardboarddb
 	)
 	return userActionsHistoryService
+
+@pytest.fixture
+def fixture_collection_queue_service(
+	fixture_conn_cardboarddb: Connection
+) -> CollectionQueueService:
+	collectionQueueService = CollectionQueueService(fixture_conn_cardboarddb)
+	return collectionQueueService
 
 @pytest.fixture
 def fixture_clean_station_folders():

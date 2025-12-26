@@ -8,9 +8,7 @@ import {
 } from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import {
-	fetchStationUsers,
-	addStationUserRule,
-	removeStationUserRule,
+	Calls,
 } from "../../API_Calls/stationCalls";
 import { useParams, useLocation } from "react-router-dom";
 import { formatError } from "../../Helpers/error_formatter";
@@ -97,7 +95,7 @@ export const StationUserRoleAssignmentTable = () => {
 				count: 0,
 				priority: null,
 			};
-			const requestObj = addStationUserRule({
+			const requestObj = Calls.addStationUserRule({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				rule,
@@ -144,7 +142,7 @@ export const StationUserRoleAssignmentTable = () => {
 
 		const page = parseInt(queryObj.get("page") || "1");
 		const limit = parseInt(queryObj.get("rows") || "50");
-		const requestObj = fetchStationUsers({
+		const requestObj = Calls.getStationUsers({
 			stationkey: pathVars.stationkey,
 			ownerkey: pathVars.ownerkey,
 			page: page - 1,
@@ -181,7 +179,7 @@ export const StationUserRoleAssignmentTable = () => {
 			return;
 		}
 		try {
-			const requestObj = addStationUserRule({
+			const requestObj = Calls.addStationUserRule({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				rule,
@@ -208,7 +206,7 @@ export const StationUserRoleAssignmentTable = () => {
 			return;
 		}
 		try {
-			const requestObj = removeStationUserRule({
+			const requestObj = Calls.removeStationUserRule({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				rulename: role.name,
@@ -242,7 +240,7 @@ export const StationUserRoleAssignmentTable = () => {
 			return;
 		}
 		try {
-			const requestObj = removeStationUserRule({
+			const requestObj = Calls.removeStationUserRule({
 				stationkey: pathVars.stationkey,
 				ownerkey: pathVars.ownerkey,
 				subjectuserkey: user.id,

@@ -108,6 +108,38 @@ class SqlScripts(Enum):
 		"027.add_playlistssongs_lexorder.sql",
 		"c3e575de46266f14741ecc3dfd90f69f580e52a0a90c5a1a0bdcd99cfe1bd122"
 	)
+	DROP_UNIQUE_ALBUM_INDEX = (
+		"028.drop_unique_album_index.sql",
+		"86cd90a037119ca3bd662d5a9e7ab90169279c8cd89056997ad5ae69c8b87eb3"
+	)
+	READD_UNIQUE_ALBUM_INDEX = (
+		"029.readd_unique_album_index.sql",
+		"677d9fb8447622a504e129a32d2885ecf2918df2f0735587ebbcc591cc681615"
+	)
+	ADD_STATIONQUEUE_ITEMTYPE = (
+		"030.add_stationqueue_itemtype.sql",
+		"277c2d0e9aef329749dbd1e7a01e24ffaceea1991056d38f13aa322dd692447b"
+	)
+	ADD_STATIONQUEUE_PARENTKEY = (
+		"031.add_stationqueue_parentkey.sql",
+		"df5413ff48388b37c4a50f95be9e13196260a4aa6aac0e70d8deb7bd476a7bd9"
+	)
+	ADD_LASTPLAYED_ITEMTYPE = (
+		"032.add_lastplayed_itemtype.sql",
+		"3ec4eeb8335242efcae8ebe2bcf2401d07a9f73338ec48cb27b157909a5d9e45"
+	)
+	ADD_LASTPLATED_PARENTKEY = (
+		"033.add_lastplated_parentkey.sql",
+		"91f3a777c1b93bf4db9cb24b9c0bd9141170fac4a76b696a9bd48b6acf25040f"
+	)
+	DROP_UNIQUE_LASTPLAYED_INDEX = (
+		"034.drop_unique_lastplayed_index.sql",
+		"8539b6995f65899bec1496c3aa99558f67d985d8807fbcf4dea673ac4d9845ac"
+	)
+	READD_UNIQUE_LASTPLAYED_INDEX = (
+		"035.readd_unique_lastplayed_index.sql",
+		"4d14ed810a4af9a51243bd0171654d529ca03fb69df7b6bba5bbc35b5813cb9e"
+	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",
 		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"

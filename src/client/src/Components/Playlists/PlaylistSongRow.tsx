@@ -105,7 +105,6 @@ export const PlaylistSongRow = (props: PlaylistSongRowProps) => {
 		ref={attachRefs}
 		style={ isOver ? { border: "1px solid"} : {}}
 	>
-		<TableCell>{song.track}</TableCell>
 		<TableCell>{song.name}</TableCell>
 		<TableCell>{song.disc}</TableCell>
 		<TableCell>{song.artist}</TableCell>

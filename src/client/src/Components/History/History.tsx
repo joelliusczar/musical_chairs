@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { fetchHistory } from "../../API_Calls/stationCalls";
+import { Calls } from "../../API_Calls/stationCalls";
 import {
 	Table,
 	TableBody,
@@ -122,7 +122,7 @@ export const History = () => {
 
 		const page = parseInt(queryObj.get("page") || "1");
 		const limit = parseInt(queryObj.get("rows") || "50");
-		const requestObj = fetchHistory({
+		const requestObj = Calls.getHistory({
 			stationkey: pathVars.stationkey,
 			ownerkey: pathVars.ownerkey,
 			page: page,

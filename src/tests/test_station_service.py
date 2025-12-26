@@ -28,7 +28,7 @@ from .mocks.db_data import bravo_user_id, juliet_user_id
 def test_get_stations_list(fixture_station_service: StationService):
 	stationService = fixture_station_service
 	data = list(stationService.get_stations())
-	assert len(data) == 15
+	assert len(data) == 16
 
 def test_get_stations_list_with_admin(
 	fixture_station_service: StationService,
@@ -257,7 +257,7 @@ def test_get_stations_with_view_security(
 ):
 	stationService = fixture_station_service
 	accountService = fixture_account_service
-	expectedCountDefault = 15
+	expectedCountDefault = 16
 
 	#no user
 	data = sorted(
@@ -401,7 +401,7 @@ def test_get_stations_with_scopes(
 	stationService = fixture_station_service
 	accountService = fixture_account_service
 
-	expectedCountDefault = 16
+	expectedCountDefault = 17
 
 	#no user
 	data = sorted(
@@ -493,7 +493,7 @@ def test_get_stations_with_odd_priority(
 	stationService = fixture_station_service
 	accountService = fixture_account_service
 
-	expectedCountDefault = 16
+	expectedCountDefault = 17
 
 	user,_ = accountService.get_account_for_login("testUser_zulu")
 	assert user
@@ -640,16 +640,16 @@ def test_get_station_catalogue_multi_artist(
 	queueService = fixture_queue_service
 	user,_ = accountService.get_account_for_login("unruledStation_testUser")
 	assert user
-	items, totalSongs = queueService.get_song_catalogue(23)
+	items, totalSongs = queueService.get_catalogue(23)
 	songs = sorted(
 		items,
 		key=lambda s: s.id
 	)
 	assert len(songs) == 5
 	multiArtistPrimarySong = next(s for s in songs if s.id == 84)
-	assert multiArtistPrimarySong.artist == "victor_artist"
+	assert multiArtistPrimarySong.creator == "victor_artist"
 	multiArtistSong = next(s for s in songs if s.id == 86)
-	assert multiArtistSong.artist == "z-bravo_artist"
+	assert multiArtistSong.creator == "z-bravo_artist"
 	noArtistSong = next(s for s in songs if s.id == 76)
-	assert noArtistSong.artist == None
+	assert noArtistSong.creator == ""
 	assert totalSongs == 5

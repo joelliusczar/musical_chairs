@@ -73,6 +73,7 @@ const playlistInfoToFormData = (data: PlaylistInfo) => {
 const initialValues = {
 	name: "",
 	viewsecuritylevel: viewSecurityOptions[0],
+	stations: [],
 };
 
 export const PlaylistEditScreen = () => {
@@ -136,6 +137,7 @@ export const PlaylistEditScreen = () => {
 						name: values.name,
 						description: values.description,
 						viewsecuritylevel: values.viewsecuritylevel.id,
+						stations: values.stations,
 					},
 				});
 				const playlist = await requestObj.call();
@@ -149,6 +151,7 @@ export const PlaylistEditScreen = () => {
 						name: values.name,
 						description: values.description,
 						viewsecuritylevel: values.viewsecuritylevel.id,
+						stations: values.stations,
 					},
 				});
 				const playlist = await requestObj.call();
@@ -345,7 +348,6 @@ export const PlaylistEditScreen = () => {
 						<Table>
 							<TableHead>
 								<TableRow>
-									<TableCell>Track</TableCell>
 									<TableCell>Song</TableCell>
 									<TableCell>Disc</TableCell>
 									<TableCell>Artist</TableCell>

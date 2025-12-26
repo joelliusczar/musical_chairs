@@ -10,7 +10,7 @@ from typing import (
 	Sequence,
 	Set,
 	Tuple,
-	Iterable
+	Iterable,
 )
 from sqlalchemy import (
 	select,
@@ -39,6 +39,7 @@ from musical_chairs_libs.tables import (
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp, uah_action,
 	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk,
+	q_itemType, q_parentKey,
 	albums,
 	artists,
 	song_artist,
@@ -47,11 +48,12 @@ from musical_chairs_libs.tables import (
 	sg_track,
 	stations as stations_tbl, st_pk, st_typeid,
 	ar_pk, ar_name,
-	ab_pk, ab_name,
-	last_played, lp_songFk, lp_stationFk, lp_timestamp,
+	ab_pk, ab_name, ab_versionnote,
+	last_played, lp_songFk, lp_stationFk, lp_timestamp, lp_itemType, lp_parentKey
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
+	CatalogueItem,
 	CurrentPlayingInfo,
 	get_datetime,
 	QueuedItem,
@@ -59,11 +61,16 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	UserRoleDef,
 	LastPlayedItem,
-	TrackingInfo
+	TrackingInfo,
+	QueueRequest,
+	OwnerInfo
 )
 from musical_chairs_libs.file_reference import SqlScripts
-from musical_chairs_libs.protocols import SongPopper
-from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
+from musical_chairs_libs.protocols import SongPopper, RadioPusher
+from musical_chairs_libs.dtos_and_utilities.constants import (
+	StationRequestTypes,
+	StationTypes
+)
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 )
@@ -81,7 +88,7 @@ def choice(
 	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
 	return numpy_choice(items, sampleSize, p = cast(Any,weights), replace=False).tolist()
 
-class QueueService(SongPopper):
+class QueueService(SongPopper, RadioPusher):
 
 	def __init__(
 		self,
@@ -120,7 +127,7 @@ class QueueService(SongPopper):
 			self.queue_size = 50
 			self.album_queue_size = 3
 
-	def get_all_station_song_possibilities(
+	def get_all_station_possibilities(
 		self, stationPk: int
 	) -> Sequence[RowMapping]:
 		query = select(sg_pk, sg_path) \
@@ -140,9 +147,9 @@ class QueueService(SongPopper):
 			.where(st_pk == stationPk) \
 			.group_by(sg_pk, sg_path) \
 			.order_by(
-				func.max(uah_queuedTimestamp),
-				func.max(uah_timestamp),
-				lp_timestamp,
+				desc(func.max(uah_queuedTimestamp)),
+				desc(func.max(uah_timestamp)),
+				desc(lp_timestamp),
 				func.rand()
 			)
 
@@ -155,7 +162,7 @@ class QueueService(SongPopper):
 		stationId: int,
 		deficitSize: int
 	) -> Collection[int]:
-		rows = self.get_all_station_song_possibilities(stationId)
+		rows = self.get_all_station_possibilities(stationId)
 		sampleSize = deficitSize if deficitSize < len(rows) else len(rows)
 		songIds = [r[sg_pk] for r in rows]
 		if not songIds:
@@ -166,7 +173,7 @@ class QueueService(SongPopper):
 
 	def queue_insert_songs(
 		self,
-		songIds: Collection[int],
+		songIds: Collection[QueueRequest],
 		stationId: int,
 		userId: Optional[int]=None,
 		trackingInfo: Optional[TrackingInfo]=None
@@ -190,11 +197,13 @@ class QueueService(SongPopper):
 			timestampOffset += .1
 			if insertedId:
 				insertedIds.append(cast(int,insertedId[0]))
-		params = [{
+		params: list[dict[str, Any]] = [{
 			"stationfk": stationId,
-			"songfk": s[0],
-			"useractionhistoryfk": s[1]
-		} for s in zip(songIds,insertedIds)]
+			"songfk": s[0].id,
+			"useractionhistoryfk": s[1],
+			"itemtype": s[0].itemtype,
+			"parentkey": s[0].parentKey
+		} for s in zip(songIds, insertedIds)]
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
 
@@ -211,7 +220,15 @@ class QueueService(SongPopper):
 		if deficitSize < 1:
 			return
 		songIds = self.get_random_songIds(stationId, deficitSize)
-		self.queue_insert_songs(songIds, stationId)
+		self.queue_insert_songs([
+			QueueRequest(
+					id=s,
+					itemtype=StationRequestTypes.SONG.lower(),
+					parentKey=None
+				) 
+				for s in songIds], 
+			stationId
+		)
 
 
 	def __move_from_queue_to_history__(
@@ -283,10 +300,15 @@ class QueueService(SongPopper):
 				sg_internalpath,
 				sg_name,
 				sg_track,
-				ab_name.label("album"),
+				func.concat(
+					coalesce(ab_name, ""),
+					"(", coalesce(ab_versionnote, ""), ")"
+				).label("album"),
 				ar_name.label("artist"),
 				uah_queuedTimestamp,
-				uah_timestamp
+				uah_timestamp,
+				q_itemType,
+				q_parentKey
 			).select_from(station_queue)\
 				.join(user_action_history_tbl,uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
@@ -305,20 +327,21 @@ class QueueService(SongPopper):
 
 		if limit:
 			offsetQuery = offsetQuery.limit(limit)
-
 		records = self.conn.execute(offsetQuery).mappings()
 		result = [SongListDisplayItem(
 				id=row[sg_pk],
 				name=row[sg_name] or "",
-				album=row["album"],
+				album=row["album"].removesuffix("()"),
 				artist=row["artist"],
 				path=row[sg_path],
 				internalpath=row[sg_internalpath],
 				queuedtimestamp=row[uah_queuedTimestamp],
 				playedtimestamp=row[uah_timestamp],
+				itemtype=row[q_itemType],
+				parentkey=row[q_parentKey]
 			) for row in records]
 		countQuery = select(func.count(1))\
-			.select_from(query.subquery())
+			.select_from(query.cte())
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
 
@@ -400,20 +423,21 @@ class QueueService(SongPopper):
 			return 0
 
 
-	def add_song_to_queue(self,
-		songId: int,
+	def add_to_queue(self,
+		itemId: int,
 		station: StationInfo,
 		user: AccountInfo,
-		trackingInfo: TrackingInfo
+		trackingInfo: TrackingInfo,
+		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
 	):
-		songInfo = self.song_info_service.song_info(songId)
-		songName = songInfo.name if songInfo else "Song"
+		songInfo = self.song_info_service.song_info(itemId)
+		songName = songInfo.name if songInfo else "song"
 		if station and\
 			self.can_song_be_queued_to_station(
-				songId,
+				itemId,
 				station.id
 			):
-			self.__add_song_to_queue__(songId, station.id, user.id, trackingInfo)
+			self.__add_song_to_queue__(itemId, station.id, user.id, trackingInfo)
 			self.conn.commit()
 			return
 		raise LookupError(f"{songName} cannot be added to {station.name}")
@@ -488,8 +512,6 @@ class QueueService(SongPopper):
 			.where(uah_queuedTimestamp == queuedTimestamp)\
 			.where(uah_action == UserRoleDef.STATION_REQUEST.value)
 
-
-
 		updateCount = self.conn.execute(stmt).rowcount
 
 		return updateCount == 1
@@ -533,7 +555,9 @@ class QueueService(SongPopper):
 			ar_name.label("artist"),
 			sg_path.label("path"),
 			sg_internalpath.label("internalpath"),
-			uah_pk.label("historyid")
+			uah_pk.label("historyid"),
+			q_itemType.label("itemtype"),
+			q_parentKey.label("parentkey"),
 		).select_from(station_queue) \
 			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 			.join(songs, q_songFk == sg_pk) \
@@ -563,13 +587,21 @@ class QueueService(SongPopper):
 		return result, count
 
 
-	def get_old_last_played(self, stationid: int) -> Iterator[Tuple[int, float]]:
+	def get_old_last_played(self, stationid: int) -> Iterator[LastPlayedItem]:
 		query = select(
 			lp_songFk,
-			lp_timestamp
+			lp_timestamp,
+			lp_itemType,
+			lp_parentKey,
 		).where(lp_stationFk == stationid)
 		records = self.conn.execute(query)
-		yield from ((row[0], row[1]) for row in records)
+		yield from (LastPlayedItem(
+			songid=row[0],
+			timestamp=row[1],
+			historyid=0,
+			itemtype=row[2],
+			parentkey=row[3]
+		) for row in records)
 
 
 	def add_to_last_played(
@@ -583,6 +615,8 @@ class QueueService(SongPopper):
 				"stationfk": stationid,
 				"songfk": e.songid,
 				"timestamp": e.timestamp,
+				"itemtype": e.itemtype,
+				"parentkey": e.parentkey
 			} for e in addura]
 		if not values:
 			return 0
@@ -599,7 +633,9 @@ class QueueService(SongPopper):
 			stmt = update(last_played) \
 				.values(timestamp = item.timestamp) \
 				.where(lp_stationFk == stationid)\
-				.where(lp_songFk == item.songid)
+				.where(lp_songFk == item.songid)\
+				.where(lp_itemType == item.itemtype)\
+				.where(lp_parentKey == item.parentkey)
 			updateCount += self.conn.execute(stmt).rowcount
 		return updateCount
 
@@ -631,24 +667,32 @@ class QueueService(SongPopper):
 			beforeTimestamp=beforeTimestamp
 		)
 
-		squashed = {row[0]:row[1] for row in self.get_old_last_played(stationid)}
+		squashed = {
+			(item.songid, item.itemtype, item.parentkey):item.timestamp
+			for item in self.get_old_last_played(stationid)
+		}
 		addura = [v for v in {
 			e.id:LastPlayedItem(
 				songid = e.id,
 				timestamp = e.playedtimestamp or 0,
-				historyid = e.historyid or 0
+				historyid = e.historyid or 0,
+				itemtype = e.itemtype,
+				parentkey = e.parentkey
 			)
-			for e in reversed(unsquashed) if e.id not in squashed
+			for e in reversed(unsquashed) 
+				if (e.id, e.itemtype, e.parentkey) not in squashed
 		}.values()]
 		updatera = (v for v in {
 			e.id:LastPlayedItem(
 				songid = e.id,
 				timestamp = e.playedtimestamp or 0,
-				historyid = e.historyid or 0
+				historyid = e.historyid or 0,
+				itemtype = e.itemtype,
+				parentkey = e.parentkey
 			)
 			for e in reversed(unsquashed)
-			if e.id in squashed and e.playedtimestamp and
-				squashed[e.id] < e.playedtimestamp
+			if (e.id, e.itemtype, e.parentkey) in squashed and e.playedtimestamp and
+				squashed[(e.id, e.itemtype, e.parentkey)] < e.playedtimestamp
 		}.values())
 		addedCount = self.add_to_last_played(stationid, addura)
 		updatedCount = self.update_last_played_timestamps(stationid, updatera)
@@ -668,36 +712,40 @@ class QueueService(SongPopper):
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
 	
-	def get_song_catalogue(
+	def get_catalogue(
 		self,
-		stationId: Optional[int]=None,
+		stationId: int,
 		page: int = 0,
-		song: str = "",
-		album: str = "",
-		artist: str = "",
+		name: str = "",
+		parentName: str = "",
+		creator: str = "",
 		limit: Optional[int]=None,
 		user: Optional[AccountInfo]=None
-	) -> Tuple[list[SongListDisplayItem], int]:
+	) -> Tuple[list[CatalogueItem], int]:
 		songs, count = self.song_info_service.get_fullsongs_page(
 			stationId,
 			page,
-			song,
-			album,
-			artist,
+			name,
+			parentName,
+			creator,
 			limit,
 			user
 		)
 
-		return [SongListDisplayItem(
+		return [CatalogueItem(
 			id=s.id,
 			name=s.name or "Missing Name",
+			itemtype=StationRequestTypes.SONG.lower(),
+			requesttypeid=StationTypes.SONGS_ONLY.value,
 			queuedtimestamp=0,
-			album=s.album.name if s.album else "No Album",
-			artist=s.primaryartist.name 
+			parentName=s.album.name if s.album else "No Album",
+			creator=s.primaryartist.name 
 				if s.primaryartist 
-				else next((a.name for a in s.artists or []), None),
-			path=s.path,
-			internalpath=s.internalpath,
-			track=s.tracknum,
-			rules=s.rules
+				else next((a.name for a in s.artists or []), ""),
+			rules=s.rules,
+			owner=OwnerInfo(id=0, username="", displayname="NA")
 		) for s in songs], count
+
+
+	def accepted_request_types(self) -> set[StationRequestTypes]:
+		return { StationRequestTypes.SONG }

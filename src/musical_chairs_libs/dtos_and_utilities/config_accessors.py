@@ -139,7 +139,7 @@ class ConfigAcessors:
 	
 	@classmethod
 	def ices_executable(cls) -> str:
-		return os.environ["DSF_ICES_EXECUTABLE"]
+		return str(Path(os.environ["DSF_ICES_EXECUTABLE"]).expanduser())
 	
 	@classmethod
 	def live_config(cls) -> dict[str, Any]:

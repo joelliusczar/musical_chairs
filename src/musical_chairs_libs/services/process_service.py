@@ -93,7 +93,7 @@ class ProcessService:
 		stationProc = subprocess.Popen([
 				ConfigAcessors.python_executable(),
 				"-m",
-				"musical_chairs_libs.stream",
+				"musical_chairs_libs.stream", #stream/__main__.py
 				dbName,
 				stationName,
 				ownerName

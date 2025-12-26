@@ -199,3 +199,5 @@ class LastPlayedItem(MCBaseClass):
 	songid: int
 	timestamp: float
 	historyid: int
+	itemtype: str=Field(default="song") #for display?
+	parentkey: Optional[int]=None

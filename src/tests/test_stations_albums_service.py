@@ -22,7 +22,7 @@ def test_get_stations_by_album(
 		key=lambda s:s.id
 	)
 
-	assert len(data) == 2
+	assert len(data) == 3
 	assert data[0].name == "album_public_station_alpha"
 	assert data[1].name == "album_public_station_bravo"
 
@@ -39,6 +39,6 @@ def test_get_stations_by_album(
 		key=lambda s:s.id
 	)
 
-	assert len(data) == 2
+	assert len(data) == 3
 	assert data[0].name == "album_public_station_alpha"
 	assert data[1].name == "album_public_station_charlie"

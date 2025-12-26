@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { fetchQueue, removeSongFromQueue } from "../../API_Calls/stationCalls";
+import { Calls } from "../../API_Calls/stationCalls";
 import {
 	Table,
 	TableBody,
@@ -121,7 +121,7 @@ const Queue = () => {
 				enqueueSnackbar("Station or user missing", {variant: "error" });
 				return;
 			}
-			const requestObj = removeSongFromQueue({
+			const requestObj = Calls.removeSongFromQueue({
 				ownerkey: pathVars.ownerkey,
 				stationkey: pathVars.stationkey,
 				songid: item?.id,
@@ -154,7 +154,7 @@ const Queue = () => {
 
 		const page = parseInt(queryObj.get("page") || "1");
 		const limit = parseInt(queryObj.get("rows") || "50");
-		const requestObj = fetchQueue({
+		const requestObj = Calls.getQueue({
 			stationkey: pathVars.stationkey,
 			ownerkey: pathVars.ownerkey,
 			page: page,

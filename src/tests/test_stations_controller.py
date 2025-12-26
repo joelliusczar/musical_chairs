@@ -118,7 +118,7 @@ def test_request_song(
 	headers = login_test_user("testUser_kilo", client)
 
 	response = client.post(
-		"stations/testUser_bravo/romeo_station/request/36",
+		"stations/testUser_bravo/romeo_station/request/0/36",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -127,7 +127,7 @@ def test_request_song(
 	headers = login_test_user("testUser_lima", client)
 
 	response = client.post(
-		"stations/testUser_bravo/romeo_station/request/36",
+		"stations/testUser_bravo/romeo_station/request/0/36",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -135,7 +135,7 @@ def test_request_song(
 	headers = login_test_user("testUser_mike", client)
 
 	response = client.post(
-		"stations/testUser_bravo/romeo_station/request/36",
+		"stations/testUser_bravo/romeo_station/request/0/36",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -149,13 +149,13 @@ def test_request_song_only_one_staion_allowed(
 	headers = login_test_user("testUser_kilo", client)
 
 	response = client.post(
-		"stations/testUser_bravo/romeo_station/request/36",
+		"stations/testUser_bravo/romeo_station/request/0/36",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/testUser_bravo/papa_station/request/40",
+		"stations/testUser_bravo/papa_station/request/0/40",
 		headers=headers
 	)
 	assert response.status_code == 403
@@ -167,25 +167,25 @@ def test_request_song_any_station(
 	headers = login_test_user("testUser_mike", client)
 
 	response = client.post(
-		"stations/2/romeo_station/request/36",
+		"stations/2/romeo_station/request/0/36",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/2/papa_station/request/40",
+		"stations/2/papa_station/request/0/40",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/2/oscar_station/request/30",
+		"stations/2/oscar_station/request/0/30",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/2/sierra_station/request/15",
+		"stations/2/sierra_station/request/0/15",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -201,7 +201,7 @@ def test_request_song_timeout(
 
 	#1 t=0 [2]
 	response = client.post(
-		"stations/testUser_bravo/3/request/36",
+		"stations/testUser_bravo/3/request/0/36",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -212,7 +212,7 @@ def test_request_song_timeout(
 	for _ in datetimeProvider(4):
 		print("round")
 		response = client.post(
-			"stations/testUser_bravo/3/request/36",
+			"stations/testUser_bravo/3/request/0/36",
 			headers=headers
 		)
 		assert response.status_code == 200
@@ -224,7 +224,7 @@ def test_request_song_timeout(
 	#10 t=m+4, s+59 [11]
 	for _ in datetimeProvider(5):
 		response = client.post(
-			"stations/testUser_bravo/3/request/36",
+			"stations/testUser_bravo/3/request/0/36",
 			headers=headers
 		)
 		assert response.status_code == 429
@@ -233,7 +233,7 @@ def test_request_song_timeout(
 	
 	#12 t=m+5 [12]
 	response = client.post(
-			"stations/testUser_bravo/3/request/36",
+			"stations/testUser_bravo/3/request/0/36",
 			headers=headers
 	)
 	assert response.status_code == 200
@@ -242,7 +242,7 @@ def test_request_song_timeout(
 
 	#13 t=m+5, s+14 [13]
 	response = client.post(
-			"stations/testUser_bravo/3/request/36",
+			"stations/testUser_bravo/3/request/0/36",
 			headers=headers
 	)
 	assert response.status_code == 429

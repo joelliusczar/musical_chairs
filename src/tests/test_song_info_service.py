@@ -9,19 +9,29 @@ from .common_fixtures import(
 	fixture_album_service as fixture_album_service,
 	fixture_station_service as fixture_station_service,
 	fixture_stations_songs_service as fixture_stations_songs_service,
+	fixture_primary_user as fixture_primary_user
 )
 from .common_fixtures import *
-from .mocks.db_population import\
-	get_initial_songs,\
-	get_initial_albums,\
-	get_initial_artists,\
+from .mocks.db_population import (
+	get_initial_songs,
+	get_initial_albums,
+	get_initial_artists,
 	get_initial_stations
-from musical_chairs_libs.dtos_and_utilities import StationSongTuple
+)
+
+from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
+	PlaylistInfo,
+	SongEditInfo,
+	StationInfo,
+	StationSongTuple,
+)
+
 
 def test_songs_query(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
 	songs = list(songInfoService.get_song_refs(songName=None))
-	assert len(songs) == 6
+	assert len(songs) == 5
 
 def test_song_query_paging(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
@@ -259,6 +269,57 @@ def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
 	songs = sorted(songInfoService.get_songIds(stationKey=3))
 	assert len(songs) == 11
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 34, 36, 43 ] == songs
+
+def test_save__multiple_song_add_station_and_playlist(
+	fixture_song_info_service: SongInfoService,
+	fixture_primary_user: AccountInfo,
+	fixture_account_service: AccountsService
+):
+	songInfoService = fixture_song_info_service
+	accountService = fixture_account_service
+	user = fixture_primary_user
+	songInfoList = sorted(songInfoService.get_songs_for_edit([39, 48], user),
+		key=lambda s: s.id
+	)
+	assert not songInfoList[0].stations
+	assert not songInfoList[1].stations
+
+	bravo_user, _ = accountService.get_account_for_login("testUser_bravo")
+	assert bravo_user
+
+	sendData = SongEditInfo(
+		id=0,
+		name="",
+		path="",
+		internalpath="",
+		stations=[
+			StationInfo(id=5, name="tango_station")
+		],
+		playlists=[
+			PlaylistInfo(
+				id=7,
+				name="uniform_playlist",
+				owner=bravo_user,
+			)
+		],
+		touched={"stations","playlists"}
+	)
+
+
+	list(songInfoService.save_songs([39, 48], sendData, user))
+	songInfoList = sorted(songInfoService.get_songs_for_edit([39, 48], user),
+		key=lambda s: s.id
+	)
+	assert songInfoList[0].stations
+	assert len(songInfoList[0].stations) == 1
+	assert songInfoList[1].stations
+	assert len(songInfoList[1].stations) == 1
+
+	assert songInfoList[0].playlists
+	assert len(songInfoList[0].playlists) == 1
+	assert songInfoList[1].playlists
+	assert len(songInfoList[1].playlists) == 1
+
 
 def test_save_song_remove_1_station(
 	fixture_song_info_service: SongInfoService,

@@ -6,37 +6,47 @@ from musical_chairs_libs.dtos_and_utilities import (
 
 	
 def test_calc_insert():
-	assert calc_order_between("1", "1") == "1UV"
+	assert calc_order_between("0", "1") == "0V" #/2
+	assert calc_order_between("0", "0F") == "07" #/8
+	assert calc_order_between("0", "07") == "03" #/8
+	assert calc_order_between("0", "03") == "01" #/8
+	assert calc_order_between("0", "01") == "00V" #/8
+	assert calc_order_between("0", "00V") == "00F" #/8
+	assert calc_order_between("0", "00F") == "007" #/16
+	assert calc_order_between("0", "007") == "003"
+	assert calc_order_between("0", "003") == "001"
+	assert calc_order_between("0", "001") == "000V"
+	assert calc_order_between("1", "1") == "1U"
 	assert calc_order_between("1", "2") == "1V"
-	assert calc_order_between("1", "1V") == "1FV"#"1F" #3
-	assert calc_order_between("1", "1F") == "17V" #"17" #4
-	assert calc_order_between("1", "17") == "13V" #"13" #5
-	assert calc_order_between("1", "13") == "11V" #"11" #6
-	assert calc_order_between("1", "11") == "10VV" #"10V" #7
-	assert calc_order_between("1", "10V") == "10FV" #"10F" #8
-	assert calc_order_between("1", "10F") == "107V" #9
-	assert calc_order_between("1", "107") == "103V" #10
-	assert calc_order_between("1", "103") == "101V" #11
-	assert calc_order_between("1", "101") == "100VV" #12
+	assert calc_order_between("1", "1V") == "1F"#"1F" #3
+	assert calc_order_between("1", "1F") == "17" #"17" #4
+	assert calc_order_between("1", "17") == "13" #"17" #4
+	assert calc_order_between("1", "13") == "11" #"13" #5
+	assert calc_order_between("1", "11") == "10V" #"11" #6
+	assert calc_order_between("1", "10V") == "10F" #"10F" #8
+	assert calc_order_between("1", "10F") == "107" #9
+	assert calc_order_between("1", "107") == "103" #10
+	assert calc_order_between("1", "103") == "101" #11
+	assert calc_order_between("1", "101") == "100V" #12
 	assert calc_order_between("1F", "1V") == "1N"
 	assert calc_order_between("1F", "1N") == "1J"
 	assert calc_order_between("1F", "1J") == "1H"
 	assert calc_order_between("1F", "1H") == "1G"
 	assert calc_order_between("1F", "1G") == "1FV"
-	assert calc_order_between("1F", "1FV") == "1FFV" #"1FF"
+	assert calc_order_between("1F", "1FV") == "1FF" #"1FF"
 
 	# assert calc_order_between(None, None) == "U"
 	assert calc_order_between("1", "3") == "2"
 	assert calc_order_between("001", "002") == "001V"
 	assert calc_order_between("01", "03") == "02"
-	assert calc_order_between("01", "04") == "02V" #*
+	assert calc_order_between("01", "04") == "02" #*
 	assert calc_order_between("01", "05") == "03"
-	assert calc_order_between("01", "06") == "03V"
+	assert calc_order_between("01", "06") == "03"
 	assert calc_order_between("01", "07") == "04"
-	assert calc_order_between("01", "08") == "04V"
+	assert calc_order_between("01", "08") == "04"
 	assert calc_order_between("01", "09") == "05"
-	assert calc_order_between("01", "0A") == "05V"
-	assert calc_order_between("1", "A") == "5V"
+	assert calc_order_between("01", "0A") == "05"
+	assert calc_order_between("1", "A") == "5"
 	assert calc_order_between("1", "Z") == "I"
 	assert calc_order_between("1", "z") == "V"
 	assert calc_order_between("01", "0z") == "0V"

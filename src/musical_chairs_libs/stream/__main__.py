@@ -154,5 +154,5 @@ if __name__ == "__main__":
 	try:
 		start_song_queue(dbName, stationName, ownerName)
 	except Exception as e:
-		logging.radioLogger.error(e)
+		logging.radioLogger.error(e, exc_info=True)
 	logging.radioLogger.info("End of station queue process")

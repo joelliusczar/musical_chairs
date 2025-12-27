@@ -236,9 +236,13 @@ def fixture_song_info_service(
 
 @pytest.fixture
 def fixture_album_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider
 ) -> AlbumService:
-	albumService = AlbumService(fixture_conn_cardboarddb)
+	albumService = AlbumService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
 	return albumService
 
 @pytest.fixture

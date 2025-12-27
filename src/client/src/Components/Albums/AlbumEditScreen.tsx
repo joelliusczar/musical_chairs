@@ -4,9 +4,7 @@ import {
 	useAlbumData,
 } from "../../Context_Providers/AppContext/AppContext";
 import {
-	update as saveAlbum,
-	get as fetchAlbum,
-	remove as deleteAlbum,
+	Calls,
 } from "../../API_Calls/albumCalls";
 import { useForm } from "react-hook-form";
 import {
@@ -121,7 +119,7 @@ export const AlbumEditScreen = () => {
 	const { handleSubmit, reset, getValues } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = saveAlbum({
+			const requestObj = Calls.update({
 				id, data: {
 					name: values.name,
 					year: values.year || undefined,
@@ -151,7 +149,7 @@ export const AlbumEditScreen = () => {
 
 	const deleteItem = async () => {
 		try {
-			const requestObj = deleteAlbum({ id });
+			const requestObj = Calls.remove({ id });
 			await requestObj.call();
 			removeAlbum(getValues());
 			enqueueSnackbar("Delete successful", { variant: "success" });
@@ -171,7 +169,7 @@ export const AlbumEditScreen = () => {
 
 	useEffect(() => {
 		if (id) {
-			const requestObj = fetchAlbum({
+			const requestObj = Calls.get({
 				id,
 			});
 			if (!isPending) return;

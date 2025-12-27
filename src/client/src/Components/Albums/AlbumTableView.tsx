@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { getPage } from "../../API_Calls/albumCalls";
+import { Calls } from "../../API_Calls/albumCalls";
 import {
 	Table,
 	TableBody,
@@ -28,6 +28,7 @@ import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext/AuthContext";
+import { useAlbumData } from "../../Context_Providers/AppContext/AppContext";
 import { UserRoleDef } from "../../constants";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
@@ -59,6 +60,8 @@ export const AlbumTableView = () => {
 	);
 
 	const { callStatus: queueCallStatus } = tableDataState;
+
+	const { songCounts } = useAlbumData();
 
 
 	const authReset = useCallback(() => {
@@ -102,7 +105,7 @@ export const AlbumTableView = () => {
 	useEffect(() => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
 		const queryObj = getSearchParams(location.search);
-		const requestObj = getPage({
+		const requestObj = Calls.getPage({
 			...queryObj,
 		});
 		const fetch = async () => {
@@ -172,7 +175,11 @@ export const AlbumTableView = () => {
 								{tableDataState?.data?.items?.map((item, idx) => {
 									return (
 										<TableRow key={`album_${idx}`}>
-											<TableCell>
+											<TableCell 
+												style={!(item.id in songCounts) 
+													? { color: "gray"} 
+													: {}}
+											>
 												{item.name || "{No album name}"}
 											</TableCell>
 											<TableCell>

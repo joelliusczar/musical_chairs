@@ -5,7 +5,7 @@ import React, {
 	useCallback,
 } from "react";
 import PropTypes from "prop-types";
-import { loginWithCookie, webClient } from "../../API_Calls/userCalls";
+import { Calls, webClient } from "../../API_Calls/userCalls";
 import {
 	useDataWaitingReducer,
 	dataDispatches as dispatches,
@@ -22,11 +22,9 @@ import {
 
 
 
-
-
 const expireCookie = (name: string) => {
 	const cookieStr = name + 
-		"=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;SameSite=None;";
+		"=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;SameSite=None;Secure;";
 	document.cookie = cookieStr;
 };
 
@@ -124,7 +122,7 @@ export const AuthContextProvider = (props: { children: JSX.Element }) => {
 	]);
 
 	useEffect(() => {
-		const requestObj = loginWithCookie();
+		const requestObj = Calls.loginWithCookie();
 		if (loggedInUsername) return;
 
 		if(!document.cookie) return;

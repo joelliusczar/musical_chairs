@@ -125,6 +125,7 @@ def playlist_key_path(
 ) -> Union[int, str]:
 	return int_or_str(playlistkey)
 
+
 def datetime_provider() -> Callable[[], datetime]:
 	return get_datetime
 
@@ -193,12 +194,6 @@ def artist_service(
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> ArtistService:
 	return ArtistService(conn)
-
-
-def album_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> AlbumService:
-	return AlbumService(conn)
 
 
 def path_rule_service(
@@ -984,8 +979,16 @@ def current_user_provider(
 	return CurrentUserProvider(user.id)
 
 
+def album_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+) -> AlbumService:
+	return AlbumService(conn, currentUserProvider)
+
+
 def playlists_songs_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
 ) -> PlaylistsSongsService:
 	return PlaylistsSongsService(conn, currentUserProvider)
+

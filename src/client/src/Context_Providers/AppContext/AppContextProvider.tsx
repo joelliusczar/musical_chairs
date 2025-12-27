@@ -8,17 +8,18 @@ import {
 } from "../../Reducers/dataWaitingReducer";
 import PropTypes from "prop-types";
 import { getList as fetchArtistList } from "../../API_Calls/artistCalls";
-import { getList as fetchAlbumList } from "../../API_Calls/albumCalls";
+import { Calls as AlbumCalls } from "../../API_Calls/albumCalls";
 import {
-	Calls as PlaylistApiRequestBuilder,
+	Calls as PlaylistCalls,
 } from "../../API_Calls/playlistCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import { 
-	Calls as StationApiRequestBuilder,
+	Calls as StationCalls,
 } from "../../API_Calls/stationCalls";
 import { useCurrentUser } from "../AuthContext/AuthContext";
 import {
 	initialAlbumState,
+	initialAlbumsSongsCountsState,
 	initialArtistState,
 	initialStationState,
 	initialPlaylistsState,
@@ -36,6 +37,11 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 		initialAlbumState
 	);
 
+	const [albumsSongsCountsState, albumsSongsCountsDispatch] 
+	= useDataWaitingReducer(
+		initialAlbumsSongsCountsState
+	);
+
 	const [stationsState, stationsDispatch] = useDataWaitingReducer(
 		initialStationState
 	);
@@ -50,7 +56,7 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 
 	useEffect(() => {
 		if (!loggedIn) return;
-		const requestObj = fetchAlbumList({});
+		const requestObj = AlbumCalls.getList({});
 		const fetch = async () => {
 			try {
 				albumsDispatch(dispatches.started());
@@ -66,7 +72,24 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 	},[albumsDispatch, loggedIn]);
 
 	useEffect(() => {
-		const requestObj = StationApiRequestBuilder.getList();
+		if (!loggedIn) return;
+		const requestObj = AlbumCalls.songCounts();
+		const fetch = async () => {
+			try {
+				albumsSongsCountsDispatch(dispatches.started());
+				const data = await requestObj.call();
+				albumsSongsCountsDispatch(dispatches.done(data));
+			}
+			catch(err) {
+				albumsSongsCountsDispatch(dispatches.failed(formatError(err)));
+			}
+		};
+		fetch();
+		return () => requestObj.abortController.abort();
+	},[albumsSongsCountsDispatch, loggedIn]);
+
+	useEffect(() => {
+		const requestObj = StationCalls.getList();
 		const fetch = async () => {
 			try {
 				stationsDispatch(dispatches.started());
@@ -100,7 +123,7 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 
 	useEffect(() => {
 		if (!loggedIn) return;
-		const requestObj = PlaylistApiRequestBuilder.getList({});
+		const requestObj = PlaylistCalls.getList({});
 		const fetch = async () => {
 			try {
 				playlistsDispatch(dispatches.started());
@@ -118,6 +141,8 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 	const contextValue = useMemo(() => ({
 		albumsState,
 		albumsDispatch,
+		albumsSongsCountsState,
+		albumsSongsCountsDispatch,
 		stationsState,
 		stationsDispatch,
 		artistState,
@@ -125,11 +150,13 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 		playlistsState,
 		playlistsDispatch,
 	}),[
-		stationsState,
 		albumsState,
 		albumsDispatch,
+		albumsSongsCountsState,
+		albumsSongsCountsDispatch,
 		artistState,
 		artistDispatch,
+		stationsState,
 		stationsDispatch,
 		playlistsState,
 		playlistsDispatch,

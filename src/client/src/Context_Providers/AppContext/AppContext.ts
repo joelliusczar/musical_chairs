@@ -10,6 +10,7 @@ import {
 import { StationInfo } from "../../Types/station_types";
 import { AlbumInfo, ArtistInfo } from "../../Types/song_info_types";
 import {
+	Dictionary,
 	IdItem,
 	SingleOrList,
 	NamedIdItem,
@@ -27,6 +28,10 @@ type AppContextType = {
 	albumsDispatch: React.Dispatch<
 		ActionPayload<ListDataShape<AlbumInfo>>
 	>,
+	albumsSongsCountsState: RequiredDataStore<Dictionary<number>>,
+	albumsSongsCountsDispatch: React.Dispatch<
+		ActionPayload<Dictionary<number>>
+	>,
 	stationsState: RequiredDataStore<ListDataShape<StationInfo>>,
 	stationsDispatch: React.Dispatch<
 		ActionPayload<ListDataShape<StationInfo>>
@@ -41,6 +46,8 @@ type AppContextType = {
 	>,
 };
 
+export const initialAlbumsSongsCountsState =
+	new RequiredDataStore<Dictionary<number>>({ });
 export const initialAlbumState =
 	new RequiredDataStore<ListDataShape<AlbumInfo>>({ items: []});
 export const initialStationState =
@@ -53,6 +60,8 @@ export const initialPlaylistsState =
 export const AppContext = createContext<AppContextType>({
 	albumsState: initialAlbumState,
 	albumsDispatch: ({ }) => {},
+	albumsSongsCountsState: initialAlbumsSongsCountsState,
+	albumsSongsCountsDispatch: ({ }) => {},
 	stationsState: initialStationState,
 	stationsDispatch: ({ }) => {},
 	artistState: initialArtistState,
@@ -118,6 +127,7 @@ export const useAlbumData = () => {
 	const {
 		albumsState: { data: { items }, error, callStatus },
 		albumsDispatch: dispatch,
+		albumsSongsCountsState,
 	} = useContext(AppContext);
 
 	const add = useCallback(
@@ -145,6 +155,7 @@ export const useAlbumData = () => {
 		items,
 		error,
 		callStatus,
+		songCounts: albumsSongsCountsState.data,
 		add,
 		update,
 		remove,

@@ -87,6 +87,14 @@ def get_list(
 	return ListData(items=list(albumService.get_albums(userId=user.id)))
 
 
+@router.get("/song-counts")
+def song_counts_map(
+	albumService: AlbumService = Depends(album_service)
+) -> dict[int, int]:
+	res = albumService.get_song_counts()
+	return res
+
+
 @router.get("/{albumkey}")
 def get(
 	albumkey: int,
@@ -161,5 +169,3 @@ def delete(
 			detail=[build_error_obj(f"Album cannot be deleted")
 			]
 		)
-
-

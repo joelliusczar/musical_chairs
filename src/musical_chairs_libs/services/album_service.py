@@ -27,6 +27,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from .artist_service import ArtistService
 from .path_rule_service import PathRuleService
 from .stations_albums_service import StationsAlbumsService
+from .current_user_provider import CurrentUserProvider
 from sqlalchemy import (
 	select,
 	insert,
@@ -51,7 +52,7 @@ from musical_chairs_libs.tables import (
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk, ab_versionnote,
 	ar_name, ar_pk, ar_ownerFk,
 	users as user_tbl, u_pk, u_username, u_displayName,
-	sg_pk, sg_name, sg_albumFk, sg_path, sg_internalpath,
+	songs as songs_tbl, sg_pk, sg_name, sg_albumFk, sg_path, sg_internalpath,
 	sg_deletedTimstamp, sg_disc, sg_trackNum,
 	song_artist as song_artist_tbl, sgar_songFk, sgar_artistFk, 
 	sgar_isPrimaryArtist
@@ -64,6 +65,7 @@ class AlbumService:
 	def __init__(
 		self,
 		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
 		artistService: Optional[ArtistService]=None,
 		pathRuleService: Optional[PathRuleService]=None,
 		stationsAlbumsService: Optional[StationsAlbumsService]=None
@@ -81,6 +83,7 @@ class AlbumService:
 		self.artist_service = artistService
 		self.path_rule_service = pathRuleService
 		self.stations_albums_service = stationsAlbumsService
+		self.current_user_provider = currentUserProvider
 
 	def get_albums(
 		self,
@@ -95,6 +98,7 @@ class AlbumService:
 		albumOwnerId = cast(Column[Integer], album_owner.c.pk)
 		artist_owner = user_tbl.alias("artistowner")
 		artistOwnerId = cast(Column[Integer], artist_owner.c.pk)
+		
 		query = select(
 			ab_pk.label("id"),
 			ab_name.label("name"),
@@ -191,6 +195,16 @@ class AlbumService:
 			.select_from(albums_tbl)
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
+	
+	def get_song_counts(self) -> dict[int, int]:
+		query = select(ab_pk, func.count(sg_pk))\
+			.join(songs_tbl, sg_albumFk == ab_pk)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.group_by(ab_pk)
+		
+		records = self.conn.execute(query)
+
+		return {r[0]:r[1] for r in records}
 	
 	def get_album_songs(
 		self,

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
-import { add as saveAlbum } from "../../API_Calls/albumCalls";
+import { Calls } from "../../API_Calls/albumCalls";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import {
@@ -187,7 +187,7 @@ export const AlbumNewModalOpener = (props: AlbumNewModalOpenerProps) => {
 	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = saveAlbum({ data: {
+			const requestObj = Calls.add({ data: {
 				name: values.name,
 				year: values.year || undefined,
 				albumartist: values.albumartist || undefined,

@@ -6,12 +6,17 @@ import subprocess
 from typing import Iterator, List, Any, Callable, cast
 from datetime import datetime
 from musical_chairs_libs.services import (
+	AccountAccessService,
+	AccountManagementService,
+	AccountTokenCreator,
+	ActionsHistoryQueryService,
+	EmptyUserTrackingService,
 	QueueService,
 	AccountsService,
 	SongInfoService,
 	StationService,
 	TemplateService,
-	UserActionsHistoryService,
+	ActionsHistoryManagementService,
 	DbRootConnectionService,
 	DbOwnerConnectionService,
 	setup_database,
@@ -28,6 +33,7 @@ from musical_chairs_libs.services import (
 	StationsUsersService,
 	AlbumQueueService,
 	StationsAlbumsService,
+	StationsPlaylistsService,
 	CurrentUserProvider,
 	CollectionQueueService,
 )
@@ -39,7 +45,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_path_owner_roles,
 	normalize_opening_slash
 )
-from musical_chairs_libs.protocols import FileService
+from musical_chairs_libs.protocols import FileService, TrackingInfoProvider
 from sqlalchemy.engine import Connection
 from .mocks.mock_db_constructors import (
 	setup_in_mem_tbls,
@@ -115,31 +121,86 @@ def fixture_conn_cardboarddb(
 		#should dispose here
 		conn.close()
 
+
 @pytest.fixture
-def fixture_account_service(
-	fixture_conn_cardboarddb: Connection) -> AccountsService:
-	accountService = AccountsService(fixture_conn_cardboarddb)
-	return accountService
+def fixture_tracking_info_provider() -> TrackingInfoProvider:
+	return EmptyUserTrackingService()
+
+@pytest.fixture
+def fixture_actions_history_query_service(
+	fixture_conn_cardboarddb: Connection
+) -> ActionsHistoryQueryService:
+	return ActionsHistoryQueryService(fixture_conn_cardboarddb)
+
+
+@pytest.fixture
+def fixture_account_access_service(
+	fixture_conn_cardboarddb: Connection
+) -> AccountAccessService:
+	return AccountAccessService(fixture_conn_cardboarddb)
 
 
 @pytest.fixture
 def fixture_current_user_provider(
-	fixture_account_service: AccountsService,
-	fixture_primary_user: AccountInfo,
+	fixture_account_access_service: AccountAccessService,
+	fixture_tracking_info_provider: TrackingInfoProvider,
+	fixture_actions_history_query_service: ActionsHistoryQueryService,
 	request: pytest.FixtureRequest
 ) -> CurrentUserProvider:
-	currentUserIdMark = request.node.get_closest_marker("current_user_id")
-	if currentUserIdMark:
-		currentUserId = currentUserIdMark.args[0]
-		return CurrentUserProvider(currentUserId)
 	currentUsernameMark = request.node.get_closest_marker("current_username")
 	if currentUsernameMark:
-		user, _ = fixture_account_service.get_account_for_login(
+		user, _ = fixture_account_access_service.get_account_for_login(
 			currentUsernameMark.args[0]
 		)
 		if user:
-			return CurrentUserProvider(user.id)
-	return CurrentUserProvider(fixture_primary_user.id)
+			return CurrentUserProvider(
+				user,
+				fixture_tracking_info_provider,
+				fixture_actions_history_query_service
+			)
+	return CurrentUserProvider(
+		None,
+		fixture_tracking_info_provider,
+		fixture_actions_history_query_service
+	)
+
+
+@pytest.fixture
+def fixture_account_management_service(
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider,
+	fixture_account_access_service: AccountAccessService,
+	fixture_user_actions_history_service: ActionsHistoryManagementService,
+) -> AccountManagementService:
+		return AccountManagementService(
+			fixture_conn_cardboarddb,
+			fixture_current_user_provider,
+			fixture_account_access_service,
+			fixture_user_actions_history_service
+		)
+
+@pytest.fixture
+def fixture_account_token_creator(
+	fixture_conn_cardboarddb: Connection,
+	fixture_user_actions_history_service: ActionsHistoryManagementService,
+) -> AccountTokenCreator:
+	return AccountTokenCreator(
+		fixture_conn_cardboarddb,
+		fixture_user_actions_history_service
+	)
+
+@pytest.fixture
+def fixture_account_service(
+	fixture_account_access_service: AccountAccessService,
+	fixture_account_management_service: AccountManagementService,
+	fixture_account_token_creator: AccountTokenCreator
+) -> AccountsService:
+	accountService = AccountsService(
+		fixture_account_access_service,
+		fixture_account_management_service,
+		fixture_account_token_creator
+	)
+	return accountService
 
 
 @pytest.fixture
@@ -152,26 +213,66 @@ def fixture_populated_db_name(
 
 
 @pytest.fixture
+def fixture_song_info_service(
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider
+) -> SongInfoService:
+	songInfoService = SongInfoService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
+	return songInfoService
+
+@pytest.fixture
+def fixture_user_actions_history_service(
+	fixture_conn_cardboarddb: Connection,
+	fixture_tracking_info_provider: TrackingInfoProvider,
+	fixture_current_user_provider: CurrentUserProvider
+) -> ActionsHistoryManagementService:
+	userActionsHistoryService = ActionsHistoryManagementService(
+		fixture_conn_cardboarddb,
+		fixture_tracking_info_provider,
+		fixture_current_user_provider
+	)
+	return userActionsHistoryService
+
+@pytest.fixture
 def fixture_queue_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider,
+	fixture_user_actions_history_service: ActionsHistoryManagementService,
+	fixture_song_info_service: SongInfoService
 ) -> QueueService:
-	queueService = QueueService(fixture_conn_cardboarddb)
+	queueService = QueueService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider,
+		fixture_user_actions_history_service,
+		fixture_song_info_service
+	)
 	return queueService
 
 
 @pytest.fixture
 def fixture_album_queue_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_queue_service: QueueService
 ) -> AlbumQueueService:
-	albumQueueService = AlbumQueueService(fixture_conn_cardboarddb)
+	albumQueueService = AlbumQueueService(
+		fixture_conn_cardboarddb,
+		fixture_queue_service
+	)
 	return albumQueueService
 
 
 @pytest.fixture
 def fixture_station_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider,
 ) -> StationService:
-	stationService = StationService(fixture_conn_cardboarddb)
+	stationService = StationService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
 	return stationService
 
 
@@ -185,9 +286,13 @@ def fixture_stations_songs_service(
 
 @pytest.fixture
 def fixture_stations_albums_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_station_service: StationService
 ) -> StationsAlbumsService:
-	stationsAlbumsService = StationsAlbumsService(fixture_conn_cardboarddb)
+	stationsAlbumsService = StationsAlbumsService(
+		fixture_conn_cardboarddb,
+		fixture_station_service
+	)
 	return stationsAlbumsService
 
 
@@ -198,12 +303,27 @@ def fixture_stations_users_service(
 	stationsUsersService = StationsUsersService(fixture_conn_cardboarddb)
 	return stationsUsersService
 
+@pytest.fixture
+def fixture_stations_playlists_service(
+	fixture_conn_cardboarddb: Connection,
+	fixture_station_service: StationService
+) -> StationsPlaylistsService:
+	return StationsPlaylistsService(
+		fixture_conn_cardboarddb,
+		fixture_station_service
+	)
 
 @pytest.fixture
 def fixture_playlist_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider,
+	fixture_stations_playlists_service: StationsPlaylistsService
 ) -> PlaylistService:
-	service = PlaylistService(fixture_conn_cardboarddb)
+	service = PlaylistService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider,
+		fixture_stations_playlists_service
+	)
 	return service
 
 
@@ -228,28 +348,27 @@ def fixture_playlists_users_service(
 
 
 @pytest.fixture
-def fixture_song_info_service(
-	fixture_conn_cardboarddb: Connection
-) -> SongInfoService:
-	songInfoService = SongInfoService(fixture_conn_cardboarddb)
-	return songInfoService
-
-@pytest.fixture
 def fixture_album_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_current_user_provider: CurrentUserProvider
+	fixture_current_user_provider: CurrentUserProvider,
+	fixture_stations_albums_service: StationsAlbumsService
 ) -> AlbumService:
 	albumService = AlbumService(
 		fixture_conn_cardboarddb,
-		fixture_current_user_provider
+		fixture_current_user_provider,
+		fixture_stations_albums_service
 	)
 	return albumService
 
 @pytest.fixture
 def fixture_artist_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider
 ) -> ArtistService:
-	artistService = ArtistService(fixture_conn_cardboarddb)
+	artistService = ArtistService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
 	return artistService
 
 @pytest.fixture
@@ -273,11 +392,15 @@ def fixture_file_service() -> FileService:
 @pytest.fixture
 def fixture_song_file_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_file_service: FileService
+	fixture_file_service: FileService,
+	fixture_artist_service: ArtistService,
+	fixture_album_service: AlbumService
 ) -> SongFileService:
 	songFileService = SongFileService(
 		fixture_conn_cardboarddb,
-		fixture_file_service
+		fixture_file_service,
+		fixture_artist_service,
+		fixture_album_service
 	)
 	return songFileService
 
@@ -298,21 +421,18 @@ def fixture_job_service(
 	return jobsService
 
 
-@pytest.fixture
-def fixture_user_actions_history_service(
-	fixture_conn_cardboarddb: Connection
-) -> UserActionsHistoryService:
-	userActionsHistoryService = UserActionsHistoryService(
-		fixture_conn_cardboarddb
-	)
-	return userActionsHistoryService
 
 @pytest.fixture
 def fixture_collection_queue_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_queue_service: QueueService
 ) -> CollectionQueueService:
-	collectionQueueService = CollectionQueueService(fixture_conn_cardboarddb)
+	collectionQueueService = CollectionQueueService(
+		fixture_conn_cardboarddb,
+		fixture_queue_service
+	)
 	return collectionQueueService
+
 
 @pytest.fixture
 def fixture_clean_station_folders():

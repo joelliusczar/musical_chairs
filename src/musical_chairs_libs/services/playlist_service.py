@@ -27,6 +27,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_placeholder_select,
 	StationPlaylistTuple,
 )
+from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
 from .stations_playlists_service import StationsPlaylistsService
 from sqlalchemy import (
@@ -128,8 +129,9 @@ class PlaylistService:
 	def __init__(
 		self,
 		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
+		stationsPlaylistsService: StationsPlaylistsService,
 		pathRuleService: Optional[PathRuleService]=None,
-		stationsPlaylistsService: Optional[StationsPlaylistsService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -141,6 +143,7 @@ class PlaylistService:
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
 		self.stations_playlists_service = stationsPlaylistsService
+		self.current_user_provider = currentUserProvider
 
 
 	def __attach_user_joins__(
@@ -396,11 +399,11 @@ class PlaylistService:
 	def save_playlist(
 		self,
 		playlist: PlaylistCreationInfo,
-		user: AccountInfo,
 		playlistId: Optional[int]=None
 	) -> PlaylistInfo:
 		if not playlist and not playlistId:
 			raise ValueError("No playlist info to save")
+		user = self.current_user_provider.get_rate_limited_user()
 		upsert = update if playlistId else insert
 		savedName = SavedNameString(playlist.name)
 		stmt = upsert(playlists_tbl).values(
@@ -453,8 +456,8 @@ class PlaylistService:
 		self,
 		id: Optional[int],
 		playlistName: SavedNameString,
-		userId: int,
 	) -> bool:
+		userId = self.current_user_provider.current_user().id
 		queryAny = select(func.count(1)).select_from(playlists_tbl)\
 				.where(pl_name == str(playlistName))\
 				.where(pl_ownerFk == userId)\
@@ -467,9 +470,8 @@ class PlaylistService:
 		self,
 		id: Optional[int],
 		playlistName: str,
-		userId: int
 	) -> bool:
 		cleanedPlaylistName = SavedNameString(playlistName)
 		if not cleanedPlaylistName:
 			return True
-		return self.__is_playlistName_used__(id, cleanedPlaylistName, userId)
+		return self.__is_playlistName_used__(id, cleanedPlaylistName)

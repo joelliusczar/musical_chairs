@@ -1,14 +1,12 @@
 from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	get_datetime,
-	AccountInfo,
 	Lost
 )
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_procId,
-	st_ownerFk, 
-	users as user_tbl, u_username, u_pk, 
+	st_ownerFk,
 )
 from sqlalchemy import (
 	select,
@@ -22,9 +20,9 @@ from typing import (
 	cast,
 	Iterable,
 	Union,
-	Collection,
 	Sequence,
 )
+from .current_user_provider import CurrentUserProvider
 from .template_service import TemplateService
 from .process_service import ProcessService
 from .station_service import StationService
@@ -34,7 +32,8 @@ class StationProcessService:
 
 	def __init__(
 		self,
-		conn: Optional[Connection]=None,
+		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
 		templateService: Optional[TemplateService]=None,
 		stationService: Optional[StationService]=None,
 		stationsAlbumsService: Optional[StationsAlbumsService]=None
@@ -44,45 +43,45 @@ class StationProcessService:
 		if not templateService:
 			templateService = TemplateService()
 		if not stationService:
-			stationService = StationService(conn)
+			stationService = StationService(conn, currentUserProvider)
 		if not stationsAlbumsService:
-			stationsAlbumsService = StationsAlbumsService(conn)
+			stationsAlbumsService = StationsAlbumsService(conn, stationService)
 		self.conn = conn
 		self.template_service = templateService
 		self.station_service = stationService
 		self.stations_albums_service = stationsAlbumsService
 		self.get_datetime = get_datetime
+		self.current_user_provider = currentUserProvider
 
 
 	def enable_stations(self,
-		stations: Collection[StationInfo],
-		owner: AccountInfo,
-		includeAll: bool = False
+		station:Optional[StationInfo],
 	) -> Iterator[StationInfo]:
 		stationsEnabled: Iterator[StationInfo] = iter([])
-		if includeAll:
+		if not station:
+			user = self.current_user_provider.get_rate_limited_user()
 			canBeEnabled = {s[0] for s in  \
-				self.station_service.get_station_song_counts(ownerId=owner.id) \
+				self.station_service.get_station_song_counts(ownerId=user.id) \
 				if s[1] > 0
 			}
 			stationsEnabled = self.station_service.get_stations(
 				stationKeys=canBeEnabled,
-				ownerId=owner.id
+				ownerId=user.id
 			)
 		else:
 			canBeEnabled = {s[0] for s in  \
 				self.station_service.get_station_song_counts(
-					stationIds=(s.id for s in stations)
+					stationIds=[station.id]
 				) \
 				if s[1] > 0
 			}
 			canBeEnabled |= {s[0] for s in  \
 				self.stations_albums_service.get_station_song_counts(
-					stationIds=(s.id for s in stations)
+					stationIds=[station.id]
 				) \
 				if s[1] > 0
 			}
-			stationsEnabled = (s for s in stations if s.id in canBeEnabled)
+			stationsEnabled = (s for s in [station] if s.id in canBeEnabled)
 			for station in stationsEnabled:
 				if ProcessService.noop_mode():
 					self.__noop_startup__(station.name)
@@ -90,28 +89,30 @@ class StationProcessService:
 				else:
 					if not self.conn.engine.url.database:
 						raise RuntimeError("db Name is missing")
+					if not station.owner or not station.owner.username:
+						raise RuntimeError(f"{station.name} is missing owner")
 					
 					if not self.template_service.does_station_config_exist(
 						station.name,
-						owner.username
+						station.owner.username
 					):
 						self.template_service.create_station_files(
 							station.id,
 							station.name,
 							station.displayname,
-							owner.username,
+							station.owner.username,
 							station.bitratekps or 128
 						)
 					
 					self.template_service.sync_station_password(
 						station.name,
-						owner.username
+						station.owner.username
 					)
 
 					ProcessService.start_song_queue_process(
 						self.conn.engine.url.database,
 						station.name,
-						owner.username
+						station.owner.username
 					)
 				yield station
 
@@ -153,25 +154,18 @@ class StationProcessService:
 
 	def disable_stations(
 		self,
-		stationIds: Optional[Iterable[int]],
-		ownerKey: Union[int, str, None]=None
+		stationId: Optional[int],
 	) -> None:
-		#explicitly checking that stationIds is not null rather
-		#simply if stationIds because we want want [] to trigger the all case
-		stationIds = list(stationIds) if stationIds is not None else None
+
 		logging.radioLogger.debug(
-			f"disable {stationIds if stationIds is not None else 'All'}"
+			f"disable {stationId if stationId is not None else 'All'}"
 		)
 		query = select(st_procId).where(st_procId.is_not(None))
-		if ownerKey:
-			if type(ownerKey) == int:
-				query = query.where(st_ownerFk == ownerKey)
-			elif type(ownerKey) == str:
-				query = query.join(user_tbl, u_pk == st_ownerFk)\
-					.where(u_username == ownerKey)
+		if stationId is None:
+			ownerKey = self.current_user_provider.get_rate_limited_user().id
+			query = query.where(st_ownerFk == ownerKey)
 		else:
-			if stationIds is not None:
-				query = query.where(st_pk.in_(stationIds))
+			query = query.where(st_pk == stationId)
 			
 
 		rows = self.conn.execute(query)
@@ -179,5 +173,5 @@ class StationProcessService:
 		for pid in pids:
 			logging.radioLogger.debug(f"send signal to {pid}")
 			ProcessService.end_process(pid)
-		self.unset_station_procs(stationIds=stationIds)
+		self.unset_station_procs(stationIds=stationId)
 		self.conn.commit()

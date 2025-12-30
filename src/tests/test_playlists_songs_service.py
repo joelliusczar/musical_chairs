@@ -1,3 +1,4 @@
+import pytest
 from musical_chairs_libs.services import (
 	AccountsService,
 	PlaylistsSongsService
@@ -76,6 +77,7 @@ def test_move_songs_1(
 	assert results[14].songid == 16
 
 
+@pytest.mark.current_username("testUser_alpha")
 def test_move_songs_2(
 	fixture_playlists_songs_service: PlaylistsSongsService,
 	fixture_account_service: AccountsService

@@ -61,6 +61,7 @@ from musical_chairs_libs.tables import (
 	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk
 
 )
+from .current_user_provider import CurrentUserProvider
 from .song_artist_service import SongArtistService
 from .stations_songs_service import StationsSongsService
 
@@ -84,6 +85,7 @@ class SongInfoService:
 	def __init__(
 		self,
 		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
 		pathRuleService: Optional[PathRuleService]=None,
 		songArtistService: Optional[SongArtistService]=None,
 		stationsSongsService: Optional[StationsSongsService]=None,
@@ -99,11 +101,16 @@ class SongInfoService:
 		if not stationsSongsService:
 			stationsSongsService = StationsSongsService(conn)
 		if not playlistsSongsService:
-			playlistsSongsService = PlaylistsSongsService(conn, pathRuleService)
+			playlistsSongsService = PlaylistsSongsService(
+				conn,
+				currentUserProvider,
+				pathRuleService
+			)
 		self.path_rule_service = pathRuleService
 		self.song_artist_service = songArtistService
 		self.stations_songs_service = stationsSongsService
 		self.playlists_songs_service = playlistsSongsService
+		self.current_user_provider = currentUserProvider
 		self.get_datetime = get_datetime
 
 
@@ -254,7 +261,7 @@ class SongInfoService:
 		songIds: Iterable[int],
 		user: AccountInfo,
 	) -> Iterator[SongEditInfo]:
-		yield from self.get_all_songs(songIds=songIds, user=user)
+		yield from self.get_all_songs(songIds=songIds)
 
 
 	def update_track_nums(self, tracklistings: dict[int, TrackListing]):
@@ -472,10 +479,11 @@ class SongInfoService:
 		query: Select[Any],
 		page: int = 0,
 		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Iterator[SongEditInfo]:
 		
 		offset = page * limit if limit else 0
+
+		user = self.current_user_provider.current_user()
 		
 		pathRuleTree = None
 		if user:
@@ -541,7 +549,6 @@ class SongInfoService:
 		artist: str = "",
 		artistId: Optional[int]=None,
 		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Iterator[SongEditInfo]:
 		
 		query = self.__attach_catalogue_joins__(
@@ -555,7 +562,7 @@ class SongInfoService:
 			artistId
 		)
 		
-		return self.__query_to_full_object__(query, page, limit, user)
+		return self.__query_to_full_object__(query, page, limit)
 
 
 	def get_fullsongs_page(
@@ -566,7 +573,6 @@ class SongInfoService:
 		album: str = "",
 		artist: str = "",
 		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Tuple[Iterator[SongEditInfo], int]:
 		
 		countQuery = self.__attach_catalogue_joins__(
@@ -589,7 +595,6 @@ class SongInfoService:
 			album=album,
 			artist=artist,
 			limit=limit,
-			user=user
 		), count
 
 

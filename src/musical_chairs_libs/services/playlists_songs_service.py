@@ -290,7 +290,7 @@ class PlaylistsSongsService:
 				"songfk": record[0],
 				"playlistfk": playlistid,
 				"lexorder": startOrder.encode(),
-				"lastmodifiedbyuserfk": self.current_user_provider.userId,
+				"lastmodifiedbyuserfk": self.current_user_provider.current_user().id,
 				"lastmodifiedtimestamp": self.get_datetime().timestamp()
 			})
 			startOrder = calc_order_next(startOrder)

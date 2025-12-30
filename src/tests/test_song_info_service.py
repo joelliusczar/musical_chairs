@@ -1,3 +1,4 @@
+import pytest
 from musical_chairs_libs.services import (
 	SongInfoService,
 	StationsSongsService
@@ -28,6 +29,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 
 
+
 def test_songs_query(fixture_song_info_service: SongInfoService):
 	songInfoService = fixture_song_info_service
 	songs = list(songInfoService.get_song_refs(songName=None))
@@ -51,6 +53,7 @@ def test_add_artists(fixture_artist_service: ArtistService):
 	pk = artistService.get_or_save_artist("hotel_artist")
 	assert pk == 8
 
+@pytest.mark.current_username("testUser_november")
 def test_change_song_tracknum(
 		fixture_song_info_service: SongInfoService,
 		fixture_account_service: AccountsService
@@ -79,6 +82,7 @@ def test_change_song_tracknum(
 		refetched = next(songInfoService.get_songs_for_edit([84], user))
 		assert refetched.tracknum == 5
 
+@pytest.mark.current_username("testUser_november")
 def test_save_song_remove_1_artists(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -109,6 +113,8 @@ def test_save_song_remove_1_artists(
 	assert sortedArtists[1].id == 20 #primary artist
 	assert sortedArtists[2].id == 21
 
+
+@pytest.mark.current_username("testUser_november")
 def test_save_song_remove_nonprimary_artists(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -140,6 +146,8 @@ def test_save_song_remove_nonprimary_artists(
 	assert len(sortedArtists) == 1
 	assert sortedArtists[0].id == 20
 
+
+@pytest.mark.current_username("testUser_november")
 def test_save_song_remove_primary_artist(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -172,7 +180,8 @@ def test_save_song_remove_primary_artist(
 	assert sortedArtists[0].id == 18
 	assert sortedArtists[1].id == 19
 	assert sortedArtists[2].id == 21
-	
+
+@pytest.mark.current_username("testUser_november")
 def test_save_song_remove_all_artists(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -201,6 +210,7 @@ def test_save_song_remove_all_artists(
 	assert not refetched.artists
 	assert not refetched.primaryartist
 
+@pytest.mark.current_username("testUser_november")
 def test_save_song_swap_artists(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService,
@@ -270,6 +280,7 @@ def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
 	assert len(songs) == 11
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 34, 36, 43 ] == songs
 
+@pytest.mark.current_username("testUser_bravo")
 def test_save__multiple_song_add_station_and_playlist(
 	fixture_song_info_service: SongInfoService,
 	fixture_primary_user: AccountInfo,
@@ -320,7 +331,7 @@ def test_save__multiple_song_add_station_and_playlist(
 	assert songInfoList[1].playlists
 	assert len(songInfoList[1].playlists) == 1
 
-
+@pytest.mark.current_username("testUser_november")
 def test_save_song_remove_1_station(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -349,6 +360,7 @@ def test_save_song_remove_1_station(
 	assert sortedStations[0].id == 21
 	assert sortedStations[1].id == 23
 
+@pytest.mark.current_username("testUser_november")
 def test_save_song_remove_all_stations(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -371,6 +383,7 @@ def test_save_song_remove_all_stations(
 	refetched = next(songInfoService.get_songs_for_edit([84], user))
 	assert not refetched.stations
 
+@pytest.mark.current_username("testUser_kilo")
 def test_save_song_swap_station(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService,
@@ -387,7 +400,7 @@ def test_save_song_swap_station(
 	assert copy.stations
 	assert len(copy.stations) == 1
 	assert copy.stations[0].id == 24
-	replacement = next(stationService.get_stations(stationKeys=25, user=user))
+	replacement = next(stationService.get_stations(stationKeys=25))
 	copy.stations = [replacement]
 	afterSaved = next(songInfoService.save_songs([85], copy, user))
 	assert afterSaved.stations
@@ -749,8 +762,7 @@ def test_get_artists_for_songs(
 	assert artists[2].name == "foxtrot_artist"
 
 
-
-
+@pytest.mark.current_username("testUser_november")
 def test_get_single_song_for_edit(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -791,6 +803,7 @@ def test_get_single_song_for_edit(
 		assert sortedStations[1].displayname == "Blurg the blergos"
 
 
+@pytest.mark.current_username("testUser_november")
 def test_get_song_for_edit_without_stations(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -804,6 +817,7 @@ def test_get_song_for_edit_without_stations(
 	assert songInfo.name == "foxtrot2_song"
 	assert songInfo.stations != None and len(songInfo.stations) == 0
 
+@pytest.mark.current_username("testUser_november")
 def test_get_song_for_edit_without_artists(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -817,6 +831,8 @@ def test_get_song_for_edit_without_artists(
 	assert songInfo.name == "alpha4_song"
 	assert songInfo.artists != None and len(songInfo.artists) == 0
 
+
+@pytest.mark.current_username("testUser_november")
 def test_get_song_for_edit_without_album(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -831,6 +847,7 @@ def test_get_song_for_edit_without_album(
 	assert songInfo.album == None
 
 
+@pytest.mark.current_username("testUser_november")
 def test_get_multiple_songs_for_edit(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -906,6 +923,7 @@ def test_get_multiple_songs_for_edit(
 		assert sortedStations[1].name == "romeo_station"
 		assert sortedStations[1].displayname == "But soft, what yonder wind breaks"
 
+@pytest.mark.current_username("testUser_november")
 def test_get_multiple_songs_for_edit2(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -919,6 +937,7 @@ def test_get_multiple_songs_for_edit2(
 	)
 	assert len(songInfoList) == 2
 
+@pytest.mark.current_username("testUser_november")
 def test_get_duplicate_song(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -938,7 +957,7 @@ def test_get_duplicate_song(
 	assert songInfoList[0].id == 1
 	assert songInfoList[1].id == 6
 
-
+@pytest.mark.current_username("testUser_november")
 def test_get_song_with_owner_info(
 	fixture_song_info_service: SongInfoService,
 	fixture_account_service: AccountsService
@@ -977,6 +996,7 @@ def test_get_song_with_owner_info(
 	assert station1Owner
 	assert station1Owner.displayname == "julietDisplay"
 
+@pytest.mark.current_username("testUser_november")
 def test_get_all_songs(
 	fixture_song_info_service: SongInfoService
 ):
@@ -984,6 +1004,7 @@ def test_get_all_songs(
 	songs = list(songInfoService.get_all_songs(limit=30))
 	assert songs
 
+@pytest.mark.current_username("testUser_november")
 def test_get_all_songs_songless_artist(
 	fixture_song_info_service: SongInfoService
 ):

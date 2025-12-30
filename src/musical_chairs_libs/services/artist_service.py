@@ -18,8 +18,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem,
 	DictDotMap,
 	normalize_opening_slash,
-	SearchNameString
+	SearchNameString,
+	WrongPermissionsError
 )
+from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
@@ -51,6 +53,7 @@ class ArtistService:
 	def __init__(
 		self,
 		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
 		pathRuleService: Optional[PathRuleService]=None
 	) -> None:
 		if not conn:
@@ -60,6 +63,19 @@ class ArtistService:
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
+		self.current_user_provider = currentUserProvider
+
+	def artist_editor_user(
+		self,
+		artistid: int,
+	) -> AccountInfo:
+		user = self.current_user_provider.get_scoped_user()
+		if user.isadmin:
+			return user
+		owner = self.get_artist_owner(artistid)
+		if owner.id == user.id:
+			return user
+		raise WrongPermissionsError()
 
 	def get_artists(self,
 		page: int = 0,
@@ -201,12 +217,12 @@ class ArtistService:
 
 	def save_artist(
 		self,
-		user: AccountInfo,
 		artistName: str,
 		artistId: Optional[int]=None
 	) -> Optional[ArtistInfo]:
 		if not artistName and not artistId:
 			raise ValueError("No artist info to save")
+		user = self.current_user_provider.get_scoped_user()
 		upsert = update if artistId else insert
 		savedName = SavedNameString(artistName)
 		stmt = upsert(artists_tbl).values(

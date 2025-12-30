@@ -1,7 +1,5 @@
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	StationInfo,
-	TrackingInfo
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	CatalogueItem,
@@ -25,8 +23,6 @@ class RadioPusher(Protocol):
 		self,
 		itemId: int,
 		station: StationInfo,
-		user: AccountInfo,
-		trackingInfo: TrackingInfo,
 		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
 	):
 		...
@@ -34,7 +30,7 @@ class RadioPusher(Protocol):
 	def remove_song_from_queue(self,
 		songId: int,
 		queuedTimestamp: float,
-		stationId: int
+		station: StationInfo,
 	) -> Optional[CurrentPlayingInfo]:
 		...
 
@@ -46,6 +42,5 @@ class RadioPusher(Protocol):
 		parentName: str = "",
 		creator: str = "",
 		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Tuple[list[CatalogueItem], int]:
 		...

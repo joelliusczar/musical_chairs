@@ -27,11 +27,11 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.sql.functions import coalesce
 from .station_service import StationService
-from .accounts_service import AccountsService
 from .song_info_service import SongInfoService
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
-from .user_actions_history_service import UserActionsHistoryService
+from .actions_history_management_service import ActionsHistoryManagementService
+from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.tables import (
 	songs,
 	stations,
@@ -52,7 +52,6 @@ from musical_chairs_libs.tables import (
 	last_played, lp_songFk, lp_stationFk, lp_timestamp, lp_itemType, lp_parentKey
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	CatalogueItem,
 	CurrentPlayingInfo,
 	get_datetime,
@@ -61,12 +60,14 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	UserRoleDef,
 	LastPlayedItem,
-	TrackingInfo,
 	QueueRequest,
 	OwnerInfo
 )
 from musical_chairs_libs.file_reference import SqlScripts
-from musical_chairs_libs.protocols import SongPopper, RadioPusher
+from musical_chairs_libs.protocols import (
+	SongPopper,
+	RadioPusher,
+)
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes,
 	StationTypes
@@ -92,40 +93,35 @@ class QueueService(SongPopper, RadioPusher):
 
 	def __init__(
 		self,
-		conn: Optional[Connection]=None,
+		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
+		actionsHistoryManagementService: ActionsHistoryManagementService,
+		songInfoService: SongInfoService,
 		stationService: Optional[StationService]=None,
-		accountService: Optional[AccountsService]=None,
-		songInfoService: Optional[SongInfoService]=None,
 		choiceSelector: Optional[
 			Callable[[Sequence[Any], int], Collection[Any]]
 		]=None,
 		pathRuleService: Optional[PathRuleService]=None,
-		userActionsHistoryService: Optional[UserActionsHistoryService]=None,
 	) -> None:
 			if not conn:
 				raise RuntimeError("No connection provided")
 			if not stationService:
-				stationService = StationService(conn)
-			if not accountService:
-				accountService = AccountsService(conn)
-			if not songInfoService:
-				songInfoService = SongInfoService(conn)
+				stationService = StationService(conn, currentUserProvider)
 			if not choiceSelector:
 				choiceSelector = choice
 			if not pathRuleService:
 				pathRuleService = PathRuleService(conn)
-			if not userActionsHistoryService:
-				userActionsHistoryService = UserActionsHistoryService(conn)
 			self.conn = conn
+			self.current_user_provider = currentUserProvider
 			self.station_service = stationService
-			self.account_service = accountService
 			self.song_info_service = songInfoService
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.path_rule_service = pathRuleService
-			self.user_actions_history_service = userActionsHistoryService
+			self.actions_history_management_service = actionsHistoryManagementService
 			self.queue_size = 50
 			self.album_queue_size = 3
+
 
 	def get_all_station_possibilities(
 		self, stationPk: int
@@ -175,10 +171,9 @@ class QueueService(SongPopper, RadioPusher):
 		self,
 		songIds: Collection[QueueRequest],
 		stationId: int,
-		userId: Optional[int]=None,
-		trackingInfo: Optional[TrackingInfo]=None
 	):
-		userAgentId = self.user_actions_history_service\
+		trackingInfo = self.current_user_provider.tracking_info()
+		userAgentId = self.actions_history_management_service\
 			.add_user_agent(trackingInfo.userAgent) if trackingInfo else None
 		timestamp = self.get_datetime().timestamp()
 		insertedIds: list[int] = []
@@ -188,7 +183,7 @@ class QueueService(SongPopper, RadioPusher):
 			insertedId = self.conn.execute(historyInsert, {
 					"queuedtimestamp": timestamp + timestampOffset,
 					"action": UserRoleDef.STATION_REQUEST.value,
-					"userfk": userId,
+					"userfk": self.current_user_provider.optional_user_id(),
 					"ipv4address": trackingInfo.ipv4Address if trackingInfo else None,
 					"ipv6address": trackingInfo.ipv6Address if trackingInfo else None,
 					"useragentsfk": userAgentId
@@ -403,14 +398,11 @@ class QueueService(SongPopper, RadioPusher):
 		self,
 		songId: int,
 		stationId: int,
-		userId: int,
-		trackingInfo: TrackingInfo
 	) -> int:
-		insertedPk = self.user_actions_history_service.add_user_action_history_item(
-			userId,
-			UserRoleDef.STATION_REQUEST.value,
-			trackingInfo
-		)
+		insertedPk = self.actions_history_management_service\
+			.add_user_action_history_item(
+				UserRoleDef.STATION_REQUEST.value,
+			)
 
 		if insertedPk:
 			stmt = insert(station_queue).values(
@@ -426,8 +418,7 @@ class QueueService(SongPopper, RadioPusher):
 	def add_to_queue(self,
 		itemId: int,
 		station: StationInfo,
-		user: AccountInfo,
-		trackingInfo: TrackingInfo,
+		#stationItemType is required for interface compliance
 		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
 	):
 		songInfo = self.song_info_service.song_info(itemId)
@@ -437,7 +428,7 @@ class QueueService(SongPopper, RadioPusher):
 				itemId,
 				station.id
 			):
-			self.__add_song_to_queue__(itemId, station.id, user.id, trackingInfo)
+			self.__add_song_to_queue__(itemId, station.id)
 			self.conn.commit()
 			return
 		raise LookupError(f"{songName} cannot be added to {station.name}")
@@ -460,16 +451,16 @@ class QueueService(SongPopper, RadioPusher):
 
 	def get_now_playing_and_queue(
 		self,
-		stationId: int,
+		station: StationInfo,
 		page: int = 0,
-		limit: Optional[int]=50,
-		user: Optional[AccountInfo]=None
+		limit: Optional[int]=50
 	) -> CurrentPlayingInfo:
 		pathRuleTree = None
+		user = self.current_user_provider.get_station_user(station)
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
 		queue, count = self.get_queue_for_station(
-			stationId,
+			station.id,
 			page,
 			limit
 		)
@@ -477,7 +468,7 @@ class QueueService(SongPopper, RadioPusher):
 			if pathRuleTree:
 				song.rules = list(pathRuleTree.valuesFlat(song.path))
 		playing = next(
-			iter(self.get_history_for_station(stationId, limit=1)[0]),
+			iter(self.get_history_for_station(station, limit=1)[0]),
 			None
 		)
 		if pathRuleTree and playing:
@@ -520,28 +511,28 @@ class QueueService(SongPopper, RadioPusher):
 	def remove_song_from_queue(self,
 		songId: int,
 		queuedTimestamp: float,
-		stationId: int
+		station: StationInfo,
 	) -> Optional[CurrentPlayingInfo]:
 		if not self.__mark_queued_song_skipped__(
 			songId,
 			queuedTimestamp,
-			stationId
+			station.id
 		):
 			return None
-		self.fil_up_queue(stationId, self.queue_size)
+		self.fil_up_queue(station.id, self.queue_size)
 		self.conn.commit()
-		return self.get_now_playing_and_queue(stationId)
+		return self.get_now_playing_and_queue(station)
 
 
 	def get_history_for_station(
 		self,
-		stationId: int,
+		station: StationInfo,
 		page: int = 0,
 		limit: Optional[int]=50,
-		user: Optional[AccountInfo]=None,
 		beforeTimestamp: Optional[float]=None
 	) -> Tuple[list[SongListDisplayItem], int]:
 
+		user = self.current_user_provider.get_station_user(station)
 		pathRuleTree = None
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
@@ -565,7 +556,7 @@ class QueueService(SongPopper, RadioPusher):
 			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
 			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
 			.where(uah_timestamp.isnot(None))\
-			.where(q_stationFk == stationId)\
+			.where(q_stationFk == station.id)\
 			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
 			.where(uah_timestamp < beforeTimestamp if beforeTimestamp else true)\
 			.order_by(desc(uah_timestamp)) \
@@ -658,18 +649,18 @@ class QueueService(SongPopper, RadioPusher):
 
 	def squish_station_history(
 		self,
-		stationid: int,
+		station: StationInfo,
 		beforeTimestamp: float
 	) -> Tuple[int, int, int]:
 		unsquashed, _ = self.get_history_for_station(
-			stationid,
+			station,
 			limit=None,
 			beforeTimestamp=beforeTimestamp
 		)
 
 		squashed = {
 			(item.songid, item.itemtype, item.parentkey):item.timestamp
-			for item in self.get_old_last_played(stationid)
+			for item in self.get_old_last_played(station.id)
 		}
 		addura = [v for v in {
 			e.id:LastPlayedItem(
@@ -694,9 +685,9 @@ class QueueService(SongPopper, RadioPusher):
 			if (e.id, e.itemtype, e.parentkey) in squashed and e.playedtimestamp and
 				squashed[(e.id, e.itemtype, e.parentkey)] < e.playedtimestamp
 		}.values())
-		addedCount = self.add_to_last_played(stationid, addura)
-		updatedCount = self.update_last_played_timestamps(stationid, updatera)
-		deletedCount = self.trim_recently_played(stationid, beforeTimestamp)
+		addedCount = self.add_to_last_played(station.id, addura)
+		updatedCount = self.update_last_played_timestamps(station.id, updatera)
+		deletedCount = self.trim_recently_played(station.id, beforeTimestamp)
 		self.conn.commit()
 		return (addedCount, updatedCount, deletedCount)
 
@@ -720,7 +711,6 @@ class QueueService(SongPopper, RadioPusher):
 		parentName: str = "",
 		creator: str = "",
 		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Tuple[list[CatalogueItem], int]:
 		songs, count = self.song_info_service.get_fullsongs_page(
 			stationId,
@@ -729,7 +719,6 @@ class QueueService(SongPopper, RadioPusher):
 			parentName,
 			creator,
 			limit,
-			user
 		)
 
 		return [CatalogueItem(

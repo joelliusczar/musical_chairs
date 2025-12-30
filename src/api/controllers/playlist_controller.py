@@ -28,7 +28,6 @@ from musical_chairs_libs.services import (
 from api_dependencies import (
 	get_owner_from_query,
 	get_playlist_by_name_and_owner,
-	get_user_with_rate_limited_scope,
 	get_optional_user_from_token,
 	get_from_query_subject_user,
 	build_error_obj,
@@ -38,7 +37,6 @@ from api_dependencies import (
 	get_playlist_user,
 	get_page_num,
 	user_for_filters,
-	get_current_user_simple,
 	playlists_songs_service,
 	stations_playlists_service,
 )
@@ -95,11 +93,10 @@ def playlist_list(
 def is_phrase_used(
 	id: Optional[int]=None,
 	name: str = "",
-	user: AccountInfo = Depends(get_current_user_simple),
 	playlistService: PlaylistService = Depends(playlist_service)
 ) -> dict[str, bool]:
 	return {
-		"name": playlistService.is_playlistName_used(id, name, user.id)
+		"name": playlistService.is_playlistName_used(id, name)
 	}
 
 
@@ -127,19 +124,18 @@ def get_playlist_for_edit(
 @router.post("")
 def create_playlist(
 	playlist: ValidatedPlaylistCreationInfo = Body(default=None),
-	playlistService: PlaylistService = Depends(playlist_service),
+	playlistService: PlaylistService = Security(
+		playlist_service,
+		scopes=[UserRoleDef.PLAYLIST_CREATE.value]
+	),
 	playlistsSongsService: PlaylistsSongsService = Depends(
 		playlists_songs_service
 	),
 	stationsPlaylistsService: StationsPlaylistsService = Depends(
 		stations_playlists_service
-	),
-	user: AccountInfo = Security(
-		get_user_with_rate_limited_scope,
-		scopes=[UserRoleDef.PLAYLIST_CREATE.value]
 	)
 ) -> SongsPlaylistInfo:
-	result = playlistService.save_playlist(playlist, user=user)
+	result = playlistService.save_playlist(playlist)
 	songs = [*playlistsSongsService.get_songs(result.id)]
 	stations = [
 		*stationsPlaylistsService.get_stations_by_playlist(result.id)
@@ -155,19 +151,18 @@ def create_playlist(
 def update_playlist(
 	playlistid: int, #this needs to match get_playlist_user_by_id
 	playlist: ValidatedPlaylistCreationInfo = Body(default=None),
-	playlistService: PlaylistService = Depends(playlist_service),
+	playlistService: PlaylistService = Security(
+		playlist_service,
+		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
+	),
 	playlistsSongsService: PlaylistsSongsService = Depends(
 		playlists_songs_service
 	),
 	stationsPlaylistsService: StationsPlaylistsService = Depends(
 		stations_playlists_service
-	),
-	user: AccountInfo = Security(
-		get_playlist_user_by_id,
-		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
 	)
 ) -> SongsPlaylistInfo:
-	result = playlistService.save_playlist(playlist, user, playlistid)
+	result = playlistService.save_playlist(playlist, playlistid)
 	songs = [*playlistsSongsService.get_songs(result.id)]
 	stations = [
 		*stationsPlaylistsService.get_stations_by_playlist(result.id)

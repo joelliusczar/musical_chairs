@@ -607,7 +607,7 @@ def test_delete_dir_with_songs(
 	assert all(j.status == JobStatusTypes.COMPLETED.value for j in jobs)
 	assert len(jobs) == 3
 
-
+@pytest.mark.current_username("testUser_alpha")
 def test_delete_song_in_station(
 	fixture_song_file_service: SongFileService,
 	fixture_account_service: AccountsService,

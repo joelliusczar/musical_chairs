@@ -47,14 +47,12 @@ class StationsPlaylistsService:
 	def __init__(
 		self,
 		conn: Connection,
-		stationService: Optional[StationService]=None,
+		stationService: StationService,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 
 		self.conn = conn
-		if not stationService:
-				stationService = StationService(conn)
 		self.get_datetime = get_datetime
 		self.station_service = stationService
 

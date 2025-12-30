@@ -6,18 +6,25 @@ import subprocess
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
-	ProcessService,
-	QueueService,
-	StationService,
-	StationProcessService,
+	ActionsHistoryManagementService,
+	ActionsHistoryQueryService,
 	AlbumQueueService,
 	CollectionQueueService,
-	PlaylistQueueService
+	CurrentUserProvider,
+	EmptyUserTrackingService,
+	PlaylistQueueService,
+	ProcessService,
+	QueueService,
+	SongInfoService,
+	StationService,
+	StationProcessService,
+
 )
 from threading import ExceptHookArgs, Thread
 from setproctitle import setproctitle
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 from musical_chairs_libs.dtos_and_utilities import (
+	AccountInfo,
 	ConfigAcessors,
 	StationTypes
 )
@@ -46,6 +53,40 @@ def close_db_connection(conn: Connection, connName: str):
 	except:
 		logging.radioLogger.warning(f"Could not close the  {connName} connection")
 
+def current_user_provider(conn: Connection) -> CurrentUserProvider:
+	actionsHistoryQueryService = ActionsHistoryQueryService(conn)
+	currentUserProvider = CurrentUserProvider(
+		AccountInfo(
+			id=0,
+			username="system",
+			displayname="System",
+			email="fake@fake.com"
+		),
+		EmptyUserTrackingService(),
+		actionsHistoryQueryService
+	)
+	return currentUserProvider
+
+def queue_service(conn: Connection) -> QueueService:
+	currentUserProvider = current_user_provider(conn)
+	actionsHistoryManagementService = ActionsHistoryManagementService(
+		conn,
+		EmptyUserTrackingService(),
+		currentUserProvider
+	)
+	songInfoService = SongInfoService(
+		conn,
+		currentUserProvider,
+	)
+	queueService = QueueService(
+		conn,
+		currentUserProvider,
+		actionsHistoryManagementService,
+		songInfoService,
+	)
+	return queueService
+
+
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	logging.radioLogger.info("Starting the queue process")
@@ -72,8 +113,15 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	)
 	updatingConn = ConfigAcessors.get_configured_radio_connection(dbName)
 
+	readingSongQueueService = queue_service(readingConn)
+	updatingSongQueueService = queue_service(updatingConn)
 
-	stationService = StationService(readingConn)
+
+
+	stationService = StationService(
+		readingConn,
+		current_user_provider(readingConn)
+	)
 	stationId = stationService.get_station_id(stationName, ownerName)
 	if not stationId:
 		raise RuntimeError(
@@ -84,6 +132,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	station = next(stationService.get_stations(stationId))
 
 	queueServiceType = QueueService
+
 	if station.typeid == StationTypes.ALBUMS_ONLY.value:
 		queueServiceType = AlbumQueueService
 	elif station.typeid == StationTypes.PLAYLISTS_ONLY.value:
@@ -92,9 +141,23 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		queueServiceType = CollectionQueueService
 
 	fileService = S3FileService()
-	readingQueueService = queueServiceType(readingConn)
-	updatingQueueService = queueServiceType(updatingConn)
-	stationProcessService = StationProcessService(updatingConn)
+	
+	readingQueueService = readingSongQueueService
+	if queueServiceType != QueueService:
+		readingQueueService = queueServiceType( #pyright: ignore [reportCallIssue]
+			readingConn,
+			readingSongQueueService
+		)
+	updatingQueueService = updatingSongQueueService
+	if queueServiceType != QueueService:
+		updatingQueueService = queueServiceType( #pyright: ignore [reportCallIssue]
+			updatingConn,
+			updatingQueueService
+		)
+	stationProcessService = StationProcessService(
+		updatingConn,
+		current_user_provider(readingConn)
+	)
 	stationProcessService.set_station_proc(stationId)
 
 	loadThread = Thread(
@@ -137,7 +200,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			f"Is sending thread alive? {sendThread.is_alive()}"
 		)
 		logging.radioLogger.info("Disabling the station")
-		stationProcessService.disable_stations([stationId])
+		stationProcessService.disable_stations(stationId)
 		logging.radioLogger.debug("Station disabled")
 		close_db_connection(readingConn, "reading")
 		close_db_connection(updatingConn, "updating")

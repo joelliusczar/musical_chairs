@@ -7,7 +7,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	UserRoleDef,
 	RulePriorityLevel,
-	TrackingInfo,
 	CatalogueItem,
 	CurrentPlayingInfo,
 	QueueRequest,
@@ -74,16 +73,14 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 
 	def __init__(
 		self,
-		conn: Optional[Connection]=None,
-		queueService: Optional[QueueService]=None,
+		conn: Connection,
+		queueService: QueueService,
 		choiceSelector: Optional[
 			Callable[[Sequence[Any], int], Collection[Any]]
 		]=None,
 	) -> None:
 			if not conn:
 				raise RuntimeError("No connection provided")
-			if not queueService:
-				queueService = QueueService(conn)
 			if not choiceSelector:
 				choiceSelector = choice
 			self.conn = conn
@@ -199,8 +196,6 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 		self,
 		itemId: int,
 		station: StationInfo,
-		user: AccountInfo,
-		trackingInfo: TrackingInfo,
 		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
 	):
 		if station and\
@@ -221,8 +216,6 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 					parentKey=itemId
 				) for r in rows],
 				station.id,
-				user.id,
-				trackingInfo
 			)
 			self.conn.commit()
 			return
@@ -380,17 +373,17 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 	def remove_song_from_queue(self,
 		songId: int,
 		queuedTimestamp: float,
-		stationId: int
+		station: StationInfo,
 	) -> Optional[CurrentPlayingInfo]:
 		if not self.queue_service.__mark_queued_song_skipped__(
 			songId,
 			queuedTimestamp,
-			stationId
+			station.id
 		):
 			return None
-		self.fil_up_queue(stationId, self.queue_size)
+		self.fil_up_queue(station.id, self.queue_size)
 		self.conn.commit()
-		return self.queue_service.get_now_playing_and_queue(stationId)
+		return self.queue_service.get_now_playing_and_queue(station)
 	
 	def accepted_request_types(self) -> set[StationRequestTypes]:
 		return { StationRequestTypes.PLAYLIST }

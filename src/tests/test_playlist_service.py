@@ -1,3 +1,4 @@
+import pytest
 from musical_chairs_libs.services import (
 	PlaylistService,
 	PlaylistsUserService,
@@ -16,7 +17,7 @@ from .common_fixtures import (
 )
 from .common_fixtures import *
 from .mocks.db_population import get_initial_playlists
-from .mocks.db_data import bravo_user_id, juliet_user_id
+from .mocks.db_data import bravo_user_id
 
 
 def test_get_playlists_list(fixture_playlist_service: PlaylistService):
@@ -108,6 +109,7 @@ def test_get_playlists_list_with_owner_and_scopes(
 		), None)
 	assert result
 
+@pytest.mark.current_username("testUser_juliet")
 def test_save_playlist(
 	fixture_playlist_service: PlaylistService,
 	fixture_primary_user: AccountInfo
@@ -117,12 +119,8 @@ def test_save_playlist(
 		name = "brand_new_playlists",
 		description="Brand new playlist"
 	)
-	julietUser = AccountInfo(
-		id = juliet_user_id,
-		username="testUser_juliet",
-		email="test10@munchopuncho.com"
-	)
-	result = playlistService.save_playlist(testData, julietUser)
+
+	result = playlistService.save_playlist(testData)
 	assert result and result.id == len(get_initial_playlists()) + 1
 	fetched = next(playlistService.get_playlists(result.id))
 	assert fetched.id == result.id
@@ -133,7 +131,7 @@ def test_save_playlist(
 		name = "brand_new_playlist_fake_tag",
 		description="Brand new playlist with bad tag"
 	)
-	result = playlistService.save_playlist(testData, julietUser)
+	result = playlistService.save_playlist(testData)
 	assert result and result.id == len(get_initial_playlists()) + 2
 	fetched = next(playlistService.get_playlists(result.id))
 
@@ -147,8 +145,9 @@ def test_save_playlist(
 		username="testUser_bravo",
 		email="test2@munchopuncho.com"
 	)
-	result = playlistService.save_playlist(testData, bravoUser, 2)
-	assert result and result.id == 2
+	with playlistService.current_user_provider.impersonate(bravoUser):
+		result = playlistService.save_playlist(testData, 2)
+		assert result and result.id == 2
 	fetched = next(playlistService.get_playlists(result.id))
 	assert fetched and fetched.name == "papa_playlist_update"
 	assert fetched and fetched.description == "Come to papa test"
@@ -158,8 +157,9 @@ def test_save_playlist(
 		name = "oscar_playlists",
 		description="Oscar the grouch"
 	)
-	result = playlistService.save_playlist(testData, fixture_primary_user, 1)
-	assert result and result.id == 1
+	with playlistService.current_user_provider.impersonate(fixture_primary_user):
+		result = playlistService.save_playlist(testData, 1)
+		assert result and result.id == 1
 	fetched = next(playlistService.get_playlists(result.id))
 	assert fetched and fetched.name == "oscar_playlists"
 	assert fetched and fetched.description == "Oscar the grouch"

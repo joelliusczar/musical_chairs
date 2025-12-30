@@ -21,12 +21,16 @@ from fastapi import (
 )
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.services import (
+	AccountAccessService,
+	AccountManagementService,
+	AccountTokenCreator,
+	ActionsHistoryQueryService,
+	CurrentUserTrackingService,
 	StationService,
 	QueueService,
 	SongInfoService,
-	AccountsService,
 	ProcessService,
-	UserActionsHistoryService,
+	ActionsHistoryManagementService,
 	SongFileService,
 	PathRuleService,
 	ArtistService,
@@ -35,6 +39,7 @@ from musical_chairs_libs.services import (
 	PlaylistService,
 	PlaylistsUserService,
 	PlaylistsSongsService,
+	StationsAlbumsService,
 	StationsPlaylistsService,
 	StationsSongsService,
 	StationsUsersService,
@@ -43,6 +48,7 @@ from musical_chairs_libs.services import (
 	PlaylistQueueService,
 	CollectionQueueService,
 	CurrentUserProvider,
+	
 )
 from musical_chairs_libs.protocols import (
 	FileService,
@@ -141,17 +147,226 @@ def get_configured_db_connection(
 	finally:
 		conn.close()
 
+def account_access_service(
+	conn: Connection=Depends(get_configured_db_connection),
+) -> AccountAccessService:
+	return AccountAccessService(conn)
+
+
+def get_user_from_token(
+	token: str,
+	accountAccessService: AccountAccessService
+) -> Tuple[AccountInfo, float]:
+	if not token:
+		raise build_not_logged_in_error()
+	try:
+		user, expiration = accountAccessService.get_user_from_token(token)
+		if not user:
+			raise build_not_wrong_credentials_error()
+		return user, expiration
+	except ExpiredSignatureError:
+		raise build_expired_credentials_error()
+
+
+def get_current_user_simple(
+	request: Request,
+	token: str = Depends(oauth2_scheme),
+	accountsAccessService: AccountAccessService = Depends(account_access_service)
+) -> AccountInfo:
+	cookieToken = request.cookies.get("access_token", None)
+	user, _ = get_user_from_token(
+		token or parse.unquote(cookieToken or ""),
+		accountsAccessService
+	)
+	return user
+
+
+def get_optional_user_from_token(
+	request: Request,
+	token: str = Depends(oauth2_scheme),
+	accountAccessService: AccountAccessService = Depends(account_access_service),
+) -> Optional[AccountInfo]:
+	cookieToken = request.cookies.get("access_token", None)
+	if not token and not cookieToken:
+		return None
+	try:
+		user, _ = accountAccessService.get_user_from_token(
+			token or parse.unquote(cookieToken or "")
+		)
+		return user
+	except ExpiredSignatureError:
+		raise build_expired_credentials_error()
+
+
+def extract_ip_address(request: Request) -> Tuple[str, str]:
+	candidate = request.headers.get("x-real-ip", "")
+	if not candidate and request.client:
+		candidate = request.client.host
+	try:
+		address = ipaddress.ip_address(candidate)
+		if isinstance(address, ipaddress.IPv4Address):
+			return (candidate, "")
+		else:
+			return ("", candidate)
+	except:
+		return ("","")
+
+
+def get_tracking_info(request: Request):
+	userAgent = request.headers["user-agent"]
+	ipaddresses = extract_ip_address(request)
+	
+	return TrackingInfo(
+		userAgent,
+		ipv4Address=ipaddresses[0],
+		ipv6Address=ipaddresses[1]
+	)
+
+
+def current_user_tracking_service(
+	trackingInfo: TrackingInfo = Depends(get_tracking_info)
+) -> CurrentUserTrackingService:
+	return CurrentUserTrackingService(trackingInfo)
+
+
+def actions_history_query_service(
+	conn: Connection=Depends(get_configured_db_connection)
+) -> ActionsHistoryQueryService:
+	return ActionsHistoryQueryService(conn)
+
+
+def current_user_provider(
+	securityScopes: SecurityScopes,
+	user: AccountInfo = Depends(get_optional_user_from_token),
+	currentUserTrackingService: CurrentUserTrackingService = Depends(
+		current_user_tracking_service
+	),
+	actionsHistoryQueryService: ActionsHistoryQueryService = Depends(
+		actions_history_query_service
+	),
+) -> CurrentUserProvider:
+	return CurrentUserProvider(
+		user,
+		currentUserTrackingService,
+		actionsHistoryQueryService,
+		set(securityScopes.scopes)
+	)
+
+def does_account_have_scope(
+	securityScopes: SecurityScopes,
+	currentUser: AccountInfo = Depends(get_current_user_simple),
+):
+	scopeSet = {s for s in securityScopes.scopes}
+	hasRole = currentUser.isadmin or\
+		any(r.name in scopeSet for r in currentUser.roles)
+	if not hasRole:
+		raise build_wrong_permissions_error()
+
+
+def actions_history_management_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	currentUserTrackingService: CurrentUserTrackingService = Depends(
+		current_user_tracking_service
+	),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	)
+) -> ActionsHistoryManagementService:
+	return ActionsHistoryManagementService(
+		conn,
+		currentUserTrackingService,
+		userProvider
+	)
+
+
+def account_management_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	userActionHistoryService: ActionsHistoryManagementService =
+		Depends(actions_history_management_service),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	),
+	accountsAccessService: AccountAccessService = Depends(account_access_service)
+) -> AccountManagementService:
+	return AccountManagementService(
+		conn,
+		userProvider,
+		accountsAccessService,
+		userActionHistoryService,
+	)
+
+
+def account_token_creator(
+	conn: Connection=Depends(get_configured_db_connection),
+	userActionHistoryService: ActionsHistoryManagementService =
+		Depends(actions_history_management_service)
+) -> AccountTokenCreator:
+	return AccountTokenCreator(conn, userActionHistoryService)
+
+
+
+def playlists_songs_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> PlaylistsSongsService:
+	return PlaylistsSongsService(conn, currentUserProvider)
+
+
+def song_info_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> SongInfoService:
+	return SongInfoService(conn, currentUserProvider)
+
+
+def queue_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	userActionHistoryService: ActionsHistoryManagementService =
+		Depends(actions_history_management_service),
+	songInfoService: SongInfoService = Depends(song_info_service)
+) -> QueueService:
+	return QueueService(
+		conn,
+		currentUserProvider,
+		userActionHistoryService,
+		songInfoService
+	)
+
 
 def station_service(
-	conn: Connection=Depends(get_configured_db_connection)
+	conn: Connection = Depends(get_configured_db_connection),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	),
 ) -> StationService:
-	return StationService(conn)
+	return StationService(conn, userProvider)
+
+
+def stations_albums_service(
+	conn: Connection = Depends(get_configured_db_connection),
+	stationService: StationService = Depends(station_service),
+) -> StationsAlbumsService:
+	return StationsAlbumsService(conn, stationService)
+
+
+def album_service(
+	conn: Connection = Depends(get_configured_db_connection),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	stationsAlbumsService: StationsAlbumsService = Depends(
+		stations_albums_service
+	)
+) -> AlbumService:
+	return AlbumService(conn, currentUserProvider, stationsAlbumsService)
 
 
 def station_process_service(
-	conn: Connection=Depends(get_configured_db_connection)
+	conn: Connection=Depends(get_configured_db_connection),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	),
 ) -> StationProcessService:
-	return StationProcessService(conn)
+	return StationProcessService(conn, userProvider)
 
 
 def stations_songs_service(
@@ -161,9 +376,10 @@ def stations_songs_service(
 
 
 def stations_playlists_service(
-	conn: Connection=Depends(get_configured_db_connection)
+	conn: Connection=Depends(get_configured_db_connection),
+	stationService: StationService = Depends(station_service),
 ) -> StationsPlaylistsService:
-	return StationsPlaylistsService(conn)
+	return StationsPlaylistsService(conn, stationService)
 
 
 def stations_users_service(
@@ -173,9 +389,15 @@ def stations_users_service(
 
 
 def playlist_service(
-	conn: Connection=Depends(get_configured_db_connection)
+	conn: Connection=Depends(get_configured_db_connection),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	),
+	stationsPlaylistsService: StationsPlaylistsService = Depends(
+		stations_playlists_service
+	)
 ) -> PlaylistService:
-	return PlaylistService(conn)
+	return PlaylistService(conn, userProvider, stationsPlaylistsService)
 
 
 def playlists_users_service(
@@ -184,16 +406,11 @@ def playlists_users_service(
 	return PlaylistsUserService(conn)
 
 
-def song_info_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> SongInfoService:
-	return SongInfoService(conn)
-
-
 def artist_service(
-	conn: Connection=Depends(get_configured_db_connection)
+	conn: Connection=Depends(get_configured_db_connection),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 ) -> ArtistService:
-	return ArtistService(conn)
+	return ArtistService(conn, currentUserProvider)
 
 
 def path_rule_service(
@@ -208,9 +425,16 @@ def file_service() -> FileService:
 
 def song_file_service(
 	conn: Connection=Depends(get_configured_db_connection),
-	fileService: FileService=Depends(file_service)
+	fileService: FileService=Depends(file_service),
+	artistService: ArtistService = Depends(artist_service),
+	albumService: AlbumService = Depends(album_service)
 ) -> SongFileService:
-	return SongFileService(conn, fileService)
+	return SongFileService(
+		conn,
+		fileService,
+		artistService,
+		albumService
+	)
 
 
 def job_service(
@@ -220,32 +444,8 @@ def job_service(
 	return JobsService(conn, fileService)
 
 
-def queue_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> QueueService:
-	return QueueService(conn)
-
-
-def album_queue_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> AlbumQueueService:
-	return AlbumQueueService(conn)
-
-
-def accounts_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> AccountsService:
-	return AccountsService(conn)
-
-
 def process_service() -> ProcessService:
 	return ProcessService()
-
-
-def user_actions_history_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> UserActionsHistoryService:
-	return UserActionsHistoryService(conn)
 
 
 def get_optional_prefix(
@@ -274,61 +474,16 @@ def get_prefix(
 	)
 
 
-def get_user_from_token(
-	token: str,
-	accountsService: AccountsService
-) -> Tuple[AccountInfo, float]:
-	if not token:
-		raise build_not_logged_in_error()
-	try:
-		user, expiration = accountsService.get_user_from_token(token)
-		if not user:
-			raise build_not_wrong_credentials_error()
-		return user, expiration
-	except ExpiredSignatureError:
-		raise build_expired_credentials_error()
-
-
-def get_current_user_simple(
-	request: Request,
-	token: str = Depends(oauth2_scheme),
-	accountsService: AccountsService = Depends(accounts_service)
-) -> AccountInfo:
-	cookieToken = request.cookies.get("access_token", None)
-	user, _ = get_user_from_token(
-		token or parse.unquote(cookieToken or ""),
-		accountsService
-	)
-	return user
-
-
-def get_optional_user_from_token(
-	request: Request,
-	token: str = Depends(oauth2_scheme),
-	accountsService: AccountsService = Depends(accounts_service),
-) -> Optional[AccountInfo]:
-	cookieToken = request.cookies.get("access_token", None)
-	if not token and not cookieToken:
-		return None
-	try:
-		user, _ = accountsService.get_user_from_token(
-			token or parse.unquote(cookieToken or "")
-		)
-		return user
-	except ExpiredSignatureError:
-		raise build_expired_credentials_error()
-
-
 def __open_user_from_request__(
 	userkey: Union[int, str, None],
-	accountsService: AccountsService
+	accountManagementService: AccountManagementService
 ) -> Optional[AccountInfo]:
 	if userkey:
 		try:
 			userkey = int(userkey)
-			owner = accountsService.get_account_for_edit(userkey)
+			owner = accountManagementService.get_account_for_edit(userkey)
 		except:
-			owner = accountsService.get_account_for_edit(userkey)
+			owner = accountManagementService.get_account_for_edit(userkey)
 		if owner:
 			return owner
 		raise HTTPException(
@@ -341,9 +496,11 @@ def __open_user_from_request__(
 
 def get_from_path_subject_user(
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
-	accountsService: AccountsService = Depends(accounts_service)
+	accountManagementService: AccountManagementService = Depends(
+		account_management_service
+	)
 ) -> AccountInfo:
-	user = __open_user_from_request__(subjectuserkey, accountsService)
+	user = __open_user_from_request__(subjectuserkey, accountManagementService)
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -355,9 +512,11 @@ def get_from_path_subject_user(
 
 def get_from_query_subject_user(
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_query),
-	accountsService: AccountsService = Depends(accounts_service)
+	accountManagementService: AccountManagementService = Depends(
+		account_management_service
+	)
 ) -> AccountInfo:
-	user = __open_user_from_request__(subjectuserkey, accountsService)
+	user = __open_user_from_request__(subjectuserkey, accountManagementService)
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -369,14 +528,18 @@ def get_from_query_subject_user(
 
 def get_owner_from_query(
 	ownerkey: Union[int, str, None] = Depends(owner_key_query),
-	accountsService: AccountsService = Depends(accounts_service)
+	accountManagement: AccountManagementService = Depends(
+		account_management_service
+	)
 ) -> Optional[AccountInfo]:
-	return __open_user_from_request__(ownerkey, accountsService)
+	return __open_user_from_request__(ownerkey, accountManagement)
 
 
 def get_owner_from_path(
 	ownerkey: Union[int, str, None] = Depends(owner_key_path),
-	accountsService: AccountsService = Depends(accounts_service)
+	accountsService: AccountManagementService = Depends(
+		account_management_service
+	)
 ) -> Optional[AccountInfo]:
 	return __open_user_from_request__(ownerkey, accountsService)
 
@@ -413,14 +576,12 @@ def get_playlist_by_id(
 
 def get_stations_by_ids(
 	stationids: list[int]=Query(default=[]),
-	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	stationService: StationService = Depends(station_service),
 ) -> Collection[StationInfo]:
 	if not stationids:
 		return ()
 	return list(stationService.get_stations(
-		stationids,
-		user=user
+		stationids
 	))
 
 
@@ -456,7 +617,6 @@ def get_playlist_by_name_and_owner(
 def get_station_by_name_and_owner(
 	stationkey: Union[int, str] = Depends(station_key_path),
 	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
-	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
 	if type(stationkey) == str and not owner:
@@ -470,8 +630,7 @@ def get_station_by_name_and_owner(
 	ownerId = owner.id if owner else None
 	station = next(stationService.get_stations(
 		stationkey,
-		ownerId=ownerId,
-		user=user
+		ownerId=ownerId
 	),None)
 	if not station:
 		raise HTTPException(
@@ -481,23 +640,35 @@ def get_station_by_name_and_owner(
 		)
 	return station
 
+
+def get_secured_station_by_name_and_owner(
+	station: StationInfo = Depends(get_station_by_name_and_owner),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> StationInfo:
+	currentUserProvider.get_station_user(station)
+	return station
+
+
 def station_radio_pusher(
 	station: StationInfo = Depends(get_station_by_name_and_owner),
-	conn: Connection = Depends(get_configured_db_connection)
+	conn: Connection = Depends(get_configured_db_connection),
+	queueService: QueueService =  Depends(queue_service),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
 ) -> RadioPusher:
 	if station.typeid == StationTypes.SONGS_ONLY.value:
-		return QueueService(conn)
+		return queueService
 	if station.typeid == StationTypes.ALBUMS_ONLY.value:
-		return AlbumQueueService(conn)
+		return AlbumQueueService(conn, queueService)
 	if station.typeid == StationTypes.PLAYLISTS_ONLY.value:
-		return PlaylistQueueService(conn)
+		return PlaylistQueueService(conn, queueService)
 	if station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
-		return CollectionQueueService(conn)
+		return CollectionQueueService(conn, queueService)
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"Station type: {station.typeid} not found")
 		]
 	)
+
 
 def validated_station_request_type(
 	requesttypeid: int = Path(),
@@ -521,47 +692,6 @@ def get_current_user(
 	return user
 
 
-def get_user_with_simple_scopes(
-	securityScopes: SecurityScopes,
-	user: AccountInfo = Depends(get_current_user_simple)
-) -> AccountInfo:
-	if user.isadmin:
-		return user
-	for scope in securityScopes.scopes:
-		if not any(r for r in user.roles if r.name == scope):
-			raise build_wrong_permissions_error()
-	return user
-
-
-def get_user_with_rate_limited_scope(
-	securityScopes: SecurityScopes,
-	user: AccountInfo = Depends(get_current_user_simple),
-	userActionHistoryService: UserActionsHistoryService =
-		Depends(user_actions_history_service)
-) -> AccountInfo:
-	if user.isadmin:
-		return user
-	scopeSet = set(securityScopes.scopes)
-	rules = ActionRule.sorted((r for r in user.roles if r.name in scopeSet))
-	if not rules:
-		raise build_wrong_permissions_error()
-	timeoutLookup = \
-		userActionHistoryService.calc_lookup_for_when_user_can_next_do_action(
-			user.id,
-			rules
-		)
-	for scope in scopeSet:
-		if scope in timeoutLookup:
-			whenNext = timeoutLookup[scope]
-			if whenNext is None:
-				raise build_wrong_permissions_error()
-			if whenNext > 0:
-				currentTimestamp = get_datetime().timestamp()
-				timeleft = whenNext - currentTimestamp
-				raise build_too_many_requests_error(int(timeleft))
-	return user
-
-
 def impersonated_user_id(
 	impersonateduserid: Optional[int],
 	user: AccountInfo = Depends(get_current_user_simple)
@@ -577,7 +707,7 @@ def check_if_can_use_path(
 	prefix: str,
 	user: AccountInfo,
 	userPrefixTrie: ChainedAbsorbentTrie[PathsActionRule],
-	userActionHistoryService: UserActionsHistoryService
+	userActionHistoryService: ActionsHistoryManagementService
 ):
 	scopeSet = set(scopes)
 	rules = ActionRule.sorted(
@@ -640,8 +770,8 @@ def check_optional_path_for_current_user(
 	itemid: Optional[int]=None,
 	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
 	songFileService: SongFileService = Depends(song_file_service),
-	userActionHistoryService: UserActionsHistoryService =
-		Depends(user_actions_history_service)
+	userActionHistoryService: ActionsHistoryManagementService =
+		Depends(actions_history_management_service)
 ) -> AccountInfo:
 	if user.isadmin:
 		return user
@@ -667,8 +797,8 @@ def check_optional_path_for_current_user(
 def check_directory_transfer(
 	transfer: DirectoryTransfer,
 	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
-	userActionHistoryService: UserActionsHistoryService =
-		Depends(user_actions_history_service)
+	userActionHistoryService: ActionsHistoryManagementService =
+		Depends(actions_history_management_service)
 ) -> AccountInfo:
 	if user.isadmin:
 		return user
@@ -694,8 +824,8 @@ def get_multi_path_user(
 	itemids: list[int]=Query(default=[]),
 	user: AccountInfo=Depends(get_path_rule_loaded_current_user),
 	songFileService: SongFileService = Depends(song_file_service),
-	userActionHistoryService: UserActionsHistoryService=
-		Depends(user_actions_history_service)
+	userActionHistoryService: ActionsHistoryManagementService=
+		Depends(actions_history_management_service)
 ) -> AccountInfo:
 	if user.isadmin:
 		return user
@@ -716,129 +846,13 @@ def get_multi_path_user(
 
 filter_permitter_query_songs = get_multi_path_user
 
-def __get_station_user__(
-	securityScopes: SecurityScopes,
-	station: StationInfo,
-	user: Optional[AccountInfo],
-	userActionHistoryService: UserActionsHistoryService
-)-> Optional[AccountInfo]:
-	minScope = (not securityScopes.scopes or\
-		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
-	)
-	if not station.viewsecuritylevel and minScope:
-		return user
-	if not user:
-		raise build_not_logged_in_error()
-	if user.isadmin:
-		return user
-	scopes = {s for s in securityScopes.scopes \
-		if UserRoleDomain.Station.conforms(s)
-	}
-	rules = ActionRule.aggregate(
-		station.rules,
-		filter=lambda r: r.name in scopes
-	)
-	if not rules:
-		raise build_wrong_permissions_error()
-	timeoutLookup = \
-		userActionHistoryService\
-		.calc_lookup_for_when_user_can_next_do_station_action(
-			user.id,
-			(station,)
-		).get(station.id, {})
-	for scope in scopes:
-		if scope in timeoutLookup:
-			whenNext = timeoutLookup[scope]
-			if whenNext is None:
-				raise build_wrong_permissions_error()
-			if whenNext > 0:
-				currentTimestamp = get_datetime().timestamp()
-				timeleft = whenNext - currentTimestamp
-				raise build_too_many_requests_error(int(timeleft))
-	userDict = user.model_dump()
-	userDict["roles"] = rules
-	return AccountInfo(**userDict)
 
 
-def get_station_user_by_id(
-	securityScopes: SecurityScopes,
-	station: StationInfo=Depends(get_station_by_id),
-	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
-	userActionHistoryService: UserActionsHistoryService=
-		Depends(user_actions_history_service)
-)-> Optional[AccountInfo]:
-	return __get_station_user__(
-		securityScopes,
-		station,
-		user,
-		userActionHistoryService
-	)
-
-
-def get_station_user(
-	securityScopes: SecurityScopes,
-	station: StationInfo=Depends(get_station_by_name_and_owner),
-	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
-	userActionHistoryService: UserActionsHistoryService=
-		Depends(user_actions_history_service)
-) -> Optional[AccountInfo]:
-	return __get_station_user__(
-		securityScopes,
-		station,
-		user,
-		userActionHistoryService
-	)
-
-
-def get_multi_station_user(
-	securityScopes: SecurityScopes,
-	stations: Collection[StationInfo]=Depends(get_stations_by_ids),
-	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
-	userActionHistoryService: UserActionsHistoryService=
-		Depends(user_actions_history_service)
-) -> Optional[AccountInfo]:
-	minScope = (not securityScopes.scopes or\
-		securityScopes.scopes[0] == UserRoleDef.STATION_VIEW.value
-	)
-	if not any(s.viewsecuritylevel for s in stations) and minScope:
-		return user
-	if not user:
-		raise build_not_logged_in_error()
-	if user.isadmin:
-		return user
-	scopes = {s for s in securityScopes.scopes \
-		if UserRoleDomain.Station.conforms(s)
-	}
-	unpermittedStations = [s for s in stations
-		if not any(r.name in scopes for r in s.rules)
-	]
-	if unpermittedStations:
-		raise build_wrong_permissions_error()
-	timeoutLookup = \
-		userActionHistoryService\
-		.calc_lookup_for_when_user_can_next_do_station_action(
-			user.id,
-			stations
-		)
-	for station in stations:
-		for scope in scopes:
-			if station.id in timeoutLookup and scope in timeoutLookup[station.id]:
-				whenNext = timeoutLookup[station.id][scope]
-				if whenNext is None:
-					raise build_wrong_permissions_error()
-				if whenNext > 0:
-					currentTimestamp = get_datetime().timestamp()
-					timeleft = whenNext - currentTimestamp
-					raise build_too_many_requests_error(int(timeleft))
-	return user
-
-
-def get_account_if_has_scope(
+def check_subjectuser(
 	securityScopes: SecurityScopes,
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
 	currentUser: AccountInfo = Depends(get_current_user_simple),
-	accountsService: AccountsService = Depends(accounts_service)
-) -> AccountInfo:
+):
 	isCurrentUser = subjectuserkey == currentUser.id or\
 		subjectuserkey == currentUser.username
 	scopeSet = {s for s in securityScopes.scopes}
@@ -846,14 +860,7 @@ def get_account_if_has_scope(
 		any(r.name in scopeSet for r in currentUser.roles)
 	if not isCurrentUser and not hasEditRole:
 		raise build_wrong_permissions_error()
-	prev = accountsService.get_account_for_edit(subjectuserkey) \
-		if subjectuserkey else None
-	if not prev:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj("Account not found")],
-		)
-	return prev
+
 
 
 def get_prefix_if_owner(
@@ -889,29 +896,7 @@ def user_for_filters(
 		return None
 	return user
 
-def extract_ip_address(request: Request) -> Tuple[str, str]:
-	candidate = request.headers.get("x-real-ip", "")
-	if not candidate and request.client:
-		candidate = request.client.host
-	try:
-		address = ipaddress.ip_address(candidate)
-		if isinstance(address, ipaddress.IPv4Address):
-			return (candidate, "")
-		else:
-			return ("", candidate)
-	except:
-		return ("","")
 
-
-def get_tracking_info(request: Request):
-	userAgent = request.headers["user-agent"]
-	ipaddresses = extract_ip_address(request)
-	
-	return TrackingInfo(
-		userAgent,
-		ipv4Address=ipaddresses[0],
-		ipv6Address=ipaddresses[1]
-	)
 
 def check_back_key(
 	x_back_key: str = Header(),
@@ -971,24 +956,4 @@ def get_playlist_user(
 		playlist,
 		user
 	)
-
-
-def current_user_provider(
-	user: AccountInfo = Depends(get_current_user_simple)
-) -> CurrentUserProvider:
-	return CurrentUserProvider(user.id)
-
-
-def album_service(
-	conn: Connection=Depends(get_configured_db_connection),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
-) -> AlbumService:
-	return AlbumService(conn, currentUserProvider)
-
-
-def playlists_songs_service(
-	conn: Connection=Depends(get_configured_db_connection),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
-) -> PlaylistsSongsService:
-	return PlaylistsSongsService(conn, currentUserProvider)
 

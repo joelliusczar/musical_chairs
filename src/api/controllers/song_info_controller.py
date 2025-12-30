@@ -145,7 +145,6 @@ def get_songs_list(
 		artist=artist,
 		artistId=artistId,
 		limit=limit,
-		user=user
 	))
 
 

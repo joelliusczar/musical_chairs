@@ -1,6 +1,5 @@
 from .common_fixtures import *
 from .common_fixtures import (
-	fixture_account_service as fixture_account_service,
 	fixture_album_service as fixture_album_service
 )
 from musical_chairs_libs.dtos_and_utilities import (
@@ -33,14 +32,11 @@ def test_get_null_album(fixture_album_service: AlbumService):
 	assert len(data.songs) == len(noAlbumSongs)
 
 
+@pytest.mark.current_username("testUser_alpha")
 def test_save_album_add_stations(
-	fixture_album_service: AlbumService,
-	fixture_account_service: AccountsService
+	fixture_album_service: AlbumService
 ):
 	albumService = fixture_album_service
-	accountService = fixture_account_service
-	user,_ = accountService.get_account_for_login("testUser_alpha")
-	assert user
 
 	data = albumService.get_album(7)
 	assert data
@@ -61,21 +57,19 @@ def test_save_album_add_stations(
 		stations=data.stations
 	)
 
-	albumService.save_album(updateDto, user, data.id)
+	albumService.save_album(updateDto, data.id)
 
 	data2 = albumService.get_album(7)
 	assert data2
 
 	assert len(data2.stations) == 5
 
+@pytest.mark.current_username("testUser_alpha")
 def test_save_album_remove_1_stations(
 	fixture_album_service: AlbumService,
-	fixture_account_service: AccountsService
 ):
 	albumService = fixture_album_service
-	accountService = fixture_account_service
-	user,_ = accountService.get_account_for_login("testUser_alpha")
-	assert user
+	
 	data = albumService.get_album(7)
 	assert data
 
@@ -90,7 +84,7 @@ def test_save_album_remove_1_stations(
 		stations=data.stations
 	)
 
-	albumService.save_album(updateDto, user, data.id)
+	albumService.save_album(updateDto, data.id)
 
 	data2 = albumService.get_album(7)
 	assert data2
@@ -98,14 +92,11 @@ def test_save_album_remove_1_stations(
 	assert len(data2.stations) == 2
 	assert data2.stations[0].id == 29
 
+@pytest.mark.current_username("testUser_alpha")
 def test_save_album_remove_all_stations(
 	fixture_album_service: AlbumService,
-	fixture_account_service: AccountsService
 ):
 	albumService = fixture_album_service
-	accountService = fixture_account_service
-	user,_ = accountService.get_account_for_login("testUser_alpha")
-	assert user
 	data = albumService.get_album(7)
 	assert data
 
@@ -117,21 +108,19 @@ def test_save_album_remove_all_stations(
 		stations=[]
 	)
 
-	albumService.save_album(updateDto, user, data.id)
+	albumService.save_album(updateDto, data.id)
 
 	data2 = albumService.get_album(7)
 	assert data2
 
 	assert len(data2.stations) == 0
 
+@pytest.mark.current_username("testUser_alpha")
 def test_save_album_remove_1_add_1_stations(
-	fixture_album_service: AlbumService,
-	fixture_account_service: AccountsService
+	fixture_album_service: AlbumService
 ):
 	albumService = fixture_album_service
-	accountService = fixture_account_service
-	user,_ = accountService.get_account_for_login("testUser_alpha")
-	assert user
+
 	data = albumService.get_album(7)
 	assert data
 
@@ -150,7 +139,7 @@ def test_save_album_remove_1_add_1_stations(
 		stations=data.stations
 	)
 
-	albumService.save_album(updateDto, user, data.id)
+	albumService.save_album(updateDto, data.id)
 
 	data2 = albumService.get_album(7)
 	assert data2
@@ -159,14 +148,12 @@ def test_save_album_remove_1_add_1_stations(
 	assert data2.stations[0].id == 27
 	assert data2.stations[1].id == 29
 
+@pytest.mark.current_username("testUser_alpha")
 def test_save_album_add_first_stations(
 	fixture_album_service: AlbumService,
-	fixture_account_service: AccountsService
 ):
 	albumService = fixture_album_service
-	accountService = fixture_account_service
-	user,_ = accountService.get_account_for_login("testUser_alpha")
-	assert user
+
 
 	data = albumService.get_album(4)
 	assert data
@@ -188,7 +175,7 @@ def test_save_album_add_first_stations(
 		stations=data.stations
 	)
 
-	albumService.save_album(updateDto, user, data.id)
+	albumService.save_album(updateDto, data.id)
 
 	data2 = albumService.get_album(4)
 	assert data2

@@ -22,7 +22,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	normalize_opening_slash,
 	PathDict,
 	Lost,
-	StationAlbumTuple
+	StationAlbumTuple,
+	WrongPermissionsError
 )
 from .artist_service import ArtistService
 from .path_rule_service import PathRuleService
@@ -66,24 +67,34 @@ class AlbumService:
 		self,
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
+		stationsAlbumsService: StationsAlbumsService,
 		artistService: Optional[ArtistService]=None,
 		pathRuleService: Optional[PathRuleService]=None,
-		stationsAlbumsService: Optional[StationsAlbumsService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		if not artistService:
-			artistService = ArtistService(conn)
+			artistService = ArtistService(conn, currentUserProvider)
 		if not pathRuleService:
 			pathRuleService = PathRuleService(conn)
-		if not stationsAlbumsService:
-			stationsAlbumsService = StationsAlbumsService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.artist_service = artistService
 		self.path_rule_service = pathRuleService
 		self.stations_albums_service = stationsAlbumsService
 		self.current_user_provider = currentUserProvider
+
+	def album_editor_user(
+		self,
+		albumkey: int,
+	) -> AccountInfo:
+		user = self.current_user_provider.get_scoped_user()
+		if user.isadmin:
+			return user
+		owner = self.get_album_owner(albumkey)
+		if owner.id == user.id:
+			return user
+		raise WrongPermissionsError()
 
 	def get_albums(
 		self,
@@ -289,11 +300,11 @@ class AlbumService:
 	def save_album(
 		self,
 		album: AlbumCreationInfo,
-		user: AccountInfo,
 		albumId: Optional[int]=None
 	) -> Optional[AlbumInfo]:
 		if not album and not albumId:
 			raise ValueError("No album info to save")
+		user = self.current_user_provider.get_scoped_user()
 		upsert = update if albumId else insert
 		savedName = SavedNameString(album.name)
 		stmt = upsert(albums_tbl).values(

@@ -20,34 +20,14 @@ from musical_chairs_libs.services import (
 	AlbumService,
 )
 from api_dependencies import (
-	get_user_with_simple_scopes,
 	album_service,
 	get_page_num,
 	get_current_user_simple,
 	user_for_filters
 )
-from api_error import (
-	build_wrong_permissions_error,
-)
 from sqlalchemy.exc import IntegrityError
 
-router = APIRouter(prefix="/albums")
-
-def can_edit_album(
-	albumkey: int,
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.ALBUM_EDIT.value]
-	),
-	albumService: AlbumService = Depends(album_service)
-) -> AccountInfo:
-	if user.isadmin:
-		return user
-	owner = albumService.get_album_owner(albumkey)
-	if owner.id == user.id:
-		return user
-	raise build_wrong_permissions_error()
-	
+router = APIRouter(prefix="/albums")	
 
 
 @router.get("/page")
@@ -114,13 +94,12 @@ def get(
 @router.post("")
 def create_album(
 	album: AlbumCreationInfo,
-	albumService: AlbumService = Depends(album_service),
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
+	albumService: AlbumService = Security(
+		album_service,
 		scopes=[UserRoleDef.ALBUM_EDIT.value]
-	)
+	),
 ) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, user=user)
+	albumInfo = albumService.save_album(album)
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -134,10 +113,12 @@ def create_album(
 def update_album(
 	albumkey: int,
 	album: AlbumCreationInfo,
-	albumService: AlbumService = Depends(album_service),
-	user: AccountInfo = Depends(can_edit_album)
+	albumService: AlbumService = Security(
+		album_service,
+		scopes=[UserRoleDef.ALBUM_EDIT.value]
+	)
 ) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, user=user, albumId=albumkey)
+	albumInfo = albumService.save_album(album, albumId=albumkey)
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -150,11 +131,13 @@ def update_album(
 @router.delete(
 	"/{albumkey}",
 	status_code=status.HTTP_204_NO_CONTENT,
-	dependencies=[Depends(can_edit_album)]
 )
 def delete(
 	albumkey: int,
-	albumService: AlbumService = Depends(album_service),
+	albumService: AlbumService = Security(
+		album_service,
+		scopes=[UserRoleDef.ALBUM_EDIT.value]
+	),
 ):
 	try:
 		if albumService.delete_album(albumkey) == 0:

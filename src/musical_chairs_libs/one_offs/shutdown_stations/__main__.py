@@ -8,7 +8,7 @@ try:
 		ConfigAcessors.db_name()
 	)
 	stationProcessService = StationProcessService(conn)
-	stationProcessService.disable_stations(stationIds=None)
+	stationProcessService.disable_stations(stationId=None)
 except OperationalError as ex:
 	print("Could not the shutdown operation."
 	" Assuming that they are already down.")

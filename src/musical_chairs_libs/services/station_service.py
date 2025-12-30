@@ -48,7 +48,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationCreationInfo,
 	SavedNameString,
 	get_datetime,
-	AccountInfo,
 	ActionRule,
 	UserRoleDef,
 	AlreadyUsedError,
@@ -60,6 +59,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	row_to_action_rule
 )
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
+from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
 
@@ -69,7 +69,8 @@ class StationService:
 
 	def __init__(
 		self,
-		conn: Optional[Connection]=None,
+		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
 		templateService: Optional[TemplateService]=None,
 		pathRuleService: Optional[PathRuleService]=None
 	):
@@ -83,6 +84,7 @@ class StationService:
 		self.template_service = templateService
 		self.path_rule_service = pathRuleService
 		self.get_datetime = get_datetime
+		self.current_user_provider = currentUserProvider
 
 	def get_station_id(
 			self,
@@ -255,7 +257,6 @@ class StationService:
 		self,
 		stationKeys: Union[int, str, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
-		user: Optional[AccountInfo]=None,
 		scopes: Optional[Collection[str]]=None
 	) -> Iterator[StationInfo]:
 		query = select(
@@ -280,6 +281,7 @@ class StationService:
 		).select_from(stations_tbl)\
 		.join(user_tbl, st_ownerFk == u_pk, isouter=True)
 
+		user = self.current_user_provider.optional_user()
 		if user:
 			query = self.__attach_user_joins__(query, user.id, scopes)
 		else:
@@ -318,8 +320,8 @@ class StationService:
 		self,
 		id: Optional[int],
 		stationName: SavedNameString,
-		userId: int,
 	) -> bool:
+		userId = self.current_user_provider.current_user().id
 		queryAny = select(func.count(1)).select_from(stations_tbl)\
 				.where(st_name == str(stationName))\
 				.where(st_ownerFk == userId)\
@@ -332,18 +334,16 @@ class StationService:
 		self,
 		id: Optional[int],
 		stationName: str,
-		userId: int
 	) -> bool:
 		cleanedStationName = SavedNameString(stationName)
 		if not cleanedStationName:
 			return True
-		return self.__is_stationName_used__(id, cleanedStationName, userId)
+		return self.__is_stationName_used__(id, cleanedStationName)
 
 
 	def __create_initial_owner_rules__(
 		self,
 		stationId: int,
-		userId: int
 	) -> list[ActionRule]:
 		rules = [
 			ActionRule(
@@ -368,6 +368,7 @@ class StationService:
 				priority=None
 			)
 		]
+		userId = self.current_user_provider.current_user().id
 		params: list[dict[str, Any]] = [
 			{
 				**rule.model_dump(exclude={"name", "domain"}),
@@ -385,7 +386,6 @@ class StationService:
 	def save_station(
 		self,
 		station: StationCreationInfo,
-		user: AccountInfo,
 		stationId: int,
 	) -> Optional[StationInfo]:
 		...
@@ -394,7 +394,6 @@ class StationService:
 	def save_station(
 		self,
 		station: StationCreationInfo,
-		user: AccountInfo,
 	) -> StationInfo:
 		...
 
@@ -402,11 +401,11 @@ class StationService:
 	def save_station(
 		self,
 		station: StationCreationInfo,
-		user: AccountInfo,
 		stationId: Optional[int]=None,
 	) -> Optional[StationInfo]:
 		if not station:
 			return next(self.get_stations(stationId), None)
+		user = self.current_user_provider.get_rate_limited_user()
 		upsert = update if stationId else insert
 		savedName = SavedNameString(station.name)
 		savedDisplayName = SavedNameString(station.displayname)
@@ -437,7 +436,7 @@ class StationService:
 			rules = []
 			if not stationId:
 				rules = list({
-						*self.__create_initial_owner_rules__(affectedId, user.id),
+						*self.__create_initial_owner_rules__(affectedId),
 						*get_station_owner_rules()
 					})
 			self.conn.commit()
@@ -513,15 +512,14 @@ class StationService:
 	def copy_station(
 		self, 
 		stationId: int, 
-		copy: StationCreationInfo,
-		user: AccountInfo,
+		copy: StationCreationInfo
 	) -> Optional[StationInfo]:
 		songIdsQuery = select(stsg_songFk).where(stsg_stationFk == stationId)
 		rows = self.conn.execute(songIdsQuery)
 		songIds = [cast(int,row[0]) for row in rows]
 		if not any(songIds):
 			return None
-		created = self.save_station(copy, user)
+		created = self.save_station(copy)
 		params = [{
 			"stationfk": created.id,
 			"songfk": s

@@ -20,35 +20,15 @@ from musical_chairs_libs.services import (
 	ArtistService,
 )
 from api_dependencies import (
-	get_user_with_simple_scopes,
 	artist_service,
 	user_for_filters,
 	get_page_num,
 	get_current_user_simple
 )
-from api_error import (
-	build_wrong_permissions_error,
-)
 from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/artists")
 
-
-def can_edit_artist(
-	artistid: int,
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.ARTIST_EDIT.value]
-	),
-	artistService: ArtistService = Depends(artist_service)
-) -> AccountInfo:
-	if user.isadmin:
-		return user
-	owner = artistService.get_artist_owner(artistid)
-	if owner.id == user.id:
-		return user
-	raise build_wrong_permissions_error()
-	
 
 
 @router.get("/page")
@@ -104,12 +84,8 @@ def get(
 def create_artist(
 	name: str,
 	artistService: ArtistService = Depends(artist_service),
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.PATH_EDIT.value]
-	)
 ) -> ArtistInfo:
-	artistInfo = artistService.save_artist(user, name)
+	artistInfo = artistService.save_artist(name)
 	if not artistInfo:
 		raise HTTPException(
 			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -123,12 +99,13 @@ def create_artist(
 def update_artist(
 	artistid: int,
 	artistInfoUpdate: FrozenNamed,
-	artistService: ArtistService = Depends(artist_service),
-	user: AccountInfo = Depends(can_edit_artist)
+	artistService: ArtistService = Security(
+		artist_service,
+		scopes=[UserRoleDef.ARTIST_EDIT.value]
+	)
 ) -> ArtistInfo:
 	artistInfo = artistService.save_artist(
 		artistName=artistInfoUpdate.name,
-		user=user,
 		artistId=artistid
 	)
 	if not artistInfo:
@@ -142,12 +119,14 @@ def update_artist(
 
 @router.delete(
 	"/{artistid}",
-	status_code=status.HTTP_204_NO_CONTENT,
-	dependencies=[Depends(can_edit_artist)]
+	status_code=status.HTTP_204_NO_CONTENT
 )
 def delete(
 	artistid: int,
-	albumService: ArtistService = Depends(artist_service)
+	albumService: ArtistService = Security(
+		artist_service,
+		scopes=[UserRoleDef.ARTIST_EDIT.value]
+	)
 ):
 	try:
 		if albumService.delete_album(artistid) == 0:

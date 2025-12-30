@@ -45,7 +45,6 @@ def __get_station_id_set__(
 	else:
 		return {s.id for s in stationService.get_stations(
 		stationKeys=stationKeys,
-		user=user,
 	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s.rules)}
 
 
@@ -87,7 +86,6 @@ def __validate_song_stations__(
 	permittedStations = {s.id for s in \
 			stationService.get_stations(
 			stationIds,
-			user=user,
 			scopes=[UserRoleDef.STATION_ASSIGN.value]
 		) if not all(r.blocked for r in s.rules)
 	} | linkedStationIds #if song is already linked, we will permit

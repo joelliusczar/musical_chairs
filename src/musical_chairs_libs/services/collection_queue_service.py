@@ -8,7 +8,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	UserRoleDef,
 	RulePriorityLevel,
-	TrackingInfo,
 	CatalogueItem,
 	CurrentPlayingInfo,
 	QueueRequest,
@@ -42,7 +41,6 @@ from musical_chairs_libs.tables import (
 	lp_parentKey,
 )
 from .queue_service import QueueService
-from .station_service import StationService
 from .album_queue_service import AlbumQueueService
 from .playlist_queue_service import PlaylistQueueService
 from numpy.random import (
@@ -90,9 +88,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 
 	def __init__(
 		self,
-		conn: Optional[Connection]=None,
-		queueService: Optional[QueueService]=None,
-		stationService: Optional[StationService]=None,
+		conn: Connection,
+		queueService: QueueService,
 		albumQueueService: Optional[AlbumQueueService]=None,
 		playlistQueueService: Optional[PlaylistQueueService]=None,
 		choiceSelector: Optional[
@@ -101,10 +98,6 @@ class CollectionQueueService(SongPopper, RadioPusher):
 	) -> None:
 			if not conn:
 				raise RuntimeError("No connection provided")
-			if not queueService:
-				queueService = QueueService(conn)
-			if not stationService:
-				stationService = StationService(conn)
 			if not choiceSelector:
 				choiceSelector = choice
 			if not albumQueueService:
@@ -121,7 +114,6 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			self.queue_service = queueService
 			self.album_queue_service = albumQueueService
 			self.playlist_queue_service = playlistQueueService
-			self.station_service = stationService
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.queue_size = 3
@@ -317,8 +309,6 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		self,
 		itemId: int,
 		station: StationInfo,
-		user: AccountInfo,
-		trackingInfo: TrackingInfo,
 		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST,
 	):
 		
@@ -326,16 +316,12 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			self.album_queue_service.add_to_queue(
 				itemId,
 				station,
-				user,
-				trackingInfo,
 				stationItemType
 			)
 		elif stationItemType == StationRequestTypes.PLAYLIST:
 			self.playlist_queue_service.add_to_queue(
 				itemId,
 				station,
-				user,
-				trackingInfo,
 				stationItemType
 			)
 		return
@@ -527,17 +513,17 @@ class CollectionQueueService(SongPopper, RadioPusher):
 	def remove_song_from_queue(self,
 		songId: int,
 		queuedTimestamp: float,
-		stationId: int
+		station: StationInfo,
 	) -> Optional[CurrentPlayingInfo]:
 		if not self.queue_service.__mark_queued_song_skipped__(
 			songId,
 			queuedTimestamp,
-			stationId
+			station.id
 		):
 			return None
-		self.fil_up_queue(stationId, self.queue_size)
+		self.fil_up_queue(station.id, self.queue_size)
 		self.conn.commit()
-		return self.queue_service.get_now_playing_and_queue(stationId)
+		return self.queue_service.get_now_playing_and_queue(station)
 
 
 	def accepted_request_types(self) -> set[StationRequestTypes]:

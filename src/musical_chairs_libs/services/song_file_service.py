@@ -72,11 +72,11 @@ class SongFileService:
 		self,
 		conn: Connection,
 		fileService: FileService,
+		artistService: ArtistService,
+		albumService: AlbumService,
 		songArtistService: Optional[SongArtistService]=None,
 		jobService: Optional[JobsService]=None,
 		pathRuleService: Optional[PathRuleService]=None,
-		artistService: Optional[ArtistService]=None,
-		albumService: Optional[AlbumService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -89,10 +89,6 @@ class SongFileService:
 			jobService = JobsService(conn, fileService)
 		if not pathRuleService:
 			pathRuleService = PathRuleService(conn)
-		if not artistService:
-			artistService = ArtistService(conn, pathRuleService)
-		if not albumService:
-			albumService = AlbumService(conn, artistService, pathRuleService)
 		self.song_artist_service = songArtistService
 		self.job_service = jobService
 		self.artist_service = artistService

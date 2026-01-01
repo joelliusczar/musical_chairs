@@ -6,6 +6,7 @@ from fastapi import (
 	Request
 )
 from musical_chairs_libs.services import (
+	CurrentUserProvider,
 	StationService,
 	ArtistService,
 	AlbumService,
@@ -22,8 +23,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_path_owner_roles
 )
 from api_dependencies import (
+	current_user_provider,
 	station_service,
-	get_path_rule_loaded_current_user,
 	get_from_query_subject_user,
 	album_service,
 	artist_service,
@@ -48,28 +49,40 @@ def __get_station_id_set__(
 	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s.rules)}
 
 
-def get_song_ids(request: Request) -> Iterable[int]:
+def get_song_ids(request: Request) -> list[int]:
 	result: set[int] = set()
 	fieldName = ""
 	try:
-		fieldName = "itemid"
-		itemId = request.path_params.get(fieldName, None)
-		if not itemId is None:
-			result.add(int(itemId))
-		fieldName = "itemids"
-		itemIds = request.query_params.getlist(fieldName)
-		result.update((int(i) for i in itemIds))
+		fieldNames = ["itemid", "id", "songid"]
+		for fieldName in fieldNames:
+			key = request.path_params.get(fieldName, None)
+			if not key is None:
+				result.add(int(key))
+
+		fieldNames = ["itemids", "songids", "itemIds"]
+		for fieldName in fieldNames:
+			keys = request.query_params.getlist(fieldName)
+			result.update((int(i) for i in keys))
 
 	except ValueError:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail=[
 				build_error_obj(
-					f"Not a valid integer",
+					f"Not a valid integer for the song id(s)",
 					fieldName
 				)],
 		)
-	return result
+	return [*result]
+
+
+def get_secured_song_ids(
+	songIds: list[int] = Depends(get_song_ids),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> list[int]:
+	currentUserProvider.get_multi_path_user(songIds)
+	return songIds
+
 
 def __validate_song_stations__(
 	song: ValidatedSongAboutInfo,
@@ -161,12 +174,13 @@ def __validate_song_album(
 def extra_validated_song(
 	song: ValidatedSongAboutInfo,
 	songIds: Iterable[int] = Depends(get_song_ids),
-	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 	stationService: StationService = Depends(station_service),
 	stationsSongsService: StationsSongsService = Depends(stations_songs_service),
 	artistService: ArtistService = Depends(artist_service),
 	albumService: AlbumService = Depends(album_service)
 ) -> ValidatedSongAboutInfo:
+	user = currentUserProvider.get_path_rule_loaded_current_user()
 	__validate_song_stations__(
 		song,
 		songIds,

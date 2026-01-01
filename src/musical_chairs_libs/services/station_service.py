@@ -71,15 +71,13 @@ class StationService:
 		self,
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
+		pathRuleService: PathRuleService,
 		templateService: Optional[TemplateService]=None,
-		pathRuleService: Optional[PathRuleService]=None
 	):
 		if not conn:
 			raise RuntimeError("No connection provided")
 		if not templateService:
 			templateService = TemplateService()
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.template_service = templateService
 		self.path_rule_service = pathRuleService

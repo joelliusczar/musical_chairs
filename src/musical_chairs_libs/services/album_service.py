@@ -68,15 +68,17 @@ class AlbumService:
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
 		stationsAlbumsService: StationsAlbumsService,
+		pathRuleService: PathRuleService,
 		artistService: Optional[ArtistService]=None,
-		pathRuleService: Optional[PathRuleService]=None,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		if not artistService:
-			artistService = ArtistService(conn, currentUserProvider)
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
+			artistService = ArtistService(
+				conn,
+				currentUserProvider,
+				pathRuleService
+			)
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.artist_service = artistService

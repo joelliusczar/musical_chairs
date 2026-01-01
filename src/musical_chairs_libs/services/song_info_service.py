@@ -19,7 +19,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ChangeTrackedSongInfo,
 	StationSongTuple,
 	SongArtistTuple,
-	AccountInfo,
 	normalize_opening_slash,
 	clean_search_term_for_like,
 	PathDict,
@@ -86,7 +85,7 @@ class SongInfoService:
 		self,
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
-		pathRuleService: Optional[PathRuleService]=None,
+		pathRuleService: PathRuleService,
 		songArtistService: Optional[SongArtistService]=None,
 		stationsSongsService: Optional[StationsSongsService]=None,
 		playlistsSongsService: Optional[PlaylistsSongsService]=None
@@ -94,8 +93,6 @@ class SongInfoService:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
 		if not songArtistService:
 			songArtistService = SongArtistService(conn)
 		if not stationsSongsService:
@@ -171,6 +168,7 @@ class SongInfoService:
 					path=row[sg_path],
 					name=SavedNameString.format_name_for_save(row[sg_name])
 				)
+
 
 	def get_songIds(
 		self,
@@ -259,7 +257,6 @@ class SongInfoService:
 	def get_songs_for_edit(
 		self,
 		songIds: Iterable[int],
-		user: AccountInfo,
 	) -> Iterator[SongEditInfo]:
 		yield from self.get_all_songs(songIds=songIds)
 
@@ -276,15 +273,15 @@ class SongInfoService:
 		self,
 		ids: Iterable[int],
 		songInfo: ChangeTrackedSongInfo,
-		user: AccountInfo
 	) -> Iterator[SongEditInfo]:
 		if not ids:
 			return iter([])
 		if not songInfo:
 			return self.get_songs_for_edit(ids, user)
+		ids = list(ids)
+		user = self.current_user_provider.get_multi_path_user(ids)
 		if not songInfo.touched:
 			songInfo.touched = {f for f in SongAboutInfo.model_fields}
-		ids = list(ids)
 		songInfo.name = str(SavedNameString(songInfo.name))
 		songInfoDict = songInfo.model_dump()
 		songInfoDict.pop("artists", None)
@@ -339,9 +336,9 @@ class SongInfoService:
 			self.update_track_nums(songInfo.trackinfo)
 		self.conn.commit()
 		if len(ids) < 2:
-			yield from self.get_songs_for_edit(ids, user)
+			yield from self.get_songs_for_edit(ids)
 		else:
-			fetched = self.get_songs_for_multi_edit(ids, user)
+			fetched = self.get_songs_for_multi_edit(ids)
 			if fetched:
 				yield fetched
 
@@ -349,7 +346,6 @@ class SongInfoService:
 	def get_songs_for_multi_edit(
 		self,
 		songIds: Iterable[int],
-		user: AccountInfo
 	) -> Optional[SongEditInfo]:
 		if not songIds:
 			return None
@@ -358,7 +354,7 @@ class SongInfoService:
 		removedFields: set[str] = set()
 		rules = None
 		trackInfo: dict[int, TrackListing] = {}
-		for songInfo in self.get_songs_for_edit(songIds, user):
+		for songInfo in self.get_songs_for_edit(songIds):
 			if rules is None: #empty set means no permissions. Don't overwrite
 				rules = set(songInfo.rules)
 			else:

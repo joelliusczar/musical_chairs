@@ -131,12 +131,10 @@ class PlaylistService:
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
 		stationsPlaylistsService: StationsPlaylistsService,
-		pathRuleService: Optional[PathRuleService]=None,
+		pathRuleService: PathRuleService,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
 		if not stationsPlaylistsService:
 			stationsPlaylistsService = StationsPlaylistsService(conn)
 		self.conn = conn

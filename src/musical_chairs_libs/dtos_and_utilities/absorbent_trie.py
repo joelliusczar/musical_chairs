@@ -204,6 +204,8 @@ class AbsorbentTrie(Generic[T]):
 
 	def matches(self, path: str) -> bool:
 		node = self
+		if not len(node.__prefix_map__):
+			return False
 		pathIdx = 0
 		if path:
 			while pathIdx < len(path):

@@ -2,6 +2,7 @@
 import re
 import uuid
 import hashlib
+from .current_user_provider import CurrentUserProvider
 from typing import (
 	Any,
 	BinaryIO,
@@ -25,7 +26,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ChainedAbsorbentTrie,
 	SongTreeNode,
 	normalize_closing_slash,
-	AccountInfo,
 	SavedNameString,
 	SongArtistTuple,
 	AlreadyUsedError,
@@ -74,6 +74,7 @@ class SongFileService:
 		fileService: FileService,
 		artistService: ArtistService,
 		albumService: AlbumService,
+		currentUserProvider: CurrentUserProvider,
 		songArtistService: Optional[SongArtistService]=None,
 		jobService: Optional[JobsService]=None,
 		pathRuleService: Optional[PathRuleService]=None,
@@ -88,19 +89,20 @@ class SongFileService:
 		if not jobService:
 			jobService = JobsService(conn, fileService)
 		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
+			pathRuleService = PathRuleService(conn, fileService)
 		self.song_artist_service = songArtistService
 		self.job_service = jobService
 		self.artist_service = artistService
 		self.album_service = albumService
+		self.current_user_provider = currentUserProvider
 
 	def __create_directory__(
 		self,
 		prefix: str,
 		suffix: str,
 		name: str,
-		user: AccountInfo,
 	):
+		user = self.current_user_provider.get_song_or_path_user(prefix=prefix)
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
@@ -119,11 +121,10 @@ class SongFileService:
 		self,
 		prefix: str,
 		suffix: str,
-		user: AccountInfo,
 	) -> Mapping[str, Collection[SongTreeNode]]:
-		self.__create_directory__(prefix, suffix, suffix, user)
+		self.__create_directory__(prefix, suffix, suffix)
 		self.conn.commit()
-		return self.song_ls_parents(user, prefix, includeTop=False)
+		return self.song_ls_parents(prefix, includeTop=False)
 	
 	def extract_song_info(self, file: BinaryIO) -> SongAboutInfo:
 		try:
@@ -166,7 +167,6 @@ class SongFileService:
 			file: BinaryIO,
 			prefix: str,
 			suffix: str,
-			userId: int
 		) -> SongTreeNode:
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}", "/"),
@@ -177,6 +177,7 @@ class SongFileService:
 				f"{path} is already used",
 				"suffix"
 			)
+		userId = self.current_user_provider.get_song_or_path_user(prefix=prefix).id
 		self.delete_overlaping_placeholder_dirs(path)
 		cleanedSuffix = re.sub(r"[^\w\.]+","-",suffix).casefold()
 		internalPath = f"{str(uuid.uuid4())}-{cleanedSuffix}"
@@ -292,9 +293,9 @@ class SongFileService:
 	"""
 	def song_ls(
 		self,
-		user: AccountInfo,
 		prefix: Optional[str]=None
 	) -> Iterator[SongTreeNode]:
+		user = self.current_user_provider.get_path_rule_loaded_current_user()
 		permittedPathTree = user.get_permitted_paths_tree()
 		if type(prefix) == str:
 			query = self.__song_ls_query__(prefix)
@@ -341,10 +342,10 @@ class SongFileService:
 
 	def song_ls_parents(
 		self,
-		user: AccountInfo,
 		prefix: str,
 		includeTop: bool=True
 	) -> Mapping[str, Collection[SongTreeNode]]:
+		user = self.current_user_provider.get_path_rule_loaded_current_user()
 		permittedPathTree = user.get_permitted_paths_tree()
 		queryList: list[
 			Select[Tuple[str, Optional[String], int, Integer, String]]
@@ -361,21 +362,6 @@ class SongFileService:
 		)
 		result = self.__build_song_tree_dict__(nodes)
 		return result
-
-
-	def get_song_path(
-		self,
-		itemIds: Union[Iterable[int], int]
-	) -> Iterator[str]:
-		query = select(sg_path).where(sg_deletedTimstamp.is_(None))
-		if isinstance(itemIds, Iterable):
-			query = query.where(sg_pk.in_(itemIds))
-		else:
-			query = query.where(sg_pk == itemIds)
-		results = self.conn.execute(query)
-		yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
-			for row in results
-		)
 
 	def get_internal_song_paths(
 		self,
@@ -483,6 +469,7 @@ class SongFileService:
 		]
 		return self.__are_paths_used__(cleanedPaths)
 
+
 	def is_path_used(
 		self,
 		id: Optional[int],
@@ -495,6 +482,7 @@ class SongFileService:
 			return True
 		return self.__is_path_used__(cleanedPath, id)
 
+
 	def __remove_song_references__(self, songId: int):
 		stmt = delete(song_artist_tbl).where(sgar_songFk == songId)
 		self.conn.execute(stmt)
@@ -503,10 +491,10 @@ class SongFileService:
 		stmt = delete(stations_songs_tbl).where(stsg_songFk == songId)
 		self.conn.execute(stmt)
 
+
 	def delete_prefix(
 		self,
 		prefix: str,
-		user: AccountInfo
 	) -> Mapping[str, Collection[SongTreeNode]]:
 		_prefix = normalize_opening_slash(
 				squash_sequential_duplicate_chars(prefix, "/")
@@ -530,25 +518,25 @@ class SongFileService:
 			self.conn.commit()
 		else:
 			self.job_service.add(r[1] for r in rows)
-			self.soft_delete_songs((r[0] for r in rows), user)
+			self.soft_delete_songs((r[0] for r in rows))
 			self.conn.commit()
 		parentPrefix = str(Path(prefix).parent)
-		return self.song_ls_parents(user, parentPrefix, includeTop=False)
+		return self.song_ls_parents(parentPrefix, includeTop=False)
 
 
 	def move_path(
 		self,
 		transfer: DirectoryTransfer,
-		user: AccountInfo
 	) -> Mapping[str, Collection[SongTreeNode]]:
 		if not transfer.newprefix or transfer.newprefix.isspace():
 			raise ValueError("Cannot move to that directory")
-		newprefix = normalize_opening_slash(
-			squash_sequential_duplicate_chars(transfer.newprefix, "/")
-		)
+		user = self.current_user_provider.get_directory_transfering_user(transfer)
 		isSrcPathBlank= not transfer.path or transfer.path.isspace()
 		if isSrcPathBlank or transfer.path == user.dirroot:
 			raise ValueError("Cannot move that directory")
+		newprefix = normalize_opening_slash(
+			squash_sequential_duplicate_chars(transfer.newprefix, "/")
+		)
 		path = squash_sequential_duplicate_chars(transfer.path, "/")
 		prefix = normalize_opening_slash(
 			normalize_closing_slash(str(Path(path).parent)),
@@ -575,15 +563,15 @@ class SongFileService:
 				prefix="",
 				suffix=prefix,
 				name=Path(prefix).stem,
-				user=user
 			)
 		self.conn.commit()
 
-		return self.song_ls_parents(user, newprefix, includeTop=False)
+		return self.song_ls_parents(newprefix, includeTop=False)
 	
 
 
-	def soft_delete_songs(self, songIds: Iterable[int], user: AccountInfo):
+	def soft_delete_songs(self, songIds: Iterable[int]):
+		user = self.current_user_provider.get_path_rule_loaded_current_user()
 		stmt = update(songs_tbl).values(
 			deletedtimestamp = self.get_datetime().timestamp(),
 			deletedbyuserfk = user.id

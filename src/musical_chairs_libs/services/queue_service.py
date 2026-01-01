@@ -97,20 +97,22 @@ class QueueService(SongPopper, RadioPusher):
 		currentUserProvider: CurrentUserProvider,
 		actionsHistoryManagementService: ActionsHistoryManagementService,
 		songInfoService: SongInfoService,
+		pathRuleService: PathRuleService,
 		stationService: Optional[StationService]=None,
 		choiceSelector: Optional[
 			Callable[[Sequence[Any], int], Collection[Any]]
 		]=None,
-		pathRuleService: Optional[PathRuleService]=None,
 	) -> None:
 			if not conn:
 				raise RuntimeError("No connection provided")
 			if not stationService:
-				stationService = StationService(conn, currentUserProvider)
+				stationService = StationService(
+					conn,
+					currentUserProvider,
+					pathRuleService
+				)
 			if not choiceSelector:
 				choiceSelector = choice
-			if not pathRuleService:
-				pathRuleService = PathRuleService(conn)
 			self.conn = conn
 			self.current_user_provider = currentUserProvider
 			self.station_service = stationService

@@ -4,7 +4,6 @@ from typing import (
 	Iterator,
 	Tuple,
 	Optional,
-	Iterable,
 	Union,
 	Collection,
 	Callable
@@ -64,14 +63,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDomain,
 	ActionRule,
 	get_datetime,
-	get_path_owner_roles,
-	PathsActionRule,
-	ChainedAbsorbentTrie,
 	normalize_opening_slash,
 	UserRoleDef,
 	StationInfo,
 	int_or_str,
-	DirectoryTransfer,
 	TrackingInfo,
 	PlaylistInfo,
 )
@@ -86,7 +81,6 @@ from api_error import (
 	build_not_wrong_credentials_error,
 	build_expired_credentials_error,
 	build_wrong_permissions_error,
-	build_too_many_requests_error
 )
 from datetime import datetime
 from base64 import urlsafe_b64decode
@@ -235,6 +229,17 @@ def actions_history_query_service(
 	return ActionsHistoryQueryService(conn)
 
 
+def file_service() -> FileService:
+	return S3FileService()
+
+
+def path_rule_service(
+	conn: Connection=Depends(get_configured_db_connection),
+	fileService: FileService=Depends(file_service),
+) -> PathRuleService:
+	return PathRuleService(conn, fileService)
+
+
 def current_user_provider(
 	securityScopes: SecurityScopes,
 	user: AccountInfo = Depends(get_optional_user_from_token),
@@ -244,11 +249,13 @@ def current_user_provider(
 	actionsHistoryQueryService: ActionsHistoryQueryService = Depends(
 		actions_history_query_service
 	),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> CurrentUserProvider:
 	return CurrentUserProvider(
 		user,
 		currentUserTrackingService,
 		actionsHistoryQueryService,
+		pathRuleService,
 		set(securityScopes.scopes)
 	)
 
@@ -308,15 +315,17 @@ def account_token_creator(
 def playlists_songs_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> PlaylistsSongsService:
-	return PlaylistsSongsService(conn, currentUserProvider)
+	return PlaylistsSongsService(conn, currentUserProvider, pathRuleService)
 
 
 def song_info_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	pathRuleService: PathRuleService = Depends(path_rule_service)
 ) -> SongInfoService:
-	return SongInfoService(conn, currentUserProvider)
+	return SongInfoService(conn, currentUserProvider, pathRuleService)
 
 
 def queue_service(
@@ -324,13 +333,15 @@ def queue_service(
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 	userActionHistoryService: ActionsHistoryManagementService =
 		Depends(actions_history_management_service),
-	songInfoService: SongInfoService = Depends(song_info_service)
+	songInfoService: SongInfoService = Depends(song_info_service),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> QueueService:
 	return QueueService(
 		conn,
 		currentUserProvider,
 		userActionHistoryService,
-		songInfoService
+		songInfoService,
+		pathRuleService,
 	)
 
 
@@ -339,8 +350,9 @@ def station_service(
 	userProvider: CurrentUserProvider = Depends(
 		current_user_provider
 	),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> StationService:
-	return StationService(conn, userProvider)
+	return StationService(conn, userProvider, pathRuleService)
 
 
 def stations_albums_service(
@@ -355,9 +367,15 @@ def album_service(
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 	stationsAlbumsService: StationsAlbumsService = Depends(
 		stations_albums_service
-	)
+	),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> AlbumService:
-	return AlbumService(conn, currentUserProvider, stationsAlbumsService)
+	return AlbumService(
+		conn,
+		currentUserProvider,
+		stationsAlbumsService,
+		pathRuleService
+	)
 
 
 def station_process_service(
@@ -395,45 +413,45 @@ def playlist_service(
 	),
 	stationsPlaylistsService: StationsPlaylistsService = Depends(
 		stations_playlists_service
-	)
+	),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> PlaylistService:
-	return PlaylistService(conn, userProvider, stationsPlaylistsService)
+	return PlaylistService(
+		conn,
+		userProvider,
+		stationsPlaylistsService,
+		pathRuleService,
+	)
 
 
 def playlists_users_service(
-	conn: Connection=Depends(get_configured_db_connection)
+	conn: Connection=Depends(get_configured_db_connection),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> PlaylistsUserService:
-	return PlaylistsUserService(conn)
+	return PlaylistsUserService(conn, pathRuleService)
 
 
 def artist_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> ArtistService:
-	return ArtistService(conn, currentUserProvider)
-
-
-def path_rule_service(
-	conn: Connection=Depends(get_configured_db_connection)
-) -> PathRuleService:
-	return PathRuleService(conn)
-
-
-def file_service() -> FileService:
-	return S3FileService()
+	return ArtistService(conn, currentUserProvider, pathRuleService)
 
 
 def song_file_service(
-	conn: Connection=Depends(get_configured_db_connection),
-	fileService: FileService=Depends(file_service),
+	conn: Connection = Depends(get_configured_db_connection),
+	fileService: FileService = Depends(file_service),
 	artistService: ArtistService = Depends(artist_service),
-	albumService: AlbumService = Depends(album_service)
+	albumService: AlbumService = Depends(album_service),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 ) -> SongFileService:
 	return SongFileService(
 		conn,
 		fileService,
 		artistService,
-		albumService
+		albumService,
+		currentUserProvider
 	)
 
 
@@ -641,6 +659,14 @@ def get_station_by_name_and_owner(
 	return station
 
 
+def get_secured_prefix(
+	prefix: str = Depends(get_prefix),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> str:
+	currentUserProvider.get_song_or_path_user(prefix=prefix)
+	return prefix
+
+
 def get_secured_station_by_name_and_owner(
 	station: StationInfo = Depends(get_station_by_name_and_owner),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
@@ -702,152 +728,6 @@ def impersonated_user_id(
 	return None
 
 
-def check_if_can_use_path(
-	scopes: Iterable[str],
-	prefix: str,
-	user: AccountInfo,
-	userPrefixTrie: ChainedAbsorbentTrie[PathsActionRule],
-	userActionHistoryService: ActionsHistoryManagementService
-):
-	scopeSet = set(scopes)
-	rules = ActionRule.sorted(
-		(r for i in userPrefixTrie.values(normalize_opening_slash(prefix)) \
-			for r in i if r.name in scopeSet)
-	)
-	if not rules:
-		raise HTTPException(
-					status_code=status.HTTP_404_NOT_FOUND,
-					detail=[build_error_obj(f"{prefix} not found")
-					]
-				)
-	timeoutLookup = \
-		userActionHistoryService.calc_lookup_for_when_user_can_next_do_action(
-			user.id,
-			rules
-		)
-	for scope in scopeSet:
-		if scope in timeoutLookup:
-			whenNext = timeoutLookup[scope]
-			if whenNext is None:
-				raise build_wrong_permissions_error()
-			if whenNext > 0:
-				currentTimestamp = get_datetime().timestamp()
-				timeleft = whenNext - currentTimestamp
-				raise build_too_many_requests_error(int(timeleft))
-
-
-def get_path_rule_loaded_current_user(
-	securityScopes: SecurityScopes,
-	user: AccountInfo = Depends(get_current_user_simple),
-	pathRuleService: PathRuleService = Depends(path_rule_service)
-) -> AccountInfo:
-	scopes = {s for s in securityScopes.scopes \
-		if UserRoleDomain.Path.conforms(s)
-	}
-	if user.isadmin:
-		return user
-	if not scopes:
-		raise build_wrong_permissions_error()
-	rules = ActionRule.aggregate(
-		user.roles,
-		(p for p in pathRuleService.get_paths_user_can_see(user.id)),
-		(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
-	)
-	roleNameSet = {r.name for r in rules}
-	if any(s for s in scopes if s not in roleNameSet):
-		raise build_wrong_permissions_error()
-	userDict = user.model_dump()
-	userDict["roles"] = rules
-	resultUser = AccountInfo(
-		**userDict,
-	)
-	return resultUser
-
-
-def check_optional_path_for_current_user(
-	securityScopes: SecurityScopes,
-	prefix: Optional[str]=Depends(get_optional_prefix),
-	itemid: Optional[int]=None,
-	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
-	songFileService: SongFileService = Depends(song_file_service),
-	userActionHistoryService: ActionsHistoryManagementService =
-		Depends(actions_history_management_service)
-) -> AccountInfo:
-	if user.isadmin:
-		return user
-	if prefix is None:
-		if itemid:
-			prefix = next(songFileService.get_song_path(itemid), "")
-	scopes = [s for s in securityScopes.scopes \
-		if UserRoleDomain.Path.conforms(s)
-	]
-	if prefix:
-
-		userPrefixTrie = user.get_permitted_paths_tree()
-		check_if_can_use_path(
-			scopes,
-			prefix,
-			user,
-			userPrefixTrie,
-			userActionHistoryService
-		)
-	return user
-
-
-def check_directory_transfer(
-	transfer: DirectoryTransfer,
-	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
-	userActionHistoryService: ActionsHistoryManagementService =
-		Depends(actions_history_management_service)
-) -> AccountInfo:
-	if user.isadmin:
-		return user
-	userPrefixTrie = user.get_permitted_paths_tree()
-	scopes = (
-		(transfer.path, UserRoleDef.PATH_DELETE),
-		(transfer.newprefix, UserRoleDef.PATH_EDIT)
-	)
-
-	for path, scope in scopes:
-		check_if_can_use_path(
-			[scope.value],
-			path,
-			user,
-			userPrefixTrie,
-			userActionHistoryService
-		)
-	return user
-
-
-def get_multi_path_user(
-	securityScopes: SecurityScopes,
-	itemids: list[int]=Query(default=[]),
-	user: AccountInfo=Depends(get_path_rule_loaded_current_user),
-	songFileService: SongFileService = Depends(song_file_service),
-	userActionHistoryService: ActionsHistoryManagementService=
-		Depends(actions_history_management_service)
-) -> AccountInfo:
-	if user.isadmin:
-		return user
-	userPrefixTrie = user.get_permitted_paths_tree()
-	prefixes = songFileService.get_song_path(itemids)
-	scopes = [s for s in securityScopes.scopes \
-		if UserRoleDomain.Path.conforms(s)
-	]
-	for prefix in prefixes:
-		check_if_can_use_path(
-			scopes,
-			prefix,
-			user,
-			userPrefixTrie,
-			userActionHistoryService
-		)
-	return user
-
-filter_permitter_query_songs = get_multi_path_user
-
-
-
 def check_subjectuser(
 	securityScopes: SecurityScopes,
 	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
@@ -906,7 +786,8 @@ def check_back_key(
 		envManager = ConfigAcessors()
 	if envManager.back_key() != x_back_key:
 		raise build_wrong_permissions_error()
-	
+
+
 def __get_playlist_user__(
 	securityScopes: SecurityScopes,
 	playlist: PlaylistInfo,

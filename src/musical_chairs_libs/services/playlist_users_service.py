@@ -113,12 +113,10 @@ class PlaylistsUserService:
 	def __init__(
 		self,
 		conn: Connection,
-		pathRuleService: Optional[PathRuleService]=None
+		pathRuleService: PathRuleService
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService

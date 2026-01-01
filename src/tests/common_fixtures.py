@@ -139,12 +139,28 @@ def fixture_account_access_service(
 ) -> AccountAccessService:
 	return AccountAccessService(fixture_conn_cardboarddb)
 
+@pytest.fixture
+def fixture_file_service() -> FileService:
+	return MockFileService()
+
+
+@pytest.fixture
+def fixture_path_rule_service(
+	fixture_conn_cardboarddb: Connection,
+	fixture_file_service: FileService
+) -> PathRuleService:
+	pathRuleService = PathRuleService(
+		fixture_conn_cardboarddb,
+		fixture_file_service
+	)
+	return pathRuleService
 
 @pytest.fixture
 def fixture_current_user_provider(
 	fixture_account_access_service: AccountAccessService,
 	fixture_tracking_info_provider: TrackingInfoProvider,
 	fixture_actions_history_query_service: ActionsHistoryQueryService,
+	fixture_path_rule_service: PathRuleService,
 	request: pytest.FixtureRequest
 ) -> CurrentUserProvider:
 	currentUsernameMark = request.node.get_closest_marker("current_username")
@@ -156,12 +172,14 @@ def fixture_current_user_provider(
 			return CurrentUserProvider(
 				user,
 				fixture_tracking_info_provider,
-				fixture_actions_history_query_service
+				fixture_actions_history_query_service,
+				fixture_path_rule_service
 			)
 	return CurrentUserProvider(
 		None,
 		fixture_tracking_info_provider,
-		fixture_actions_history_query_service
+		fixture_actions_history_query_service,
+		fixture_path_rule_service
 	)
 
 
@@ -215,11 +233,13 @@ def fixture_populated_db_name(
 @pytest.fixture
 def fixture_song_info_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_current_user_provider: CurrentUserProvider
+	fixture_current_user_provider: CurrentUserProvider,
+	fixture_path_rule_service: PathRuleService,
 ) -> SongInfoService:
 	songInfoService = SongInfoService(
 		fixture_conn_cardboarddb,
-		fixture_current_user_provider
+		fixture_current_user_provider,
+		fixture_path_rule_service
 	)
 	return songInfoService
 
@@ -241,13 +261,15 @@ def fixture_queue_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
 	fixture_user_actions_history_service: ActionsHistoryManagementService,
-	fixture_song_info_service: SongInfoService
+	fixture_song_info_service: SongInfoService,
+	fixture_path_rule_service: PathRuleService,
 ) -> QueueService:
 	queueService = QueueService(
 		fixture_conn_cardboarddb,
 		fixture_current_user_provider,
 		fixture_user_actions_history_service,
-		fixture_song_info_service
+		fixture_song_info_service,
+		fixture_path_rule_service,
 	)
 	return queueService
 
@@ -268,10 +290,12 @@ def fixture_album_queue_service(
 def fixture_station_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
+	fixture_path_rule_service: PathRuleService,
 ) -> StationService:
 	stationService = StationService(
 		fixture_conn_cardboarddb,
-		fixture_current_user_provider
+		fixture_current_user_provider,
+		fixture_path_rule_service,
 	)
 	return stationService
 
@@ -317,12 +341,14 @@ def fixture_stations_playlists_service(
 def fixture_playlist_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
-	fixture_stations_playlists_service: StationsPlaylistsService
+	fixture_stations_playlists_service: StationsPlaylistsService,
+	fixture_path_rule_service: PathRuleService,
 ) -> PlaylistService:
 	service = PlaylistService(
 		fixture_conn_cardboarddb,
 		fixture_current_user_provider,
-		fixture_stations_playlists_service
+		fixture_stations_playlists_service,
+		fixture_path_rule_service
 	)
 	return service
 
@@ -330,20 +356,26 @@ def fixture_playlist_service(
 @pytest.fixture
 def fixture_playlists_songs_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_current_user_provider: CurrentUserProvider
+	fixture_current_user_provider: CurrentUserProvider,
+	fixture_path_rule_service: PathRuleService,
 ) -> PlaylistsSongsService:
 	service = PlaylistsSongsService(
 		fixture_conn_cardboarddb,
-		fixture_current_user_provider
+		fixture_current_user_provider,
+		fixture_path_rule_service,
 	)
 	return service
 
 
 @pytest.fixture
 def fixture_playlists_users_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_path_rule_service: PathRuleService,
 ) -> PlaylistsUserService:
-	service = PlaylistsUserService(fixture_conn_cardboarddb)
+	service = PlaylistsUserService(
+		fixture_conn_cardboarddb,
+		fixture_path_rule_service,
+	)
 	return service
 
 
@@ -351,25 +383,30 @@ def fixture_playlists_users_service(
 def fixture_album_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
-	fixture_stations_albums_service: StationsAlbumsService
+	fixture_stations_albums_service: StationsAlbumsService,
+	fixture_path_rule_service: PathRuleService,
 ) -> AlbumService:
 	albumService = AlbumService(
 		fixture_conn_cardboarddb,
 		fixture_current_user_provider,
-		fixture_stations_albums_service
+		fixture_stations_albums_service,
+		fixture_path_rule_service
 	)
 	return albumService
 
 @pytest.fixture
 def fixture_artist_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_current_user_provider: CurrentUserProvider
+	fixture_current_user_provider: CurrentUserProvider,
+	fixture_path_rule_service: PathRuleService,
 ) -> ArtistService:
 	artistService = ArtistService(
 		fixture_conn_cardboarddb,
-		fixture_current_user_provider
+		fixture_current_user_provider,
+		fixture_path_rule_service,
 	)
 	return artistService
+
 
 @pytest.fixture
 def fixture_songartist_service(
@@ -378,29 +415,21 @@ def fixture_songartist_service(
 	songArtistService = SongArtistService(fixture_conn_cardboarddb)
 	return songArtistService
 
-@pytest.fixture
-def fixture_path_rule_service(
-	fixture_conn_cardboarddb: Connection
-) -> PathRuleService:
-	pathRuleService = PathRuleService(fixture_conn_cardboarddb)
-	return pathRuleService
-
-@pytest.fixture
-def fixture_file_service() -> FileService:
-	return MockFileService()
 
 @pytest.fixture
 def fixture_song_file_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_file_service: FileService,
 	fixture_artist_service: ArtistService,
-	fixture_album_service: AlbumService
+	fixture_album_service: AlbumService,
+	fixture_current_user_provider: CurrentUserProvider
 ) -> SongFileService:
 	songFileService = SongFileService(
 		fixture_conn_cardboarddb,
 		fixture_file_service,
 		fixture_artist_service,
-		fixture_album_service
+		fixture_album_service,
+		fixture_current_user_provider
 	)
 	return songFileService
 

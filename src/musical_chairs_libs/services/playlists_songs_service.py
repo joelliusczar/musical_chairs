@@ -52,12 +52,10 @@ class PlaylistsSongsService:
 		self,
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
-		pathRuleService: Optional[PathRuleService]=None
+		pathRuleService: PathRuleService
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.current_user_provider = currentUserProvider
 		self.get_datetime = get_datetime

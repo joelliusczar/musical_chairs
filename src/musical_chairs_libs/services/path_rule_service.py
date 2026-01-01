@@ -1,4 +1,4 @@
-from typing import Iterator, cast, Optional
+from typing import Iterable, Iterator, cast, Optional, Union
 from sqlalchemy import (
 	select,
 	delete,
@@ -9,6 +9,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
+from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import (
 	PathsActionRule,
 	RulePriorityLevel,
@@ -27,19 +28,22 @@ from musical_chairs_libs.tables import (
 	path_user_permissions as path_user_permissions_tbl,
 	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count,
 	users as user_tbl, u_pk, u_username, u_displayName, u_email, u_dirRoot,
-	u_disabled
+	u_disabled,
+	sg_pk, sg_path, sg_deletedTimstamp,
 )
 
 class PathRuleService:
 
 	def __init__(
 		self,
-		conn: Connection
+		conn: Connection,
+		fileService: FileService,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
+		self.file_service = fileService
 
 
 	def get_paths_user_can_see(self, userId: int) -> Iterator[PathsActionRule]:
@@ -187,4 +191,18 @@ class PathRuleService:
 			records,
 			owner.id if owner else None,
 			prefix
+		)
+
+	def get_song_path(
+		self,
+		itemIds: Union[Iterable[int], int]
+	) -> Iterator[str]:
+		query = select(sg_path).where(sg_deletedTimstamp.is_(None))
+		if isinstance(itemIds, Iterable):
+			query = query.where(sg_pk.in_(itemIds))
+		else:
+			query = query.where(sg_pk == itemIds)
+		results = self.conn.execute(query)
+		yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
+			for row in results
 		)

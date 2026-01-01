@@ -2,8 +2,13 @@ from .actions_history_query_service import ActionsHistoryQueryService
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
+	ChainedAbsorbentTrie,
+	DirectoryTransfer,
 	get_datetime,
+	get_path_owner_roles,
+	normalize_opening_slash,
 	NotLoggedInError,
+	PathsActionRule,
 	TooManyRequestsError,
 	TrackingInfo,
 	StationInfo,
@@ -15,7 +20,8 @@ from musical_chairs_libs.protocols import (
 	TrackingInfoProvider,
 	UserProvider
 )
-from typing import (Any, Optional)
+from .path_rule_service import PathRuleService
+from typing import (Any, Iterable, Optional)
 
 class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 
@@ -23,13 +29,16 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		user: Optional[AccountInfo],
 		trackingInfoProvider: TrackingInfoProvider,
 		actionsHistoryQueryService: ActionsHistoryQueryService,
-		securityScopes: Optional[set[str]] = None
+		pathRuleService: PathRuleService,
+		securityScopes: Optional[set[str]] = None,
 	) -> None:
 		self.__user__ = user
+		self.__path_rule_loaded_user__: Optional[AccountInfo] = None
 		self.tracking_info_provider = trackingInfoProvider
 		self.actions_history_query_service = actionsHistoryQueryService
 		self.get_datetime = get_datetime
 		self.security_scopes = securityScopes or set()
+		self.path_rule_service = pathRuleService
 
 
 	def current_user(self) -> AccountInfo:
@@ -134,6 +143,141 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 	
 	def impersonate(self, user: AccountInfo) -> "Impersonation":
 		return Impersonation(self, user)
+	
+
+	def check_if_can_use_path(
+		self,
+		scopes: list[str],
+		prefix: str,
+		user: AccountInfo,
+		userPrefixTrie: ChainedAbsorbentTrie[PathsActionRule],
+	):
+		scopeSet = scopes
+		rules = ActionRule.sorted(
+			(r for i in userPrefixTrie.values(normalize_opening_slash(prefix)) \
+				for r in i if r.name in scopeSet)
+		)
+		if not rules and scopes:
+			raise WrongPermissionsError(f"{prefix} not found")
+		timeoutLookup = \
+			self.actions_history_query_service\
+				.calc_lookup_for_when_user_can_next_do_action(
+					user.id,
+					rules
+				)
+		for scope in scopeSet:
+			if scope in timeoutLookup:
+				whenNext = timeoutLookup[scope]
+				if whenNext is None:
+					raise WrongPermissionsError()
+				if whenNext > 0:
+					currentTimestamp = get_datetime().timestamp()
+					timeleft = whenNext - currentTimestamp
+					raise TooManyRequestsError(int(timeleft))
+
+
+	def get_path_rule_loaded_current_user(
+		self,
+	) -> AccountInfo:
+		if self.__path_rule_loaded_user__:
+			return self.__path_rule_loaded_user__
+		scopes = {s for s in self.security_scopes \
+			if UserRoleDomain.Path.conforms(s)
+		}
+		user = self.current_user()
+		if user.isadmin:
+			return user
+		if not scopes and self.security_scopes:
+			raise WrongPermissionsError()
+		rules = ActionRule.aggregate(
+			user.roles,
+			(p for p in self.path_rule_service.get_paths_user_can_see(user.id)),
+			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
+		)
+		roleNameSet = {r.name for r in rules}
+		if any(s for s in scopes if s not in roleNameSet):
+			raise WrongPermissionsError()
+		userDict = user.model_dump()
+		userDict["roles"] = rules
+		resultUser = AccountInfo(
+			**userDict,
+		)
+		self.__path_rule_loaded_user__ = resultUser
+		return resultUser
+	
+	def get_song_or_path_user(
+		self,
+		prefix: Optional[str]=None,
+		itemid: Optional[int]=None,
+	) -> AccountInfo:
+		user = self.get_path_rule_loaded_current_user()
+		if user.isadmin:
+			return user
+		if not self.security_scopes:
+			return user
+		if prefix is None:
+			if itemid:
+				prefix = next(self.path_rule_service.get_song_path(itemid), "")
+		scopes = [s for s in self.security_scopes \
+			if UserRoleDomain.Path.conforms(s)
+		]
+		if prefix:
+
+			userPrefixTrie = user.get_permitted_paths_tree()
+			self.check_if_can_use_path(
+				scopes,
+				prefix,
+				user,
+				userPrefixTrie,
+			)
+		return user
+
+
+	def get_directory_transfering_user(
+		self,
+		transfer: DirectoryTransfer,
+	) -> AccountInfo:
+		user = self.get_path_rule_loaded_current_user()
+		if user.isadmin:
+			return user
+		userPrefixTrie = user.get_permitted_paths_tree()
+		scopes = (
+			(transfer.path, UserRoleDef.PATH_DELETE),
+			(transfer.newprefix, UserRoleDef.PATH_EDIT)
+		)
+
+		for path, scope in scopes:
+			self.check_if_can_use_path(
+				[scope.value],
+				path,
+				user,
+				userPrefixTrie,
+			)
+		return user
+
+
+	def get_multi_path_user(
+		self,
+		itemids: Iterable[int],
+		# user: AccountInfo=Depends(get_path_rule_loaded_current_user),
+	) -> AccountInfo:
+		user = self.get_path_rule_loaded_current_user()
+		if user.isadmin:
+			return user
+		userPrefixTrie = user.get_permitted_paths_tree()
+		prefixes = [*self.path_rule_service.get_song_path(itemids)]
+		scopes = [s for s in self.security_scopes \
+			if UserRoleDomain.Path.conforms(s)
+		]
+		for prefix in prefixes:
+			self.check_if_can_use_path(
+				scopes,
+				prefix,
+				user,
+				userPrefixTrie
+			)
+		return user
+
 	
 	
 class Impersonation:

@@ -1,3 +1,4 @@
+from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime
 )
@@ -37,12 +38,14 @@ class StationsUsersService:
 
 	def __init__(
 		self,
-		conn: Connection
+		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
+		self.current_user_provider = currentUserProvider
 
 	def add_user_rule_to_station(
 		self,
@@ -71,7 +74,6 @@ class StationsUsersService:
 	def get_station_users(
 		self,
 		station: StationInfo,
-		userId: Optional[int]=None
 	) -> Iterator[AccountInfo]:
 		rulesQuery = build_station_rules_query().cte()
 		query = select(
@@ -109,8 +111,6 @@ class StationsUsersService:
 				(u_pk == station.owner.id) if station.owner else false()
 			)
 		)
-		if userId is not None:
-			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings()
 		yield from generate_station_user_and_rules_from_rows(

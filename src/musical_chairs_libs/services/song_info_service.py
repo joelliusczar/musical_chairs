@@ -94,9 +94,9 @@ class SongInfoService:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		if not songArtistService:
-			songArtistService = SongArtistService(conn)
+			songArtistService = SongArtistService(conn, currentUserProvider)
 		if not stationsSongsService:
-			stationsSongsService = StationsSongsService(conn)
+			stationsSongsService = StationsSongsService(conn, currentUserProvider)
 		if not playlistsSongsService:
 			playlistsSongsService = PlaylistsSongsService(
 				conn,
@@ -318,19 +318,16 @@ class SongInfoService:
 						if "primaryartist" in
 						songInfo.touched and songInfo.primaryartist else ()
 				),
-				user.id
 			)
 		if "stations" in songInfo.touched:
 			self.stations_songs_service.link_songs_with_stations(
 				(StationSongTuple(sid, t.id if t else None) 
 					for t in (songInfo.stations or [None] * len(ids)) for sid in ids),
-				user.id
 			)
 		if "playlists" in songInfo.touched:
 			self.playlists_songs_service.link_songs_with_playlists(
 				(SongPlaylistTuple(sid, p.id if p else None) 
 					for p in (songInfo.playlists or [None] * len(ids)) for sid in ids),
-				user.id
 			)
 		if "trackinfo" in songInfo.touched:
 			self.update_track_nums(songInfo.trackinfo)
@@ -483,7 +480,7 @@ class SongInfoService:
 		
 		pathRuleTree = None
 		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
 		query = query\
 			.offset(offset)

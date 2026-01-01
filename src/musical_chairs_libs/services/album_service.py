@@ -223,7 +223,6 @@ class AlbumService:
 		self,
 		albumId: Optional[int],
 		albumInfo: AlbumInfo,
-		user: Optional[AccountInfo]=None
 	) -> Iterator[SongListDisplayItem]:
 		songsQuery = select(
 			sg_pk.label("id"),
@@ -251,8 +250,8 @@ class AlbumService:
 			.order_by(sg_disc, sg_trackNum)
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+		if self.current_user_provider.is_loggedIn():
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
 		songs = (
 			SongListDisplayItem(
@@ -272,7 +271,6 @@ class AlbumService:
 	def get_album(
 			self,
 			albumId: Optional[int],
-			user: Optional[AccountInfo]=None
 		) -> Optional[SongsAlbumInfo]:
 		albumInfo = next(self.get_albums(albumKeys=albumId), None)
 		if not albumInfo:
@@ -284,10 +282,10 @@ class AlbumService:
 				)
 			)
 		
-		songs = [*self.get_album_songs(albumId, albumInfo, user)]
+		songs = [*self.get_album_songs(albumId, albumInfo)]
 		if albumId:
 			stations = [
-				*self.stations_albums_service.get_stations_by_album(albumId, user)
+				*self.stations_albums_service.get_stations_by_album(albumId)
 			]
 		else:
 			stations = []
@@ -337,8 +335,7 @@ class AlbumService:
 		), None) if album.albumartist else None
 		self.stations_albums_service.link_albums_with_stations(
 			(StationAlbumTuple(affectedPk, t.id if t else None) 
-				for t in (album.stations or [None])),
-			user.id
+				for t in (album.stations or [None]))
 		)
 		self.conn.commit()
 		if res.rowcount == 0:

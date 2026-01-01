@@ -62,7 +62,6 @@ from .song_artist_service import SongArtistService
 from .jobs_service import JobsService
 from .album_service import AlbumService
 from .artist_service import ArtistService
-from .path_rule_service import PathRuleService
 from itertools import islice
 from tinytag import TinyTag
 
@@ -77,7 +76,6 @@ class SongFileService:
 		currentUserProvider: CurrentUserProvider,
 		songArtistService: Optional[SongArtistService]=None,
 		jobService: Optional[JobsService]=None,
-		pathRuleService: Optional[PathRuleService]=None,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -85,11 +83,9 @@ class SongFileService:
 		self.file_service = fileService
 		self.get_datetime = get_datetime
 		if not songArtistService:
-			songArtistService = SongArtistService(conn)
+			songArtistService = SongArtistService(conn, currentUserProvider)
 		if not jobService:
 			jobService = JobsService(conn, fileService)
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn, fileService)
 		self.song_artist_service = songArtistService
 		self.job_service = jobService
 		self.artist_service = artistService

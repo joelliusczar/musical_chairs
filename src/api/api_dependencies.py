@@ -24,6 +24,7 @@ from musical_chairs_libs.services import (
 	AccountManagementService,
 	AccountTokenCreator,
 	ActionsHistoryQueryService,
+	BasicUserProvider,
 	CurrentUserTrackingService,
 	StationService,
 	QueueService,
@@ -60,8 +61,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	build_error_obj,
 	ConfigAcessors,
-	UserRoleDomain,
-	ActionRule,
 	get_datetime,
 	normalize_opening_slash,
 	UserRoleDef,
@@ -98,15 +97,18 @@ def subject_user_key_path(
 ) -> Union[int, str]:
 	return int_or_str(subjectuserkey)
 
+
 def subject_user_key_query(
 	subjectuserkey: Union[int, str]  = Query()
 ) -> Union[int, str]:
 	return int_or_str(subjectuserkey)
 
+
 def owner_key_path(
 	ownerkey: Union[int, str]  = Path()
 ) -> Union[int, str]:
 	return int_or_str(ownerkey)
+
 
 def owner_key_query(
 	ownerkey: Union[int, str, None]  = Query(None)
@@ -115,10 +117,12 @@ def owner_key_query(
 		return ownerkey
 	return int_or_str(ownerkey)
 
+
 def station_key_path(
 	stationkey: Union[int, str]
 ) -> Union[int, str]:
 	return int_or_str(stationkey)
+
 
 def playlist_key_path(
 	playlistkey: Union[int, str]
@@ -140,6 +144,7 @@ def get_configured_db_connection(
 		yield conn
 	finally:
 		conn.close()
+
 
 def account_access_service(
 	conn: Connection=Depends(get_configured_db_connection),
@@ -232,17 +237,23 @@ def actions_history_query_service(
 def file_service() -> FileService:
 	return S3FileService()
 
+def basic_user_provider(
+	user: AccountInfo = Depends(get_optional_user_from_token),
+) -> BasicUserProvider:
+	return BasicUserProvider(user)
+
 
 def path_rule_service(
-	conn: Connection=Depends(get_configured_db_connection),
-	fileService: FileService=Depends(file_service),
+	conn: Connection = Depends(get_configured_db_connection),
+	fileService: FileService = Depends(file_service),
+	userProvider: BasicUserProvider = Depends(basic_user_provider)
 ) -> PathRuleService:
-	return PathRuleService(conn, fileService)
+	return PathRuleService(conn, fileService, userProvider)
 
 
 def current_user_provider(
 	securityScopes: SecurityScopes,
-	user: AccountInfo = Depends(get_optional_user_from_token),
+	basicUserProvider: BasicUserProvider = Depends(basic_user_provider),
 	currentUserTrackingService: CurrentUserTrackingService = Depends(
 		current_user_tracking_service
 	),
@@ -252,12 +263,13 @@ def current_user_provider(
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> CurrentUserProvider:
 	return CurrentUserProvider(
-		user,
+		basicUserProvider,
 		currentUserTrackingService,
 		actionsHistoryQueryService,
 		pathRuleService,
 		set(securityScopes.scopes)
 	)
+
 
 def does_account_have_scope(
 	securityScopes: SecurityScopes,
@@ -311,7 +323,6 @@ def account_token_creator(
 	return AccountTokenCreator(conn, userActionHistoryService)
 
 
-
 def playlists_songs_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
@@ -358,8 +369,11 @@ def station_service(
 def stations_albums_service(
 	conn: Connection = Depends(get_configured_db_connection),
 	stationService: StationService = Depends(station_service),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	),
 ) -> StationsAlbumsService:
-	return StationsAlbumsService(conn, stationService)
+	return StationsAlbumsService(conn, stationService, userProvider)
 
 
 def album_service(
@@ -383,27 +397,37 @@ def station_process_service(
 	userProvider: CurrentUserProvider = Depends(
 		current_user_provider
 	),
+	stationService: StationService = Depends(station_service),
 ) -> StationProcessService:
-	return StationProcessService(conn, userProvider)
+	return StationProcessService(conn, userProvider, stationService)
 
 
 def stations_songs_service(
-	conn: Connection=Depends(get_configured_db_connection)
+	conn: Connection=Depends(get_configured_db_connection),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	),
 ) -> StationsSongsService:
-	return StationsSongsService(conn)
+	return StationsSongsService(conn, userProvider)
 
 
 def stations_playlists_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	stationService: StationService = Depends(station_service),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	),
 ) -> StationsPlaylistsService:
-	return StationsPlaylistsService(conn, stationService)
+	return StationsPlaylistsService(conn, stationService, userProvider)
 
 
 def stations_users_service(
-	conn: Connection=Depends(get_configured_db_connection)
+	conn: Connection=Depends(get_configured_db_connection),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	),
 ) -> StationsUsersService:
-	return StationsUsersService(conn)
+	return StationsUsersService(conn, userProvider)
 
 
 def playlist_service(
@@ -427,8 +451,11 @@ def playlist_service(
 def playlists_users_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
+	userProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	),
 ) -> PlaylistsUserService:
-	return PlaylistsUserService(conn, pathRuleService)
+	return PlaylistsUserService(conn, pathRuleService, userProvider)
 
 
 def artist_service(
@@ -576,6 +603,31 @@ def get_station_by_id(
 		)
 	return station
 
+def get_playlist_by_name_and_owner(
+	playlistkey: Union[int, str] = Depends(playlist_key_path),
+	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
+	playlistService: PlaylistService = Depends(playlist_service),
+) -> PlaylistInfo:
+	if type(playlistkey) == str and not owner:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(
+				f"owner for station with key {playlistkey} not found"
+			)]
+		)
+	#owner id is okay to be null if stationKey is an int
+	ownerId = owner.id if owner else None
+	playlist = next(playlistService.get_playlists(
+		playlistkey,
+		ownerId=ownerId,
+	),None)
+	if not playlist:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(f"station with key {playlistkey} not found")
+			]
+		)
+	return playlist
 
 def get_playlist_by_id(
 		playlistid: int=Path(),
@@ -592,6 +644,22 @@ def get_playlist_by_id(
 	return playlist
 
 
+def get_secured_playlist_by_id(
+	playlist: PlaylistInfo=Depends(get_playlist_by_id),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> PlaylistInfo:
+	currentUserProvider.get_playlist_user(playlist)
+	return playlist
+
+
+def get_secured_playlist_by_name_and_owner(
+	playlist: PlaylistInfo=Depends(get_playlist_by_name_and_owner),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> PlaylistInfo:
+	currentUserProvider.get_playlist_user(playlist)
+	return playlist
+
+
 def get_stations_by_ids(
 	stationids: list[int]=Query(default=[]),
 	stationService: StationService = Depends(station_service),
@@ -601,35 +669,6 @@ def get_stations_by_ids(
 	return list(stationService.get_stations(
 		stationids
 	))
-
-
-def get_playlist_by_name_and_owner(
-	playlistkey: Union[int, str] = Depends(playlist_key_path),
-	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
-	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
-	playlistService: PlaylistService = Depends(playlist_service),
-) -> PlaylistInfo:
-	if type(playlistkey) == str and not owner:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(
-				f"owner for station with key {playlistkey} not found"
-			)]
-		)
-	#owner id is okay to be null if stationKey is an int
-	ownerId = owner.id if owner else None
-	playlist = next(playlistService.get_playlists(
-		playlistkey,
-		ownerId=ownerId,
-		user=user
-	),None)
-	if not playlist:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"station with key {playlistkey} not found")
-			]
-		)
-	return playlist
 
 
 def get_station_by_name_and_owner(
@@ -742,7 +781,6 @@ def check_subjectuser(
 		raise build_wrong_permissions_error()
 
 
-
 def get_prefix_if_owner(
 	prefix: str=Depends(get_prefix),
 	currentUser: AccountInfo = Depends(get_current_user_simple),
@@ -786,55 +824,4 @@ def check_back_key(
 		envManager = ConfigAcessors()
 	if envManager.back_key() != x_back_key:
 		raise build_wrong_permissions_error()
-
-
-def __get_playlist_user__(
-	securityScopes: SecurityScopes,
-	playlist: PlaylistInfo,
-	user: Optional[AccountInfo]
-)-> Optional[AccountInfo]:
-	minScope = (not securityScopes.scopes or\
-		securityScopes.scopes[0] == UserRoleDef.PLAYLIST_VIEW.value
-	)
-	if not playlist.viewsecuritylevel and minScope:
-		return user
-	if not user:
-		raise build_not_logged_in_error()
-	if user.isadmin:
-		return user
-	scopes = {s for s in securityScopes.scopes \
-		if UserRoleDomain.Station.conforms(s)
-	}
-	rules = ActionRule.aggregate(
-		playlist.rules,
-		filter=lambda r: r.name in scopes
-	)
-	if not rules:
-		raise build_wrong_permissions_error()
-	userDict = user.model_dump()
-	userDict["roles"] = rules
-	return AccountInfo(**userDict)
-
-
-def get_playlist_user_by_id(
-	securityScopes: SecurityScopes,
-	playlist: PlaylistInfo=Depends(get_playlist_by_id),
-	user: Optional[AccountInfo] = Depends(get_optional_user_from_token)
-)-> Optional[AccountInfo]:
-	return __get_playlist_user__(
-		securityScopes,
-		playlist,
-		user
-	)
-
-def get_playlist_user(
-	securityScopes: SecurityScopes,
-	playlist: PlaylistInfo=Depends(get_playlist_by_name_and_owner),
-	user: Optional[AccountInfo] = Depends(get_optional_user_from_token),
-) -> Optional[AccountInfo]:
-	return __get_playlist_user__(
-		securityScopes,
-		playlist,
-		user
-	)
 

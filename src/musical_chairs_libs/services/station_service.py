@@ -116,7 +116,6 @@ class StationService:
 				Integer
 			]
 		],
-		userId: int,
 		scopes: Optional[Collection[str]]=None
 	) -> Select[
 			Tuple[
@@ -131,6 +130,7 @@ class StationService:
 				Integer
 			]
 		]:
+		userId = self.current_user_provider.optional_user_id()
 		rulesQuery = build_station_rules_query(userId)
 		rulesSubquery = rulesQuery.cte(name="rulesQuery")
 		canViewQuery= select(
@@ -227,9 +227,9 @@ class StationService:
 	def __generate_station_and_rules_from_rows__(
 		self,
 		rows: Iterable[RowMapping],
-		userId: Optional[int],
 		scopes: Optional[Collection[str]]=None
 	) -> Iterator[StationInfo]:
+		userId = self.current_user_provider.optional_user_id()
 		currentStation = None
 		for row in rows:
 			if not currentStation or currentStation.id != cast(int,row[st_pk]):
@@ -279,9 +279,9 @@ class StationService:
 		).select_from(stations_tbl)\
 		.join(user_tbl, st_ownerFk == u_pk, isouter=True)
 
-		user = self.current_user_provider.optional_user()
+		user = self.current_user_provider.current_user(optional=True)
 		if user:
-			query = self.__attach_user_joins__(query, user.id, scopes)
+			query = self.__attach_user_joins__(query, scopes)
 		else:
 			if scopes:
 				return
@@ -306,7 +306,6 @@ class StationService:
 		if user:
 			yield from self.__generate_station_and_rules_from_rows__(
 				records,
-				user.id,
 				scopes
 			)
 		else:

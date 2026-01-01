@@ -460,7 +460,7 @@ class QueueService(SongPopper, RadioPusher):
 		pathRuleTree = None
 		user = self.current_user_provider.get_station_user(station)
 		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 		queue, count = self.get_queue_for_station(
 			station.id,
 			page,
@@ -537,7 +537,7 @@ class QueueService(SongPopper, RadioPusher):
 		user = self.current_user_provider.get_station_user(station)
 		pathRuleTree = None
 		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
 		query = select(
 			sg_pk.label("id"),

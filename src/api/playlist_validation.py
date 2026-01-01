@@ -30,7 +30,7 @@ def validate_playlist_rule(
 				"User is required"
 			)],
 		)
-	valid_name_set = UserRoleDef.as_set(UserRoleDomain.Station.value)
+	valid_name_set = UserRoleDef.as_set(UserRoleDomain.Playlist.value)
 	if rule.name not in valid_name_set:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

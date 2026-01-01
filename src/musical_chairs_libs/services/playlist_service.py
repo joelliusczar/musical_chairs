@@ -14,7 +14,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PlaylistInfo,
 	PlaylistCreationInfo,
 	AlreadyUsedError,
-	AccountInfo,
 	OwnerInfo,
 	SongsPlaylistInfo,
 	SongListDisplayItem,
@@ -158,7 +157,6 @@ class PlaylistService:
 				Integer
 			]
 		],
-		userId: int,
 		scopes: Optional[Collection[str]]=None
 	) -> Select[
 			Tuple[
@@ -171,6 +169,7 @@ class PlaylistService:
 				Integer,
 			]
 		]:
+		userId = self.current_user_provider.optional_user_id()
 		rulesQuery = build_playlist_rules_query(userId)
 		rulesSubquery = rulesQuery.cte(name="rulesQuery")
 		canViewQuery= select(
@@ -251,7 +250,6 @@ class PlaylistService:
 		self,
 		playlistKeys: Union[int, str, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
-		user: Optional[AccountInfo]=None,
 		scopes: Optional[Collection[str]]=None,
 		page: int = 0,
 		pageSize: Optional[int]=None,
@@ -267,8 +265,9 @@ class PlaylistService:
 		).select_from(playlists_tbl)\
 		.join(user_tbl, pl_ownerFk == u_pk, isouter=True)
 
+		user = self.current_user_provider.current_user(optional=True)
 		if user:
-			query = self.__attach_user_joins__(query, user.id, scopes)
+			query = self.__attach_user_joins__(query, scopes)
 		else:
 			if scopes:
 				return
@@ -320,8 +319,7 @@ class PlaylistService:
 		self,
 		page: int = 0,
 		playlist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
+		limit: Optional[int]=None
 	) -> Tuple[list[PlaylistInfo], int]:
 		result = list(self.get_playlists(
 			page=page,
@@ -336,8 +334,7 @@ class PlaylistService:
 
 	def get_playlist(
 			self,
-			playlistId: int,
-			user: Optional[AccountInfo]=None
+			playlistId: int
 		) -> Optional[SongsPlaylistInfo]:
 		playlistInfo = next(self.get_playlists(playlistKeys=playlistId), None)
 		if not playlistInfo:
@@ -367,8 +364,8 @@ class PlaylistService:
 			.order_by(dbCast(sg_track, Integer))
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+		if self.current_user_provider.is_loggedIn():
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
 		songs = [
 			SongListDisplayItem(
@@ -378,7 +375,6 @@ class PlaylistService:
 		stations = [
 			*self.stations_playlists_service.get_stations_by_playlist(
 				playlistId,
-				user
 			)
 		]
 		if pathRuleTree:
@@ -423,7 +419,6 @@ class PlaylistService:
 			self.stations_playlists_service.link_playlists_with_stations(
 				(StationPlaylistTuple(affectedPk, t.id if t else None) 
 					for t in (playlist.stations or [None])),
-				user.id
 			)
 			self.conn.commit()
 			if res.rowcount == 0:

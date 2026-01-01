@@ -1,5 +1,4 @@
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	get_datetime,
 	RulePriorityLevel,
 	StationAlbumTuple,
@@ -28,6 +27,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.sql.expression import (
 	Tuple as dbTuple,
 )
+from .current_user_provider import CurrentUserProvider
 from .station_service import StationService
 from typing import (
 	Any,
@@ -46,6 +46,7 @@ class StationsAlbumsService:
 		self,
 		conn: Connection,
 		stationService: StationService,
+		currentUserProvider: CurrentUserProvider,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -53,6 +54,7 @@ class StationsAlbumsService:
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.station_service = stationService
+		self.current_user_provider = currentUserProvider
 
 
 	def get_station_albums(
@@ -135,7 +137,6 @@ class StationsAlbumsService:
 	def link_albums_with_stations(
 		self,
 		stationSongs: Iterable[StationAlbumTuple],
-		userId: Optional[int]=None
 	) -> Iterable[StationAlbumTuple]:
 		if not stationSongs:
 			return []
@@ -150,6 +151,7 @@ class StationsAlbumsService:
 		self.remove_album_for_stations(outPairs)
 		if not inPairs: #if no songs - stations have been linked
 			return existingPairs - outPairs
+		userId = self.current_user_provider.current_user().id
 		params: list[dict[str, Any]] = [{
 			"albumfk": p.albumid,
 			"stationfk": p.stationid,
@@ -166,7 +168,6 @@ class StationsAlbumsService:
 	def get_stations_by_album(
 		self,
 		albumId: int,
-		user: Optional[AccountInfo]=None,
 		scopes: Optional[Collection[str]]=None
 	) -> Iterator[StationInfo]:
 		query = select(
@@ -193,8 +194,8 @@ class StationsAlbumsService:
 		.join(stations_albums_tbl, stab_stationFk == st_pk)\
 		.where(stab_albumFk == albumId)
 
-		if user:
-			query = self.station_service.__attach_user_joins__(query, user.id, scopes)
+		if self.current_user_provider.is_loggedIn():
+			query = self.station_service.__attach_user_joins__(query, scopes)
 		else:
 			if scopes:
 				return
@@ -205,10 +206,9 @@ class StationsAlbumsService:
 		query = query.order_by(st_pk)
 		records = self.conn.execute(query).mappings()
 
-		if user:
+		if self.current_user_provider.is_loggedIn():
 			yield from self.station_service.__generate_station_and_rules_from_rows__(
 				records,
-				user.id,
 				scopes
 			)
 		else:

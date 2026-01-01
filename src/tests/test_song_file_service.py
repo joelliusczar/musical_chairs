@@ -6,7 +6,6 @@ from musical_chairs_libs.services import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	DirectoryTransfer,
-	WrongPermissionsError,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import JobStatusTypes
 from .constant_fixtures_for_test import *
@@ -277,11 +276,12 @@ def test_song_ls_user_with_paths(
 	assert paths[0].path == "foo/bar/"
 	assert paths[1].path == "foo/dude/"
 
+@pytest.mark.current_username("testUser_uniform")
 def test_get_user_paths(
 	fixture_path_rule_service: PathRuleService
 ):
 	pathRuleService = fixture_path_rule_service
-	results = list(pathRuleService.get_paths_user_can_see(11))
+	results = list(pathRuleService.get_paths_user_can_see())
 	assert results
 
 def test_get_parents_of_path(

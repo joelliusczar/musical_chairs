@@ -34,18 +34,20 @@ class StationProcessService:
 		self,
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
+		stationService: StationService,
 		templateService: Optional[TemplateService]=None,
-		stationService: Optional[StationService]=None,
 		stationsAlbumsService: Optional[StationsAlbumsService]=None
 	):
 		if not conn:
 			raise RuntimeError("No connection provided")
 		if not templateService:
 			templateService = TemplateService()
-		if not stationService:
-			stationService = StationService(conn, currentUserProvider)
 		if not stationsAlbumsService:
-			stationsAlbumsService = StationsAlbumsService(conn, stationService)
+			stationsAlbumsService = StationsAlbumsService(
+				conn,
+				stationService,
+				currentUserProvider,
+			)
 		self.conn = conn
 		self.template_service = templateService
 		self.station_service = stationService

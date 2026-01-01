@@ -1,5 +1,4 @@
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	DictDotMap,
 	get_datetime,
 	normalize_opening_slash,
@@ -41,7 +40,6 @@ from typing import (
 	cast,
 	Iterable,
 	Iterator,
-	Optional,
 	Tuple,
 	Union
 )
@@ -64,7 +62,6 @@ class PlaylistsSongsService:
 	def get_songs(
 			self,
 			playlistId: int,
-			user: Optional[AccountInfo]=None
 		) -> Iterator[SongListDisplayItem]:
 		
 		songsQuery = select(
@@ -94,8 +91,8 @@ class PlaylistsSongsService:
 			.order_by(plsg_lexorder, plsg_lastmodifiedtimestamp)
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+		if self.current_user_provider.is_loggedIn():
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
 		for row in songsResult:
 
@@ -208,7 +205,6 @@ class PlaylistsSongsService:
 	def link_songs_with_playlists(
 		self,
 		songsPlaylists: Iterable[SongPlaylistTuple],
-		userId: Optional[int]=None
 	) -> Iterable[SongPlaylistTuple]:
 		uniquePairs = set(self.validate_songs_playlists(songsPlaylists))
 		if not uniquePairs:
@@ -226,6 +222,7 @@ class PlaylistsSongsService:
 		))
 		startOrders = self.get_max_lexorders(p.playlistid or 0 for p in uniquePairs)
 		params: list[dict[str, Any]] = []
+		userId = self.current_user_provider.current_user().id
 		for p in inPairs:
 			if not p.playlistid:
 				continue

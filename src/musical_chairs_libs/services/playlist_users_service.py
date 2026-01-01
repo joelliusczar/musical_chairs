@@ -22,6 +22,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	build_placeholder_select
 )
+from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
@@ -113,13 +114,15 @@ class PlaylistsUserService:
 	def __init__(
 		self,
 		conn: Connection,
-		pathRuleService: PathRuleService
+		pathRuleService: PathRuleService,
+		currentUserProvider: CurrentUserProvider,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
+		self.current_user_provider = currentUserProvider
 
 	def __attach_user_joins__(
 		self,
@@ -135,7 +138,6 @@ class PlaylistsUserService:
 				Integer
 			]
 		],
-		userId: int,
 		scopes: Optional[Collection[str]]=None
 	) -> Select[
 			Tuple[
@@ -148,6 +150,7 @@ class PlaylistsUserService:
 				Integer,
 			]
 		]:
+		userId = self.current_user_provider.optional_user_id()
 		rulesQuery = build_playlist_rules_query(userId)
 		rulesSubquery = rulesQuery.cte(name="rulesQuery")
 		canViewQuery= select(
@@ -228,7 +231,6 @@ class PlaylistsUserService:
 		self,
 		playlistKeys: Union[int, str, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
-		user: Optional[AccountInfo]=None,
 		scopes: Optional[Collection[str]]=None,
 		page: int = 0,
 		pageSize: Optional[int]=None,
@@ -244,8 +246,9 @@ class PlaylistsUserService:
 		).select_from(playlists_tbl)\
 		.join(user_tbl, pl_ownerFk == u_pk, isouter=True)
 
+		user = self.current_user_provider.current_user(optional=True)
 		if user:
-			query = self.__attach_user_joins__(query, user.id, scopes)
+			query = self.__attach_user_joins__(query, scopes)
 		else:
 			if scopes:
 				return
@@ -298,7 +301,6 @@ class PlaylistsUserService:
 	def get_playlist_users(
 		self,
 		playlist: PlaylistInfo,
-		userId: Optional[int]=None
 	) -> Iterator[AccountInfo]:
 		rulesQuery = build_playlist_rules_query().cte()
 		query = select(
@@ -336,8 +338,7 @@ class PlaylistsUserService:
 				u_pk == playlist.owner.id
 			)
 		)
-		if userId is not None:
-			query = query.where(u_pk == userId)
+
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings()
 		yield from generate_playlist_user_and_rules_from_rows(
@@ -373,12 +374,12 @@ class PlaylistsUserService:
 
 	def remove_user_rule_from_playlist(
 		self,
-		userId: int,
+		subjectUserId: int,
 		playlistId: int,
 		ruleName: Optional[str]
 	):
 		delStmt = delete(playlist_user_permissions)\
-			.where(plup_userFk == userId)\
+			.where(plup_userFk == subjectUserId)\
 			.where(plup_playlistFk == playlistId)
 		if ruleName:
 			delStmt = delStmt.where(plup_role == ruleName)

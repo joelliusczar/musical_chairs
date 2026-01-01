@@ -10,6 +10,7 @@ from musical_chairs_libs.services import (
 	AccountManagementService,
 	AccountTokenCreator,
 	ActionsHistoryQueryService,
+	BasicUserProvider,
 	EmptyUserTrackingService,
 	QueueService,
 	AccountsService,
@@ -143,15 +144,30 @@ def fixture_account_access_service(
 def fixture_file_service() -> FileService:
 	return MockFileService()
 
+@pytest.fixture
+def fixture_basic_user_provider(
+	fixture_account_access_service: AccountAccessService,
+	request: pytest.FixtureRequest
+) -> BasicUserProvider:
+	currentUsernameMark = request.node.get_closest_marker("current_username")
+	if currentUsernameMark:
+		user, _ = fixture_account_access_service.get_account_for_login(
+			currentUsernameMark.args[0]
+		)
+		if user:
+			return BasicUserProvider(user)
+	return BasicUserProvider(None)
 
 @pytest.fixture
 def fixture_path_rule_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_file_service: FileService
+	fixture_file_service: FileService,
+	fixture_basic_user_provider: BasicUserProvider,
 ) -> PathRuleService:
 	pathRuleService = PathRuleService(
 		fixture_conn_cardboarddb,
-		fixture_file_service
+		fixture_file_service,
+		fixture_basic_user_provider
 	)
 	return pathRuleService
 
@@ -161,26 +177,16 @@ def fixture_current_user_provider(
 	fixture_tracking_info_provider: TrackingInfoProvider,
 	fixture_actions_history_query_service: ActionsHistoryQueryService,
 	fixture_path_rule_service: PathRuleService,
-	request: pytest.FixtureRequest
+	fixture_basic_user_provider: BasicUserProvider,
 ) -> CurrentUserProvider:
-	currentUsernameMark = request.node.get_closest_marker("current_username")
-	if currentUsernameMark:
-		user, _ = fixture_account_access_service.get_account_for_login(
-			currentUsernameMark.args[0]
-		)
-		if user:
-			return CurrentUserProvider(
-				user,
-				fixture_tracking_info_provider,
-				fixture_actions_history_query_service,
-				fixture_path_rule_service
-			)
+
 	return CurrentUserProvider(
-		None,
+		fixture_basic_user_provider,
 		fixture_tracking_info_provider,
 		fixture_actions_history_query_service,
 		fixture_path_rule_service
 	)
+
 
 
 @pytest.fixture
@@ -302,39 +308,52 @@ def fixture_station_service(
 
 @pytest.fixture
 def fixture_stations_songs_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider,
 ) -> StationsSongsService:
-	stationsSongsService = StationsSongsService(fixture_conn_cardboarddb)
+	stationsSongsService = StationsSongsService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
 	return stationsSongsService
 
 
 @pytest.fixture
 def fixture_stations_albums_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_station_service: StationService
+	fixture_station_service: StationService,
+	fixture_current_user_provider: CurrentUserProvider,
 ) -> StationsAlbumsService:
 	stationsAlbumsService = StationsAlbumsService(
 		fixture_conn_cardboarddb,
-		fixture_station_service
+		fixture_station_service,
+		fixture_current_user_provider
 	)
 	return stationsAlbumsService
 
 
 @pytest.fixture
 def fixture_stations_users_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider,
 ) -> StationsUsersService:
-	stationsUsersService = StationsUsersService(fixture_conn_cardboarddb)
+	stationsUsersService = StationsUsersService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
 	return stationsUsersService
+
 
 @pytest.fixture
 def fixture_stations_playlists_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_station_service: StationService
+	fixture_station_service: StationService,
+	fixture_current_user_provider: CurrentUserProvider,
 ) -> StationsPlaylistsService:
 	return StationsPlaylistsService(
 		fixture_conn_cardboarddb,
-		fixture_station_service
+		fixture_station_service,
+		fixture_current_user_provider
 	)
 
 @pytest.fixture
@@ -371,10 +390,12 @@ def fixture_playlists_songs_service(
 def fixture_playlists_users_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_path_rule_service: PathRuleService,
+	fixture_current_user_provider: CurrentUserProvider,
 ) -> PlaylistsUserService:
 	service = PlaylistsUserService(
 		fixture_conn_cardboarddb,
 		fixture_path_rule_service,
+		fixture_current_user_provider
 	)
 	return service
 
@@ -410,9 +431,13 @@ def fixture_artist_service(
 
 @pytest.fixture
 def fixture_songartist_service(
-	fixture_conn_cardboarddb: Connection
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider,
 ) -> SongArtistService:
-	songArtistService = SongArtistService(fixture_conn_cardboarddb)
+	songArtistService = SongArtistService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
 	return songArtistService
 
 
@@ -487,7 +512,7 @@ def fixture_datetime_iterator(
 @pytest.fixture
 def fixture_path_user_factory(
 	fixture_path_rule_service: PathRuleService,
-	fixture_account_service: AccountsService
+	fixture_account_service: AccountsService,
 ) -> Callable[[str], AccountInfo]:
 
 	def path_user(username: str) -> AccountInfo:
@@ -497,7 +522,7 @@ def fixture_path_user_factory(
 		assert user
 		rules = ActionRule.aggregate(
 			user.roles,
-			(p for p in pathRuleService.get_paths_user_can_see(user.id)),
+			(p for p in pathRuleService.get_paths_user_can_see()),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 		userDict = user.model_dump()

@@ -3,6 +3,7 @@ from .account_management_service import *
 from .account_token_creator import *
 from .accounts_service import *
 from .actions_history_query_service import *
+from .basic_user_provider import *
 from .current_user_tracking_service import *
 from .empty_user_tracking_service import *
 from .queue_service import *

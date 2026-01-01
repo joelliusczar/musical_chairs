@@ -1,4 +1,5 @@
 from .actions_history_query_service import ActionsHistoryQueryService
+from .basic_user_provider import BasicUserProvider, Impersonation
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
@@ -9,6 +10,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	normalize_opening_slash,
 	NotLoggedInError,
 	PathsActionRule,
+	PlaylistInfo,
 	TooManyRequestsError,
 	TrackingInfo,
 	StationInfo,
@@ -21,18 +23,19 @@ from musical_chairs_libs.protocols import (
 	UserProvider
 )
 from .path_rule_service import PathRuleService
-from typing import (Any, Iterable, Optional)
+from typing import (Iterable, Literal, Optional, overload)
 
 class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 
-	def __init__(self,
-		user: Optional[AccountInfo],
+	def __init__(
+		self,
+		basicUserProvider: BasicUserProvider,
 		trackingInfoProvider: TrackingInfoProvider,
 		actionsHistoryQueryService: ActionsHistoryQueryService,
 		pathRuleService: PathRuleService,
 		securityScopes: Optional[set[str]] = None,
 	) -> None:
-		self.__user__ = user
+		self.basic_user_provider = basicUserProvider
 		self.__path_rule_loaded_user__: Optional[AccountInfo] = None
 		self.tracking_info_provider = trackingInfoProvider
 		self.actions_history_query_service = actionsHistoryQueryService
@@ -40,23 +43,32 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		self.security_scopes = securityScopes or set()
 		self.path_rule_service = pathRuleService
 
-
+	@overload
 	def current_user(self) -> AccountInfo:
-		if self.__user__:
-			return self.__user__
-		raise RuntimeError(
-			"User was not supplied to this instance of CurrentUserProvider"
-		)
+		...
+
+	@overload
+	def current_user(self, optional: Literal[False]) -> AccountInfo:
+		...
+
+	@overload
+	def current_user(self, optional: Literal[True]) -> Optional[AccountInfo]:
+		...
+
+	def current_user(self, optional: bool=False) -> Optional[AccountInfo]:
+		return self.basic_user_provider.current_user(optional=optional)
+	
+
+	def is_loggedIn(self) -> bool:
+		return self.basic_user_provider.is_loggedIn()
+
 
 	def set_user(self, user: AccountInfo):
-		self.__user__ = user
-
-	def optional_user(self) -> Optional[AccountInfo]:
-		return self.__user__
+		self.basic_user_provider.set_user(user)
 
 
 	def optional_user_id(self) -> Optional[int]:
-		return self.__user__.id if self.__user__ else None
+		return self.basic_user_provider.optional_user_id()
 
 
 	def tracking_info(self) -> TrackingInfo:
@@ -70,7 +82,7 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		minScope = (not self.security_scopes or\
 			 UserRoleDef.STATION_VIEW.value in self.security_scopes
 		)
-		user = self.optional_user()
+		user = self.current_user(optional=True)
 		if not station.viewsecuritylevel and minScope:
 			return user
 		if not user:
@@ -132,8 +144,18 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		return user
 	
 
+	@overload
 	def get_scoped_user(self) -> AccountInfo:
-		user = self.current_user()
+		...
+
+	@overload
+	def get_scoped_user(self, optional: Literal[True]) -> Optional[AccountInfo]:
+		...
+
+	def get_scoped_user(self, optional: bool = False) -> Optional[AccountInfo]:
+		user = self.current_user(optional=optional)
+		if not user:
+			return None
 		if user.isadmin:
 			return user
 		for scope in self.security_scopes:
@@ -141,8 +163,8 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 				raise WrongPermissionsError()
 		return user
 	
-	def impersonate(self, user: AccountInfo) -> "Impersonation":
-		return Impersonation(self, user)
+	def impersonate(self, user: AccountInfo) -> Impersonation:
+		return self.basic_user_provider.impersonate(user)
 	
 
 	def check_if_can_use_path(
@@ -179,19 +201,21 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 	def get_path_rule_loaded_current_user(
 		self,
 	) -> AccountInfo:
-		if self.__path_rule_loaded_user__:
+		user = self.current_user()
+		if self.__path_rule_loaded_user__  \
+			and user.id == self.__path_rule_loaded_user__.id\
+		:
 			return self.__path_rule_loaded_user__
 		scopes = {s for s in self.security_scopes \
 			if UserRoleDomain.Path.conforms(s)
 		}
-		user = self.current_user()
 		if user.isadmin:
 			return user
 		if not scopes and self.security_scopes:
 			raise WrongPermissionsError()
 		rules = ActionRule.aggregate(
 			user.roles,
-			(p for p in self.path_rule_service.get_paths_user_can_see(user.id)),
+			(p for p in self.path_rule_service.get_paths_user_can_see()),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 		roleNameSet = {r.name for r in rules}
@@ -204,7 +228,8 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		)
 		self.__path_rule_loaded_user__ = resultUser
 		return resultUser
-	
+
+
 	def get_song_or_path_user(
 		self,
 		prefix: Optional[str]=None,
@@ -278,23 +303,33 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 			)
 		return user
 
+
+	def get_playlist_user(
+		self,
+		playlist: PlaylistInfo,
+	)-> Optional[AccountInfo]:
+		user = self.current_user(optional=True)
+		minScope = (not self.security_scopes or\
+			UserRoleDef.PLAYLIST_VIEW.value in self.security_scopes
+		)
+		if not playlist.viewsecuritylevel and minScope:
+			return user
+		if not user:
+			raise NotLoggedInError()
+		if user.isadmin:
+			return user
+		scopes = {s for s in self.security_scopes \
+			if UserRoleDomain.Station.conforms(s)
+		}
+		rules = ActionRule.aggregate(
+			playlist.rules,
+			filter=lambda r: r.name in scopes
+		)
+		if not rules:
+			raise WrongPermissionsError()
+		userDict = user.model_dump()
+		userDict["roles"] = rules
+		return AccountInfo(**userDict)
+
 	
 	
-class Impersonation:
-
-	def __init__(
-		self,
-		userProvider: "CurrentUserProvider",
-		user: AccountInfo,
-	) -> None:
-		self.prev_user = userProvider.optional_user()
-		self.user_provider = userProvider
-		self.impersonated = user
-
-	def __enter__(
-		self,
-	):
-		self.user_provider.__user__ = self.impersonated
-
-	def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
-		self.user_provider.__user__ = self.prev_user

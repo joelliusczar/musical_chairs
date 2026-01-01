@@ -21,7 +21,6 @@ from .mocks.db_population import (
 )
 
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	PlaylistInfo,
 	SongEditInfo,
 	StationInfo,
@@ -283,12 +282,10 @@ def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
 @pytest.mark.current_username("testUser_bravo")
 def test_save__multiple_song_add_station_and_playlist(
 	fixture_song_info_service: SongInfoService,
-	fixture_primary_user: AccountInfo,
 	fixture_account_service: AccountsService
 ):
 	songInfoService = fixture_song_info_service
 	accountService = fixture_account_service
-	user = fixture_primary_user
 	songInfoList = sorted(songInfoService.get_songs_for_edit([39, 48]),
 		key=lambda s: s.id
 	)
@@ -610,6 +607,7 @@ def test_remove_songs_for_stations(
 	songs = sorted(songInfoService.get_songIds(stationKey=3))
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 36] == songs
 
+@pytest.mark.current_username("testUser_kilo")
 def test_link_songs_with_station(
 	fixture_song_info_service: SongInfoService,
 	fixture_stations_songs_service: StationsSongsService
@@ -627,6 +625,7 @@ def test_link_songs_with_station(
 	assert songs[1] == 43
 
 
+@pytest.mark.current_username("testUser_kilo")
 def test_link_songs_with_station_duplicates(
 	fixture_song_info_service: SongInfoService,
 	fixture_stations_songs_service: StationsSongsService
@@ -644,6 +643,7 @@ def test_link_songs_with_station_duplicates(
 	assert songs[1] == 43
 
 
+@pytest.mark.current_username("testUser_kilo")
 def test_link_songs_with_station_nonexistent_songs(
 	fixture_song_info_service: SongInfoService,
 	fixture_stations_songs_service: StationsSongsService

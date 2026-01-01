@@ -1,5 +1,4 @@
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	get_datetime,
 	RulePriorityLevel,
 	StationPlaylistTuple,
@@ -30,6 +29,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.sql.expression import (
 	Tuple as dbTuple,
 )
+from .current_user_provider import CurrentUserProvider
 from .station_service import StationService
 from typing import (
 	Any,
@@ -48,6 +48,7 @@ class StationsPlaylistsService:
 		self,
 		conn: Connection,
 		stationService: StationService,
+		currentUserProvider: CurrentUserProvider,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -55,6 +56,7 @@ class StationsPlaylistsService:
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.station_service = stationService
+		self.current_user_provider = currentUserProvider
 
 
 	def get_station_playlists(
@@ -136,8 +138,7 @@ class StationsPlaylistsService:
 
 	def link_playlists_with_stations(
 		self,
-		stationPlaylists: Iterable[StationPlaylistTuple],
-		userId: Optional[int]=None
+		stationPlaylists: Iterable[StationPlaylistTuple]
 	) -> Iterable[StationPlaylistTuple]:
 		if not stationPlaylists:
 			return []
@@ -152,6 +153,7 @@ class StationsPlaylistsService:
 		self.remove_playlist_for_stations(outPairs)
 		if not inPairs: #if no songs - stations have been linked
 			return existingPairs - outPairs
+		userId = self.current_user_provider.current_user().id
 		params: list[dict[str, Any]] = [{
 			"playlistfk": p.playlistid,
 			"stationfk": p.stationid,
@@ -168,7 +170,6 @@ class StationsPlaylistsService:
 	def get_stations_by_playlist(
 		self,
 		playlistId: int,
-		user: Optional[AccountInfo]=None,
 		scopes: Optional[Collection[str]]=None
 	) -> Iterator[StationInfo]:
 		query = select(
@@ -195,8 +196,8 @@ class StationsPlaylistsService:
 		.join(stations_playlists_tbl, stpl_stationFk == st_pk)\
 		.where(stpl_playlistFk == playlistId)
 
-		if user:
-			query = self.station_service.__attach_user_joins__(query, user.id, scopes)
+		if self.current_user_provider.is_loggedIn():
+			query = self.station_service.__attach_user_joins__(query, scopes)
 		else:
 			if scopes:
 				return
@@ -207,10 +208,9 @@ class StationsPlaylistsService:
 		query = query.order_by(st_pk)
 		records = self.conn.execute(query).mappings()
 
-		if user:
+		if self.current_user_provider.is_loggedIn():
 			yield from self.station_service.__generate_station_and_rules_from_rows__(
 				records,
-				user.id,
 				scopes
 			)
 		else:

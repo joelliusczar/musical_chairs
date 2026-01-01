@@ -237,7 +237,7 @@ def update_songs_multi(
 def get_path_user_list(
 	prefix: str = Security(
 		get_secured_prefix,
-		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
+		scopes=[UserRoleDef.PATH_USER_LIST.value]
 	),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
 ) -> TableData[AccountInfo]:

@@ -14,7 +14,7 @@ from .common_fixtures import *
 
 
 
-
+@pytest.mark.current_username("testUser_alpha")
 def test_move_songs_1(
 	fixture_playlists_songs_service: PlaylistsSongsService,
 	fixture_account_service: AccountsService
@@ -23,7 +23,7 @@ def test_move_songs_1(
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("testUser_alpha")
 	assert user
-	results = [*playlistsSongsService.get_songs(5, user)]
+	results = [*playlistsSongsService.get_songs(5)]
 	assert results[0].id == 2
 	assert results[1].id == 3
 	assert results[2].id == 4

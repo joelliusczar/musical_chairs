@@ -9,7 +9,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.protocols import FileService
+from musical_chairs_libs.protocols import FileService, UserProvider
 from musical_chairs_libs.dtos_and_utilities import (
 	PathsActionRule,
 	RulePriorityLevel,
@@ -38,15 +38,18 @@ class PathRuleService:
 		self,
 		conn: Connection,
 		fileService: FileService,
+		userProvider: UserProvider
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.file_service = fileService
+		self.user_provider = userProvider
 
 
-	def get_paths_user_can_see(self, userId: int) -> Iterator[PathsActionRule]:
+	def get_paths_user_can_see(self) -> Iterator[PathsActionRule]:
+		userId = self.user_provider.current_user().id
 		query = select(pup_path, pup_role, pup_priority, pup_span, pup_count)\
 			.where(pup_userFk == userId)\
 			.order_by(pup_path)
@@ -61,13 +64,14 @@ class PathRuleService:
 				path=normalize_opening_slash(cast(str,r[pup_path]))
 			)
 
+
 	def get_rule_path_tree(
-		self,
-		user: AccountInfo
+		self
 	) -> ChainedAbsorbentTrie[ActionRule]:
+		user = self.user_provider.current_user()
 		rules = ActionRule.aggregate(
 			user.roles,
-			(p for p in self.get_paths_user_can_see(user.id)),
+			(p for p in self.get_paths_user_can_see()),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 
@@ -75,7 +79,7 @@ class PathRuleService:
 			(normalize_opening_slash(p.path), p) for p in
 				rules if isinstance(p, PathsActionRule) and p.path
 		)
-		pathRuleTree.add("", (r for r in user.roles \
+		pathRuleTree.add("/", (r for r in user.roles \
 			if type(r) == ActionRule \
 				and (UserRoleDomain.Path.conforms(r.name) \
 						or r.name == UserRoleDef.ADMIN.value
@@ -83,14 +87,15 @@ class PathRuleService:
 		), shouldEmptyUpdateTree=False)
 		return pathRuleTree
 
+
 	def remove_user_rule_from_path(
 		self,
-		userId: int,
+		subjectUserId: int,
 		prefix: str,
 		ruleName: Optional[str]
 	):
 		delStmt = delete(path_user_permissions_tbl)\
-			.where(pup_userFk == userId)\
+			.where(pup_userFk == subjectUserId)\
 			.where(pup_path == prefix)
 		if ruleName:
 			delStmt = delStmt.where(pup_role == ruleName)
@@ -121,10 +126,10 @@ class PathRuleService:
 			path=prefix
 		)
 
+
 	def get_users_of_path(
 		self,
 		prefix: str,
-		userId: Optional[int]=None,
 		owner: Optional[AccountInfo]=None
 	) -> Iterator[AccountInfo]:
 		addSlash = True
@@ -183,8 +188,6 @@ class PathRuleService:
 					) == func.normalize_opening_slash(u_dirRoot, addSlash)
 			)
 		)
-		if userId is not None:
-			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings()
 		yield from generate_path_user_and_rules_from_rows(
@@ -192,6 +195,7 @@ class PathRuleService:
 			owner.id if owner else None,
 			prefix
 		)
+
 
 	def get_song_path(
 		self,

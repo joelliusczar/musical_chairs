@@ -100,7 +100,7 @@ class PlaylistsSongsService:
 				**DictDotMap.unflatten(dict(row), omitNulls=True)
 			) 
 			if pathRuleTree:
-				song.rules = list(pathRuleTree.valuesFlat(
+				song.rules = list(pathRuleTree.values_flat(
 					normalize_opening_slash(song.path))
 				)
 			yield song

@@ -1,5 +1,6 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 #import musical_chairs_libs.dtos_and_utilities.logging as logging
+import math
 from typing import (
 	Any,
 	Callable,
@@ -11,8 +12,10 @@ from typing import (
 	Set,
 	Tuple,
 	Iterable,
+	Union,
 )
 from sqlalchemy import (
+	ColumnElement,
 	select,
 	desc,
 	func,
@@ -24,7 +27,6 @@ from sqlalchemy import (
 	String
 )
 from sqlalchemy.engine import Connection
-from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.sql.functions import coalesce
 from .station_service import StationService
 from .song_info_service import SongInfoService
@@ -61,7 +63,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	LastPlayedItem,
 	QueueRequest,
-	OwnerInfo
+	OwnerInfo,
+	normalize_opening_slash,
+	SimpleQueryParameters
 )
 from musical_chairs_libs.file_reference import SqlScripts
 from musical_chairs_libs.protocols import (
@@ -77,17 +81,25 @@ from numpy.random import (
 )
 
 
+def weigh(n: int, s: int) -> float:
+	return float(2 * n) / (s * (s + 1))
+
+def weigh_sq(n: int, s: int) -> float:
+	return float(6 * n * n) / (s * (s + 1) * (2 * s + 1))
 
 
 def choice(
 	items: Sequence[Any],
-	sampleSize: int
+	sampleSize: int,
+	weights: Sequence[float]
 ) -> Collection[Any]:
-	aSize = len(items)
-	pSize = len(items) + 1
 	# the sum of weights needs to equal 1
-	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
-	return numpy_choice(items, sampleSize, p = cast(Any,weights), replace=False).tolist()
+	return numpy_choice(
+		items,
+		sampleSize,
+		p = cast(Any,weights),
+		replace=False
+	).tolist()
 
 class QueueService(SongPopper, RadioPusher):
 
@@ -100,7 +112,7 @@ class QueueService(SongPopper, RadioPusher):
 		pathRuleService: PathRuleService,
 		stationService: Optional[StationService]=None,
 		choiceSelector: Optional[
-			Callable[[Sequence[Any], int], Collection[Any]]
+			Callable[[Sequence[Any], int, Sequence[float]], Collection[Any]]
 		]=None,
 	) -> None:
 			if not conn:
@@ -122,13 +134,16 @@ class QueueService(SongPopper, RadioPusher):
 			self.path_rule_service = pathRuleService
 			self.actions_history_management_service = actionsHistoryManagementService
 			self.queue_size = 50
-			self.album_queue_size = 3
 
 
 	def get_all_station_possibilities(
 		self, stationPk: int
-	) -> Sequence[RowMapping]:
-		query = select(sg_pk, sg_path) \
+	) -> Iterator[Tuple[int, float]]:
+		query = select(
+			sg_pk,
+			sg_path,
+			func.max(coalesce(uah_queuedTimestamp,0))
+		) \
 			.select_from(stations) \
 			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
 			.join(songs, sg_pk == stsg_songFk) \
@@ -138,21 +153,21 @@ class QueueService(SongPopper, RadioPusher):
 				& (lp_songFk == sg_pk), isouter=True
 			)\
 			.join(user_action_history_tbl,
-				(uah_pk == q_userActionHistoryFk) & uah_timestamp.isnot(None),
+				(uah_pk == q_userActionHistoryFk),
 				isouter=True
 			)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.where(st_pk == stationPk) \
 			.group_by(sg_pk, sg_path) \
 			.order_by(
-				desc(func.max(uah_queuedTimestamp)),
-				desc(func.max(uah_timestamp)),
-				desc(lp_timestamp),
+				desc(func.max(coalesce(uah_queuedTimestamp, 0))),
+				desc(func.max(coalesce(uah_timestamp, 0))),
+				desc(coalesce(lp_timestamp, 0)),
 				func.rand()
 			)
 
-		rows = self.conn.execute(query).mappings().fetchall()
-		return rows
+		rows = self.conn.execute(query)
+		yield from ((r[0], r[2]) for r in rows)
 
 
 	def get_random_songIds(
@@ -160,12 +175,21 @@ class QueueService(SongPopper, RadioPusher):
 		stationId: int,
 		deficitSize: int
 	) -> Collection[int]:
-		rows = self.get_all_station_possibilities(stationId)
-		sampleSize = deficitSize if deficitSize < len(rows) else len(rows)
-		songIds = [r[sg_pk] for r in rows]
+		def weigh(n: float) -> float:
+			return n * n
+		rows = [*self.get_all_station_possibilities(stationId)]
+		mostRecentDraw = rows[0][1] or self.get_datetime().timestamp() \
+			if len(rows) > 1 else self.get_datetime().timestamp()
+		ages = [(mostRecentDraw - (r[1] or 0)) for r in rows]
+		total = math.fsum((weigh(a) for a in ages))
+		weights = [weigh(a)/total for a in ages]
+		zeroCount = sum(1 for w in weights if w == 0)
+		sampleSize = deficitSize if deficitSize < len(rows) - zeroCount \
+			else len(rows) - zeroCount
+		songIds = [r[0] for r in rows]
 		if not songIds:
 			raise RuntimeError("No song possibilities were found")
-		selection = self.choice(songIds, sampleSize)
+		selection = self.choice(songIds, sampleSize, weights)
 		return selection
 
 
@@ -176,7 +200,9 @@ class QueueService(SongPopper, RadioPusher):
 	):
 		trackingInfo = self.current_user_provider.tracking_info()
 		userAgentId = self.actions_history_management_service\
-			.add_user_agent(trackingInfo.userAgent) if trackingInfo else None
+			.add_user_agent(trackingInfo.userAgent) \
+				if trackingInfo.userAgent \
+				else None
 		timestamp = self.get_datetime().timestamp()
 		insertedIds: list[int] = []
 		timestampOffset = 0.0
@@ -468,18 +494,22 @@ class QueueService(SongPopper, RadioPusher):
 		)
 		for song in queue:
 			if pathRuleTree:
-				song.rules = list(pathRuleTree.valuesFlat(song.path))
+				song.rules = list(pathRuleTree.values_flat(
+					normalize_opening_slash(song.path)
+				))
 		playing = next(
 			iter(self.get_history_for_station(station, limit=1)[0]),
 			None
 		)
 		if pathRuleTree and playing:
-				playing.rules = list(pathRuleTree.valuesFlat(playing.path))
+				playing.rules = list(pathRuleTree.values_flat(
+					normalize_opening_slash(playing.path)
+				))
 		return CurrentPlayingInfo(
 			nowplaying=playing,
 			items=queue,
 			totalrows=count,
-			stationrules=[]
+			stationrules=station.rules
 		)
 
 
@@ -572,7 +602,7 @@ class QueueService(SongPopper, RadioPusher):
 		for row in records:
 			rules = []
 			if pathRuleTree:
-				rules = list(pathRuleTree.valuesFlat(cast(str, row["path"])))
+				rules = list(pathRuleTree.values_flat(cast(str, row["path"])))
 			result.append(SongListDisplayItem(**row, rules=rules))
 		countQuery = select(func.count(1))\
 			.select_from(query.subquery())
@@ -704,23 +734,38 @@ class QueueService(SongPopper, RadioPusher):
 			.where(stsg_stationFk == stationId)
 		countRes = self.conn.execute(query).scalar()
 		return True if countRes and countRes > 0 else False
-	
+
+
 	def get_catalogue(
 		self,
 		stationId: int,
-		page: int = 0,
+		queryParams: Optional[SimpleQueryParameters]=None,
 		name: str = "",
-		parentName: str = "",
+		parentname: str = "",
 		creator: str = "",
-		limit: Optional[int]=None,
 	) -> Tuple[list[CatalogueItem], int]:
+
+		if not queryParams:
+			queryParams = SimpleQueryParameters()
+
+		if queryParams.orderby:
+			orderByMap: dict[str, Union[str, ColumnElement[Any]]] = {
+				"name": sg_name,
+				"parentname": "album.name",
+				"creator": "artists.name",
+				"playedcount": "stations.playedcount"
+			}
+			if queryParams.sortdir == "dsc":
+				queryParams.orderByElement = desc(orderByMap[queryParams.orderby])
+			else:
+				queryParams.orderByElement = orderByMap[queryParams.orderby]
+
 		songs, count = self.song_info_service.get_fullsongs_page(
+			queryParams,
 			stationId,
-			page,
 			name,
-			parentName,
+			parentname,
 			creator,
-			limit,
 		)
 
 		return [CatalogueItem(
@@ -729,12 +774,13 @@ class QueueService(SongPopper, RadioPusher):
 			itemtype=StationRequestTypes.SONG.lower(),
 			requesttypeid=StationTypes.SONGS_ONLY.value,
 			queuedtimestamp=0,
-			parentName=s.album.name if s.album else "No Album",
+			parentname=s.album.name if s.album else "No Album",
 			creator=s.primaryartist.name 
 				if s.primaryartist 
 				else next((a.name for a in s.artists or []), ""),
 			rules=s.rules,
-			owner=OwnerInfo(id=0, username="", displayname="NA")
+			owner=OwnerInfo(id=0, username="", displayname="NA"),
+			playedcount=sum(t.playedcount for t in s.stations if t.id == stationId)
 		) for s in songs], count
 
 

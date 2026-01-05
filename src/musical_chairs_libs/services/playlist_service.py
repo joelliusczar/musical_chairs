@@ -18,12 +18,14 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongsPlaylistInfo,
 	SongListDisplayItem,
 	DictDotMap,
+	OwnerType,
 	normalize_opening_slash,
 	RulePriorityLevel,
 	UserRoleDomain,
 	get_playlist_owner_roles,
 	UserRoleDef,
 	build_placeholder_select,
+	SimpleQueryParameters,
 	StationPlaylistTuple,
 )
 from .current_user_provider import CurrentUserProvider
@@ -317,14 +319,15 @@ class PlaylistService:
 
 	def get_playlists_page(
 		self,
-		page: int = 0,
+		queryParams: SimpleQueryParameters,
 		playlist: str = "",
-		limit: Optional[int]=None
+		owner: Optional[OwnerType]=None
 	) -> Tuple[list[PlaylistInfo], int]:
 		result = list(self.get_playlists(
-			page=page,
-			pageSize=limit,
-			playlistKeys=playlist
+			page=queryParams.page,
+			pageSize=queryParams.limit,
+			playlistKeys=playlist,
+			ownerId=owner.id if owner else None
 		))
 		countQuery = select(func.count(1))\
 			.select_from(playlists_tbl)
@@ -379,7 +382,7 @@ class PlaylistService:
 		]
 		if pathRuleTree:
 			for song in songs:
-				song.rules = list(pathRuleTree.valuesFlat(
+				song.rules = list(pathRuleTree.values_flat(
 						normalize_opening_slash(song.path))
 					)
 
@@ -397,7 +400,7 @@ class PlaylistService:
 	) -> PlaylistInfo:
 		if not playlist and not playlistId:
 			raise ValueError("No playlist info to save")
-		user = self.current_user_provider.get_rate_limited_user()
+		user = self.current_user_provider.current_user()
 		upsert = update if playlistId else insert
 		savedName = SavedNameString(playlist.name)
 		stmt = upsert(playlists_tbl).values(

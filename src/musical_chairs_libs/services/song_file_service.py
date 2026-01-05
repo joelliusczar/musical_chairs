@@ -98,7 +98,7 @@ class SongFileService:
 		suffix: str,
 		name: str,
 	):
-		user = self.current_user_provider.get_song_or_path_user(prefix=prefix)
+		user = self.current_user_provider.current_user()
 		path = normalize_opening_slash(
 			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
@@ -173,7 +173,7 @@ class SongFileService:
 				f"{path} is already used",
 				"suffix"
 			)
-		userId = self.current_user_provider.get_song_or_path_user(prefix=prefix).id
+		userId = self.current_user_provider.current_user().id
 		self.delete_overlaping_placeholder_dirs(path)
 		cleanedSuffix = re.sub(r"[^\w\.]+","-",suffix).casefold()
 		internalPath = f"{str(uuid.uuid4())}-{cleanedSuffix}"
@@ -526,7 +526,7 @@ class SongFileService:
 	) -> Mapping[str, Collection[SongTreeNode]]:
 		if not transfer.newprefix or transfer.newprefix.isspace():
 			raise ValueError("Cannot move to that directory")
-		user = self.current_user_provider.get_directory_transfering_user(transfer)
+		user = self.current_user_provider.current_user()
 		isSrcPathBlank= not transfer.path or transfer.path.isspace()
 		if isSrcPathBlank or transfer.path == user.dirroot:
 			raise ValueError("Cannot move that directory")

@@ -10,18 +10,19 @@ from fastapi import (
 )
 from fastapi.responses import StreamingResponse
 from api_dependencies import (
+	check_scope,
 	current_user_provider,
+	get_secured_directory_transfer,
+	get_query_params,
 	song_info_service,
 	song_file_service,
-	get_secured_prefix,
+	get_read_secured_prefix,
+	get_write_secured_prefix,
 	get_current_user_simple,
 	get_from_query_subject_user,
 	get_prefix_if_owner,
 	path_rule_service,
 	file_service,
-	get_optional_prefix,
-	get_prefix,
-	get_page_num,
 	check_back_key
 )
 import resource
@@ -44,7 +45,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PathsActionRule,
 	SongPathInfo,
 	DirectoryTransfer,
-	get_path_owner_roles
+	get_path_owner_roles,
+	SimpleQueryParameters,
 )
 from song_validation import (
 	extra_validated_song,
@@ -60,11 +62,11 @@ router = APIRouter(prefix="/song-info")
 
 @router.get("/songs/ls")
 def song_ls(
-	prefix: Optional[str] = Depends(get_optional_prefix),
-	songInfoService: SongFileService = Security(
-		song_file_service,
+	prefix: Optional[str] = Security(
+		get_read_secured_prefix,
 		scopes=[UserRoleDef.PATH_LIST.value]
 	),
+	songInfoService: SongFileService = Depends(song_file_service),
 	currentUserProvider: CurrentUserProvider = Depends(current_user_provider)
 ) -> ListData[SongTreeNode]:
 	items = list(songInfoService.song_ls(prefix))
@@ -81,11 +83,11 @@ def song_ls(
 
 @router.get("/songs/ls_parents")
 def song_ls_parents(
-	prefix: str = Depends(get_prefix),
-	songInfoService: SongFileService = Security(
-		song_file_service,
+	prefix: str = Security(
+		get_read_secured_prefix,
 		scopes=[UserRoleDef.PATH_LIST.value]
-	)
+	),
+	songInfoService: SongFileService = Depends(song_file_service)
 ) -> dict[str, ListData[SongTreeNode]]:
 	result = {
 		x[0]:ListData(
@@ -98,18 +100,18 @@ def song_ls_parents(
 
 @router.get("/songs/{itemId}")
 def get_song_for_edit(
-	itemId: int,
-	songInfoService: SongInfoService = Security(
-		song_info_service,
+	songids: list[int] = Security(
+		get_secured_song_ids,
 		scopes=[UserRoleDef.PATH_VIEW.value]
 	),
+	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> SongEditInfo:
-	songInfo = next(songInfoService.get_songs_for_edit([itemId]), None)
+	songInfo = next(songInfoService.get_songs_for_edit(songids), None)
 	if songInfo:
 		return songInfo
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
-		detail=[build_error_obj(f"{itemId} not found", "id")]
+		detail=[build_error_obj(f"{next(iter(songids), 0)} not found", "id")]
 	)
 
 
@@ -117,27 +119,25 @@ def get_song_for_edit(
 #convenience
 @router.get("/songs/list/", dependencies=[Depends(check_back_key)])
 def get_songs_list(
-	limit: Optional[int] = None,
+	queryParams: SimpleQueryParameters = Depends(get_query_params),
 	song: str = "",
 	album: str = "",
 	albumId: Optional[int]=None,
 	artist: str = "",
 	artistId: Optional[int]=None,
-	page: int = Depends(get_page_num),
 	user: AccountInfo = Depends(get_current_user_simple),
 	itemIds: Optional[list[int]] = Query(default=None),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> list[SongEditInfo]:
 	return list(songInfoService.get_all_songs(
 		stationId=None,
-		page=page,
+		queryParams=queryParams,
 		song=song,
 		songIds=itemIds,
 		album=album,
 		albumId=albumId,
 		artist=artist,
 		artistId=artistId,
-		limit=limit,
 	))
 
 
@@ -196,10 +196,7 @@ def update_song(
 		extra_validated_song,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	),
-	songInfoService: SongInfoService = Security(
-		song_info_service,
-		scopes=[UserRoleDef.PATH_EDIT.value]
-	),
+	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> SongEditInfo:
 	result = next(songInfoService.save_songs([itemid], song), None)
 	if result:
@@ -217,10 +214,7 @@ def update_songs_multi(
 		extra_validated_song,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	),
-	songInfoService: SongInfoService = Security(
-		song_info_service,
-		scopes=[UserRoleDef.PATH_EDIT.value]
-	),
+	songInfoService: SongInfoService = Security(song_info_service),
 ) -> SongEditInfo:
 	result = next(songInfoService.save_songs(itemIds, song), None)
 	if result:
@@ -231,12 +225,10 @@ def update_songs_multi(
 	)
 
 
-
-
 @router.get("/path/user_list")
 def get_path_user_list(
 	prefix: str = Security(
-		get_secured_prefix,
+		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_USER_LIST.value]
 	),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
@@ -248,7 +240,7 @@ def get_path_user_list(
 @router.post("/path/user_role")
 def add_user_rule(
 	prefix: str = Security(
-		get_secured_prefix,
+		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 	),
 	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
@@ -262,7 +254,7 @@ def add_user_rule(
 	status_code=status.HTTP_204_NO_CONTENT)
 def remove_user_rule(
 	prefix: str = Security(
-		get_secured_prefix,
+		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 	),
 	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
@@ -276,11 +268,7 @@ def remove_user_rule(
 	)
 
 
-@router.get("/check/",
-	dependencies=[
-		Depends(get_current_user_simple)
-	]
-)
+@router.get("/check/")
 def is_phrase_used(
 	id: Optional[int]=None,
 	suffix: str = "",
@@ -291,11 +279,8 @@ def is_phrase_used(
 		"suffix": songFileService.is_path_used(id, prefix, suffix)
 	}
 
-@router.put("/check_multi/",
-	dependencies=[
-		Depends(get_current_user_simple)
-	]
-)
+
+@router.put("/check_multi/")
 def are_paths_used(
 	songSuffixes: list[SongPathInfo],
 	prefix: str = Depends(get_prefix_if_owner),
@@ -307,11 +292,11 @@ def are_paths_used(
 @router.post("/directory")
 def create_directory(
 	suffix: str,
-	prefix: str = Depends(get_prefix),
-	songFileService: SongFileService = Security(
-		song_file_service,
+	prefix: str = Security(
+		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
-	)
+	),
+	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, ListData[SongTreeNode]]:
 		result = {
 		x[0]:ListData(
@@ -321,15 +306,21 @@ def create_directory(
 		}
 		return result
 
-@router.post("/upload")
+
+@router.post("/upload", dependencies=[
+	Security(
+		check_scope,
+		scopes=[UserRoleDef.PATH_UPLOAD.value]
+	)
+])
 def upload_song(
 	suffix: str,
 	file: UploadFile,
-	prefix: str = Depends(get_prefix),
-	songFileService: SongFileService = Security(
-		song_file_service,
+	prefix: str = Security(
+		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]
-	)
+	),
+	songFileService: SongFileService = Depends(song_file_service)
 ) -> SongTreeNode:
 	return songFileService.save_song_file(file.file, prefix, suffix)
 
@@ -337,7 +328,7 @@ def upload_song(
 @router.delete("/path/delete_prefix")
 def delete_prefix(
 	prefix: str = Security(
-		get_secured_prefix,
+		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_DELETE.value]
 	),
 	songFileService: SongFileService = Depends(song_file_service)
@@ -352,7 +343,10 @@ def delete_prefix(
 
 @router.post("/path/move")
 def move_path(
-	transfer: DirectoryTransfer,
+	transfer: DirectoryTransfer = Security(
+		get_secured_directory_transfer,
+		scopes=[UserRoleDef.PATH_MOVE.value]
+	),
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, ListData[SongTreeNode]]:
 	result = {

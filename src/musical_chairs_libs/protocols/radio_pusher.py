@@ -1,4 +1,5 @@
 from musical_chairs_libs.dtos_and_utilities import (
+	SimpleQueryParameters,
 	StationInfo,
 )
 from musical_chairs_libs.dtos_and_utilities import (
@@ -37,10 +38,9 @@ class RadioPusher(Protocol):
 	def get_catalogue(
 		self,
 		stationId: int,
-		page: int = 0,
+		queryParams: SimpleQueryParameters,
 		name: str = "",
-		parentName: str = "",
+		parentname: str = "",
 		creator: str = "",
-		limit: Optional[int]=None,
 	) -> Tuple[list[CatalogueItem], int]:
 		...

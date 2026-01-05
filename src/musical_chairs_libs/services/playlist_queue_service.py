@@ -1,5 +1,4 @@
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	ActionRule,
 	clean_search_term_for_like,
 	get_datetime,
@@ -11,6 +10,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CurrentPlayingInfo,
 	QueueRequest,
 	OwnerInfo,
+	SimpleQueryParameters,
+	UserRoleDomain,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes,
@@ -35,6 +36,7 @@ from musical_chairs_libs.tables import (
 	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk,
 	plsg_lexorder,
 )
+from .current_user_provider import CurrentUserProvider
 from .queue_service import QueueService
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
@@ -54,6 +56,7 @@ from typing import (
 	Optional,
 	cast,
 	Collection,
+	Iterator,
 	Sequence,
 	Set,
 	Tuple,
@@ -61,13 +64,16 @@ from typing import (
 
 def choice(
 	items: Sequence[Any],
-	sampleSize: int
+	sampleSize: int,
+	weights: Sequence[float]
 ) -> Collection[Any]:
-	aSize = len(items)
-	pSize = len(items) + 1
 	# the sum of weights needs to equal 1
-	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
-	return numpy_choice(items, sampleSize, p = cast(Any,weights), replace=False).tolist()
+	return numpy_choice(
+		items,
+		sampleSize,
+		p = cast(Any,weights),
+		replace=False
+	).tolist()
 
 class PlaylistQueueService(SongPopper, RadioPusher):
 
@@ -75,8 +81,9 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 		self,
 		conn: Connection,
 		queueService: QueueService,
+		currentUserProvider: CurrentUserProvider,
 		choiceSelector: Optional[
-			Callable[[Sequence[Any], int], Collection[Any]]
+			Callable[[Sequence[Any], int, Sequence[float]], Collection[Any]]
 		]=None,
 	) -> None:
 			if not conn:
@@ -87,11 +94,12 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 			self.queue_service = queueService
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
+			self.current_user_provider = currentUserProvider
 			self.queue_size = 3
 
 	@staticmethod
 	def get_station_possibilities_query(stationid: int):
-		query = select(stpl_playlistFk) \
+		query = select(stpl_playlistFk, func.max(coalesce(uah_queuedTimestamp))) \
 			.select_from(stations_tbl) \
 			.join(stations_playlists_tbl, st_pk == stpl_stationFk) \
 			.join(playlists_songs_tbl, plsg_playlistFk == stpl_playlistFk) \
@@ -111,9 +119,9 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 			.where(st_pk == stationid) \
 			.group_by(stpl_playlistFk) \
 			.order_by(
-				desc(func.max(coalesce(uah_queuedTimestamp))),
-				desc(func.max(coalesce(uah_timestamp))),
-				desc(coalesce(lp_timestamp)),
+				desc(func.max(coalesce(uah_queuedTimestamp), 0)),
+				desc(func.max(coalesce(uah_timestamp), 0)),
+				desc(coalesce(lp_timestamp, 0)),
 				func.rand()
 			)
 		return query
@@ -123,27 +131,38 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 	def get_all_station_possibilities(
 		self,
 		stationid: int
-	) -> Sequence[int]:
+	) -> Iterator[Tuple[int, float]]:
 		
 		
 		query = self.get_station_possibilities_query(stationid)
 
-		rows = self.conn.execute(query).mappings().fetchall()
-		return [row[stpl_playlistFk] for row in rows]
+		rows = self.conn.execute(query)
+		yield from ((row[0], row[1]) for row in rows)
 
 
 	def get_random_playlistIds(
 		self,
-		stationid: int,
+		stationId: int,
 		deficitSize: int
 	) -> Collection[int]:
-		ids = self.get_all_station_possibilities(stationid)
-		#immediately chop off the most recent so there are no back-to-backs
-		ids = ids[1:] if len(ids) > 1 else ids
-		sampleSize = deficitSize if deficitSize < len(ids) else len(ids)
+		def weigh(n: float) -> float:
+			return n * n
+		rows = [*self.get_all_station_possibilities(stationId)]
+		mostRecentDraw = rows[0][1] or self.get_datetime().timestamp() \
+			if len(rows) > 1 else self.get_datetime().timestamp()
+		ages = [(mostRecentDraw - r[1] or 0) for r in rows]
+		total = sum(
+			(weigh(a) for a in ages),
+			start=1.0
+		)
+		weights = [weigh(a)/total for a in ages]
+		zeroCount = sum(1 for w in weights if w == 0)
+		sampleSize = deficitSize if deficitSize < len(rows) - zeroCount \
+			else len(rows) - zeroCount
+		ids = [r[0] for r in rows]
 		if not ids:
 			raise RuntimeError("No playlist possibilities were found")
-		selection = self.choice(ids, sampleSize)
+		selection = self.choice(ids, sampleSize, weights)
 		return selection
 
 
@@ -306,14 +325,12 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 	def get_catalogue(
 		self,
 		stationId: int,
-		page: int = 0,
+		queryParams: SimpleQueryParameters,
 		name: str = "",
-		parentName: str = "",
+		parentname: str = "",
 		creator: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Tuple[list[CatalogueItem], int]:
-		offset = page * limit if limit else 0
+		offset = queryParams.page * queryParams.limit if queryParams.limit else 0
 		lcollection = clean_search_term_for_like(name)
 		lcreator = clean_search_term_for_like(creator)
 
@@ -339,21 +356,22 @@ class PlaylistQueueService(SongPopper, RadioPusher):
 
 		limitedQuery = query\
 			.offset(offset)\
-			.limit(limit)
+			.limit(queryParams.limit)
 
 		records = self.conn.execute(limitedQuery).mappings()
-
+		
+		userId = self.current_user_provider.optional_user_id()
 		result = [CatalogueItem(
 			id=r["id"],
 			name=r["name"] or "",
-			parentName="",
+			parentname="",
 			creator=r["creator"] or "",
 			itemtype="Playlist",
 			requesttypeid=StationTypes.PLAYLISTS_ONLY.value,
 			queuedtimestamp=0,
-			rules=[] if user and r[u_pk] != user.id else [
+			rules=[] if userId and r[u_pk] != userId else [
 				ActionRule(
-					domain="",
+					domain=UserRoleDomain.Playlist.value,
 					name=UserRoleDef.PLAYLIST_EDIT.value,
 					priority=RulePriorityLevel.OWNER.value
 				)

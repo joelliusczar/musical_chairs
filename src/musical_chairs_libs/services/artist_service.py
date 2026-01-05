@@ -19,7 +19,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	DictDotMap,
 	normalize_opening_slash,
 	SearchNameString,
-	WrongPermissionsError
 )
 from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
@@ -62,18 +61,6 @@ class ArtistService:
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
 		self.current_user_provider = currentUserProvider
-
-	def artist_editor_user(
-		self,
-		artistid: int,
-	) -> AccountInfo:
-		user = self.current_user_provider.get_scoped_user()
-		if user.isadmin:
-			return user
-		owner = self.get_artist_owner(artistid)
-		if owner.id == user.id:
-			return user
-		raise WrongPermissionsError()
 
 	def get_artists(self,
 		page: int = 0,
@@ -207,7 +194,7 @@ class ArtistService:
 		]
 		if pathRuleTree:
 			for song in songs:
-				song.rules = list(pathRuleTree.valuesFlat(
+				song.rules = list(pathRuleTree.values_flat(
 						normalize_opening_slash(song.path))
 					)
 
@@ -220,7 +207,7 @@ class ArtistService:
 	) -> Optional[ArtistInfo]:
 		if not artistName and not artistId:
 			raise ValueError("No artist info to save")
-		user = self.current_user_provider.get_scoped_user()
+		user = self.current_user_provider.current_user()
 		upsert = update if artistId else insert
 		savedName = SavedNameString(artistName)
 		stmt = upsert(artists_tbl).values(

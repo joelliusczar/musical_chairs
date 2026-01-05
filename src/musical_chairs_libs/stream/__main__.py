@@ -9,9 +9,11 @@ from musical_chairs_libs.services import (
 	ActionsHistoryManagementService,
 	ActionsHistoryQueryService,
 	AlbumQueueService,
+	BasicUserProvider,
 	CollectionQueueService,
 	CurrentUserProvider,
 	EmptyUserTrackingService,
+	PathRuleService,
 	PlaylistQueueService,
 	ProcessService,
 	QueueService,
@@ -24,10 +26,10 @@ from threading import ExceptHookArgs, Thread
 from setproctitle import setproctitle
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	ConfigAcessors,
 	StationTypes
 )
+from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.services.fs import S3FileService
 from sqlalchemy.engine import Connection
 
@@ -53,19 +55,29 @@ def close_db_connection(conn: Connection, connName: str):
 	except:
 		logging.radioLogger.warning(f"Could not close the  {connName} connection")
 
+def file_service() -> FileService:
+	return S3FileService()
+
+def path_rule_service(conn: Connection) -> PathRuleService:
+	return PathRuleService(
+		conn,
+		file_service(),
+		BasicUserProvider(None)
+	)
+
+
 def current_user_provider(conn: Connection) -> CurrentUserProvider:
 	actionsHistoryQueryService = ActionsHistoryQueryService(conn)
+	pathRuleService = path_rule_service(conn)
+
 	currentUserProvider = CurrentUserProvider(
-		AccountInfo(
-			id=0,
-			username="system",
-			displayname="System",
-			email="fake@fake.com"
-		),
+		BasicUserProvider(None),
 		EmptyUserTrackingService(),
-		actionsHistoryQueryService
+		actionsHistoryQueryService,
+		pathRuleService
 	)
 	return currentUserProvider
+
 
 def queue_service(conn: Connection) -> QueueService:
 	currentUserProvider = current_user_provider(conn)
@@ -74,15 +86,18 @@ def queue_service(conn: Connection) -> QueueService:
 		EmptyUserTrackingService(),
 		currentUserProvider
 	)
+	pathRuleService = path_rule_service(conn)
 	songInfoService = SongInfoService(
 		conn,
 		currentUserProvider,
+		pathRuleService
 	)
 	queueService = QueueService(
 		conn,
 		currentUserProvider,
 		actionsHistoryManagementService,
 		songInfoService,
+		pathRuleService,
 	)
 	return queueService
 
@@ -117,10 +132,11 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	updatingSongQueueService = queue_service(updatingConn)
 
 
-
+	pathRuleService = path_rule_service(readingConn)
 	stationService = StationService(
 		readingConn,
-		current_user_provider(readingConn)
+		current_user_provider(readingConn),
+		pathRuleService
 	)
 	stationId = stationService.get_station_id(stationName, ownerName)
 	if not stationId:
@@ -140,7 +156,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	elif station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
 		queueServiceType = CollectionQueueService
 
-	fileService = S3FileService()
+	fileService = file_service()
 	
 	readingQueueService = readingSongQueueService
 	if queueServiceType != QueueService:
@@ -156,7 +172,8 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		)
 	stationProcessService = StationProcessService(
 		updatingConn,
-		current_user_provider(readingConn)
+		current_user_provider(readingConn),
+		stationService
 	)
 	stationProcessService.set_station_proc(stationId)
 
@@ -200,7 +217,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			f"Is sending thread alive? {sendThread.is_alive()}"
 		)
 		logging.radioLogger.info("Disabling the station")
-		stationProcessService.disable_stations(stationId)
+		stationProcessService.disable_stations(station)
 		logging.radioLogger.debug("Station disabled")
 		close_db_connection(readingConn, "reading")
 		close_db_connection(updatingConn, "updating")

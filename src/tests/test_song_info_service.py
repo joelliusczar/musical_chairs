@@ -22,6 +22,7 @@ from .mocks.db_population import (
 
 from musical_chairs_libs.dtos_and_utilities import (
 	PlaylistInfo,
+	SimpleQueryParameters,
 	SongEditInfo,
 	StationInfo,
 	StationSongTuple,
@@ -1000,7 +1001,9 @@ def test_get_all_songs(
 	fixture_song_info_service: SongInfoService
 ):
 	songInfoService = fixture_song_info_service
-	songs = list(songInfoService.get_all_songs(limit=30))
+	songs = list(songInfoService.get_all_songs(
+		queryParams=SimpleQueryParameters(limit=30)
+	))
 	assert songs
 
 @pytest.mark.current_username("testUser_november")
@@ -1008,5 +1011,8 @@ def test_get_all_songs_songless_artist(
 	fixture_song_info_service: SongInfoService
 ):
 	songInfoService = fixture_song_info_service
-	songs = list(songInfoService.get_all_songs(limit=30, artistId=28))
+	songs = list(songInfoService.get_all_songs(
+		queryParams=SimpleQueryParameters(limit=30),
+		artistId=28
+	))
 	assert songs == []

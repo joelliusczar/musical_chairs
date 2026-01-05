@@ -117,7 +117,7 @@ class AbsorbentTrie(Generic[T]):
 						raise KeyError()
 		return node
 
-	def __nodes_along_path(self, path: str) -> Iterator["AbsorbentTrie[T]"]:
+	def __nodes_along_path__(self, path: str) -> Iterator["AbsorbentTrie[T]"]:
 		node = self
 		pathIdx = 0
 		if path:
@@ -130,6 +130,7 @@ class AbsorbentTrie(Generic[T]):
 				node = subTrie
 			if node != None:
 				yield node
+
 
 	def __update_counts__(self):
 		stack: list["AbsorbentTrie[T]"] = [self]
@@ -223,7 +224,7 @@ class AbsorbentTrie(Generic[T]):
 
 	def has_prefix_for(self, path: str) -> bool:
 		# nodes = [*self.__nodes_along_path(path)]
-		return any(True for n in self.__nodes_along_path(path) \
+		return any(True for n in self.__nodes_along_path__(path) \
 			if n.path_store != Lost()
 		)
 
@@ -281,7 +282,7 @@ class AbsorbentTrie(Generic[T]):
 		if path:
 			yield from (
 				(n.path_store if not isinstance(n.path_store, Eitherton) else None) \
-				for n in self.__nodes_along_path(path) \
+				for n in self.__nodes_along_path__(path) \
 				if n.path_store != Lost()
 			)
 			return
@@ -521,7 +522,7 @@ class ChainedAbsorbentTrie(Generic[T]):
 		def values_map(self)-> dict[str, Optional[list[T]]]:
 			return self.__absorbentTrie__.values_map()
 
-		def valuesFlat(self, path: Optional[str]=None) -> Iterator[T]:
+		def values_flat(self, path: Optional[str]=None) -> Iterator[T]:
 			return (r for i in self.values(path) for r in i)
 
 		def shortest_paths(self) -> Iterator[str]:

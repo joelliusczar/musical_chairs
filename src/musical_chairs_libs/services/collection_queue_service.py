@@ -1,6 +1,5 @@
 from collections import defaultdict
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	ActionRule,
 	clean_search_term_for_like,
 	get_datetime,
@@ -12,10 +11,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CurrentPlayingInfo,
 	QueueRequest,
 	OwnerInfo,
+	SimpleQueryParameters,
+	UserRoleDomain,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes,
-	StationTypes,
 )
 from musical_chairs_libs.protocols import SongPopper, RadioPusher
 from musical_chairs_libs.tables import (
@@ -40,6 +40,7 @@ from musical_chairs_libs.tables import (
 	last_played as last_played_tbl, lp_timestamp, lp_stationFk, lp_itemType,
 	lp_parentKey,
 )
+from .current_user_provider import CurrentUserProvider
 from .queue_service import QueueService
 from .album_queue_service import AlbumQueueService
 from .playlist_queue_service import PlaylistQueueService
@@ -71,12 +72,10 @@ from typing import (
 
 def choice(
 	items: Sequence[Any],
-	sampleSize: int
+	sampleSize: int,
+	weights: Sequence[float]
 ) -> Collection[Any]:
-	aSize = len(items)
-	pSize = len(items) + 1
 	# the sum of weights needs to equal 1
-	weights = [2 * (float(n) / (pSize * aSize)) for n in range(1, pSize)]
 	return numpy_choice(
 		items,
 		sampleSize,
@@ -84,16 +83,18 @@ def choice(
 		replace=False
 	).tolist()
 
+
 class CollectionQueueService(SongPopper, RadioPusher):
 
 	def __init__(
 		self,
 		conn: Connection,
 		queueService: QueueService,
+		currentUserProvider: CurrentUserProvider,
 		albumQueueService: Optional[AlbumQueueService]=None,
 		playlistQueueService: Optional[PlaylistQueueService]=None,
 		choiceSelector: Optional[
-			Callable[[Sequence[Any], int], Collection[Any]]
+			Callable[[Sequence[Any], int, Sequence[float]], Collection[Any]]
 		]=None,
 	) -> None:
 			if not conn:
@@ -104,11 +105,13 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				albumQueueService = AlbumQueueService(
 					conn,
 					queueService,
+					currentUserProvider,
 				)
 			if not playlistQueueService:
 				playlistQueueService = PlaylistQueueService(
 					conn,
-					queueService
+					queueService,
+					currentUserProvider,
 				)
 			self.conn = conn
 			self.queue_service = queueService
@@ -116,6 +119,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			self.playlist_queue_service = playlistQueueService
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
+			self.current_user_provider = currentUserProvider
 			self.queue_size = 3
 
 
@@ -123,7 +127,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 	def get_all_station_possibilities(
 		self,
 		stationid: int
-	) -> Sequence[Tuple[int, str]]:
+	) -> Sequence[Tuple[int, str, float]]:
 		
 		albumQuery = select(
 			stab_albumFk.label("key"),
@@ -181,7 +185,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			playlistQuery
 		).cte()
 
-		query = select(sub.c.key, sub.c.itemtype)\
+		query = select(sub.c.key, sub.c.itemtype, func.max(sub.c.queuedtimestamp))\
 			.group_by(sub.c.key, sub.c.itemtype)\
 			.order_by(
 				desc(func.max(sub.c.queuedtimestamp)),
@@ -191,23 +195,37 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			)
 		rows = self.conn.execute(query).fetchall()
 
-		return [(row[0], row[1]) for row in rows]
+		return [(row[0], row[1], row[2]) for row in rows]
 
 
 	def get_random_collectionIds(
 		self,
-		stationid: int,
+		stationId: int,
 		deficitSize: int
 	) -> Collection[Tuple[int, str]]:
-		ids = self.get_all_station_possibilities(stationid)
-		#immediately chop off the most recent so there are no back-to-backs
-		ids = ids[1:] if len(ids) > 1 else ids
-		sampleSize = deficitSize if deficitSize < len(ids) else len(ids)
+		def weigh(n: float) -> float:
+			return n * n
+		rows = [*self.get_all_station_possibilities(stationId)]
+		mostRecentDraw = rows[0][2] or self.get_datetime().timestamp() \
+			if len(rows) > 1 else self.get_datetime().timestamp()
+		ages = [(mostRecentDraw - r[2] or 0) for r in rows]
+		total = sum(
+			(weigh(a) for a in ages),
+			start=1.0
+		)
+		weights = [weigh(a)/total for a in ages]
+		zeroCount = sum(1 for w in weights if w == 0)
+		sampleSize = deficitSize if deficitSize < len(rows) - zeroCount \
+			else len(rows) - zeroCount
+		ids = [(r[0], r[1]) for r in rows]
 		if not ids:
-			raise RuntimeError("No collection possibilities were found")
+			raise RuntimeError("No playlist possibilities were found")
 		tupleMap = {f"{t[1]}{t[0]}":t for t in ids}
-		
-		selection = self.choice([f"{t[1]}{t[0]}" for t in ids], sampleSize)
+		selection = self.choice(
+			[f"{t[1]}{t[0]}" for t in ids],
+			sampleSize,
+			weights
+		)
 		return [tupleMap[k] for k in selection]
 
 
@@ -415,14 +433,12 @@ class CollectionQueueService(SongPopper, RadioPusher):
 	def get_catalogue(
 		self,
 		stationId: int,
-		page: int = 0,
+		queryParams: SimpleQueryParameters,
 		name: str = "",
-		parentName: str = "",
+		parentname: str = "",
 		creator: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Tuple[list[CatalogueItem], int]:
-		offset = page * limit if limit else 0
+		offset = queryParams.page * queryParams.limit if queryParams.limit else 0
 		lname = clean_search_term_for_like(name)
 		lcreator = clean_search_term_for_like(creator)
 
@@ -434,7 +450,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			ab_ownerFk.label("ownerid"),
 			u_username.label("ownerusername"),
 			u_displayName.label("ownerdisplayname"),
-			dbLiteral("Album").label("itemtype")
+			dbLiteral(StationRequestTypes.ALBUM.lower()).label("itemtype")
 		)\
 			.select_from(stations_tbl) \
 			.join(stations_albums_tbl, st_pk == stab_stationFk) \
@@ -451,7 +467,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			pl_ownerFk.label("ownerid"),
 			u_username.label("ownerusername"),
 			u_displayName.label("ownerdisplayname"),
-			dbLiteral("Playlist").label("itemtype")
+			dbLiteral(StationRequestTypes.PLAYLIST.lower()).label("itemtype")
 		)\
 			.select_from(stations_tbl) \
 			.join(stations_playlists_tbl, st_pk == stpl_stationFk) \
@@ -480,22 +496,32 @@ class CollectionQueueService(SongPopper, RadioPusher):
 
 		limitedQuery = query\
 			.offset(offset)\
-			.limit(limit)
+			.limit(queryParams.limit)
 
 		records = self.conn.execute(limitedQuery).mappings()
 
+		userId = self.current_user_provider.optional_user_id()
 		result = [CatalogueItem(
 			id=r["id"],
 			name=r["name"] or "",
-			parentName="",
+			parentname="",
 			creator=r["creator"] or "",
 			itemtype=r["itemtype"],
-			requesttypeid=StationTypes.ALBUMS_AND_PLAYLISTS.value,
+			requesttypeid=StationRequestTypes.ALBUM.value \
+				if r["itemtype"] == StationRequestTypes.ALBUM.lower() \
+				else StationRequestTypes.PLAYLIST.value ,
 			queuedtimestamp=0,
-			rules=[] if user and r["ownerid"] != user.id else [
+			rules=[] if not userId or r["ownerid"] != userId else [
 				ActionRule(
-					domain="",
+					domain=UserRoleDomain.Album.value,
 					name=UserRoleDef.ALBUM_EDIT.value,
+					priority=RulePriorityLevel.OWNER.value
+				)
+			] if r["itemtype"] == StationRequestTypes.ALBUM.lower()
+			else [
+				ActionRule(
+					domain=UserRoleDomain.Playlist.value,
+					name=UserRoleDef.PLAYLIST_EDIT.value,
 					priority=RulePriorityLevel.OWNER.value
 				)
 			],

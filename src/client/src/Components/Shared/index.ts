@@ -4,6 +4,7 @@ export { FormSelect } from "./FormSelect";
 export { FormTextField } from "./FormTextField";
 export { default as Loader } from "./Loader";
 export { OptionsButton } from "./OptionsButton";
+export { OrderByField } from "./OrderByField";
 export { PrivateRoute } from "./PrivateRoute";
 export {
 	ErrorComponent, 

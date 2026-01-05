@@ -3,8 +3,7 @@ import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
 import {
-	checkValues,
-	saveDirectory,
+	Calls,
 } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
@@ -38,7 +37,7 @@ const validatePhraseIsUnused = async (
 ) => {
 	const id = context?.parent?.id;
 	if (!value) return true;
-	const requestObj = checkValues({ id, values: {
+	const requestObj = Calls.checkValues({ id, values: {
 		"suffix": value,
 		"prefix": context?.parent?.prefix,
 	}});
@@ -83,7 +82,7 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = saveDirectory(values);
+			const requestObj = Calls.saveDirectory(values);
 			const result = await requestObj.call();
 			afterSubmit(result, `${values.prefix}${values.suffix}/`);
 			enqueueSnackbar("Save successful", { variant: "success"});

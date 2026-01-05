@@ -1,6 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
-import { Paper, Button, Box } from "@mui/material";
+import { 
+	Box, 
+	Button, 
+	Checkbox, 
+	FormGroup, 
+	FormControlLabel, 
+	Paper,
+} from "@mui/material";
 import { useForm } from "react-hook-form";
 import { FormTextField } from "../Shared/FormTextField";
 import { FormSelect } from "../Shared/FormSelect";
@@ -29,6 +36,7 @@ type RoleEntryProps = {
 export const RoleEntry = (props: RoleEntryProps) => {
 
 	const { save, cancel, availableRoles } = props;
+	const [noLimit, setNoLimit] = useState(false);
 
 	const formMethods = useForm({
 		defaultValues: initialValues,
@@ -41,9 +49,13 @@ export const RoleEntry = (props: RoleEntryProps) => {
 		save({
 			name: values.role.id,
 			count: values.count,
-			span: span,
+			span: noLimit ? 0 : span,
 		});
 	});
+
+	const handleNoLimitCheck = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setNoLimit(e.target.checked);
+	};
 
 	const handleCancel = () => {
 		reset(initialValues);
@@ -63,8 +75,15 @@ export const RoleEntry = (props: RoleEntryProps) => {
 					return option.id === value.id;
 				}}
 			/>
+			<FormGroup>
+				<FormControlLabel 
+					control={<Checkbox onChange={handleNoLimitCheck} />} 
+					label="No Limit" 
+				/>
+
+			</FormGroup>
 		</Box>
-		<Box className="rule-entry">
+		{!noLimit && <Box className="rule-entry">
 			<Box className="rule-entry-first-text">
 				This action can be invoked
 			</Box>
@@ -103,7 +122,7 @@ export const RoleEntry = (props: RoleEntryProps) => {
 				min="0"
 				formMethods={formMethods}
 			/>
-		</Box>
+		</Box>}
 		<Box>
 			<Button
 				onClick={handleCancel}

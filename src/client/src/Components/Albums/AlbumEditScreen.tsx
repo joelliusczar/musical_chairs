@@ -116,7 +116,7 @@ export const AlbumEditScreen = () => {
 			versionnote: "",
 		},
 	});
-	const { handleSubmit, reset, getValues } = formMethods;
+	const { handleSubmit, reset, getValues, watch } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const requestObj = Calls.update({
@@ -137,6 +137,24 @@ export const AlbumEditScreen = () => {
 			console.error(err);
 		}
 	});
+
+
+	const albumRules = watch("rules");
+
+
+	const canPlayAlbums = useHasAnyRoles([
+		UserRoleDef.PATH_DOWNLOAD,
+	]);
+	const canPlayThisAlbum = () => {
+		if(id) {
+			return anyConformsToAnyRule(
+				albumRules, [UserRoleDef.ALBUM_PLAY]
+			) && canPlayAlbums;
+		}
+		else {
+			return canPlayAlbums;
+		}
+	};
 
 
 
@@ -243,12 +261,12 @@ export const AlbumEditScreen = () => {
 		{state.data?.length > 0 ?
 			<>
 				<Box>
-					<PlaylistListener
+					{canPlayThisAlbum() && <PlaylistListener
 						audioItems={state.data}
 						nextUp={getNextUp()}
 						queueNext={queueNext}
 						parentId={id}
-					/>
+					/>}
 				</Box>
 				<TableContainer>
 					<Table>

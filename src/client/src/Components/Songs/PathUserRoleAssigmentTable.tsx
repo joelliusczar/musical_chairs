@@ -8,9 +8,7 @@ import {
 } from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import {
-	fetchPathUsers,
-	addPathUserRule,
-	removePathUserRule,
+	Calls,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import { UserRoleDef, UserRoleDomain } from "../../constants";
@@ -89,7 +87,7 @@ export const PathUserRoleAssignmentTable = () => {
 			count: 0,
 			priority: null,
 		};
-		const requestObj = addPathUserRule({
+		const requestObj = Calls.addPathUserRule({
 			rule,
 			nodeId,
 			subjectuserkey: user.id,
@@ -131,7 +129,7 @@ export const PathUserRoleAssignmentTable = () => {
 
 		const page = parseInt(queryObj.get("page") || "1");
 		const limit = parseInt(queryObj.get("rows") || "50");
-		const requestObj = fetchPathUsers({
+		const requestObj = Calls.getPathUsers({
 			page: page - 1, limit: limit, prefix: prefix,
 		});
 		const fetch = async () => {
@@ -159,7 +157,7 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
 		try {
-			const requestObj = addPathUserRule({
+			const requestObj = Calls.addPathUserRule({
 				rule,
 				nodeId,
 				subjectuserkey: user.id,
@@ -181,7 +179,7 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const removeRole = async (role: ActionRule, user: User) => {
 		try {
-			const requestObj = removePathUserRule({
+			const requestObj = Calls.removePathUserRule({
 				rulename: role.name,
 				nodeId,
 				subjectuserkey: user.id,
@@ -210,7 +208,7 @@ export const PathUserRoleAssignmentTable = () => {
 
 	const removeUser = async (user: User) => {
 		try {
-			const requestObj = removePathUserRule({
+			const requestObj = Calls.removePathUserRule({
 				nodeId,
 				subjectuserkey: user.id,
 			});

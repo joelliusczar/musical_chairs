@@ -24,7 +24,6 @@ import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { SearchTextField } from "../Shared/SearchTextFIeld";
 import {
-	useCurrentUser,
 	useHasAnyRoles,
 	useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext/AuthContext";
@@ -37,6 +36,7 @@ import {
 import {
 	PageableListDataShape,
 } from "../../Types/reducerTypes";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 
 
@@ -44,7 +44,6 @@ export const AlbumTableView = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
-	const currentUser = useCurrentUser();
 	const canEditAlbums = useHasAnyRoles([UserRoleDef.ALBUM_EDIT]);
 
 
@@ -70,20 +69,24 @@ export const AlbumTableView = () => {
 
 	useAuthViewStateChange(authReset);
 
+
 	const urlBuilder = new UrlBuilder(DomRoutes.albumPage);
 
 	const rowButton = (item: AlbumInfo, idx?: number) => {
 		const rowButtonOptions = [];
 
+		const canEditThisAlbum = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.ALBUM_EDIT]
+		);
 
-		const canEditThisAlbum = canEditAlbums && currentUser.id == item.owner.id;
 
-		if (canEditThisAlbum) rowButtonOptions.push({
+		if (canEditThisAlbum || canEditAlbums) rowButtonOptions.push({
 			label: "Edit",
 			link: `${DomRoutes.album({ id: item.id})}`,
 		});
 
-		return (rowButtonOptions.length > 1 ? <OptionsButton
+		return (rowButtonOptions.length > 0 ? <OptionsButton
 			id={`queue-row-btn-${item.id}-${idx}`}
 			options={rowButtonOptions}
 		/> :

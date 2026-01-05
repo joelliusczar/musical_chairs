@@ -59,15 +59,23 @@ from musical_chairs_libs.services.fs import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
+	ActionRule,
+	AlbumInfo,
+	ArtistInfo,
 	build_error_obj,
 	ConfigAcessors,
+	DirectoryTransfer,
 	get_datetime,
 	normalize_opening_slash,
+	NotLoggedInError,
 	UserRoleDef,
 	StationInfo,
 	int_or_str,
 	TrackingInfo,
 	PlaylistInfo,
+	SimpleQueryParameters,
+	UserRoleDomain,
+	WrongPermissionsError,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes,
@@ -111,7 +119,7 @@ def owner_key_path(
 
 
 def owner_key_query(
-	ownerkey: Union[int, str, None]  = Query(None)
+	ownerkey: Union[int, str, None]  = Query(None),
 ) -> Union[int, str, None]:
 	if ownerkey is None:
 		return ownerkey
@@ -270,16 +278,21 @@ def current_user_provider(
 		set(securityScopes.scopes)
 	)
 
-
-def does_account_have_scope(
+def __check_scope__(
 	securityScopes: SecurityScopes,
-	currentUser: AccountInfo = Depends(get_current_user_simple),
+	currentUser: AccountInfo,
 ):
 	scopeSet = {s for s in securityScopes.scopes}
 	hasRole = currentUser.isadmin or\
 		any(r.name in scopeSet for r in currentUser.roles)
 	if not hasRole:
 		raise build_wrong_permissions_error()
+
+def check_scope(
+	securityScopes: SecurityScopes,
+	currentUser: AccountInfo = Depends(get_current_user_simple),
+):
+	__check_scope__(securityScopes, currentUser)
 
 
 def actions_history_management_service(
@@ -503,13 +516,12 @@ def get_optional_prefix(
 		translated = nodeId
 		decoded = urlsafe_b64decode(translated).decode()
 		return decoded
+	return ""
 
 
 def get_prefix(
-	prefix: Optional[str]=Query(None),
-	nodeId: Optional[str]=Query(None)
+	prefix:Optional[str] = Depends(get_optional_prefix)
 ) -> str:
-	prefix = get_optional_prefix(prefix, nodeId)
 	if prefix is not None:
 		return prefix
 	raise HTTPException(
@@ -518,6 +530,59 @@ def get_prefix(
 		]
 	)
 
+
+def get_read_secured_prefix(
+	prefix: str = Depends(get_prefix),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> str:
+	currentUserProvider.get_path_rule_loaded_current_user()
+	return prefix
+
+
+def get_write_secured_prefix(
+	securityScopes: SecurityScopes,
+	prefix: str = Depends(get_prefix),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> str:
+	user = currentUserProvider.get_path_rule_loaded_current_user()
+	if user.isadmin:
+		return prefix
+	if not securityScopes:
+		return user
+	
+	scopes = [s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	]
+	if prefix:
+		userPrefixTrie = user.get_permitted_paths_tree()
+		currentUserProvider.check_if_can_use_path(
+			scopes,
+			prefix,
+			user,
+			userPrefixTrie,
+		)
+	return prefix
+
+
+def get_secured_directory_transfer(
+	transfer: DirectoryTransfer,
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> DirectoryTransfer:
+	user = currentUserProvider.get_path_rule_loaded_current_user()
+	userPrefixTrie = user.get_permitted_paths_tree()
+	scopes = (
+		(transfer.path, UserRoleDef.PATH_DELETE),
+		(transfer.newprefix, UserRoleDef.PATH_EDIT)
+	)
+
+	for path, scope in scopes:
+		currentUserProvider.check_if_can_use_path(
+			[scope.value],
+			path,
+			user,
+			userPrefixTrie
+		)
+	return transfer
 
 def __open_user_from_request__(
 	userkey: Union[int, str, None],
@@ -589,20 +654,6 @@ def get_owner_from_path(
 	return __open_user_from_request__(ownerkey, accountsService)
 
 
-def get_station_by_id(
-		stationid: int=Path(),
-		stationService: StationService = Depends(station_service),
-) -> StationInfo:
-	station = next(stationService.get_stations(stationKeys=stationid), None)
-	if not station:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(
-				f"station not found for id {stationid}"
-			)]
-		)
-	return station
-
 def get_playlist_by_name_and_owner(
 	playlistkey: Union[int, str] = Depends(playlist_key_path),
 	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
@@ -630,8 +681,8 @@ def get_playlist_by_name_and_owner(
 	return playlist
 
 def get_playlist_by_id(
-		playlistid: int=Path(),
-		playlistService: PlaylistService = Depends(playlist_service),
+	playlistid: int=Path(),
+	playlistService: PlaylistService = Depends(playlist_service),
 ) -> PlaylistInfo:
 	playlist = next(playlistService.get_playlists(playlistKeys=playlistid), None)
 	if not playlist:
@@ -643,21 +694,62 @@ def get_playlist_by_id(
 		)
 	return playlist
 
+def __check_playlist_scopes__(
+	securityScopes: SecurityScopes,
+	playlist: PlaylistInfo,
+	currentUserProvider : CurrentUserProvider
+):
+	user = currentUserProvider.current_user(optional=True)
+	minScope = (not securityScopes.scopes or\
+		UserRoleDef.PLAYLIST_VIEW.value in securityScopes.scopes
+	)
+	if not playlist.viewsecuritylevel and minScope:
+		return user
+	if not user:
+		raise NotLoggedInError()
+	if user.isadmin:
+		return user
+	scopes = {s for s in securityScopes.scopes \
+		if UserRoleDomain.Playlist.conforms(s)
+	}
+	rules = ActionRule.aggregate(
+		playlist.rules,
+		filter=lambda r: r.name in scopes
+	)
+	if not rules:
+		raise WrongPermissionsError()
 
 def get_secured_playlist_by_id(
+	securityScopes: SecurityScopes,
 	playlist: PlaylistInfo=Depends(get_playlist_by_id),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 ) -> PlaylistInfo:
-	currentUserProvider.get_playlist_user(playlist)
+	__check_playlist_scopes__(securityScopes, playlist, currentUserProvider)
 	return playlist
 
 
 def get_secured_playlist_by_name_and_owner(
+	securityScopes: SecurityScopes,
 	playlist: PlaylistInfo=Depends(get_playlist_by_name_and_owner),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 ) -> PlaylistInfo:
-	currentUserProvider.get_playlist_user(playlist)
+	__check_playlist_scopes__(securityScopes, playlist, currentUserProvider)
 	return playlist
+
+
+def get_station_by_id(
+		stationid: int=Path(),
+		stationService: StationService = Depends(station_service),
+) -> StationInfo:
+	station = next(stationService.get_stations(stationKeys=stationid), None)
+	if not station:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(
+				f"station not found for id {stationid}"
+			)]
+		)
+	return station
 
 
 def get_stations_by_ids(
@@ -698,12 +790,12 @@ def get_station_by_name_and_owner(
 	return station
 
 
-def get_secured_prefix(
-	prefix: str = Depends(get_prefix),
+def get_secured_station_by_id(
+	station: StationInfo = Depends(get_station_by_id),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> str:
-	currentUserProvider.get_song_or_path_user(prefix=prefix)
-	return prefix
+) -> StationInfo:
+	currentUserProvider.get_station_user(station)
+	return station
 
 
 def get_secured_station_by_name_and_owner(
@@ -712,6 +804,57 @@ def get_secured_station_by_name_and_owner(
 ) -> StationInfo:
 	currentUserProvider.get_station_user(station)
 	return station
+
+
+def get_album_by_id(
+		albumid: int=Path(),
+		albumService: AlbumService = Depends(album_service),
+) -> AlbumInfo:
+	album = next(albumService.get_albums(albumKeys=albumid), None)
+	if not album:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(
+				f"Album not found for id {albumid}"
+			)]
+		)
+	return album
+
+def get_secured_album_by_id(
+	securityScopes: SecurityScopes,
+	album: AlbumInfo = Depends(get_album_by_id),
+	currentUser: AccountInfo = Depends(get_current_user_simple),
+) -> AlbumInfo:
+	if album.owner.id == currentUser.id:
+		return album
+	__check_scope__(securityScopes, currentUser)
+	return album
+
+
+def get_artist_by_id(
+		artistid: int=Path(),
+		artist_service: ArtistService = Depends(artist_service),
+) -> ArtistInfo:
+	artist = next(artist_service.get_artists(artistKeys=artistid), None)
+	if not artist:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[build_error_obj(
+				f"Album not found for id {artistid}"
+			)]
+		)
+	return artist
+
+
+def get_secured_artist_by_id(
+	securityScopes: SecurityScopes,
+	artist: ArtistInfo = Depends(get_artist_by_id),
+	currentUser: AccountInfo = Depends(get_current_user_simple),
+) -> ArtistInfo:
+	if artist.owner.id == currentUser.id:
+		return artist
+	__check_scope__(securityScopes, currentUser)
+	return artist
 
 
 def station_radio_pusher(
@@ -723,11 +866,11 @@ def station_radio_pusher(
 	if station.typeid == StationTypes.SONGS_ONLY.value:
 		return queueService
 	if station.typeid == StationTypes.ALBUMS_ONLY.value:
-		return AlbumQueueService(conn, queueService)
+		return AlbumQueueService(conn, queueService, currentUserProvider)
 	if station.typeid == StationTypes.PLAYLISTS_ONLY.value:
-		return PlaylistQueueService(conn, queueService)
+		return PlaylistQueueService(conn, queueService, currentUserProvider)
 	if station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
-		return CollectionQueueService(conn, queueService)
+		return CollectionQueueService(conn, queueService, currentUserProvider)
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"Station type: {station.typeid} not found")
@@ -825,3 +968,29 @@ def check_back_key(
 	if envManager.back_key() != x_back_key:
 		raise build_wrong_permissions_error()
 
+
+def get_query_params(
+	limit: int = 50,
+	page: int = Depends(get_page_num),
+	orderby: Optional[str]=None,
+	sortdir: Optional[str]=None,
+) -> SimpleQueryParameters:
+		return SimpleQueryParameters(
+			page=page,
+			limit=limit,
+			orderby=orderby,
+			sortdir=sortdir
+		)
+
+def get_secured_query_params(
+	queryParams: SimpleQueryParameters=Depends(get_query_params),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+) -> SimpleQueryParameters:
+	currentUserProvider.get_rate_limited_user()
+	return queryParams
+
+
+def check_rate_limit(
+		currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+):
+	currentUserProvider.get_rate_limited_user()

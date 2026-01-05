@@ -36,6 +36,8 @@ class UserRoleDomain(Enum):
 	Station = "station"
 	Path = "path"
 	Playlist = "playlist"
+	Album = "album"
+	Artist = "artist"
 
 	def conforms(self, candidate: str) -> bool:
 		return candidate.startswith(self.value)
@@ -50,12 +52,15 @@ class UserRoleDef(Enum):
 	SONG_EDIT = "song:edit"
 	SONG_DOWNLOAD = "song:download"
 	SONG_TREE_LIST = "songtree:list"
-	ALBUM_EDIT = "album:edit"
-	ALBUM_VIEW_ALL = "album:view_all"
-	ARTIST_EDIT = "artist:edit"
-	ARTIST_VIEW_ALL = "artist:view_all"
+	ALBUM_EDIT = f"{UserRoleDomain.Album.value}:edit"
+	ALBUM_VIEW = f"{UserRoleDomain.Album.value}:view"
+	ALBUM_VIEW_ALL = f"{UserRoleDomain.Album.value}:view_all"
+	ARTIST_EDIT = f"{UserRoleDomain.Artist.value}:edit"
+	ARTIST_VIEW = f"{UserRoleDomain.Artist.value}:view"
+	ARTIST_VIEW_ALL = f"{UserRoleDomain.Artist.value}:view_all"
 	STATION_VIEW = f"{UserRoleDomain.Station.value}:view"
 	STATION_CREATE = f"{UserRoleDomain.Station.value}:create"
+	STATION_COPY = f"{UserRoleDomain.Station.value}:copy"
 	STATION_EDIT = f"{UserRoleDomain.Station.value}:edit"
 	STATION_DELETE = f"{UserRoleDomain.Station.value}:delete"
 	STATION_REQUEST = f"{UserRoleDomain.Station.value}:request"

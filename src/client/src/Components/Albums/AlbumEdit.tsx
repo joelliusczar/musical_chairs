@@ -20,6 +20,11 @@ import { StationTypes } from "../../constants";
 import { StationInfo } from "../../Types/station_types";
 import { StationSelect } from "../Stations/StationSelect";
 import { StationNewModalOpener } from "../Stations/StationEdit";
+import { UserRoleDef } from "../../constants";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import {
+	useHasAnyRoles,
+} from "../../Context_Providers/AuthContext/AuthContext";
 
 const inputField = {
 	margin: 2,
@@ -64,7 +69,23 @@ export const AlbumEdit = (
 	} = useStationData();
 
 
-	const { formState } = formMethods;
+	const { formState, watch } = formMethods;
+
+	const playlistRules = watch("rules");
+	
+	const canCreateAlbums = useHasAnyRoles([
+		UserRoleDef.ALBUM_EDIT,
+	]);
+	const canEditThisAlbum = () => {
+		if(id) {
+			return anyConformsToAnyRule(
+				playlistRules, [UserRoleDef.ALBUM_EDIT]
+			);
+		}
+		else {
+			return canCreateAlbums;
+		}
+	};
 	
 	const artists = useCombinedContextAndFormItems(
 		contextArtists,
@@ -93,6 +114,7 @@ export const AlbumEdit = (
 					name="name"
 					label="Name"
 					formMethods={formMethods}
+					disabled={!canEditThisAlbum()}
 				/>
 			</Box>
 			<Loader status={artistCallStatus} error={artistError}>
@@ -104,10 +126,11 @@ export const AlbumEdit = (
 						label="Album Artist"
 						sx={{ minWidth: 195 }}
 						transform={{input: artistMapper}}
+						disabled={!canEditThisAlbum()}
 					/>
 				</Box>
 				<Box sx={inputField}>
-					<ArtistNewModalOpener add={addArtist} />
+					{canEditThisAlbum() && <ArtistNewModalOpener add={addArtist} />}
 				</Box>
 			</Loader>
 			<Box sx={inputField}>
@@ -115,6 +138,7 @@ export const AlbumEdit = (
 					name="versionnote"
 					label="Version Note"
 					formMethods={formMethods}
+					disabled={!canEditThisAlbum()}
 				/>
 			</Box>
 			<Box>
@@ -130,21 +154,25 @@ export const AlbumEdit = (
 								root: "dropdown-field",
 							}}
 							multiple
+							disabled={!canEditThisAlbum()}
 						/>
 					</Box>
 					<>
 						<Box sx={inputField}>
-							<StationNewModalOpener add={addStation} />
+							{
+								canEditThisAlbum() && 
+								<StationNewModalOpener add={addStation} />
+							}
 						</Box>
 					</>
 				</Loader>
 			</Box>
 			<Box sx={inputField} >
-				<SubmitButton
+				{canEditThisAlbum() && <SubmitButton
 					loading={formState.isSubmitting}
 					onClick={callSubmit}>
 					Submit
-				</SubmitButton>
+				</SubmitButton>}
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

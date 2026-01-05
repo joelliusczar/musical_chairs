@@ -3,10 +3,7 @@ import { Button } from "@mui/material";
 import { css } from "@emotion/react";
 import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
 import {
-	fetchSongsLs,
-	fetchSongLsParents,
-	deletePrefix,
-	movePath,
+	Calls,
 	openSongInTab,
 } from "../../API_Calls/songInfoCalls";
 import Loader from "../Shared/Loader";
@@ -26,6 +23,7 @@ import {
 import { useSnackbar } from "notistack";
 import {
 	useCurrentUser,
+	useHasAnyRoles,
 } from "../../Context_Providers/AuthContext/AuthContext";
 import {
 	normalizeOpeningSlash,
@@ -54,7 +52,7 @@ import { useDrag, useDrop, DndProvider } from "react-dnd";
 import {
 	HTML5Backend,
 } from "react-dnd-html5-backend";
-import { SongListener } from "./SongListener";
+
 
 const treeId = "song-tree";
 
@@ -138,7 +136,7 @@ const SongTreeNode = (props: SongTreeNodeProps) => {
 		drop: async (item, monitor) => {
 			if(!monitor.didDrop()) {
 				try {
-					const requestObj = movePath({
+					const requestObj = Calls.movePath({
 						...item,
 						newprefix: dropPath,
 					});
@@ -259,7 +257,7 @@ const SongDirectory = (props: SongDirectoryProps) => {
 	useEffect(() => {
 		if (!!urlNodeId && !prefix) {
 			const urlPrefix = urlSafeBase64ToUnicode(urlNodeId);
-			const requestObj = fetchSongLsParents({ nodeId: urlNodeId });
+			const requestObj = Calls.getTreeParents({ nodeId: urlNodeId });
 			if (!isPending) return;
 			const fetch = async () => {
 				try {
@@ -314,7 +312,7 @@ const SongDirectory = (props: SongDirectoryProps) => {
 	useEffect(() => {
 		if (!urlNodeId || !!prefix) {
 			const nodeId = unicodeToUrlSafeBase64(prefix);
-			const requestObj = fetchSongsLs({ nodeId });
+			const requestObj = Calls.getTree({ nodeId });
 			const normalizedPrefix = normalizeOpeningSlash(prefix);
 			if (!isPending) return;
 			const fetch = async () => {
@@ -541,6 +539,23 @@ export const SongTree = withCacheProvider<
 			return false;
 		};
 
+		const siteCanUploadSong = useHasAnyRoles([
+			UserRoleDef.PATH_UPLOAD,
+		]);
+		const canUploadSong = () => {
+			if (isDirectorySelected()) return false;
+			if (selectedNodes.length !== 1) return false;
+			const songNodeInfo = firstNode(treeData[selectedNodes[0]]);
+			if (songNodeInfo && "rules" in songNodeInfo) {
+				const canDownloadThisSong = anyConformsToAnyRule(
+					songNodeInfo?.rules,
+					[UserRoleDef.PATH_UPLOAD]
+				);
+				return canDownloadThisSong && siteCanUploadSong;
+			};
+			return false;
+		};
+
 		const canEditSongInfo = () => {
 			if (isDirectorySelected()) return false;
 			return !!selectedSongIds.length;
@@ -577,7 +592,7 @@ export const SongTree = withCacheProvider<
 			if (selectedNodes.length === 1) {
 				const nodeId = selectedNodes[0];
 				try {
-					const requestObj = deletePrefix({ nodeId });
+					const requestObj = Calls.deletePrefix({ nodeId });
 					const result = await requestObj.call();
 					updateTree(result);
 				}
@@ -648,7 +663,7 @@ export const SongTree = withCacheProvider<
 							add={addEmptyDirectory}
 							prefix={selectedPrefix}
 						/>}
-					{isDirectorySelected() && selectedPrefix &&
+					{canUploadSong() && selectedPrefix &&
 						<SongUploadNewModalOpener
 							add={onAddNewSong}
 							prefix={selectedPrefix}

@@ -22,12 +22,14 @@ from musical_chairs_libs.dtos_and_utilities import (
 	normalize_opening_slash,
 	clean_search_term_for_like,
 	PathDict,
-	TrackListing,
+	SimpleQueryParameters,
 	SongPlaylistTuple,
+	TrackListing,
 )
 from .path_rule_service import PathRuleService
 from .playlists_songs_service import PlaylistsSongsService
 from sqlalchemy import (
+	and_,
 	select,
 	update,
 	func,
@@ -47,6 +49,8 @@ from musical_chairs_libs.tables import (
 	stsg_lastmodifiedtimestamp,
 	stations as stations_tbl, st_name, st_pk, st_displayName, st_ownerFk,
 	st_requestSecurityLevel, st_viewSecurityLevel,
+	q_stationFk, q_userActionHistoryFk,
+	q_songFk,
 	sg_pk, sg_name, sg_path, sg_trackNum,
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
@@ -78,7 +82,17 @@ station_owner_id = station_owner.c.pk
 playlist_owner = user_tbl.alias("playlistowner")
 playlist_owner_id = playlist_owner.c.pk
 
+played_count_query = select(
+	q_stationFk.label("countedstationid"),
+	q_songFk.label("countedsongid"),
+	func.count(q_userActionHistoryFk).label("count")
+)\
+	.group_by(q_stationFk, q_songFk)
 
+played_count_cte = played_count_query.cte("playedcounts")
+counted_song_id = played_count_cte.c.countedsongid
+
+ 
 class SongInfoService:
 
 	def __init__(
@@ -249,7 +263,8 @@ class SongInfoService:
 			pl_viewSecurityLevel.label("playlists.viewsecuritylevel"),
 			pl_ownerFk.label("playlists.owner.id"),
 			playlist_owner.c.username.label("playlists..owner.username"),
-			playlist_owner.c.displayname.label("playlists.owner.displayname")
+			playlist_owner.c.displayname.label("playlists.owner.displayname"),
+			played_count_cte.c.count.label("stations.playedcount")
 		)
 		return query
 
@@ -258,7 +273,10 @@ class SongInfoService:
 		self,
 		songIds: Iterable[int],
 	) -> Iterator[SongEditInfo]:
-		yield from self.get_all_songs(songIds=songIds)
+		yield from self.get_all_songs(
+			songIds=songIds,
+			queryParams=SimpleQueryParameters()
+		)
 
 
 	def update_track_nums(self, tracklistings: dict[int, TrackListing]):
@@ -279,7 +297,7 @@ class SongInfoService:
 		if not songInfo:
 			return self.get_songs_for_edit(ids, user)
 		ids = list(ids)
-		user = self.current_user_provider.get_multi_path_user(ids)
+		user = self.current_user_provider.current_user()
 		if not songInfo.touched:
 			songInfo.touched = {f for f in SongAboutInfo.model_fields}
 		songInfo.name = str(SavedNameString(songInfo.name))
@@ -406,6 +424,8 @@ class SongInfoService:
 		artist: str = "",
 		artistId: Optional[int]=None
 	) -> Any:
+		
+		
 
 		query = query.select_from(songs_tbl)\
 				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
@@ -428,6 +448,14 @@ class SongInfoService:
 				.join(playlists_songs_tbl, sg_pk == plsg_songFk, isouter=True)\
 				.join(playlists_tbl, plsg_playlistFk == pl_pk, isouter=True)\
 				.join(playlist_owner, playlist_owner_id == pl_ownerFk, isouter=True)\
+				.join(
+					played_count_cte,
+					and_(
+						played_count_cte.c.countedsongid == sg_pk,
+						played_count_cte.c.countedstationid == stsg_stationFk
+					),
+					isouter=True
+				)\
 				.where(sg_deletedTimstamp.is_(None))
 
 		lsong = clean_search_term_for_like(song)
@@ -453,7 +481,7 @@ class SongInfoService:
 		if artistId:
 			query = query.where(ar_pk == artistId)
 
-		if songIds:
+		if songIds is not None:
 			query = query.where(sg_pk.in_(songIds))
 
 		if stationId:
@@ -470,17 +498,19 @@ class SongInfoService:
 	def __query_to_full_object__(
 		self,
 		query: Select[Any],
-		page: int = 0,
-		limit: Optional[int]=None,
+		queryParams: SimpleQueryParameters,
 	) -> Iterator[SongEditInfo]:
 		
-		offset = page * limit if limit else 0
+		offset = queryParams.page * queryParams.limit if queryParams.limit else 0
 
 		user = self.current_user_provider.current_user()
 		
 		pathRuleTree = None
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree()
+
+		if queryParams.orderByElement is not None:
+			query = query.order_by(None).order_by(queryParams.orderByElement)
 
 		query = query\
 			.offset(offset)
@@ -497,11 +527,11 @@ class SongInfoService:
 				"artists",
 				"stations",
 				"playlists"
-			)) if limit is None or d[0] < limit
+			)) if queryParams.limit is None or d[0] < queryParams.limit
 		):
 			rules = []
 			if pathRuleTree:
-				rules = list(pathRuleTree.valuesFlat(
+				rules = list(pathRuleTree.values_flat(
 					normalize_opening_slash(cast(str, e["path"])))
 				)
 			songResult = SongEditInfo(
@@ -533,15 +563,14 @@ class SongInfoService:
 
 	def get_all_songs(
 		self,
+		queryParams: SimpleQueryParameters,
 		stationId: Optional[int]=None,
-		page: int = 0,
 		song: str = "",
 		songIds: Optional[Iterable[int]]=None,
 		album: str = "",
 		albumId: Optional[int]=None,
 		artist: str = "",
 		artistId: Optional[int]=None,
-		limit: Optional[int]=None,
 	) -> Iterator[SongEditInfo]:
 		
 		query = self.__attach_catalogue_joins__(
@@ -555,17 +584,17 @@ class SongInfoService:
 			artistId
 		)
 		
-		return self.__query_to_full_object__(query, page, limit)
+		return self.__query_to_full_object__(query, queryParams)
 
 
 	def get_fullsongs_page(
 		self,
+		queryParams: SimpleQueryParameters,
 		stationId: Optional[int]=None,
-		page: int = 0,
 		song: str = "",
 		album: str = "",
 		artist: str = "",
-		limit: Optional[int]=None,
+		songIds: Optional[Iterable[int]]=None,
 	) -> Tuple[Iterator[SongEditInfo], int]:
 		
 		countQuery = self.__attach_catalogue_joins__(
@@ -582,12 +611,12 @@ class SongInfoService:
 		count = self.conn.execute(countQuery).scalar() or 0
 
 		return self.get_all_songs(
+			queryParams,
 			stationId=stationId,
-			page=page,
 			song=song,
 			album=album,
 			artist=artist,
-			limit=limit,
+			songIds=songIds,
 		), count
 
 

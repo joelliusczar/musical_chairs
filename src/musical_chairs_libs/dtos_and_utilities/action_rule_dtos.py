@@ -20,7 +20,7 @@ from .user_role_def import RulePriorityLevel
 
 class ActionRule(MCBaseClass):
 	name: str=""
-	span: float=0
+	span: float=0 #this should be total seconds
 	count: float=0
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
@@ -168,8 +168,18 @@ class ActionRule(MCBaseClass):
 class StationActionRule(ActionRule):
 	domain: str=UserRoleDomain.Station.value
 
+
 class PlaylistActionRule(ActionRule):
 	domain: str=UserRoleDomain.Playlist.value
+
+
+class AlbumActionRule(ActionRule):
+	domain: str=UserRoleDomain.Album.value
+
+
+class ArtistActionRule(ActionRule):
+	domain: str=UserRoleDomain.Artist.value
+
 
 class PathsActionRule(ActionRule):
 	path: Optional[str]=None

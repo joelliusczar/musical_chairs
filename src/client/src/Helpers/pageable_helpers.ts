@@ -21,12 +21,29 @@ export class UrlBuilder<T extends PageableParams> {
 		currentLocation: string
 	): string
 	{
+		const sortKey = "sortdir";
 		const queryObj = new URLSearchParams(currentLocation);
+		const dontDelete = ["page", "limit", "id", "orderby", sortKey];
+		//loop throuh keys in the params
 		Object.keys(params).forEach((key) => {
+			//if present, replace
+			if (key === "orderby") {
+				const sortDir = queryObj.get(sortKey);
+				if (sortDir === "asc") {
+					queryObj.set(sortKey, "dsc");
+				}
+				else if (sortDir === "dsc") {
+					queryObj.delete(sortKey);
+				}
+				else {
+					queryObj.set(sortKey, "asc");
+				}
+			}
 			if (params[key]) {
 				queryObj.set(key, params[key] as string);
 			}
-			else if (! ["page", "rows", "id"].some(k => k === key)) {
+			//if key is not in params and not one of the dontDelete, delete it
+			else if (! dontDelete.some(k => k === key)) {
 				if (params[key] === "") {
 					queryObj.delete(key);
 				}
@@ -54,12 +71,12 @@ export class UrlBuilder<T extends PageableParams> {
 
 export const getRowsCount = (currentLocation: string) => {
 	const queryObj = new URLSearchParams(currentLocation);
-	return parseInt(queryObj.get("rows") || "50");
+	return parseInt(queryObj.get("limit") || "50");
 };
 
 export const getPageCount = (currentLocation: string, totalRows: number) => {
 	const queryObj = new URLSearchParams(currentLocation);
-	const rows = parseInt(queryObj.get("rows") || "50");
+	const rows = parseInt(queryObj.get("limit") || "50");
 	if(rows < 1) {
 		return 0;
 	}

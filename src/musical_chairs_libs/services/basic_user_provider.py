@@ -1,5 +1,6 @@
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
+	NotLoggedInError
 )
 from musical_chairs_libs.protocols import (
 	UserProvider
@@ -32,7 +33,7 @@ class BasicUserProvider(UserProvider):
 			return self.__user__
 		if optional:
 			return None
-		raise RuntimeError(
+		raise NotLoggedInError(
 			"User was not supplied to this instance of CurrentUserProvider"
 		)
 	

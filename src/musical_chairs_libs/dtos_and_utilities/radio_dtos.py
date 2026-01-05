@@ -131,10 +131,10 @@ class SongAboutInfo(MCBaseClass):
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 	lyrics: Optional[str]=""
-	stations: Optional[list[StationInfo]]=cast(
+	stations: list[StationInfo]=cast(
 		list[StationInfo], Field(default_factory=list)
 	)
-	playlists: Optional[list[PlaylistInfo]]=cast(
+	playlists: list[PlaylistInfo]=cast(
 		list[PlaylistInfo], Field(default_factory=list)
 	)
 

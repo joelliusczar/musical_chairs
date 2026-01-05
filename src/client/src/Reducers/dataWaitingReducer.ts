@@ -16,6 +16,8 @@ export type DataActionPayload<T> = {
 type: WaitingTypes.done,
 payload: T
 } | {
+	type: WaitingTypes.stopped,
+} |{
 	type: WaitingTypes.failed,
 	payload: string
 } | {
@@ -44,6 +46,9 @@ export const dataDispatches = {
 			type: WaitingTypes.done,
 			payload: payload,
 		}) as { type: WaitingTypes.done, payload: T },
+	stopped: () => ({
+		type: WaitingTypes.done,
+	}),
 	failed: (payload: string) =>
 		({
 			type: WaitingTypes.failed,
@@ -93,6 +98,12 @@ export const useDataWaitingReducer = <T>(
 				...state,
 				callStatus: CallStatus.done,
 				data: action.payload,
+				error: null,
+			};
+		case WaitingTypes.stopped:
+			return {
+				...state,
+				callStatus: CallStatus.done,
 				error: null,
 			};
 		case WaitingTypes.failed:

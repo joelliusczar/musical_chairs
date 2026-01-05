@@ -34,7 +34,7 @@ from api_dependencies import (
 	account_management_service,
 	account_token_creator,
 	current_user_provider,
-	does_account_have_scope,
+	check_scope,
 	check_subjectuser,
 	get_user_from_token,
 	get_from_path_subject_user,
@@ -164,7 +164,7 @@ def create_new_account(
 
 
 @router.get("/list", dependencies=[
-	Security(does_account_have_scope, scopes=[UserRoleDef.USER_LIST.value])
+	Security(check_scope, scopes=[UserRoleDef.USER_LIST.value])
 ])
 def get_user_list(
 	searchTerm: Optional[str]=None,
@@ -183,14 +183,18 @@ def get_user_list(
 	return TableData(totalrows=totalRows, items=accounts)
 
 
-@router.get("/search")
+@router.get("/search", dependencies=[
+	Security(
+		check_scope,
+		scopes=[UserRoleDef.USER_LIST.value]
+	)
+])
 def search_users(
 	searchTerm: Optional[str]=None,
 	page: int = 0,
 	pageSize: Optional[int] = None,
-	accountManagementService: AccountManagementService = Security(
-		account_management_service,
-		scopes=[UserRoleDef.USER_LIST.value]
+	accountManagementService: AccountManagementService = Depends(
+		account_management_service
 	)
 ) -> list[AccountInfo]:
 	accounts = list(accountManagementService.get_account_list(
@@ -290,7 +294,7 @@ def get_account(
 	)
 ])
 def get_path_user_list(
-	accountManagementService: AccountManagementService = Security(
+	accountManagementService: AccountManagementService = Depends(
 		account_management_service
 	)
 ) -> TableData[AccountInfo]:

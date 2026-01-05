@@ -28,10 +28,7 @@ import {
 } from "../../Reducers/voidWaitingReducer";
 import { useSnackbar } from "notistack";
 import {
-	fetchSongForEdit,
-	saveSongEdits,
-	fetchSongsForMultiEdit,
-	saveSongsEditsMulti,
+	Calls,
 	openSongInTab,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
@@ -249,8 +246,8 @@ export const SongEdit = () => {
 				touched: touchedObjectToArr(values.touched),
 			};
 			const requestObj = ids.length < 2 ?
-				saveSongEdits({ id: ids[0], data: valuesSavura }) :
-				saveSongsEditsMulti({ ids, data: valuesSavura });
+				Calls.update({ id: ids[0], data: valuesSavura }) :
+				Calls.updateMulti({ ids, data: valuesSavura });
 			const data = await requestObj.call();
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
@@ -272,10 +269,10 @@ export const SongEdit = () => {
 			return;
 		}
 		const requestObj = ids.length == 1 ?
-			fetchSongForEdit({
+			Calls.get({
 				id: ids[0],
 			}) :
-			fetchSongsForMultiEdit({ ids });
+			Calls.getMulti({ ids });
 		if (!isPending) return;
 		const fetch = async () => {
 			try {
@@ -560,11 +557,11 @@ export const SongEdit = () => {
 					disabled={!canEditSongs}
 				/>
 			</Box>
-			<Button
+			{canEditSongs && <Button
 				onClick={guessAllTrackNumbers}
 			>
 				Guess Track Numbers
-			</Button>
+			</Button>}
 			{ids?.length > 1 && <Box>
 				{!!trackinfoMap && Object.keys(trackinfoMap).map(k => {
 					return (

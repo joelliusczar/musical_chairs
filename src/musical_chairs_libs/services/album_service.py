@@ -8,22 +8,24 @@ from typing import (
 	Tuple
 )
 from musical_chairs_libs.dtos_and_utilities import (
+	ActionRule,
 	SavedNameString,
 	SearchNameString,
-	get_datetime,
 	AlbumInfo,
 	ArtistInfo,
 	AlbumCreationInfo,
 	AlreadyUsedError,
-	AccountInfo,
+	get_album_owner_roles,
+	get_datetime,
 	OwnerInfo,
 	SongsAlbumInfo,
 	SongListDisplayItem,
 	normalize_opening_slash,
 	PathDict,
 	Lost,
+	SimpleQueryParameters,
 	StationAlbumTuple,
-	WrongPermissionsError
+	UserRoleDef,
 )
 from .artist_service import ArtistService
 from .path_rule_service import PathRuleService
@@ -33,10 +35,12 @@ from sqlalchemy import (
 	select,
 	insert,
 	update,
+	literal as dbLiteral,
 	Integer,
 	func,
 	delete,
 	and_,
+	or_,
 	literal,
 	String
 )
@@ -86,25 +90,12 @@ class AlbumService:
 		self.stations_albums_service = stationsAlbumsService
 		self.current_user_provider = currentUserProvider
 
-	def album_editor_user(
-		self,
-		albumkey: int,
-	) -> AccountInfo:
-		user = self.current_user_provider.get_scoped_user()
-		if user.isadmin:
-			return user
-		owner = self.get_album_owner(albumkey)
-		if owner.id == user.id:
-			return user
-		raise WrongPermissionsError()
-
 	def get_albums(
 		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
 		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
 		artistKeys: Union[int, str, Iterable[int], None]=None,
-		userId: Optional[int]=None,
 		exactStrMatch: bool=False
 	) -> Iterator[AlbumInfo]:
 		album_owner = user_tbl.alias("albumowner")
@@ -155,11 +146,20 @@ class AlbumService:
 						.where(ar_name.like(f"%{searchStr}%"))
 		elif isinstance(artistKeys, Iterable):
 			query = query.where(ab_albumArtistFk.in_(artistKeys))
-		if userId:
-			query = query.where(ab_ownerFk == userId)
+		user = self.current_user_provider.get_path_rule_loaded_current_user(
+			optional=True
+		)
+		userId = user.id if user else None
+		if user:
+			query = query.where(or_(
+				ab_ownerFk == user.id,
+				dbLiteral(user.isadmin),
+				dbLiteral(user.has_roles(UserRoleDef.PATH_EDIT))
+			))
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query).mappings()
+		ownerRules = cast(list[ActionRule],[*get_album_owner_roles()])
 		yield from (AlbumInfo(
 			id=row["id"],
 			name=row["name"],
@@ -178,8 +178,10 @@ class AlbumService:
 					username=row["artist.ownername"],
 					displayname=row["artist.ownerdisplayname"]
 				)
-			) if row["albumartistid"] else None
+			) if row["albumartistid"] else None,
+			rules=ownerRules if row["album.ownerid"] == userId else []
 			) for row in records)
+
 
 	def get_album_owner(self, albumId: int) -> OwnerInfo:
 		query = select(ab_ownerFk, u_username, u_displayName)\
@@ -197,13 +199,16 @@ class AlbumService:
 	
 	def get_albums_page(
 		self,
-		page: int = 0,
+		queryParams: SimpleQueryParameters,
 		album: str = "",
 		artist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Tuple[list[AlbumInfo], int]:
-		result = list(self.get_albums(page, limit, album, artist))
+		result = list(self.get_albums(
+			queryParams.page,
+			queryParams.limit,
+			album,
+			artist
+		))
 		countQuery = select(func.count(1))\
 			.select_from(albums_tbl)
 		count = self.conn.execute(countQuery).scalar() or 0
@@ -260,7 +265,7 @@ class AlbumService:
 		)
 		if pathRuleTree:
 			for song in songs:
-				song.rules = list(pathRuleTree.valuesFlat(
+				song.rules = list(pathRuleTree.values_flat(
 						normalize_opening_slash(song.path))
 					)
 				yield song
@@ -304,7 +309,7 @@ class AlbumService:
 	) -> Optional[AlbumInfo]:
 		if not album and not albumId:
 			raise ValueError("No album info to save")
-		user = self.current_user_provider.get_scoped_user()
+		user = self.current_user_provider.current_user()
 		upsert = update if albumId else insert
 		savedName = SavedNameString(album.name)
 		stmt = upsert(albums_tbl).values(

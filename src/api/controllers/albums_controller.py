@@ -1,4 +1,3 @@
-from typing import Optional
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -7,23 +6,23 @@ from fastapi import (
 	HTTPException
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	UserRoleDef,
 	TableData,
 	AlbumInfo,
 	AlbumCreationInfo,
 	SongsAlbumInfo,
 	ListData,
-	build_error_obj
+	build_error_obj,
+	SimpleQueryParameters,
 )
 from musical_chairs_libs.services import (
 	AlbumService,
 )
 from api_dependencies import (
 	album_service,
-	get_page_num,
-	get_current_user_simple,
-	user_for_filters
+	check_rate_limit,
+	get_query_params,
+	get_secured_album_by_id,
 )
 from sqlalchemy.exc import IntegrityError
 
@@ -34,21 +33,14 @@ router = APIRouter(prefix="/albums")
 def get_page(
 	name: str="",
 	artist: str="",
-	limit: int = 50,
-	page: int = Depends(get_page_num),
-	user: Optional[AccountInfo] = Security(
-		user_for_filters,
-		scopes=[UserRoleDef.ALBUM_VIEW_ALL.value]
-	),
+	queryParams: SimpleQueryParameters = Depends(get_query_params,),
 	albumService: AlbumService = Depends(album_service)
 ) -> TableData[AlbumInfo]:
 
 	data, totalRows = albumService.get_albums_page(
 			album=name,
 			artist=artist,
-			page = page,
-			limit = limit,
-			user=user
+			queryParams=queryParams
 		)
 	return TableData(
 		totalrows=totalRows,
@@ -59,12 +51,8 @@ def get_page(
 @router.get("/list")
 def get_list(
 	albumService: AlbumService = Depends(album_service),
-	user: AccountInfo = Security(
-		get_current_user_simple,
-		scopes=[]
-	)
 ) -> ListData[AlbumInfo]:
-	return ListData(items=list(albumService.get_albums(userId=user.id)))
+	return ListData(items=list(albumService.get_albums()))
 
 
 @router.get("/song-counts")
@@ -91,13 +79,15 @@ def get(
 	return albumInfo
 
 
-@router.post("")
+@router.post("", dependencies=[
+	Security(
+		check_rate_limit,
+		scopes=[UserRoleDef.ALBUM_EDIT.value]
+	)
+])
 def create_album(
 	album: AlbumCreationInfo,
-	albumService: AlbumService = Security(
-		album_service,
-		scopes=[UserRoleDef.ALBUM_EDIT.value]
-	),
+	albumService: AlbumService = Depends(album_service),
 ) -> AlbumInfo:
 	albumInfo = albumService.save_album(album)
 	if not albumInfo:
@@ -109,41 +99,41 @@ def create_album(
 	return albumInfo
 
 
-@router.put("/{albumkey}")
+@router.put("/{albumid}")
 def update_album(
-	albumkey: int,
 	album: AlbumCreationInfo,
-	albumService: AlbumService = Security(
-		album_service,
+	savedalbum: AlbumInfo = Security(
+		get_secured_album_by_id,
 		scopes=[UserRoleDef.ALBUM_EDIT.value]
-	)
+	),
+	albumService: AlbumService = Depends(album_service)
 ) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, albumId=albumkey)
+	albumInfo = albumService.save_album(album, albumId=savedalbum.id)
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"Album with key {albumkey} not found")
+			detail=[build_error_obj(f"Album with key {savedalbum.id} not found")
 			]
 		)
 	return albumInfo
 
 
 @router.delete(
-	"/{albumkey}",
+	"/{albumid}",
 	status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete(
-	albumkey: int,
-	albumService: AlbumService = Security(
-		album_service,
+	album: AlbumInfo = Security(
+		get_secured_album_by_id,
 		scopes=[UserRoleDef.ALBUM_EDIT.value]
 	),
+	albumService: AlbumService = Depends(album_service),
 ):
 	try:
-		if albumService.delete_album(albumkey) == 0:
+		if albumService.delete_album(album.id) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
-				detail=[build_error_obj(f"Album with key {albumkey} not found")
+				detail=[build_error_obj(f"Album with key {album.id} not found")
 				]
 			)
 	except IntegrityError:

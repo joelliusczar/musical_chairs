@@ -3,6 +3,7 @@ from .artist_dtos import ArtistInfo
 from .generic_dtos import (
 	FrozenNamed,
 	FrozenNamedIdItem,
+	RuledEntity
 )
 from pydantic import (
 	Field,
@@ -22,16 +23,12 @@ class AlbumCreationInfo(FrozenNamed):
 		list[StationInfo], Field(default_factory=list)
 	)
 
-class AlbumInfo(FrozenNamedIdItem):
+class AlbumInfo(FrozenNamedIdItem, RuledEntity):
 	owner: OwnerType
 	year: Optional[int]=None
 	albumartist: Optional[ArtistInfo]=None
 	versionnote: Optional[str]=""
 
-class AlbumListDisplayItem(FrozenNamedIdItem):
-	year: Optional[int]=None
-	albumartist: Optional[str]=None
-	versionnote: Optional[str]=""
 
 class SongsAlbumInfo(AlbumInfo):
 	songs: list[SongListDisplayItem]=cast(

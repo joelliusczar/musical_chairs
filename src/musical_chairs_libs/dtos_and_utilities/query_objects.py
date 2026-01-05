@@ -1,13 +1,17 @@
-from .account_dtos import AccountInfo
 from .generic_dtos import (
 	MCBaseClass,
 )
-from typing import Iterable, Optional
+from pydantic import ConfigDict
+from sqlalchemy import ColumnElement
+from typing import Any, Iterable, Optional, Union
 
 class SimpleQueryParameters(MCBaseClass):
+	model_config = ConfigDict(arbitrary_types_allowed=True)
 	page: int = 0
 	limit: Optional[int]=None
-	user: Optional[AccountInfo]=None
+	orderby: Optional[str]=None
+	sortdir: Optional[str]=None 
+	orderByElement: Union[ColumnElement[Any], str, None]=None
 
 class SongQueryParameters(SimpleQueryParameters):
 	song: str = ""

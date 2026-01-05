@@ -3,13 +3,15 @@ from fastapi import (
 	Depends,
 	HTTPException,
 	status,
-	Request
+	Request,
 )
+from fastapi.security import SecurityScopes
 from musical_chairs_libs.services import (
 	CurrentUserProvider,
 	StationService,
 	ArtistService,
 	AlbumService,
+	PathRuleService,
 	StationsSongsService
 )
 from musical_chairs_libs.dtos_and_utilities import (
@@ -24,6 +26,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from api_dependencies import (
 	current_user_provider,
+	path_rule_service,
 	station_service,
 	get_from_query_subject_user,
 	album_service,
@@ -53,7 +56,7 @@ def get_song_ids(request: Request) -> list[int]:
 	result: set[int] = set()
 	fieldName = ""
 	try:
-		fieldNames = ["itemid", "id", "songid"]
+		fieldNames = ["itemId", "itemid", "id", "songid"]
 		for fieldName in fieldNames:
 			key = request.path_params.get(fieldName, None)
 			if not key is None:
@@ -63,7 +66,7 @@ def get_song_ids(request: Request) -> list[int]:
 		for fieldName in fieldNames:
 			keys = request.query_params.getlist(fieldName)
 			result.update((int(i) for i in keys))
-
+		
 	except ValueError:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -77,10 +80,26 @@ def get_song_ids(request: Request) -> list[int]:
 
 
 def get_secured_song_ids(
+	securityScopes: SecurityScopes,
 	songIds: list[int] = Depends(get_song_ids),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> list[int]:
-	currentUserProvider.get_multi_path_user(songIds)
+	user = currentUserProvider.get_path_rule_loaded_current_user()
+	if user.isadmin:
+		return songIds
+	userPrefixTrie = user.get_permitted_paths_tree()
+	prefixes = [*pathRuleService.get_song_path(songIds)]
+	scopes = [s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	]
+	for prefix in prefixes:
+		currentUserProvider.check_if_can_use_path(
+			scopes,
+			prefix,
+			user,
+			userPrefixTrie
+		)
 	return songIds
 
 
@@ -125,7 +144,7 @@ def __validate_song_stations__(
 				)],
 		)
 
-def __validate_song_artists(
+def __validate_song_artists__(
 	song: ValidatedSongAboutInfo,
 	user: AccountInfo,
 	artistService: ArtistService,
@@ -150,7 +169,7 @@ def __validate_song_artists(
 				)],
 		)
 
-def __validate_song_album(
+def __validate_song_album__(
 	song: ValidatedSongAboutInfo,
 	user: AccountInfo,
 	albumService: AlbumService,
@@ -158,7 +177,6 @@ def __validate_song_album(
 	if song.album:
 		dbAlbum = next(albumService.get_albums(
 			albumKeys=song.album.id,
-			userId=user.id if not user.has_roles(UserRoleDef.PATH_EDIT) else None
 		), None)
 		if not dbAlbum:
 			raise HTTPException(
@@ -173,7 +191,7 @@ def __validate_song_album(
 
 def extra_validated_song(
 	song: ValidatedSongAboutInfo,
-	songIds: Iterable[int] = Depends(get_song_ids),
+	songIds: Iterable[int] = Depends(get_secured_song_ids),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 	stationService: StationService = Depends(station_service),
 	stationsSongsService: StationsSongsService = Depends(stations_songs_service),
@@ -188,8 +206,8 @@ def extra_validated_song(
 		stationService,
 		stationsSongsService
 	)
-	__validate_song_artists(song, user, artistService)
-	__validate_song_album(song, user, albumService)
+	__validate_song_artists__(song, user, artistService)
+	__validate_song_album__(song, user, albumService)
 	return song
 
 def validate_path_rule(

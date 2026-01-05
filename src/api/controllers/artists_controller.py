@@ -21,6 +21,8 @@ from musical_chairs_libs.services import (
 )
 from api_dependencies import (
 	artist_service,
+	check_rate_limit,
+	get_secured_artist_by_id,
 	user_for_filters,
 	get_page_num,
 	get_current_user_simple
@@ -64,6 +66,7 @@ def get_list(
 ) -> ListData[ArtistInfo]:
 	return ListData(items=list(artistService.get_artists(userId=user.id)))
 
+
 @router.get("/{artistKey}")
 def get(
 	artistKey: int,
@@ -80,7 +83,12 @@ def get(
 	return artistInfo
 
 
-@router.post("")
+@router.post("", dependencies=[
+	Security(
+		check_rate_limit,
+		scopes=[UserRoleDef.ARTIST_EDIT.value]
+	)
+])
 def create_artist(
 	name: str,
 	artistService: ArtistService = Depends(artist_service),
@@ -97,21 +105,21 @@ def create_artist(
 
 @router.put("/{artistKey}")
 def update_artist(
-	artistid: int,
 	artistInfoUpdate: FrozenNamed,
-	artistService: ArtistService = Security(
-		artist_service,
+	artist: ArtistInfo = Security(
+		get_secured_artist_by_id,
 		scopes=[UserRoleDef.ARTIST_EDIT.value]
-	)
+	),
+	artistService: ArtistService = Security(artist_service)
 ) -> ArtistInfo:
 	artistInfo = artistService.save_artist(
 		artistName=artistInfoUpdate.name,
-		artistId=artistid
+		artistId=artist.id
 	)
 	if not artistInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"Artist with key {artistid} not found")
+			detail=[build_error_obj(f"Artist with key {artist.id} not found")
 			]
 		)
 	return artistInfo
@@ -122,17 +130,17 @@ def update_artist(
 	status_code=status.HTTP_204_NO_CONTENT
 )
 def delete(
-	artistid: int,
-	albumService: ArtistService = Security(
-		artist_service,
+	artist: ArtistInfo = Security(
+		get_secured_artist_by_id,
 		scopes=[UserRoleDef.ARTIST_EDIT.value]
-	)
+	),
+	albumService: ArtistService = Security(artist_service)
 ):
 	try:
-		if albumService.delete_album(artistid) == 0:
+		if albumService.delete_album(artist.id) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
-				detail=[build_error_obj(f"Artist with key {artistid} not found")
+				detail=[build_error_obj(f"Artist with key {artist.id} not found")
 				]
 			)
 	except IntegrityError:

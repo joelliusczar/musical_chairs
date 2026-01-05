@@ -27,7 +27,6 @@ import {
 } from "../../Reducers/dataWaitingReducer";
 import {
 	isCallPending,
-	getDownloadAddress,
 } from "../../Helpers/request_helpers";
 import { Loader } from "../Shared/Loader";
 import {

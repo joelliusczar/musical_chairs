@@ -153,7 +153,7 @@ def not_logged_in(
 	ex: Exception
 ) -> JSONResponse:
 	response = JSONResponse(content=
-		{ "detail": build_error_obj("Not authenticated") },
+		{ "detail": [build_error_obj("Not authenticated")] },
 		status_code=status.HTTP_401_UNAUTHORIZED,
 		headers={
 			"Access-Control-Allow-Origin": get_cors_origin_or_default(
@@ -171,11 +171,11 @@ def too_many_requests(
 	ex: Exception
 ) -> JSONResponse:
 	response = JSONResponse(content=
-		{ "detail": build_error_obj(
+		{ "detail": [build_error_obj(
 				"Please wait "
 				f"{build_timespan_msg(seconds_to_tuple(ex.args[0]))} "
 				"before trying again"
-			) 
+			)]
 		},
 		status_code=status.HTTP_429_TOO_MANY_REQUESTS,
 		headers={
@@ -193,9 +193,9 @@ def wrong_permissions(
 	ex: Exception
 ) -> JSONResponse:
 	response = JSONResponse(content=
-		{ "detail": build_error_obj(
+		{ "detail": [build_error_obj(
 				"Insufficient permissions to perform that action"
-			)
+			)]
 		},
 		status_code=status.HTTP_403_FORBIDDEN,
 		headers={
@@ -253,7 +253,7 @@ def everything_else(
 
 @app.get("/canary")
 def canary() -> str:
-	return "Second Canary"
+	return "Third Canary"
 
 if __name__ == "__main__":
 	if len(sys.argv) > 2:

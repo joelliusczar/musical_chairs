@@ -35,7 +35,9 @@ export const DomRoutes = {
 	playlistEdit: ({ playlistkey, ownerkey }: OwnedPlaylistParams) =>
 		`/playlists/edit/${ownerkey}/${playlistkey}`,
 	playlistAdd: () => "/playlist/edit/",
-	playlistsPage: () => "/playlists/page",
+	playlistsPageAll: () => "/playlists/page/",
+	playlistsPage: (params: OwnerParams) => 
+		`/playlists/page/${params?.ownerkey || ""}`,
 	stations: (params?: OwnerParams) =>
 		`/stations/list/${params?.ownerkey || ""}`,
 	stationsEdit: ({ stationkey, ownerkey }: OwnedStationParams) =>
@@ -68,6 +70,9 @@ export const UserRoleDomain: StringObject = {
 	SITE: "site",
 	STATION: "station",
 	PATH: "path",
+	Playlist: "playlist",
+	Album: "album",
+	Artist: "artist",
 };
 
 export const UserRoleDef: StringObject = {
@@ -79,6 +84,8 @@ export const UserRoleDef: StringObject = {
 	SONG_DOWNLOAD: "song:download",
 	SONG_TREE_LIST: "songtree:list",
 	ALBUM_EDIT: "album:edit",
+	ALBUM_PLAY: "album:play",
+	ALBUM_VIEW: "album:view",
 	ALBUM_VIEW_ALL: "album:view_all",
 	ARTIST_EDIT: "artist:edit",
 	ARTIST_VIEW_ALL: "artist:view_all",
@@ -103,13 +110,14 @@ export const UserRoleDef: StringObject = {
 	PATH_DOWNLOAD: `${UserRoleDomain.PATH}:download`,
 	PATH_UPLOAD: `${UserRoleDomain.PATH}:upload`,
 
-	PLAYLIST_VIEW: `${UserRoleDomain.Playlist}:view`,
-	PLAYLIST_CREATE: `${UserRoleDomain.Playlist}:create`,
-	PLAYLIST_EDIT: `${UserRoleDomain.Playlist}:edit`,
-	PLAYLIST_DELETE: `${UserRoleDomain.Playlist}:delete`,
 	PLAYLIST_ASSIGN: `${UserRoleDomain.Playlist}:assign`,
+	PLAYLIST_CREATE: `${UserRoleDomain.Playlist}:create`,
+	PLAYLIST_DELETE: `${UserRoleDomain.Playlist}:delete`,
+	PLAYLIST_EDIT: `${UserRoleDomain.Playlist}:edit`,
+	PLAYLIST_PLAY: `${UserRoleDomain.Playlist}:play`,
 	PLAYLIST_USER_ASSIGN: `${UserRoleDomain.Playlist}:userassign`,
 	PLAYLIST_USER_LIST: `${UserRoleDomain.Playlist}:userlist`,
+	PLAYLIST_VIEW: `${UserRoleDomain.Playlist}:view`,
 };
 
 export const RulePriorityLevel = {

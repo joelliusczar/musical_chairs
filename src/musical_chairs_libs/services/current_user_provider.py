@@ -4,13 +4,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
 	ChainedAbsorbentTrie,
-	DirectoryTransfer,
 	get_datetime,
 	get_path_owner_roles,
 	normalize_opening_slash,
 	NotLoggedInError,
 	PathsActionRule,
-	PlaylistInfo,
 	TooManyRequestsError,
 	TrackingInfo,
 	StationInfo,
@@ -23,7 +21,7 @@ from musical_chairs_libs.protocols import (
 	UserProvider
 )
 from .path_rule_service import PathRuleService
-from typing import (Iterable, Literal, Optional, overload)
+from typing import (Literal, Optional, overload)
 
 class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 
@@ -142,30 +140,11 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 					timeleft = whenNext - currentTimestamp
 					raise TooManyRequestsError(int(timeleft))
 		return user
-	
 
-	@overload
-	def get_scoped_user(self) -> AccountInfo:
-		...
 
-	@overload
-	def get_scoped_user(self, optional: Literal[True]) -> Optional[AccountInfo]:
-		...
-
-	def get_scoped_user(self, optional: bool = False) -> Optional[AccountInfo]:
-		user = self.current_user(optional=optional)
-		if not user:
-			return None
-		if user.isadmin:
-			return user
-		for scope in self.security_scopes:
-			if not any(r for r in user.roles if r.name == scope):
-				raise WrongPermissionsError()
-		return user
-	
 	def impersonate(self, user: AccountInfo) -> Impersonation:
 		return self.basic_user_provider.impersonate(user)
-	
+
 
 	def check_if_can_use_path(
 		self,
@@ -197,11 +176,31 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 					timeleft = whenNext - currentTimestamp
 					raise TooManyRequestsError(int(timeleft))
 
+	@overload
+	def get_path_rule_loaded_current_user(self) -> AccountInfo:
+		...
+
+	@overload
+	def get_path_rule_loaded_current_user(
+		self,
+		optional: Literal[False]
+	) -> AccountInfo:
+		...
+
+	@overload
+	def get_path_rule_loaded_current_user(
+		self,
+		optional: Literal[True]
+	) -> Optional[AccountInfo]:
+		...
 
 	def get_path_rule_loaded_current_user(
 		self,
-	) -> AccountInfo:
-		user = self.current_user()
+		optional: bool = False
+	) -> Optional[AccountInfo]:
+		user = self.current_user(optional=optional)
+		if not user:
+			return None
 		if self.__path_rule_loaded_user__  \
 			and user.id == self.__path_rule_loaded_user__.id\
 		:
@@ -230,106 +229,3 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		return resultUser
 
 
-	def get_song_or_path_user(
-		self,
-		prefix: Optional[str]=None,
-		itemid: Optional[int]=None,
-	) -> AccountInfo:
-		user = self.get_path_rule_loaded_current_user()
-		if user.isadmin:
-			return user
-		if not self.security_scopes:
-			return user
-		if prefix is None:
-			if itemid:
-				prefix = next(self.path_rule_service.get_song_path(itemid), "")
-		scopes = [s for s in self.security_scopes \
-			if UserRoleDomain.Path.conforms(s)
-		]
-		if prefix:
-
-			userPrefixTrie = user.get_permitted_paths_tree()
-			self.check_if_can_use_path(
-				scopes,
-				prefix,
-				user,
-				userPrefixTrie,
-			)
-		return user
-
-
-	def get_directory_transfering_user(
-		self,
-		transfer: DirectoryTransfer,
-	) -> AccountInfo:
-		user = self.get_path_rule_loaded_current_user()
-		if user.isadmin:
-			return user
-		userPrefixTrie = user.get_permitted_paths_tree()
-		scopes = (
-			(transfer.path, UserRoleDef.PATH_DELETE),
-			(transfer.newprefix, UserRoleDef.PATH_EDIT)
-		)
-
-		for path, scope in scopes:
-			self.check_if_can_use_path(
-				[scope.value],
-				path,
-				user,
-				userPrefixTrie,
-			)
-		return user
-
-
-	def get_multi_path_user(
-		self,
-		itemids: Iterable[int],
-		# user: AccountInfo=Depends(get_path_rule_loaded_current_user),
-	) -> AccountInfo:
-		user = self.get_path_rule_loaded_current_user()
-		if user.isadmin:
-			return user
-		userPrefixTrie = user.get_permitted_paths_tree()
-		prefixes = [*self.path_rule_service.get_song_path(itemids)]
-		scopes = [s for s in self.security_scopes \
-			if UserRoleDomain.Path.conforms(s)
-		]
-		for prefix in prefixes:
-			self.check_if_can_use_path(
-				scopes,
-				prefix,
-				user,
-				userPrefixTrie
-			)
-		return user
-
-
-	def get_playlist_user(
-		self,
-		playlist: PlaylistInfo,
-	)-> Optional[AccountInfo]:
-		user = self.current_user(optional=True)
-		minScope = (not self.security_scopes or\
-			UserRoleDef.PLAYLIST_VIEW.value in self.security_scopes
-		)
-		if not playlist.viewsecuritylevel and minScope:
-			return user
-		if not user:
-			raise NotLoggedInError()
-		if user.isadmin:
-			return user
-		scopes = {s for s in self.security_scopes \
-			if UserRoleDomain.Station.conforms(s)
-		}
-		rules = ActionRule.aggregate(
-			playlist.rules,
-			filter=lambda r: r.name in scopes
-		)
-		if not rules:
-			raise WrongPermissionsError()
-		userDict = user.model_dump()
-		userDict["roles"] = rules
-		return AccountInfo(**userDict)
-
-	
-	

@@ -12,6 +12,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
 	AccountCreationInfo,
 	get_datetime,
+	get_starting_site_roles,
 	hashpw,
 	validate_email,
 	AccountInfoBase,
@@ -89,6 +90,10 @@ class AccountManagementService:
 		insertedPk = res.lastrowid
 		accountDict = accountInfo.scrubed_dict()
 		accountDict["id"] = insertedPk #pyright: ignore [reportGeneralTypeIssues]
+		self.save_roles(
+			insertedPk,
+			get_starting_site_roles()
+		)
 		resultDto = AccountInfo(**accountDict)
 		self.conn.commit()
 		return resultDto
@@ -158,7 +163,7 @@ class AccountManagementService:
 			#if absent, assume we're not checking this right now
 			#to avoid false negatives
 			return True
-		loggedInUser = self.user_provider.current_user()
+		loggedInUser = self.user_provider.current_user(optional=True)
 		loggedInUsername = loggedInUser.username if loggedInUser else None
 		return loggedInUsername != username and\
 			self.__is_username_used__(username)
@@ -183,7 +188,7 @@ class AccountManagementService:
 				#to avoid false negatives
 				return True
 
-			loggedInUser = self.user_provider.current_user()
+			loggedInUser = self.user_provider.current_user(optional=True)
 			logggedInEmail = loggedInUser.email if loggedInUser else None
 			cleanedEmailStr = cleanedEmail.email
 			return logggedInEmail != cleanedEmailStr and\

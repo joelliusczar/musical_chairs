@@ -283,11 +283,13 @@ def fixture_queue_service(
 @pytest.fixture
 def fixture_album_queue_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_queue_service: QueueService
+	fixture_queue_service: QueueService,
+	fixture_current_user_provider: CurrentUserProvider,
 ) -> AlbumQueueService:
 	albumQueueService = AlbumQueueService(
 		fixture_conn_cardboarddb,
-		fixture_queue_service
+		fixture_queue_service,
+		fixture_current_user_provider
 	)
 	return albumQueueService
 
@@ -479,11 +481,13 @@ def fixture_job_service(
 @pytest.fixture
 def fixture_collection_queue_service(
 	fixture_conn_cardboarddb: Connection,
-	fixture_queue_service: QueueService
+	fixture_queue_service: QueueService,
+	fixture_current_user_provider: CurrentUserProvider
 ) -> CollectionQueueService:
 	collectionQueueService = CollectionQueueService(
 		fixture_conn_cardboarddb,
-		fixture_queue_service
+		fixture_queue_service,
+		fixture_current_user_provider
 	)
 	return collectionQueueService
 

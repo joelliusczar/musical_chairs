@@ -71,6 +71,7 @@ class StationProcessService:
 				ownerId=user.id
 			)
 		else:
+			self.current_user_provider.get_station_user(station)
 			canBeEnabled = {s[0] for s in  \
 				self.station_service.get_station_song_counts(
 					stationIds=[station.id]
@@ -156,18 +157,19 @@ class StationProcessService:
 
 	def disable_stations(
 		self,
-		stationId: Optional[int],
+		station: Optional[StationInfo],
 	) -> None:
 
 		logging.radioLogger.debug(
-			f"disable {stationId if stationId is not None else 'All'}"
+			f"disable {station.id if station is not None else 'All'}"
 		)
 		query = select(st_procId).where(st_procId.is_not(None))
-		if stationId is None:
+		if station is None:
 			ownerKey = self.current_user_provider.get_rate_limited_user().id
 			query = query.where(st_ownerFk == ownerKey)
 		else:
-			query = query.where(st_pk == stationId)
+			self.current_user_provider.get_station_user(station)
+			query = query.where(st_pk == station.id)
 			
 
 		rows = self.conn.execute(query)
@@ -175,5 +177,5 @@ class StationProcessService:
 		for pid in pids:
 			logging.radioLogger.debug(f"send signal to {pid}")
 			ProcessService.end_process(pid)
-		self.unset_station_procs(stationIds=stationId)
+		self.unset_station_procs(stationIds=station.id if station else None)
 		self.conn.commit()

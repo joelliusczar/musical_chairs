@@ -230,7 +230,9 @@ def test_song_save(
 			"owner": {"id":kilo_user_id },
 			"isprimaryartist": False
 		},
-		"versionnote": ""
+		"versionnote": "",
+		"rules": [],
+		"viewsecuritylevel": 0,
 	}
 	sendData["genre"] = "pop_update"
 	sendData["comment"] = "Kazoos make good swimmers update"
@@ -249,7 +251,8 @@ def test_song_save(
 			"viewsecuritylevel": 0,
 			"isrunning": False,
 			"typeid": StationTypes.SONGS_ONLY.value,
-			"bitratekps": None
+			"bitratekps": None,
+			"playedcount": 0
 		},
 		{
 			"id": 7,
@@ -260,7 +263,8 @@ def test_song_save(
 			"viewsecuritylevel": 0,
 			"isrunning": False,
 			"typeid": StationTypes.SONGS_ONLY.value,
-			"bitratekps": None
+			"bitratekps": None,
+			"playedcount": 0
 		},
 		{
 			"id": 10,
@@ -271,7 +275,8 @@ def test_song_save(
 			"viewsecuritylevel": 0,
 			"isrunning": False,
 			"typeid": StationTypes.SONGS_ONLY.value,
-			"bitratekps": None
+			"bitratekps": None,
+			"playedcount": 0
 		}
 	]
 	sendData["artists"] = [
@@ -559,7 +564,8 @@ def test_get_songs_for_multi_edit(
 			"requestsecuritylevel": 9,
 			"viewsecuritylevel": 0,
 			"typeid": StationTypes.SONGS_ONLY.value,
-			"bitratekps": None
+			"bitratekps": None,
+			"playedcount": 0
 		}
 	]
 	assert "stations" in touched
@@ -907,24 +913,26 @@ def test_get_path_users(
 	rules = sorted(items[0]["roles"], key=lambda r: r["name"])
 	assert len(rules) == len(path_owner_rules)
 	assert rules[0]["name"] == UserRoleDef.PATH_DELETE.value
-	assert rules[1]["name"] == UserRoleDef.PATH_EDIT.value
-	assert rules[2]["name"] == UserRoleDef.PATH_LIST.value
-	assert rules[3]["name"] == UserRoleDef.PATH_MOVE.value
-	assert rules[4]["name"] == UserRoleDef.PATH_UPLOAD.value
-	assert rules[5]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
-	assert rules[6]["name"] == UserRoleDef.PATH_USER_LIST.value
-	assert rules[7]["name"] == UserRoleDef.PATH_VIEW.value
+	assert rules[1]["name"] == UserRoleDef.PATH_DOWNLOAD.value
+	assert rules[2]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[3]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[4]["name"] == UserRoleDef.PATH_MOVE.value
+	assert rules[5]["name"] == UserRoleDef.PATH_UPLOAD.value
+	assert rules[6]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
+	assert rules[7]["name"] == UserRoleDef.PATH_USER_LIST.value
+	assert rules[8]["name"] == UserRoleDef.PATH_VIEW.value
 	assert items[1]["username"] == "testUser_kilo"
 	rules = sorted(items[1]["roles"], key=lambda r: r["name"])
 	assert len(rules) == len(path_owner_rules)
 	assert rules[0]["name"] == UserRoleDef.PATH_DELETE.value
-	assert rules[1]["name"] == UserRoleDef.PATH_EDIT.value
-	assert rules[2]["name"] == UserRoleDef.PATH_LIST.value
-	assert rules[3]["name"] == UserRoleDef.PATH_MOVE.value
-	assert rules[4]["name"] == UserRoleDef.PATH_UPLOAD.value
-	assert rules[5]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
-	assert rules[6]["name"] == UserRoleDef.PATH_USER_LIST.value
-	assert rules[7]["name"] == UserRoleDef.PATH_VIEW.value
+	assert rules[1]["name"] == UserRoleDef.PATH_DOWNLOAD.value
+	assert rules[2]["name"] == UserRoleDef.PATH_EDIT.value
+	assert rules[3]["name"] == UserRoleDef.PATH_LIST.value
+	assert rules[4]["name"] == UserRoleDef.PATH_MOVE.value
+	assert rules[5]["name"] == UserRoleDef.PATH_UPLOAD.value
+	assert rules[6]["name"] == UserRoleDef.PATH_USER_ASSIGN.value
+	assert rules[7]["name"] == UserRoleDef.PATH_USER_LIST.value
+	assert rules[8]["name"] == UserRoleDef.PATH_VIEW.value
 	assert items[2]["username"] == "testUser_mike"
 	rules = sorted(items[2]["roles"], key=lambda r: r["name"])
 	assert len(rules) == 2

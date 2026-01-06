@@ -36,6 +36,34 @@ def test_if_song_can_be_added_to_station(
 	result = queueService.can_song_be_queued_to_station(36, 1)
 	assert result == False
 
+def test_if_not_crashing_one_song_station(
+	fixture_queue_service: QueueService
+):
+	queueService = fixture_queue_service
+	stationId = 21
+	# queueService.fil_up_queue(stationId, queueService.queue_size)
+	# queueService.conn.commit()
+	queueService.move_next(stationId)
+	queueService.move_next(stationId)
+	queueService.move_next(stationId)
+
+
+def test_if_not_crashing_3_song_station(
+	fixture_queue_service: QueueService
+):
+	queueService = fixture_queue_service
+	stationId = 6
+	# queueService.fil_up_queue(stationId, queueService.queue_size)
+	# queueService.conn.commit()
+	queueService.move_next(stationId)
+	queueService.move_next(stationId)
+	queueService.move_next(stationId)
+	queueService.move_next(stationId)
+	queueService.move_next(stationId)
+	queueService.move_next(stationId)
+	queueService.move_next(stationId)
+	
+
 # def test_queue_with_skips_and_offsets(fixture_queue_service: QueueService):
 # 	queueService = fixture_queue_service
 # 	queueService.fil_up_queue(26, queueService.queue_size)

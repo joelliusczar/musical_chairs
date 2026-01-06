@@ -1,6 +1,5 @@
 #pyright: reportUnknownMemberType=false, reportMissingTypeStubs=false
 #import musical_chairs_libs.dtos_and_utilities.logging as logging
-import math
 from typing import (
 	Any,
 	Callable,
@@ -57,6 +56,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CatalogueItem,
 	CurrentPlayingInfo,
 	get_datetime,
+	logging,
 	QueuedItem,
 	SongListDisplayItem,
 	StationInfo,
@@ -114,6 +114,7 @@ class QueueService(SongPopper, RadioPusher):
 		choiceSelector: Optional[
 			Callable[[Sequence[Any], int, Sequence[float]], Collection[Any]]
 		]=None,
+		queueSize: int = 50
 	) -> None:
 			if not conn:
 				raise RuntimeError("No connection provided")
@@ -133,7 +134,7 @@ class QueueService(SongPopper, RadioPusher):
 			self.get_datetime = get_datetime
 			self.path_rule_service = pathRuleService
 			self.actions_history_management_service = actionsHistoryManagementService
-			self.queue_size = 50
+			self.queue_size = queueSize
 
 
 	def get_all_station_possibilities(
@@ -181,7 +182,7 @@ class QueueService(SongPopper, RadioPusher):
 		mostRecentDraw = rows[0][1] or self.get_datetime().timestamp() \
 			if len(rows) > 1 else self.get_datetime().timestamp()
 		ages = [(mostRecentDraw - (r[1] or 0)) for r in rows]
-		total = math.fsum((weigh(a) for a in ages))
+		total = sum((weigh(a) for a in ages))
 		weights = [weigh(a)/total for a in ages]
 		zeroCount = sum(1 for w in weights if w == 0)
 		sampleSize = deficitSize if deficitSize < len(rows) - zeroCount \
@@ -189,8 +190,15 @@ class QueueService(SongPopper, RadioPusher):
 		songIds = [r[0] for r in rows]
 		if not songIds:
 			raise RuntimeError("No song possibilities were found")
-		selection = self.choice(songIds, sampleSize, weights)
-		return selection
+		try:
+			selection = self.choice(songIds, sampleSize, weights)
+			return selection
+		except:
+			logging.radioLogger.error(rows)
+			logging.radioLogger.error(ages)
+			logging.radioLogger.error(weights)
+			logging.radioLogger.error(sum(weights))
+			raise
 
 
 	def queue_insert_songs(
@@ -420,6 +428,20 @@ class QueueService(SongPopper, RadioPusher):
 			return item
 
 		raise RuntimeError("No unskipped songs available.")
+
+	"""
+		This is mostly used in testing
+	"""
+	def move_next(self, stationId: int):
+		self.pop_next_queued(stationId)
+		queue = self.get_queue_for_station(stationId)[0]
+		if queue:
+			playing = queue[0]
+			self.move_from_queue_to_history(
+				stationId,
+				playing.id,
+				playing.queuedtimestamp
+			)
 
 
 	def __add_song_to_queue__(

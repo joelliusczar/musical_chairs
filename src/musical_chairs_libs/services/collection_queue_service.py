@@ -3,6 +3,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	clean_search_term_for_like,
 	get_datetime,
+	logging,
 	SongListDisplayItem,
 	StationInfo,
 	UserRoleDef,
@@ -96,6 +97,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		choiceSelector: Optional[
 			Callable[[Sequence[Any], int, Sequence[float]], Collection[Any]]
 		]=None,
+		queueSize: int = 3
 	) -> None:
 			if not conn:
 				raise RuntimeError("No connection provided")
@@ -120,7 +122,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.current_user_provider = currentUserProvider
-			self.queue_size = 3
+			self.queue_size = queueSize
 
 
 
@@ -210,8 +212,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			if len(rows) > 1 else self.get_datetime().timestamp()
 		ages = [(mostRecentDraw - r[2] or 0) for r in rows]
 		total = sum(
-			(weigh(a) for a in ages),
-			start=1.0
+			(weigh(a) for a in ages)
 		)
 		weights = [weigh(a)/total for a in ages]
 		zeroCount = sum(1 for w in weights if w == 0)
@@ -221,12 +222,19 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		if not ids:
 			raise RuntimeError("No playlist possibilities were found")
 		tupleMap = {f"{t[1]}{t[0]}":t for t in ids}
-		selection = self.choice(
-			[f"{t[1]}{t[0]}" for t in ids],
-			sampleSize,
-			weights
-		)
-		return [tupleMap[k] for k in selection]
+		try:
+			selection = self.choice(
+				[f"{t[1]}{t[0]}" for t in ids],
+				sampleSize,
+				weights
+			)
+			return [tupleMap[k] for k in selection]
+		except:
+			logging.radioLogger.error(rows)
+			logging.radioLogger.error(ages)
+			logging.radioLogger.error(weights)
+			logging.radioLogger.error(sum(weights))
+			raise
 
 
 	def queue_count(

@@ -93,6 +93,7 @@ def load_data(
 	finally:
 		stopRunning = True
 
+
 def accept(
 	listener: socket.socket,
 	timeout: int
@@ -111,6 +112,7 @@ def accept(
 					return None
 			return None
 
+
 def cleanup_socket(listener: socket.socket):
 	try:
 		listener.shutdown(socket.SHUT_RDWR)
@@ -120,6 +122,7 @@ def cleanup_socket(listener: socket.socket):
 			"Couldn't shut down socket. May already be closed"
 		)
 
+
 def clean_up_tmp_files():
 	logging.radioLogger.info("cleaning up tmp files")
 	while fileQueue.qsize() > 0:
@@ -127,6 +130,7 @@ def clean_up_tmp_files():
 		if unusedFile and unusedFile[0]:
 			logging.radioLogger.info(f"tmp file: {unusedFile[0].name}")
 			unusedFile[0].close()
+
 
 def clean_up_ices_process():
 	global icesProcess

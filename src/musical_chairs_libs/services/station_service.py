@@ -41,7 +41,9 @@ from musical_chairs_libs.tables import (
 	stup_stationFk,
 	users as user_tbl, u_username, u_pk, u_displayName, 
 	station_queue, q_stationFk,
-	last_played, lp_stationFk
+	last_played, lp_stationFk,
+	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
+	stations_playlists as stations_playlists_tbl, stpl_playlistFk,stpl_stationFk,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
@@ -511,18 +513,44 @@ class StationService:
 		stationId: int, 
 		copy: StationCreationInfo
 	) -> Optional[StationInfo]:
-		songIdsQuery = select(stsg_songFk).where(stsg_stationFk == stationId)
-		rows = self.conn.execute(songIdsQuery)
-		songIds = [cast(int,row[0]) for row in rows]
-		if not any(songIds):
-			return None
 		created = self.save_station(copy)
-		params = [{
-			"stationfk": created.id,
-			"songfk": s
-		} for s in songIds]
-		insertStmt = insert(stations_songs_tbl)
-		self.conn.execute(insertStmt, params)
+		if copy.typeid == StationTypes.SONGS_ONLY:
+			query = select(stsg_songFk).where(stsg_stationFk == stationId)
+			rows = self.conn.execute(query)
+			itemIds = [cast(int,row[0]) for row in rows]
+			if any(itemIds):
+				params = [{
+					"stationfk": created.id,
+					"songfk": s
+				} for s in itemIds]
+				insertStmt = insert(stations_songs_tbl)
+				self.conn.execute(insertStmt, params)
+		if copy.typeid == StationTypes.ALBUMS_ONLY.value \
+			or copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
+		:
+			query = select(stab_albumFk).where(stab_stationFk == stationId)
+			rows = self.conn.execute(query)
+			itemIds = [cast(int,row[0]) for row in rows]
+			if any(itemIds):
+				params = [{
+					"stationfk": created.id,
+					"albumfk": s
+				} for s in itemIds]
+				insertStmt = insert(stations_albums_tbl)
+				self.conn.execute(insertStmt, params)
+		if copy.typeid == StationTypes.PLAYLISTS_ONLY.value \
+			or copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
+		:
+			query = select(stpl_playlistFk).where(stpl_stationFk == stationId)
+			rows = self.conn.execute(query)
+			itemIds = [cast(int,row[0]) for row in rows]
+			if any(itemIds):
+				params = [{
+					"stationfk": created.id,
+					"playlistfk": s
+				} for s in itemIds]
+				insertStmt = insert(stations_playlists_tbl)
+				self.conn.execute(insertStmt, params)
 		self.conn.commit()
 		return created
 

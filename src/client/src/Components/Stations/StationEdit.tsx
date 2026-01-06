@@ -60,10 +60,6 @@ const viewSecurityOptions = [
 		id: RulePriorityLevel.INVITED_USER,
 		name: "Invited Users Only",
 	},
-	{
-		id: RulePriorityLevel.OWENER_USER,
-		name: "Private",
-	},
 ];
 
 const stationTypeOptions = [
@@ -115,7 +111,7 @@ const validatePhraseIsUnused = async (
 
 const schema = Yup.object().shape({
 	name: Yup.string().required()
-		.matches(/^[a-zA-Z0-9_]*$/, "Name can only contain a-zA-Z0-9_")
+		.matches(/^[a-zA-Z0-9_\-]*$/, "Name can only contain a-zA-Z0-9_-")
 		.test(
 			"name",
 			(value) => `${value.path} is already used`,

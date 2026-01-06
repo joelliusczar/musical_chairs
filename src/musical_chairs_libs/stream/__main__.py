@@ -160,15 +160,17 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	
 	readingQueueService = readingSongQueueService
 	if queueServiceType != QueueService:
-		readingQueueService = queueServiceType( #pyright: ignore [reportCallIssue]
+		readingQueueService = queueServiceType(  #pyright: ignore [reportCallIssue]
 			readingConn,
-			readingSongQueueService
+			readingSongQueueService,
+			current_user_provider(readingConn)
 		)
 	updatingQueueService = updatingSongQueueService
 	if queueServiceType != QueueService:
 		updatingQueueService = queueServiceType( #pyright: ignore [reportCallIssue]
 			updatingConn,
-			updatingQueueService
+			updatingQueueService,
+			current_user_provider(readingConn)
 		)
 	stationProcessService = StationProcessService(
 		updatingConn,

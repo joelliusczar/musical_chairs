@@ -76,7 +76,7 @@ export function NavMenu() {
 			<ListItem
 				component={NavLink}
 				to={DomRoutes.stations()}>
-				All Stations
+				Public Stations
 			</ListItem>
 			{currentUser.username && <ListItem
 				component={NavLink}
@@ -89,7 +89,7 @@ export function NavMenu() {
 			<ListItem
 				component={NavLink}
 				to={DomRoutes.playlistsPageAll()}>
-				All Playlists
+				Public Playlists
 			</ListItem>
 			{currentUser.username && <ListItem
 				component={NavLink}

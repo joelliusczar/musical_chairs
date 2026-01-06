@@ -514,7 +514,7 @@ class StationService:
 		copy: StationCreationInfo
 	) -> Optional[StationInfo]:
 		created = self.save_station(copy)
-		if copy.typeid == StationTypes.SONGS_ONLY:
+		if copy.typeid == StationTypes.SONGS_ONLY.value:
 			query = select(stsg_songFk).where(stsg_stationFk == stationId)
 			rows = self.conn.execute(query)
 			itemIds = [cast(int,row[0]) for row in rows]

@@ -179,9 +179,9 @@ class SongFileService:
 		cleanedSuffix = re.sub(
 			r"[^a-zA-Z?\\.]+",
 			"",
-			unidecode(suffix, errors="replace")
+			unidecode(suffix.split(".")[0], errors="replace")
 		).casefold()
-		internalDirs = "/".join([*cleanedSuffix[:10]])
+		internalDirs = "/".join([*cleanedSuffix[:5]])
 		internalPath = f"{user.username}/{internalDirs}/"\
 			+ f"{str(uuid.uuid4())}-{cleanedSuffix}"
 		with self.file_service.save_song(internalPath, file) as uploaded:

@@ -463,6 +463,7 @@ export const SongTree = withCacheProvider<
 
 		const getSelectedSongIds = () => {
 			return selectedNodes.map(s => {
+				if (!treeData[s]) return null;
 				const value = firstNode(treeData[s]);
 				if (value && "id" in value) {
 					return value?.id;
@@ -473,6 +474,7 @@ export const SongTree = withCacheProvider<
 
 		const isDirectorySelected = () => {
 			if (selectedNodes.length !== 1) return false;
+			if (!selectedNodes[0]) return false;
 			const songNodeInfo = firstNode(treeData[selectedNodes[0]]);
 			if (!songNodeInfo) return false;
 			if (!("path" in songNodeInfo)) return false;
@@ -543,7 +545,7 @@ export const SongTree = withCacheProvider<
 			UserRoleDef.PATH_UPLOAD,
 		]);
 		const canUploadSong = () => {
-			if (isDirectorySelected()) return false;
+			if (!isDirectorySelected()) return false;
 			if (selectedNodes.length !== 1) return false;
 			const songNodeInfo = firstNode(treeData[selectedNodes[0]]);
 			if (songNodeInfo && "rules" in songNodeInfo) {

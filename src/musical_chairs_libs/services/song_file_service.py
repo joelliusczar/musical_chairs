@@ -64,6 +64,7 @@ from .album_service import AlbumService
 from .artist_service import ArtistService
 from itertools import islice
 from tinytag import TinyTag
+from unidecode import unidecode
 
 class SongFileService:
 
@@ -173,10 +174,16 @@ class SongFileService:
 				f"{path} is already used",
 				"suffix"
 			)
-		userId = self.current_user_provider.current_user().id
+		user = self.current_user_provider.current_user()
 		self.delete_overlaping_placeholder_dirs(path)
-		cleanedSuffix = re.sub(r"[^\w\.]+","-",suffix).casefold()
-		internalPath = f"{str(uuid.uuid4())}-{cleanedSuffix}"
+		cleanedSuffix = re.sub(
+			r"[^a-zA-Z?\\.]+",
+			"",
+			unidecode(suffix, errors="replace")
+		).casefold()
+		internalDirs = "/".join([*cleanedSuffix[:10]])
+		internalPath = f"{user.username}/{internalDirs}/"\
+			+ f"{str(uuid.uuid4())}-{cleanedSuffix}"
 		with self.file_service.save_song(internalPath, file) as uploaded:
 			fileHash = hashlib.sha256(uploaded.read()).digest()
 			uploaded.seek(0)
@@ -192,7 +199,7 @@ class SongFileService:
 			bitrate = songAboutInfo.bitrate,
 			genre = songAboutInfo.genre,
 			duration = songAboutInfo.duration,
-			lastmodifiedbyuserfk = userId,
+			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp(),
 			hash = fileHash
 		)

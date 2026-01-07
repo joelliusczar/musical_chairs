@@ -210,7 +210,7 @@ export const PlaylistEditScreen = () => {
 			if (deletedPlaylist.length) {
 				removePlaylist(deletedPlaylist[0]);
 			}
-			navigate(DomRoutes.playlistsPage(), { replace: true });
+			navigate(DomRoutes.playlistsPageAll(), { replace: true });
 		}
 		catch (err) {
 			enqueueSnackbar(formatError(err), { variant: "error" });

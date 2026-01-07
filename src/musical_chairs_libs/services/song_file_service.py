@@ -176,14 +176,17 @@ class SongFileService:
 			)
 		user = self.current_user_provider.current_user()
 		self.delete_overlaping_placeholder_dirs(path)
+		pathObj = Path(suffix)
+		extension = pathObj.suffix
+		stem = pathObj.stem
 		cleanedSuffix = re.sub(
-			r"[^a-zA-Z?\\.]+",
+			r"[^a-zA-Z?]+",
 			"",
-			unidecode(suffix.split(".")[0], errors="replace")
+			unidecode(stem, errors="replace")
 		).casefold()
 		internalDirs = "/".join([*cleanedSuffix[:5]])
 		internalPath = f"{user.username}/{internalDirs}/"\
-			+ f"{str(uuid.uuid4())}-{cleanedSuffix}"
+			+ f"{str(uuid.uuid4())}-{cleanedSuffix}{extension}"
 		with self.file_service.save_song(internalPath, file) as uploaded:
 			fileHash = hashlib.sha256(uploaded.read()).digest()
 			uploaded.seek(0)

@@ -22,6 +22,10 @@ nginx
 # ./mcr_dev_dev.ah deploy_local_app
 ```
 
+## To debug through ngnix 
+Run `./mcr_dev_ops.sh deploy_local_app`
+
+In vs code, use the launch profile Python: nginx API
 
 
 ## VSCode debug

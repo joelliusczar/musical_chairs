@@ -3,7 +3,7 @@
 
 
   vars:
-    app_trunk: '{{domain["app_root"]|default("~")}}/{{app_details["name"]}}'
+    app_trunk: '{{domain["app_root"]|default("~")|expanduser}}/{{app_details["name"]}}'
     test_trunk: '../test_trash/{{app_details["name"]}}'
     #ansible_common_remote_group is needed for become_user: notroot to work
     ansible_common_remote_group: '{{domain["group"]}}'
@@ -19,7 +19,7 @@
     - name: Check that latest is pushed up.
       include_role:
         name: repo-check
-      when: hostvars.localhost.skip_to_exit is not defined
+      when: hostvars.localhost.skip_to_exit is not defined and inventory_hostname not in ["127.0.0.1", "localhost"]
     - name: End early?
       meta: end_play
       when: hostvars.localhost.skip_to_exit|default(omit) == true
@@ -32,6 +32,20 @@
     - include_vars: 
         file: 'vars/local_keys.yml'
         hash_behaviour: merge
+      when: inventory_hostname in ["127.0.0.1", "localhost"]
+    - name: Keys for local
+      set_fact:
+        ansible_user: '{{lookup("env", "USER")}}'
+        domain: '{{ domain | combine(local_domain)}}'
+      vars:
+          local_domain:
+            app_root: '{{"~"|expanduser}}'
+            group: '{{ansible_env.USER}}'
+            user: '{{ansible_env.USER}}'
+            server_user: '{{ansible_env.USER}}'
+            exports_dir: '/home/{{ansible_env.USER}}/keys'
+            envs:
+              web_app_key: '{{app_details["name"]}}_test'
       when: inventory_hostname in ["127.0.0.1", "localhost"]
     - name: Update apt cache if needed
       apt: update_cache=true cache_valid_time=3600
@@ -102,7 +116,7 @@
       become: true
 
   tasks:
-    - name: Replace API files?
+    - name: Replace API files
       become: true
       synchronize:
         src: ../src/api
@@ -206,7 +220,7 @@
           DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
           DSF_ICES_EXECUTABLE='{{domain["app_root"]}}/.local/bin/{{app_details["prefix"]|lower}}-ices'
           DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
-      notify: Restart API #not sure this exists as a handler anymore
+      # notify: Restart API #not sure this exists as a handler anymore
     - name: Add API run script
       copy: 
         dest: '/home/{{domain["server_user"]}}/run_api.sh'

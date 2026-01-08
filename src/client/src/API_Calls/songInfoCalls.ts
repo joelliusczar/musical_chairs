@@ -252,7 +252,7 @@ export const Calls = {
 					formData.append("file", files[0]);
 				}
 				const response = await webClient.post<SongTreeNodeInfo>(
-					"/song-info/upload",
+					"/song-info/upload/",
 					formData,
 					{
 						params: {

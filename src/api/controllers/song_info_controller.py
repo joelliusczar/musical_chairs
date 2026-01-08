@@ -307,7 +307,7 @@ def create_directory(
 		return result
 
 
-@router.post("/upload", dependencies=[
+@router.post("/upload/", dependencies=[
 	Security(
 		check_scope,
 		scopes=[UserRoleDef.PATH_UPLOAD.value]

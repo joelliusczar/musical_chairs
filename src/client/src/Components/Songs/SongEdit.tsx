@@ -139,7 +139,7 @@ export const SongEdit = () => {
 	const { callStatus } = state;
 	const isPending = isCallPending(callStatus);
 	const location = useLocation();
-	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
 
 	const ids = useMemo(() => {
 		const queryObj = new URLSearchParams(location.search);
@@ -208,6 +208,18 @@ export const SongEdit = () => {
 	const canEditSongs = anyConformsToAnyRule(
 		songRules, [UserRoleDef.PATH_EDIT]
 	);
+	const canCreateArtists = useHasAnyRoles([
+		UserRoleDef.ARTIST_CREATE,
+	]);
+	const canCreateAlbums = useHasAnyRoles([
+		UserRoleDef.ALBUM_CREATE,
+	]);
+	const canCreateStations = useHasAnyRoles([
+		UserRoleDef.STATION_CREATE,
+	]);
+	const canCreatePlaylists = useHasAnyRoles([
+		UserRoleDef.PLAYLIST_CREATE,
+	]);
 	const multiSongTouchedField = watch("touched");
 
 	const handleMutliSongTouchedCheck = (name: string) => {
@@ -450,7 +462,7 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<>
-						{canEditSongs && <Box sx={inputField}>
+						{canCreateArtists && <Box sx={inputField}>
 							<ArtistNewModalOpener add={(artist) => {
 								addArtist(artist);
 								const primaryArtist = getValues("primaryartist");
@@ -481,7 +493,7 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<>
-						{canEditSongs && <Box sx={inputField}>
+						{canCreateAlbums && <Box sx={inputField}>
 							<AlbumNewModalOpener
 								add={(album) => {
 									addAlbum(album);
@@ -514,7 +526,7 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<>
-						{canEditSongs && <Box sx={inputField}>
+						{canCreateStations && <Box sx={inputField}>
 							<StationNewModalOpener add={addStation} />
 						</Box>}
 					</>
@@ -540,7 +552,7 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<>
-						{canEditSongs && <Box sx={inputField}>
+						{canCreatePlaylists && <Box sx={inputField}>
 							<PlaylistNewModalOpener add={addPlaylist} />
 						</Box>}
 					</>

@@ -146,7 +146,7 @@ class AlbumService:
 						.where(ar_name.like(f"%{searchStr}%"))
 		elif isinstance(artistKeys, Iterable):
 			query = query.where(ab_albumArtistFk.in_(artistKeys))
-		user = self.current_user_provider.get_path_rule_loaded_current_user(
+		user = self.current_user_provider.current_user(
 			optional=True
 		)
 		userId = user.id if user else None
@@ -154,7 +154,7 @@ class AlbumService:
 			query = query.where(or_(
 				ab_ownerFk == user.id,
 				dbLiteral(user.isadmin),
-				dbLiteral(user.has_roles(UserRoleDef.PATH_EDIT))
+				dbLiteral(user.has_roles(UserRoleDef.ALBUM_EDIT))
 			))
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)

@@ -47,7 +47,7 @@ const Queue = () => {
 	const { enqueueSnackbar } = useSnackbar();
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canSkipSongs = useHasAnyRoles([UserRoleDef.STATION_SKIP]);
-	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
 
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");

@@ -64,7 +64,7 @@ export const ArtistEditScreen = () => {
 	const isPending = isCallPending(callStatus);
 
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
-	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
 
 	const currentUser = useCurrentUser();
 

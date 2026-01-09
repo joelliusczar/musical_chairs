@@ -341,6 +341,7 @@ def delete_prefix(
 	}
 	return result
 
+
 @router.post("/path/move")
 def move_path(
 	transfer: DirectoryTransfer = Security(

@@ -548,7 +548,7 @@ def get_write_secured_prefix(
 	if user.isadmin:
 		return prefix
 	if not securityScopes:
-		return user
+		return prefix
 	
 	scopes = [s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)

@@ -114,7 +114,6 @@ def get_playlist_owner_roles(
 
 album_owner_rules = [
 	UserRoleDef.ALBUM_EDIT,
-	UserRoleDef.ALBUM_VIEW,
 ]
 
 def get_album_owner_roles(
@@ -129,7 +128,6 @@ def get_album_owner_roles(
 
 artist_owner_rules = [
 	UserRoleDef.ARTIST_EDIT,
-	UserRoleDef.ARTIST_VIEW,
 ]
 
 def get_artist_owner_roles(
@@ -145,6 +143,8 @@ def get_artist_owner_roles(
 starting_user_roles = [
 	UserRoleDef.PLAYLIST_CREATE,
 	UserRoleDef.STATION_CREATE,
+	UserRoleDef.ARTIST_CREATE,
+	UserRoleDef.ALBUM_CREATE,
 ]
 
 def get_starting_site_roles(

@@ -86,7 +86,7 @@ export const AlbumTableView = () => {
 			link: `${DomRoutes.album({ id: item.id})}`,
 		});
 
-		return (rowButtonOptions.length > 0 ? <OptionsButton
+		return (rowButtonOptions.length > 1 ? <OptionsButton
 			id={`queue-row-btn-${item.id}-${idx}`}
 			options={rowButtonOptions}
 		/> :
@@ -95,7 +95,7 @@ export const AlbumTableView = () => {
 				component={Link}
 				to={`${DomRoutes.album({ id: item.id})}`}
 			>
-				{canEditThisAlbum ? "Edit" : "View"}
+				{canEditThisAlbum || canEditAlbums ? "Edit" : "View"}
 			</Button>);
 	};
 

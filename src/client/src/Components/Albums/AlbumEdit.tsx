@@ -71,16 +71,19 @@ export const AlbumEdit = (
 
 	const { formState, watch } = formMethods;
 
-	const playlistRules = watch("rules");
+	const albumRules = watch("rules");
 	
 	const canCreateAlbums = useHasAnyRoles([
+		UserRoleDef.ALBUM_CREATE,
+	]);
+	const canEditAlbums = useHasAnyRoles([
 		UserRoleDef.ALBUM_EDIT,
 	]);
 	const canEditThisAlbum = () => {
 		if(id) {
 			return anyConformsToAnyRule(
-				playlistRules, [UserRoleDef.ALBUM_EDIT]
-			);
+				albumRules, [UserRoleDef.ALBUM_EDIT]
+			) || canEditAlbums;
 		}
 		else {
 			return canCreateAlbums;

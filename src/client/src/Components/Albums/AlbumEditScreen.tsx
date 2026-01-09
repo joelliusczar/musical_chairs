@@ -67,7 +67,7 @@ export const AlbumEditScreen = () => {
 	const [nextUpIndex, setNextUpIndex] = useState<number>(0);
 
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
-	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
 
 	const currentUser = useCurrentUser();
 
@@ -139,21 +139,13 @@ export const AlbumEditScreen = () => {
 	});
 
 
-	const albumRules = watch("rules");
-
 
 	const canPlayAlbums = useHasAnyRoles([
 		UserRoleDef.PATH_DOWNLOAD,
 	]);
 	const canPlayThisAlbum = () => {
-		if(id) {
-			return anyConformsToAnyRule(
-				albumRules, [UserRoleDef.ALBUM_PLAY]
-			) && canPlayAlbums;
-		}
-		else {
-			return canPlayAlbums;
-		}
+
+		return canPlayAlbums;
 	};
 
 

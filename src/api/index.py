@@ -96,6 +96,7 @@ async def change_errors(
 		ex.detail = [build_error_obj(ex.detail)] #pyright: ignore [reportAttributeAccessIssue]
 	return await http_exception_handler(request, ex)
 
+
 @app.exception_handler(AlreadyUsedError) #pyright: ignore [reportUntypedFunctionDecorator, reportUnknownMemberType]
 def handle_already_used_values(
 	request: Request,

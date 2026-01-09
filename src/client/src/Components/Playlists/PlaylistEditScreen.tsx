@@ -174,21 +174,15 @@ export const PlaylistEditScreen = () => {
 	});
 
 	const savedId = watch("id");
-	const playlistRules = watch("rules");
+
 
 
 	const canPlayPlaylists = useHasAnyRoles([
 		UserRoleDef.PATH_DOWNLOAD,
 	]);
 	const canPlayThisPlaylist = () => {
-		if(savedId) {
-			return anyConformsToAnyRule(
-				playlistRules, [UserRoleDef.PLAYLIST_PLAY]
-			) && canPlayPlaylists;
-		}
-		else {
-			return canPlayPlaylists;
-		}
+
+		return canPlayPlaylists;
 	};
 
 

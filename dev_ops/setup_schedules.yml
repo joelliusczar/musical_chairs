@@ -95,4 +95,4 @@
         service_description: Delete the files for marked songs
         env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["jobs_key"]}}'
         service_command: '{{app_python}} -m {{app_details["engine"]}}.one_offs.process_jobs'
-        schedule: '*-*-* 6:17:00'
+        schedule: 'Tue *-*-* 6:17:00'

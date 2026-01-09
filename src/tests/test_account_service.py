@@ -223,15 +223,15 @@ def test_unique_roles():
 	testRoles4 = ActionRule.sorted([
 		ActionRule(name=UserRoleDef.STATION_REQUEST.value),
 		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, count=1),
-		ActionRule(name=UserRoleDef.SONG_EDIT.value, span=60, count=1),
-		ActionRule(name=UserRoleDef.SONG_EDIT.value, span=15, count=1),
+		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=60, count=1),
+		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=15, count=1),
 		ActionRule(name=UserRoleDef.USER_LIST.value)
 	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles4)
 	results = list(gen)
 	assert len(results) == 3
 	assert results[2].name == UserRoleDef.USER_LIST.value
-	assert results[0].name == UserRoleDef.SONG_EDIT.value
+	assert results[0].name == UserRoleDef.PATH_EDIT.value
 	assert results[0].span == 60
 	assert results[1].name == UserRoleDef.STATION_REQUEST.value
 	assert results[1].span == 15

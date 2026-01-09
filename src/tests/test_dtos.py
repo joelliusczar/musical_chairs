@@ -60,7 +60,7 @@ def test_is_admin():
 		id=-1,
 		username="",
 		email="",
-		roles=[ActionRule(name=UserRoleDef.SONG_EDIT.value)]
+		roles=[ActionRule(name=UserRoleDef.PATH_EDIT.value)]
 	)
 	assert not accountInfo.isadmin
 	accountInfo.roles.append(ActionRule(name=UserRoleDef.ADMIN.value))

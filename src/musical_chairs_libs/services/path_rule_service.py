@@ -108,13 +108,13 @@ class PathRuleService:
 		rule: ActionRule
 	) -> PathsActionRule:
 		stmt = insert(path_user_permissions_tbl).values(
-			userFk = addedUserId,
+			userfk = addedUserId,
 			path = prefix,
 			role = rule.name,
 			span = rule.span,
 			count = rule.count,
 			priority = None,
-			creationTimestamp = self.get_datetime().timestamp()
+			creationtimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()

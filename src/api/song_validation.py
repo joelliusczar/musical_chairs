@@ -29,6 +29,7 @@ from api_dependencies import (
 	path_rule_service,
 	station_service,
 	get_from_query_subject_user,
+	get_prefix,
 	album_service,
 	artist_service,
 	stations_songs_service,
@@ -212,7 +213,7 @@ def extra_validated_song(
 
 def validate_path_rule(
 	rule: PathsActionRule,
-	prefix: str,
+	prefix: str = Depends(get_prefix),
 	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
 ) -> PathsActionRule:
 	if not user:

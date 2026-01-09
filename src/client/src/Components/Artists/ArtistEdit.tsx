@@ -35,11 +35,14 @@ export const ArtistEdit = (props: ArtistEditProps) => {
 	const ownerId = watch("owner.id");
 
 	const canCreateArtists = useHasAnyRoles([
+		UserRoleDef.ARTIST_CREATE,
+	]);
+	const canEditArtists = useHasAnyRoles([
 		UserRoleDef.ARTIST_EDIT,
 	]);
 	const canEditThisArtist = () => {
 		if(savedId) {
-			return currentUser.id === ownerId;
+			return currentUser.id === ownerId || canEditArtists;
 		}
 		else {
 			return canCreateArtists;

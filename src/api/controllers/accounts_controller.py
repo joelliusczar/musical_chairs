@@ -318,7 +318,7 @@ def validate_site_rule(
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail=[build_error_obj(
-				f"{rule.name} is not a valid rule for stations"
+				f"{rule.name} is not a valid rule."
 			)],
 		)
 	return rule

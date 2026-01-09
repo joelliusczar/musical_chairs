@@ -86,7 +86,7 @@ def get(
 @router.post("", dependencies=[
 	Security(
 		check_rate_limit,
-		scopes=[UserRoleDef.ARTIST_EDIT.value]
+		scopes=[UserRoleDef.ARTIST_CREATE.value]
 	)
 ])
 def create_artist(
@@ -103,7 +103,7 @@ def create_artist(
 	return artistInfo
 
 
-@router.put("/{artistKey}")
+@router.put("/{artistid}")
 def update_artist(
 	artistInfoUpdate: FrozenNamed,
 	artist: ArtistInfo = Security(

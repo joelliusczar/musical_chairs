@@ -82,7 +82,7 @@ def get(
 @router.post("", dependencies=[
 	Security(
 		check_rate_limit,
-		scopes=[UserRoleDef.ALBUM_EDIT.value]
+		scopes=[UserRoleDef.ALBUM_CREATE.value]
 	)
 ])
 def create_album(

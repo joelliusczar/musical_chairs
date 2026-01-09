@@ -26,7 +26,10 @@ class S3FileService(FileService):
 			"s3",
 			region_name=ConfigAcessors.s3_region_name()
 		)
-		config = TransferConfig()
+		GB = 1024 ** 3
+		config = TransferConfig(
+			multipart_threshold=(GB // 2)
+		)
 	
 		s3_client.upload_file( #pyright: ignore [reportUnknownMemberType]
 			Filename=tmp.name,

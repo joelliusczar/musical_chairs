@@ -322,7 +322,16 @@ def upload_song(
 	),
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> SongTreeNode:
-	return songFileService.save_song_file(file.file, prefix, suffix)
+	try:
+		result = songFileService.save_song_file(file.file, prefix, suffix)
+		mem_mib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 ** 2
+		print(f"Used memory: {mem_mib:.2f} MiB")
+		return result
+	except:
+		raise HTTPException(
+			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+			detail="There was an error uploading file"
+		)
 
 
 @router.delete("/path/delete_prefix")

@@ -11,6 +11,7 @@ from typing import (
 	Optional,
 	Tuple,
 	Union,
+	IO,
 	Iterable,
 	Collection,
 	Mapping
@@ -123,7 +124,7 @@ class SongFileService:
 		self.conn.commit()
 		return self.song_ls_parents(prefix, includeTop=False)
 	
-	def extract_song_info(self, file: BinaryIO) -> SongAboutInfo:
+	def extract_song_info(self, file: IO[bytes]) -> SongAboutInfo:
 		try:
 			tag = cast(Any, TinyTag.get(file_obj=file)) #pyright: ignore [reportUnknownMemberType]
 			songAboutInfo = SongAboutInfo(name=tag.title)
@@ -322,6 +323,7 @@ class SongFileService:
 					permittedPathTree
 				)
 
+
 	def __prefix_split__(self, prefix: str) -> Iterator[str]:
 		split = prefix.split("/")
 		it = iter((p for p in split if p))
@@ -332,6 +334,7 @@ class SongFileService:
 		for part in it:
 			combined += f"/{part}"
 			yield squash_sequential_duplicate_chars(f"/{combined}/", "/")
+
 
 	def __build_song_tree_dict__(
 		self,
@@ -345,6 +348,7 @@ class SongFileService:
 			else:
 				result[parent] = set([node])
 		return result
+
 
 	def song_ls_parents(
 		self,
@@ -368,6 +372,7 @@ class SongFileService:
 		)
 		result = self.__build_song_tree_dict__(nodes)
 		return result
+
 
 	def get_internal_song_paths(
 		self,
@@ -399,6 +404,7 @@ class SongFileService:
 		results = self.conn.execute(query)
 		yield from ((row[0], row[1]) for row in results)
 
+
 	def delete_overlaping_placeholder_dirs(self, path: str):
 		overlap = [*self.get_parents_of_path(path)]
 		if any(r for r in overlap if not r[1].endswith("/")):
@@ -407,6 +413,7 @@ class SongFileService:
 			.where(sg_deletedTimstamp.is_(None))\
 			.where(sg_pk.in_(r[0] for r in overlap))
 		self.conn.execute(stmt)
+
 
 	def __is_path_used__(
 		self,
@@ -420,6 +427,7 @@ class SongFileService:
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
+
 	def __is_prefix_for_any__(self, prefix: str) -> bool:
 		lPrefix = normalize_opening_slash(prefix)\
 			.replace("_","\\_").replace("%","\\%")
@@ -432,6 +440,7 @@ class SongFileService:
 			)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
+
 
 	def __are_paths_used__(
 		self,
@@ -454,6 +463,7 @@ class SongFileService:
 			Path(p.path).name: (pathToId.get(p.path, p.id) != p.id)
 			for p in paths
 		}
+
 
 	def are_paths_used(
 		self,

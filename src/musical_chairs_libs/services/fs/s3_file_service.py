@@ -1,13 +1,13 @@
 #pyright: reportMissingTypeStubs=false
 import boto3
+from boto3.s3.transfer import TransferConfig
 from botocore.client import Config
-from typing import BinaryIO, cast
+from typing import BinaryIO, cast, IO
 from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import (
-	guess_contenttype,
 	ConfigAcessors
 )
-from tempfile import TemporaryFile
+from tempfile import NamedTemporaryFile
 
 
 class S3FileService(FileService):
@@ -15,25 +15,26 @@ class S3FileService(FileService):
 	def save_song(self,
 		keyPath: str,
 		file: BinaryIO
-	) -> BinaryIO:
-		resource = boto3.resource( #pyright: ignore [reportUnknownMemberType]
-			"s3",
-			config=Config(
-				signature_version='s3v4',
-				region_name=ConfigAcessors.s3_region_name(),
-			)
-		)
-		s3_obj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
-			bucket_name=ConfigAcessors.s3_bucket_name(),
-			key=keyPath,
-		)
-		tmp = TemporaryFile()
-		for chunk in file:
-			tmp.write(chunk)
-		tmp.seek(0)
-		s3_obj.put(Body=tmp, ContentType=guess_contenttype(keyPath)) #pyright: ignore [reportUnknownMemberType]
+	) -> IO[bytes]:
 
-		s3_obj.wait_until_exists() #pyright: ignore [reportUnknownMemberType]
+		tmp = NamedTemporaryFile()
+		for chunk in file:
+			tmp.write(chunk)	
+		tmp.seek(0)
+
+		s3_client = boto3.client( #pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+			"s3",
+			region_name=ConfigAcessors.s3_region_name()
+		)
+		config = TransferConfig()
+	
+		s3_client.upload_file( #pyright: ignore [reportUnknownMemberType]
+			Filename=tmp.name,
+			Bucket=ConfigAcessors.s3_bucket_name(),
+			Key=keyPath,
+			Config=config
+		)
+
 		tmp.seek(0)
 		return tmp
 

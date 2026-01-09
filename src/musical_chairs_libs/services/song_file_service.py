@@ -572,7 +572,7 @@ class SongFileService:
 			).like(f"{lPath}%"))\
 			.values(
 				path = sg_path.regexp_replace(
-					f"^/?{prefix}",
+					f"^/?{re.escape(prefix)}",
 					newprefix
 				)
 			)

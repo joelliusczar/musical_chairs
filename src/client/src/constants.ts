@@ -80,11 +80,14 @@ export const UserRoleDef: StringObject = {
 	SITE_USER_ASSIGN: `${UserRoleDomain.SITE}:userassign`,
 	SITE_USER_LIST: `${UserRoleDomain.SITE}:userlist`,
 	SITE_PLACEHOLDER: `${UserRoleDomain.SITE}:placeholder`,
+
 	ALBUM_CREATE: `${UserRoleDomain.ALBUM}:create`,
 	ALBUM_EDIT:  `${UserRoleDomain.ALBUM}:edit`,
+
 	ARTIST_CREATE: `${UserRoleDomain.ARTIST}:create`,
 	ARTIST_EDIT: `${UserRoleDomain.ARTIST}:edit`,
-	ARTIST_VIEW_ALL: `$${UserRoleDomain.ARTIST}:view_all`,
+	ARTIST_VIEW_ALL: `${UserRoleDomain.ARTIST}:view_all`,
+
 	STATION_VIEW: `${UserRoleDomain.STATION}:view`,
 	STATION_CREATE: `${UserRoleDomain.STATION}:create`,
 	STATION_EDIT: `${UserRoleDomain.STATION}:edit`,
@@ -94,9 +97,11 @@ export const UserRoleDef: StringObject = {
 	STATION_SKIP: `${UserRoleDomain.STATION}:skip`,
 	STATION_ASSIGN: `${UserRoleDomain.STATION}:assign`,
 	STATION_USER_ASSIGN: `${UserRoleDomain.STATION}:userassign`,
+
 	USER_LIST: "user:list",
 	USER_EDIT: "user:edit",
 	USER_IMPERSONATE: "user:impersonate",
+	
 	PATH_LIST: `${UserRoleDomain.PATH}:list`,
 	PATH_EDIT: `${UserRoleDomain.PATH}:edit`,
 	PATH_DELETE: `${UserRoleDomain.PATH}:delete`,
@@ -106,13 +111,13 @@ export const UserRoleDef: StringObject = {
 	PATH_DOWNLOAD: `${UserRoleDomain.PATH}:download`,
 	PATH_UPLOAD: `${UserRoleDomain.PATH}:upload`,
 
-	PLAYLIST_ASSIGN: `${UserRoleDomain.Playlist}:assign`,
-	PLAYLIST_CREATE: `${UserRoleDomain.Playlist}:create`,
-	PLAYLIST_DELETE: `${UserRoleDomain.Playlist}:delete`,
-	PLAYLIST_EDIT: `${UserRoleDomain.Playlist}:edit`,
-	PLAYLIST_USER_ASSIGN: `${UserRoleDomain.Playlist}:userassign`,
-	PLAYLIST_USER_LIST: `${UserRoleDomain.Playlist}:userlist`,
-	PLAYLIST_VIEW: `${UserRoleDomain.Playlist}:view`,
+	PLAYLIST_ASSIGN: `${UserRoleDomain.PLAYLIST}:assign`,
+	PLAYLIST_CREATE: `${UserRoleDomain.PLAYLIST}:create`,
+	PLAYLIST_DELETE: `${UserRoleDomain.PLAYLIST}:delete`,
+	PLAYLIST_EDIT: `${UserRoleDomain.PLAYLIST}:edit`,
+	PLAYLIST_USER_ASSIGN: `${UserRoleDomain.PLAYLIST}:userassign`,
+	PLAYLIST_USER_LIST: `${UserRoleDomain.PLAYLIST}:userlist`,
+	PLAYLIST_VIEW: `${UserRoleDomain.PLAYLIST}:view`,
 };
 
 export const RulePriorityLevel = {

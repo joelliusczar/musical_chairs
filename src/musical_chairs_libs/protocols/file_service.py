@@ -1,12 +1,12 @@
 from typing import Protocol
-from typing import BinaryIO, IO
+from typing import BinaryIO
 
 class FileService(Protocol):
 
 	def save_song(self,
 		keyPath: str,
 		file: BinaryIO
-	) -> IO[bytes]:
+	) -> BinaryIO:
 		...
 
 	def open_song(self, keyPath: str) -> BinaryIO:

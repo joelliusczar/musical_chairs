@@ -189,7 +189,10 @@ class SongFileService:
 		internalPath = f"{user.username}/{internalDirs}/"\
 			+ f"{str(uuid.uuid4())}-{cleanedSuffix}{extension}"
 		with self.file_service.save_song(internalPath, file) as uploaded:
-			fileHash = hashlib.sha256(uploaded.read()).digest()
+			hasher = hashlib.sha256()
+			for chunk in uploaded:
+				hasher.update(chunk)
+			fileHash = hasher.digest()
 			uploaded.seek(0)
 			songAboutInfo = self.extract_song_info(uploaded)
 		stmt = insert(songs_tbl).values(

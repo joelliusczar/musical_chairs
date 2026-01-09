@@ -30,6 +30,7 @@ from .current_user_provider import CurrentUserProvider
 from .actions_history_management_service import ActionsHistoryManagementService
 from .account_access_service import AccountAccessService
 from sqlalchemy.engine import Connection
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
 	users, u_pk, u_username, u_email, u_dirRoot, u_disabled,
@@ -370,7 +371,13 @@ class AccountManagementService:
 			priority = None,
 			creationtimestamp = self.get_datetime().timestamp()
 		)
-		self.conn.execute(stmt)
+		try:
+			self.conn.execute(stmt)
+		except IntegrityError:
+			raise AlreadyUsedError.build_error(
+				f"{rule.name} is already used for user.",
+				"body->name"
+			)
 		self.actions_history_management_service.add_user_action_history_item(
 			UserActions.ADD_SITE_RULE.value,
 		)

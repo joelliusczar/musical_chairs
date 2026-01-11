@@ -124,11 +124,13 @@ except:
 # 	blitz/rhino/
 # 		blitz/rhino/rhina/
 # 			blitz/rhino/rhina/zulu3
-#		blitz/how well are we handing/
-#			blitz/how well are we handing/spaces in our/
-#				blitz/how well are we handing/spaces in our/path names
-#			blitz/how well are we handing/dirs ending with space  /
-#				blitz/how well are we handing/dirs ending with space  /path
+#		blitz/how well are we handling/
+#			blitz/how well are we handling/ünicode/
+#			blitz/how well are we handling/ünicode/inourpathnames
+#			blitz/how well are we handling/spaces in our/
+#				blitz/how well are we handling/spaces in our/path names
+#			blitz/how well are we handling/dirs ending with space  /
+#				blitz/how well are we handling/dirs ending with space  /path
 #		blitz/  are we handling/
 #			blitz/  are we handling/ dirs beginning with space  /
 #				blitz/  are we handling/ dirs beginning with space  /path
@@ -733,12 +735,12 @@ song_params: list[dict[str, Any]] = [
 	},
 	{ "pk": 81,
 		"internalpath": str(song_guids[81]),
-		"path": "blitz/how well are we handing/spaces in our/path names",
+		"path": "blitz/how well are we handling/spaces in our/path names",
 		"name": "Song with spaces",
 	},
 	{ "pk": 82,
 		"internalpath": str(song_guids[82]),
-		"path": "blitz/how well are we handing/dirs ending with space  /path",
+		"path": "blitz/how well are we handling/dirs ending with space  /path",
 		"name": "Song ending in spaces",
 	},
 	{ "pk": 83,
@@ -780,6 +782,11 @@ song_params: list[dict[str, Any]] = [
 		"internalpath": str(song_guids[90]),
 		"path": "foo/dude/alphajanerobravo/",
 		"name": "normal_song",
+	},
+	{ "pk": 91,
+		"internalpath": str(song_guids[91]),
+		"path": "blitz/how well are we handling/ünicode/inourpathnames",
+		"name": "Song with ünicode",
 	},
 ]
 

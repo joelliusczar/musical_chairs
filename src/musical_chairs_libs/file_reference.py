@@ -18,7 +18,7 @@ class SqlScripts(Enum):
 	)
 	NEXT_DIRECTORY_LEVEL = (
 		"004.next_directory_level.sql",
-		"808f1932fbb6018957c634d89aaebada3ced8e36c24cb1746e249675c4b8e7c0"
+		"0d48302f848ab80ccdcc12b947a493225ae0e068ce05568293bbdddbea66e495"
 	)
 	NORMALIZE_OPENING_SLASH = (
 		"005.normalize_opening_slash.sql",
@@ -139,6 +139,10 @@ class SqlScripts(Enum):
 	READD_UNIQUE_LASTPLAYED_INDEX = (
 		"035.readd_unique_lastplayed_index.sql",
 		"4d14ed810a4af9a51243bd0171654d529ca03fb69df7b6bba5bbc35b5813cb9e"
+	)
+	UPDATE_COLLATIONS = (
+		"036.update_collations.sql",
+		"ffda3d82c1a50ea25dab4d00ec79446f5390644ef7fda88af293e0bdd83a3852"
 	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",

@@ -248,13 +248,7 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_janitor_user_script(SqlScripts.GRANT_JANITOR)
 		ownerConnService.flush_privileges()
 
-		ownerConnService.run_defined_api_user_script(
-			SqlScripts.NEXT_DIRECTORY_LEVEL
-		)
-		ownerConnService.run_defined_api_user_script(
-			SqlScripts.NORMALIZE_OPENING_SLASH
-		)
-		
+
 		ownerConnService.run_defined_script(SqlScripts.DROP_REQUESTED_TIMESTAMP)
 		ownerConnService.run_defined_script(SqlScripts.ADD_INTERNAL_PATH)
 		ownerConnService.run_defined_script(SqlScripts.DROP_PLACEHOLDERDIR)
@@ -303,7 +297,13 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_script(
 			SqlScripts.READD_UNIQUE_LASTPLAYED_INDEX
 		)
-
+		ownerConnService.run_defined_script(SqlScripts.UPDATE_COLLATIONS)
+		ownerConnService.run_defined_api_user_script(
+			SqlScripts.NEXT_DIRECTORY_LEVEL
+		)
+		ownerConnService.run_defined_api_user_script(
+			SqlScripts.NORMALIZE_OPENING_SLASH
+		)
 
 		if not dbName.startswith("test_"):
 			Path(f"/tmp/{get_schema_hash()}").touch()

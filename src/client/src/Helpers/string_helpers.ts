@@ -30,7 +30,7 @@ export function normalizeOpeningSlash(
 }
 
 export const unicodeToBase64 = (str: string) => {
-	const bytes = new TextEncoder().encode(str);
+	const bytes = new TextEncoder().encode(str.normalize("NFC"));
 	const binString = Array.from(bytes, (byte) =>
 		String.fromCodePoint(byte)
 	).join("");

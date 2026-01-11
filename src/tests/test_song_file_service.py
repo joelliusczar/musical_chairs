@@ -148,7 +148,7 @@ def test_song_ls_paths_with_spaces(
 	)
 	assert len(paths) == 4
 	assert paths[0].path == "blitz/  are we handling/"
-	assert paths[1].path == "blitz/how well are we handing/"
+	assert paths[1].path == "blitz/how well are we handling/"
 	assert paths[2].path == "blitz/mar/"
 	assert paths[3].path == "blitz/rhino/"
 
@@ -216,6 +216,26 @@ def test_add_directory(
 		key=lambda d: d.path
 	)
 	assert len(paths) == 1
+
+@pytest.mark.current_username("testUser_alpha")
+def test_add_unicode_directory(
+	fixture_song_file_service: SongFileService,
+):
+	songFileService = fixture_song_file_service
+	songFileService.create_directory("foo", "ü")
+	paths = sorted(songFileService.song_ls("foo/"), key=lambda d: d.path)
+	assert len(paths) == 5
+	assert paths[0].path == "foo/bar/"
+	assert paths[1].path == "foo/dude/"
+	assert paths[2].path == "foo/goo/"
+	assert paths[3].path == "foo/rude/"
+	assert paths[4].path == "foo/ü/"
+
+	songFileService.create_directory("foo/ü", "u")
+	paths = sorted(songFileService.song_ls("foo/ü/"), key=lambda d: d.path)
+	assert len(paths) == 1
+	assert paths[0].path == "foo/ü/u/"
+
 
 @pytest.mark.current_username("testUser_kilo")
 def test_add_directory_to_leaves(

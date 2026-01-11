@@ -2,6 +2,7 @@
 import re
 import uuid
 import hashlib
+import unicodedata
 from .current_user_provider import CurrentUserProvider
 from typing import (
 	Any,
@@ -196,15 +197,16 @@ class SongFileService:
 			uploaded.seek(0)
 			songAboutInfo = self.extract_song_info(uploaded)
 		stmt = insert(songs_tbl).values(
-			path = path,
-			internalpath = internalPath,
-			name = songAboutInfo.name,
+			path = unicodedata.normalize("NFC", path),
+			internalpath = unicodedata.normalize("NFC", internalPath),
+			name = unicodedata.normalize("NFC", songAboutInfo.name),
 			albumfk = songAboutInfo.album.id if songAboutInfo.album else None,
 			track = songAboutInfo.track,
 			tracknum = int_or_default(songAboutInfo.track),
 			disc = songAboutInfo.disc,
 			bitrate = songAboutInfo.bitrate,
-			genre = songAboutInfo.genre,
+			genre = unicodedata.normalize("NFC", songAboutInfo.genre)\
+				if songAboutInfo.genre else None,
 			duration = songAboutInfo.duration,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp(),
@@ -254,12 +256,7 @@ class SongFileService:
 					hasOpenSlash
 				).like(f"{likePrefix}%")
 			)\
-			.group_by(
-				func.next_directory_level(
-					func.normalize_opening_slash(sg_path, hasOpenSlash),
-					prefix
-				)
-			)
+			.group_by("prefix")
 		return query
 
 	def __query_to_treeNodes__(
@@ -400,7 +397,7 @@ class SongFileService:
 			.where(func.substring(
 				normalizedPrefix,
 				1,
-				func.length(
+				func.CHAR_LENGTH(
 					func.normalize_opening_slash(sg_path, addSlash)
 				)
 			) == func.normalize_opening_slash(sg_path, addSlash))

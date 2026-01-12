@@ -12,7 +12,7 @@ from musical_chairs_libs.dtos_and_utilities.constants import DbUsers
 from pymysql.constants import CLIENT
 from pathlib import Path
 
-collation_connection = "utf8mb4_general_ci"
+collation_connection = "utf8mb4_uca1400_ai_ci"
 
 def __on_connect__(**kw: dict[str, Any]): 
 	dbapi_connection = kw["dbapi_connection"]

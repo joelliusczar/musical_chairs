@@ -22,8 +22,7 @@ import { formatError } from "../../Helpers/error_formatter";
 import { useSnackbar } from "notistack";
 import { UrlBuilder, getSearchParams } from "../../Helpers/pageable_helpers";
 import { StationRouteSelect } from "../Stations/StationRouteSelect";
-import { UrlPagination } from "../Shared/UrlPagination";
-import { OptionsButton } from "../Shared/OptionsButton";
+import { OptionsButton, OrderByField, UrlPagination } from "../Shared";
 import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
@@ -208,27 +207,44 @@ export const SongCatalogue = () => {
 						<Table size="small">
 							<TableHead>
 								<TableRow>
-									<TableCell>Song</TableCell>
-									<TableCell>Album</TableCell>
-									<TableCell>Artist</TableCell>
+									<OrderByField 
+										label="Song"
+										name="name"
+										getPageUrl={urlBuilder.getThisUrl}
+									/>
+									<OrderByField 
+										label="Album"
+										name="parentname"
+										getPageUrl={urlBuilder.getThisUrl}
+									/>
+									<OrderByField 
+										label="Artist"
+										name="creator"
+										getPageUrl={urlBuilder.getThisUrl}
+									/>
+									<OrderByField 
+										label="Played Count"
+										name="playedcount"
+										getPageUrl={urlBuilder.getThisUrl}
+									/>
 									<TableCell></TableCell>
 								</TableRow>
 								<TableRow>
 									<TableCell>
 										<SearchTextField
-											name="song"
+											name="name"
 											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
 									<TableCell>
 										<SearchTextField
-											name="album"
+											name="parentname"
 											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
 									<TableCell>
 										<SearchTextField
-											name="artist"
+											name="creator"
 											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
@@ -243,10 +259,13 @@ export const SongCatalogue = () => {
 												{item.name || "{No song name}"}
 											</TableCell>
 											<TableCell>
-												{item.parentName || "{No album name}"}
+												{item.parentname || "{No album name}"}
 											</TableCell>
 											<TableCell>
 												{item.creator || "{No artist name}"}
+											</TableCell>
+											<TableCell>
+												{item.playedcount || 0}
 											</TableCell>
 											<TableCell>
 												{rowButton(item, idx)}

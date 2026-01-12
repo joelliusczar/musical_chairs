@@ -20,6 +20,7 @@ import {
 	CallStatus,
 	RulePriorityLevel,
 	StationTypes,
+	UserRoleDef,
 } from "../../constants";
 import {
 	useStationData,
@@ -27,6 +28,7 @@ import {
 import {
 	useCurrentUser,
 	useAuthViewStateChange,
+	useHasAnyRoles,
 } from "../../Context_Providers/AuthContext/AuthContext";
 import { Loader } from "../Shared/Loader";
 import { FormSelect } from "../Shared/FormSelect";
@@ -37,6 +39,8 @@ import {
 import { SubmitButton } from "../Shared/SubmitButton";
 import { isCallPending } from "../../Helpers/request_helpers";
 import { YesNoModalOpener } from "../Shared/YesNoControl";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+
 
 
 const inputField = {
@@ -55,10 +59,6 @@ const viewSecurityOptions = [
 	{
 		id: RulePriorityLevel.INVITED_USER,
 		name: "Invited Users Only",
-	},
-	{
-		id: RulePriorityLevel.OWENER_USER,
-		name: "Private",
 	},
 ];
 
@@ -111,7 +111,7 @@ const validatePhraseIsUnused = async (
 
 const schema = Yup.object().shape({
 	name: Yup.string().required()
-		.matches(/^[a-zA-Z0-9_]*$/, "Name can only contain a-zA-Z0-9_")
+		.matches(/^[a-zA-Z0-9_\-]*$/, "Name can only contain a-zA-Z0-9_-")
 		.test(
 			"name",
 			(value) => `${value.path} is already used`,
@@ -159,6 +159,7 @@ export const StationEdit = (props: StationEditProps) => {
 	const currentUser = useCurrentUser();
 
 
+
 	const [state, dispatch] = useDataWaitingReducer<StationInfo>(
 		new RequiredDataStore({
 			id: 0,
@@ -184,6 +185,22 @@ export const StationEdit = (props: StationEditProps) => {
 		remove: removeStation,
 	} = useStationData();
 	const isPending = isCallPending(callStatus);
+
+	const canCreateStations = useHasAnyRoles([
+		UserRoleDef.STATION_CREATE,
+	]);
+	const canEditStation = () => {
+		if(pathVars.stationkey && pathVars.ownerkey) {
+			const stationRules = state.data.rules;
+			return anyConformsToAnyRule(
+				stationRules, [UserRoleDef.STATION_EDIT]
+			);
+		}
+		else {
+			return canCreateStations;
+		}
+	};
+
 
 	const getPageUrl = (params: { name: string }) => {
 		return DomRoutes.stationsEdit({
@@ -238,6 +255,8 @@ export const StationEdit = (props: StationEditProps) => {
 			console.error(err);
 		}
 	});
+
+
 
 	const callSubmitCopy = handleSubmit(async values => {
 		try {
@@ -348,9 +367,12 @@ export const StationEdit = (props: StationEditProps) => {
 	return (
 		<Loader status={loadStatus} error={error}>
 			<Box sx={inputField}>
-				<Typography variant="h1">
+				{canEditStation() && <Typography variant="h1">
 					{savedId ? "Edit" : "Create"} a station
-				</Typography>
+				</Typography>}
+				{!canEditStation() && <Typography variant="h1">
+					Station
+				</Typography>}
 			</Box>
 			<Box>
 				{canDeleteItem() && <YesNoModalOpener
@@ -415,6 +437,7 @@ export const StationEdit = (props: StationEditProps) => {
 					}}
 					defaultValue={stationTypeOptions[0]}
 					disableClearable={true}
+					disabled={!canEditStation()}
 				/>
 			</Box>
 			<Box sx={inputField}>
@@ -435,12 +458,12 @@ export const StationEdit = (props: StationEditProps) => {
 					onYes={callSubmitCopy}
 					onNo={() => {}}
 				/>}
-				<SubmitButton
+				{canEditStation() && <SubmitButton
 					loading={formState.isSubmitting}
 					onClick={callSubmit}
 				>
 					Submit
-				</SubmitButton>
+				</SubmitButton>}
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

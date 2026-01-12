@@ -20,6 +20,7 @@ export interface AlbumInfo {
 	versionnote: string
 	stations: StationInfo[]
 	owner: User
+	rules: ActionRule[]
 }
 
 
@@ -49,7 +50,7 @@ export interface SongListDisplayItem extends NamedIdItem {
 }
 
 export interface CatalogueItem extends NamedIdItem {
-	parentName: string
+	parentname: string
 	creator: string | null
 	itemtype: string
 	requesttypeid: number
@@ -57,6 +58,7 @@ export interface CatalogueItem extends NamedIdItem {
 	description: string | null
 	rules: ActionRule[]
 	owner: UserBase
+	playedcount: number
 }
 
 export interface CurrentPlayingInfo

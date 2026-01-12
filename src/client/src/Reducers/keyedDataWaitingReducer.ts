@@ -15,6 +15,9 @@ export type KeyedDataActionPayload<T> = {
 	type: WaitingTypes.done,
 	payload: Dictionary<T>
 } | {
+	type: WaitingTypes.stopped,
+	payload: { keys: KeyValue[] }
+} | {
 	type: WaitingTypes.failed,
 	payload: Dictionary<string>,
 } | {
@@ -27,7 +30,7 @@ export type KeyedDataActionPayload<T> = {
 
 
 export const keyedDataDispatches = {
-	started: (keys: KeyValue[] ) =>
+	started: (keys: KeyValue[]) =>
 		({
 			type: WaitingTypes.started,
 			payload: { keys: keys },
@@ -40,6 +43,11 @@ export const keyedDataDispatches = {
 			type: WaitingTypes.done,
 			payload: Dictionary<T> 
 		},
+	stopped: (keys: KeyValue[]) => 
+		({
+			type: WaitingTypes.stopped,
+			payload: { keys: keys },
+		}) as { type: WaitingTypes.stopped, payload: { keys: KeyValue[] } },
 	failed: (data: Dictionary<string>) =>
 		({
 			type: WaitingTypes.failed,
@@ -103,6 +111,16 @@ export const keyedDataReducer = <T>(
 			...addedData,
 		};
 	}
+	case WaitingTypes.stopped:
+		const { keys } = action.payload;
+		const stateCopy = {...state};
+		keys.forEach(k => {
+			stateCopy[k] = {
+				...stateCopy[k],
+				callStatus: CallStatus.idle,
+			};
+		});
+		return stateCopy;
 	case WaitingTypes.failed:
 	{
 		const addedData: Dictionary<RequiredDataStore<T | null>> = {};

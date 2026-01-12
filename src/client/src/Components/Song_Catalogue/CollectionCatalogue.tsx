@@ -106,41 +106,65 @@ export const CollectionCatalogue = () => {
 			[UserRoleDef.ALBUM_EDIT]
 		);
 
-		if (canEditThisAlbum) rowButtonOptions.push({
-			label: "Edit",
-			link: item.requesttypeid === StationRequestTypes.ALBUM
-				? `${DomRoutes.album({ id: item.id })}`
-				: `${DomRoutes.playlistEdit(
-					{ 
-						playlistkey: item.name, 
-						ownerkey: item.owner.username,
-					})}`,
-		});
+		const canEditThisPlaylist = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PLAYLIST_EDIT]
+		);
+
+
+		if (canEditThisAlbum) {
+			if (item.requesttypeid === StationRequestTypes.ALBUM) {
+				rowButtonOptions.push({
+					label: "Edit",
+					link: DomRoutes.album({ id: item.id }),
+				});
+			}
+		}
+
+		if (canEditThisPlaylist) {
+			if (item.requesttypeid === StationRequestTypes.PLAYLIST) {
+				rowButtonOptions.push({
+					label: "Edit",
+					link: DomRoutes.playlistEdit(
+						{ 
+							playlistkey: item.name, 
+							ownerkey: item.owner.username,
+						}),
+				});
+			}
+		}
 
 		if(canRequest || canRequestForStation) rowButtonOptions.push({
 			label: "Request",
 			onClick:() => requestCollection(item.id, item.requesttypeid),
 		});
 
-		return (rowButtonOptions.length > 1 ? <OptionsButton
-			id={`queue-row-btn-${idx}`}
-			options={rowButtonOptions}
-		/> :
-			<Button
-				variant="contained"
-				component={Link}
-				to={
-					item.requesttypeid === StationRequestTypes.ALBUM
-						? `${DomRoutes.album({ id: item.id })}`
-						: `${DomRoutes.playlistEdit(
-							{ 
-								playlistkey: item.name, 
-								ownerkey: item.owner.username,
-							})}`
-				} 
-			>
-				{(canEditThisAlbum) ? "Edit" : "View"}
-			</Button>);
+		if (rowButtonOptions.length > 1) {
+			return <OptionsButton
+				id={`queue-row-btn-${idx}`}
+				options={rowButtonOptions}
+			/>;
+		}
+
+		return <Button
+			variant="contained"
+			component={Link}
+			to={
+				item.requesttypeid === StationRequestTypes.ALBUM
+					? `${DomRoutes.album({ id: item.id })}`
+					: `${DomRoutes.playlistEdit(
+						{ 
+							playlistkey: item.name, 
+							ownerkey: item.owner.username,
+						})}`
+			} 
+		>
+			{
+				(canEditThisAlbum && item.requesttypeid === StationRequestTypes.ALBUM) 
+				|| (canEditThisPlaylist 
+					&& item.requesttypeid === StationRequestTypes.PLAYLIST)
+					? "Edit" : "View"}
+		</Button>;
 	};
 
 	const setStationCallback = useCallback(

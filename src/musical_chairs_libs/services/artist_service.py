@@ -18,8 +18,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongListDisplayItem,
 	DictDotMap,
 	normalize_opening_slash,
-	SearchNameString
+	SearchNameString,
 )
+from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
@@ -51,15 +52,15 @@ class ArtistService:
 	def __init__(
 		self,
 		conn: Connection,
-		pathRuleService: Optional[PathRuleService]=None
+		currentUserProvider: CurrentUserProvider,
+		pathRuleService: PathRuleService
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
+		self.current_user_provider = currentUserProvider
 
 	def get_artists(self,
 		page: int = 0,
@@ -183,8 +184,8 @@ class ArtistService:
 			.where(sg_albumFk == artistId)
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+		if self.current_user_provider.is_loggedIn():
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
 		songs = [
 			SongListDisplayItem(
@@ -193,7 +194,7 @@ class ArtistService:
 		]
 		if pathRuleTree:
 			for song in songs:
-				song.rules = list(pathRuleTree.valuesFlat(
+				song.rules = list(pathRuleTree.values_flat(
 						normalize_opening_slash(song.path))
 					)
 
@@ -201,12 +202,12 @@ class ArtistService:
 
 	def save_artist(
 		self,
-		user: AccountInfo,
 		artistName: str,
 		artistId: Optional[int]=None
 	) -> Optional[ArtistInfo]:
 		if not artistName and not artistId:
 			raise ValueError("No artist info to save")
+		user = self.current_user_provider.current_user()
 		upsert = update if artistId else insert
 		savedName = SavedNameString(artistName)
 		stmt = upsert(artists_tbl).values(

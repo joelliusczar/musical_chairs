@@ -76,7 +76,9 @@ def test_collection_pop_next(
 	collectionQueueService.pop_next_queued(30)
 
 	queue = [*collectionQueueService.get_queue_for_station(30)]
-	queue = move_next()
-	# while True:
+	for _ in range(0, 100):
+		queue = move_next()
+		assert queue
+		# while True:
 	# 	pass
 

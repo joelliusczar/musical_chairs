@@ -11,7 +11,7 @@ import {
 } from "../../Helpers/pageable_helpers";
 import { PageableParams } from "../../Types/pageable_types";
 
-type CurrentPageParams = Pick<PageableParams, "page" | "rows"> |
+type CurrentPageParams = Pick<PageableParams, "page" | "limit"> |
 	Pick<PageableParams, "page">;
 
 type UrlPaginationProps = {
@@ -42,7 +42,7 @@ export const UrlPagination = (props: UrlPaginationProps) => {
 					navigate(
 						getPageUrl(
 							{
-								rows: e.target.value ? +e.target.value : null,
+								limit: e.target.value ? +e.target.value : undefined,
 								page: 1,
 							},
 							location.search,

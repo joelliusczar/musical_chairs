@@ -47,7 +47,7 @@ const Queue = () => {
 	const { enqueueSnackbar } = useSnackbar();
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canSkipSongs = useHasAnyRoles([UserRoleDef.STATION_SKIP]);
-	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
 
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
@@ -102,7 +102,7 @@ const Queue = () => {
 			onClick: () => openSongInTab(item.id),
 		});
 
-		return (rowButtonOptions.length > 1 ? <OptionsButton
+		return (rowButtonOptions.length > 0 ? <OptionsButton
 			id={`queue-row-btn-${item.id}-${idx}`}
 			options={rowButtonOptions}
 		/> :

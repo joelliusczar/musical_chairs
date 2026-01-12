@@ -131,7 +131,8 @@ song_guids = [
 	UUID('531fac8e-1154-4854-aa5e-d089702723f2'),
 	UUID('0090bb04-f7ff-4c2b-beba-9a4c3020ec96'),
 	UUID('31ca777b-6c17-4038-b717-b1899510cecf'),
-	UUID('611da8b5-4f91-4188-98bf-ae98835d416f')
+	UUID('611da8b5-4f91-4188-98bf-ae98835d416f'),
+	UUID('f0667b94-71e3-4d33-bba9-203cd18540fe')
 ]
 
 song_artist_guids = [

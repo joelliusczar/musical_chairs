@@ -4,9 +4,7 @@ import {
 	useAlbumData,
 } from "../../Context_Providers/AppContext/AppContext";
 import {
-	update as saveAlbum,
-	get as fetchAlbum,
-	remove as deleteAlbum,
+	Calls,
 } from "../../API_Calls/albumCalls";
 import { useForm } from "react-hook-form";
 import {
@@ -69,7 +67,7 @@ export const AlbumEditScreen = () => {
 	const [nextUpIndex, setNextUpIndex] = useState<number>(0);
 
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
-	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
 
 	const currentUser = useCurrentUser();
 
@@ -118,10 +116,10 @@ export const AlbumEditScreen = () => {
 			versionnote: "",
 		},
 	});
-	const { handleSubmit, reset, getValues } = formMethods;
+	const { handleSubmit, reset, getValues, watch } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = saveAlbum({
+			const requestObj = Calls.update({
 				id, data: {
 					name: values.name,
 					year: values.year || undefined,
@@ -142,6 +140,16 @@ export const AlbumEditScreen = () => {
 
 
 
+	const canPlayAlbums = useHasAnyRoles([
+		UserRoleDef.PATH_DOWNLOAD,
+	]);
+	const canPlayThisAlbum = () => {
+
+		return canPlayAlbums;
+	};
+
+
+
 	const canDeleteItem = () => {
 		const ownerId = getValues("owner.id");
 		if (currentUser.id === ownerId) return true;
@@ -151,7 +159,7 @@ export const AlbumEditScreen = () => {
 
 	const deleteItem = async () => {
 		try {
-			const requestObj = deleteAlbum({ id });
+			const requestObj = Calls.remove({ id });
 			await requestObj.call();
 			removeAlbum(getValues());
 			enqueueSnackbar("Delete successful", { variant: "success" });
@@ -171,7 +179,7 @@ export const AlbumEditScreen = () => {
 
 	useEffect(() => {
 		if (id) {
-			const requestObj = fetchAlbum({
+			const requestObj = Calls.get({
 				id,
 			});
 			if (!isPending) return;
@@ -245,12 +253,12 @@ export const AlbumEditScreen = () => {
 		{state.data?.length > 0 ?
 			<>
 				<Box>
-					<PlaylistListener
+					{canPlayThisAlbum() && <PlaylistListener
 						audioItems={state.data}
 						nextUp={getNextUp()}
 						queueNext={queueNext}
 						parentId={id}
-					/>
+					/>}
 				</Box>
 				<TableContainer>
 					<Table>

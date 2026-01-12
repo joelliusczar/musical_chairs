@@ -1,5 +1,5 @@
 from musical_chairs_libs.services import (
-	UserActionsHistoryService
+	ActionsHistoryManagementService
 )
 from .constant_fixtures_for_test import *
 from .common_fixtures import *
@@ -9,7 +9,7 @@ from .constant_fixtures_for_test import (
 )
 
 def test_get_user_action_history(
-	fixture_user_actions_history_service: UserActionsHistoryService,
+	fixture_user_actions_history_service: ActionsHistoryManagementService,
 	fixture_mock_ordered_date_list: List[datetime],
 ):
 	dates = fixture_mock_ordered_date_list

@@ -11,7 +11,7 @@ import {
 import Loader from "../Shared/Loader";
 import { CallStatus, DomRoutes } from "../../constants";
 import { useLocation, Link } from "react-router-dom";
-import { fetchUserList } from "../../API_Calls/userCalls";
+import { Calls } from "../../API_Calls/userCalls";
 import {
 	useCurrentUser,
 	//useAuthViewStateChange,
@@ -52,7 +52,7 @@ export const AccountsList = () => {
 		const queryObj = new URLSearchParams(location.search);
 		const page = parseInt(queryObj.get("page") || "1");
 		const pageSize = parseInt(queryObj.get("rows") || "50");
-		const requestObj = fetchUserList({
+		const requestObj = Calls.getList({
 			params: { page: page - 1, pageSize: pageSize },
 		});
 		dispatch(dispatches.run((state) => {

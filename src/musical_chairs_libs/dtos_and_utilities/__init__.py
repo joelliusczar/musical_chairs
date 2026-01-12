@@ -13,6 +13,7 @@ from .absorbent_trie import *
 from .type_aliases import *
 from .db_helpers import *
 from .blocking_queue import *
+from .query_objects import *
 from .dict_dot_map import *
 from .path_dict import *
 from .web_dtos import *

@@ -6,6 +6,7 @@ export enum WaitingTypes {
 	started = "started",
 	restart = "restart",
 	done = "done",
+	stopped = "stopped",
 	failed = "failed",
 	set = "reset",
 	run = "run",

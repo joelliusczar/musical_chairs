@@ -26,6 +26,8 @@ from .simple_functions import (
 from .generic_dtos import FrozenIdItem, FrozenBaseClass
 from .action_rule_dtos import (
 	ActionRule,
+	AlbumActionRule,
+	ArtistActionRule,
 	PathsActionRule,
 	StationActionRule,
 	PlaylistActionRule
@@ -57,9 +59,10 @@ def get_station_owner_rules(
 
 path_owner_rules = [
 	UserRoleDef.PATH_DELETE,
+	UserRoleDef.PATH_DOWNLOAD,
+	UserRoleDef.PATH_EDIT,
 	UserRoleDef.PATH_LIST,
 	UserRoleDef.PATH_VIEW,
-	UserRoleDef.PATH_EDIT,
 	UserRoleDef.PATH_MOVE,
 	UserRoleDef.PATH_USER_LIST,
 	UserRoleDef.PATH_USER_ASSIGN,
@@ -74,6 +77,15 @@ def get_path_owner_roles(
 			return
 		for rule in path_owner_rules:
 			if not scopes or rule.value in scopes:
+				if rule == UserRoleDef.PATH_DOWNLOAD:
+					yield PathsActionRule(
+						name=rule.value,
+						priority=RulePriorityLevel.USER.value,
+						path=ownerDir,
+						span=60,
+						count=12
+					)
+					continue
 				yield PathsActionRule(
 						name=rule.value,
 						priority=RulePriorityLevel.OWNER.value,
@@ -91,13 +103,60 @@ playlist_owner_rules = [
 ]
 
 def get_playlist_owner_roles(
-scopes: Optional[Collection[str]]=None
+	scopes: Optional[Collection[str]]=None
 ) -> Iterator[PlaylistActionRule]:
 	for rule in playlist_owner_rules:
 		if not scopes or rule.value in scopes:
 			yield PlaylistActionRule(
 				name=rule.value,
 				priority=RulePriorityLevel.OWNER.value,
+			)
+
+album_owner_rules = [
+	UserRoleDef.ALBUM_EDIT,
+]
+
+def get_album_owner_roles(
+	scopes: Optional[Collection[str]]=None
+) -> Iterator[AlbumActionRule]:
+	for rule in album_owner_rules:
+		if not scopes or rule.value in scopes:
+			yield AlbumActionRule(
+				name=rule.value,
+				priority=RulePriorityLevel.OWNER.value,
+			)
+
+artist_owner_rules = [
+	UserRoleDef.ARTIST_EDIT,
+]
+
+def get_artist_owner_roles(
+	scopes: Optional[Collection[str]]=None
+) -> Iterator[ArtistActionRule]:
+	for rule in artist_owner_rules:
+		if not scopes or rule.value in scopes:
+			yield ArtistActionRule(
+				name=rule.value,
+				priority=RulePriorityLevel.OWNER.value,
+			)
+
+starting_user_roles = [
+	UserRoleDef.PLAYLIST_CREATE,
+	UserRoleDef.STATION_CREATE,
+	UserRoleDef.ARTIST_CREATE,
+	UserRoleDef.ALBUM_CREATE,
+]
+
+def get_starting_site_roles(
+	scopes: Optional[Collection[str]]=None
+) -> Iterator[ActionRule]:
+	for rule in starting_user_roles:
+		if not scopes or rule.value in scopes:
+			yield ActionRule(
+				name=rule.value,
+				priority=RulePriorityLevel.USER.value,
+				span=60,
+				count=1
 			)
 
 class AccountInfoBase(FrozenBaseClass):
@@ -136,7 +195,7 @@ class AccountInfoSecurity(AccountInfoBase):
 			self.roles if isinstance(r, PathsActionRule) \
 				and not r.path is None
 		)
-		pathTree.add("", (r.to_path_rule("") for r in self.roles \
+		pathTree.add("/", (r.to_path_rule("/") for r in self.roles \
 			if type(r) == ActionRule \
 				and (UserRoleDomain.Path.conforms(r.name) \
 						or r.name == UserRoleDef.ADMIN.value

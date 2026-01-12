@@ -36,8 +36,4 @@ export const viewSecurityOptions = [
 		id: RulePriorityLevel.INVITED_USER,
 		name: "Invited Users Only",
 	},
-	{
-		id: RulePriorityLevel.OWENER_USER,
-		name: "Private",
-	},
 ];

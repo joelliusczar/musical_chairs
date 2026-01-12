@@ -1,3 +1,4 @@
+from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	StationSongTuple
@@ -30,12 +31,14 @@ class StationsSongsService:
 
 	def __init__(
 		self,
-		conn: Connection
+		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
+		self.current_user_provider = currentUserProvider
 
 
 	def get_station_songs(
@@ -118,7 +121,6 @@ class StationsSongsService:
 	def link_songs_with_stations(
 		self,
 		stationSongs: Iterable[StationSongTuple],
-		userId: Optional[int]=None
 	) -> Iterable[StationSongTuple]:
 		if not stationSongs:
 			return []
@@ -133,6 +135,7 @@ class StationsSongsService:
 		self.remove_songs_for_stations(outPairs)
 		if not inPairs: #if no songs - stations have been linked
 			return existingPairs - outPairs
+		userId = self.current_user_provider.current_user().id
 		params: list[dict[str, Any]] = [{
 			"songfk": p.songid,
 			"stationfk": p.stationid,

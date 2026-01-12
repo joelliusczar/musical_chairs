@@ -4,8 +4,7 @@ import { FormTextField } from "../Shared/FormTextField";
 import { FormFileUpload } from "../Shared/FormFileUpload";
 import { useSnackbar } from "notistack";
 import {
-	checkSuffixes,
-	uploadSong,
+	Calls,
 } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
@@ -37,10 +36,14 @@ const initialValues = {
 
 
 const getSchema = (prefix: string) => Yup.lazy(values => {
-	const requestObj = checkSuffixes({ 
+	const requestObj = Calls.checkSuffixes({ 
 		prefix,
 		songSuffixes: values.files.map(
-			(f: UploadInfo) => ({ path: f.suffix, id: 0})
+			(f: UploadInfo) => ({ 
+				path: f.suffix,
+				internalpath: "",
+				id: 0,
+			})
 		),
 	});
 	const usedPromise = requestObj.call();
@@ -88,7 +91,7 @@ export const SongUpload = (props: SongUploadProps) => {
 		try {
 			const results: SongTreeNodeInfo[] = [];
 			for (; idx < values.files.length; idx++) {
-				const requestObj = uploadSong({
+				const requestObj = Calls.uploadSong({
 					prefix: prefix,
 					files: [values.files[idx].file],
 					suffix: values.files[idx].suffix,

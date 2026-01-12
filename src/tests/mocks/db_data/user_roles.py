@@ -147,6 +147,14 @@ def get_user_role_params(
 		},
 		{
 			"userfk": user_ids.india_user_id,
+			"role": UserRoleDef.ALBUM_EDIT.value,
+			"creationtimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.SITE.value + 1
+		},
+		{
+			"userfk": user_ids.india_user_id,
 			"role": UserRoleDef.PATH_VIEW.value,
 			"creationtimestamp": orderedTestDates[0].timestamp(),
 			"span":0,
@@ -180,6 +188,14 @@ def get_user_role_params(
 		{
 			"userfk": user_ids.hotel_user_id,
 			"role": UserRoleDef.PATH_EDIT.value,
+			"creationtimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.SITE.value + 1
+		},
+		{
+			"userfk": user_ids.hotel_user_id,
+			"role": UserRoleDef.ALBUM_EDIT.value,
 			"creationtimestamp": orderedTestDates[0].timestamp(),
 			"span":0,
 			"count":0,
@@ -224,6 +240,14 @@ def get_user_role_params(
 			"count":0,
 			"priority": None,
 			"creationtimestamp": orderedTestDates[0].timestamp()
+		},
+		{
+			"userfk": user_ids.mike_user_id,
+			"role": UserRoleDef.ALBUM_EDIT.value,
+			"creationtimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.SITE.value + 1
 		},
 		{
 			"userfk": user_ids.oscar_user_id,
@@ -288,5 +312,13 @@ def get_user_role_params(
 			"count":0,
 			"priority": None,
 			"creationtimestamp": orderedTestDates[0].timestamp()
-		}
+		},
+		{
+			"userfk": user_ids.sierra_user_id,
+			"role": UserRoleDef.ALBUM_EDIT.value,
+			"creationtimestamp": orderedTestDates[0].timestamp(),
+			"span":0,
+			"count":0,
+			"priority": RulePriorityLevel.SITE.value + 1
+		},
 	]

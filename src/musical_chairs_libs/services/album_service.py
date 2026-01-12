@@ -8,33 +8,39 @@ from typing import (
 	Tuple
 )
 from musical_chairs_libs.dtos_and_utilities import (
+	ActionRule,
 	SavedNameString,
 	SearchNameString,
-	get_datetime,
 	AlbumInfo,
 	ArtistInfo,
 	AlbumCreationInfo,
 	AlreadyUsedError,
-	AccountInfo,
+	get_album_owner_roles,
+	get_datetime,
 	OwnerInfo,
 	SongsAlbumInfo,
 	SongListDisplayItem,
 	normalize_opening_slash,
 	PathDict,
 	Lost,
-	StationAlbumTuple
+	SimpleQueryParameters,
+	StationAlbumTuple,
+	UserRoleDef,
 )
 from .artist_service import ArtistService
 from .path_rule_service import PathRuleService
 from .stations_albums_service import StationsAlbumsService
+from .current_user_provider import CurrentUserProvider
 from sqlalchemy import (
 	select,
 	insert,
 	update,
+	literal as dbLiteral,
 	Integer,
 	func,
 	delete,
 	and_,
+	or_,
 	literal,
 	String
 )
@@ -51,7 +57,7 @@ from musical_chairs_libs.tables import (
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk, ab_versionnote,
 	ar_name, ar_pk, ar_ownerFk,
 	users as user_tbl, u_pk, u_username, u_displayName,
-	sg_pk, sg_name, sg_albumFk, sg_path, sg_internalpath,
+	songs as songs_tbl, sg_pk, sg_name, sg_albumFk, sg_path, sg_internalpath,
 	sg_deletedTimstamp, sg_disc, sg_trackNum,
 	song_artist as song_artist_tbl, sgar_songFk, sgar_artistFk, 
 	sgar_isPrimaryArtist
@@ -64,23 +70,25 @@ class AlbumService:
 	def __init__(
 		self,
 		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
+		stationsAlbumsService: StationsAlbumsService,
+		pathRuleService: PathRuleService,
 		artistService: Optional[ArtistService]=None,
-		pathRuleService: Optional[PathRuleService]=None,
-		stationsAlbumsService: Optional[StationsAlbumsService]=None
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		if not artistService:
-			artistService = ArtistService(conn)
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
-		if not stationsAlbumsService:
-			stationsAlbumsService = StationsAlbumsService(conn)
+			artistService = ArtistService(
+				conn,
+				currentUserProvider,
+				pathRuleService
+			)
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.artist_service = artistService
 		self.path_rule_service = pathRuleService
 		self.stations_albums_service = stationsAlbumsService
+		self.current_user_provider = currentUserProvider
 
 	def get_albums(
 		self,
@@ -88,13 +96,13 @@ class AlbumService:
 		pageSize: Optional[int]=None,
 		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
 		artistKeys: Union[int, str, Iterable[int], None]=None,
-		userId: Optional[int]=None,
 		exactStrMatch: bool=False
 	) -> Iterator[AlbumInfo]:
 		album_owner = user_tbl.alias("albumowner")
 		albumOwnerId = cast(Column[Integer], album_owner.c.pk)
 		artist_owner = user_tbl.alias("artistowner")
 		artistOwnerId = cast(Column[Integer], artist_owner.c.pk)
+		
 		query = select(
 			ab_pk.label("id"),
 			ab_name.label("name"),
@@ -138,11 +146,20 @@ class AlbumService:
 						.where(ar_name.like(f"%{searchStr}%"))
 		elif isinstance(artistKeys, Iterable):
 			query = query.where(ab_albumArtistFk.in_(artistKeys))
-		if userId:
-			query = query.where(ab_ownerFk == userId)
+		user = self.current_user_provider.current_user(
+			optional=True
+		)
+		userId = user.id if user else None
+		if user:
+			query = query.where(or_(
+				ab_ownerFk == user.id,
+				dbLiteral(user.isadmin),
+				dbLiteral(user.has_roles(UserRoleDef.ALBUM_EDIT))
+			))
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query).mappings()
+		ownerRules = cast(list[ActionRule],[*get_album_owner_roles()])
 		yield from (AlbumInfo(
 			id=row["id"],
 			name=row["name"],
@@ -161,8 +178,10 @@ class AlbumService:
 					username=row["artist.ownername"],
 					displayname=row["artist.ownerdisplayname"]
 				)
-			) if row["albumartistid"] else None
+			) if row["albumartistid"] else None,
+			rules=ownerRules if row["album.ownerid"] == userId else []
 			) for row in records)
+
 
 	def get_album_owner(self, albumId: int) -> OwnerInfo:
 		query = select(ab_ownerFk, u_username, u_displayName)\
@@ -180,23 +199,35 @@ class AlbumService:
 	
 	def get_albums_page(
 		self,
-		page: int = 0,
+		queryParams: SimpleQueryParameters,
 		album: str = "",
 		artist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Tuple[list[AlbumInfo], int]:
-		result = list(self.get_albums(page, limit, album, artist))
+		result = list(self.get_albums(
+			queryParams.page,
+			queryParams.limit,
+			album,
+			artist
+		))
 		countQuery = select(func.count(1))\
 			.select_from(albums_tbl)
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
 	
+	def get_song_counts(self) -> dict[int, int]:
+		query = select(ab_pk, func.count(sg_pk))\
+			.join(songs_tbl, sg_albumFk == ab_pk)\
+			.where(sg_deletedTimstamp.is_(None))\
+			.group_by(ab_pk)
+		
+		records = self.conn.execute(query)
+
+		return {r[0]:r[1] for r in records}
+	
 	def get_album_songs(
 		self,
 		albumId: Optional[int],
 		albumInfo: AlbumInfo,
-		user: Optional[AccountInfo]=None
 	) -> Iterator[SongListDisplayItem]:
 		songsQuery = select(
 			sg_pk.label("id"),
@@ -224,8 +255,8 @@ class AlbumService:
 			.order_by(sg_disc, sg_trackNum)
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+		if self.current_user_provider.is_loggedIn():
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
 		songs = (
 			SongListDisplayItem(
@@ -234,7 +265,7 @@ class AlbumService:
 		)
 		if pathRuleTree:
 			for song in songs:
-				song.rules = list(pathRuleTree.valuesFlat(
+				song.rules = list(pathRuleTree.values_flat(
 						normalize_opening_slash(song.path))
 					)
 				yield song
@@ -245,7 +276,6 @@ class AlbumService:
 	def get_album(
 			self,
 			albumId: Optional[int],
-			user: Optional[AccountInfo]=None
 		) -> Optional[SongsAlbumInfo]:
 		albumInfo = next(self.get_albums(albumKeys=albumId), None)
 		if not albumInfo:
@@ -257,10 +287,10 @@ class AlbumService:
 				)
 			)
 		
-		songs = [*self.get_album_songs(albumId, albumInfo, user)]
+		songs = [*self.get_album_songs(albumId, albumInfo)]
 		if albumId:
 			stations = [
-				*self.stations_albums_service.get_stations_by_album(albumId, user)
+				*self.stations_albums_service.get_stations_by_album(albumId)
 			]
 		else:
 			stations = []
@@ -275,11 +305,11 @@ class AlbumService:
 	def save_album(
 		self,
 		album: AlbumCreationInfo,
-		user: AccountInfo,
 		albumId: Optional[int]=None
 	) -> Optional[AlbumInfo]:
 		if not album and not albumId:
 			raise ValueError("No album info to save")
+		user = self.current_user_provider.current_user()
 		upsert = update if albumId else insert
 		savedName = SavedNameString(album.name)
 		stmt = upsert(albums_tbl).values(
@@ -310,8 +340,7 @@ class AlbumService:
 		), None) if album.albumartist else None
 		self.stations_albums_service.link_albums_with_stations(
 			(StationAlbumTuple(affectedPk, t.id if t else None) 
-				for t in (album.stations or [None])),
-			user.id
+				for t in (album.stations or [None]))
 		)
 		self.conn.commit()
 		if res.rowcount == 0:

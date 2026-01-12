@@ -68,6 +68,8 @@
           DSF_DATABASE_NAME='{{app_details["db"]}}'
           S3_BUCKET_NAME='{{keys["s3_bucket_name"]}}'
           S3_REGION_NAME='{{keys["s3_region_name"]}}'
+          AWS_ACCESS_KEY_ID='{{keys["aws_access_key_id"]}}'
+          AWS_SECRET_ACCESS_KEY='{{keys["aws_secret_access_key"]}}'
           DSF_APP_ROOT='{{app_trunk}}'
           DSF_DB_PASS_JANITOR='{{keys["db_pass_janitor"]}}'
           DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
@@ -93,4 +95,4 @@
         service_description: Delete the files for marked songs
         env_file: '{{domain["exports_dir"]}}/{{domain["envs"]["jobs_key"]}}'
         service_command: '{{app_python}} -m {{app_details["engine"]}}.one_offs.process_jobs'
-        schedule: '*-*-* 6:17:00'
+        schedule: 'Tue *-*-* 6:17:00'

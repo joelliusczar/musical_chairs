@@ -1,5 +1,5 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Dict, List, Optional, Collection
+from typing import Dict, List, Optional
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -20,8 +20,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	TableData,
 	StationActionRule,
-	TrackingInfo,
 	CatalogueItem,
+	SimpleQueryParameters,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes
@@ -34,22 +34,18 @@ from musical_chairs_libs.services import (
 )
 from musical_chairs_libs.protocols import RadioPusher
 from api_dependencies import (
+	check_rate_limit,
 	station_service,
 	queue_service,
-	get_station_user,
 	get_owner_from_query,
+	get_query_params,
 	get_station_by_name_and_owner,
-	get_current_user_simple,
-	get_user_with_rate_limited_scope,
-	get_user_with_simple_scopes,
-	get_optional_user_from_token,
 	get_from_query_subject_user,
-	get_multi_station_user,
+	get_secured_station_by_id,
+	get_secured_station_by_name_and_owner,
 	get_stations_by_ids,
 	get_page_num,
 	build_error_obj,
-	get_station_user_by_id,
-	get_tracking_info,
 	stations_users_service,
 	station_process_service,
 	validated_station_request_type,
@@ -66,32 +62,28 @@ router = APIRouter(prefix="/stations")
 
 @router.get("/list")
 def station_list(
-	user: AccountInfo = Depends(get_optional_user_from_token),
 	owner: Optional[AccountInfo] = Depends(get_owner_from_query),
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:
 	stations = list(stationService.get_stations(None,
-		ownerId=owner.id if owner else None,
-		user=user
+		ownerId=owner.id if owner else None
 	))
 	return { "items": stations }
+
 
 @router.get("/{ownerkey}/{stationkey}/history/")
 def history(
 	limit: int = 50,
 	page: int = Depends(get_page_num),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
-	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
-	stationService: StationService = Depends(station_service)
 ) -> StationTableData[SongListDisplayItem]:
 	if not station:
 		return StationTableData(totalrows=0, items=[], stationrules=[])
 	history, totalRows = queueService.get_history_for_station(
-			stationId=station.id,
+			station=station,
 			page = page,
 			limit = limit,
-			user=user
 		)
 	rules =  ActionRule.sorted(
 		station.rules
@@ -107,7 +99,6 @@ def queue(
 	limit: int = 50,
 	page: int = Depends(get_page_num),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
-	user: AccountInfo = Depends(get_station_user),
 	queueService: QueueService = Depends(queue_service),
 ) -> CurrentPlayingInfo:
 	if not station:
@@ -118,37 +109,35 @@ def queue(
 			stationrules=[]
 		)
 	queue = queueService.get_now_playing_and_queue(
-		stationId=station.id,
+		station=station,
 		page=page,
 		limit=limit,
-		user=user
 	)
 	queue.stationrules = ActionRule.sorted(
 		station.rules
 	)
 	return queue
 
+
 @router.get("/{ownerkey}/{stationkey}/catalogue/")
 def catalogue(
-	limit: int = 50,
 	name: str = "",
-	parentName: str = "",
+	parentname: str = "",
 	creator: str = "",
-	page: int = Depends(get_page_num),
-	user: AccountInfo = Depends(get_station_user),
+	queryParams: SimpleQueryParameters = Depends(get_query_params,),
 	station: Optional[StationInfo] = Depends(get_station_by_name_and_owner),
 	queueService: RadioPusher = Depends(station_radio_pusher),
 ) -> StationTableData[CatalogueItem]:
 	if not station:
 		return StationTableData(totalrows=0, items=[], stationrules=[])
+	if queryParams.limit is None:
+		queryParams.limit = 50
 	items, totalRows = queueService.get_catalogue(
 			stationId = station.id,
-			page = page,
-			limit = limit,
+			queryParams=queryParams,
 			name=name,
-			parentName=parentName,
-			creator=creator,
-			user=user
+			parentname=parentname,
+			creator=creator
 		)
 	rules = ActionRule.sorted(
 		station.rules
@@ -157,25 +146,20 @@ def catalogue(
 
 
 @router.post(
-	"/{ownerkey}/{stationkey}/request/{requesttypeid}/{itemid}"
-)
+	"/{ownerkey}/{stationkey}/request/{requesttypeid}/{itemid}")
 def request_item(
 	itemid: int,
-	station: StationInfo = Depends(get_station_by_name_and_owner),
-	requestType: StationRequestTypes = Depends(validated_station_request_type),
-	queueService: RadioPusher = Depends(station_radio_pusher),
-	user: AccountInfo = Security(
-		get_station_user,
+	station: StationInfo = Security(
+		get_secured_station_by_name_and_owner,
 		scopes=[UserRoleDef.STATION_REQUEST.value]
 	),
-	trackingInfo: TrackingInfo=Depends(get_tracking_info)
+	requestType: StationRequestTypes = Depends(validated_station_request_type),
+	queueService: RadioPusher = Depends(station_radio_pusher),
 ):
 	try:
 		queueService.add_to_queue(
 			itemid,
 			station,
-			user,
-			trackingInfo,
 			requestType
 		)
 	except (LookupError, RuntimeError) as ex:
@@ -185,21 +169,20 @@ def request_item(
 		)
 
 
-@router.delete("/{ownerkey}/{stationkey}/request",
-	dependencies=[
-		Security(get_station_user, scopes=[UserRoleDef.STATION_SKIP.value])
-	]
-)
+@router.delete("/{ownerkey}/{stationkey}/request")
 def remove_song_from_queue(
 	id: int,
 	queuedtimestamp: float,
-	station: StationInfo = Depends(get_station_by_name_and_owner),
+	station: StationInfo = Security(
+		get_secured_station_by_name_and_owner,
+		scopes=[UserRoleDef.STATION_SKIP.value]
+	),
 	queueService: RadioPusher = Depends(station_radio_pusher)
 ) -> CurrentPlayingInfo:
 	queue = queueService.remove_song_from_queue(
 		id,
 		queuedtimestamp,
-		stationId=station.id
+		station=station
 	)
 	if queue:
 		return queue
@@ -214,11 +197,10 @@ def remove_song_from_queue(
 def is_phrase_used(
 	id: Optional[int]=None,
 	name: str = "",
-	user: AccountInfo = Depends(get_current_user_simple),
 	stationService: StationService = Depends(station_service)
 ) -> dict[str, bool]:
 	return {
-		"name": stationService.is_stationName_used(id, name, user.id)
+		"name": stationService.is_stationName_used(id, name)
 	}
 
 
@@ -229,108 +211,109 @@ def get_station_for_edit(
 	return stationInfo
 
 
-@router.post("")
-def create_station(
-	station: ValidatedStationCreationInfo = Body(default=None),
-	stationService: StationService = Depends(station_service),
-	user: AccountInfo = Security(
-		get_user_with_rate_limited_scope,
+@router.post("", dependencies=[
+	Security(
+		check_rate_limit,
 		scopes=[UserRoleDef.STATION_CREATE.value]
 	)
+])
+def create_station(
+	station: ValidatedStationCreationInfo = Body(default=None),
+	stationService: StationService = Depends(
+		station_service,
+		
+	)
 ) -> StationInfo:
-	result = stationService.save_station(station, user=user)
+	result = stationService.save_station(station)
 	return result or StationInfo(id=-1,name="", displayname="")
 
 
 @router.put("/{stationid}")
 def update_station(
-	stationid: int, #this needs to match get_station_user_by_id
+	savedStation: StationInfo = Security(
+		get_secured_station_by_id,
+		scopes=[UserRoleDef.STATION_EDIT.value]
+	),
 	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
-	user: AccountInfo = Security(
-		get_station_user_by_id,
-		scopes=[UserRoleDef.STATION_EDIT.value]
-	)
 ) -> StationInfo:
-	result = stationService.save_station(station, user, stationid)
+	result = stationService.save_station(station, savedStation.id)
 	return result or StationInfo(id=-1,name="",displayname="")
 
 
 @router.put("/enable/")
 def enable_stations(
-	stations: Collection[StationInfo] = Depends(get_stations_by_ids),
+	stations: list[StationInfo] = Depends(get_stations_by_ids),
 	includeAll: bool = Query(default=False),
-	user: AccountInfo = Security(
-		get_multi_station_user,
+	stationProcessService: StationProcessService = Security(
+		station_process_service,
 		scopes=[UserRoleDef.STATION_FLIP.value]
-	),
-	stationProcessService: StationProcessService = Depends(
-		station_process_service
 	)
 ) -> list[StationInfo]:
+	if not stations and not includeAll:
+		raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail=[build_error_obj("No stations selected")
+				]
+			)
 	return list(
-		stationProcessService.enable_stations(stations, user, includeAll)
+		stationProcessService.enable_stations(stations[0])
 	)
 
 
 @router.put("/disable/", status_code=status.HTTP_204_NO_CONTENT)
 def disable_stations(
-	stations: Collection[StationInfo] = Depends(get_stations_by_ids),
+	stations: list[StationInfo] = Depends(get_stations_by_ids),
 	includeAll: bool = Query(default=False),
-	user: AccountInfo = Security(
-		get_multi_station_user,
+	stationProcessService: StationProcessService = Security(
+		station_process_service,
 		scopes=[UserRoleDef.STATION_FLIP.value]
-	),
-	stationProcessService: StationProcessService = Depends(
-		station_process_service
 	)
 ) -> None:
+	if not stations and not includeAll:
+		raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail=[build_error_obj("No stations selected")
+				]
+			)
 	stationProcessService.disable_stations(
-		(s.id for s in stations),
-		user.id if includeAll else None
+		next(iter(stations),None)
 	)
 
 @router.post(
 	"/{ownerkey}/{stationkey}/play_next",
 	status_code=status.HTTP_204_NO_CONTENT,
-	dependencies=[
-		Security(
-			get_user_with_simple_scopes,
-			scopes=[UserRoleDef.ADMIN.value]
-		)]
 )
 def play_next(
-	station: StationInfo = Depends(get_station_by_name_and_owner),
+	station: StationInfo = Security(
+		get_secured_station_by_name_and_owner,
+		scopes=[UserRoleDef.ADMIN.value]
+	),
 	queueService: QueueService = Depends(queue_service)
 ):
 	queueService.pop_next_queued(station.id)
 
-@router.get("/{ownerkey}/{stationkey}/user_list",dependencies=[
-	Security(
-		get_station_user,
-		scopes=[UserRoleDef.STATION_USER_LIST.value]
-	)
-])
+
+@router.get("/{ownerkey}/{stationkey}/user_list")
 def get_station_user_list(
-	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
+	stationInfo: StationInfo = Security(
+		get_secured_station_by_name_and_owner,
+		scopes=[UserRoleDef.STATION_USER_LIST.value]
+	),
 	stationsUsersService: StationsUsersService = Depends(stations_users_service),
 ) -> TableData[AccountInfo]:
 	stationUsers = list(stationsUsersService.get_station_users(stationInfo))
 	return TableData(items=stationUsers, totalrows=len(stationUsers))
 
 
-@router.post("/{ownerkey}/{stationkey}/user_role",
-	dependencies=[
-		Security(
-			get_station_user,
-			scopes=[UserRoleDef.STATION_USER_ASSIGN.value]
-		)
-	]
-)
+@router.post("/{ownerkey}/{stationkey}/user_role")
 def add_user_rule(
 	user: AccountInfo = Depends(get_from_query_subject_user),
+	stationInfo: StationInfo = Security(
+		get_secured_station_by_name_and_owner,
+		scopes=[UserRoleDef.STATION_USER_ASSIGN.value]
+	),
 	rule: StationActionRule = Depends(validate_station_rule),
-	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
 	stationsUsersService: StationsUsersService = Depends(stations_users_service),
 ) -> StationActionRule:
 	return stationsUsersService.add_user_rule_to_station(
@@ -340,19 +323,17 @@ def add_user_rule(
 	)
 
 
-@router.delete("/{ownerkey}/{stationkey}/user_role",
-	status_code=status.HTTP_204_NO_CONTENT,
-	dependencies=[
-		Security(
-			get_station_user,
-			scopes=[UserRoleDef.STATION_USER_ASSIGN.value]
-		)
-	]
+@router.delete(
+	"/{ownerkey}/{stationkey}/user_role",
+	status_code=status.HTTP_204_NO_CONTENT
 )
 def remove_user_rule(
 	user: AccountInfo = Depends(get_from_query_subject_user),
 	rulename: Optional[str] = Depends(validate_station_rule_for_remove),
-	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
+	stationInfo: StationInfo = Security(
+		get_secured_station_by_name_and_owner,
+		scopes=[UserRoleDef.STATION_USER_ASSIGN.value]
+	),
 	stationsUsersService: StationsUsersService = Depends(stations_users_service),
 ):
 	stationsUsersService.remove_user_rule_from_station(
@@ -361,21 +342,21 @@ def remove_user_rule(
 		rulename
 	)
 
+
 @router.delete(
 	"/{stationid}",
 	status_code=status.HTTP_204_NO_CONTENT,
-	dependencies=[Security(
-		get_station_user_by_id,
-		scopes=[UserRoleDef.STATION_EDIT.value]
-	)]
 )
 def delete(
-	stationid: int,
+	station: StationInfo = Security(
+		get_secured_station_by_id,
+		scopes=[UserRoleDef.STATION_DELETE.value]
+	),
 	clearStation: bool=False,
 	stationService: StationService = Depends(station_service),
 ):
 	try:
-		if stationService.delete_station(stationid, clearStation) == 0:
+		if stationService.delete_station(station.id, clearStation) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
 				detail=[build_error_obj(f"Station not found")
@@ -387,16 +368,16 @@ def delete(
 			detail=[build_error_obj(f"Station cannot be deleted")
 			]
 		)
-	
+
+
 @router.post("/copy/{stationid}")
 def copy_station(
-	stationid: int,
+	savedstation: StationInfo = Security(
+		get_secured_station_by_id,
+		scopes=[UserRoleDef.STATION_CREATE.value]
+	),
 	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
-	user: AccountInfo = Security(
-		get_user_with_rate_limited_scope,
-		scopes=[UserRoleDef.STATION_CREATE.value]
-	)
 ) -> StationInfo:
-	result = stationService.copy_station(stationid, station, user=user)
+	result = stationService.copy_station(savedstation.id, station)
 	return result or StationInfo(id=-1,name="", displayname="")

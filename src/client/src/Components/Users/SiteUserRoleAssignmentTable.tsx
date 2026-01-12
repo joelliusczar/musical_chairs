@@ -8,9 +8,7 @@ import {
 } from "../../Reducers/dataWaitingReducer";
 import Loader from "../Shared/Loader";
 import {
-	addSiteUserRule,
-	removeSiteUserRule,
-	fetchUser,
+	Calls,
 } from "../../API_Calls/userCalls";
 import { formatError } from "../../Helpers/error_formatter";
 import { UserRoleDef } from "../../constants";
@@ -61,7 +59,7 @@ export const SiteUserRoleAssignmentTable = () => {
 			enqueueSnackbar("No user selected", { variant: "error"});
 			return;
 		}
-		const requestObj = fetchUser({ subjectuserkey });
+		const requestObj = Calls.get({ subjectuserkey });
 		const fetch = async () => {
 			if (currentQueryStr === `${location.pathname}${location.search}`) return;
 
@@ -93,7 +91,7 @@ export const SiteUserRoleAssignmentTable = () => {
 
 	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
 		try {
-			const requestObj = addSiteUserRule({
+			const requestObj = Calls.addSiteUserRule({
 				subjectuserkey: user.id,
 				rule,
 			});
@@ -118,7 +116,7 @@ export const SiteUserRoleAssignmentTable = () => {
 
 	const removeRole = async (role: ActionRule, user: User) => {
 		try {
-			const requestObj = removeSiteUserRule({
+			const requestObj = Calls.removeSiteUserRule({
 				subjectuserkey: user.id,
 				rulename: role.name,
 			});

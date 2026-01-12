@@ -44,7 +44,7 @@ export const History = () => {
 	const location = useLocation();
 	const pathVars = useParams();
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
-	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
 
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const [selectedStation, setSelectedStation] = useState<StationInfo | null>();

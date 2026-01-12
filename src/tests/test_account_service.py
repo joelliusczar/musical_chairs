@@ -56,7 +56,8 @@ def fixture_account_service_mock_current_time(
 		if not currentTestDate:
 			currentTestDate = datetime.now(timezone.utc)
 		return currentTestDate
-	fixture_account_service.get_datetime = _get_test_datetime
+	fixture_account_service.account_management_service\
+		.get_datetime = _get_test_datetime
 	return fixture_account_service
 
 @pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
@@ -65,7 +66,7 @@ def test_when_can_make_request_with_history(
 	fixture_primary_user: AccountInfo
 ):
 	accountService = fixture_account_service_mock_current_time
-	_insert_row_into_history(accountService.conn, 1)
+	_insert_row_into_history(accountService.account_management_service.conn, 1)
 
 	#fixture_primary_user.roles = [UserRoleDef.STATION_REQUEST.modded_value(60)]
 	global currentTestDate
@@ -133,7 +134,7 @@ def test_when_can_make_request_with_queue(
 	fixture_primary_user: AccountInfo
 ):
 	accountService = fixture_account_service_mock_current_time
-	_insert_row_into_queue(accountService.conn, 1)
+	_insert_row_into_queue(accountService.account_management_service.conn, 1)
 
 	#fixture_primary_user.roles = [f"{UserRoleDef.STATION_REQUEST.value}60"]
 	global currentTestDate
@@ -222,15 +223,15 @@ def test_unique_roles():
 	testRoles4 = ActionRule.sorted([
 		ActionRule(name=UserRoleDef.STATION_REQUEST.value),
 		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, count=1),
-		ActionRule(name=UserRoleDef.SONG_EDIT.value, span=60, count=1),
-		ActionRule(name=UserRoleDef.SONG_EDIT.value, span=15, count=1),
+		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=60, count=1),
+		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=15, count=1),
 		ActionRule(name=UserRoleDef.USER_LIST.value)
 	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles4)
 	results = list(gen)
 	assert len(results) == 3
 	assert results[2].name == UserRoleDef.USER_LIST.value
-	assert results[0].name == UserRoleDef.SONG_EDIT.value
+	assert results[0].name == UserRoleDef.PATH_EDIT.value
 	assert results[0].span == 60
 	assert results[1].name == UserRoleDef.STATION_REQUEST.value
 	assert results[1].span == 15
@@ -264,7 +265,7 @@ def test_save_roles(
 	assert result[2] == ActionRule(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
 	)
-	fetched = sorted(accountService.__get_roles__(6))
+	fetched = sorted(accountService.account_management_service.__get_roles__(6))
 	assert len(fetched) == 3
 	assert fetched[0] == ActionRule(
 		name=UserRoleDef.PATH_EDIT.value,span=120
@@ -290,7 +291,7 @@ def test_save_roles(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
 	)
 	assert result[3] == ActionRule(name=UserRoleDef.USER_LIST.value)
-	fetched = sorted(accountService.__get_roles__(6))
+	fetched = sorted(accountService.account_management_service.__get_roles__(6))
 	assert len(fetched) == 4
 	assert result[0] == ActionRule(
 		name=UserRoleDef.PATH_EDIT.value,span=120
@@ -317,7 +318,7 @@ def test_save_roles(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
 	)
 	assert result[3] == ActionRule(name=UserRoleDef.USER_LIST.value)
-	fetched = sorted(accountService.__get_roles__(6))
+	fetched = sorted(accountService.account_management_service.__get_roles__(6))
 	assert len(fetched) == 4
 	assert result[0] == ActionRule(
 		name=UserRoleDef.PATH_EDIT.value,span=120
@@ -341,7 +342,7 @@ def test_save_roles(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
 	)
 	assert result[1] == ActionRule(name=UserRoleDef.USER_LIST.value)
-	fetched = sorted(accountService.__get_roles__(6))
+	fetched = sorted(accountService.account_management_service.__get_roles__(6))
 	assert len(fetched) == 2
 	assert fetched[0] == ActionRule(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
@@ -359,7 +360,7 @@ def test_save_roles(
 		name=UserRoleDef.PATH_EDIT.value,span=120
 	)
 	assert result[1] == ActionRule(name=UserRoleDef.USER_LIST.value)
-	fetched = sorted(accountService.__get_roles__(6))
+	fetched = sorted(accountService.account_management_service.__get_roles__(6))
 	assert len(fetched) == 2
 	assert fetched[0] == ActionRule(
 		name=UserRoleDef.PATH_EDIT.value,span=120

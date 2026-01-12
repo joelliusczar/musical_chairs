@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { getPage } from "../../API_Calls/albumCalls";
+import { Calls } from "../../API_Calls/albumCalls";
 import {
 	Table,
 	TableBody,
@@ -24,10 +24,10 @@ import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { SearchTextField } from "../Shared/SearchTextFIeld";
 import {
-	useCurrentUser,
 	useHasAnyRoles,
 	useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext/AuthContext";
+import { useAlbumData } from "../../Context_Providers/AppContext/AppContext";
 import { UserRoleDef } from "../../constants";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
@@ -36,6 +36,7 @@ import {
 import {
 	PageableListDataShape,
 } from "../../Types/reducerTypes";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 
 
 
@@ -43,7 +44,6 @@ export const AlbumTableView = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
-	const currentUser = useCurrentUser();
 	const canEditAlbums = useHasAnyRoles([UserRoleDef.ALBUM_EDIT]);
 
 
@@ -60,6 +60,8 @@ export const AlbumTableView = () => {
 
 	const { callStatus: queueCallStatus } = tableDataState;
 
+	const { songCounts } = useAlbumData();
+
 
 	const authReset = useCallback(() => {
 		tableDataDispatch(dispatches.restart());
@@ -67,15 +69,19 @@ export const AlbumTableView = () => {
 
 	useAuthViewStateChange(authReset);
 
+
 	const urlBuilder = new UrlBuilder(DomRoutes.albumPage);
 
 	const rowButton = (item: AlbumInfo, idx?: number) => {
 		const rowButtonOptions = [];
 
+		const canEditThisAlbum = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.ALBUM_EDIT]
+		);
 
-		const canEditThisAlbum = canEditAlbums && currentUser.id == item.owner.id;
 
-		if (canEditThisAlbum) rowButtonOptions.push({
+		if (canEditThisAlbum || canEditAlbums) rowButtonOptions.push({
 			label: "Edit",
 			link: `${DomRoutes.album({ id: item.id})}`,
 		});
@@ -89,7 +95,7 @@ export const AlbumTableView = () => {
 				component={Link}
 				to={`${DomRoutes.album({ id: item.id})}`}
 			>
-				{canEditThisAlbum ? "Edit" : "View"}
+				{canEditThisAlbum || canEditAlbums ? "Edit" : "View"}
 			</Button>);
 	};
 
@@ -102,7 +108,7 @@ export const AlbumTableView = () => {
 	useEffect(() => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
 		const queryObj = getSearchParams(location.search);
-		const requestObj = getPage({
+		const requestObj = Calls.getPage({
 			...queryObj,
 		});
 		const fetch = async () => {
@@ -172,7 +178,11 @@ export const AlbumTableView = () => {
 								{tableDataState?.data?.items?.map((item, idx) => {
 									return (
 										<TableRow key={`album_${idx}`}>
-											<TableCell>
+											<TableCell 
+												style={!(item.id in songCounts) 
+													? { color: "gray"} 
+													: {}}
+											>
 												{item.name || "{No album name}"}
 											</TableCell>
 											<TableCell>

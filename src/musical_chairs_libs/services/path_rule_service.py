@@ -1,4 +1,4 @@
-from typing import Iterator, cast, Optional
+from typing import Iterable, Iterator, cast, Optional, Union
 from sqlalchemy import (
 	select,
 	delete,
@@ -9,6 +9,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
+from musical_chairs_libs.protocols import FileService, UserProvider
 from musical_chairs_libs.dtos_and_utilities import (
 	PathsActionRule,
 	RulePriorityLevel,
@@ -27,22 +28,28 @@ from musical_chairs_libs.tables import (
 	path_user_permissions as path_user_permissions_tbl,
 	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count,
 	users as user_tbl, u_pk, u_username, u_displayName, u_email, u_dirRoot,
-	u_disabled
+	u_disabled,
+	sg_pk, sg_path, sg_deletedTimstamp,
 )
 
 class PathRuleService:
 
 	def __init__(
 		self,
-		conn: Connection
+		conn: Connection,
+		fileService: FileService,
+		userProvider: UserProvider
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
+		self.file_service = fileService
+		self.user_provider = userProvider
 
 
-	def get_paths_user_can_see(self, userId: int) -> Iterator[PathsActionRule]:
+	def get_paths_user_can_see(self) -> Iterator[PathsActionRule]:
+		userId = self.user_provider.current_user().id
 		query = select(pup_path, pup_role, pup_priority, pup_span, pup_count)\
 			.where(pup_userFk == userId)\
 			.order_by(pup_path)
@@ -57,13 +64,14 @@ class PathRuleService:
 				path=normalize_opening_slash(cast(str,r[pup_path]))
 			)
 
+
 	def get_rule_path_tree(
-		self,
-		user: AccountInfo
+		self
 	) -> ChainedAbsorbentTrie[ActionRule]:
+		user = self.user_provider.current_user()
 		rules = ActionRule.aggregate(
 			user.roles,
-			(p for p in self.get_paths_user_can_see(user.id)),
+			(p for p in self.get_paths_user_can_see()),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 
@@ -71,7 +79,7 @@ class PathRuleService:
 			(normalize_opening_slash(p.path), p) for p in
 				rules if isinstance(p, PathsActionRule) and p.path
 		)
-		pathRuleTree.add("", (r for r in user.roles \
+		pathRuleTree.add("/", (r for r in user.roles \
 			if type(r) == ActionRule \
 				and (UserRoleDomain.Path.conforms(r.name) \
 						or r.name == UserRoleDef.ADMIN.value
@@ -79,14 +87,15 @@ class PathRuleService:
 		), shouldEmptyUpdateTree=False)
 		return pathRuleTree
 
+
 	def remove_user_rule_from_path(
 		self,
-		userId: int,
+		subjectUserId: int,
 		prefix: str,
 		ruleName: Optional[str]
 	):
 		delStmt = delete(path_user_permissions_tbl)\
-			.where(pup_userFk == userId)\
+			.where(pup_userFk == subjectUserId)\
 			.where(pup_path == prefix)
 		if ruleName:
 			delStmt = delStmt.where(pup_role == ruleName)
@@ -99,13 +108,13 @@ class PathRuleService:
 		rule: ActionRule
 	) -> PathsActionRule:
 		stmt = insert(path_user_permissions_tbl).values(
-			userFk = addedUserId,
+			userfk = addedUserId,
 			path = prefix,
 			role = rule.name,
 			span = rule.span,
 			count = rule.count,
 			priority = None,
-			creationTimestamp = self.get_datetime().timestamp()
+			creationtimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
@@ -117,10 +126,10 @@ class PathRuleService:
 			path=prefix
 		)
 
+
 	def get_users_of_path(
 		self,
 		prefix: str,
-		userId: Optional[int]=None,
 		owner: Optional[AccountInfo]=None
 	) -> Iterator[AccountInfo]:
 		addSlash = True
@@ -179,12 +188,25 @@ class PathRuleService:
 					) == func.normalize_opening_slash(u_dirRoot, addSlash)
 			)
 		)
-		if userId is not None:
-			query = query.where(u_pk == userId)
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings()
 		yield from generate_path_user_and_rules_from_rows(
 			records,
 			owner.id if owner else None,
 			prefix
+		)
+
+
+	def get_song_path(
+		self,
+		itemIds: Union[Iterable[int], int]
+	) -> Iterator[str]:
+		query = select(sg_path).where(sg_deletedTimstamp.is_(None))
+		if isinstance(itemIds, Iterable):
+			query = query.where(sg_pk.in_(itemIds))
+		else:
+			query = query.where(sg_pk == itemIds)
+		results = self.conn.execute(query)
+		yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
+			for row in results
 		)

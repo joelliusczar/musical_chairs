@@ -8,6 +8,7 @@ from musical_chairs_libs.services import (
 )
 from .common_fixtures import *
 
+@pytest.mark.current_username("testUser_alpha")
 def test_get_stations_by_album(
 	fixture_stations_albums_service: StationsAlbumsService,
 	fixture_account_service: AccountsService
@@ -18,7 +19,7 @@ def test_get_stations_by_album(
 	assert user
 
 	data = sorted(
-		stationAlbumService.get_stations_by_album(9, user),
+		stationAlbumService.get_stations_by_album(9),
 		key=lambda s:s.id
 	)
 
@@ -27,7 +28,7 @@ def test_get_stations_by_album(
 	assert data[1].name == "album_public_station_bravo"
 
 	data = sorted(
-		stationAlbumService.get_stations_by_album(10, user),
+		stationAlbumService.get_stations_by_album(10),
 		key=lambda s:s.id
 	)
 
@@ -35,7 +36,7 @@ def test_get_stations_by_album(
 	assert data[0].name == "album_public_station_alpha"
 
 	data = sorted(
-		stationAlbumService.get_stations_by_album(7, user),
+		stationAlbumService.get_stations_by_album(7),
 		key=lambda s:s.id
 	)
 

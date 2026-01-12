@@ -1,8 +1,6 @@
 
 
-export type RequestBuilder = <SendType, ResponseType>(
-	sendParams: SendType
-) => {
+export type RequestBuilder<ResponseType> = {
 	abortController: AbortController,
-	call: Promise<ResponseType>
+	call: () => Promise<ResponseType>
 };

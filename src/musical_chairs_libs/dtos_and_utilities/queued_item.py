@@ -34,7 +34,7 @@ class QueuedItem(NamedIdItem):
 	
 class CatalogueItem(QueuedItem):
 	creator: str
-	parentName: str
+	parentname: str
 	requesttypeid: int #so that the front end knows what to equest
 	year: Optional[int]=None
 	rules: list[ActionRule]=cast(
@@ -42,6 +42,7 @@ class CatalogueItem(QueuedItem):
 		Field(default_factory=list, frozen=False)
 	)
 	owner: OwnerType
+	playedcount: int=0
 
 
 class SongListDisplayItem(QueuedItem):

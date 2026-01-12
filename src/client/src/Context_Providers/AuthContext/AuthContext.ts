@@ -4,7 +4,7 @@ import React, {
 	useEffect,
 	useCallback,
 } from "react";
-import { login } from "../../API_Calls/userCalls";
+import { Calls } from "../../API_Calls/userCalls";
 import {
 	DataActionPayload,
 	dataDispatches as dispatches,
@@ -84,7 +84,7 @@ export const useLogin: () => [loginFnType, () => void] = () => {
 
 	const _login = useCallback( async (username: string, password: string) => {
 		try {
-			const requestObj = login({
+			const requestObj = Calls.login({
 				username,
 				password,
 			});

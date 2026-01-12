@@ -22,6 +22,7 @@
   vars:
     app_trunk: '{{domain["app_root"]|default("~")}}/{{app_details["name"]}}'
     test_trunk: '../test_trash/{{app_details["name"]}}'
+    ansible_user: '{{lookup("env", "USER")}}'
 
   roles:
     - role: mysql-setup

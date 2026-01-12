@@ -1,6 +1,5 @@
-
+from .current_user_provider import CurrentUserProvider
 from typing import (
-	Optional,
 	Union,
 	cast,
 	Iterable,
@@ -8,6 +7,7 @@ from typing import (
 	Callable,
 	Any
 )
+
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	SongArtistTuple,
@@ -35,12 +35,14 @@ class SongArtistService:
 
 	def __init__(
 		self,
-		conn: Connection
+		conn: Connection,
+		currentUserProvider: CurrentUserProvider,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
+		self.current_user_provider = currentUserProvider
 
 	def get_song_artists(
 		self,
@@ -140,7 +142,6 @@ class SongArtistService:
 	def link_songs_with_artists(
 		self,
 		songArtists: Iterable[SongArtistTuple],
-		userId: Optional[int]=None
 	) -> Iterable[SongArtistTuple]:
 		if not songArtists:
 			return []
@@ -156,6 +157,7 @@ class SongArtistService:
 		self.remove_songs_for_artists(outPairs)
 		if not inPairs: #if no songs - artist have been linked
 			return existingPairs - outPairs
+		userId = self.current_user_provider.current_user().id
 		params: list[dict[str, Any]] = [{
 			"songfk": p.songid,
 			"artistfk": p.artistid,

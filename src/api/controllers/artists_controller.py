@@ -20,35 +20,17 @@ from musical_chairs_libs.services import (
 	ArtistService,
 )
 from api_dependencies import (
-	get_user_with_simple_scopes,
 	artist_service,
+	check_rate_limit,
+	get_secured_artist_by_id,
 	user_for_filters,
 	get_page_num,
 	get_current_user_simple
-)
-from api_error import (
-	build_wrong_permissions_error,
 )
 from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/artists")
 
-
-def can_edit_artist(
-	artistid: int,
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.ARTIST_EDIT.value]
-	),
-	artistService: ArtistService = Depends(artist_service)
-) -> AccountInfo:
-	if user.isadmin:
-		return user
-	owner = artistService.get_artist_owner(artistid)
-	if owner.id == user.id:
-		return user
-	raise build_wrong_permissions_error()
-	
 
 
 @router.get("/page")
@@ -84,6 +66,7 @@ def get_list(
 ) -> ListData[ArtistInfo]:
 	return ListData(items=list(artistService.get_artists(userId=user.id)))
 
+
 @router.get("/{artistKey}")
 def get(
 	artistKey: int,
@@ -100,16 +83,17 @@ def get(
 	return artistInfo
 
 
-@router.post("")
+@router.post("", dependencies=[
+	Security(
+		check_rate_limit,
+		scopes=[UserRoleDef.ARTIST_CREATE.value]
+	)
+])
 def create_artist(
 	name: str,
 	artistService: ArtistService = Depends(artist_service),
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.PATH_EDIT.value]
-	)
 ) -> ArtistInfo:
-	artistInfo = artistService.save_artist(user, name)
+	artistInfo = artistService.save_artist(name)
 	if not artistInfo:
 		raise HTTPException(
 			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -119,22 +103,23 @@ def create_artist(
 	return artistInfo
 
 
-@router.put("/{artistKey}")
+@router.put("/{artistid}")
 def update_artist(
-	artistid: int,
 	artistInfoUpdate: FrozenNamed,
-	artistService: ArtistService = Depends(artist_service),
-	user: AccountInfo = Depends(can_edit_artist)
+	artist: ArtistInfo = Security(
+		get_secured_artist_by_id,
+		scopes=[UserRoleDef.ARTIST_EDIT.value]
+	),
+	artistService: ArtistService = Security(artist_service)
 ) -> ArtistInfo:
 	artistInfo = artistService.save_artist(
 		artistName=artistInfoUpdate.name,
-		user=user,
-		artistId=artistid
+		artistId=artist.id
 	)
 	if not artistInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"Artist with key {artistid} not found")
+			detail=[build_error_obj(f"Artist with key {artist.id} not found")
 			]
 		)
 	return artistInfo
@@ -142,18 +127,20 @@ def update_artist(
 
 @router.delete(
 	"/{artistid}",
-	status_code=status.HTTP_204_NO_CONTENT,
-	dependencies=[Depends(can_edit_artist)]
+	status_code=status.HTTP_204_NO_CONTENT
 )
 def delete(
-	artistid: int,
-	albumService: ArtistService = Depends(artist_service)
+	artist: ArtistInfo = Security(
+		get_secured_artist_by_id,
+		scopes=[UserRoleDef.ARTIST_EDIT.value]
+	),
+	albumService: ArtistService = Security(artist_service)
 ):
 	try:
-		if albumService.delete_album(artistid) == 0:
+		if albumService.delete_album(artist.id) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
-				detail=[build_error_obj(f"Artist with key {artistid} not found")
+				detail=[build_error_obj(f"Artist with key {artist.id} not found")
 				]
 			)
 	except IntegrityError:

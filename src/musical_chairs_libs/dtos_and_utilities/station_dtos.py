@@ -31,6 +31,9 @@ class StationInfo(RuledEntity):
 	typeid: int=Field(default=StationTypes.SONGS_ONLY.value)
 	bitratekps: Optional[int]=Field(default=None)
 
+	#this will usually be used to store play count for a containing song object
+	playedcount: int=Field(default=0) 
+
 
 	def __hash__(self) -> int:
 		return hash((self.id, self.name, self.typeid))

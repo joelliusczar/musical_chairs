@@ -1,33 +1,39 @@
 ---
-- hosts: all
+- hosts: localhost
+  connection: local
+# - hosts: all
 
-  vars_files:
-    - ../vars/vault.yml
-    - ../vars/globals.yml
-    - ../vars/os_paths.yml
+  # vars_files:
+  #   - ../vars/vault.yml
+  #   - ../vars/globals.yml
+  #   - ../vars/os_paths.yml
 
 
 
 
   tasks:
-    - name: Set src and dest host groups
-      command: 'ansible-inventory -i {{db_copy_inventory}} --list'
-      register: inventory_result
-      delegate_to: localhost
-    - name: Transform inventory_result
-      set_fact:
-        loaded_inventory: '{{inventory_result.stdout|from_json}}'
-    - name: Set source hostname
-      set_fact:
-        src_server_hostname: '{{loaded_inventory["src_server"]["hosts"][0]}}'
-    - name: Add db copy source hosts
-      set_fact:
-        src_server:
-          hostname: '{{src_server_hostname}}'
-          ansible_port: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_port"]}}'
-          ansible_user: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_user"]}}'
     - debug:
-        msg: '{{src_server["hostname"]}}'
+        msg: '{{ansible_env}}'
+    # - shell: "echo 'hi' >  {{ansible_env.USER}}"
+    #   become: true
+    # - name: Set src and dest host groups
+    #   command: 'ansible-inventory -i {{db_copy_inventory}} --list'
+    #   register: inventory_result
+    #   delegate_to: localhost
+    # - name: Transform inventory_result
+    #   set_fact:
+    #     loaded_inventory: '{{inventory_result.stdout|from_json}}'
+    # - name: Set source hostname
+    #   set_fact:
+    #     src_server_hostname: '{{loaded_inventory["src_server"]["hosts"][0]}}'
+    # - name: Add db copy source hosts
+    #   set_fact:
+    #     src_server:
+    #       hostname: '{{src_server_hostname}}'
+    #       ansible_port: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_port"]}}'
+    #       ansible_user: '{{loaded_inventory["_meta"]["hostvars"][src_server_hostname]["ansible_user"]}}'
+    # - debug:
+    #     msg: '{{src_server["hostname"]}}'
     # - name: Get ices version
     #   command: '{{prefix}}ices -V'
     #   failed_when: false

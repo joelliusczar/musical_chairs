@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
 	seconds_to_tuple,
-	build_timespan_msg
+	build_timespan_msg,
 )
 
 def build_not_logged_in_error() -> HTTPException:

@@ -24,7 +24,6 @@ import { UrlPagination } from "../Shared/UrlPagination";
 import { OptionsButton } from "../Shared/OptionsButton";
 import { SearchTextField } from "../Shared/SearchTextFIeld";
 import {
-	useCurrentUser,
 	useHasAnyRoles,
 	useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext/AuthContext";
@@ -36,6 +35,8 @@ import {
 import {
 	PageableListDataShape,
 } from "../../Types/reducerTypes";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import { useSnackbar } from "notistack";
 
 
 
@@ -43,8 +44,9 @@ export const PlaylistTableView = () => {
 
 	const location = useLocation();
 	const pathVars = useParams();
-	const currentUser = useCurrentUser();
-	const canEditPlaylist = useHasAnyRoles([UserRoleDef.PLAYLIST_EDIT]);
+	const { enqueueSnackbar } = useSnackbar();
+	const canEditPlaylists = useHasAnyRoles([UserRoleDef.PLAYLIST_EDIT]);
+	const canDeletePlaylists = useHasAnyRoles([UserRoleDef.PLAYLIST_DELETE]);
 
 
 
@@ -69,14 +71,39 @@ export const PlaylistTableView = () => {
 
 	const urlBuilder = new UrlBuilder(DomRoutes.playlistsPage);
 
+	const handleRemoval = async (item: PlaylistInfo) => {
+		try {
+			const requestObj = Calls.remove({
+				id: item.id,
+			});
+			await requestObj.call();
+			tableDataDispatch(dispatches.update((state) => {
+				const removedIdx = state.data.items.findIndex(i => i.id === item.id);
+				if (removedIdx === -1) return state;
+				state.data.items.splice(removedIdx, 1);
+				return state;
+			}));
+			enqueueSnackbar("Playlist has been removed");
+		}
+		catch(err) {
+			enqueueSnackbar(formatError(err), {variant: "error" });
+		}
+	};
+
 	const rowButton = (item: PlaylistInfo, idx?: number) => {
 		const rowButtonOptions = [];
 
+		const canEditThisPlaylist = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PLAYLIST_EDIT]
+		);
 
-		const canEditThisPlaylist = canEditPlaylist &&
-			currentUser.id == item.owner.id;
+		const canDeleteThisPlaylist = anyConformsToAnyRule(
+			item?.rules,
+			[UserRoleDef.PLAYLIST_DELETE]
+		);
 
-		if (canEditThisPlaylist) rowButtonOptions.push({
+		if (canEditThisPlaylist || canEditPlaylists) rowButtonOptions.push({
 			label: "Edit",
 			link: `${DomRoutes.playlistEdit({
 				ownerkey: item.owner.username,
@@ -84,7 +111,12 @@ export const PlaylistTableView = () => {
 			})}`,
 		});
 
-		return (rowButtonOptions.length > 1 ? <OptionsButton
+		if (canDeleteThisPlaylist || canDeletePlaylists) rowButtonOptions.push({
+			label: "Delete",
+			onClick:() => handleRemoval(item),
+		});
+
+		return (rowButtonOptions.length > 0 ? <OptionsButton
 			id={`queue-row-btn-${item.id}-${idx}`}
 			options={rowButtonOptions}
 		/> :
@@ -96,7 +128,7 @@ export const PlaylistTableView = () => {
 					playlistkey: item.name,
 				})}`}
 			>
-				{canEditThisPlaylist ? "Edit" : "View"}
+				View
 			</Button>);
 	};
 
@@ -111,6 +143,7 @@ export const PlaylistTableView = () => {
 		const queryObj = getSearchParams(location.search);
 		const requestObj = Calls.getPage({
 			...queryObj,
+			ownerkey: pathVars.ownerkey || "",
 		});
 		const fetch = async () => {
 			tableDataDispatch(dispatches.started());

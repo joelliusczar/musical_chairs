@@ -21,6 +21,7 @@ export interface OwnerParam {
 	ownerkey: KeyValue
 };
 
+
 export interface APIError {
 	detail: {
 		msg: string

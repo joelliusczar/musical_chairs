@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
-import { add as saveAlbum } from "../../API_Calls/albumCalls";
+import { Calls } from "../../API_Calls/albumCalls";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import {
@@ -20,6 +20,11 @@ import { StationTypes } from "../../constants";
 import { StationInfo } from "../../Types/station_types";
 import { StationSelect } from "../Stations/StationSelect";
 import { StationNewModalOpener } from "../Stations/StationEdit";
+import { UserRoleDef } from "../../constants";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import {
+	useHasAnyRoles,
+} from "../../Context_Providers/AuthContext/AuthContext";
 
 const inputField = {
 	margin: 2,
@@ -64,7 +69,26 @@ export const AlbumEdit = (
 	} = useStationData();
 
 
-	const { formState } = formMethods;
+	const { formState, watch } = formMethods;
+
+	const albumRules = watch("rules");
+	
+	const canCreateAlbums = useHasAnyRoles([
+		UserRoleDef.ALBUM_CREATE,
+	]);
+	const canEditAlbums = useHasAnyRoles([
+		UserRoleDef.ALBUM_EDIT,
+	]);
+	const canEditThisAlbum = () => {
+		if(id) {
+			return anyConformsToAnyRule(
+				albumRules, [UserRoleDef.ALBUM_EDIT]
+			) || canEditAlbums;
+		}
+		else {
+			return canCreateAlbums;
+		}
+	};
 	
 	const artists = useCombinedContextAndFormItems(
 		contextArtists,
@@ -93,6 +117,7 @@ export const AlbumEdit = (
 					name="name"
 					label="Name"
 					formMethods={formMethods}
+					disabled={!canEditThisAlbum()}
 				/>
 			</Box>
 			<Loader status={artistCallStatus} error={artistError}>
@@ -104,10 +129,11 @@ export const AlbumEdit = (
 						label="Album Artist"
 						sx={{ minWidth: 195 }}
 						transform={{input: artistMapper}}
+						disabled={!canEditThisAlbum()}
 					/>
 				</Box>
 				<Box sx={inputField}>
-					<ArtistNewModalOpener add={addArtist} />
+					{canEditThisAlbum() && <ArtistNewModalOpener add={addArtist} />}
 				</Box>
 			</Loader>
 			<Box sx={inputField}>
@@ -115,6 +141,7 @@ export const AlbumEdit = (
 					name="versionnote"
 					label="Version Note"
 					formMethods={formMethods}
+					disabled={!canEditThisAlbum()}
 				/>
 			</Box>
 			<Box>
@@ -130,21 +157,25 @@ export const AlbumEdit = (
 								root: "dropdown-field",
 							}}
 							multiple
+							disabled={!canEditThisAlbum()}
 						/>
 					</Box>
 					<>
 						<Box sx={inputField}>
-							<StationNewModalOpener add={addStation} />
+							{
+								canEditThisAlbum() && 
+								<StationNewModalOpener add={addStation} />
+							}
 						</Box>
 					</>
 				</Loader>
 			</Box>
 			<Box sx={inputField} >
-				<SubmitButton
+				{canEditThisAlbum() && <SubmitButton
 					loading={formState.isSubmitting}
 					onClick={callSubmit}>
 					Submit
-				</SubmitButton>
+				</SubmitButton>}
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}
@@ -187,7 +218,7 @@ export const AlbumNewModalOpener = (props: AlbumNewModalOpenerProps) => {
 	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = saveAlbum({ data: {
+			const requestObj = Calls.add({ data: {
 				name: values.name,
 				year: values.year || undefined,
 				albumartist: values.albumartist || undefined,

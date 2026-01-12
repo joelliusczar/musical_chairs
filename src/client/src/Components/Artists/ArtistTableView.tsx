@@ -74,7 +74,7 @@ const ArtistTableView = () => {
 		const rowButtonOptions = [];
 
 
-		const canEditThisArtist = canEditArtists && currentUser.id == item.owner.id;
+		const canEditThisArtist = canEditArtists || currentUser.id == item.owner.id;
 	
 
 		if (canEditThisArtist) rowButtonOptions.push({

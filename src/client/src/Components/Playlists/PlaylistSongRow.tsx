@@ -33,7 +33,7 @@ export const PlaylistSongRow = (props: PlaylistSongRowProps) => {
 	const { song, removeSong, idx, order, moveSong } = props;
 
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
-	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
 	const canEditPlaylist = useHasAnyRoles([UserRoleDef.PLAYLIST_EDIT]);
 
 	const rowButton = (item: SongListDisplayItem, idx: number) => {

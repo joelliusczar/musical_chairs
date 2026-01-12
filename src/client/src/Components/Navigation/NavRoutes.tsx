@@ -46,6 +46,7 @@ export function NavMenu() {
 		UserRoleDef.USER_LIST,
 	]);
 
+
 	return (
 		<List>
 			{currentUser.username && <ListItem
@@ -75,18 +76,26 @@ export function NavMenu() {
 			<ListItem
 				component={NavLink}
 				to={DomRoutes.stations()}>
-				All Stations
+				Public Stations
 			</ListItem>
+			{currentUser.username && <ListItem
+				component={NavLink}
+				to={DomRoutes.playlistsPage({
+					ownerkey: currentUser.username,
+				})}
+			>
+				My Playlists
+			</ListItem>}
 			<ListItem
 				component={NavLink}
-				to={DomRoutes.playlistsPage()}>
-				All Playlists
+				to={DomRoutes.playlistsPageAll()}>
+				Public Playlists
 			</ListItem>
-			<ListItem
+			{currentUser.username && <ListItem
 				component={NavLink}
 				to={DomRoutes.songTree()}>
 				Song Directory
-			</ListItem>
+			</ListItem>}
 			<ListItem 
 				component={NavLink}
 				to={DomRoutes.albumPage()}
@@ -155,7 +164,17 @@ export function AppRoutes() {
 				}
 			/>
 			<Route 
-				path={DomRoutes.playlistsPage()}
+				path={DomRoutes.playlistsPageAll()}
+				element={
+					<Suspense fallback={<div>Loading...</div>}>
+						<PlaylistTableView />
+					</Suspense>
+				}
+			/>
+			<Route
+				path={`${DomRoutes.playlistsPage({
+					ownerkey: ":ownerkey",
+				})}`}
 				element={
 					<Suspense fallback={<div>Loading...</div>}>
 						<PlaylistTableView />
@@ -379,14 +398,14 @@ export function AppRoutes() {
 					</Suspense>
 				}
 			/>
-			<Route
+			{currentUser.username && <Route
 				path={DomRoutes.songTree()}
 				element={
 					<Suspense fallback={<div>Loading...</div>}>
 						<SongTree />
 					</Suspense>
 				}
-			/>
+			/>}
 			<Route
 				path="/"
 				element={

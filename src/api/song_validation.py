@@ -3,12 +3,15 @@ from fastapi import (
 	Depends,
 	HTTPException,
 	status,
-	Request
+	Request,
 )
+from fastapi.security import SecurityScopes
 from musical_chairs_libs.services import (
+	CurrentUserProvider,
 	StationService,
 	ArtistService,
 	AlbumService,
+	PathRuleService,
 	StationsSongsService
 )
 from musical_chairs_libs.dtos_and_utilities import (
@@ -22,9 +25,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_path_owner_roles
 )
 from api_dependencies import (
+	current_user_provider,
+	path_rule_service,
 	station_service,
-	get_path_rule_loaded_current_user,
 	get_from_query_subject_user,
+	get_prefix,
 	album_service,
 	artist_service,
 	stations_songs_service,
@@ -45,32 +50,59 @@ def __get_station_id_set__(
 	else:
 		return {s.id for s in stationService.get_stations(
 		stationKeys=stationKeys,
-		user=user,
 	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s.rules)}
 
 
-def get_song_ids(request: Request) -> Iterable[int]:
+def get_song_ids(request: Request) -> list[int]:
 	result: set[int] = set()
 	fieldName = ""
 	try:
-		fieldName = "itemid"
-		itemId = request.path_params.get(fieldName, None)
-		if not itemId is None:
-			result.add(int(itemId))
-		fieldName = "itemids"
-		itemIds = request.query_params.getlist(fieldName)
-		result.update((int(i) for i in itemIds))
+		fieldNames = ["itemId", "itemid", "id", "songid"]
+		for fieldName in fieldNames:
+			key = request.path_params.get(fieldName, None)
+			if not key is None:
+				result.add(int(key))
 
+		fieldNames = ["itemids", "songids", "itemIds"]
+		for fieldName in fieldNames:
+			keys = request.query_params.getlist(fieldName)
+			result.update((int(i) for i in keys))
+		
 	except ValueError:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail=[
 				build_error_obj(
-					f"Not a valid integer",
+					f"Not a valid integer for the song id(s)",
 					fieldName
 				)],
 		)
-	return result
+	return [*result]
+
+
+def get_secured_song_ids(
+	securityScopes: SecurityScopes,
+	songIds: list[int] = Depends(get_song_ids),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
+) -> list[int]:
+	user = currentUserProvider.get_path_rule_loaded_current_user()
+	if user.isadmin:
+		return songIds
+	userPrefixTrie = user.get_permitted_paths_tree()
+	prefixes = [*pathRuleService.get_song_path(songIds)]
+	scopes = [s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	]
+	for prefix in prefixes:
+		currentUserProvider.check_if_can_use_path(
+			scopes,
+			prefix,
+			user,
+			userPrefixTrie
+		)
+	return songIds
+
 
 def __validate_song_stations__(
 	song: ValidatedSongAboutInfo,
@@ -87,7 +119,6 @@ def __validate_song_stations__(
 	permittedStations = {s.id for s in \
 			stationService.get_stations(
 			stationIds,
-			user=user,
 			scopes=[UserRoleDef.STATION_ASSIGN.value]
 		) if not all(r.blocked for r in s.rules)
 	} | linkedStationIds #if song is already linked, we will permit
@@ -114,7 +145,7 @@ def __validate_song_stations__(
 				)],
 		)
 
-def __validate_song_artists(
+def __validate_song_artists__(
 	song: ValidatedSongAboutInfo,
 	user: AccountInfo,
 	artistService: ArtistService,
@@ -139,7 +170,7 @@ def __validate_song_artists(
 				)],
 		)
 
-def __validate_song_album(
+def __validate_song_album__(
 	song: ValidatedSongAboutInfo,
 	user: AccountInfo,
 	albumService: AlbumService,
@@ -147,7 +178,6 @@ def __validate_song_album(
 	if song.album:
 		dbAlbum = next(albumService.get_albums(
 			albumKeys=song.album.id,
-			userId=user.id if not user.has_roles(UserRoleDef.PATH_EDIT) else None
 		), None)
 		if not dbAlbum:
 			raise HTTPException(
@@ -162,13 +192,14 @@ def __validate_song_album(
 
 def extra_validated_song(
 	song: ValidatedSongAboutInfo,
-	songIds: Iterable[int] = Depends(get_song_ids),
-	user: AccountInfo = Depends(get_path_rule_loaded_current_user),
+	songIds: Iterable[int] = Depends(get_secured_song_ids),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 	stationService: StationService = Depends(station_service),
 	stationsSongsService: StationsSongsService = Depends(stations_songs_service),
 	artistService: ArtistService = Depends(artist_service),
 	albumService: AlbumService = Depends(album_service)
 ) -> ValidatedSongAboutInfo:
+	user = currentUserProvider.get_path_rule_loaded_current_user()
 	__validate_song_stations__(
 		song,
 		songIds,
@@ -176,13 +207,13 @@ def extra_validated_song(
 		stationService,
 		stationsSongsService
 	)
-	__validate_song_artists(song, user, artistService)
-	__validate_song_album(song, user, albumService)
+	__validate_song_artists__(song, user, artistService)
+	__validate_song_album__(song, user, albumService)
 	return song
 
 def validate_path_rule(
 	rule: PathsActionRule,
-	prefix: str,
+	prefix: str = Depends(get_prefix),
 	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
 ) -> PathsActionRule:
 	if not user:

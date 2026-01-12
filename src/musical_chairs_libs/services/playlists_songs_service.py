@@ -1,5 +1,4 @@
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	DictDotMap,
 	get_datetime,
 	normalize_opening_slash,
@@ -41,7 +40,6 @@ from typing import (
 	cast,
 	Iterable,
 	Iterator,
-	Optional,
 	Tuple,
 	Union
 )
@@ -52,12 +50,10 @@ class PlaylistsSongsService:
 		self,
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
-		pathRuleService: Optional[PathRuleService]=None
+		pathRuleService: PathRuleService
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
 		self.conn = conn
 		self.current_user_provider = currentUserProvider
 		self.get_datetime = get_datetime
@@ -66,7 +62,6 @@ class PlaylistsSongsService:
 	def get_songs(
 			self,
 			playlistId: int,
-			user: Optional[AccountInfo]=None
 		) -> Iterator[SongListDisplayItem]:
 		
 		songsQuery = select(
@@ -96,8 +91,8 @@ class PlaylistsSongsService:
 			.order_by(plsg_lexorder, plsg_lastmodifiedtimestamp)
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+		if self.current_user_provider.is_loggedIn():
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
 		for row in songsResult:
 
@@ -105,7 +100,7 @@ class PlaylistsSongsService:
 				**DictDotMap.unflatten(dict(row), omitNulls=True)
 			) 
 			if pathRuleTree:
-				song.rules = list(pathRuleTree.valuesFlat(
+				song.rules = list(pathRuleTree.values_flat(
 					normalize_opening_slash(song.path))
 				)
 			yield song
@@ -210,7 +205,6 @@ class PlaylistsSongsService:
 	def link_songs_with_playlists(
 		self,
 		songsPlaylists: Iterable[SongPlaylistTuple],
-		userId: Optional[int]=None
 	) -> Iterable[SongPlaylistTuple]:
 		uniquePairs = set(self.validate_songs_playlists(songsPlaylists))
 		if not uniquePairs:
@@ -228,6 +222,7 @@ class PlaylistsSongsService:
 		))
 		startOrders = self.get_max_lexorders(p.playlistid or 0 for p in uniquePairs)
 		params: list[dict[str, Any]] = []
+		userId = self.current_user_provider.current_user().id
 		for p in inPairs:
 			if not p.playlistid:
 				continue
@@ -290,7 +285,7 @@ class PlaylistsSongsService:
 				"songfk": record[0],
 				"playlistfk": playlistid,
 				"lexorder": startOrder.encode(),
-				"lastmodifiedbyuserfk": self.current_user_provider.userId,
+				"lastmodifiedbyuserfk": self.current_user_provider.current_user().id,
 				"lastmodifiedtimestamp": self.get_datetime().timestamp()
 			})
 			startOrder = calc_order_next(startOrder)

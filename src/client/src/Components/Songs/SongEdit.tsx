@@ -28,10 +28,7 @@ import {
 } from "../../Reducers/voidWaitingReducer";
 import { useSnackbar } from "notistack";
 import {
-	fetchSongForEdit,
-	saveSongEdits,
-	fetchSongsForMultiEdit,
-	saveSongsEditsMulti,
+	Calls,
 	openSongInTab,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
@@ -142,7 +139,7 @@ export const SongEdit = () => {
 	const { callStatus } = state;
 	const isPending = isCallPending(callStatus);
 	const location = useLocation();
-	const canDownloadSongs = useHasAnyRoles([UserRoleDef.SONG_DOWNLOAD]);
+	const canDownloadSongs = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
 
 	const ids = useMemo(() => {
 		const queryObj = new URLSearchParams(location.search);
@@ -211,6 +208,18 @@ export const SongEdit = () => {
 	const canEditSongs = anyConformsToAnyRule(
 		songRules, [UserRoleDef.PATH_EDIT]
 	);
+	const canCreateArtists = useHasAnyRoles([
+		UserRoleDef.ARTIST_CREATE,
+	]);
+	const canCreateAlbums = useHasAnyRoles([
+		UserRoleDef.ALBUM_CREATE,
+	]);
+	const canCreateStations = useHasAnyRoles([
+		UserRoleDef.STATION_CREATE,
+	]);
+	const canCreatePlaylists = useHasAnyRoles([
+		UserRoleDef.PLAYLIST_CREATE,
+	]);
 	const multiSongTouchedField = watch("touched");
 
 	const handleMutliSongTouchedCheck = (name: string) => {
@@ -249,8 +258,8 @@ export const SongEdit = () => {
 				touched: touchedObjectToArr(values.touched),
 			};
 			const requestObj = ids.length < 2 ?
-				saveSongEdits({ id: ids[0], data: valuesSavura }) :
-				saveSongsEditsMulti({ ids, data: valuesSavura });
+				Calls.update({ id: ids[0], data: valuesSavura }) :
+				Calls.updateMulti({ ids, data: valuesSavura });
 			const data = await requestObj.call();
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
@@ -272,10 +281,10 @@ export const SongEdit = () => {
 			return;
 		}
 		const requestObj = ids.length == 1 ?
-			fetchSongForEdit({
+			Calls.get({
 				id: ids[0],
 			}) :
-			fetchSongsForMultiEdit({ ids });
+			Calls.getMulti({ ids });
 		if (!isPending) return;
 		const fetch = async () => {
 			try {
@@ -453,7 +462,7 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<>
-						{canEditSongs && <Box sx={inputField}>
+						{canCreateArtists && <Box sx={inputField}>
 							<ArtistNewModalOpener add={(artist) => {
 								addArtist(artist);
 								const primaryArtist = getValues("primaryartist");
@@ -484,7 +493,7 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<>
-						{canEditSongs && <Box sx={inputField}>
+						{canCreateAlbums && <Box sx={inputField}>
 							<AlbumNewModalOpener
 								add={(album) => {
 									addAlbum(album);
@@ -517,7 +526,7 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<>
-						{canEditSongs && <Box sx={inputField}>
+						{canCreateStations && <Box sx={inputField}>
 							<StationNewModalOpener add={addStation} />
 						</Box>}
 					</>
@@ -543,7 +552,7 @@ export const SongEdit = () => {
 						/>
 					</Box>
 					<>
-						{canEditSongs && <Box sx={inputField}>
+						{canCreatePlaylists && <Box sx={inputField}>
 							<PlaylistNewModalOpener add={addPlaylist} />
 						</Box>}
 					</>
@@ -560,11 +569,11 @@ export const SongEdit = () => {
 					disabled={!canEditSongs}
 				/>
 			</Box>
-			<Button
+			{canEditSongs && <Button
 				onClick={guessAllTrackNumbers}
 			>
 				Guess Track Numbers
-			</Button>
+			</Button>}
 			{ids?.length > 1 && <Box>
 				{!!trackinfoMap && Object.keys(trackinfoMap).map(k => {
 					return (

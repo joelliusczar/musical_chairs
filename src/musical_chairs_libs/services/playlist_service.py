@@ -14,19 +14,21 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PlaylistInfo,
 	PlaylistCreationInfo,
 	AlreadyUsedError,
-	AccountInfo,
 	OwnerInfo,
 	SongsPlaylistInfo,
 	SongListDisplayItem,
 	DictDotMap,
+	OwnerType,
 	normalize_opening_slash,
 	RulePriorityLevel,
 	UserRoleDomain,
 	get_playlist_owner_roles,
 	UserRoleDef,
 	build_placeholder_select,
+	SimpleQueryParameters,
 	StationPlaylistTuple,
 )
+from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
 from .stations_playlists_service import StationsPlaylistsService
 from sqlalchemy import (
@@ -128,19 +130,19 @@ class PlaylistService:
 	def __init__(
 		self,
 		conn: Connection,
-		pathRuleService: Optional[PathRuleService]=None,
-		stationsPlaylistsService: Optional[StationsPlaylistsService]=None
+		currentUserProvider: CurrentUserProvider,
+		stationsPlaylistsService: StationsPlaylistsService,
+		pathRuleService: PathRuleService,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
-		if not pathRuleService:
-			pathRuleService = PathRuleService(conn)
 		if not stationsPlaylistsService:
 			stationsPlaylistsService = StationsPlaylistsService(conn)
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
 		self.stations_playlists_service = stationsPlaylistsService
+		self.current_user_provider = currentUserProvider
 
 
 	def __attach_user_joins__(
@@ -157,7 +159,6 @@ class PlaylistService:
 				Integer
 			]
 		],
-		userId: int,
 		scopes: Optional[Collection[str]]=None
 	) -> Select[
 			Tuple[
@@ -170,6 +171,7 @@ class PlaylistService:
 				Integer,
 			]
 		]:
+		userId = self.current_user_provider.optional_user_id()
 		rulesQuery = build_playlist_rules_query(userId)
 		rulesSubquery = rulesQuery.cte(name="rulesQuery")
 		canViewQuery= select(
@@ -250,7 +252,6 @@ class PlaylistService:
 		self,
 		playlistKeys: Union[int, str, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
-		user: Optional[AccountInfo]=None,
 		scopes: Optional[Collection[str]]=None,
 		page: int = 0,
 		pageSize: Optional[int]=None,
@@ -266,8 +267,9 @@ class PlaylistService:
 		).select_from(playlists_tbl)\
 		.join(user_tbl, pl_ownerFk == u_pk, isouter=True)
 
+		user = self.current_user_provider.current_user(optional=True)
 		if user:
-			query = self.__attach_user_joins__(query, user.id, scopes)
+			query = self.__attach_user_joins__(query, scopes)
 		else:
 			if scopes:
 				return
@@ -317,15 +319,15 @@ class PlaylistService:
 
 	def get_playlists_page(
 		self,
-		page: int = 0,
+		queryParams: SimpleQueryParameters,
 		playlist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
+		owner: Optional[OwnerType]=None
 	) -> Tuple[list[PlaylistInfo], int]:
 		result = list(self.get_playlists(
-			page=page,
-			pageSize=limit,
-			playlistKeys=playlist
+			page=queryParams.page,
+			pageSize=queryParams.limit,
+			playlistKeys=playlist,
+			ownerId=owner.id if owner else None
 		))
 		countQuery = select(func.count(1))\
 			.select_from(playlists_tbl)
@@ -335,8 +337,7 @@ class PlaylistService:
 
 	def get_playlist(
 			self,
-			playlistId: int,
-			user: Optional[AccountInfo]=None
+			playlistId: int
 		) -> Optional[SongsPlaylistInfo]:
 		playlistInfo = next(self.get_playlists(playlistKeys=playlistId), None)
 		if not playlistInfo:
@@ -366,8 +367,8 @@ class PlaylistService:
 			.order_by(dbCast(sg_track, Integer))
 		songsResult = self.conn.execute(songsQuery).mappings()
 		pathRuleTree = None
-		if user:
-			pathRuleTree = self.path_rule_service.get_rule_path_tree(user)
+		if self.current_user_provider.is_loggedIn():
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
 		songs = [
 			SongListDisplayItem(
@@ -377,12 +378,11 @@ class PlaylistService:
 		stations = [
 			*self.stations_playlists_service.get_stations_by_playlist(
 				playlistId,
-				user
 			)
 		]
 		if pathRuleTree:
 			for song in songs:
-				song.rules = list(pathRuleTree.valuesFlat(
+				song.rules = list(pathRuleTree.values_flat(
 						normalize_opening_slash(song.path))
 					)
 
@@ -396,11 +396,11 @@ class PlaylistService:
 	def save_playlist(
 		self,
 		playlist: PlaylistCreationInfo,
-		user: AccountInfo,
 		playlistId: Optional[int]=None
 	) -> PlaylistInfo:
 		if not playlist and not playlistId:
 			raise ValueError("No playlist info to save")
+		user = self.current_user_provider.current_user()
 		upsert = update if playlistId else insert
 		savedName = SavedNameString(playlist.name)
 		stmt = upsert(playlists_tbl).values(
@@ -422,7 +422,6 @@ class PlaylistService:
 			self.stations_playlists_service.link_playlists_with_stations(
 				(StationPlaylistTuple(affectedPk, t.id if t else None) 
 					for t in (playlist.stations or [None])),
-				user.id
 			)
 			self.conn.commit()
 			if res.rowcount == 0:
@@ -453,8 +452,8 @@ class PlaylistService:
 		self,
 		id: Optional[int],
 		playlistName: SavedNameString,
-		userId: int,
 	) -> bool:
+		userId = self.current_user_provider.current_user().id
 		queryAny = select(func.count(1)).select_from(playlists_tbl)\
 				.where(pl_name == str(playlistName))\
 				.where(pl_ownerFk == userId)\
@@ -467,9 +466,8 @@ class PlaylistService:
 		self,
 		id: Optional[int],
 		playlistName: str,
-		userId: int
 	) -> bool:
 		cleanedPlaylistName = SavedNameString(playlistName)
 		if not cleanedPlaylistName:
 			return True
-		return self.__is_playlistName_used__(id, cleanedPlaylistName, userId)
+		return self.__is_playlistName_used__(id, cleanedPlaylistName)

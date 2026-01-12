@@ -12,5 +12,17 @@ class IllegalOperationError(RuntimeError):
 class AlternateValueError(Exception):
 	pass
 
-class MCNotImplementedError(Exception):
+class NotImplementedError(Exception):
+	pass
+
+class WrongPermissionsError(Exception):
+	pass
+
+class NotLoggedInError(Exception):
+	pass
+
+class TooManyRequestsError(Exception):
+	pass
+
+class NotFoundError(Exception):
 	pass

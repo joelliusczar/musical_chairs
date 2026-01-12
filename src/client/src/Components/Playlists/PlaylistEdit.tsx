@@ -26,6 +26,11 @@ import {
 	useIdMapper,
 	useStationData,
 } from "../../Context_Providers/AppContext/AppContext";
+import { UserRoleDef } from "../../constants";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import {
+	useHasAnyRoles,
+} from "../../Context_Providers/AuthContext/AuthContext";
 
 
 const inputField = {
@@ -51,6 +56,22 @@ export const PlaylistEdit = (props: PlaylistEditProps) => {
 	const { watch, formState } = formMethods;
 
 	const savedId = watch("id");
+	const playlistRules = watch("rules");
+
+	const canCreatePlaylists = useHasAnyRoles([
+		UserRoleDef.PLAYLIST_CREATE,
+	]);
+	const canEditPlaylist = () => {
+		if(savedId) {
+			return anyConformsToAnyRule(
+				playlistRules, [UserRoleDef.PLAYLIST_EDIT]
+			);
+		}
+		else {
+			return canCreatePlaylists;
+		}
+	};
+
 
 	const {
 		items: contextStations,
@@ -80,6 +101,7 @@ export const PlaylistEdit = (props: PlaylistEditProps) => {
 					name="name"
 					label="Name"
 					formMethods={formMethods}
+					disabled={!canEditPlaylist()}
 				/>
 			</Box>
 			<Box sx={inputField}>
@@ -87,6 +109,7 @@ export const PlaylistEdit = (props: PlaylistEditProps) => {
 					name="description"
 					label="Description"
 					formMethods={formMethods}
+					disabled={!canEditPlaylist()}
 				/>
 			</Box>
 			<Box>
@@ -102,12 +125,13 @@ export const PlaylistEdit = (props: PlaylistEditProps) => {
 								root: "dropdown-field",
 							}}
 							multiple
+							disabled={!canEditPlaylist()}
 						/>
 					</Box>
 					<>
-						<Box sx={inputField}>
+						{canEditPlaylist() && <Box sx={inputField}>
 							<StationNewModalOpener add={addStation} />
-						</Box>
+						</Box>}
 					</>
 				</Loader>
 			</Box>
@@ -123,15 +147,16 @@ export const PlaylistEdit = (props: PlaylistEditProps) => {
 					}}
 					defaultValue={viewSecurityOptions[0]}
 					disableClearable={true}
+					disabled={!canEditPlaylist()}
 				/>
 			</Box>
 			<Box sx={inputField} >
-				<SubmitButton
+				{canEditPlaylist() && <SubmitButton
 					loading={formState.isSubmitting}
 					onClick={callSubmit}
 				>
 					Submit
-				</SubmitButton>
+				</SubmitButton>}
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}
@@ -177,6 +202,7 @@ export const PlaylistNewModalOpener = (props: PlaylistNewModalOpenerProps) => {
 			name: "",
 			viewsecuritylevel: viewSecurityOptions[0],
 			stations: [],
+			rules: [],
 		},
 		reValidateMode: "onSubmit",
 		resolver: yupResolver(schema),

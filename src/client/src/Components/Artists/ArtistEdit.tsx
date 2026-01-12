@@ -7,6 +7,11 @@ import { useForm, UseFormReturn } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import { ArtistInfo } from "../../Types/song_info_types";
 import { SubmitButton  } from "../Shared/SubmitButton";
+import { UserRoleDef } from "../../constants";
+import {
+	useCurrentUser,
+	useHasAnyRoles,
+} from "../../Context_Providers/AuthContext/AuthContext";
 
 
 const inputField = {
@@ -22,7 +27,27 @@ type ArtistEditProps = {
 export const ArtistEdit = (props: ArtistEditProps) => {
 	const { formMethods, callSubmit, onCancel } = props;
 
-	const { formState } = formMethods;
+	const currentUser = useCurrentUser();
+
+	const { formState, watch } = formMethods;
+
+	const savedId = watch("id");
+	const ownerId = watch("owner.id");
+
+	const canCreateArtists = useHasAnyRoles([
+		UserRoleDef.ARTIST_CREATE,
+	]);
+	const canEditArtists = useHasAnyRoles([
+		UserRoleDef.ARTIST_EDIT,
+	]);
+	const canEditThisArtist = () => {
+		if(savedId) {
+			return currentUser.id === ownerId || canEditArtists;
+		}
+		else {
+			return canCreateArtists;
+		}
+	};
 
 	return (
 		<>
@@ -41,15 +66,16 @@ export const ArtistEdit = (props: ArtistEditProps) => {
 							callSubmit(e);
 						}
 					}}
+					disabled={!canEditThisArtist()}
 				/>
 			</Box>
 			<Box sx={inputField} >
-				<SubmitButton
+				{canEditThisArtist() && <SubmitButton
 					loading={formState.isSubmitting}
 					onClick={callSubmit}
 				>
 					Submit
-				</SubmitButton>
+				</SubmitButton>}
 				{onCancel &&<Button onClick={onCancel}>
 						Cancel
 				</Button>}

@@ -57,6 +57,11 @@ import {
 } from "react-dnd-html5-backend";
 import { PlaylistSongRow } from "./PlaylistSongRow";
 import { IdValue } from "../../Types/generic_types";
+import { UserRoleDef } from "../../constants";
+import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
+import {
+	useHasAnyRoles,
+} from "../../Context_Providers/AuthContext/AuthContext";
 
 
 const playlistInfoToFormData = (data: PlaylistInfo) => {
@@ -74,6 +79,7 @@ const initialValues = {
 	name: "",
 	viewsecuritylevel: viewSecurityOptions[0],
 	stations: [],
+	rules: [],
 };
 
 export const PlaylistEditScreen = () => {
@@ -84,10 +90,11 @@ export const PlaylistEditScreen = () => {
 	const currentUser = useCurrentUser();
 
 
-	const [state, dispatch] = useDataWaitingReducer<SongListDisplayItem[]>(
-		new RequiredDataStore([])
-	);
-	const { callStatus, error } = state;
+	const [songsState, songsDispatch] 
+		= useDataWaitingReducer<SongListDisplayItem[]>(
+			new RequiredDataStore([])
+		);
+	const { callStatus, error } = songsState;
 	const isPending = isCallPending(callStatus);
 	const [nextUpIndex, setNextUpIndex] = useState<number>(0);
 
@@ -168,6 +175,17 @@ export const PlaylistEditScreen = () => {
 
 	const savedId = watch("id");
 
+
+
+	const canPlayPlaylists = useHasAnyRoles([
+		UserRoleDef.PATH_DOWNLOAD,
+	]);
+	const canPlayThisPlaylist = () => {
+
+		return canPlayPlaylists;
+	};
+
+
 	const canDeleteItem = () => {
 		const ownerId = getValues("owner.id");
 		if (currentUser.id === ownerId) return true;
@@ -186,7 +204,7 @@ export const PlaylistEditScreen = () => {
 			if (deletedPlaylist.length) {
 				removePlaylist(deletedPlaylist[0]);
 			}
-			navigate(DomRoutes.playlistsPage(), { replace: true });
+			navigate(DomRoutes.playlistsPageAll(), { replace: true });
 		}
 		catch (err) {
 			enqueueSnackbar(formatError(err), { variant: "error" });
@@ -202,7 +220,7 @@ export const PlaylistEditScreen = () => {
 			});
 			await requestObj.call();
 			enqueueSnackbar("Removal successful", { variant: "success" });
-			dispatch(dispatches.update((state) => {
+			songsDispatch(dispatches.update((state) => {
 				const songs = [...state.data].filter(s => s.id !== item.id);
 
 				return {
@@ -226,7 +244,7 @@ export const PlaylistEditScreen = () => {
 			});
 			await requestObj.call();
 			enqueueSnackbar("Removal successful", { variant: "success" });
-			dispatch(dispatches.update((state) => {
+			songsDispatch(dispatches.update((state) => {
 				
 				const songs = [...state.data];
 				const movedSongOldIdx = songs.findIndex(s => s.id === songId);
@@ -247,8 +265,8 @@ export const PlaylistEditScreen = () => {
 
 
 	const authReset = useCallback(() => {
-		dispatch(dispatches.restart());
-	}, [dispatch]);
+		songsDispatch(dispatches.restart());
+	}, [songsDispatch]);
 
 	useAuthViewStateChange(authReset);
 
@@ -262,15 +280,15 @@ export const PlaylistEditScreen = () => {
 			if (!isPending) return;
 			const fetch = async () => {
 				try {
-					dispatch(dispatches.started());
+					songsDispatch(dispatches.started());
 					const data = await playlistRequestObj.call();
 					const formData = playlistInfoToFormData(data);
 					reset(formData);
-					dispatch(dispatches.done(data.songs));
+					songsDispatch(dispatches.done(data.songs));
 				}
 				catch(err) {
 					enqueueSnackbar(formatError(err), { variant: "error"});
-					dispatch(dispatches.failed(formatError(err)));
+					songsDispatch(dispatches.failed(formatError(err)));
 				}
 			};
 			fetch();
@@ -280,7 +298,7 @@ export const PlaylistEditScreen = () => {
 			reset(initialValues);
 		}
 	}, [
-		dispatch,
+		songsDispatch,
 		isPending,
 		pathVars.ownerkey,
 		pathVars.playlistkey,
@@ -297,15 +315,15 @@ export const PlaylistEditScreen = () => {
 	},[setNextUpIndex]);
 
 	const getNextUp = () => {
-		if (!state.data) return null;
-		if (nextUpIndex < state.data.length && nextUpIndex >= 0) {
-			return state.data[nextUpIndex];
+		if (!songsState.data) return null;
+		if (nextUpIndex < songsState.data.length && nextUpIndex >= 0) {
+			return songsState.data[nextUpIndex];
 		}
 		return null;
 	};
 
-	const songIdQueryStr = state.data?.length > 0 ?
-		buildArrayQueryStr("ids", state.data.map(i => i.id)) :
+	const songIdQueryStr = songsState.data?.length > 0 ?
+		buildArrayQueryStr("ids", songsState.data.map(i => i.id)) :
 		"";
 
 
@@ -327,19 +345,19 @@ export const PlaylistEditScreen = () => {
 			component={Link}
 			to={
 				`${DomRoutes.songEdit()}${songIdQueryStr}`}
-			disabled={(state.data?.length || 0) < 1}
+			disabled={(songsState.data?.length || 0) < 1}
 		>
 			Batch Edit Songs
 		</Button>
-		{state.data?.length > 0 ?
+		{songsState.data?.length > 0 ?
 			<>
 				<Box>
-					<PlaylistListener
-						audioItems={state.data}
+					{canPlayThisPlaylist() && <PlaylistListener
+						audioItems={songsState.data}
 						nextUp={getNextUp()}
 						queueNext={queueNext}
 						parentId={savedId || 0}
-					/>
+					/>}
 				</Box>
 				<DndProvider
 					backend={HTML5Backend}
@@ -355,7 +373,7 @@ export const PlaylistEditScreen = () => {
 								</TableRow>
 							</TableHead>
 							<TableBody>
-								{state.data.map((item, idx) => 
+								{songsState.data.map((item, idx) => 
 									<PlaylistSongRow 
 										key={`song_${idx}`}
 										song={item}

@@ -1,4 +1,3 @@
-from typing import Optional
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -7,68 +6,41 @@ from fastapi import (
 	HTTPException
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	UserRoleDef,
 	TableData,
 	AlbumInfo,
 	AlbumCreationInfo,
 	SongsAlbumInfo,
 	ListData,
-	build_error_obj
+	build_error_obj,
+	SimpleQueryParameters,
 )
 from musical_chairs_libs.services import (
 	AlbumService,
 )
 from api_dependencies import (
-	get_user_with_simple_scopes,
 	album_service,
-	get_page_num,
-	get_current_user_simple,
-	user_for_filters
-)
-from api_error import (
-	build_wrong_permissions_error,
+	check_rate_limit,
+	get_query_params,
+	get_secured_album_by_id,
 )
 from sqlalchemy.exc import IntegrityError
 
-router = APIRouter(prefix="/albums")
-
-def can_edit_album(
-	albumkey: int,
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.ALBUM_EDIT.value]
-	),
-	albumService: AlbumService = Depends(album_service)
-) -> AccountInfo:
-	if user.isadmin:
-		return user
-	owner = albumService.get_album_owner(albumkey)
-	if owner.id == user.id:
-		return user
-	raise build_wrong_permissions_error()
-	
+router = APIRouter(prefix="/albums")	
 
 
 @router.get("/page")
 def get_page(
 	name: str="",
 	artist: str="",
-	limit: int = 50,
-	page: int = Depends(get_page_num),
-	user: Optional[AccountInfo] = Security(
-		user_for_filters,
-		scopes=[UserRoleDef.ALBUM_VIEW_ALL.value]
-	),
+	queryParams: SimpleQueryParameters = Depends(get_query_params,),
 	albumService: AlbumService = Depends(album_service)
 ) -> TableData[AlbumInfo]:
 
 	data, totalRows = albumService.get_albums_page(
 			album=name,
 			artist=artist,
-			page = page,
-			limit = limit,
-			user=user
+			queryParams=queryParams
 		)
 	return TableData(
 		totalrows=totalRows,
@@ -79,12 +51,16 @@ def get_page(
 @router.get("/list")
 def get_list(
 	albumService: AlbumService = Depends(album_service),
-	user: AccountInfo = Security(
-		get_current_user_simple,
-		scopes=[]
-	)
 ) -> ListData[AlbumInfo]:
-	return ListData(items=list(albumService.get_albums(userId=user.id)))
+	return ListData(items=list(albumService.get_albums()))
+
+
+@router.get("/song-counts")
+def song_counts_map(
+	albumService: AlbumService = Depends(album_service)
+) -> dict[int, int]:
+	res = albumService.get_song_counts()
+	return res
 
 
 @router.get("/{albumkey}")
@@ -103,16 +79,17 @@ def get(
 	return albumInfo
 
 
-@router.post("")
+@router.post("", dependencies=[
+	Security(
+		check_rate_limit,
+		scopes=[UserRoleDef.ALBUM_CREATE.value]
+	)
+])
 def create_album(
 	album: AlbumCreationInfo,
 	albumService: AlbumService = Depends(album_service),
-	user: AccountInfo = Security(
-		get_user_with_simple_scopes,
-		scopes=[UserRoleDef.ALBUM_EDIT.value]
-	)
 ) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, user=user)
+	albumInfo = albumService.save_album(album)
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -122,37 +99,41 @@ def create_album(
 	return albumInfo
 
 
-@router.put("/{albumkey}")
+@router.put("/{albumid}")
 def update_album(
-	albumkey: int,
 	album: AlbumCreationInfo,
-	albumService: AlbumService = Depends(album_service),
-	user: AccountInfo = Depends(can_edit_album)
+	savedalbum: AlbumInfo = Security(
+		get_secured_album_by_id,
+		scopes=[UserRoleDef.ALBUM_EDIT.value]
+	),
+	albumService: AlbumService = Depends(album_service)
 ) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, user=user, albumId=albumkey)
+	albumInfo = albumService.save_album(album, albumId=savedalbum.id)
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"Album with key {albumkey} not found")
+			detail=[build_error_obj(f"Album with key {savedalbum.id} not found")
 			]
 		)
 	return albumInfo
 
 
 @router.delete(
-	"/{albumkey}",
+	"/{albumid}",
 	status_code=status.HTTP_204_NO_CONTENT,
-	dependencies=[Depends(can_edit_album)]
 )
 def delete(
-	albumkey: int,
+	album: AlbumInfo = Security(
+		get_secured_album_by_id,
+		scopes=[UserRoleDef.ALBUM_EDIT.value]
+	),
 	albumService: AlbumService = Depends(album_service),
 ):
 	try:
-		if albumService.delete_album(albumkey) == 0:
+		if albumService.delete_album(album.id) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
-				detail=[build_error_obj(f"Album with key {albumkey} not found")
+				detail=[build_error_obj(f"Album with key {album.id} not found")
 				]
 			)
 	except IntegrityError:
@@ -161,5 +142,3 @@ def delete(
 			detail=[build_error_obj(f"Album cannot be deleted")
 			]
 		)
-
-

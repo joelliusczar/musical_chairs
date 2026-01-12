@@ -5,7 +5,7 @@ import {
 	Dialog,
 	Typography,
 } from "@mui/material";
-import { searchUsers } from "../../API_Calls/userCalls";
+import { Calls } from "../../API_Calls/userCalls";
 import debouncePromise from "debounce-promise";
 import PropTypes from "prop-types";
 import { useSnackbar } from "notistack";
@@ -50,7 +50,7 @@ export const UserSearch = (
 		if (!inputValue) {
 			return;
 		}
-		const requestObj = searchUsers({ params: {searchTerm: inputValue} });
+		const requestObj = Calls.searchUsers({ params: {searchTerm: inputValue} });
 		const searchCall = debouncePromise(async (searchTerm: string) => {
 			try {
 				if (searchTerm in searchCache.current) {

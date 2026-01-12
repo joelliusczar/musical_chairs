@@ -18,4 +18,6 @@ export type PageableParams = PrimitiveObject & {
 	id?: IdValue
 	name?: string
 	limit?: number
+	orderby?: string
+	sortasc?: boolean
 };

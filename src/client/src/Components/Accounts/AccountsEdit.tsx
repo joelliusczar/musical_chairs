@@ -9,9 +9,7 @@ import debouncePromise from "debounce-promise";
 import { validatePhraseIsUnused } from "../../Helpers/validation_helpers";
 import { formatError } from "../../Helpers/error_formatter";
 import {
-	fetchUser,
-	updateAccountBasic,
-	updatePassword,
+	Calls,
 } from "../../API_Calls/userCalls";
 import {
 	useVoidWaitingReducer,
@@ -76,7 +74,7 @@ export const AccountsEdit = () => {
 			return;
 		}
 		try {
-			const requestObj = updatePassword({
+			const requestObj = Calls.updatePassword({
 				subjectuserkey: pathVars.userkey, 
 				...values,
 			});
@@ -99,7 +97,7 @@ export const AccountsEdit = () => {
 	const { handleSubmit, reset, watch, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = updateAccountBasic(
+			const requestObj = Calls.updateAccountBasic(
 				{subjectuserkey: values.id, data: values}
 			);
 			const data = await requestObj.call();
@@ -122,7 +120,7 @@ export const AccountsEdit = () => {
 		if (!key || (!isDiffId && !isDiffName)) {
 			return;
 		}
-		const requestObj = fetchUser({ subjectuserkey: key });
+		const requestObj = Calls.get({ subjectuserkey: key });
 		const fetch = async () => {
 			try {
 				dispatch(dispatches.started());

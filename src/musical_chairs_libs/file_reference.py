@@ -144,6 +144,10 @@ class SqlScripts(Enum):
 		"036.update_collations.sql",
 		"ffda3d82c1a50ea25dab4d00ec79446f5390644ef7fda88af293e0bdd83a3852"
 	)
+	SONGS_EXPAND_GENRE = (
+		"037.songs_expand_genre.sql",
+		"053387198a342aabf0f3e157971096e56f9a12e33cfc31eff2a02574b83ff0b9"
+	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",
 		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"

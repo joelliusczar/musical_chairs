@@ -304,6 +304,8 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_api_user_script(
 			SqlScripts.NORMALIZE_OPENING_SLASH
 		)
+		ownerConnService.run_defined_script(SqlScripts.SONGS_EXPAND_GENRE)
+		
 
 		if not dbName.startswith("test_"):
 			Path(f"/tmp/{get_schema_hash()}").touch()

@@ -189,7 +189,10 @@ class SongFileService:
 		internalDirs = "/".join([*cleanedSuffix[:5]])
 		internalPath = f"{user.username}/{internalDirs}/"\
 			+ f"{str(uuid.uuid4())}-{cleanedSuffix}{extension}"
-		with self.file_service.save_song(internalPath, file) as uploaded:
+		with self.file_service.save_song(
+			squash_sequential_duplicate_chars(internalPath, "/"),
+			file
+		) as uploaded:
 			hasher = hashlib.sha256()
 			for chunk in uploaded:
 				hasher.update(chunk)

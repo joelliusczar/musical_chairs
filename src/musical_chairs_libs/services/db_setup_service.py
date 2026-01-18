@@ -307,6 +307,16 @@ def setup_database(dbName: str):
 			SqlScripts.NORMALIZE_OPENING_SLASH
 		)
 		ownerConnService.run_defined_script(SqlScripts.SONGS_EXPAND_GENRE)
+		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_PLAYNUM)
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_STATIONSSONGS_LASTPLAYEDNUM
+		)
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_STATIONSALBUMS_LASTPLAYEDNUM
+		)
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_STATIONSPLAYLISTS_LASTPLAYEDNUM
+		)
 		
 
 		if not dbName.startswith("test_"):

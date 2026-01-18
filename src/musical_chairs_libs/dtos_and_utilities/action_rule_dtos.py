@@ -28,12 +28,14 @@ class ActionRule(MCBaseClass):
 	domain: str=UserRoleDomain.Site.value
 	# model_config=ConfigDict(revalidate_instances="subclass-instances")
 
+
 	@staticmethod
 	def sorted(rules: Iterable["ActionRule"]) -> list["ActionRule"]:
 		s = sorted(rules, key=attrgetter("score"))
 		s.sort(key=attrgetter("priority"), reverse=True)
 		s.sort(key=attrgetter("name"))
 		return s
+
 
 	@staticmethod
 	def aggregate(
@@ -44,9 +46,11 @@ class ActionRule(MCBaseClass):
 			*args
 		) if filter(r))
 
+
 	@property
 	def priorityElse(self) -> int:
 		return self.priority or RulePriorityLevel.NONE.value
+
 
 	@property
 	def score(self) -> float:
@@ -54,9 +58,11 @@ class ActionRule(MCBaseClass):
 			return sys.maxsize
 		return abs(self.count / self.span)
 
+
 	@property
 	def noLimit(self) -> bool:
 		return not self.span
+
 
 	@property
 	def blocked(self) -> bool:
@@ -64,8 +70,10 @@ class ActionRule(MCBaseClass):
 		#my comparison methods again
 		return not self.noLimit and not self.count
 
+
 	def conforms(self, rule: str) -> bool:
 		return rule == self.name
+
 
 	def __gt__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:
@@ -78,6 +86,7 @@ class ActionRule(MCBaseClass):
 			return False
 		return self.score > other.score
 
+
 	def __lt__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
 			return True
@@ -88,6 +97,7 @@ class ActionRule(MCBaseClass):
 		if (self.priorityElse) > (other.priorityElse):
 			return False
 		return self.score < other.score
+
 
 	def __ge__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:
@@ -100,6 +110,7 @@ class ActionRule(MCBaseClass):
 			return False
 		return self.score >= other.score
 
+
 	def __le__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
 			return True
@@ -111,17 +122,20 @@ class ActionRule(MCBaseClass):
 			return False
 		return self.score <= other.score
 
+
 	def __eq__(self, other: Any) -> bool:
 		if not other:
 			return False
 		return self.name == other.name and\
 			self.span == other.span and self.count == other.count
 
+
 	def __ne__(self, other: Any) -> bool:
 		if not other:
 			return True
 		return self.name != other.name or\
 			self.span != other.span or self.count != other.count
+
 
 	def __hash__(self) -> int:
 		return hash((
@@ -130,6 +144,7 @@ class ActionRule(MCBaseClass):
 			self.count,
 			self.priority
 		))
+
 
 	def to_path_rule(self, path: str) -> "PathsActionRule":
 		return PathsActionRule(
@@ -141,11 +156,13 @@ class ActionRule(MCBaseClass):
 			path=path
 		)
 
+
 	@staticmethod
 	def filter_out_repeat_roles(
 		rules: Iterable["ActionRule"]
 	) -> Iterator["ActionRule"]:
 		yield from (next(g[1]) for g in groupby(rules, key=lambda k: k.name))
+
 
 	@staticmethod
 	def row_to_action_rule(row: RowMapping) -> "ActionRule":
@@ -185,16 +202,19 @@ class PathsActionRule(ActionRule):
 	path: Optional[str]=None
 	domain: str=UserRoleDomain.Path.value
 
+
 	def is_parent_path(self, path: Optional[str]) -> bool:
 		if not self.path or not path:
 			return False
 		return path.startswith(self.path) and len(path) > len(self.path)
+
 
 	def __eq__(self, other: Any) -> bool:
 		if self.path is None and not hasattr(other, "path"):
 			return super().__eq__(other)
 		return super().__eq__(other) \
 			and self.path == other.path
+
 
 	def __hash__(self) -> int:
 		if self.path is None:
@@ -208,9 +228,11 @@ class PathsActionRule(ActionRule):
 			self.path
 		))
 
+
 	def __ne__(self, other: Any) -> bool:
 		return super().__ne__(other) \
 			or self.path != other.path
+
 
 	def __gt__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:
@@ -230,6 +252,7 @@ class PathsActionRule(ActionRule):
 			return True
 		return self.score > other.score
 
+
 	def __lt__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
 			return True
@@ -248,6 +271,7 @@ class PathsActionRule(ActionRule):
 			return False
 		return self.score < other.score
 
+
 	def __le__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
 			return True
@@ -265,6 +289,7 @@ class PathsActionRule(ActionRule):
 		else:
 			return False
 		return self.score <= other.score
+
 
 	def __ge__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:

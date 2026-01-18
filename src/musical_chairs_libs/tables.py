@@ -245,6 +245,7 @@ stations = Table("stations", metadata,
 	Column("viewsecuritylevel", Integer, nullable=True),
 	Column("typeid", Integer, nullable=False, default=0),
 	Column("bitratekps", Integer, nullable=True),
+	Column("playnum", Integer, nullable=False, default=1)
 )
 
 st = stations.c
@@ -257,6 +258,7 @@ st_requestSecurityLevel = cast(Column[Integer],st.requestsecuritylevel)
 st_viewSecurityLevel = cast(Column[Integer],st.viewsecuritylevel)
 st_typeid = cast(Column[Integer],st.typeid)
 st_bitrate = cast(Column[Optional[Integer]], st.bitratekps)
+st_playnum = cast(Column[Integer],st.playnum)
 Index("idx_uniquestationname", st_name, st_ownerFk, unique=True)
 
 
@@ -265,7 +267,8 @@ stations_songs = Table("stationssongs", metadata,
 	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
 	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
 		nullable=True),
-	Column("lastmodifiedtimestamp", Double[float], nullable=True)
+	Column("lastmodifiedtimestamp", Double[float], nullable=True),
+	Column("lastplayednum", Integer, nullable=False, default=0)
 )
 stsg = stations_songs.c
 
@@ -274,6 +277,7 @@ stsg_stationFk = cast(Column[Integer], stations_songs.c.stationfk)
 stsg_lastmodifiedtimestamp = cast(
 	Column[Double[float]], stations_songs.c.lastmodifiedtimestamp
 )
+stsg_lastplayednum = cast(Column[Integer], stsg.lastplayednum)
 Index("idx_stationssongs", stsg_songFk, stsg_stationFk, unique=True)
 
 
@@ -282,7 +286,8 @@ stations_albums = Table("stationsalbums",metadata,
 	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
 		Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
 		nullable=True),
-	Column("lastmodifiedtimestamp", Double[float], nullable=True)
+	Column("lastmodifiedtimestamp", Double[float], nullable=True),
+	Column("lastplayednum", Integer, nullable=False, default=0)
 )
 stab = stations_albums.c
 
@@ -292,6 +297,7 @@ stab_lastmodifiedtimestamp = cast(
 	Column[Double[float]],
 	stab.lastmodifiedtimestamp
 )
+stab_lastplayednum = cast(Column[Integer], stab.lastplayednum)
 Index("idx_stationsalbums", stab_albumFk, stab_stationFk, unique=True)
 
 
@@ -300,7 +306,8 @@ stations_playlists = Table("stationsplaylists",metadata,
 	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
 		Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
 		nullable=True),
-	Column("lastmodifiedtimestamp", Double[float], nullable=True)
+	Column("lastmodifiedtimestamp", Double[float], nullable=True),
+	Column("lastplayednum", Integer, nullable=False, default=0)
 )
 stpl = stations_playlists.c
 
@@ -310,6 +317,7 @@ stpl_lastmodifiedtimestamp = cast(
 	Column[Double[float]],
 	stpl.lastmodifiedtimestamp
 )
+stpl_lastplayednum = cast(Column[Integer], stpl.lastplayednum)
 Index("idx_stationsplaylists", stpl_playlistFk, stpl_stationFk, unique=True)
 
 

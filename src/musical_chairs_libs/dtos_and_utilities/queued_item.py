@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule
 from .artist_dtos import ArtistInfo
@@ -84,3 +85,9 @@ class SongsArtistInfo(ArtistInfo):
 class QueueRequest(IdItem):
 	itemtype: str
 	parentKey: Optional[int]
+
+@dataclass
+class QueuePossibility:
+	itemId: int
+	lastplayednum: int
+	playnum: int

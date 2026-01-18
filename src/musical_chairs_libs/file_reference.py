@@ -148,6 +148,22 @@ class SqlScripts(Enum):
 		"037.songs_expand_genre.sql",
 		"053387198a342aabf0f3e157971096e56f9a12e33cfc31eff2a02574b83ff0b9"
 	)
+	ADD_STATION_PLAYNUM = (
+		"038.add_station_playnum.sql",
+		"4e382e6249b69e985ae3bba0c70cba2d49ebb30594dd70915815b05fd08b2be8"
+	)
+	ADD_STATIONSSONGS_LASTPLAYEDNUM = (
+		"039.add_stationssongs_lastplayednum.sql",
+		"0785913e968cf27ba6a14eb438fb8d54a51bda2a866a96987823f8c0de70cb36"
+	)
+	ADD_STATIONSALBUMS_LASTPLAYEDNUM = (
+		"040.add_stationsalbums_lastplayednum.sql",
+		"6a0a66c6e49517c91bc19402a49d167806326007f16b66785d74b1aa4dd24010"
+	)
+	ADD_STATIONSPLAYLISTS_LASTPLAYEDNUM = (
+		"041.add_stationsplaylists_lastplayednum.sql",
+		"bf73ca0d65cc05d47718d24ee7cd0cf3d1707bf73d37437ed285c2904616fc0f"
+	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",
 		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"

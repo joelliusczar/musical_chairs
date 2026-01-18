@@ -197,7 +197,7 @@ class StationsPlaylistsService:
 		.where(stpl_playlistFk == playlistId)
 
 		if self.current_user_provider.is_loggedIn():
-			query = self.station_service.__attach_user_joins__(query, scopes)
+			query = self.station_service.__build_user_rule_filters__(query, scopes)
 		else:
 			if scopes:
 				return

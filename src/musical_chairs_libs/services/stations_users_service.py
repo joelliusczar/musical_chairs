@@ -19,9 +19,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	StationActionRule,
 	RulePriorityLevel,
-	build_station_rules_query,
 	generate_station_user_and_rules_from_rows,
 )
+from .station_service import build_station_rules_query
 from musical_chairs_libs.tables import (
 
 	station_user_permissions as station_user_permissions_tbl, stup_userFk,
@@ -46,6 +46,7 @@ class StationsUsersService:
 		self.conn = conn
 		self.get_datetime = get_datetime
 		self.current_user_provider = currentUserProvider
+
 
 	def add_user_rule_to_station(
 		self,

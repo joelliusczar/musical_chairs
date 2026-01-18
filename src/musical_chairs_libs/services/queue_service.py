@@ -36,7 +36,8 @@ from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.tables import (
 	songs,
 	stations,
-	stations_songs as stations_songs_tbl, stsg_stationFk, stsg_songFk,
+	stations_songs as stations_songs_tbl, stsg_stationFk, stsg_songFk, 
+	stsg_lastplayednum,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp, uah_action,
 	station_queue, q_userActionHistoryFk, q_songFk, q_stationFk,
@@ -47,7 +48,7 @@ from musical_chairs_libs.tables import (
 	sgar_pk, sgar_songFk, sgar_artistFk, sgar_isPrimaryArtist,
 	sg_pk, sg_name, sg_path, sg_albumFk, sg_internalpath, sg_deletedTimstamp,
 	sg_track,
-	stations as stations_tbl, st_pk, st_typeid,
+	stations as stations_tbl, st_pk, st_typeid, st_playnum,
 	ar_pk, ar_name,
 	ab_pk, ab_name, ab_versionnote,
 	last_played, lp_songFk, lp_stationFk, lp_timestamp, lp_itemType, lp_parentKey
@@ -65,7 +66,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	QueueRequest,
 	OwnerInfo,
 	normalize_opening_slash,
-	SimpleQueryParameters
+	QueuePossibility,
+	SimpleQueryParameters,
+	StationCreationInfo
 )
 from musical_chairs_libs.file_reference import SqlScripts
 from musical_chairs_libs.protocols import (
@@ -143,36 +146,26 @@ class QueueService(SongPopper, RadioPusher):
 
 	def get_all_station_possibilities(
 		self, stationPk: int
-	) -> Iterator[Tuple[int, float]]:
+	) -> list[QueuePossibility]:
 		query = select(
 			sg_pk,
+			stsg_lastplayednum,
+			st_playnum,
 			sg_path,
-			func.max(coalesce(uah_queuedTimestamp,0))
 		) \
 			.select_from(stations) \
 			.join(stations_songs_tbl, st_pk == stsg_stationFk) \
 			.join(songs, sg_pk == stsg_songFk) \
-			.join(station_queue, (q_stationFk == st_pk) \
-				& (q_songFk == sg_pk), isouter=True) \
-			.join(last_played, (lp_stationFk == st_pk) \
-				& (lp_songFk == sg_pk), isouter=True
-			)\
-			.join(user_action_history_tbl,
-				(uah_pk == q_userActionHistoryFk),
-				isouter=True
-			)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.where(st_pk == stationPk) \
 			.group_by(sg_pk, sg_path) \
 			.order_by(
-				desc(func.max(coalesce(uah_queuedTimestamp, 0))),
-				desc(func.max(coalesce(uah_timestamp, 0))),
-				desc(coalesce(lp_timestamp, 0)),
+				desc(stsg_lastplayednum),
 				func.rand()
 			)
 
 		rows = self.conn.execute(query)
-		yield from ((r[0], r[2]) for r in rows)
+		return [QueuePossibility(r[0], r[1], r[2]) for r in rows]
 
 
 	def get_random_songIds(
@@ -182,16 +175,15 @@ class QueueService(SongPopper, RadioPusher):
 	) -> Collection[int]:
 		def weigh(n: float) -> float:
 			return n * n
-		rows = [*self.get_all_station_possibilities(stationId)]
-		mostRecentDraw = rows[0][1] or self.get_datetime().timestamp() \
-			if len(rows) > 1 else self.get_datetime().timestamp()
-		ages = [(mostRecentDraw - (r[1] or 0)) for r in rows]
+		rows = self.get_all_station_possibilities(stationId)
+		playNum = rows[0].playnum or 1 if len(rows) > 1 else 1
+		ages = [(playNum - r.lastplayednum) for r in rows]
 		total = sum((weigh(a) for a in ages))
 		weights = [weigh(a)/total for a in ages]
 		zeroCount = sum(1 for w in weights if w == 0)
 		sampleSize = deficitSize if deficitSize < len(rows) - zeroCount \
 			else len(rows) - zeroCount
-		songIds = [r[0] for r in rows]
+		songIds = [r.itemId for r in rows]
 		if not songIds:
 			raise RuntimeError("No song possibilities were found")
 		try:
@@ -216,8 +208,22 @@ class QueueService(SongPopper, RadioPusher):
 				if trackingInfo.userAgent \
 				else None
 		timestamp = self.get_datetime().timestamp()
+		station = self.station_service.get_station_unsecured(stationId)
 		insertedIds: list[int] = []
 		timestampOffset = 0.0
+
+		lastPlayedUpdate = update(stations_songs_tbl)\
+			.values(lastplayednum = station.playnum) \
+			.where(stsg_songFk.in_(songIds))
+		self.conn.execute(lastPlayedUpdate)
+
+		self.station_service.update_station(StationCreationInfo(
+				**station.model_dump(exclude={"id", "playnum"}),
+				playnum=station.playnum + 1,
+			),
+			stationId,
+		)
+		
 		for _ in songIds:
 			historyInsert = insert(user_action_history_tbl)
 			insertedId = self.conn.execute(historyInsert, {

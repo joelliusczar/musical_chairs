@@ -252,7 +252,7 @@ def test_song_save(
 			"isrunning": False,
 			"typeid": StationTypes.SONGS_ONLY.value,
 			"bitratekps": None,
-			"playedcount": 0
+			"playnum": 1
 		},
 		{
 			"id": 7,
@@ -264,7 +264,7 @@ def test_song_save(
 			"isrunning": False,
 			"typeid": StationTypes.SONGS_ONLY.value,
 			"bitratekps": None,
-			"playedcount": 0
+			"playnum": 1
 		},
 		{
 			"id": 10,
@@ -276,7 +276,7 @@ def test_song_save(
 			"isrunning": False,
 			"typeid": StationTypes.SONGS_ONLY.value,
 			"bitratekps": None,
-			"playedcount": 0
+			"playnum": 1
 		}
 	]
 	sendData["artists"] = [
@@ -565,7 +565,7 @@ def test_get_songs_for_multi_edit(
 			"viewsecuritylevel": 0,
 			"typeid": StationTypes.SONGS_ONLY.value,
 			"bitratekps": None,
-			"playedcount": 0
+			"playnum": 1
 		}
 	]
 	assert "stations" in touched

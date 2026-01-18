@@ -12,7 +12,6 @@ from sqlalchemy import (
 )
 from sqlalchemy import Integer, String, Float
 from musical_chairs_libs.tables import (
-	stup_role, stup_stationFk, stup_userFk, stup_count, stup_span, stup_priority,
 	ur_userFk, ur_role, ur_count, ur_span, ur_priority,
 	u_username, u_pk, u_displayName, u_email, u_dirRoot,
 	pup_role, pup_userFk, pup_count, pup_span, pup_priority, pup_path
@@ -36,20 +35,6 @@ from .simple_functions import normalize_opening_slash
 
 
 
-__station_permissions_query__ = select(
-	stup_userFk.label("rule_userfk"),
-	stup_role.label("rule_name"),
-	stup_count.label("rule_count"),
-	stup_span.label("rule_span"),
-	coalesce[Integer](
-		stup_priority,
-		RulePriorityLevel.STATION_PATH.value
-	).label("rule_priority"),
-	dbLiteral(UserRoleDomain.Station.value).label("rule_domain"),
-	stup_stationFk.label("rule_stationfk")
-)
-
-
 __path_permissions_query__ = select(
 	pup_userFk.label("rule_userfk"),
 	pup_role.label("rule_name"),
@@ -64,17 +49,12 @@ __path_permissions_query__ = select(
 )
 
 def build_placeholder_select(
-	domain:UserRoleDomain
+	ruleNameValue: str
 ) -> Select[Tuple[int, str, float, float, int, str]]:
-	ruleNameValue = dbLiteral(UserRoleDef.PATH_VIEW.value)
-	if domain == UserRoleDomain.Station:
-		ruleNameValue = dbLiteral(UserRoleDef.STATION_VIEW.value)
-	elif domain == UserRoleDomain.Playlist:
-		ruleNameValue = dbLiteral(UserRoleDef.PLAYLIST_VIEW.value)
 
 	query = select(
 		dbLiteral(0).label("rule_userfk"),
-		cast(Column[str], ruleNameValue).label("rule_name"),
+		dbLiteral(ruleNameValue).label("rule_name"),
 		cast(Column[float],dbLiteral(0)).label("rule_count"),
 		cast(Column[float],dbLiteral(0)).label("rule_span"),
 		dbLiteral(0).label("rule_priority"),
@@ -83,49 +63,6 @@ def build_placeholder_select(
 
 	return query
 
-#int, String, int, int, int, str]]:
-
-def build_station_rules_query(
-	userId: Optional[int]=None
-) -> CompoundSelect[Tuple[int, str, float, float, int, str]]:
-	user_rules_query = select(
-		ur_userFk.label("rule_userfk"),
-		ur_role.label("rule_name"),
-		ur_count.label("rule_count"),
-		ur_span.label("rule_span"),
-		coalesce[Integer](
-			ur_priority,
-			case(
-				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
-				else_=RulePriorityLevel.SITE.value
-			)
-		).label("rule_priority"),
-		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
-		dbLiteral(None).label("rule_stationfk")
-	).where(or_(
-			ur_role.like(f"{UserRoleDomain.Station.value}:%"),
-			ur_role == UserRoleDef.ADMIN.value
-		),
-	)
-	domain_permissions_query = __station_permissions_query__
-	placeholder_select = build_placeholder_select(
-		UserRoleDomain.Station
-	).add_columns(
-		dbLiteral(None).label("rule_stationfk")
-	)
-
-
-	if userId is not None:
-		domain_permissions_query = \
-			domain_permissions_query.where(stup_userFk == userId)
-		user_rules_query = user_rules_query.where(ur_userFk == userId)
-		
-	query = union_all(
-		placeholder_select,
-		domain_permissions_query,
-		user_rules_query,
-	)
-	return query
 
 
 def build_path_rules_query(
@@ -158,7 +95,7 @@ def build_path_rules_query(
 
 	path_permissions_query = __path_permissions_query__
 	placeholder_select = build_placeholder_select(
-		UserRoleDomain.Path
+		UserRoleDef.PATH_VIEW.value
 	).add_columns(
 		dbLiteral(None).label("rule_path")
 	)

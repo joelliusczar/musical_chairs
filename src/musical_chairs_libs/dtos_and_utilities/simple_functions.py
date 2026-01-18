@@ -143,7 +143,7 @@ def normalize_closing_slash(
 			return path
 	return path[:-1]
 
-def squash_sequential_duplicates(
+def squash_elements(
 	compressura: Iterable[T],
 	pattern: T
 ) -> Iterator[T]:
@@ -158,11 +158,11 @@ def squash_sequential_duplicates(
 		previous = element
 		yield element
 
-def squash_sequential_duplicate_chars(
+def squash_chars(
 	compressura: str,
 	pattern: str
 ) -> str:
-	return "".join(squash_sequential_duplicates(compressura, pattern))
+	return "".join(squash_elements(compressura, pattern))
 
 def format_newlines_for_stream(input: str) -> str:
 	cleaned = input.replace("\n", " ")

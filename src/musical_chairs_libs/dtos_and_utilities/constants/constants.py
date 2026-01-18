@@ -33,8 +33,8 @@ class JobStatusTypes(Enum):
 #these types are for the station itself
 class StationTypes(Enum):
 	SONGS_ONLY = 0
-	ALBUMS_ONLY = 1
-	PLAYLISTS_ONLY = 2
+	ALBUMS_ONLY = 1 #deprecated
+	PLAYLISTS_ONLY = 2 #deprecated
 	ALBUMS_AND_PLAYLISTS = 3
 
 #these types are for the songs and help differentiate between an album id

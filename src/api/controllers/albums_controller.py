@@ -33,7 +33,7 @@ router = APIRouter(prefix="/albums")
 def get_page(
 	name: str="",
 	artist: str="",
-	queryParams: SimpleQueryParameters = Depends(get_query_params,),
+	queryParams: SimpleQueryParameters = Depends(get_query_params),
 	albumService: AlbumService = Depends(album_service)
 ) -> TableData[AlbumInfo]:
 

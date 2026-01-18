@@ -27,9 +27,6 @@
       with_first_found:
         - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
     - include_vars: 
-        file: 'vars/vault.yml'
-        hash_behaviour: merge
-    - include_vars: 
         file: 'vars/local_keys.yml'
         hash_behaviour: merge
       when: inventory_hostname in ["127.0.0.1", "localhost"]

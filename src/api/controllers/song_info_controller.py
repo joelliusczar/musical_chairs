@@ -307,6 +307,24 @@ def create_directory(
 		return result
 
 
+@router.put("/directory")
+def rename_directory(
+	suffix: str,
+	prefix: str = Security(
+		get_write_secured_prefix,
+		scopes=[UserRoleDef.PATH_MOVE.value]
+	),
+	songFileService: SongFileService = Depends(song_file_service)
+) -> dict[str, ListData[SongTreeNode]]:
+		result = {
+		x[0]:ListData(
+			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
+			) for x
+			in songFileService.rename_directory(prefix, suffix).items()
+		}
+		return result
+
+
 @router.post("/upload/", dependencies=[
 	Security(
 		check_scope,
@@ -360,3 +378,4 @@ def move_path(
 		in songFileService.move_path(transfer).items()
 	}
 	return result
+	

@@ -8,13 +8,11 @@ from typing import Any
 from musical_chairs_libs.services import (
 	ActionsHistoryManagementService,
 	ActionsHistoryQueryService,
-	AlbumQueueService,
 	BasicUserProvider,
 	CollectionQueueService,
 	CurrentUserProvider,
 	EmptyUserTrackingService,
 	PathRuleService,
-	PlaylistQueueService,
 	ProcessService,
 	QueueService,
 	SongInfoService,
@@ -149,11 +147,10 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 
 	queueServiceType = QueueService
 
-	if station.typeid == StationTypes.ALBUMS_ONLY.value:
-		queueServiceType = AlbumQueueService
-	elif station.typeid == StationTypes.PLAYLISTS_ONLY.value:
-		queueServiceType = PlaylistQueueService
-	elif station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
+	if station.typeid == StationTypes.ALBUMS_ONLY.value\
+		or station.typeid == StationTypes.PLAYLISTS_ONLY.value\
+		or station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
+	:
 		queueServiceType = CollectionQueueService
 
 	fileService = file_service()

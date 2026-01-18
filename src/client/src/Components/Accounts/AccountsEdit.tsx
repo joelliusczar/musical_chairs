@@ -69,13 +69,13 @@ export const AccountsEdit = () => {
 	});
 	const { handleSubmit: passwordHandleSubmit } = passwordFormMethods;
 	const passwordCallSubmit = passwordHandleSubmit(async values => {
-		if (!pathVars.userkey) {
+		if (!pathVars.subjectuserkey) {
 			enqueueSnackbar("User is missing", { variant: "error"});
 			return;
 		}
 		try {
 			const requestObj = Calls.updatePassword({
-				subjectuserkey: pathVars.userkey, 
+				subjectuserkey: pathVars.subjectuserkey, 
 				...values,
 			});
 			await requestObj.call();
@@ -112,7 +112,7 @@ export const AccountsEdit = () => {
 
 	useEffect(() => {
 		const [ formId, formUsername] = watch(["id", "username"]);
-		const key = pathVars.userKey;
+		const key = pathVars.subjectuserkey;
 		const isNumKey = Number.isInteger(key);
 		const isStrKey = typeof key === "string";
 		const isDiffId = isNumKey && parseInt(key || "") !== formId;
@@ -137,7 +137,7 @@ export const AccountsEdit = () => {
 		fetch();
 
 		return () => requestObj.abortController.abort();
-	},[dispatch, pathVars.userKey, watch, enqueueSnackbar, reset]);
+	},[dispatch, pathVars.subjectuserkey, watch, enqueueSnackbar, reset]);
 
 	return (<Loader status={state.callStatus} error={state.error}>
 		<Box sx={inputField}>

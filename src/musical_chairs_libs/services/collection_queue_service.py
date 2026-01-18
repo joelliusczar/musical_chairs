@@ -14,6 +14,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	OwnerInfo,
 	SimpleQueryParameters,
 	UserRoleDomain,
+	StationTypes,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes,
@@ -23,7 +24,7 @@ from musical_chairs_libs.tables import (
 	albums as albums_tbl, ab_pk, ab_name, ab_year, ab_albumArtistFk, ab_ownerFk,
 	artists as artists_tbl, ar_pk, ar_name,
 	songs,
-	stations as stations_tbl,
+	stations as stations_tbl, st_typeid,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp, uah_action,
 	station_queue as station_queue_tbl, q_userActionHistoryFk, q_songFk, 
@@ -43,8 +44,6 @@ from musical_chairs_libs.tables import (
 )
 from .current_user_provider import CurrentUserProvider
 from .queue_service import QueueService
-from .album_queue_service import AlbumQueueService
-from .playlist_queue_service import PlaylistQueueService
 from numpy.random import (
 	choice as numpy_choice #pyright: ignore [reportUnknownVariableType]
 )
@@ -92,8 +91,6 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		conn: Connection,
 		queueService: QueueService,
 		currentUserProvider: CurrentUserProvider,
-		albumQueueService: Optional[AlbumQueueService]=None,
-		playlistQueueService: Optional[PlaylistQueueService]=None,
 		choiceSelector: Optional[
 			Callable[[Sequence[Any], int, Sequence[float]], Collection[Any]]
 		]=None,
@@ -103,22 +100,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				raise RuntimeError("No connection provided")
 			if not choiceSelector:
 				choiceSelector = choice
-			if not albumQueueService:
-				albumQueueService = AlbumQueueService(
-					conn,
-					queueService,
-					currentUserProvider,
-				)
-			if not playlistQueueService:
-				playlistQueueService = PlaylistQueueService(
-					conn,
-					queueService,
-					currentUserProvider,
-				)
 			self.conn = conn
 			self.queue_service = queueService
-			self.album_queue_service = albumQueueService
-			self.playlist_queue_service = playlistQueueService
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.current_user_provider = currentUserProvider
@@ -331,6 +314,65 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		)
 
 
+	def __add_album_to_queue__(
+		self,
+		itemId: int,
+		station: StationInfo,
+		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
+	):
+		if station and\
+			self.can_album_be_queued_to_station(
+				itemId,
+				station.id,
+			):
+			query = select(sg_pk)\
+				.where(sg_deletedTimstamp.is_(None))\
+				.where(sg_albumFk == itemId)
+			
+			rows = self.conn.execute(query)
+			self.queue_service.queue_insert_songs(
+				[QueueRequest(
+					id=r[0],
+					itemtype=StationRequestTypes.ALBUM.lower(),
+					parentKey=itemId
+				) for r in rows],
+				station.id,
+			)
+			self.conn.commit()
+			return
+		raise LookupError(f"album cannot be added to {station.name}")
+	
+
+	def __add_playlist_to_queue__(
+		self,
+		itemId: int,
+		station: StationInfo,
+		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
+	):
+		if station and\
+			self.can_playlist_be_queued_to_station(
+				itemId,
+				station.id
+			):
+			query = select(sg_pk)\
+				.join(playlists_songs_tbl, sg_pk == plsg_songFk)\
+				.where(sg_deletedTimstamp.is_(None))\
+				.where(plsg_playlistFk == itemId)
+
+			rows = self.conn.execute(query)
+			self.queue_service.queue_insert_songs(
+				[QueueRequest(
+					id=r[0],
+					itemtype=StationRequestTypes.PLAYLIST.lower(),
+					parentKey=itemId
+				) for r in rows],
+				station.id,
+			)
+			self.conn.commit()
+			return
+		raise LookupError(f"album cannot be added to {station.name}")
+
+
 	def add_to_queue(
 		self,
 		itemId: int,
@@ -339,18 +381,51 @@ class CollectionQueueService(SongPopper, RadioPusher):
 	):
 		
 		if stationItemType == StationRequestTypes.ALBUM:
-			self.album_queue_service.add_to_queue(
+			self.__add_album_to_queue__(
 				itemId,
 				station,
 				stationItemType
 			)
 		elif stationItemType == StationRequestTypes.PLAYLIST:
-			self.playlist_queue_service.add_to_queue(
+			self.__add_playlist_to_queue__(
 				itemId,
 				station,
 				stationItemType
 			)
 		return
+	
+
+	def can_playlist_be_queued_to_station(
+		self,
+		playlistId: int,
+		stationId: int
+	) -> bool:
+		query = select(func.count(1)).select_from(stations_playlists_tbl)\
+			.join(stations_tbl, stab_stationFk == st_pk)\
+			.where(stab_stationFk == stationId)\
+			.where(
+				st_typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value
+			)\
+			.where(stpl_playlistFk == playlistId)
+		countRes = self.conn.execute(query).scalar()
+		return True if countRes and countRes > 0 else False
+	
+
+	def can_album_be_queued_to_station(
+		self,
+		albumId: int,
+		stationId: int
+	) -> bool:
+		query = select(func.count(1)).select_from(stations_albums_tbl)\
+			.join(stations_tbl, stab_stationFk == st_pk)\
+			.where(stab_stationFk == stationId)\
+			.where(
+				st_typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value
+			)\
+			.where(stab_albumFk == albumId)
+		
+		countRes = self.conn.execute(query).scalar()
+		return True if countRes and countRes > 0 else False
 
 	
 	def can_collection_be_queued_to_station(
@@ -360,12 +435,12 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		stationItemType: StationRequestTypes
 	) -> bool:
 		if stationItemType == StationRequestTypes.ALBUM:
-			return self.album_queue_service.can_album_be_queued_to_station(
+			return self.can_album_be_queued_to_station(
 				collectionId, 
 				stationId
 			)
 		if stationItemType == StationRequestTypes.PLAYLIST:
-			return self.playlist_queue_service.can_playlist_be_queued_to_station(
+			return self.can_playlist_be_queued_to_station(
 				collectionId,
 				stationId
 			)
@@ -483,7 +558,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			.join(users_tbl, pl_ownerFk == u_pk)\
 			.where(st_pk == stationId)
 		
-		sub = union_all(albumQuery, playlistQuery).cte()
+		unioned_query = union_all(albumQuery, playlistQuery)
+		sub = unioned_query.cte()
 		
 		query = select(
 			sub.c.id.label("id"),
@@ -500,7 +576,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			query = query.where(sub.c.name.like(f"%{lname}%"))
 
 		if lcreator:
-			query = albumQuery.where(sub.c.creator.like(f"%{lcreator}%"))
+			query = query.where(sub.c.creator.like(f"%{lcreator}%"))
 
 		limitedQuery = query\
 			.offset(offset)\
@@ -539,11 +615,11 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				displayname=r["ownerdisplayname"]
 			)
 			) for r in records]
-		countQuery = select(func.count(1))\
-			.select_from(cast(Any, query))
+		countQuery = select(func.count(1)).select_from(sub)
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
-	
+
+
 	def remove_song_from_queue(self,
 		songId: int,
 		queuedTimestamp: float,

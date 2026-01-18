@@ -43,9 +43,7 @@ from musical_chairs_libs.services import (
 	StationsPlaylistsService,
 	StationsSongsService,
 	StationsUsersService,
-	AlbumQueueService,
 	StationProcessService,
-	PlaylistQueueService,
 	CollectionQueueService,
 	CurrentUserProvider,
 	
@@ -244,6 +242,7 @@ def actions_history_query_service(
 
 def file_service() -> FileService:
 	return S3FileService()
+
 
 def basic_user_provider(
 	user: AccountInfo = Depends(get_optional_user_from_token),
@@ -680,6 +679,7 @@ def get_playlist_by_name_and_owner(
 		)
 	return playlist
 
+
 def get_playlist_by_id(
 	playlistid: int=Path(),
 	playlistService: PlaylistService = Depends(playlist_service),
@@ -693,6 +693,7 @@ def get_playlist_by_id(
 			)]
 		)
 	return playlist
+
 
 def __check_playlist_scopes__(
 	securityScopes: SecurityScopes,
@@ -718,6 +719,7 @@ def __check_playlist_scopes__(
 	)
 	if not rules:
 		raise WrongPermissionsError()
+
 
 def get_secured_playlist_by_id(
 	securityScopes: SecurityScopes,
@@ -865,11 +867,10 @@ def station_radio_pusher(
 ) -> RadioPusher:
 	if station.typeid == StationTypes.SONGS_ONLY.value:
 		return queueService
-	if station.typeid == StationTypes.ALBUMS_ONLY.value:
-		return AlbumQueueService(conn, queueService, currentUserProvider)
-	if station.typeid == StationTypes.PLAYLISTS_ONLY.value:
-		return PlaylistQueueService(conn, queueService, currentUserProvider)
-	if station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
+	if station.typeid == StationTypes.ALBUMS_ONLY.value\
+		or station.typeid == StationTypes.PLAYLISTS_ONLY.value\
+		or station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
+			:
 		return CollectionQueueService(conn, queueService, currentUserProvider)
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
@@ -946,19 +947,6 @@ def get_page_num(
 	return page
 
 
-def user_for_filters(
-	securityScopes: SecurityScopes,
-	user: AccountInfo = Depends(get_current_user_simple)
-) -> Optional[AccountInfo]:
-	if user.isadmin:
-		return None
-	scopeSet = {s for s in securityScopes.scopes}
-	if any(r.name in scopeSet for r in user.roles):
-		return None
-	return user
-
-
-
 def check_back_key(
 	x_back_key: str = Header(),
 	envManager: ConfigAcessors=Depends(ConfigAcessors)
@@ -983,10 +971,11 @@ def get_query_params(
 		)
 
 def get_secured_query_params(
+	securityScopes: SecurityScopes,
 	queryParams: SimpleQueryParameters=Depends(get_query_params),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+	currentUser: AccountInfo = Depends(get_current_user_simple),
 ) -> SimpleQueryParameters:
-	currentUserProvider.get_rate_limited_user()
+	__check_scope__(securityScopes, currentUser)
 	return queryParams
 
 

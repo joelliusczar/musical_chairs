@@ -207,6 +207,9 @@ export const SongCatalogue = () => {
 						<Table size="small">
 							<TableHead>
 								<TableRow>
+									<TableCell>
+										Row #
+									</TableCell>
 									<OrderByField 
 										label="Song"
 										name="name"
@@ -255,6 +258,9 @@ export const SongCatalogue = () => {
 								{catalogueState?.data?.items?.map((item, idx) => {
 									return (
 										<TableRow key={`song_${idx}`}>
+											<TableCell>
+												{idx + 1}
+											</TableCell>
 											<TableCell>
 												{item.name || "{No song name}"}
 											</TableCell>

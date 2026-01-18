@@ -2,7 +2,7 @@ from typing import Any
 from musical_chairs_libs.dtos_and_utilities import (
 	seconds_to_tuple,
 	next_directory_level,
-	squash_sequential_duplicate_chars,
+	squash_chars,
 	interweave,
 	common_prefix
 )
@@ -128,20 +128,20 @@ def test_populate_model_from_datarow(fixture_conn_cardboarddb: Connection):
 	print("oh hai")
 
 def test_squash_sequential_duplicates():
-	result = squash_sequential_duplicate_chars("/alpha//bravo","/")
+	result = squash_chars("/alpha//bravo","/")
 	assert result == "/alpha/bravo"
 
-	result = squash_sequential_duplicate_chars("alpha//bravo","/")
+	result = squash_chars("alpha//bravo","/")
 	assert result == "alpha/bravo"
 
 
-	result = squash_sequential_duplicate_chars("//////alpha//bravo","/")
+	result = squash_chars("//////alpha//bravo","/")
 	assert result == "/alpha/bravo"
 
-	result = squash_sequential_duplicate_chars("//////","/")
+	result = squash_chars("//////","/")
 	assert result == "/"
 
-	result = squash_sequential_duplicate_chars("//////alpha//bravo////","/")
+	result = squash_chars("//////alpha//bravo////","/")
 	assert result == "/alpha/bravo/"
 
 def test_interweave():

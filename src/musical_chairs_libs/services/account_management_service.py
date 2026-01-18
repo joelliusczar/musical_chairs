@@ -311,7 +311,7 @@ class AccountManagementService:
 		if not authenticated:
 			return False
 		hash = hashpw(passwordInfo.newpassword.encode())
-		stmt = update(users).values(hashedPW = hash).where(u_pk == currentUser.id)
+		stmt = update(users).values(hashedpw = hash).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
 		self.actions_history_management_service.add_user_action_history_item(
 			UserActions.CHANGE_PASS.value,

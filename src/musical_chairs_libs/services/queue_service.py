@@ -11,14 +11,14 @@ from typing import (
 	Set,
 	Tuple,
 	Iterable,
-	Union,
 )
 from sqlalchemy import (
-	ColumnElement,
-	select,
+	and_,
+	distinct,
 	desc,
 	func,
 	insert,
+	select,
 	update,
 	literal,
 	union_all,
@@ -81,11 +81,15 @@ from numpy.random import (
 )
 
 
-def weigh(n: int, s: int) -> float:
-	return float(2 * n) / (s * (s + 1))
+played_count_query = select(
+	q_stationFk.label("countedstationid"),
+	q_songFk.label("countedsongid"),
+	func.count(q_userActionHistoryFk).label("count")
+)\
+	.group_by(q_stationFk, q_songFk)
 
-def weigh_sq(n: int, s: int) -> float:
-	return float(6 * n * n) / (s * (s + 1) * (2 * s + 1))
+played_count_cte = played_count_query.cte("playedcounts")
+counted_song_id = played_count_cte.c.countedsongid
 
 
 def choice(
@@ -770,40 +774,81 @@ class QueueService(SongPopper, RadioPusher):
 		if not queryParams:
 			queryParams = SimpleQueryParameters()
 
-		if queryParams.orderby:
-			orderByMap: dict[str, Union[str, ColumnElement[Any]]] = {
-				"name": sg_name,
-				"parentname": "album.name",
-				"creator": "artists.name",
-				"playedcount": "stations.playedcount"
-			}
-			if queryParams.sortdir == "dsc":
-				queryParams.orderByElement = desc(orderByMap[queryParams.orderby])
-			else:
-				queryParams.orderByElement = orderByMap[queryParams.orderby]
-
-		songs, count = self.song_info_service.get_fullsongs_page(
-			queryParams,
-			stationId,
-			name,
-			parentname,
-			creator,
+		query = self.song_info_service.full_song_base_query(
+			stationId=stationId,
+			song=name,
+			album=parentname,
+			artist=creator
 		)
 
+		countQuery = query.with_only_columns(func.count(distinct(sg_pk)))
+
+		count = self.conn.execute(countQuery).scalar() or 0
+
+		cte = query\
+			.outerjoin(
+				played_count_cte,
+				and_(
+					played_count_cte.c.countedsongid == sg_pk,
+					played_count_cte.c.countedstationid == stsg_stationFk
+				)
+			)\
+			.with_only_columns(
+				sg_pk.label("id"),
+				sg_path.label("path"),
+				coalesce(sg_name, "Missing Name").label("name"),
+				coalesce(ab_name, "No Album").label("parentname"),
+				coalesce(ar_name,"").label("creator"),
+				func.row_number().over(
+					partition_by=sg_pk,
+					order_by=(desc(sgar_isPrimaryArtist), desc(ar_pk))
+				).label("artistrank"),
+				coalesce(played_count_cte.c.count, 0).label("playedcount"),  
+			).cte()
+		
+		offset = queryParams.page * queryParams.limit if queryParams.limit else 0
+		cte_query = cte\
+			.select()\
+			.where(cte.c.artistrank == 1)\
+			.with_only_columns(
+				cte.c.id,
+				cte.c.name,
+				cte.c.path,
+				cte.c.parentname,
+				cte.c.creator,
+				cte.c.playedcount
+			)
+
+		if queryParams.sortdir == "dsc" and queryParams.orderby:
+			ordered_query = cte_query.order_by(desc(queryParams.orderby))
+		else:
+			ordered_query = cte_query.order_by(queryParams.orderby)
+			
+		ordered_query = ordered_query.offset(offset).limit(queryParams.limit)
+		
+
+		records = self.conn.execute(ordered_query).mappings()
+
+		user = self.current_user_provider.current_user(optional=True)
+		pathRuleTree = None
+		if user:
+			pathRuleTree = self.path_rule_service.get_rule_path_tree()
+
+
 		return [CatalogueItem(
-			id=s.id,
-			name=s.name or "Missing Name",
+			id=s["id"],
+			name=s["name"],
 			itemtype=StationRequestTypes.SONG.lower(),
 			requesttypeid=StationTypes.SONGS_ONLY.value,
 			queuedtimestamp=0,
-			parentname=s.album.name if s.album else "No Album",
-			creator=s.primaryartist.name 
-				if s.primaryartist 
-				else next((a.name for a in s.artists or []), ""),
-			rules=s.rules,
+			parentname=s["parentname"],
+			creator=s["creator"],
+			rules=list(pathRuleTree.values_flat(
+					normalize_opening_slash(cast(str, s["path"])))
+				) if pathRuleTree else [],
 			owner=OwnerInfo(id=0, username="", displayname="NA"),
-			playedcount=sum(t.playedcount for t in s.stations if t.id == stationId)
-		) for s in songs], count
+			playedcount=s["playedcount"]
+		) for s in records], count
 
 
 	def accepted_request_types(self) -> set[StationRequestTypes]:

@@ -226,7 +226,7 @@ export const CollectionCatalogue = () => {
 				<StationRouteSelect
 					getPageUrl={getPageUrl.getOtherUrl}
 					onChange={setStationCallback}
-					stationTypes={[StationTypes.ALBUMS_ONLY]}
+					stationTypes={[StationTypes.ALBUMS_AND_PLAYLISTS]}
 				/>
 			</Box>
 			<Box m={1}>
@@ -239,6 +239,7 @@ export const CollectionCatalogue = () => {
 							<Table size="small">
 								<TableHead>
 									<TableRow>
+										<TableCell>Row #</TableCell>
 										<TableCell>Name</TableCell>
 										<TableCell>Creator</TableCell>
 										<TableCell>Type</TableCell>
@@ -271,6 +272,7 @@ export const CollectionCatalogue = () => {
 									{catalogueState.data.items.map((item, idx) => {
 										return (
 											<TableRow key={`song_${idx}`}>
+												<TableCell>{idx + 1}</TableCell>
 												<TableCell>
 													{item.name || "{No name}"}
 												</TableCell>

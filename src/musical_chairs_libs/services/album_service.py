@@ -63,6 +63,10 @@ from musical_chairs_libs.tables import (
 	sgar_isPrimaryArtist
 )
 
+album_owner = user_tbl.alias("albumowner")
+albumOwnerId = cast(Column[Integer], album_owner.c.pk)
+artist_owner = user_tbl.alias("artistowner")
+artistOwnerId = cast(Column[Integer], artist_owner.c.pk)
 
 
 class AlbumService:
@@ -90,36 +94,17 @@ class AlbumService:
 		self.stations_albums_service = stationsAlbumsService
 		self.current_user_provider = currentUserProvider
 
-	def get_albums(
+	def get_albums_query(
 		self,
-		page: int = 0,
-		pageSize: Optional[int]=None,
 		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
 		artistKeys: Union[int, str, Iterable[int], None]=None,
 		exactStrMatch: bool=False
-	) -> Iterator[AlbumInfo]:
-		album_owner = user_tbl.alias("albumowner")
-		albumOwnerId = cast(Column[Integer], album_owner.c.pk)
-		artist_owner = user_tbl.alias("artistowner")
-		artistOwnerId = cast(Column[Integer], artist_owner.c.pk)
-		
-		query = select(
-			ab_pk.label("id"),
-			ab_name.label("name"),
-			ab_year.label("year"),
-			ab_versionnote.label("versionnote"),
-			ab_albumArtistFk.label("albumartistid"),
-			ab_ownerFk.label("album.ownerid"),
-			album_owner.c.username.label("album.ownername"),
-			album_owner.c.displayname.label("album.ownerdisplayname"),
-			ar_name.label("artist.name"),
-			ar_ownerFk.label("artist.ownerid"),
-			artist_owner.c.username.label("artist.ownername"),
-			artist_owner.c.displayname.label("artist.ownerdisplayname")
-		).select_from(albums_tbl)\
+	):
+		query = albums_tbl\
 			.join(artists_tbl, ar_pk == ab_albumArtistFk, isouter=True) \
 			.join(album_owner, albumOwnerId == ab_ownerFk, isouter=True) \
-			.join(artist_owner, artistOwnerId == ar_ownerFk, isouter=True)
+			.join(artist_owner, artistOwnerId == ar_ownerFk, isouter=True)\
+			.select()
 		if type(albumKeys) == int or albumKeys is None:
 			query = query.where(ab_pk == albumKeys)
 		elif type(albumKeys) is str:
@@ -149,17 +134,46 @@ class AlbumService:
 		user = self.current_user_provider.current_user(
 			optional=True
 		)
-		userId = user.id if user else None
 		if user:
 			query = query.where(or_(
 				ab_ownerFk == user.id,
 				dbLiteral(user.isadmin),
 				dbLiteral(user.has_roles(UserRoleDef.ALBUM_EDIT))
 			))
+
+		return query
+		
+
+	def get_albums(
+		self,
+		page: int = 0,
+		pageSize: Optional[int]=None,
+		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
+		artistKeys: Union[int, str, Iterable[int], None]=None,
+		exactStrMatch: bool=False
+	) -> Iterator[AlbumInfo]:
+		
+		query = self.get_albums_query(albumKeys, artistKeys, exactStrMatch)\
+		.with_only_columns(
+			ab_pk.label("id"),
+			ab_name.label("name"),
+			ab_year.label("year"),
+			ab_versionnote.label("versionnote"),
+			ab_albumArtistFk.label("albumartistid"),
+			ab_ownerFk.label("album.ownerid"),
+			album_owner.c.username.label("album.ownername"),
+			album_owner.c.displayname.label("album.ownerdisplayname"),
+			ar_name.label("artist.name"),
+			ar_ownerFk.label("artist.ownerid"),
+			artist_owner.c.username.label("artist.ownername"),
+			artist_owner.c.displayname.label("artist.ownerdisplayname"),
+			maintain_column_froms=True
+		)
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query).mappings()
+		records = self.conn.execute(query).mappings().fetchall()
 		ownerRules = cast(list[ActionRule],[*get_album_owner_roles()])
+		userId = self.current_user_provider.optional_user_id()
 		yield from (AlbumInfo(
 			id=row["id"],
 			name=row["name"],
@@ -209,11 +223,12 @@ class AlbumService:
 			album,
 			artist
 		))
-		countQuery = select(func.count(1))\
-			.select_from(albums_tbl)
+		countQuery = self.get_albums_query(album, artist)\
+			.with_only_columns(func.count(1))
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
-	
+
+
 	def get_song_counts(self) -> dict[int, int]:
 		query = select(ab_pk, func.count(sg_pk))\
 			.join(songs_tbl, sg_albumFk == ab_pk)\
@@ -223,7 +238,8 @@ class AlbumService:
 		records = self.conn.execute(query)
 
 		return {r[0]:r[1] for r in records}
-	
+
+
 	def get_album_songs(
 		self,
 		albumId: Optional[int],
@@ -362,6 +378,7 @@ class AlbumService:
 		delCount = self.conn.execute(delStmt).rowcount
 		self.conn.commit()
 		return delCount
+
 
 	def get_or_save_album(
 		self,

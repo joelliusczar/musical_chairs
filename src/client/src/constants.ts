@@ -136,8 +136,9 @@ export const RulePriorityLevel = {
 
 export const StationTypes = {
 	SONGS_ONLY: 0,
-	ALBUMS_ONLY: 1,
-	PLAYLISTS_ONLY: 2,
+	//Removed
+	// ALBUMS_ONLY: 1,
+	// PLAYLISTS_ONLY: 2,
 	ALBUMS_AND_PLAYLISTS: 3,
 };
 

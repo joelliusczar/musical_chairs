@@ -32,7 +32,6 @@ from musical_chairs_libs.services import (
 	PlaylistsSongsService,
 	StationsSongsService,
 	StationsUsersService,
-	AlbumQueueService,
 	StationsAlbumsService,
 	StationsPlaylistsService,
 	CurrentUserProvider,
@@ -278,20 +277,6 @@ def fixture_queue_service(
 		fixture_path_rule_service,
 	)
 	return queueService
-
-
-@pytest.fixture
-def fixture_album_queue_service(
-	fixture_conn_cardboarddb: Connection,
-	fixture_queue_service: QueueService,
-	fixture_current_user_provider: CurrentUserProvider,
-) -> AlbumQueueService:
-	albumQueueService = AlbumQueueService(
-		fixture_conn_cardboarddb,
-		fixture_queue_service,
-		fixture_current_user_provider
-	)
-	return albumQueueService
 
 
 @pytest.fixture

@@ -23,7 +23,7 @@ from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	normalize_opening_slash,
-	squash_sequential_duplicate_chars,
+	squash_chars,
 	PathsActionRule,
 	ChainedAbsorbentTrie,
 	SongTreeNode,
@@ -95,6 +95,7 @@ class SongFileService:
 		self.album_service = albumService
 		self.current_user_provider = currentUserProvider
 
+
 	def __create_directory__(
 		self,
 		prefix: str,
@@ -102,19 +103,21 @@ class SongFileService:
 		name: str,
 	):
 		user = self.current_user_provider.current_user()
+
 		path = normalize_opening_slash(
-			squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/"),
+			squash_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
 		)
 		self.delete_overlaping_placeholder_dirs(path)
 		stmt = insert(songs_tbl).values(
-			path = path,
+			path = unicodedata.normalize("NFC", path),
 			internalpath = str(uuid.uuid4()),
-			name = name,
+			name = unicodedata.normalize("NFC", name),
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
 		self.conn.execute(stmt)
+
 
 	def create_directory(
 		self,
@@ -124,7 +127,63 @@ class SongFileService:
 		self.__create_directory__(prefix, suffix, suffix)
 		self.conn.commit()
 		return self.song_ls_parents(prefix, includeTop=False)
-	
+
+
+	def __rename_directory__(
+		self,
+		prefix: str,
+		suffix: str,
+		name: str,
+	) -> str:
+		user = self.current_user_provider.current_user()
+		pathObj = Path(prefix)
+		parent = str(pathObj.parent)
+		newPath = normalize_opening_slash(
+			squash_chars(f"{parent}/{suffix}/", "/"),
+			addSlash=True
+		)
+		nOldPath = normalize_opening_slash(prefix)
+		lOldPath = nOldPath.replace("_","\\_").replace("%","\\%")
+
+		addSlash = True
+		nameUpdateStmt = update(songs_tbl)\
+			.where(func.normalize_opening_slash(
+				sg_path,
+				addSlash
+			) == nOldPath)\
+			.values(
+				lastmodifiedbyuserfk = user.id,
+				lastmodifiedtimestamp = self.get_datetime().timestamp(),
+				name = name
+			)
+		childrenUpdateStmt = update(songs_tbl)\
+			.where(func.normalize_opening_slash(
+				sg_path,
+				addSlash
+			).like(f"{lOldPath}%"))\
+			.values(
+				path = sg_path.regexp_replace(
+					f"^/?{re.escape(normalize_opening_slash(prefix, addSlash=False))}",
+					newPath
+				),
+				lastmodifiedbyuserfk = user.id,
+				lastmodifiedtimestamp = self.get_datetime().timestamp(),
+			)
+		self.conn.execute(nameUpdateStmt)
+		self.conn.execute(childrenUpdateStmt)
+		return newPath
+
+
+	def rename_directory(
+		self,
+		prefix: str,
+		suffix: str,
+	) -> Mapping[str, Collection[SongTreeNode]]:
+		newPath = self.__rename_directory__(prefix, suffix, suffix)
+		self.conn.commit()
+		return self.song_ls_parents(newPath, includeTop=False)
+
+
 	def extract_song_info(self, file: IO[bytes]) -> SongAboutInfo:
 		try:
 			tag = cast(Any, TinyTag.get(file_obj=file)) #pyright: ignore [reportUnknownMemberType]
@@ -161,6 +220,7 @@ class SongFileService:
 			print(e)
 			return SongAboutInfo(name="missing")
 
+
 	def save_song_file(
 			self,
 			file: BinaryIO,
@@ -168,7 +228,7 @@ class SongFileService:
 			suffix: str,
 		) -> SongTreeNode:
 		path = normalize_opening_slash(
-			squash_sequential_duplicate_chars(f"{prefix}/{suffix}", "/"),
+			squash_chars(f"{prefix}/{suffix}", "/"),
 			addSlash=False
 		)
 		if self.__is_path_used__(path=SavedNameString(path)):
@@ -185,12 +245,12 @@ class SongFileService:
 			r"[^a-zA-Z?]+",
 			"",
 			unidecode(stem, errors="replace")
-		).casefold()
+		).casefold() or "--"
 		internalDirs = "/".join([*cleanedSuffix[:5]])
 		internalPath = f"{user.username}/{internalDirs}/"\
 			+ f"{str(uuid.uuid4())}-{cleanedSuffix}{extension}"
 		with self.file_service.save_song(
-			squash_sequential_duplicate_chars(internalPath, "/"),
+			squash_chars(internalPath, "/"),
 			file
 		) as uploaded:
 			hasher = hashlib.sha256()
@@ -231,6 +291,7 @@ class SongFileService:
 			id=result.lastrowid
 		)
 
+
 	def __song_ls_query__(
 		self,
 		prefix: Optional[str]=""
@@ -261,6 +322,7 @@ class SongFileService:
 			)\
 			.group_by("prefix")
 		return query
+
 
 	def __query_to_treeNodes__(
 		self,
@@ -333,10 +395,10 @@ class SongFileService:
 		combined = next(it, "")
 		if combined:
 			yield "/"
-		yield squash_sequential_duplicate_chars(f"/{combined}/", "/")
+		yield squash_chars(f"/{combined}/", "/")
 		for part in it:
 			combined += f"/{part}"
-			yield squash_sequential_duplicate_chars(f"/{combined}/", "/")
+			yield squash_chars(f"/{combined}/", "/")
 
 
 	def __build_song_tree_dict__(
@@ -478,7 +540,7 @@ class SongFileService:
 				id=p.id,
 				path=str(SavedNameString(
 						normalize_opening_slash(
-							squash_sequential_duplicate_chars(f"{prefix}/{p.path}", "/")
+							squash_chars(f"{prefix}/{p.path}", "/")
 						)
 					)
 				),
@@ -495,7 +557,7 @@ class SongFileService:
 		prefix: str,
 		suffix: str
 	) -> bool:
-		path = squash_sequential_duplicate_chars(f"{prefix}/{suffix}/", "/")
+		path = squash_chars(f"{prefix}/{suffix}/", "/")
 		cleanedPath = SavedNameString(path)
 		if not cleanedPath:
 			return True
@@ -516,7 +578,7 @@ class SongFileService:
 		prefix: str,
 	) -> Mapping[str, Collection[SongTreeNode]]:
 		_prefix = normalize_opening_slash(
-				squash_sequential_duplicate_chars(prefix, "/")
+				squash_chars(prefix, "/")
 			)\
 				.replace("_","\\_")\
 				.replace("%","\\%")
@@ -554,9 +616,9 @@ class SongFileService:
 		if isSrcPathBlank or transfer.path == user.dirroot:
 			raise ValueError("Cannot move that directory")
 		newprefix = normalize_opening_slash(
-			squash_sequential_duplicate_chars(transfer.newprefix, "/")
+			squash_chars(transfer.newprefix, "/")
 		)
-		path = squash_sequential_duplicate_chars(transfer.path, "/")
+		path = squash_chars(transfer.path, "/")
 		prefix = normalize_opening_slash(
 			normalize_closing_slash(str(Path(path).parent)),
 			addSlash=False

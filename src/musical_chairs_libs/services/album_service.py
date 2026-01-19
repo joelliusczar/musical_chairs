@@ -94,6 +94,7 @@ class AlbumService:
 		self.stations_albums_service = stationsAlbumsService
 		self.current_user_provider = currentUserProvider
 
+
 	def get_albums_query(
 		self,
 		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
@@ -160,14 +161,13 @@ class AlbumService:
 			ab_year.label("year"),
 			ab_versionnote.label("versionnote"),
 			ab_albumArtistFk.label("albumartistid"),
-			ab_ownerFk.label("album.ownerid"),
-			album_owner.c.username.label("album.ownername"),
-			album_owner.c.displayname.label("album.ownerdisplayname"),
+			ab_ownerFk.label("album.owner.id"),
+			album_owner.c.username.label("album.owner.username"),
+			album_owner.c.displayname.label("album.owner.displayname"),
 			ar_name.label("artist.name"),
-			ar_ownerFk.label("artist.ownerid"),
-			artist_owner.c.username.label("artist.ownername"),
-			artist_owner.c.displayname.label("artist.ownerdisplayname"),
-			maintain_column_froms=True
+			ar_ownerFk.label("artist.owner.id"),
+			artist_owner.c.username.label("artist.owner.username"),
+			artist_owner.c.displayname.label("artist.owner.displayname")
 		)
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
@@ -179,21 +179,21 @@ class AlbumService:
 			name=row["name"],
 			versionnote=row["versionnote"],
 			owner=OwnerInfo(
-				id=row["album.ownerid"],
-				username=row["album.ownername"],
-				displayname=row["album.ownerdisplayname"]
+				id=row["album.owner.id"],
+				username=row["album.owner.username"],
+				displayname=row["album.owner.displayname"]
 			),
 			year=row["year"],
 			albumartist=ArtistInfo(
 				id=row["albumartistid"],
 				name=row["artist.name"],
 				owner=OwnerInfo(
-					id=row["artist.ownerid"],
-					username=row["artist.ownername"],
-					displayname=row["artist.ownerdisplayname"]
+					id=row["artist.owner.id"],
+					username=row["artist.owner.username"],
+					displayname=row["artist.owner.displayname"]
 				)
 			) if row["albumartistid"] else None,
-			rules=ownerRules if row["album.ownerid"] == userId else []
+			rules=ownerRules if row["album.owner.id"] == userId else []
 			) for row in records)
 
 
@@ -210,7 +210,8 @@ class AlbumService:
 			username=data[u_username],
 			displayname=data[u_displayName]
 		)
-	
+
+
 	def get_albums_page(
 		self,
 		queryParams: SimpleQueryParameters,
@@ -369,8 +370,8 @@ class AlbumService:
 			albumartist=artist,
 			versionnote=album.versionnote
 		)
-		
-		
+
+
 	def delete_album(self, albumkey: int) -> int:
 		if not albumkey:
 			return 0

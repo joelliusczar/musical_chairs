@@ -208,7 +208,7 @@ class QueueService(SongPopper, RadioPusher):
 				if trackingInfo.userAgent \
 				else None
 		timestamp = self.get_datetime().timestamp()
-		station = self.station_service.get_station_unsecured(stationId)
+		station = next(self.station_service.get_stations_unsecured(stationId))
 		insertedIds: list[int] = []
 		timestampOffset = 0.0
 

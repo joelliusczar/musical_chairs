@@ -1,6 +1,5 @@
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
-	RulePriorityLevel,
 	StationAlbumTuple,
 	StationInfo,
 )
@@ -9,29 +8,23 @@ from musical_chairs_libs.tables import (
 	songs as songs_tbl, sg_pk, sg_albumFk, sg_deletedTimstamp,
 	stations_albums as stations_albums_tbl,
 	stab_albumFk, stab_stationFk,
-	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId, 
-	st_ownerFk, st_typeid, st_bitrate, st_requestSecurityLevel, 
-	st_viewSecurityLevel, st_playnum,
-	users as user_tbl, u_pk, u_username, u_displayName
+	stations as stations_tbl, st_pk,
+	st_ownerFk, st_viewSecurityLevel,
+
 )
 from sqlalchemy import (
 	select,
 	insert,
 	delete,
-	Float,
-	Integer,
 	func,
-	String
 )
-from sqlalchemy.sql.expression import case
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql.expression import (
 	Tuple as dbTuple,
 )
-from sqlalchemy.sql.schema import Column
 from .current_user_provider import CurrentUserProvider
-from .station_service import StationService, build_station_rules_query
+from .station_service import StationService
 from typing import (
 	Any,
 	cast,
@@ -173,57 +166,27 @@ class StationsAlbumsService:
 		albumId: int,
 		scopes: Optional[Collection[str]]=None
 	) -> Iterator[StationInfo]:
-		query = select(
-			st_pk,
-			st_name,
-			st_displayName,
-			st_procId,
-			st_ownerFk,
-			u_username,
-			u_displayName,
-			coalesce[Integer](
-				st_requestSecurityLevel,
-				case(
-					(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
-					else_=st_viewSecurityLevel
-				),
-				RulePriorityLevel.ANY_USER.value
-			).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
-			st_viewSecurityLevel,
-			st_typeid,
-			st_bitrate,
-			st_playnum
-		).select_from(stations_tbl)\
-		.join(user_tbl, st_ownerFk == u_pk, isouter=True)\
-		.join(stations_albums_tbl, stab_stationFk == st_pk)\
-		.where(stab_albumFk == albumId)
 
-		user = self.current_user_provider.current_user(optional=True)
-		rulesSubquery = None
-		if user:
-			rulesSubquery = build_station_rules_query(user.id).cte(name="rulesQuery")
-			filters = self.station_service.__build_user_rule_filters__(
-				rulesSubquery,
-				scopes
+		if self.current_user_provider.is_loggedIn():
+			query = self.station_service.get_secured_station_query(
+				scopes=scopes
 			)
-			query.where(*filters)
 		else:
 			if scopes:
 				return
-			query = query.where(
+			query = self.station_service.station_base_query().where(
 				coalesce(st_viewSecurityLevel, 0) == 0
+			)\
+			.with_only_columns(
+				*self.station_service.base_select_columns()
 			)
+
+
+		query = query.outerjoin(stations_albums_tbl, stab_stationFk == st_pk)\
+			.where(stab_albumFk == albumId)
+			
 
 		query = query.order_by(st_pk)
-
-		if rulesSubquery is not None:
-			query = query.add_columns(
-				cast(Column[String], rulesSubquery.c.rule_name),
-				cast(Column[Float[float]], rulesSubquery.c.rule_count),
-				cast(Column[Float[float]], rulesSubquery.c.rule_span),
-				cast(Column[Integer], rulesSubquery.c.rule_priority),
-				cast(Column[String], rulesSubquery.c.rule_domain)
-			)
 
 		records = self.conn.execute(query).mappings()
 

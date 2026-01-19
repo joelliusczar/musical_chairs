@@ -17,6 +17,7 @@ from sqlalchemy.sql.expression import case, CTE, true, false
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy import (
+	Label,
 	CompoundSelect,
 	Float,
 	select,
@@ -60,7 +61,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDomain,
 	get_station_owner_rules,
 	RulePriorityLevel,
-	NotFoundError,
 	OwnerInfo,
 	row_to_action_rule
 )
@@ -162,6 +162,28 @@ class StationService:
 		pk: Optional[int] = cast(int,row[0]) if row else None
 		return pk
 
+	def base_select_columns(self) -> list[Label[Any]]:
+		return [
+			st_pk.label("id"),
+			st_name.label("name"),
+			st_displayName.label("displayname"),
+			st_procId.label("procid"),
+			st_ownerFk.label("owner.id"),
+			u_username.label("owner.username"),
+			u_displayName.label("owner.displayname"),
+			coalesce[Integer](
+				st_requestSecurityLevel,
+				case(
+					(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
+					else_=st_viewSecurityLevel
+				),
+				RulePriorityLevel.ANY_USER.value
+			).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
+			st_viewSecurityLevel.label("viewsecuritylevel"),
+			st_typeid.label("typeid"),
+			st_bitrate.label("bitrate"),
+			st_playnum.label("playnum")
+		]
 
 	def station_base_query(
 		self,
@@ -250,21 +272,21 @@ class StationService:
 
 	def __row_to_station__(self, row: RowMapping) -> StationInfo:
 		return StationInfo(
-			id=row[st_pk],
-			name=row[st_name],
-			displayname=row[st_displayName],
-			isrunning=bool(row[st_procId]),
+			id=row["id"],
+			name=row["name"],
+			displayname=row["displayname"],
+			isrunning=bool(row["procid"]),
 			owner=OwnerInfo(
-				id=row[st_ownerFk],
-				username=row[u_username],
-				displayname=row[u_displayName]
+				id=row["owner.id"],
+				username=row["owner.username"],
+				displayname=row["owner.displayname"]
 			),
 			requestsecuritylevel=row["requestsecuritylevel"],
-			viewsecuritylevel=row[st_viewSecurityLevel] \
+			viewsecuritylevel=row["viewsecuritylevel"] \
 				or RulePriorityLevel.PUBLIC.value,
-			typeid=row[st_typeid] or StationTypes.SONGS_ONLY.value,
-			bitratekps=row[st_bitrate],
-			playnum=row[st_playnum]
+			typeid=row["typeid"] or StationTypes.SONGS_ONLY.value,
+			bitratekps=row["bitrate"],
+			playnum=row["playnum"]
 		)
 
 	def __generate_station_and_rules_from_rows__(
@@ -275,7 +297,7 @@ class StationService:
 		userId = self.current_user_provider.optional_user_id()
 		currentStation = None
 		for row in rows:
-			if not currentStation or currentStation.id != cast(int,row[st_pk]):
+			if not currentStation or currentStation.id != cast(int,row["id"]):
 				if currentStation:
 					stationOwner = currentStation.owner
 					if stationOwner and stationOwner.id == userId:
@@ -283,9 +305,9 @@ class StationService:
 					currentStation.rules = ActionRule.sorted(currentStation.rules)
 					yield currentStation
 				currentStation = self.__row_to_station__(row)
-				if cast(str,row["rule_domain"]) != "shim":
+				if cast(str,row["rule.domain"]) != "shim":
 					currentStation.rules.append(row_to_action_rule(row))
-			elif cast(str,row["rule_domain"]) != "shim":
+			elif cast(str,row["rule.domain"]) != "shim":
 				currentStation.rules.append(row_to_action_rule(row))
 		if currentStation:
 			stationOwner = currentStation.owner
@@ -295,16 +317,46 @@ class StationService:
 			yield currentStation
 
 
-	def get_station_unsecured(self, stationId: int) -> StationInfo:
-		query = self.station_base_query(stationKeys=stationId)\
+	def get_stations_unsecured(
+		self,
+		stationKeys: Union[int, str, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+	) -> Iterator[StationInfo]:
+		query = self.station_base_query(stationKeys=stationKeys)\
 			.with_only_columns(
-				st_pk,
-				st_name,
-				st_displayName,
-				st_procId,
-				st_ownerFk,
-				u_username,
-				u_displayName,
+				*self.base_select_columns()
+			)
+
+		records = self.conn.execute(query).mappings()
+		for row in records:
+			yield self.__row_to_station__(row)
+
+
+	def get_secured_station_query(
+		self,
+		stationKeys: Union[int, str, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+		scopes: Optional[Collection[str]]=None
+	):
+		query = self.station_base_query(ownerId=ownerId, stationKeys=stationKeys)
+		user = self.current_user_provider.current_user()
+		rulesSubquery = build_station_rules_query(user.id).cte(name="rulesQuery")
+		filters = self.__build_user_rule_filters__(rulesSubquery, scopes)
+		query = query.join(rulesSubquery, or_(
+			rulesSubquery.c.rule_stationfk == st_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c.rule_stationfk == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c.rule_stationfk.is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+		))\
+		.where(*filters)\
+		.order_by(st_pk)\
+			.with_only_columns(
+				st_pk.label("id"),
+				st_name.label("name"),
+				st_displayName.label("displayname"),
+				st_procId.label("procid"),
+				st_ownerFk.label("owner.id"),
+				u_username.label("owner.username"),
+				u_displayName.label("owner.displayname"),
 				coalesce[Integer](
 					st_requestSecurityLevel,
 					case(
@@ -313,17 +365,26 @@ class StationService:
 					),
 					RulePriorityLevel.ANY_USER.value
 				).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
-				st_viewSecurityLevel,
-				st_typeid,
-				st_bitrate,
-				st_playnum
+				st_viewSecurityLevel.label("viewsecuritylevel"),
+				st_typeid.label("typeid"),
+				st_bitrate.label("bitrate"),
+				st_playnum.label("playnum"),
+				cast(Column[String], rulesSubquery.c.rule_name).label("rule.name"),
+				cast(
+					Column[Float[float]],
+					rulesSubquery.c.rule_count
+				).label("rule.count"),
+				cast(
+					Column[Float[float]],
+					rulesSubquery.c.rule_span
+				).label("rule.span"),
+				cast(
+					Column[Integer], rulesSubquery.c.rule_priority
+				).label("rule.priority"),
+				cast(Column[String], rulesSubquery.c.rule_domain).label("rule.domain")
 			)
-
-		record = self.conn.execute(query).mappings().fetchone()
-		if record:
-			return self.__row_to_station__(record)
-		raise NotFoundError(f"Station not found for {stationId}")
-
+		
+		return query
 
 
 	def get_stations(
@@ -333,66 +394,31 @@ class StationService:
 		scopes: Optional[Collection[str]]=None
 	) -> Iterator[StationInfo]:
 		
-		query = self.station_base_query(ownerId=ownerId, stationKeys=stationKeys)
-		user = self.current_user_provider.current_user(optional=True)
-		rulesSubquery = None
-		if user:
-			rulesSubquery = build_station_rules_query(user.id).cte(name="rulesQuery")
-			filters = self.__build_user_rule_filters__(rulesSubquery, scopes)
-			query = query.join(rulesSubquery, or_(
-				rulesSubquery.c.rule_stationfk == st_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-				rulesSubquery.c.rule_stationfk == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-				rulesSubquery.c.rule_stationfk.is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-			))\
-			.where(*filters)
-		else:
-			if scopes:
-				return
-			query = query.where(
-				coalesce(st_viewSecurityLevel, 0) == 0
+		if self.current_user_provider.is_loggedIn():
+			query = self.get_secured_station_query(
+				ownerId=ownerId,
+				stationKeys=stationKeys,
+				scopes=scopes
 			)
 
-		
-		query = query.order_by(st_pk)\
-			.with_only_columns(
-				st_pk,
-				st_name,
-				st_displayName,
-				st_procId,
-				st_ownerFk,
-				u_username,
-				u_displayName,
-				coalesce[Integer](
-					st_requestSecurityLevel,
-					case(
-						(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
-						else_=st_viewSecurityLevel
-					),
-					RulePriorityLevel.ANY_USER.value
-				).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
-				st_viewSecurityLevel,
-				st_typeid,
-				st_bitrate,
-				st_playnum
-			)
-		
-		if rulesSubquery is not None:
-			query = query.add_columns(
-				cast(Column[String], rulesSubquery.c.rule_name),
-				cast(Column[Float[float]], rulesSubquery.c.rule_count),
-				cast(Column[Float[float]], rulesSubquery.c.rule_span),
-				cast(Column[Integer], rulesSubquery.c.rule_priority),
-				cast(Column[String], rulesSubquery.c.rule_domain)
-			)
-		
-		records = self.conn.execute(query).mappings().fetchall()
+			records = self.conn.execute(query).mappings().fetchall()
 
-		if user:
 			yield from self.__generate_station_and_rules_from_rows__(
 				records,
 				scopes
 			)
 		else:
+			if scopes:
+				return
+			query = self.station_base_query(
+				ownerId=ownerId,
+				stationKeys=stationKeys,
+			)\
+			.where(
+				coalesce(st_viewSecurityLevel, 0) == 0
+			)\
+			.with_only_columns(*self.base_select_columns())
+			records = self.conn.execute(query).mappings().fetchall()
 			for row in records:
 				yield self.__row_to_station__(row)
 

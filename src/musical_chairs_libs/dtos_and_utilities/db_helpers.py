@@ -119,18 +119,18 @@ def build_site_rules_query(
 ) -> Select[Tuple[Integer, String, Float[float], Float[float], Integer, str]]:
 
 	user_rules_query = select(
-		ur_userFk.label("rule_userfk"),
-		ur_role.label("rule_name"),
-		ur_count.label("rule_count"),
-		ur_span.label("rule_span"),
+		ur_userFk.label("rule.userfk"),
+		ur_role.label("rule.name"),
+		ur_count.label("rule.count"),
+		ur_span.label("rule.span"),
 		coalesce[Integer](
 			ur_priority,
 			case(
 				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
 				else_=RulePriorityLevel.SITE.value
 			)
-		).label("rule_priority"),
-		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
+		).label("rule.priority"),
+		dbLiteral(UserRoleDomain.Site.value).label("rule.domain"),
 	)
 
 	if userId is not None:
@@ -149,17 +149,17 @@ def row_to_user(row: RowMapping) -> AccountInfo:
 
 def row_to_action_rule(row: RowMapping) -> ActionRule:
 	clsConstructor = action_rule_class_map.get(
-		row["rule_domain"],
+		row["rule.domain"],
 		ActionRule
 	)
 
 	return clsConstructor(
-		name=row["rule_name"],
-		span=row["rule_span"],
-		count=row["rule_count"],
+		name=row["rule.name"],
+		span=row["rule.span"],
+		count=row["rule.count"],
 		#if priortity is explict use that
 		#otherwise, prefer station specific rule vs non station specific rule
-		priority=cast(int,row["rule_priority"]) if row["rule_priority"] \
+		priority=cast(int,row["rule.priority"]) if row["rule.priority"] \
 			else RulePriorityLevel.STATION_PATH.value
 	)
 
@@ -176,9 +176,9 @@ def generate_station_user_and_rules_from_rows(
 					currentUser.roles.extend(get_station_owner_rules())
 				yield currentUser
 			currentUser = row_to_user(row)
-			if row["rule_domain"] != "shim":
+			if row["rule.domain"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
-		elif row["rule_domain"] != "shim":
+		elif row["rule.domain"] != "shim":
 			currentUser.roles.append(row_to_action_rule(row))
 	if currentUser:
 		if currentUser.id == ownerId:
@@ -198,9 +198,9 @@ def generate_playlist_user_and_rules_from_rows(
 					currentUser.roles.extend(get_playlist_owner_roles())
 				yield currentUser
 			currentUser = row_to_user(row)
-			if row["rule_domain"] != "shim":
+			if row["rule.domain"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
-		elif row["rule_domain"] != "shim":
+		elif row["rule.domain"] != "shim":
 			currentUser.roles.append(row_to_action_rule(row))
 	if currentUser:
 		if currentUser.id == ownerId:
@@ -227,9 +227,9 @@ def generate_path_user_and_rules_from_rows(
 						currentUser.roles.extend(get_path_owner_roles(prefix))
 				yield currentUser
 			currentUser = row_to_user(row)
-			if row["rule_domain"] != "shim":
+			if row["rule.domain"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
-		elif row["rule_domain"] != "shim":
+		elif row["rule.domain"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
 	if currentUser:
 		if normalizedPrefix and currentUser.dirroot \

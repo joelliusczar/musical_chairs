@@ -332,12 +332,12 @@ class AccountManagementService:
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userfk,
-			rulesQuery.c.rule_name,
-			rulesQuery.c.rule_count,
-			rulesQuery.c.rule_span,
-			rulesQuery.c.rule_priority,
-			rulesQuery.c.rule_domain
+			rulesQuery.c.rule_userfk.label("rule.userfk"),
+			rulesQuery.c.rule_name.label("rule.name"),
+			rulesQuery.c.rule_count.label("rule.count"),
+			rulesQuery.c.rule_span.label("rule.span"),
+			rulesQuery.c.rule_priority.label("rule.priority"),
+			rulesQuery.c.rule_domain.label("rule.domain")
 		).select_from(users).join(
 			rulesQuery,
 			rulesQuery.c.rule_userfk == u_pk,

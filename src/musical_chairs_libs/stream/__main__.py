@@ -131,19 +131,19 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 
 
 	pathRuleService = path_rule_service(readingConn)
-	stationService = StationService(
+	readingStationService = StationService(
 		readingConn,
 		current_user_provider(readingConn),
 		pathRuleService
 	)
-	stationId = stationService.get_station_id(stationName, ownerName)
+	stationId = readingStationService.get_station_id(stationName, ownerName)
 	if not stationId:
 		raise RuntimeError(
 			"station with owner"
 			f" {ownerName} and name {stationName} not found"
 		)
 	
-	station = next(stationService.get_stations(stationId))
+	station = next(readingStationService.get_stations(stationId))
 
 	queueServiceType = QueueService
 
@@ -172,7 +172,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	stationProcessService = StationProcessService(
 		updatingConn,
 		current_user_provider(readingConn),
-		stationService
+		readingStationService
 	)
 	stationProcessService.set_station_proc(stationId)
 

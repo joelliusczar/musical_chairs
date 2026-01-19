@@ -208,21 +208,17 @@ class QueueService(SongPopper, RadioPusher):
 				if trackingInfo.userAgent \
 				else None
 		timestamp = self.get_datetime().timestamp()
-		station = next(self.station_service.get_stations_unsecured(stationId))
+		station = self.__get_station__(stationId)
 		insertedIds: list[int] = []
 		timestampOffset = 0.0
 
 		lastPlayedUpdate = update(stations_songs_tbl)\
-			.values(lastplayednum = station.playnum) \
-			.where(stsg_songFk.in_(songIds))
+			.values(lastplayednum = station.playnum + len(songIds)) \
+			.where(stsg_stationFk == stationId)\
+			.where(stsg_songFk.in_((s.id for s in songIds)))
 		self.conn.execute(lastPlayedUpdate)
 
-		self.station_service.update_station(StationCreationInfo(
-				**station.model_dump(exclude={"id", "playnum"}),
-				playnum=station.playnum + 1,
-			),
-			stationId,
-		)
+		self.__add_to_station_playnum__(station, len(songIds))
 		
 		for _ in songIds:
 			historyInsert = insert(user_action_history_tbl)
@@ -247,6 +243,19 @@ class QueueService(SongPopper, RadioPusher):
 		} for s in zip(songIds, insertedIds)]
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
+
+
+	def __get_station__(self, stationId: int) -> StationInfo:
+		return next(self.station_service.get_stations_unsecured(stationId))
+
+
+	def __add_to_station_playnum__(self, station: StationInfo, addition: int):
+		self.station_service.update_station(StationCreationInfo(
+				**station.model_dump(exclude={"id", "playnum"}),
+				playnum=station.playnum + addition,
+			),
+			station.id,
+		)	
 
 
 	def fil_up_queue(self, stationId: int, queueSize: int) -> None:

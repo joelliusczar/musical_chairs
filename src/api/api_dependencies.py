@@ -863,7 +863,7 @@ def station_radio_pusher(
 	station: StationInfo = Depends(get_station_by_name_and_owner),
 	conn: Connection = Depends(get_configured_db_connection),
 	queueService: QueueService =  Depends(queue_service),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+	currentUserProvider: CurrentUserProvider = Depends(current_user_provider),
 ) -> RadioPusher:
 	if station.typeid == StationTypes.SONGS_ONLY.value:
 		return queueService
@@ -871,7 +871,11 @@ def station_radio_pusher(
 		or station.typeid == StationTypes.PLAYLISTS_ONLY.value\
 		or station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
 			:
-		return CollectionQueueService(conn, queueService, currentUserProvider)
+		return CollectionQueueService(
+			conn,
+			queueService,
+			currentUserProvider
+		)
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"Station type: {station.typeid} not found")

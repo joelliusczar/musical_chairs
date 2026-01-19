@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule
 from .artist_dtos import ArtistInfo
+from .constants import StationRequestTypes
 from .generic_dtos import (
 	TableData,
 	T,
@@ -91,3 +92,4 @@ class QueuePossibility:
 	itemId: int
 	lastplayednum: int
 	playnum: int
+	itemtype: str = StationRequestTypes.SONG.lower()

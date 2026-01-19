@@ -10,7 +10,7 @@ class SqlScripts(Enum):
 	)
 	GRANT_RADIO = (
 		"002.grant_radio.sql",
-		"5b27ee6d145c7b1054a8a94105b4a4a7b47aff1df60cf6e205ff810462bd098f"
+		"36e4b49e7cf4c269157aa0652c2eee193ce0058a90de2fafc6fcd6a70e981652"
 	)
 	PATH_USER_INDEXES = (
 		"003.path_user_indexes.sql",
@@ -150,7 +150,7 @@ class SqlScripts(Enum):
 	)
 	ADD_STATION_PLAYNUM = (
 		"038.add_station_playnum.sql",
-		"4e382e6249b69e985ae3bba0c70cba2d49ebb30594dd70915815b05fd08b2be8"
+		"0118dfb463cef1b7328cfbe941b9837e8e55feb6f9f1d0bdb245ecf0b84526f1"
 	)
 	ADD_STATIONSSONGS_LASTPLAYEDNUM = (
 		"039.add_stationssongs_lastplayednum.sql",

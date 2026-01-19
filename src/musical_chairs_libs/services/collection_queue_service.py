@@ -12,6 +12,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CurrentPlayingInfo,
 	QueueRequest,
 	OwnerInfo,
+	QueuePossibility,
 	SimpleQueryParameters,
 	UserRoleDomain,
 	StationTypes,
@@ -24,23 +25,22 @@ from musical_chairs_libs.tables import (
 	albums as albums_tbl, ab_pk, ab_name, ab_year, ab_albumArtistFk, ab_ownerFk,
 	artists as artists_tbl, ar_pk, ar_name,
 	songs,
-	stations as stations_tbl, st_typeid,
+	stations as stations_tbl, st_pk, st_typeid, st_playnum,
 	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
 	uah_timestamp, uah_action,
 	station_queue as station_queue_tbl, q_userActionHistoryFk, q_songFk, 
 	q_stationFk, q_itemType, q_parentKey,
 	sg_disc, sg_pk, sg_albumFk, sg_deletedTimstamp,
 	sg_trackNum,
-	st_pk,
 	playlists as playlists_tbl, pl_pk, pl_name, pl_ownerFk, 
 	pl_lastmodifiedtimestamp,
 	playlists_songs as playlists_songs_tbl, plsg_playlistFk, plsg_songFk,
 	plsg_lexorder,
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
+	stab_lastplayednum,
 	stations_playlists as stations_playlists_tbl, stpl_playlistFk, stpl_stationFk,
+	stpl_lastplayednum,
 	users as users_tbl, u_pk, u_username, u_displayName,
-	last_played as last_played_tbl, lp_timestamp, lp_stationFk, lp_itemType,
-	lp_parentKey,
 )
 from .current_user_provider import CurrentUserProvider
 from .queue_service import QueueService
@@ -57,7 +57,6 @@ from sqlalchemy import (
 	union_all,
 )
 from sqlalchemy.engine import Connection
-from sqlalchemy.sql.functions import coalesce
 from typing import (
 	Any,
 	Callable,
@@ -112,75 +111,46 @@ class CollectionQueueService(SongPopper, RadioPusher):
 	def get_all_station_possibilities(
 		self,
 		stationid: int
-	) -> Sequence[Tuple[int, str, float]]:
+	) -> Sequence[QueuePossibility]:
 		
 		albumQuery = select(
 			stab_albumFk.label("key"),
-			func.max(coalesce(uah_queuedTimestamp,0)).label("queuedtimestamp"),
-			func.max(coalesce(uah_timestamp,0)).label("timestamp"),
-			func.max(coalesce(lp_timestamp,0)).label("lastplayed"),
+			stab_lastplayednum.label("lastplayednum"),
+			st_playnum.label("playnum"),
 			dbLiteral(StationRequestTypes.ALBUM.lower()).label("itemtype")
 		) \
 			.select_from(stations_tbl) \
 			.join(stations_albums_tbl, st_pk == stab_stationFk) \
-			.join(songs, sg_albumFk == stab_albumFk) \
-			.join(station_queue_tbl, (q_stationFk == st_pk) \
-				& (q_parentKey == stab_albumFk) \
-				& (q_itemType == StationRequestTypes.ALBUM.lower()), isouter=True) \
-			.join(last_played_tbl, (lp_stationFk == st_pk) \
-				& (lp_parentKey == stab_albumFk)
-				& (lp_itemType == StationRequestTypes.ALBUM.lower()), isouter=True
-			)\
-			.join(user_action_history_tbl,
-				(uah_pk == q_userActionHistoryFk),
-				isouter=True
-			)\
-			.where(sg_deletedTimstamp.is_(None))\
-			.where(st_pk == stationid) \
-			.group_by(stab_albumFk)
+			.where(st_pk == stationid)
 		
 		playlistQuery = select(
 			stpl_playlistFk.label("key"),
-			func.max(coalesce(uah_queuedTimestamp,0)).label("queuedtimestamp"),
-			func.max(coalesce(uah_timestamp,0)).label("timestamp"),
-			func.max(coalesce(lp_timestamp,0)).label("lastplayed"),
+			stpl_lastplayednum.label("lastplayednum"),
+			st_playnum.label("playnum"),
 			dbLiteral(StationRequestTypes.PLAYLIST.lower()).label("itemtype")
 		) \
 			.select_from(stations_tbl) \
 			.join(stations_playlists_tbl, st_pk == stpl_stationFk) \
-			.join(playlists_songs_tbl, plsg_playlistFk == stpl_playlistFk) \
-			.join(songs, sg_pk == plsg_songFk) \
-			.join(station_queue_tbl, (q_stationFk == st_pk) \
-				& (q_parentKey == stpl_playlistFk) \
-				& (q_itemType == StationRequestTypes.PLAYLIST.lower()), isouter=True) \
-			.join(last_played_tbl, (lp_stationFk == st_pk) \
-				& (lp_parentKey == stpl_playlistFk)
-				& (lp_itemType == StationRequestTypes.PLAYLIST.lower()), isouter=True
-			)\
-			.join(user_action_history_tbl,
-				(uah_pk == q_userActionHistoryFk),
-				isouter=True
-			)\
-			.where(sg_deletedTimstamp.is_(None))\
-			.where(st_pk == stationid) \
-			.group_by(stpl_playlistFk)
+			.where(st_pk == stationid)
 
 		sub = union_all(
 			albumQuery,
 			playlistQuery
 		).cte()
 
-		query = select(sub.c.key, sub.c.itemtype, func.max(sub.c.queuedtimestamp))\
-			.group_by(sub.c.key, sub.c.itemtype)\
+		query = select(
+			sub.c.key,
+			sub.c.lastplayednum, 
+			sub.c.playnum,
+			sub.c.itemtype
+		)\
 			.order_by(
-				desc(func.max(sub.c.queuedtimestamp)),
-				desc(func.max(sub.c.timestamp)),
-				desc(func.max(sub.c.lastplayed)),
+				desc(sub.c.lastplayednum),
 				func.rand()
 			)
 		rows = self.conn.execute(query).fetchall()
 
-		return [(row[0], row[1], row[2]) for row in rows]
+		return [QueuePossibility(row[0], row[1], row[2], row[3]) for row in rows]
 
 
 	def get_random_collectionIds(
@@ -190,10 +160,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 	) -> Collection[Tuple[int, str]]:
 		def weigh(n: float) -> float:
 			return n * n
-		rows = [*self.get_all_station_possibilities(stationId)]
-		mostRecentDraw = rows[0][2] or self.get_datetime().timestamp() \
-			if len(rows) > 1 else self.get_datetime().timestamp()
-		ages = [(mostRecentDraw - r[2] or 0) for r in rows]
+		rows = self.get_all_station_possibilities(stationId)
+		mostRecentDraw = rows[0].playnum or 1 \
+			if len(rows) > 1 else 1
+		ages = [(mostRecentDraw - r.lastplayednum) for r in rows]
 		total = sum(
 			(weigh(a) for a in ages)
 		)
@@ -201,7 +171,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		zeroCount = sum(1 for w in weights if w == 0)
 		sampleSize = deficitSize if deficitSize < len(rows) - zeroCount \
 			else len(rows) - zeroCount
-		ids = [(r[0], r[1]) for r in rows]
+		ids = [(r.itemId, r.itemtype) for r in rows]
 		if not ids:
 			raise RuntimeError("No playlist possibilities were found")
 		tupleMap = {f"{t[1]}{t[0]}":t for t in ids}
@@ -306,11 +276,32 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					parentKey=collectionId[0]
 				) for r in sortedSongs
 			)
+		station = self.queue_service.__get_station__(stationId)
+
+		albumLastPlayedUpdate = update(stations_albums_tbl)\
+			.values(lastplayednum = station.playnum + 1) \
+			.where(stab_stationFk == stationId)\
+			.where(stab_albumFk.in_(albumIds))
+		self.conn.execute(albumLastPlayedUpdate)
+
+		playlistLastPlayedUpdate = update(stations_playlists_tbl)\
+			.values(lastplayednum = station.playnum + 1) \
+			.where(stpl_stationFk == stationId)\
+			.where(stpl_playlistFk.in_(playlistIds))
+		self.conn.execute(playlistLastPlayedUpdate)
 
 
 		self.queue_service.queue_insert_songs(
 			requests,
 			stationId
+		)
+
+		#need to save again separately because
+		#queue_service.queue_insert_songs is going to save
+		#based on song count which will cause playnum to go wonky
+		self.queue_service.__add_to_station_playnum__(
+			station,
+			len(albumIds) + len(playlistIds)
 		)
 
 
@@ -321,7 +312,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
 	):
 		if station and\
-			self.can_album_be_queued_to_station(
+			self.__can_album_be_queued_to_station__(
 				itemId,
 				station.id,
 			):
@@ -350,7 +341,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
 	):
 		if station and\
-			self.can_playlist_be_queued_to_station(
+			self.__can_playlist_be_queued_to_station__(
 				itemId,
 				station.id
 			):
@@ -395,7 +386,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		return
 	
 
-	def can_playlist_be_queued_to_station(
+	def __can_playlist_be_queued_to_station__(
 		self,
 		playlistId: int,
 		stationId: int
@@ -411,7 +402,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		return True if countRes and countRes > 0 else False
 	
 
-	def can_album_be_queued_to_station(
+	def __can_album_be_queued_to_station__(
 		self,
 		albumId: int,
 		stationId: int
@@ -435,12 +426,12 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		stationItemType: StationRequestTypes
 	) -> bool:
 		if stationItemType == StationRequestTypes.ALBUM:
-			return self.can_album_be_queued_to_station(
+			return self.__can_album_be_queued_to_station__(
 				collectionId, 
 				stationId
 			)
 		if stationItemType == StationRequestTypes.PLAYLIST:
-			return self.can_playlist_be_queued_to_station(
+			return self.__can_playlist_be_queued_to_station__(
 				collectionId,
 				stationId
 			)

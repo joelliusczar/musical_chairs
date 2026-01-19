@@ -26,7 +26,7 @@ from threading import Condition, Lock
 
 fileQueue = BlockingQueue[
 	Tuple[Optional[BinaryIO], Optional[SongListDisplayItem]]
-](3, 30)
+](size=3, retryInterval=30)
 waiter = Condition()
 stopRunning = False
 icesProcess: Optional[subprocess.Popen[bytes]] = None
@@ -84,6 +84,8 @@ def load_data(
 					if attempts > 2:
 						logging.radioLogger.error("Retried 2 times to download song")
 						raise
+					currentFile.truncate(0)
+					currentFile.seek(0)
 			fileQueue.put((currentFile, queueItem), lambda _: not stopRunning)
 			currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		fileQueue.put((None, None), lambda _: not stopRunning)

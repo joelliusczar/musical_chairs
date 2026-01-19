@@ -94,6 +94,7 @@ class ArtistService:
 		
 		return query
 
+
 	def get_artists(self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
@@ -158,7 +159,8 @@ class ArtistService:
 			username=data[u_username],
 			displayname=data[u_displayName]
 		)
-	
+
+
 	def get_artist_page(
 		self,
 		queryParams: SimpleQueryParameters,
@@ -170,7 +172,8 @@ class ArtistService:
 			.with_only_columns(func.count(1))
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
-	
+
+
 	def get_artist(
 			self,
 			artistId: int,
@@ -217,6 +220,7 @@ class ArtistService:
 
 		return SongsArtistInfo(**artistInfo.model_dump(), songs=songs)
 
+
 	def save_artist(
 		self,
 		artistName: str,
@@ -251,6 +255,7 @@ class ArtistService:
 				f"{artistName} is already used.",
 				"path->name"
 			)
+
 
 	def delete_album(self, artistid: int) -> int:
 		if not artistid:

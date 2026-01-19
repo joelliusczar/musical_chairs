@@ -12,6 +12,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CurrentPlayingInfo,
 	QueueRequest,
 	OwnerInfo,
+	QueueMetrics,
 	QueuePossibility,
 	SimpleQueryParameters,
 	UserRoleDomain,
@@ -156,11 +157,17 @@ class CollectionQueueService(SongPopper, RadioPusher):
 	def get_random_collectionIds(
 		self,
 		stationId: int,
-		deficitSize: int
+		metrics: QueueMetrics
 	) -> Collection[Tuple[int, str]]:
 		def weigh(n: float) -> float:
 			return n * n
 		rows = self.get_all_station_possibilities(stationId)
+		room = min(len(rows), metrics.maxSize)
+		if not room:
+			raise RuntimeError("No radio possibilities were found")
+		deficitSize = room - metrics.queued - metrics.loaded
+		if deficitSize < 1:
+			return []
 		mostRecentDraw = rows[0].playnum or 1 \
 			if len(rows) > 1 else 1
 		ages = [(mostRecentDraw - r.lastplayednum) for r in rows]
@@ -216,14 +223,14 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		return albumCount + playlistCount
 
 
-	def fil_up_queue(self, stationId: int, queueSize: int) -> None:
+	def fil_up_queue(self, stationId: int, metrics: QueueMetrics):
 		
-		count = self.queue_count(stationId)
+		metrics.queued = self.queue_count(stationId)
 
-		deficitSize = queueSize - count
-		if deficitSize < 1:
+		collectionIds = self.get_random_collectionIds(stationId, metrics)
+
+		if not collectionIds:
 			return
-		collectionIds = self.get_random_collectionIds(stationId, deficitSize)
 
 		albumIds = [
 			a[0] for a in collectionIds 
@@ -279,13 +286,13 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		station = self.queue_service.__get_station__(stationId)
 
 		albumLastPlayedUpdate = update(stations_albums_tbl)\
-			.values(lastplayednum = station.playnum + 1) \
+			.values(lastplayednum = station.playnum + len(collectionIds)) \
 			.where(stab_stationFk == stationId)\
 			.where(stab_albumFk.in_(albumIds))
 		self.conn.execute(albumLastPlayedUpdate)
 
 		playlistLastPlayedUpdate = update(stations_playlists_tbl)\
-			.values(lastplayednum = station.playnum + 1) \
+			.values(lastplayednum = station.playnum + len(collectionIds)) \
 			.where(stpl_stationFk == stationId)\
 			.where(stpl_playlistFk.in_(playlistIds))
 		self.conn.execute(playlistLastPlayedUpdate)
@@ -301,7 +308,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		#based on song count which will cause playnum to go wonky
 		self.queue_service.__add_to_station_playnum__(
 			station,
-			len(albumIds) + len(playlistIds)
+			len(collectionIds)
 		)
 
 
@@ -460,7 +467,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			if loaded else 0
 
 		if self.is_queue_empty(stationId, collectionOffset):
-			self.fil_up_queue(stationId, self.queue_size + 1 - collectionOffset)
+			metrics = QueueMetrics(self.queue_size + 1, collectionOffset)
+			self.fil_up_queue(stationId, metrics)
 			self.conn.commit()
 
 
@@ -499,7 +507,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			.values(timestamp = currentTime) \
 			.where(uah_pk == userActionId)
 		updCount = self.conn.execute(histUpdateStmt).rowcount
-		self.fil_up_queue(stationId, self.queue_size)
+		self.fil_up_queue(stationId, QueueMetrics(self.queue_size))
 		self.conn.commit()
 		return updCount > 0
 
@@ -622,7 +630,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			station.id
 		):
 			return None
-		self.fil_up_queue(station.id, self.queue_size)
+
+		self.fil_up_queue(station.id, QueueMetrics(self.queue_size))
 		self.conn.commit()
 		return self.queue_service.get_now_playing_and_queue(station)
 

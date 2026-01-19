@@ -67,6 +67,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	OwnerInfo,
 	normalize_opening_slash,
 	QueuePossibility,
+	QueueMetrics,
 	SimpleQueryParameters,
 	StationCreationInfo
 )
@@ -171,21 +172,27 @@ class QueueService(SongPopper, RadioPusher):
 	def get_random_songIds(
 		self,
 		stationId: int,
-		deficitSize: int
+		queueMetrics: QueueMetrics
 	) -> Collection[int]:
 		def weigh(n: float) -> float:
 			return n * n
 		rows = self.get_all_station_possibilities(stationId)
+		room = min(len(rows), queueMetrics.maxSize)
+		if not room:
+			raise RuntimeError("No song possibilities were found")
+		deficitSize = room - queueMetrics.queued - queueMetrics.loaded
+		if deficitSize < 1:
+			return []
 		playNum = rows[0].playnum or 1 if len(rows) > 1 else 1
 		ages = [(playNum - r.lastplayednum) for r in rows]
 		total = sum((weigh(a) for a in ages))
-		weights = [weigh(a)/total for a in ages]
+		weights = [weigh(a)/total for a in ages] \
+			if total != 0 else [1/len(ages) for _ in range(1, len(ages) + 1)]
 		zeroCount = sum(1 for w in weights if w == 0)
 		sampleSize = deficitSize if deficitSize < len(rows) - zeroCount \
 			else len(rows) - zeroCount
 		songIds = [r.itemId for r in rows]
-		if not songIds:
-			raise RuntimeError("No song possibilities were found")
+		
 		try:
 			selection = self.choice(songIds, sampleSize, weights)
 			return selection
@@ -199,7 +206,7 @@ class QueueService(SongPopper, RadioPusher):
 
 	def queue_insert_songs(
 		self,
-		songIds: Collection[QueueRequest],
+		queueRequests: Collection[QueueRequest],
 		stationId: int,
 	):
 		trackingInfo = self.current_user_provider.tracking_info()
@@ -212,15 +219,16 @@ class QueueService(SongPopper, RadioPusher):
 		insertedIds: list[int] = []
 		timestampOffset = 0.0
 
-		lastPlayedUpdate = update(stations_songs_tbl)\
-			.values(lastplayednum = station.playnum + len(songIds)) \
-			.where(stsg_stationFk == stationId)\
-			.where(stsg_songFk.in_((s.id for s in songIds)))
-		self.conn.execute(lastPlayedUpdate)
+		if station.typeid == StationTypes.SONGS_ONLY.value:
+			lastPlayedUpdate = update(stations_songs_tbl)\
+				.values(lastplayednum = station.playnum + len(queueRequests)) \
+				.where(stsg_stationFk == stationId)\
+				.where(stsg_songFk.in_((s.id for s in queueRequests)))
+			self.conn.execute(lastPlayedUpdate)
 
-		self.__add_to_station_playnum__(station, len(songIds))
+		self.__add_to_station_playnum__(station, len(queueRequests))
 		
-		for _ in songIds:
+		for _ in queueRequests:
 			historyInsert = insert(user_action_history_tbl)
 			insertedId = self.conn.execute(historyInsert, {
 					"queuedtimestamp": timestamp + timestampOffset,
@@ -240,7 +248,7 @@ class QueueService(SongPopper, RadioPusher):
 			"useractionhistoryfk": s[1],
 			"itemtype": s[0].itemtype,
 			"parentkey": s[0].parentKey
-		} for s in zip(songIds, insertedIds)]
+		} for s in zip(queueRequests, insertedIds)]
 		queueInsert = insert(station_queue)
 		self.conn.execute(queueInsert, params)
 
@@ -258,7 +266,7 @@ class QueueService(SongPopper, RadioPusher):
 		)	
 
 
-	def fil_up_queue(self, stationId: int, queueSize: int) -> None:
+	def fil_up_queue(self, stationId: int, queueMetrics: QueueMetrics) -> None:
 		queryQueueSize = select(func.count(1)).select_from(station_queue)\
 			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 			.where(uah_action == UserRoleDef.STATION_REQUEST.value)\
@@ -266,19 +274,19 @@ class QueueService(SongPopper, RadioPusher):
 			.where(q_stationFk == stationId)
 		countRes = self.conn.execute(queryQueueSize).scalar()
 		count = countRes if countRes else 0
-		deficitSize = queueSize - count
-		if deficitSize < 1:
-			return
-		songIds = self.get_random_songIds(stationId, deficitSize)
-		self.queue_insert_songs([
-			QueueRequest(
-					id=s,
-					itemtype=StationRequestTypes.SONG.lower(),
-					parentKey=None
-				) 
-				for s in songIds], 
-			stationId
-		)
+		queueMetrics.queued = count
+		songIds = self.get_random_songIds(stationId, queueMetrics)
+		
+		if songIds:
+			self.queue_insert_songs([
+				QueueRequest(
+						id=s,
+						itemtype=StationRequestTypes.SONG.lower(),
+						parentKey=None
+					) 
+					for s in songIds], 
+				stationId
+			)
 
 
 	def __move_from_queue_to_history__(
@@ -303,6 +311,7 @@ class QueueService(SongPopper, RadioPusher):
 			.where(uah_pk == userActionId)
 		return self.conn.execute(histUpdateStmt).rowcount
 
+
 	def move_from_queue_to_history(
 		self,
 		stationId: int,
@@ -314,7 +323,8 @@ class QueueService(SongPopper, RadioPusher):
 			songId,
 			queueTimestamp
 		)
-		self.fil_up_queue(stationId, self.queue_size)
+		queueMetrics = QueueMetrics(self.queue_size)
+		self.fil_up_queue(stationId, queueMetrics)
 		self.conn.commit()
 		return updCount > 0
 
@@ -432,7 +442,8 @@ class QueueService(SongPopper, RadioPusher):
 		offset = len(loaded) if loaded else 0
 
 		if self.is_queue_empty(stationId, offset):
-			self.fil_up_queue(stationId, self.queue_size + 1 - offset)
+			queueMetrics = QueueMetrics(self.queue_size + 1, offset)
+			self.fil_up_queue(stationId, queueMetrics)
 			self.conn.commit()
 
 
@@ -451,7 +462,7 @@ class QueueService(SongPopper, RadioPusher):
 	"""
 		This is mostly used in testing
 	"""
-	def move_next(self, stationId: int):
+	def __move_next__(self, stationId: int):
 		self.pop_next_queued(stationId)
 		queue = self.get_queue_for_station(stationId)[0]
 		if queue:
@@ -592,7 +603,8 @@ class QueueService(SongPopper, RadioPusher):
 			station.id
 		):
 			return None
-		self.fil_up_queue(station.id, self.queue_size)
+		queueMetrics = QueueMetrics(self.queue_size)
+		self.fil_up_queue(station.id, queueMetrics)
 		self.conn.commit()
 		return self.get_now_playing_and_queue(station)
 

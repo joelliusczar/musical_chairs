@@ -31,7 +31,7 @@ class StationInfo(RuledEntity):
 	typeid: int=Field(default=StationTypes.SONGS_ONLY.value)
 	bitratekps: Optional[int]=Field(default=None)
 
-	playnum: int=Field(default=0)
+	playnum: int=Field(default=1)
 
 
 	def __hash__(self) -> int:
@@ -54,7 +54,7 @@ class StationCreationInfo(MCBaseClass):
 	)
 	typeid: int=Field(default=StationTypes.SONGS_ONLY.value)
 	bitratekps: Optional[int]=Field(default=None)
-	playnum: int=Field(default=0)
+	playnum: int=Field(default=1)
 
 	@field_validator("requestsecuritylevel")
 	@classmethod

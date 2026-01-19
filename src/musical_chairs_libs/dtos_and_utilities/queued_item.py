@@ -93,3 +93,9 @@ class QueuePossibility:
 	lastplayednum: int
 	playnum: int
 	itemtype: str = StationRequestTypes.SONG.lower()
+
+@dataclass
+class QueueMetrics:
+	maxSize: int
+	loaded: int = 0
+	queued: int = 0

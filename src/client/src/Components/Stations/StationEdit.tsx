@@ -68,14 +68,6 @@ const stationTypeOptions = [
 		name: "Songs Only (Default)",
 	},
 	{
-		id: StationTypes.ALBUMS_ONLY,
-		name: "Albums Only",
-	},
-	{
-		id: StationTypes.PLAYLISTS_ONLY,
-		name: "Playlists Only",
-	},
-	{
 		id: StationTypes.ALBUMS_AND_PLAYLISTS,
 		name: "Playlists and Albums",
 	},

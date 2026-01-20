@@ -1,0 +1,9 @@
+{
+	"logLevels": {
+		"radio": "DEBUG"
+	},
+	"logHandlers": {
+		"api": "boring",
+		"radio": "boring"
+	}
+}

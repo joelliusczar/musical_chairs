@@ -86,6 +86,7 @@ def load_data(
 						raise
 					currentFile.truncate(0)
 					currentFile.seek(0)
+			logging.queueLogger.info(f"loaded: {queueItem.name}")
 			fileQueue.put((currentFile, queueItem), lambda _: not stopRunning)
 			currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		fileQueue.put((None, None), lambda _: not stopRunning)

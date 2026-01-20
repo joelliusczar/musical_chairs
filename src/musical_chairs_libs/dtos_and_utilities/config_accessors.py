@@ -132,6 +132,22 @@ class ConfigAcessors:
 				builtin_logging.getLevelName(builtin_logging.WARNING)
 		except:
 			return builtin_logging.getLevelName(builtin_logging.WARNING)
+		
+	@classmethod
+	def api_log_handler(cls) -> str:
+		try:
+			return cls.live_config()["logHandlers"]["api"] or \
+				"json"
+		except:
+			return "json"
+		
+	@classmethod
+	def radio_log_handler(cls) -> str:
+		try:
+			return cls.live_config()["logHandlers"]["radio"] or \
+				"json"
+		except:
+			return "json"
 	
 	@classmethod
 	def python_executable(cls) -> str:

@@ -43,7 +43,8 @@
         "DSF_APP_ROOT": "./test_trash",
         "DSF_PYTHON_EXECUTABLE": "./test_trash/musical_chairs/mcr_env/bin/python",
         "DSF_DATABASE_NAME": "musical_chairs_db",
-        "DSF_ICES_EXECUTABLE": "~/.local/bin/mcr-ices"
+        "DSF_ICES_EXECUTABLE": "~/.local/bin/mcr-ices",
+        "DSF_LIVE_CONFIG_PATH": "./live_config.json"
       },
       "args": [
         "${userHome}/.ssh/localhost_debug.private.pem",

@@ -83,10 +83,7 @@ export const PlaylistEdit = (props: PlaylistEditProps) => {
 	const stations = useCombinedContextAndFormItems(
 		contextStations,
 		formStations
-	).filter(s => 
-		s.typeid === StationTypes.PLAYLISTS_ONLY || 
-			s.typeid === StationTypes.ALBUMS_AND_PLAYLISTS
-	);
+	).filter(s => s.typeid === StationTypes.ALBUMS_AND_PLAYLISTS);
 	const stationMapper = useIdMapper(stations);
 
 	return (

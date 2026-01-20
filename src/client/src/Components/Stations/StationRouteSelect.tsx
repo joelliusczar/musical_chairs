@@ -35,8 +35,6 @@ export const StationRouteSelect = (props: StationRouteSelectProps) => {
 		unrendered,
 		stationTypes = [
 			StationTypes.SONGS_ONLY,
-			StationTypes.ALBUMS_ONLY,
-			StationTypes.PLAYLISTS_ONLY,
 			StationTypes.ALBUMS_AND_PLAYLISTS,
 		],
 	} = props;

@@ -1,7 +1,9 @@
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 import socket
 import subprocess
+import time
 from typing import (
+	Any,
 	BinaryIO,
 	Callable,
 	cast,
@@ -34,6 +36,9 @@ loaded = set[SongListDisplayItem]()
 loadingLock = Lock()
 
 
+def check_is_running(_: Any = None) -> bool:
+	global stopRunning
+	return not stopRunning
 
 def get_song_info(
 	stationId: int,
@@ -81,16 +86,23 @@ def load_data(
 				except Exception as e:
 					logging.radioLogger.warning(e)
 					attempts += 1
-					if attempts > 2:
-						logging.radioLogger.error("Retried 2 times to download song")
+					if attempts > 3:
+						logging.radioLogger.error(
+							f"Retried {attempts} times to download song"
+						)
 						raise
 					currentFile.truncate(0)
 					currentFile.seek(0)
+					time.sleep(.25 * attempts)
 			logging.queueLogger.info(f"loaded: {queueItem.name}")
-			fileQueue.put((currentFile, queueItem), lambda _: not stopRunning)
+			fileQueue.put((currentFile, queueItem), check_is_running)
 			currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
-		fileQueue.put((None, None), lambda _: not stopRunning)
+		fileQueue.put((None, None), check_is_running)
+	
 	except Exception as e:
+		if isinstance(e, TimeoutError) and not check_is_running():
+			logging.radioLogger.debug("Queue has stopped waiting on put")
+			return
 		logging.radioLogger.error("Error while trying to load data")
 		logging.radioLogger.error(e, exc_info=True)
 	finally:
@@ -196,7 +208,7 @@ def send_next(
 					logging.radioLogger.debug(f"closing {currentFile.name}")
 					currentFile.close()
 				with fileQueue.delayed_decrement_get(
-					lambda _: not stopRunning
+					check_is_running
 				) as (currentFile, queueItem):
 					display = queueItem.display() if queueItem else "Missing Name"
 					logging.queueLogger.info(f"Playing: {display}")
@@ -221,6 +233,9 @@ def send_next(
 					conn.sendall(b"\n\n")
 					break
 	except Exception as e:
+		if isinstance(e, TimeoutError) and not check_is_running():
+			logging.radioLogger.debug("Queue has stopped waiting on get")
+			return
 		logging.radioLogger.error(e, exc_info=True)
 	finally:
 		logging.radioLogger.debug("send_next finally")

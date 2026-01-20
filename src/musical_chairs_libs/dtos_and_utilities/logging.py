@@ -118,7 +118,7 @@ our_config: dict[str, Any] = {
 	"handlers": {
 		"boring": {
 			"class": "logging.handlers.RotatingFileHandler",
-			"level": api_log_level,
+			"level": builtin_logging.getLevelName(builtin_logging.DEBUG),
 			"formatter": "boring",
 			"filename": "musical_chairs.log",
 			"maxBytes": 2500000,
@@ -126,7 +126,7 @@ our_config: dict[str, Any] = {
 		},
 		"json": {
 			"class": "logging.handlers.RotatingFileHandler",
-			"level": api_log_level,
+			"level": builtin_logging.getLevelName(builtin_logging.DEBUG),
 			"formatter": "json",
 			"filename": "musical_chairs.jsonl",
 			"maxBytes": 2500000,
@@ -162,7 +162,8 @@ our_config: dict[str, Any] = {
 		"radio": {
 			"level": radio_log_level,
 			"handlers": [
-				"json"
+				"json",
+				"boring"
 			]
 		},
 		"api": {

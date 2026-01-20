@@ -216,7 +216,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			f"Is sending thread alive? {sendThread.is_alive()}"
 		)
 		logging.radioLogger.info("Disabling the station")
-		stationProcessService.disable_stations(station)
+		stationProcessService.unset_station_procs(stationIds=station.id)
 		logging.radioLogger.debug("Station disabled")
 		close_db_connection(readingConn, "reading")
 		close_db_connection(updatingConn, "updating")

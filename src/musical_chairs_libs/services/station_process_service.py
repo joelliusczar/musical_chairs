@@ -145,6 +145,7 @@ class StationProcessService:
 		elif stationIds is Lost():
 			raise ValueError("procIds, stationIds, or stationNames must be provided.")
 		self.conn.execute(stmt)
+		self.conn.commit()
 
 	def set_station_proc(self, stationId: int) -> None:
 		pid = ProcessService.get_pid()
@@ -177,5 +178,4 @@ class StationProcessService:
 		for pid in pids:
 			logging.radioLogger.debug(f"send signal to {pid}")
 			ProcessService.end_process(pid)
-		self.unset_station_procs(stationIds=station.id if station else None)
-		self.conn.commit()
+		

@@ -6,6 +6,7 @@ from musical_chairs_libs.services import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	DirectoryTransfer,
+	QueueMetrics,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import JobStatusTypes
 from .constant_fixtures_for_test import *
@@ -866,7 +867,8 @@ def test_delete_song_in_station(
 	assert user
 	deletedSongId = 41
 	stationId = 2
-	queueService.fil_up_queue(stationId, 50)
+
+	queueService.fil_up_queue(stationId, QueueMetrics(50))
 	queue, _ = queueService.get_queue_for_station(stationId)
 	catalogue, _ = queueService.get_catalogue(stationId)
 	assert deletedSongId in (s.id for s in catalogue)

@@ -4,6 +4,7 @@ from .common_fixtures import (
 )
 from .common_fixtures import *
 from musical_chairs_libs.dtos_and_utilities import (
+	QueueMetrics,
 	SimpleQueryParameters
 )
 from musical_chairs_libs.services import (
@@ -18,7 +19,7 @@ def test_adding_album_to_queue(
 ):
 	queueService = fixture_queue_service
 	collectionQueueService = fixture_collection_queue_service
-	collectionQueueService.fil_up_queue(26,3)
+	collectionQueueService.fil_up_queue(26, QueueMetrics(3))
 	queue1, _ = queueService.get_queue_for_station(26)
 	assert queue1
 

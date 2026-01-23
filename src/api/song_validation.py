@@ -19,7 +19,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	build_error_obj,
 	ValidatedSongAboutInfo,
-	PathsActionRule,
+	ActionRule,
 	UserRoleDomain,
 	normalize_opening_slash,
 	get_path_owner_roles
@@ -212,10 +212,10 @@ def extra_validated_song(
 	return song
 
 def validate_path_rule(
-	rule: PathsActionRule,
+	rule: ActionRule,
 	prefix: str = Depends(get_prefix),
 	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
-) -> PathsActionRule:
+) -> ActionRule:
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

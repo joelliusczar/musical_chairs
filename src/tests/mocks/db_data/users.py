@@ -1,8 +1,15 @@
-from typing import Any, List
+from typing import Any, Sequence
 from datetime import datetime
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo
 )
+from sqlalchemy.engine import Connection
+from musical_chairs_libs.dtos_and_utilities import AccountInfo
+from ..mock_datetime_provider import MockDatetimeProvider
+from musical_chairs_libs.tables import (
+	users,
+)
+from sqlalchemy import insert
 
 try:
 	from . import user_ids
@@ -12,7 +19,7 @@ except:
 users_params: list[dict[str, Any]] = [] # this is needed for weird syntax reasons
 
 def get_user_params(
-	orderedTestDates: List[datetime],
+	datetimeProvider: Sequence[datetime],
 	primaryUser: AccountInfo,
 	testPassword: bytes
 ) -> list[dict[Any, Any]]:
@@ -25,7 +32,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": primaryUser.email,
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[0].timestamp(),
+			"creationtimestamp": datetimeProvider[0].timestamp(),
 			"dirroot": ""
 		},
 		{
@@ -35,7 +42,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test2@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -45,7 +52,7 @@ def get_user_params(
 			"hashedpw": None,
 			"email": "test3@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -55,7 +62,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test4@munchopuncho.com",
 			"isdisabled": True,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -65,7 +72,7 @@ def get_user_params(
 			"hashedpw": None,
 			"email": "test5@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -75,7 +82,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test6@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -85,7 +92,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test7@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -95,7 +102,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test8@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -105,7 +112,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test9@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -115,7 +122,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test10@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -125,7 +132,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test11@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": "/foo"
 		},
 		{
@@ -135,7 +142,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test12@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -145,7 +152,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test13@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -155,7 +162,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test14@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -165,7 +172,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test15@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -175,7 +182,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test16@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -185,7 +192,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test17@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -195,7 +202,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test18@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -205,7 +212,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test19@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -215,7 +222,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test20@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -225,7 +232,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test21@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -235,7 +242,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test22@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -245,7 +252,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test23@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -255,7 +262,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test24@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -265,7 +272,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test25@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -275,7 +282,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test26@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -285,7 +292,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test27@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -295,7 +302,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test28@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -305,7 +312,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test29@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -315,7 +322,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test30@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -325,7 +332,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test31@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -335,7 +342,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test32@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -345,7 +352,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test33@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -355,7 +362,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test35@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -365,7 +372,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test36@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -375,7 +382,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test37@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -385,7 +392,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test38@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -395,7 +402,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test39@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -405,7 +412,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test40@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -415,7 +422,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test41@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -425,7 +432,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test42@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": None
 		},
 		{
@@ -435,7 +442,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test43@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": "paulBear_testUser"
 		},
 		{
@@ -445,7 +452,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test44@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": "quirkyAdmon_testUser"
 		},
 		{
@@ -455,7 +462,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test45@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": "radicalPath_testUser"
 		},
 		{
@@ -465,7 +472,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test46@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": "stationSaver_testUser"
 		},
 		{
@@ -475,7 +482,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test47@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": "superPath_testUser"
 		},
 		{
@@ -485,7 +492,7 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test48@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": "tossedSlash"
 		},
 		{
@@ -495,8 +502,20 @@ def get_user_params(
 			"hashedpw": testPassword,
 			"email": "test49@munchopuncho.com",
 			"isdisabled": False,
-			"creationtimestamp": orderedTestDates[1].timestamp(),
+			"creationtimestamp": datetimeProvider[1].timestamp(),
 			"dirroot": "unruledStation"
 		}
 	]
 	return users_params
+
+
+
+def populate_users(
+	conn: Connection,
+	datetimeProvider: MockDatetimeProvider,
+	primaryUser: AccountInfo,
+	testPassword: bytes
+):
+	userParams = get_user_params(datetimeProvider, primaryUser, testPassword)
+	stmt = insert(users)
+	conn.execute(stmt, userParams)

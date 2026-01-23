@@ -16,7 +16,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	generate_playlist_user_and_rules_from_rows,
 	RulePriorityLevel,
 	ActionRule,
-	PlaylistActionRule,
 	UserRoleDomain,
 	get_playlist_owner_roles,
 	UserRoleDef,
@@ -352,7 +351,7 @@ class PlaylistsUserService:
 		addedUserId: int,
 		playlistId: int,
 		rule: ActionRule
-	) -> PlaylistActionRule:
+	) -> ActionRule:
 		stmt = insert(playlist_user_permissions).values(
 			userfk = addedUserId,
 			playlistfk = playlistId,
@@ -364,11 +363,12 @@ class PlaylistsUserService:
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
-		return PlaylistActionRule(
+		return ActionRule(
 			name=rule.name,
 			span=rule.span,
 			count=rule.count,
-			priority=RulePriorityLevel.STATION_PATH.value
+			priority=RulePriorityLevel.STATION_PATH.value,
+			domain=UserRoleDomain.Playlist.value
 		)
 
 

@@ -1,110 +1,168 @@
+from datetime import datetime
 from typing import Any
+from musical_chairs_libs.dtos_and_utilities import (
+	UserRoleDef,
+)
 
-def get_station_queue() -> list[dict[Any, Any]]:
-	return [
+try:
+	from . import user_ids
+except:
+	import user_ids
+
+def get_station_queue(
+	baseDate: datetime
+) -> list[dict[Any, Any]]:
+	baseTimestamp = baseDate.timestamp()
+	queue: list[dict[str, Any]] = [
 		{
-			"useractionhistoryfk": 1,
+			"pk": 1,
 			"stationfk": 2,
 			"songfk": 3,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 2,
+			"pk": 2,
 			"stationfk": 2,
 			"songfk": 4,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 3,
+			"pk": 3,
 			"stationfk": 2,
 			"songfk": 5,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 8,
+			"pk": 8,
 			"stationfk": 5,
 			"songfk": None,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 9,
+			"pk": 9,
 			"stationfk": 5,
 			"songfk": None,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 10,
+			"pk": 10,
 			"stationfk": 5,
 			"songfk": None,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 11,
+			"pk": 11,
 			"stationfk": 5,
 			"songfk": 5,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 12,
+			"pk": 12,
 			"stationfk": 5,
 			"songfk": 6,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 13,
+			"pk": 13,
 			"stationfk": 5,
 			"songfk": 7,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 14,
+			"pk": 14,
 			"stationfk": 5,
 			"songfk": 8,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 15,
+			"pk": 15,
 			"stationfk": 5,
 			"songfk": 9,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 16,
+			"pk": 16,
 			"stationfk": 5,
 			"songfk": 10,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 18,
+			"pk": 18,
 			"stationfk": 6,
 			"songfk": 10,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 19,
+			"pk": 19,
 			"stationfk": 6,
 			"songfk": 11,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 20,
+			"pk": 20,
 			"stationfk": 6,
 			"songfk": 12,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 21,
+			"pk": 21,
 			"stationfk": 6,
 			"songfk": 13,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 22,
+			"pk": 22,
 			"stationfk": 6,
 			"songfk": 14,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 23,
+			"pk": 23,
 			"stationfk": 6,
 			"songfk": 15,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 24,
+			"pk": 24,
 			"stationfk": 6,
 			"songfk": 16,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 25,
+			"pk": 25,
 			"stationfk": 6,
 			"songfk": None,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		},
 		{
-			"useractionhistoryfk": 26,
+			"pk": 26,
 			"stationfk": 6,
 			"songfk": None,
+			"userfk": user_ids.juliet_user_id,
+			"action": UserRoleDef.STATION_REQUEST.value,
 		}
 	]
+	for i, entry in enumerate(queue):
+		entry["timestamp"] = baseTimestamp + i * 1000
+		entry["queuedtimestamp"] = baseTimestamp + i * 1000
+	return queue

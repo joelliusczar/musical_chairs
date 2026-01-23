@@ -342,55 +342,49 @@ user_agents = Table("useragents",metadata,
 	Column("content", Text, nullable=False),
 	Column("hash", BINARY(16), nullable=False),
 	Column("length", Integer, nullable=False),
+	Column("ipv4address", String(24), nullable=True),
+	Column("ipv6address", String(50), nullable=True),
 )
 
 uag_pk = cast(Column[Integer], user_agents.c.pk)
 uag_content = cast(Column[String], user_agents.c.content)
 uag_hash = cast(Column[BINARY], user_agents.c.hash)
 uag_length = cast(Column[Integer], user_agents.c.length)
+uag_ipv4Address = cast(Column[String], user_agents.c.ipv4address)
+uag_ipv6Address = cast(Column[String], user_agents.c.ipv6address)
 
-Index("idx_useragenthash", uag_hash)
-
-
-user_action_history = Table("useractionhistory", metadata,
-	Column("pk", Integer, primary_key=True),
-	Column("userfk", Integer, ForeignKey("users.pk"), nullable=True),
-	Column("action", String(50), nullable=False),
-	Column("timestamp", Double[float], nullable=True),
-	Column("queuedtimestamp", Double[float], nullable=False),
-	Column("ipv4address", String(24), nullable=True),
-	Column("ipv6address", String(50), nullable=True),
-	Column("useragentsfk", Integer, ForeignKey("useragents.pk"), nullable=True),
+Index(
+	"idx_useragent",
+	uag_ipv6Address,
+	uag_ipv4Address,
+	uag_hash,
+	uag_length
 )
 
-uah = user_action_history.c
-uah_pk = cast(Column[Integer], uah.pk)
-uah_userFk = cast(Column[Optional[Integer]],uah.userfk)
-uah_action = cast(Column[String], uah.action)
-uah_timestamp = cast(Column[Optional[Double[float]]],uah.timestamp)
-uah_queuedTimestamp = cast(Column[Double[float]], uah.queuedtimestamp)
 
-
-station_queue = Table("stationqueue", metadata,
-	Column("useractionhistoryfk",
-		Integer,
-		ForeignKey("useractionhistory.pk"),
-		nullable=False
-	),
+station_queue = Table("stationlogs", metadata,
+	Column("pk", Integer, primary_key=True),
 	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
 	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=True),
 	Column("itemtype", String(50), nullable=False, default="song"),
-	Column("parentkey", Integer, nullable=True)
+	Column("action", String(50), nullable=True),
+	Column("parentkey", Integer, nullable=True),
+	Column("queuedtimestamp", Double[float], nullable=False),
+	Column("timestamp", Double[float], nullable=True),
+	Column("userfk", Integer, ForeignKey("users.pk"), nullable=True),
 )
 
 q = station_queue.c
-q_userActionHistoryFk = cast(Column[Integer], q.useractionhistoryfk)
+q_pk = cast(Column[Integer], q.pk)
 q_songFk = cast(Column[Integer], q.songfk)
 q_stationFk = cast(Column[Integer], q.stationfk)
 q_itemType = cast(Column[String], q.itemtype)
+q_action = cast(Column[String], q.action)
 q_parentKey = cast(Column[Integer], q.parentkey)
+q_timestamp = cast(Column[Optional[Double[float]]],q.timestamp)
+q_queuedTimestamp = cast(Column[Double[float]], q.queuedtimestamp)
 
-Index("idx_stationqueuestations", q_stationFk)
+Index("idx_stationlogsstations", q_stationFk)
 
 
 station_user_permissions = Table("stationuserpermissions", metadata,

@@ -18,13 +18,9 @@ GRANT UPDATE ON TABLE `<dbName>`.`stationsalbums` TO <radioUser>;
 GRANT SELECT ON TABLE `<dbName>`.`stationsplaylists` TO <radioUser>;
 GRANT UPDATE ON TABLE `<dbName>`.`stationsplaylists` TO <radioUser>;
 
-GRANT UPDATE ON TABLE `<dbName>`.`stationqueue` TO <radioUser>;
-GRANT INSERT ON TABLE `<dbName>`.`stationqueue` TO <radioUser>;
-GRANT SELECT ON TABLE `<dbName>`.`stationqueue` TO <radioUser>;
-
-GRANT UPDATE ON TABLE `<dbName>`.`useractionhistory` TO <radioUser>;
-GRANT INSERT ON TABLE `<dbName>`.`useractionhistory` TO <radioUser>;
-GRANT SELECT ON TABLE `<dbName>`.`useractionhistory` TO <radioUser>;
+GRANT UPDATE ON TABLE `<dbName>`.`stationlogs` TO <radioUser>;
+GRANT INSERT ON TABLE `<dbName>`.`stationlogs` TO <radioUser>;
+GRANT SELECT ON TABLE `<dbName>`.`stationlogs` TO <radioUser>;
 
 GRANT SELECT ON TABLE `<dbName>`.`lastplayed` TO <radioUser>;
 

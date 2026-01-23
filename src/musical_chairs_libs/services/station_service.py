@@ -50,6 +50,7 @@ from musical_chairs_libs.tables import (
 	stup_userFk, stup_role, stup_count, stup_span, stup_priority
 )
 from musical_chairs_libs.dtos_and_utilities import (
+	asdict,
 	build_placeholder_select,
 	StationInfo,
 	StationCreationInfo,
@@ -478,7 +479,7 @@ class StationService:
 		userId = self.current_user_provider.current_user().id
 		params: list[dict[str, Any]] = [
 			{
-				**rule.model_dump(exclude={"name", "domain"}),
+				**asdict(rule, exclude={"name", "domain"}),
 				"role": rule.name,
 				"userfk": userId,
 				"stationfk": stationId,
@@ -532,7 +533,9 @@ class StationService:
 		self,
 		station: StationCreationInfo
 	) -> int:
-		user = self.current_user_provider.get_rate_limited_user()
+		user = self.current_user_provider.get_rate_limited_user(
+			UserRoleDomain.Station.value
+		)
 		savedName = SavedNameString(station.name)
 		savedDisplayName = SavedNameString(station.displayname)
 
@@ -647,6 +650,7 @@ class StationService:
 		stationId: int, 
 		copy: StationCreationInfo
 	) -> Optional[StationInfo]:
+		copy.playnum = 1
 		created = self.save_station(copy)
 		if copy.typeid == StationTypes.SONGS_ONLY.value:
 			query = select(stsg_songFk).where(stsg_stationFk == stationId)
@@ -655,13 +659,11 @@ class StationService:
 			if any(itemIds):
 				params = [{
 					"stationfk": created.id,
-					"songfk": s
+					"songfk": s,
 				} for s in itemIds]
 				insertStmt = insert(stations_songs_tbl)
 				self.conn.execute(insertStmt, params)
-		if copy.typeid == StationTypes.ALBUMS_ONLY.value \
-			or copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
-		:
+		if copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
 			query = select(stab_albumFk).where(stab_stationFk == stationId)
 			rows = self.conn.execute(query)
 			itemIds = [cast(int,row[0]) for row in rows]
@@ -672,9 +674,7 @@ class StationService:
 				} for s in itemIds]
 				insertStmt = insert(stations_albums_tbl)
 				self.conn.execute(insertStmt, params)
-		if copy.typeid == StationTypes.PLAYLISTS_ONLY.value \
-			or copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
-		:
+
 			query = select(stpl_playlistFk).where(stpl_stationFk == stationId)
 			rows = self.conn.execute(query)
 			itemIds = [cast(int,row[0]) for row in rows]
@@ -685,6 +685,7 @@ class StationService:
 				} for s in itemIds]
 				insertStmt = insert(stations_playlists_tbl)
 				self.conn.execute(insertStmt, params)
+
 		self.conn.commit()
 		return created
 

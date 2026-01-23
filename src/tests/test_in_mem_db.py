@@ -8,7 +8,8 @@ from .constant_fixtures_for_test import *
 from .common_fixtures import (
 	fixture_setup_db as fixture_setup_db,
 	fixture_conn_cardboarddb as fixture_conn_cardboarddb,
-	fixture_db_queryer as fixture_db_queryer
+	fixture_db_queryer as fixture_db_queryer,
+	fixture_datetime_iterator as fixture_datetime_iterator
 )
 from musical_chairs_libs.services import DbOwnerConnectionService
 from musical_chairs_libs.tables import artists
@@ -23,6 +24,8 @@ from .mocks.db_data import (
 	song_params
 )
 from .mocks import db_population
+from .mocks import db_data
+from .mocks.mock_datetime_provider import MockDatetimeProvider
 from .constant_fixtures_for_test import (
 	fixture_mock_password as fixture_mock_password,\
 	fixture_primary_user as fixture_primary_user,\
@@ -33,7 +36,7 @@ from .constant_fixtures_for_test import (
 def fixture_db_populate_factory(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str,
-	fixture_mock_ordered_date_list: list[datetime],
+	fixture_datetime_iterator: MockDatetimeProvider,
 	fixture_primary_user: AccountInfo,
 	fixture_mock_password: bytes
 ) -> Callable[[], None]:
@@ -41,9 +44,9 @@ def fixture_db_populate_factory(
 		dbName = fixture_setup_db
 		with DbOwnerConnectionService(dbName) as ownerConnService:
 			conn = ownerConnService.conn
-			db_population.populate_users(
+			db_data.populate_users(
 				conn,
-				fixture_mock_ordered_date_list,
+				fixture_datetime_iterator,
 				fixture_primary_user,
 				fixture_mock_password
 			)
@@ -73,7 +76,7 @@ def test_in_mem_db(fixture_conn_cardboarddb: Connection) -> None:
 	assert res[6].pk == 7
 
 def test_data_view(
-	fixture_mock_ordered_date_list: list[datetime],
+	fixture_datetime_iterator: MockDatetimeProvider,
 	fixture_primary_user: AccountInfo,
 	fixture_mock_password: bytes
 ):
@@ -84,19 +87,19 @@ def test_data_view(
 	noop(artist_params)
 	noop(album_params)
 	users = get_user_params(
-		fixture_mock_ordered_date_list,
+		fixture_datetime_iterator,
 		fixture_primary_user,
 		fixture_mock_password
 	)
 	noop(users)
 	userRoles = get_user_role_params(
-		fixture_mock_ordered_date_list,
+		fixture_datetime_iterator,
 		fixture_primary_user
 	)
 	noop(userRoles)
-	stationRules = get_station_permission_params(fixture_mock_ordered_date_list)
+	stationRules = get_station_permission_params(fixture_datetime_iterator)
 	noop(stationRules)
-	pathRules = get_path_permission_params(fixture_mock_ordered_date_list)
+	pathRules = get_path_permission_params(fixture_datetime_iterator)
 	noop(pathRules)
 	pass
 

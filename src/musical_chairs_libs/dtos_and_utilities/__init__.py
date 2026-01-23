@@ -1,4 +1,5 @@
 from .constants import constants as constants
+from .event_dtos import *
 from .name_strings import *
 from .validation_functions import *
 from .user_role_def import *

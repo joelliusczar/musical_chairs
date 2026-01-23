@@ -1,15 +1,16 @@
 #pyright: reportMissingTypeStubs=false
+import json
 import pytest
 import os
 import hashlib
 import subprocess
-from typing import Iterator, List, Any, Callable, cast
+from typing import Iterator, Any, Callable, cast
 from datetime import datetime
 from musical_chairs_libs.services import (
 	AccountAccessService,
 	AccountManagementService,
 	AccountTokenCreator,
-	ActionsHistoryQueryService,
+	EventsQueryService,
 	BasicUserProvider,
 	EmptyUserTrackingService,
 	QueueService,
@@ -17,7 +18,7 @@ from musical_chairs_libs.services import (
 	SongInfoService,
 	StationService,
 	TemplateService,
-	ActionsHistoryManagementService,
+	EventsLoggingService,
 	DbRootConnectionService,
 	DbOwnerConnectionService,
 	setup_database,
@@ -57,6 +58,20 @@ from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user,\
 	fixture_mock_ordered_date_list as fixture_mock_ordered_date_list
 )
+from .mocks.constant_values_defs import mock_ordered_date_list
+from .mocks.db_data import get_actions_history
+
+@pytest.fixture
+def fixture_datetime_iterator(
+	request: pytest.FixtureRequest
+) -> MockDatetimeProvider:
+	requestDates = request.node.get_closest_marker("testDatetimes")
+	if requestDates:
+		datetimes = requestDates.args[0]
+		provider = MockDatetimeProvider(datetimes)
+		return provider
+	provider = MockDatetimeProvider(mock_ordered_date_list)
+	return provider
 
 
 @pytest.fixture
@@ -75,7 +90,7 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 def fixture_db_populate_factory(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str,
-	fixture_mock_ordered_date_list: List[datetime],
+	fixture_datetime_iterator: MockDatetimeProvider,
 	fixture_primary_user: AccountInfo,
 	fixture_mock_password: bytes
 ) -> Callable[[], None]:
@@ -86,7 +101,7 @@ def fixture_db_populate_factory(
 			setup_in_mem_tbls(
 				conn,
 				request,
-				fixture_mock_ordered_date_list,
+				fixture_datetime_iterator,
 				fixture_primary_user,
 				fixture_mock_password,
 			)
@@ -126,11 +141,22 @@ def fixture_conn_cardboarddb(
 def fixture_tracking_info_provider() -> TrackingInfoProvider:
 	return EmptyUserTrackingService()
 
+
+@pytest.fixture(autouse=True)
+def load_initial_events(fixture_datetime_iterator: MockDatetimeProvider):
+	events = get_actions_history(fixture_datetime_iterator)
+	fileName = os.path.join(
+		ConfigAcessors.event_log_dir(),
+		"000.jsonl"
+	)
+	with open(fileName, "w", 1) as f:
+		for event in events:
+			f.write(json.dumps(event) + "\n")
+
+
 @pytest.fixture
-def fixture_actions_history_query_service(
-	fixture_conn_cardboarddb: Connection
-) -> ActionsHistoryQueryService:
-	return ActionsHistoryQueryService(fixture_conn_cardboarddb)
+def fixture_actions_history_query_service() -> EventsQueryService:
+	return EventsQueryService()
 
 
 @pytest.fixture
@@ -139,9 +165,11 @@ def fixture_account_access_service(
 ) -> AccountAccessService:
 	return AccountAccessService(fixture_conn_cardboarddb)
 
+
 @pytest.fixture
 def fixture_file_service() -> FileService:
 	return MockFileService()
+
 
 @pytest.fixture
 def fixture_basic_user_provider(
@@ -157,6 +185,7 @@ def fixture_basic_user_provider(
 			return BasicUserProvider(user)
 	return BasicUserProvider(None)
 
+
 @pytest.fixture
 def fixture_path_rule_service(
 	fixture_conn_cardboarddb: Connection,
@@ -170,11 +199,12 @@ def fixture_path_rule_service(
 	)
 	return pathRuleService
 
+
 @pytest.fixture
 def fixture_current_user_provider(
 	fixture_account_access_service: AccountAccessService,
 	fixture_tracking_info_provider: TrackingInfoProvider,
-	fixture_actions_history_query_service: ActionsHistoryQueryService,
+	fixture_actions_history_query_service: EventsQueryService,
 	fixture_path_rule_service: PathRuleService,
 	fixture_basic_user_provider: BasicUserProvider,
 ) -> CurrentUserProvider:
@@ -187,13 +217,12 @@ def fixture_current_user_provider(
 	)
 
 
-
 @pytest.fixture
 def fixture_account_management_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
 	fixture_account_access_service: AccountAccessService,
-	fixture_user_actions_history_service: ActionsHistoryManagementService,
+	fixture_user_actions_history_service: EventsLoggingService,
 ) -> AccountManagementService:
 		return AccountManagementService(
 			fixture_conn_cardboarddb,
@@ -202,15 +231,17 @@ def fixture_account_management_service(
 			fixture_user_actions_history_service
 		)
 
+
 @pytest.fixture
 def fixture_account_token_creator(
 	fixture_conn_cardboarddb: Connection,
-	fixture_user_actions_history_service: ActionsHistoryManagementService,
+	fixture_user_actions_history_service: EventsLoggingService,
 ) -> AccountTokenCreator:
 	return AccountTokenCreator(
 		fixture_conn_cardboarddb,
 		fixture_user_actions_history_service
 	)
+
 
 @pytest.fixture
 def fixture_account_service(
@@ -248,24 +279,25 @@ def fixture_song_info_service(
 	)
 	return songInfoService
 
+
 @pytest.fixture
 def fixture_user_actions_history_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_tracking_info_provider: TrackingInfoProvider,
 	fixture_current_user_provider: CurrentUserProvider
-) -> ActionsHistoryManagementService:
-	userActionsHistoryService = ActionsHistoryManagementService(
-		fixture_conn_cardboarddb,
+) -> EventsLoggingService:
+	userActionsHistoryService = EventsLoggingService(
 		fixture_tracking_info_provider,
 		fixture_current_user_provider
 	)
 	return userActionsHistoryService
 
+
 @pytest.fixture
 def fixture_queue_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
-	fixture_user_actions_history_service: ActionsHistoryManagementService,
+	fixture_user_actions_history_service: EventsLoggingService,
 	fixture_song_info_service: SongInfoService,
 	fixture_path_rule_service: PathRuleService,
 ) -> QueueService:
@@ -402,6 +434,7 @@ def fixture_album_service(
 	)
 	return albumService
 
+
 @pytest.fixture
 def fixture_artist_service(
 	fixture_conn_cardboarddb: Connection,
@@ -445,10 +478,12 @@ def fixture_song_file_service(
 	)
 	return songFileService
 
+
 @pytest.fixture
 def fixture_template_service() -> TemplateService:
 	templateService = TemplateService()
 	return templateService
+
 
 @pytest.fixture
 def fixture_job_service(
@@ -485,18 +520,6 @@ def fixture_clean_station_folders():
 	for file in os.scandir(ConfigAcessors.station_module_dir()):
 		os.remove(file.path)
 
-@pytest.fixture
-def fixture_datetime_iterator(
-	fixture_mock_ordered_date_list: List[datetime],
-	request: pytest.FixtureRequest
-) -> MockDatetimeProvider:
-	requestTimestamps = request.node.get_closest_marker("testDatetimes")
-	if requestTimestamps:
-		datetimes = requestTimestamps.args[0]
-		provider = MockDatetimeProvider(datetimes)
-		return provider
-	provider = MockDatetimeProvider(fixture_mock_ordered_date_list)
-	return provider
 
 @pytest.fixture
 def fixture_path_user_factory(
@@ -565,6 +588,7 @@ def fixture_db_queryer(
 		print(res.fetchall())
 	return run_query
 
+
 @pytest.fixture
 def ices_config_monkey_patch(
 	monkeypatch: pytest.MonkeyPatch
@@ -578,7 +602,6 @@ def ices_config_monkey_patch(
 			returncode=0,
 			stdout=cmdOutput
 		)
-		
 
 	monkeypatch.setattr("subprocess.run", mock_run)
 		

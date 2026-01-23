@@ -24,7 +24,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	normalize_opening_slash,
 	squash_chars,
-	PathsActionRule,
+	ActionRule,
 	ChainedAbsorbentTrie,
 	SongTreeNode,
 	normalize_closing_slash,
@@ -330,7 +330,7 @@ class SongFileService:
 			Select[Tuple[str, Optional[String], int, Integer, String]], 
 			CompoundSelect[Any]
 		],
-		permittedPathsTree: ChainedAbsorbentTrie[PathsActionRule]
+		permittedPathsTree: ChainedAbsorbentTrie[ActionRule]
 	) -> Iterator[SongTreeNode]:
 		records = self.conn.execute(query).mappings()
 		for row in records:

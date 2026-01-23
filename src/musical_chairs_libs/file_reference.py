@@ -6,11 +6,11 @@ from enum import Enum
 class SqlScripts(Enum):
 	GRANT_API = (
 		"001.grant_api.sql",
-		"77321d41fb61e0ca4197c05bfe2129df4a59567d5dd1749615d329b94498bf13"
+		"d96a1c7e09b08a6970aa14f0182132ce98b52d0be8dd4a4522bdff9f8cd62f51"
 	)
 	GRANT_RADIO = (
 		"002.grant_radio.sql",
-		"a795779829377426644d5409cb44d5e068f517115ab79e47d371e90646de5992"
+		"9b74de254a65acadc77f54db3b55258572f5c2dfb295beb743c96034cfeaf320"
 	)
 	PATH_USER_INDEXES = (
 		"003.path_user_indexes.sql",
@@ -23,10 +23,6 @@ class SqlScripts(Enum):
 	NORMALIZE_OPENING_SLASH = (
 		"005.normalize_opening_slash.sql",
 		"a31b18b80e2230042abd20650f59829cef7ac16d7274f0eaca148dc04664ab75"
-	)
-	DROP_REQUESTED_TIMESTAMP = (
-		"006.drop_requested_timestamp.sql",
-		"b137be347d0dc64ca883d8a2d654640a3637ce98d6528451ed7709242c986349"
 	)
 	ADD_INTERNAL_PATH = (
 		"007.add_internal_path.sql",
@@ -42,19 +38,7 @@ class SqlScripts(Enum):
 	)
 	GRANT_JANITOR = (
 		"010.grant_janitor.sql",
-		"4c12581aea1a6454c5cf85ceb266a41869144c0060ee7ecfc09ad04808526b48"
-	)
-	ADD_IP4ADDRESS = (
-		"011.add_ip4address.sql",
-		"4c44d1a57369986eafa90ba20202114b40f3ad0e1d4356d785bd64809c13bb08"
-	)
-	ADD_IP6ADDRESS = (
-		"012.add_ip6address.sql",
-		"4901552b86eed5dc5226516c9ca12146fe801bc79a5cb02fe779760ec74d21e6"
-	)
-	ADD_USERAGENT_FK = (
-		"013.add_useragent_fk.sql",
-		"8444071f34a7fe908125f3778a6b71261f8736121b3d5db28949aff0dd06cfcf"
+		"7d2d970fe8a4fe8585467f0e306766ec3ab68d63ede7d8d45662c1b6bb3ed100"
 	)
 	ADD_SONG_DELETEDTIMESTAMP = (
 		"014.add_song_deletedtimestamp.sql",
@@ -116,14 +100,6 @@ class SqlScripts(Enum):
 		"029.readd_unique_album_index.sql",
 		"677d9fb8447622a504e129a32d2885ecf2918df2f0735587ebbcc591cc681615"
 	)
-	ADD_STATIONQUEUE_ITEMTYPE = (
-		"030.add_stationqueue_itemtype.sql",
-		"277c2d0e9aef329749dbd1e7a01e24ffaceea1991056d38f13aa322dd692447b"
-	)
-	ADD_STATIONQUEUE_PARENTKEY = (
-		"031.add_stationqueue_parentkey.sql",
-		"df5413ff48388b37c4a50f95be9e13196260a4aa6aac0e70d8deb7bd476a7bd9"
-	)
 	ADD_LASTPLAYED_ITEMTYPE = (
 		"032.add_lastplayed_itemtype.sql",
 		"3ec4eeb8335242efcae8ebe2bcf2401d07a9f73338ec48cb27b157909a5d9e45"
@@ -142,7 +118,7 @@ class SqlScripts(Enum):
 	)
 	UPDATE_COLLATIONS = (
 		"036.update_collations.sql",
-		"ffda3d82c1a50ea25dab4d00ec79446f5390644ef7fda88af293e0bdd83a3852"
+		"75942a878e59f88bea7e3c97e75fb1fc22858d631a5886b31f91dd5a85ff4295"
 	)
 	SONGS_EXPAND_GENRE = (
 		"037.songs_expand_genre.sql",
@@ -164,9 +140,29 @@ class SqlScripts(Enum):
 		"041.add_stationsplaylists_lastplayednum.sql",
 		"bf73ca0d65cc05d47718d24ee7cd0cf3d1707bf73d37437ed285c2904616fc0f"
 	)
+	ADD_USERAGENTS_IPV4 = (
+		"042.add_useragents_ipv4.sql",
+		"3dfe299114520c7aed0b340252ece2a6012c452fc0f3eec1ea99b6f754e104c3"
+	)
+	ADD_USERAGENTS_IPV6 = (
+		"043.add_useragents_ipv6.sql",
+		"c2d1a37470a718bfd094439ab052cbe07c66415147986bb22066421552b60596"
+	)
+	DROP_USERAGENTS_INDEX_ = (
+		"044.drop_useragents_index .sql",
+		"0566d97c84eddd43582cd75e51fdb4525217059350e61a48fcb12bef4e535490"
+	)
+	ADD_USERAGENTS_INDEX = (
+		"045.add_useragents_index.sql",
+		"6dbbbdee05d8ae307a71668cd6dd831784b5d449c75590931b616c775fc5a418"
+	)
+	DROP_USERACTIONHISTORY = (
+		"046.drop_useractionhistory.sql",
+		"fa08f53cc1ac0dd40bb815dc7e6b49802ca280fcb1376d9db3907df520d9080d"
+	)
 	TRIM_STATION_QUEUE_HISTORY = (
 		"runtime/trim_station_queue_history.sql",
-		"f3bac0c5e9b629edd5e96d3bcfff914649ba541408e450e13dcb254143c2186b"
+		"6ef6cb8cfaa5d7466e91a38e3bc6bcae85779fc5ad9a5e41f262814e68ffc0f3"
 	)
 
 	@property

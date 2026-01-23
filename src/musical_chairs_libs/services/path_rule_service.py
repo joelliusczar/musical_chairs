@@ -11,7 +11,6 @@ from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.protocols import FileService, UserProvider
 from musical_chairs_libs.dtos_and_utilities import (
-	PathsActionRule,
 	RulePriorityLevel,
 	normalize_opening_slash,
 	AccountInfo,
@@ -48,20 +47,21 @@ class PathRuleService:
 		self.user_provider = userProvider
 
 
-	def get_paths_user_can_see(self) -> Iterator[PathsActionRule]:
+	def get_paths_user_can_see(self) -> Iterator[ActionRule]:
 		userId = self.user_provider.current_user().id
 		query = select(pup_path, pup_role, pup_priority, pup_span, pup_count)\
 			.where(pup_userFk == userId)\
 			.order_by(pup_path)
 		records = self.conn.execute(query).mappings()
 		for r in records:
-			yield PathsActionRule(
+			yield ActionRule(
 				name=cast(str,r[pup_role]),
 				priority=cast(int,r[pup_priority]) \
 					or RulePriorityLevel.STATION_PATH.value,
 				span=cast(int,r[pup_span]) or 0,
 				count=cast(int,r[pup_count]) or 0,
-				path=normalize_opening_slash(cast(str,r[pup_path]))
+				path=normalize_opening_slash(cast(str,r[pup_path])),
+				domain=UserRoleDomain.Path.value
 			)
 
 
@@ -77,7 +77,7 @@ class PathRuleService:
 
 		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
 			(normalize_opening_slash(p.path), p) for p in
-				rules if isinstance(p, PathsActionRule) and p.path
+				rules if p.domain == UserRoleDomain.Path.value and p.path
 		)
 		pathRuleTree.add("/", (r for r in user.roles \
 			if type(r) == ActionRule \
@@ -106,7 +106,7 @@ class PathRuleService:
 		addedUserId: int,
 		prefix: str,
 		rule: ActionRule
-	) -> PathsActionRule:
+	) -> ActionRule:
 		stmt = insert(path_user_permissions_tbl).values(
 			userfk = addedUserId,
 			path = prefix,
@@ -118,12 +118,13 @@ class PathRuleService:
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
-		return PathsActionRule(
+		return ActionRule(
 			name=rule.name,
 			span=rule.span,
 			count=rule.count,
 			priority=RulePriorityLevel.STATION_PATH.value,
-			path=prefix
+			path=prefix,
+			domain=UserRoleDomain.Path.value
 		)
 
 

@@ -1,4 +1,4 @@
-from .actions_history_query_service import ActionsHistoryQueryService
+from .events_query_service import EventsQueryService
 from .basic_user_provider import BasicUserProvider, Impersonation
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
@@ -8,9 +8,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_path_owner_roles,
 	normalize_opening_slash,
 	NotLoggedInError,
-	PathsActionRule,
 	TooManyRequestsError,
-	TrackingInfo,
 	StationInfo,
 	UserRoleDef,
 	UserRoleDomain,
@@ -29,7 +27,7 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		self,
 		basicUserProvider: BasicUserProvider,
 		trackingInfoProvider: TrackingInfoProvider,
-		actionsHistoryQueryService: ActionsHistoryQueryService,
+		actionsHistoryQueryService: EventsQueryService,
 		pathRuleService: PathRuleService,
 		securityScopes: Optional[set[str]] = None,
 	) -> None:
@@ -69,8 +67,8 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		return self.basic_user_provider.optional_user_id()
 
 
-	def tracking_info(self) -> TrackingInfo:
-		return self.tracking_info_provider.tracking_info()
+	def user_agent_id(self) -> int | None:
+		return self.tracking_info_provider.user_agent_id()
 
 
 	def get_station_user(
@@ -98,10 +96,12 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 			raise WrongPermissionsError()
 		timeoutLookup = \
 			self.actions_history_query_service\
-			.calc_lookup_for_when_user_can_next_do_station_action(
+			.calc_lookup_for_when_user_can_next_do_action(
 				user.id,
-				(station,)
-			).get(station.id, {})
+				rules,
+				UserRoleDomain.Station.value,
+				str(station.id)
+			)
 		for scope in scopes:
 			if scope in timeoutLookup:
 				whenNext = timeoutLookup[scope]
@@ -116,7 +116,11 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		return AccountInfo(**userDict)
 	
 
-	def get_rate_limited_user(self) -> AccountInfo:
+	def get_rate_limited_user(
+		self,
+		domain: str,
+		path: Optional[str]=None
+	) -> AccountInfo:
 		user = self.current_user()
 		if user.isadmin:
 			return user
@@ -128,7 +132,8 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 			self.actions_history_query_service\
 				.calc_lookup_for_when_user_can_next_do_action(
 					user.id,
-					rules
+					rules,
+					domain
 				)
 		for scope in scopeSet:
 			if scope in timeoutLookup:
@@ -151,7 +156,7 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		scopes: list[str],
 		prefix: str,
 		user: AccountInfo,
-		userPrefixTrie: ChainedAbsorbentTrie[PathsActionRule],
+		userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
 	):
 		scopeSet = scopes
 		rules = ActionRule.sorted(
@@ -164,7 +169,8 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 			self.actions_history_query_service\
 				.calc_lookup_for_when_user_can_next_do_action(
 					user.id,
-					rules
+					rules,
+					UserRoleDomain.Path.value
 				)
 		for scope in scopeSet:
 			if scope in timeoutLookup:

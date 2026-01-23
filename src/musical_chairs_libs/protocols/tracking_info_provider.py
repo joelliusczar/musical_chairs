@@ -1,7 +1,6 @@
-from musical_chairs_libs.dtos_and_utilities import (TrackingInfo)
-from typing import Protocol
+from typing import Optional, Protocol
 
 class TrackingInfoProvider(Protocol):
 
-	def tracking_info(self) -> TrackingInfo:
+	def user_agent_id(self) -> Optional[int]:
 		...

@@ -23,7 +23,6 @@ from .user_role_def import (
 )
 from .action_rule_dtos import (
 	ActionRule,
-	action_rule_class_map,
 )
 from .account_dtos import (
 	AccountInfo,
@@ -148,19 +147,16 @@ def row_to_user(row: RowMapping) -> AccountInfo:
 	)
 
 def row_to_action_rule(row: RowMapping) -> ActionRule:
-	clsConstructor = action_rule_class_map.get(
-		row["rule.domain"],
-		ActionRule
-	)
 
-	return clsConstructor(
+	return ActionRule(
 		name=row["rule.name"],
 		span=row["rule.span"],
 		count=row["rule.count"],
 		#if priortity is explict use that
 		#otherwise, prefer station specific rule vs non station specific rule
 		priority=cast(int,row["rule.priority"]) if row["rule.priority"] \
-			else RulePriorityLevel.STATION_PATH.value
+			else RulePriorityLevel.STATION_PATH.value,
+		domain=row["rule.domain"]
 	)
 
 def generate_station_user_and_rules_from_rows(

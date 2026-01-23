@@ -264,7 +264,8 @@ def test_change_roles(fixture_api_test_client: TestClient):
 		"span": 0,
 		"count": 0,
 		"priority": 0,
-		"domain": "site"
+		"domain": "site",
+		"path": None
 		}
 
 def test_get_account_info(fixture_api_test_client: TestClient):

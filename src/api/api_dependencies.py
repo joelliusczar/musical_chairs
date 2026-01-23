@@ -23,14 +23,14 @@ from musical_chairs_libs.services import (
 	AccountAccessService,
 	AccountManagementService,
 	AccountTokenCreator,
-	ActionsHistoryQueryService,
+	EventsQueryService,
 	BasicUserProvider,
 	CurrentUserTrackingService,
 	StationService,
 	QueueService,
 	SongInfoService,
 	ProcessService,
-	ActionsHistoryManagementService,
+	EventsLoggingService,
 	SongFileService,
 	PathRuleService,
 	ArtistService,
@@ -46,7 +46,7 @@ from musical_chairs_libs.services import (
 	StationProcessService,
 	CollectionQueueService,
 	CurrentUserProvider,
-	
+	UserAgentService,
 )
 from musical_chairs_libs.protocols import (
 	FileService,
@@ -228,16 +228,21 @@ def get_tracking_info(request: Request):
 	)
 
 
-def current_user_tracking_service(
-	trackingInfo: TrackingInfo = Depends(get_tracking_info)
-) -> CurrentUserTrackingService:
-	return CurrentUserTrackingService(trackingInfo)
-
-
-def actions_history_query_service(
+def user_agent_service(
 	conn: Connection=Depends(get_configured_db_connection)
-) -> ActionsHistoryQueryService:
-	return ActionsHistoryQueryService(conn)
+) -> UserAgentService:
+	return UserAgentService(conn)
+
+
+def current_user_tracking_service(
+	trackingInfo: TrackingInfo = Depends(get_tracking_info),
+	userAgentService: UserAgentService = Depends(user_agent_service)
+) -> CurrentUserTrackingService:
+	return CurrentUserTrackingService(trackingInfo, userAgentService)
+
+
+def actions_history_query_service() -> EventsQueryService:
+	return EventsQueryService()
 
 
 def file_service() -> FileService:
@@ -264,7 +269,7 @@ def current_user_provider(
 	currentUserTrackingService: CurrentUserTrackingService = Depends(
 		current_user_tracking_service
 	),
-	actionsHistoryQueryService: ActionsHistoryQueryService = Depends(
+	actionsHistoryQueryService: EventsQueryService = Depends(
 		actions_history_query_service
 	),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
@@ -295,16 +300,14 @@ def check_scope(
 
 
 def actions_history_management_service(
-	conn: Connection=Depends(get_configured_db_connection),
 	currentUserTrackingService: CurrentUserTrackingService = Depends(
 		current_user_tracking_service
 	),
 	userProvider: CurrentUserProvider = Depends(
 		current_user_provider
 	)
-) -> ActionsHistoryManagementService:
-	return ActionsHistoryManagementService(
-		conn,
+) -> EventsLoggingService:
+	return EventsLoggingService(
 		currentUserTrackingService,
 		userProvider
 	)
@@ -312,7 +315,7 @@ def actions_history_management_service(
 
 def account_management_service(
 	conn: Connection=Depends(get_configured_db_connection),
-	userActionHistoryService: ActionsHistoryManagementService =
+	userActionHistoryService: EventsLoggingService =
 		Depends(actions_history_management_service),
 	userProvider: CurrentUserProvider = Depends(
 		current_user_provider
@@ -329,7 +332,7 @@ def account_management_service(
 
 def account_token_creator(
 	conn: Connection=Depends(get_configured_db_connection),
-	userActionHistoryService: ActionsHistoryManagementService =
+	userActionHistoryService: EventsLoggingService =
 		Depends(actions_history_management_service)
 ) -> AccountTokenCreator:
 	return AccountTokenCreator(conn, userActionHistoryService)
@@ -354,7 +357,7 @@ def song_info_service(
 def queue_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-	userActionHistoryService: ActionsHistoryManagementService =
+	userActionHistoryService: EventsLoggingService =
 		Depends(actions_history_management_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
@@ -983,7 +986,16 @@ def get_secured_query_params(
 	return queryParams
 
 
-def check_rate_limit(
+def check_rate_limit(domain: str):
+		
+	def __check_rate_limit(
 		currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
-):
-	currentUserProvider.get_rate_limited_user()
+	):
+		currentUserProvider.get_rate_limited_user(domain)
+	
+	return __check_rate_limit
+
+
+def log_event():
+	yield
+	print("Hi here")

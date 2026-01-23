@@ -86,3 +86,10 @@ def test_collection_pop_next(
 		# while True:
 	# 	pass
 
+
+def test_collection_queue_with_loaded(
+	fixture_collection_queue_service: CollectionQueueService
+):
+	collectionQueueService = fixture_collection_queue_service
+	loaded = {collectionQueueService.pop_next_queued(30)}
+	loaded.add(collectionQueueService.pop_next_queued(30, loaded))

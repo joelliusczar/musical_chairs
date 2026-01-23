@@ -61,6 +61,9 @@ class SongListDisplayItem(QueuedItem):
 	historyid: Optional[int]=None
 	disc: Optional[int]=None
 
+	def __hash__(self) -> int:
+		return super().__hash__()
+
 
 	def display(self) -> str:
 		if self.name:

@@ -1,24 +1,17 @@
-from datetime import datetime
-from typing import List, Any
+from datetime import datetime, timezone
+from typing import Any
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.dtos_and_utilities import AccountInfo
 from musical_chairs_libs.tables import (
 	artists,
 	albums,
 	songs,
 	song_artist,
 	stations,
-	users,
-	userRoles,
 	stations_songs,
 	stations_albums,
-	station_user_permissions,
-	path_user_permissions,
-	user_action_history,
 	station_queue,
 	playlists,
 	playlists_songs,
-	playlist_user_permissions,
 	stations_playlists,
 )
 from sqlalchemy import insert
@@ -38,19 +31,15 @@ from .db_data import (
 	station_album_params,
 	playlists_params,
 	stations_playlists_params,
-	get_actions_history,
-	get_path_permission_params,
-	get_station_permission_params,
-	get_playlist_permission_params,
 	get_station_queue,
 	get_user_params,
-	get_user_role_params
 )
 from .constant_values_defs import (
 	mock_ordered_date_list,
 	primary_user,
 	mock_password
 )
+
 
 
 fooDirOwnerId = 11
@@ -246,49 +235,6 @@ def populate_playlists_songs(conn: Connection):
 	conn.execute(stmt, playlistsSongsParams) #pyright: ignore [reportUnknownMemberType]
 
 
-def populate_users(
-	conn: Connection,
-	orderedTestDates: List[datetime],
-	primaryUser: AccountInfo,
-	testPassword: bytes
-):
-	userParams = get_user_params(orderedTestDates, primaryUser, testPassword)
-	stmt = insert(users)
-	conn.execute(stmt, userParams)
-
-def populate_user_roles(
-	conn: Connection,
-	orderedTestDates: List[datetime],
-	primaryUser: AccountInfo,
-):
-	userRoleParams = get_user_role_params(orderedTestDates, primaryUser)
-	stmt = insert(userRoles)
-	conn.execute(stmt, userRoleParams) #pyright: ignore [reportUnknownMemberType]
-
-def populate_station_permissions(
-	conn: Connection,
-	orderedTestDates: List[datetime]
-):
-	stationPermissionParams = get_station_permission_params(orderedTestDates)
-	stmt = insert(station_user_permissions)
-	conn.execute(stmt, stationPermissionParams) #pyright: ignore [reportUnknownMemberType]
-
-def populate_playlist_permissions(
-	conn: Connection,
-	orderedTestDates: List[datetime]
-):
-	playlistPermissionParams = get_playlist_permission_params(orderedTestDates)
-	stmt = insert(playlist_user_permissions)
-	conn.execute(stmt, playlistPermissionParams) #pyright: ignore [reportUnknownMemberType]
-
-def populate_path_permissions(
-	conn: Connection,
-	orderedTestDates: List[datetime]
-):
-	pathPermissionParams = get_path_permission_params(orderedTestDates)
-	stmt = insert(path_user_permissions)
-	conn.execute(stmt, pathPermissionParams) #pyright: ignore [reportUnknownMemberType]
-
 #don't remember why I am using using funcs to return these global variables
 def get_initial_users() -> list[dict[Any, Any]]:
 	userParams = get_user_params(
@@ -298,18 +244,18 @@ def get_initial_users() -> list[dict[Any, Any]]:
 	)
 	return userParams
 
-def populate_user_actions_history(
-	conn: Connection,
-	orderedTestDates: List[datetime]
-):
-	actionsHistoryParams = get_actions_history(orderedTestDates)
-	stmt = insert(user_action_history)
-	conn.execute(stmt, actionsHistoryParams) #pyright: ignore [reportUnknownMemberType]
 
 def populate_station_queue(
 	conn: Connection
 ):
-	stationQueueParams = get_station_queue()
+	stationQueueParams = get_station_queue(datetime( #0
+			year=2021,
+			month=5,
+			day=27,
+			hour=19,
+			minute=13,
+			tzinfo=timezone.utc
+		))
 	stmt = insert(station_queue)
 	conn.execute(stmt, stationQueueParams) #pyright: ignore [reportUnknownMemberType]
 

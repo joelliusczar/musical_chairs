@@ -2,6 +2,7 @@
 import re
 import bcrypt
 import email_validator #pyright: ignore reportUnknownMemberType
+import dataclasses
 from datetime import datetime, timezone
 from typing import (
 	Any,
@@ -270,3 +271,10 @@ def clean_search_term_for_like(searchTerm: str) -> str:
 		return ""
 	return searchTerm.replace("_","\\_").replace("%","\\%")
 
+def asdict(obj: Any, exclude: Optional[set[str]]=None) -> dict[str, Any]:
+	d = dataclasses.asdict(obj)
+	
+	for key in (exclude or ()):
+		del d[key]
+
+	return d

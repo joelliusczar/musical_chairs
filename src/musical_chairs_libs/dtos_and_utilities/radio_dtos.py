@@ -19,7 +19,7 @@ from .generic_dtos import (
 	MCBaseClass,
 	IdItem,
 )
-from .action_rule_dtos import ActionRule, PathsActionRule
+from .action_rule_dtos import ActionRule
 from .station_dtos import StationInfo
 from pathlib import Path
 from .album_dtos import AlbumInfo
@@ -52,7 +52,7 @@ class SongTreeNode(FrozenBaseClass):
 	name: Optional[str]=None
 	trackNum: float=0
 	directChildren: list["SongTreeNode"]=cast(list["SongTreeNode"], Field(default_factory=list))
-	rules: list[PathsActionRule]=cast(list[PathsActionRule], Field(default_factory=list, frozen=True))
+	rules: list[ActionRule]=cast(list[ActionRule], Field(default_factory=list, frozen=True))
 
 	def __hash__(self) -> int:
 		return hash(self.path)

@@ -7,9 +7,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ValidatedSongAboutInfo,
 	AlbumInfo,
 	ActionRule,
-	PathsActionRule,
-	StationActionRule,
-	Lost
+	Lost,
+	UserRoleDomain
 )
 from .common_fixtures import *
 from pydantic import (ValidationError)
@@ -296,8 +295,8 @@ def test_action_rule_ordering():
 
 def test_path_action_rule_ordering_no_path():
 
-	r1 = PathsActionRule(name="alpha", priority=3)
-	r2 = PathsActionRule(name="alpha", priority=3)
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3)
 
 	assert not (r1 > r2)
 	assert not (r1 < r2)
@@ -309,34 +308,8 @@ def test_path_action_rule_ordering_no_path():
 	assert (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="alpha", priority=3)
-	r2 = PathsActionRule(name="alpha", priority=4)
-
-	assert not (r1 > r2)
-	assert (r1 < r2)
-	assert not (r1 >= r2)
-	assert (r1 <= r2)
-
-	assert (r2 > r1)
-	assert not (r2 < r1)
-	assert (r2 >= r1)
-	assert not (r2 <= r1)
-
-	r1 = PathsActionRule(name="alpha", priority=3)
-	r2 = PathsActionRule(name="alpha", priority=3, span=10)
-
-	assert (r1 > r2)
-	assert not (r1 < r2)
-	assert (r1 >= r2)
-	assert not (r1 <= r2)
-
-	assert not (r2 > r1)
-	assert (r2 < r1)
-	assert not (r2 >= r1)
-	assert (r2 <= r1)
-
-	r1 = PathsActionRule(name="alpha", priority=3, span=10, count=5)
-	r2 = PathsActionRule(name="alpha", priority=3, span=10, count=8)
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=4)
 
 	assert not (r1 > r2)
 	assert (r1 < r2)
@@ -348,8 +321,34 @@ def test_path_action_rule_ordering_no_path():
 	assert (r2 >= r1)
 	assert not (r2 <= r1)
 
-	r1 = PathsActionRule(name="alpha", priority=3, span=10, count=5)
-	r2 = PathsActionRule(name="alpha", priority=3, span=10, count=5)
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, span=10)
+
+	assert (r1 > r2)
+	assert not (r1 < r2)
+	assert (r1 >= r2)
+	assert not (r1 <= r2)
+
+	assert not (r2 > r1)
+	assert (r2 < r1)
+	assert not (r2 >= r1)
+	assert (r2 <= r1)
+
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, span=10, count=5)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, span=10, count=8)
+
+	assert not (r1 > r2)
+	assert (r1 < r2)
+	assert not (r1 >= r2)
+	assert (r1 <= r2)
+
+	assert (r2 > r1)
+	assert not (r2 < r1)
+	assert (r2 >= r1)
+	assert not (r2 <= r1)
+
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, span=10, count=5)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, span=10, count=5)
 
 	assert not (r1 > r2)
 	assert not (r1 < r2)
@@ -361,8 +360,8 @@ def test_path_action_rule_ordering_no_path():
 	assert (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="bravo", priority=3, span=10, count=5)
-	r2 = PathsActionRule(name="alpha", priority=3, span=10, count=5)
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="bravo", priority=3, span=10, count=5)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, span=10, count=5)
 
 	assert (r1 > r2)
 	assert not (r1 < r2)
@@ -374,8 +373,8 @@ def test_path_action_rule_ordering_no_path():
 	assert not (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="bravo", priority=3, span=10, count=5)
-	r2 = PathsActionRule(name="alpha", priority=3, span=10, count=5)
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="bravo", priority=3, span=10, count=5)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, span=10, count=5)
 
 	assert (r1 > r2)
 	assert not (r1 < r2)
@@ -387,8 +386,8 @@ def test_path_action_rule_ordering_no_path():
 	assert not (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="bravo", priority=3, span=10, count=5)
-	r2 = PathsActionRule(name="alpha", priority=3, span=10, count=8)
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="bravo", priority=3, span=10, count=5)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, span=10, count=8)
 
 	assert (r1 > r2)
 	assert not (r1 < r2)
@@ -400,8 +399,8 @@ def test_path_action_rule_ordering_no_path():
 	assert not (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="bravo", priority=3, span=10)
-	r2 = PathsActionRule(name="alpha", priority=3, count=8)
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="bravo", priority=3, span=10)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, count=8)
 
 	assert (r1 > r2)
 	assert not (r1 < r2)
@@ -413,8 +412,8 @@ def test_path_action_rule_ordering_no_path():
 	assert not (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="bravo", priority=3)
-	r2 = PathsActionRule(name="alpha", priority=4)
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="bravo", priority=3)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=4)
 
 	assert (r1 > r2)
 	assert not (r1 < r2)
@@ -428,8 +427,8 @@ def test_path_action_rule_ordering_no_path():
 
 def test_path_action_rule_ordering_with_path():
 
-	r1 = PathsActionRule(name="alpha", priority=3)
-	r2 = PathsActionRule(name="alpha", priority=3, path="a")
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3)
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="a")
 
 	assert not (r1 > r2)
 	assert not (r1 < r2)
@@ -441,8 +440,8 @@ def test_path_action_rule_ordering_with_path():
 	assert (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="alpha", priority=3, path="b")
-	r2 = PathsActionRule(name="alpha", priority=3, path="a")
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="b")
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="a")
 
 	assert not (r1 > r2)
 	assert not (r1 < r2)
@@ -454,8 +453,8 @@ def test_path_action_rule_ordering_with_path():
 	assert (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="alpha", priority=3, path="a")
-	r2 = PathsActionRule(name="alpha", priority=3, path="a")
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="a")
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="a")
 
 	assert not (r1 > r2)
 	assert not (r1 < r2)
@@ -467,8 +466,8 @@ def test_path_action_rule_ordering_with_path():
 	assert (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="alpha", priority=3, path="ab")
-	r2 = PathsActionRule(name="alpha", priority=3, path="a")
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="ab")
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="a")
 
 	assert (r1 > r2)
 	assert not (r1 < r2)
@@ -480,10 +479,10 @@ def test_path_action_rule_ordering_with_path():
 	assert not (r2 >= r1)
 	assert (r2 <= r1)
 
-	r1 = PathsActionRule(name="alpha", priority=3, path="ab")
-	r2 = PathsActionRule(name="alpha", priority=4, path="a")
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="ab")
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=4, path="a")
 
-	assert not (r1 > r2)
+	assert not (r1 > r2) #longer path -> more specific -> higher priority
 	assert (r1 < r2)
 	assert not (r1 >= r2)
 	assert (r1 <= r2)
@@ -493,8 +492,8 @@ def test_path_action_rule_ordering_with_path():
 	assert (r2 >= r1)
 	assert not (r2 <= r1)
 
-	r1 = PathsActionRule(name="alpha", priority=3, path="ab")
-	r2 = PathsActionRule(name="alpha", priority=3, path="a", span=10)
+	r1 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="ab")
+	r2 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", priority=3, path="a", span=10)
 
 	assert (r1 > r2)
 	assert not (r1 < r2)
@@ -564,18 +563,19 @@ def test_action_rule_hashing():
 
 	assert h1 == h2
 
-	r1 = StationActionRule(
+	r1 = ActionRule(
 		name="alpha",
 		span=5,
 		count=7,
-		priority=5
+		priority=5,
+		domain=UserRoleDomain.Station.value,
 	)
 	r2 = ActionRule(name="alpha", span=5, count=7, priority=5)
 
 	h1 = hash(r1)
 	h2 = hash(r2)
 
-	assert h1 == h2
+	assert h1 != h2
 
 def test_action_rule_set():
 	r1 = ActionRule(name="alpha")
@@ -625,42 +625,45 @@ def test_action_rule_set():
 	assert not r7 is r6
 	assert r7 in s1
 
-	r8 = PathsActionRule(name=
+	r8 = ActionRule(
+		name="alpha",
+		span=5,
+		count=7,
+		priority=5,
+		domain=UserRoleDomain.Path.value,
+	)
+
+	assert r8 not in s1
+	s1.add(r8)
+
+	r9 = ActionRule(name=
 		"alpha",
 		span=5,
 		count=7,
 		priority=5,
-	)
-
-	assert r8 in s1
-	#s1.add(r8)
-
-	r9 = PathsActionRule(name=
-		"alpha",
-		span=5,
-		count=7,
-		priority=5
+		domain=UserRoleDomain.Path.value,
 	)
 
 	assert not r9 is r8
 	assert r9 in s1
 
-	r10 = PathsActionRule(name="alpha")
+	r10 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha")
 
-	assert r10 in s1
+	assert r10 not in s1
+	s1.add(r10)
 
-	r11 = PathsActionRule(name="alpha", path="bravo")
+	r11 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", path="bravo")
 
 	assert r11 not in s1
 
 	s1.add(r11)
 
-	r12 = PathsActionRule(name="alpha", path="bravo")
+	r12 = ActionRule(domain=UserRoleDomain.Path.value, name="alpha", path="bravo")
 
 	assert not r12 is r11
 	assert r12 in s1
 
-	r13 = PathsActionRule(name="bravo")
+	r13 = ActionRule(domain=UserRoleDomain.Path.value, name="bravo")
 
 	assert r13 not in s1
 
@@ -669,7 +672,7 @@ def test_action_rule_set():
 	r14 = ActionRule(name="bravo")
 
 	assert not r14 is r13
-	assert r14 in s1
+	assert r14 not in s1
 
 def fn_for_lost(u1: Lost, u2: Lost = Lost()):
 	assert u1 is u2

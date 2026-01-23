@@ -24,10 +24,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	RulePriorityLevel,
 	generate_path_user_and_rules_from_rows,
 	NotFoundError,
+	UserRoleDomain,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import UserActions
 from .current_user_provider import CurrentUserProvider
-from .actions_history_management_service import ActionsHistoryManagementService
+from .events_logging_service import EventsLoggingService
 from .account_access_service import AccountAccessService
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -55,7 +56,7 @@ class AccountManagementService:
 		conn: Connection,
 		userProvider: CurrentUserProvider,
 		accountAccessService :AccountAccessService,
-		actionsHistoryManagementService: ActionsHistoryManagementService
+		actionsHistoryManagementService: EventsLoggingService
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -286,6 +287,8 @@ class AccountManagementService:
 		self.conn.execute(stmt)
 		self.actions_history_management_service.add_user_action_history_item(
 			UserActions.ACCOUNT_UPDATE.value,
+			UserRoleDomain.Site.value,
+			str(currentUser.id)
 		)
 		self.conn.commit()
 		return AccountInfo(
@@ -315,6 +318,8 @@ class AccountManagementService:
 		self.conn.execute(stmt)
 		self.actions_history_management_service.add_user_action_history_item(
 			UserActions.CHANGE_PASS.value,
+			UserRoleDomain.Site.value,
+			str(currentUser.id)
 		)
 		self.conn.commit()
 		return True
@@ -380,6 +385,8 @@ class AccountManagementService:
 			)
 		self.actions_history_management_service.add_user_action_history_item(
 			UserActions.ADD_SITE_RULE.value,
+			UserRoleDomain.Site.value,
+			str(addedUserId)
 		)
 		self.conn.commit()
 
@@ -392,15 +399,17 @@ class AccountManagementService:
 
 	def remove_user_site_rule(
 		self,
-		userId: int,
+		removedUserId: int,
 		ruleName: Optional[str],
 	):
 		delStmt = delete(userRoles)\
-			.where(ur_userFk == userId)
+			.where(ur_userFk == removedUserId)
 		if ruleName:
 			delStmt = delStmt.where(ur_role == ruleName)
 		self.conn.execute(delStmt)
 		self.actions_history_management_service.add_user_action_history_item(
 			UserActions.REMOVE_SITE_RULE.value,
+			UserRoleDomain.Site.value,
+			str(removedUserId)
 		)
 		self.conn.commit()

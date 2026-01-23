@@ -42,7 +42,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
 	ValidatedSongAboutInfo,
 	TableData,
-	PathsActionRule,
+	ActionRule,
 	SongPathInfo,
 	DirectoryTransfer,
 	get_path_owner_roles,
@@ -244,9 +244,9 @@ def add_user_rule(
 		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 	),
 	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
-	rule: PathsActionRule = Depends(validate_path_rule),
+	rule: ActionRule = Depends(validate_path_rule),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
-) -> PathsActionRule:
+) -> ActionRule:
 	return pathRuleService.add_user_rule_to_path(subjectuser.id, prefix, rule)
 
 

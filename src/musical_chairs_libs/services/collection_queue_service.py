@@ -27,10 +27,10 @@ from musical_chairs_libs.tables import (
 	artists as artists_tbl, ar_pk, ar_name,
 	songs,
 	stations as stations_tbl, st_pk, st_typeid, st_playnum,
-	user_action_history as user_action_history_tbl, uah_pk, uah_queuedTimestamp,
-	uah_timestamp, uah_action,
-	station_queue as station_queue_tbl, q_userActionHistoryFk, q_songFk, 
-	q_stationFk, q_itemType, q_parentKey,
+	station_queue as station_queue_tbl, q_queuedTimestamp,
+	q_timestamp, q_action,
+	station_queue as station_queue_tbl, q_pk, q_songFk, 
+	q_stationFk, q_itemType, q_parentKey, 
 	sg_disc, sg_pk, sg_albumFk, sg_deletedTimstamp,
 	sg_trackNum,
 	playlists as playlists_tbl, pl_pk, pl_name, pl_ownerFk, 
@@ -52,6 +52,7 @@ from sqlalchemy import (
 	desc,
 	select,
 	literal as dbLiteral,
+	or_,
 	func,
 	update,
 	distinct,
@@ -160,7 +161,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		metrics: QueueMetrics
 	) -> Collection[Tuple[int, str]]:
 		def weigh(n: float) -> float:
-			return n * n
+			return n * n * n
 		rows = self.get_all_station_possibilities(stationId)
 		room = min(len(rows), metrics.maxSize)
 		if not room:
@@ -203,21 +204,19 @@ class CollectionQueueService(SongPopper, RadioPusher):
 	) -> int:
 		albumQuery = select(func.count(distinct(q_parentKey)))\
 				.select_from(station_queue_tbl)\
-				.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
 				.where(q_stationFk == stationId)\
 				.where(q_itemType == StationRequestTypes.ALBUM.lower())\
 				.where(sg_deletedTimstamp.is_(None))\
-				.where(uah_timestamp.is_(None))
+				.where(q_timestamp.is_(None))
 		
 		playlistQuery = select(func.count(distinct(q_parentKey)))\
 				.select_from(station_queue_tbl)\
-				.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 				.join(songs, sg_pk == q_songFk)\
 				.where(q_itemType == StationRequestTypes.PLAYLIST.lower())\
 				.where(q_stationFk == stationId)\
 				.where(sg_deletedTimstamp.is_(None))\
-				.where(uah_timestamp.is_(None))
+				.where(q_timestamp.is_(None))
 		albumCount = self.conn.execute(albumQuery).scalar() or 0
 		playlistCount = self.conn.execute(playlistQuery).scalar() or 0
 		return albumCount + playlistCount
@@ -264,14 +263,30 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		
 		def playlistSortKey(r: list[Any]):
 			return r[2] or b""
+		
+		station = self.queue_service.__get_station__(stationId)
 
-		for collectionId in collectionIds:
-			sortKey = albumSortKey \
-				if collectionId[1] == StationRequestTypes.ALBUM.lower() \
-				else playlistSortKey
-			collectionMap = albumsMap \
-				if collectionId[1] == StationRequestTypes.ALBUM.lower() \
-				else playlistsMap
+		for i, collectionId in enumerate(collectionIds):
+			if collectionId[1] == StationRequestTypes.ALBUM.lower():
+				sortKey = albumSortKey
+				collectionMap = albumsMap
+				stationCollectionTbl = stations_albums_tbl
+				stationFkCol = stab_stationFk
+				collectionFkCol = stab_albumFk
+			else: 
+				sortKey = playlistSortKey
+				collectionMap = playlistsMap
+				stationCollectionTbl = stations_playlists_tbl
+				stationFkCol = stpl_stationFk
+				collectionFkCol = stpl_playlistFk
+
+			lastPlayedUpdate = update(stationCollectionTbl)\
+				.values(lastplayednum = station.playnum + i + 1) \
+				.where(stationFkCol == stationId)\
+				.where(collectionFkCol == collectionId[0])
+			self.conn.execute(lastPlayedUpdate)
+
+
 			sortedSongs = sorted(
 				collectionMap[collectionId[0]],
 				key=sortKey
@@ -283,24 +298,12 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					parentKey=collectionId[0]
 				) for r in sortedSongs
 			)
-		station = self.queue_service.__get_station__(stationId)
 
-		albumLastPlayedUpdate = update(stations_albums_tbl)\
-			.values(lastplayednum = station.playnum + len(collectionIds)) \
-			.where(stab_stationFk == stationId)\
-			.where(stab_albumFk.in_(albumIds))
-		self.conn.execute(albumLastPlayedUpdate)
-
-		playlistLastPlayedUpdate = update(stations_playlists_tbl)\
-			.values(lastplayednum = station.playnum + len(collectionIds)) \
-			.where(stpl_stationFk == stationId)\
-			.where(stpl_playlistFk.in_(playlistIds))
-		self.conn.execute(playlistLastPlayedUpdate)
-
-
-		self.queue_service.queue_insert_songs(
+		userAgentId = self.current_user_provider.user_agent_id()
+		self.queue_service.__queue_insert_songs__(
 			requests,
-			stationId
+			station,
+			userAgentId
 		)
 
 		#need to save again separately because
@@ -492,20 +495,23 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		songId: int,
 		queueTimestamp: float,
 	) -> bool:
-		query = select(uah_pk)\
-			.join(station_queue_tbl, uah_pk == q_userActionHistoryFk)\
+		query = select(q_pk)\
 			.where(q_stationFk == stationId)\
 			.where(q_songFk == songId)\
-			.where(uah_queuedTimestamp == queueTimestamp)\
-			.where(uah_action == UserRoleDef.STATION_REQUEST.value)
-		userActionId = self.conn.execute(query).scalar_one_or_none()
-		if not userActionId:
+			.where(q_queuedTimestamp == queueTimestamp)\
+			.where(
+				or_(
+					q_action == UserRoleDef.STATION_REQUEST.value,
+					q_action.is_(None)
+			))
+		queueId = self.conn.execute(query).scalar_one_or_none()
+		if not queueId:
 			return False
 		currentTime = self.get_datetime().timestamp()
 
-		histUpdateStmt = update(user_action_history_tbl) \
+		histUpdateStmt = update(station_queue_tbl) \
 			.values(timestamp = currentTime) \
-			.where(uah_pk == userActionId)
+			.where(q_pk == queueId)
 		updCount = self.conn.execute(histUpdateStmt).rowcount
 		self.fil_up_queue(stationId, QueueMetrics(self.queue_size))
 		self.conn.commit()
@@ -648,13 +654,12 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			q_songFk,
 			q_itemType,
 			q_parentKey,
-			uah_queuedTimestamp,
+			q_queuedTimestamp,
 		)\
 			.select_from(station_queue_tbl)\
-			.join(user_action_history_tbl, uah_pk == q_userActionHistoryFk)\
 			.where(q_stationFk == stationId)\
-			.where(uah_timestamp.is_(None))\
-			.order_by(uah_queuedTimestamp)
+			.where(q_timestamp.is_(None))\
+			.order_by(q_queuedTimestamp)
 
 		records = self.conn.execute(query)
 		yield from (

@@ -44,7 +44,11 @@
         "DSF_PYTHON_EXECUTABLE": "./test_trash/musical_chairs/mcr_env/bin/python",
         "DSF_DATABASE_NAME": "musical_chairs_db",
         "DSF_ICES_EXECUTABLE": "~/.local/bin/mcr-ices",
-        "DSF_LIVE_CONFIG_PATH": "./live_config.json"
+        "DSF_LIVE_CONFIG_PATH": "./live_config.json",
+        "DSF_EVENT_LOGS_DIR": "./test_trash/musical_chairs/event_logs",
+        "DSF_QUEUE_FILES_DIR": "./test_trash/musical_chairs/queues",
+        "DSF_STATION_HISTORY_FILES_DIR": "./test_trash/musical_chairs/station_histories",
+
       },
       "args": [
         "${userHome}/.ssh/localhost_debug.private.pem",

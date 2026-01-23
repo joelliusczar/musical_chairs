@@ -17,9 +17,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	AccountInfo,
 	ActionRule,
-	StationActionRule,
 	RulePriorityLevel,
 	generate_station_user_and_rules_from_rows,
+	UserRoleDomain,
 )
 from .station_service import build_station_rules_query
 from musical_chairs_libs.tables import (
@@ -53,7 +53,7 @@ class StationsUsersService:
 		addedUserId: int,
 		stationId: int,
 		rule: ActionRule
-	) -> StationActionRule:
+	) -> ActionRule:
 		stmt = insert(station_user_permissions_tbl).values(
 			userfk = addedUserId,
 			stationfk = stationId,
@@ -65,11 +65,12 @@ class StationsUsersService:
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
-		return StationActionRule(
+		return ActionRule(
 			name=rule.name,
 			span=rule.span,
 			count=rule.count,
-			priority=RulePriorityLevel.STATION_PATH.value
+			priority=RulePriorityLevel.STATION_PATH.value,
+			domain=UserRoleDomain.Station.value
 		)
 	
 	def get_station_users(

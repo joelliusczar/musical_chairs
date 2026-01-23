@@ -4,10 +4,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	SavedNameString,
 	get_datetime,
-	ConfigAcessors
+	ConfigAcessors,
+	UserRoleDomain
 )
 from musical_chairs_libs.dtos_and_utilities.constants import UserActions
-from .actions_history_management_service import ActionsHistoryManagementService
+from .events_logging_service import EventsLoggingService
 from sqlalchemy.engine import Connection
 from jose import jwt
 
@@ -21,7 +22,7 @@ class AccountTokenCreator:
 
 	def __init__(self,
 		conn: Connection,
-		userActionsHistoryService: ActionsHistoryManagementService
+		userActionsHistoryService: EventsLoggingService
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -45,7 +46,9 @@ class AccountTokenCreator:
 			ALGORITHM
 		)
 		self.user_actions_history_service.add_user_action_history_item(
-			UserActions.LOGIN.value
+			UserActions.LOGIN.value,
+			UserRoleDomain.Site.value,
+			str(user.id)
 		)
 		self.conn.commit()
 		return token

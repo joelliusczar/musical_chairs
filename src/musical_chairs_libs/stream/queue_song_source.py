@@ -40,6 +40,12 @@ def check_is_running(_: Any = None) -> bool:
 	global stopRunning
 	return not stopRunning
 
+
+def stop():
+	global stopRunning
+	stopRunning = True
+
+
 def get_song_info(
 	stationId: int,
 	songPopper: SongPopper
@@ -64,7 +70,6 @@ def load_data(
 		songPopper: SongPopper,
 		fileService: FileService
 	):
-	global stopRunning
 	logging.radioLogger.info(f"Beginning data load")
 	try:
 		currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
@@ -72,7 +77,7 @@ def load_data(
 			stationId,
 			songPopper
 		):
-			if stopRunning:
+			if not check_is_running():
 				logging.radioLogger.info(f"Stop running flag encountered")
 				break
 			logging.queueLogger.info(f"queued: {queueItem.name}")
@@ -106,7 +111,7 @@ def load_data(
 		logging.radioLogger.error("Error while trying to load data")
 		logging.radioLogger.error(e, exc_info=True)
 	finally:
-		stopRunning = True
+		stop()
 
 
 def accept(
@@ -168,7 +173,6 @@ def send_next(
 		songPopper: SongPopper,
 		timeout: int
 	):
-	global stopRunning
 	global icesProcess
 	currentFile = None
 	queueItem = None
@@ -192,7 +196,7 @@ def send_next(
 				if not returnCode is None:
 					logging.radioLogger.error("mc-ices errored out.")
 					break
-				if stopRunning:
+				if not check_is_running():
 						logging.radioLogger.warning("stopLoading is set")
 						break
 				#don't want to wait for 'next' signal from ices when it doesn't
@@ -239,7 +243,7 @@ def send_next(
 		logging.radioLogger.error(e, exc_info=True)
 	finally:
 		logging.radioLogger.debug("send_next finally")
-		stopRunning = True
+		stop()
 		cleanup_socket(listener)
 		clean_up_tmp_files()
 		clean_up_ices_process()

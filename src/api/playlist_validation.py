@@ -11,7 +11,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PlaylistInfo,
 	get_playlist_owner_roles,
 	AccountInfo,
-	PlaylistActionRule,
+	ActionRule,
 )
 from api_dependencies import (
 	get_playlist_by_name_and_owner,
@@ -19,10 +19,10 @@ from api_dependencies import (
 )
 
 def validate_playlist_rule(
-	rule: PlaylistActionRule,
+	rule: ActionRule,
 	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
 	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
-) -> PlaylistActionRule:
+) -> ActionRule:
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

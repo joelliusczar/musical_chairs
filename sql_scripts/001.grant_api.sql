@@ -33,10 +33,10 @@ GRANT INSERT ON TABLE `<dbName>`.`songsartists` TO <apiUser>;
 GRANT DELETE ON TABLE `<dbName>`.`songsartists` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`songsartists` TO <apiUser>;
 
-GRANT UPDATE ON TABLE `<dbName>`.`stationqueue` TO <apiUser>;
-GRANT INSERT ON TABLE `<dbName>`.`stationqueue` TO <apiUser>;
-GRANT DELETE ON TABLE `<dbName>`.`stationqueue` TO <apiUser>;
-GRANT SELECT ON TABLE `<dbName>`.`stationqueue` TO <apiUser>;
+GRANT UPDATE ON TABLE `<dbName>`.`stationlogs` TO <apiUser>;
+GRANT INSERT ON TABLE `<dbName>`.`stationlogs` TO <apiUser>;
+GRANT DELETE ON TABLE `<dbName>`.`stationlogs` TO <apiUser>;
+GRANT SELECT ON TABLE `<dbName>`.`stationlogs` TO <apiUser>;
 
 GRANT UPDATE ON TABLE `<dbName>`.`stationuserpermissions` TO <apiUser>;
 GRANT INSERT ON TABLE `<dbName>`.`stationuserpermissions` TO <apiUser>;
@@ -57,11 +57,6 @@ GRANT UPDATE ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
 GRANT INSERT ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
 GRANT DELETE ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
 GRANT SELECT ON TABLE `<dbName>`.`stationsalbums` TO <apiUser>;
-
-GRANT UPDATE ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;
-GRANT INSERT ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;
-GRANT SELECT ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;
-GRANT DELETE ON TABLE `<dbName>`.`useractionhistory` TO <apiUser>;
 
 GRANT UPDATE ON TABLE `<dbName>`.`userroles` TO <apiUser>;
 GRANT INSERT ON TABLE `<dbName>`.`userroles` TO <apiUser>;

@@ -9,7 +9,7 @@ from musical_chairs_libs.services import (
 from musical_chairs_libs.dtos_and_utilities import (
 	StationCreationInfo,
 	RulePriorityLevel,
-	StationActionRule
+	UserRoleDomain
 )
 from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user
@@ -184,12 +184,12 @@ def test_get_station_user_rule_selection(
 	assert len(rules) == 2
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
-	assert isinstance(rules[0], StationActionRule)
+	assert rules[0].domain == UserRoleDomain.Station.value
 	assert rules[0].count == 5
 	assert rules[0].span == 300
 	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[1].priority == RulePriorityLevel.SITE.value
-	assert not isinstance(rules[1], StationActionRule)
+	assert not rules[1].domain == UserRoleDomain.Station.value
 	assert rules[1].count == 10
 	assert rules[1].span == 300
 
@@ -203,12 +203,12 @@ def test_get_station_user_rule_selection(
 
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[0].priority == RulePriorityLevel.STATION_PATH.value + 1
-		assert not isinstance(rules[0], StationActionRule)
+		assert not rules[0].domain == UserRoleDomain.Station.value
 		assert rules[0].count == 5
 		assert rules[0].span == 120
 		assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[1].priority == RulePriorityLevel.STATION_PATH.value
-		assert isinstance(rules[1],StationActionRule)
+		assert rules[1].domain == UserRoleDomain.Station.value
 		assert rules[1].count == 5
 		assert rules[1].span == 60
 
@@ -221,12 +221,12 @@ def test_get_station_user_rule_selection(
 		assert len(rules) == 2
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
-		assert isinstance(rules[0],StationActionRule)
+		assert rules[0].domain == UserRoleDomain.Station.value
 		assert rules[0].count == 25
 		assert rules[0].span == 300
 		assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[1].priority == RulePriorityLevel.SITE.value
-		assert not isinstance(rules[1],StationActionRule)
+		assert not rules[1].domain == UserRoleDomain.Station.value
 		assert rules[1].count == 20
 		assert rules[1].span == 300
 
@@ -237,13 +237,13 @@ def test_get_station_user_rule_selection(
 		rules = ActionRule.sorted(station.rules)
 		assert rules
 		assert len(rules) == 2
-		assert isinstance(rules[0],StationActionRule)
+		assert rules[0].domain == UserRoleDomain.Station.value
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
 		assert rules[0].count == 25
 		assert rules[0].span == 300
 
-		assert not isinstance(rules[1],StationActionRule)
+		assert not rules[1].domain == UserRoleDomain.Station.value
 		assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[1].priority == RulePriorityLevel.SITE.value
 		assert rules[1].count == 15

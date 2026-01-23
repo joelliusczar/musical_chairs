@@ -250,14 +250,9 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_janitor_user_script(SqlScripts.GRANT_JANITOR)
 		ownerConnService.flush_privileges()
 
-
-		ownerConnService.run_defined_script(SqlScripts.DROP_REQUESTED_TIMESTAMP)
 		ownerConnService.run_defined_script(SqlScripts.ADD_INTERNAL_PATH)
 		ownerConnService.run_defined_script(SqlScripts.DROP_PLACEHOLDERDIR)
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_FILE_HASH)
-		ownerConnService.run_defined_script(SqlScripts.ADD_IP4ADDRESS)
-		ownerConnService.run_defined_script(SqlScripts.ADD_IP6ADDRESS)
-		ownerConnService.run_defined_script(SqlScripts.ADD_USERAGENT_FK)
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDTIMESTAMP)
 		ownerConnService.run_defined_script(SqlScripts.ADD_ALBUM_VERSION)
 		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_TYPE)
@@ -289,8 +284,6 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_script(
 			SqlScripts.READD_UNIQUE_ALBUM_INDEX
 		)
-		ownerConnService.run_defined_script(SqlScripts.ADD_STATIONQUEUE_ITEMTYPE)
-		ownerConnService.run_defined_script(SqlScripts.ADD_STATIONQUEUE_PARENTKEY)
 		ownerConnService.run_defined_script(SqlScripts.ADD_LASTPLAYED_ITEMTYPE)
 		ownerConnService.run_defined_script(SqlScripts.ADD_LASTPLATED_PARENTKEY)
 		ownerConnService.run_defined_script(
@@ -317,6 +310,15 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_script(
 			SqlScripts.ADD_STATIONSPLAYLISTS_LASTPLAYEDNUM
 		)
+
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_USERAGENTS_IPV4
+		)
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_USERAGENTS_IPV6
+		)
+		ownerConnService.run_defined_script(SqlScripts.ADD_USERAGENTS_INDEX)
+		ownerConnService.run_defined_script(SqlScripts.DROP_USERACTIONHISTORY)
 		
 
 		if not dbName.startswith("test_"):

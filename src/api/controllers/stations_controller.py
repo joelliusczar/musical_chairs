@@ -19,9 +19,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	ActionRule,
 	TableData,
-	StationActionRule,
 	CatalogueItem,
 	SimpleQueryParameters,
+	UserRoleDomain,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationRequestTypes
@@ -213,7 +213,7 @@ def get_station_for_edit(
 
 @router.post("", dependencies=[
 	Security(
-		check_rate_limit,
+		check_rate_limit(UserRoleDomain.Station.value),
 		scopes=[UserRoleDef.STATION_CREATE.value]
 	)
 ])
@@ -314,9 +314,9 @@ def add_user_rule(
 		get_secured_station_by_name_and_owner,
 		scopes=[UserRoleDef.STATION_USER_ASSIGN.value]
 	),
-	rule: StationActionRule = Depends(validate_station_rule),
+	rule: ActionRule = Depends(validate_station_rule),
 	stationsUsersService: StationsUsersService = Depends(stations_users_service),
-) -> StationActionRule:
+) -> ActionRule:
 	return stationsUsersService.add_user_rule_to_station(
 		user.id,
 		stationInfo.id,

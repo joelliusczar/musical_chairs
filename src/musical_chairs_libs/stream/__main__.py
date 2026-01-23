@@ -6,8 +6,8 @@ import subprocess
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
-	ActionsHistoryManagementService,
-	ActionsHistoryQueryService,
+	EventsLoggingService,
+	EventsQueryService,
 	BasicUserProvider,
 	CollectionQueueService,
 	CurrentUserProvider,
@@ -53,8 +53,10 @@ def close_db_connection(conn: Connection, connName: str):
 	except:
 		logging.radioLogger.warning(f"Could not close the  {connName} connection")
 
+
 def file_service() -> FileService:
 	return S3FileService()
+
 
 def path_rule_service(conn: Connection) -> PathRuleService:
 	return PathRuleService(
@@ -65,7 +67,7 @@ def path_rule_service(conn: Connection) -> PathRuleService:
 
 
 def current_user_provider(conn: Connection) -> CurrentUserProvider:
-	actionsHistoryQueryService = ActionsHistoryQueryService(conn)
+	actionsHistoryQueryService = EventsQueryService(conn)
 	pathRuleService = path_rule_service(conn)
 
 	currentUserProvider = CurrentUserProvider(
@@ -77,13 +79,20 @@ def current_user_provider(conn: Connection) -> CurrentUserProvider:
 	return currentUserProvider
 
 
-def queue_service(conn: Connection) -> QueueService:
+def actions_history_management_service(
+	conn: Connection
+) -> EventsLoggingService:
 	currentUserProvider = current_user_provider(conn)
-	actionsHistoryManagementService = ActionsHistoryManagementService(
+	return EventsLoggingService(
 		conn,
 		EmptyUserTrackingService(),
 		currentUserProvider
 	)
+
+
+def queue_service(conn: Connection) -> QueueService:
+	currentUserProvider = current_user_provider(conn)
+	actionsHistoryManagementService = actions_history_management_service(conn)
 	pathRuleService = path_rule_service(conn)
 	songInfoService = SongInfoService(
 		conn,
@@ -131,9 +140,10 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 
 
 	pathRuleService = path_rule_service(readingConn)
+	readingCurrentUserProvider = current_user_provider(readingConn)
 	readingStationService = StationService(
 		readingConn,
-		current_user_provider(readingConn),
+		readingCurrentUserProvider,
 		pathRuleService
 	)
 	stationId = readingStationService.get_station_id(stationName, ownerName)
@@ -160,18 +170,20 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		readingQueueService = queueServiceType(  #pyright: ignore [reportCallIssue]
 			readingConn,
 			readingSongQueueService,
-			current_user_provider(readingConn)
+			readingCurrentUserProvider,
+			actions_history_management_service(readingConn)
 		)
 	updatingQueueService = updatingSongQueueService
 	if queueServiceType != QueueService:
 		updatingQueueService = queueServiceType( #pyright: ignore [reportCallIssue]
 			updatingConn,
 			updatingQueueService,
-			current_user_provider(readingConn)
+			readingCurrentUserProvider,
+			actions_history_management_service(updatingConn)
 		)
 	stationProcessService = StationProcessService(
 		updatingConn,
-		current_user_provider(readingConn),
+		readingCurrentUserProvider,
 		readingStationService
 	)
 	stationProcessService.set_station_proc(stationId)

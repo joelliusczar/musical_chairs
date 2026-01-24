@@ -18,7 +18,7 @@ from musical_chairs_libs.services import (
 	SongInfoService,
 	StationService,
 	StationProcessService,
-
+	WhenNextCalculator,
 )
 from threading import ExceptHookArgs, Thread
 from setproctitle import setproctitle
@@ -35,16 +35,20 @@ def __end_stream__():
 	queue_song_source.stopRunning = True
 	queue_song_source.clean_up_ices_process()
 
+
 def handle_keyboard(sigNum: Any, frame: Any):
 	logging.radioLogger.info("Received interupt")
 	__end_stream__()
+
 
 def handle_terminate_signal(sigNum: Any, frame: Any):
 	logging.radioLogger.info("Received termination signal")
 	__end_stream__()
 
+
 signal.signal(signal.SIGINT, handle_keyboard)
 signal.signal(signal.SIGTERM, handle_terminate_signal)
+
 
 def close_db_connection(conn: Connection, connName: str):
 	logging.radioLogger.info(f"Closing the {connName} connection")
@@ -67,13 +71,15 @@ def path_rule_service(conn: Connection) -> PathRuleService:
 
 
 def current_user_provider(conn: Connection) -> CurrentUserProvider:
-	actionsHistoryQueryService = FSEventsQueryService(conn)
+	actionsHistoryQueryService = FSEventsQueryService()
 	pathRuleService = path_rule_service(conn)
+
+	whenNextCalculator = WhenNextCalculator(actionsHistoryQueryService)
 
 	currentUserProvider = CurrentUserProvider(
 		BasicUserProvider(None),
 		EmptyUserTrackingService(),
-		actionsHistoryQueryService,
+		whenNextCalculator,
 		pathRuleService
 	)
 	return currentUserProvider
@@ -84,7 +90,6 @@ def actions_history_management_service(
 ) -> FSEventsLoggingService:
 	currentUserProvider = current_user_provider(conn)
 	return FSEventsLoggingService(
-		conn,
 		EmptyUserTrackingService(),
 		currentUserProvider
 	)
@@ -170,8 +175,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		readingQueueService = queueServiceType(  #pyright: ignore [reportCallIssue]
 			readingConn,
 			readingSongQueueService,
-			readingCurrentUserProvider,
-			actions_history_management_service(readingConn)
+			readingCurrentUserProvider
 		)
 	updatingQueueService = updatingSongQueueService
 	if queueServiceType != QueueService:
@@ -179,7 +183,6 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			updatingConn,
 			updatingQueueService,
 			readingCurrentUserProvider,
-			actions_history_management_service(updatingConn)
 		)
 	stationProcessService = StationProcessService(
 		updatingConn,

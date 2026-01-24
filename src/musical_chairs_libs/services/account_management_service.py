@@ -26,9 +26,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	NotFoundError,
 	UserRoleDomain,
 )
+from musical_chairs_libs.protocols import EventsLogger
 from musical_chairs_libs.dtos_and_utilities.constants import UserActions
 from .current_user_provider import CurrentUserProvider
-from .events_logging_service import EventsLoggingService
 from .account_access_service import AccountAccessService
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -56,14 +56,14 @@ class AccountManagementService:
 		conn: Connection,
 		userProvider: CurrentUserProvider,
 		accountAccessService :AccountAccessService,
-		actionsHistoryManagementService: EventsLoggingService
+		eventsLogger: EventsLogger
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
-		self.actions_history_management_service = actionsHistoryManagementService
-		self.account_access_service = accountAccessService
+		self.events_logging_service = eventsLogger
+		self.events_logger = accountAccessService
 		self.user_provider = userProvider
 
 
@@ -285,7 +285,7 @@ class AccountManagementService:
 			email = updatedEmail
 		).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
-		self.actions_history_management_service.add_user_action_history_item(
+		self.events_logging_service.add_event(
 			UserActions.ACCOUNT_UPDATE.value,
 			UserRoleDomain.Site.value,
 			str(currentUser.id)
@@ -307,7 +307,7 @@ class AccountManagementService:
 		)
 		if not currentUser:
 			raise NotFoundError()
-		authenticated = self.account_access_service.authenticate_user(
+		authenticated = self.events_logger.authenticate_user(
 			currentUser.username,
 			passwordInfo.oldpassword.encode()
 		)
@@ -316,7 +316,7 @@ class AccountManagementService:
 		hash = hashpw(passwordInfo.newpassword.encode())
 		stmt = update(users).values(hashedpw = hash).where(u_pk == currentUser.id)
 		self.conn.execute(stmt)
-		self.actions_history_management_service.add_user_action_history_item(
+		self.events_logging_service.add_event(
 			UserActions.CHANGE_PASS.value,
 			UserRoleDomain.Site.value,
 			str(currentUser.id)
@@ -383,7 +383,7 @@ class AccountManagementService:
 				f"{rule.name} is already used for user.",
 				"body->name"
 			)
-		self.actions_history_management_service.add_user_action_history_item(
+		self.events_logging_service.add_event(
 			UserActions.ADD_SITE_RULE.value,
 			UserRoleDomain.Site.value,
 			str(addedUserId)
@@ -407,7 +407,7 @@ class AccountManagementService:
 		if ruleName:
 			delStmt = delStmt.where(ur_role == ruleName)
 		self.conn.execute(delStmt)
-		self.actions_history_management_service.add_user_action_history_item(
+		self.events_logging_service.add_event(
 			UserActions.REMOVE_SITE_RULE.value,
 			UserRoleDomain.Site.value,
 			str(removedUserId)

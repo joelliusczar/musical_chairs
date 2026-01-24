@@ -33,7 +33,6 @@ from .station_service import StationService
 from .song_info_service import SongInfoService
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
-from .events_logging_service import EventsLoggingService
 from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.tables import (
 	songs,
@@ -75,6 +74,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from musical_chairs_libs.file_reference import SqlScripts
 from musical_chairs_libs.protocols import (
+	EventsLogger,
 	SongPopper,
 	RadioPusher,
 )
@@ -117,7 +117,7 @@ class QueueService(SongPopper, RadioPusher):
 		self,
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
-		actionsHistoryManagementService: EventsLoggingService,
+		eventsLogger: EventsLogger,
 		songInfoService: SongInfoService,
 		pathRuleService: PathRuleService,
 		stationService: Optional[StationService]=None,
@@ -143,7 +143,7 @@ class QueueService(SongPopper, RadioPusher):
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.path_rule_service = pathRuleService
-			self.actions_history_management_service = actionsHistoryManagementService
+			self.events_logger = eventsLogger
 			self.queue_size = queueSize
 
 
@@ -221,8 +221,7 @@ class QueueService(SongPopper, RadioPusher):
 	def __queue_insert_songs__(
 		self,
 		queueRequests: Collection[QueueRequest],
-		station: StationInfo,
-		userAgentId: Optional[int]=None
+		station: StationInfo
 	):
 
 		for i, request in enumerate(queueRequests):
@@ -250,14 +249,12 @@ class QueueService(SongPopper, RadioPusher):
 		queueRequests: Collection[QueueRequest],
 		stationId: int,
 	):
-		userAgentId = self.current_user_provider.user_agent_id()
 
 		station = self.__get_station__(stationId)
 
 		self.__queue_insert_songs__(
 			queueRequests,
-			station,
-			userAgentId
+			station
 		)
 
 		self.__add_to_station_playnum__(station, len(queueRequests))
@@ -484,8 +481,8 @@ class QueueService(SongPopper, RadioPusher):
 		songId: int,
 		stationId: int,
 	) -> int:
-		self.actions_history_management_service\
-			.add_user_action_history_item(
+		self.events_logger\
+			.add_event(
 				UserRoleDef.STATION_REQUEST.value,
 				UserRoleDomain.Station.value,
 				str(stationId)

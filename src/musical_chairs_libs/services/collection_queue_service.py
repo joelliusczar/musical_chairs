@@ -299,11 +299,9 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				) for r in sortedSongs
 			)
 
-		userAgentId = self.current_user_provider.user_agent_id()
 		self.queue_service.__queue_insert_songs__(
 			requests,
-			station,
-			userAgentId
+			station
 		)
 
 		#need to save again separately because

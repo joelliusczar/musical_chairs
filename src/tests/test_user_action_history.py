@@ -1,5 +1,5 @@
 from musical_chairs_libs.services import (
-	EventsLoggingService
+	FSEventsLoggingService
 )
 from .constant_fixtures_for_test import *
 from .common_fixtures import *
@@ -10,18 +10,18 @@ from .common_fixtures import (
 )
 
 def test_get_user_action_history(
-	fixture_user_actions_history_service: EventsLoggingService,
+	fixture_user_actions_history_service: FSEventsLoggingService,
 	fixture_datetime_iterator: MockDatetimeProvider,
 ):
 	dates = fixture_datetime_iterator
 	historyService = fixture_user_actions_history_service
-	res = list(historyService.get_user_action_history(
+	res = list(historyService.get_user_events(
 		juliet_user_id,
 		dates[0].timestamp() - 1000,
 		limit=3
 	))
 	assert res
-	res = list(historyService.get_user_action_history(
+	res = list(historyService.get_user_events(
 		juliet_user_id,
 		dates[0].timestamp() - 1000,
 		limit=3,

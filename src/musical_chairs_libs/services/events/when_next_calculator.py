@@ -1,21 +1,17 @@
-import os
-import json
+from itertools import groupby
+from musical_chairs_libs.protocols import (
+	EventsQueryer,
+)
 from typing import (
-	Optional,
-	Iterator,
-	Iterable,
-	Collection
+	Collection,
+	Optional
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	ConfigAcessors,
-	EventRecord,
-	get_datetime,
 	ActionRule,
 	UserRoleDomain,
+	get_datetime,
 )
 
-
-from itertools import groupby
 
 def __when_next_can_do__(
 	rule: ActionRule,
@@ -38,44 +34,13 @@ def __when_next_can_do__(
 	return 0
 
 
-class EventsQueryService:
+class WhenNextCalculator:
 
-#must not add userProvider as dependency here
-	def __init__(self):
+	def __init__(self, eventQueryer: EventsQueryer) -> None:
+		self.event_queryer = eventQueryer
 		self.get_datetime = get_datetime
 
-	def load_most_recent_logs(self, hoursAgo: int) -> Iterator[EventRecord]:
-		daysLogs = sorted(os.listdir(ConfigAcessors.event_log_dir()))[:hoursAgo]
-		for log in daysLogs:
-			fullPath = os.path.join(ConfigAcessors.event_log_dir(), log)
-			with open(fullPath, "r", 1) as f:
-				while line := f.readline():
-					yield EventRecord(**json.loads(line))
-
-
-	def get_user_action_history(
-		self,
-		userId: int,
-		fromTimestamp: float,
-		actions: Iterable[str]=[],
-		domain: Optional[str] = None,
-		path: Optional[str] = None,
-		limit: Optional[int]=None
-	) -> Iterator[EventRecord]:
-			actions = {*actions}
-			events = reversed([e for e in self.load_most_recent_logs(24) \
-				if e.userId == str(userId)\
-				and (e.action in actions if actions else True)\
-				and fromTimestamp <= e.timestamp\
-				and (domain == e.domain if domain else True) \
-				and (path == e.path if domain and path else True)
-			])
-
-			yield from (e for i, e in enumerate(events)\
-				 if (i < limit if limit is not None else True)
-			)
-
-
+	
 	def calc_lookup_for_when_user_can_next_do_action(
 		self,
 		userid: int,
@@ -89,10 +54,10 @@ class EventsQueryService:
 		maxSpan = max(r.span for r in rules)
 		currentTimestamp = self.get_datetime().timestamp()
 		fromTimestamp = currentTimestamp - maxSpan
-		actionGen = self.get_user_action_history(
+		actionGen = self.event_queryer.get_user_events(
 			userid,
 			fromTimestamp,
-			actions=(r.name for r in rules),
+			actions={r.name for r in rules},
 			domain=domain,
 			path=path,
 			limit=maxLimit

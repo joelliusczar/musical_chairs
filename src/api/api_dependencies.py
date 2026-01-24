@@ -1,6 +1,8 @@
 #pyright: reportMissingTypeStubs=false
 import ipaddress
+from datetime import timedelta
 from typing import (
+	Any,
 	Iterator,
 	Tuple,
 	Optional,
@@ -23,14 +25,14 @@ from musical_chairs_libs.services import (
 	AccountAccessService,
 	AccountManagementService,
 	AccountTokenCreator,
-	EventsQueryService,
+	FSEventsQueryService,
 	BasicUserProvider,
-	CurrentUserTrackingService,
+	VisitorTrackingService,
 	StationService,
 	QueueService,
 	SongInfoService,
 	ProcessService,
-	EventsLoggingService,
+	FSEventsLoggingService,
 	SongFileService,
 	PathRuleService,
 	ArtistService,
@@ -46,9 +48,15 @@ from musical_chairs_libs.services import (
 	StationProcessService,
 	CollectionQueueService,
 	CurrentUserProvider,
-	UserAgentService,
+	VisitorService,
+)
+from musical_chairs_libs.services.events import (
+	AggregateEventsLoggingService,
+	InMemEventsLoggingService,
+	WhenNextCalculator
 )
 from musical_chairs_libs.protocols import (
+	EventsLogger,
 	FileService,
 	RadioPusher
 )
@@ -64,11 +72,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ConfigAcessors,
 	DirectoryTransfer,
 	get_datetime,
+	InMemEventRecordMap,
+	int_or_str,
 	normalize_opening_slash,
 	NotLoggedInError,
 	UserRoleDef,
 	StationInfo,
-	int_or_str,
 	TrackingInfo,
 	PlaylistInfo,
 	SimpleQueryParameters,
@@ -90,6 +99,11 @@ from api_error import (
 from datetime import datetime
 from base64 import urlsafe_b64decode
 
+class GlobalStore:
+	
+	def __init__(self) -> None:
+		self.events_store = InMemEventRecordMap()
+		self.visitor_id_map = dict[str, Any]
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -220,29 +234,31 @@ def extract_ip_address(request: Request) -> Tuple[str, str]:
 def get_tracking_info(request: Request):
 	userAgent = request.headers["user-agent"]
 	ipaddresses = extract_ip_address(request)
+
 	
 	return TrackingInfo(
 		userAgent,
 		ipv4Address=ipaddresses[0],
-		ipv6Address=ipaddresses[1]
+		ipv6Address=ipaddresses[1],
+		url=request.url.path
 	)
 
 
-def user_agent_service(
+def visitor_service(
 	conn: Connection=Depends(get_configured_db_connection)
-) -> UserAgentService:
-	return UserAgentService(conn)
+) -> VisitorService:
+	return VisitorService(conn)
 
 
-def current_user_tracking_service(
+def vistor_tracking_service(
 	trackingInfo: TrackingInfo = Depends(get_tracking_info),
-	userAgentService: UserAgentService = Depends(user_agent_service)
-) -> CurrentUserTrackingService:
-	return CurrentUserTrackingService(trackingInfo, userAgentService)
+	visitorService: VisitorService = Depends(visitor_service)
+) -> VisitorTrackingService:
+	return VisitorTrackingService(trackingInfo, visitorService)
 
 
-def actions_history_query_service() -> EventsQueryService:
-	return EventsQueryService()
+def fs_events_query_service() -> FSEventsQueryService:
+	return FSEventsQueryService()
 
 
 def file_service() -> FileService:
@@ -263,21 +279,85 @@ def path_rule_service(
 	return PathRuleService(conn, fileService, userProvider)
 
 
+def global_store(request: Request) -> GlobalStore | None:
+	try:
+		return request.app.state.global_store
+	except AttributeError:
+		pass
+
+
+def in_mem_events_logging_service(
+	globalStore: GlobalStore | None = Depends(global_store),
+	vistorTrackingService: VisitorTrackingService = Depends(
+		vistor_tracking_service
+	),
+	basicUserProvider: BasicUserProvider = Depends(basic_user_provider),
+	eventsQueryService: FSEventsQueryService = Depends(
+		fs_events_query_service
+	),
+	getDatetime: Callable[[], datetime] = Depends(datetime_provider)
+) -> InMemEventsLoggingService:
+	
+
+	service =  InMemEventsLoggingService(
+		vistorTrackingService,
+		basicUserProvider,
+		globalStore.events_store if globalStore else None
+	)
+
+	if len(globalStore.events_store if globalStore else (1,)) == 0:
+		fromTimestamp = (getDatetime() - timedelta(days=1)).timestamp()
+		for record in eventsQueryService.get_user_events(
+			None,
+			fromTimestamp,
+			set()
+		):
+			service.add_event_record(record)
+	return service
+
+
+
+def fs_events_logging_service(
+	visitorTrackingService: VisitorTrackingService = Depends(
+		vistor_tracking_service
+	),
+	basicUserProvider: BasicUserProvider = Depends(basic_user_provider),
+) -> FSEventsLoggingService:
+	return FSEventsLoggingService(
+		visitorTrackingService,
+		basicUserProvider
+	)
+
+
+def aggregate_events_logging_service(
+		inMem: InMemEventsLoggingService =  Depends(in_mem_events_logging_service),
+		fs: FSEventsLoggingService = Depends(fs_events_logging_service)
+):
+	return AggregateEventsLoggingService(fs, inMem)
+
+def when_next_calculator(
+	inMemEventsLoggingServiice: InMemEventsLoggingService = Depends(
+		in_mem_events_logging_service
+	)
+) -> WhenNextCalculator:
+	return WhenNextCalculator(inMemEventsLoggingServiice)
+
+
 def current_user_provider(
 	securityScopes: SecurityScopes,
 	basicUserProvider: BasicUserProvider = Depends(basic_user_provider),
-	currentUserTrackingService: CurrentUserTrackingService = Depends(
-		current_user_tracking_service
+	currentUserTrackingService: VisitorTrackingService = Depends(
+		vistor_tracking_service
 	),
-	actionsHistoryQueryService: EventsQueryService = Depends(
-		actions_history_query_service
+	whenNextCalculator: WhenNextCalculator = Depends(
+		when_next_calculator
 	),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> CurrentUserProvider:
 	return CurrentUserProvider(
 		basicUserProvider,
 		currentUserTrackingService,
-		actionsHistoryQueryService,
+		whenNextCalculator,
 		pathRuleService,
 		set(securityScopes.scopes)
 	)
@@ -299,24 +379,10 @@ def check_scope(
 	__check_scope__(securityScopes, currentUser)
 
 
-def actions_history_management_service(
-	currentUserTrackingService: CurrentUserTrackingService = Depends(
-		current_user_tracking_service
-	),
-	userProvider: CurrentUserProvider = Depends(
-		current_user_provider
-	)
-) -> EventsLoggingService:
-	return EventsLoggingService(
-		currentUserTrackingService,
-		userProvider
-	)
-
-
 def account_management_service(
 	conn: Connection=Depends(get_configured_db_connection),
-	userActionHistoryService: EventsLoggingService =
-		Depends(actions_history_management_service),
+	eventsLogger: EventsLogger =
+		Depends(aggregate_events_logging_service),
 	userProvider: CurrentUserProvider = Depends(
 		current_user_provider
 	),
@@ -326,14 +392,14 @@ def account_management_service(
 		conn,
 		userProvider,
 		accountsAccessService,
-		userActionHistoryService,
+		eventsLogger,
 	)
 
 
 def account_token_creator(
 	conn: Connection=Depends(get_configured_db_connection),
-	userActionHistoryService: EventsLoggingService =
-		Depends(actions_history_management_service)
+	userActionHistoryService: EventsLogger =
+		Depends(aggregate_events_logging_service)
 ) -> AccountTokenCreator:
 	return AccountTokenCreator(conn, userActionHistoryService)
 
@@ -357,15 +423,15 @@ def song_info_service(
 def queue_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-	userActionHistoryService: EventsLoggingService =
-		Depends(actions_history_management_service),
+	eventsLogger: EventsLogger =
+		Depends(aggregate_events_logging_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> QueueService:
 	return QueueService(
 		conn,
 		currentUserProvider,
-		userActionHistoryService,
+		eventsLogger,
 		songInfoService,
 		pathRuleService,
 	)

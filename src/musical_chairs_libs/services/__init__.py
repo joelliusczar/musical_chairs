@@ -2,16 +2,16 @@ from .account_access_service import *
 from .account_management_service import *
 from .account_token_creator import *
 from .accounts_service import *
-from .events_query_service import *
+from .events.fs_events_query_service import *
 from .basic_user_provider import *
-from .current_user_tracking_service import *
+from .vistor_tracking_service import *
 from .empty_user_tracking_service import *
 from .queue_service import *
 from .song_info_service import *
 from .station_service import *
 from .template_service import *
 from .process_service import *
-from .events_logging_service import *
+from .events.fs_events_logging_service import *
 from .db_setup_service import *
 from .song_file_service import *
 from .path_rule_service import *
@@ -28,4 +28,4 @@ from .stations_users_service import *
 from .station_process_service import *
 from .collection_queue_service import *
 from .current_user_provider import *
-from .user_agent_service import *
+from .visitor_service import *

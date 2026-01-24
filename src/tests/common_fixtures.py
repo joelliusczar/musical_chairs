@@ -10,7 +10,7 @@ from musical_chairs_libs.services import (
 	AccountAccessService,
 	AccountManagementService,
 	AccountTokenCreator,
-	EventsQueryService,
+	FSEventsQueryService,
 	BasicUserProvider,
 	EmptyUserTrackingService,
 	QueueService,
@@ -18,7 +18,7 @@ from musical_chairs_libs.services import (
 	SongInfoService,
 	StationService,
 	TemplateService,
-	EventsLoggingService,
+	FSEventsLoggingService,
 	DbRootConnectionService,
 	DbOwnerConnectionService,
 	setup_database,
@@ -37,6 +37,9 @@ from musical_chairs_libs.services import (
 	StationsPlaylistsService,
 	CurrentUserProvider,
 	CollectionQueueService,
+)
+from musical_chairs_libs.services.events import (
+	WhenNextCalculator
 )
 
 from musical_chairs_libs.dtos_and_utilities import (
@@ -155,8 +158,8 @@ def load_initial_events(fixture_datetime_iterator: MockDatetimeProvider):
 
 
 @pytest.fixture
-def fixture_actions_history_query_service() -> EventsQueryService:
-	return EventsQueryService()
+def fixture_actions_history_query_service() -> FSEventsQueryService:
+	return FSEventsQueryService()
 
 
 @pytest.fixture
@@ -201,10 +204,16 @@ def fixture_path_rule_service(
 
 
 @pytest.fixture
+def fixture_when_next_calculator(
+	fixture_actions_history_query_service: FSEventsQueryService
+) -> WhenNextCalculator:
+	return WhenNextCalculator(fixture_actions_history_query_service)
+
+
+@pytest.fixture
 def fixture_current_user_provider(
-	fixture_account_access_service: AccountAccessService,
 	fixture_tracking_info_provider: TrackingInfoProvider,
-	fixture_actions_history_query_service: EventsQueryService,
+	fixture_when_next_calculator: WhenNextCalculator,
 	fixture_path_rule_service: PathRuleService,
 	fixture_basic_user_provider: BasicUserProvider,
 ) -> CurrentUserProvider:
@@ -212,7 +221,7 @@ def fixture_current_user_provider(
 	return CurrentUserProvider(
 		fixture_basic_user_provider,
 		fixture_tracking_info_provider,
-		fixture_actions_history_query_service,
+		fixture_when_next_calculator,
 		fixture_path_rule_service
 	)
 
@@ -222,7 +231,7 @@ def fixture_account_management_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
 	fixture_account_access_service: AccountAccessService,
-	fixture_user_actions_history_service: EventsLoggingService,
+	fixture_user_actions_history_service: FSEventsLoggingService,
 ) -> AccountManagementService:
 		return AccountManagementService(
 			fixture_conn_cardboarddb,
@@ -235,7 +244,7 @@ def fixture_account_management_service(
 @pytest.fixture
 def fixture_account_token_creator(
 	fixture_conn_cardboarddb: Connection,
-	fixture_user_actions_history_service: EventsLoggingService,
+	fixture_user_actions_history_service: FSEventsLoggingService,
 ) -> AccountTokenCreator:
 	return AccountTokenCreator(
 		fixture_conn_cardboarddb,
@@ -285,8 +294,8 @@ def fixture_user_actions_history_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_tracking_info_provider: TrackingInfoProvider,
 	fixture_current_user_provider: CurrentUserProvider
-) -> EventsLoggingService:
-	userActionsHistoryService = EventsLoggingService(
+) -> FSEventsLoggingService:
+	userActionsHistoryService = FSEventsLoggingService(
 		fixture_tracking_info_provider,
 		fixture_current_user_provider
 	)
@@ -297,7 +306,7 @@ def fixture_user_actions_history_service(
 def fixture_queue_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
-	fixture_user_actions_history_service: EventsLoggingService,
+	fixture_user_actions_history_service: FSEventsLoggingService,
 	fixture_song_info_service: SongInfoService,
 	fixture_path_rule_service: PathRuleService,
 ) -> QueueService:

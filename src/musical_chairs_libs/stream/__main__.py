@@ -6,8 +6,8 @@ import subprocess
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
-	EventsLoggingService,
-	EventsQueryService,
+	FSEventsLoggingService,
+	FSEventsQueryService,
 	BasicUserProvider,
 	CollectionQueueService,
 	CurrentUserProvider,
@@ -67,7 +67,7 @@ def path_rule_service(conn: Connection) -> PathRuleService:
 
 
 def current_user_provider(conn: Connection) -> CurrentUserProvider:
-	actionsHistoryQueryService = EventsQueryService(conn)
+	actionsHistoryQueryService = FSEventsQueryService(conn)
 	pathRuleService = path_rule_service(conn)
 
 	currentUserProvider = CurrentUserProvider(
@@ -81,9 +81,9 @@ def current_user_provider(conn: Connection) -> CurrentUserProvider:
 
 def actions_history_management_service(
 	conn: Connection
-) -> EventsLoggingService:
+) -> FSEventsLoggingService:
 	currentUserProvider = current_user_provider(conn)
-	return EventsLoggingService(
+	return FSEventsLoggingService(
 		conn,
 		EmptyUserTrackingService(),
 		currentUserProvider

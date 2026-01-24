@@ -30,6 +30,7 @@ import {
 	unicodeToUrlSafeBase64,
 	urlSafeBase64ToUnicode,
 	prefix_split,
+	squash_chars,
 } from "../../Helpers/string_helpers";
 import {
 	SongTreeNodeInfo,
@@ -42,7 +43,10 @@ import { PathsActionRule } from "../../Types/user_types";
 import {
 	keyedDataDispatches as dispatches,
 } from "../../Reducers/keyedDataWaitingReducer";
-import { DirectoryNewModalOpener } from "./DirectoryEdit";
+import {
+	DirectoryNewModalOpener,
+	ActionTypes as DirectoryActionTypes,
+} from "./DirectoryEdit";
 import { SongUploadNewModalOpener } from "./SongUpload";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { isCallPending } from "../../Helpers/request_helpers";
@@ -436,37 +440,41 @@ export const SongTree = withCacheProvider<
 		},[setBreadcrumb]);
 
 
+		const expandDir = (nodeId: string) => {
+			const songNodeInfo = firstNode(treeData[nodeId]);
+			if (!!songNodeInfo) {
+				if (isNodeDirectory(songNodeInfo)) {
+					updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
+					updateBreadcrumb(songNodeInfo?.path);
+					const expandedCopy = [...expandedNodes];
+					const expandedFoundIdx =
+							expandedNodes.findIndex(n => n === nodeId);
+					if (expandedFoundIdx === -1) {
+						expandedCopy.push(nodeId);
+					}
+					else {
+						const isFoundSelected = selectedNodes
+							.some(n => n === expandedNodes[expandedFoundIdx]);
+						if (isFoundSelected) {
+							expandedCopy.splice(expandedFoundIdx, 1);
+						}
+					}
+					setExpandedNodes(expandedCopy);
+				}
+			}
+			if (!!songNodeInfo && "rules" in songNodeInfo) {
+				setSelectedPrefixRules(songNodeInfo?.rules || []);
+			}
+			setSelectedNodes([nodeId]);
+		};
+
+
 		const onNodeSelect = (e: React.SyntheticEvent, nodeIds: string[]) => {
 			if(nodeIds.length === 1) {
-				const songNodeInfo = firstNode(treeData[nodeIds[0]]);
 				if(selectedNodes[0] === nodeIds[0]) { //unselect
 					setSelectedNodes([]);
 				}
-				if (!!songNodeInfo && "path" in songNodeInfo) {
-					if (isNodeDirectory(songNodeInfo)) {
-						updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
-						updateBreadcrumb(songNodeInfo?.path);
-						const expandedCopy = [...expandedNodes];
-						const expandedFoundIdx =
-							expandedNodes.findIndex(n => n === nodeIds[0]);
-						if (expandedFoundIdx === -1) {
-							expandedCopy.push(nodeIds[0]);
-						}
-						else {
-							const isFoundSelected = selectedNodes
-								.some(n => n === expandedNodes[expandedFoundIdx]);
-							if (isFoundSelected) {
-								expandedCopy.splice(expandedFoundIdx, 1);
-							}
-						}
-						setExpandedNodes(expandedCopy);
-
-					}
-				}
-				if (!!songNodeInfo && "rules" in songNodeInfo) {
-					setSelectedPrefixRules(songNodeInfo?.rules || []);
-				}
-				setSelectedNodes([nodeIds[0]]);
+				expandDir(nodeIds[0]);
 			}
 			else {
 				if(nodeIds.length < 100) {
@@ -491,6 +499,7 @@ export const SongTree = withCacheProvider<
 				return null;
 			}).filter(n => !!n) as number[];
 		};
+
 
 		const isDirectorySelected = () => {
 			if (selectedNodes.length !== 1) return false;
@@ -517,7 +526,7 @@ export const SongTree = withCacheProvider<
 		const selectedSongIds = getSelectedSongIds();
 
 		const canAssignUsers = () => {
-			if (isDirectorySelected()) return false;
+
 			if (selectedNodes.length === 1) {
 				const selectedPrefix = urlSafeBase64ToUnicode(selectedNodes[0]);
 				const hasRule = selectedPrefixRules
@@ -550,6 +559,24 @@ export const SongTree = withCacheProvider<
 			return hasRule;
 		};
 
+
+		const canRenameDir = () => {
+			if (!isDirectorySelected()) return false;
+			if (selectedNodes.length !== 1) return false;
+			const selectedPrefix = urlSafeBase64ToUnicode(selectedNodes[0]);
+			const hasRule = selectedPrefixRules
+				.filter(r => r.name === UserRoleDef.PATH_MOVE ||
+					r.domain === UserRoleDomain.SITE
+				)
+				.some(r =>
+					(r.path &&
+						selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
+					r.domain === UserRoleDomain.SITE
+				);
+			return hasRule;
+		};
+
+
 		const canDownloadSelection = () => {
 			if (isDirectorySelected()) return false;
 			if (selectedNodes.length !== 1) return false;
@@ -563,6 +590,7 @@ export const SongTree = withCacheProvider<
 			};
 			return false;
 		};
+
 
 		const siteCanUploadSong = useHasAnyRoles([
 			UserRoleDef.PATH_UPLOAD,
@@ -581,15 +609,18 @@ export const SongTree = withCacheProvider<
 			return false;
 		};
 
+
 		const canEditSongInfo = () => {
 			if (isDirectorySelected()) return false;
 			return !!selectedSongIds.length;
 		};
 
+
 		const onAddNewSong = (nodes: SongTreeNodeInfo[]) => {
 			const nodeIds = nodes.map(n => n.id).filter(notNullPredicate);
 			navigate(getSongEditUrl(nodeIds));
 		};
+
 
 		const scrollToNode = useCallback((nodeId: string) => {
 			const selector = `#${treeId}-${nodeId} .MuiTreeItem-label`;
@@ -599,19 +630,25 @@ export const SongTree = withCacheProvider<
 			}
 		},[]);
 
-		const addEmptyDirectory = (
+
+		const placeDirectory = (
 			nodes: Dictionary<ListData<SongTreeNodeInfo>>,
-			fullPath: string
+			prefix: string,
+			suffix: string
 		) => {
 			updateTree(nodes);
+			const fullPath = squash_chars(`${prefix}/${suffix}/`, "/");
 			const normalizedPath = normalizeOpeningSlash(fullPath);
 			updateUrl(normalizedPath);
-			const escapedNodeId = unicodeToUrlSafeBase64(normalizedPath)
-				.replaceAll("=","\\=");
+			const nodeId = unicodeToUrlSafeBase64(normalizedPath);
+			setSelectedNodes([nodeId]);
+			expandDir(nodeId);
+			const escapedNodeId = nodeId.replaceAll("=","\\=");
 			setTimeout(() => {
 				scrollToNode(escapedNodeId);
 			});
 		};
+
 
 		const deleteNode = async () => {
 			if (selectedNodes.length === 1) {
@@ -638,6 +675,7 @@ export const SongTree = withCacheProvider<
 			scrollToNode(escapedNodeId);
 			updateBreadcrumb(urlSafeBase64ToUnicode(nodeId));
 		},[urlNodeId, setSelectedNodes, scrollToNode, updateBreadcrumb]);
+
 
 		useEffect(() => {
 			setTimeout(() => {
@@ -685,7 +723,7 @@ export const SongTree = withCacheProvider<
 					</Button>}
 					{isDirectorySelected() && selectedPrefix &&
 						<DirectoryNewModalOpener
-							add={addEmptyDirectory}
+							add={placeDirectory}
 							prefix={selectedPrefix}
 						/>}
 					{canUploadSong() && selectedPrefix &&
@@ -698,6 +736,11 @@ export const SongTree = withCacheProvider<
 						message={`Are you sure you want to delete ${selectedPrefix}`}
 						onYes={() => deleteNode()}
 						onNo={() => {}}
+					/>}
+					{canRenameDir() && selectedPrefix && <DirectoryNewModalOpener
+						add={placeDirectory}
+						prefix={selectedPrefix}
+						action={DirectoryActionTypes.RENAME}
 					/>}
 				</div>
 				}

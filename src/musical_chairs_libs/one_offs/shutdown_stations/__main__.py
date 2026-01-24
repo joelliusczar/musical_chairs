@@ -1,5 +1,5 @@
 from musical_chairs_libs.services import (
-	ActionsHistoryQueryService,
+	FSEventsQueryService,
 	BasicUserProvider,
 	CurrentUserProvider,
 	EmptyUserTrackingService,
@@ -16,7 +16,7 @@ try:
 	)
 
 	basicUserProvider = BasicUserProvider(None)
-	actionsHistoryQueryService = ActionsHistoryQueryService(conn)
+	actionsHistoryQueryService = FSEventsQueryService(conn)
 	pathRuleService = PathRuleService(
 		conn, 
 		S3FileService(),

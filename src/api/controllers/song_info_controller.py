@@ -42,7 +42,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
 	ValidatedSongAboutInfo,
 	TableData,
-	PathsActionRule,
+	ActionRule,
 	SongPathInfo,
 	DirectoryTransfer,
 	get_path_owner_roles,
@@ -244,9 +244,9 @@ def add_user_rule(
 		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 	),
 	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
-	rule: PathsActionRule = Depends(validate_path_rule),
+	rule: ActionRule = Depends(validate_path_rule),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
-) -> PathsActionRule:
+) -> ActionRule:
 	return pathRuleService.add_user_rule_to_path(subjectuser.id, prefix, rule)
 
 
@@ -307,6 +307,24 @@ def create_directory(
 		return result
 
 
+@router.put("/directory")
+def rename_directory(
+	suffix: str,
+	prefix: str = Security(
+		get_write_secured_prefix,
+		scopes=[UserRoleDef.PATH_MOVE.value]
+	),
+	songFileService: SongFileService = Depends(song_file_service)
+) -> dict[str, ListData[SongTreeNode]]:
+		result = {
+		x[0]:ListData(
+			items=sorted(x[1], key=SongTreeNode.same_level_sort_key)
+			) for x
+			in songFileService.rename_directory(prefix, suffix).items()
+		}
+		return result
+
+
 @router.post("/upload/", dependencies=[
 	Security(
 		check_scope,
@@ -360,3 +378,4 @@ def move_path(
 		in songFileService.move_path(transfer).items()
 	}
 	return result
+	

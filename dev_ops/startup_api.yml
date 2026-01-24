@@ -27,9 +27,6 @@
       with_first_found:
         - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
     - include_vars: 
-        file: 'vars/vault.yml'
-        hash_behaviour: merge
-    - include_vars: 
         file: 'vars/local_keys.yml'
         hash_behaviour: merge
       when: inventory_hostname in ["127.0.0.1", "localhost"]
@@ -135,6 +132,7 @@
         - '{{app_trunk}}'
         - '{{domain["exports_dir"]}}'
         - '/home/{{domain["server_user"]}}/scripts'
+        - '{{app_trunk}}/event_logs'
     - name: Copy templates folder
       synchronize:
         src: '{{src_dirs["templates"]}}'
@@ -220,6 +218,7 @@
           DSF_PYTHON_EXECUTABLE='{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
           DSF_ICES_EXECUTABLE='{{domain["app_root"]}}/.local/bin/{{app_details["prefix"]|lower}}-ices'
           DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
+          DSF_EVENT_LOGS_DIR=`{{app_trunk}}/event_logs`
       # notify: Restart API #not sure this exists as a handler anymore
     - name: Add API run script
       copy: 

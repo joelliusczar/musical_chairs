@@ -223,7 +223,8 @@ class PlaylistsSongsService:
 		startOrders = self.get_max_lexorders(p.playlistid or 0 for p in uniquePairs)
 		params: list[dict[str, Any]] = []
 		userId = self.current_user_provider.current_user().id
-		for p in inPairs:
+		sortedInPairs = sorted(inPairs, key=lambda i: i.songid)
+		for p in sortedInPairs:
 			if not p.playlistid:
 				continue
 			startOrders[p.playlistid] = calc_order_next(

@@ -2,6 +2,7 @@
 import uvicorn #pyright: ignore [reportMissingTypeStubs]
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 import sys
+from contextlib import asynccontextmanager
 from typing import Any
 from traceback import TracebackException
 from fastapi import FastAPI, Request, status
@@ -19,9 +20,9 @@ from controllers import (
 	playlist_controller,
 )
 from musical_chairs_libs.dtos_and_utilities import (
+	AlreadyUsedError,
 	build_error_obj,
 	build_timespan_msg,
-	AlreadyUsedError,
 	NotImplementedError,
 	NotFoundError,
 	NotLoggedInError,
@@ -31,6 +32,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
+from api_dependencies import GlobalStore
 
 cors_allowed_origins=[
 	"https://127.0.0.1",
@@ -38,7 +40,15 @@ cors_allowed_origins=[
 	"https://www.musicalchairs.radio.fm"
 ]
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+	app.state.global_store = GlobalStore()
+	yield
+	app.state.global_store = None
+
+
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(
 	CORSMiddleware,
 	allow_origins=cors_allowed_origins,

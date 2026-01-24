@@ -1,7 +1,9 @@
 import os
+from dataclasses import dataclass
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule
 from .artist_dtos import ArtistInfo
+from .constants import StationRequestTypes
 from .generic_dtos import (
 	TableData,
 	T,
@@ -59,6 +61,9 @@ class SongListDisplayItem(QueuedItem):
 	historyid: Optional[int]=None
 	disc: Optional[int]=None
 
+	def __hash__(self) -> int:
+		return super().__hash__()
+
 
 	def display(self) -> str:
 		if self.name:
@@ -84,3 +89,16 @@ class SongsArtistInfo(ArtistInfo):
 class QueueRequest(IdItem):
 	itemtype: str
 	parentKey: Optional[int]
+
+@dataclass
+class QueuePossibility:
+	itemId: int
+	lastplayednum: int
+	playnum: int
+	itemtype: str = StationRequestTypes.SONG.lower()
+
+@dataclass
+class QueueMetrics:
+	maxSize: int
+	loaded: int = 0
+	queued: int = 0

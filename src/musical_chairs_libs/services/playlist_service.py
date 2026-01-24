@@ -108,7 +108,7 @@ def build_playlist_rules_query(
 	)
 	domain_permissions_query = __playlist_permissions_query__
 	placeholder_select = build_placeholder_select(
-		UserRoleDomain.Playlist
+		UserRoleDef.PLAYLIST_VIEW.value
 	).add_columns(
 		dbLiteral(None).label("rule_playlistfk")
 	)

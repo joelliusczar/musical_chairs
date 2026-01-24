@@ -73,6 +73,7 @@
           DSF_APP_ROOT='{{app_trunk}}'
           DSF_DB_PASS_JANITOR='{{keys["db_pass_janitor"]}}'
           DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
+          DSF_EVENT_LOGS_DIR="{{app_trunk}}/event_logs"
       become: true
     - name: Add squish history service
       include_role:

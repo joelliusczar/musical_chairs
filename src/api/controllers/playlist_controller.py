@@ -15,10 +15,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TableData,
 	PlaylistInfo,
 	ValidatedPlaylistCreationInfo,
-	PlaylistActionRule,
+	ActionRule,
 	SimpleQueryParameters,
 	SongsPlaylistInfo,
 	SongPlaylistTuple,
+	UserRoleDomain,
 )
 from musical_chairs_libs.services import (
 	PlaylistService,
@@ -116,7 +117,7 @@ def get_playlist_for_edit(
 
 @router.post("", dependencies=[
 	Security(
-		check_rate_limit,
+		check_rate_limit(UserRoleDomain.Playlist.value),
 		scopes=[UserRoleDef.PLAYLIST_CREATE.value]
 	)
 ])
@@ -184,13 +185,13 @@ def get_playlist_user_list(
 @router.post("/{ownerkey}/{playlistkey}/user_role")
 def add_user_rule(
 	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
-	rule: PlaylistActionRule = Depends(validate_playlist_rule),
+	rule: ActionRule = Depends(validate_playlist_rule),
 	playlistInfo: PlaylistInfo = Security(
 		get_secured_playlist_by_name_and_owner,
 		scopes=[UserRoleDef.PLAYLIST_USER_ASSIGN.value]
 	),
 	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
-) -> PlaylistActionRule:
+) -> ActionRule:
 	return playlistsUsersService.add_user_rule_to_playlist(
 		subjectuser.id,
 		playlistInfo.id,

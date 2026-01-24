@@ -7,6 +7,7 @@ from .mocks.constant_values_defs import (
 	clear_mock_password
 )
 from sqlalchemy.engine import Connection
+from fastapi import status
 from fastapi.testclient import TestClient
 from .common_fixtures import (
 	fixture_conn_cardboarddb as fixture_conn_cardboarddb
@@ -31,6 +32,7 @@ def login_test_user(username: str, client: TestClient) -> dict[str, Any]:
 	}
 	response = client.post("/accounts/open", data=formData)
 	data = json.loads(response.content)
+	assert response.status_code == status.HTTP_200_OK
 	accessToken = data["access_token"]
 	headers = {
 		"Authorization": f"Bearer {accessToken}"
@@ -41,11 +43,12 @@ def login_test_user(username: str, client: TestClient) -> dict[str, Any]:
 def fixture_api_test_client(
 	fixture_conn_cardboarddb: Connection,
 	request: pytest.FixtureRequest
-) -> TestClient:
+) -> Iterator[TestClient]:
 
+	
 	app.dependency_overrides[get_configured_db_connection] =\
 		lambda: fixture_conn_cardboarddb
 	app.dependency_overrides[file_service] = lambda: MockFileService()
 
-	client = TestClient(app, raise_server_exceptions=False)
-	return client
+	with TestClient(app, raise_server_exceptions=False) as client:
+		yield client

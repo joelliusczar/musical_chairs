@@ -16,7 +16,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	generate_playlist_user_and_rules_from_rows,
 	RulePriorityLevel,
 	ActionRule,
-	PlaylistActionRule,
 	UserRoleDomain,
 	get_playlist_owner_roles,
 	UserRoleDef,
@@ -92,7 +91,7 @@ def build_playlist_rules_query(
 	)
 	domain_permissions_query = __playlist_permissions_query__
 	placeholder_select = build_placeholder_select(
-		UserRoleDomain.Playlist
+		UserRoleDef.PLAYLIST_VIEW.value
 	).add_columns(
 		dbLiteral(None).label("rule_playlistfk")
 	)
@@ -309,12 +308,12 @@ class PlaylistsUserService:
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userfk,
-			rulesQuery.c.rule_name,
-			rulesQuery.c.rule_count,
-			rulesQuery.c.rule_span,
-			rulesQuery.c.rule_priority,
-			rulesQuery.c.rule_domain
+			rulesQuery.c.rule_userfk.label("rule.userfk"),
+			rulesQuery.c.rule_name.label("rule.name"),
+			rulesQuery.c.rule_count.label("rule.count"),
+			rulesQuery.c.rule_span.label("rule.span"),
+			rulesQuery.c.rule_priority.label("rule.priority"),
+			rulesQuery.c.rule_domain.label("rule.domain")
 		).select_from(user_tbl).join(
 			rulesQuery,
 			or_(
@@ -352,7 +351,7 @@ class PlaylistsUserService:
 		addedUserId: int,
 		playlistId: int,
 		rule: ActionRule
-	) -> PlaylistActionRule:
+	) -> ActionRule:
 		stmt = insert(playlist_user_permissions).values(
 			userfk = addedUserId,
 			playlistfk = playlistId,
@@ -364,11 +363,12 @@ class PlaylistsUserService:
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
-		return PlaylistActionRule(
+		return ActionRule(
 			name=rule.name,
 			span=rule.span,
 			count=rule.count,
-			priority=RulePriorityLevel.STATION_PATH.value
+			priority=RulePriorityLevel.STATION_PATH.value,
+			domain=UserRoleDomain.Playlist.value
 		)
 
 

@@ -1,14 +1,13 @@
 import sys
+from dataclasses import dataclass
 from typing import (
 	Any, 
 	Optional, 
 	Iterable, 
 	Iterator, 
 	Callable,
-	Type,
 	cast
 )
-from .generic_dtos import MCBaseClass
 from .user_role_def import UserRoleDomain, RulePriorityLevel
 from itertools import groupby, chain
 from operator import attrgetter
@@ -17,8 +16,8 @@ from .user_role_def import RulePriorityLevel
 
 
 
-
-class ActionRule(MCBaseClass):
+@dataclass
+class ActionRule:
 	name: str=""
 	span: float=0 #this should be total seconds
 	count: float=0
@@ -26,7 +25,9 @@ class ActionRule(MCBaseClass):
 	# (station, path) > general
 	priority: Optional[int]=RulePriorityLevel.NONE.value
 	domain: str=UserRoleDomain.Site.value
+	path: Optional[str]=None
 	# model_config=ConfigDict(revalidate_instances="subclass-instances")
+
 
 	@staticmethod
 	def sorted(rules: Iterable["ActionRule"]) -> list["ActionRule"]:
@@ -34,6 +35,7 @@ class ActionRule(MCBaseClass):
 		s.sort(key=attrgetter("priority"), reverse=True)
 		s.sort(key=attrgetter("name"))
 		return s
+
 
 	@staticmethod
 	def aggregate(
@@ -44,9 +46,11 @@ class ActionRule(MCBaseClass):
 			*args
 		) if filter(r))
 
+
 	@property
 	def priorityElse(self) -> int:
 		return self.priority or RulePriorityLevel.NONE.value
+
 
 	@property
 	def score(self) -> float:
@@ -54,9 +58,11 @@ class ActionRule(MCBaseClass):
 			return sys.maxsize
 		return abs(self.count / self.span)
 
+
 	@property
 	def noLimit(self) -> bool:
 		return not self.span
+
 
 	@property
 	def blocked(self) -> bool:
@@ -64,141 +70,136 @@ class ActionRule(MCBaseClass):
 		#my comparison methods again
 		return not self.noLimit and not self.count
 
+
 	def conforms(self, rule: str) -> bool:
 		return rule == self.name
+
 
 	def __gt__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:
 			return True
 		if self.name < other.name:
 			return False
+		if self.domain > other.domain:
+			return True
+		if self.domain < other.domain:
+			return False
 		if (self.priorityElse) > (other.priorityElse):
 			return True
 		if (self.priorityElse) < (other.priorityElse):
 			return False
+		if all(d == UserRoleDomain.Path.value for d in (self.domain, other.domain)):
+			if self.is_parent_path(other.path):
+				return False
+			if other.is_parent_path(self.path):
+				return True
+		else:
+			if (self.path or "\0") > (other.path or "\0"):
+				return True
+			if (self.path or "\0") < (other.path or "\0"):
+				return False
 		return self.score > other.score
+
 
 	def __lt__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
 			return True
 		if self.name > other.name:
 			return False
+		if self.domain < other.domain:
+			return True
+		if self.domain > other.domain:
+			return False
 		if (self.priorityElse) < (other.priorityElse):
 			return True
 		if (self.priorityElse) > (other.priorityElse):
 			return False
+		if all(d == UserRoleDomain.Path.value for d in (self.domain, other.domain)):
+			if self.is_parent_path(other.path):
+				return True
+			if other.is_parent_path(self.path):
+				return False
+		else:
+			if (self.path or "\0") < (other.path or "\0"):
+				return True
+			if (self.path or "\0") > (other.path or "\0"):
+				return False
 		return self.score < other.score
+
 
 	def __ge__(self, other: "ActionRule") -> bool:
 		if self.name > other.name:
 			return True
 		if self.name < other.name:
 			return False
+		if self.domain > other.domain:
+			return True
+		if self.domain < other.domain:
+			return False
 		if (self.priorityElse) > (other.priorityElse):
 			return True
 		if (self.priorityElse) < (other.priorityElse):
 			return False
+		if all(d == UserRoleDomain.Path.value for d in (self.domain, other.domain)):
+			if self.is_parent_path(other.path):
+				return False
+			if other.is_parent_path(self.path):
+				return True
+		else:
+			if (self.path or "\0") > (other.path or "\0"):
+				return True
+			if (self.path or "\0") < (other.path or "\0"):
+				return False
 		return self.score >= other.score
+
 
 	def __le__(self, other: "ActionRule") -> bool:
 		if self.name < other.name:
 			return True
 		if self.name > other.name:
 			return False
+		if self.domain < other.domain:
+			return True
+		if self.domain > other.domain:
+			return False
 		if (self.priorityElse) < (other.priorityElse):
 			return True
 		if (self.priorityElse) > (other.priorityElse):
 			return False
+		if all(d == UserRoleDomain.Path.value for d in (self.domain, other.domain)):
+			if self.is_parent_path(other.path):
+				return True
+			if other.is_parent_path(self.path):
+				return False
+		else:
+			if (self.path or "\0") < (other.path or "\0"):
+				return True
+			if (self.path or "\0") > (other.path or "\0"):
+				return False
 		return self.score <= other.score
+
 
 	def __eq__(self, other: Any) -> bool:
 		if not other:
 			return False
-		return self.name == other.name and\
-			self.span == other.span and self.count == other.count
+		return self.name == other.name\
+			and self.span == other.span\
+			and self.count == other.count\
+			and self.domain == other.domain\
+			and self.path == other.path
+
 
 	def __ne__(self, other: Any) -> bool:
 		if not other:
 			return True
-		return self.name != other.name or\
-			self.span != other.span or self.count != other.count
+		return self.name != other.name \
+			or self.span != other.span\
+			or self.count != other.count\
+			or self.domain != other.domain\
+			or self.path != other.path
+
 
 	def __hash__(self) -> int:
-		return hash((
-			self.name,
-			self.span,
-			self.count,
-			self.priority
-		))
-
-	def to_path_rule(self, path: str) -> "PathsActionRule":
-		return PathsActionRule(
-			name=self.name,
-			span=self.span,
-			count=self.count,
-			priority=self.priority,
-			domain=self.domain,
-			path=path
-		)
-
-	@staticmethod
-	def filter_out_repeat_roles(
-		rules: Iterable["ActionRule"]
-	) -> Iterator["ActionRule"]:
-		yield from (next(g[1]) for g in groupby(rules, key=lambda k: k.name))
-
-	@staticmethod
-	def row_to_action_rule(row: RowMapping) -> "ActionRule":
-		clsConstructor = action_rule_class_map.get(
-			row["rule_domain"],
-			ActionRule
-		)
-
-		return clsConstructor(
-			name=row["rule_name"],
-			span=row["rule_span"],
-			count=row["rule_count"],
-			#if priortity is explict use that
-			#otherwise, prefer station specific rule vs non station specific rule
-			priority=cast(int,row["rule_priority"]) if row["rule_priority"] \
-				else RulePriorityLevel.STATION_PATH.value
-		)
-
-
-class StationActionRule(ActionRule):
-	domain: str=UserRoleDomain.Station.value
-
-
-class PlaylistActionRule(ActionRule):
-	domain: str=UserRoleDomain.Playlist.value
-
-
-class AlbumActionRule(ActionRule):
-	domain: str=UserRoleDomain.Album.value
-
-
-class ArtistActionRule(ActionRule):
-	domain: str=UserRoleDomain.Artist.value
-
-
-class PathsActionRule(ActionRule):
-	path: Optional[str]=None
-	domain: str=UserRoleDomain.Path.value
-
-	def is_parent_path(self, path: Optional[str]) -> bool:
-		if not self.path or not path:
-			return False
-		return path.startswith(self.path) and len(path) > len(self.path)
-
-	def __eq__(self, other: Any) -> bool:
-		if self.path is None and not hasattr(other, "path"):
-			return super().__eq__(other)
-		return super().__eq__(other) \
-			and self.path == other.path
-
-	def __hash__(self) -> int:
-		if self.path is None:
-			return super().__hash__()
 		return hash((
 			self.name,
 			self.span,
@@ -208,86 +209,33 @@ class PathsActionRule(ActionRule):
 			self.path
 		))
 
-	def __ne__(self, other: Any) -> bool:
-		return super().__ne__(other) \
-			or self.path != other.path
-
-	def __gt__(self, other: "ActionRule") -> bool:
-		if self.name > other.name:
-			return True
-		if self.name < other.name:
-			return False
-		if (self.priorityElse) > (other.priorityElse):
-			return True
-		if (self.priorityElse) < (other.priorityElse):
-			return False
-		if isinstance(other, type(self)):
-			if self.is_parent_path(other.path):
-				return False
-			if other.is_parent_path(self.path):
-				return True
-		else:
-			return True
-		return self.score > other.score
-
-	def __lt__(self, other: "ActionRule") -> bool:
-		if self.name < other.name:
-			return True
-		if self.name > other.name:
-			return False
-		if (self.priorityElse) < (other.priorityElse):
-			return True
-		if (self.priorityElse) > (other.priorityElse):
-			return False
-		if isinstance(other, type(self)):
-			if self.is_parent_path(other.path):
-				return True
-			if other.is_parent_path(self.path):
-				return False
-		else:
-			return False
-		return self.score < other.score
-
-	def __le__(self, other: "ActionRule") -> bool:
-		if self.name < other.name:
-			return True
-		if self.name > other.name:
-			return False
-		if (self.priorityElse) < (other.priorityElse):
-			return True
-		if (self.priorityElse) > (other.priorityElse):
-			return False
-		if isinstance(other, type(self)):
-			if self.is_parent_path(other.path):
-				return True
-			if other.is_parent_path(self.path):
-				return False
-		else:
-			return False
-		return self.score <= other.score
-
-	def __ge__(self, other: "ActionRule") -> bool:
-		if self.name > other.name:
-			return True
-		if self.name < other.name:
-			return False
-		if (self.priorityElse) > (other.priorityElse):
-			return True
-		if (self.priorityElse) < (other.priorityElse):
-			return False
-		if isinstance(other, type(self)):
-			if self.is_parent_path(other.path):
-				return False
-			if other.is_parent_path(self.path):
-				return True
-		else:
-			return True
-		return self.score >= other.score
 
 
-action_rule_class_map: dict[str, Type[ActionRule]] = {
-	UserRoleDomain.Path.value: PathsActionRule,
-	UserRoleDomain.Station.value: StationActionRule,
-	UserRoleDomain.Playlist.value: PlaylistActionRule,
-	UserRoleDomain.Site.value: ActionRule
-}
+	@staticmethod
+	def filter_out_repeat_roles(
+		rules: Iterable["ActionRule"]
+	) -> Iterator["ActionRule"]:
+		yield from (next(g[1]) for g in groupby(rules, key=lambda k: k.name))
+
+
+	@staticmethod
+	def row_to_action_rule(row: RowMapping) -> "ActionRule":
+
+		return ActionRule(
+			name=row["rule_name"],
+			span=row["rule_span"],
+			count=row["rule_count"],
+			#if priortity is explict use that
+			#otherwise, prefer station specific rule vs non station specific rule
+			priority=cast(int,row["rule_priority"]) if row["rule_priority"] \
+				else RulePriorityLevel.STATION_PATH.value,
+			domain=row["rule_domain"]
+		)
+
+
+	def is_parent_path(self, path: Optional[str]) -> bool:
+		if not self.path or not path:
+			return False
+		return path.startswith(self.path) and len(path) > len(self.path)
+
+

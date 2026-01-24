@@ -127,6 +127,7 @@ class DbRootConnectionService:
 		)
 		self.conn.exec_driver_sql("FLUSH PRIVILEGES")
 
+
 	#this method can only be used on test databases
 	def drop_database(self, dbName: str, force: bool=False):
 		if not dbName.startswith("test_") and not force:
@@ -135,6 +136,7 @@ class DbRootConnectionService:
 			raise RuntimeError("Invalid name was used:")
 		# self.revoke_all_roles(dbName, force)
 		self.conn.exec_driver_sql(f"DROP DATABASE IF EXISTS {dbName}")
+
 
 	def revoke_all_roles(self, dbName: str, force: bool=False):
 		if not dbName.startswith("test_") and not force:
@@ -248,14 +250,9 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_janitor_user_script(SqlScripts.GRANT_JANITOR)
 		ownerConnService.flush_privileges()
 
-
-		ownerConnService.run_defined_script(SqlScripts.DROP_REQUESTED_TIMESTAMP)
 		ownerConnService.run_defined_script(SqlScripts.ADD_INTERNAL_PATH)
 		ownerConnService.run_defined_script(SqlScripts.DROP_PLACEHOLDERDIR)
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_FILE_HASH)
-		ownerConnService.run_defined_script(SqlScripts.ADD_IP4ADDRESS)
-		ownerConnService.run_defined_script(SqlScripts.ADD_IP6ADDRESS)
-		ownerConnService.run_defined_script(SqlScripts.ADD_USERAGENT_FK)
 		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDTIMESTAMP)
 		ownerConnService.run_defined_script(SqlScripts.ADD_ALBUM_VERSION)
 		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_TYPE)
@@ -287,8 +284,6 @@ def setup_database(dbName: str):
 		ownerConnService.run_defined_script(
 			SqlScripts.READD_UNIQUE_ALBUM_INDEX
 		)
-		ownerConnService.run_defined_script(SqlScripts.ADD_STATIONQUEUE_ITEMTYPE)
-		ownerConnService.run_defined_script(SqlScripts.ADD_STATIONQUEUE_PARENTKEY)
 		ownerConnService.run_defined_script(SqlScripts.ADD_LASTPLAYED_ITEMTYPE)
 		ownerConnService.run_defined_script(SqlScripts.ADD_LASTPLATED_PARENTKEY)
 		ownerConnService.run_defined_script(
@@ -305,6 +300,25 @@ def setup_database(dbName: str):
 			SqlScripts.NORMALIZE_OPENING_SLASH
 		)
 		ownerConnService.run_defined_script(SqlScripts.SONGS_EXPAND_GENRE)
+		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_PLAYNUM)
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_STATIONSSONGS_LASTPLAYEDNUM
+		)
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_STATIONSALBUMS_LASTPLAYEDNUM
+		)
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_STATIONSPLAYLISTS_LASTPLAYEDNUM
+		)
+
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_USERAGENTS_IPV4
+		)
+		ownerConnService.run_defined_script(
+			SqlScripts.ADD_USERAGENTS_IPV6
+		)
+		ownerConnService.run_defined_script(SqlScripts.ADD_USERAGENTS_INDEX)
+		ownerConnService.run_defined_script(SqlScripts.DROP_USERACTIONHISTORY)
 		
 
 		if not dbName.startswith("test_"):

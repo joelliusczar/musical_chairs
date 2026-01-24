@@ -1,6 +1,5 @@
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
-	RulePriorityLevel,
 	StationPlaylistTuple,
 	StationInfo,
 )
@@ -11,19 +10,14 @@ from musical_chairs_libs.tables import (
 	stab_albumFk,
 	stations_playlists as stations_playlists_tbl,
 	stpl_playlistFk, stpl_stationFk,
-	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId, 
-	st_ownerFk, st_typeid, st_bitrate, st_requestSecurityLevel, 
-	st_viewSecurityLevel,
-	users as user_tbl, u_pk, u_username, u_displayName
+	stations as stations_tbl, st_pk, st_ownerFk, st_viewSecurityLevel,
 )
 from sqlalchemy import (
 	select,
 	insert,
 	delete,
-	Integer,
 	func
 )
-from sqlalchemy.sql.expression import case
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
 from sqlalchemy.sql.expression import (
@@ -172,40 +166,22 @@ class StationsPlaylistsService:
 		playlistId: int,
 		scopes: Optional[Collection[str]]=None
 	) -> Iterator[StationInfo]:
-		query = select(
-			st_pk,
-			st_name,
-			st_displayName,
-			st_procId,
-			st_ownerFk,
-			u_username,
-			u_displayName,
-			coalesce[Integer](
-				st_requestSecurityLevel,
-				case(
-					(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
-					else_=st_viewSecurityLevel
-				),
-				RulePriorityLevel.ANY_USER.value
-			).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
-			st_viewSecurityLevel,
-			st_typeid,
-			st_bitrate,
-		).select_from(stations_tbl)\
-		.join(user_tbl, st_ownerFk == u_pk, isouter=True)\
-		.join(stations_playlists_tbl, stpl_stationFk == st_pk)\
-		.where(stpl_playlistFk == playlistId)
 
 		if self.current_user_provider.is_loggedIn():
-			query = self.station_service.__attach_user_joins__(query, scopes)
+			query = self.station_service.get_secured_station_query(
+				scopes=scopes
+			)
 		else:
 			if scopes:
 				return
-			query = query.where(
+			query = self.station_service.station_base_query().where(
 				coalesce(st_viewSecurityLevel, 0) == 0
-			)
+			)\
+			.with_only_columns(*self.station_service.base_select_columns())
 
-		query = query.order_by(st_pk)
+		query = query.outerjoin(stations_playlists_tbl, stpl_stationFk == st_pk)\
+			.where(stpl_playlistFk == playlistId)
+
 		records = self.conn.execute(query).mappings()
 
 		if self.current_user_provider.is_loggedIn():

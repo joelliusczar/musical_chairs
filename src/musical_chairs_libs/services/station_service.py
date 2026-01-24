@@ -13,10 +13,13 @@ from typing import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.engine import Connection
-from sqlalchemy.sql.expression import Select, case, true, false
-from sqlalchemy.sql.functions import coalesce
+from sqlalchemy.sql.expression import case, CTE, true, false
 from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.functions import coalesce
 from sqlalchemy import (
+	Label,
+	CompoundSelect,
+	Float,
 	select,
 	func,
 	insert,
@@ -27,13 +30,12 @@ from sqlalchemy import (
 	delete,
 	String,
 	Integer,
-	Float,
-	Update
+	union_all,
 )
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_displayName, st_procId,
 	st_ownerFk, st_requestSecurityLevel, st_viewSecurityLevel, st_typeid, 
-	st_bitrate,
+	st_bitrate, st_playnum,
 	songs, sg_pk,
 	sg_deletedTimstamp,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
@@ -44,8 +46,12 @@ from musical_chairs_libs.tables import (
 	last_played, lp_stationFk,
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
 	stations_playlists as stations_playlists_tbl, stpl_playlistFk,stpl_stationFk,
+	ur_userFk, ur_role, ur_count, ur_span, ur_priority,
+	stup_userFk, stup_role, stup_count, stup_span, stup_priority
 )
 from musical_chairs_libs.dtos_and_utilities import (
+	asdict,
+	build_placeholder_select,
 	StationInfo,
 	StationCreationInfo,
 	SavedNameString,
@@ -57,7 +63,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_station_owner_rules,
 	RulePriorityLevel,
 	OwnerInfo,
-	build_station_rules_query,
 	row_to_action_rule
 )
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
@@ -65,7 +70,61 @@ from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
 
+__station_permissions_query__ = select(
+	stup_userFk.label("rule_userfk"),
+	stup_role.label("rule_name"),
+	stup_count.label("rule_count"),
+	stup_span.label("rule_span"),
+	coalesce[Integer](
+		stup_priority,
+		RulePriorityLevel.STATION_PATH.value
+	).label("rule_priority"),
+	dbLiteral(UserRoleDomain.Station.value).label("rule_domain"),
+	stup_stationFk.label("rule_stationfk")
+)
 
+
+def build_station_rules_query(
+	userId: Optional[int]=None
+) -> CompoundSelect[Tuple[int, str, float, float, int, str]]:
+	user_rules_query = select(
+		ur_userFk.label("rule_userfk"),
+		ur_role.label("rule_name"),
+		ur_count.label("rule_count"),
+		ur_span.label("rule_span"),
+		coalesce[Integer](
+			ur_priority,
+			case(
+				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
+				else_=RulePriorityLevel.SITE.value
+			)
+		).label("rule_priority"),
+		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
+		dbLiteral(None).label("rule_stationfk")
+	).where(or_(
+			ur_role.like(f"{UserRoleDomain.Station.value}:%"),
+			ur_role == UserRoleDef.ADMIN.value
+		),
+	)
+	domain_permissions_query = __station_permissions_query__
+	placeholder_select = build_placeholder_select(
+		UserRoleDef.STATION_VIEW.value
+	).add_columns(
+		dbLiteral(None).label("rule_stationfk")
+	)
+
+
+	if userId is not None:
+		domain_permissions_query = \
+			domain_permissions_query.where(stup_userFk == userId)
+		user_rules_query = user_rules_query.where(ur_userFk == userId)
+		
+	query = union_all(
+		placeholder_select,
+		domain_permissions_query,
+		user_rules_query,
+	)
+	return query
 
 class StationService:
 
@@ -86,6 +145,7 @@ class StationService:
 		self.get_datetime = get_datetime
 		self.current_user_provider = currentUserProvider
 
+
 	def get_station_id(
 			self,
 			stationName: str,
@@ -103,38 +163,56 @@ class StationService:
 		pk: Optional[int] = cast(int,row[0]) if row else None
 		return pk
 
-	def __attach_user_joins__(
+	def base_select_columns(self) -> list[Label[Any]]:
+		return [
+			st_pk.label("id"),
+			st_name.label("name"),
+			st_displayName.label("displayname"),
+			st_procId.label("procid"),
+			st_ownerFk.label("owner.id"),
+			u_username.label("owner.username"),
+			u_displayName.label("owner.displayname"),
+			coalesce[Integer](
+				st_requestSecurityLevel,
+				case(
+					(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
+					else_=st_viewSecurityLevel
+				),
+				RulePriorityLevel.ANY_USER.value
+			).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
+			st_viewSecurityLevel.label("viewsecuritylevel"),
+			st_typeid.label("typeid"),
+			st_bitrate.label("bitrate"),
+			st_playnum.label("playnum")
+		]
+
+	def station_base_query(
 		self,
-		query: Select[
-			Tuple[
-				Integer,
-				String,
-				String,
-				Integer,
-				Integer,
-				String,
-				Union[String, None],
-				Integer,
-				Integer
-			]
-		],
-		scopes: Optional[Collection[str]]=None
-	) -> Select[
-			Tuple[
-				Integer,
-				String,
-				String,
-				Integer,
-				Integer,
-				String,
-				Union[String, None],
-				Integer,
-				Integer
-			]
-		]:
+		ownerId: Optional[int]=None,
+		stationKeys: Union[int, str, Iterable[int], None]=None,
+	):
+		query = stations_tbl.outerjoin(user_tbl, st_ownerFk == u_pk).select()
+		if type(ownerId) is int:
+			query = query.where(st_ownerFk == ownerId)
+		if type(stationKeys) == int:
+			query = query.where(st_pk == stationKeys)
+		elif isinstance(stationKeys, Iterable) and not isinstance(stationKeys, str):
+			query = query.where(st_pk.in_(stationKeys))
+		elif type(stationKeys) is str and not ownerId:
+			raise ValueError("user must be provided when using station name")
+		elif type(stationKeys) is str:
+			lStationKey = stationKeys.replace("_","\\_").replace("%","\\%")
+			query = query\
+				.where(st_name.like(f"%{lStationKey}%"))
+		
+		return query
+
+	def __build_user_rule_filters__(
+		self,
+		rulesSubquery: CTE,
+		scopes: Optional[Collection[str]]=None,
+	):
 		userId = self.current_user_provider.optional_user_id()
-		rulesQuery = build_station_rules_query(userId)
-		rulesSubquery = rulesQuery.cte(name="rulesQuery")
 		canViewQuery= select(
 			rulesSubquery.c.rule_stationfk, #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
@@ -154,14 +232,7 @@ class StationService:
 
 		ownerScopeSet = set(get_station_owner_rules(scopes))
 
-		query = query.join(
-			rulesSubquery,
-			or_(
-				rulesSubquery.c.rule_stationfk == st_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-				rulesSubquery.c.rule_stationfk == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-				rulesSubquery.c.rule_stationfk.is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-			)
-		).where(
+		filters = [
 			or_(
 				coalesce(
 					st_viewSecurityLevel,
@@ -192,38 +263,31 @@ class StationService:
 					) < RulePriorityLevel.OWNER.value
 				)
 			),
-		).where(
-				or_(
-					rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
-					(st_ownerFk == userId) if scopes and ownerScopeSet else false()
-				)
+			or_(
+				rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
+				(st_ownerFk == userId) if scopes and ownerScopeSet else false()
 			)
+		]
 
-		query = query.add_columns(
-			cast(Column[String], rulesSubquery.c.rule_name),
-			cast(Column[Float[float]], rulesSubquery.c.rule_count),
-			cast(Column[Float[float]], rulesSubquery.c.rule_span),
-			cast(Column[Integer], rulesSubquery.c.rule_priority),
-			cast(Column[String], rulesSubquery.c.rule_domain)
-		)
-		return query
+		return filters
 
 	def __row_to_station__(self, row: RowMapping) -> StationInfo:
 		return StationInfo(
-			id=row[st_pk],
-			name=row[st_name],
-			displayname=row[st_displayName],
-			isrunning=bool(row[st_procId]),
+			id=row["id"],
+			name=row["name"],
+			displayname=row["displayname"],
+			isrunning=bool(row["procid"]),
 			owner=OwnerInfo(
-				id=row[st_ownerFk],
-				username=row[u_username],
-				displayname=row[u_displayName]
+				id=row["owner.id"],
+				username=row["owner.username"],
+				displayname=row["owner.displayname"]
 			),
 			requestsecuritylevel=row["requestsecuritylevel"],
-			viewsecuritylevel=row[st_viewSecurityLevel] \
+			viewsecuritylevel=row["viewsecuritylevel"] \
 				or RulePriorityLevel.PUBLIC.value,
-			typeid=row[st_typeid] or StationTypes.SONGS_ONLY.value,
-			bitratekps=row[st_bitrate]
+			typeid=row["typeid"] or StationTypes.SONGS_ONLY.value,
+			bitratekps=row["bitrate"],
+			playnum=row["playnum"]
 		)
 
 	def __generate_station_and_rules_from_rows__(
@@ -234,7 +298,7 @@ class StationService:
 		userId = self.current_user_provider.optional_user_id()
 		currentStation = None
 		for row in rows:
-			if not currentStation or currentStation.id != cast(int,row[st_pk]):
+			if not currentStation or currentStation.id != cast(int,row["id"]):
 				if currentStation:
 					stationOwner = currentStation.owner
 					if stationOwner and stationOwner.id == userId:
@@ -242,9 +306,9 @@ class StationService:
 					currentStation.rules = ActionRule.sorted(currentStation.rules)
 					yield currentStation
 				currentStation = self.__row_to_station__(row)
-				if cast(str,row["rule_domain"]) != "shim":
+				if cast(str,row["rule.domain"]) != "shim":
 					currentStation.rules.append(row_to_action_rule(row))
-			elif cast(str,row["rule_domain"]) != "shim":
+			elif cast(str,row["rule.domain"]) != "shim":
 				currentStation.rules.append(row_to_action_rule(row))
 		if currentStation:
 			stationOwner = currentStation.owner
@@ -253,64 +317,109 @@ class StationService:
 			currentStation.rules = ActionRule.sorted(currentStation.rules)
 			yield currentStation
 
+
+	def get_stations_unsecured(
+		self,
+		stationKeys: Union[int, str, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+	) -> Iterator[StationInfo]:
+		query = self.station_base_query(stationKeys=stationKeys)\
+			.with_only_columns(
+				*self.base_select_columns()
+			)
+
+		records = self.conn.execute(query).mappings()
+		for row in records:
+			yield self.__row_to_station__(row)
+
+
+	def get_secured_station_query(
+		self,
+		stationKeys: Union[int, str, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+		scopes: Optional[Collection[str]]=None
+	):
+		query = self.station_base_query(ownerId=ownerId, stationKeys=stationKeys)
+		user = self.current_user_provider.current_user()
+		rulesSubquery = build_station_rules_query(user.id).cte(name="rulesQuery")
+		filters = self.__build_user_rule_filters__(rulesSubquery, scopes)
+		query = query.join(rulesSubquery, or_(
+			rulesSubquery.c.rule_stationfk == st_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c.rule_stationfk == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c.rule_stationfk.is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+		))\
+		.where(*filters)\
+		.order_by(st_pk)\
+			.with_only_columns(
+				st_pk.label("id"),
+				st_name.label("name"),
+				st_displayName.label("displayname"),
+				st_procId.label("procid"),
+				st_ownerFk.label("owner.id"),
+				u_username.label("owner.username"),
+				u_displayName.label("owner.displayname"),
+				coalesce[Integer](
+					st_requestSecurityLevel,
+					case(
+						(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
+						else_=st_viewSecurityLevel
+					),
+					RulePriorityLevel.ANY_USER.value
+				).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
+				st_viewSecurityLevel.label("viewsecuritylevel"),
+				st_typeid.label("typeid"),
+				st_bitrate.label("bitrate"),
+				st_playnum.label("playnum"),
+				cast(Column[String], rulesSubquery.c.rule_name).label("rule.name"),
+				cast(
+					Column[Float[float]],
+					rulesSubquery.c.rule_count
+				).label("rule.count"),
+				cast(
+					Column[Float[float]],
+					rulesSubquery.c.rule_span
+				).label("rule.span"),
+				cast(
+					Column[Integer], rulesSubquery.c.rule_priority
+				).label("rule.priority"),
+				cast(Column[String], rulesSubquery.c.rule_domain).label("rule.domain")
+			)
+		
+		return query
+
+
 	def get_stations(
 		self,
 		stationKeys: Union[int, str, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
 		scopes: Optional[Collection[str]]=None
 	) -> Iterator[StationInfo]:
-		query = select(
-			st_pk,
-			st_name,
-			st_displayName,
-			st_procId,
-			st_ownerFk,
-			u_username,
-			u_displayName,
-			coalesce[Integer](
-				st_requestSecurityLevel,
-				case(
-					(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
-					else_=st_viewSecurityLevel
-				),
-				RulePriorityLevel.ANY_USER.value
-			).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
-			st_viewSecurityLevel,
-			st_typeid,
-			st_bitrate,
-		).select_from(stations_tbl)\
-		.join(user_tbl, st_ownerFk == u_pk, isouter=True)
-
-		user = self.current_user_provider.current_user(optional=True)
-		if user:
-			query = self.__attach_user_joins__(query, scopes)
-		else:
-			if scopes:
-				return
-			query = query.where(
-				coalesce(st_viewSecurityLevel, 0) == 0
+		
+		if self.current_user_provider.is_loggedIn():
+			query = self.get_secured_station_query(
+				ownerId=ownerId,
+				stationKeys=stationKeys,
+				scopes=scopes
 			)
-		if type(ownerId) is int:
-			query = query.where(st_ownerFk == ownerId)
-		if type(stationKeys) == int:
-			query = query.where(st_pk == stationKeys)
-		elif isinstance(stationKeys, Iterable) and not isinstance(stationKeys, str):
-			query = query.where(st_pk.in_(stationKeys))
-		elif type(stationKeys) is str and not ownerId:
-			raise ValueError("user must be provided when using station name")
-		elif type(stationKeys) is str:
-			lStationKey = stationKeys.replace("_","\\_").replace("%","\\%")
-			query = query\
-				.where(st_name.like(f"%{lStationKey}%"))
-		query = query.order_by(st_pk)
-		records = self.conn.execute(query).mappings()
 
-		if user:
+			records = self.conn.execute(query).mappings().fetchall()
+
 			yield from self.__generate_station_and_rules_from_rows__(
 				records,
 				scopes
 			)
 		else:
+			if scopes:
+				return
+			query = self.station_base_query(
+				ownerId=ownerId,
+				stationKeys=stationKeys,
+			)\
+			.where(
+				coalesce(st_viewSecurityLevel, 0) == 0
+			)\
+			.with_only_columns(*self.base_select_columns())
+			records = self.conn.execute(query).mappings().fetchall()
 			for row in records:
 				yield self.__row_to_station__(row)
 
@@ -370,7 +479,7 @@ class StationService:
 		userId = self.current_user_provider.current_user().id
 		params: list[dict[str, Any]] = [
 			{
-				**rule.model_dump(exclude={"name", "domain"}),
+				**asdict(rule, exclude={"name", "domain"}),
 				"role": rule.name,
 				"userfk": userId,
 				"stationfk": stationId,
@@ -380,6 +489,77 @@ class StationService:
 		stmt = insert(station_user_permissions_tbl)
 		self.conn.execute(stmt, params) #pyright: ignore [reportUnknownMemberType]
 		return rules
+	
+	def __build_station_values__(
+		self,
+		station: StationCreationInfo
+	) -> dict[Any, Any]:
+		user = self.current_user_provider.current_user(optional=True)
+		savedName = SavedNameString(station.name)
+		savedDisplayName = SavedNameString(station.displayname)
+
+		obj: dict[Any, Any] = {
+			"name": str(savedName),
+			"displayname": str(savedDisplayName),
+			"lastmodifiedtimestamp": self.get_datetime().timestamp(),
+			"viewsecuritylevel": station.viewsecuritylevel,
+			"requestsecuritylevel": station.requestsecuritylevel,
+			"typeid": station.typeid,
+			"bitratekps": station.bitratekps,
+			"playnum": station.playnum
+		}
+
+		if user:
+			obj["lastmodifiedbyuserfk"] = user.id
+
+		return obj
+		
+
+	def update_station(
+		self,
+		station: StationCreationInfo,
+		stationId: int,
+	) -> int:
+		
+		stmt = update(stations_tbl).values(
+			**self.__build_station_values__(station)
+		).where(st_pk == stationId)
+		self.conn.execute(stmt)
+
+		return stationId
+
+
+	def add_station(
+		self,
+		station: StationCreationInfo
+	) -> int:
+		user = self.current_user_provider.get_rate_limited_user(
+			UserRoleDomain.Station.value
+		)
+		savedName = SavedNameString(station.name)
+		savedDisplayName = SavedNameString(station.displayname)
+
+		stmt = insert(stations_tbl).values(
+			**self.__build_station_values__(station)
+		)\
+		.values(ownerfk = user.id)
+		try:
+			res = self.conn.execute(stmt)
+			affectedId = res.lastrowid
+			self.template_service.create_station_files(
+				affectedId,
+				str(savedName),
+				str(savedDisplayName),
+				user.username,
+				station.bitratekps or 128
+			)
+			self.__create_initial_owner_rules__(affectedId)
+			
+		except IntegrityError:
+			raise AlreadyUsedError.build_error(
+				f"{savedName} is already used.", "body->name"
+			)
+		return affectedId
 
 	@overload
 	def save_station(
@@ -393,6 +573,7 @@ class StationService:
 	def save_station(
 		self,
 		station: StationCreationInfo,
+		stationId: None = None,
 	) -> StationInfo:
 		...
 
@@ -400,61 +581,17 @@ class StationService:
 	def save_station(
 		self,
 		station: StationCreationInfo,
-		stationId: Optional[int]=None,
+		stationId: Optional[int]=None
 	) -> Optional[StationInfo]:
 		if not station:
 			return next(self.get_stations(stationId), None)
-		user = self.current_user_provider.get_rate_limited_user()
-		upsert = update if stationId else insert
-		savedName = SavedNameString(station.name)
-		savedDisplayName = SavedNameString(station.displayname)
-		stmt = upsert(stations_tbl).values(
-			name = str(savedName),
-			displayname = str(savedDisplayName),
-			lastmodifiedbyuserfk = user.id,
-			lastmodifiedtimestamp = self.get_datetime().timestamp(),
-			viewsecuritylevel = station.viewsecuritylevel,
-			requestsecuritylevel = station.requestsecuritylevel,
-			typeid = station.typeid,
-			bitratekps = station.bitratekps
-		)
-		if stationId and isinstance(stmt, Update):
-			stmt = stmt.where(st_pk == stationId)
-		else:
-			stmt = stmt.values(ownerfk = user.id)
-		try:
-			res = self.conn.execute(stmt)
-			affectedId = stationId if stationId else res.lastrowid
-			self.template_service.create_station_files(
-				affectedId,
-				str(savedName),
-				str(savedDisplayName),
-				user.username,
-				station.bitratekps or 128
-			)
-			rules = []
-			if not stationId:
-				rules = list({
-						*self.__create_initial_owner_rules__(affectedId),
-						*get_station_owner_rules()
-					})
-			self.conn.commit()
-		except IntegrityError:
-			raise AlreadyUsedError.build_error(
-				f"{savedName} is already used.", "body->name"
-			)
 
-		affectedId: int = stationId if stationId else res.lastrowid
-		return StationInfo(
-			id=affectedId,
-			name=str(savedName),
-			displayname=str(savedDisplayName),
-			owner=user,
-			viewsecuritylevel=station.viewsecuritylevel,
-			requestsecuritylevel=station.requestsecuritylevel,
-			bitratekps=station.bitratekps,
-			rules=rules
-		)
+		stationId = self.update_station(station, stationId)\
+			if stationId else self.add_station(station)
+
+		self.conn.commit()
+
+		return next(self.get_stations(stationId))
 
 
 	def get_station_song_counts(
@@ -513,6 +650,7 @@ class StationService:
 		stationId: int, 
 		copy: StationCreationInfo
 	) -> Optional[StationInfo]:
+		copy.playnum = 1
 		created = self.save_station(copy)
 		if copy.typeid == StationTypes.SONGS_ONLY.value:
 			query = select(stsg_songFk).where(stsg_stationFk == stationId)
@@ -521,13 +659,11 @@ class StationService:
 			if any(itemIds):
 				params = [{
 					"stationfk": created.id,
-					"songfk": s
+					"songfk": s,
 				} for s in itemIds]
 				insertStmt = insert(stations_songs_tbl)
 				self.conn.execute(insertStmt, params)
-		if copy.typeid == StationTypes.ALBUMS_ONLY.value \
-			or copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
-		:
+		if copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
 			query = select(stab_albumFk).where(stab_stationFk == stationId)
 			rows = self.conn.execute(query)
 			itemIds = [cast(int,row[0]) for row in rows]
@@ -538,9 +674,7 @@ class StationService:
 				} for s in itemIds]
 				insertStmt = insert(stations_albums_tbl)
 				self.conn.execute(insertStmt, params)
-		if copy.typeid == StationTypes.PLAYLISTS_ONLY.value \
-			or copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
-		:
+
 			query = select(stpl_playlistFk).where(stpl_stationFk == stationId)
 			rows = self.conn.execute(query)
 			itemIds = [cast(int,row[0]) for row in rows]
@@ -551,6 +685,7 @@ class StationService:
 				} for s in itemIds]
 				insertStmt = insert(stations_playlists_tbl)
 				self.conn.execute(insertStmt, params)
+
 		self.conn.commit()
 		return created
 

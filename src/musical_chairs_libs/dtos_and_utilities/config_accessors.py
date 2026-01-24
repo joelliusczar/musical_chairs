@@ -117,6 +117,22 @@ class ConfigAcessors:
 	def dev_app_user_pw(cls) -> str:
 		return os.environ["DSF_DEV_APP_USER_PW"]
 
+
+	@classmethod
+	def event_log_dir(cls) -> str:
+		return os.environ["DSF_EVENT_LOGS_DIR"]
+	
+
+	@classmethod
+	def station_queue_files_dir(cls) -> str:
+		return os.environ["DSF_QUEUE_FILES_DIR"]
+	
+
+	@classmethod
+	def station_history_files_dir(cls) -> str:
+		return os.environ["DSF_STATION_HISTORY_FILES_DIR"]
+
+
 	@classmethod
 	def api_log_level(cls) -> str:
 		try:
@@ -132,6 +148,22 @@ class ConfigAcessors:
 				builtin_logging.getLevelName(builtin_logging.WARNING)
 		except:
 			return builtin_logging.getLevelName(builtin_logging.WARNING)
+		
+	@classmethod
+	def api_log_handler(cls) -> str:
+		try:
+			return cls.live_config()["logHandlers"]["api"] or \
+				"json"
+		except:
+			return "json"
+		
+	@classmethod
+	def radio_log_handler(cls) -> str:
+		try:
+			return cls.live_config()["logHandlers"]["radio"] or \
+				"json"
+		except:
+			return "json"
 	
 	@classmethod
 	def python_executable(cls) -> str:

@@ -14,10 +14,10 @@ from pydantic import (
 	SerializeAsAny,
 	Field
 )
-
 from .user_role_def import UserRoleDef, RulePriorityLevel, UserRoleDomain
 from .validation_functions import min_length_validator_factory
 from .simple_functions import (
+	asdict,
 	get_duplicates,
 	validate_email,
 	normalize_opening_slash,
@@ -26,11 +26,6 @@ from .simple_functions import (
 from .generic_dtos import FrozenIdItem, FrozenBaseClass
 from .action_rule_dtos import (
 	ActionRule,
-	AlbumActionRule,
-	ArtistActionRule,
-	PathsActionRule,
-	StationActionRule,
-	PlaylistActionRule
 )
 from .absorbent_trie import ChainedAbsorbentTrie
 
@@ -52,9 +47,10 @@ def get_station_owner_rules(
 ) -> Iterator[ActionRule]:
 	for rule in station_owner_rules:
 		if not scopes or rule.value in scopes:
-			yield StationActionRule(
+			yield ActionRule(
 				name=rule.value,
 				priority=RulePriorityLevel.OWNER.value,
+				domain=UserRoleDomain.Station.value
 			)
 
 path_owner_rules = [
@@ -72,23 +68,25 @@ path_owner_rules = [
 def get_path_owner_roles(
 	ownerDir: Optional[str],
 	scopes: Optional[Collection[str]]=None
-) -> Iterator[PathsActionRule]:
+) -> Iterator[ActionRule]:
 		if not ownerDir:
 			return
 		for rule in path_owner_rules:
 			if not scopes or rule.value in scopes:
 				if rule == UserRoleDef.PATH_DOWNLOAD:
-					yield PathsActionRule(
+					yield ActionRule(
 						name=rule.value,
 						priority=RulePriorityLevel.USER.value,
+						domain=UserRoleDomain.Path.value,
 						path=ownerDir,
 						span=60,
 						count=12
 					)
 					continue
-				yield PathsActionRule(
+				yield ActionRule(
 						name=rule.value,
 						priority=RulePriorityLevel.OWNER.value,
+						domain=UserRoleDomain.Path.value,
 						path=ownerDir,
 					)
 
@@ -104,12 +102,13 @@ playlist_owner_rules = [
 
 def get_playlist_owner_roles(
 	scopes: Optional[Collection[str]]=None
-) -> Iterator[PlaylistActionRule]:
+) -> Iterator[ActionRule]:
 	for rule in playlist_owner_rules:
 		if not scopes or rule.value in scopes:
-			yield PlaylistActionRule(
+			yield ActionRule(
 				name=rule.value,
 				priority=RulePriorityLevel.OWNER.value,
+				domain=UserRoleDomain.Playlist.value
 			)
 
 album_owner_rules = [
@@ -118,12 +117,13 @@ album_owner_rules = [
 
 def get_album_owner_roles(
 	scopes: Optional[Collection[str]]=None
-) -> Iterator[AlbumActionRule]:
+) -> Iterator[ActionRule]:
 	for rule in album_owner_rules:
 		if not scopes or rule.value in scopes:
-			yield AlbumActionRule(
+			yield ActionRule(
 				name=rule.value,
 				priority=RulePriorityLevel.OWNER.value,
+				domain=UserRoleDomain.Album.value
 			)
 
 artist_owner_rules = [
@@ -132,12 +132,13 @@ artist_owner_rules = [
 
 def get_artist_owner_roles(
 	scopes: Optional[Collection[str]]=None
-) -> Iterator[ArtistActionRule]:
+) -> Iterator[ActionRule]:
 	for rule in artist_owner_rules:
 		if not scopes or rule.value in scopes:
-			yield ArtistActionRule(
+			yield ActionRule(
 				name=rule.value,
 				priority=RulePriorityLevel.OWNER.value,
+				domain=UserRoleDomain.Artist.value
 			)
 
 starting_user_roles = [
@@ -165,8 +166,8 @@ class AccountInfoBase(FrozenBaseClass):
 	displayname: Optional[str]=""
 
 class AccountInfoSecurity(AccountInfoBase):
-	roles: List[Union[ActionRule, PathsActionRule]]=cast(
-		List[Union[ActionRule, PathsActionRule]],Field(default_factory=list)
+	roles: List[Union[ActionRule, ActionRule]]=cast(
+		List[Union[ActionRule, ActionRule]],Field(default_factory=list)
 	)
 	dirroot: Optional[str]=None
 
@@ -189,25 +190,28 @@ class AccountInfoSecurity(AccountInfoBase):
 
 	def get_permitted_paths_tree(
 		self
-	) -> ChainedAbsorbentTrie[PathsActionRule]:
-		pathTree = ChainedAbsorbentTrie[PathsActionRule](
+	) -> ChainedAbsorbentTrie[ActionRule]:
+		pathTree = ChainedAbsorbentTrie[ActionRule](
 			(normalize_opening_slash(r.path), r) for r in
-			self.roles if isinstance(r, PathsActionRule) \
-				and not r.path is None
+			self.roles if r.domain == UserRoleDomain.Path.value \
+				and r.path is not None
 		)
-		pathTree.add("/", (r.to_path_rule("/") for r in self.roles \
-			if type(r) == ActionRule \
-				and (UserRoleDomain.Path.conforms(r.name) \
+		pathTree.add("/", (
+			ActionRule(**asdict(r, exclude={"path"}), path = "/") 
+			for r in self.roles \
+			if r.path is None and (UserRoleDomain.Path.conforms(r.name) \
 						or r.name == UserRoleDef.ADMIN.value
 				)
 		), shouldEmptyUpdateTree=False)
 		return pathTree
+
 
 	def get_permitted_paths(
 		self
 	) -> Iterator[str]:
 		pathTree = self.get_permitted_paths_tree()
 		yield from (p for p in pathTree.shortest_paths())
+
 
 	def has_roles(self, *roles: UserRoleDef) -> bool:
 		if self.isadmin:
@@ -219,16 +223,18 @@ class AccountInfoSecurity(AccountInfoBase):
 				return False
 		return True
 
+
 	@field_serializer(
 		"roles",
-		return_type=SerializeAsAny[List[Union[ActionRule, PathsActionRule]]]
+		return_type=SerializeAsAny[List[ActionRule]]
 	)
 	def serialize_roles(
 		self,
-		value: List[Union[ActionRule, PathsActionRule]],
+		value: List[ActionRule],
 		_info: SerializationInfo
 	):
 		return value
+
 
 class AccountInfo(AccountInfoSecurity, FrozenIdItem):
 	...

@@ -6,7 +6,6 @@ from typing import (
 	cast,
 	Iterable,
 	Any,
-	Tuple
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
@@ -29,11 +28,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 from .path_rule_service import PathRuleService
 from .playlists_songs_service import PlaylistsSongsService
 from sqlalchemy import (
-	and_,
 	select,
 	update,
-	func,
-	distinct
 )
 from sqlalchemy.sql.expression import (
 	Select,
@@ -46,11 +42,8 @@ from musical_chairs_libs.tables import (
 	artists as artists_tbl,
 	songs as songs_tbl,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
-	stsg_lastmodifiedtimestamp,
 	stations as stations_tbl, st_name, st_pk, st_displayName, st_ownerFk,
-	st_requestSecurityLevel, st_viewSecurityLevel,
-	q_stationFk, q_userActionHistoryFk,
-	q_songFk,
+	st_requestSecurityLevel, st_viewSecurityLevel, st_playnum,
 	sg_pk, sg_name, sg_path, sg_trackNum,
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
@@ -82,15 +75,6 @@ station_owner_id = station_owner.c.pk
 playlist_owner = user_tbl.alias("playlistowner")
 playlist_owner_id = playlist_owner.c.pk
 
-played_count_query = select(
-	q_stationFk.label("countedstationid"),
-	q_songFk.label("countedsongid"),
-	func.count(q_userActionHistoryFk).label("count")
-)\
-	.group_by(q_stationFk, q_songFk)
-
-played_count_cte = played_count_query.cte("playedcounts")
-counted_song_id = played_count_cte.c.countedsongid
 
  
 class SongInfoService:
@@ -212,63 +196,6 @@ class SongInfoService:
 		yield from (cast(int, row["pk"]) for row in records)
 
 
-	def __get_select_for_songs_for_edit__(
-		self
-	) -> Select[Any]:
-
-		query = select(
-			sg_pk.label("id"),
-			sg_name.label("name"),
-			sg_path.label("path"),
-			sg_internalpath.label("internalpath"),
-			sg_track.label("track"),
-			sg_trackNum.label("tracknum"),
-			sg_disc.label("disc"),
-			sg_genre.label("genre"),
-			sg_explicit.label("explicit"),
-			sg_bitrate.label("bitrate"),
-			sg_comment.label("comment"),
-			sg_lyrics.label("lyrics"),
-			sg_duration.label("duration"),
-			sg_sampleRate.label("samplerate"),
-			ab_pk.label("album.id"),
-			ab_name.label("album.name"),
-			ab_ownerFk.label("album.owner.id"),
-			album_owner.c.username.label("album.owner.username"),
-			album_owner.c.displayname.label("album.owner.displayname"),
-			ab_year.label("album.year"),
-			ab_albumArtistFk.label("album.albumartist.id"),
-			album_artist.c.name.label("album.albumartist.name"),
-			album_artist.c.ownerfk.label("album.albumartist.owner.id"),
-			album_artist_owner.c.username.label("album.albumartist.owner.username"),
-			album_artist_owner.c.displayname\
-				.label("album.albumartist.owner.displayname"),
-			sgar_isPrimaryArtist.label("artists.isprimaryartist"),
-			ar_pk.label("artists.id"),
-			ar_name.label("artists.name"),
-			ar_ownerFk.label("artists.owner.id"),
-			artist_owner.c.username.label("artists.owner.username"),
-			artist_owner.c.displayname.label("artists.owner.displayname"),
-			st_pk.label("stations.id"),
-			st_name.label("stations.name"),
-			st_ownerFk.label("stations.owner.id"),
-			station_owner.c.username.label("stations.owner.username"),
-			station_owner.c.displayname.label("stations.owner.displayname"),
-			st_displayName.label("stations.displayname"),
-			st_requestSecurityLevel.label("stations.requestsecuritylevel"),
-			st_viewSecurityLevel.label("stations.viewsecuritylevel"),
-			pl_pk.label("playlists.id"),
-			pl_name.label("playlists.name"),
-			pl_description.label("playlists.description"),
-			pl_viewSecurityLevel.label("playlists.viewsecuritylevel"),
-			pl_ownerFk.label("playlists.owner.id"),
-			playlist_owner.c.username.label("playlists..owner.username"),
-			playlist_owner.c.displayname.label("playlists.owner.displayname"),
-			played_count_cte.c.count.label("stations.playedcount")
-		)
-		return query
-
-
 	def get_songs_for_edit(
 		self,
 		songIds: Iterable[int],
@@ -324,6 +251,7 @@ class SongInfoService:
 				.where(sg_deletedTimstamp.is_(None))\
 				.where(sg_pk.in_(ids))
 			self.conn.execute(stmt)
+
 		if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
 			self.song_artist_service.link_songs_with_artists(
 				chain(
@@ -413,9 +341,8 @@ class SongInfoService:
 			)
 
 
-	def __attach_catalogue_joins__(
+	def full_song_base_query(
 		self,
-		query: Select[Any],
 		stationId: Optional[int]=None,
 		song: str = "",
 		songIds: Optional[Iterable[int]]=None,
@@ -423,39 +350,28 @@ class SongInfoService:
 		albumId: Optional[int]=None,
 		artist: str = "",
 		artistId: Optional[int]=None
-	) -> Any:
-		
-		
+	) -> Select[Any]:
 
-		query = query.select_from(songs_tbl)\
-				.join(song_artist_tbl, sg_pk == sgar_songFk, isouter=True)\
-				.join(artists_tbl, ar_pk == sgar_artistFk, isouter=True)\
-				.join(albums_tbl, sg_albumFk == ab_pk, isouter=True)\
-				.join(stations_songs_tbl, sg_pk == stsg_songFk, isouter=True)\
-				.join(stations_tbl, stsg_stationFk ==  st_pk, isouter=True)\
-				.join(album_owner, album_owner_id == ab_ownerFk, isouter=True) \
-				.join(artist_owner, artist_owner_id ==  ar_ownerFk, isouter=True)\
-				.join(station_owner, station_owner_id == st_ownerFk, isouter=True)\
-				.join(
+		query = songs_tbl\
+				.select()\
+				.outerjoin(song_artist_tbl, sg_pk == sgar_songFk)\
+				.outerjoin(artists_tbl, ar_pk == sgar_artistFk)\
+				.outerjoin(albums_tbl, sg_albumFk == ab_pk)\
+				.outerjoin(stations_songs_tbl, sg_pk == stsg_songFk)\
+				.outerjoin(stations_tbl, stsg_stationFk ==  st_pk)\
+				.outerjoin(album_owner, album_owner_id == ab_ownerFk) \
+				.outerjoin(artist_owner, artist_owner_id ==  ar_ownerFk)\
+				.outerjoin(station_owner, station_owner_id == st_ownerFk)\
+				.outerjoin(
 					album_artist,
 					ab_albumArtistFk == album_artist_id,
-					isouter=True
 				)\
-				.join(album_artist_owner,
+				.outerjoin(album_artist_owner,
 					album_artist_owner_user_id == album_artist_owner_id,
-					isouter=True
 				)\
-				.join(playlists_songs_tbl, sg_pk == plsg_songFk, isouter=True)\
-				.join(playlists_tbl, plsg_playlistFk == pl_pk, isouter=True)\
-				.join(playlist_owner, playlist_owner_id == pl_ownerFk, isouter=True)\
-				.join(
-					played_count_cte,
-					and_(
-						played_count_cte.c.countedsongid == sg_pk,
-						played_count_cte.c.countedstationid == stsg_stationFk
-					),
-					isouter=True
-				)\
+				.outerjoin(playlists_songs_tbl, sg_pk == plsg_songFk)\
+				.outerjoin(playlists_tbl, plsg_playlistFk == pl_pk)\
+				.outerjoin(playlist_owner, playlist_owner_id == pl_ownerFk)\
 				.where(sg_deletedTimstamp.is_(None))
 
 		lsong = clean_search_term_for_like(song)
@@ -484,15 +400,7 @@ class SongInfoService:
 		if songIds is not None:
 			query = query.where(sg_pk.in_(songIds))
 
-		if stationId:
-			return query.order_by(
-				stsg_lastmodifiedtimestamp.desc(),
-				ar_name
-			)
-		else:
-			return query.order_by(
-				sg_pk
-			)
+		return query
 		
 		
 	def __query_to_full_object__(
@@ -500,20 +408,12 @@ class SongInfoService:
 		query: Select[Any],
 		queryParams: SimpleQueryParameters,
 	) -> Iterator[SongEditInfo]:
-		
-		offset = queryParams.page * queryParams.limit if queryParams.limit else 0
 
 		user = self.current_user_provider.current_user()
 		
 		pathRuleTree = None
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree()
-
-		if queryParams.orderByElement is not None:
-			query = query.order_by(None).order_by(queryParams.orderByElement)
-
-		query = query\
-			.offset(offset)
 
 		records = self.conn.execute(query).mappings()
 
@@ -573,8 +473,7 @@ class SongInfoService:
 		artistId: Optional[int]=None,
 	) -> Iterator[SongEditInfo]:
 		
-		query = self.__attach_catalogue_joins__(
-			self.__get_select_for_songs_for_edit__(),
+		query = self.full_song_base_query(
 			stationId,
 			song,
 			songIds,
@@ -583,40 +482,65 @@ class SongInfoService:
 			artist,
 			artistId
 		)
+		query = query.with_only_columns(
+			sg_pk.label("id"),
+			sg_name.label("name"),
+			sg_path.label("path"),
+			sg_internalpath.label("internalpath"),
+			sg_track.label("track"),
+			sg_trackNum.label("tracknum"),
+			sg_disc.label("disc"),
+			sg_genre.label("genre"),
+			sg_explicit.label("explicit"),
+			sg_bitrate.label("bitrate"),
+			sg_comment.label("comment"),
+			sg_lyrics.label("lyrics"),
+			sg_duration.label("duration"),
+			sg_sampleRate.label("samplerate"),
+			ab_pk.label("album.id"),
+			ab_name.label("album.name"),
+			ab_ownerFk.label("album.owner.id"),
+			album_owner.c.username.label("album.owner.username"),
+			album_owner.c.displayname.label("album.owner.displayname"),
+			ab_year.label("album.year"),
+			ab_albumArtistFk.label("album.albumartist.id"),
+			album_artist.c.name.label("album.albumartist.name"),
+			album_artist.c.ownerfk.label("album.albumartist.owner.id"),
+			album_artist_owner.c.username.label("album.albumartist.owner.username"),
+			album_artist_owner.c.displayname\
+				.label("album.albumartist.owner.displayname"),
+			sgar_isPrimaryArtist.label("artists.isprimaryartist"),
+			ar_pk.label("artists.id"),
+			ar_name.label("artists.name"),
+			ar_ownerFk.label("artists.owner.id"),
+			artist_owner.c.username.label("artists.owner.username"),
+			artist_owner.c.displayname.label("artists.owner.displayname"),
+			st_pk.label("stations.id"),
+			st_name.label("stations.name"),
+			st_playnum.label("stations.playnum"),
+			st_ownerFk.label("stations.owner.id"),
+			station_owner.c.username.label("stations.owner.username"),
+			station_owner.c.displayname.label("stations.owner.displayname"),
+			st_displayName.label("stations.displayname"),
+			st_requestSecurityLevel.label("stations.requestsecuritylevel"),
+			st_viewSecurityLevel.label("stations.viewsecuritylevel"),
+			pl_pk.label("playlists.id"),
+			pl_name.label("playlists.name"),
+			pl_description.label("playlists.description"),
+			pl_viewSecurityLevel.label("playlists.viewsecuritylevel"),
+			pl_ownerFk.label("playlists.owner.id"),
+			playlist_owner.c.username.label("playlists..owner.username"),
+			playlist_owner.c.displayname.label("playlists.owner.displayname")
+		)
+
+		if queryParams.orderByElement is not None:
+			query = query.order_by(None).order_by(queryParams.orderByElement)
+
+		offset = queryParams.page * queryParams.limit if queryParams.limit else 0
+		query = query\
+			.offset(offset)
 		
 		return self.__query_to_full_object__(query, queryParams)
 
-
-	def get_fullsongs_page(
-		self,
-		queryParams: SimpleQueryParameters,
-		stationId: Optional[int]=None,
-		song: str = "",
-		album: str = "",
-		artist: str = "",
-		songIds: Optional[Iterable[int]]=None,
-	) -> Tuple[Iterator[SongEditInfo], int]:
-		
-		countQuery = self.__attach_catalogue_joins__(
-			select(func.count(distinct(sg_pk))),
-			stationId,
-			song=song,
-			album=album,
-			artist=artist,
-		)
-
-		if stationId:
-			countQuery = countQuery.where(stsg_stationFk == stationId)
-
-		count = self.conn.execute(countQuery).scalar() or 0
-
-		return self.get_all_songs(
-			queryParams,
-			stationId=stationId,
-			song=song,
-			album=album,
-			artist=artist,
-			songIds=songIds,
-		), count
 
 

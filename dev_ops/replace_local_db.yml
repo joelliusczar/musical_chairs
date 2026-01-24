@@ -1,0 +1,114 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars:
+    app_trunk: '{{domain["app_root"]|default("~")|expanduser}}/{{app_details["name"]}}'
+    test_trunk: '../test_trash/{{app_details["name"]}}'
+    ansible_user: '{{lookup("env", "USER")}}'
+
+
+  vars_files:
+    - vars/vault.yml
+    - vars/globals.yml
+
+
+  pre_tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
+    - include_vars: 
+        file: 'vars/local_keys.yml'
+        name: local_overrides
+    - name: set local domain
+      set_fact:
+        domain: '{{ domain | combine(local_domain)}}'
+      vars:
+          local_domain:
+            app_root: '{{"~"|expanduser}}'
+            group: '{{ansible_user}}'
+            user: '{{ansible_user}}'
+            server_user: '{{ansible_user}}'
+            exports_dir: '/home/{{ansible_user}}/keys'
+            envs:
+              web_app_key: '{{app_details["name"]}}_test'
+
+
+  tasks:
+    - name: Python setup.
+      include_role:
+        name: python-setup
+      vars:
+        sql_scripts_src: ../sql_scripts
+        reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
+        env_name: '{{app_details["prefix"]|lower}}_env'
+        engine_src: '{{src_dirs["engine"]}}/'
+        working_dir: '{{app_trunk}}'
+        app_group: '{{domain["group"]}}'
+    - name: Install PyMySQL
+      become: true
+      apt:
+        name: '{{packages["pymysql"]}}'
+        state: present
+      tags: entitled
+    - name: Clear previous db
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_setup'
+          - '{{app_details["db"]}}'
+          - 'clear'
+      environment:
+        DSF_APP_ROOT: '{{app_trunk}}'
+        DSF_DB_PASS_API: '{{local_overrides["keys"]["db_pass_api"]}}'
+        DSF_DB_PASS_JANITOR: '{{local_overrides["keys"]["db_pass_janitor"]}}'
+        DSF_DB_PASS_OWNER: '{{local_overrides["keys"]["db_pass_owner"]}}'
+        DSF_DB_PASS_RADIO: '{{local_overrides["keys"]["db_pass_radio"]}}'
+        DSF_DB_PASS_SETUP: '{{local_overrides["keys"]["db_pass_setup"]}}'
+        DSF_DATABASE_NAME: '{{app_details["db"]}}'
+        DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
+        DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'
+    - name: Get database schema hash.
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_print'
+          - --hash
+      environment:
+        DSF_DB_PASS_SETUP: '{{local_overrides["keys"]["db_pass_setup"]}}'
+      register: result
+      changed_when: false
+    - name: Setup App Specific Db stuff.
+      command:
+        argv:
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_setup'
+          - '{{app_details["db"]}}'
+      environment:
+        DSF_APP_ROOT: '{{app_trunk}}'
+        DSF_DB_PASS_API: '{{local_overrides["keys"]["db_pass_api"]}}'
+        DSF_DB_PASS_JANITOR: '{{local_overrides["keys"]["db_pass_janitor"]}}'
+        DSF_DB_PASS_OWNER: '{{local_overrides["keys"]["db_pass_owner"]}}'
+        DSF_DB_PASS_RADIO: '{{local_overrides["keys"]["db_pass_radio"]}}'
+        DSF_DB_PASS_SETUP: '{{local_overrides["keys"]["db_pass_setup"]}}'
+        DSF_DATABASE_NAME: '{{app_details["db"]}}'
+        DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
+        DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'
+    - name: Copy data from a source server
+      include_role:
+        name: mysql-data-copy
+      vars:
+        seed_inventory_file: '{{src_server_inventory_file}}'
+        app_name: '{{app_details["name"]}}'
+        app_user: '{{ansible_user}}'
+        pymysql_pkg: '{{packages["pymysql"]}}'
+        src_db_name: '{{app_details["db"]}}'
+        src_db_user: '{{app_details["db_owner"]}}'
+        src_db_pass: '{{keys["db_pass_owner"]}}'
+        dest_db_name: '{{app_details["db"]}}'
+        dest_db_user: '{{app_details["db_owner"]}}'
+        dest_db_pass: '{{local_overrides["keys"]["db_pass_owner"]}}'
+        force_dump: true

@@ -29,12 +29,12 @@ class BlockingQueue(Generic[T]):
 
 	def __get__(
 		self,
-		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
+		checkShouldRetry: Optional[Callable[["BlockingQueue[T]"], bool]]=None
 	) -> T:
 		while self.qsize() < 1:
 			with self.__condition__:
 				self.__condition__.wait(self.retryInterval)
-				if shouldContinue and not shouldContinue(self):
+				if checkShouldRetry and not checkShouldRetry(self):
 					raise TimeoutError("Cannot wait for get any longer")
 		item = self.__queue__.get()
 		return item
@@ -46,17 +46,17 @@ class BlockingQueue(Generic[T]):
 
 	def get(
 		self,
-		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
+		checkShouldRetry: Optional[Callable[["BlockingQueue[T]"], bool]]=None
 	) -> T:
-		item = self.__get__(shouldContinue)
+		item = self.__get__(checkShouldRetry)
 		self.__unblock_after_get__()
 		return item
 
 	def delayed_decrement_get(
 		self,
-		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
+		checkShouldRetry: Optional[Callable[["BlockingQueue[T]"], bool]]=None
 	) -> "DelayedDecrementReader[T]":
-		return DelayedDecrementReader(self, shouldContinue)
+		return DelayedDecrementReader(self, checkShouldRetry)
 
 	def get_unblocked(self) -> Optional[T]:
 		try:
@@ -70,12 +70,12 @@ class BlockingQueue(Generic[T]):
 
 	def put(self,
 		item: T,
-		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
+		checkShouldRetry: Optional[Callable[["BlockingQueue[T]"], bool]]=None
 	):
 		while self.qsize() >= self.size:
 			with self.__condition__:
 				self.__condition__.wait(self.retryInterval)
-				if shouldContinue and not shouldContinue(self):
+				if checkShouldRetry and not checkShouldRetry(self):
 					raise TimeoutError("Cannot wait for put any longer")
 		self.__queue__.put(item)
 		self.__increment__()
@@ -87,16 +87,16 @@ class DelayedDecrementReader(Generic[T]):
 	def __init__(
 		self,
 		queue: "BlockingQueue[T]",
-		shouldContinue: Optional[Callable[["BlockingQueue[T]"], bool]]=None
+		shouldRetry: Optional[Callable[["BlockingQueue[T]"], bool]]=None
 	) -> None:
 		self.__queue__ = queue
-		self.__shouldContinue__ = shouldContinue
+		self.__check_should_retry__ = shouldRetry
 		self.__item__ = Lost()
 
 	def __enter__(
 		self,
 	) -> T:
-		self.__item__ = self.__queue__.__get__(self.__shouldContinue__)
+		self.__item__ = self.__queue__.__get__(self.__check_should_retry__)
 		return self.__item__
 
 	def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):

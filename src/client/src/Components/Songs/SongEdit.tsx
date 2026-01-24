@@ -85,7 +85,7 @@ const touchedObjectToArr = (touchedObj: TouchedObject) => {
 	if (!touchedObj) return result;
 	for (const key in touchedObj) {
 		const value = touchedObj[key];
-		if(value == TouchTypes.set || TouchTypes.edited) {
+		if(value === TouchTypes.set || value === TouchTypes.edited) {
 			result.push(key);
 		}
 	}

@@ -1,0 +1,111 @@
+import uuid
+from musical_chairs_libs.protocols import (
+	EventsLogger,
+	EventsQueryer,
+	TrackingInfoProvider,
+	UserProvider
+)
+from musical_chairs_libs.dtos_and_utilities import (
+	EventRecord,
+	get_datetime,
+	InMemEventRecordMap,
+)
+from typing import (
+	Iterator,
+	Optional
+)
+
+
+class InMemEventsLoggingService(EventsLogger, EventsQueryer):
+
+	def __init__(
+		self,
+		trackingInfoProvider: TrackingInfoProvider,
+		userProvider: UserProvider,
+		globalStore: InMemEventRecordMap | None = None
+	) -> None:
+		self.get_datetime = get_datetime
+		self.user_provider = userProvider
+		self.tracking_info_provider = trackingInfoProvider
+		if globalStore is not None:
+			self.__store__ = globalStore
+		else:
+			self.__store__ = InMemEventRecordMap()
+
+	def add_event_record(self, record: EventRecord):
+		self.__store__\
+			.userEvents[record.userId][record.domain][record.path][record.action]\
+			.append(record)
+		self.__store__\
+			.vistorEvents[record.visitorId][record.url]\
+			.append(record)
+
+
+	def add_event(
+		self,
+		action: str,
+		domain: str,
+		path: Optional[str] = None,
+		extraInfo: str = ""
+	) -> EventRecord:
+		userId = self.user_provider.current_user().id
+		visitorId = self.tracking_info_provider.visitor_id()
+		url = self.tracking_info_provider.tracking_info().url
+		timestamp = self.get_datetime().timestamp()
+		record = EventRecord(
+				str(uuid.uuid4()),
+				str(userId),
+				action,
+				visitorId,
+				timestamp,
+				path,
+				domain,
+				url,
+				extraInfo,
+			)
+		self.add_event_record(record)
+		return record
+
+
+	def get_user_events(
+		self,
+		userId: int | None,
+		fromTimestamp: float,
+		actions: set[str] | None = None,
+		domain: str | None = None,
+		path: str | None = None,
+		limit: int | None = None
+	) -> Iterator[EventRecord]:
+		eventsIter = InMemEventRecordMap.events_for_userId(
+			self.__store__.userEvents,
+			actions,
+			path,
+			domain,
+			str(userId)
+		)
+		yield from (e for i,e in enumerate(eventsIter)\
+			if e.timestamp >= fromTimestamp\
+			if (i < limit if limit is not None else True)
+		)
+
+
+	def get_visitor_events(
+		self,
+		visitorId: int,
+		fromTimestamp: float,
+		url: Optional[str] = None,
+		limit: Optional[int] = None
+	)-> Iterator[EventRecord]:
+		visitorEvents = self.__store__.vistorEvents[visitorId]
+		if url:
+			events = visitorEvents[url]
+			yield from (e for i,e in enumerate(reversed(events))\
+				if e.timestamp >= fromTimestamp\
+				if (i < limit if limit is not None else True)
+			)
+		else:
+			for events in visitorEvents.values():
+				yield from (e for i,e in enumerate(reversed(events))\
+					if e.timestamp >= fromTimestamp\
+					if (i < limit if limit is not None else True)
+				)

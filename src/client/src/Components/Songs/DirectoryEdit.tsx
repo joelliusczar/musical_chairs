@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
@@ -16,6 +16,7 @@ import {
 import { SubmitButton } from "../Shared/SubmitButton";
 import { ListData } from "../../Types/pageable_types";
 import { Dictionary } from "../../Types/generic_types";
+import { extract_parent } from "../../Helpers/string_helpers";
 
 
 
@@ -29,6 +30,11 @@ const initialValues = {
 	prefix: "",
 };
 
+
+export const ActionTypes = {
+	ADD: "add" as const,
+	RENAME: "rename" as const,
+} as const;
 
 
 const validatePhraseIsUnused = async (
@@ -57,20 +63,29 @@ const schema = Yup.object().shape({
 type DirectoryEditProps = {
 	onCancel?: (e: unknown) => void
 	afterSubmit?: (
-		s: Dictionary<ListData<SongTreeNodeInfo>>,
-		fullPath: string,
+		treeUpdates: Dictionary<ListData<SongTreeNodeInfo>>,
+		prefix: string,
+		suffic: string,
 	) => void,
 	prefix: string,
+	action: typeof ActionTypes.ADD | typeof ActionTypes.RENAME
 };
 
 export const DirectoryEdit = (props: DirectoryEditProps) => {
-	const { onCancel, prefix } = props;
+	const { onCancel, prefix, action } = props;
 	const { enqueueSnackbar } = useSnackbar();
+
 
 
 	const _afterSubmit = () => {
 		reset({});
 	};
+
+	const setRef = useCallback((el: HTMLInputElement) => {
+		if (el) {
+			el.focus();
+		}
+	},[]);
 
 	const afterSubmit = props.afterSubmit || _afterSubmit;
 
@@ -82,9 +97,20 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = Calls.saveDirectory(values);
-			const result = await requestObj.call();
-			afterSubmit(result, `${values.prefix}${values.suffix}/`);
+			if (action === ActionTypes.ADD ) {
+				const requestObj = Calls.saveDirectory(values);
+				const result = await requestObj.call();
+				afterSubmit(result, values.prefix, values.suffix);
+			}
+			else {
+				const requestObj = Calls.renameDirectory(values);
+				const result = await requestObj.call();
+				afterSubmit(
+					result,
+					extract_parent(values.prefix),
+					values.suffix
+				);
+			}
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
 		catch(err) {
@@ -104,7 +130,12 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 		<>
 			<Box sx={inputField}>
 				<Typography variant="h1">
-					Create a directory in {prefix}
+					{
+						action === ActionTypes.ADD
+							? `Create a directory in ${prefix}`
+							: `Rename ${prefix}`
+					}
+					
 				</Typography>
 			</Box>
 			<Box sx={inputField}>
@@ -117,6 +148,7 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 							callSubmit(e);
 						}
 					}}
+					inputRef={setRef}
 				/>
 			</Box>
 
@@ -138,10 +170,12 @@ export const DirectoryEdit = (props: DirectoryEditProps) => {
 
 type DirectoryNewModalOpenerProps = {
 	add?: (
-		s: Dictionary<ListData<SongTreeNodeInfo>>,
-		fullPath: string
+		treeUpdates: Dictionary<ListData<SongTreeNodeInfo>>,
+		prefix: string,
+		suffix: string
 	) => void;
-	prefix: string
+	prefix: string,
+	action?: "add" | "rename"
 }
 
 
@@ -149,7 +183,7 @@ export const DirectoryNewModalOpener = (
 	props: DirectoryNewModalOpenerProps
 ) => {
 
-	const { add, prefix } = props;
+	const { add, prefix, action = ActionTypes.ADD } = props;
 
 	const [itemNewOpen, setItemNewOpen ] = useState(false);
 
@@ -159,22 +193,29 @@ export const DirectoryNewModalOpener = (
 
 	const itemCreated = (
 		item: Dictionary<ListData<SongTreeNodeInfo>>,
-		fullPath: string
+		prefix: string,
+		suffix: string
 	) => {
-		add && add(item, fullPath);
+		add && add(item, prefix, suffix);
 		closeModal();
 	};
 
 	return (
 		<>
 			<Box>
-				<Button onClick={() => setItemNewOpen(true)}>Add New Directory</Button>
+				<Button onClick={() => setItemNewOpen(true)}>
+					{action === ActionTypes.ADD
+						? "Add New Directory"
+						: "Rename Directory"
+					}
+				</Button>
 			</Box>
 			<Dialog open={itemNewOpen} onClose={closeModal} scroll="body">
 				<DirectoryEdit
 					afterSubmit={itemCreated}
 					onCancel={closeModal}
 					prefix={prefix}
+					action={action}
 				/>
 			</Dialog>
 		</>);

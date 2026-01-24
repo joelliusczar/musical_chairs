@@ -6,7 +6,7 @@ from fastapi import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
-	StationActionRule,
+	ActionRule,
 	UserRoleDomain,
 	build_error_obj,
 	StationInfo,
@@ -19,10 +19,10 @@ from api_dependencies import (
 )
 
 def validate_station_rule(
-	rule: StationActionRule,
+	rule: ActionRule,
 	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
 	stationInfo: StationInfo = Depends(get_station_by_name_and_owner),
-) -> StationActionRule:
+) -> ActionRule:
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

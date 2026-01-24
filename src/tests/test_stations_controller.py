@@ -493,7 +493,8 @@ def test_get_station_for_edit_with_view_security(
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.SITE.value,
-			"domain": "site"
+			"domain": "site",
+			"path": None
 	}]
 
 
@@ -508,7 +509,8 @@ def test_get_station_for_edit_with_view_security(
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.SITE.value,
-			"domain": "site"
+			"domain": "site",
+			"path": None
 	}]
 
 	response = client.get(
@@ -527,7 +529,8 @@ def test_get_station_for_edit_with_view_security(
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.SITE.value,
-			"domain": "site"
+			"domain": "site",
+			"path": None
 	}]
 
 	headers = login_test_user("testUser_xray", client)
@@ -571,7 +574,8 @@ def test_get_station_for_edit_with_view_security(
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.STATION_PATH.value,
-			"domain": "station"
+			"domain": "station",
+			"path": None
 	}]
 
 	headers = login_test_user("testUser_yankee", client)
@@ -627,42 +631,48 @@ def test_get_station_for_edit_with_view_security(
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.OWNER.value,
-			"domain": "station"
+			"domain": "station",
+			"path": None
 		},
 		{
 			"name": UserRoleDef.STATION_DELETE.value,
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.OWNER.value,
-			"domain": "station"
+			"domain": "station",
+			"path": None
 		},
 		{
 			"name": UserRoleDef.STATION_EDIT.value,
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.OWNER.value,
-			"domain": "station"
+			"domain": "station",
+			"path": None
 		},
 		{
 			"name": UserRoleDef.STATION_USER_ASSIGN.value,
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.OWNER.value,
-			"domain": "station"
+			"domain": "station",
+			"path": None
 		},
 		{
 			"name": UserRoleDef.STATION_USER_LIST.value,
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.OWNER.value,
-			"domain": "station"
+			"domain": "station",
+			"path": None
 		},
 		{
 			"name": UserRoleDef.STATION_VIEW.value,
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.OWNER.value,
-			"domain": "station"
+			"domain": "station",
+			"path": None
 		}
 	]
 

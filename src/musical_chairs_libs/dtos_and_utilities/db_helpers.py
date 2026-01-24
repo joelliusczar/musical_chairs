@@ -12,7 +12,6 @@ from sqlalchemy import (
 )
 from sqlalchemy import Integer, String, Float
 from musical_chairs_libs.tables import (
-	stup_role, stup_stationFk, stup_userFk, stup_count, stup_span, stup_priority,
 	ur_userFk, ur_role, ur_count, ur_span, ur_priority,
 	u_username, u_pk, u_displayName, u_email, u_dirRoot,
 	pup_role, pup_userFk, pup_count, pup_span, pup_priority, pup_path
@@ -24,7 +23,6 @@ from .user_role_def import (
 )
 from .action_rule_dtos import (
 	ActionRule,
-	action_rule_class_map,
 )
 from .account_dtos import (
 	AccountInfo,
@@ -34,20 +32,6 @@ from .account_dtos import (
 )
 from .simple_functions import normalize_opening_slash
 
-
-
-__station_permissions_query__ = select(
-	stup_userFk.label("rule_userfk"),
-	stup_role.label("rule_name"),
-	stup_count.label("rule_count"),
-	stup_span.label("rule_span"),
-	coalesce[Integer](
-		stup_priority,
-		RulePriorityLevel.STATION_PATH.value
-	).label("rule_priority"),
-	dbLiteral(UserRoleDomain.Station.value).label("rule_domain"),
-	stup_stationFk.label("rule_stationfk")
-)
 
 
 __path_permissions_query__ = select(
@@ -64,17 +48,12 @@ __path_permissions_query__ = select(
 )
 
 def build_placeholder_select(
-	domain:UserRoleDomain
+	ruleNameValue: str
 ) -> Select[Tuple[int, str, float, float, int, str]]:
-	ruleNameValue = dbLiteral(UserRoleDef.PATH_VIEW.value)
-	if domain == UserRoleDomain.Station:
-		ruleNameValue = dbLiteral(UserRoleDef.STATION_VIEW.value)
-	elif domain == UserRoleDomain.Playlist:
-		ruleNameValue = dbLiteral(UserRoleDef.PLAYLIST_VIEW.value)
 
 	query = select(
 		dbLiteral(0).label("rule_userfk"),
-		cast(Column[str], ruleNameValue).label("rule_name"),
+		dbLiteral(ruleNameValue).label("rule_name"),
 		cast(Column[float],dbLiteral(0)).label("rule_count"),
 		cast(Column[float],dbLiteral(0)).label("rule_span"),
 		dbLiteral(0).label("rule_priority"),
@@ -83,49 +62,6 @@ def build_placeholder_select(
 
 	return query
 
-#int, String, int, int, int, str]]:
-
-def build_station_rules_query(
-	userId: Optional[int]=None
-) -> CompoundSelect[Tuple[int, str, float, float, int, str]]:
-	user_rules_query = select(
-		ur_userFk.label("rule_userfk"),
-		ur_role.label("rule_name"),
-		ur_count.label("rule_count"),
-		ur_span.label("rule_span"),
-		coalesce[Integer](
-			ur_priority,
-			case(
-				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
-				else_=RulePriorityLevel.SITE.value
-			)
-		).label("rule_priority"),
-		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
-		dbLiteral(None).label("rule_stationfk")
-	).where(or_(
-			ur_role.like(f"{UserRoleDomain.Station.value}:%"),
-			ur_role == UserRoleDef.ADMIN.value
-		),
-	)
-	domain_permissions_query = __station_permissions_query__
-	placeholder_select = build_placeholder_select(
-		UserRoleDomain.Station
-	).add_columns(
-		dbLiteral(None).label("rule_stationfk")
-	)
-
-
-	if userId is not None:
-		domain_permissions_query = \
-			domain_permissions_query.where(stup_userFk == userId)
-		user_rules_query = user_rules_query.where(ur_userFk == userId)
-		
-	query = union_all(
-		placeholder_select,
-		domain_permissions_query,
-		user_rules_query,
-	)
-	return query
 
 
 def build_path_rules_query(
@@ -158,7 +94,7 @@ def build_path_rules_query(
 
 	path_permissions_query = __path_permissions_query__
 	placeholder_select = build_placeholder_select(
-		UserRoleDomain.Path
+		UserRoleDef.PATH_VIEW.value
 	).add_columns(
 		dbLiteral(None).label("rule_path")
 	)
@@ -182,18 +118,18 @@ def build_site_rules_query(
 ) -> Select[Tuple[Integer, String, Float[float], Float[float], Integer, str]]:
 
 	user_rules_query = select(
-		ur_userFk.label("rule_userfk"),
-		ur_role.label("rule_name"),
-		ur_count.label("rule_count"),
-		ur_span.label("rule_span"),
+		ur_userFk.label("rule.userfk"),
+		ur_role.label("rule.name"),
+		ur_count.label("rule.count"),
+		ur_span.label("rule.span"),
 		coalesce[Integer](
 			ur_priority,
 			case(
 				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
 				else_=RulePriorityLevel.SITE.value
 			)
-		).label("rule_priority"),
-		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
+		).label("rule.priority"),
+		dbLiteral(UserRoleDomain.Site.value).label("rule.domain"),
 	)
 
 	if userId is not None:
@@ -211,19 +147,16 @@ def row_to_user(row: RowMapping) -> AccountInfo:
 	)
 
 def row_to_action_rule(row: RowMapping) -> ActionRule:
-	clsConstructor = action_rule_class_map.get(
-		row["rule_domain"],
-		ActionRule
-	)
 
-	return clsConstructor(
-		name=row["rule_name"],
-		span=row["rule_span"],
-		count=row["rule_count"],
+	return ActionRule(
+		name=row["rule.name"],
+		span=row["rule.span"],
+		count=row["rule.count"],
 		#if priortity is explict use that
 		#otherwise, prefer station specific rule vs non station specific rule
-		priority=cast(int,row["rule_priority"]) if row["rule_priority"] \
-			else RulePriorityLevel.STATION_PATH.value
+		priority=cast(int,row["rule.priority"]) if row["rule.priority"] \
+			else RulePriorityLevel.STATION_PATH.value,
+		domain=row["rule.domain"]
 	)
 
 def generate_station_user_and_rules_from_rows(
@@ -239,9 +172,9 @@ def generate_station_user_and_rules_from_rows(
 					currentUser.roles.extend(get_station_owner_rules())
 				yield currentUser
 			currentUser = row_to_user(row)
-			if row["rule_domain"] != "shim":
+			if row["rule.domain"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
-		elif row["rule_domain"] != "shim":
+		elif row["rule.domain"] != "shim":
 			currentUser.roles.append(row_to_action_rule(row))
 	if currentUser:
 		if currentUser.id == ownerId:
@@ -261,9 +194,9 @@ def generate_playlist_user_and_rules_from_rows(
 					currentUser.roles.extend(get_playlist_owner_roles())
 				yield currentUser
 			currentUser = row_to_user(row)
-			if row["rule_domain"] != "shim":
+			if row["rule.domain"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
-		elif row["rule_domain"] != "shim":
+		elif row["rule.domain"] != "shim":
 			currentUser.roles.append(row_to_action_rule(row))
 	if currentUser:
 		if currentUser.id == ownerId:
@@ -290,9 +223,9 @@ def generate_path_user_and_rules_from_rows(
 						currentUser.roles.extend(get_path_owner_roles(prefix))
 				yield currentUser
 			currentUser = row_to_user(row)
-			if row["rule_domain"] != "shim":
+			if row["rule.domain"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
-		elif row["rule_domain"] != "shim":
+		elif row["rule.domain"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
 	if currentUser:
 		if normalizedPrefix and currentUser.dirroot \

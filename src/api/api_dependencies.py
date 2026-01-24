@@ -1,6 +1,8 @@
 #pyright: reportMissingTypeStubs=false
 import ipaddress
+from datetime import timedelta
 from typing import (
+	Any,
 	Iterator,
 	Tuple,
 	Optional,
@@ -23,14 +25,14 @@ from musical_chairs_libs.services import (
 	AccountAccessService,
 	AccountManagementService,
 	AccountTokenCreator,
-	ActionsHistoryQueryService,
+	FSEventsQueryService,
 	BasicUserProvider,
-	CurrentUserTrackingService,
+	VisitorTrackingService,
 	StationService,
 	QueueService,
 	SongInfoService,
 	ProcessService,
-	ActionsHistoryManagementService,
+	FSEventsLoggingService,
 	SongFileService,
 	PathRuleService,
 	ArtistService,
@@ -43,14 +45,18 @@ from musical_chairs_libs.services import (
 	StationsPlaylistsService,
 	StationsSongsService,
 	StationsUsersService,
-	AlbumQueueService,
 	StationProcessService,
-	PlaylistQueueService,
 	CollectionQueueService,
 	CurrentUserProvider,
-	
+	VisitorService,
+)
+from musical_chairs_libs.services.events import (
+	AggregateEventsLoggingService,
+	InMemEventsLoggingService,
+	WhenNextCalculator
 )
 from musical_chairs_libs.protocols import (
+	EventsLogger,
 	FileService,
 	RadioPusher
 )
@@ -66,11 +72,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ConfigAcessors,
 	DirectoryTransfer,
 	get_datetime,
+	InMemEventRecordMap,
+	int_or_str,
 	normalize_opening_slash,
 	NotLoggedInError,
 	UserRoleDef,
 	StationInfo,
-	int_or_str,
 	TrackingInfo,
 	PlaylistInfo,
 	SimpleQueryParameters,
@@ -92,6 +99,11 @@ from api_error import (
 from datetime import datetime
 from base64 import urlsafe_b64decode
 
+class GlobalStore:
+	
+	def __init__(self) -> None:
+		self.events_store = InMemEventRecordMap()
+		self.visitor_id_map = dict[str, Any]
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -222,28 +234,36 @@ def extract_ip_address(request: Request) -> Tuple[str, str]:
 def get_tracking_info(request: Request):
 	userAgent = request.headers["user-agent"]
 	ipaddresses = extract_ip_address(request)
+
 	
 	return TrackingInfo(
 		userAgent,
 		ipv4Address=ipaddresses[0],
-		ipv6Address=ipaddresses[1]
+		ipv6Address=ipaddresses[1],
+		url=request.url.path
 	)
 
 
-def current_user_tracking_service(
-	trackingInfo: TrackingInfo = Depends(get_tracking_info)
-) -> CurrentUserTrackingService:
-	return CurrentUserTrackingService(trackingInfo)
-
-
-def actions_history_query_service(
+def visitor_service(
 	conn: Connection=Depends(get_configured_db_connection)
-) -> ActionsHistoryQueryService:
-	return ActionsHistoryQueryService(conn)
+) -> VisitorService:
+	return VisitorService(conn)
+
+
+def vistor_tracking_service(
+	trackingInfo: TrackingInfo = Depends(get_tracking_info),
+	visitorService: VisitorService = Depends(visitor_service)
+) -> VisitorTrackingService:
+	return VisitorTrackingService(trackingInfo, visitorService)
+
+
+def fs_events_query_service() -> FSEventsQueryService:
+	return FSEventsQueryService()
 
 
 def file_service() -> FileService:
 	return S3FileService()
+
 
 def basic_user_provider(
 	user: AccountInfo = Depends(get_optional_user_from_token),
@@ -259,21 +279,85 @@ def path_rule_service(
 	return PathRuleService(conn, fileService, userProvider)
 
 
+def global_store(request: Request) -> GlobalStore | None:
+	try:
+		return request.app.state.global_store
+	except AttributeError:
+		pass
+
+
+def in_mem_events_logging_service(
+	globalStore: GlobalStore | None = Depends(global_store),
+	vistorTrackingService: VisitorTrackingService = Depends(
+		vistor_tracking_service
+	),
+	basicUserProvider: BasicUserProvider = Depends(basic_user_provider),
+	eventsQueryService: FSEventsQueryService = Depends(
+		fs_events_query_service
+	),
+	getDatetime: Callable[[], datetime] = Depends(datetime_provider)
+) -> InMemEventsLoggingService:
+	
+
+	service =  InMemEventsLoggingService(
+		vistorTrackingService,
+		basicUserProvider,
+		globalStore.events_store if globalStore else None
+	)
+
+	if len(globalStore.events_store if globalStore else (1,)) == 0:
+		fromTimestamp = (getDatetime() - timedelta(days=1)).timestamp()
+		for record in eventsQueryService.get_user_events(
+			None,
+			fromTimestamp,
+			set()
+		):
+			service.add_event_record(record)
+	return service
+
+
+
+def fs_events_logging_service(
+	visitorTrackingService: VisitorTrackingService = Depends(
+		vistor_tracking_service
+	),
+	basicUserProvider: BasicUserProvider = Depends(basic_user_provider),
+) -> FSEventsLoggingService:
+	return FSEventsLoggingService(
+		visitorTrackingService,
+		basicUserProvider
+	)
+
+
+def aggregate_events_logging_service(
+		inMem: InMemEventsLoggingService =  Depends(in_mem_events_logging_service),
+		fs: FSEventsLoggingService = Depends(fs_events_logging_service)
+):
+	return AggregateEventsLoggingService(fs, inMem)
+
+def when_next_calculator(
+	inMemEventsLoggingServiice: InMemEventsLoggingService = Depends(
+		in_mem_events_logging_service
+	)
+) -> WhenNextCalculator:
+	return WhenNextCalculator(inMemEventsLoggingServiice)
+
+
 def current_user_provider(
 	securityScopes: SecurityScopes,
 	basicUserProvider: BasicUserProvider = Depends(basic_user_provider),
-	currentUserTrackingService: CurrentUserTrackingService = Depends(
-		current_user_tracking_service
+	currentUserTrackingService: VisitorTrackingService = Depends(
+		vistor_tracking_service
 	),
-	actionsHistoryQueryService: ActionsHistoryQueryService = Depends(
-		actions_history_query_service
+	whenNextCalculator: WhenNextCalculator = Depends(
+		when_next_calculator
 	),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> CurrentUserProvider:
 	return CurrentUserProvider(
 		basicUserProvider,
 		currentUserTrackingService,
-		actionsHistoryQueryService,
+		whenNextCalculator,
 		pathRuleService,
 		set(securityScopes.scopes)
 	)
@@ -295,26 +379,10 @@ def check_scope(
 	__check_scope__(securityScopes, currentUser)
 
 
-def actions_history_management_service(
-	conn: Connection=Depends(get_configured_db_connection),
-	currentUserTrackingService: CurrentUserTrackingService = Depends(
-		current_user_tracking_service
-	),
-	userProvider: CurrentUserProvider = Depends(
-		current_user_provider
-	)
-) -> ActionsHistoryManagementService:
-	return ActionsHistoryManagementService(
-		conn,
-		currentUserTrackingService,
-		userProvider
-	)
-
-
 def account_management_service(
 	conn: Connection=Depends(get_configured_db_connection),
-	userActionHistoryService: ActionsHistoryManagementService =
-		Depends(actions_history_management_service),
+	eventsLogger: EventsLogger =
+		Depends(aggregate_events_logging_service),
 	userProvider: CurrentUserProvider = Depends(
 		current_user_provider
 	),
@@ -324,14 +392,14 @@ def account_management_service(
 		conn,
 		userProvider,
 		accountsAccessService,
-		userActionHistoryService,
+		eventsLogger,
 	)
 
 
 def account_token_creator(
 	conn: Connection=Depends(get_configured_db_connection),
-	userActionHistoryService: ActionsHistoryManagementService =
-		Depends(actions_history_management_service)
+	userActionHistoryService: EventsLogger =
+		Depends(aggregate_events_logging_service)
 ) -> AccountTokenCreator:
 	return AccountTokenCreator(conn, userActionHistoryService)
 
@@ -355,15 +423,15 @@ def song_info_service(
 def queue_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-	userActionHistoryService: ActionsHistoryManagementService =
-		Depends(actions_history_management_service),
+	eventsLogger: EventsLogger =
+		Depends(aggregate_events_logging_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> QueueService:
 	return QueueService(
 		conn,
 		currentUserProvider,
-		userActionHistoryService,
+		eventsLogger,
 		songInfoService,
 		pathRuleService,
 	)
@@ -680,6 +748,7 @@ def get_playlist_by_name_and_owner(
 		)
 	return playlist
 
+
 def get_playlist_by_id(
 	playlistid: int=Path(),
 	playlistService: PlaylistService = Depends(playlist_service),
@@ -693,6 +762,7 @@ def get_playlist_by_id(
 			)]
 		)
 	return playlist
+
 
 def __check_playlist_scopes__(
 	securityScopes: SecurityScopes,
@@ -718,6 +788,7 @@ def __check_playlist_scopes__(
 	)
 	if not rules:
 		raise WrongPermissionsError()
+
 
 def get_secured_playlist_by_id(
 	securityScopes: SecurityScopes,
@@ -861,16 +932,19 @@ def station_radio_pusher(
 	station: StationInfo = Depends(get_station_by_name_and_owner),
 	conn: Connection = Depends(get_configured_db_connection),
 	queueService: QueueService =  Depends(queue_service),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+	currentUserProvider: CurrentUserProvider = Depends(current_user_provider),
 ) -> RadioPusher:
 	if station.typeid == StationTypes.SONGS_ONLY.value:
 		return queueService
-	if station.typeid == StationTypes.ALBUMS_ONLY.value:
-		return AlbumQueueService(conn, queueService, currentUserProvider)
-	if station.typeid == StationTypes.PLAYLISTS_ONLY.value:
-		return PlaylistQueueService(conn, queueService, currentUserProvider)
-	if station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
-		return CollectionQueueService(conn, queueService, currentUserProvider)
+	if station.typeid == StationTypes.ALBUMS_ONLY.value\
+		or station.typeid == StationTypes.PLAYLISTS_ONLY.value\
+		or station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
+			:
+		return CollectionQueueService(
+			conn,
+			queueService,
+			currentUserProvider
+		)
 	raise HTTPException(
 		status_code=status.HTTP_404_NOT_FOUND,
 		detail=[build_error_obj(f"Station type: {station.typeid} not found")
@@ -946,19 +1020,6 @@ def get_page_num(
 	return page
 
 
-def user_for_filters(
-	securityScopes: SecurityScopes,
-	user: AccountInfo = Depends(get_current_user_simple)
-) -> Optional[AccountInfo]:
-	if user.isadmin:
-		return None
-	scopeSet = {s for s in securityScopes.scopes}
-	if any(r.name in scopeSet for r in user.roles):
-		return None
-	return user
-
-
-
 def check_back_key(
 	x_back_key: str = Header(),
 	envManager: ConfigAcessors=Depends(ConfigAcessors)
@@ -983,14 +1044,24 @@ def get_query_params(
 		)
 
 def get_secured_query_params(
+	securityScopes: SecurityScopes,
 	queryParams: SimpleQueryParameters=Depends(get_query_params),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+	currentUser: AccountInfo = Depends(get_current_user_simple),
 ) -> SimpleQueryParameters:
-	currentUserProvider.get_rate_limited_user()
+	__check_scope__(securityScopes, currentUser)
 	return queryParams
 
 
-def check_rate_limit(
+def check_rate_limit(domain: str):
+		
+	def __check_rate_limit(
 		currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
-):
-	currentUserProvider.get_rate_limited_user()
+	):
+		currentUserProvider.get_rate_limited_user(domain)
+	
+	return __check_rate_limit
+
+
+def log_event():
+	yield
+	print("Hi here")

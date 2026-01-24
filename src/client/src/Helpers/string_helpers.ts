@@ -81,3 +81,23 @@ export const prefix_split  = (prefix: string) => {
 		},[] as string[]);
 	return result;
 };
+
+
+export const extract_parent = (path: string) => {
+	return path.substring(0, path.lastIndexOf("/"));
+};
+
+
+export const squash_chars = (compressura: string, pattern: string) => {
+	const temp = [];
+	const lost = {};
+	let previous = lost;
+	for (const c of compressura) {
+		if (c === previous && c === pattern) {
+			continue;
+		}
+		previous = c;
+		temp.push(c);
+	}
+	return temp.join("");
+};

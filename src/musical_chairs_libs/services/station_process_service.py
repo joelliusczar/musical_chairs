@@ -1,13 +1,16 @@
 from musical_chairs_libs.dtos_and_utilities import (
+	ConfigAcessors,
 	StationInfo,
 	get_datetime,
-	Lost
+	Lost,
+	UserRoleDomain
 )
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_procId,
 	st_ownerFk,
 )
+from pathlib import Path
 from sqlalchemy import (
 	select,
 	func,
@@ -55,13 +58,24 @@ class StationProcessService:
 		self.get_datetime = get_datetime
 		self.current_user_provider = currentUserProvider
 
+	def ensure_active_station_files(self, station: StationInfo):
+		if not station.owner:
+			raise RuntimeError("Station owner is not loaded")
+		filePath = f"{ConfigAcessors.station_queue_files_dir}"\
+			f"/{station.owner.username}/{station.name}.jsonl"
+		path = Path(filePath)
+		path.parent.mkdir(parents=True, exist_ok=True)
+
+		path.touch()
 
 	def enable_stations(self,
 		station:Optional[StationInfo],
 	) -> Iterator[StationInfo]:
 		stationsEnabled: Iterator[StationInfo] = iter([])
 		if not station:
-			user = self.current_user_provider.get_rate_limited_user()
+			user = self.current_user_provider.get_rate_limited_user(
+				UserRoleDomain.Station.value
+			)
 			canBeEnabled = {s[0] for s in  \
 				self.station_service.get_station_song_counts(ownerId=user.id) \
 				if s[1] > 0
@@ -111,6 +125,7 @@ class StationProcessService:
 						station.name,
 						station.owner.username
 					)
+					self.ensure_active_station_files(station)
 
 					ProcessService.start_song_queue_process(
 						self.conn.engine.url.database,
@@ -145,6 +160,7 @@ class StationProcessService:
 		elif stationIds is Lost():
 			raise ValueError("procIds, stationIds, or stationNames must be provided.")
 		self.conn.execute(stmt)
+		self.conn.commit()
 
 	def set_station_proc(self, stationId: int) -> None:
 		pid = ProcessService.get_pid()
@@ -165,7 +181,9 @@ class StationProcessService:
 		)
 		query = select(st_procId).where(st_procId.is_not(None))
 		if station is None:
-			ownerKey = self.current_user_provider.get_rate_limited_user().id
+			ownerKey = self.current_user_provider.get_rate_limited_user(
+				UserRoleDomain.Station.value
+			).id
 			query = query.where(st_ownerFk == ownerKey)
 		else:
 			self.current_user_provider.get_station_user(station)
@@ -177,5 +195,4 @@ class StationProcessService:
 		for pid in pids:
 			logging.radioLogger.debug(f"send signal to {pid}")
 			ProcessService.end_process(pid)
-		self.unset_station_procs(stationIds=station.id if station else None)
-		self.conn.commit()
+		

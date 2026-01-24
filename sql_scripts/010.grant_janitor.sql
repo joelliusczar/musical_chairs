@@ -15,11 +15,8 @@ GRANT SELECT ON TABLE `<dbName>`.`lastplayed` TO <janitorUser>;
 GRANT INSERT ON TABLE `<dbName>`.`lastplayed` TO <janitorUser>;
 GRANT UPDATE ON TABLE `<dbName>`.`lastplayed` TO <janitorUser>;
 
-GRANT SELECT ON TABLE `<dbName>`.`stationqueue` TO <janitorUser>;
-GRANT DELETE ON TABLE `<dbName>`.`stationqueue` TO <janitorUser>;
-
-GRANT SELECT ON TABLE `<dbName>`.`useractionhistory` TO <janitorUser>;
-GRANT DELETE ON TABLE `<dbName>`.`useractionhistory` TO <janitorUser>;
+GRANT SELECT ON TABLE `<dbName>`.`stationlogs` TO <janitorUser>;
+GRANT DELETE ON TABLE `<dbName>`.`stationlogs` TO <janitorUser>;
 
 GRANT CREATE TEMPORARY TABLES ON `<dbName>`.* TO <janitorUser>;
 

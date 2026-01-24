@@ -19,6 +19,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	DictDotMap,
 	normalize_opening_slash,
 	SearchNameString,
+	SimpleQueryParameters
 )
 from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
@@ -62,21 +63,17 @@ class ArtistService:
 		self.path_rule_service = pathRuleService
 		self.current_user_provider = currentUserProvider
 
-	def get_artists(self,
-		page: int = 0,
-		pageSize: Optional[int]=None,
+
+	def get_artists_query(
+		self,
 		artistKeys: Union[int, Iterable[int], str, None]=None,
 		userId: Optional[int]=None,
 		exactStrMatch: bool=False
-	) -> Iterator[ArtistInfo]:
-		query = select(
-			ar_pk,
-			ar_name,
-			ar_ownerFk,
-			u_username,
-			u_displayName
-		)\
-		.join(user_tbl, u_pk == ar_ownerFk, isouter=True)
+	):
+		query = artists_tbl\
+			.outerjoin(user_tbl, u_pk == ar_ownerFk)\
+			.select()
+		
 		if type(artistKeys) == int:
 			query = query.where(ar_pk == artistKeys)
 		elif type(artistKeys) is str:
@@ -91,8 +88,30 @@ class ArtistService:
 		#check speficially if instance because [] is falsy
 		elif isinstance(artistKeys, Iterable) :
 			query = query.where(ar_pk.in_(artistKeys))
+
 		if userId:
 			query = query.where(ar_ownerFk == userId)
+		
+		return query
+
+
+	def get_artists(self,
+		page: int = 0,
+		pageSize: Optional[int]=None,
+		artistKeys: Union[int, Iterable[int], str, None]=None,
+		userId: Optional[int]=None,
+		exactStrMatch: bool=False
+	) -> Iterator[ArtistInfo]:
+		
+		query = self.get_artists_query(artistKeys, userId, exactStrMatch)\
+		.with_only_columns(
+			ar_pk,
+			ar_name,
+			ar_ownerFk,
+			u_username,
+			u_displayName
+		)
+
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query).mappings()
@@ -140,20 +159,21 @@ class ArtistService:
 			username=data[u_username],
 			displayname=data[u_displayName]
 		)
-	
+
+
 	def get_artist_page(
 		self,
-		page: int = 0,
+		queryParams: SimpleQueryParameters,
 		artist: str = "",
-		limit: Optional[int]=None,
-		user: Optional[AccountInfo]=None
 	) -> Tuple[list[ArtistInfo], int]:
-		result = list(self.get_artists(page, limit, artist))
-		countQuery = select(func.count(1))\
-			.select_from(artists_tbl)
+		result = list(self.get_artists(
+			queryParams.page, queryParams.limit, artist))
+		countQuery = self.get_artists_query(artist)\
+			.with_only_columns(func.count(1))
 		count = self.conn.execute(countQuery).scalar() or 0
 		return result, count
-	
+
+
 	def get_artist(
 			self,
 			artistId: int,
@@ -200,6 +220,7 @@ class ArtistService:
 
 		return SongsArtistInfo(**artistInfo.model_dump(), songs=songs)
 
+
 	def save_artist(
 		self,
 		artistName: str,
@@ -234,6 +255,7 @@ class ArtistService:
 				f"{artistName} is already used.",
 				"path->name"
 			)
+
 
 	def delete_album(self, artistid: int) -> int:
 		if not artistid:

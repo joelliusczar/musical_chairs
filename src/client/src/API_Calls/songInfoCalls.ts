@@ -197,6 +197,29 @@ export const Calls = {
 			},
 		};
 	},
+	renameDirectory: (
+		{ suffix, prefix }: { suffix: string, prefix: string }
+	) => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
+				const response = await webClient
+					.put<Dictionary<ListData<SongTreeNodeInfo>>>(
+						"/song-info/directory",
+						null,
+						{
+							params: {
+								prefix,
+								suffix,
+							},
+							signal: abortController.signal,
+						}
+					);
+				return response.data;
+			},
+		};
+	},
 	checkValues: (
 		{ id, values }: { id: IdValue, values: StringObject }
 	) => {

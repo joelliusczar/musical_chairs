@@ -1,4 +1,3 @@
-from typing import Optional
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -14,7 +13,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SongsArtistInfo,
 	ListData,
 	build_error_obj,
-	FrozenNamed
+	FrozenNamed,
+	SimpleQueryParameters,
+	UserRoleDomain,
 )
 from musical_chairs_libs.services import (
 	ArtistService,
@@ -23,10 +24,9 @@ from api_dependencies import (
 	artist_service,
 	check_rate_limit,
 	get_secured_artist_by_id,
-	user_for_filters,
-	get_page_num,
-	get_current_user_simple
-)
+	get_current_user_simple,
+	get_secured_query_params
+,)
 from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/artists")
@@ -36,10 +36,8 @@ router = APIRouter(prefix="/artists")
 @router.get("/page")
 def get_page(
 	name: str = "",
-	limit: int = 50,
-	page: int = Depends(get_page_num),
-	user: Optional[AccountInfo] = Security(
-		user_for_filters,
+	queryParams: SimpleQueryParameters = Security(
+		get_secured_query_params,
 		scopes=[UserRoleDef.ARTIST_VIEW_ALL.value]
 	),
 	artistService: ArtistService = Depends(artist_service)
@@ -47,9 +45,7 @@ def get_page(
 
 	data, totalRows = artistService.get_artist_page(
 			artist=name,
-			page = page,
-			limit = limit,
-			user=user
+			queryParams=queryParams
 		)
 	return TableData(
 		totalrows=totalRows,
@@ -85,7 +81,7 @@ def get(
 
 @router.post("", dependencies=[
 	Security(
-		check_rate_limit,
+		check_rate_limit(UserRoleDomain.Artist.value),
 		scopes=[UserRoleDef.ARTIST_CREATE.value]
 	)
 ])

@@ -1,15 +1,21 @@
-from datetime import datetime
-from typing import List, Any
+from typing import Any
 from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef
 )
+from sqlalchemy.engine import Connection
+from ..mock_datetime_provider import MockDatetimeProvider
+from musical_chairs_libs.tables import (
+	path_user_permissions,
+)
+from sqlalchemy import insert
+
 try:
 	from . import user_ids
 except:
 	import user_ids
 
 def get_path_permission_params(
-	orderedTestDates: List[datetime]
+	datetimeProvider: MockDatetimeProvider
 )  -> list[dict[Any, Any]]:
 	pathPermissions: list[dict[str, Any]] = [
 		{
@@ -20,7 +26,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":2,
@@ -30,7 +36,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":3,
@@ -40,7 +46,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":4,
@@ -50,7 +56,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":5,
@@ -60,7 +66,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":6,
@@ -70,7 +76,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":7,
@@ -80,7 +86,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":8,
@@ -90,7 +96,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":9,
@@ -100,7 +106,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":10,
@@ -110,7 +116,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":11,
@@ -120,7 +126,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":12,
@@ -128,9 +134,9 @@ def get_path_permission_params(
 			"path": "/foo/goo/who_1",
 			"role": UserRoleDef.PATH_EDIT.value,
 			"span":1,
-			"count":0,
+			"count":0, #blocked
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":13,
@@ -140,7 +146,7 @@ def get_path_permission_params(
 			"span":1,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":14,
@@ -150,7 +156,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":15,
@@ -160,7 +166,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":16,
@@ -170,7 +176,7 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":17,
@@ -180,7 +186,15 @@ def get_path_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		}
 	]
 	return pathPermissions
+
+def populate_path_permissions(
+	conn: Connection,
+	datetimeProvider: MockDatetimeProvider
+):
+	pathPermissionParams = get_path_permission_params(datetimeProvider)
+	stmt = insert(path_user_permissions)
+	conn.execute(stmt, pathPermissionParams) #pyright: ignore [reportUnknownMemberType]

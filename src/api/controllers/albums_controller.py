@@ -14,6 +14,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ListData,
 	build_error_obj,
 	SimpleQueryParameters,
+	UserRoleDomain,
 )
 from musical_chairs_libs.services import (
 	AlbumService,
@@ -33,7 +34,7 @@ router = APIRouter(prefix="/albums")
 def get_page(
 	name: str="",
 	artist: str="",
-	queryParams: SimpleQueryParameters = Depends(get_query_params,),
+	queryParams: SimpleQueryParameters = Depends(get_query_params),
 	albumService: AlbumService = Depends(album_service)
 ) -> TableData[AlbumInfo]:
 
@@ -81,7 +82,7 @@ def get(
 
 @router.post("", dependencies=[
 	Security(
-		check_rate_limit,
+		check_rate_limit(UserRoleDomain.Album.value),
 		scopes=[UserRoleDef.ALBUM_CREATE.value]
 	)
 ])

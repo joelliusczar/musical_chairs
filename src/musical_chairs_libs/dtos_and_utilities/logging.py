@@ -34,6 +34,7 @@ LOG_RECORD_BUILTIN_ATTRS = {
 api_log_level = ConfigAcessors.api_log_level()
 radio_log_level = ConfigAcessors.radio_log_level()
 
+
 class JsonFormatter(Formatter):
 
 	def __init__(
@@ -94,7 +95,7 @@ our_config: dict[str, Any] = {
 	"filters": {},
 	"formatters": {
 		"boring": {
-			"format": "[%(asctime)s][%(name)%][%(levelname)s][%(filename)s: "+
+			"format": "[%(asctime)s][%(name)s][%(levelname)s][%(filename)s: "+
 				"%(funcName)s]: %(message)s"
 		},
 		"json": {
@@ -117,7 +118,7 @@ our_config: dict[str, Any] = {
 	"handlers": {
 		"boring": {
 			"class": "logging.handlers.RotatingFileHandler",
-			"level": api_log_level,
+			"level": builtin_logging.getLevelName(builtin_logging.DEBUG),
 			"formatter": "boring",
 			"filename": "musical_chairs.log",
 			"maxBytes": 2500000,
@@ -125,7 +126,7 @@ our_config: dict[str, Any] = {
 		},
 		"json": {
 			"class": "logging.handlers.RotatingFileHandler",
-			"level": api_log_level,
+			"level": builtin_logging.getLevelName(builtin_logging.DEBUG),
 			"formatter": "json",
 			"filename": "musical_chairs.jsonl",
 			"maxBytes": 2500000,
@@ -140,7 +141,11 @@ our_config: dict[str, Any] = {
       "class": "logging.StreamHandler",
       "formatter": "boring",
       "stream": "ext://sys.stderr"
-    }
+    },
+		"noop": {
+			"class": "logging.NullHandler",
+			"level": "DEBUG",
+		}
 	},
 	"filters": {
 		"infoOnly": {
@@ -149,15 +154,16 @@ our_config: dict[str, Any] = {
 	},
 	"loggers": {
 		"root": {
-			"level": "DEBUG",
+			"level": builtin_logging.getLevelName(builtin_logging.DEBUG),
 			"handlers": [
-				"json"
+				"noop"
 			]
 		},
 		"radio": {
 			"level": radio_log_level,
 			"handlers": [
-				"json"
+				"json",
+				"boring"
 			]
 		},
 		"api": {

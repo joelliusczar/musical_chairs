@@ -1,9 +1,14 @@
-from datetime import datetime
-from typing import List, Any
+from typing import Any
 from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	RulePriorityLevel,
 )
+from sqlalchemy.engine import Connection
+from ..mock_datetime_provider import MockDatetimeProvider
+from musical_chairs_libs.tables import (
+	station_user_permissions,
+)
+from sqlalchemy import insert
 try:
 	from . import user_ids
 except:
@@ -11,7 +16,7 @@ except:
 
 
 def get_station_permission_params(
-	orderedTestDates: List[datetime]
+	datetimeProvider: MockDatetimeProvider
 ) -> list[dict[Any, Any]]:
 	return [
 		{
@@ -22,7 +27,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":4,
@@ -32,7 +37,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":6,
@@ -42,7 +47,7 @@ def get_station_permission_params(
 			"span":300,
 			"count":5,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":8,
@@ -52,7 +57,7 @@ def get_station_permission_params(
 			"span":60,
 			"count":5,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":10,
@@ -62,7 +67,7 @@ def get_station_permission_params(
 			"span":300,
 			"count":25,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":12,
@@ -72,7 +77,7 @@ def get_station_permission_params(
 			"span":300,
 			"count":25,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":13,
@@ -82,7 +87,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":14,
@@ -92,7 +97,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":15,
@@ -102,7 +107,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":16,
@@ -112,7 +117,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":17,
@@ -122,7 +127,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":18,
@@ -132,7 +137,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": RulePriorityLevel.STATION_PATH.value - 5,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":19,
@@ -142,7 +147,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":20,
@@ -152,7 +157,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":21,
@@ -162,7 +167,7 @@ def get_station_permission_params(
 			"span":5,
 			"count":300,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":22,
@@ -172,7 +177,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":23,
@@ -182,7 +187,7 @@ def get_station_permission_params(
 			"span":100,
 			"count":300,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":24,
@@ -192,7 +197,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":25,
@@ -202,7 +207,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":26,
@@ -212,7 +217,7 @@ def get_station_permission_params(
 			"span":70,
 			"count":10,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":27,
@@ -222,7 +227,7 @@ def get_station_permission_params(
 			"span":70,
 			"count":10,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":28,
@@ -232,7 +237,7 @@ def get_station_permission_params(
 			"span":70,
 			"count":10,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":29,
@@ -242,7 +247,7 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 		{
 			"pk":30,
@@ -252,6 +257,15 @@ def get_station_permission_params(
 			"span":0,
 			"count":0,
 			"priority": None,
-			"creationtimestamp": orderedTestDates[0].timestamp()
+			"creationtimestamp": datetimeProvider[0].timestamp()
 		},
 	]
+
+
+def populate_station_permissions(
+	conn: Connection,
+	datetimeProvider: MockDatetimeProvider
+):
+	stationPermissionParams = get_station_permission_params(datetimeProvider)
+	stmt = insert(station_user_permissions)
+	conn.execute(stmt, stationPermissionParams) #pyright: ignore [reportUnknownMemberType]

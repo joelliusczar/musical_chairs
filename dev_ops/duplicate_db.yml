@@ -48,7 +48,10 @@
         app_name: '{{app_details["name"]}}'
         app_user: '{{domain["user"]}}'
         pymysql_pkg: '{{packages["pymysql"]}}'
-        db_name: '{{app_details["db"]}}'
-        db_user: '{{app_details["db_owner"]}}'
-        db_pass: '{{keys["db_pass_owner"]}}'
+        src_db_name: '{{app_details["db"]}}'
+        src_db_user: '{{app_details["db_owner"]}}'
+        src_db_pass: '{{keys["db_pass_owner"]}}'
+        dest_db_name: '{{app_details["db"]}}'
+        dest_db_user: '{{app_details["db_owner"]}}'
+        dest_db_pass: '{{keys["db_pass_owner"]}}'
 

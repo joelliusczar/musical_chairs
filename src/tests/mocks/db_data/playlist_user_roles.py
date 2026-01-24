@@ -1,9 +1,15 @@
-from datetime import datetime
-from typing import List, Any
+from typing import Any
 from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
 	RulePriorityLevel,
 )
+from sqlalchemy.engine import Connection
+from ..mock_datetime_provider import MockDatetimeProvider
+from musical_chairs_libs.tables import (
+	playlist_user_permissions,
+)
+from sqlalchemy import insert
+
 try:
 	from . import user_ids
 except:
@@ -11,7 +17,7 @@ except:
 
 
 def get_playlist_permission_params(
-	orderedTestDates: List[datetime]
+	orderedTestDates: MockDatetimeProvider
 ) -> list[dict[Any, Any]]:
 	return [
 		{
@@ -125,3 +131,12 @@ def get_playlist_permission_params(
 			"creationtimestamp": orderedTestDates[0].timestamp()
 		},
 	]
+
+
+def populate_playlist_permissions(
+	conn: Connection,
+	orderedTestDates: MockDatetimeProvider
+):
+	playlistPermissionParams = get_playlist_permission_params(orderedTestDates)
+	stmt = insert(playlist_user_permissions)
+	conn.execute(stmt, playlistPermissionParams) #pyright: ignore [reportUnknownMemberType]

@@ -6,21 +6,19 @@ import subprocess
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
-	ActionsHistoryManagementService,
-	ActionsHistoryQueryService,
-	AlbumQueueService,
+	FSEventsLoggingService,
+	FSEventsQueryService,
 	BasicUserProvider,
 	CollectionQueueService,
 	CurrentUserProvider,
 	EmptyUserTrackingService,
 	PathRuleService,
-	PlaylistQueueService,
 	ProcessService,
 	QueueService,
 	SongInfoService,
 	StationService,
 	StationProcessService,
-
+	WhenNextCalculator,
 )
 from threading import ExceptHookArgs, Thread
 from setproctitle import setproctitle
@@ -37,16 +35,20 @@ def __end_stream__():
 	queue_song_source.stopRunning = True
 	queue_song_source.clean_up_ices_process()
 
+
 def handle_keyboard(sigNum: Any, frame: Any):
 	logging.radioLogger.info("Received interupt")
 	__end_stream__()
+
 
 def handle_terminate_signal(sigNum: Any, frame: Any):
 	logging.radioLogger.info("Received termination signal")
 	__end_stream__()
 
+
 signal.signal(signal.SIGINT, handle_keyboard)
 signal.signal(signal.SIGTERM, handle_terminate_signal)
+
 
 def close_db_connection(conn: Connection, connName: str):
 	logging.radioLogger.info(f"Closing the {connName} connection")
@@ -55,8 +57,10 @@ def close_db_connection(conn: Connection, connName: str):
 	except:
 		logging.radioLogger.warning(f"Could not close the  {connName} connection")
 
+
 def file_service() -> FileService:
 	return S3FileService()
+
 
 def path_rule_service(conn: Connection) -> PathRuleService:
 	return PathRuleService(
@@ -67,25 +71,33 @@ def path_rule_service(conn: Connection) -> PathRuleService:
 
 
 def current_user_provider(conn: Connection) -> CurrentUserProvider:
-	actionsHistoryQueryService = ActionsHistoryQueryService(conn)
+	actionsHistoryQueryService = FSEventsQueryService()
 	pathRuleService = path_rule_service(conn)
+
+	whenNextCalculator = WhenNextCalculator(actionsHistoryQueryService)
 
 	currentUserProvider = CurrentUserProvider(
 		BasicUserProvider(None),
 		EmptyUserTrackingService(),
-		actionsHistoryQueryService,
+		whenNextCalculator,
 		pathRuleService
 	)
 	return currentUserProvider
 
 
-def queue_service(conn: Connection) -> QueueService:
+def actions_history_management_service(
+	conn: Connection
+) -> FSEventsLoggingService:
 	currentUserProvider = current_user_provider(conn)
-	actionsHistoryManagementService = ActionsHistoryManagementService(
-		conn,
+	return FSEventsLoggingService(
 		EmptyUserTrackingService(),
 		currentUserProvider
 	)
+
+
+def queue_service(conn: Connection) -> QueueService:
+	currentUserProvider = current_user_provider(conn)
+	actionsHistoryManagementService = actions_history_management_service(conn)
 	pathRuleService = path_rule_service(conn)
 	songInfoService = SongInfoService(
 		conn,
@@ -133,27 +145,27 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 
 
 	pathRuleService = path_rule_service(readingConn)
-	stationService = StationService(
+	readingCurrentUserProvider = current_user_provider(readingConn)
+	readingStationService = StationService(
 		readingConn,
-		current_user_provider(readingConn),
+		readingCurrentUserProvider,
 		pathRuleService
 	)
-	stationId = stationService.get_station_id(stationName, ownerName)
+	stationId = readingStationService.get_station_id(stationName, ownerName)
 	if not stationId:
 		raise RuntimeError(
 			"station with owner"
 			f" {ownerName} and name {stationName} not found"
 		)
 	
-	station = next(stationService.get_stations(stationId))
+	station = next(readingStationService.get_stations(stationId))
 
 	queueServiceType = QueueService
 
-	if station.typeid == StationTypes.ALBUMS_ONLY.value:
-		queueServiceType = AlbumQueueService
-	elif station.typeid == StationTypes.PLAYLISTS_ONLY.value:
-		queueServiceType = PlaylistQueueService
-	elif station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
+	if station.typeid == StationTypes.ALBUMS_ONLY.value\
+		or station.typeid == StationTypes.PLAYLISTS_ONLY.value\
+		or station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
+	:
 		queueServiceType = CollectionQueueService
 
 	fileService = file_service()
@@ -163,19 +175,19 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		readingQueueService = queueServiceType(  #pyright: ignore [reportCallIssue]
 			readingConn,
 			readingSongQueueService,
-			current_user_provider(readingConn)
+			readingCurrentUserProvider
 		)
 	updatingQueueService = updatingSongQueueService
 	if queueServiceType != QueueService:
 		updatingQueueService = queueServiceType( #pyright: ignore [reportCallIssue]
 			updatingConn,
 			updatingQueueService,
-			current_user_provider(readingConn)
+			readingCurrentUserProvider,
 		)
 	stationProcessService = StationProcessService(
 		updatingConn,
-		current_user_provider(readingConn),
-		stationService
+		readingCurrentUserProvider,
+		readingStationService
 	)
 	stationProcessService.set_station_proc(stationId)
 
@@ -219,7 +231,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			f"Is sending thread alive? {sendThread.is_alive()}"
 		)
 		logging.radioLogger.info("Disabling the station")
-		stationProcessService.disable_stations(station)
+		stationProcessService.unset_station_procs(stationIds=station.id)
 		logging.radioLogger.debug("Station disabled")
 		close_db_connection(readingConn, "reading")
 		close_db_connection(updatingConn, "updating")

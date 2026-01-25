@@ -10,6 +10,7 @@ from .type_aliases import (
 	simpleDict
 )
 from .simple_functions import role_dict
+from .constants import UserRoleDomain
 
 
 class RulePriorityLevel(Enum):
@@ -31,22 +32,11 @@ class RulePriorityLevel(Enum):
 	LOCKED = 59
 	SUPER = 60
 
-class UserRoleDomain(Enum):
-	Site = "site"
-	Station = "station"
-	Path = "path"
-	Playlist = "playlist"
-	Album = "album"
-	Artist = "artist"
-
-	def conforms(self, candidate: str) -> bool:
-		return candidate.startswith(self.value)
-
 
 class UserRoleDef(Enum):
 	ADMIN = "admin"
-	SITE_USER_ASSIGN = f"{UserRoleDomain.Site.value}:userassign"
-	SITE_USER_LIST = f"{UserRoleDomain.Site.value}:userlist"
+	USER_USER_ASSIGN = f"{UserRoleDomain.User.value}:userassign"
+	USER_USER_LIST = f"{UserRoleDomain.User.value}:userlist"
 	SITE_PLACEHOLDER = f"{UserRoleDomain.Site.value}:placeholder"
 	USER_EDIT = f"{UserRoleDomain.Site.value}:useredit"
 	ALBUM_CREATE = f"{UserRoleDomain.Album.value}:create"
@@ -65,8 +55,8 @@ class UserRoleDef(Enum):
 	STATION_ASSIGN = f"{UserRoleDomain.Station.value}:assign"
 	STATION_USER_ASSIGN = f"{UserRoleDomain.Station.value}:userassign"
 	STATION_USER_LIST = f"{UserRoleDomain.Station.value}:userlist"
-	USER_LIST = "user:list"
-	USER_IMPERSONATE = "user:impersonate"
+	USER_LIST = f"{UserRoleDomain.User.value}:list"
+	USER_IMPERSONATE = f"{UserRoleDomain.User.value}:impersonate"
 	PATH_LIST = f"{UserRoleDomain.Path.value}:list"
 	PATH_EDIT = f"{UserRoleDomain.Path.value}:edit"
 	PATH_DELETE = f"{UserRoleDomain.Path.value}:delete"

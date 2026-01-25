@@ -6,8 +6,6 @@ import subprocess
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
-	FSEventsLoggingService,
-	FSEventsQueryService,
 	BasicUserProvider,
 	CollectionQueueService,
 	CurrentUserProvider,
@@ -18,7 +16,6 @@ from musical_chairs_libs.services import (
 	SongInfoService,
 	StationService,
 	StationProcessService,
-	WhenNextCalculator,
 )
 from threading import ExceptHookArgs, Thread
 from setproctitle import setproctitle
@@ -71,33 +68,18 @@ def path_rule_service(conn: Connection) -> PathRuleService:
 
 
 def current_user_provider(conn: Connection) -> CurrentUserProvider:
-	actionsHistoryQueryService = FSEventsQueryService()
 	pathRuleService = path_rule_service(conn)
-
-	whenNextCalculator = WhenNextCalculator(actionsHistoryQueryService)
 
 	currentUserProvider = CurrentUserProvider(
 		BasicUserProvider(None),
 		EmptyUserTrackingService(),
-		whenNextCalculator,
 		pathRuleService
 	)
 	return currentUserProvider
 
 
-def actions_history_management_service(
-	conn: Connection
-) -> FSEventsLoggingService:
-	currentUserProvider = current_user_provider(conn)
-	return FSEventsLoggingService(
-		EmptyUserTrackingService(),
-		currentUserProvider
-	)
-
-
 def queue_service(conn: Connection) -> QueueService:
 	currentUserProvider = current_user_provider(conn)
-	actionsHistoryManagementService = actions_history_management_service(conn)
 	pathRuleService = path_rule_service(conn)
 	songInfoService = SongInfoService(
 		conn,
@@ -107,7 +89,6 @@ def queue_service(conn: Connection) -> QueueService:
 	queueService = QueueService(
 		conn,
 		currentUserProvider,
-		actionsHistoryManagementService,
 		songInfoService,
 		pathRuleService,
 	)

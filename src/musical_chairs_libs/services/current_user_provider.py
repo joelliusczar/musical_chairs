@@ -1,17 +1,11 @@
-from .events import WhenNextCalculator
 from .basic_user_provider import BasicUserProvider, Impersonation
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
-	ChainedAbsorbentTrie,
 	TrackingInfo,
 	get_datetime,
 	get_path_owner_roles,
 	normalize_opening_slash,
-	NotLoggedInError,
-	TooManyRequestsError,
-	StationInfo,
-	UserRoleDef,
 	UserRoleDomain,
 	WrongPermissionsError,
 )
@@ -28,14 +22,12 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		self,
 		basicUserProvider: BasicUserProvider,
 		trackingInfoProvider: TrackingInfoProvider,
-		whenNextCalculator: WhenNextCalculator,
 		pathRuleService: PathRuleService,
 		securityScopes: set[str] | None = None,
 	) -> None:
 		self.basic_user_provider = basicUserProvider
 		self.__path_rule_loaded_user__: AccountInfo | None = None
 		self.tracking_info_provider = trackingInfoProvider
-		self.when_next_calculator = whenNextCalculator
 		self.get_datetime = get_datetime
 		self.security_scopes = securityScopes or set()
 		self.path_rule_service = pathRuleService
@@ -76,116 +68,9 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		return self.tracking_info_provider.visitor_id()
 
 
-	def get_station_user(
-		self,
-		station: StationInfo,
-	)-> AccountInfo | None:
-		minScope = (not self.security_scopes or\
-			 UserRoleDef.STATION_VIEW.value in self.security_scopes
-		)
-		user = self.current_user(optional=True)
-		if not station.viewsecuritylevel and minScope:
-			return user
-		if not user:
-			raise NotLoggedInError()
-		if user.isadmin:
-			return user
-		scopes = {s for s in self.security_scopes \
-			if UserRoleDomain.Station.conforms(s)
-		}
-		rules = ActionRule.aggregate(
-			station.rules,
-			filter=lambda r: r.name in scopes
-		)
-		if not rules:
-			raise WrongPermissionsError()
-		timeoutLookup = \
-			self.when_next_calculator\
-			.calc_lookup_for_when_user_can_next_do_action(
-				user.id,
-				rules,
-				UserRoleDomain.Station.value,
-				str(station.id)
-			)
-		for scope in scopes:
-			if scope in timeoutLookup:
-				whenNext = timeoutLookup[scope]
-				if whenNext is None:
-					raise WrongPermissionsError()
-				if whenNext > 0:
-					currentTimestamp = self.get_datetime().timestamp()
-					timeleft = whenNext - currentTimestamp
-					raise TooManyRequestsError(int(timeleft))
-		userDict = user.model_dump()
-		userDict["roles"] = rules
-		return AccountInfo(**userDict)
-	
-
-	def get_rate_limited_user(
-		self,
-		domain: str,
-		path: str | None=None
-	) -> AccountInfo:
-		user = self.current_user()
-		if user.isadmin:
-			return user
-		scopeSet = self.security_scopes
-		rules = ActionRule.sorted((r for r in user.roles if r.name in scopeSet))
-		if not rules and scopeSet:
-			raise WrongPermissionsError()
-		timeoutLookup = \
-			self.when_next_calculator\
-				.calc_lookup_for_when_user_can_next_do_action(
-					user.id,
-					rules,
-					domain
-				)
-		for scope in scopeSet:
-			if scope in timeoutLookup:
-				whenNext = timeoutLookup[scope]
-				if whenNext is None:
-					raise WrongPermissionsError()
-				if whenNext > 0:
-					currentTimestamp = get_datetime().timestamp()
-					timeleft = whenNext - currentTimestamp
-					raise TooManyRequestsError(int(timeleft))
-		return user
-
-
 	def impersonate(self, user: AccountInfo) -> Impersonation:
 		return self.basic_user_provider.impersonate(user)
 
-
-	def check_if_can_use_path(
-		self,
-		scopes: list[str],
-		prefix: str,
-		user: AccountInfo,
-		userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
-	):
-		scopeSet = scopes
-		rules = ActionRule.sorted(
-			(r for i in userPrefixTrie.values(normalize_opening_slash(prefix)) \
-				for r in i if r.name in scopeSet)
-		)
-		if not rules and scopes:
-			raise WrongPermissionsError(f"{prefix} not found")
-		timeoutLookup = \
-			self.when_next_calculator\
-				.calc_lookup_for_when_user_can_next_do_action(
-					user.id,
-					rules,
-					UserRoleDomain.Path.value
-				)
-		for scope in scopeSet:
-			if scope in timeoutLookup:
-				whenNext = timeoutLookup[scope]
-				if whenNext is None:
-					raise WrongPermissionsError()
-				if whenNext > 0:
-					currentTimestamp = get_datetime().timestamp()
-					timeleft = whenNext - currentTimestamp
-					raise TooManyRequestsError(int(timeleft))
 
 	@overload
 	def get_path_rule_loaded_current_user(self) -> AccountInfo:

@@ -21,7 +21,7 @@ from musical_chairs_libs.services import (
 )
 from api_dependencies import (
 	album_service,
-	check_rate_limit,
+	check_top_level_rate_limit,
 	get_query_params,
 	get_secured_album_by_id,
 )
@@ -82,7 +82,7 @@ def get(
 
 @router.post("", dependencies=[
 	Security(
-		check_rate_limit(UserRoleDomain.Album.value),
+		check_top_level_rate_limit(UserRoleDomain.Album.value),
 		scopes=[UserRoleDef.ALBUM_CREATE.value]
 	)
 ])

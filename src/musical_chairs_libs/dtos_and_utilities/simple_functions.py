@@ -165,12 +165,14 @@ def squash_chars(
 ) -> str:
 	return "".join(squash_elements(compressura, pattern))
 
+
 def format_newlines_for_stream(input: str) -> str:
 	cleaned = input.replace("\n", " ")
 	output = f"{cleaned}\n"
 	return output
 
-def int_or_str(s: Union[int, str]) -> Union[int, str]:
+
+def int_or_str(s: int | str) -> int | str:
 	#fastapi/pydantic stopped auto comnverting my string ints
 	#to ints
 	try:
@@ -178,8 +180,9 @@ def int_or_str(s: Union[int, str]) -> Union[int, str]:
 		return i
 	except:
 		return s
-	
-def int_or_default(s: Union[int, str, None], default: int = 0) -> int:
+
+
+def int_or_default(s: int | str | None, default: int = 0) -> int:
 	if not s:
 		return default
 	try:

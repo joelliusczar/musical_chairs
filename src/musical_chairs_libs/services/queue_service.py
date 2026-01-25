@@ -70,11 +70,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	QueueMetrics,
 	SimpleQueryParameters,
 	StationCreationInfo,
-	UserRoleDomain,
 )
 from musical_chairs_libs.file_reference import SqlScripts
 from musical_chairs_libs.protocols import (
-	EventsLogger,
 	SongPopper,
 	RadioPusher,
 )
@@ -117,7 +115,6 @@ class QueueService(SongPopper, RadioPusher):
 		self,
 		conn: Connection,
 		currentUserProvider: CurrentUserProvider,
-		eventsLogger: EventsLogger,
 		songInfoService: SongInfoService,
 		pathRuleService: PathRuleService,
 		stationService: Optional[StationService]=None,
@@ -143,7 +140,6 @@ class QueueService(SongPopper, RadioPusher):
 			self.choice = choiceSelector
 			self.get_datetime = get_datetime
 			self.path_rule_service = pathRuleService
-			self.events_logger = eventsLogger
 			self.queue_size = queueSize
 
 
@@ -481,12 +477,6 @@ class QueueService(SongPopper, RadioPusher):
 		songId: int,
 		stationId: int,
 	) -> int:
-		self.events_logger\
-			.add_event(
-				UserRoleDef.STATION_REQUEST.value,
-				UserRoleDomain.Station.value,
-				str(stationId)
-			)
 
 		stmt = insert(station_queue).values(
 				stationfk = stationId,
@@ -537,7 +527,7 @@ class QueueService(SongPopper, RadioPusher):
 		limit: Optional[int]=50
 	) -> CurrentPlayingInfo:
 		pathRuleTree = None
-		user = self.current_user_provider.get_station_user(station)
+		user = self.current_user_provider.current_user()
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 		queue, count = self.get_queue_for_station(
@@ -617,7 +607,7 @@ class QueueService(SongPopper, RadioPusher):
 		beforeTimestamp: Optional[float]=None
 	) -> Tuple[list[SongListDisplayItem], int]:
 
-		user = self.current_user_provider.get_station_user(station)
+		user = self.current_user_provider.current_user()
 		pathRuleTree = None
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree()

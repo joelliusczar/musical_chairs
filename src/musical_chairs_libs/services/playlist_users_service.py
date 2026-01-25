@@ -16,10 +16,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	generate_playlist_user_and_rules_from_rows,
 	RulePriorityLevel,
 	ActionRule,
-	UserRoleDomain,
 	get_playlist_owner_roles,
 	UserRoleDef,
 	build_placeholder_select
+)
+from musical_chairs_libs.dtos_and_utilities.constants import (
+	UserRoleDomain
 )
 from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService

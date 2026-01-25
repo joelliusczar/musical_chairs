@@ -29,6 +29,10 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PasswordInfo,
 	ActionRule,
 )
+from musical_chairs_libs.dtos_and_utilities.constants import (
+	UserActions,
+	UserRoleDomain
+)
 from api_dependencies import (
 	account_access_service,
 	account_management_service,
@@ -40,14 +44,23 @@ from api_dependencies import (
 	get_from_path_subject_user,
 	datetime_provider,
 )
+from api_logging import log_event
 from datetime import datetime
+
 
 
 
 router = APIRouter(prefix=f"/accounts")
 
 
-@router.post("/open")
+@router.post("/open", dependencies=[
+	Depends(
+		log_event(
+			UserRoleDomain.User.value,
+			UserActions.LOGIN.value
+		)
+	)
+])
 def login(
 	response: Response,
 	formData: OAuth2PasswordRequestForm = Depends(),
@@ -153,7 +166,14 @@ def is_phrase_used(
 	}
 
 
-@router.post("/new")
+@router.post("/new", dependencies=[
+	# Depends(
+	# 	log_event(
+	# 		UserRoleDomain.User.value,
+	# 		UserActions.ACCOUNT_CREATE.value
+	# 	)
+	# )
+])
 def create_new_account(
 	accountInfo: AccountCreationInfo,
 	accountManagementService: AccountManagementService = Depends(
@@ -211,6 +231,9 @@ def search_users(
 		Security(
 			check_subjectuser,
 			scopes=[UserRoleDef.USER_EDIT.value]
+		),
+		Depends(
+			log_event(UserRoleDomain.User.value, UserActions.ACCOUNT_UPDATE.value,)
 		)
 	]
 )
@@ -231,6 +254,9 @@ def update_account(
 		Security(
 			check_subjectuser,
 			scopes=[UserRoleDef.USER_EDIT.value]
+		),
+		Depends(
+			log_event(UserRoleDomain.User.value, UserActions.CHANGE_PASS.value,)
 		)
 	]
 )
@@ -290,7 +316,7 @@ def get_account(
 @router.get("/site-roles/user_list",dependencies=[
 	Security(
 		check_subjectuser,
-		scopes=[UserRoleDef.SITE_USER_LIST.value]
+		scopes=[UserRoleDef.USER_USER_LIST.value]
 	)
 ])
 def get_path_user_list(
@@ -328,7 +354,10 @@ def validate_site_rule(
 	dependencies=[
 		Security(
 			check_subjectuser,
-			scopes=[UserRoleDef.SITE_USER_ASSIGN.value]
+			scopes=[UserRoleDef.USER_USER_ASSIGN.value]
+		),
+		Depends(
+			log_event(UserRoleDomain.User.value, UserActions.ADD_SITE_RULE.value,)
 		)
 	]
 )
@@ -348,6 +377,9 @@ def add_user_rule(
 		Security(
 			check_subjectuser,
 			scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
+		),
+		Depends(
+			log_event(UserRoleDomain.User.value, UserActions.REMOVE_SITE_RULE.value)
 		)
 	]
 )

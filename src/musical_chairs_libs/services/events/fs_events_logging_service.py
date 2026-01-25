@@ -66,6 +66,6 @@ class FSEventsLoggingService(EventsLogger,FSEventsQueryService):
 				url,
 				extraInfo,
 			)
-
+		self.add_event_record(record)
 		return record
 

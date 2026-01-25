@@ -59,11 +59,13 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	UserRoleDef,
 	AlreadyUsedError,
-	UserRoleDomain,
 	get_station_owner_rules,
 	RulePriorityLevel,
 	OwnerInfo,
 	row_to_action_rule
+)
+from musical_chairs_libs.dtos_and_utilities.constants import (
+	UserRoleDomain
 )
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from .current_user_provider import CurrentUserProvider
@@ -533,9 +535,7 @@ class StationService:
 		self,
 		station: StationCreationInfo
 	) -> int:
-		user = self.current_user_provider.get_rate_limited_user(
-			UserRoleDomain.Station.value
-		)
+		user = self.current_user_provider.current_user()
 		savedName = SavedNameString(station.name)
 		savedDisplayName = SavedNameString(station.displayname)
 

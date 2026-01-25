@@ -21,12 +21,14 @@ from musical_chairs_libs.dtos_and_utilities import (
 	OwnerType,
 	normalize_opening_slash,
 	RulePriorityLevel,
-	UserRoleDomain,
 	get_playlist_owner_roles,
 	UserRoleDef,
 	build_placeholder_select,
 	SimpleQueryParameters,
 	StationPlaylistTuple,
+)
+from musical_chairs_libs.dtos_and_utilities.constants import (
+	UserRoleDomain
 )
 from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService

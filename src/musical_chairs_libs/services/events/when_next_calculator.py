@@ -1,15 +1,18 @@
 from itertools import groupby
 from musical_chairs_libs.protocols import (
 	EventsQueryer,
-)
-from typing import (
-	Collection,
-	Optional
+	UserProvider
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	UserRoleDomain,
 	get_datetime,
+	TooManyRequestsError,
+	WrongPermissionsError,
+)
+from typing import (
+	Collection,
+	Optional
 )
 
 
@@ -36,8 +39,13 @@ def __when_next_can_do__(
 
 class WhenNextCalculator:
 
-	def __init__(self, eventQueryer: EventsQueryer) -> None:
+	def __init__(
+		self,
+		eventQueryer: EventsQueryer,
+		userProvider: UserProvider
+	):
 		self.event_queryer = eventQueryer
+		self.user_provider = userProvider
 		self.get_datetime = get_datetime
 
 	
@@ -74,3 +82,29 @@ class WhenNextCalculator:
 			) for r in ActionRule.filter_out_repeat_roles(rules)
 		}
 		return result
+	
+
+	def check_if_user_can_perform_rate_limited_action(
+		self,
+		conformingScope: set[str],
+		rules: list[ActionRule],
+		domain: str
+	):
+		if not rules and conformingScope:
+			raise WrongPermissionsError()
+		user = self.user_provider.current_user()
+		timeoutLookup = \
+			self.calc_lookup_for_when_user_can_next_do_action(
+				user.id,
+				rules,
+				domain
+			)
+		for scope in conformingScope:
+			if scope in timeoutLookup:
+				whenNext = timeoutLookup[scope]
+				if whenNext is None:
+					raise WrongPermissionsError()
+				if whenNext > 0:
+					currentTimestamp = get_datetime().timestamp()
+					timeleft = whenNext - currentTimestamp
+					raise TooManyRequestsError(int(timeleft))

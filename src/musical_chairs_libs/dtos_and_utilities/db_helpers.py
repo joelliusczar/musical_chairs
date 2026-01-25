@@ -18,7 +18,6 @@ from musical_chairs_libs.tables import (
 )
 from .user_role_def import (
 	UserRoleDef,
-	UserRoleDomain,
 	RulePriorityLevel,
 )
 from .action_rule_dtos import (
@@ -30,6 +29,7 @@ from .account_dtos import (
 	get_path_owner_roles,
 	get_playlist_owner_roles
 )
+from .constants import UserRoleDomain
 from .simple_functions import normalize_opening_slash
 
 

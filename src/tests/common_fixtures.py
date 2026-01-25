@@ -205,15 +205,18 @@ def fixture_path_rule_service(
 
 @pytest.fixture
 def fixture_when_next_calculator(
-	fixture_actions_history_query_service: FSEventsQueryService
+	fixture_actions_history_query_service: FSEventsQueryService,
+	fixture_basic_user_provider: BasicUserProvider,
 ) -> WhenNextCalculator:
-	return WhenNextCalculator(fixture_actions_history_query_service)
+	return WhenNextCalculator(
+		fixture_actions_history_query_service,
+		fixture_basic_user_provider
+	)
 
 
 @pytest.fixture
 def fixture_current_user_provider(
 	fixture_tracking_info_provider: TrackingInfoProvider,
-	fixture_when_next_calculator: WhenNextCalculator,
 	fixture_path_rule_service: PathRuleService,
 	fixture_basic_user_provider: BasicUserProvider,
 ) -> CurrentUserProvider:
@@ -221,7 +224,6 @@ def fixture_current_user_provider(
 	return CurrentUserProvider(
 		fixture_basic_user_provider,
 		fixture_tracking_info_provider,
-		fixture_when_next_calculator,
 		fixture_path_rule_service
 	)
 
@@ -231,24 +233,20 @@ def fixture_account_management_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
 	fixture_account_access_service: AccountAccessService,
-	fixture_user_actions_history_service: FSEventsLoggingService,
 ) -> AccountManagementService:
 		return AccountManagementService(
 			fixture_conn_cardboarddb,
 			fixture_current_user_provider,
 			fixture_account_access_service,
-			fixture_user_actions_history_service
 		)
 
 
 @pytest.fixture
 def fixture_account_token_creator(
 	fixture_conn_cardboarddb: Connection,
-	fixture_user_actions_history_service: FSEventsLoggingService,
 ) -> AccountTokenCreator:
 	return AccountTokenCreator(
 		fixture_conn_cardboarddb,
-		fixture_user_actions_history_service
 	)
 
 
@@ -291,7 +289,6 @@ def fixture_song_info_service(
 
 @pytest.fixture
 def fixture_user_actions_history_service(
-	fixture_conn_cardboarddb: Connection,
 	fixture_tracking_info_provider: TrackingInfoProvider,
 	fixture_current_user_provider: CurrentUserProvider
 ) -> FSEventsLoggingService:
@@ -306,14 +303,12 @@ def fixture_user_actions_history_service(
 def fixture_queue_service(
 	fixture_conn_cardboarddb: Connection,
 	fixture_current_user_provider: CurrentUserProvider,
-	fixture_user_actions_history_service: FSEventsLoggingService,
 	fixture_song_info_service: SongInfoService,
 	fixture_path_rule_service: PathRuleService,
 ) -> QueueService:
 	queueService = QueueService(
 		fixture_conn_cardboarddb,
 		fixture_current_user_provider,
-		fixture_user_actions_history_service,
 		fixture_song_info_service,
 		fixture_path_rule_service,
 	)

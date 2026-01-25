@@ -7,7 +7,6 @@ from typing import (
 	Tuple,
 	Optional,
 	Union,
-	Collection,
 	Callable
 )
 from urllib import parse
@@ -46,7 +45,6 @@ from musical_chairs_libs.services import (
 	StationsSongsService,
 	StationsUsersService,
 	StationProcessService,
-	CollectionQueueService,
 	CurrentUserProvider,
 	VisitorService,
 )
@@ -56,9 +54,7 @@ from musical_chairs_libs.services.events import (
 	WhenNextCalculator
 )
 from musical_chairs_libs.protocols import (
-	EventsLogger,
 	FileService,
-	RadioPusher
 )
 from musical_chairs_libs.services.fs import (
 	S3FileService
@@ -70,23 +66,16 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ArtistInfo,
 	build_error_obj,
 	ConfigAcessors,
-	DirectoryTransfer,
 	get_datetime,
 	InMemEventRecordMap,
 	int_or_str,
-	normalize_opening_slash,
 	NotLoggedInError,
 	UserRoleDef,
-	StationInfo,
 	TrackingInfo,
 	PlaylistInfo,
 	SimpleQueryParameters,
 	UserRoleDomain,
 	WrongPermissionsError,
-)
-from musical_chairs_libs.dtos_and_utilities.constants import (
-	StationRequestTypes,
-	StationTypes,
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose.exceptions import ExpiredSignatureError
@@ -97,13 +86,13 @@ from api_error import (
 	build_wrong_permissions_error,
 )
 from datetime import datetime
-from base64 import urlsafe_b64decode
+
 
 class GlobalStore:
 	
 	def __init__(self) -> None:
 		self.events_store = InMemEventRecordMap()
-		self.visitor_id_map = dict[str, Any]
+		self.visitor_id_map: dict[str, Any] = {}
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -235,7 +224,6 @@ def get_tracking_info(request: Request):
 	userAgent = request.headers["user-agent"]
 	ipaddresses = extract_ip_address(request)
 
-	
 	return TrackingInfo(
 		userAgent,
 		ipv4Address=ipaddresses[0],
@@ -243,11 +231,22 @@ def get_tracking_info(request: Request):
 		url=request.url.path
 	)
 
+def global_store(request: Request) -> GlobalStore | None:
+	try:
+		return request.app.state.global_store
+	except AttributeError:
+		pass
+
 
 def visitor_service(
+		globalStore: GlobalStore | None = Depends(global_store),
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> VisitorService:
-	return VisitorService(conn)
+	return VisitorService(
+		conn, 
+		globalStore.visitor_id_map\
+		if globalStore else None
+	)
 
 
 def vistor_tracking_service(
@@ -279,13 +278,6 @@ def path_rule_service(
 	return PathRuleService(conn, fileService, userProvider)
 
 
-def global_store(request: Request) -> GlobalStore | None:
-	try:
-		return request.app.state.global_store
-	except AttributeError:
-		pass
-
-
 def in_mem_events_logging_service(
 	globalStore: GlobalStore | None = Depends(global_store),
 	vistorTrackingService: VisitorTrackingService = Depends(
@@ -297,7 +289,6 @@ def in_mem_events_logging_service(
 	),
 	getDatetime: Callable[[], datetime] = Depends(datetime_provider)
 ) -> InMemEventsLoggingService:
-	
 
 	service =  InMemEventsLoggingService(
 		vistorTrackingService,
@@ -335,12 +326,17 @@ def aggregate_events_logging_service(
 ):
 	return AggregateEventsLoggingService(fs, inMem)
 
+
 def when_next_calculator(
 	inMemEventsLoggingServiice: InMemEventsLoggingService = Depends(
 		in_mem_events_logging_service
-	)
+	),
+	userProvider: BasicUserProvider = Depends(basic_user_provider)
 ) -> WhenNextCalculator:
-	return WhenNextCalculator(inMemEventsLoggingServiice)
+	return WhenNextCalculator(
+		inMemEventsLoggingServiice,
+		userProvider
+	)
 
 
 def current_user_provider(
@@ -349,18 +345,15 @@ def current_user_provider(
 	currentUserTrackingService: VisitorTrackingService = Depends(
 		vistor_tracking_service
 	),
-	whenNextCalculator: WhenNextCalculator = Depends(
-		when_next_calculator
-	),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> CurrentUserProvider:
 	return CurrentUserProvider(
 		basicUserProvider,
 		currentUserTrackingService,
-		whenNextCalculator,
 		pathRuleService,
 		set(securityScopes.scopes)
 	)
+
 
 def __check_scope__(
 	securityScopes: SecurityScopes,
@@ -372,6 +365,7 @@ def __check_scope__(
 	if not hasRole:
 		raise build_wrong_permissions_error()
 
+
 def check_scope(
 	securityScopes: SecurityScopes,
 	currentUser: AccountInfo = Depends(get_current_user_simple),
@@ -381,8 +375,6 @@ def check_scope(
 
 def account_management_service(
 	conn: Connection=Depends(get_configured_db_connection),
-	eventsLogger: EventsLogger =
-		Depends(aggregate_events_logging_service),
 	userProvider: CurrentUserProvider = Depends(
 		current_user_provider
 	),
@@ -392,16 +384,13 @@ def account_management_service(
 		conn,
 		userProvider,
 		accountsAccessService,
-		eventsLogger,
 	)
 
 
 def account_token_creator(
 	conn: Connection=Depends(get_configured_db_connection),
-	userActionHistoryService: EventsLogger =
-		Depends(aggregate_events_logging_service)
 ) -> AccountTokenCreator:
-	return AccountTokenCreator(conn, userActionHistoryService)
+	return AccountTokenCreator(conn)
 
 
 def playlists_songs_service(
@@ -423,15 +412,12 @@ def song_info_service(
 def queue_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-	eventsLogger: EventsLogger =
-		Depends(aggregate_events_logging_service),
 	songInfoService: SongInfoService = Depends(song_info_service),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> QueueService:
 	return QueueService(
 		conn,
 		currentUserProvider,
-		eventsLogger,
 		songInfoService,
 		pathRuleService,
 	)
@@ -574,86 +560,9 @@ def process_service() -> ProcessService:
 	return ProcessService()
 
 
-def get_optional_prefix(
-	prefix: Optional[str]=Query(None),
-	nodeId: Optional[str]=Query(None)
-) -> Optional[str]:
-	if prefix is not None:
-		return prefix
-	if nodeId is not None:
-		translated = nodeId
-		decoded = urlsafe_b64decode(translated).decode()
-		return decoded
-	return ""
 
-
-def get_prefix(
-	prefix:Optional[str] = Depends(get_optional_prefix)
-) -> str:
-	if prefix is not None:
-		return prefix
-	raise HTTPException(
-		status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-		detail=[build_error_obj("prefix and nodeId both missing")
-		]
-	)
-
-
-def get_read_secured_prefix(
-	prefix: str = Depends(get_prefix),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> str:
-	currentUserProvider.get_path_rule_loaded_current_user()
-	return prefix
-
-
-def get_write_secured_prefix(
-	securityScopes: SecurityScopes,
-	prefix: str = Depends(get_prefix),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> str:
-	user = currentUserProvider.get_path_rule_loaded_current_user()
-	if user.isadmin:
-		return prefix
-	if not securityScopes:
-		return prefix
-	
-	scopes = [s for s in securityScopes.scopes \
-		if UserRoleDomain.Path.conforms(s)
-	]
-	if prefix:
-		userPrefixTrie = user.get_permitted_paths_tree()
-		currentUserProvider.check_if_can_use_path(
-			scopes,
-			prefix,
-			user,
-			userPrefixTrie,
-		)
-	return prefix
-
-
-def get_secured_directory_transfer(
-	transfer: DirectoryTransfer,
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> DirectoryTransfer:
-	user = currentUserProvider.get_path_rule_loaded_current_user()
-	userPrefixTrie = user.get_permitted_paths_tree()
-	scopes = (
-		(transfer.path, UserRoleDef.PATH_DELETE),
-		(transfer.newprefix, UserRoleDef.PATH_EDIT)
-	)
-
-	for path, scope in scopes:
-		currentUserProvider.check_if_can_use_path(
-			[scope.value],
-			path,
-			user,
-			userPrefixTrie
-		)
-	return transfer
-
-def __open_user_from_request__(
-	userkey: Union[int, str, None],
+def open_provided_user(
+	userkey: int | str | None,
 	accountManagementService: AccountManagementService
 ) -> Optional[AccountInfo]:
 	if userkey:
@@ -678,7 +587,7 @@ def get_from_path_subject_user(
 		account_management_service
 	)
 ) -> AccountInfo:
-	user = __open_user_from_request__(subjectuserkey, accountManagementService)
+	user = open_provided_user(subjectuserkey, accountManagementService)
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -694,7 +603,7 @@ def get_from_query_subject_user(
 		account_management_service
 	)
 ) -> AccountInfo:
-	user = __open_user_from_request__(subjectuserkey, accountManagementService)
+	user = open_provided_user(subjectuserkey, accountManagementService)
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -710,7 +619,7 @@ def get_owner_from_query(
 		account_management_service
 	)
 ) -> Optional[AccountInfo]:
-	return __open_user_from_request__(ownerkey, accountManagement)
+	return open_provided_user(ownerkey, accountManagement)
 
 
 def get_owner_from_path(
@@ -719,7 +628,7 @@ def get_owner_from_path(
 		account_management_service
 	)
 ) -> Optional[AccountInfo]:
-	return __open_user_from_request__(ownerkey, accountsService)
+	return open_provided_user(ownerkey, accountsService)
 
 
 def get_playlist_by_name_and_owner(
@@ -808,78 +717,9 @@ def get_secured_playlist_by_name_and_owner(
 	return playlist
 
 
-def get_station_by_id(
-		stationid: int=Path(),
-		stationService: StationService = Depends(station_service),
-) -> StationInfo:
-	station = next(stationService.get_stations(stationKeys=stationid), None)
-	if not station:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(
-				f"station not found for id {stationid}"
-			)]
-		)
-	return station
-
-
-def get_stations_by_ids(
-	stationids: list[int]=Query(default=[]),
-	stationService: StationService = Depends(station_service),
-) -> Collection[StationInfo]:
-	if not stationids:
-		return ()
-	return list(stationService.get_stations(
-		stationids
-	))
-
-
-def get_station_by_name_and_owner(
-	stationkey: Union[int, str] = Depends(station_key_path),
-	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
-	stationService: StationService = Depends(station_service),
-) -> StationInfo:
-	if type(stationkey) == str and not owner:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(
-				f"owner for station with key {stationkey} not found"
-			)]
-		)
-	#owner id is okay to be null if stationKey is an int
-	ownerId = owner.id if owner else None
-	station = next(stationService.get_stations(
-		stationkey,
-		ownerId=ownerId
-	),None)
-	if not station:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"station with key {stationkey} not found")
-			]
-		)
-	return station
-
-
-def get_secured_station_by_id(
-	station: StationInfo = Depends(get_station_by_id),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> StationInfo:
-	currentUserProvider.get_station_user(station)
-	return station
-
-
-def get_secured_station_by_name_and_owner(
-	station: StationInfo = Depends(get_station_by_name_and_owner),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> StationInfo:
-	currentUserProvider.get_station_user(station)
-	return station
-
-
 def get_album_by_id(
-		albumid: int=Path(),
-		albumService: AlbumService = Depends(album_service),
+	albumid: int=Path(),
+	albumService: AlbumService = Depends(album_service),
 ) -> AlbumInfo:
 	album = next(albumService.get_albums(albumKeys=albumid), None)
 	if not album:
@@ -928,45 +768,6 @@ def get_secured_artist_by_id(
 	return artist
 
 
-def station_radio_pusher(
-	station: StationInfo = Depends(get_station_by_name_and_owner),
-	conn: Connection = Depends(get_configured_db_connection),
-	queueService: QueueService =  Depends(queue_service),
-	currentUserProvider: CurrentUserProvider = Depends(current_user_provider),
-) -> RadioPusher:
-	if station.typeid == StationTypes.SONGS_ONLY.value:
-		return queueService
-	if station.typeid == StationTypes.ALBUMS_ONLY.value\
-		or station.typeid == StationTypes.PLAYLISTS_ONLY.value\
-		or station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
-			:
-		return CollectionQueueService(
-			conn,
-			queueService,
-			currentUserProvider
-		)
-	raise HTTPException(
-		status_code=status.HTTP_404_NOT_FOUND,
-		detail=[build_error_obj(f"Station type: {station.typeid} not found")
-		]
-	)
-
-
-def validated_station_request_type(
-	requesttypeid: int = Path(),
-	radioPusher: RadioPusher = Depends(station_radio_pusher)
-) -> StationRequestTypes:
-	requestType = StationRequestTypes(requesttypeid)
-	if requestType not in radioPusher.accepted_request_types():
-		raise HTTPException(
-				status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-				detail=[build_error_obj(
-					f"{requestType.name} cannot be requested of that station"
-					)
-				]
-			)
-	return requestType
-
 
 def get_current_user(
 	user: AccountInfo = Depends(get_current_user_simple)
@@ -997,19 +798,6 @@ def check_subjectuser(
 	if not isCurrentUser and not hasEditRole:
 		raise build_wrong_permissions_error()
 
-
-def get_prefix_if_owner(
-	prefix: str=Depends(get_prefix),
-	currentUser: AccountInfo = Depends(get_current_user_simple),
-) -> str:
-	if not currentUser.dirroot:
-		raise build_wrong_permissions_error()
-	normalizedPrefix = normalize_opening_slash(prefix)
-	if not normalizedPrefix.startswith(
-		normalize_opening_slash(currentUser.dirroot)
-	):
-		raise build_wrong_permissions_error()
-	return prefix
 
 
 def get_page_num(
@@ -1052,16 +840,26 @@ def get_secured_query_params(
 	return queryParams
 
 
-def check_rate_limit(domain: str):
+def check_top_level_rate_limit(domain: str):
 		
 	def __check_rate_limit(
-		currentUserProvider : CurrentUserProvider = Depends(current_user_provider)
+		securityScopes: SecurityScopes,
+		currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+		whenNextCalculator: WhenNextCalculator = Depends(
+			when_next_calculator
+		),
 	):
-		currentUserProvider.get_rate_limited_user(domain)
+		user = currentUserProvider.current_user()
+		if user.isadmin:
+			return
+		scopeSet = {s for s in securityScopes.scopes}
+		rules = ActionRule.sorted((r for r in user.roles if r.name in scopeSet))
+		if not rules and scopeSet:
+			raise WrongPermissionsError()
+		whenNextCalculator.check_if_user_can_perform_rate_limited_action(
+			scopeSet,
+			rules,
+			domain
+		)
 	
 	return __check_rate_limit
-
-
-def log_event():
-	yield
-	print("Hi here")

@@ -5,10 +5,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SavedNameString,
 	get_datetime,
 	ConfigAcessors,
-	UserRoleDomain
 )
-from musical_chairs_libs.dtos_and_utilities.constants import UserActions
-from musical_chairs_libs.protocols import EventsLogger
 from sqlalchemy.engine import Connection
 from jose import jwt
 
@@ -22,13 +19,11 @@ class AccountTokenCreator:
 
 	def __init__(self,
 		conn: Connection,
-		eventsLogger: EventsLogger
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
-		self.events_logger = eventsLogger
 
 
 
@@ -44,11 +39,6 @@ class AccountTokenCreator:
 			},
 			ConfigAcessors.auth_key(),
 			ALGORITHM
-		)
-		self.events_logger.add_event(
-			UserActions.LOGIN.value,
-			UserRoleDomain.Site.value,
-			str(user.id)
 		)
 		self.conn.commit()
 		return token

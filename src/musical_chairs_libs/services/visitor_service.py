@@ -1,4 +1,5 @@
 import hashlib
+import unicodedata
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	TrackingInfo,
@@ -26,7 +27,10 @@ class VisitorService:
 			raise RuntimeError("No connection provided")
 		self.conn = conn
 		self.get_datetime = get_datetime
-		self.__cache__: dict[str, Any] = globalStore or {}
+		if globalStore is not None:
+			self.__cache__ = globalStore
+		else:
+			self.__cache__: dict[str, Any] = {}
 
 
 	def check_cache(self, trackingInfo: TrackingInfo) -> int | None:
@@ -66,7 +70,7 @@ class VisitorService:
 				self.add_to_cache(row[uag_pk], trackingInfo)
 				return row[uag_pk]
 		stmt = insert(user_agents).values(
-			content = trackingInfo.userAgent,
+			content = unicodedata.normalize("NFC", trackingInfo.userAgent),
 			hash = userAgentHash,
 			length = userAgentLen,
 			ipv4address = trackingInfo.ipv4Address,
@@ -75,6 +79,7 @@ class VisitorService:
 		insertedIdRow = self.conn.execute(stmt).inserted_primary_key
 		if insertedIdRow:
 			self.add_to_cache(insertedIdRow[0], trackingInfo)
+			self.conn.commit()
 			return insertedIdRow[0]
 		else:
 			raise RuntimeError("Failed to create visitor id")

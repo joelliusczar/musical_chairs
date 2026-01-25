@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from collections import defaultdict, deque
 from typing import Iterator
-from .account_dtos import UserRoleDomain
+from .constants import UserRoleDomain
 
 @dataclass
 class EventRecord:

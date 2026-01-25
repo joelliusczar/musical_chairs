@@ -7,7 +7,6 @@ from typing import (
 	Tuple
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	ActionRule,
 	SavedNameString,
 	SearchNameString,
 	AlbumInfo,
@@ -171,7 +170,7 @@ class AlbumService:
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
 		records = self.conn.execute(query).mappings().fetchall()
-		ownerRules = cast(list[ActionRule],[*get_album_owner_roles()])
+		ownerRules = [*get_album_owner_roles()]
 		userId = self.current_user_provider.optional_user_id()
 		yield from (AlbumInfo(
 			id=row["id"],

@@ -8,7 +8,8 @@ from typing import (
 	Callable,
 	cast
 )
-from .user_role_def import UserRoleDomain, RulePriorityLevel
+from .user_role_def import RulePriorityLevel
+from .constants import UserRoleDomain
 from itertools import groupby, chain
 from operator import attrgetter
 from sqlalchemy.engine.row import RowMapping

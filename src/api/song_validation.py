@@ -1,8 +1,10 @@
+from base64 import urlsafe_b64decode
 from typing import Union, Iterable, Optional
 from fastapi import (
 	Depends,
 	HTTPException,
 	status,
+	Query,
 	Request,
 )
 from fastapi.security import SecurityScopes
@@ -12,27 +14,34 @@ from musical_chairs_libs.services import (
 	ArtistService,
 	AlbumService,
 	PathRuleService,
-	StationsSongsService
+	StationsSongsService,
+)
+from musical_chairs_libs.services.events import (
+	WhenNextCalculator
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
-	UserRoleDef,
-	build_error_obj,
-	ValidatedSongAboutInfo,
 	ActionRule,
+	build_error_obj,
+	ChainedAbsorbentTrie,
+	DirectoryTransfer,
+	UserRoleDef,
+	ValidatedSongAboutInfo,
 	UserRoleDomain,
 	normalize_opening_slash,
-	get_path_owner_roles
+	get_path_owner_roles,
+	WrongPermissionsError,
 )
 from api_dependencies import (
 	current_user_provider,
 	path_rule_service,
 	station_service,
+	get_current_user_simple,
 	get_from_query_subject_user,
-	get_prefix,
 	album_service,
 	artist_service,
 	stations_songs_service,
+	when_next_calculator
 )
 
 
@@ -60,7 +69,7 @@ def get_song_ids(request: Request) -> list[int]:
 		fieldNames = ["itemId", "itemid", "id", "songid"]
 		for fieldName in fieldNames:
 			key = request.path_params.get(fieldName, None)
-			if not key is None:
+			if key is not None:
 				result.add(int(key))
 
 		fieldNames = ["itemids", "songids", "itemIds"]
@@ -79,27 +88,49 @@ def get_song_ids(request: Request) -> list[int]:
 		)
 	return [*result]
 
+def check_if_can_use_path(
+	scopes: set[str],
+	prefix: str,
+	userPrefixTrie: ChainedAbsorbentTrie[ActionRule],
+	whenNextCalculator: WhenNextCalculator
+):
+	scopeSet = scopes
+	rules = ActionRule.sorted(
+		(r for i in userPrefixTrie.values(normalize_opening_slash(prefix)) \
+			for r in i if r.name in scopeSet)
+	)
+	if not rules and scopes:
+		raise WrongPermissionsError(f"{prefix} not found")
+	whenNextCalculator.check_if_user_can_perform_rate_limited_action(
+		scopes,
+		rules,
+		UserRoleDomain.Path.value
+	)
+
 
 def get_secured_song_ids(
 	securityScopes: SecurityScopes,
 	songIds: list[int] = Depends(get_song_ids),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
+	whenNextCalculator: WhenNextCalculator = Depends(
+		when_next_calculator
+	),
 ) -> list[int]:
 	user = currentUserProvider.get_path_rule_loaded_current_user()
 	if user.isadmin:
 		return songIds
 	userPrefixTrie = user.get_permitted_paths_tree()
 	prefixes = [*pathRuleService.get_song_path(songIds)]
-	scopes = [s for s in securityScopes.scopes \
+	scopes = {s for s in securityScopes.scopes \
 		if UserRoleDomain.Path.conforms(s)
-	]
+	}
 	for prefix in prefixes:
-		currentUserProvider.check_if_can_use_path(
+		check_if_can_use_path(
 			scopes,
 			prefix,
-			user,
-			userPrefixTrie
+			userPrefixTrie,
+			whenNextCalculator
 		)
 	return songIds
 
@@ -188,6 +219,105 @@ def __validate_song_album__(
 					"artists"
 				)],
 		)
+
+
+def get_optional_prefix(
+	prefix: Optional[str]=Query(None),
+	nodeId: Optional[str]=Query(None)
+) -> Optional[str]:
+	if prefix is not None:
+		return prefix
+	if nodeId is not None:
+		translated = nodeId
+		decoded = urlsafe_b64decode(translated).decode()
+		return decoded
+	return ""
+
+
+def get_prefix(
+	prefix:Optional[str] = Depends(get_optional_prefix)
+) -> str:
+	if prefix is not None:
+		return prefix
+	raise HTTPException(
+		status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+		detail=[build_error_obj("prefix and nodeId both missing")
+		]
+	)
+
+
+def get_read_secured_prefix(
+	prefix: str = Depends(get_prefix),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+) -> str:
+	currentUserProvider.get_path_rule_loaded_current_user()
+	return prefix
+
+
+def get_write_secured_prefix(
+	securityScopes: SecurityScopes,
+	prefix: str = Depends(get_prefix),
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	whenNextCalculator: WhenNextCalculator = Depends(
+		when_next_calculator
+	),
+) -> str:
+	user = currentUserProvider.get_path_rule_loaded_current_user()
+	if user.isadmin:
+		return prefix
+	if not securityScopes:
+		return prefix
+	
+	scopes = {s for s in securityScopes.scopes \
+		if UserRoleDomain.Path.conforms(s)
+	}
+	if prefix:
+		userPrefixTrie = user.get_permitted_paths_tree()
+		check_if_can_use_path(
+			scopes,
+			prefix,
+			userPrefixTrie,
+			whenNextCalculator
+		)
+	return prefix
+
+
+def get_prefix_if_owner(
+	prefix: str=Depends(get_prefix),
+	currentUser: AccountInfo = Depends(get_current_user_simple),
+) -> str:
+	if not currentUser.dirroot:
+		raise WrongPermissionsError()
+	normalizedPrefix = normalize_opening_slash(prefix)
+	if not normalizedPrefix.startswith(
+		normalize_opening_slash(currentUser.dirroot)
+	):
+		raise WrongPermissionsError()
+	return prefix
+
+
+def get_secured_directory_transfer(
+	transfer: DirectoryTransfer,
+	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	whenNextCalculator: WhenNextCalculator = Depends(
+		when_next_calculator
+	),
+) -> DirectoryTransfer:
+	user = currentUserProvider.get_path_rule_loaded_current_user()
+	userPrefixTrie = user.get_permitted_paths_tree()
+	scopes = (
+		(transfer.path, UserRoleDef.PATH_DELETE),
+		(transfer.newprefix, UserRoleDef.PATH_EDIT)
+	)
+
+	for path, scope in scopes:
+		check_if_can_use_path(
+			{scope.value},
+			path,
+			userPrefixTrie,
+			whenNextCalculator
+		)
+	return transfer
 
 
 def extra_validated_song(
@@ -284,3 +414,5 @@ def validate_path_rule_for_remove(
 				)],
 			)
 	return ruleName
+
+

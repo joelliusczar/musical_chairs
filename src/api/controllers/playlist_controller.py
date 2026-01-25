@@ -28,7 +28,7 @@ from musical_chairs_libs.services import (
 	StationsPlaylistsService,
 )
 from api_dependencies import (
-	check_rate_limit,
+	check_top_level_rate_limit,
 	get_owner_from_query,
 	get_playlist_by_name_and_owner,
 	get_from_query_subject_user,
@@ -117,7 +117,7 @@ def get_playlist_for_edit(
 
 @router.post("", dependencies=[
 	Security(
-		check_rate_limit(UserRoleDomain.Playlist.value),
+		check_top_level_rate_limit(UserRoleDomain.Playlist.value),
 		scopes=[UserRoleDef.PLAYLIST_CREATE.value]
 	)
 ])

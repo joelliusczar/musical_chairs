@@ -3,7 +3,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationInfo,
 	get_datetime,
 	Lost,
-	UserRoleDomain
 )
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 from musical_chairs_libs.tables import (
@@ -69,13 +68,11 @@ class StationProcessService:
 		path.touch()
 
 	def enable_stations(self,
-		station:Optional[StationInfo],
+		station:StationInfo | None
 	) -> Iterator[StationInfo]:
 		stationsEnabled: Iterator[StationInfo] = iter([])
 		if not station:
-			user = self.current_user_provider.get_rate_limited_user(
-				UserRoleDomain.Station.value
-			)
+			user = self.current_user_provider.current_user()
 			canBeEnabled = {s[0] for s in  \
 				self.station_service.get_station_song_counts(ownerId=user.id) \
 				if s[1] > 0
@@ -85,7 +82,6 @@ class StationProcessService:
 				ownerId=user.id
 			)
 		else:
-			self.current_user_provider.get_station_user(station)
 			canBeEnabled = {s[0] for s in  \
 				self.station_service.get_station_song_counts(
 					stationIds=[station.id]
@@ -146,7 +142,7 @@ class StationProcessService:
 	def unset_station_procs(
 		self,
 		procIds: Optional[Iterable[int]]=None,
-		stationIds: Union[int,Sequence[int], None, Lost]=Lost(),
+		stationIds: Union[int,Sequence[int], None, Lost]=Lost()
 	) -> None:
 		stmt = update(stations_tbl)\
 			.values(procid = None)
@@ -173,7 +169,7 @@ class StationProcessService:
 
 	def disable_stations(
 		self,
-		station: Optional[StationInfo],
+		station: StationInfo | None
 	) -> None:
 
 		logging.radioLogger.debug(
@@ -181,12 +177,9 @@ class StationProcessService:
 		)
 		query = select(st_procId).where(st_procId.is_not(None))
 		if station is None:
-			ownerKey = self.current_user_provider.get_rate_limited_user(
-				UserRoleDomain.Station.value
-			).id
+			ownerKey = self.current_user_provider.current_user().id
 			query = query.where(st_ownerFk == ownerKey)
 		else:
-			self.current_user_provider.get_station_user(station)
 			query = query.where(st_pk == station.id)
 			
 

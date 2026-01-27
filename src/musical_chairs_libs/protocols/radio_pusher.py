@@ -28,12 +28,14 @@ class RadioPusher(Protocol):
 	):
 		...
 
+
 	def remove_song_from_queue(self,
 		songId: int,
 		queuedTimestamp: float,
 		station: StationInfo,
 	) -> Optional[CurrentPlayingInfo]:
 		...
+
 
 	def get_catalogue(
 		self,

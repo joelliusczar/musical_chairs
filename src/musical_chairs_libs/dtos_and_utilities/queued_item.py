@@ -1,5 +1,4 @@
 import os
-from dataclasses import dataclass
 from .account_dtos import OwnerType
 from .action_rule_dtos import ActionRule
 from .artist_dtos import ArtistInfo
@@ -11,6 +10,7 @@ from .generic_dtos import (
 	IdItem,
 )
 from pydantic import (
+	BaseModel as MCBaseClass,
 	Field,
 )
 from typing import (
@@ -20,9 +20,9 @@ from typing import (
 )
 
 class QueuedItem(NamedIdItem):
-	queuedtimestamp: float=Field(frozen=True)
-	itemtype: str=Field(default="song") #for display?
-	parentkey: Optional[int]=None
+	queuedtimestamp: float = Field(frozen=True)
+	itemtype: str = Field(default=StationRequestTypes.SONG.lower()) #for display?
+	parentkey: int | None = None
 
 	def __hash__(self) -> int:
 		return hash((self.id, self.name, self.queuedtimestamp))
@@ -33,7 +33,35 @@ class QueuedItem(NamedIdItem):
 		return self.id == value.id \
 			and self.name == value.name \
 			and self.queuedtimestamp == value.queuedtimestamp
-	
+
+
+class SongListBasicItem(QueuedItem):
+	album: str | None
+	artist: str | None
+	internalpath: str
+	path: str
+
+
+	def __hash__(self) -> int:
+		return super().__hash__()
+
+
+	def display(self) -> str:
+		if self.name:
+				display = f"{self.name} - {self.album} - {self.artist}"
+		else:
+			display = os.path.splitext(os.path.split(self.path)[1])[0]
+		return display.replace("\n", "")
+
+
+class StreamQueuedItem(SongListBasicItem):
+	userId: int | None = None
+	action: str | None = None
+
+	def __hash__(self) -> int:
+		return super().__hash__()
+
+
 class CatalogueItem(QueuedItem):
 	creator: str
 	parentname: str
@@ -47,31 +75,18 @@ class CatalogueItem(QueuedItem):
 	playedcount: int=0
 
 
-class SongListDisplayItem(QueuedItem):
-	album: Optional[str]
-	artist: Optional[str]
-	path: str
-	internalpath: str
-	track: Optional[float]=None
-	playedtimestamp: Optional[float]=None
+class SongListDisplayItem(SongListBasicItem):
+	
 	rules: list[ActionRule]=cast(
 		list[ActionRule],
 		Field(default_factory=list, frozen=False)
 	)
-	historyid: Optional[int]=None
-	disc: Optional[int]=None
-
-	def __hash__(self) -> int:
-		return super().__hash__()
 
 
-	def display(self) -> str:
-		if self.name:
-				display = f"{self.name} - {self.album} - {self.artist}"
-		else:
-			display = os.path.splitext(os.path.split(self.path)[1])[0]
-		return display.replace("\n", "")
-	
+class HistoryItem(SongListDisplayItem):
+	playedtimestamp: Optional[float]=None
+	historyid: int
+
 
 class StationTableData(TableData[T]):
 	stationrules: list[ActionRule]
@@ -90,15 +105,15 @@ class QueueRequest(IdItem):
 	itemtype: str
 	parentKey: Optional[int]
 
-@dataclass
-class QueuePossibility:
+
+class QueuePossibility(MCBaseClass):
 	itemId: int
 	lastplayednum: int
 	playnum: int
 	itemtype: str = StationRequestTypes.SONG.lower()
 
-@dataclass
-class QueueMetrics:
+
+class QueueMetrics(MCBaseClass):
 	maxSize: int
 	loaded: int = 0
 	queued: int = 0

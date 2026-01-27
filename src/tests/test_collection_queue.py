@@ -19,7 +19,8 @@ def test_adding_album_to_queue(
 ):
 	queueService = fixture_queue_service
 	collectionQueueService = fixture_collection_queue_service
-	collectionQueueService.fil_up_queue(26, QueueMetrics(3))
+	station = collectionQueueService.queue_service.__get_station__(26)
+	collectionQueueService.fil_up_queue(station, QueueMetrics(maxSize=3))
 	queue1, _ = queueService.get_queue_for_station(26)
 	assert queue1
 
@@ -43,7 +44,9 @@ def test_queue_count(
 	collectionQueueService = fixture_collection_queue_service
 
 	collectionQueueService.pop_next_queued(29)
-	count = collectionQueueService.queue_count(29)
+	station = collectionQueueService.queue_service.__get_station__(29)
+	alreadyQueued = [*collectionQueueService.load_current_queue(station)]
+	count = collectionQueueService.queue_count(alreadyQueued)
 	assert count
 	assert count <= (collectionQueueService.queue_size + 1)
 
@@ -69,17 +72,16 @@ def test_collection_pop_next(
 		nonlocal idx
 		collectionQueueService.move_from_queue_to_history(
 			30,
-			queue[0]["songId"],
-			queue[0]["queuedTimestamp"],
+			queue[0].id,
+			queue[0].queuedtimestamp,
 		)
 		idx += 1
 		collectionQueueService.pop_next_queued(30)
-		return [*collectionQueueService.get_queue_for_station(30)]
-	queue = [*collectionQueueService.get_queue_for_station(30)]
-	assert not queue
+		return collectionQueueService.get_queue_for_station(30)[0]
+	queue, _ = collectionQueueService.get_queue_for_station(30)
 	collectionQueueService.pop_next_queued(30)
 
-	queue = [*collectionQueueService.get_queue_for_station(30)]
+	queue, _ = collectionQueueService.get_queue_for_station(30)
 	for _ in range(0, 100):
 		queue = move_next()
 		assert queue
@@ -91,5 +93,8 @@ def test_collection_queue_with_loaded(
 	fixture_collection_queue_service: CollectionQueueService
 ):
 	collectionQueueService = fixture_collection_queue_service
-	loaded = {collectionQueueService.pop_next_queued(30)}
+	loaded: set[Any] = set()
+	popped = collectionQueueService.pop_next_queued(30)
+	loaded.add(popped)
+
 	loaded.add(collectionQueueService.pop_next_queued(30, loaded))

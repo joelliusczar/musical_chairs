@@ -17,7 +17,7 @@ from musical_chairs_libs.protocols import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	BlockingQueue,
-	SongListDisplayItem
+	StreamQueuedItem
 )
 from tempfile import NamedTemporaryFile
 from threading import Condition, Lock
@@ -27,12 +27,12 @@ from threading import Condition, Lock
 
 
 fileQueue = BlockingQueue[
-	Tuple[Optional[BinaryIO], Optional[SongListDisplayItem]]
+	Tuple[Optional[BinaryIO], Optional[StreamQueuedItem]]
 ](size=3, retryInterval=30)
 waiter = Condition()
 stopRunning = False
 icesProcess: Optional[subprocess.Popen[bytes]] = None
-loaded = set[SongListDisplayItem]()
+loaded = set[StreamQueuedItem]()
 loadingLock = Lock()
 
 
@@ -49,13 +49,16 @@ def stop():
 def get_song_info(
 	stationId: int,
 	songPopper: SongPopper
-) -> Iterator[SongListDisplayItem]:
+) -> Iterator[StreamQueuedItem]:
 	global fileQueue
 	while True:
 		try:
 			offset = fileQueue.qsize()
 			logging.queueLogger.debug(f"offset : {offset}")
 			queueItem = songPopper.pop_next_queued(stationId, loaded)
+			if not queueItem:
+				logging.radioLogger.info("Null queueItem - ending station")
+				break
 			with loadingLock:
 				loaded.add(queueItem)
 			yield queueItem
@@ -63,6 +66,7 @@ def get_song_info(
 			logging.radioLogger.error("Error getting song info")
 			logging.radioLogger.error(e, exc_info=True)
 			break
+	stop()
 
 
 def load_data(

@@ -31,8 +31,8 @@ LOG_RECORD_BUILTIN_ATTRS = {
     "taskName",
 }
 
-api_log_level = ConfigAcessors.api_log_level()
-radio_log_level = ConfigAcessors.radio_log_level()
+api_log_level = ConfigAcessors.api_log_level().upper()
+radio_log_level = ConfigAcessors.radio_log_level().upper()
 
 
 class JsonFormatter(Formatter):

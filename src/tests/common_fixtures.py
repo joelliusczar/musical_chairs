@@ -50,6 +50,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	normalize_opening_slash
 )
 from musical_chairs_libs.protocols import FileService, TrackingInfoProvider
+from pathlib import Path
 from sqlalchemy.engine import Connection
 from .mocks.mock_db_constructors import (
 	setup_in_mem_tbls,
@@ -523,6 +524,18 @@ def fixture_clean_station_folders():
 		os.remove(file.path)
 	for file in os.scandir(ConfigAcessors.station_module_dir()):
 		os.remove(file.path)
+
+
+@pytest.fixture()
+def fixture_clean_queue_files():
+	path = Path(ConfigAcessors.station_queue_files_dir())
+	path.mkdir(parents=True, exist_ok=True)
+	yield
+	for root, _, files in os.walk(ConfigAcessors.station_queue_files_dir()):
+		for file in files:
+			filePath = os.path.join(root, file)
+			os.remove(filePath)
+
 
 
 @pytest.fixture

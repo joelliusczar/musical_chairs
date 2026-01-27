@@ -12,8 +12,7 @@ from fastapi import (
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	CurrentPlayingInfo,
-	ValidatedStationCreationInfo,
-	SongListDisplayItem,
+	HistoryItem,
 	StationInfo,
 	StationTableData,
 	UserRoleDef,
@@ -22,6 +21,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CatalogueItem,
 	SimpleQueryParameters,
 	UserRoleDomain,
+	ValidatedStationCreationInfo,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationActions,
@@ -78,7 +78,7 @@ def history(
 	page: int = Depends(get_page_num),
 	station: Optional[StationInfo] = Depends(get_station),
 	queueService: QueueService = Depends(queue_service),
-) -> StationTableData[SongListDisplayItem]:
+) -> StationTableData[HistoryItem]:
 	if not station:
 		return StationTableData(totalrows=0, items=[], stationrules=[])
 	history, totalRows = queueService.get_history_for_station(
@@ -254,7 +254,7 @@ def create_station(
 	return result or StationInfo(id=-1,name="", displayname="")
 
 
-@router.put("/{stationid}",dependencies=[
+@router.put("/{id}",dependencies=[
 	Depends(
 			log_event(
 				UserRoleDomain.Station.value,
@@ -321,6 +321,7 @@ def disable_stations(
 	stationProcessService.disable_stations(
 		station
 	)
+	stationProcessService.unset_station_procs(stationIds=station.id)
 
 
 @router.post(

@@ -66,6 +66,7 @@ app.add_middleware(
 	expose_headers=["x-authexpired"],
 	allow_credentials=True
 )
+
 app.include_router(accounts_controller.router)
 app.include_router(albums_controller.router)
 app.include_router(artists_controller.router)

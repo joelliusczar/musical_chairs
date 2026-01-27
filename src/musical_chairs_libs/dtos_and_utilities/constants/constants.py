@@ -35,6 +35,10 @@ class StationActions(Enum):
 	STATION_ASSIGN = f"{UserRoleDomain.Station.value}:assign"
 	STATION_USER_ASSIGN = f"{UserRoleDomain.Station.value}:userassign"
 	STATION_USER_REMOVE = f"{UserRoleDomain.Station.value}:userremove"
+
+class StationsSongsActions(Enum):
+	SKIP = "Skipped"
+	PLAYED = "Played"
 	
 class PathActions(Enum):
 	PATH_EDIT = f"{UserRoleDomain.Path.value}:edit"

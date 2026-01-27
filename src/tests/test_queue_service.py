@@ -1,33 +1,37 @@
 #pyright: reportMissingTypeStubs=false, reportPrivateUsage=false
 from .common_fixtures import (
 	fixture_queue_service as fixture_queue_service,
+	fixture_clean_queue_files as fixture_clean_queue_files
 )
 from .common_fixtures import *
 from musical_chairs_libs.dtos_and_utilities import QueueMetrics
 from musical_chairs_libs.services import QueueService
 
-
+@pytest.mark.usefixtures("fixture_clean_queue_files")
 @pytest.mark.current_username("testUser_alpha")
 def test_adding_song_to_queue(fixture_queue_service: QueueService):
 	queueService = fixture_queue_service
-	m = QueueMetrics(queueService.queue_size)
-	queueService.fil_up_queue(1, m)
+	m = QueueMetrics(maxSize=queueService.queue_size)
+	station = queueService.__get_station__(1)
+	queueService.fil_up_queue(station, m, [])
 	queue1, _ = queueService.get_queue_for_station(1)
 	assert len(queue1) == 15 #only 19 songs in test db
-	result = queueService.__add_song_to_queue__(15, 1)
-	assert result == 1
+	queueService.add_to_queue(15, station)
 	queue1, _ = queueService.get_queue_for_station(1)
 	assert len(queue1) == 16
 
 
+@pytest.mark.usefixtures("fixture_clean_queue_files")
 def test_queue_of_songs_without_artists(fixture_queue_service: QueueService):
 	queueService = fixture_queue_service
-	m = QueueMetrics(queueService.queue_size)
-	queueService.fil_up_queue(8, m)
+	m = QueueMetrics(maxSize=queueService.queue_size)
+	station = queueService.__get_station__(8)
+	queueService.fil_up_queue(station, m, [])
 	queue1, _ = queueService.get_queue_for_station(8)
 	assert len(queue1) == 4
 
 
+@pytest.mark.usefixtures("fixture_clean_queue_files")
 def test_if_song_can_be_added_to_station(
 	fixture_queue_service: QueueService
 ):
@@ -39,6 +43,8 @@ def test_if_song_can_be_added_to_station(
 	result = queueService.can_song_be_queued_to_station(36, 1)
 	assert result == False
 
+
+@pytest.mark.usefixtures("fixture_clean_queue_files")
 def test_if_not_crashing_one_song_station(
 	fixture_queue_service: QueueService
 ):
@@ -51,6 +57,7 @@ def test_if_not_crashing_one_song_station(
 	queueService.__move_next__(stationId)
 
 
+@pytest.mark.usefixtures("fixture_clean_queue_files")
 def test_if_not_crashing_3_song_station(
 	fixture_queue_service: QueueService
 ):
@@ -66,6 +73,26 @@ def test_if_not_crashing_3_song_station(
 	queueService.__move_next__(stationId)
 	queueService.__move_next__(stationId)
 	
+
+
+@pytest.mark.usefixtures("fixture_clean_queue_files")
+def test_queue(
+	fixture_queue_service: QueueService
+):
+	queueService = fixture_queue_service
+	stationId = 1
+	# queueService.fil_up_queue(stationId, queueService.queue_size)
+	# queueService.conn.commit()
+	queueService.__move_next__(stationId)
+	queueService.__move_next__(stationId)
+	queueService.__move_next__(stationId)
+	queueService.__move_next__(stationId)
+	queueService.__move_next__(stationId)
+	queueService.__move_next__(stationId)
+	queueService.__move_next__(stationId)
+	queueService.__move_next__(stationId)
+	queueService.__move_next__(stationId)
+
 
 # def test_queue_with_skips_and_offsets(fixture_queue_service: QueueService):
 # 	queueService = fixture_queue_service

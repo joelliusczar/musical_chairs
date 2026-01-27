@@ -1,7 +1,8 @@
 from api_dependencies import (
 	aggregate_events_logging_service,
 	current_user_provider,
-	get_from_path_subject_user
+	get_from_path_subject_user,
+	vistor_tracking_service
 )
 from fastapi import (
 	Depends
@@ -17,6 +18,7 @@ from musical_chairs_libs.dtos_and_utilities.constants import (
 from musical_chairs_libs.protocols import (
 	EventsLogger,
 	UserProvider,
+	TrackingInfoProvider,
 )
 from station_validation import get_station
 
@@ -70,3 +72,10 @@ def log_event(domain: str, action: str):
 		return __current_user_log_event__
 	if domain == UserRoleDomain.Station.value:
 		return __station_log_event__
+
+
+def log_visit(eventsLogger: EventsLogger =
+	Depends(aggregate_events_logging_service),
+	vistorTrackingService: TrackingInfoProvider = Depends(vistor_tracking_service)
+):
+	yield

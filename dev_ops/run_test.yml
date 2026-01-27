@@ -71,6 +71,7 @@
         DSF_PY_MODULE_DIR: '../{{test_trunk}}/ices_modules'
         DSF_LIVE_CONFIG_PATH: '../{{test_trunk}}/app_conf.json'
         DSF_EVENT_LOGS_DIR: '../{{test_trunk}}/event_logs'
+        DSF_QUEUE_FILES_DIR: '../{{test_trunk}}/queues'
       when: skip_tests|default(false)|bool != true
     
     

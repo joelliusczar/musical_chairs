@@ -56,7 +56,7 @@ def get_stations(
 	result = None
 	pathId = request.path_params.get("id", None)
 	if pathId is not None:
-		return stationService.get_stations(pathId)
+		return stationService.get_stations(int(pathId))
 	
 	pathName = request.path_params.get("stationkey", None)
 	if pathName is not None:

@@ -60,7 +60,7 @@ class StationProcessService:
 	def ensure_active_station_files(self, station: StationInfo):
 		if not station.owner:
 			raise RuntimeError("Station owner is not loaded")
-		filePath = f"{ConfigAcessors.station_queue_files_dir}"\
+		filePath = f"{ConfigAcessors.station_queue_files_dir()}"\
 			f"/{station.owner.username}/{station.name}.jsonl"
 		path = Path(filePath)
 		path.parent.mkdir(parents=True, exist_ok=True)

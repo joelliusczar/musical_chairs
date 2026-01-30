@@ -9,7 +9,7 @@ from musical_chairs_libs.services import (
 from musical_chairs_libs.dtos_and_utilities import (
 	StationCreationInfo,
 	RulePriorityLevel,
-	UserRoleDomain
+	UserRoleSphere
 )
 from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user
@@ -184,13 +184,13 @@ def test_get_station_user_rule_selection(
 	assert len(rules) == 2
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
-	assert rules[0].domain == UserRoleDomain.Station.value
-	assert rules[0].count == 5
+	assert rules[0].sphere == UserRoleSphere.Station.value
+	assert rules[0].quota == 5
 	assert rules[0].span == 300
 	assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 	assert rules[1].priority == RulePriorityLevel.SITE.value
-	assert not rules[1].domain == UserRoleDomain.Station.value
-	assert rules[1].count == 10
+	assert not rules[1].sphere == UserRoleSphere.Station.value
+	assert rules[1].quota == 10
 	assert rules[1].span == 300
 
 	user,_ = accountService.get_account_for_login("testUser_oscar")
@@ -203,13 +203,13 @@ def test_get_station_user_rule_selection(
 
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[0].priority == RulePriorityLevel.STATION_PATH.value + 1
-		assert not rules[0].domain == UserRoleDomain.Station.value
-		assert rules[0].count == 5
+		assert not rules[0].sphere == UserRoleSphere.Station.value
+		assert rules[0].quota == 5
 		assert rules[0].span == 120
 		assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[1].priority == RulePriorityLevel.STATION_PATH.value
-		assert rules[1].domain == UserRoleDomain.Station.value
-		assert rules[1].count == 5
+		assert rules[1].sphere == UserRoleSphere.Station.value
+		assert rules[1].quota == 5
 		assert rules[1].span == 60
 
 	user,_ = accountService.get_account_for_login("testUser_papa")
@@ -221,13 +221,13 @@ def test_get_station_user_rule_selection(
 		assert len(rules) == 2
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
-		assert rules[0].domain == UserRoleDomain.Station.value
-		assert rules[0].count == 25
+		assert rules[0].sphere == UserRoleSphere.Station.value
+		assert rules[0].quota == 25
 		assert rules[0].span == 300
 		assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[1].priority == RulePriorityLevel.SITE.value
-		assert not rules[1].domain == UserRoleDomain.Station.value
-		assert rules[1].count == 20
+		assert not rules[1].sphere == UserRoleSphere.Station.value
+		assert rules[1].quota == 20
 		assert rules[1].span == 300
 
 	user,_ = accountService.get_account_for_login("testUser_quebec")
@@ -237,16 +237,16 @@ def test_get_station_user_rule_selection(
 		rules = ActionRule.sorted(station.rules)
 		assert rules
 		assert len(rules) == 2
-		assert rules[0].domain == UserRoleDomain.Station.value
+		assert rules[0].sphere == UserRoleSphere.Station.value
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
-		assert rules[0].count == 25
+		assert rules[0].quota == 25
 		assert rules[0].span == 300
 
-		assert not rules[1].domain == UserRoleDomain.Station.value
+		assert not rules[1].sphere == UserRoleSphere.Station.value
 		assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[1].priority == RulePriorityLevel.SITE.value
-		assert rules[1].count == 15
+		assert rules[1].quota == 15
 		assert rules[1].span == 300
 
 
@@ -567,7 +567,7 @@ def test_get_station_user_list(
 		assert rules[0].name == UserRoleDef.STATION_ASSIGN.value
 		assert rules[1].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[1].span == 5
-		assert rules[1].count == 300
+		assert rules[1].quota == 300
 		assert rules[2].name == UserRoleDef.STATION_VIEW.value
 
 		station = next(stationService.get_stations(18))
@@ -591,7 +591,7 @@ def test_get_station_user_list(
 		rules = sorted(result[1].roles, key=lambda r: r.name)
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
 		assert rules[0].span == 100
-		assert rules[0].count == 300
+		assert rules[0].quota == 300
 		assert rules[1].name == UserRoleDef.STATION_VIEW.value
 
 	user,_ = accountService.get_account_for_login("testUser_victor")

@@ -89,7 +89,7 @@ for album in flaggedAlbums:
 		songs = sorted(songs, key=lambda s: s.track or s.path.split("/")[-1])
 		print(f"{album[0].name} id: {album[0].id}")
 		for j, song in enumerate(songs):
-			song.disc = i + 1
+			song.discnum = i + 1
 			if song.tracknum:
 				continue
 			print(song.path.split("/")[-1])
@@ -114,7 +114,7 @@ for album in flaggedAlbums:
 					s1 = int(match.group(1))
 					song.tracknum = s1
 					discCount += 1
-					song.disc = discCount
+					song.discnum = discCount
 				else:
 					raise
 				

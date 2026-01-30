@@ -9,6 +9,7 @@ from typing import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
+	SearchNameString,
 	SavedNameString,
 	AccountCreationInfo,
 	get_datetime,
@@ -32,7 +33,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.tables import (
 	users, u_pk, u_username, u_email, u_dirRoot, u_disabled,
-	u_displayName,
+	u_displayName, u_flatusername,
 	userRoles, ur_userFk, ur_role
 )
 from sqlalchemy import select, insert, func, delete, update, or_
@@ -76,12 +77,13 @@ class AccountManagementService:
 			)
 		hashed = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
-			username=SavedNameString.format_name_for_save(accountInfo.username),
-			displayname=SavedNameString.format_name_for_save(accountInfo.displayname),
+			username=str(SavedNameString(accountInfo.username)),
+			flatusername=str(SearchNameString(accountInfo.username)),
+			displayname=str(SavedNameString(accountInfo.displayname)),
 			hashedpw=hashed,
 			email=cleanedEmail.email,
-			creationtimestamp = self.get_datetime().timestamp(),
-			dirroot = SavedNameString.format_name_for_save(accountInfo.username)
+			creationtimestamp=self.get_datetime().timestamp(),
+			dirroot=str(SavedNameString(accountInfo.username))
 		)
 		res = self.conn.execute(stmt)
 		insertedPk = res.lastrowid
@@ -127,9 +129,11 @@ class AccountManagementService:
 				"userfk": userId,
 				"role": r.name,
 				"span": r.span,
-				"count": r.count,
+				"quota": r.quota,
 				"priority": r.priority,
-				"creationtimestamp": self.get_datetime().timestamp()
+				"creationtimestamp": self.get_datetime().timestamp(),
+				"sphere": r.sphere,
+				"keypath": r.keypath
 			} for r in inRoles
 		]
 		stmt = insert(userRoles)
@@ -147,7 +151,7 @@ class AccountManagementService:
 
 	def __is_username_used__(self, username: str) -> bool:
 		queryAny = select(func.count(1)).select_from(users)\
-				.where(u_username == username)
+				.where(u_flatusername == str(SearchNameString(username)))
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
@@ -220,7 +224,7 @@ class AccountManagementService:
 				.replace("_","\\_").replace("%","\\%")
 			query = query.where(
 				func.replace(coalesce(u_displayName, u_username)," ","")
-					.like(f"{normalizedStr}%")
+					.like(f"{normalizedStr}%", escape="\\")
 			)
 		query = query.limit(pageSize)
 		records = self.conn.execute(query).mappings()
@@ -324,10 +328,10 @@ class AccountManagementService:
 			u_dirRoot,
 			rulesQuery.c.rule_userfk.label("rule.userfk"),
 			rulesQuery.c.rule_name.label("rule.name"),
-			rulesQuery.c.rule_count.label("rule.count"),
+			rulesQuery.c.rule_quota.label("rule.quota"),
 			rulesQuery.c.rule_span.label("rule.span"),
 			rulesQuery.c.rule_priority.label("rule.priority"),
-			rulesQuery.c.rule_domain.label("rule.domain")
+			rulesQuery.c.rule_sphere.label("rule.sphere")
 		).select_from(users).join(
 			rulesQuery,
 			rulesQuery.c.rule_userfk == u_pk,
@@ -357,7 +361,7 @@ class AccountManagementService:
 			userfk = addedUserId,
 			role = rule.name,
 			span = rule.span,
-			count = rule.count,
+			quota = rule.quota,
 			priority = None,
 			creationtimestamp = self.get_datetime().timestamp()
 		)
@@ -373,7 +377,7 @@ class AccountManagementService:
 		return ActionRule(
 			name=rule.name,
 			span=rule.span,
-			count=rule.count,
+			quota=rule.quota,
 			priority=RulePriorityLevel.SITE.value
 		)
 

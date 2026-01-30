@@ -187,7 +187,7 @@ export const SongEdit = () => {
 				name: "",
 			},
 			tracknum: 0,
-			disc: 1,
+			discnum: 1,
 			stations: [],
 			playlists: [],
 			genre: "",
@@ -417,10 +417,10 @@ export const SongEdit = () => {
 			</Box>}
 			<Box sx={inputField}>
 				{ids?.length > 1 && <TouchedCheckbox
-					name="disc"
+					name="discnum"
 				/>}
 				<FormTextField
-					name="disc"
+					name="discnum"
 					formMethods={formMethods}
 					label="Disc"
 					disabled={!canEditSongs}

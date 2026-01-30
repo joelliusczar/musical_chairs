@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, NullPool
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
 	ConfigAcessors,
+	DbConnectionProvider,
 	is_name_safe
 )
 from musical_chairs_libs import SqlScripts
@@ -37,16 +38,7 @@ class DbRootConnectionService:
 		self.conn = self.conn = self.get_root_connection()
 
 	def get_root_connection(self) -> Connection:
-		dbPass = ConfigAcessors.db_setup_pass()
-		if not dbPass:
-			raise RuntimeError("Root: The system is not configured correctly for that.")
-		engineAsRoot = create_engine(
-			f"mysql+pymysql://root:{dbPass}@localhost",
-			#not fully sure why this was needed, but mariadb/sqlalchemy/somebody
-			#was holding onto connections and this was fucking up unit tests
-			poolclass=NullPool
-		)
-		return engineAsRoot.connect()
+		return DbConnectionProvider.sqlite_connection(inMemory=True)
 
 	def __enter__(self) -> "DbRootConnectionService":
 		return self

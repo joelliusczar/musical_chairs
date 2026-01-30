@@ -33,16 +33,16 @@ class FSEventsQueryService(EventsQueryer):
 		userId: int | None,
 		fromTimestamp: float,
 		actions: set[str] | None = None,
-		domain: str | None = None,
-		path: str | None = None,
+		sphere: str | None = None,
+		keypath: str | None = None,
 		limit: int | None = None
 	) -> Iterator[EventRecord]:
 			events = reversed([e for e in self.load_most_recent_logs(24) \
 				if (e.userId == str(userId) if userId else True)\
 				and (e.action in actions if actions else True)\
 				and fromTimestamp <= e.timestamp\
-				and (domain == e.domain if domain else True) \
-				and (path == e.path if domain and path else True)
+				and (sphere == e.sphere if sphere else True) \
+				and (keypath == e.keypath if sphere and keypath else True)
 			])
 
 			yield from (e for i, e in enumerate(events)\

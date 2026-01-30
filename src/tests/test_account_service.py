@@ -203,8 +203,8 @@ def test_unique_roles():
 	with pytest.raises(StopIteration):
 		next(gen)
 	testRoles2 = ActionRule.sorted([
-		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=5, count=1),
-		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, count=1)
+		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=5, quota=1),
+		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, quota=1)
 	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles2)
 	results = list(gen)
@@ -213,7 +213,7 @@ def test_unique_roles():
 	assert results[0].span == 15
 	testRoles3 = ActionRule.sorted([
 		ActionRule(name=UserRoleDef.STATION_REQUEST.value),
-		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, count=1)
+		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, quota=1)
 	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles3)
 	results = list(gen)
@@ -222,9 +222,9 @@ def test_unique_roles():
 	assert results[0].span == 15
 	testRoles4 = ActionRule.sorted([
 		ActionRule(name=UserRoleDef.STATION_REQUEST.value),
-		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, count=1),
-		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=60, count=1),
-		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=15, count=1),
+		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, quota=1),
+		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=60, quota=1),
+		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=15, quota=1),
 		ActionRule(name=UserRoleDef.USER_LIST.value)
 	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles4)

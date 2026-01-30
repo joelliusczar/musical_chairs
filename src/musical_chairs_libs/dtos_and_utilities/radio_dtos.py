@@ -30,23 +30,23 @@ from .playlist_dtos import PlaylistInfo
 
 
 class ScanningSongItem(FrozenIdItem):
-	path: str
+	treepath: str
 	name: Optional[str]=None
 	albumId: Optional[int]=None
 	artistId: Optional[int]=None
 	composerId: Optional[int]=None
 	track: Optional[str]=None
-	disc: Optional[int]=None
+	discnum: Optional[int]=None
 	genre: Optional[str]=None
 	bitrate: Optional[float]=None
 	samplerate: Optional[float]=None
-	comment: Optional[str]=None
+	notes: Optional[str]=None
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 
 
 class SongTreeNode(FrozenBaseClass):
-	path: str
+	treepath: str
 	totalChildCount: int
 	id: Optional[int]=None
 	name: Optional[str]=None
@@ -55,18 +55,18 @@ class SongTreeNode(FrozenBaseClass):
 	rules: list[ActionRule]=cast(list[ActionRule], Field(default_factory=list, frozen=True))
 
 	def __hash__(self) -> int:
-		return hash(self.path)
+		return hash(self.treepath)
 
 	def __eq__(self, other: Any) -> bool:
 		if not other:
 			return False
-		return self.path == other.path
+		return self.treepath == other.treepath
 
 	@staticmethod
 	def same_level_sort_key(node: "SongTreeNode") -> str:
 		if node.name:
 			return node.name
-		return Path(node.path).stem
+		return Path(node.treepath).stem
 
 
 class SongArtistTuple:
@@ -107,7 +107,7 @@ class SongArtistTuple:
 
 
 class SongPathInfo(IdItem):
-	path: str
+	treepath: str
 	internalpath: str
 
 class TrackListing(MCBaseClass):
@@ -123,11 +123,11 @@ class SongAboutInfo(MCBaseClass):
 	covers: Optional[list[int]]=cast(list[int], Field(default_factory=list))
 	track: Optional[str]=None
 	tracknum: float=0
-	disc: Optional[int]=None
+	discnum: Optional[int]=None
 	genre: Optional[str]=None
 	bitrate: Optional[float]=None
 	samplerate: Optional[float]=None
-	comment: Optional[str]=None
+	notes: Optional[str]=None
 	duration: Optional[float]=None
 	explicit: Optional[bool]=None
 	lyrics: Optional[str]=""
@@ -192,7 +192,7 @@ class ValidatedSongAboutInfo(ChangeTrackedSongInfo):
 
 
 class DirectoryTransfer(MCBaseClass):
-	path: str
+	treepath: str
 	newprefix: str
 
 class LastPlayedItem(MCBaseClass):

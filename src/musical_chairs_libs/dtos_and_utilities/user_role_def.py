@@ -10,7 +10,7 @@ from .type_aliases import (
 	simpleDict
 )
 from .simple_functions import role_dict
-from .constants import UserRoleDomain
+from .constants import UserRoleSphere
 
 
 class RulePriorityLevel(Enum):
@@ -35,44 +35,44 @@ class RulePriorityLevel(Enum):
 
 class UserRoleDef(Enum):
 	ADMIN = "admin"
-	USER_USER_ASSIGN = f"{UserRoleDomain.User.value}:userassign"
-	USER_USER_LIST = f"{UserRoleDomain.User.value}:userlist"
-	SITE_PLACEHOLDER = f"{UserRoleDomain.Site.value}:placeholder"
-	USER_EDIT = f"{UserRoleDomain.Site.value}:useredit"
-	ALBUM_CREATE = f"{UserRoleDomain.Album.value}:create"
-	ALBUM_EDIT = f"{UserRoleDomain.Album.value}:edit"
-	ALBUM_VIEW_ALL = f"{UserRoleDomain.Album.value}:view_all"
-	ARTIST_CREATE = f"{UserRoleDomain.Artist.value}:create"
-	ARTIST_EDIT = f"{UserRoleDomain.Artist.value}:edit"
-	ARTIST_VIEW_ALL = f"{UserRoleDomain.Artist.value}:view_all"
-	STATION_VIEW = f"{UserRoleDomain.Station.value}:view"
-	STATION_CREATE = f"{UserRoleDomain.Station.value}:create"
-	STATION_EDIT = f"{UserRoleDomain.Station.value}:edit"
-	STATION_DELETE = f"{UserRoleDomain.Station.value}:delete"
-	STATION_REQUEST = f"{UserRoleDomain.Station.value}:request"
-	STATION_FLIP = f"{UserRoleDomain.Station.value}:flip"
-	STATION_SKIP = f"{UserRoleDomain.Station.value}:skip"
-	STATION_ASSIGN = f"{UserRoleDomain.Station.value}:assign"
-	STATION_USER_ASSIGN = f"{UserRoleDomain.Station.value}:userassign"
-	STATION_USER_LIST = f"{UserRoleDomain.Station.value}:userlist"
-	USER_LIST = f"{UserRoleDomain.User.value}:list"
-	USER_IMPERSONATE = f"{UserRoleDomain.User.value}:impersonate"
-	PATH_LIST = f"{UserRoleDomain.Path.value}:list"
-	PATH_EDIT = f"{UserRoleDomain.Path.value}:edit"
-	PATH_DELETE = f"{UserRoleDomain.Path.value}:delete"
-	PATH_VIEW = f"{UserRoleDomain.Path.value}:view"
-	PATH_USER_ASSIGN = f"{UserRoleDomain.Path.value}:userassign"
-	PATH_USER_LIST = f"{UserRoleDomain.Path.value}:userlist"
-	PATH_DOWNLOAD = f"{UserRoleDomain.Path.value}:download"
-	PATH_UPLOAD = f"{UserRoleDomain.Path.value}:upload"
-	PATH_MOVE = f"{UserRoleDomain.Path.value}:move"
-	PLAYLIST_VIEW = f"{UserRoleDomain.Playlist.value}:view"
-	PLAYLIST_CREATE = f"{UserRoleDomain.Playlist.value}:create"
-	PLAYLIST_EDIT = f"{UserRoleDomain.Playlist.value}:edit"
-	PLAYLIST_DELETE = f"{UserRoleDomain.Playlist.value}:delete"
-	PLAYLIST_ASSIGN = f"{UserRoleDomain.Playlist.value}:assign"
-	PLAYLIST_USER_ASSIGN = f"{UserRoleDomain.Playlist.value}:userassign"
-	PLAYLIST_USER_LIST = f"{UserRoleDomain.Playlist.value}:userlist"
+	USER_USER_ASSIGN = f"{UserRoleSphere.User.value}:userassign"
+	USER_USER_LIST = f"{UserRoleSphere.User.value}:userlist"
+	SITE_PLACEHOLDER = f"{UserRoleSphere.Site.value}:placeholder"
+	USER_EDIT = f"{UserRoleSphere.Site.value}:useredit"
+	ALBUM_CREATE = f"{UserRoleSphere.Album.value}:create"
+	ALBUM_EDIT = f"{UserRoleSphere.Album.value}:edit"
+	ALBUM_VIEW_ALL = f"{UserRoleSphere.Album.value}:view_all"
+	ARTIST_CREATE = f"{UserRoleSphere.Artist.value}:create"
+	ARTIST_EDIT = f"{UserRoleSphere.Artist.value}:edit"
+	ARTIST_VIEW_ALL = f"{UserRoleSphere.Artist.value}:view_all"
+	STATION_VIEW = f"{UserRoleSphere.Station.value}:view"
+	STATION_CREATE = f"{UserRoleSphere.Station.value}:create"
+	STATION_EDIT = f"{UserRoleSphere.Station.value}:edit"
+	STATION_DELETE = f"{UserRoleSphere.Station.value}:delete"
+	STATION_REQUEST = f"{UserRoleSphere.Station.value}:request"
+	STATION_FLIP = f"{UserRoleSphere.Station.value}:flip"
+	STATION_SKIP = f"{UserRoleSphere.Station.value}:skip"
+	STATION_ASSIGN = f"{UserRoleSphere.Station.value}:assign"
+	STATION_USER_ASSIGN = f"{UserRoleSphere.Station.value}:userassign"
+	STATION_USER_LIST = f"{UserRoleSphere.Station.value}:userlist"
+	USER_LIST = f"{UserRoleSphere.User.value}:list"
+	USER_IMPERSONATE = f"{UserRoleSphere.User.value}:impersonate"
+	PATH_LIST = f"{UserRoleSphere.Path.value}:list"
+	PATH_EDIT = f"{UserRoleSphere.Path.value}:edit"
+	PATH_DELETE = f"{UserRoleSphere.Path.value}:delete"
+	PATH_VIEW = f"{UserRoleSphere.Path.value}:view"
+	PATH_USER_ASSIGN = f"{UserRoleSphere.Path.value}:userassign"
+	PATH_USER_LIST = f"{UserRoleSphere.Path.value}:userlist"
+	PATH_DOWNLOAD = f"{UserRoleSphere.Path.value}:download"
+	PATH_UPLOAD = f"{UserRoleSphere.Path.value}:upload"
+	PATH_MOVE = f"{UserRoleSphere.Path.value}:move"
+	PLAYLIST_VIEW = f"{UserRoleSphere.Playlist.value}:view"
+	PLAYLIST_CREATE = f"{UserRoleSphere.Playlist.value}:create"
+	PLAYLIST_EDIT = f"{UserRoleSphere.Playlist.value}:edit"
+	PLAYLIST_DELETE = f"{UserRoleSphere.Playlist.value}:delete"
+	PLAYLIST_ASSIGN = f"{UserRoleSphere.Playlist.value}:assign"
+	PLAYLIST_USER_ASSIGN = f"{UserRoleSphere.Playlist.value}:userassign"
+	PLAYLIST_USER_LIST = f"{UserRoleSphere.Playlist.value}:userlist"
 
 	def __call__(self, **kwargs: Union[str, int]) -> str:
 		return self.modded_value(**kwargs)
@@ -85,9 +85,9 @@ class UserRoleDef(Enum):
 		return self.value
 
 	@staticmethod
-	def as_set(domain: Optional[str]=None) -> Set[str]:
+	def as_set(sphere: Optional[str]=None) -> Set[str]:
 		return {r.value for r in UserRoleDef \
-			if not domain or r.value.startswith(domain)}
+			if not sphere or r.value.startswith(sphere)}
 
 	@staticmethod
 	def role_dict(role: str) -> s2sDict:

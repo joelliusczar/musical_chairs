@@ -46,10 +46,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
 	ConfigAcessors,
+	DbConnectionProvider,
 	get_path_owner_roles,
 	normalize_opening_slash
 )
 from musical_chairs_libs.protocols import FileService, TrackingInfoProvider
+from musical_chairs_libs.tables import metadata
 from pathlib import Path
 from sqlalchemy.engine import Connection
 from .mocks.mock_db_constructors import (
@@ -119,7 +121,7 @@ def fixture_db_empty_populate_factory() -> Callable[[], None]:
 
 
 @pytest.fixture
-def fixture_conn_cardboarddb(
+def fixture_conn_bigdb(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str,
 ) -> Iterator[Connection]:
@@ -131,14 +133,46 @@ def fixture_conn_cardboarddb(
 		if not requestPopulateFnName is None else "fixture_db_populate_factory"
 	populateFn = request.getfixturevalue(populateFnName)
 	populateFn()
-	envManager = ConfigAcessors()
+	connProvider = DbConnectionProvider()
 	dbName=fixture_setup_db
-	conn = envManager.get_configured_api_connection(dbName, echo=echo)
+	conn = connProvider.get_configured_api_connection(dbName, echo=echo)
 	try:
 		yield conn
 	finally:
 		#should dispose here
 		conn.close()
+
+
+@pytest.fixture
+def fixture_sqlite_conn(
+	request: pytest.FixtureRequest,
+	fixture_datetime_iterator: MockDatetimeProvider,
+	fixture_primary_user: AccountInfo,
+	fixture_mock_password: bytes
+):
+	requestEcho = request.node.get_closest_marker("echo")
+	echo = requestEcho.args[0] if not requestEcho is None else False
+	conn = DbConnectionProvider.sqlite_connection(
+		echo=echo, 
+		inMemory=True,
+		check_same_thread=False
+	)
+	metadata.create_all(conn.engine)
+	setup_in_mem_tbls(
+		conn,
+		request,
+		fixture_datetime_iterator,
+		fixture_primary_user,
+		fixture_mock_password,
+	)
+	try:
+		yield conn
+	finally:
+		conn.close()
+
+@pytest.fixture
+def fixture_conn_cardboarddb(fixture_sqlite_conn: Connection):
+	return fixture_sqlite_conn
 
 
 @pytest.fixture

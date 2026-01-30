@@ -68,6 +68,7 @@ def get_duplicates(
 	mostCommon = counter.most_common(1)
 	return (pair for pair in mostCommon if pair[1] > 1)
 
+
 def next_directory_level(path: str, prefix: Optional[str]="") -> str:
 	if not prefix:
 		prefix = ""
@@ -76,6 +77,7 @@ def next_directory_level(path: str, prefix: Optional[str]="") -> str:
 		groups = matches.groups()
 		return groups[0] if groups else ""
 	return ""
+
 
 def get_non_simple_chars(name: str) -> Optional[str]:
 		m = re.search(r"[^a-zA-Z0-9_\-]", name)
@@ -258,6 +260,7 @@ def common_prefix(
 			"Input types must either both be strings or both iterables"
 		)
 
+
 def guess_contenttype(filename: str) -> str:
 	extension = Path(filename).suffix.casefold()
 	if extension == ".mp3":
@@ -269,10 +272,12 @@ def guess_contenttype(filename: str) -> str:
 
 	return "application/octet-stream"
 
+
 def clean_search_term_for_like(searchTerm: str) -> str:
 	if not searchTerm:
 		return ""
 	return searchTerm.replace("_","\\_").replace("%","\\%")
+
 
 def asdict(obj: Any, exclude: Optional[set[str]]=None) -> dict[str, Any]:
 	d = dataclasses.asdict(obj)

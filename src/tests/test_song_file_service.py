@@ -30,31 +30,31 @@ def test_song_ls(
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("testUser_alpha")
 	assert user
-	paths = sorted(songFileService.song_ls(), key=lambda d: d.path)
+	paths = sorted(songFileService.song_ls(), key=lambda d: d.treepath)
 	assert len(paths) == 4
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
+	assert paths[0].treepath == "blitz/"
+	assert paths[1].treepath == "foo/"
+	assert paths[2].treepath == "jazz/"
+	assert paths[3].treepath == "tossedSlash/"
 
-	paths = sorted(songFileService.song_ls("foo/"), key=lambda d: d.path)
+	paths = sorted(songFileService.song_ls("foo/"), key=lambda d: d.treepath)
 	assert len(paths) == 4
-	assert paths[0].path == "foo/bar/"
-	assert paths[1].path == "foo/dude/"
-	assert paths[2].path == "foo/goo/"
-	assert paths[3].path == "foo/rude/"
+	assert paths[0].treepath == "foo/bar/"
+	assert paths[1].treepath == "foo/dude/"
+	assert paths[2].treepath == "foo/goo/"
+	assert paths[3].treepath == "foo/rude/"
 
 	paths = sorted(songFileService.song_ls("tossedSlash/trap/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
-	assert paths[0].path == "tossedSlash/trap/bang(pow)_1/"
+	assert paths[0].treepath == "tossedSlash/trap/bang(pow)_1/"
 
 	paths = sorted(songFileService.song_ls("tossedSlash/trap/bang(pow)_1/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
-	assert paths[0].path == "tossedSlash/trap/bang(pow)_1/boo"
+	assert paths[0].treepath == "tossedSlash/trap/bang(pow)_1/boo"
 
 @pytest.mark.current_username("testUser_alpha")
 def test_song_ls_overlaping_paths(
@@ -67,71 +67,71 @@ def test_song_ls_overlaping_paths(
 	assert user
 	paths = sorted(
 		songFileService.song_ls("jazz/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 6
-	assert paths[0].path == "jazz/cat/"
-	assert paths[1].path == "jazz/lurk/"
-	assert paths[2].path == "jazz/overlap/"
-	assert paths[3].path == "jazz/overlaper/"
-	assert paths[4].path == "jazz/overloop/"
-	assert paths[5].path == "jazz/rude/"
+	assert paths[0].treepath == "jazz/cat/"
+	assert paths[1].treepath == "jazz/lurk/"
+	assert paths[2].treepath == "jazz/overlap/"
+	assert paths[3].treepath == "jazz/overlaper/"
+	assert paths[4].treepath == "jazz/overloop/"
+	assert paths[5].treepath == "jazz/rude/"
 
 	paths = sorted(
 		songFileService.song_ls("jazz/o"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 3
-	assert paths[0].path == "jazz/overlap/"
-	assert paths[1].path == "jazz/overlaper/"
-	assert paths[2].path == "jazz/overloop/"
+	assert paths[0].treepath == "jazz/overlap/"
+	assert paths[1].treepath == "jazz/overlaper/"
+	assert paths[2].treepath == "jazz/overloop/"
 
 	paths = sorted(
 		songFileService.song_ls("jazz/overl"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 3
-	assert paths[0].path == "jazz/overlap/"
-	assert paths[1].path == "jazz/overlaper/"
-	assert paths[2].path == "jazz/overloop/"
+	assert paths[0].treepath == "jazz/overlap/"
+	assert paths[1].treepath == "jazz/overlaper/"
+	assert paths[2].treepath == "jazz/overloop/"
 
 	paths = sorted(
 		songFileService.song_ls("jazz/overla"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 2
-	assert paths[0].path == "jazz/overlap/"
-	assert paths[1].path == "jazz/overlaper/"
+	assert paths[0].treepath == "jazz/overlap/"
+	assert paths[1].treepath == "jazz/overlaper/"
 
 	paths = sorted(
 		songFileService.song_ls("jazz/overlap"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 2
-	assert paths[0].path == "jazz/overlap/"
-	assert paths[1].path == "jazz/overlaper/"
+	assert paths[0].treepath == "jazz/overlap/"
+	assert paths[1].treepath == "jazz/overlaper/"
 
 	paths = sorted(
 		songFileService.song_ls("jazz/overlap/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
-	assert paths[0].path == "jazz/overlap/toon/"
+	assert paths[0].treepath == "jazz/overlap/toon/"
 
 	paths = sorted(
 		songFileService.song_ls("jazz/overlaper"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
-	assert paths[0].path == "jazz/overlaper/"
+	assert paths[0].treepath == "jazz/overlaper/"
 
 	paths = sorted(
 		songFileService.song_ls("jazz/overlaper/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 2
-	assert paths[0].path == "jazz/overlaper/soon/"
-	assert paths[1].path == "jazz/overlaper/toon/"
+	assert paths[0].treepath == "jazz/overlaper/soon/"
+	assert paths[1].treepath == "jazz/overlaper/toon/"
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -145,45 +145,45 @@ def test_song_ls_paths_with_spaces(
 	assert user
 	paths = sorted(
 		songFileService.song_ls("blitz/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 4
-	assert paths[0].path == "blitz/  are we handling/"
-	assert paths[1].path == "blitz/how well are we handling/"
-	assert paths[2].path == "blitz/mar/"
-	assert paths[3].path == "blitz/rhino/"
+	assert paths[0].treepath == "blitz/  are we handling/"
+	assert paths[1].treepath == "blitz/how well are we handling/"
+	assert paths[2].treepath == "blitz/mar/"
+	assert paths[3].treepath == "blitz/rhino/"
 
 	paths = sorted(
 		songFileService.song_ls("blitz/ "),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
-	assert paths[0].path == "blitz/  are we handling/"
+	assert paths[0].treepath == "blitz/  are we handling/"
 
 	paths = sorted(
 		songFileService.song_ls("blitz/  are we handling"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
-	assert paths[0].path == "blitz/  are we handling/"
+	assert paths[0].treepath == "blitz/  are we handling/"
 
 	paths = sorted(
 		songFileService.song_ls("blitz/  are we handling/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
-	assert paths[0].path == \
+	assert paths[0].treepath == \
 		"blitz/  are we handling/ dirs beginning with space  /"
 	
 	paths = sorted(
 		songFileService.song_ls("blitz/   "),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 0
 
 	paths = sorted(
 		songFileService.song_ls("blitz/  are we  "),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 0
 
@@ -198,23 +198,23 @@ def test_add_directory(
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
 	songFileService.create_directory("foo", "create_dir_test")
-	paths = sorted(songFileService.song_ls("foo/"), key=lambda d: d.path)
+	paths = sorted(songFileService.song_ls("foo/"), key=lambda d: d.treepath)
 	assert len(paths) == 5
-	assert paths[0].path == "foo/bar/"
-	assert paths[1].path == "foo/create_dir_test/"
-	assert paths[2].path == "foo/dude/"
-	assert paths[3].path == "foo/goo/"
-	assert paths[4].path == "foo/rude/"
+	assert paths[0].treepath == "foo/bar/"
+	assert paths[1].treepath == "foo/create_dir_test/"
+	assert paths[2].treepath == "foo/dude/"
+	assert paths[3].treepath == "foo/goo/"
+	assert paths[4].treepath == "foo/rude/"
 
 	paths = sorted(
 		songFileService.song_ls("foo/create_dir_test"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
 
 	paths = sorted(
 		songFileService.song_ls("foo/create_dir_test/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
 
@@ -224,18 +224,18 @@ def test_add_unicode_directory(
 ):
 	songFileService = fixture_song_file_service
 	songFileService.create_directory("foo", "ü")
-	paths = sorted(songFileService.song_ls("foo/"), key=lambda d: d.path)
+	paths = sorted(songFileService.song_ls("foo/"), key=lambda d: d.treepath)
 	assert len(paths) == 5
-	assert paths[0].path == "foo/bar/"
-	assert paths[1].path == "foo/dude/"
-	assert paths[2].path == "foo/goo/"
-	assert paths[3].path == "foo/rude/"
-	assert paths[4].path == "foo/ü/"
+	assert paths[0].treepath == "foo/bar/"
+	assert paths[1].treepath == "foo/dude/"
+	assert paths[2].treepath == "foo/goo/"
+	assert paths[3].treepath == "foo/rude/"
+	assert paths[4].treepath == "foo/ü/"
 
 	songFileService.create_directory("foo/ü", "u")
-	paths = sorted(songFileService.song_ls("foo/ü/"), key=lambda d: d.path)
+	paths = sorted(songFileService.song_ls("foo/ü/"), key=lambda d: d.treepath)
 	assert len(paths) == 1
-	assert paths[0].path == "foo/ü/u/"
+	assert paths[0].treepath == "foo/ü/u/"
 
 
 @pytest.mark.current_username("testUser_kilo")
@@ -253,15 +253,15 @@ def test_add_directory_to_leaves(
 	)
 	paths = sorted(
 		songFileService.song_ls("foo/goo/boo/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 6
-	assert paths[0].path == "foo/goo/boo/create_dir_test/"
-	assert paths[1].path == "foo/goo/boo/sierra"
-	assert paths[2].path == "foo/goo/boo/tango"
-	assert paths[3].path == "foo/goo/boo/uniform"
-	assert paths[4].path == "foo/goo/boo/victor"
-	assert paths[5].path == "foo/goo/boo/victor_2"
+	assert paths[0].treepath == "foo/goo/boo/create_dir_test/"
+	assert paths[1].treepath == "foo/goo/boo/sierra"
+	assert paths[2].treepath == "foo/goo/boo/tango"
+	assert paths[3].treepath == "foo/goo/boo/uniform"
+	assert paths[4].treepath == "foo/goo/boo/victor"
+	assert paths[5].treepath == "foo/goo/boo/victor_2"
 	songFileService.save_song_file(
 		BytesIO(b"abc"),
 		"foo/goo/boo/create_dir_test",
@@ -269,12 +269,12 @@ def test_add_directory_to_leaves(
 	)
 	paths = sorted(
 		songFileService.song_ls("foo/goo/boo/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert paths[0].totalChildCount == 1
 	paths = sorted(
 		songFileService.song_ls("foo/goo/boo/create_dir_test/"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
 
@@ -283,19 +283,19 @@ def test_song_ls_user_with_paths(
 	fixture_song_file_service: SongFileService,
 ):
 	songFileService = fixture_song_file_service
-	paths = sorted(songFileService.song_ls(),key=lambda d: d.path)
+	paths = sorted(songFileService.song_ls(),key=lambda d: d.treepath)
 	# this is no longer expected behavior
 	# assert len(paths) == 2
 	# assert paths[0].path == "foo/bar/"
 	# assert paths[1].path == "foo/dude/"
 
 	assert len(paths) == 1
-	assert paths[0].path == "foo/"
+	assert paths[0].treepath == "foo/"
 
-	paths = sorted(songFileService.song_ls("foo/"), key=lambda d: d.path)
+	paths = sorted(songFileService.song_ls("foo/"), key=lambda d: d.treepath)
 	assert len(paths) == 2
-	assert paths[0].path == "foo/bar/"
-	assert paths[1].path == "foo/dude/"
+	assert paths[0].treepath == "foo/bar/"
+	assert paths[1].treepath == "foo/dude/"
 
 @pytest.mark.current_username("testUser_uniform")
 def test_get_user_paths(
@@ -374,11 +374,11 @@ def test_get_parent_directories_empty_str_admin(
 	assert len(result) == 1
 	assert "/" in result
 	assert len(result["/"]) == 4
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "blitz/"
+	assert paths[1].treepath == "foo/"
+	assert paths[2].treepath == "jazz/"
+	assert paths[3].treepath == "tossedSlash/"
 
 @pytest.mark.current_username("testUser_kilo")
 def test_get_parent_directories_empty_str(
@@ -393,8 +393,8 @@ def test_get_parent_directories_empty_str(
 	assert len(result) == 1
 	assert "/" in result
 	assert len(result["/"]) == 1
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "foo/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "foo/"
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -407,11 +407,11 @@ def test_get_parent_directories_single_slash_admin(
 	assert len(result) == 1
 	assert "/" in result
 	assert len(result["/"]) == 4
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "blitz/"
+	assert paths[1].treepath == "foo/"
+	assert paths[2].treepath == "jazz/"
+	assert paths[3].treepath == "tossedSlash/"
 
 
 @pytest.mark.current_username("testUser_kilo")
@@ -428,8 +428,8 @@ def test_get_parent_directoriess_single_slash(
 	assert len(result) == 1
 	assert "/" in result
 	assert len(result["/"]) == 1
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "foo/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "foo/"
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -442,11 +442,11 @@ def test_get_parent_directories_partial_segment_admin(
 	assert len(result) == 1
 	assert "/" in result
 	assert len(result["/"]) == 4
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "blitz/"
+	assert paths[1].treepath == "foo/"
+	assert paths[2].treepath == "jazz/"
+	assert paths[3].treepath == "tossedSlash/"
 
 
 @pytest.mark.current_username("testUser_kilo")
@@ -463,8 +463,8 @@ def test_get_parent_directoriess_partial_segment(
 	assert len(result) == 1
 	assert "/" in result
 	assert len(result["/"]) == 1
-	paths= sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "foo/"
+	paths= sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "foo/"
 
 
 @pytest.mark.current_username("testUser_kilo")
@@ -481,16 +481,16 @@ def test_get_parent_directoriess_first_segment(
 	assert len(result) == 2
 	assert "/" in result
 	assert len(result["/"]) == 1
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "foo/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "foo/"
 	
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -503,19 +503,19 @@ def test_get_parent_directoriess_first_segment_admin(
 	assert len(result) == 2
 	assert "/" in result
 	assert len(result["/"]) == 4
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "blitz/"
+	assert paths[1].treepath == "foo/"
+	assert paths[2].treepath == "jazz/"
+	assert paths[3].treepath == "tossedSlash/"
 	
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 
 @pytest.mark.current_username("testUser_kilo")
@@ -533,22 +533,22 @@ def test_get_parent_directoriess_2_segments(
 
 	assert "/" in result
 	assert len(result["/"]) == 1
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "foo/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "foo/"
 
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 	assert "foo/rude/" in result
 	assert len(result["foo/rude/"]) == 2
-	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
-	assert fooRudePaths[0].path == "foo/rude/bog/"
-	assert fooRudePaths[1].path == "foo/rude/rog/"
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.treepath)
+	assert fooRudePaths[0].treepath == "foo/rude/bog/"
+	assert fooRudePaths[1].treepath == "foo/rude/rog/"
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -566,25 +566,25 @@ def test_get_parent_directoriess_2_segments_admin(
 
 	assert "/" in result
 	assert len(result["/"]) == 4
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "blitz/"
+	assert paths[1].treepath == "foo/"
+	assert paths[2].treepath == "jazz/"
+	assert paths[3].treepath == "tossedSlash/"
 
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 	assert "foo/rude/" in result
 	assert len(result["foo/rude/"]) == 2
-	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
-	assert fooRudePaths[0].path == "foo/rude/bog/"
-	assert fooRudePaths[1].path == "foo/rude/rog/"
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.treepath)
+	assert fooRudePaths[0].treepath == "foo/rude/bog/"
+	assert fooRudePaths[1].treepath == "foo/rude/rog/"
 
 @pytest.mark.current_username("testUser_kilo")
 def test_get_parent_directoriess_3_segments(
@@ -601,28 +601,28 @@ def test_get_parent_directoriess_3_segments(
 
 	assert "/" in result
 	assert len(result["/"]) == 1
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "foo/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "foo/"
 
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 	assert "foo/rude/" in result
 	assert len(result["foo/rude/"]) == 2
-	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
-	assert fooRudePaths[0].path == "foo/rude/bog/"
-	assert fooRudePaths[1].path == "foo/rude/rog/"
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.treepath)
+	assert fooRudePaths[0].treepath == "foo/rude/bog/"
+	assert fooRudePaths[1].treepath == "foo/rude/rog/"
 
 	assert "foo/rude/bog/" in result
 	assert len(result["foo/rude/bog/"]) == 2
-	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.path)
-	assert fooRudeBogPaths[0].path == "foo/rude/bog/kilo2"
-	assert fooRudeBogPaths[1].path == "foo/rude/bog/lima2"
+	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.treepath)
+	assert fooRudeBogPaths[0].treepath == "foo/rude/bog/kilo2"
+	assert fooRudeBogPaths[1].treepath == "foo/rude/bog/lima2"
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -640,31 +640,31 @@ def test_get_parent_directoriess_3_segments_admin(
 
 	assert "/" in result
 	assert len(result["/"]) == 4
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "blitz/"
+	assert paths[1].treepath == "foo/"
+	assert paths[2].treepath == "jazz/"
+	assert paths[3].treepath == "tossedSlash/"
 
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 	assert "foo/rude/" in result
 	assert len(result["foo/rude/"]) == 2
-	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
-	assert fooRudePaths[0].path == "foo/rude/bog/"
-	assert fooRudePaths[1].path == "foo/rude/rog/"
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.treepath)
+	assert fooRudePaths[0].treepath == "foo/rude/bog/"
+	assert fooRudePaths[1].treepath == "foo/rude/rog/"
 
 	assert "foo/rude/bog/" in result
 	assert len(result["foo/rude/bog/"]) == 2
-	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.path)
-	assert fooRudeBogPaths[0].path == "foo/rude/bog/kilo2"
-	assert fooRudeBogPaths[1].path == "foo/rude/bog/lima2"
+	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.treepath)
+	assert fooRudeBogPaths[0].treepath == "foo/rude/bog/kilo2"
+	assert fooRudeBogPaths[1].treepath == "foo/rude/bog/lima2"
 
 
 @pytest.mark.current_username("testUser_kilo")
@@ -682,28 +682,28 @@ def test_get_parent_directoriess_4_segments(
 
 	assert "/" in result
 	assert len(result["/"]) == 1
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "foo/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "foo/"
 
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 	assert "foo/rude/" in result
 	assert len(result["foo/rude/"]) == 2
-	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
-	assert fooRudePaths[0].path == "foo/rude/bog/"
-	assert fooRudePaths[1].path == "foo/rude/rog/"
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.treepath)
+	assert fooRudePaths[0].treepath == "foo/rude/bog/"
+	assert fooRudePaths[1].treepath == "foo/rude/rog/"
 
 	assert "foo/rude/bog/" in result
 	assert len(result["foo/rude/bog/"]) == 2
-	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.path)
-	assert fooRudeBogPaths[0].path == "foo/rude/bog/kilo2"
-	assert fooRudeBogPaths[1].path == "foo/rude/bog/lima2"
+	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.treepath)
+	assert fooRudeBogPaths[0].treepath == "foo/rude/bog/kilo2"
+	assert fooRudeBogPaths[1].treepath == "foo/rude/bog/lima2"
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -721,31 +721,31 @@ def test_get_parent_directoriess_4_segments_admin(
 
 	assert "/" in result
 	assert len(result["/"]) == 4
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "blitz/"
+	assert paths[1].treepath == "foo/"
+	assert paths[2].treepath == "jazz/"
+	assert paths[3].treepath == "tossedSlash/"
 
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 	assert "foo/rude/" in result
 	assert len(result["foo/rude/"]) == 2
-	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
-	assert fooRudePaths[0].path == "foo/rude/bog/"
-	assert fooRudePaths[1].path == "foo/rude/rog/"
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.treepath)
+	assert fooRudePaths[0].treepath == "foo/rude/bog/"
+	assert fooRudePaths[1].treepath == "foo/rude/rog/"
 
 	assert "foo/rude/bog/" in result
 	assert len(result["foo/rude/bog/"]) == 2
-	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.path)
-	assert fooRudeBogPaths[0].path == "foo/rude/bog/kilo2"
-	assert fooRudeBogPaths[1].path == "foo/rude/bog/lima2"
+	fooRudeBogPaths = sorted(result["foo/rude/bog/"], key=lambda d: d.treepath)
+	assert fooRudeBogPaths[0].treepath == "foo/rude/bog/kilo2"
+	assert fooRudeBogPaths[1].treepath == "foo/rude/bog/lima2"
 
 
 @pytest.mark.current_username("testUser_kilo")
@@ -763,22 +763,22 @@ def test_get_parent_directoriess_of_bad_path(
 
 	assert "/" in result
 	assert len(result["/"]) == 1
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "foo/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "foo/"
 
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 	assert "foo/rude/" in result
 	assert len(result["foo/rude/"]) == 2
-	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
-	assert fooRudePaths[0].path == "foo/rude/bog/"
-	assert fooRudePaths[1].path == "foo/rude/rog/"
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.treepath)
+	assert fooRudePaths[0].treepath == "foo/rude/bog/"
+	assert fooRudePaths[1].treepath == "foo/rude/rog/"
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -796,25 +796,25 @@ def test_get_parent_directoriess_of_bad_path_admin(
 
 	assert "/" in result
 	assert len(result["/"]) == 4
-	paths = sorted(result["/"], key=lambda d: d.path)
-	assert paths[0].path == "blitz/"
-	assert paths[1].path == "foo/"
-	assert paths[2].path == "jazz/"
-	assert paths[3].path == "tossedSlash/"
+	paths = sorted(result["/"], key=lambda d: d.treepath)
+	assert paths[0].treepath == "blitz/"
+	assert paths[1].treepath == "foo/"
+	assert paths[2].treepath == "jazz/"
+	assert paths[3].treepath == "tossedSlash/"
 
 	assert "foo/" in result
 	assert len(result["foo/"]) == 4
-	fooPaths = sorted(result["foo/"], key=lambda d: d.path)
-	assert fooPaths[0].path == "foo/bar/"
-	assert fooPaths[1].path == "foo/dude/"
-	assert fooPaths[2].path == "foo/goo/"
-	assert fooPaths[3].path == "foo/rude/"
+	fooPaths = sorted(result["foo/"], key=lambda d: d.treepath)
+	assert fooPaths[0].treepath == "foo/bar/"
+	assert fooPaths[1].treepath == "foo/dude/"
+	assert fooPaths[2].treepath == "foo/goo/"
+	assert fooPaths[3].treepath == "foo/rude/"
 
 	assert "foo/rude/" in result
 	assert len(result["foo/rude/"]) == 2
-	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.path)
-	assert fooRudePaths[0].path == "foo/rude/bog/"
-	assert fooRudePaths[1].path == "foo/rude/rog/"
+	fooRudePaths = sorted(result["foo/rude/"], key=lambda d: d.treepath)
+	assert fooRudePaths[0].treepath == "foo/rude/bog/"
+	assert fooRudePaths[1].treepath == "foo/rude/rog/"
 
 
 @pytest.mark.current_username("testUser_kilo")
@@ -829,10 +829,10 @@ def test_delete_directory(
 	songFileService.create_directory("foo/goo", "testdir")
 	result = songFileService.song_ls_parents("foo/goo")
 	assert len(result["foo/goo/"]) == 12
-	assert "foo/goo/testdir/" in (p.path for p in result["foo/goo/"])
+	assert "foo/goo/testdir/" in (p.treepath for p in result["foo/goo/"])
 	result = songFileService.delete_prefix("foo/goo/testdir/")
 	assert len(result["foo/goo/"]) == 11
-	assert "foo/goo/testdir/" not in (p.path for p in result["foo/goo/"])
+	assert "foo/goo/testdir/" not in (p.treepath for p in result["foo/goo/"])
 
 @pytest.mark.current_username("testUser_kilo")
 def test_delete_dir_with_songs(
@@ -900,7 +900,7 @@ def test_parent_ls_with_placeholder_dir(
 	pass
 	assert len(result["foo/goo/"]) == 12
 	assert sum(
-		1 for n in result["foo/goo/"] if n.path.endswith("testdir/")
+		1 for n in result["foo/goo/"] if n.treepath.endswith("testdir/")
 	) == 1
 
 
@@ -915,7 +915,7 @@ def test_move_path(
 	user,_ = accountService.get_account_for_login("testUser_kilo") #owns stuff
 	assert user
 	transfer = DirectoryTransfer(
-		path="foo/rude/rog/mike2",
+		treepath="foo/rude/rog/mike2",
 		newprefix="foo/rude/bog/"
 	)
 	srcInitial = list(songFileService.song_ls("foo/rude/rog/"))
@@ -927,13 +927,13 @@ def test_move_path(
 	assert len(srcUpdated) == 2
 
 	transfer = DirectoryTransfer(
-		path="foo/bar/baz/",
+		treepath="foo/bar/baz/",
 		newprefix="foo/dude/"
 	)
 	result = songFileService.move_path(transfer)
 
 	transfer = DirectoryTransfer(
-		path="",
+		treepath="",
 		newprefix="foo/dude/"
 	)
 	with pytest.raises(ValueError):
@@ -951,11 +951,11 @@ def test_song_ls_with_wild_cards(
 	assert user
 	paths = sorted(
 		songFileService.song_ls("foo/dude/alpha_"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1
 	paths = sorted(
 		songFileService.song_ls("foo/dude/al%"),
-		key=lambda d: d.path
+		key=lambda d: d.treepath
 	)
 	assert len(paths) == 1

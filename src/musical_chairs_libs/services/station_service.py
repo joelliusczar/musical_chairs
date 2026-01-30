@@ -46,7 +46,7 @@ from musical_chairs_libs.tables import (
 	last_played, lp_stationFk,
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
 	stations_playlists as stations_playlists_tbl, stpl_playlistFk,stpl_stationFk,
-	ur_userFk, ur_role, ur_count, ur_span, ur_priority,
+	ur_userFk, ur_role, ur_quota, ur_span, ur_priority,
 	stup_userFk, stup_role, stup_count, stup_span, stup_priority
 )
 from musical_chairs_libs.dtos_and_utilities import (
@@ -65,7 +65,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	row_to_action_rule
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
-	UserRoleDomain
+	UserRoleSphere
 )
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from .current_user_provider import CurrentUserProvider
@@ -75,13 +75,13 @@ from .template_service import TemplateService
 __station_permissions_query__ = select(
 	stup_userFk.label("rule_userfk"),
 	stup_role.label("rule_name"),
-	stup_count.label("rule_count"),
+	stup_count.label("rule_quota"),
 	stup_span.label("rule_span"),
 	coalesce[Integer](
 		stup_priority,
 		RulePriorityLevel.STATION_PATH.value
 	).label("rule_priority"),
-	dbLiteral(UserRoleDomain.Station.value).label("rule_domain"),
+	dbLiteral(UserRoleSphere.Station.value).label("rule_sphere"),
 	stup_stationFk.label("rule_stationfk")
 )
 
@@ -92,7 +92,7 @@ def build_station_rules_query(
 	user_rules_query = select(
 		ur_userFk.label("rule_userfk"),
 		ur_role.label("rule_name"),
-		ur_count.label("rule_count"),
+		ur_quota.label("rule_quota"),
 		ur_span.label("rule_span"),
 		coalesce[Integer](
 			ur_priority,
@@ -101,14 +101,14 @@ def build_station_rules_query(
 				else_=RulePriorityLevel.SITE.value
 			)
 		).label("rule_priority"),
-		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
+		dbLiteral(UserRoleSphere.Site.value).label("rule_sphere"),
 		dbLiteral(None).label("rule_stationfk")
 	).where(or_(
-			ur_role.like(f"{UserRoleDomain.Station.value}:%"),
+			ur_role.like(f"{UserRoleSphere.Station.value}:%"),
 			ur_role == UserRoleDef.ADMIN.value
 		),
 	)
-	domain_permissions_query = __station_permissions_query__
+	sphere_permissions_query = __station_permissions_query__
 	placeholder_select = build_placeholder_select(
 		UserRoleDef.STATION_VIEW.value
 	).add_columns(
@@ -117,13 +117,13 @@ def build_station_rules_query(
 
 
 	if userId is not None:
-		domain_permissions_query = \
-			domain_permissions_query.where(stup_userFk == userId)
+		sphere_permissions_query = \
+			sphere_permissions_query.where(stup_userFk == userId)
 		user_rules_query = user_rules_query.where(ur_userFk == userId)
 		
 	query = union_all(
 		placeholder_select,
-		domain_permissions_query,
+		sphere_permissions_query,
 		user_rules_query,
 	)
 	return query
@@ -205,7 +205,7 @@ class StationService:
 		elif type(stationKeys) is str:
 			lStationKey = stationKeys.replace("_","\\_").replace("%","\\%")
 			query = query\
-				.where(st_name.like(f"%{lStationKey}%"))
+				.where(st_name.like(f"%{lStationKey}%", escape="\\"))
 		
 		return query
 
@@ -218,7 +218,7 @@ class StationService:
 		canViewQuery= select(
 			rulesSubquery.c.rule_stationfk, #pyright: ignore [reportUnknownMemberType]
 			rulesSubquery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
-			rulesSubquery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c.rule_sphere #pyright: ignore [reportUnknownMemberType]
 		).where(
 			rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
 		).cte(name="canviewquery")
@@ -229,7 +229,7 @@ class StationService:
 				RulePriorityLevel.NONE.value
 			).label("max")
 		).where(
-			canViewQuery.c.rule_domain == UserRoleDomain.Site.value
+			canViewQuery.c.rule_sphere == UserRoleSphere.Site.value
 		).cte("topsiterule")
 
 		ownerScopeSet = set(get_station_owner_rules(scopes))
@@ -244,9 +244,9 @@ class StationService:
 							RulePriorityLevel.NONE.value
 						)).where(st_pk == canViewQuery.c.rule_stationfk).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
 				and_(
-					dbLiteral(UserRoleDomain.Site.value)
+					dbLiteral(UserRoleSphere.Site.value)
 						.in_( #pyright: ignore [reportUnknownMemberType]
-							select(canViewQuery.c.rule_domain) #pyright: ignore [reportUnknownMemberType]
+							select(canViewQuery.c.rule_sphere) #pyright: ignore [reportUnknownMemberType]
 						),
 					coalesce(
 						st_viewSecurityLevel,
@@ -308,9 +308,9 @@ class StationService:
 					currentStation.rules = ActionRule.sorted(currentStation.rules)
 					yield currentStation
 				currentStation = self.__row_to_station__(row)
-				if cast(str,row["rule.domain"]) != "shim":
+				if cast(str,row["rule.sphere"]) != "shim":
 					currentStation.rules.append(row_to_action_rule(row))
-			elif cast(str,row["rule.domain"]) != "shim":
+			elif cast(str,row["rule.sphere"]) != "shim":
 				currentStation.rules.append(row_to_action_rule(row))
 		if currentStation:
 			stationOwner = currentStation.owner
@@ -375,8 +375,8 @@ class StationService:
 				cast(Column[String], rulesSubquery.c.rule_name).label("rule.name"),
 				cast(
 					Column[Float[float]],
-					rulesSubquery.c.rule_count
-				).label("rule.count"),
+					rulesSubquery.c.rule_quota
+				).label("rule.quota"),
 				cast(
 					Column[Float[float]],
 					rulesSubquery.c.rule_span
@@ -384,7 +384,7 @@ class StationService:
 				cast(
 					Column[Integer], rulesSubquery.c.rule_priority
 				).label("rule.priority"),
-				cast(Column[String], rulesSubquery.c.rule_domain).label("rule.domain")
+				cast(Column[String], rulesSubquery.c.rule_sphere).label("rule.sphere")
 			)
 		
 		return query
@@ -457,34 +457,34 @@ class StationService:
 	) -> list[ActionRule]:
 		rules = [
 			ActionRule(
-				domain=UserRoleDomain.Station.value,
+				sphere=UserRoleSphere.Station.value,
 				name=UserRoleDef.STATION_FLIP.value,
 				span=3600,
-				count=3,
+				quota=3,
 				priority=None
 			),
 			ActionRule(
-				domain=UserRoleDomain.Station.value,
+				sphere=UserRoleSphere.Station.value,
 				name=UserRoleDef.STATION_REQUEST.value,
 				span=300,
-				count=1,
+				quota=1,
 				priority=None
 			),
 			ActionRule(
-				domain=UserRoleDomain.Station.value,
+				sphere=UserRoleSphere.Station.value,
 				name=UserRoleDef.STATION_SKIP.value,
 				span=900,
-				count=1,
+				quota=1,
 				priority=None
 			)
 		]
 		userId = self.current_user_provider.current_user().id
 		params: list[dict[str, Any]] = [
 			{
-				**asdict(rule, exclude={"name", "domain"}),
+				**asdict(rule, exclude={"name", "sphere"}),
 				"role": rule.name,
 				"userfk": userId,
-				"stationfk": stationId,
+				"keypath": stationId,
 				"creationtimestamp": self.get_datetime().timestamp()
 			} for rule in rules
 		]

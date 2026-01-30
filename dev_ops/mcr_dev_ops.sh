@@ -53,6 +53,12 @@ print_db_hash() (
 )
 
 
+print_db_schema() (
+	cd ../src/musical_chairs_libs/one_offs
+	python_exe='../../../test_trash/musical_chairs/mcr_env/bin/python'
+	"$python_exe" -m db_print
+)
+
 regen_reference_file() (
 	cd ../src/musical_chairs_libs/one_offs
 	python_exe='../../../test_trash/musical_chairs/mcr_env/bin/python'

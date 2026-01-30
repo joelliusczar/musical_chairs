@@ -39,7 +39,7 @@ class SongListBasicItem(QueuedItem):
 	album: str | None
 	artist: str | None
 	internalpath: str
-	path: str
+	treepath: str
 
 
 	def __hash__(self) -> int:
@@ -50,7 +50,7 @@ class SongListBasicItem(QueuedItem):
 		if self.name:
 				display = f"{self.name} - {self.album} - {self.artist}"
 		else:
-			display = os.path.splitext(os.path.split(self.path)[1])[0]
+			display = os.path.splitext(os.path.split(self.treepath)[1])[0]
 		return display.replace("\n", "")
 
 

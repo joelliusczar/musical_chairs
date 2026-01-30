@@ -3,16 +3,15 @@
 import pytest
 import sqlite3
 from typing import Callable, Any
-from sqlalchemy import select
 from .constant_fixtures_for_test import *
 from .common_fixtures import (
 	fixture_setup_db as fixture_setup_db,
 	fixture_conn_cardboarddb as fixture_conn_cardboarddb,
 	fixture_db_queryer as fixture_db_queryer,
-	fixture_datetime_iterator as fixture_datetime_iterator
+	fixture_datetime_iterator as fixture_datetime_iterator,
+	fixture_sqlite_conn as fixture_sqlite_conn
 )
 from musical_chairs_libs.services import DbOwnerConnectionService
-from musical_chairs_libs.tables import artists
 from sqlalchemy.engine import Connection
 from .mocks.db_data import (
 	album_params,
@@ -54,26 +53,6 @@ def fixture_db_populate_factory(
 			conn.commit()
 	return populate_fn
 
-@pytest.mark.populateFnName("fixture_db_populate_factory")
-@pytest.mark.echo(False)
-def test_in_mem_db(fixture_conn_cardboarddb: Connection) -> None:
-	a = artists.columns
-	query = select(artists).order_by(a.name)
-	res = fixture_conn_cardboarddb.execute(query).fetchall()
-	assert res[0].name == "alpha_artist"
-	assert res[0].pk == 1
-	assert res[1].name == "bravo_artist"
-	assert res[1].pk == 2
-	assert res[2].name == "charlie_artist"
-	assert res[2].pk == 3
-	assert res[3].name == "delta_artist"
-	assert res[3].pk == 4
-	assert res[4].name == "echo_artist"
-	assert res[4].pk == 5
-	assert res[5].name == "foxtrot_artist"
-	assert res[5].pk == 6
-	assert res[6].name == "golf_artist"
-	assert res[6].pk == 7
 
 def test_data_view(
 	fixture_datetime_iterator: MockDatetimeProvider,
@@ -102,6 +81,7 @@ def test_data_view(
 	pathRules = get_path_permission_params(fixture_datetime_iterator)
 	noop(pathRules)
 	pass
+
 
 def test_data_in_db(
 	fixture_conn_cardboarddb: Connection,

@@ -73,7 +73,7 @@ def song_ls(
 	if not prefix and len(items) < 1:
 		user = currentUserProvider.current_user()
 		items = [SongTreeNode(
-			path=user.dirrootOrDefault,
+			treepath=user.dirrootOrDefault,
 			totalChildCount= 0,
 			directChildren=[],
 			rules=list(get_path_owner_roles(user.dirrootOrDefault)),

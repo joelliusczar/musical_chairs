@@ -12,7 +12,8 @@ albumParams1: list[dict[str, Any]] = [
 		"year": 2001,
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "broo_album".casefold()
 	},
 	{
 		"pk": 2,
@@ -21,7 +22,8 @@ albumParams1: list[dict[str, Any]] = [
 		"year": 2003,
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "moo_album".casefold()
 	},
 	{
 		"pk": 8,
@@ -30,7 +32,8 @@ albumParams1: list[dict[str, Any]] = [
 		"year": 2003,
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "shoo_album".casefold()
 	},
 	{
 		"pk": 9,
@@ -39,7 +42,8 @@ albumParams1: list[dict[str, Any]] = [
 		"year": 2001,
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "who_2_album".casefold()
 	},
 	{
 		"pk": 10,
@@ -48,7 +52,8 @@ albumParams1: list[dict[str, Any]] = [
 		"year": 2001,
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "who_1_album".casefold()
 	},
 	{
 		"pk": 11,
@@ -57,7 +62,8 @@ albumParams1: list[dict[str, Any]] = [
 		"year": 2001,
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "boo_album".casefold()
 	},
 ]
 
@@ -68,7 +74,8 @@ albumParams2: list[dict[str, Any]] = [
 		"year": 2004,
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "soo_album".casefold()
 	},
 	{
 		"pk": 7,
@@ -76,7 +83,8 @@ albumParams2: list[dict[str, Any]] = [
 		"year": 2010,
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "koo_album".casefold()
 	},
 	{
 		"pk": 13,
@@ -84,7 +92,8 @@ albumParams2: list[dict[str, Any]] = [
 		"year": 2010,
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "koo_album".casefold()
 	},
 ]
 
@@ -94,21 +103,24 @@ albumParams3: list[dict[str, Any]] = [
 		"name": "doo_album",
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "doo_album".casefold()
 	},
 	{
 		"pk": 6,
 		"name": "roo_album",
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "roo_album".casefold()
 	},
 	{
 		"pk": 12,
 		"name": "garoo_album",
 		"ownerfk": user_ids.blitzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "garoo_album".casefold()
 	}
 ]
 
@@ -119,7 +131,8 @@ albumParams4: list[dict[str, Any]] = [
 		"albumartistfk": 7,
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "juliet_album".casefold()
 	},
 	{
 		"pk": 14,
@@ -127,9 +140,11 @@ albumParams4: list[dict[str, Any]] = [
 		"ownerfk": user_ids.juliet_user_id,
 		"albumartistfk": 7,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
-		"lastmodifiedtimestamp": 0
+		"lastmodifiedtimestamp": 0,
+		"flatname": "grunt_album".casefold()
 	},
 ]
+
 
 album_params = [
 	*albumParams1,

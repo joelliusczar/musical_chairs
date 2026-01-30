@@ -506,6 +506,8 @@ def get_user_params(
 			"dirroot": "unruledStation"
 		}
 	]
+	for user in users_params:
+		user["flatusername"] = user["username"].casefold()
 	return users_params
 
 

@@ -123,9 +123,9 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	)
 	assert response.status_code == 200
 	data = json.loads(response.content)
-	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	items = sorted(data.get("items", []), key=lambda i: i["treepath"])
 	assert len(items) == 1
-	assert items[0]["path"] == "foo/"
+	assert items[0]["treepath"] == "foo/"
 	rules = items[0]["rules"]
 	assert rules
 	assert len(rules) == len(path_owner_rules)
@@ -147,9 +147,9 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	)
 	assert response.status_code == 200
 	data = json.loads(response.content)
-	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	items = sorted(data.get("items", []), key=lambda i: i["treepath"])
 	assert len(items) == 1
-	assert items[0]["path"] == "foo/"
+	assert items[0]["treepath"] == "foo/"
 
 	response = client.get(
 		"/song-info/songs/ls?prefix=foo/",
@@ -157,9 +157,9 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	)
 	assert response.status_code == 200
 	data = json.loads(response.content)
-	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	items = sorted(data.get("items", []), key=lambda i: i["treepath"])
 	assert len(items) == 1
-	assert items[0]["path"] == "foo/goo/"
+	assert items[0]["treepath"] == "foo/goo/"
 
 	response = client.get(
 		"/song-info/songs/ls?prefix=foo/goo/",
@@ -167,9 +167,9 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	)
 	assert response.status_code == 200
 	data = json.loads(response.content)
-	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	items = sorted(data.get("items", []), key=lambda i: i["treepath"])
 	assert len(items) == 1
-	assert items[0]["path"] == "foo/goo/boo/"
+	assert items[0]["treepath"] == "foo/goo/boo/"
 
 	response = client.get(
 		"/song-info/songs/ls?prefix=foo/goo/boo/",
@@ -177,13 +177,13 @@ def test_song_ls_with_path_permissions(fixture_api_test_client: TestClient):
 	)
 	assert response.status_code == 200
 	data = json.loads(response.content)
-	items = sorted(data.get("items", []), key=lambda i: i["path"])
+	items = sorted(data.get("items", []), key=lambda i: i["treepath"])
 	assert len(items) == 5
-	assert items[0]["path"] == "foo/goo/boo/sierra"
-	assert items[1]["path"] == "foo/goo/boo/tango"
-	assert items[2]["path"] == "foo/goo/boo/uniform"
-	assert items[3]["path"] == "foo/goo/boo/victor"
-	assert items[4]["path"] == "foo/goo/boo/victor_2"
+	assert items[0]["treepath"] == "foo/goo/boo/sierra"
+	assert items[1]["treepath"] == "foo/goo/boo/tango"
+	assert items[2]["treepath"] == "foo/goo/boo/uniform"
+	assert items[3]["treepath"] == "foo/goo/boo/victor"
+	assert items[4]["treepath"] == "foo/goo/boo/victor_2"
 
 def test_song_ls_with_station_permissions(fixture_api_test_client: TestClient):
 
@@ -235,7 +235,7 @@ def test_song_save(
 		"viewsecuritylevel": 0,
 	}
 	sendData["genre"] = "pop_update"
-	sendData["comment"] = "Kazoos make good swimmers update"
+	sendData["notes"] = "Kazoos make good swimmers update"
 	sendData["primaryartist"] = {
 		"id": 10,
 		"name": "juliet_artist",
@@ -512,8 +512,8 @@ def test_get_songs_for_multi_edit(
 	assert data["id"] == 0
 	assert data["name"] == ""
 	assert "name" not in touched
-	assert data["path"] == ""
-	assert "path" not in touched
+	assert data["treepath"] == ""
+	assert "treepath" not in touched
 	assert data["album"]["id"] == 11
 	assert data["album"]["name"] == "boo_album"
 	assert "album" in touched
@@ -534,16 +534,16 @@ def test_get_songs_for_multi_edit(
 	assert data["covers"] == []
 	assert data["track"] == None
 	assert "track" not in touched
-	assert data["disc"] == 1
-	assert "disc" in touched
+	assert data["discnum"] == 1
+	assert "discnum" in touched
 	assert data["genre"] == "pop"
 	assert "genre" in touched
 	assert data["bitrate"] == 144
 	assert "bitrate" in touched
 	assert data["samplerate"] == None
 	assert "samplerate" in touched
-	assert data["comment"] == None
-	assert "comment" not in touched
+	assert data["notes"] == None
+	assert "notes" not in touched
 	assert data["duration"] == None
 	assert "duration" in touched
 	assert data["explicit"] == None
@@ -591,7 +591,7 @@ def test_song_save_for_multi_edit(
 	assert getResponseBefore.status_code == 200
 	assert data0
 	assert len(set(d["id"] for d in data0)) == len(data0)
-	assert len(set(d["path"] for d in data0)) == len(data0)
+	assert len(set(d["treepath"] for d in data0)) == len(data0)
 	assert len(set(d["name"] for d in data0)) == len(data0)
 	assert len(set(d["album"]["id"] for d in data0 if d["album"])) == 4
 	assert len(set(d["primaryartist"] for d in data0 if d["primaryartist"])) == 0
@@ -606,11 +606,11 @@ def test_song_save_for_multi_edit(
 	)
 	assert coversLen == 0
 	assert len(set(d["track"] for d in data0)) == 4
-	assert len(set(d["disc"] for d in data0)) == 2
+	assert len(set(d["discnum"] for d in data0)) == 2
 	assert len(set(d["genre"] for d in data0)) == 2
 	assert len(set(d["bitrate"] for d in data0)) == 2
 	assert len(set(d["samplerate"] for d in data0)) == 1
-	assert len(set(d["comment"] for d in data0)) == 4
+	assert len(set(d["notes"] for d in data0)) == 4
 	assert len(set(d["duration"] for d in data0)) == 1
 	assert len(set(d["explicit"] for d in data0)) == 1
 	assert len(set(d["lyrics"] for d in data0)) == 1
@@ -668,7 +668,7 @@ def test_song_save_for_multi_edit(
 	assert getListResponseAfter.status_code == 200
 
 	assert len(set(d["id"] for d in data2)) == len(data2)
-	assert len(set(d["path"] for d in data2)) == len(data2)
+	assert len(set(d["treepath"] for d in data2)) == len(data2)
 	assert len(set(d["name"] for d in data2)) == len(data2)
 	assert len(set(d["album"]["id"] for d in data2 if d["album"])) == 1
 	assert len(set(d["primaryartist"]["id"] for d in data2
@@ -685,11 +685,11 @@ def test_song_save_for_multi_edit(
 	)
 	assert coversLen == 0
 	assert len(set(d["track"] for d in data2)) == 4
-	assert len(set(d["disc"] for d in data2)) == 2
+	assert len(set(d["discnum"] for d in data2)) == 2
 	assert len(set(d["genre"] for d in data2)) == 2
 	assert len(set(d["bitrate"] for d in data2)) == 2
 	assert len(set(d["samplerate"] for d in data2)) == 1
-	assert len(set(d["comment"] for d in data2)) == 4
+	assert len(set(d["notes"] for d in data2)) == 4
 	assert len(set(d["duration"] for d in data2)) == 1
 	assert len(set(d["explicit"] for d in data2)) == 1
 	assert len(set(d["lyrics"] for d in data2)) == 1
@@ -730,7 +730,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	assert getResponseBefore.status_code == 200
 	assert data0
 	assert len(set(d["id"] for d in data0)) == len(data0)
-	assert len(set(d["path"] for d in data0)) == len(data0)
+	assert len(set(d["treepath"] for d in data0)) == len(data0)
 	assert len(set(d["name"] for d in data0)) == len(data0)
 	assert len(set(d["album"]["id"] for d in data0 if d["album"])) == 2
 	assert len(set(d["primaryartist"] for d in data0 if d["primaryartist"])) == 0
@@ -745,11 +745,11 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	)
 	assert coversLen == 0
 	assert len(set(d["track"] for d in data0)) == 1
-	assert len(set(d["disc"] for d in data0)) == 1
+	assert len(set(d["discnum"] for d in data0)) == 1
 	assert len(set(d["genre"] for d in data0)) == 1
 	assert len(set(d["bitrate"] for d in data0)) == 1
 	assert len(set(d["samplerate"] for d in data0)) == 1
-	assert len(set(d["comment"] for d in data0)) == 1
+	assert len(set(d["notes"] for d in data0)) == 1
 	assert len(set(d["duration"] for d in data0)) == 1
 	assert len(set(d["explicit"] for d in data0)) == 1
 	assert len(set(d["lyrics"] for d in data0)) == 1
@@ -804,7 +804,7 @@ def test_song_save_for_multi_edit_artist_to_primary(
 
 
 	assert len(set(d["id"] for d in data2)) == len(data2)
-	assert len(set(d["path"] for d in data2)) == len(data2)
+	assert len(set(d["treepath"] for d in data2)) == len(data2)
 	assert len(set(d["name"] for d in data2)) == len(data2)
 	assert len(set(d["album"]["id"] for d in data2 if d["album"])) == 1
 	assert len(set(d["primaryartist"]["id"] for d in data2
@@ -821,11 +821,11 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	)
 	assert coversLen == 0
 	assert len(set(d["track"] for d in data2)) == 1
-	assert len(set(d["disc"] for d in data2)) == 1
+	assert len(set(d["discnum"] for d in data2)) == 1
 	assert len(set(d["genre"] for d in data2)) == 1
 	assert len(set(d["bitrate"] for d in data2)) == 1
 	assert len(set(d["samplerate"] for d in data2)) == 1
-	assert len(set(d["comment"] for d in data2)) == 1
+	assert len(set(d["notes"] for d in data2)) == 1
 	assert len(set(d["duration"] for d in data2)) == 1
 	assert len(set(d["explicit"] for d in data2)) == 1
 	assert len(set(d["lyrics"] for d in data2)) == 1

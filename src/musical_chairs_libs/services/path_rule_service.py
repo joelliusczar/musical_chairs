@@ -17,7 +17,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ChainedAbsorbentTrie,
 	ActionRule,
 	get_path_owner_roles,
-	UserRoleDomain,
+	UserRoleSphere,
 	UserRoleDef,
 	build_path_rules_query,
 	get_datetime,
@@ -59,9 +59,9 @@ class PathRuleService:
 				priority=cast(int,r[pup_priority]) \
 					or RulePriorityLevel.STATION_PATH.value,
 				span=cast(int,r[pup_span]) or 0,
-				count=cast(int,r[pup_count]) or 0,
-				path=normalize_opening_slash(cast(str,r[pup_path])),
-				domain=UserRoleDomain.Path.value
+				quota=cast(int,r[pup_count]) or 0,
+				keypath=normalize_opening_slash(cast(str,r[pup_path])),
+				sphere=UserRoleSphere.Path.value
 			)
 
 
@@ -76,12 +76,12 @@ class PathRuleService:
 		)
 
 		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
-			(normalize_opening_slash(p.path), p) for p in
-				rules if p.domain == UserRoleDomain.Path.value and p.path
+			(normalize_opening_slash(p.keypath), p) for p in
+				rules if p.sphere == UserRoleSphere.Path.value and p.keypath
 		)
 		pathRuleTree.add("/", (r for r in user.roles \
 			if type(r) == ActionRule \
-				and (UserRoleDomain.Path.conforms(r.name) \
+				and (UserRoleSphere.Path.conforms(r.name) \
 						or r.name == UserRoleDef.ADMIN.value
 				)
 		), shouldEmptyUpdateTree=False)
@@ -109,10 +109,10 @@ class PathRuleService:
 	) -> ActionRule:
 		stmt = insert(path_user_permissions_tbl).values(
 			userfk = addedUserId,
-			path = prefix,
+			keypath = prefix,
 			role = rule.name,
 			span = rule.span,
-			count = rule.count,
+			quota = rule.quota,
 			priority = None,
 			creationtimestamp = self.get_datetime().timestamp()
 		)
@@ -121,10 +121,10 @@ class PathRuleService:
 		return ActionRule(
 			name=rule.name,
 			span=rule.span,
-			count=rule.count,
+			quota=rule.quota,
 			priority=RulePriorityLevel.STATION_PATH.value,
-			path=prefix,
-			domain=UserRoleDomain.Path.value
+			keypath=prefix,
+			sphere=UserRoleSphere.Path.value
 		)
 
 
@@ -144,10 +144,10 @@ class PathRuleService:
 			u_dirRoot,
 			rulesQuery.c.rule_userfk.label("rule.userfk"),
 			rulesQuery.c.rule_name.label("rule.name"),
-			rulesQuery.c.rule_count.label("rule.count"),
+			rulesQuery.c.rule_quota.label("rule.quota"),
 			rulesQuery.c.rule_span.label("rule.span"),
 			rulesQuery.c.rule_priority.label("rule.priority"),
-			rulesQuery.c.rule_domain.label("rule.domain")
+			rulesQuery.c.rule_sphere.label("rule.sphere")
 		).select_from(user_tbl).join(
 			rulesQuery,
 			or_(
@@ -167,9 +167,15 @@ class PathRuleService:
 							normalizedPrefix,
 							1,
 							func.length(
-								func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
+								func.normalize_opening_slash(
+									rulesQuery.c.rule_keypath,
+									addSlash
+								)
 							)
-						) == func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
+						) == func.normalize_opening_slash(
+							rulesQuery.c.rule_keypath,
+							addSlash
+						)
 				),
 			),
 			isouter=True

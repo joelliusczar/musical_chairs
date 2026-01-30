@@ -14,17 +14,15 @@ export interface SubjectUserParams {
 export interface ActionRuleCreationInfo {
 	name: string
 	span: number
-	count: number
+	quota: number
 };
 
 export interface ActionRule extends ActionRuleCreationInfo {
 	priority: number
-	domain: string
+	sphere: string
+	keypath: string | null
 };
 
-export interface PathsActionRule extends ActionRule {
-	path: string | null
-};
 
 export interface RoledEntity {
 	roles: ActionRule[]

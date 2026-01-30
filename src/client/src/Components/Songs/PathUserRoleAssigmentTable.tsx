@@ -84,7 +84,7 @@ export const PathUserRoleAssignmentTable = () => {
 		const rule = {
 			name: UserRoleDef.PATH_VIEW,
 			span: 0,
-			count: 0,
+			quota: 0,
 			priority: null,
 		};
 		const requestObj = Calls.addPathUserRule({

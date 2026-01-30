@@ -153,7 +153,7 @@ class QueueService(SongPopper, RadioPusher):
 			stsg_lastplayednum.label("lastplayednum"),
 			st_playnum.label("playnum"),
 			sg_internalpath.label("internalpath"),
-			sg_path.label("path"),
+			sg_path.label("treepath"),
 			coalesce(sg_name, "").label("name"),
 			coalesce(ab_name, "").label("album.name"),
 			coalesce(ar_name, "").label("artist.name"),
@@ -176,7 +176,7 @@ class QueueService(SongPopper, RadioPusher):
 			.group_by(*groupColumns)\
 			.order_by(
 				desc(stsg_lastplayednum),
-				func.rand()
+				func.random()
 			)
 
 		rows = self.conn.execute(
@@ -197,7 +197,7 @@ class QueueService(SongPopper, RadioPusher):
 					album=r["album.name"],
 					artist=r["artist.name"],
 					internalpath=r["internalpath"],
-					path=r["path"],
+					treepath=r["treepath"],
 					userId=None
 				)
 			) \
@@ -359,7 +359,7 @@ class QueueService(SongPopper, RadioPusher):
 			songfk = songId,
 			action = completed.action or StationsSongsActions.PLAYED.value,
 			queuedtimestamp = completed.queuedtimestamp,
-			timestamp = self.get_datetime().timestamp(),
+			playedtimestamp = self.get_datetime().timestamp(),
 			userfk = completed.userId
 		)
 		try:
@@ -488,7 +488,7 @@ class QueueService(SongPopper, RadioPusher):
 		for song in ruled:
 			if pathRuleTree:
 				song.rules = list(pathRuleTree.values_flat(
-					normalize_opening_slash(song.path)
+					normalize_opening_slash(song.treepath)
 				))
 		playing = next(
 			iter(self.get_history_for_station(station, limit=1)[0]),
@@ -496,7 +496,7 @@ class QueueService(SongPopper, RadioPusher):
 		)
 		if pathRuleTree and playing:
 				playing.rules = list(pathRuleTree.values_flat(
-					normalize_opening_slash(playing.path)
+					normalize_opening_slash(playing.treepath)
 				))
 		return CurrentPlayingInfo(
 			nowplaying=playing,
@@ -548,7 +548,7 @@ class QueueService(SongPopper, RadioPusher):
 			coalesce[Optional[String]](sg_name, "").label("name"),
 			ab_name.label("album"),
 			ar_name.label("artist"),
-			sg_path.label("path"),
+			sg_path.label("treepath"),
 			sg_internalpath.label("internalpath"),
 			q_pk.label("historyid"),
 			q_itemType.label("itemtype"),
@@ -578,7 +578,7 @@ class QueueService(SongPopper, RadioPusher):
 			rules = []
 			if pathRuleTree:
 				rules = list(pathRuleTree.values_flat(
-					normalize_opening_slash(cast(str, row["path"])))
+					normalize_opening_slash(cast(str, row["treepath"])))
 				)
 			result.append(HistoryItem(**row, rules=rules))
 		countQuery = select(func.count(1))\
@@ -631,7 +631,7 @@ class QueueService(SongPopper, RadioPusher):
 		updateCount = 0
 		for item in updatera:
 			stmt = update(last_played) \
-				.values(timestamp = item.timestamp) \
+				.values(playedtimestamp = item.timestamp) \
 				.where(lp_stationFk == stationid)\
 				.where(lp_songFk == item.songid)\
 				.where(lp_itemType == item.itemtype)\
@@ -746,7 +746,7 @@ class QueueService(SongPopper, RadioPusher):
 			)\
 			.with_only_columns(
 				sg_pk.label("id"),
-				sg_path.label("path"),
+				sg_path.label("treepath"),
 				coalesce(sg_name, "Missing Name").label("name"),
 				coalesce(ab_name, "No Album").label("parentname"),
 				coalesce(ar_name,"").label("creator"),
@@ -764,7 +764,7 @@ class QueueService(SongPopper, RadioPusher):
 			.with_only_columns(
 				cte.c.id,
 				cte.c.name,
-				cte.c.path,
+				cte.c.treepath,
 				cte.c.parentname,
 				cte.c.creator,
 				cte.c.playedcount
@@ -795,7 +795,7 @@ class QueueService(SongPopper, RadioPusher):
 			parentname=s["parentname"],
 			creator=s["creator"],
 			rules=list(pathRuleTree.values_flat(
-					normalize_opening_slash(cast(str, s["path"])))
+					normalize_opening_slash(cast(str, s["treepath"])))
 				) if pathRuleTree else [],
 			owner=OwnerInfo(id=0, username="", displayname="NA"),
 			playedcount=s["playedcount"]

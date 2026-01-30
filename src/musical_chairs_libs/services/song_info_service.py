@@ -47,13 +47,13 @@ from musical_chairs_libs.tables import (
 	sg_pk, sg_name, sg_path, sg_trackNum,
 	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk,
 	ar_name, ar_pk, ar_ownerFk,
-	sg_albumFk, sg_bitrate,sg_comment, sg_disc, sg_duration, sg_explicit,
+	sg_albumFk, sg_bitrate, sg_notes, sg_disc, sg_duration, sg_explicit,
 	sg_genre, sg_lyrics, sg_sampleRate, sg_track, sg_internalpath,
 	sg_deletedTimstamp,
 	sgar_isPrimaryArtist, sgar_songFk, sgar_artistFk,
 	users as user_tbl,
 	playlists as playlists_tbl, pl_pk, pl_name, pl_viewSecurityLevel,
-	pl_description, pl_ownerFk,
+	pl_displayname, pl_ownerFk,
 	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk
 
 )
@@ -130,7 +130,7 @@ class SongInfoService:
 			return None
 		return SongListDisplayItem(
 			id=row[sg_pk],
-			path=row[sg_path],
+			treepath=row[sg_path],
 			internalpath=row[sg_internalpath],
 			name=row[sg_name],
 			album=row["album"],
@@ -163,7 +163,7 @@ class SongInfoService:
 		for row in records:
 			yield ScanningSongItem(
 					id=row[sg_pk],
-					path=row[sg_path],
+					treepath=row[sg_path],
 					name=SavedNameString.format_name_for_save(row[sg_name])
 				)
 
@@ -187,7 +187,7 @@ class SongInfoService:
 				lStationKey = stationKey.replace("_","\\_").replace("%","\\%")
 				query = query.join(stations_tbl, stsg_stationFk == st_pk)
 				query = query.join(stations_tbl, st_pk == stsg_stationFk).where(
-					st_name.like(f"%{lStationKey}%")
+					st_name.like(f"%{lStationKey}%", escape="\\")
 				)
 		if songIds:
 			query = query.where(sg_pk.in_(songIds))
@@ -323,7 +323,7 @@ class SongInfoService:
 		if commonSongInfo:
 			commonSongInfo["id"] = 0
 			commonSongInfo["name"] = ""
-			commonSongInfo["path"] = ""
+			commonSongInfo["treepath"] = ""
 			commonSongInfo["internalpath"] = ""
 			commonSongInfo["rules"] = list(rules or [])
 			commonSongInfo["touched"] = touched
@@ -335,7 +335,7 @@ class SongInfoService:
 			return SongEditInfo(
 				id=0,
 				name="Missing",
-				path="", 
+				treepath="", 
 				internalpath="",
 				touched=touched
 			)
@@ -383,16 +383,16 @@ class SongInfoService:
 			query = query.where(st_pk == stationId)
 
 		if lsong:
-			query = query.where(sg_name.like(f"%{lsong}%"))
+			query = query.where(sg_name.like(f"%{lsong}%", escape="\\"))
 
 		if lalbum:
-			query = query.where(ab_name.like(f"%{lalbum}%"))
+			query = query.where(ab_name.like(f"%{lalbum}%", escape="\\"))
 
 		if albumId:
 			query = query.where(ab_pk == albumId)
 
 		if lartist:
-			query = query.where(ar_name.like(f"%{lartist}%"))
+			query = query.where(ar_name.like(f"%{lartist}%", escape="\\"))
 
 		if artistId:
 			query = query.where(ar_pk == artistId)
@@ -432,7 +432,7 @@ class SongInfoService:
 			rules = []
 			if pathRuleTree:
 				rules = list(pathRuleTree.values_flat(
-					normalize_opening_slash(cast(str, e["path"])))
+					normalize_opening_slash(cast(str, e["treepath"])))
 				)
 			songResult = SongEditInfo(
 				**e,
@@ -485,15 +485,15 @@ class SongInfoService:
 		query = query.with_only_columns(
 			sg_pk.label("id"),
 			sg_name.label("name"),
-			sg_path.label("path"),
+			sg_path.label("treepath"),
 			sg_internalpath.label("internalpath"),
 			sg_track.label("track"),
 			sg_trackNum.label("tracknum"),
-			sg_disc.label("disc"),
+			sg_disc.label("discnum"),
 			sg_genre.label("genre"),
 			sg_explicit.label("explicit"),
 			sg_bitrate.label("bitrate"),
-			sg_comment.label("comment"),
+			sg_notes.label("notes"),
 			sg_lyrics.label("lyrics"),
 			sg_duration.label("duration"),
 			sg_sampleRate.label("samplerate"),
@@ -526,10 +526,10 @@ class SongInfoService:
 			st_viewSecurityLevel.label("stations.viewsecuritylevel"),
 			pl_pk.label("playlists.id"),
 			pl_name.label("playlists.name"),
-			pl_description.label("playlists.description"),
+			pl_displayname.label("playlists.description"),
 			pl_viewSecurityLevel.label("playlists.viewsecuritylevel"),
 			pl_ownerFk.label("playlists.owner.id"),
-			playlist_owner.c.username.label("playlists..owner.username"),
+			playlist_owner.c.username.label("playlists.owner.username"),
 			playlist_owner.c.displayname.label("playlists.owner.displayname")
 		)
 

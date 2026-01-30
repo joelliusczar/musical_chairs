@@ -299,7 +299,7 @@ def test_save__multiple_song_add_station_and_playlist(
 	sendData = SongEditInfo(
 		id=0,
 		name="",
-		path="",
+		treepath="",
 		internalpath="",
 		stations=[
 			StationInfo(id=5, name="tango_station")
@@ -775,7 +775,7 @@ def test_get_single_song_for_edit(
 	songInfo = next(songInfoService.get_songs_for_edit([1]))
 	assert songInfo
 
-	assert songInfo.path == "foo/goo/boo/sierra"
+	assert songInfo.treepath == "foo/goo/boo/sierra"
 	assert songInfo.name == "sierra_song"
 	assert songInfo.album and songInfo.album.id == 11
 	assert songInfo.album and songInfo.album.name == "boo_album"
@@ -790,7 +790,7 @@ def test_get_single_song_for_edit(
 		assert songInfo.primaryartist.name == "foxtrot_artist"
 	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == "1"
-	assert songInfo.disc == 1
+	assert songInfo.discnum == 1
 	assert songInfo.genre == "pop"
 	assert songInfo.stations and len(songInfo.stations) == 2
 	sortedStations = sorted(songInfo.stations, key=lambda t: t.id or 0)
@@ -862,7 +862,7 @@ def test_get_multiple_songs_for_edit(
 	)
 	assert songInfoList and len(songInfoList) == 2
 	songInfo = songInfoList[0]
-	assert songInfo.path == "foo/goo/boo/sierra"
+	assert songInfo.treepath == "foo/goo/boo/sierra"
 	assert songInfo.name == "sierra_song"
 	assert songInfo.album and songInfo.album.id == 11
 	assert songInfo.album and songInfo.album.name == "boo_album"
@@ -877,7 +877,7 @@ def test_get_multiple_songs_for_edit(
 		assert songInfo.primaryartist.name == "foxtrot_artist"
 	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == "1"
-	assert songInfo.disc == 1
+	assert songInfo.discnum == 1
 	assert songInfo.genre == "pop"
 	assert songInfo.stations and len(songInfo.stations) == 2
 	sortedStations = sorted(songInfo.stations, key=lambda t: t.id or 0)
@@ -891,7 +891,7 @@ def test_get_multiple_songs_for_edit(
 		assert sortedStations[1].displayname == "Blurg the blergos"
 
 	songInfo = songInfoList[1]
-	assert songInfo.path == "foo/goo/shoo/india"
+	assert songInfo.treepath == "foo/goo/shoo/india"
 	assert songInfo.name == "india_song"
 	assert songInfo.album and songInfo.album.id == 8
 	assert songInfo.album and songInfo.album.name == "shoo_album"
@@ -911,7 +911,7 @@ def test_get_multiple_songs_for_edit(
 	assert not songInfo.primaryartist
 	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == "2"
-	assert songInfo.disc == 1
+	assert songInfo.discnum == 1
 	assert not songInfo.genre
 	assert songInfo.stations and len(songInfo.stations) == 2
 	sortedStations = sorted(songInfo.stations, key=lambda t: t.id or 0)

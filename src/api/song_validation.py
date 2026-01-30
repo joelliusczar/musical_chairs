@@ -27,7 +27,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	DirectoryTransfer,
 	UserRoleDef,
 	ValidatedSongAboutInfo,
-	UserRoleDomain,
+	UserRoleSphere,
 	normalize_opening_slash,
 	get_path_owner_roles,
 	WrongPermissionsError,
@@ -104,7 +104,7 @@ def check_if_can_use_path(
 	whenNextCalculator.check_if_user_can_perform_rate_limited_action(
 		scopes,
 		rules,
-		UserRoleDomain.Path.value
+		UserRoleSphere.Path.value
 	)
 
 
@@ -123,7 +123,7 @@ def get_secured_song_ids(
 	userPrefixTrie = user.get_permitted_paths_tree()
 	prefixes = [*pathRuleService.get_song_path(songIds)]
 	scopes = {s for s in securityScopes.scopes \
-		if UserRoleDomain.Path.conforms(s)
+		if UserRoleSphere.Path.conforms(s)
 	}
 	for prefix in prefixes:
 		check_if_can_use_path(
@@ -269,7 +269,7 @@ def get_write_secured_prefix(
 		return prefix
 	
 	scopes = {s for s in securityScopes.scopes \
-		if UserRoleDomain.Path.conforms(s)
+		if UserRoleSphere.Path.conforms(s)
 	}
 	if prefix:
 		userPrefixTrie = user.get_permitted_paths_tree()
@@ -306,7 +306,7 @@ def get_secured_directory_transfer(
 	user = currentUserProvider.get_path_rule_loaded_current_user()
 	userPrefixTrie = user.get_permitted_paths_tree()
 	scopes = (
-		(transfer.path, UserRoleDef.PATH_DELETE),
+		(transfer.treepath, UserRoleDef.PATH_DELETE),
 		(transfer.newprefix, UserRoleDef.PATH_EDIT)
 	)
 
@@ -353,7 +353,7 @@ def validate_path_rule(
 				"User is required"
 			)],
 		)
-	valid_name_set = UserRoleDef.as_set(UserRoleDomain.Path.value)
+	valid_name_set = UserRoleDef.as_set(UserRoleSphere.Path.value)
 	if rule.name not in valid_name_set:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -373,6 +373,7 @@ def validate_path_rule(
 				)],
 			)
 	return rule
+
 
 def validate_path_rule_for_remove(
 	prefix: str,

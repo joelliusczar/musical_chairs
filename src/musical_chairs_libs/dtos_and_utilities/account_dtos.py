@@ -14,7 +14,7 @@ from pydantic import (
 	SerializeAsAny,
 	Field
 )
-from .user_role_def import UserRoleDef, RulePriorityLevel, UserRoleDomain
+from .user_role_def import UserRoleDef, RulePriorityLevel, UserRoleSphere
 from .validation_functions import min_length_validator_factory
 from .simple_functions import (
 	asdict,
@@ -50,7 +50,7 @@ def get_station_owner_rules(
 			yield ActionRule(
 				name=rule.value,
 				priority=RulePriorityLevel.OWNER.value,
-				domain=UserRoleDomain.Station.value
+				sphere=UserRoleSphere.Station.value
 			)
 
 path_owner_rules = [
@@ -77,17 +77,17 @@ def get_path_owner_roles(
 					yield ActionRule(
 						name=rule.value,
 						priority=RulePriorityLevel.USER.value,
-						domain=UserRoleDomain.Path.value,
-						path=ownerDir,
+						sphere=UserRoleSphere.Path.value,
+						keypath=ownerDir,
 						span=60,
-						count=12
+						quota=12
 					)
 					continue
 				yield ActionRule(
 						name=rule.value,
 						priority=RulePriorityLevel.OWNER.value,
-						domain=UserRoleDomain.Path.value,
-						path=ownerDir,
+						sphere=UserRoleSphere.Path.value,
+						keypath=ownerDir,
 					)
 
 #create left out on purpose
@@ -108,7 +108,7 @@ def get_playlist_owner_roles(
 			yield ActionRule(
 				name=rule.value,
 				priority=RulePriorityLevel.OWNER.value,
-				domain=UserRoleDomain.Playlist.value
+				sphere=UserRoleSphere.Playlist.value
 			)
 
 album_owner_rules = [
@@ -123,7 +123,7 @@ def get_album_owner_roles(
 			yield ActionRule(
 				name=rule.value,
 				priority=RulePriorityLevel.OWNER.value,
-				domain=UserRoleDomain.Album.value
+				sphere=UserRoleSphere.Album.value
 			)
 
 artist_owner_rules = [
@@ -138,7 +138,7 @@ def get_artist_owner_roles(
 			yield ActionRule(
 				name=rule.value,
 				priority=RulePriorityLevel.OWNER.value,
-				domain=UserRoleDomain.Artist.value
+				sphere=UserRoleSphere.Artist.value
 			)
 
 starting_user_roles = [
@@ -157,7 +157,7 @@ def get_starting_site_roles(
 				name=rule.value,
 				priority=RulePriorityLevel.USER.value,
 				span=60,
-				count=1
+				quota=1
 			)
 
 class AccountInfoBase(FrozenBaseClass):
@@ -192,14 +192,14 @@ class AccountInfoSecurity(AccountInfoBase):
 		self
 	) -> ChainedAbsorbentTrie[ActionRule]:
 		pathTree = ChainedAbsorbentTrie[ActionRule](
-			(normalize_opening_slash(r.path), r) for r in
-			self.roles if r.domain == UserRoleDomain.Path.value \
-				and r.path is not None
+			(normalize_opening_slash(r.keypath), r) for r in
+			self.roles if r.sphere == UserRoleSphere.Path.value \
+				and r.keypath is not None
 		)
 		pathTree.add("/", (
-			ActionRule(**asdict(r, exclude={"path"}), path = "/") 
+			ActionRule(**asdict(r, exclude={"keypath"}), keypath = "/") 
 			for r in self.roles \
-			if r.path is None and (UserRoleDomain.Path.conforms(r.name) \
+			if r.keypath is None and (UserRoleSphere.Path.conforms(r.name) \
 						or r.name == UserRoleDef.ADMIN.value
 				)
 		), shouldEmptyUpdateTree=False)

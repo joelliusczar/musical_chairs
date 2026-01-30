@@ -16,8 +16,8 @@ class EventsLogger(Protocol):
 	def add_event(
 		self,
 		action: str,
-		domain: str,
-		path: Optional[str] = None,
+		sphere: str,
+		keypath: Optional[str] = None,
 		extraInfo: str = ""
 	) -> EventRecord:
 		...

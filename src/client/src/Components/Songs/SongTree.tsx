@@ -39,7 +39,7 @@ import {
 } from "../../Types/song_info_types";
 import { IdValue, Dictionary, KeyValue } from "../../Types/generic_types";
 import { ListData } from "../../Types/pageable_types";
-import { PathsActionRule } from "../../Types/user_types";
+import { ActionRule } from "../../Types/user_types";
 import {
 	keyedDataDispatches as dispatches,
 } from "../../Reducers/keyedDataWaitingReducer";
@@ -86,7 +86,7 @@ const styles = {
 
 
 const isNodeDirectory = (node: SongTreeNodeInfo) => {
-	return node.path?.endsWith("/");
+	return node.treepath?.endsWith("/");
 };
 
 const songTreeParentInfoToNodeIds = (
@@ -128,10 +128,10 @@ const SongTreeNode = memo((props: SongTreeNodeProps) => {
 
 	const [, dragRef] = useDrag<DirectoryTransferSource>({
 		type: "branch",
-		item: { prefix, path: songNodeInfo.path },
+		item: { prefix, treepath: songNodeInfo.treepath },
 	});
 
-	const dropPath = songNodeInfo.path;
+	const dropPath = songNodeInfo.treepath;
 
 	const [{ isOver }, dropRef] = useDrop<
 		DirectoryTransferSource,
@@ -162,7 +162,7 @@ const SongTreeNode = memo((props: SongTreeNodeProps) => {
 		},
 		canDrop: (item) => {
 			if (!dropPath.endsWith("/")) return false;
-			if (dropPath === item.path) return false;
+			if (dropPath === item.treepath) return false;
 			return true;
 		},
 		collect: (monitor) => ({
@@ -186,7 +186,7 @@ const SongTreeNode = memo((props: SongTreeNodeProps) => {
 
 
 	const label = songNodeInfo.name ?
-		songNodeInfo.name : songNodeInfo.path.replace(prefix, "");
+		songNodeInfo.name : songNodeInfo.treepath.replace(prefix, "");
 
 	return (
 		<div
@@ -364,11 +364,13 @@ const SongDirectory = memo((props: SongDirectoryProps) => {
 	return (
 		<Loader status={callStatus} error={error}>
 			{currentLevelData.items.map((d) => {
-				const nodeId = unicodeToUrlSafeBase64(normalizeOpeningSlash(d.path));
+				const nodeId = unicodeToUrlSafeBase64(normalizeOpeningSlash(
+					d.treepath)
+				);
 
 
-				if (renderedSet.has(d.path)) return (<div key={nodeId}></div>);
-				renderedSet.add(d.path);
+				if (renderedSet.has(d.treepath)) return (<div key={nodeId}></div>);
+				renderedSet.add(d.treepath);
 
 				return (
 					<SongTreeNode
@@ -380,7 +382,7 @@ const SongDirectory = memo((props: SongDirectoryProps) => {
 					>
 						{!d.id &&
 							<SongDirectory
-								prefix={d.path}
+								prefix={d.treepath}
 								level={level + 1}
 								onNodeLoaded={onNodeLoaded}
 								renderedSet={renderedSet}
@@ -401,7 +403,7 @@ export const SongTree = withCacheProvider<
 	() => {
 		const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 		const [selectedPrefixRules, setSelectedPrefixRules] =
-			useState<PathsActionRule[]>([]);
+			useState<ActionRule[]>([]);
 		const [showDndRoot, setShowDndRoot] = useState(false);
 		const [breadcrumb, setBreadcrumb] = useState<BreadcrumbNodeInfo[]>([]);
 
@@ -432,7 +434,7 @@ export const SongTree = withCacheProvider<
 			setBreadcrumb(prefix_split(path).map(p => {
 				const split = p.split("/").filter(s => !!s);
 				return {
-					path: p,
+					treepath: p,
 					nodeId: unicodeToUrlSafeBase64(normalizeOpeningSlash(p)),
 					segment: split.length > 0 ? split[split.length - 1] : "",
 				};
@@ -444,8 +446,8 @@ export const SongTree = withCacheProvider<
 			const songNodeInfo = firstNode(treeData[nodeId]);
 			if (!!songNodeInfo) {
 				if (isNodeDirectory(songNodeInfo)) {
-					updateUrl(normalizeOpeningSlash(songNodeInfo?.path));
-					updateBreadcrumb(songNodeInfo?.path);
+					updateUrl(normalizeOpeningSlash(songNodeInfo?.treepath));
+					updateBreadcrumb(songNodeInfo?.treepath);
 					const expandedCopy = [...expandedNodes];
 					const expandedFoundIdx =
 							expandedNodes.findIndex(n => n === nodeId);
@@ -531,12 +533,12 @@ export const SongTree = withCacheProvider<
 				const selectedPrefix = urlSafeBase64ToUnicode(selectedNodes[0]);
 				const hasRule = selectedPrefixRules
 					.filter(r => r.name === UserRoleDef.PATH_USER_LIST ||
-						r.domain === UserRoleDomain.SITE
+						r.sphere === UserRoleDomain.SITE
 					)
 					.some(r =>
-						(r.path &&
-							selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
-						r.domain === UserRoleDomain.SITE
+						(r.keypath &&
+							selectedPrefix.startsWith(normalizeOpeningSlash(r.keypath))) ||
+						r.sphere === UserRoleDomain.SITE
 					);
 				return hasRule;
 			}
@@ -549,12 +551,12 @@ export const SongTree = withCacheProvider<
 			const selectedPrefix = urlSafeBase64ToUnicode(selectedNodes[0]);
 			const hasRule = selectedPrefixRules
 				.filter(r => r.name === UserRoleDef.PATH_DELETE ||
-					r.domain === UserRoleDomain.SITE
+					r.sphere === UserRoleDomain.SITE
 				)
 				.some(r =>
-					(r.path &&
-						selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
-					r.domain === UserRoleDomain.SITE
+					(r.keypath &&
+						selectedPrefix.startsWith(normalizeOpeningSlash(r.keypath))) ||
+					r.sphere === UserRoleDomain.SITE
 				);
 			return hasRule;
 		};
@@ -566,12 +568,12 @@ export const SongTree = withCacheProvider<
 			const selectedPrefix = urlSafeBase64ToUnicode(selectedNodes[0]);
 			const hasRule = selectedPrefixRules
 				.filter(r => r.name === UserRoleDef.PATH_MOVE ||
-					r.domain === UserRoleDomain.SITE
+					r.sphere === UserRoleDomain.SITE
 				)
 				.some(r =>
-					(r.path &&
-						selectedPrefix.startsWith(normalizeOpeningSlash(r.path))) ||
-					r.domain === UserRoleDomain.SITE
+					(r.keypath &&
+						selectedPrefix.startsWith(normalizeOpeningSlash(r.keypath))) ||
+					r.sphere === UserRoleDomain.SITE
 				);
 			return hasRule;
 		};

@@ -10,6 +10,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 1,
 		"name": "alpha_artist",
+		"flatname": "alpha_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -17,6 +18,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 2,
 		"name": "bravo_artist",
+		"flatname": "bravo_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -24,6 +26,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 3,
 		"name": "charlie_artist",
+		"flatname": "charlie_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -31,6 +34,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 4,
 		"name": "delta_artist",
+		"flatname": "delta_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -38,6 +42,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 5,
 		"name": "echo_artist",
+		"flatname": "echo_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -45,6 +50,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 6,
 		"name": "foxtrot_artist",
+		"flatname": "foxtrot_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -52,6 +58,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 7,
 		"name": "golf_artist",
+		"flatname": "golf_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -59,6 +66,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 8,
 		"name": "hotel_artist",
+		"flatname": "hotel_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -66,6 +74,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 9,
 		"name": "india_artist",
+		"flatname": "india_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -73,6 +82,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 10,
 		"name": "juliet_artist",
+		"flatname": "juliet_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -80,6 +90,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 11,
 		"name": "kilo_artist",
+		"flatname": "kilo_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -87,6 +98,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 12,
 		"name": "lima_artist",
+		"flatname": "lima_artist".casefold(),
 		"ownerfk": user_ids.fooDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -94,6 +106,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 13,
 		"name": "november_artist",
+		"flatname": "november_artist".casefold(),
 		"ownerfk": user_ids.blitzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -101,6 +114,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 14,
 		"name": "oscar_artist",
+		"flatname": "oscar_artist".casefold(),
 		"ownerfk": user_ids.blitzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -108,6 +122,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 15,
 		"name": "papa_artist",
+		"flatname": "papa_artist".casefold(),
 		"ownerfk": user_ids.november_user_id,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -115,6 +130,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 16,
 		"name": "romeo_artist",
+		"flatname": "romeo_artist".casefold(),
 		"ownerfk": user_ids.india_user_id,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -122,6 +138,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 17,
 		"name": "sierra_artist",
+		"flatname": "sierra_artist".casefold(),
 		"ownerfk": user_ids.hotel_user_id,
 		"lastmodifiedbyuserfk": user_ids.fooDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -129,6 +146,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 18,
 		"name": "tango_artist",
+		"flatname": "tango_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -136,6 +154,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 19,
 		"name": "uniform_artist",
+		"flatname": "uniform_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -143,6 +162,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 20,
 		"name": "victor_artist",
+		"flatname": "victor_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -150,6 +170,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 21,
 		"name": "whiskey_artist",
+		"flatname": "whiskey_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -157,6 +178,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 22,
 		"name": "xray_artist",
+		"flatname": "xray_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -164,6 +186,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 23,
 		"name": "yankee_artist",
+		"flatname": "yankee_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -171,6 +194,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 24,
 		"name": "zulu_artist",
+		"flatname": "zulu_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -178,6 +202,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 25,
 		"name": "z-albert_artist",
+		"flatname": "z-albert_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -185,6 +210,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 26,
 		"name": "z-charlie_artist",
+		"flatname": "z-charlie_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -192,6 +218,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 27,
 		"name": "z-bravo_artist",
+		"flatname": "z-bravo_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,
@@ -199,6 +226,7 @@ artist_params: list[dict[str, Any]] = [
 	{
 		"pk": 28,
 		"name": "no-songs_artist",
+		"flatname": "no-songs_artist".casefold(),
 		"ownerfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedbyuserfk": user_ids.jazzDirOwnerId,
 		"lastmodifiedtimestamp": 0,

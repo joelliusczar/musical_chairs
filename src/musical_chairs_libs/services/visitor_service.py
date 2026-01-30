@@ -70,9 +70,9 @@ class VisitorService:
 				self.add_to_cache(row[uag_pk], trackingInfo)
 				return row[uag_pk]
 		stmt = insert(user_agents).values(
-			content = unicodedata.normalize("NFC", trackingInfo.userAgent),
-			hash = userAgentHash,
-			length = userAgentLen,
+			useragenttxt = unicodedata.normalize("NFC", trackingInfo.userAgent),
+			hashua = userAgentHash,
+			lengthua = userAgentLen,
 			ipv4address = trackingInfo.ipv4Address,
 			ipv6address = trackingInfo.ipv6Address
 		)

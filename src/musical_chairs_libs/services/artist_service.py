@@ -39,7 +39,7 @@ from sqlalchemy.exc import IntegrityError
 from musical_chairs_libs.tables import (
 	artists as artists_tbl,
 	ab_pk,
-	ar_name, ar_pk, ar_ownerFk,
+	ar_name, ar_flatname, ar_pk, ar_ownerFk,
 	users as user_tbl, u_pk, u_username, u_displayName,
 	sg_pk, sg_name, sg_track, sg_albumFk, sg_path, sg_internalpath,
 	sg_deletedTimstamp,
@@ -78,13 +78,13 @@ class ArtistService:
 			query = query.where(ar_pk == artistKeys)
 		elif type(artistKeys) is str:
 			if artistKeys:
-				searchStr = SearchNameString.format_name_for_search(artistKeys)
+				searchStr = SearchNameString.format_name_for_like(artistKeys)
 				if exactStrMatch:
 					query = query\
-						.where(ar_name == searchStr)
+						.where(ar_flatname == searchStr)
 				else:
 					query = query\
-						.where(ar_name.like(f"%{searchStr}%"))
+						.where(ar_flatname.like(f"%{searchStr}%", escape="\\"))
 		#check speficially if instance because [] is falsy
 		elif isinstance(artistKeys, Iterable) :
 			query = query.where(ar_pk.in_(artistKeys))
@@ -139,6 +139,7 @@ class ArtistService:
 		print(name)
 		stmt = insert(artists_tbl).values(
 			name = savedName,
+			flatname = str(SearchNameString(name)),
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
 		res = self.conn.execute(stmt)
@@ -215,7 +216,7 @@ class ArtistService:
 		if pathRuleTree:
 			for song in songs:
 				song.rules = list(pathRuleTree.values_flat(
-						normalize_opening_slash(song.path))
+						normalize_opening_slash(song.treepath))
 					)
 
 		return SongsArtistInfo(**artistInfo.model_dump(), songs=songs)
@@ -257,7 +258,7 @@ class ArtistService:
 			)
 
 
-	def delete_album(self, artistid: int) -> int:
+	def delete_artist(self, artistid: int) -> int:
 		if not artistid:
 			return 0
 		delStmt = delete(artists_tbl).where(ar_pk == artistid)

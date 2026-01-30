@@ -17,11 +17,6 @@ from .generic_dtos import (
 	Named,
 	NamedIdItem
 )
-from musical_chairs_libs.tables import (
-	pl_description, pl_viewSecurityLevel,
-	pl_name, pl_pk, pl_ownerFk,
-	u_username, u_displayName
-)
 from .account_dtos import OwnerType, OwnerInfo, get_playlist_owner_roles
 from .user_role_def import RulePriorityLevel
 from .queued_item import SongListDisplayItem
@@ -31,27 +26,27 @@ from .simple_functions import get_non_simple_chars
 from .station_dtos import StationInfo
 
 class PlaylistCreationInfo(Named):
-	description: Optional[str]=""
+	displayname: Optional[str]=""
 	stations: list[StationInfo]=cast(
 		list[StationInfo], Field(default_factory=list)
 	)
 
 class PlaylistInfo(NamedIdItem, RuledEntity):
 	owner: OwnerType
-	description: Optional[str]=""
+	displayname: Optional[str]=""
 
 	@classmethod
 	def row_to_playlist(cls, row: RowMapping) -> "PlaylistInfo":
 		return PlaylistInfo(
-			id=row[pl_pk],
-			name=row[pl_name],
-			description=row[pl_description],
+			id=row["id"],
+			name=row["name"],
+			displayname=row["displayname"],
 			owner=OwnerInfo(
-				id=row[pl_ownerFk],
-				username=row[u_username],
-				displayname=row[u_displayName]
+				id=row["owner.id"],
+				username=row["owner.username"],
+				displayname=row["owner.displayname"]
 			),
-			viewsecuritylevel=row[pl_viewSecurityLevel] \
+			viewsecuritylevel=row["viewsecuritylevel"] \
 				or RulePriorityLevel.PUBLIC.value,
 		)
 	
@@ -64,7 +59,7 @@ class PlaylistInfo(NamedIdItem, RuledEntity):
 	) -> Iterator["PlaylistInfo"]:
 		currentPlaylist = None
 		for row in rows:
-			if not currentPlaylist or currentPlaylist.id != cast(int,row[pl_pk]):
+			if not currentPlaylist or currentPlaylist.id != cast(int,row["id"]):
 				if currentPlaylist:
 					playlistOwner = currentPlaylist.owner
 					if playlistOwner and playlistOwner.id == userId:
@@ -72,9 +67,9 @@ class PlaylistInfo(NamedIdItem, RuledEntity):
 					currentPlaylist.rules = ActionRule.sorted(currentPlaylist.rules)
 					yield currentPlaylist
 				currentPlaylist = cls.row_to_playlist(row)
-				if cast(str,row["rule_domain"]) != "shim":
+				if cast(str,row["rule.sphere"]) != "shim":
 					currentPlaylist.rules.append(ActionRule.row_to_action_rule(row))
-			elif cast(str,row["rule_domain"]) != "shim":
+			elif cast(str,row["rule.sphere"]) != "shim":
 				currentPlaylist.rules.append(ActionRule.row_to_action_rule(row))
 		if currentPlaylist:
 			playlistOwner = currentPlaylist.owner

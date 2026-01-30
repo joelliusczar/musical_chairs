@@ -14,7 +14,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	QueueMetrics,
 	QueuePossibility,
 	SimpleQueryParameters,
-	UserRoleDomain,
+	UserRoleSphere,
 	StationTypes,
 	StreamQueuedItem,
 )
@@ -150,7 +150,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		)\
 			.order_by(
 				desc(sub.c.lastplayednum),
-				func.rand()
+				func.random()
 			)
 		rows = self.conn.execute(query).fetchall()
 
@@ -241,9 +241,9 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			sg_name.label("name"),
 			sg_albumFk.label("album.id"),
 			ab_name.label("album.name"),
-			sg_disc.label("disc"),
+			sg_disc.label("discnum"),
 			sg_trackNum.label("tracknum"),
-			sg_path.label("path"),
+			sg_path.label("treepath"),
 			sg_internalpath.label("internalpath"),
 			ar_name.label("artist.name"),
 		]
@@ -284,7 +284,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			plsg_playlistFk.label("playlist.id"),
 			plsg_lexorder.label("playlist.lexorder"),
 			ab_name.label("album.name"),
-			sg_path.label("path"),
+			sg_path.label("treepath"),
 			sg_internalpath.label("internalpath"),
 			ar_name.label("artist.name"),
 		]
@@ -350,7 +350,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		requests: list[StreamQueuedItem] = []
 		
 		def albumSortKey(r: RowMapping):
-			return (r["disc"] or 0,r["tracknum"])
+			return (r["discnum"] or 0,r["tracknum"])
 
 		def playlistSortKey(r: RowMapping):
 			return r["playlist.lexorder"] or b""
@@ -389,7 +389,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					album=r["album.name"],
 					artist=r["artist.name"],
 					queuedtimestamp=self.get_datetime().timestamp(),
-					path=r["path"],
+					treepath=r["treepath"],
 					internalpath=r["internalpath"],
 				) for r in sortedSongs
 			)
@@ -426,7 +426,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				sg_pk.label("id"),
 				sg_name.label("name"),
 				ab_name.label("album.name"),
-				sg_path.label("path"),
+				sg_path.label("treepath"),
 				sg_internalpath.label("internalpath"),
 				ar_name.label("artist.name"),
 				func.row_number().over(
@@ -457,7 +457,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					album=r["album.name"],
 					artist=r["artistname"],
 					queuedtimestamp=self.get_datetime().timestamp(),
-					path=r["path"],
+					treepath=r["treepath"],
 					internalpath=r["internalpath"],
 				) for r in rows],
 				station,
@@ -481,7 +481,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				sg_pk.label("id"),
 				sg_name.label("name"),
 				ab_name.label("album.name"),
-				sg_path.label("path"),
+				sg_path.label("treepath"),
 				sg_internalpath.label("internalpath"),
 				ar_name.label("artist.name"),
 				func.row_number(ar_name).over(
@@ -511,7 +511,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					album=r["album.name"],
 					artist=r["artistname"],
 					queuedtimestamp=self.get_datetime().timestamp(),
-					path=r["path"],
+					treepath=r["treepath"],
 					internalpath=r["internalpath"],
 				) for r in rows],
 				station,
@@ -653,7 +653,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			songfk = songId,
 			action = completed.action or StationsSongsActions.PLAYED.value,
 			queuedtimestamp = completed.queuedtimestamp,
-			timestamp = self.get_datetime().timestamp(),
+			playedtimestamp = self.get_datetime().timestamp(),
 			userfk = completed.userId
 		)
 		try:
@@ -701,7 +701,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			pl_pk.label("id"),
 			pl_name.label("name"),
 			u_displayName.label("creator"),
-			func.FROM_UNIXTIME(pl_lastmodifiedtimestamp, "%Y").label("year"),
+			func.strftime("%Y", pl_lastmodifiedtimestamp).label("year"),
 			pl_ownerFk.label("ownerid"),
 			u_username.label("ownerusername"),
 			u_displayName.label("ownerdisplayname"),
@@ -728,10 +728,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		)
 		
 		if lname:
-			query = query.where(sub.c.name.like(f"%{lname}%"))
+			query = query.where(sub.c.name.like(f"%{lname}%", escape="\\"))
 
 		if lcreator:
-			query = query.where(sub.c.creator.like(f"%{lcreator}%"))
+			query = query.where(sub.c.creator.like(f"%{lcreator}%", escape="\\"))
 
 		limitedQuery = query\
 			.offset(offset)\
@@ -752,14 +752,14 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			queuedtimestamp=0,
 			rules=[] if not userId or r["ownerid"] != userId else [
 				ActionRule(
-					domain=UserRoleDomain.Album.value,
+					sphere=UserRoleSphere.Album.value,
 					name=UserRoleDef.ALBUM_EDIT.value,
 					priority=RulePriorityLevel.OWNER.value
 				)
 			] if r["itemtype"] == StationRequestTypes.ALBUM.lower()
 			else [
 				ActionRule(
-					domain=UserRoleDomain.Playlist.value,
+					sphere=UserRoleSphere.Playlist.value,
 					name=UserRoleDef.PLAYLIST_EDIT.value,
 					priority=RulePriorityLevel.OWNER.value
 				)

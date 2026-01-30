@@ -50,10 +50,9 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.schema import Column
 from musical_chairs_libs.tables import (
-	albums as albums_tbl,
-	artists as artists_tbl,
-	ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk, ab_versionnote,
-	ar_name, ar_pk, ar_ownerFk,
+	artists as artists_tbl, ar_name, ar_pk, ar_ownerFk, ar_flatname,
+	albums as albums_tbl, ab_name, ab_pk, ab_albumArtistFk, ab_year, ab_ownerFk, 
+	ab_versionnote, ab_flatname,
 	users as user_tbl, u_pk, u_username, u_displayName,
 	songs as songs_tbl, sg_pk, sg_name, sg_albumFk, sg_path, sg_internalpath,
 	sg_deletedTimstamp, sg_disc, sg_trackNum,
@@ -108,26 +107,28 @@ class AlbumService:
 			query = query.where(ab_pk == albumKeys)
 		elif type(albumKeys) is str:
 			if albumKeys:
-				searchStr = SearchNameString.format_name_for_search(albumKeys)
 				if exactStrMatch:
+					searchStr = SearchNameString.format_name_for_search(albumKeys)
 					query = query\
-						.where(ab_name == searchStr)
+						.where(ab_flatname == searchStr)
 				else:
+					searchStr = SearchNameString.format_name_for_like(albumKeys)
 					query = query\
-						.where(ab_name.like(f"%{searchStr}%"))
+						.where(ab_name.like(f"%{searchStr}%", escape="\\"))
 		elif isinstance(albumKeys, Iterable):
 			query = query.where(ab_pk.in_(albumKeys))
 		if type(artistKeys) == int:
 			query = query.where(ab_albumArtistFk == artistKeys)
 		elif type(artistKeys) is str:
-			if artistKeys:
-				searchStr = SearchNameString.format_name_for_search(artistKeys)
+			if artistKeys:		
 				if exactStrMatch:
+					searchStr = SearchNameString.format_name_for_search(artistKeys)
 					query = query\
-						.where(ar_name == searchStr)
+						.where(ar_flatname == searchStr)
 				else:
+					searchStr = SearchNameString.format_name_for_like(artistKeys)
 					query = query\
-						.where(ar_name.like(f"%{searchStr}%"))
+						.where(ar_flatname.like(f"%{searchStr}%", escape="\\"))
 		elif isinstance(artistKeys, Iterable):
 			query = query.where(ab_albumArtistFk.in_(artistKeys))
 		user = self.current_user_provider.current_user(
@@ -281,7 +282,7 @@ class AlbumService:
 		if pathRuleTree:
 			for song in songs:
 				song.rules = list(pathRuleTree.values_flat(
-						normalize_opening_slash(song.path))
+						normalize_opening_slash(song.treepath))
 					)
 				yield song
 		else:
@@ -329,6 +330,7 @@ class AlbumService:
 		savedName = SavedNameString(album.name)
 		stmt = upsert(albums_tbl).values(
 			name = str(savedName),
+			flatname = str(SearchNameString(album.name)),
 			year = album.year,
 			versionnote = str(SavedNameString(album.versionnote)),
 			albumartistfk = album.albumartist.id if album.albumartist else None,
@@ -398,6 +400,7 @@ class AlbumService:
 		print(name)
 		stmt = insert(albums_tbl).values(
 			name = savedName,
+			flatname = str(SearchNameString(name)),
 			albumartistfk = artistFk,
 			year = year,
 			lastmodifiedtimestamp = self.get_datetime().timestamp(),

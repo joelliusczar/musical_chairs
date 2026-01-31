@@ -326,20 +326,20 @@ class AccountManagementService:
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userfk.label("rule.userfk"),
-			rulesQuery.c.rule_name.label("rule.name"),
-			rulesQuery.c.rule_quota.label("rule.quota"),
-			rulesQuery.c.rule_span.label("rule.span"),
-			rulesQuery.c.rule_priority.label("rule.priority"),
-			rulesQuery.c.rule_sphere.label("rule.sphere")
+			rulesQuery.c["rule>userfk"].label("rule>userfk"),
+			rulesQuery.c["rule>name"].label("rule>name"),
+			rulesQuery.c["rule>quota"].label("rule>quota"),
+			rulesQuery.c["rule>span"].label("rule>span"),
+			rulesQuery.c["rule>priority"].label("rule>priority"),
+			rulesQuery.c["rule>sphere"].label("rule>sphere")
 		).select_from(users).join(
 			rulesQuery,
-			rulesQuery.c.rule_userfk == u_pk,
+			rulesQuery.c["rule>userfk"] == u_pk,
 			isouter=True
 		).where(or_(u_disabled.is_(None), u_disabled == False))\
 		.where(
 			coalesce(
-				rulesQuery.c.rule_priority,
+				rulesQuery.c["rule>priority"],
 				RulePriorityLevel.USER.value
 			) > RulePriorityLevel.RULED_USER.value
 		)

@@ -45,35 +45,35 @@ from musical_chairs_libs.tables import (
 )
 
 __playlist_permissions_query__ = select(
-	plup_userFk.label("rule_userfk"),
-	plup_role.label("rule_name"),
-	plup_count.label("rule_quota"),
-	plup_span.label("rule_span"),
+	plup_userFk.label("rule>userfk"),
+	plup_role.label("rule>name"),
+	plup_count.label("rule>quota"),
+	plup_span.label("rule>span"),
 	coalesce[Integer](
 		plup_priority,
 		RulePriorityLevel.STATION_PATH.value
-	).label("rule_priority"),
-	dbLiteral(UserRoleSphere.Playlist.value).label("rule_sphere"),
-	plup_playlistFk.label("rule_playlistfk")
+	).label("rule>priority"),
+	dbLiteral(UserRoleSphere.Playlist.value).label("rule>sphere"),
+	plup_playlistFk.label("rule>playlistfk")
 )
 
 def build_playlist_rules_query(
 	userId: Optional[int]=None
 ) -> CompoundSelect[Tuple[int, str, float, float, int, str]]:
 	user_rules_query = select(
-		ur_userFk.label("rule_userfk"),
-		ur_role.label("rule_name"),
-		ur_quota.label("rule_quota"),
-		ur_span.label("rule_span"),
+		ur_userFk.label("rule>userfk"),
+		ur_role.label("rule>name"),
+		ur_quota.label("rule>quota"),
+		ur_span.label("rule>span"),
 		coalesce[Integer](
 			ur_priority,
 			case(
 				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
 				else_=RulePriorityLevel.SITE.value
 			)
-		).label("rule_priority"),
-		dbLiteral(UserRoleSphere.Site.value).label("rule_sphere"),
-		dbLiteral(None).label("rule_playlistfk")
+		).label("rule>priority"),
+		dbLiteral(UserRoleSphere.Site.value).label("rule>sphere"),
+		dbLiteral(None).label("rule>playlistfk")
 	).where(or_(
 			ur_role.like(f"{UserRoleSphere.Playlist.value}:%"),
 			ur_role == UserRoleDef.ADMIN.value
@@ -83,7 +83,7 @@ def build_playlist_rules_query(
 	placeholder_select = build_placeholder_select(
 		UserRoleDef.PLAYLIST_VIEW.value
 	).add_columns(
-		dbLiteral(None).label("rule_playlistfk")
+		dbLiteral(None).label("rule>playlistfk")
 	)
 
 	if userId is not None:
@@ -140,22 +140,22 @@ class PlaylistsUserService:
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userfk.label("rule.userfk"),
-			rulesQuery.c.rule_name.label("rule.name"),
-			rulesQuery.c.rule_quota.label("rule.quota"),
-			rulesQuery.c.rule_span.label("rule.span"),
-			rulesQuery.c.rule_priority.label("rule.priority"),
-			rulesQuery.c.rule_sphere.label("rule.sphere")
+			rulesQuery.c["rule>userfk"].label("rule>userfk"),
+			rulesQuery.c["rule>name"].label("rule>name"),
+			rulesQuery.c["rule>quota"].label("rule>quota"),
+			rulesQuery.c["rule>span"].label("rule>span"),
+			rulesQuery.c["rule>priority"].label("rule>priority"),
+			rulesQuery.c["rule>sphere"].label("rule>sphere")
 		).select_from(user_tbl).join(
 			rulesQuery,
 			or_(
 				and_(
 					u_pk == playlist.owner.id,
-					rulesQuery.c.rule_userfk == 0
+					rulesQuery.c["rule>userfk"] == 0
 				),
 				and_(
-					rulesQuery.c.rule_userfk == u_pk,
-					rulesQuery.c.rule_playlistfk == playlist.id
+					rulesQuery.c["rule>userfk"] == u_pk,
+					rulesQuery.c["rule>playlistfk"] == playlist.id
 				),
 			),
 			isouter=True
@@ -163,7 +163,7 @@ class PlaylistsUserService:
 		.where(
 			or_(
 				coalesce(
-					rulesQuery.c.rule_priority,
+					rulesQuery.c["rule>priority"],
 					RulePriorityLevel.SITE.value
 				) > RulePriorityLevel.INVITED_USER.value,
 				u_pk == playlist.owner.id

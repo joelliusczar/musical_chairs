@@ -223,14 +223,14 @@ class ActionRule:
 	def row_to_action_rule(row: RowMapping) -> "ActionRule":
 
 		return ActionRule(
-			name=row["rule.name"],
-			span=row["rule.span"],
-			quota=row["rule.quota"],
+			name=row["rule>name"],
+			span=row["rule>span"],
+			quota=row["rule>quota"],
 			#if priortity is explict use that
 			#otherwise, prefer station specific rule vs non station specific rule
-			priority=cast(int,row["rule.priority"]) if row["rule.priority"] \
+			priority=cast(int,row["rule>priority"]) if row["rule>priority"] \
 				else RulePriorityLevel.STATION_PATH.value,
-			sphere=row["rule.sphere"]
+			sphere=row["rule>sphere"]
 		)
 
 

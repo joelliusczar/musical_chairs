@@ -76,35 +76,35 @@ from musical_chairs_libs.tables import (
 )
 
 __playlist_permissions_query__ = select(
-	plup_userFk.label("rule_userfk"),
-	plup_role.label("rule_name"),
-	plup_count.label("rule_quota"),
-	plup_span.label("rule_span"),
+	plup_userFk.label("rule>userfk"),
+	plup_role.label("rule>name"),
+	plup_count.label("rule>quota"),
+	plup_span.label("rule>span"),
 	coalesce[Integer](
 		plup_priority,
 		RulePriorityLevel.STATION_PATH.value
-	).label("rule_priority"),
-	dbLiteral(UserRoleSphere.Playlist.value).label("rule_sphere"),
-	plup_playlistFk.label("rule_playlistfk")
+	).label("rule>priority"),
+	dbLiteral(UserRoleSphere.Playlist.value).label("rule>sphere"),
+	plup_playlistFk.label("rule>playlistfk")
 )
 
 def build_playlist_rules_query(
 	userId: Optional[int]=None
 ) -> CompoundSelect[Tuple[int, str, float, float, int, str]]:
 	user_rules_query = select(
-		ur_userFk.label("rule_userfk"),
-		ur_role.label("rule_name"),
-		ur_quota.label("rule_quota"),
-		ur_span.label("rule_span"),
+		ur_userFk.label("rule>userfk"),
+		ur_role.label("rule>name"),
+		ur_quota.label("rule>quota"),
+		ur_span.label("rule>span"),
 		coalesce[Integer](
 			ur_priority,
 			case(
 				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
 				else_=RulePriorityLevel.SITE.value
 			)
-		).label("rule_priority"),
-		dbLiteral(UserRoleSphere.Site.value).label("rule_sphere"),
-		dbLiteral(None).label("rule_playlistfk")
+		).label("rule>priority"),
+		dbLiteral(UserRoleSphere.Site.value).label("rule>sphere"),
+		dbLiteral(None).label("rule>playlistfk")
 	).where(or_(
 			ur_role.like(f"{UserRoleSphere.Playlist.value}:%"),
 			ur_role == UserRoleDef.ADMIN.value
@@ -114,7 +114,7 @@ def build_playlist_rules_query(
 	placeholder_select = build_placeholder_select(
 		UserRoleDef.PLAYLIST_VIEW.value
 	).add_columns(
-		dbLiteral(None).label("rule_playlistfk")
+		dbLiteral(None).label("rule>playlistfk")
 	)
 
 	if userId is not None:
@@ -188,20 +188,20 @@ class PlaylistService:
 	):
 		userId = self.current_user_provider.optional_user_id()
 		canViewQuery= select(
-			rulesSubquery.c.rule_playlistfk, #pyright: ignore [reportUnknownMemberType]
-			rulesSubquery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
-			rulesSubquery.c.rule_sphere #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>playlistfk"], #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>priority"], #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>sphere"] #pyright: ignore [reportUnknownMemberType]
 		).where(
-			rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>name"].in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
 		).cte(name="canviewquery")
 
 		topSiteRule = select(
 			coalesce[int](
-				func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
+				func.max(canViewQuery.c["rule>priority"]), #pyright: ignore [reportUnknownMemberType]
 				RulePriorityLevel.NONE.value
 			).label("max")
 		).where(
-			canViewQuery.c.rule_sphere == UserRoleSphere.Site.value
+			canViewQuery.c["rule>sphere"] == UserRoleSphere.Site.value
 		).cte("topsiterule")
 
 		ownerScopeSet = set(get_playlist_owner_roles(scopes))
@@ -212,13 +212,13 @@ class PlaylistService:
 					pl_viewSecurityLevel,
 					RulePriorityLevel.INVITED_USER.value
 				) < select(coalesce[int](
-							func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
+							func.max(canViewQuery.c["rule>priority"]), #pyright: ignore [reportUnknownMemberType]
 							RulePriorityLevel.NONE.value
-						)).where(pl_pk == canViewQuery.c.rule_playlistfk).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
+						)).where(pl_pk == canViewQuery.c["rule>playlistfk"]).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
 				and_(
 					dbLiteral(UserRoleSphere.Site.value)
 						.in_( #pyright: ignore [reportUnknownMemberType]
-							select(canViewQuery.c.rule_sphere) #pyright: ignore [reportUnknownMemberType]
+							select(canViewQuery.c["rule>sphere"]) #pyright: ignore [reportUnknownMemberType]
 						),
 					coalesce(
 						pl_viewSecurityLevel,
@@ -238,7 +238,7 @@ class PlaylistService:
 				)
 			),
 			or_(
-				rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
+				rulesSubquery.c["rule>name"].in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
 				(pl_ownerFk == userId) if scopes and ownerScopeSet else false()
 			)
 		]
@@ -257,9 +257,9 @@ class PlaylistService:
 		rulesSubquery = build_playlist_rules_query(user.id).cte(name="rulesQuery")
 		filters = self.__build_user_rule_filters__(rulesSubquery, scopes)
 		query = query.join(rulesSubquery, or_(
-			rulesSubquery.c.rule_playlistfk == pl_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-			rulesSubquery.c.rule_playlistfk == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-			rulesSubquery.c.rule_playlistfk.is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c["rule>playlistfk"] == pl_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c["rule>playlistfk"] == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c["rule>playlistfk"].is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
 		))\
 		.where(*filters)\
 		.order_by(pl_pk)\
@@ -271,19 +271,19 @@ class PlaylistService:
 				u_username.label("owner.username"),
 				u_displayName.label("owner.displayname"),
 				pl_viewSecurityLevel.label("viewsecuritylevel"),
-				cast(Column[String], rulesSubquery.c.rule_name).label("rule.name"),
+				cast(Column[String], rulesSubquery.c["rule>name"]).label("rule>name"),
 				cast(
 					Column[Float[float]],
-					rulesSubquery.c.rule_quota
-				).label("rule.quota"),
+					rulesSubquery.c["rule>quota"]
+				).label("rule>quota"),
 				cast(
 					Column[Float[float]],
-					rulesSubquery.c.rule_span
-				).label("rule.span"),
+					rulesSubquery.c["rule>span"]
+				).label("rule>span"),
 				cast(
-					Column[Integer], rulesSubquery.c.rule_priority
-				).label("rule.priority"),
-				cast(Column[String], rulesSubquery.c.rule_sphere).label("rule.sphere")
+					Column[Integer], rulesSubquery.c["rule>priority"]
+				).label("rule>priority"),
+				cast(Column[String], rulesSubquery.c["rule>sphere"]).label("rule>sphere")
 			)
 		
 		return query

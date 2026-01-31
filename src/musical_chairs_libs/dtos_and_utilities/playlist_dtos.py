@@ -67,9 +67,9 @@ class PlaylistInfo(NamedIdItem, RuledEntity):
 					currentPlaylist.rules = ActionRule.sorted(currentPlaylist.rules)
 					yield currentPlaylist
 				currentPlaylist = cls.row_to_playlist(row)
-				if cast(str,row["rule.sphere"]) != "shim":
+				if cast(str,row["rule>sphere"]) != "shim":
 					currentPlaylist.rules.append(ActionRule.row_to_action_rule(row))
-			elif cast(str,row["rule.sphere"]) != "shim":
+			elif cast(str,row["rule>sphere"]) != "shim":
 				currentPlaylist.rules.append(ActionRule.row_to_action_rule(row))
 		if currentPlaylist:
 			playlistOwner = currentPlaylist.owner

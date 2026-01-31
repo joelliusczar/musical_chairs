@@ -84,22 +84,22 @@ class StationsUsersService:
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userfk.label("rule.userfk"),
-			rulesQuery.c.rule_name.label("rule.name"),
-			rulesQuery.c.rule_quota.label("rule.quota"),
-			rulesQuery.c.rule_span.label("rule.span"),
-			rulesQuery.c.rule_priority.label("rule.priority"),
-			rulesQuery.c.rule_sphere.label("rule.sphere")
+			rulesQuery.c["rule>userfk"].label("rule>userfk"),
+			rulesQuery.c["rule>name"].label("rule>name"),
+			rulesQuery.c["rule>quota"].label("rule>quota"),
+			rulesQuery.c["rule>span"].label("rule>span"),
+			rulesQuery.c["rule>priority"].label("rule>priority"),
+			rulesQuery.c["rule>sphere"].label("rule>sphere")
 		).select_from(user_tbl).join(
 			rulesQuery,
 			or_(
 				and_(
 					(u_pk == station.owner.id) if station.owner else false(),
-					rulesQuery.c.rule_userfk == 0
+					rulesQuery.c["rule>userfk"] == 0
 				),
 				and_(
-					rulesQuery.c.rule_userfk == u_pk,
-					rulesQuery.c.rule_stationfk == station.id
+					rulesQuery.c["rule>userfk"] == u_pk,
+					rulesQuery.c["rule>stationfk"] == station.id
 				),
 			),
 			isouter=True
@@ -107,7 +107,7 @@ class StationsUsersService:
 		.where(
 			or_(
 				coalesce(
-					rulesQuery.c.rule_priority,
+					rulesQuery.c["rule>priority"],
 					RulePriorityLevel.SITE.value
 				) > RulePriorityLevel.INVITED_USER.value,
 				(u_pk == station.owner.id) if station.owner else false()

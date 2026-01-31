@@ -73,16 +73,16 @@ from .path_rule_service import PathRuleService
 from .template_service import TemplateService
 
 __station_permissions_query__ = select(
-	stup_userFk.label("rule_userfk"),
-	stup_role.label("rule_name"),
-	stup_count.label("rule_quota"),
-	stup_span.label("rule_span"),
+	stup_userFk.label("rule>userfk"),
+	stup_role.label("rule>name"),
+	stup_count.label("rule>quota"),
+	stup_span.label("rule>span"),
 	coalesce[Integer](
 		stup_priority,
 		RulePriorityLevel.STATION_PATH.value
 	).label("rule_priority"),
-	dbLiteral(UserRoleSphere.Station.value).label("rule_sphere"),
-	stup_stationFk.label("rule_stationfk")
+	dbLiteral(UserRoleSphere.Station.value).label("rule>sphere"),
+	stup_stationFk.label("rule>stationfk")
 )
 
 
@@ -90,10 +90,10 @@ def build_station_rules_query(
 	userId: Optional[int]=None
 ) -> CompoundSelect[Tuple[int, str, float, float, int, str]]:
 	user_rules_query = select(
-		ur_userFk.label("rule_userfk"),
-		ur_role.label("rule_name"),
-		ur_quota.label("rule_quota"),
-		ur_span.label("rule_span"),
+		ur_userFk.label("rule>userfk"),
+		ur_role.label("rule>name"),
+		ur_quota.label("rule>quota"),
+		ur_span.label("rule>span"),
 		coalesce[Integer](
 			ur_priority,
 			case(
@@ -101,8 +101,8 @@ def build_station_rules_query(
 				else_=RulePriorityLevel.SITE.value
 			)
 		).label("rule_priority"),
-		dbLiteral(UserRoleSphere.Site.value).label("rule_sphere"),
-		dbLiteral(None).label("rule_stationfk")
+		dbLiteral(UserRoleSphere.Site.value).label("rule>sphere"),
+		dbLiteral(None).label("rule>stationfk")
 	).where(or_(
 			ur_role.like(f"{UserRoleSphere.Station.value}:%"),
 			ur_role == UserRoleDef.ADMIN.value
@@ -112,7 +112,7 @@ def build_station_rules_query(
 	placeholder_select = build_placeholder_select(
 		UserRoleDef.STATION_VIEW.value
 	).add_columns(
-		dbLiteral(None).label("rule_stationfk")
+		dbLiteral(None).label("rule>stationfk")
 	)
 
 
@@ -216,20 +216,20 @@ class StationService:
 	):
 		userId = self.current_user_provider.optional_user_id()
 		canViewQuery= select(
-			rulesSubquery.c.rule_stationfk, #pyright: ignore [reportUnknownMemberType]
-			rulesSubquery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
-			rulesSubquery.c.rule_sphere #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>stationfk"], #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>priority"], #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>sphere"] #pyright: ignore [reportUnknownMemberType]
 		).where(
-			rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>name"].in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
 		).cte(name="canviewquery")
 
 		topSiteRule = select(
 			coalesce[int](
-				func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
+				func.max(canViewQuery.c["rule>priority"]), #pyright: ignore [reportUnknownMemberType]
 				RulePriorityLevel.NONE.value
 			).label("max")
 		).where(
-			canViewQuery.c.rule_sphere == UserRoleSphere.Site.value
+			canViewQuery.c["rule>sphere"] == UserRoleSphere.Site.value
 		).cte("topsiterule")
 
 		ownerScopeSet = set(get_station_owner_rules(scopes))
@@ -240,13 +240,13 @@ class StationService:
 					st_viewSecurityLevel,
 					RulePriorityLevel.INVITED_USER.value
 				) < select(coalesce[int](
-							func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
+							func.max(canViewQuery.c["rule>priority"]), #pyright: ignore [reportUnknownMemberType]
 							RulePriorityLevel.NONE.value
-						)).where(st_pk == canViewQuery.c.rule_stationfk).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
+						)).where(st_pk == canViewQuery.c["rule>stationfk"]).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
 				and_(
 					dbLiteral(UserRoleSphere.Site.value)
 						.in_( #pyright: ignore [reportUnknownMemberType]
-							select(canViewQuery.c.rule_sphere) #pyright: ignore [reportUnknownMemberType]
+							select(canViewQuery.c["rule>sphere"]) #pyright: ignore [reportUnknownMemberType]
 						),
 					coalesce(
 						st_viewSecurityLevel,
@@ -266,7 +266,7 @@ class StationService:
 				)
 			),
 			or_(
-				rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
+				rulesSubquery.c["rule>name"].in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
 				(st_ownerFk == userId) if scopes and ownerScopeSet else false()
 			)
 		]
@@ -308,9 +308,9 @@ class StationService:
 					currentStation.rules = ActionRule.sorted(currentStation.rules)
 					yield currentStation
 				currentStation = self.__row_to_station__(row)
-				if cast(str,row["rule.sphere"]) != "shim":
+				if cast(str,row["rule>sphere"]) != "shim":
 					currentStation.rules.append(row_to_action_rule(row))
-			elif cast(str,row["rule.sphere"]) != "shim":
+			elif cast(str,row["rule>sphere"]) != "shim":
 				currentStation.rules.append(row_to_action_rule(row))
 		if currentStation:
 			stationOwner = currentStation.owner
@@ -346,9 +346,9 @@ class StationService:
 		rulesSubquery = build_station_rules_query(user.id).cte(name="rulesQuery")
 		filters = self.__build_user_rule_filters__(rulesSubquery, scopes)
 		query = query.join(rulesSubquery, or_(
-			rulesSubquery.c.rule_stationfk == st_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-			rulesSubquery.c.rule_stationfk == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-			rulesSubquery.c.rule_stationfk.is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c["rule>stationfk"] == st_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c["rule>stationfk"] == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c["rule>stationfk"].is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
 		))\
 		.where(*filters)\
 		.order_by(st_pk)\
@@ -372,19 +372,19 @@ class StationService:
 				st_typeid.label("typeid"),
 				st_bitrate.label("bitrate"),
 				st_playnum.label("playnum"),
-				cast(Column[String], rulesSubquery.c.rule_name).label("rule.name"),
+				cast(Column[String], rulesSubquery.c["rule>name"]).label("rule>name"),
 				cast(
 					Column[Float[float]],
-					rulesSubquery.c.rule_quota
-				).label("rule.quota"),
+					rulesSubquery.c["rule>quota"]
+				).label("rule>quota"),
 				cast(
 					Column[Float[float]],
-					rulesSubquery.c.rule_span
-				).label("rule.span"),
+					rulesSubquery.c["rule>span"]
+				).label("rule>span"),
 				cast(
-					Column[Integer], rulesSubquery.c.rule_priority
-				).label("rule.priority"),
-				cast(Column[String], rulesSubquery.c.rule_sphere).label("rule.sphere")
+					Column[Integer], rulesSubquery.c["rule>priority"]
+				).label("rule>priority"),
+				cast(Column[String], rulesSubquery.c["rule>sphere"]).label("rule>sphere")
 			)
 		
 		return query

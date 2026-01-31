@@ -142,12 +142,12 @@ class PathRuleService:
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userfk.label("rule.userfk"),
-			rulesQuery.c.rule_name.label("rule.name"),
-			rulesQuery.c.rule_quota.label("rule.quota"),
-			rulesQuery.c.rule_span.label("rule.span"),
-			rulesQuery.c.rule_priority.label("rule.priority"),
-			rulesQuery.c.rule_sphere.label("rule.sphere")
+			rulesQuery.c["rule>userfk"].label("rule>userfk"),
+			rulesQuery.c["rule>name"].label("rule>name"),
+			rulesQuery.c["rule>quota"].label("rule>quota"),
+			rulesQuery.c["rule>span"].label("rule>span"),
+			rulesQuery.c["rule>priority"].label("rule>priority"),
+			rulesQuery.c["rule>sphere"].label("rule>sphere")
 		).select_from(user_tbl).join(
 			rulesQuery,
 			or_(
@@ -159,21 +159,21 @@ class PathRuleService:
 							func.normalize_opening_slash(u_dirRoot, addSlash)
 						)
 					) == func.normalize_opening_slash(u_dirRoot, addSlash),
-					rulesQuery.c.rule_userfk == 0
+					rulesQuery.c["rule>userfk"] == 0
 				),
 				and_(
-					rulesQuery.c.rule_userfk == u_pk,
+					rulesQuery.c["rule>userfk"] == u_pk,
 						func.substring(
 							normalizedPrefix,
 							1,
 							func.length(
 								func.normalize_opening_slash(
-									rulesQuery.c.rule_keypath,
+									rulesQuery.c["rule>keypath"],
 									addSlash
 								)
 							)
 						) == func.normalize_opening_slash(
-							rulesQuery.c.rule_keypath,
+							rulesQuery.c["rule>keypath"],
 							addSlash
 						)
 				),
@@ -183,7 +183,7 @@ class PathRuleService:
 		.where(
 			or_(
 				coalesce(
-					rulesQuery.c.rule_priority,
+					rulesQuery.c["rule>priority"],
 					RulePriorityLevel.SITE.value
 				) > RulePriorityLevel.INVITED_USER.value,
 					func.substring(

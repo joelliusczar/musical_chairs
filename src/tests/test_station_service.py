@@ -183,7 +183,7 @@ def test_get_station_user_rule_selection(
 	assert rules
 	assert len(rules) == 2
 	assert rules[0].name == UserRoleDef.STATION_REQUEST.value
-	assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
+	assert rules[0].priority == RulePriorityLevel.INVITED_USER.value
 	assert rules[0].sphere == UserRoleSphere.Station.value
 	assert rules[0].quota == 5
 	assert rules[0].span == 300
@@ -202,12 +202,12 @@ def test_get_station_user_rule_selection(
 		assert len(rules) == 2
 
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
-		assert rules[0].priority == RulePriorityLevel.STATION_PATH.value + 1
+		assert rules[0].priority == RulePriorityLevel.INVITED_USER.value + 1
 		assert not rules[0].sphere == UserRoleSphere.Station.value
 		assert rules[0].quota == 5
 		assert rules[0].span == 120
 		assert rules[1].name == UserRoleDef.STATION_REQUEST.value
-		assert rules[1].priority == RulePriorityLevel.STATION_PATH.value
+		assert rules[1].priority == RulePriorityLevel.INVITED_USER.value
 		assert rules[1].sphere == UserRoleSphere.Station.value
 		assert rules[1].quota == 5
 		assert rules[1].span == 60
@@ -220,7 +220,7 @@ def test_get_station_user_rule_selection(
 		assert rules
 		assert len(rules) == 2
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
-		assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
+		assert rules[0].priority == RulePriorityLevel.INVITED_USER.value
 		assert rules[0].sphere == UserRoleSphere.Station.value
 		assert rules[0].quota == 25
 		assert rules[0].span == 300
@@ -239,7 +239,7 @@ def test_get_station_user_rule_selection(
 		assert len(rules) == 2
 		assert rules[0].sphere == UserRoleSphere.Station.value
 		assert rules[0].name == UserRoleDef.STATION_REQUEST.value
-		assert rules[0].priority == RulePriorityLevel.STATION_PATH.value
+		assert rules[0].priority == RulePriorityLevel.INVITED_USER.value
 		assert rules[0].quota == 25
 		assert rules[0].span == 300
 

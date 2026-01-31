@@ -11,6 +11,7 @@ from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.protocols import FileService, UserProvider
 from musical_chairs_libs.dtos_and_utilities import (
+	build_base_rules_query,
 	RulePriorityLevel,
 	normalize_opening_slash,
 	AccountInfo,
@@ -19,13 +20,12 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_path_owner_roles,
 	UserRoleSphere,
 	UserRoleDef,
-	build_path_rules_query,
 	get_datetime,
 	generate_path_user_and_rules_from_rows
 )
 from musical_chairs_libs.tables import (
-	path_user_permissions as path_user_permissions_tbl,
-	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count,
+	userRoles as user_roles_tbl,
+	ur_userFk, ur_keypath, ur_role, ur_priority, ur_span, ur_quota,
 	users as user_tbl, u_pk, u_username, u_displayName, u_email, u_dirRoot,
 	u_disabled,
 	sg_pk, sg_path, sg_deletedTimstamp,
@@ -49,18 +49,18 @@ class PathRuleService:
 
 	def get_paths_user_can_see(self) -> Iterator[ActionRule]:
 		userId = self.user_provider.current_user().id
-		query = select(pup_path, pup_role, pup_priority, pup_span, pup_count)\
-			.where(pup_userFk == userId)\
-			.order_by(pup_path)
+		query = select(ur_keypath, ur_role, ur_priority, ur_span, ur_quota)\
+			.where(ur_userFk == userId)\
+			.order_by(ur_keypath)
 		records = self.conn.execute(query).mappings()
 		for r in records:
 			yield ActionRule(
-				name=cast(str,r[pup_role]),
-				priority=cast(int,r[pup_priority]) \
-					or RulePriorityLevel.STATION_PATH.value,
-				span=cast(int,r[pup_span]) or 0,
-				quota=cast(int,r[pup_count]) or 0,
-				keypath=normalize_opening_slash(cast(str,r[pup_path])),
+				name=cast(str,r[ur_role]),
+				priority=cast(int,r[ur_priority]) \
+					or RulePriorityLevel.INVITED_USER.value,
+				span=cast(int,r[ur_span]) or 0,
+				quota=cast(int,r[ur_quota]) or 0,
+				keypath=normalize_opening_slash(cast(str,r[ur_keypath])),
 				sphere=UserRoleSphere.Path.value
 			)
 
@@ -94,11 +94,11 @@ class PathRuleService:
 		prefix: str,
 		ruleName: Optional[str]
 	):
-		delStmt = delete(path_user_permissions_tbl)\
-			.where(pup_userFk == subjectUserId)\
-			.where(pup_path == prefix)
+		delStmt = delete(user_roles_tbl)\
+			.where(ur_userFk == subjectUserId)\
+			.where(ur_keypath == prefix)
 		if ruleName:
-			delStmt = delStmt.where(pup_role == ruleName)
+			delStmt = delStmt.where(ur_role == ruleName)
 		self.conn.execute(delStmt)
 
 	def add_user_rule_to_path(
@@ -107,14 +107,15 @@ class PathRuleService:
 		prefix: str,
 		rule: ActionRule
 	) -> ActionRule:
-		stmt = insert(path_user_permissions_tbl).values(
+		stmt = insert(user_roles_tbl).values(
 			userfk = addedUserId,
 			keypath = prefix,
 			role = rule.name,
 			span = rule.span,
 			quota = rule.quota,
 			priority = None,
-			creationtimestamp = self.get_datetime().timestamp()
+			creationtimestamp = self.get_datetime().timestamp(),
+			sphere = UserRoleSphere.Path.value
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
@@ -122,7 +123,7 @@ class PathRuleService:
 			name=rule.name,
 			span=rule.span,
 			quota=rule.quota,
-			priority=RulePriorityLevel.STATION_PATH.value,
+			priority=RulePriorityLevel.INVITED_USER.value,
 			keypath=prefix,
 			sphere=UserRoleSphere.Path.value
 		)
@@ -135,7 +136,7 @@ class PathRuleService:
 	) -> Iterator[AccountInfo]:
 		addSlash = True
 		normalizedPrefix = normalize_opening_slash(prefix)
-		rulesQuery = build_path_rules_query().cte()
+		rulesQuery = build_base_rules_query(UserRoleSphere.Path).cte()
 		query = select(
 			u_pk,
 			u_username,
@@ -185,7 +186,7 @@ class PathRuleService:
 				coalesce(
 					rulesQuery.c["rule>priority"],
 					RulePriorityLevel.SITE.value
-				) > RulePriorityLevel.INVITED_USER.value,
+				) > RulePriorityLevel.REQUIRES_INVITE.value,
 					func.substring(
 						prefix,
 						1,
@@ -199,7 +200,6 @@ class PathRuleService:
 		records = self.conn.execute(query).mappings()
 		yield from generate_path_user_and_rules_from_rows(
 			records,
-			owner.id if owner else None,
 			prefix
 		)
 

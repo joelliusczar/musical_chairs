@@ -4,7 +4,6 @@ from typing import (
 	Iterator,
 	Optional,
 	Tuple,
-	Union
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
@@ -113,8 +112,8 @@ class AccountsService:
 
 	def get_account_for_edit(
 		self,
-		key: Union[int, str]
-	) -> Optional[AccountInfo]:
+		key: int | str
+	) -> AccountInfo | None:
 		return self.account_management_service.get_account_for_edit(key)
 
 	def update_account_general_changes(

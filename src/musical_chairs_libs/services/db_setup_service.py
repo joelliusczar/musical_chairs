@@ -2,7 +2,7 @@ import hashlib
 import re
 from typing import Any
 from .template_service import TemplateService
-from sqlalchemy import create_engine, NullPool
+from sqlalchemy import create_engine, NullPool, text
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.dtos_and_utilities import (
 	ConfigAcessors,
@@ -126,26 +126,9 @@ class DbRootConnectionService:
 			raise RuntimeError("only test databases can be removed")
 		if not is_db_name_safe(dbName):
 			raise RuntimeError("Invalid name was used:")
-		# self.revoke_all_roles(dbName, force)
 		self.conn.exec_driver_sql(f"DROP DATABASE IF EXISTS {dbName}")
 
 
-	def revoke_all_roles(self, dbName: str, force: bool=False):
-		if not dbName.startswith("test_") and not force:
-			raise RuntimeError("only test databases can be removed")
-		if not is_db_name_safe(dbName):
-			raise RuntimeError("Invalid name was used:")
-		self.conn.exec_driver_sql(
-			f"REVOKE IF EXISTS ALL PRIVILEGES ON `{dbName}`.* "
-			f"FROM {DbUsers.API_USER.format_user()}"
-		)
-
-	def drop_user(self, user: DbUsers):
-		self.conn.exec_driver_sql(f"DROP USER IF EXISTS {user.format_user()}")
-
-	def drop_all_users(self):
-		for user in DbUsers:
-			self.drop_user(user)
 
 class DbOwnerConnectionService:
 
@@ -205,113 +188,41 @@ class DbOwnerConnectionService:
 		)
 		return templateNoComments.replace("<dbName>", self.dbName)
 
-	def run_defined_api_user_script(self, scriptId: SqlScripts):
-		script = self.load_script_contents(scriptId)\
-			.replace("<apiUser>", DbUsers.API_USER("localhost"))
-		self.conn.exec_driver_sql(script)
-
-	def run_defined_radio_user_script(self, scriptId: SqlScripts):
-		script = self.load_script_contents(scriptId)\
-			.replace("<radioUser>", DbUsers.RADIO_USER("localhost"))
-		self.conn.exec_driver_sql(script)
-
-	def run_defined_janitor_user_script(self, scriptId: SqlScripts):
-		script = self.load_script_contents(scriptId)\
-			.replace("<janitorUser>", DbUsers.JANITOR_USER("localhost"))
-		self.conn.exec_driver_sql(script)
-
-	def run_defined_script(self, scriptId: SqlScripts):
-		script = self.load_script_contents(scriptId)\
-			.replace("|","")\
-			.replace("DELIMITER","")
-
-		self.conn.exec_driver_sql(script)
 
 def setup_database(dbName: str):
-	with DbRootConnectionService() as rootConnService:
-		rootConnService.create_db(dbName)
-		rootConnService.create_owner()
-		rootConnService.create_app_users()
-		rootConnService.grant_owner_roles(dbName)
 
-	with DbOwnerConnectionService(dbName, echo=False) as ownerConnService:
-		ownerConnService.create_tables()
-		ownerConnService.run_defined_script(SqlScripts.PATH_USER_INDEXES)
-		ownerConnService.run_defined_api_user_script(SqlScripts.GRANT_API)
-		ownerConnService.run_defined_radio_user_script(SqlScripts.GRANT_RADIO)
-		ownerConnService.run_defined_janitor_user_script(SqlScripts.GRANT_JANITOR)
-		ownerConnService.flush_privileges()
+		if not dbName.startswith("test_"):
+			Path(f"/tmp/{get_schema_hash()}").touch()
 
-		ownerConnService.run_defined_script(SqlScripts.ADD_INTERNAL_PATH)
-		ownerConnService.run_defined_script(SqlScripts.DROP_PLACEHOLDERDIR)
-		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_FILE_HASH)
-		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDTIMESTAMP)
-		ownerConnService.run_defined_script(SqlScripts.ADD_ALBUM_VERSION)
-		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_TYPE)
-		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_DELETEDBYUSERID)
-		ownerConnService.run_defined_script(SqlScripts.ADD_SONG_TRACKNUM)
-		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLIST_VIEWSECURITY)
-		#ADD_SONGSPLAYLISTS_ORDER used to be No.20, got moved to .23
-		#ownerConnService.run_defined_script(SqlScripts.ADD_SONGSPLAYLISTS_ORDER)
+
+class SqliteDDLProcessor:
+
+	def __init__(self, dbName: str, echo: bool=False) -> None:
+		self.dbName = dbName
+		self.echo = echo
+		self.conn = DbConnectionProvider.sqlite_connection(echo=echo)
+
+
+	def __enter__(self) -> "SqliteDDLProcessor":
+		return self
+
+
+	def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
+		self.conn.close()
+
+	def rename_column(self, tableName: str, oldColName: str, newColName: str):
 		try:
 			#there doesn't seem to be a good if table exists, rename
 			#syntax, so we're just going to smother the error
 			with redirect_stderr(None):
-				ownerConnService.run_defined_script(SqlScripts.RENAME_PLAYLIST_SONG_TABLE)
+				self.conn.execute(text(
+					f"ALTER {tableName} RENAME {oldColName} TO {newColName};"
+				))
 		except:
 			pass
-		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_BITRATE)
-		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLISTSSONGS_ORDER)
-		ownerConnService.run_defined_api_user_script(
-			SqlScripts.GRANT_API_PLAYLISTSSONGS
-		)
-		ownerConnService.run_defined_radio_user_script(
-			SqlScripts.GRANT_RADIO_PLAYLISTSSONGS
-		)
-		ownerConnService.run_defined_script(SqlScripts.DROP_PLAYLISTSSONGS_ORDER)
-		ownerConnService.run_defined_script(SqlScripts.ADD_PLAYLISTSSONGS_LEXORDER)
-		ownerConnService.run_defined_script(
-			SqlScripts.DROP_UNIQUE_ALBUM_INDEX
-		)
-		ownerConnService.run_defined_script(
-			SqlScripts.READD_UNIQUE_ALBUM_INDEX
-		)
-		ownerConnService.run_defined_script(SqlScripts.ADD_LASTPLAYED_ITEMTYPE)
-		ownerConnService.run_defined_script(SqlScripts.ADD_LASTPLATED_PARENTKEY)
-		ownerConnService.run_defined_script(
-			SqlScripts.DROP_UNIQUE_LASTPLAYED_INDEX
-		)
-		ownerConnService.run_defined_script(
-			SqlScripts.READD_UNIQUE_LASTPLAYED_INDEX
-		)
-		ownerConnService.run_defined_script(SqlScripts.UPDATE_COLLATIONS)
-		ownerConnService.run_defined_api_user_script(
-			SqlScripts.NEXT_DIRECTORY_LEVEL
-		)
-		ownerConnService.run_defined_api_user_script(
-			SqlScripts.NORMALIZE_OPENING_SLASH
-		)
-		ownerConnService.run_defined_script(SqlScripts.SONGS_EXPAND_GENRE)
-		ownerConnService.run_defined_script(SqlScripts.ADD_STATION_PLAYNUM)
-		ownerConnService.run_defined_script(
-			SqlScripts.ADD_STATIONSSONGS_LASTPLAYEDNUM
-		)
-		ownerConnService.run_defined_script(
-			SqlScripts.ADD_STATIONSALBUMS_LASTPLAYEDNUM
-		)
-		ownerConnService.run_defined_script(
-			SqlScripts.ADD_STATIONSPLAYLISTS_LASTPLAYEDNUM
-		)
 
-		ownerConnService.run_defined_script(
-			SqlScripts.ADD_USERAGENTS_IPV4
-		)
-		ownerConnService.run_defined_script(
-			SqlScripts.ADD_USERAGENTS_IPV6
-		)
-		ownerConnService.run_defined_script(SqlScripts.ADD_USERAGENTS_INDEX)
-		ownerConnService.run_defined_script(SqlScripts.DROP_USERACTIONHISTORY)
 		
 
-		if not dbName.startswith("test_"):
+	def setup_database(self):
+
 			Path(f"/tmp/{get_schema_hash()}").touch()

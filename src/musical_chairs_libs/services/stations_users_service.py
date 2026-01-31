@@ -13,19 +13,19 @@ from sqlalchemy import (
 from sqlalchemy.sql.expression import false
 from sqlalchemy.sql.functions import coalesce
 from musical_chairs_libs.dtos_and_utilities import (
+	build_base_rules_query,
+	generate_domain_user_and_rules_from_rows,
+	get_station_owner_rules,
 	StationInfo,
 	get_datetime,
 	AccountInfo,
 	ActionRule,
 	RulePriorityLevel,
-	generate_station_user_and_rules_from_rows,
 	UserRoleSphere,
 )
-from .station_service import build_station_rules_query
 from musical_chairs_libs.tables import (
 
-	station_user_permissions as station_user_permissions_tbl, stup_userFk,
-	stup_stationFk, stup_role,
+	userRoles as user_roles_tbl, ur_userFk, ur_keypath, ur_role,
 	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
 	u_disabled,
 )
@@ -33,6 +33,7 @@ from typing import (
 	Iterator,
 	Optional,
 )
+
 
 class StationsUsersService:
 
@@ -54,14 +55,15 @@ class StationsUsersService:
 		stationId: int,
 		rule: ActionRule
 	) -> ActionRule:
-		stmt = insert(station_user_permissions_tbl).values(
+		stmt = insert(user_roles_tbl).values(
 			userfk = addedUserId,
 			keypath = stationId,
 			role = rule.name,
 			span = rule.span,
 			quota = rule.quota,
 			priority = None,
-			creationtimestamp = self.get_datetime().timestamp()
+			creationtimestamp = self.get_datetime().timestamp(),
+			sphere = UserRoleSphere.Station.value
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
@@ -69,7 +71,7 @@ class StationsUsersService:
 			name=rule.name,
 			span=rule.span,
 			quota=rule.quota,
-			priority=RulePriorityLevel.STATION_PATH.value,
+			priority=RulePriorityLevel.INVITED_USER.value,
 			sphere=UserRoleSphere.Station.value
 		)
 	
@@ -77,7 +79,7 @@ class StationsUsersService:
 		self,
 		station: StationInfo,
 	) -> Iterator[AccountInfo]:
-		rulesQuery = build_station_rules_query().cte()
+		rulesQuery = build_base_rules_query(UserRoleSphere.Station).cte()
 		query = select(
 			u_pk,
 			u_username,
@@ -99,8 +101,9 @@ class StationsUsersService:
 				),
 				and_(
 					rulesQuery.c["rule>userfk"] == u_pk,
-					rulesQuery.c["rule>stationfk"] == station.id
-				),
+					rulesQuery.c["rule>keypath"] == str(station.id),
+					rulesQuery.c["rule>sphere"] == UserRoleSphere.Station.value
+				)
 			),
 			isouter=True
 		).where(or_(u_disabled.is_(None), u_disabled == False))\
@@ -109,14 +112,16 @@ class StationsUsersService:
 				coalesce(
 					rulesQuery.c["rule>priority"],
 					RulePriorityLevel.SITE.value
-				) > RulePriorityLevel.INVITED_USER.value,
+				) > RulePriorityLevel.REQUIRES_INVITE.value,
 				(u_pk == station.owner.id) if station.owner else false()
 			)
 		)
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings()
-		yield from generate_station_user_and_rules_from_rows(
+
+		yield from generate_domain_user_and_rules_from_rows(
 			records,
+			get_station_owner_rules,
 			station.owner.id if station.owner else None
 		)
 
@@ -126,9 +131,9 @@ class StationsUsersService:
 		stationId: int,
 		ruleName: Optional[str]
 	):
-		delStmt = delete(station_user_permissions_tbl)\
-			.where(stup_userFk == userId)\
-			.where(stup_stationFk == stationId)
+		delStmt = delete(user_roles_tbl)\
+			.where(ur_userFk == userId)\
+			.where(ur_keypath == stationId)
 		if ruleName:
-			delStmt = delStmt.where(stup_role == ruleName)
+			delStmt = delStmt.where(ur_role == ruleName)
 		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]

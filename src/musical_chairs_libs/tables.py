@@ -339,8 +339,8 @@ ur_span = cast(Column[REAL[Any]], userRoles.c.span)
 ur_quota = cast(Column[REAL[Any]], userRoles.c.quota)
 ur_priority = cast(Column[Integer], userRoles.c.priority)
 ur_sphere = cast(Column[Text], userRoles.c.sphere)
-ur_path = cast(Column[Text], userRoles.c.keypath)
-Index("idx_userroles", ur_userFk, ur_sphere, ur_role, ur_path, unique=True)
+ur_keypath = cast(Column[Text], userRoles.c.keypath)
+Index("idx_userroles", ur_userFk, ur_sphere, ur_role, ur_keypath, unique=True)
 
 
 user_agents = Table("visitors",metadata,
@@ -391,126 +391,6 @@ q_timestamp = cast(Column[Optional[REAL[Any]]],q.playedtimestamp)
 q_queuedTimestamp = cast(Column[REAL[Any]], q.queuedtimestamp)
 
 Index("idx_stationlogsstations", q_stationFk)
-
-
-station_user_permissions = Table("stationuserpermissions", metadata,
-	Column("pk", Integer, primary_key=True),
-	Column("keypath", Integer, ForeignKey("stations.pk"), nullable=False),
-	Column("userfk", Integer, ForeignKey("users.pk"), nullable=False),
-	Column("role", Text),
-	Column("span", REAL[Any], nullable=False),
-	Column("quota", REAL[Any], nullable=False),
-	Column("priority", Integer),
-	Column("creationtimestamp", REAL[Any], nullable=False)
-)
-
-stup = station_user_permissions.c
-stup_stationFk = cast(Column[Integer], stup.keypath)
-stup_pk = cast(Column[Integer], stup.pk)
-stup_userFk = cast(Column[Integer], stup.userfk)
-stup_role = cast(Column[Text], stup.role)
-stup_span = cast(Column[REAL[Any]], stup.span)
-stup_count = cast(Column[REAL[Any]], stup.quota)
-stup_priority = cast(Column[Integer], stup.priority)
-
-
-Index(
-	"idx_stationpermissions",
-	stup_stationFk,
-	stup_userFk,
-	stup_role,
-	unique=True
-)
-
-
-playlist_user_permissions = Table("playlistuserpermissions", metadata,
-	Column("pk", Integer, primary_key=True),
-	Column("keypath", Integer, ForeignKey("playlists.pk"), nullable=False),
-	Column("userfk", Integer, ForeignKey("users.pk"), nullable=False),
-	Column("role", Text),
-	Column("span", REAL[Any], nullable=False),
-	Column("quota", REAL[Any], nullable=False),
-	Column("priority", Integer),
-	Column("creationtimestamp", REAL[Any], nullable=False)
-)
-
-plup = playlist_user_permissions.c
-plup_playlistFk = cast(Column[Integer], plup.keypath)
-plup_pk = cast(Column[Integer], plup.pk)
-plup_userFk = cast(Column[Integer], plup.userfk)
-plup_role = cast(Column[Text], plup.role)
-plup_span = cast(Column[REAL[Any]], plup.span)
-plup_count = cast(Column[REAL[Any]], plup.quota)
-plup_priority = cast(Column[Integer], plup.priority)
-
-Index(
-	"idx_playlistpermissions",
-	plup_playlistFk,
-	plup_userFk,
-	plup_role,
-	unique=True
-)
-
-
-path_user_permissions = Table("pathuserpermissions", metadata,
-	Column("pk", Integer, primary_key=True),
-	Column("userfk", Integer, ForeignKey("users.pk"), nullable=False),
-	Column("keypath", Text, nullable=False),
-	Column("role", Text, nullable=False),
-	Column("span", REAL[Any], nullable=False),
-	Column("quota", REAL[Any], nullable=False),
-	Column("priority", Integer),
-	Column("creationtimestamp", REAL[Any], nullable=False),
-)
-
-pup = path_user_permissions.c
-pup_userFk = cast(Column[Integer], pup.userfk)
-pup_path = cast(Column[Text], pup.keypath)
-pup_role = cast(Column[Text], pup.role)
-pup_priority = cast(Column[Integer], pup.priority)
-pup_span = cast(Column[REAL[Any]], pup.span)
-pup_count = cast(Column[REAL[Any]], pup.quota)
-
-#moving these to their own script
-# Index(
-# 	"idx_pathuserpermissions_userfk",
-# 	pup_userFk
-# )
-
-# Index(
-# 	"idx_pathpermissions",
-# 	pup_userFk,
-# 	pup_path,
-# 	pup_role,
-# 	unique=True
-# )
-
-friend_user_permissions = Table("frienduserpermissions", metadata,
-	Column("pk", Integer, primary_key=True),
-	Column("friendfk", Integer, ForeignKey("users.pk"), nullable=False),
-	Column("userfk", Integer, ForeignKey("users.pk"), nullable=False),
-	Column("role", Text),
-	Column("span", REAL[Any], nullable=False),
-	Column("quota", REAL[Any], nullable=False),
-	Column("priority", Integer),
-	Column("creationtimestamp", REAL[Any], nullable=False)
-)
-fup = friend_user_permissions.c
-fup_friendFk = cast(Column[Integer], fup.friendfk)
-fup_pk = cast(Column[Integer], fup.pk)
-fup_userFk = cast(Column[Integer], fup.userfk)
-fup_role = cast(Column[Text], fup.role)
-fup_span = cast(Column[REAL[Any]], fup.span)
-fup_count = cast(Column[REAL[Any]], fup.quota)
-fup_priority = cast(Column[Integer], fup.priority)
-
-Index(
-	"idx_friendpermissions",
-	fup_friendFk,
-	fup_userFk,
-	fup_role,
-	unique=True
-)
 
 
 last_played = Table('lastplayed', metadata,

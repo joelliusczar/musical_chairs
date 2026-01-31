@@ -1,6 +1,7 @@
 import pytest
 from musical_chairs_libs.services import (
 	SongInfoService,
+	StationService,
 	StationsSongsService
 )
 from .constant_fixtures_for_test import *
@@ -24,7 +25,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PlaylistInfo,
 	SimpleQueryParameters,
 	SongEditInfo,
-	StationInfo,
 	StationSongTuple,
 )
 
@@ -283,10 +283,12 @@ def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
 @pytest.mark.current_username("testUser_bravo")
 def test_save__multiple_song_add_station_and_playlist(
 	fixture_song_info_service: SongInfoService,
-	fixture_account_service: AccountsService
+	fixture_account_service: AccountsService,
+	fixture_station_service: StationService
 ):
 	songInfoService = fixture_song_info_service
 	accountService = fixture_account_service
+	stationService = fixture_station_service
 	songInfoList = sorted(songInfoService.get_songs_for_edit([39, 48]),
 		key=lambda s: s.id
 	)
@@ -302,7 +304,7 @@ def test_save__multiple_song_add_station_and_playlist(
 		treepath="",
 		internalpath="",
 		stations=[
-			StationInfo(id=5, name="tango_station")
+			next(stationService.get_stations(5))
 		],
 		playlists=[
 			PlaylistInfo(

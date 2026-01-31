@@ -229,7 +229,7 @@ class ActionRule:
 			#if priortity is explict use that
 			#otherwise, prefer station specific rule vs non station specific rule
 			priority=cast(int,row["rule>priority"]) if row["rule>priority"] \
-				else RulePriorityLevel.STATION_PATH.value,
+				else RulePriorityLevel.INVITED_USER.value,
 			sphere=row["rule>sphere"]
 		)
 

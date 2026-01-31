@@ -9,6 +9,7 @@ from pydantic import BaseModel as MCBaseClass, ConfigDict, Field
 from .action_rule_dtos import ActionRule
 
 
+
 T = TypeVar("T")
 
 class FrozenBaseClass(MCBaseClass):

@@ -138,7 +138,7 @@ class AlbumService:
 			query = query.where(or_(
 				ab_ownerFk == user.id,
 				dbLiteral(user.isadmin),
-				dbLiteral(user.has_roles(UserRoleDef.ALBUM_EDIT))
+				dbLiteral(user.has_site_roles(UserRoleDef.ALBUM_EDIT))
 			))
 
 		return query

@@ -1,5 +1,7 @@
 from musical_chairs_libs.dtos_and_utilities import (
+	generate_owned_and_rules_from_rows,
 	get_datetime,
+	get_station_owner_rules,
 	StationPlaylistTuple,
 	StationInfo,
 )
@@ -184,14 +186,18 @@ class StationsPlaylistsService:
 
 		records = self.conn.execute(query).mappings()
 
-		if self.current_user_provider.is_loggedIn():
-			yield from self.station_service.__generate_station_and_rules_from_rows__(
+		userId = self.current_user_provider.optional_user_id()
+		if userId:
+			yield from generate_owned_and_rules_from_rows(
 				records,
-				scopes
+				StationInfo.row_to_station,
+				get_station_owner_rules,
+				scopes,
+				userId
 			)
 		else:
 			for row in records:
-				yield self.station_service.__row_to_station__(row)
+				yield StationInfo.row_to_station(row)
 
 	def get_station_song_counts(
 		self,

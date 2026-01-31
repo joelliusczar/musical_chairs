@@ -1,8 +1,7 @@
-from .account_dtos import OwnerType
+from .account_dtos import OwnedEntity
 from .generic_dtos import (
 	FrozenNamedIdItem,
 )
 
-class ArtistInfo(FrozenNamedIdItem):
-	owner: OwnerType
+class ArtistInfo(FrozenNamedIdItem, OwnedEntity):
 	isprimaryartist: bool=False

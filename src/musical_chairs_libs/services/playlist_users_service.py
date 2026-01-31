@@ -2,18 +2,17 @@
 from typing import (
 	Iterator,
 	Optional,
-	Tuple,
 )
 from musical_chairs_libs.dtos_and_utilities import (
+	ActionRule,
+	build_base_rules_query,
 	get_datetime,
+	get_playlist_owner_roles,
 	PlaylistInfo,
 	AccountInfo,
 	OwnerInfo,
-	generate_playlist_user_and_rules_from_rows,
+	generate_domain_user_and_rules_from_rows,
 	RulePriorityLevel,
-	ActionRule,
-	UserRoleDef,
-	build_placeholder_select
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	UserRoleSphere
@@ -23,80 +22,19 @@ from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	select,
 	insert,
-	Integer,
 	delete,
-	literal as dbLiteral,
 	and_,
 	or_,
-	union_all,
-)
-from sqlalchemy.sql.expression import (
-	case,
-	CompoundSelect,
 )
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.tables import (
 	playlists as playlists_tbl,
-	pl_pk, pl_ownerFk, plup_count, plup_span, plup_priority,
+	pl_pk, pl_ownerFk,
 	users as user_tbl, u_pk, u_username, u_displayName, u_email, 
-	u_dirRoot, u_disabled, ur_userFk, ur_role, ur_quota, ur_span, ur_priority,
-	playlist_user_permissions, plup_userFk, plup_playlistFk, plup_role
+	u_dirRoot, u_disabled, ur_userFk, ur_role,
+	userRoles as user_roles_tbl, ur_keypath
 )
-
-__playlist_permissions_query__ = select(
-	plup_userFk.label("rule>userfk"),
-	plup_role.label("rule>name"),
-	plup_count.label("rule>quota"),
-	plup_span.label("rule>span"),
-	coalesce[Integer](
-		plup_priority,
-		RulePriorityLevel.STATION_PATH.value
-	).label("rule>priority"),
-	dbLiteral(UserRoleSphere.Playlist.value).label("rule>sphere"),
-	plup_playlistFk.label("rule>playlistfk")
-)
-
-def build_playlist_rules_query(
-	userId: Optional[int]=None
-) -> CompoundSelect[Tuple[int, str, float, float, int, str]]:
-	user_rules_query = select(
-		ur_userFk.label("rule>userfk"),
-		ur_role.label("rule>name"),
-		ur_quota.label("rule>quota"),
-		ur_span.label("rule>span"),
-		coalesce[Integer](
-			ur_priority,
-			case(
-				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
-				else_=RulePriorityLevel.SITE.value
-			)
-		).label("rule>priority"),
-		dbLiteral(UserRoleSphere.Site.value).label("rule>sphere"),
-		dbLiteral(None).label("rule>playlistfk")
-	).where(or_(
-			ur_role.like(f"{UserRoleSphere.Playlist.value}:%"),
-			ur_role == UserRoleDef.ADMIN.value
-		),
-	)
-	sphere_permissions_query = __playlist_permissions_query__
-	placeholder_select = build_placeholder_select(
-		UserRoleDef.PLAYLIST_VIEW.value
-	).add_columns(
-		dbLiteral(None).label("rule>playlistfk")
-	)
-
-	if userId is not None:
-		sphere_permissions_query = \
-			sphere_permissions_query.where(plup_userFk == userId)
-		user_rules_query = user_rules_query.where(ur_userFk == userId)
-		
-	query = union_all(
-		placeholder_select,
-		sphere_permissions_query,
-		user_rules_query,
-	)
-	return query
 
 class PlaylistsUserService:
 
@@ -133,7 +71,7 @@ class PlaylistsUserService:
 		self,
 		playlist: PlaylistInfo,
 	) -> Iterator[AccountInfo]:
-		rulesQuery = build_playlist_rules_query().cte()
+		rulesQuery = build_base_rules_query(UserRoleSphere.Playlist).cte()
 		query = select(
 			u_pk,
 			u_username,
@@ -155,7 +93,8 @@ class PlaylistsUserService:
 				),
 				and_(
 					rulesQuery.c["rule>userfk"] == u_pk,
-					rulesQuery.c["rule>playlistfk"] == playlist.id
+					rulesQuery.c["rule>keypath"] == str(playlist.id),
+					rulesQuery.c["rule>sphere"] == UserRoleSphere.Playlist.value
 				),
 			),
 			isouter=True
@@ -165,15 +104,16 @@ class PlaylistsUserService:
 				coalesce(
 					rulesQuery.c["rule>priority"],
 					RulePriorityLevel.SITE.value
-				) > RulePriorityLevel.INVITED_USER.value,
+				) > RulePriorityLevel.REQUIRES_INVITE.value,
 				u_pk == playlist.owner.id
 			)
 		)
 
 		query = query.order_by(u_username)
 		records = self.conn.execute(query).mappings()
-		yield from generate_playlist_user_and_rules_from_rows(
+		yield from generate_domain_user_and_rules_from_rows(
 			records,
+			get_playlist_owner_roles,
 			playlist.owner.id if playlist.owner else None
 		)
 
@@ -184,14 +124,15 @@ class PlaylistsUserService:
 		playlistId: int,
 		rule: ActionRule
 	) -> ActionRule:
-		stmt = insert(playlist_user_permissions).values(
+		stmt = insert(user_roles_tbl).values(
 			userfk = addedUserId,
-			playlistfk = playlistId,
+			keypath = playlistId,
 			role = rule.name,
 			span = rule.span,
 			quota = rule.quota,
 			priority = None,
-			creationtimestamp = self.get_datetime().timestamp()
+			creationtimestamp = self.get_datetime().timestamp(),
+			sphere = UserRoleSphere.Playlist.value
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
@@ -199,7 +140,7 @@ class PlaylistsUserService:
 			name=rule.name,
 			span=rule.span,
 			quota=rule.quota,
-			priority=RulePriorityLevel.STATION_PATH.value,
+			priority=RulePriorityLevel.INVITED_USER.value,
 			sphere=UserRoleSphere.Playlist.value
 		)
 
@@ -210,9 +151,9 @@ class PlaylistsUserService:
 		playlistId: int,
 		ruleName: Optional[str]
 	):
-		delStmt = delete(playlist_user_permissions)\
-			.where(plup_userFk == subjectUserId)\
-			.where(plup_playlistFk == playlistId)
+		delStmt = delete(user_roles_tbl)\
+			.where(ur_userFk == subjectUserId)\
+			.where(ur_keypath == playlistId)
 		if ruleName:
-			delStmt = delStmt.where(plup_role == ruleName)
+			delStmt = delStmt.where(ur_role == ruleName)
 		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]

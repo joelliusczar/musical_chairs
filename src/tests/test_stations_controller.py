@@ -265,7 +265,7 @@ def test_get_station_user_rule_selection(
 
 	assert data["stationrules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
 	assert data["stationrules"][0]["priority"] \
-		== RulePriorityLevel.STATION_PATH.value
+		== RulePriorityLevel.INVITED_USER.value
 	assert data["stationrules"][0]["sphere"] == UserRoleSphere.Station.value
 	assert data["stationrules"][0]["quota"] == 5
 	assert data["stationrules"][0]["span"] == 300
@@ -306,14 +306,14 @@ def test_get_station_user_rule_selection(
 	assert len(data["stationrules"]) == 2
 	assert data["stationrules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
 	assert data["stationrules"][0]["priority"] \
-		== RulePriorityLevel.STATION_PATH.value + 1
+		== RulePriorityLevel.INVITED_USER.value + 1
 	assert data["stationrules"][0]["sphere"] == UserRoleSphere.Site.value
 	assert data["stationrules"][0]["quota"] == 5
 	assert data["stationrules"][0]["span"] == 120
 
 	assert data["stationrules"][1]["name"] == UserRoleDef.STATION_REQUEST.value
 	assert data["stationrules"][1]["priority"] \
-		== RulePriorityLevel.STATION_PATH.value
+		== RulePriorityLevel.INVITED_USER.value
 	assert data["stationrules"][1]["sphere"] == UserRoleSphere.Station.value
 	assert data["stationrules"][1]["quota"] == 5
 	assert data["stationrules"][1]["span"] == 60
@@ -332,7 +332,7 @@ def test_get_station_user_rule_selection(
 	assert len(data["stationrules"]) == 2
 	assert data["stationrules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
 	assert data["stationrules"][0]["priority"] \
-		== RulePriorityLevel.STATION_PATH.value
+		== RulePriorityLevel.INVITED_USER.value
 	assert data["stationrules"][0]["sphere"] == UserRoleSphere.Station.value
 	assert data["stationrules"][0]["quota"] == 25
 	assert data["stationrules"][0]["span"] == 300
@@ -358,7 +358,7 @@ def test_get_station_user_rule_selection(
 	assert data["stationrules"][0]["sphere"] == UserRoleSphere.Station.value
 	assert data["stationrules"][0]["name"] == UserRoleDef.STATION_REQUEST.value
 	assert data["stationrules"][0]["priority"] \
-		== RulePriorityLevel.STATION_PATH.value
+		== RulePriorityLevel.INVITED_USER.value
 	assert data["stationrules"][0]["sphere"] == UserRoleSphere.Station.value
 	assert data["stationrules"][0]["quota"] == 25
 	assert data["stationrules"][0]["span"] == 300
@@ -567,13 +567,13 @@ def test_get_station_for_edit_with_view_security(
 	assert data["id"] == 14
 	assert data["name"] == "charlie_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
-	assert data["requestsecuritylevel"] == RulePriorityLevel.INVITED_USER.value
-	assert data["viewsecuritylevel"] == RulePriorityLevel.INVITED_USER.value
+	assert data["requestsecuritylevel"] == RulePriorityLevel.REQUIRES_INVITE.value
+	assert data["viewsecuritylevel"] == RulePriorityLevel.REQUIRES_INVITE.value
 	assert data["rules"] == [{
 			"name": UserRoleDef.STATION_VIEW.value,
 			"span":0,
 			"quota":0,
-			"priority": RulePriorityLevel.STATION_PATH.value,
+			"priority": RulePriorityLevel.INVITED_USER.value,
 			"sphere": "station",
 			"keypath": None
 	}]
@@ -700,7 +700,7 @@ def test_rule_adding_validation(
 	assert data["name"] == UserRoleDef.STATION_VIEW.value
 	assert data["span"] == 0
 	assert data["quota"] == 0
-	assert data["priority"] == RulePriorityLevel.STATION_PATH.value
+	assert data["priority"] == RulePriorityLevel.INVITED_USER.value
 
 	rule["name"] = "dumb_shit"
 

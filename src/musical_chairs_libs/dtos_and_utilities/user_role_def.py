@@ -23,9 +23,8 @@ class RulePriorityLevel(Enum):
 	SITE = 20
 	FRIEND_USER = 29 # not used
 	FRIEND_STATION = 30
-	INVITED_USER = 39
-	# STATION_PATH should be able to overpower INVITED_USER
-	STATION_PATH = 40
+	REQUIRES_INVITE = 39
+	INVITED_USER = 40
 	OWENER_USER = 49
 	OWNER = 50
 	#only admins should be able to see these items
@@ -83,6 +82,11 @@ class UserRoleDef(Enum):
 	@property
 	def nameValue(self):
 		return self.value
+	
+	@classmethod
+	def combine(cls, sphere: UserRoleSphere, role: str) -> "UserRoleDef":
+		rule = f"{sphere.value}:{role}"
+		return cls(rule)
 
 	@staticmethod
 	def as_set(sphere: Optional[str]=None) -> Set[str]:

@@ -389,6 +389,7 @@ def test_song_save_with_unpermitted_stations(
 
 	assert putResponse.status_code == 422
 
+
 def test_song_save_no_roles(
 	fixture_api_test_client: TestClient
 ):
@@ -484,8 +485,8 @@ def test_song_save_different_station_owner(
 		},
 		"isrunning": False,
 		"rules": [],
-		"requestsecuritylevel": RulePriorityLevel.INVITED_USER.value,
-		"viewsecuritylevel": RulePriorityLevel.INVITED_USER.value
+		"requestsecuritylevel": RulePriorityLevel.REQUIRES_INVITE.value,
+		"viewsecuritylevel": RulePriorityLevel.REQUIRES_INVITE.value
 	})
 	putResponse = client.put(
 		f"song-info/songs/{51}",

@@ -84,7 +84,7 @@ def get_cors_origin_or_default(origin: str) -> str:
 
 def transForm_error(err: Any) -> dict[str, Any]:
 	msg = str(err["msg"]).removeprefix("Value error,").strip()
-	field = "->".join(f for f in err["loc"]) if len(err["loc"]) > 1 \
+	field = "->".join(str(f) for f in err["loc"]) if len(err["loc"]) > 1 \
 		else err["loc"][0] if len(err["loc"]) > 0 else None
 	return build_error_obj(msg, field)
 

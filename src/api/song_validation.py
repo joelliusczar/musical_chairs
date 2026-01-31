@@ -52,7 +52,7 @@ def __get_station_id_set__(
 	stationKeys: Union[int,str, Iterable[int], None]=None
 ) -> set[int]:
 
-	if user.has_roles(UserRoleDef.STATION_ASSIGN):
+	if user.has_site_roles(UserRoleDef.STATION_ASSIGN):
 		return {s.id for s in stationService.get_stations(
 			stationKeys=stationKeys
 		)}
@@ -166,7 +166,8 @@ def __validate_song_stations__(
 	#dbStations will only be the stations user can see
 	dbStations = __get_station_id_set__(user, stationService, stationIds)
 	#stations that user can't see, are not linked, or don't exist
-	if stationIds - dbStations - linkedStationIds - permittedStations:
+	flagged = stationIds - dbStations - linkedStationIds - permittedStations
+	if flagged:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail=[
@@ -175,6 +176,7 @@ def __validate_song_stations__(
 					"Stations"
 				)],
 		)
+
 
 def __validate_song_artists__(
 	song: ValidatedSongAboutInfo,
@@ -189,7 +191,6 @@ def __validate_song_artists__(
 		#in theory, this should not create a vulnerability
 		#because even if user has path:edit on a non-overlapping path
 		#it should get caught above
-		userId=user.id if not user.has_roles(UserRoleDef.PATH_EDIT) else None
 	)}
 	if artistIds - dbArtists:
 		raise HTTPException(

@@ -17,9 +17,6 @@ from .db_population import (
 	populate_station_playlists
 )
 from .db_data import (
-	populate_path_permissions,
-	populate_playlist_permissions,
-	populate_station_permissions,
 	populate_users,
 	populate_user_roles,
 )
@@ -57,11 +54,8 @@ def setup_in_mem_tbls(
 	populate_stations_songs(conn)
 	populate_station_albums(conn)
 	populate_user_roles(conn, datetimeProvider, primaryUser)
-	populate_station_permissions(conn, datetimeProvider)
-	populate_path_permissions(conn, datetimeProvider)
 	populate_station_queue(conn)
 	populate_playlists(conn)
 	populate_station_playlists(conn)
 	populate_playlists_songs(conn)
-	populate_playlist_permissions(conn, datetimeProvider)
 	conn.commit()

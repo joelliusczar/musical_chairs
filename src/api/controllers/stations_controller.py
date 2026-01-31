@@ -251,7 +251,7 @@ def create_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station)
-	return result or StationInfo(id=-1,name="", displayname="")
+	return result
 
 
 @router.put("/{id}",dependencies=[
@@ -271,7 +271,7 @@ def update_station(
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
 	result = stationService.save_station(station, savedStation.id)
-	return result or StationInfo(id=-1,name="",displayname="")
+	return result
 
 
 @router.put("/enable/", dependencies=[
@@ -468,4 +468,4 @@ def copy_station(
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
 	result = stationService.copy_station(savedstation.id, station)
-	return result or StationInfo(id=-1,name="", displayname="")
+	return result

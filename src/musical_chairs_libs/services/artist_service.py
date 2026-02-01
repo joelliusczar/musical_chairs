@@ -78,11 +78,12 @@ class ArtistService:
 			query = query.where(ar_pk == artistKeys)
 		elif type(artistKeys) is str:
 			if artistKeys:
-				searchStr = SearchNameString.format_name_for_like(artistKeys)
 				if exactStrMatch:
+					searchStr = SearchNameString.format_name_for_search(artistKeys)
 					query = query\
 						.where(ar_flatname == searchStr)
 				else:
+					searchStr = SearchNameString.format_name_for_like(artistKeys)
 					query = query\
 						.where(ar_flatname.like(f"%{searchStr}%", escape="\\"))
 		#check speficially if instance because [] is falsy

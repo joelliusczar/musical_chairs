@@ -67,7 +67,7 @@ def station_list(
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:
 	stations = list(stationService.get_stations(None,
-		ownerId=owner.id if owner else None
+		ownerKey=owner.id if owner else None
 	))
 	return { "items": stations }
 

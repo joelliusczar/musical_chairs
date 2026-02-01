@@ -1,5 +1,5 @@
 import re
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, NullPool
 from sqlalchemy.engine import Connection
 from sqlalchemy.event import listens_for
 from musical_chairs_libs.dtos_and_utilities.constants import DbUsers
@@ -39,14 +39,21 @@ class DbConnectionProvider:
 		check_same_thread: bool=True
 	) -> Connection:
 
-		dbStr = "sqlite://" if inMemory else \
-			f"sqlite:///{ConfigAcessors.db_file()}"
+		if inMemory:
+			engine = create_engine(
+				"sqlite://",
+				echo=echo,
+				connect_args={ "check_same_thread": check_same_thread }, #fastapi docs said this was okay
+				# poolclass=NullPool
+			)
+		else:
+			engine = create_engine(
+				f"sqlite:///{ConfigAcessors.db_file()}",
+				echo=echo,
+				connect_args={ "check_same_thread": check_same_thread }, #fastapi docs said this was okay
+				poolclass=NullPool
+			)
 
-		engine = create_engine(
-			dbStr,
-			echo=echo,
-			connect_args={ "check_same_thread": check_same_thread } #fastapi docs said this was okay
-		)
 		conn = engine.connect()
 		conn.connection.connection.create_function( 
 			"format_name_for_search",

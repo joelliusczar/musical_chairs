@@ -57,6 +57,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_station_owner_rules,
 	StationInfo,
 	StationCreationInfo,
+	SearchNameString,
 	SavedNameString,
 	NotFoundError,
 	get_datetime,
@@ -137,22 +138,30 @@ class StationService:
 
 	def station_base_query(
 		self,
-		ownerId: Optional[int]=None,
-		stationKeys: Union[int, str, Iterable[int], None]=None,
+		ownerKey: int | str | None =None,
+		stationKeys: int | str | Iterable[int] | None=None,
+		exactStrMatch: bool=False
 	):
 		query = stations_tbl.outerjoin(user_tbl, st_ownerFk == u_pk).select()
-		if type(ownerId) is int:
-			query = query.where(st_ownerFk == ownerId)
+		if type(ownerKey) is int:
+			query = query.where(st_ownerFk == ownerKey)
+		elif type(ownerKey) == str:
+			query = query.where(u_username == ownerKey)
 		if type(stationKeys) == int:
 			query = query.where(st_pk == stationKeys)
 		elif isinstance(stationKeys, Iterable) and not isinstance(stationKeys, str):
 			query = query.where(st_pk.in_(stationKeys))
-		elif type(stationKeys) is str and not ownerId:
+		elif type(stationKeys) is str and not ownerKey:
 			raise ValueError("user must be provided when using station name")
 		elif type(stationKeys) is str:
-			lStationKey = stationKeys.replace("_","\\_").replace("%","\\%")
-			query = query\
-				.where(st_name.like(f"%{lStationKey}%", escape="\\"))
+			if exactStrMatch:
+				query = query.where(
+					st_name == SearchNameString.format_name_for_search(stationKeys)
+				)
+			else:
+				lStationKey = stationKeys.replace("_","\\_").replace("%","\\%")
+				query = query\
+					.where(st_name.like(f"%{lStationKey}%", escape="\\"))
 		
 		return query
 
@@ -240,10 +249,15 @@ class StationService:
 	def get_secured_station_query(
 		self,
 		stationKeys: Union[int, str, Iterable[int], None]=None,
-		ownerId: Union[int, None]=None,
-		scopes: Optional[Collection[str]]=None
+		ownerKey: int | str | None=None,
+		scopes: Optional[Collection[str]]=None,
+		exactStrMatch: bool=False
 	):
-		query = self.station_base_query(ownerId=ownerId, stationKeys=stationKeys)
+		query = self.station_base_query(
+			ownerKey=ownerKey,
+			stationKeys=stationKeys,
+			exactStrMatch=exactStrMatch
+		)
 		user = self.current_user_provider.current_user()
 		rulesSubquery = build_base_rules_query(
 			UserRoleSphere.Station,
@@ -299,17 +313,19 @@ class StationService:
 
 	def get_stations(
 		self,
-		stationKeys: Union[int, str, Iterable[int], None]=None,
-		ownerId: Union[int, None]=None,
-		scopes: Optional[Collection[str]]=None
+		stationKeys: int | str | Iterable[int]| None=None,
+		ownerKey: int | str | None=None,
+		scopes: Collection[str] | None=None,
+		exactStrMatch: bool=False
 	) -> Iterator[StationInfo]:
 		
 		userId = self.current_user_provider.optional_user_id()
 		if userId:
 			query = self.get_secured_station_query(
-				ownerId=ownerId,
+				ownerKey=ownerKey,
 				stationKeys=stationKeys,
-				scopes=scopes
+				scopes=scopes,
+				exactStrMatch=exactStrMatch,
 			)
 
 			records = self.conn.execute(query).mappings().fetchall()
@@ -325,8 +341,9 @@ class StationService:
 			if scopes:
 				return
 			query = self.station_base_query(
-				ownerId=ownerId,
+				ownerKey=ownerKey,
 				stationKeys=stationKeys,
+				exactStrMatch=exactStrMatch,
 			)\
 			.where(
 				coalesce(st_viewSecurityLevel, 0) == 0

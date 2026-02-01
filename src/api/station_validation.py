@@ -66,7 +66,7 @@ def get_stations(
 			if owner:
 				return stationService.get_stations(
 					int_or_str(pathName),
-					ownerId=owner.id
+					ownerKey=owner.id
 				)
 			else:
 				raise HTTPException(

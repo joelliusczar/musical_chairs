@@ -57,7 +57,7 @@ def test_get_stations_list_with_user_and_owner(
 	user,_ = accountService.get_account_for_login("testUser_bravo")
 	assert user
 	data = sorted(
-		stationService.get_stations(ownerId=user.id),
+		stationService.get_stations(ownerKey=user.id),
 		key=lambda s:s.id
 	)
 	assert len(data) == 10
@@ -91,7 +91,7 @@ def test_get_stations_list_with_user_and_owner(
 	assert user
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
-			stationService.get_stations(ownerId=user.id),
+			stationService.get_stations(ownerKey=user.id),
 			key=lambda s:s.id
 		)
 		assert len(data) == 1

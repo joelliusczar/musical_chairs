@@ -2,7 +2,6 @@
 import json
 import pytest
 import os
-import hashlib
 import subprocess
 from typing import Iterator, Any, Callable, cast
 from datetime import datetime
@@ -19,9 +18,6 @@ from musical_chairs_libs.services import (
 	StationService,
 	TemplateService,
 	FSEventsLoggingService,
-	DbRootConnectionService,
-	DbOwnerConnectionService,
-	setup_database,
 	SongFileService,
 	PathRuleService,
 	ArtistService,
@@ -80,38 +76,6 @@ def fixture_datetime_iterator(
 	return provider
 
 
-@pytest.fixture
-def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
-	#some tests were failing because db name was too long
-	testId =  hashlib.md5(request.node.name.encode("utf-8")).hexdigest()
-	dbName=f"test_{testId}_musical_chairs_db"
-	setup_database(dbName)
-	try:
-		yield dbName
-	finally:
-		with DbRootConnectionService() as rootConnService:
-			rootConnService.drop_database(dbName)
-
-@pytest.fixture
-def fixture_db_populate_factory(
-	request: pytest.FixtureRequest,
-	fixture_setup_db: str,
-	fixture_datetime_iterator: MockDatetimeProvider,
-	fixture_primary_user: AccountInfo,
-	fixture_mock_password: bytes
-) -> Callable[[], None]:
-	def populate_fn():
-		dbName = fixture_setup_db
-		with DbOwnerConnectionService(dbName) as ownerConnService:
-			conn = ownerConnService.conn
-			setup_in_mem_tbls(
-				conn,
-				request,
-				fixture_datetime_iterator,
-				fixture_primary_user,
-				fixture_mock_password,
-			)
-	return populate_fn
 
 @pytest.fixture
 def fixture_db_empty_populate_factory() -> Callable[[], None]:

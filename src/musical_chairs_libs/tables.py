@@ -55,7 +55,8 @@ u_dirRoot = cast(Column[Optional[Text]],u.dirroot)
 u_disabled = cast(Column[Optional[Integer]],u.isdisabled)
 u_creationTimestamp = cast(Column[REAL[Any]],u.creationtimestamp)
 
-Index("idx_uniqueusername", u_flatusername, unique=True)
+Index("idx_uniqueusername", u_username, unique=True)
+Index("idx_uniqueflatusername", u_flatusername, unique=True)
 Index("idx_uniqueemail", u_email, unique=True)
 Index("idx_dirroot", u_dirRoot, unique=True)
 
@@ -435,4 +436,5 @@ j_status = cast(Column[Text], j.status)
 j_instructions = cast(Column[Text], j.instructions)
 j_queuedtimestamp = cast(Column[REAL[Any]], j.queuedtimestamp)
 j_completedtimestamp = cast(Column[REAL[Any]], j.completedtimestamp)
+
 

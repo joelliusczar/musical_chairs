@@ -1,5 +1,8 @@
 #!/bin/sh
 
+meName="mcr_dev_ops.sh"
+isSourced=0
+[ "${0##*/}" != "${meName}" ] && isSourced=1
 
 deploy_app() (
 	ansible-playbook deploy_api.yml -i ~/.ansible/inventories/musical_chairs  --ask-vault-pass -K
@@ -71,6 +74,22 @@ replace_local_db() (
 )
 
 
-command="$1"
-shift
-"$command"
+pyenv() {
+	cd ..
+	export PATH="$(pwd)/test_trash/musical_chairs/mcr_env/bin/:${PATH}"
+	. test_trash/musical_chairs/mcr_env/bin/activate
+}
+
+
+add_migration() (
+	export DSF_DB_FILE="$MCR_DB_FILE"
+	alembic_exe='../test_trash/musical_chairs/mcr_env/bin/alembic' \
+		revision --autogenerate -m "$1"
+)
+
+
+if [ $isSourced = 0 ]; then
+	command="$1"
+	shift
+	"$command"
+fi

@@ -30,7 +30,8 @@
     "DSF_DB_PASS_RADIO": "radiopass",
     "DSF_DB_PASS_JANITOR": "janitorpass",
     "DSF_AUTH_SECRET_KEY": "deadbeef",
-    "DSF_APP_ROOT": "./test_trash"
+    "DSF_APP_ROOT": "./test_trash",
+    "DSF_DB_FILE": "${userHome}/databases/musical_chairs_db"
   },
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,

@@ -1,5 +1,4 @@
 import os
-import threading
 import sys
 import signal
 import subprocess
@@ -17,11 +16,11 @@ from musical_chairs_libs.services import (
 	StationService,
 	StationProcessService,
 )
-from threading import ExceptHookArgs, Thread
+from threading import Thread
 from setproctitle import setproctitle
 import musical_chairs_libs.dtos_and_utilities.logging as logging
 from musical_chairs_libs.dtos_and_utilities import (
-	ConfigAcessors,
+	DbConnectionProvider,
 	StationTypes
 )
 from musical_chairs_libs.protocols import FileService
@@ -95,12 +94,7 @@ def queue_service(conn: Connection) -> QueueService:
 	return queueService
 
 
-
-def start_song_queue(dbName: str, stationName: str, ownerName: str):
-	logging.radioLogger.info("Starting the queue process")
-	logging.radioLogger.debug(f"Debug canary: {os.getcwd()}")
-
-	def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
+def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
 		try:
 			setproctitle(
 				f"MC Radio - {ownerName}_{stationName} at {portNumber}"
@@ -108,91 +102,106 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		except Exception as e:
 			logging.radioLogger.info("Failed to rename process")
 			logging.radioLogger.info(e)
-		logging.radioLogger.info(f"Starting mc ices with {ownerName}_{stationName}")
+		logging.radioLogger.info(
+			f"Starting mc ices with {ownerName}_{stationName}"
+		)
 		return ProcessService.start_station_mc_ices(
 			stationName,
 			ownerName,
 			portNumber
 		)
 
-	readingConn = ConfigAcessors.get_configured_radio_connection(
-		dbName,
-		isolationLevel = "READ COMMITTED"
-	)
-	updatingConn = ConfigAcessors.get_configured_radio_connection(dbName)
 
-	readingSongQueueService = queue_service(readingConn)
-	updatingSongQueueService = queue_service(updatingConn)
-
-
-	pathRuleService = path_rule_service(readingConn)
-	readingCurrentUserProvider = current_user_provider(readingConn)
-	readingStationService = StationService(
-		readingConn,
-		readingCurrentUserProvider,
+def launch_loading(stationName: str, ownerName: str):
+	conn = DbConnectionProvider.get_configured_radio_connection(dbName)
+	pathRuleService = path_rule_service(conn)
+	currentUserProvider = current_user_provider(conn)
+	stationService = StationService(
+		conn,
+		currentUserProvider,
 		pathRuleService
 	)
-	stationId = readingStationService.get_station_id(stationName, ownerName)
-	if not stationId:
-		raise RuntimeError(
-			"station with owner"
-			f" {ownerName} and name {stationName} not found"
-		)
-	
-	station = next(readingStationService.get_stations(stationId))
-
-	queueServiceType = QueueService
-
-	if station.typeid == StationTypes.ALBUMS_ONLY.value\
-		or station.typeid == StationTypes.PLAYLISTS_ONLY.value\
-		or station.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value\
-	:
-		queueServiceType = CollectionQueueService
-
-	fileService = file_service()
-	
-	readingQueueService = readingSongQueueService
-	if queueServiceType != QueueService:
-		readingQueueService = queueServiceType(  #pyright: ignore [reportCallIssue]
-			readingConn,
-			readingSongQueueService,
-			readingCurrentUserProvider
-		)
-	updatingQueueService = updatingSongQueueService
-	if queueServiceType != QueueService:
-		updatingQueueService = queueServiceType( #pyright: ignore [reportCallIssue]
-			updatingConn,
-			updatingQueueService,
-			readingCurrentUserProvider,
-		)
+	station = next(stationService.get_stations(stationName, ownerName))
 	stationProcessService = StationProcessService(
-		updatingConn,
-		readingCurrentUserProvider,
-		readingStationService
+		conn,
+		currentUserProvider,
+		stationService
 	)
-	stationProcessService.set_station_proc(stationId)
+	stationProcessService.set_station_proc(station.id)
+	queueService = queue_service(conn)
+	fileService = file_service()
+	try:
+		if station.typeid == StationTypes.SONGS_ONLY.value:
+			queue_song_source.load_data(station.id, queueService, fileService)
+		else:
+			collectionQueueService = CollectionQueueService(
+				conn,
+				queueService,
+				currentUserProvider
+			)
+			queue_song_source.load_data(
+				station.id,
+				collectionQueueService,
+				fileService
+			)
+	finally:
+		close_db_connection(conn, "loading")
+		stationProcessService.unset_station_procs(stationIds=station.id)
+
+
+def launch_sending(stationName: str, ownerName: str):
+	
+	conn = DbConnectionProvider.get_configured_radio_connection(dbName)
+	queueService = queue_service(conn)
+	pathRuleService = path_rule_service(conn)
+	currentUserProvider = current_user_provider(conn)
+	stationService = StationService(
+		conn,
+		currentUserProvider,
+		pathRuleService
+	)
+	station = next(stationService.get_stations(stationName, ownerName))
+	try:
+
+		if station.typeid == StationTypes.SONGS_ONLY.value:
+			queue_song_source.send_next(
+				station.id,
+				start_ices,
+				queueService,
+				ProcessService.stream_timeout
+			)
+		else:
+			collectionQueueService = CollectionQueueService(
+				conn,
+				queueService,
+				currentUserProvider
+			)
+			queue_song_source.send_next(
+				station.id,
+				start_ices,
+				collectionQueueService,
+				ProcessService.stream_timeout
+			)
+	finally:
+		close_db_connection(conn, "sending")
+		queue_song_source.clean_up_ices_process()
+
+
+
+
+def start_song_queue(dbName: str, stationName: str, ownerName: str):
+	logging.radioLogger.info("Starting the queue process")
+	logging.radioLogger.debug(f"Debug canary: {os.getcwd()}")
 
 	loadThread = Thread(
-		target=queue_song_source.load_data,
-		args=[stationId, readingQueueService, fileService],
+		target=launch_loading,
+		args=[stationName, ownerName],
 	)
 	sendThread = Thread(
-		target=queue_song_source.send_next,
-		args=[
-			stationId,
-			start_ices,
-			updatingQueueService,
-			ProcessService.stream_timeout
-		]
+		target=launch_sending,
+		args=[stationName, ownerName]
 	)
 
-	def handle_loading_error(args: ExceptHookArgs):
-		if args.thread == loadThread:
-			readingConn.close()
-		if args.thread == sendThread:
-			queue_song_source.clean_up_ices_process()
-
-	threading.excepthook = handle_loading_error
 
 	try:
 		loadThread.start()
@@ -212,10 +221,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 			f"Is sending thread alive? {sendThread.is_alive()}"
 		)
 		logging.radioLogger.info("Disabling the station")
-		stationProcessService.unset_station_procs(stationIds=station.id)
 		logging.radioLogger.debug("Station disabled")
-		close_db_connection(readingConn, "reading")
-		close_db_connection(updatingConn, "updating")
 
 
 

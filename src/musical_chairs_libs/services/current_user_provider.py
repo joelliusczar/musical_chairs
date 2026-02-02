@@ -6,7 +6,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	get_path_owner_roles,
 	normalize_opening_slash,
-	UserRoleDomain,
+	UserRoleSphere,
 	WrongPermissionsError,
 )
 from musical_chairs_libs.protocols import (
@@ -102,7 +102,7 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		:
 			return self.__path_rule_loaded_user__
 		scopes = {s for s in self.security_scopes \
-			if UserRoleDomain.Path.conforms(s)
+			if UserRoleSphere.Path.conforms(s)
 		}
 		if user.isadmin:
 			return user

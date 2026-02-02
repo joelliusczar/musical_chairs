@@ -5,10 +5,10 @@ from typing import (
 	Iterator,
 	Optional,
 	cast,
-	Union
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
+	SearchNameString,
 	SavedNameString,
 	AccountCreationInfo,
 	get_datetime,
@@ -76,12 +76,13 @@ class AccountManagementService:
 			)
 		hashed = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
-			username=SavedNameString.format_name_for_save(accountInfo.username),
-			displayname=SavedNameString.format_name_for_save(accountInfo.displayname),
+			username=str(SavedNameString(accountInfo.username)),
+			flatusername=str(SearchNameString(accountInfo.username)),
+			displayname=str(SavedNameString(accountInfo.displayname)),
 			hashedpw=hashed,
 			email=cleanedEmail.email,
-			creationtimestamp = self.get_datetime().timestamp(),
-			dirroot = SavedNameString.format_name_for_save(accountInfo.username)
+			creationtimestamp=self.get_datetime().timestamp(),
+			dirroot=str(SavedNameString(accountInfo.username))
 		)
 		res = self.conn.execute(stmt)
 		insertedPk = res.lastrowid
@@ -127,9 +128,11 @@ class AccountManagementService:
 				"userfk": userId,
 				"role": r.name,
 				"span": r.span,
-				"count": r.count,
+				"quota": r.quota,
 				"priority": r.priority,
-				"creationtimestamp": self.get_datetime().timestamp()
+				"creationtimestamp": self.get_datetime().timestamp(),
+				"sphere": r.sphere,
+				"keypath": r.keypath
 			} for r in inRoles
 		]
 		stmt = insert(userRoles)
@@ -220,7 +223,7 @@ class AccountManagementService:
 				.replace("_","\\_").replace("%","\\%")
 			query = query.where(
 				func.replace(coalesce(u_displayName, u_username)," ","")
-					.like(f"{normalizedStr}%")
+					.like(f"{normalizedStr}%", escape="\\")
 			)
 		query = query.limit(pageSize)
 		records = self.conn.execute(query).mappings()
@@ -230,8 +233,8 @@ class AccountManagementService:
 
 	def get_account_for_edit(
 		self,
-		key: Union[int, str]
-	) -> Optional[AccountInfo]:
+		key: int | str
+	) -> AccountInfo | None:
 		if not key:
 			return None
 		query = select(
@@ -322,20 +325,20 @@ class AccountManagementService:
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userfk.label("rule.userfk"),
-			rulesQuery.c.rule_name.label("rule.name"),
-			rulesQuery.c.rule_count.label("rule.count"),
-			rulesQuery.c.rule_span.label("rule.span"),
-			rulesQuery.c.rule_priority.label("rule.priority"),
-			rulesQuery.c.rule_domain.label("rule.domain")
+			rulesQuery.c['rule>userfk'].label("rule>userfk"),
+			rulesQuery.c['rule>name'].label("rule>name"),
+			rulesQuery.c['rule>quota'].label("rule>quota"),
+			rulesQuery.c['rule>span'].label("rule>span"),
+			rulesQuery.c['rule>priority'].label("rule>priority"),
+			rulesQuery.c['rule>sphere'].label("rule>sphere")
 		).select_from(users).join(
 			rulesQuery,
-			rulesQuery.c.rule_userfk == u_pk,
+			rulesQuery.c['rule>userfk'] == u_pk,
 			isouter=True
 		).where(or_(u_disabled.is_(None), u_disabled == False))\
 		.where(
 			coalesce(
-				rulesQuery.c.rule_priority,
+				rulesQuery.c["rule>priority"],
 				RulePriorityLevel.USER.value
 			) > RulePriorityLevel.RULED_USER.value
 		)
@@ -345,7 +348,7 @@ class AccountManagementService:
 		records = self.conn.execute(query).mappings().fetchall()
 		yield from generate_path_user_and_rules_from_rows(
 			records,
-			owner.id if owner else None
+			""
 		)
 
 	def add_user_rule(
@@ -357,7 +360,7 @@ class AccountManagementService:
 			userfk = addedUserId,
 			role = rule.name,
 			span = rule.span,
-			count = rule.count,
+			quota = rule.quota,
 			priority = None,
 			creationtimestamp = self.get_datetime().timestamp()
 		)
@@ -373,7 +376,7 @@ class AccountManagementService:
 		return ActionRule(
 			name=rule.name,
 			span=rule.span,
-			count=rule.count,
+			quota=rule.quota,
 			priority=RulePriorityLevel.SITE.value
 		)
 

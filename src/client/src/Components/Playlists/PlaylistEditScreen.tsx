@@ -142,7 +142,7 @@ export const PlaylistEditScreen = () => {
 					id: values.id, 
 					data: {
 						name: values.name,
-						description: values.description,
+						description: values.displayname,
 						viewsecuritylevel: values.viewsecuritylevel.id,
 						stations: values.stations,
 					},
@@ -156,7 +156,7 @@ export const PlaylistEditScreen = () => {
 				const requestObj = Calls.add({
 					data: {
 						name: values.name,
-						description: values.description,
+						description: values.displayname,
 						viewsecuritylevel: values.viewsecuritylevel.id,
 						stations: values.stations,
 					},

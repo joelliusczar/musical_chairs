@@ -4,25 +4,9 @@ import os
 import re
 from uuid import UUID
 from typing import Any
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Connection
-from sqlalchemy.event import listens_for
-from musical_chairs_libs.dtos_and_utilities.constants import DbUsers
-#https://github.com/PyMySQL/PyMySQL/issues/590
-from pymysql.constants import CLIENT
 from pathlib import Path
 
-collation_connection = "utf8mb4_uca1400_ai_ci"
 
-def __on_connect__(**kw: dict[str, Any]): 
-	dbapi_connection = kw["dbapi_connection"]
-	#somewhere between mariahdb 11.8.3 and 10.6.22, the default collation_connection
-	#became utf8mb4_uca1400_ai_ci which causes problems with next_directory_level.
-	#Supposedly, you should be able to add connect_args={'init_command': "SET @@collation_connection='utf8mb4_unicode_ci'"}
-	#to the engine constructor, but apparently there is another bug described here
-	#https://github.com/sqlalchemy/sqlalchemy/discussions/7858 
-	#that seems to indicate that collation_connection is being overwritten
-	dbapi_connection.query(f"SET @@collation_connection='{collation_connection}'") #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue]
 
 class ConfigAcessors:
 
@@ -183,66 +167,7 @@ class ConfigAcessors:
 			return {}
 
 
-	@classmethod
-	def get_configured_api_connection(
-		cls,
-		dbName: str,
-		echo: bool=False
-	) -> Connection:
-		dbPass = ConfigAcessors.db_pass_api()
-		if not dbPass:
-			raise RuntimeError("API: The system is not configured correctly for that.")
-		engine = create_engine(
-			f"mysql+pymysql://{DbUsers.API_USER()}:{dbPass}@localhost/{dbName}",
-			echo=echo,
-		)
-		
-		listens_for(engine, "connect", named=True)(__on_connect__)
-
-
-		conn = engine.connect()
-		return conn
-
-	@classmethod
-	def get_configured_janitor_connection(
-		cls,
-		dbName: str,
-		echo: bool=False
-	) -> Connection:
-		dbPass = ConfigAcessors.db_pass_janitor()
-		if not dbPass:
-			raise RuntimeError("Janitor: The system is not configured correctly for that.")
-		engine = create_engine(
-			f"mysql+pymysql://{DbUsers.JANITOR_USER()}:{dbPass}@localhost/{dbName}",
-			echo=echo,
-			connect_args={
-				"client_flag": CLIENT.MULTI_STATEMENTS | CLIENT.MULTI_RESULTS
-			},
-		)
-
-		listens_for(engine, "connect", named=True)(__on_connect__)
-		conn = engine.connect()
-		return conn
-
-	@classmethod
-	def get_configured_radio_connection(
-		cls,
-		dbName: str,
-		echo: bool=False,
-		isolationLevel: str="REPEATABLE READ"
-	) -> Connection:
-		dbPass = ConfigAcessors.db_pass_radio()
-		if not dbPass:
-			raise RuntimeError("Radio: The system is not configured correctly for that.")
-		engine = create_engine(
-			f"mysql+pymysql://{DbUsers.RADIO_USER()}:{dbPass}@localhost/{dbName}",
-			echo=echo,
-			execution_options={
-        "isolation_level": isolationLevel
-    	}
-		)
-		listens_for(engine, "connect", named=True)(__on_connect__)
-		return engine.connect()
+	
 
 
 	@staticmethod

@@ -3,28 +3,40 @@ from pydantic import (
 	ValidationInfo,
 	Field,
 )
+from sqlalchemy.engine.row import RowMapping
 from typing import (
 	Optional,
 	Any,
 	Iterator,
 )
+from .account_dtos import OwnerInfo, RuledOwnedEntity
 from .simple_functions import get_non_simple_chars
 from .validation_functions import min_length_validator_factory
 from .generic_dtos import (
+
 	MCBaseClass,
-	RuledEntity
 )
-from .account_dtos import OwnerType
-from .user_role_def import RulePriorityLevel
+from .user_role_def import RulePriorityLevel, UserRoleDef
 from .constants.constants import StationTypes
 
-class StationInfo(RuledEntity):
+#STATION_CREATE, STATION_FLIP, STATION_REQUEST, STATION_SKIP
+# left out of here on purpose
+# for STATION_FLIP, STATION_REQUEST, STATION_SKIP, we should have
+#explicit rules with defined limts
+station_owner_rules = [
+	UserRoleDef.STATION_ASSIGN,
+	UserRoleDef.STATION_DELETE,
+	UserRoleDef.STATION_EDIT,
+	UserRoleDef.STATION_VIEW,
+	UserRoleDef.STATION_USER_ASSIGN,
+	UserRoleDef.STATION_USER_LIST
+]
+
+class StationBaseInfo(MCBaseClass):
 	id: int=Field(frozen=True)
 	name: str=Field(frozen=True)
 	displayname: str=Field(default="", frozen=False)
 	isrunning: bool=Field(default=False, frozen=False)
-	#don't expect this to ever actually null
-	owner: Optional[OwnerType]=Field(default=None, frozen=False)
 	requestsecuritylevel: Optional[int]=Field(
 		default=RulePriorityLevel.ANY_USER.value, frozen=False
 	)
@@ -43,6 +55,30 @@ class StationInfo(RuledEntity):
 		return self.id == other.id \
 			and self.name == other.name \
 			and self.typeid == other.typeid
+
+
+class StationInfo(RuledOwnedEntity, StationBaseInfo):
+	
+
+	@classmethod
+	def row_to_station(cls, row: RowMapping) -> "StationInfo":
+		return StationInfo(
+			id=row["id"],
+			name=row["name"],
+			displayname=row["displayname"],
+			isrunning=bool(row["procid"]),
+			owner=OwnerInfo(
+				id=row["owner>id"],
+				username=row["owner>username"],
+				displayname=row["owner>displayname"]
+			),
+			requestsecuritylevel=row["requestsecuritylevel"],
+			viewsecuritylevel=row["viewsecuritylevel"] \
+				or RulePriorityLevel.PUBLIC.value,
+			typeid=row["typeid"] or StationTypes.SONGS_ONLY.value,
+			bitratekps=row["bitrate"],
+			playnum=row["playnum"]
+		)
 
 
 class StationCreationInfo(MCBaseClass):

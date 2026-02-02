@@ -262,10 +262,10 @@ def test_change_roles(fixture_api_test_client: TestClient):
 	assert data["roles"][0] == {
 		"name": UserRoleDef.USER_LIST.value,
 		"span": 0,
-		"count": 0,
+		"quota": 0,
 		"priority": 0,
-		"domain": "site",
-		"path": None
+		"sphere": "site",
+		"keypath": None
 		}
 
 def test_get_account_info(fixture_api_test_client: TestClient):

@@ -14,7 +14,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ListData,
 	build_error_obj,
 	SimpleQueryParameters,
-	UserRoleDomain,
+	UserRoleSphere,
 )
 from musical_chairs_libs.services import (
 	AlbumService,
@@ -82,7 +82,7 @@ def get(
 
 @router.post("", dependencies=[
 	Security(
-		check_top_level_rate_limit(UserRoleDomain.Album.value),
+		check_top_level_rate_limit(UserRoleSphere.Album.value),
 		scopes=[UserRoleDef.ALBUM_CREATE.value]
 	)
 ])

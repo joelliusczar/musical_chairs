@@ -106,7 +106,7 @@ export const PlaylistSongRow = (props: PlaylistSongRowProps) => {
 		style={ isOver ? { border: "1px solid"} : {}}
 	>
 		<TableCell>{song.name}</TableCell>
-		<TableCell>{song.disc}</TableCell>
+		<TableCell>{song.discnum}</TableCell>
 		<TableCell>{song.artist}</TableCell>
 		<TableCell>{rowButton(song, idx)}</TableCell>
 	</TableRow>);

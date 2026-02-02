@@ -9,7 +9,7 @@ from typing import (
 	cast
 )
 from .user_role_def import RulePriorityLevel
-from .constants import UserRoleDomain
+from .constants import UserRoleSphere
 from itertools import groupby, chain
 from operator import attrgetter
 from sqlalchemy.engine.row import RowMapping
@@ -21,12 +21,12 @@ from .user_role_def import RulePriorityLevel
 class ActionRule:
 	name: str=""
 	span: float=0 #this should be total seconds
-	count: float=0
+	quota: float=0
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
 	priority: Optional[int]=RulePriorityLevel.NONE.value
-	domain: str=UserRoleDomain.Site.value
-	path: Optional[str]=None
+	sphere: str=UserRoleSphere.Site.value
+	keypath: Optional[str]=None
 	# model_config=ConfigDict(revalidate_instances="subclass-instances")
 
 
@@ -57,7 +57,7 @@ class ActionRule:
 	def score(self) -> float:
 		if self.noLimit:
 			return sys.maxsize
-		return abs(self.count / self.span)
+		return abs(self.quota / self.span)
 
 
 	@property
@@ -69,7 +69,7 @@ class ActionRule:
 	def blocked(self) -> bool:
 		#noLimit has higher precedence because I don't want to rewrite
 		#my comparison methods again
-		return not self.noLimit and not self.count
+		return not self.noLimit and not self.quota
 
 
 	def conforms(self, rule: str) -> bool:
@@ -81,23 +81,23 @@ class ActionRule:
 			return True
 		if self.name < other.name:
 			return False
-		if self.domain > other.domain:
+		if self.sphere > other.sphere:
 			return True
-		if self.domain < other.domain:
+		if self.sphere < other.sphere:
 			return False
 		if (self.priorityElse) > (other.priorityElse):
 			return True
 		if (self.priorityElse) < (other.priorityElse):
 			return False
-		if all(d == UserRoleDomain.Path.value for d in (self.domain, other.domain)):
-			if self.is_parent_path(other.path):
+		if all(d == UserRoleSphere.Path.value for d in (self.sphere, other.sphere)):
+			if self.is_parent_path(other.keypath):
 				return False
-			if other.is_parent_path(self.path):
+			if other.is_parent_path(self.keypath):
 				return True
 		else:
-			if (self.path or "\0") > (other.path or "\0"):
+			if (self.keypath or "\0") > (other.keypath or "\0"):
 				return True
-			if (self.path or "\0") < (other.path or "\0"):
+			if (self.keypath or "\0") < (other.keypath or "\0"):
 				return False
 		return self.score > other.score
 
@@ -107,23 +107,23 @@ class ActionRule:
 			return True
 		if self.name > other.name:
 			return False
-		if self.domain < other.domain:
+		if self.sphere < other.sphere:
 			return True
-		if self.domain > other.domain:
+		if self.sphere > other.sphere:
 			return False
 		if (self.priorityElse) < (other.priorityElse):
 			return True
 		if (self.priorityElse) > (other.priorityElse):
 			return False
-		if all(d == UserRoleDomain.Path.value for d in (self.domain, other.domain)):
-			if self.is_parent_path(other.path):
+		if all(d == UserRoleSphere.Path.value for d in (self.sphere, other.sphere)):
+			if self.is_parent_path(other.keypath):
 				return True
-			if other.is_parent_path(self.path):
+			if other.is_parent_path(self.keypath):
 				return False
 		else:
-			if (self.path or "\0") < (other.path or "\0"):
+			if (self.keypath or "\0") < (other.keypath or "\0"):
 				return True
-			if (self.path or "\0") > (other.path or "\0"):
+			if (self.keypath or "\0") > (other.keypath or "\0"):
 				return False
 		return self.score < other.score
 
@@ -133,23 +133,23 @@ class ActionRule:
 			return True
 		if self.name < other.name:
 			return False
-		if self.domain > other.domain:
+		if self.sphere > other.sphere:
 			return True
-		if self.domain < other.domain:
+		if self.sphere < other.sphere:
 			return False
 		if (self.priorityElse) > (other.priorityElse):
 			return True
 		if (self.priorityElse) < (other.priorityElse):
 			return False
-		if all(d == UserRoleDomain.Path.value for d in (self.domain, other.domain)):
-			if self.is_parent_path(other.path):
+		if all(d == UserRoleSphere.Path.value for d in (self.sphere, other.sphere)):
+			if self.is_parent_path(other.keypath):
 				return False
-			if other.is_parent_path(self.path):
+			if other.is_parent_path(self.keypath):
 				return True
 		else:
-			if (self.path or "\0") > (other.path or "\0"):
+			if (self.keypath or "\0") > (other.keypath or "\0"):
 				return True
-			if (self.path or "\0") < (other.path or "\0"):
+			if (self.keypath or "\0") < (other.keypath or "\0"):
 				return False
 		return self.score >= other.score
 
@@ -159,23 +159,23 @@ class ActionRule:
 			return True
 		if self.name > other.name:
 			return False
-		if self.domain < other.domain:
+		if self.sphere < other.sphere:
 			return True
-		if self.domain > other.domain:
+		if self.sphere > other.sphere:
 			return False
 		if (self.priorityElse) < (other.priorityElse):
 			return True
 		if (self.priorityElse) > (other.priorityElse):
 			return False
-		if all(d == UserRoleDomain.Path.value for d in (self.domain, other.domain)):
-			if self.is_parent_path(other.path):
+		if all(d == UserRoleSphere.Path.value for d in (self.sphere, other.sphere)):
+			if self.is_parent_path(other.keypath):
 				return True
-			if other.is_parent_path(self.path):
+			if other.is_parent_path(self.keypath):
 				return False
 		else:
-			if (self.path or "\0") < (other.path or "\0"):
+			if (self.keypath or "\0") < (other.keypath or "\0"):
 				return True
-			if (self.path or "\0") > (other.path or "\0"):
+			if (self.keypath or "\0") > (other.keypath or "\0"):
 				return False
 		return self.score <= other.score
 
@@ -185,9 +185,9 @@ class ActionRule:
 			return False
 		return self.name == other.name\
 			and self.span == other.span\
-			and self.count == other.count\
-			and self.domain == other.domain\
-			and self.path == other.path
+			and self.quota == other.quota\
+			and self.sphere == other.sphere\
+			and self.keypath == other.keypath
 
 
 	def __ne__(self, other: Any) -> bool:
@@ -195,19 +195,19 @@ class ActionRule:
 			return True
 		return self.name != other.name \
 			or self.span != other.span\
-			or self.count != other.count\
-			or self.domain != other.domain\
-			or self.path != other.path
+			or self.quota != other.quota\
+			or self.sphere != other.sphere\
+			or self.keypath != other.keypath
 
 
 	def __hash__(self) -> int:
 		return hash((
 			self.name,
 			self.span,
-			self.count,
+			self.quota,
 			self.priority,
-			self.domain,
-			self.path
+			self.sphere,
+			self.keypath
 		))
 
 
@@ -223,20 +223,18 @@ class ActionRule:
 	def row_to_action_rule(row: RowMapping) -> "ActionRule":
 
 		return ActionRule(
-			name=row["rule_name"],
-			span=row["rule_span"],
-			count=row["rule_count"],
+			name=row["rule>name"],
+			span=row["rule>span"],
+			quota=row["rule>quota"],
 			#if priortity is explict use that
 			#otherwise, prefer station specific rule vs non station specific rule
-			priority=cast(int,row["rule_priority"]) if row["rule_priority"] \
-				else RulePriorityLevel.STATION_PATH.value,
-			domain=row["rule_domain"]
+			priority=cast(int,row["rule>priority"]) if row["rule>priority"] \
+				else RulePriorityLevel.INVITED_USER.value,
+			sphere=row["rule>sphere"]
 		)
 
 
 	def is_parent_path(self, path: Optional[str]) -> bool:
-		if not self.path or not path:
+		if not self.keypath or not path:
 			return False
-		return path.startswith(self.path) and len(path) > len(self.path)
-
-
+		return path.startswith(self.keypath) and len(path) > len(self.keypath)

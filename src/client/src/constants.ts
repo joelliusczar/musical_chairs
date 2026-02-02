@@ -66,7 +66,7 @@ export const DomRoutes = {
 	notFound: () => "/not-found",
 };
 
-export const UserRoleDomain: StringObject = {
+export const UserRoleSphere: StringObject = {
 	SITE: "site",
 	STATION: "station",
 	PATH: "path",
@@ -77,47 +77,47 @@ export const UserRoleDomain: StringObject = {
 
 export const UserRoleDef: StringObject = {
 	ADMIN: "admin",
-	SITE_USER_ASSIGN: `${UserRoleDomain.SITE}:userassign`,
-	SITE_USER_LIST: `${UserRoleDomain.SITE}:userlist`,
-	SITE_PLACEHOLDER: `${UserRoleDomain.SITE}:placeholder`,
+	SITE_USER_ASSIGN: `${UserRoleSphere.SITE}:userassign`,
+	SITE_USER_LIST: `${UserRoleSphere.SITE}:userlist`,
+	SITE_PLACEHOLDER: `${UserRoleSphere.SITE}:placeholder`,
 
-	ALBUM_CREATE: `${UserRoleDomain.ALBUM}:create`,
-	ALBUM_EDIT:  `${UserRoleDomain.ALBUM}:edit`,
+	ALBUM_CREATE: `${UserRoleSphere.ALBUM}:create`,
+	ALBUM_EDIT:  `${UserRoleSphere.ALBUM}:edit`,
 
-	ARTIST_CREATE: `${UserRoleDomain.ARTIST}:create`,
-	ARTIST_EDIT: `${UserRoleDomain.ARTIST}:edit`,
-	ARTIST_VIEW_ALL: `${UserRoleDomain.ARTIST}:view_all`,
+	ARTIST_CREATE: `${UserRoleSphere.ARTIST}:create`,
+	ARTIST_EDIT: `${UserRoleSphere.ARTIST}:edit`,
+	ARTIST_VIEW_ALL: `${UserRoleSphere.ARTIST}:view_all`,
 
-	STATION_VIEW: `${UserRoleDomain.STATION}:view`,
-	STATION_CREATE: `${UserRoleDomain.STATION}:create`,
-	STATION_EDIT: `${UserRoleDomain.STATION}:edit`,
-	STATION_DELETE: `${UserRoleDomain.STATION}:delete`,
-	STATION_REQUEST: `${UserRoleDomain.STATION}:request`,
-	STATION_FLIP: `${UserRoleDomain.STATION}:flip`,
-	STATION_SKIP: `${UserRoleDomain.STATION}:skip`,
-	STATION_ASSIGN: `${UserRoleDomain.STATION}:assign`,
-	STATION_USER_ASSIGN: `${UserRoleDomain.STATION}:userassign`,
+	STATION_VIEW: `${UserRoleSphere.STATION}:view`,
+	STATION_CREATE: `${UserRoleSphere.STATION}:create`,
+	STATION_EDIT: `${UserRoleSphere.STATION}:edit`,
+	STATION_DELETE: `${UserRoleSphere.STATION}:delete`,
+	STATION_REQUEST: `${UserRoleSphere.STATION}:request`,
+	STATION_FLIP: `${UserRoleSphere.STATION}:flip`,
+	STATION_SKIP: `${UserRoleSphere.STATION}:skip`,
+	STATION_ASSIGN: `${UserRoleSphere.STATION}:assign`,
+	STATION_USER_ASSIGN: `${UserRoleSphere.STATION}:userassign`,
 
 	USER_LIST: "user:list",
 	USER_EDIT: "user:edit",
 	USER_IMPERSONATE: "user:impersonate",
 	
-	PATH_LIST: `${UserRoleDomain.PATH}:list`,
-	PATH_EDIT: `${UserRoleDomain.PATH}:edit`,
-	PATH_DELETE: `${UserRoleDomain.PATH}:delete`,
-	PATH_VIEW: `${UserRoleDomain.PATH}:view`,
-	PATH_USER_ASSIGN: `${UserRoleDomain.PATH}:userassign`,
-	PATH_USER_LIST: `${UserRoleDomain.PATH}:userlist`,
-	PATH_DOWNLOAD: `${UserRoleDomain.PATH}:download`,
-	PATH_UPLOAD: `${UserRoleDomain.PATH}:upload`,
+	PATH_LIST: `${UserRoleSphere.PATH}:list`,
+	PATH_EDIT: `${UserRoleSphere.PATH}:edit`,
+	PATH_DELETE: `${UserRoleSphere.PATH}:delete`,
+	PATH_VIEW: `${UserRoleSphere.PATH}:view`,
+	PATH_USER_ASSIGN: `${UserRoleSphere.PATH}:userassign`,
+	PATH_USER_LIST: `${UserRoleSphere.PATH}:userlist`,
+	PATH_DOWNLOAD: `${UserRoleSphere.PATH}:download`,
+	PATH_UPLOAD: `${UserRoleSphere.PATH}:upload`,
 
-	PLAYLIST_ASSIGN: `${UserRoleDomain.PLAYLIST}:assign`,
-	PLAYLIST_CREATE: `${UserRoleDomain.PLAYLIST}:create`,
-	PLAYLIST_DELETE: `${UserRoleDomain.PLAYLIST}:delete`,
-	PLAYLIST_EDIT: `${UserRoleDomain.PLAYLIST}:edit`,
-	PLAYLIST_USER_ASSIGN: `${UserRoleDomain.PLAYLIST}:userassign`,
-	PLAYLIST_USER_LIST: `${UserRoleDomain.PLAYLIST}:userlist`,
-	PLAYLIST_VIEW: `${UserRoleDomain.PLAYLIST}:view`,
+	PLAYLIST_ASSIGN: `${UserRoleSphere.PLAYLIST}:assign`,
+	PLAYLIST_CREATE: `${UserRoleSphere.PLAYLIST}:create`,
+	PLAYLIST_DELETE: `${UserRoleSphere.PLAYLIST}:delete`,
+	PLAYLIST_EDIT: `${UserRoleSphere.PLAYLIST}:edit`,
+	PLAYLIST_USER_ASSIGN: `${UserRoleSphere.PLAYLIST}:userassign`,
+	PLAYLIST_USER_LIST: `${UserRoleSphere.PLAYLIST}:userlist`,
+	PLAYLIST_VIEW: `${UserRoleSphere.PLAYLIST}:view`,
 };
 
 export const RulePriorityLevel = {

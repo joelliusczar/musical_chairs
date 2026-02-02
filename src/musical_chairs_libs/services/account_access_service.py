@@ -112,7 +112,7 @@ class AccountAccessService:
 
 	def __get_roles__(self, userId: int) -> Iterable[ActionRule]:
 		rulesQuery = build_site_rules_query(userId=userId)
-		rows = self.conn.execute(rulesQuery).mappings().fetchall()
+		rows = self.conn.execute(rulesQuery).mappings()
 
 		return (row_to_action_rule(r) for r in rows)
 

@@ -103,8 +103,8 @@ export const PlaylistEdit = (props: PlaylistEditProps) => {
 			</Box>
 			<Box sx={inputField}>
 				<FormTextField
-					name="description"
-					label="Description"
+					name="displayname"
+					label="Display Name"
 					formMethods={formMethods}
 					disabled={!canEditPlaylist()}
 				/>
@@ -210,7 +210,7 @@ export const PlaylistNewModalOpener = (props: PlaylistNewModalOpenerProps) => {
 			const requestObj = Calls.add({
 				data: {
 					name: values.name,
-					description: values.description,
+					description: values.displayname,
 					viewsecuritylevel: values.viewsecuritylevel.id,
 					stations: values.stations,
 				},

@@ -134,26 +134,8 @@ class DbRootConnectionService:
 			raise RuntimeError("only test databases can be removed")
 		if not is_db_name_safe(dbName):
 			raise RuntimeError("Invalid name was used:")
-		# self.revoke_all_roles(dbName, force)
 		self.conn.exec_driver_sql(f"DROP DATABASE IF EXISTS {dbName}")
 
-
-	def revoke_all_roles(self, dbName: str, force: bool=False):
-		if not dbName.startswith("test_") and not force:
-			raise RuntimeError("only test databases can be removed")
-		if not is_db_name_safe(dbName):
-			raise RuntimeError("Invalid name was used:")
-		self.conn.exec_driver_sql(
-			f"REVOKE IF EXISTS ALL PRIVILEGES ON `{dbName}`.* "
-			f"FROM {DbUsers.API_USER.format_user()}"
-		)
-
-	def drop_user(self, user: DbUsers):
-		self.conn.exec_driver_sql(f"DROP USER IF EXISTS {user.format_user()}")
-
-	def drop_all_users(self):
-		for user in DbUsers:
-			self.drop_user(user)
 
 class DbOwnerConnectionService:
 

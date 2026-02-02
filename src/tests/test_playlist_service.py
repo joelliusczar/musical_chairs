@@ -120,7 +120,7 @@ def test_save_playlist(
 	playlistService = fixture_playlist_service
 	testData = PlaylistCreationInfo(
 		name = "brand_new_playlists",
-		description="Brand new playlist"
+		displayname="Brand new playlist"
 	)
 
 	result = playlistService.save_playlist(testData)
@@ -128,11 +128,11 @@ def test_save_playlist(
 	fetched = next(playlistService.get_playlists(result.id))
 	assert fetched.id == result.id
 	assert fetched.name == "brand_new_playlists"
-	assert fetched.description == "Brand new playlist"
+	assert fetched.displayname == "Brand new playlist"
 
 	testData = PlaylistCreationInfo(
 		name = "brand_new_playlist_fake_tag",
-		description="Brand new playlist with bad tag"
+		displayname="Brand new playlist with bad tag"
 	)
 	result = playlistService.save_playlist(testData)
 	assert result and result.id == len(get_initial_playlists()) + 2
@@ -141,7 +141,7 @@ def test_save_playlist(
 
 	testData = PlaylistCreationInfo(
 		name = "papa_playlist_update",
-		description="Come to papa test"
+		displayname="Come to papa test"
 	)
 	bravoUser = AccountInfo(
 		id = bravo_user_id,
@@ -153,19 +153,19 @@ def test_save_playlist(
 		assert result and result.id == 2
 	fetched = next(playlistService.get_playlists(result.id))
 	assert fetched and fetched.name == "papa_playlist_update"
-	assert fetched and fetched.description == "Come to papa test"
+	assert fetched and fetched.displayname == "Come to papa test"
 
 
 	testData = PlaylistCreationInfo(
 		name = "oscar_playlists",
-		description="Oscar the grouch"
+		displayname="Oscar the grouch"
 	)
 	with playlistService.current_user_provider.impersonate(fixture_primary_user):
 		result = playlistService.save_playlist(testData, 1)
 		assert result and result.id == 1
 	fetched = next(playlistService.get_playlists(result.id))
 	assert fetched and fetched.name == "oscar_playlists"
-	assert fetched and fetched.description == "Oscar the grouch"
+	assert fetched and fetched.displayname == "Oscar the grouch"
 
 
 def test_get_playlists_with_view_security(
@@ -529,4 +529,3 @@ def test_get_playlist_user_list_playlist_no_users(
 	assert rules[3].name == UserRoleDef.PLAYLIST_USER_ASSIGN.value
 	assert rules[4].name == UserRoleDef.PLAYLIST_USER_LIST.value
 	assert rules[5].name == UserRoleDef.PLAYLIST_VIEW.value
-

@@ -24,7 +24,7 @@ const initialValues = {
 	days: 0,
 	hours: 0,
 	minutes: 0,
-	count: 0,
+	quota: 0,
 };
 
 type RoleEntryProps = {
@@ -48,7 +48,7 @@ export const RoleEntry = (props: RoleEntryProps) => {
 			+ values.days * 60 * 60 * 24;
 		save({
 			name: values.role.id,
-			count: values.count,
+			quota: values.quota,
 			span: noLimit ? 0 : span,
 		});
 	});
@@ -89,7 +89,7 @@ export const RoleEntry = (props: RoleEntryProps) => {
 			</Box>
 			<FormTextField
 				className="small-number-input"
-				name="count"
+				name="quota"
 				label="Count"
 				type="number"
 				min="0"

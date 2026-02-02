@@ -1,5 +1,5 @@
 import { IdValue, Named, NamedIdItem } from "./generic_types";
-import { PathsActionRule, ActionRule, User, UserBase } from "./user_types";
+import { ActionRule, User, UserBase } from "./user_types";
 import { StationTableData, StationInfo } from "./station_types";
 import { VoidStore } from "../Reducers/reducerStores";
 import {
@@ -41,9 +41,9 @@ export interface NowPlayingInfo {
 export interface SongListDisplayItem extends NamedIdItem {
 	album: string | null
 	artist: string | null
-	path: string
+	treepath: string
 	track: number | null
-	disc: number | null
+	discnum: number | null
 	queuedtimestamp: number
 	playedtimestamp: number | null
 	rules: ActionRule[]
@@ -83,18 +83,18 @@ export class InitialQueueState extends VoidStore {
 				album: "",
 				artist: "",
 				track: null,
-				disc: null,
+				discnum: null,
 				queuedtimestamp: 0,
 				playedtimestamp: null,
 				rules: [],
-				path: "",
+				treepath: "",
 			},
 		};
 	}
 }
 
 export interface DirectoryInfoNodeInfo {
-	path: string,
+	treepath: string,
 	nodeId: string
 };
 
@@ -103,7 +103,7 @@ export interface BreadcrumbNodeInfo extends DirectoryInfoNodeInfo {
 };
 
 export interface DirectoryTransferSource {
-	path: string,
+	treepath: string,
 	prefix: string
 };
 
@@ -112,11 +112,11 @@ export interface DirectoryTransfer extends DirectoryTransferSource {
 };
 
 export interface SongTreeNodeInfo {
-	path: string
+	treepath: string
 	totalChildCount: number
 	id: number | null
 	name: string | null
-	rules: PathsActionRule[]
+	rules: ActionRule[]
 }
 
 export enum TouchTypes {
@@ -136,7 +136,7 @@ export interface TrackListing {
 }
 
 export interface SongInfoBase extends Named {
-	path: string
+	treepath: string
 	artists: ArtistInfo[]
 	primaryartist: ArtistInfo
 	album: AlbumInfo
@@ -144,7 +144,7 @@ export interface SongInfoBase extends Named {
 	genre: string
 	track: string
 	tracknum: number
-	disc: number | null
+	discnum: number | null
 }
 
 

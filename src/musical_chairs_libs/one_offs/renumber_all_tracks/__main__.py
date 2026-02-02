@@ -78,7 +78,7 @@ for album in (AlbumInfo(**d) for d in data["items"]):
 for album in flaggedAlbums:
 	discMap: dict[str, list[SongEditInfo]] = {}
 	for song in album[1]:
-		discSegment = song.path.split("/")[-2]
+		discSegment = song.treepath.split("/")[-2]
 		discList = discMap.get(discSegment, [])
 		discList.append(song)
 		discMap[discSegment] = discList
@@ -86,13 +86,13 @@ for album in flaggedAlbums:
 	discCount = len(discMap)
 	for i, discSegment in enumerate(sorted(discMap.keys())):
 		songs = discMap[discSegment]
-		songs = sorted(songs, key=lambda s: s.track or s.path.split("/")[-1])
+		songs = sorted(songs, key=lambda s: s.track or s.treepath.split("/")[-1])
 		print(f"{album[0].name} id: {album[0].id}")
 		for j, song in enumerate(songs):
-			song.disc = i + 1
+			song.discnum = i + 1
 			if song.tracknum:
 				continue
-			print(song.path.split("/")[-1])
+			print(song.treepath.split("/")[-1])
 			print(song.track)
 			try:
 				if song.track is None:
@@ -114,7 +114,7 @@ for album in flaggedAlbums:
 					s1 = int(match.group(1))
 					song.tracknum = s1
 					discCount += 1
-					song.disc = discCount
+					song.discnum = discCount
 				else:
 					raise
 				

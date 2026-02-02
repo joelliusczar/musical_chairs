@@ -1,4 +1,4 @@
-from .account_dtos import OwnerType
+from .account_dtos import OwnedEntity
 from .artist_dtos import ArtistInfo
 from .generic_dtos import (
 	FrozenNamed,
@@ -23,8 +23,7 @@ class AlbumCreationInfo(FrozenNamed):
 		list[StationInfo], Field(default_factory=list)
 	)
 
-class AlbumInfo(FrozenNamedIdItem, RuledEntity):
-	owner: OwnerType
+class AlbumInfo(FrozenNamedIdItem, RuledEntity, OwnedEntity):
 	year: Optional[int]=None
 	albumartist: Optional[ArtistInfo]=None
 	versionnote: Optional[str]=""

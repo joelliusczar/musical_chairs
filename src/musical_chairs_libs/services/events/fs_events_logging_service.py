@@ -47,8 +47,8 @@ class FSEventsLoggingService(EventsLogger,FSEventsQueryService):
 	def add_event(
 		self,
 		action: str,
-		domain: str,
-		path: Optional[str] = None,
+		sphere: str,
+		keypath: Optional[str] = None,
 		extraInfo: str = ""
 	) -> EventRecord:
 		userId = self.user_provider.current_user().id
@@ -61,8 +61,8 @@ class FSEventsLoggingService(EventsLogger,FSEventsQueryService):
 				action,
 				visitorId,
 				timestamp,
-				path,
-				domain,
+				keypath,
+				sphere,
 				url,
 				extraInfo,
 			)

@@ -11,7 +11,7 @@ import {
 	Calls,
 } from "../../API_Calls/songInfoCalls";
 import { formatError } from "../../Helpers/error_formatter";
-import { UserRoleDef, UserRoleDomain } from "../../constants";
+import { UserRoleDef, UserRoleSphere } from "../../constants";
 import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
@@ -29,7 +29,7 @@ import { urlSafeBase64ToUnicode } from "../../Helpers/string_helpers";
 
 
 const pathRoles = Object.keys(UserRoleDef)
-	.map(k => UserRoleDef[k]).filter(v => v.startsWith(UserRoleDomain.PATH))
+	.map(k => UserRoleDef[k]).filter(v => v.startsWith(UserRoleSphere.PATH))
 	.map(v => ({
 		id: v,
 		name: v,
@@ -84,7 +84,7 @@ export const PathUserRoleAssignmentTable = () => {
 		const rule = {
 			name: UserRoleDef.PATH_VIEW,
 			span: 0,
-			count: 0,
+			quota: 0,
 			priority: null,
 		};
 		const requestObj = Calls.addPathUserRule({

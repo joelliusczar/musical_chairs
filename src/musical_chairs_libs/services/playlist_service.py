@@ -1,5 +1,6 @@
 
 from typing import (
+	Any,
 	Iterator,
 	Optional,
 	Union,
@@ -9,6 +10,9 @@ from typing import (
 	Collection
 )
 from musical_chairs_libs.dtos_and_utilities import (
+	build_base_rules_query,
+	generate_owned_and_rules_from_rows,
+	get_playlist_owner_roles,
 	SavedNameString,
 	get_datetime,
 	PlaylistInfo,
@@ -21,25 +25,22 @@ from musical_chairs_libs.dtos_and_utilities import (
 	OwnerType,
 	normalize_opening_slash,
 	RulePriorityLevel,
-	get_playlist_owner_roles,
-	UserRoleDef,
-	build_placeholder_select,
 	SimpleQueryParameters,
 	StationPlaylistTuple,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
-	UserRoleDomain
+	UserRoleSphere
 )
 from .current_user_provider import CurrentUserProvider
 from .path_rule_service import PathRuleService
 from .stations_playlists_service import StationsPlaylistsService
 from sqlalchemy import (
 	select,
-	Select,
 	insert,
 	update,
 	Integer,
 	func,
+	Label,
 	Float,
 	delete,
 	literal as dbLiteral,
@@ -48,11 +49,9 @@ from sqlalchemy import (
 	or_,
 	true,
 	false,
-	union_all,
 )
 from sqlalchemy.sql.expression import (
-	case,
-	CompoundSelect,
+	CTE,
 	Update,
 	cast as dbCast,
 )
@@ -61,71 +60,16 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.schema import Column
 from musical_chairs_libs.tables import (
-	playlists as playlists_tbl, pl_description, pl_viewSecurityLevel,
-	pl_name, pl_pk, pl_ownerFk, plup_count, plup_span, plup_priority,
+	playlists as playlists_tbl, pl_displayname, pl_viewSecurityLevel,
+	pl_name, pl_pk, pl_ownerFk,
 	ar_name,
 	users as user_tbl, u_pk, u_username, u_displayName, 
-	ur_userFk, ur_role, ur_count, ur_span, ur_priority,
 	sg_pk, sg_name, sg_track, sg_path, sg_internalpath,
 	sg_deletedTimstamp,
 	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk, 
 	song_artist as song_artist_tbl, sgar_songFk, sgar_isPrimaryArtist,
-	plup_userFk, plup_playlistFk, plup_role
 )
 
-__playlist_permissions_query__ = select(
-	plup_userFk.label("rule_userfk"),
-	plup_role.label("rule_name"),
-	plup_count.label("rule_count"),
-	plup_span.label("rule_span"),
-	coalesce[Integer](
-		plup_priority,
-		RulePriorityLevel.STATION_PATH.value
-	).label("rule_priority"),
-	dbLiteral(UserRoleDomain.Playlist.value).label("rule_domain"),
-	plup_playlistFk.label("rule_playlistfk")
-)
-
-def build_playlist_rules_query(
-	userId: Optional[int]=None
-) -> CompoundSelect[Tuple[int, str, float, float, int, str]]:
-	user_rules_query = select(
-		ur_userFk.label("rule_userfk"),
-		ur_role.label("rule_name"),
-		ur_count.label("rule_count"),
-		ur_span.label("rule_span"),
-		coalesce[Integer](
-			ur_priority,
-			case(
-				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
-				else_=RulePriorityLevel.SITE.value
-			)
-		).label("rule_priority"),
-		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
-		dbLiteral(None).label("rule_playlistfk")
-	).where(or_(
-			ur_role.like(f"{UserRoleDomain.Playlist.value}:%"),
-			ur_role == UserRoleDef.ADMIN.value
-		),
-	)
-	domain_permissions_query = __playlist_permissions_query__
-	placeholder_select = build_placeholder_select(
-		UserRoleDef.PLAYLIST_VIEW.value
-	).add_columns(
-		dbLiteral(None).label("rule_playlistfk")
-	)
-
-	if userId is not None:
-		domain_permissions_query = \
-			domain_permissions_query.where(plup_userFk == userId)
-		user_rules_query = user_rules_query.where(ur_userFk == userId)
-		
-	query = union_all(
-		placeholder_select,
-		domain_permissions_query,
-		user_rules_query,
-	)
-	return query
 
 class PlaylistService:
 
@@ -146,75 +90,77 @@ class PlaylistService:
 		self.stations_playlists_service = stationsPlaylistsService
 		self.current_user_provider = currentUserProvider
 
+	def base_select_columns(self) -> list[Label[Any]]:
+		return [
+			pl_pk.label("id"),
+			pl_name.label("name"),
+			pl_displayname.label("displayname"),
+			pl_ownerFk.label("owner>id"),
+			u_username.label("owner>username"),
+			u_displayName.label("owner>displayname"),
+			pl_viewSecurityLevel.label("viewsecuritylevel"),
+		]
 
-	def __attach_user_joins__(
+	def playlist_base_query(
 		self,
-		query: Select[
-			Tuple[
-				Integer,
-				Union[String, None],
-				Union[String, None],
-				String,
-				Integer,
-				Union[String, None],
-				# Union[String, None],
-				Integer
-			]
-		],
-		scopes: Optional[Collection[str]]=None
-	) -> Select[
-			Tuple[
-				Integer,
-				Union[String, None],
-				Union[String, None],
-				String,
-				Integer,
-				Union[String, None],
-				Integer,
-			]
-		]:
+		ownerId: Optional[int]=None,
+		playlistKeys: Union[int, str, Iterable[int], None]=None,
+	):
+		query = playlists_tbl.outerjoin(user_tbl, pl_ownerFk == u_pk).select()
+		if type(ownerId) is int:
+			query = query.where(pl_ownerFk == ownerId)
+		if type(playlistKeys) == int:
+			query = query.where(pl_pk == playlistKeys)
+		elif isinstance(playlistKeys, Iterable) and not isinstance(playlistKeys, str):
+			query = query.where(pl_pk.in_(playlistKeys))
+		elif type(playlistKeys) is str and not ownerId:
+			raise ValueError("user must be provided when using station name")
+		elif type(playlistKeys) is str:
+			lPlaylistKey = playlistKeys.replace("_","\\_").replace("%","\\%")
+			query = query\
+				.where(pl_name.like(f"%{lPlaylistKey}%"))
+		
+		return query
+
+
+	def __build_user_rule_filters__(
+		self,
+		rulesSubquery: CTE,
+		scopes: Optional[Collection[str]]=None,
+	):
 		userId = self.current_user_provider.optional_user_id()
-		rulesQuery = build_playlist_rules_query(userId)
-		rulesSubquery = rulesQuery.cte(name="rulesQuery")
 		canViewQuery= select(
-			rulesSubquery.c.rule_playlistfk, #pyright: ignore [reportUnknownMemberType]
-			rulesSubquery.c.rule_priority, #pyright: ignore [reportUnknownMemberType]
-			rulesSubquery.c.rule_domain #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>keypath"], #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>priority"], #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>sphere"] #pyright: ignore [reportUnknownMemberType]
 		).where(
-			rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
+			rulesSubquery.c["rule>name"].in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
 		).cte(name="canviewquery")
 
 		topSiteRule = select(
 			coalesce[int](
-				func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
+				func.max(canViewQuery.c["rule>priority"]), #pyright: ignore [reportUnknownMemberType]
 				RulePriorityLevel.NONE.value
 			).label("max")
 		).where(
-			canViewQuery.c.rule_domain == UserRoleDomain.Site.value
+			canViewQuery.c["rule>sphere"] == UserRoleSphere.Site.value
 		).cte("topsiterule")
 
 		ownerScopeSet = set(get_playlist_owner_roles(scopes))
 
-		query = query.join(
-			rulesSubquery,
-			or_(
-				rulesSubquery.c.rule_playlistfk == pl_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-				rulesSubquery.c.rule_playlistfk == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-				rulesSubquery.c.rule_playlistfk.is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
-			)
-		).where(
+		filters = [
 			or_(
 				coalesce(
 					pl_viewSecurityLevel,
-					RulePriorityLevel.INVITED_USER.value
+					RulePriorityLevel.REQUIRES_INVITE.value
 				) < select(coalesce[int](
-							func.max(canViewQuery.c.rule_priority), #pyright: ignore [reportUnknownMemberType]
+							func.max(canViewQuery.c["rule>priority"]), #pyright: ignore [reportUnknownMemberType]
 							RulePriorityLevel.NONE.value
-						)).where(pl_pk == canViewQuery.c.rule_playlistfk).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
+						)).where(pl_pk == canViewQuery.c["rule>keypath"]).scalar_subquery(), #pyright: ignore [reportUnknownMemberType]
 				and_(
-					dbLiteral(UserRoleDomain.Site.value)
+					dbLiteral(UserRoleSphere.Site.value)
 						.in_( #pyright: ignore [reportUnknownMemberType]
-							select(canViewQuery.c.rule_domain) #pyright: ignore [reportUnknownMemberType]
+							select(canViewQuery.c["rule>sphere"]) #pyright: ignore [reportUnknownMemberType]
 						),
 					coalesce(
 						pl_viewSecurityLevel,
@@ -233,22 +179,61 @@ class PlaylistService:
 					) < RulePriorityLevel.OWNER.value
 				)
 			),
-		).where(
-				or_(
-					rulesSubquery.c.rule_name.in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
-					(pl_ownerFk == userId) if scopes and ownerScopeSet else false()
-				)
+			or_(
+				rulesSubquery.c["rule>name"].in_(scopes) if scopes else true(), #pyright: ignore [reportUnknownMemberType]
+				(pl_ownerFk == userId) if scopes and ownerScopeSet else false()
 			)
+		]
 
-		query = query.add_columns(
-			cast(Column[String], rulesSubquery.c.rule_name),
-			cast(Column[Float[float]], rulesSubquery.c.rule_count),
-			cast(Column[Float[float]], rulesSubquery.c.rule_span),
-			cast(Column[Integer], rulesSubquery.c.rule_priority),
-			cast(Column[String], rulesSubquery.c.rule_domain)
-		)
+		return filters
+
+
+	def get_secured_playlist_query(
+		self,
+		playlistKeys: Union[int, str, Iterable[int], None]=None,
+		ownerId: Union[int, None]=None,
+		scopes: Optional[Collection[str]]=None
+	):
+		query = self.playlist_base_query(ownerId=ownerId, playlistKeys=playlistKeys)
+		user = self.current_user_provider.current_user()
+		rulesSubquery = build_base_rules_query(
+			UserRoleSphere.Playlist,
+			user.id
+		).cte(name="rulesQuery")
+		filters = self.__build_user_rule_filters__(rulesSubquery, scopes)
+		query = query.join(rulesSubquery, or_(
+			rulesSubquery.c["rule>keypath"] == pl_pk, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c["rule>keypath"] == -1, #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+			rulesSubquery.c["rule>keypath"].is_(None) #pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]
+		))\
+		.where(*filters)\
+		.order_by(pl_pk)\
+			.with_only_columns(
+				pl_pk.label("id"),
+				pl_name.label("name"),
+				pl_displayname.label("displayname"),
+				pl_ownerFk.label("owner>id"),
+				u_username.label("owner>username"),
+				u_displayName.label("owner>displayname"),
+				pl_viewSecurityLevel.label("viewsecuritylevel"),
+				cast(Column[String], rulesSubquery.c["rule>name"]).label("rule>name"),
+				cast(
+					Column[Float[float]],
+					rulesSubquery.c["rule>quota"]
+				).label("rule>quota"),
+				cast(
+					Column[Float[float]],
+					rulesSubquery.c["rule>span"]
+				).label("rule>span"),
+				cast(
+					Column[Integer], rulesSubquery.c["rule>priority"]
+				).label("rule>priority"),
+				cast(
+					Column[String], rulesSubquery.c["rule>sphere"]
+				 ).label("rule>sphere")
+			)
+		
 		return query
-
 
 	def get_playlists(
 		self,
@@ -258,48 +243,37 @@ class PlaylistService:
 		page: int = 0,
 		pageSize: Optional[int]=None,
 	) -> Iterator[PlaylistInfo]:
-		query = select(
-			pl_pk,
-			pl_name,
-			pl_description,
-			u_username,
-			pl_ownerFk,
-			u_displayName,
-			pl_viewSecurityLevel
-		).select_from(playlists_tbl)\
-		.join(user_tbl, pl_ownerFk == u_pk, isouter=True)
+		userId = self.current_user_provider.optional_user_id()
+		if userId:
+			query = self.get_secured_playlist_query(
+				ownerId=ownerId,
+				playlistKeys=playlistKeys,
+				scopes=scopes
+			)
 
-		user = self.current_user_provider.current_user(optional=True)
-		if user:
-			query = self.__attach_user_joins__(query, scopes)
+			records = self.conn.execute(query).mappings().fetchall()
+
+			yield from generate_owned_and_rules_from_rows(
+				records,
+				PlaylistInfo.row_to_playlist,
+				get_playlist_owner_roles,
+				scopes,
+				userId,
+			)
 		else:
 			if scopes:
 				return
-			query = query.where(
+			query = self.playlist_base_query(
+				ownerId=ownerId,
+				playlistKeys=playlistKeys,
+			)\
+			.where(
 				coalesce(pl_viewSecurityLevel, 0) == 0
-			)
-		if type(ownerId) is int:
-			query = query.where(pl_ownerFk == ownerId)
-		if type(playlistKeys) == int:
-			query = query.where(pl_pk == playlistKeys)
-		elif isinstance(playlistKeys, Iterable) and not isinstance(playlistKeys, str):
-			query = query.where(pl_pk.in_(playlistKeys))
-		elif type(playlistKeys) is str:
-			lPlaylistKey = playlistKeys.replace("_","\\_").replace("%","\\%")
-			query = query\
-				.where(pl_name.like(f"%{lPlaylistKey}%"))
-		query = query.order_by(pl_pk)
-		offset = page * pageSize if pageSize else 0
-		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query).mappings()
+			)\
+			.with_only_columns(*self.base_select_columns())
 
-		if user:
-			yield from PlaylistInfo.generate_playlist_and_rules_from_rows(
-				records,
-				user.id,
-				scopes
-			)
-		else:
+			records = self.conn.execute(query).mappings().fetchall()
+
 			for row in records:
 				yield PlaylistInfo.row_to_playlist(row)
 
@@ -385,7 +359,7 @@ class PlaylistService:
 		if pathRuleTree:
 			for song in songs:
 				song.rules = list(pathRuleTree.values_flat(
-						normalize_opening_slash(song.path))
+						normalize_opening_slash(song.treepath))
 					)
 
 		return SongsPlaylistInfo(
@@ -407,7 +381,7 @@ class PlaylistService:
 		savedName = SavedNameString(playlist.name)
 		stmt = upsert(playlists_tbl).values(
 			name = str(savedName),
-			description = playlist.description,
+			displayname = playlist.displayname,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
@@ -432,7 +406,7 @@ class PlaylistService:
 				id=affectedPk,
 				name=str(savedName),
 				owner=owner,
-				description=playlist.description
+				displayname=playlist.displayname
 			)
 		except IntegrityError:
 			raise AlreadyUsedError.build_error(

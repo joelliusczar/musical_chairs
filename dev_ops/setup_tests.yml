@@ -49,11 +49,10 @@
     - name: Setup App Specific Db stuff.
       command:
         argv:
-          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
-          - -m
-          - '{{app_details["engine"]}}.one_offs.db_setup'
-          - '{{app_details["db"]}}'
-        creates: '/tmp/{{result.stdout}}'
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/alembic'
+          - upgrade
+          - head
+      register: migrate_results
       environment:
         DSF_APP_ROOT: '{{app_trunk}}'
         DSF_DB_PASS_API: '{{keys["db_pass_api"]}}'

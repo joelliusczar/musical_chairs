@@ -41,7 +41,7 @@
           - upgrade
           - head
       register: migrate_results
-      changed_whem: '"Running upgrade" in migrate_results.stdout'
+      changed_when: '"Running upgrade" in migrate_results.stdout'
       environment:
         DSF_APP_ROOT: '{{app_trunk}}'
         DSF_DB_PASS_API: '{{keys["db_pass_api"]}}'

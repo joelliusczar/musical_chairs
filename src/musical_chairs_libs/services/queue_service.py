@@ -33,7 +33,6 @@ from sqlalchemy.sql.functions import coalesce
 from .station_service import StationService
 from .song_info_service import SongInfoService
 from .path_rule_service import PathRuleService
-from .template_service import TemplateService
 from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.tables import (
 	songs,
@@ -61,7 +60,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	logging,
 	SongListDisplayItem,
 	StationInfo,
-	UserRoleDef,
 	LastPlayedItem,
 	OwnerInfo,
 	normalize_opening_slash,
@@ -71,7 +69,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationCreationInfo,
 	StreamQueuedItem,
 )
-from musical_chairs_libs.file_reference import SqlScripts
 from musical_chairs_libs.protocols import (
 	SongPopper,
 	RadioPusher,
@@ -645,11 +642,20 @@ class QueueService(SongPopper, RadioPusher):
 		stationid: int,
 		beforeTimestamp: float
 	) -> int:
-		script = TemplateService.load_sql_script_content(
-			SqlScripts.TRIM_STATION_QUEUE_HISTORY
-		)
-		count = self.conn.exec_driver_sql(script, {
-			"action": UserRoleDef.STATION_REQUEST.value,
+
+		count = self.conn.exec_driver_sql(
+"""
+CREATE OR REPLACE TEMPORARY TABLE `historyids` (
+	`pk` int(11), KEY `pk`(`pk`) USING HASH
+) ENGINE=MEMORY
+SELECT Q.`pk` FROM `stationlogs` Q
+WHERE Q.`playedtimestamp` < %(timestamp)s
+AND Q.`stationfk` = %(stationid)s;
+
+DELETE FROM `stationlogs` WHERE `pk` IN (SELECT `pk` FROM `historyids`);
+
+"""
+			, {
 			"stationid": stationid,
 			"timestamp": beforeTimestamp
 		}).rowcount

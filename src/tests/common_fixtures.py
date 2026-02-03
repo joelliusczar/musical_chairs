@@ -46,6 +46,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
 	ConfigAcessors,
+	DbConnectionProvider,
 	get_path_owner_roles,
 	normalize_opening_slash
 )
@@ -83,7 +84,8 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 	#some tests were failing because db name was too long
 	testId =  hashlib.md5(request.node.name.encode("utf-8")).hexdigest()
 	dbName=f"test_{testId}_musical_chairs_db"
-	setup_database(dbName)
+	with ConfigAcessors.override_configs({"db_name": dbName}):
+		setup_database(dbName)
 	try:
 		yield dbName
 	finally:
@@ -131,9 +133,8 @@ def fixture_conn_cardboarddb(
 		if not requestPopulateFnName is None else "fixture_db_populate_factory"
 	populateFn = request.getfixturevalue(populateFnName)
 	populateFn()
-	envManager = ConfigAcessors()
 	dbName=fixture_setup_db
-	conn = envManager.get_configured_api_connection(dbName, echo=echo)
+	conn = DbConnectionProvider.get_configured_api_connection(dbName, echo=echo)
 	try:
 		yield conn
 	finally:

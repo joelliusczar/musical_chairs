@@ -1,10 +1,11 @@
-import os
 from logging.config import fileConfig
 
 
 from alembic import context
-
-from musical_chairs_libs.dtos_and_utilities import DbConnectionProvider
+from musical_chairs_libs.dtos_and_utilities import ConfigAcessors
+from musical_chairs_libs.services import (
+    DbOwnerConnectionService,
+)
 
 
 # this is the Alembic Config object, which provides
@@ -41,16 +42,17 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = os.environ["DSF_DB_FILE"]
-    context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-    )
+    with DbOwnerConnectionService(ConfigAcessors.db_name()) as ownerConnService:
+       with ownerConnService.get_owner_connection() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            literal_binds=True,
+            dialect_opts={"paramstyle": "named"},
+        )
 
-    with context.begin_transaction():
-        context.run_migrations()
+        with context.begin_transaction():
+            context.run_migrations()
 
 
 def run_migrations_online() -> None:
@@ -60,15 +62,18 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = DbConnectionProvider.sqlite_connection().engine
 
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+    with DbOwnerConnectionService(ConfigAcessors.db_name()) as ownerConnService:
+        connectable = ownerConnService.get_owner_connection().engine
 
-        with context.begin_transaction():
-            context.run_migrations()
+        with connectable.connect() as connection:
+            context.configure(
+                connection=connection,
+                target_metadata=target_metadata
+            )
+
+            with context.begin_transaction():
+                context.run_migrations()
 
 
 if context.is_offline_mode():

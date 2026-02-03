@@ -50,20 +50,6 @@ setup_schedules() (
 )
 
 
-print_db_hash() (
-	cd ../src/musical_chairs_libs/one_offs
-	python_exe='../../../test_trash/musical_chairs/mcr_env/bin/python'
-	"$python_exe" -m db_print --hash
-)
-
-
-regen_reference_file() (
-	cd ../src/musical_chairs_libs/one_offs
-	python_exe='../../../test_trash/musical_chairs/mcr_env/bin/python'
-	"$python_exe" -m regen_file_reference_file
-)
-
-
 replace_local_db() (
 	ansible-playbook replace_local_db.yml -i ~/.ansible/inventories/testing --ask-vault-pass -K
 )
@@ -75,6 +61,7 @@ print_db_schema() (
 	"$python_exe" -m db_print
 )
 
+
 pyenv() {
 	cd ..
 	export PATH="$(pwd)/test_trash/musical_chairs/mcr_env/bin/:${PATH}"
@@ -83,14 +70,26 @@ pyenv() {
 
 
 add_migration() (
-	export DSF_DB_FILE="$MCR_DB_FILE"
-	alembic_exe='../test_trash/musical_chairs/mcr_env/bin/alembic' \
-		revision --autogenerate -m "$1"
+	cd ..
+	alembic_exe='test_trash/musical_chairs/mcr_env/bin/alembic'
+	"$alembic_exe" revision --autogenerate -m "$1"
+)
+
+blank_migration() (
+	cd ..
+	alembic_exe='test_trash/musical_chairs/mcr_env/bin/alembic'
+	"$alembic_exe" revision -m "$1"
+)
+
+apply_migrations() (
+	cd ..
+	alembic_exe='test_trash/musical_chairs/mcr_env/bin/alembic'
+	"$alembic_exe" upgrade head
 )
 
 
 if [ $isSourced = 0 ]; then
 	command="$1"
 	shift
-	"$command"
+	"$command" "$@"
 fi

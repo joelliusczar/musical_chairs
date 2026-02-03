@@ -19,6 +19,7 @@
   "terminal.integrated.env.linux": {
     "PYTHONPATH": "${workspaceFolder}/src: ${workspaceFolder}/src/api",
     "MCR_TEST_ROOT": "${workspaceFolder}/test_trash",
+    "DSF_DATABASE_NAME": "musical_chairs_db",
     "DSF_DB_PASS_SETUP": "setuppass",
     "DSF_DB_PASS_OWNER": "ownerpass",
     "DSF_TEMPLATES_DEST": "./test_trash/musical_chairs/files",

@@ -4,11 +4,9 @@ from typing import (
 	Iterable,
 	Iterator,
 	Optional,
-	cast,
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
-	SearchNameString,
 	SavedNameString,
 	AccountCreationInfo,
 	get_datetime,
@@ -77,7 +75,6 @@ class AccountManagementService:
 		hashed = hashpw(accountInfo.password.encode())
 		stmt = insert(users).values(
 			username=str(SavedNameString(accountInfo.username)),
-			flatusername=str(SearchNameString(accountInfo.username)),
 			displayname=str(SavedNameString(accountInfo.displayname)),
 			hashedpw=hashed,
 			email=cleanedEmail.email,
@@ -253,7 +250,7 @@ class AccountManagementService:
 		row = self.conn.execute(query).mappings().fetchone()
 		if not row:
 			return None
-		roles = [*self.__get_roles__(cast(int,row["id"]))]
+		roles = [*self.__get_roles__(int(row["id"]))]
 		return AccountInfo(
 			**row, #pyright: ignore [reportGeneralTypeIssues]
 			roles=roles,

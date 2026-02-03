@@ -39,7 +39,6 @@
       setup_pass: '{{keys["db_pass_setup"]}}'
       socket_path: '{{dev_files["mysql_socket"]}}'
       sql_scripts_src: ../sql_scripts
-      reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
       env_name: '{{app_details["prefix"]|lower}}_env'
       engine_src: '{{src_dirs["engine"]}}/'
     - role: tests-setup

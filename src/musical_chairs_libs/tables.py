@@ -144,7 +144,6 @@ songs = Table("songs", metadata,
 	Column("lyrics", Text, nullable=True),
 	Column("duration", Float[float], nullable=True),
 	Column("samplerate", Float[float], nullable=True),
-	Column("isdirectoryplaceholder", Boolean, nullable=True),
 	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
 		nullable=True),
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
@@ -171,7 +170,6 @@ sg_notes = cast(Column[Optional[String]], sg.notes)
 sg_lyrics = cast(Column[Optional[String]], sg.lyrics)
 sg_duration = cast(Column[Optional[Float[float]]], sg.duration)
 sg_sampleRate = cast(Column[Optional[Float[float]]], sg.samplerate)
-sg_isdirplacholhder = cast(Column[Boolean], sg.isdirectoryplaceholder)
 sg_deletedTimstamp = cast(Column[Boolean], sg.deletedtimestamp)
 
 Index("idx_uniquesongpath", sg_path, unique=True)
@@ -322,7 +320,12 @@ Index("idx_stationsplaylists", stpl_playlistFk, stpl_stationFk, unique=True)
 
 
 userRoles = Table("userroles", metadata,
-	Column("userfk", Integer, ForeignKey("users.pk"), nullable=False),
+	Column(
+		"userfk",
+		Integer,
+		ForeignKey("users.pk", ondelete="CASCADE"),
+		nullable=False
+	),
 	Column("role", String(50)),
 	Column("span", Float[float], nullable=False),
 	Column("quota", Float[float], nullable=False),
@@ -338,10 +341,10 @@ ur_quota = cast(Column[Float[float]], userRoles.c.quota)
 ur_priority = cast(Column[Integer], userRoles.c.priority)
 ur_sphere = cast(Column[String], userRoles.c.sphere)
 ur_keypath = cast(Column[String], userRoles.c.keypath)
-Index("idx_userroles", ur_userFk, ur_sphere, ur_role, ur_keypath, unique=True)
+Index("idx_userroles2", ur_userFk, ur_sphere, ur_role)
 
 
-user_agents = Table("vistors",metadata,
+user_agents = Table("visitors",metadata,
 	Column("pk", Integer, primary_key=True),
 	Column("ipv4address", String(24), nullable=True),
 	Column("ipv6address", String(50), nullable=True),
@@ -389,21 +392,6 @@ q_timestamp = cast(Column[Optional[Double[float]]],q.playedtimestamp)
 q_queuedTimestamp = cast(Column[Double[float]], q.queuedtimestamp)
 
 Index("idx_stationlogsstations", q_stationFk)
-
-
-#moving these to their own script
-# Index(
-# 	"idx_pathuserpermissions_userfk",
-# 	pup_userFk
-# )
-
-# Index(
-# 	"idx_pathpermissions",
-# 	pup_userFk,
-# 	pup_path,
-# 	pup_role,
-# 	unique=True
-# )
 
 
 last_played = Table('lastplayed', metadata,

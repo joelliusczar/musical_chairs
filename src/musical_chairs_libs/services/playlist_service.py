@@ -237,11 +237,11 @@ class PlaylistService:
 
 	def get_playlists(
 		self,
-		playlistKeys: Union[int, str, Iterable[int], None]=None,
-		ownerId: Union[int, None]=None,
-		scopes: Optional[Collection[str]]=None,
+		playlistKeys: int | str | Iterable[int] | None=None,
+		ownerId: int | None=None,
+		scopes: Collection[str] | None=None,
 		page: int = 0,
-		pageSize: Optional[int]=None,
+		pageSize: int | None=None,
 	) -> Iterator[PlaylistInfo]:
 		userId = self.current_user_provider.optional_user_id()
 		if userId:
@@ -296,7 +296,7 @@ class PlaylistService:
 	def get_playlists_page(
 		self,
 		queryParams: SimpleQueryParameters,
-		playlist: str = "",
+		playlist: str | None = None,
 		owner: Optional[OwnerType]=None
 	) -> Tuple[list[PlaylistInfo], int]:
 		result = list(self.get_playlists(

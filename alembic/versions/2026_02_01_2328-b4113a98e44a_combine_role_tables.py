@@ -16,7 +16,7 @@ from musical_chairs_libs.tables import userRoles
 revision: str = 'b4113a98e44a'
 down_revision: str | Sequence[str] | None = 'f0f6aa97edac'
 branch_labels: str | Sequence[str] | None = None
-depends_on: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = ['f702f8c0eeb2']
 
 
 def upgrade() -> None:
@@ -30,136 +30,160 @@ def upgrade() -> None:
             sa.Column('useragenttxt', sa.Text(), nullable=False),
             sa.Column('hashua', sa.BINARY(length=16), nullable=False),
             sa.Column('lengthua', sa.Integer(), nullable=False),
-            sa.PrimaryKeyConstraint('pk')
+            sa.PrimaryKeyConstraint('pk'),
+            if_not_exists=True
         )
         op.create_index(
             'idx_visitor',
             'visitors',
             ['ipv6address', 'ipv4address', 'hashua', 'lengthua'],
-            unique=False
+            unique=False,
+            if_not_exists=True
         )
 
-        op.alter_column(
-            'lastplayed',
-            'timestamp',
-            new_column_name='playedtimestamp',
-            existing_type=sa.Double[float],
-            existing_nullable=False
-        )
-        op.alter_column(
-            'playlists',
-            'description',
-            new_column_name='displayname',
-            existing_type=sa.String(1000)
-        )
+        try:
+            op.alter_column(
+                'lastplayed',
+                'timestamp',
+                new_column_name='playedtimestamp',
+                existing_type=sa.Double[float],
+                existing_nullable=False,
+                
+            )
+        except: pass
 
-        op.alter_column(
-            'songs',
-            'path', 
-            new_column_name='treepath',
-            existing_type=sa.String(2000),
-            existing_nullable=False
-        )
-        op.alter_column(
-            'songs',
-            'disc', 
-            new_column_name='discnum',
-            existing_type=sa.Integer,
-        )
-        op.alter_column(
-            'songs',
-            'comment', 
-            new_column_name='notes',
-            existing_type=sa.String(2000)
-        )
-        op.alter_column(
-            'songs',
-            'hash', 
-            new_column_name='filehash',
-            existing_type=sa.BINARY(64)
-        )
+        try:
+            op.alter_column(
+                'playlists',
+                'description',
+                new_column_name='displayname',
+                existing_type=sa.String(1000)
+            )
+        except: pass
 
-        op.alter_column(
-            'songsartists',
-            'comment', 
-            new_column_name='notes',
-            existing_type=sa.String(2000)
-        )
-        op.alter_column(
-            'stationlogs',
-            'timestamp',
-            new_column_name='playedtimestamp',
-            existing_type=sa.Double[float],
-        )
-        
-        op.alter_column(
-            'userroles',
-            'count', 
-            new_column_name='quota',
-            existing_type=sa.Float[float],
-            existing_nullable=False
-        )
-    
+        try:
+            op.alter_column(
+                'songs',
+                'path', 
+                new_column_name='treepath',
+                existing_type=sa.String(2000),
+                existing_nullable=False
+            )
+        except: pass
+
+        try:
+            op.alter_column(
+                'songs',
+                'disc', 
+                new_column_name='discnum',
+                existing_type=sa.Integer,
+            )
+        except: pass
+
+        try:
+            op.alter_column(
+                'songs',
+                'comment', 
+                new_column_name='notes',
+                existing_type=sa.String(2000)
+            )
+        except: pass
+
+        try:
+            op.alter_column(
+                'songs',
+                'hash', 
+                new_column_name='filehash',
+                existing_type=sa.BINARY(64)
+            )
+        except: pass
+
+        try:
+            op.alter_column(
+                'songsartists',
+                'comment', 
+                new_column_name='notes',
+                existing_type=sa.String(2000)
+            )
+        except: pass
+
+        try:
+            op.alter_column(
+                'stationlogs',
+                'timestamp',
+                new_column_name='playedtimestamp',
+                existing_type=sa.Double[float],
+            )
+        except: pass
+
+        try:
+            op.alter_column(
+                'userroles',
+                'count', 
+                new_column_name='quota',
+                existing_type=sa.Float[float],
+                existing_nullable=False
+            )
+        except:pass
 
         op.add_column(
             'userroles',
-            sa.Column('sphere', sa.String(length=50), nullable=False)
+            sa.Column('sphere', sa.String(length=50), nullable=False),
+            if_not_exists=True
         )
         op.add_column(
             'userroles',
-            sa.Column('keypath', sa.String(length=2000), nullable=True)
+            sa.Column('keypath', sa.String(length=2000), nullable=True),
+            if_not_exists=True
         )
         op.create_index(
             'idx_userroles2',
             'userroles',
             ['userfk', 'sphere', 'role'],
+            if_not_exists=True
         )
         op.drop_constraint(
             'userroles_ibfk_1',
             table_name='userroles', 
-            type_='foreignkey'
+            type_='foreignkey',
+            if_exists=True
         )
-        op.drop_index(op.f('idx_userroles'), table_name='userroles')
-        op.create_foreign_key(
-            None,
-            'userroles',
-            'users',
-            ['userfk'],
-            ['pk'],
-            ondelete='CASCADE'
+        op.drop_index(
+            op.f('idx_userroles'),
+            table_name='userroles',
+            if_exists=True
         )
+        try:
+            op.create_foreign_key(
+                None,
+                'userroles',
+                'users',
+                ['userfk'],
+                ['pk'],
+                ondelete='CASCADE',
+            )
+        except:
+            pass
 
         op.execute(
             sa.update(userRoles)\
                 .values(sphere = mcr_u.UserRoleSphere.Site.value)
         )
         
-        stationPermissionsRows: list[dict[str, Any]] = [{
-            'userfk': r['userfk'],
-            'span': r['span'],
-            'quota': r['count'],
-            'priority': r['priority'],
-            'sphere': mcr_u.UserRoleSphere.Station.value,
-            'creationtimestamp': r["creationtimestamp"],
-            'role': r['role'],
-            'keypath': str(r['stationfk'])
-        } for r in op.get_bind().execute(
-            sa.text("SELECT * FROM stationuserpermissions"))\
-            .mappings().fetchall()
-        ]
-        
-
-        op.drop_table('stationuserpermissions')
-
-        op.drop_table('playlistuserpermissions')
-
-        op.drop_table('frienduserpermissions')
-
-        op.drop_table('pathuserpermissions')
-
-        op.drop_table('useragents')
-
         try:
+            stationPermissionsRows: list[dict[str, Any]] = [{
+                'userfk': r['userfk'],
+                'span': r['span'],
+                'quota': r['count'],
+                'priority': r['priority'],
+                'sphere': mcr_u.UserRoleSphere.Station.value,
+                'creationtimestamp': r["creationtimestamp"],
+                'role': r['role'],
+                'keypath': str(r['stationfk'])
+            } for r in op.get_bind().execute(
+                sa.text("SELECT * FROM stationuserpermissions"))\
+                .mappings().fetchall()
+            ]
             if stationPermissionsRows:
                 op.bulk_insert(
                     userRoles,
@@ -167,6 +191,17 @@ def upgrade() -> None:
                 )
         except:
             pass
+
+        op.drop_table('stationuserpermissions', if_exists=True)
+
+        op.drop_table('playlistuserpermissions', if_exists=True)
+
+        op.drop_table('frienduserpermissions', if_exists=True)
+
+        op.drop_table('pathuserpermissions', if_exists=True)
+
+        op.drop_table('useragents', if_exists=True)
+
 
     for action in ["SELECT", "UPDATE", "INSERT", "DELETE"]:
         op.execute(

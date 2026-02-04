@@ -18,7 +18,7 @@ import {
 	User,
 	SubjectUserRoleAddition,
 	SubjectUserRoleDeletion,
-	PathsActionRule,
+	ActionRule,
 } from "../Types/user_types";
 import { getDownloadAddress } from "../Helpers/request_helpers";
 
@@ -146,7 +146,7 @@ export const Calls = {
 			abortController: abortController,
 			call: async () => {
 				const url = "song-info/path/user_role";
-				const response = await webClient.post<PathsActionRule>(
+				const response = await webClient.post<ActionRule>(
 					url,
 					rule, 
 					{

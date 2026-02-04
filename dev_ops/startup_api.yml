@@ -132,8 +132,19 @@
         - '{{app_trunk}}'
         - '{{domain["exports_dir"]}}'
         - '/home/{{domain["server_user"]}}/scripts'
-        - '{{app_trunk}}/event_logs'
-        - '{{app_trunk}}/queues'
+        - '/home/{{domain["server_user"]}}/event_logs'
+        - '/home/{{domain["server_user"]}}/queues'
+    - name: Create directories for logged in user
+      file:
+        state: directory
+        path: '{{item}}'
+        owner: '{{ansible_user}}'
+        group: '{{ansible_user}}'
+      no_log: true
+      become: true
+      loop:
+        - '/usr/local/share/{{app_details["name"]}}'
+        - '/usr/local/share/{{app_details["name"]}}/migrations'
     - name: Copy templates folder
       synchronize:
         src: '{{src_dirs["templates"]}}'
@@ -165,8 +176,21 @@
       vars:
         setup_pass: '{{keys["db_pass_setup"]}}'
         socket_path: '{{dev_files["mysql_socket"]}}'
+    - name: Copy alembic.ini
+      copy:
+        src: alembic.ini
+        dest: '/usr/local/share/{{app_details["name"]}}/migrations/alembic.ini'
+      when: inventory_hostname not in ["127.0.0.1", "localhost"]
+    - name: Replace alembic files
+      synchronize:
+        src: ../alembic
+        dest: '/usr/local/share/{{app_details["name"]}}/migrations'
+        delete: true
+      become: true
+      when: inventory_hostname not in ["127.0.0.1", "localhost"]
     - name: Setup App Specific Db stuff.
       command:
+        chdir: '/usr/local/share/{{app_details["name"]}}/migrations'
         argv:
           - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/alembic'
           - upgrade

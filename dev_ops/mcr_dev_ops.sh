@@ -75,16 +75,25 @@ add_migration() (
 	"$alembic_exe" revision --autogenerate -m "$1"
 )
 
+
 blank_migration() (
 	cd ..
 	alembic_exe='test_trash/musical_chairs/mcr_env/bin/alembic'
 	"$alembic_exe" revision -m "$1"
 )
 
+
 apply_migrations() (
 	cd ..
 	alembic_exe='test_trash/musical_chairs/mcr_env/bin/alembic'
 	"$alembic_exe" upgrade head
+)
+
+
+gen_sql() (
+	cd ..
+	alembic_exe='test_trash/musical_chairs/mcr_env/bin/alembic'
+	"$alembic_exe" upgrade head --sql
 )
 
 

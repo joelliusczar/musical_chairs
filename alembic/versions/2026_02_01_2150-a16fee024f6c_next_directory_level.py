@@ -13,7 +13,7 @@ import musical_chairs_libs.dtos_and_utilities as mcr_u
 
 # revision identifiers, used by Alembic.
 revision: str = 'a16fee024f6c'
-down_revision: str | Sequence[str] | None = None
+down_revision: str | Sequence[str] | None = 'f702f8c0eeb2'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

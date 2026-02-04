@@ -241,7 +241,7 @@ class StationService:
 				*self.base_select_columns()
 			)
 
-		records = self.conn.execute(query).mappings()
+		records = self.conn.execute(query).mappings().fetchall()
 		for row in records:
 			yield StationInfo.row_to_station(row)
 
@@ -421,7 +421,8 @@ class StationService:
 		stmt = insert(user_roles_tbl)
 		self.conn.execute(stmt, params) #pyright: ignore [reportUnknownMemberType]
 		return rules
-	
+
+
 	def __build_station_values__(
 		self,
 		station: StationCreationInfo

@@ -351,6 +351,7 @@ class QueueService(SongPopper, RadioPusher):
 		if completedIdx is None:
 			return False
 		completed = alreadyQueued[completedIdx]
+
 		stmt = insert(station_queue).values(
 			stationfk = stationId,
 			songfk = songId,
@@ -522,6 +523,7 @@ class QueueService(SongPopper, RadioPusher):
 		alreadyQueued[skipIdx].action = StationsSongsActions.SKIP.value
 		queueMetrics = QueueMetrics(maxSize=self.queue_size)
 		self.fil_up_queue(station, queueMetrics, alreadyQueued)
+		self.conn.commit()
 		return self.get_now_playing_and_queue(station)
 
 

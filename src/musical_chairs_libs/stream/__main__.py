@@ -113,7 +113,10 @@ def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
 
 
 def launch_loading(stationName: str, ownerName: str):
-	conn = DbConnectionProvider.get_configured_radio_connection(dbName)
+	conn = DbConnectionProvider.get_configured_radio_connection(
+		dbName,
+		isolationLevel = "READ COMMITTED"
+	)
 	pathRuleService = path_rule_service(conn)
 	currentUserProvider = current_user_provider(conn)
 	stationService = StationService(
@@ -144,14 +147,19 @@ def launch_loading(stationName: str, ownerName: str):
 				collectionQueueService,
 				fileService
 			)
+	except:
+		stationProcessService.unset_station_procs(stationIds=station.id)
+		raise
 	finally:
 		close_db_connection(conn, "loading")
-		stationProcessService.unset_station_procs(stationIds=station.id)
 
 
 def launch_sending(stationName: str, ownerName: str):
 	
-	conn = DbConnectionProvider.get_configured_radio_connection(dbName)
+	conn = DbConnectionProvider.get_configured_radio_connection(
+		dbName,
+		isolationLevel = "READ COMMITTED"
+	)
 	queueService = queue_service(conn)
 	pathRuleService = path_rule_service(conn)
 	currentUserProvider = current_user_provider(conn)

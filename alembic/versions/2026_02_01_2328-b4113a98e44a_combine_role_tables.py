@@ -5,11 +5,12 @@ Revises: f0f6aa97edac
 Create Date: 2026-02-01 23:28:08.957065
 
 """
-from typing import Sequence
+from typing import Any, Sequence
 
 from alembic import op, context
 import sqlalchemy as sa
 import musical_chairs_libs.dtos_and_utilities as mcr_u
+from musical_chairs_libs.tables import userRoles
 
 # revision identifiers, used by Alembic.
 revision: str = 'b4113a98e44a'
@@ -37,17 +38,6 @@ def upgrade() -> None:
             ['ipv6address', 'ipv4address', 'hashua', 'lengthua'],
             unique=False
         )
-
-        op.drop_table('stationuserpermissions')
-
-        op.drop_table('playlistuserpermissions')
-
-        op.drop_table('frienduserpermissions')
-
-        op.drop_table('pathuserpermissions')
-
-        op.drop_table('useragents')
-
 
         op.alter_column(
             'lastplayed',
@@ -139,11 +129,51 @@ def upgrade() -> None:
             ondelete='CASCADE'
         )
 
+        op.execute(
+            sa.update(userRoles)\
+                .values(sphere = mcr_u.UserRoleSphere.Site.value)
+        )
+        
+        stationPermissionsRows: list[dict[str, Any]] = [{
+            'userfk': r['userfk'],
+            'span': r['span'],
+            'quota': r['count'],
+            'priority': r['priority'],
+            'sphere': mcr_u.UserRoleSphere.Station.value,
+            'creationtimestamp': r["creationtimestamp"],
+            'role': r['role'],
+            'keypath': str(r['stationfk'])
+        } for r in op.get_bind().execute(
+            sa.text("SELECT * FROM stationuserpermissions"))\
+            .mappings().fetchall()
+        ]
+        
+
+        op.drop_table('stationuserpermissions')
+
+        op.drop_table('playlistuserpermissions')
+
+        op.drop_table('frienduserpermissions')
+
+        op.drop_table('pathuserpermissions')
+
+        op.drop_table('useragents')
+
+        try:
+            if stationPermissionsRows:
+                op.bulk_insert(
+                    userRoles,
+                    stationPermissionsRows,
+                )
+        except:
+            pass
+
     for action in ["SELECT", "UPDATE", "INSERT", "DELETE"]:
         op.execute(
             f"GRANT {action} ON visitors TO "
             f"{mcr_u.DbUsers.API_USER("localhost")}"
         )
+
     # ### end Alembic commands ###
 
 

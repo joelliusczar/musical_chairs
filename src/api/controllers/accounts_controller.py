@@ -371,7 +371,6 @@ def add_user_rule(
 	return accountManagementService.add_user_rule(
 		subjectUser.id,
 		rule,
-		keypath=None
 	)
 
 

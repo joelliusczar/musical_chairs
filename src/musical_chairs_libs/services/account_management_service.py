@@ -354,17 +354,16 @@ class AccountManagementService:
 	def add_user_rule(
 		self,
 		addedUserId: int,
-		rule: ActionRule,
-		keypath: str | None,
-		sphere: str = UserRoleSphere.Site.value
+		rule: ActionRule
 	) -> ActionRule:
 		stmt = insert(userRoles).values(
 			userfk = addedUserId,
 			role = rule.name,
-			span = sphere,
+			span = rule.span,
 			quota = rule.quota,
 			priority = None,
-			keypath = keypath,
+			keypath = None,
+			sphere = UserRoleSphere.Site.value,
 			creationtimestamp = self.get_datetime().timestamp()
 		)
 		try:

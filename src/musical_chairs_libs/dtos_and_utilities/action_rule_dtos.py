@@ -19,7 +19,7 @@ from .user_role_def import RulePriorityLevel
 
 @dataclass
 class ActionRule:
-	name: str=""
+	name: str
 	span: float=0 #this should be total seconds
 	quota: float=0
 	#if priority is not specified, priority should be specific

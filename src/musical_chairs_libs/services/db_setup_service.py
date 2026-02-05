@@ -186,5 +186,5 @@ def setup_database(dbName: str):
 
 
 			# with context.begin_transaction():
-		command.upgrade(config, "head", tag="test")
+		command.upgrade(config, "b7d204ce6e41", tag="test")
 		# ownerConnService.flush_privileges()

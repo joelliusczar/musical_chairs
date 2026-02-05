@@ -5,6 +5,7 @@ from typing import (
 	Iterator,
 	Optional,
 )
+
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	SavedNameString,
@@ -23,6 +24,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	generate_path_user_and_rules_from_rows,
 	NotFoundError,
 )
+from musical_chairs_libs.dtos_and_utilities.constants import (UserRoleSphere)
 from .current_user_provider import CurrentUserProvider
 from .account_access_service import AccountAccessService
 from sqlalchemy.engine import Connection
@@ -128,8 +130,7 @@ class AccountManagementService:
 				"quota": r.quota,
 				"priority": r.priority,
 				"creationtimestamp": self.get_datetime().timestamp(),
-				"sphere": r.sphere,
-				"keypath": r.keypath
+				"sphere": UserRoleSphere.Site.value,
 			} for r in inRoles
 		]
 		stmt = insert(userRoles)
@@ -202,9 +203,9 @@ class AccountManagementService:
 
 	def get_account_list(
 		self,
-		searchTerm: Optional[str]=None,
+		searchTerm: str | None=None,
 		page: int = 0,
-		pageSize: Optional[int]=None
+		pageSize: int | None=None,
 	) -> Iterator[AccountInfo]:
 		offset = page * pageSize if pageSize else 0
 		query = select(
@@ -226,6 +227,8 @@ class AccountManagementService:
 		records = self.conn.execute(query).mappings()
 		for row in records:
 			yield AccountInfo(**row) #pyright: ignore [reportUnknownArgumentType]
+
+			
 
 
 	def get_account_for_edit(
@@ -352,13 +355,16 @@ class AccountManagementService:
 		self,
 		addedUserId: int,
 		rule: ActionRule,
+		keypath: str | None,
+		sphere: str = UserRoleSphere.Site.value
 	) -> ActionRule:
 		stmt = insert(userRoles).values(
 			userfk = addedUserId,
 			role = rule.name,
-			span = rule.span,
+			span = sphere,
 			quota = rule.quota,
 			priority = None,
+			keypath = keypath,
 			creationtimestamp = self.get_datetime().timestamp()
 		)
 		try:

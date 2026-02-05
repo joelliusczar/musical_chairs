@@ -368,7 +368,11 @@ def add_user_rule(
 		account_management_service
 	)
 ) -> ActionRule:
-	return accountManagementService.add_user_rule(subjectUser.id, rule)
+	return accountManagementService.add_user_rule(
+		subjectUser.id,
+		rule,
+		keypath=None
+	)
 
 
 @router.delete("/site-roles/user_role/{subjectuserkey}",

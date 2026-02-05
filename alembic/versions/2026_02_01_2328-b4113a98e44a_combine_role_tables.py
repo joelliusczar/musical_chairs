@@ -14,7 +14,7 @@ from musical_chairs_libs.tables import userRoles
 
 # revision identifiers, used by Alembic.
 revision: str = 'b4113a98e44a'
-down_revision: str | Sequence[str] | None = 'f0f6aa97edac'
+down_revision: str | Sequence[str] | None = 'f702f8c0eeb2'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = ['f702f8c0eeb2']
 

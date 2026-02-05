@@ -24,8 +24,9 @@ from musical_chairs_libs.services import (
 	AccountAccessService,
 	AccountManagementService,
 	AccountTokenCreator,
-	FSEventsQueryService,
 	BasicUserProvider,
+	DomainUserService,
+	FSEventsQueryService,
 	VisitorTrackingService,
 	StationService,
 	QueueService,
@@ -485,13 +486,18 @@ def stations_playlists_service(
 	return StationsPlaylistsService(conn, stationService, userProvider)
 
 
-def stations_users_service(
+def domain_users_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	userProvider: CurrentUserProvider = Depends(
 		current_user_provider
 	),
+) -> DomainUserService:
+	return DomainUserService(conn, userProvider)
+
+def stations_users_service(
+	domainUserService: DomainUserService = Depends(domain_users_service)
 ) -> StationsUsersService:
-	return StationsUsersService(conn, userProvider)
+	return StationsUsersService(domainUserService)
 
 
 def playlist_service(
@@ -513,13 +519,9 @@ def playlist_service(
 
 
 def playlists_users_service(
-	conn: Connection=Depends(get_configured_db_connection),
-	pathRuleService: PathRuleService = Depends(path_rule_service),
-	userProvider: CurrentUserProvider = Depends(
-		current_user_provider
-	),
+	domainUserService: DomainUserService = Depends(domain_users_service)
 ) -> PlaylistsUserService:
-	return PlaylistsUserService(conn, pathRuleService, userProvider)
+	return PlaylistsUserService(domainUserService)
 
 
 def artist_service(

@@ -342,6 +342,7 @@ ur_priority = cast(Column[Integer], userRoles.c.priority)
 ur_sphere = cast(Column[String], userRoles.c.sphere)
 ur_keypath = cast(Column[String], userRoles.c.keypath)
 Index("idx_userroles2", ur_userFk, ur_sphere, ur_role)
+Index("idx_userroles_sphere", ur_sphere, ur_userFk, ur_role)
 
 
 user_agents = Table("visitors",metadata,

@@ -10,8 +10,9 @@ from musical_chairs_libs.services import (
 	AccountAccessService,
 	AccountManagementService,
 	AccountTokenCreator,
-	FSEventsQueryService,
 	BasicUserProvider,
+	DomainUserService,
+	FSEventsQueryService,
 	EmptyUserTrackingService,
 	QueueService,
 	AccountsService,
@@ -356,15 +357,22 @@ def fixture_stations_albums_service(
 	)
 	return stationsAlbumsService
 
+@pytest.fixture
+def fixture_domain_service(
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider,
+) -> DomainUserService:
+	return DomainUserService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
 
 @pytest.fixture
 def fixture_stations_users_service(
-	fixture_conn_cardboarddb: Connection,
-	fixture_current_user_provider: CurrentUserProvider,
+	fixture_domain_service: DomainUserService
 ) -> StationsUsersService:
 	stationsUsersService = StationsUsersService(
-		fixture_conn_cardboarddb,
-		fixture_current_user_provider
+		fixture_domain_service
 	)
 	return stationsUsersService
 
@@ -413,14 +421,10 @@ def fixture_playlists_songs_service(
 
 @pytest.fixture
 def fixture_playlists_users_service(
-	fixture_conn_cardboarddb: Connection,
-	fixture_path_rule_service: PathRuleService,
-	fixture_current_user_provider: CurrentUserProvider,
+	fixture_domain_service: DomainUserService
 ) -> PlaylistsUserService:
 	service = PlaylistsUserService(
-		fixture_conn_cardboarddb,
-		fixture_path_rule_service,
-		fixture_current_user_provider
+		fixture_domain_service
 	)
 	return service
 

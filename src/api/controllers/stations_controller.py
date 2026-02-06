@@ -20,7 +20,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TableData,
 	CatalogueItem,
 	SimpleQueryParameters,
-	UserRoleDomain,
+	UserRoleSphere,
 	ValidatedStationCreationInfo,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
@@ -67,7 +67,7 @@ def station_list(
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:
 	stations = list(stationService.get_stations(None,
-		ownerId=owner.id if owner else None
+		ownerKey=owner.id if owner else None
 	))
 	return { "items": stations }
 
@@ -151,7 +151,7 @@ def catalogue(
 	dependencies=[
 		Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_REQUEST.value
 			)
 		)
@@ -184,7 +184,7 @@ def request_item(
 	dependencies=[
 		Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_SKIP.value
 			)
 		)
@@ -233,12 +233,12 @@ def get_station_for_edit(
 
 @router.post("", dependencies=[
 	Security(
-		check_top_level_rate_limit(UserRoleDomain.Station.value),
+		check_top_level_rate_limit(UserRoleSphere.Station.value),
 		scopes=[UserRoleDef.STATION_CREATE.value]
 	),
 	Depends(
 			log_event(
-				UserRoleDomain.Site.value,
+				UserRoleSphere.Site.value,
 				StationActions.STATION_CREATE.value
 			)
 		)
@@ -251,13 +251,13 @@ def create_station(
 	)
 ) -> StationInfo:
 	result = stationService.save_station(station)
-	return result or StationInfo(id=-1,name="", displayname="")
+	return result
 
 
 @router.put("/{id}",dependencies=[
 	Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_EDIT.value
 			)
 		)
@@ -271,13 +271,13 @@ def update_station(
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
 	result = stationService.save_station(station, savedStation.id)
-	return result or StationInfo(id=-1,name="",displayname="")
+	return result
 
 
 @router.put("/enable/", dependencies=[
 	Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_ENABLE.value
 			)
 		)
@@ -302,7 +302,7 @@ def enable_stations(
 	dependencies=[
 		Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_DISABLE.value
 			)
 		)
@@ -330,7 +330,7 @@ def disable_stations(
 	dependencies=[
 		Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_PLAYNEXT.value
 			)
 		)
@@ -363,7 +363,7 @@ def get_station_user_list(
 	dependencies=[
 		Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_USER_ASSIGN.value
 			)
 		)
@@ -391,7 +391,7 @@ def add_user_rule(
 	dependencies=[
 		Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_USER_REMOVE.value
 			)
 		)
@@ -419,7 +419,7 @@ def remove_user_rule(
 	dependencies=[
 		Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_DELETE.value
 			)
 		)
@@ -453,7 +453,7 @@ def delete(
 	dependencies=[
 		Depends(
 			log_event(
-				UserRoleDomain.Station.value,
+				UserRoleSphere.Station.value,
 				StationActions.STATION_COPY.value
 			)
 		)
@@ -468,4 +468,4 @@ def copy_station(
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
 	result = stationService.copy_station(savedstation.id, station)
-	return result or StationInfo(id=-1,name="", displayname="")
+	return result

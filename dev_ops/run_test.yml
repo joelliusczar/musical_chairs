@@ -39,7 +39,6 @@
       setup_pass: '{{keys["db_pass_setup"]}}'
       socket_path: '{{dev_files["mysql_socket"]}}'
       sql_scripts_src: ../sql_scripts
-      reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
       env_name: '{{app_details["prefix"]|lower}}_env'
       engine_src: '{{src_dirs["engine"]}}/'
     - role: tests-setup
@@ -54,6 +53,7 @@
           - -m
           - pytest
           - -s
+          - -x
       environment:
         DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
         DSF_DB_PASS_OWNER: '{{keys["db_pass_owner"]}}'
@@ -72,6 +72,7 @@
         DSF_LIVE_CONFIG_PATH: '../{{test_trunk}}/app_conf.json'
         DSF_EVENT_LOGS_DIR: '../{{test_trunk}}/event_logs'
         DSF_QUEUE_FILES_DIR: '../{{test_trunk}}/queues'
+        DSF_ALEMBIC_INI: '../../alembic.ini'
       when: skip_tests|default(false)|bool != true
     
     

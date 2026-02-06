@@ -110,7 +110,7 @@ class SongFileService:
 		)
 		self.delete_overlaping_placeholder_dirs(path)
 		stmt = insert(songs_tbl).values(
-			path = unicodedata.normalize("NFC", path),
+			treepath = unicodedata.normalize("NFC", path),
 			internalpath = str(uuid.uuid4()),
 			name = unicodedata.normalize("NFC", name),
 			lastmodifiedbyuserfk = user.id,
@@ -160,9 +160,9 @@ class SongFileService:
 			.where(func.normalize_opening_slash(
 				sg_path,
 				addSlash
-			).like(f"{lOldPath}%"))\
+			).like(f"{lOldPath}%", escape="\\"))\
 			.values(
-				path = sg_path.regexp_replace(
+				treepath = sg_path.regexp_replace(
 					f"^/?{re.escape(normalize_opening_slash(prefix, addSlash=False))}",
 					newPath
 				),
@@ -207,7 +207,7 @@ class SongFileService:
 			songAboutInfo.bitrate = float(tag.bitrate) \
 				if type(tag.bitrate) == float else None #pyright: ignore [reportUnknownArgumentType, reportUnknownMemberType]
 			try:
-				songAboutInfo.disc = int(tag.disc or "")
+				songAboutInfo.discnum = int(tag.disc or "")
 			except:
 				pass
 			songAboutInfo.genre = tag.genre
@@ -231,7 +231,7 @@ class SongFileService:
 			squash_chars(f"{prefix}/{suffix}", "/"),
 			addSlash=False
 		)
-		if self.__is_path_used__(path=SavedNameString(path)):
+		if self.__is_path_used__(treepath=SavedNameString(path)):
 			raise AlreadyUsedError.build_error(
 				f"{path} is already used",
 				"suffix"
@@ -260,20 +260,20 @@ class SongFileService:
 			uploaded.seek(0)
 			songAboutInfo = self.extract_song_info(uploaded)
 		stmt = insert(songs_tbl).values(
-			path = unicodedata.normalize("NFC", path),
+			treepath = unicodedata.normalize("NFC", path),
 			internalpath = unicodedata.normalize("NFC", internalPath),
 			name = unicodedata.normalize("NFC", songAboutInfo.name),
 			albumfk = songAboutInfo.album.id if songAboutInfo.album else None,
 			track = songAboutInfo.track,
 			tracknum = int_or_default(songAboutInfo.track),
-			disc = songAboutInfo.disc,
+			discnum = songAboutInfo.discnum,
 			bitrate = songAboutInfo.bitrate,
 			genre = unicodedata.normalize("NFC", songAboutInfo.genre)\
 				if songAboutInfo.genre else None,
 			duration = songAboutInfo.duration,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp(),
-			hash = fileHash
+			filehash = fileHash
 		)
 		result = self.conn.execute(stmt)
 		if result.inserted_primary_key and songAboutInfo.primaryartist:
@@ -286,7 +286,7 @@ class SongFileService:
 			)
 		self.conn.commit()
 		return SongTreeNode(
-			path=normalize_closing_slash(path),
+			treepath=normalize_closing_slash(path),
 			totalChildCount=1,
 			id=result.lastrowid
 		)
@@ -295,7 +295,7 @@ class SongFileService:
 	def __song_ls_query__(
 		self,
 		prefix: Optional[str]=""
-	) -> Select[Tuple[str, Optional[String], int, Integer, String]]:
+	) -> Select[Any]:
 		hasOpenSlash = False
 		prefix = normalize_opening_slash(
 			prefix or "",
@@ -318,7 +318,7 @@ class SongFileService:
 				func.normalize_opening_slash(
 					sg_path,
 					hasOpenSlash
-				).like(f"{likePrefix}%")
+				).like(f"{likePrefix}%", escape="\\")
 			)\
 			.group_by("prefix")
 		return query
@@ -343,7 +343,7 @@ class SongFileService:
 			)
 			if nomalizedControlPath == normalizedPrefix:
 				yield SongTreeNode(
-					path=cast(str, row["prefix"]),
+					treepath=cast(str, row["prefix"]),
 					totalChildCount=cast(int, row["totalChildCount"]),
 					id=cast(int, row["pk"]),
 					name=cast(str, row["name"]),
@@ -353,7 +353,7 @@ class SongFileService:
 				)
 			else: #directories
 				yield SongTreeNode(
-					path=normalize_closing_slash(cast(str, row["prefix"])),
+					treepath=normalize_closing_slash(cast(str, row["prefix"])),
 					totalChildCount=cast(int, row["totalChildCount"]),
 					rules=[r for p in
 						permittedPathsTree.values(normalizedPrefix) for r in p
@@ -407,7 +407,7 @@ class SongFileService:
 	) -> Mapping[str, Collection[SongTreeNode]]:
 		result: dict[str, set[SongTreeNode]] = {}
 		for node in nodes:
-			parent = re.sub(r"/?[^/]+/?$", "/", node.path)
+			parent = re.sub(r"/?[^/]+/?$", "/", node.treepath)
 			if parent in result:
 				result[parent].add(node)
 			else:
@@ -470,8 +470,8 @@ class SongFileService:
 		yield from ((row[0], row[1]) for row in results)
 
 
-	def delete_overlaping_placeholder_dirs(self, path: str):
-		overlap = [*self.get_parents_of_path(path)]
+	def delete_overlaping_placeholder_dirs(self, treepath: str):
+		overlap = [*self.get_parents_of_path(treepath)]
 		if any(r for r in overlap if not r[1].endswith("/")):
 			raise RuntimeError("Cannot delete song entries")
 		stmt = delete(songs_tbl)\
@@ -482,12 +482,12 @@ class SongFileService:
 
 	def __is_path_used__(
 		self,
-		path: SavedNameString,
+		treepath: SavedNameString,
 		id: Optional[int] = None,
 	) -> bool:
 		queryAny = select(func.count(1))\
 				.where(sg_deletedTimstamp.is_(None))\
-				.where(sg_path == str(path))\
+				.where(sg_path == str(treepath))\
 				.where(st_pk != id)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
@@ -501,7 +501,7 @@ class SongFileService:
 			.where(sg_deletedTimstamp.is_(None))\
 			.where(
 				func.normalize_opening_slash(sg_path, addSlash)
-				.like(f"{lPrefix}%")
+				.like(f"{lPrefix}%", escape="\\")
 			)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
@@ -509,7 +509,7 @@ class SongFileService:
 
 	def __are_paths_used__(
 		self,
-		paths: ReusableIterable[SongPathInfo]
+		treepaths: ReusableIterable[SongPathInfo]
 	) -> dict[str, bool]:
 		addSlash=True
 		query = select(sg_pk, sg_path)\
@@ -518,15 +518,15 @@ class SongFileService:
 			func.normalize_opening_slash(
 				sg_path,
 				addSlash
-			).in_(p.path for p in paths))
+			).in_(p.treepath for p in treepaths))
 		rows = self.conn.execute(query)
 		pathToId = {
 			normalize_opening_slash(cast(str, r[1])): cast(int, r[0])
 			for r in rows
 		}
 		return {
-			Path(p.path).name: (pathToId.get(p.path, p.id) != p.id)
-			for p in paths
+			Path(p.treepath).name: (pathToId.get(p.treepath, p.id) != p.id)
+			for p in treepaths
 		}
 
 
@@ -538,9 +538,9 @@ class SongFileService:
 		cleanedPaths = [
 			SongPathInfo(
 				id=p.id,
-				path=str(SavedNameString(
+				treepath=str(SavedNameString(
 						normalize_opening_slash(
-							squash_chars(f"{prefix}/{p.path}", "/")
+							squash_chars(f"{prefix}/{p.treepath}", "/")
 						)
 					)
 				),
@@ -587,7 +587,7 @@ class SongFileService:
 			.where(func.normalize_opening_slash(
 				sg_path,
 				addSlash
-			).like(f"{_prefix}%"))
+			).like(f"{_prefix}%", escape="\\"))
 		rows = self.conn.execute(query).fetchall()
 		if len(rows) == 1:
 			songId = cast(int, rows[0][0])
@@ -612,13 +612,13 @@ class SongFileService:
 		if not transfer.newprefix or transfer.newprefix.isspace():
 			raise ValueError("Cannot move to that directory")
 		user = self.current_user_provider.current_user()
-		isSrcPathBlank= not transfer.path or transfer.path.isspace()
-		if isSrcPathBlank or transfer.path == user.dirroot:
+		isSrcPathBlank= not transfer.treepath or transfer.treepath.isspace()
+		if isSrcPathBlank or transfer.treepath == user.dirroot:
 			raise ValueError("Cannot move that directory")
 		newprefix = normalize_opening_slash(
 			squash_chars(transfer.newprefix, "/")
 		)
-		path = squash_chars(transfer.path, "/")
+		path = squash_chars(transfer.treepath, "/")
 		prefix = normalize_opening_slash(
 			normalize_closing_slash(str(Path(path).parent)),
 			addSlash=False
@@ -631,9 +631,10 @@ class SongFileService:
 			.where(func.normalize_opening_slash(
 				sg_path,
 				addSlash
-			).like(f"{lPath}%"))\
+			).like(f"{lPath}%", escape="\\"))\
 			.values(
-				path = sg_path.regexp_replace(
+				treepath = func.regexp_replace(
+					sg_path,
 					f"^/?{re.escape(prefix)}",
 					newprefix
 				)

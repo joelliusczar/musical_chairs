@@ -14,7 +14,7 @@ import { useParams, useLocation } from "react-router-dom";
 import { formatError } from "../../Helpers/error_formatter";
 import { StationRouteSelect } from "./StationRouteSelect";
 import { UrlBuilder } from "../../Helpers/pageable_helpers";
-import { DomRoutes, UserRoleDef, UserRoleDomain } from "../../constants";
+import { DomRoutes, UserRoleDef, UserRoleSphere } from "../../constants";
 import { useSnackbar } from "notistack";
 import { UserRoleAssignmentTable } from "../Users/UserRoleAssignmentTable";
 import { keyedSortFn } from "../../Helpers/array_helpers";
@@ -31,7 +31,7 @@ import { StationInfo } from "../../Types/station_types";
 
 
 const stationRoles = Object.keys(UserRoleDef)
-	.map(k => UserRoleDef[k]).filter(v => v.startsWith(UserRoleDomain.STATION))
+	.map(k => UserRoleDef[k]).filter(v => v.startsWith(UserRoleSphere.STATION))
 	.map(v => ({
 		id: v,
 		name: v,
@@ -92,7 +92,7 @@ export const StationUserRoleAssignmentTable = () => {
 			const rule = {
 				name: UserRoleDef.STATION_VIEW,
 				span: 0,
-				count: 0,
+				quota: 0,
 				priority: null,
 			};
 			const requestObj = Calls.addStationUserRule({

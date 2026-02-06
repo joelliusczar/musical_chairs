@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from collections import defaultdict, deque
 from typing import Iterator
-from .constants import UserRoleDomain
+from .constants import UserRoleSphere
 
 @dataclass
 class EventRecord:
@@ -10,8 +10,8 @@ class EventRecord:
 	action: str
 	visitorId: int
 	timestamp: float
-	path: str | None
-	domain: str = UserRoleDomain.Site.value
+	keypath: str | None
+	sphere: str = UserRoleSphere.Site.value
 	url: str = ""
 	extraInfo: str=""
 
@@ -36,14 +36,14 @@ def __deque_factory__() -> deque[EventRecord]:
 def __action_dict_factory__() -> EventActionDict:
 	return defaultdict(__deque_factory__)
 
-def __path_dict_factory__() -> EventPathDict:
+def __keypath_dict_factory__() -> EventPathDict:
 	return defaultdict(__action_dict_factory__)
 
-def __domain_dict_factory__() -> EventDomainDict:
-	return defaultdict(__path_dict_factory__)
+def __sphere_dict_factory__() -> EventDomainDict:
+	return defaultdict(__keypath_dict_factory__)
 
 def user_events_dict_factory() -> EventUserIdDict:
-	return defaultdict(__domain_dict_factory__)
+	return defaultdict(__sphere_dict_factory__)
 
 def visitorId_dict_factory() -> EventVisitorIdDict:
 	return defaultdict(__action_dict_factory__)
@@ -74,39 +74,42 @@ class InMemEventRecordMap:
 
 
 	@staticmethod
-	def events_for_paths(
+	def events_for_keypaths(
 		eventsParentMap: EventPathDict,
 		actions: set[str] | None,
-		path: str | None
+		keypath: str | None
 	) -> Iterator[EventRecord]:
-		if path:
-			pathEvents = eventsParentMap[path]
-			yield from InMemEventRecordMap.events_for_actions(pathEvents, actions)
+		if keypath:
+			keypathEvents = eventsParentMap[keypath]
+			yield from InMemEventRecordMap.events_for_actions(keypathEvents, actions)
 		else:
-			for pathEvents in eventsParentMap.values():
-				yield from InMemEventRecordMap.events_for_actions(pathEvents, actions)
+			for keypathEvents in eventsParentMap.values():
+				yield from InMemEventRecordMap.events_for_actions(
+					keypathEvents,
+					actions
+				)
 
 
 	@staticmethod
-	def events_for_domain(
+	def events_for_sphere(
 		eventsParentMap: EventDomainDict,
 		actions: set[str] | None,
-		path: str | None,
-		domain: str | None,
+		keypath: str | None,
+		sphere: str | None,
 	) -> Iterator[EventRecord]:
-		if domain:
-			domainEvents = eventsParentMap[domain]
-			yield from InMemEventRecordMap.events_for_paths(
-				domainEvents,
+		if sphere:
+			sphereEvents = eventsParentMap[sphere]
+			yield from InMemEventRecordMap.events_for_keypaths(
+				sphereEvents,
 				actions,
-				path
+				keypath
 			)
 		else:
-			for domainEvents in eventsParentMap.values():
-				yield from InMemEventRecordMap.events_for_paths(
-					domainEvents,
+			for sphereEvents in eventsParentMap.values():
+				yield from InMemEventRecordMap.events_for_keypaths(
+					sphereEvents,
 					actions,
-					path
+					keypath
 				)
 
 
@@ -114,23 +117,23 @@ class InMemEventRecordMap:
 	def events_for_userId(
 		eventsParentMap: EventUserIdDict,
 		actions: set[str] | None,
-		path: str | None,
-		domain: str | None,
+		keypath: str | None,
+		sphere: str | None,
 		userId: str | None
 	) -> Iterator[EventRecord]:
 		if userId:
 			userIdEvents = eventsParentMap[userId]
-			yield from InMemEventRecordMap.events_for_domain(
+			yield from InMemEventRecordMap.events_for_sphere(
 				userIdEvents,
 				actions,
-				path,
-				domain
+				keypath,
+				sphere
 			)
 		else:
 			for userIdEvents in eventsParentMap.values():
-				yield from InMemEventRecordMap.events_for_domain(
+				yield from InMemEventRecordMap.events_for_sphere(
 					userIdEvents,
 					actions,
-					path,
-					domain
+					keypath,
+					sphere
 				)

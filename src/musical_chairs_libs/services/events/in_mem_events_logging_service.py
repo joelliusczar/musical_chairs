@@ -34,7 +34,7 @@ class InMemEventsLoggingService(EventsLogger, EventsQueryer):
 
 	def add_event_record(self, record: EventRecord):
 		self.__store__\
-			.userEvents[record.userId][record.domain][record.path][record.action]\
+			.userEvents[record.userId][record.sphere][record.keypath][record.action]\
 			.append(record)
 		self.__store__\
 			.vistorEvents[record.visitorId][record.url]\
@@ -44,8 +44,8 @@ class InMemEventsLoggingService(EventsLogger, EventsQueryer):
 	def add_event(
 		self,
 		action: str,
-		domain: str,
-		path: Optional[str] = None,
+		sphere: str,
+		keypath: Optional[str] = None,
 		extraInfo: str = ""
 	) -> EventRecord:
 		userId = self.user_provider.current_user().id
@@ -58,8 +58,8 @@ class InMemEventsLoggingService(EventsLogger, EventsQueryer):
 				action,
 				visitorId,
 				timestamp,
-				path,
-				domain,
+				keypath,
+				sphere,
 				url,
 				extraInfo,
 			)
@@ -72,15 +72,15 @@ class InMemEventsLoggingService(EventsLogger, EventsQueryer):
 		userId: int | None,
 		fromTimestamp: float,
 		actions: set[str] | None = None,
-		domain: str | None = None,
-		path: str | None = None,
+		sphere: str | None = None,
+		keypath: str | None = None,
 		limit: int | None = None
 	) -> Iterator[EventRecord]:
 		eventsIter = InMemEventRecordMap.events_for_userId(
 			self.__store__.userEvents,
 			actions,
-			path,
-			domain,
+			keypath,
+			sphere,
 			str(userId)
 		)
 		yield from (e for i,e in enumerate(eventsIter)\

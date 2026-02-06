@@ -1,6 +1,7 @@
 import pytest
 from musical_chairs_libs.services import (
 	SongInfoService,
+	StationService,
 	StationsSongsService
 )
 from .constant_fixtures_for_test import *
@@ -283,10 +284,12 @@ def test_get_songs_by_station_id(fixture_song_info_service: SongInfoService):
 @pytest.mark.current_username("testUser_bravo")
 def test_save__multiple_song_add_station_and_playlist(
 	fixture_song_info_service: SongInfoService,
-	fixture_account_service: AccountsService
+	fixture_account_service: AccountsService,
+	fixture_station_service: StationService
 ):
 	songInfoService = fixture_song_info_service
 	accountService = fixture_account_service
+	stationService = fixture_station_service
 	songInfoList = sorted(songInfoService.get_songs_for_edit([39, 48]),
 		key=lambda s: s.id
 	)
@@ -299,10 +302,10 @@ def test_save__multiple_song_add_station_and_playlist(
 	sendData = SongEditInfo(
 		id=0,
 		name="",
-		path="",
+		treepath="",
 		internalpath="",
 		stations=[
-			StationInfo(id=5, name="tango_station")
+			next(stationService.get_stations(5))
 		],
 		playlists=[
 			PlaylistInfo(
@@ -775,7 +778,7 @@ def test_get_single_song_for_edit(
 	songInfo = next(songInfoService.get_songs_for_edit([1]))
 	assert songInfo
 
-	assert songInfo.path == "foo/goo/boo/sierra"
+	assert songInfo.treepath == "foo/goo/boo/sierra"
 	assert songInfo.name == "sierra_song"
 	assert songInfo.album and songInfo.album.id == 11
 	assert songInfo.album and songInfo.album.name == "boo_album"
@@ -790,7 +793,7 @@ def test_get_single_song_for_edit(
 		assert songInfo.primaryartist.name == "foxtrot_artist"
 	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == "1"
-	assert songInfo.disc == 1
+	assert songInfo.discnum == 1
 	assert songInfo.genre == "pop"
 	assert songInfo.stations and len(songInfo.stations) == 2
 	sortedStations = sorted(songInfo.stations, key=lambda t: t.id or 0)
@@ -862,7 +865,7 @@ def test_get_multiple_songs_for_edit(
 	)
 	assert songInfoList and len(songInfoList) == 2
 	songInfo = songInfoList[0]
-	assert songInfo.path == "foo/goo/boo/sierra"
+	assert songInfo.treepath == "foo/goo/boo/sierra"
 	assert songInfo.name == "sierra_song"
 	assert songInfo.album and songInfo.album.id == 11
 	assert songInfo.album and songInfo.album.name == "boo_album"
@@ -877,7 +880,7 @@ def test_get_multiple_songs_for_edit(
 		assert songInfo.primaryartist.name == "foxtrot_artist"
 	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == "1"
-	assert songInfo.disc == 1
+	assert songInfo.discnum == 1
 	assert songInfo.genre == "pop"
 	assert songInfo.stations and len(songInfo.stations) == 2
 	sortedStations = sorted(songInfo.stations, key=lambda t: t.id or 0)
@@ -891,7 +894,7 @@ def test_get_multiple_songs_for_edit(
 		assert sortedStations[1].displayname == "Blurg the blergos"
 
 	songInfo = songInfoList[1]
-	assert songInfo.path == "foo/goo/shoo/india"
+	assert songInfo.treepath == "foo/goo/shoo/india"
 	assert songInfo.name == "india_song"
 	assert songInfo.album and songInfo.album.id == 8
 	assert songInfo.album and songInfo.album.name == "shoo_album"
@@ -911,7 +914,7 @@ def test_get_multiple_songs_for_edit(
 	assert not songInfo.primaryartist
 	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == "2"
-	assert songInfo.disc == 1
+	assert songInfo.discnum == 1
 	assert not songInfo.genre
 	assert songInfo.stations and len(songInfo.stations) == 2
 	sortedStations = sorted(songInfo.stations, key=lambda t: t.id or 0)
@@ -989,9 +992,11 @@ def test_get_song_with_owner_info(
 	assert artsit1Owner.username == "testUser_hotel"
 	assert results.stations
 	assert len(results.stations) == 2
+	assert isinstance(results.stations[0], StationInfo)
 	station0Owner = results.stations[0].owner
 	assert station0Owner
 	assert station0Owner.username == "testUser_bravo"
+	assert isinstance(results.stations[1], StationInfo)
 	station1Owner = results.stations[1].owner
 	assert station1Owner
 	assert station1Owner.displayname == "julietDisplay"

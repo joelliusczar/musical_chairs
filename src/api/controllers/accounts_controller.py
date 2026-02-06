@@ -31,7 +31,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	UserActions,
-	UserRoleDomain
+	UserRoleSphere
 )
 from api_dependencies import (
 	account_access_service,
@@ -56,7 +56,7 @@ router = APIRouter(prefix=f"/accounts")
 @router.post("/open", dependencies=[
 	Depends(
 		log_event(
-			UserRoleDomain.User.value,
+			UserRoleSphere.User.value,
 			UserActions.LOGIN.value
 		)
 	)
@@ -233,7 +233,7 @@ def search_users(
 			scopes=[UserRoleDef.USER_EDIT.value]
 		),
 		Depends(
-			log_event(UserRoleDomain.User.value, UserActions.ACCOUNT_UPDATE.value,)
+			log_event(UserRoleSphere.User.value, UserActions.ACCOUNT_UPDATE.value,)
 		)
 	]
 )
@@ -256,7 +256,7 @@ def update_account(
 			scopes=[UserRoleDef.USER_EDIT.value]
 		),
 		Depends(
-			log_event(UserRoleDomain.User.value, UserActions.CHANGE_PASS.value,)
+			log_event(UserRoleSphere.User.value, UserActions.CHANGE_PASS.value,)
 		)
 	]
 )
@@ -357,7 +357,7 @@ def validate_site_rule(
 			scopes=[UserRoleDef.USER_USER_ASSIGN.value]
 		),
 		Depends(
-			log_event(UserRoleDomain.User.value, UserActions.ADD_SITE_RULE.value,)
+			log_event(UserRoleSphere.User.value, UserActions.ADD_SITE_RULE.value,)
 		)
 	]
 )
@@ -368,7 +368,10 @@ def add_user_rule(
 		account_management_service
 	)
 ) -> ActionRule:
-	return accountManagementService.add_user_rule(subjectUser.id, rule)
+	return accountManagementService.add_user_rule(
+		subjectUser.id,
+		rule,
+	)
 
 
 @router.delete("/site-roles/user_role/{subjectuserkey}",
@@ -379,7 +382,7 @@ def add_user_rule(
 			scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 		),
 		Depends(
-			log_event(UserRoleDomain.User.value, UserActions.REMOVE_SITE_RULE.value)
+			log_event(UserRoleSphere.User.value, UserActions.REMOVE_SITE_RULE.value)
 		)
 	]
 )

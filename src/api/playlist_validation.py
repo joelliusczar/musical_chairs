@@ -6,7 +6,7 @@ from fastapi import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	UserRoleDef,
-	UserRoleDomain,
+	UserRoleSphere,
 	build_error_obj,
 	PlaylistInfo,
 	get_playlist_owner_roles,
@@ -30,7 +30,7 @@ def validate_playlist_rule(
 				"User is required"
 			)],
 		)
-	valid_name_set = UserRoleDef.as_set(UserRoleDomain.Playlist.value)
+	valid_name_set = UserRoleDef.as_set(UserRoleSphere.Playlist.value)
 	if rule.name not in valid_name_set:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

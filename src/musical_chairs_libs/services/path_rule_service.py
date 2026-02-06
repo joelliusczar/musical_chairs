@@ -11,21 +11,21 @@ from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
 from musical_chairs_libs.protocols import FileService, UserProvider
 from musical_chairs_libs.dtos_and_utilities import (
+	build_base_rules_query,
 	RulePriorityLevel,
 	normalize_opening_slash,
 	AccountInfo,
 	ChainedAbsorbentTrie,
 	ActionRule,
 	get_path_owner_roles,
-	UserRoleDomain,
+	UserRoleSphere,
 	UserRoleDef,
-	build_path_rules_query,
 	get_datetime,
 	generate_path_user_and_rules_from_rows
 )
 from musical_chairs_libs.tables import (
-	path_user_permissions as path_user_permissions_tbl,
-	pup_userFk, pup_path, pup_role, pup_priority, pup_span, pup_count,
+	userRoles as user_roles_tbl,
+	ur_userFk, ur_keypath, ur_role, ur_priority, ur_span, ur_quota,
 	users as user_tbl, u_pk, u_username, u_displayName, u_email, u_dirRoot,
 	u_disabled,
 	sg_pk, sg_path, sg_deletedTimstamp,
@@ -49,19 +49,19 @@ class PathRuleService:
 
 	def get_paths_user_can_see(self) -> Iterator[ActionRule]:
 		userId = self.user_provider.current_user().id
-		query = select(pup_path, pup_role, pup_priority, pup_span, pup_count)\
-			.where(pup_userFk == userId)\
-			.order_by(pup_path)
+		query = select(ur_keypath, ur_role, ur_priority, ur_span, ur_quota)\
+			.where(ur_userFk == userId)\
+			.order_by(ur_keypath)
 		records = self.conn.execute(query).mappings()
 		for r in records:
 			yield ActionRule(
-				name=cast(str,r[pup_role]),
-				priority=cast(int,r[pup_priority]) \
-					or RulePriorityLevel.STATION_PATH.value,
-				span=cast(int,r[pup_span]) or 0,
-				count=cast(int,r[pup_count]) or 0,
-				path=normalize_opening_slash(cast(str,r[pup_path])),
-				domain=UserRoleDomain.Path.value
+				name=cast(str,r[ur_role]),
+				priority=cast(int,r[ur_priority]) \
+					or RulePriorityLevel.INVITED_USER.value,
+				span=cast(int,r[ur_span]) or 0,
+				quota=cast(int,r[ur_quota]) or 0,
+				keypath=normalize_opening_slash(cast(str,r[ur_keypath])),
+				sphere=UserRoleSphere.Path.value
 			)
 
 
@@ -76,12 +76,12 @@ class PathRuleService:
 		)
 
 		pathRuleTree = ChainedAbsorbentTrie[ActionRule](
-			(normalize_opening_slash(p.path), p) for p in
-				rules if p.domain == UserRoleDomain.Path.value and p.path
+			(normalize_opening_slash(p.keypath), p) for p in
+				rules if p.sphere == UserRoleSphere.Path.value and p.keypath
 		)
 		pathRuleTree.add("/", (r for r in user.roles \
 			if type(r) == ActionRule \
-				and (UserRoleDomain.Path.conforms(r.name) \
+				and (UserRoleSphere.Path.conforms(r.name) \
 						or r.name == UserRoleDef.ADMIN.value
 				)
 		), shouldEmptyUpdateTree=False)
@@ -94,11 +94,11 @@ class PathRuleService:
 		prefix: str,
 		ruleName: Optional[str]
 	):
-		delStmt = delete(path_user_permissions_tbl)\
-			.where(pup_userFk == subjectUserId)\
-			.where(pup_path == prefix)
+		delStmt = delete(user_roles_tbl)\
+			.where(ur_userFk == subjectUserId)\
+			.where(ur_keypath == prefix)
 		if ruleName:
-			delStmt = delStmt.where(pup_role == ruleName)
+			delStmt = delStmt.where(ur_role == ruleName)
 		self.conn.execute(delStmt)
 
 	def add_user_rule_to_path(
@@ -107,24 +107,25 @@ class PathRuleService:
 		prefix: str,
 		rule: ActionRule
 	) -> ActionRule:
-		stmt = insert(path_user_permissions_tbl).values(
+		stmt = insert(user_roles_tbl).values(
 			userfk = addedUserId,
-			path = prefix,
+			keypath = prefix,
 			role = rule.name,
 			span = rule.span,
-			count = rule.count,
+			quota = rule.quota,
 			priority = None,
-			creationtimestamp = self.get_datetime().timestamp()
+			creationtimestamp = self.get_datetime().timestamp(),
+			sphere = UserRoleSphere.Path.value
 		)
 		self.conn.execute(stmt)
 		self.conn.commit()
 		return ActionRule(
 			name=rule.name,
 			span=rule.span,
-			count=rule.count,
-			priority=RulePriorityLevel.STATION_PATH.value,
-			path=prefix,
-			domain=UserRoleDomain.Path.value
+			quota=rule.quota,
+			priority=RulePriorityLevel.INVITED_USER.value,
+			keypath=prefix,
+			sphere=UserRoleSphere.Path.value
 		)
 
 
@@ -135,19 +136,19 @@ class PathRuleService:
 	) -> Iterator[AccountInfo]:
 		addSlash = True
 		normalizedPrefix = normalize_opening_slash(prefix)
-		rulesQuery = build_path_rules_query().cte()
+		rulesQuery = build_base_rules_query(UserRoleSphere.Path).cte()
 		query = select(
 			u_pk,
 			u_username,
 			u_displayName,
 			u_email,
 			u_dirRoot,
-			rulesQuery.c.rule_userfk.label("rule.userfk"),
-			rulesQuery.c.rule_name.label("rule.name"),
-			rulesQuery.c.rule_count.label("rule.count"),
-			rulesQuery.c.rule_span.label("rule.span"),
-			rulesQuery.c.rule_priority.label("rule.priority"),
-			rulesQuery.c.rule_domain.label("rule.domain")
+			rulesQuery.c["rule>userfk"].label("rule>userfk"),
+			rulesQuery.c["rule>name"].label("rule>name"),
+			rulesQuery.c["rule>quota"].label("rule>quota"),
+			rulesQuery.c["rule>span"].label("rule>span"),
+			rulesQuery.c["rule>priority"].label("rule>priority"),
+			rulesQuery.c["rule>sphere"].label("rule>sphere")
 		).select_from(user_tbl).join(
 			rulesQuery,
 			or_(
@@ -159,17 +160,23 @@ class PathRuleService:
 							func.normalize_opening_slash(u_dirRoot, addSlash)
 						)
 					) == func.normalize_opening_slash(u_dirRoot, addSlash),
-					rulesQuery.c.rule_userfk == 0
+					rulesQuery.c["rule>userfk"] == 0
 				),
 				and_(
-					rulesQuery.c.rule_userfk == u_pk,
+					rulesQuery.c["rule>userfk"] == u_pk,
 						func.substring(
 							normalizedPrefix,
 							1,
 							func.length(
-								func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
+								func.normalize_opening_slash(
+									rulesQuery.c["rule>keypath"],
+									addSlash
+								)
 							)
-						) == func.normalize_opening_slash(rulesQuery.c.rule_path, addSlash)
+						) == func.normalize_opening_slash(
+							rulesQuery.c["rule>keypath"],
+							addSlash
+						)
 				),
 			),
 			isouter=True
@@ -177,9 +184,9 @@ class PathRuleService:
 		.where(
 			or_(
 				coalesce(
-					rulesQuery.c.rule_priority,
+					rulesQuery.c["rule>priority"],
 					RulePriorityLevel.SITE.value
-				) > RulePriorityLevel.INVITED_USER.value,
+				) > RulePriorityLevel.REQUIRES_INVITE.value,
 					func.substring(
 						prefix,
 						1,
@@ -193,7 +200,6 @@ class PathRuleService:
 		records = self.conn.execute(query).mappings()
 		yield from generate_path_user_and_rules_from_rows(
 			records,
-			owner.id if owner else None,
 			prefix
 		)
 

@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional
 
 
-class UserRoleDomain(Enum):
+class UserRoleSphere(Enum):
 	Site = "site"
 	User = "user"
 	Station = "station"
@@ -15,54 +15,54 @@ class UserRoleDomain(Enum):
 		return candidate.startswith(self.value)
 	
 class AlbumActions(Enum):
-	ALBUM_CREATE = f"{UserRoleDomain.Album.value}:create"
-	ALBUM_EDIT = f"{UserRoleDomain.Album.value}:edit"
+	ALBUM_CREATE = f"{UserRoleSphere.Album.value}:create"
+	ALBUM_EDIT = f"{UserRoleSphere.Album.value}:edit"
 	
 class ArtistActions(Enum):
-	ARTIST_CREATE = f"{UserRoleDomain.Artist.value}:create"
-	ARTIST_EDIT = f"{UserRoleDomain.Artist.value}:edit"
+	ARTIST_CREATE = f"{UserRoleSphere.Artist.value}:create"
+	ARTIST_EDIT = f"{UserRoleSphere.Artist.value}:edit"
 
 class StationActions(Enum):
-	STATION_CREATE = f"{UserRoleDomain.Station.value}:create"
-	STATION_COPY = f"{UserRoleDomain.Station.value}:copy"
-	STATION_EDIT = f"{UserRoleDomain.Station.value}:edit"
-	STATION_DELETE = f"{UserRoleDomain.Station.value}:delete"
-	STATION_REQUEST = f"{UserRoleDomain.Station.value}:request"
-	STATION_ENABLE = f"{UserRoleDomain.Station.value}:enable"
-	STATION_DISABLE = f"{UserRoleDomain.Station.value}:disable"
-	STATION_SKIP = f"{UserRoleDomain.Station.value}:skip"
-	STATION_PLAYNEXT = f"{UserRoleDomain.Station.value}:playnext"
-	STATION_ASSIGN = f"{UserRoleDomain.Station.value}:assign"
-	STATION_USER_ASSIGN = f"{UserRoleDomain.Station.value}:userassign"
-	STATION_USER_REMOVE = f"{UserRoleDomain.Station.value}:userremove"
+	STATION_CREATE = f"{UserRoleSphere.Station.value}:create"
+	STATION_COPY = f"{UserRoleSphere.Station.value}:copy"
+	STATION_EDIT = f"{UserRoleSphere.Station.value}:edit"
+	STATION_DELETE = f"{UserRoleSphere.Station.value}:delete"
+	STATION_REQUEST = f"{UserRoleSphere.Station.value}:request"
+	STATION_ENABLE = f"{UserRoleSphere.Station.value}:enable"
+	STATION_DISABLE = f"{UserRoleSphere.Station.value}:disable"
+	STATION_SKIP = f"{UserRoleSphere.Station.value}:skip"
+	STATION_PLAYNEXT = f"{UserRoleSphere.Station.value}:playnext"
+	STATION_ASSIGN = f"{UserRoleSphere.Station.value}:assign"
+	STATION_USER_ASSIGN = f"{UserRoleSphere.Station.value}:userassign"
+	STATION_USER_REMOVE = f"{UserRoleSphere.Station.value}:userremove"
 
 class StationsSongsActions(Enum):
 	SKIP = "Skipped"
 	PLAYED = "Played"
 	
 class PathActions(Enum):
-	PATH_EDIT = f"{UserRoleDomain.Path.value}:edit"
-	PATH_DELETE = f"{UserRoleDomain.Path.value}:delete"
-	PATH_USER_ASSIGN = f"{UserRoleDomain.Path.value}:userassign"
-	PATH_DOWNLOAD = f"{UserRoleDomain.Path.value}:download"
-	PATH_UPLOAD = f"{UserRoleDomain.Path.value}:upload"
-	PATH_MOVE = f"{UserRoleDomain.Path.value}:move"
+	PATH_EDIT = f"{UserRoleSphere.Path.value}:edit"
+	PATH_DELETE = f"{UserRoleSphere.Path.value}:delete"
+	PATH_USER_ASSIGN = f"{UserRoleSphere.Path.value}:userassign"
+	PATH_DOWNLOAD = f"{UserRoleSphere.Path.value}:download"
+	PATH_UPLOAD = f"{UserRoleSphere.Path.value}:upload"
+	PATH_MOVE = f"{UserRoleSphere.Path.value}:move"
 
 class PlaylistActions(Enum):
-	PLAYLIST_CREATE = f"{UserRoleDomain.Playlist.value}:create"
-	PLAYLIST_EDIT = f"{UserRoleDomain.Playlist.value}:edit"
-	PLAYLIST_DELETE = f"{UserRoleDomain.Playlist.value}:delete"
-	PLAYLIST_ASSIGN = f"{UserRoleDomain.Playlist.value}:assign"
-	PLAYLIST_USER_ASSIGN = f"{UserRoleDomain.Playlist.value}:userassign"
-	PLAYLIST_USER_LIST = f"{UserRoleDomain.Playlist.value}:userlist"
+	PLAYLIST_CREATE = f"{UserRoleSphere.Playlist.value}:create"
+	PLAYLIST_EDIT = f"{UserRoleSphere.Playlist.value}:edit"
+	PLAYLIST_DELETE = f"{UserRoleSphere.Playlist.value}:delete"
+	PLAYLIST_ASSIGN = f"{UserRoleSphere.Playlist.value}:assign"
+	PLAYLIST_USER_ASSIGN = f"{UserRoleSphere.Playlist.value}:userassign"
+	PLAYLIST_USER_LIST = f"{UserRoleSphere.Playlist.value}:userlist"
 
 class UserActions(Enum):
-	CHANGE_PASS = f"{UserRoleDomain.User.value}:change-password"
-	LOGIN = f"{UserRoleDomain.User.value}:login"
-	ACCOUNT_CREATE = f"{UserRoleDomain.User.value}:account-create"
-	ACCOUNT_UPDATE = f"{UserRoleDomain.User.value}:account-update"
-	ADD_SITE_RULE = f"{UserRoleDomain.User.value}:add-site-rule"
-	REMOVE_SITE_RULE = f"{UserRoleDomain.User.value}:remove-site-rule"
+	CHANGE_PASS = f"{UserRoleSphere.User.value}:change-password"
+	LOGIN = f"{UserRoleSphere.User.value}:login"
+	ACCOUNT_CREATE = f"{UserRoleSphere.User.value}:account-create"
+	ACCOUNT_UPDATE = f"{UserRoleSphere.User.value}:account-update"
+	ADD_SITE_RULE = f"{UserRoleSphere.User.value}:add-site-rule"
+	REMOVE_SITE_RULE = f"{UserRoleSphere.User.value}:remove-site-rule"
 
 class DbUsers(Enum):
 	OWNER_USER = "mc_owner"

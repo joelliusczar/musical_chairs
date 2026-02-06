@@ -1,5 +1,14 @@
-from typing import Optional, cast, Iterable, Iterator, Tuple
-from sqlalchemy.sql.expression import Select, false, CompoundSelect
+from typing import (
+	Any,
+	Callable,
+	Collection,
+	cast,
+	Optional,
+	Iterable,
+	Iterator,
+	TypeVar,
+)
+from sqlalchemy.sql.expression import Select
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.engine.row import RowMapping
@@ -10,11 +19,10 @@ from sqlalchemy import (
 	case,
 	or_
 )
-from sqlalchemy import Integer, String, Float
+from sqlalchemy import Integer
 from musical_chairs_libs.tables import (
-	ur_userFk, ur_role, ur_count, ur_span, ur_priority,
-	u_username, u_pk, u_displayName, u_email, u_dirRoot,
-	pup_role, pup_userFk, pup_count, pup_span, pup_priority, pup_path
+	ur_userFk, ur_role, ur_quota, ur_span, ur_priority, ur_keypath, ur_sphere,
+	u_username, u_pk, u_displayName, u_email, u_dirRoot, 
 )
 from .user_role_def import (
 	UserRoleDef,
@@ -25,117 +33,101 @@ from .action_rule_dtos import (
 )
 from .account_dtos import (
 	AccountInfo,
-	get_station_owner_rules,
-	get_path_owner_roles,
-	get_playlist_owner_roles
+	RuledOwnedEntity,
 )
-from .constants import UserRoleDomain
+from .constants import UserRoleSphere
+from .default_rule_providers import get_path_owner_roles
 from .simple_functions import normalize_opening_slash
 
+RuledOwnedType = TypeVar("RuledOwnedType", bound=RuledOwnedEntity)
 
-
-__path_permissions_query__ = select(
-	pup_userFk.label("rule_userfk"),
-	pup_role.label("rule_name"),
-	pup_count.label("rule_count"),
-	pup_span.label("rule_span"),
-	coalesce[Integer](
-		pup_priority,
-		RulePriorityLevel.STATION_PATH.value
-	).label("rule_priority"),
-	dbLiteral(UserRoleDomain.Path.value).label("rule_domain"),
-	pup_path.label("rule_path")
-)
-
-def build_placeholder_select(
+def build_shim_select(
 	ruleNameValue: str
-) -> Select[Tuple[int, str, float, float, int, str]]:
+) -> Select[Any]:
 
 	query = select(
-		dbLiteral(0).label("rule_userfk"),
-		dbLiteral(ruleNameValue).label("rule_name"),
-		cast(Column[float],dbLiteral(0)).label("rule_count"),
-		cast(Column[float],dbLiteral(0)).label("rule_span"),
-		dbLiteral(0).label("rule_priority"),
-		dbLiteral("shim").label("rule_domain"),
+		dbLiteral(0).label("rule>userfk"),
+		dbLiteral(ruleNameValue).label("rule>name"),
+		cast(Column[float],dbLiteral(0)).label("rule>quota"),
+		cast(Column[float],dbLiteral(0)).label("rule>span"),
+		dbLiteral(0).label("rule>priority"),
+		dbLiteral("shim").label("rule>sphere"),
+		dbLiteral(None).label("rule>keypath")
 	)
 
 	return query
 
-
-
-def build_path_rules_query(
-	userId: Optional[int]=None
-) -> CompoundSelect[
-			Tuple[
-				Integer, String, Float[float], Float[float], Integer, str, String
-			]
-		]:
-
+def build_base_rules_query(
+	sphere: UserRoleSphere,
+	userId: int | None=None
+):
 	user_rules_query = select(
-		ur_userFk.label("rule_userfk"),
-		ur_role.label("rule_name"),
-		ur_count.label("rule_count"),
-		ur_span.label("rule_span"),
+		ur_userFk.label("rule>userfk"),
+		ur_role.label("rule>name"),
+		ur_quota.label("rule>quota"),
+		ur_span.label("rule>span"),
 		coalesce[Integer](
 			ur_priority,
 			case(
 				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
+				(
+					ur_sphere == sphere.value, 
+					RulePriorityLevel.INVITED_USER.value
+				),
 				else_=RulePriorityLevel.SITE.value
 			)
-		).label("rule_priority"),
-		dbLiteral(UserRoleDomain.Site.value).label("rule_domain"),
-		dbLiteral(None).label("rule_path")
+		).label("rule>priority"),
+		ur_sphere.label("rule>sphere"),
+		ur_keypath.label("rule>keypath")
 	).where(or_( #this part is only applies if there is a user id
-			ur_role.like(f"{UserRoleDomain.Path.value}:%"),
+			ur_role.like(f"{sphere.value}:%"),
 			ur_role == UserRoleDef.ADMIN.value
 		)
+	)\
+	.where(
+		ur_sphere.in_([UserRoleSphere.Site.value, sphere.value])
 	)
 
-	path_permissions_query = __path_permissions_query__
-	placeholder_select = build_placeholder_select(
-		UserRoleDef.PATH_VIEW.value
-	).add_columns(
-		dbLiteral(None).label("rule_path")
+
+	placeholder_select = build_shim_select(
+		UserRoleDef.combine(sphere, "view").value
 	)
 
 	if userId is not None:
-		path_permissions_query =\
-			path_permissions_query.where(pup_userFk == userId)
 		user_rules_query = user_rules_query.where(ur_userFk == userId)
-	else:
-		user_rules_query = user_rules_query.where(false())
 
 	query = union_all(
-		path_permissions_query,
 		user_rules_query,
 		placeholder_select
 	)
 	return query
 
+
 def build_site_rules_query(
 	userId: Optional[int]=None
-) -> Select[Tuple[Integer, String, Float[float], Float[float], Integer, str]]:
+) -> Select[Any]:
 
 	user_rules_query = select(
-		ur_userFk.label("rule.userfk"),
-		ur_role.label("rule.name"),
-		ur_count.label("rule.count"),
-		ur_span.label("rule.span"),
+		ur_userFk.label("rule>userfk"),
+		ur_role.label("rule>name"),
+		ur_quota.label("rule>quota"),
+		ur_span.label("rule>span"),
 		coalesce[Integer](
 			ur_priority,
 			case(
 				(ur_role == UserRoleDef.ADMIN.value, RulePriorityLevel.SUPER.value),
 				else_=RulePriorityLevel.SITE.value
 			)
-		).label("rule.priority"),
-		dbLiteral(UserRoleDomain.Site.value).label("rule.domain"),
-	)
+		).label("rule>priority"),
+		ur_sphere.label("rule>sphere"),
+	)\
+	.where(ur_sphere == UserRoleSphere.Site.value)
 
 	if userId is not None:
 		user_rules_query = user_rules_query.where(ur_userFk == userId)
 
 	return user_rules_query
+
 
 def row_to_user(row: RowMapping) -> AccountInfo:
 	return AccountInfo(
@@ -146,66 +138,75 @@ def row_to_user(row: RowMapping) -> AccountInfo:
 		dirroot=row[u_dirRoot],
 	)
 
+
 def row_to_action_rule(row: RowMapping) -> ActionRule:
 
 	return ActionRule(
-		name=row["rule.name"],
-		span=row["rule.span"],
-		count=row["rule.count"],
+		name=row["rule>name"],
+		span=row["rule>span"],
+		quota=row["rule>quota"],
 		#if priortity is explict use that
 		#otherwise, prefer station specific rule vs non station specific rule
-		priority=cast(int,row["rule.priority"]) if row["rule.priority"] \
-			else RulePriorityLevel.STATION_PATH.value,
-		domain=row["rule.domain"]
+		priority=cast(int,row["rule>priority"]) if row["rule>priority"] \
+			else RulePriorityLevel.INVITED_USER.value,
+		sphere=row["rule>sphere"]
 	)
 
-def generate_station_user_and_rules_from_rows(
+
+def generate_domain_user_and_rules_from_rows(
 	rows: Iterable[RowMapping],
-	ownerId: Optional[int]=None,
-	prefix: Optional[str]=None
+	ownerRuleProvider: Callable[[],Iterator[ActionRule]],
+	ownerId: int | None=None,
 ) -> Iterator[AccountInfo]:
 	currentUser = None
 	for row in rows:
 		if not currentUser or currentUser.id != cast(int,row[u_pk]):
 			if currentUser:
 				if currentUser.id == ownerId:
-					currentUser.roles.extend(get_station_owner_rules())
+					currentUser.roles.extend(ownerRuleProvider())
 				yield currentUser
 			currentUser = row_to_user(row)
-			if row["rule.domain"] != "shim":
+			if row["rule>sphere"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
-		elif row["rule.domain"] != "shim":
+		elif row["rule>sphere"] != "shim":
 			currentUser.roles.append(row_to_action_rule(row))
 	if currentUser:
 		if currentUser.id == ownerId:
-			currentUser.roles.extend(get_station_owner_rules())
+			currentUser.roles.extend(ownerRuleProvider())
 		yield currentUser
 
-def generate_playlist_user_and_rules_from_rows(
+
+def generate_owned_and_rules_from_rows(
 	rows: Iterable[RowMapping],
-	ownerId: Optional[int]=None,
-	prefix: Optional[str]=None
-) -> Iterator[AccountInfo]:
-	currentUser = None
+	transformer: Callable[[RowMapping], RuledOwnedType],
+	ownerRuleProvider: Callable[[Collection[str] | None], Iterator[ActionRule]],
+	scopes: Collection[str] | None = None,
+	userId: int | None = None,
+) -> Iterator[RuledOwnedType]:
+	current = None
 	for row in rows:
-		if not currentUser or currentUser.id != cast(int,row[u_pk]):
-			if currentUser:
-				if currentUser.id == ownerId:
-					currentUser.roles.extend(get_playlist_owner_roles())
-				yield currentUser
-			currentUser = row_to_user(row)
-			if row["rule.domain"] != "shim":
-				currentUser.roles.append(row_to_action_rule(row))
-		elif row["rule.domain"] != "shim":
-			currentUser.roles.append(row_to_action_rule(row))
-	if currentUser:
-		if currentUser.id == ownerId:
-			currentUser.roles.extend(get_playlist_owner_roles())
-		yield currentUser
+		if not current or current.id != cast(int,row["id"]):
+			if current:
+				owner = current.owner
+				if owner and owner.id == userId:
+					current.rules.extend(ownerRuleProvider(scopes))
+				current.rules = ActionRule.sorted(current.rules)
+				yield current
+			current = transformer(row)
+			if cast(str,row["rule>sphere"]) != "shim":
+				current.rules.append(row_to_action_rule(row))
+		elif cast(str,row["rule>sphere"]) != "shim":
+			current.rules.append(row_to_action_rule(row))
+	if current:
+		owner = current.owner
+		if owner and owner.id == userId:
+			current.rules.extend(ownerRuleProvider(scopes))
+		current.rules = ActionRule.sorted(current.rules)
+		yield current
+
 
 def generate_path_user_and_rules_from_rows(
 	rows: Iterable[RowMapping],
-	ownerId: Optional[int]=None,
 	prefix: Optional[str]=None
 ) -> Iterator[AccountInfo]:
 	currentUser = None
@@ -223,9 +224,9 @@ def generate_path_user_and_rules_from_rows(
 						currentUser.roles.extend(get_path_owner_roles(prefix))
 				yield currentUser
 			currentUser = row_to_user(row)
-			if row["rule.domain"] != "shim":
+			if row["rule>sphere"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
-		elif row["rule.domain"] != "shim":
+		elif row["rule>sphere"] != "shim":
 				currentUser.roles.append(row_to_action_rule(row))
 	if currentUser:
 		if normalizedPrefix and currentUser.dirroot \

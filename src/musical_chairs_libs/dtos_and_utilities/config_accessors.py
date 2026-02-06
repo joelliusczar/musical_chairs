@@ -2,29 +2,23 @@ import json
 import logging as builtin_logging
 import os
 import re
+from contextlib import contextmanager
 from uuid import UUID
 from typing import Any
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Connection
-from sqlalchemy.event import listens_for
-from musical_chairs_libs.dtos_and_utilities.constants import DbUsers
-#https://github.com/PyMySQL/PyMySQL/issues/590
-from pymysql.constants import CLIENT
 from pathlib import Path
 
-collation_connection = "utf8mb4_uca1400_ai_ci"
 
-def __on_connect__(**kw: dict[str, Any]): 
-	dbapi_connection = kw["dbapi_connection"]
-	#somewhere between mariahdb 11.8.3 and 10.6.22, the default collation_connection
-	#became utf8mb4_uca1400_ai_ci which causes problems with next_directory_level.
-	#Supposedly, you should be able to add connect_args={'init_command': "SET @@collation_connection='utf8mb4_unicode_ci'"}
-	#to the engine constructor, but apparently there is another bug described here
-	#https://github.com/sqlalchemy/sqlalchemy/discussions/7858 
-	#that seems to indicate that collation_connection is being overwritten
-	dbapi_connection.query(f"SET @@collation_connection='{collation_connection}'") #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue]
 
 class ConfigAcessors:
+
+	config_overrides: dict[str, Any] = {}
+
+	@classmethod
+	def get_value(cls, envKey: str, overrideKey: str | None = None) -> Any:
+		if overrideKey is not None and overrideKey in cls.config_overrides:
+			return cls.config_overrides[overrideKey]
+		return os.environ[envKey]
+
 
 	@classmethod
 	def app_root(cls) -> str:
@@ -32,70 +26,77 @@ class ConfigAcessors:
 			return os.environ["DSF_TEST_ROOT"]
 		return os.environ["DSF_APP_ROOT"]
 
+
 	@classmethod
 	def absolute_content_home(cls) -> str:
-		contentHome = os.environ["DSF_CONTENT_DIR"]
-		return contentHome
+		return cls.get_value("DSF_CONTENT_DIR", "absolute_content_home")
+
 
 	@classmethod
 	def db_setup_pass(cls) -> str:
-		return os.environ.get("DSF_DB_PASS_SETUP", "")
+		return cls.get_value("DSF_DB_PASS_SETUP","db_setup_pass")
+
 
 	@classmethod
 	def db_pass_api(cls) -> str:
-		return os.environ.get("DSF_DB_PASS_API", "")
+		return cls.get_value("DSF_DB_PASS_API","db_pass_api")
+
 
 	@classmethod
 	def db_pass_radio(cls) -> str:
-		return os.environ.get("DSF_DB_PASS_RADIO", "")
+		return cls.get_value("DSF_DB_PASS_RADIO","db_pass_radio")
+
 
 	@classmethod
 	def db_pass_janitor(cls) -> str:
-		return os.environ.get("DSF_DB_PASS_JANITOR", "")
+		return cls.get_value("DSF_DB_PASS_JANITOR","db_pass_janitor")
+
 
 	@classmethod
 	def db_pass_owner(cls) -> str:
-		return os.environ.get("DSF_DB_PASS_OWNER", "")
+		return cls.get_value("DSF_DB_PASS_OWNER","db_pass_owner")
+
 
 	@classmethod
 	def namespace_uuid(cls) -> UUID:
-		return UUID(os.environ.get("DSF_NAMESPACE_UUID", ""))
+		return UUID(cls.get_value("DSF_NAMESPACE_UUID", "namespace_uuid"))
+
 
 	@classmethod
 	def templates_dir(cls) -> str:
-		templateDir = os.environ["DSF_TEMPLATES_DEST"]
-		return templateDir
+		return cls.get_value("DSF_TEMPLATES_DEST", "templates_dir")
+
 
 	@classmethod
 	def station_config_dir(cls) -> str:
-		configDir = os.environ["DSF_ICES_CONFIGS_DIR"]
-		return configDir
+		return cls.get_value("DSF_ICES_CONFIGS_DIR", "station_config_dir")
+
 
 	@classmethod
 	def station_module_dir(cls) -> str:
-		moduleDir = os.environ["DSF_PY_MODULE_DIR"]
-		return moduleDir
+		return cls.get_value("DSF_PY_MODULE_DIR", "station_module_dir")
+
 
 	@classmethod
 	def sql_script_dir(cls) -> str:
-		moduleDir = os.environ["DSF_SQL_SCRIPTS_DEST"]
-		return moduleDir
+		return cls.get_value("DSF_SQL_SCRIPTS_DEST", "sql_script_dir")
+
 
 	@classmethod
 	def db_name(cls) -> str:
-		return os.environ["DSF_DATABASE_NAME"]
+		return cls.get_value("DSF_DATABASE_NAME", "db_name")
 
 	@classmethod
 	def s3_bucket_name(cls) -> str:
-		return os.environ["S3_BUCKET_NAME"]
+		return cls.get_value("S3_BUCKET_NAME", "s3_bucket_name")
 
 	@classmethod
 	def s3_region_name(cls) -> str:
-		return os.environ["S3_REGION_NAME"]
+		return cls.get_value("S3_REGION_NAME", "s3_region_name")
 
 	@classmethod
 	def s3_endpoint(cls) -> str:
-		return os.environ["AWS_ENDPOINT_URL"]
+		return cls.get_value("AWS_ENDPOINT_URL", "s3_endpoint")
 
 	@classmethod
 	def __test_flag__(cls) -> bool:
@@ -103,34 +104,41 @@ class ConfigAcessors:
 
 	@classmethod
 	def auth_key(cls) -> str:
-		return os.environ["DSF_AUTH_SECRET_KEY"]
+		return cls.get_value("DSF_AUTH_SECRET_KEY", "auth_key")
 	
 	@classmethod
 	def back_key(cls) -> str:
-		return os.environ["DSF_BACK_KEY"]
+		return cls.get_value("DSF_BACK_KEY", "back_key")
 	
 	@classmethod
 	def dev_app_user_name(cls) -> str:
-		return os.environ["DSF_DEV_APP_USER_NAME"]
+		return cls.get_value("DSF_DEV_APP_USER_NAME", "dev_app_user_name")
 
 	@classmethod
 	def dev_app_user_pw(cls) -> str:
-		return os.environ["DSF_DEV_APP_USER_PW"]
+		return cls.get_value("DSF_DEV_APP_USER_PW", "dev_app_user_pw")
 
 
 	@classmethod
 	def event_log_dir(cls) -> str:
-		return os.environ["DSF_EVENT_LOGS_DIR"]
+		return cls.get_value("DSF_EVENT_LOGS_DIR", "event_log_dir")
 	
 
 	@classmethod
 	def station_queue_files_dir(cls) -> str:
-		return os.environ["DSF_QUEUE_FILES_DIR"]
+		return cls.get_value("DSF_QUEUE_FILES_DIR", "station_queue_files_dir")
 	
 
 	@classmethod
 	def station_history_files_dir(cls) -> str:
-		return os.environ["DSF_STATION_HISTORY_FILES_DIR"]
+		return cls.get_value(
+			"DSF_STATION_HISTORY_FILES_DIR",
+			"station_history_files_dir")
+	
+
+	@classmethod
+	def alembic_ini(cls) -> str:
+		return cls.get_value("DSF_ALEMBIC_INI", "alembic_ini")
 
 
 	@classmethod
@@ -141,6 +149,7 @@ class ConfigAcessors:
 		except:
 			return builtin_logging.getLevelName(builtin_logging.WARNING)
 
+
 	@classmethod
 	def radio_log_level(cls) -> str:
 		try:
@@ -149,6 +158,7 @@ class ConfigAcessors:
 		except:
 			return builtin_logging.getLevelName(builtin_logging.WARNING)
 		
+	
 	@classmethod
 	def api_log_handler(cls) -> str:
 		try:
@@ -156,7 +166,8 @@ class ConfigAcessors:
 				"json"
 		except:
 			return "json"
-		
+
+
 	@classmethod
 	def radio_log_handler(cls) -> str:
 		try:
@@ -164,15 +175,18 @@ class ConfigAcessors:
 				"json"
 		except:
 			return "json"
-	
+
+
 	@classmethod
 	def python_executable(cls) -> str:
 		return os.environ["DSF_PYTHON_EXECUTABLE"]
-	
+
+
 	@classmethod
 	def ices_executable(cls) -> str:
 		return str(Path(os.environ["DSF_ICES_EXECUTABLE"]).expanduser())
-	
+
+
 	@classmethod
 	def live_config(cls) -> dict[str, Any]:
 		try:
@@ -184,65 +198,12 @@ class ConfigAcessors:
 
 
 	@classmethod
-	def get_configured_api_connection(
-		cls,
-		dbName: str,
-		echo: bool=False
-	) -> Connection:
-		dbPass = ConfigAcessors.db_pass_api()
-		if not dbPass:
-			raise RuntimeError("API: The system is not configured correctly for that.")
-		engine = create_engine(
-			f"mysql+pymysql://{DbUsers.API_USER()}:{dbPass}@localhost/{dbName}",
-			echo=echo,
-		)
-		
-		listens_for(engine, "connect", named=True)(__on_connect__)
-
-
-		conn = engine.connect()
-		return conn
-
-	@classmethod
-	def get_configured_janitor_connection(
-		cls,
-		dbName: str,
-		echo: bool=False
-	) -> Connection:
-		dbPass = ConfigAcessors.db_pass_janitor()
-		if not dbPass:
-			raise RuntimeError("Janitor: The system is not configured correctly for that.")
-		engine = create_engine(
-			f"mysql+pymysql://{DbUsers.JANITOR_USER()}:{dbPass}@localhost/{dbName}",
-			echo=echo,
-			connect_args={
-				"client_flag": CLIENT.MULTI_STATEMENTS | CLIENT.MULTI_RESULTS
-			},
-		)
-
-		listens_for(engine, "connect", named=True)(__on_connect__)
-		conn = engine.connect()
-		return conn
-
-	@classmethod
-	def get_configured_radio_connection(
-		cls,
-		dbName: str,
-		echo: bool=False,
-		isolationLevel: str="REPEATABLE READ"
-	) -> Connection:
-		dbPass = ConfigAcessors.db_pass_radio()
-		if not dbPass:
-			raise RuntimeError("Radio: The system is not configured correctly for that.")
-		engine = create_engine(
-			f"mysql+pymysql://{DbUsers.RADIO_USER()}:{dbPass}@localhost/{dbName}",
-			echo=echo,
-			execution_options={
-        "isolation_level": isolationLevel
-    	}
-		)
-		listens_for(engine, "connect", named=True)(__on_connect__)
-		return engine.connect()
+	@contextmanager
+	def override_configs(cls, overrides: dict[str, Any]):
+		if overrides:
+			cls.config_overrides = overrides
+		yield
+		cls.config_overrides = {}
 
 
 	@staticmethod

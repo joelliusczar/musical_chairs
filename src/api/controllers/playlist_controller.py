@@ -19,7 +19,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	SimpleQueryParameters,
 	SongsPlaylistInfo,
 	SongPlaylistTuple,
-	UserRoleDomain,
+	UserRoleSphere,
 )
 from musical_chairs_libs.services import (
 	PlaylistService,
@@ -117,7 +117,7 @@ def get_playlist_for_edit(
 
 @router.post("", dependencies=[
 	Security(
-		check_top_level_rate_limit(UserRoleDomain.Playlist.value),
+		check_top_level_rate_limit(UserRoleSphere.Playlist.value),
 		scopes=[UserRoleDef.PLAYLIST_CREATE.value]
 	)
 ])

@@ -4,17 +4,17 @@ from typing import (
 	Optional,
 	Iterator,
 	Union,
-	Collection,
 	cast
 )
 from pydantic import (
+	BaseModel as MCBaseClass,
 	field_validator,
 	field_serializer,
 	SerializationInfo,
 	SerializeAsAny,
 	Field
 )
-from .user_role_def import UserRoleDef, RulePriorityLevel, UserRoleDomain
+from .user_role_def import UserRoleDef, UserRoleSphere
 from .validation_functions import min_length_validator_factory
 from .simple_functions import (
 	asdict,
@@ -23,142 +23,14 @@ from .simple_functions import (
 	normalize_opening_slash,
 	normalize_closing_slash
 )
-from .generic_dtos import FrozenIdItem, FrozenBaseClass
+from .generic_dtos import FrozenIdItem, FrozenBaseClass, RuledEntity, IdItem
 from .action_rule_dtos import (
 	ActionRule,
 )
 from .absorbent_trie import ChainedAbsorbentTrie
 
-#STATION_CREATE, STATION_FLIP, STATION_REQUEST, STATION_SKIP
-	# left out of here on purpose
-	# for STATION_FLIP, STATION_REQUEST, STATION_SKIP, we should have
-	#explicit rules with defined limts
-station_owner_rules = [
-	UserRoleDef.STATION_ASSIGN,
-	UserRoleDef.STATION_DELETE,
-	UserRoleDef.STATION_EDIT,
-	UserRoleDef.STATION_VIEW,
-	UserRoleDef.STATION_USER_ASSIGN,
-	UserRoleDef.STATION_USER_LIST
-]
 
-def get_station_owner_rules(
-	scopes: Optional[Collection[str]]=None
-) -> Iterator[ActionRule]:
-	for rule in station_owner_rules:
-		if not scopes or rule.value in scopes:
-			yield ActionRule(
-				name=rule.value,
-				priority=RulePriorityLevel.OWNER.value,
-				domain=UserRoleDomain.Station.value
-			)
 
-path_owner_rules = [
-	UserRoleDef.PATH_DELETE,
-	UserRoleDef.PATH_DOWNLOAD,
-	UserRoleDef.PATH_EDIT,
-	UserRoleDef.PATH_LIST,
-	UserRoleDef.PATH_VIEW,
-	UserRoleDef.PATH_MOVE,
-	UserRoleDef.PATH_USER_LIST,
-	UserRoleDef.PATH_USER_ASSIGN,
-	UserRoleDef.PATH_UPLOAD,
-]
-
-def get_path_owner_roles(
-	ownerDir: Optional[str],
-	scopes: Optional[Collection[str]]=None
-) -> Iterator[ActionRule]:
-		if not ownerDir:
-			return
-		for rule in path_owner_rules:
-			if not scopes or rule.value in scopes:
-				if rule == UserRoleDef.PATH_DOWNLOAD:
-					yield ActionRule(
-						name=rule.value,
-						priority=RulePriorityLevel.USER.value,
-						domain=UserRoleDomain.Path.value,
-						path=ownerDir,
-						span=60,
-						count=12
-					)
-					continue
-				yield ActionRule(
-						name=rule.value,
-						priority=RulePriorityLevel.OWNER.value,
-						domain=UserRoleDomain.Path.value,
-						path=ownerDir,
-					)
-
-#create left out on purpose
-playlist_owner_rules = [
-	UserRoleDef.PLAYLIST_VIEW,
-	UserRoleDef.PLAYLIST_EDIT,
-	UserRoleDef.PLAYLIST_DELETE,
-	UserRoleDef.PLAYLIST_ASSIGN,
-	UserRoleDef.PLAYLIST_USER_ASSIGN,
-	UserRoleDef.PLAYLIST_USER_LIST,
-]
-
-def get_playlist_owner_roles(
-	scopes: Optional[Collection[str]]=None
-) -> Iterator[ActionRule]:
-	for rule in playlist_owner_rules:
-		if not scopes or rule.value in scopes:
-			yield ActionRule(
-				name=rule.value,
-				priority=RulePriorityLevel.OWNER.value,
-				domain=UserRoleDomain.Playlist.value
-			)
-
-album_owner_rules = [
-	UserRoleDef.ALBUM_EDIT,
-]
-
-def get_album_owner_roles(
-	scopes: Optional[Collection[str]]=None
-) -> Iterator[ActionRule]:
-	for rule in album_owner_rules:
-		if not scopes or rule.value in scopes:
-			yield ActionRule(
-				name=rule.value,
-				priority=RulePriorityLevel.OWNER.value,
-				domain=UserRoleDomain.Album.value
-			)
-
-artist_owner_rules = [
-	UserRoleDef.ARTIST_EDIT,
-]
-
-def get_artist_owner_roles(
-	scopes: Optional[Collection[str]]=None
-) -> Iterator[ActionRule]:
-	for rule in artist_owner_rules:
-		if not scopes or rule.value in scopes:
-			yield ActionRule(
-				name=rule.value,
-				priority=RulePriorityLevel.OWNER.value,
-				domain=UserRoleDomain.Artist.value
-			)
-
-starting_user_roles = [
-	UserRoleDef.PLAYLIST_CREATE,
-	UserRoleDef.STATION_CREATE,
-	UserRoleDef.ARTIST_CREATE,
-	UserRoleDef.ALBUM_CREATE,
-]
-
-def get_starting_site_roles(
-	scopes: Optional[Collection[str]]=None
-) -> Iterator[ActionRule]:
-	for rule in starting_user_roles:
-		if not scopes or rule.value in scopes:
-			yield ActionRule(
-				name=rule.value,
-				priority=RulePriorityLevel.USER.value,
-				span=60,
-				count=1
-			)
 
 class AccountInfoBase(FrozenBaseClass):
 	username: str
@@ -192,14 +64,14 @@ class AccountInfoSecurity(AccountInfoBase):
 		self
 	) -> ChainedAbsorbentTrie[ActionRule]:
 		pathTree = ChainedAbsorbentTrie[ActionRule](
-			(normalize_opening_slash(r.path), r) for r in
-			self.roles if r.domain == UserRoleDomain.Path.value \
-				and r.path is not None
+			(normalize_opening_slash(r.keypath), r) for r in
+			self.roles if r.sphere == UserRoleSphere.Path.value \
+				and r.keypath is not None
 		)
 		pathTree.add("/", (
-			ActionRule(**asdict(r, exclude={"path"}), path = "/") 
+			ActionRule(**asdict(r, exclude={"keypath"}), keypath = "/") 
 			for r in self.roles \
-			if r.path is None and (UserRoleDomain.Path.conforms(r.name) \
+			if r.keypath is None and (UserRoleSphere.Path.conforms(r.name) \
 						or r.name == UserRoleDef.ADMIN.value
 				)
 		), shouldEmptyUpdateTree=False)
@@ -213,12 +85,13 @@ class AccountInfoSecurity(AccountInfoBase):
 		yield from (p for p in pathTree.shortest_paths())
 
 
-	def has_roles(self, *roles: UserRoleDef) -> bool:
+	def has_site_roles(self, *roles: UserRoleDef) -> bool:
 		if self.isadmin:
 			return True
 		for role in roles:
 			if all(r.name != role.value or (r.name == role.value and r.blocked) \
-				for r in self.roles
+				for r in \
+					(r2 for r2 in self.roles if r2.sphere == UserRoleSphere.Site.value)
 			):
 				return False
 		return True
@@ -339,3 +212,9 @@ class OwnerInfo(FrozenIdItem):
 	displayname: Optional[str]=None
 
 OwnerType = Union[OwnerInfo, AccountInfo]
+
+class OwnedEntity(MCBaseClass):
+	owner: OwnerType=Field(frozen=False)
+
+class RuledOwnedEntity(IdItem, OwnedEntity, RuledEntity):
+	...

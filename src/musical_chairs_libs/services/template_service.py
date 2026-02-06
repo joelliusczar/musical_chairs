@@ -1,8 +1,6 @@
-import hashlib
 import re
 from pathlib import Path
 from .process_service import ProcessService
-from musical_chairs_libs import SqlScripts
 from musical_chairs_libs.dtos_and_utilities import ConfigAcessors
 
 
@@ -126,12 +124,4 @@ class TemplateService:
 				"source-password"
 			)
 
-	@staticmethod
-	def load_sql_script_content(script: SqlScripts) -> str:
-		sqlScriptsDir = ConfigAcessors.sql_script_dir()
-		txt = Path(f"{sqlScriptsDir}/{script.file_name}").expanduser().read_text()
-		checksum = hashlib.sha256(txt.encode("utf-8")).hexdigest()
-		if checksum != script.checksum:
-			raise RuntimeError(f"{script.file_name} is missing")
-		return txt
 	

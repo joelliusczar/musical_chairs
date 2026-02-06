@@ -71,7 +71,6 @@
         name: python-setup
       vars:
         sql_scripts_src: ../sql_scripts
-        reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
         env_name: '{{app_details["prefix"]|lower}}_env'
         engine_src: '{{src_dirs["engine"]}}/'
         working_dir: '{{app_trunk}}'
@@ -99,7 +98,7 @@
         target_version: '0.6.2'
     - name: Copy the python station modules
       copy:
-        src: radio_handle.py
+        src: radio_handle.py 
         dest: '{{app_trunk}}/ices_modules/station.py'
     - name: Generate source password
       command: openssl rand -hex 16

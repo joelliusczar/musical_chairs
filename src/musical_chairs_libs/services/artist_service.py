@@ -78,13 +78,14 @@ class ArtistService:
 			query = query.where(ar_pk == artistKeys)
 		elif type(artistKeys) is str:
 			if artistKeys:
-				searchStr = SearchNameString.format_name_for_search(artistKeys)
 				if exactStrMatch:
+					searchStr = SearchNameString.format_name_for_search(artistKeys)
 					query = query\
 						.where(ar_name == searchStr)
 				else:
+					searchStr = SearchNameString.format_name_for_like(artistKeys)
 					query = query\
-						.where(ar_name.like(f"%{searchStr}%"))
+						.where(ar_name.like(f"%{searchStr}%", escape="\\"))
 		#check speficially if instance because [] is falsy
 		elif isinstance(artistKeys, Iterable) :
 			query = query.where(ar_pk.in_(artistKeys))
@@ -139,6 +140,7 @@ class ArtistService:
 		print(name)
 		stmt = insert(artists_tbl).values(
 			name = savedName,
+			flatname = str(SearchNameString(name)),
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
 		res = self.conn.execute(stmt)
@@ -215,7 +217,7 @@ class ArtistService:
 		if pathRuleTree:
 			for song in songs:
 				song.rules = list(pathRuleTree.values_flat(
-						normalize_opening_slash(song.path))
+						normalize_opening_slash(song.treepath))
 					)
 
 		return SongsArtistInfo(**artistInfo.model_dump(), songs=songs)
@@ -257,7 +259,7 @@ class ArtistService:
 			)
 
 
-	def delete_album(self, artistid: int) -> int:
+	def delete_artist(self, artistid: int) -> int:
 		if not artistid:
 			return 0
 		delStmt = delete(artists_tbl).where(ar_pk == artistid)

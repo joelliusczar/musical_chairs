@@ -276,7 +276,7 @@ export const AlbumEditScreen = () => {
 								return <TableRow key={`song_${idx}`}>
 									<TableCell>{item.track}</TableCell>
 									<TableCell>{item.name}</TableCell>
-									<TableCell>{item.disc}</TableCell>
+									<TableCell>{item.discnum}</TableCell>
 									<TableCell>{item.artist}</TableCell>
 									<TableCell>{rowButton(item, idx)}</TableCell>
 								</TableRow>;

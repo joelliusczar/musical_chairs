@@ -12,7 +12,7 @@ export interface PlaylistCreationInfo extends Named {
 }
 
 export interface PlaylistInfo extends NamedIdItem {
-	description: string
+	displayname: string
 	owner: User
 	viewsecuritylevel: IdValue
 	rules: ActionRule[]
@@ -28,7 +28,7 @@ export type OwnedPlaylistParams = OwnerParams & {
 
 export interface PlaylistInfoForm extends Named {
 	id?: IdValue
-	description: string
+	displayname: string
 	owner: User
 	viewsecuritylevel: NamedIdItem
 	stations: StationInfo[],

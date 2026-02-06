@@ -29,31 +29,19 @@
       setup_pass: '{{keys["db_pass_setup"]}}'
       socket_path: '{{dev_files["mysql_socket"]}}'
       sql_scripts_src: ../sql_scripts
-      reference_file_out_path: '{{src_dirs["engine"]}}/file_reference.py'
       env_name: '{{app_details["prefix"]|lower}}_env'
       engine_src: '{{src_dirs["engine"]}}/'
     - role: tests-setup
   
   tasks:
-    - name: Get database schema hash.
-      command:
-        argv:
-          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
-          - -m
-          - '{{app_details["engine"]}}.one_offs.db_print'
-          - --hash
-      environment:
-        DSF_DB_PASS_SETUP: '{{keys["db_pass_setup"]}}'
-      register: result
-      changed_when: false
     - name: Setup App Specific Db stuff.
       command:
         argv:
-          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
-          - -m
-          - '{{app_details["engine"]}}.one_offs.db_setup'
-          - '{{app_details["db"]}}'
-        creates: '/tmp/{{result.stdout}}'
+          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/alembic'
+          - upgrade
+          - head
+      register: migrate_results
+      changed_when: '"Running upgrade" in migrate_results.stdout'
       environment:
         DSF_APP_ROOT: '{{app_trunk}}'
         DSF_DB_PASS_API: '{{keys["db_pass_api"]}}'

@@ -16,6 +16,7 @@ from .constant_fixtures_for_test import *
 from .common_fixtures import\
 	fixture_account_service as fixture_account_service
 from .common_fixtures import *
+from .mocks.db_data import user_ids
 
 currentTestDate: datetime = datetime.now(timezone.utc)
 
@@ -203,8 +204,8 @@ def test_unique_roles():
 	with pytest.raises(StopIteration):
 		next(gen)
 	testRoles2 = ActionRule.sorted([
-		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=5, count=1),
-		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, count=1)
+		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=5, quota=1),
+		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, quota=1)
 	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles2)
 	results = list(gen)
@@ -213,7 +214,7 @@ def test_unique_roles():
 	assert results[0].span == 15
 	testRoles3 = ActionRule.sorted([
 		ActionRule(name=UserRoleDef.STATION_REQUEST.value),
-		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, count=1)
+		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, quota=1)
 	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles3)
 	results = list(gen)
@@ -222,9 +223,9 @@ def test_unique_roles():
 	assert results[0].span == 15
 	testRoles4 = ActionRule.sorted([
 		ActionRule(name=UserRoleDef.STATION_REQUEST.value),
-		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, count=1),
-		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=60, count=1),
-		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=15, count=1),
+		ActionRule(name=UserRoleDef.STATION_REQUEST.value, span=15, quota=1),
+		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=60, quota=1),
+		ActionRule(name=UserRoleDef.PATH_EDIT.value, span=15, quota=1),
 		ActionRule(name=UserRoleDef.USER_LIST.value)
 	])
 	gen = ActionRule.filter_out_repeat_roles(testRoles4)
@@ -235,6 +236,7 @@ def test_unique_roles():
 	assert results[0].span == 60
 	assert results[1].name == UserRoleDef.STATION_REQUEST.value
 	assert results[1].span == 15
+
 
 @pytest.mark.echo(False)
 def test_save_roles(
@@ -367,6 +369,7 @@ def test_save_roles(
 	)
 	assert fetched[1] == ActionRule(name=UserRoleDef.USER_LIST.value)
 
+
 def test_user_search(
 	fixture_account_service_mock_current_time: AccountsService
 ):
@@ -418,3 +421,17 @@ def test_user_search(
 	assert res[0].displayname == "\u006E\u0303ovoper"
 	assert res[1].displayname == "Ned Land of the Spear"
 	assert res[2].displayname == "Narloni"
+
+
+def test_add_user_rule(
+	fixture_account_service_mock_current_time: AccountsService
+):
+	accountService = fixture_account_service_mock_current_time
+	accountInfo = accountService.get_account_for_edit(user_ids.romeo_user_id)
+	assert accountInfo and len(accountInfo.roles) == 0
+	accountService.add_user_rule(
+		user_ids.romeo_user_id,
+		ActionRule(
+			UserRoleDef.STATION_CREATE.value
+		)
+	)

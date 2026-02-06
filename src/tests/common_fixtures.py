@@ -10,8 +10,9 @@ from musical_chairs_libs.services import (
 	AccountAccessService,
 	AccountManagementService,
 	AccountTokenCreator,
-	FSEventsQueryService,
 	BasicUserProvider,
+	DomainUserService,
+	FSEventsQueryService,
 	EmptyUserTrackingService,
 	QueueService,
 	AccountsService,
@@ -46,6 +47,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AccountInfo,
 	ActionRule,
 	ConfigAcessors,
+	DbConnectionProvider,
 	get_path_owner_roles,
 	normalize_opening_slash
 )
@@ -83,7 +85,8 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 	#some tests were failing because db name was too long
 	testId =  hashlib.md5(request.node.name.encode("utf-8")).hexdigest()
 	dbName=f"test_{testId}_musical_chairs_db"
-	setup_database(dbName)
+	with ConfigAcessors.override_configs({"db_name": dbName}):
+		setup_database(dbName)
 	try:
 		yield dbName
 	finally:
@@ -131,9 +134,8 @@ def fixture_conn_cardboarddb(
 		if not requestPopulateFnName is None else "fixture_db_populate_factory"
 	populateFn = request.getfixturevalue(populateFnName)
 	populateFn()
-	envManager = ConfigAcessors()
 	dbName=fixture_setup_db
-	conn = envManager.get_configured_api_connection(dbName, echo=echo)
+	conn = DbConnectionProvider.get_configured_api_connection(dbName, echo=echo)
 	try:
 		yield conn
 	finally:
@@ -355,15 +357,22 @@ def fixture_stations_albums_service(
 	)
 	return stationsAlbumsService
 
+@pytest.fixture
+def fixture_domain_service(
+	fixture_conn_cardboarddb: Connection,
+	fixture_current_user_provider: CurrentUserProvider,
+) -> DomainUserService:
+	return DomainUserService(
+		fixture_conn_cardboarddb,
+		fixture_current_user_provider
+	)
 
 @pytest.fixture
 def fixture_stations_users_service(
-	fixture_conn_cardboarddb: Connection,
-	fixture_current_user_provider: CurrentUserProvider,
+	fixture_domain_service: DomainUserService
 ) -> StationsUsersService:
 	stationsUsersService = StationsUsersService(
-		fixture_conn_cardboarddb,
-		fixture_current_user_provider
+		fixture_domain_service
 	)
 	return stationsUsersService
 
@@ -412,14 +421,10 @@ def fixture_playlists_songs_service(
 
 @pytest.fixture
 def fixture_playlists_users_service(
-	fixture_conn_cardboarddb: Connection,
-	fixture_path_rule_service: PathRuleService,
-	fixture_current_user_provider: CurrentUserProvider,
+	fixture_domain_service: DomainUserService
 ) -> PlaylistsUserService:
 	service = PlaylistsUserService(
-		fixture_conn_cardboarddb,
-		fixture_path_rule_service,
-		fixture_current_user_provider
+		fixture_domain_service
 	)
 	return service
 

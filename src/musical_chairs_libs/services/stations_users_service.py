@@ -1,51 +1,24 @@
-from .current_user_provider import CurrentUserProvider
+from .domain_user_service import DomainUserService
 from musical_chairs_libs.dtos_and_utilities import (
-	get_datetime
-)
-from sqlalchemy.engine import Connection
-from sqlalchemy import (
-	select,
-	insert,
-	or_,
-	and_,
-	delete,
-)
-from sqlalchemy.sql.expression import false
-from sqlalchemy.sql.functions import coalesce
-from musical_chairs_libs.dtos_and_utilities import (
+	get_station_owner_rules,
 	StationInfo,
-	get_datetime,
 	AccountInfo,
 	ActionRule,
-	RulePriorityLevel,
-	generate_station_user_and_rules_from_rows,
-	UserRoleDomain,
-)
-from .station_service import build_station_rules_query
-from musical_chairs_libs.tables import (
-
-	station_user_permissions as station_user_permissions_tbl, stup_userFk,
-	stup_stationFk, stup_role,
-	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
-	u_disabled,
+	UserRoleSphere,
 )
 from typing import (
 	Iterator,
 	Optional,
 )
 
+
 class StationsUsersService:
 
 	def __init__(
 		self,
-		conn: Connection,
-		currentUserProvider: CurrentUserProvider,
+		domainUserService: DomainUserService
 	) -> None:
-		if not conn:
-			raise RuntimeError("No connection provided")
-		self.conn = conn
-		self.get_datetime = get_datetime
-		self.current_user_provider = currentUserProvider
+		self.domain_user_service = domainUserService
 
 
 	def add_user_rule_to_station(
@@ -54,71 +27,24 @@ class StationsUsersService:
 		stationId: int,
 		rule: ActionRule
 	) -> ActionRule:
-		stmt = insert(station_user_permissions_tbl).values(
-			userfk = addedUserId,
-			stationfk = stationId,
-			role = rule.name,
-			span = rule.span,
-			count = rule.count,
-			priority = None,
-			creationtimestamp = self.get_datetime().timestamp()
+		return self.domain_user_service.add_domain_rule_to_user(
+			addedUserId,
+			UserRoleSphere.Station.value,
+			str(stationId),
+			rule
 		)
-		self.conn.execute(stmt)
-		self.conn.commit()
-		return ActionRule(
-			name=rule.name,
-			span=rule.span,
-			count=rule.count,
-			priority=RulePriorityLevel.STATION_PATH.value,
-			domain=UserRoleDomain.Station.value
-		)
+
 	
 	def get_station_users(
 		self,
 		station: StationInfo,
 	) -> Iterator[AccountInfo]:
-		rulesQuery = build_station_rules_query().cte()
-		query = select(
-			u_pk,
-			u_username,
-			u_displayName,
-			u_email,
-			u_dirRoot,
-			rulesQuery.c.rule_userfk.label("rule.userfk"),
-			rulesQuery.c.rule_name.label("rule.name"),
-			rulesQuery.c.rule_count.label("rule.count"),
-			rulesQuery.c.rule_span.label("rule.span"),
-			rulesQuery.c.rule_priority.label("rule.priority"),
-			rulesQuery.c.rule_domain.label("rule.domain")
-		).select_from(user_tbl).join(
-			rulesQuery,
-			or_(
-				and_(
-					(u_pk == station.owner.id) if station.owner else false(),
-					rulesQuery.c.rule_userfk == 0
-				),
-				and_(
-					rulesQuery.c.rule_userfk == u_pk,
-					rulesQuery.c.rule_stationfk == station.id
-				),
-			),
-			isouter=True
-		).where(or_(u_disabled.is_(None), u_disabled == False))\
-		.where(
-			or_(
-				coalesce(
-					rulesQuery.c.rule_priority,
-					RulePriorityLevel.SITE.value
-				) > RulePriorityLevel.INVITED_USER.value,
-				(u_pk == station.owner.id) if station.owner else false()
-			)
+		return self.domain_user_service.get_domain_users(
+			station,
+			UserRoleSphere.Station,
+			get_station_owner_rules
 		)
-		query = query.order_by(u_username)
-		records = self.conn.execute(query).mappings()
-		yield from generate_station_user_and_rules_from_rows(
-			records,
-			station.owner.id if station.owner else None
-		)
+
 
 	def remove_user_rule_from_station(
 		self,
@@ -126,9 +52,9 @@ class StationsUsersService:
 		stationId: int,
 		ruleName: Optional[str]
 	):
-		delStmt = delete(station_user_permissions_tbl)\
-			.where(stup_userFk == userId)\
-			.where(stup_stationFk == stationId)
-		if ruleName:
-			delStmt = delStmt.where(stup_role == ruleName)
-		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]
+		self.domain_user_service.remove_domain_rule_from_user(
+			userId,
+			UserRoleSphere.Station.value,
+			str(stationId),
+			ruleName
+		)

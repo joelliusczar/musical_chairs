@@ -24,8 +24,9 @@ from musical_chairs_libs.services import (
 	AccountAccessService,
 	AccountManagementService,
 	AccountTokenCreator,
-	FSEventsQueryService,
 	BasicUserProvider,
+	DomainUserService,
+	FSEventsQueryService,
 	VisitorTrackingService,
 	StationService,
 	QueueService,
@@ -66,6 +67,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ArtistInfo,
 	build_error_obj,
 	ConfigAcessors,
+	DbConnectionProvider,
 	get_datetime,
 	InMemEventRecordMap,
 	int_or_str,
@@ -74,7 +76,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	TrackingInfo,
 	PlaylistInfo,
 	SimpleQueryParameters,
-	UserRoleDomain,
+	UserRoleSphere,
 	WrongPermissionsError,
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
@@ -143,12 +145,8 @@ def datetime_provider() -> Callable[[], datetime]:
 	return get_datetime
 
 
-def get_configured_db_connection(
-	envManager: ConfigAcessors=Depends(ConfigAcessors)
-) -> Iterator[Connection]:
-	if not envManager:
-		envManager = ConfigAcessors()
-	conn = envManager.get_configured_api_connection("musical_chairs_db")
+def get_configured_db_connection() -> Iterator[Connection]:
+	conn = DbConnectionProvider.get_configured_api_connection("musical_chairs_db")
 	try:
 		yield conn
 	finally:
@@ -488,13 +486,18 @@ def stations_playlists_service(
 	return StationsPlaylistsService(conn, stationService, userProvider)
 
 
-def stations_users_service(
+def domain_users_service(
 	conn: Connection=Depends(get_configured_db_connection),
 	userProvider: CurrentUserProvider = Depends(
 		current_user_provider
 	),
+) -> DomainUserService:
+	return DomainUserService(conn, userProvider)
+
+def stations_users_service(
+	domainUserService: DomainUserService = Depends(domain_users_service)
 ) -> StationsUsersService:
-	return StationsUsersService(conn, userProvider)
+	return StationsUsersService(domainUserService)
 
 
 def playlist_service(
@@ -516,13 +519,9 @@ def playlist_service(
 
 
 def playlists_users_service(
-	conn: Connection=Depends(get_configured_db_connection),
-	pathRuleService: PathRuleService = Depends(path_rule_service),
-	userProvider: CurrentUserProvider = Depends(
-		current_user_provider
-	),
+	domainUserService: DomainUserService = Depends(domain_users_service)
 ) -> PlaylistsUserService:
-	return PlaylistsUserService(conn, pathRuleService, userProvider)
+	return PlaylistsUserService(domainUserService)
 
 
 def artist_service(
@@ -689,7 +688,7 @@ def __check_playlist_scopes__(
 	if user.isadmin:
 		return user
 	scopes = {s for s in securityScopes.scopes \
-		if UserRoleDomain.Playlist.conforms(s)
+		if UserRoleSphere.Playlist.conforms(s)
 	}
 	rules = ActionRule.aggregate(
 		playlist.rules,
@@ -840,7 +839,7 @@ def get_secured_query_params(
 	return queryParams
 
 
-def check_top_level_rate_limit(domain: str):
+def check_top_level_rate_limit(sphere: str):
 		
 	def __check_rate_limit(
 		securityScopes: SecurityScopes,
@@ -859,7 +858,7 @@ def check_top_level_rate_limit(domain: str):
 		whenNextCalculator.check_if_user_can_perform_rate_limited_action(
 			scopeSet,
 			rules,
-			domain
+			sphere
 		)
 	
 	return __check_rate_limit

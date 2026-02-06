@@ -15,7 +15,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
 	FrozenNamed,
 	SimpleQueryParameters,
-	UserRoleDomain,
+	UserRoleSphere,
 )
 from musical_chairs_libs.services import (
 	ArtistService,
@@ -81,7 +81,7 @@ def get(
 
 @router.post("", dependencies=[
 	Security(
-		check_top_level_rate_limit(UserRoleDomain.Artist.value),
+		check_top_level_rate_limit(UserRoleSphere.Artist.value),
 		scopes=[UserRoleDef.ARTIST_CREATE.value]
 	)
 ])
@@ -130,10 +130,10 @@ def delete(
 		get_secured_artist_by_id,
 		scopes=[UserRoleDef.ARTIST_EDIT.value]
 	),
-	albumService: ArtistService = Security(artist_service)
+	artistService: ArtistService = Security(artist_service)
 ):
 	try:
-		if albumService.delete_album(artist.id) == 0:
+		if artistService.delete_artist(artist.id) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
 				detail=[build_error_obj(f"Artist with key {artist.id} not found")
@@ -145,4 +145,3 @@ def delete(
 			detail=[build_error_obj(f"Artist cannot be deleted")
 			]
 		)
-

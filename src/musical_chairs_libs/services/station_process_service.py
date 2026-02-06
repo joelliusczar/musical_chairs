@@ -79,7 +79,7 @@ class StationProcessService:
 			}
 			stationsEnabled = self.station_service.get_stations(
 				stationKeys=canBeEnabled,
-				ownerId=user.id
+				ownerKey=user.id
 			)
 		else:
 			canBeEnabled = {s[0] for s in  \

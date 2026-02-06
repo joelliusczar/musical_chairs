@@ -13,8 +13,8 @@ class EventsQueryer(Protocol):
 		userId: int | None,
 		fromTimestamp: float,
 		actions: set[str] | None = None,
-		domain: str | None = None,
-		path: str | None = None,
+		sphere: str | None = None,
+		keypath: str | None = None,
 		limit: int | None = None
 	) -> Iterator[EventRecord]:
 		...

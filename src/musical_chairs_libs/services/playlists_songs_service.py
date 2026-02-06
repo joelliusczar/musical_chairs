@@ -101,7 +101,7 @@ class PlaylistsSongsService:
 			) 
 			if pathRuleTree:
 				song.rules = list(pathRuleTree.values_flat(
-					normalize_opening_slash(song.path))
+					normalize_opening_slash(song.treepath))
 				)
 			yield song
 

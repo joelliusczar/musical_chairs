@@ -16,14 +16,14 @@ class AggregateEventsLoggingService(EventsLogger):
 	def add_event(
 		self,
 		action: str,
-		domain: str,
-		path: str | None = None,
+		sphere: str,
+		keypath: str | None = None,
 		extraInfo: str = "") -> EventRecord:
 			if not any(self.events_loggers):
 				raise RuntimeError("No events loggers were provided")
 			loggerIter = iter(self.events_loggers)
 			logger1 = next(loggerIter)
-			record = logger1.add_event(action, domain, path, extraInfo)
+			record = logger1.add_event(action, sphere, keypath, extraInfo)
 			while loggerN := next(loggerIter, None):
 				loggerN.add_event_record(record)
 			return record

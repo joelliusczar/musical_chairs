@@ -15,7 +15,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_station_owner_rules,
 	int_or_str,
 	UserRoleDef,
-	UserRoleDomain,
+	UserRoleSphere,
 	StationInfo,
 	StationRequestTypes,
 	StationTypes,
@@ -66,7 +66,7 @@ def get_stations(
 			if owner:
 				return stationService.get_stations(
 					int_or_str(pathName),
-					ownerId=owner.id
+					ownerKey=owner.id
 				)
 			else:
 				raise HTTPException(
@@ -112,7 +112,7 @@ def get_station(
 
 def conforming_scopes(securityScopes: SecurityScopes) -> set[str]:
 	return {s for s in securityScopes.scopes \
-		if UserRoleDomain.Station.conforms(s)
+		if UserRoleSphere.Station.conforms(s)
 	}
 
 
@@ -172,7 +172,7 @@ def get_rate_secured_station(
 		.calc_lookup_for_when_user_can_next_do_action(
 			user.id,
 			rules,
-			UserRoleDomain.Station.value,
+			UserRoleSphere.Station.value,
 			str(station.id)
 		)
 	for scope in conformingSopes:
@@ -199,7 +199,7 @@ def validate_station_rule(
 				"User is required"
 			)],
 		)
-	valid_name_set = UserRoleDef.as_set(UserRoleDomain.Station.value)
+	valid_name_set = UserRoleDef.as_set(UserRoleSphere.Station.value)
 	if rule.name not in valid_name_set:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

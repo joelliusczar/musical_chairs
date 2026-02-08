@@ -1,12 +1,12 @@
 #pyright: reportMissingTypeStubs=false, reportPrivateUsage=false
 import pytest
+import musical_chairs_libs.dtos_and_utilities as dtos
 from sqlalchemy import insert
 from sqlalchemy.engine import Connection
 from datetime import datetime, timezone
 from musical_chairs_libs.tables import station_queue
 from musical_chairs_libs.services import AccountsService
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	UserRoleDef,
 	ActionRule
 )
@@ -64,7 +64,7 @@ def fixture_account_service_mock_current_time(
 @pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
 def test_when_can_make_request_with_history(
 	fixture_account_service_mock_current_time: AccountsService,
-	fixture_primary_user: AccountInfo
+	fixture_primary_user: dtos.InternalUser
 ):
 	accountService = fixture_account_service_mock_current_time
 	_insert_row_into_history(accountService.account_management_service.conn, 1)
@@ -132,7 +132,7 @@ def _insert_row_into_queue(conn: Connection, userPk: int):
 @pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
 def test_when_can_make_request_with_queue(
 	fixture_account_service_mock_current_time: AccountsService,
-	fixture_primary_user: AccountInfo
+	fixture_primary_user: dtos.InternalUser
 ):
 	accountService = fixture_account_service_mock_current_time
 	_insert_row_into_queue(accountService.account_management_service.conn, 1)
@@ -179,7 +179,7 @@ def test_when_can_make_request_with_queue(
 @pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
 def test_when_song_can_be_added_without_role(
 	fixture_account_service_mock_current_time: AccountsService,
-	fixture_primary_user: AccountInfo
+	fixture_primary_user: dtos.InternalUser
 ):
 	#accountService = fixture_account_service_mock_current_time
 	result = None#accountService.time_til_user_can_make_request(fixture_primary_user)
@@ -188,7 +188,7 @@ def test_when_song_can_be_added_without_role(
 @pytest.mark.skip("TODO") #pyright: ignore [reportUntypedFunctionDecorator, reportGeneralTypeIssues]
 def test_when_song_can_be_added_with_admin(
 	fixture_account_service_mock_current_time: AccountsService,
-	fixture_primary_user: AccountInfo
+	fixture_primary_user: dtos.InternalUser
 ):
 	#accountService = fixture_account_service_mock_current_time
 	#fixture_primary_user.roles = [UserRoleDef.ADMIN.value]
@@ -267,7 +267,7 @@ def test_save_roles(
 	assert result[2] == ActionRule(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
 	)
-	fetched = sorted(accountService.account_management_service.__get_roles__(6))
+	fetched = sorted(accountService.account_access_service.__get_roles__(6))
 	assert len(fetched) == 3
 	assert fetched[0] == ActionRule(
 		name=UserRoleDef.PATH_EDIT.value,span=120
@@ -293,7 +293,7 @@ def test_save_roles(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
 	)
 	assert result[3] == ActionRule(name=UserRoleDef.USER_LIST.value)
-	fetched = sorted(accountService.account_management_service.__get_roles__(6))
+	fetched = sorted(accountService.account_access_service.__get_roles__(6))
 	assert len(fetched) == 4
 	assert result[0] == ActionRule(
 		name=UserRoleDef.PATH_EDIT.value,span=120
@@ -320,7 +320,7 @@ def test_save_roles(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
 	)
 	assert result[3] == ActionRule(name=UserRoleDef.USER_LIST.value)
-	fetched = sorted(accountService.account_management_service.__get_roles__(6))
+	fetched = sorted(accountService.account_access_service.__get_roles__(6))
 	assert len(fetched) == 4
 	assert result[0] == ActionRule(
 		name=UserRoleDef.PATH_EDIT.value,span=120
@@ -344,7 +344,7 @@ def test_save_roles(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
 	)
 	assert result[1] == ActionRule(name=UserRoleDef.USER_LIST.value)
-	fetched = sorted(accountService.account_management_service.__get_roles__(6))
+	fetched = sorted(accountService.account_access_service.__get_roles__(6))
 	assert len(fetched) == 2
 	assert fetched[0] == ActionRule(
 		name=UserRoleDef.STATION_REQUEST.value, span=15
@@ -362,7 +362,7 @@ def test_save_roles(
 		name=UserRoleDef.PATH_EDIT.value,span=120
 	)
 	assert result[1] == ActionRule(name=UserRoleDef.USER_LIST.value)
-	fetched = sorted(accountService.account_management_service.__get_roles__(6))
+	fetched = sorted(accountService.account_access_service.__get_roles__(6))
 	assert len(fetched) == 2
 	assert fetched[0] == ActionRule(
 		name=UserRoleDef.PATH_EDIT.value,span=120
@@ -432,6 +432,6 @@ def test_add_user_rule(
 	accountService.add_user_rule(
 		user_ids.romeo_user_id,
 		ActionRule(
-			UserRoleDef.STATION_CREATE.value
+			name=UserRoleDef.STATION_CREATE.value
 		)
 	)

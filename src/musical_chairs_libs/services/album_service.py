@@ -1,3 +1,5 @@
+import musical_chairs_libs.dtos_and_utilities  as dtos
+import musical_chairs_libs.tables as tbl
 from typing import (
 	Iterator,
 	Optional,
@@ -15,7 +17,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	get_album_owner_roles,
 	get_datetime,
-	OwnerInfo,
 	SongsAlbumInfo,
 	SongListDisplayItem,
 	normalize_opening_slash,
@@ -62,8 +63,10 @@ from musical_chairs_libs.tables import (
 
 album_owner = user_tbl.alias("albumowner")
 albumOwnerId = cast(Column[Integer], album_owner.c.pk)
+albumOwnerPublicToken = cast(Column[String], album_owner.c.publictoken)
 artist_owner = user_tbl.alias("artistowner")
 artistOwnerId = cast(Column[Integer], artist_owner.c.pk)
+artistOwnerPublicToken = cast(Column[String], artist_owner.c.publictoken)
 
 
 class AlbumService:
@@ -160,13 +163,15 @@ class AlbumService:
 			ab_year.label("year"),
 			ab_versionnote.label("versionnote"),
 			ab_albumArtistFk.label("albumartistid"),
-			ab_ownerFk.label("album.owner.id"),
-			album_owner.c.username.label("album.owner.username"),
-			album_owner.c.displayname.label("album.owner.displayname"),
-			ar_name.label("artist.name"),
-			ar_ownerFk.label("artist.owner.id"),
-			artist_owner.c.username.label("artist.owner.username"),
-			artist_owner.c.displayname.label("artist.owner.displayname")
+			ab_ownerFk.label("album>owner>id"),
+			album_owner.c.username.label("album>owner>username"),
+			album_owner.c.displayname.label("album>owner>displayname"),
+			album_owner.c.publictoken.label("album>owner>publictoken"),
+			ar_name.label("artist>name"),
+			ar_ownerFk.label("artist>owner>id"),
+			artist_owner.c.username.label("artist>owner>username"),
+			artist_owner.c.displayname.label("artist>owner>displayname"),
+			artist_owner.c.publictoken.label("artist>owner>publictoken"),
 		)
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
@@ -177,37 +182,40 @@ class AlbumService:
 			id=row["id"],
 			name=row["name"],
 			versionnote=row["versionnote"],
-			owner=OwnerInfo(
-				id=row["album.owner.id"],
-				username=row["album.owner.username"],
-				displayname=row["album.owner.displayname"]
+			owner=dtos.User(
+				id=row["album>owner>id"],
+				username=row["album>owner>username"],
+				displayname=row["album>owner>displayname"],
+				publictoken=row["album>owner>publictoken"]
 			),
 			year=row["year"],
 			albumartist=ArtistInfo(
 				id=row["albumartistid"],
-				name=row["artist.name"],
-				owner=OwnerInfo(
-					id=row["artist.owner.id"],
-					username=row["artist.owner.username"],
-					displayname=row["artist.owner.displayname"]
+				name=row["artist>name"],
+				owner=dtos.User(
+					id=row["artist>owner>id"],
+					username=row["artist>owner>username"],
+					displayname=row["artist>owner>displayname"],
+					publictoken=row["artist>owner>publictoken"]
 				)
 			) if row["albumartistid"] else None,
-			rules=ownerRules if row["album.owner.id"] == userId else []
+			rules=ownerRules if row["album>owner>id"] == userId else []
 			) for row in records)
 
 
-	def get_album_owner(self, albumId: int) -> OwnerInfo:
-		query = select(ab_ownerFk, u_username, u_displayName)\
+	def get_album_owner(self, albumId: int) -> dtos.User:
+		query = select(ab_ownerFk, u_username, u_displayName, tbl.u_publictoken)\
 			.select_from(albums_tbl)\
 			.join(user_tbl, u_pk == ab_ownerFk)\
 			.where(ab_pk == albumId)
 		data = self.conn.execute(query).mappings().fetchone()
 		if not data:
-			return OwnerInfo(id=0,username="", displayname="")
-		return OwnerInfo(
+			return dtos.User(id=0,username="", displayname="", publictoken="")
+		return dtos.User(
 			id=data[ab_ownerFk],
 			username=data[u_username],
-			displayname=data[u_displayName]
+			displayname=data[u_displayName],
+			publictoken=data[tbl.u_publictoken]
 		)
 
 
@@ -298,8 +306,10 @@ class AlbumService:
 			albumInfo = AlbumInfo(
 				id=0,
 				name="(Missing)",
-				owner=OwnerInfo(
+				owner=dtos.User(
 					id=0,
+					username="",
+					publictoken=""
 				)
 			)
 		
@@ -336,7 +346,7 @@ class AlbumService:
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
-		owner = user
+		owner = user.to_user()
 		if albumId and isinstance(stmt, Update):
 			stmt = stmt.where(ab_pk == albumId)
 			owner = self.get_album_owner(albumId)

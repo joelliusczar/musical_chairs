@@ -1,5 +1,6 @@
 import { defaultWebClient as webClient } from "./api";
 import {
+	EmailableUser,
 	LoginCredentials,
 	LoggedInUser,
 	UserCreationInfo,
@@ -89,8 +90,21 @@ export const Calls = {
 		return {
 			abortController: abortController,
 			call: async () => {
-				const response = await webClient.get<User>(
+				const response = await webClient.get<RoledUser>(
 					`accounts/account/${subjectuserkey}`,
+					{ signal: abortController.signal }
+				);
+				return response.data;
+			},
+		};
+	},
+	selfget: () => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
+				const response = await webClient.get<EmailableUser>(
+					"accounts/account/self/me",
 					{ signal: abortController.signal }
 				);
 				return response.data;
@@ -118,7 +132,7 @@ export const Calls = {
 		return {
 			abortController: abortController,
 			call: async () => {
-				const response = await webClient.get<User[]>("accounts/search", {
+				const response = await webClient.get<RoledUser[]>("accounts/search", {
 					params: params,
 					signal: abortController.signal,
 				});

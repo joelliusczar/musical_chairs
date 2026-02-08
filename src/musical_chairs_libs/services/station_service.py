@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.tables as tbl
 from typing import (
 	Any,
 	Iterator,
@@ -51,7 +52,6 @@ from musical_chairs_libs.tables import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
-	asdict,
 	build_base_rules_query,
 	generate_owned_and_rules_from_rows,
 	get_station_owner_rules,
@@ -114,25 +114,26 @@ class StationService:
 
 	def base_select_columns(self) -> list[Label[Any]]:
 		return [
-			st_pk.label("id"),
-			st_name.label("name"),
-			st_displayName.label("displayname"),
-			st_procId.label("procid"),
-			st_ownerFk.label("owner>id"),
-			u_username.label("owner>username"),
-			u_displayName.label("owner>displayname"),
+			tbl.st_pk.label("id"),
+			tbl.st_name.label("name"),
+			tbl.st_displayName.label("displayname"),
+			tbl.st_procId.label("procid"),
+			tbl.st_ownerFk.label("owner>id"),
+			tbl.u_username.label("owner>username"),
+			tbl.u_displayName.label("owner>displayname"),
+			tbl.u_publictoken.label("owner>publictoken"),
 			coalesce[Integer](
-				st_requestSecurityLevel,
+				tbl.st_requestSecurityLevel,
 				case(
-					(st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
-					else_=st_viewSecurityLevel
+					(tbl.st_viewSecurityLevel == RulePriorityLevel.PUBLIC.value, None),
+					else_=tbl.st_viewSecurityLevel
 				),
 				RulePriorityLevel.ANY_USER.value
 			).label("requestsecuritylevel"), #pyright: ignore [reportUnknownMemberType]
-			st_viewSecurityLevel.label("viewsecuritylevel"),
-			st_typeid.label("typeid"),
-			st_bitrate.label("bitrate"),
-			st_playnum.label("playnum")
+			tbl.st_viewSecurityLevel.label("viewsecuritylevel"),
+			tbl.st_typeid.label("typeid"),
+			tbl.st_bitrate.label("bitrate"),
+			tbl.st_playnum.label("playnum")
 		]
 
 
@@ -279,6 +280,7 @@ class StationService:
 				st_ownerFk.label("owner>id"),
 				u_username.label("owner>username"),
 				u_displayName.label("owner>displayname"),
+				tbl.u_publictoken.label("owner>publictoken"),
 				coalesce[Integer](
 					st_requestSecurityLevel,
 					case(
@@ -411,7 +413,7 @@ class StationService:
 		userId = self.current_user_provider.current_user().id
 		params: list[dict[str, Any]] = [
 			{
-				**asdict(rule),
+				**rule.model_dump(),
 				"role": rule.name,
 				"userfk": userId,
 				"keypath": stationId,

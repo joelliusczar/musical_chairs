@@ -14,7 +14,7 @@ from .generic_dtos import (
 	Named,
 	NamedIdItem,
 )
-from .account_dtos import OwnerInfo, RuledOwnedEntity
+from .account_dtos import User, RuledOwnedEntity
 from .user_role_def import RulePriorityLevel
 from .queued_item import SongListDisplayItem
 from .validation_functions import min_length_validator_factory
@@ -27,10 +27,10 @@ class PlaylistCreationInfo(Named):
 		list[StationInfo], Field(default_factory=list)
 	)
 
-class PlaylistBaseInfo(NamedIdItem):
+class PlaylistUnowned(NamedIdItem):
 	displayname: str | None=""
 
-class PlaylistInfo(PlaylistBaseInfo, RuledOwnedEntity):
+class PlaylistInfo(PlaylistUnowned, RuledOwnedEntity):
 
 
 	@classmethod
@@ -39,10 +39,11 @@ class PlaylistInfo(PlaylistBaseInfo, RuledOwnedEntity):
 			id=row["id"],
 			name=row["name"],
 			displayname=row["displayname"],
-			owner=OwnerInfo(
+			owner=User(
 				id=row["owner>id"],
 				username=row["owner>username"],
-				displayname=row["owner>displayname"]
+				displayname=row["owner>displayname"],
+				publictoken=row["owner>publictoken"]
 			),
 			viewsecuritylevel=row["viewsecuritylevel"] \
 				or RulePriorityLevel.PUBLIC.value,

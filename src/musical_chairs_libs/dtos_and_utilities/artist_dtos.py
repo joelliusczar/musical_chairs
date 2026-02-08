@@ -3,5 +3,10 @@ from .generic_dtos import (
 	FrozenNamedIdItem,
 )
 
-class ArtistInfo(FrozenNamedIdItem, OwnedEntity):
+
+class ArtistUnowned(FrozenNamedIdItem):
 	isprimaryartist: bool=False
+
+
+class ArtistInfo(ArtistUnowned, OwnedEntity):
+	...

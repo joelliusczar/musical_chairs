@@ -7,7 +7,12 @@ from .helpers import normalize_dict, mismatched_properties
 from .constant_fixtures_for_test import (
 	fixture_primary_user as fixture_primary_user
 )
-from .mocks.db_data import kilo_user_id, station_saver_user_id
+from .mocks.db_data import (
+	bravo_user_id,
+	kilo_user_id,
+	public_tokens,
+	station_saver_user_id,
+)
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
 from musical_chairs_libs.dtos_and_utilities import (
 	ConfigAcessors,
@@ -21,7 +26,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 
 def test_song_ls_hit(
 	fixture_api_test_client: TestClient,
-	fixture_primary_user: AccountInfo,
+	fixture_primary_user: dtos.InternalUser,
 ):
 	client = fixture_api_test_client
 
@@ -223,11 +228,9 @@ def test_song_save(
 		"id": 8,
 		"name": "shoo_album",
 		"year": 2003,
-		"owner": {"id":kilo_user_id },
 		"albumartist": {
 			"id": 6,
 			"name": "foxtrot_artist",
-			"owner": {"id":kilo_user_id },
 			"isprimaryartist": False
 		},
 		"versionnote": "",
@@ -239,7 +242,6 @@ def test_song_save(
 	sendData["primaryartist"] = {
 		"id": 10,
 		"name": "juliet_artist",
-		"owner": { "id": kilo_user_id},
 		"isprimaryartist": True
 	}
 	sendData["stations"] = [
@@ -283,19 +285,16 @@ def test_song_save(
 		{ 
 			"id": 9, 
 			"name": "india_artist", 
-			"owner": { "id": kilo_user_id },
 			"isprimaryartist": False
 		},
 		{ 
 			"id": 13, 
 			"name": "november_artist", 
-			"owner": { "id": kilo_user_id },
 			"isprimaryartist": False
 		},
 		{ 
 			"id": 3, 
 			"name": "charlie_artist", 
-			"owner": { "id": kilo_user_id },
 			"isprimaryartist": False
 		}
 	]
@@ -317,40 +316,21 @@ def test_song_save(
 	data = json.loads(getResponseAfter.content)
 	for s in sendData["stations"]:
 		s["isrunning"] = False
-	sendData["album"]["owner"]["username"] = "testUser_kilo"
-	sendData["album"]["owner"]["displayname"] = None
-	sendData["album"]["albumartist"]["owner"]["username"] = "testUser_kilo"
-	sendData["album"]["albumartist"]["owner"]["displayname"] = None
-	sendData["primaryartist"]["owner"]["username"] = "testUser_kilo"
-	sendData["primaryartist"]["owner"]["displayname"] = None
-	sendData["artists"][0]["owner"]["username"] = "testUser_kilo"
-	sendData["artists"][0]["owner"]["displayname"] = None
-	sendData["artists"][1]["owner"]["username"] = "testUser_kilo"
-	sendData["artists"][1]["owner"]["displayname"] = None
-	sendData["artists"][2]["owner"]["username"] = "testUser_kilo"
-	sendData["artists"][2]["owner"]["displayname"] = None
 
-	sendData["stations"][0]["owner"] = {
-		"id": 2,
-		"username":"testUser_bravo",
-		"displayname": "Bravo Test User",
-	}
+
 	sendData["stations"][0]["rules"] = []
-	sendData["stations"][1]["owner"] = {
-		"id": 2,
-		"username":"testUser_bravo",
-		"displayname": "Bravo Test User",
-	}
 	sendData["stations"][1]["rules"] = []
-	sendData["stations"][2]["owner"] = {
-		"id": 2,
-		"username":"testUser_bravo",
-		"displayname": "Bravo Test User",
-	}
 	sendData["stations"][2]["rules"] = []
 	mismatches = mismatched_properties(
 		normalize_dict(data),
-		normalize_dict(sendData)
+		normalize_dict(sendData),
+		{
+			'album.owner',
+			'album.albumartist.owner',
+			'primaryartist.owner',
+			'artists[].owner',
+			'stations[].owner'
+		}
 	)
 	assert not mismatches
 
@@ -522,12 +502,12 @@ def test_get_songs_for_multi_edit(
 	assert "primaryartist" in touched
 	assert data["artists"] == [{
 		"id": 4,
-		"name":
-		"delta_artist",
+		"name": "delta_artist",
 		"owner": {
 			"id": kilo_user_id,
 			"username": "testUser_kilo",
-			"displayname": None
+			"displayname": "",
+			"publictoken": public_tokens[kilo_user_id]
 		},
 		"isprimaryartist": False
 	}]
@@ -557,9 +537,10 @@ def test_get_songs_for_multi_edit(
 			"displayname": "Oscar the grouch",
 			"isrunning": False,
 			"owner": {
-				"id": 2,
+				"id": bravo_user_id,
 				"username": "testUser_bravo",
-				"displayname": "Bravo Test User"
+				"displayname": "Bravo Test User",
+				"publictoken": public_tokens[bravo_user_id]
 			},
 			"rules": [],
 			"requestsecuritylevel": 9,

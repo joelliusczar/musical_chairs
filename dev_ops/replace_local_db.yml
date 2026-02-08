@@ -39,7 +39,6 @@
       include_role:
         name: python-setup
       vars:
-        sql_scripts_src: ../sql_scripts
         env_name: '{{app_details["prefix"]|lower}}_env'
         engine_src: '{{src_dirs["engine"]}}/'
         working_dir: '{{app_trunk}}'
@@ -66,7 +65,6 @@
         DSF_DB_PASS_RADIO: '{{local_overrides["keys"]["db_pass_radio"]}}'
         DSF_DB_PASS_SETUP: '{{local_overrides["keys"]["db_pass_setup"]}}'
         DSF_DATABASE_NAME: '{{app_details["db"]}}'
-        DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
         DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'
     - name: Setup App Specific Db stuff.
       command:
@@ -84,7 +82,6 @@
         DSF_DB_PASS_RADIO: '{{local_overrides["keys"]["db_pass_radio"]}}'
         DSF_DB_PASS_SETUP: '{{local_overrides["keys"]["db_pass_setup"]}}'
         DSF_DATABASE_NAME: '{{app_details["db"]}}'
-        DSF_SQL_SCRIPTS_DEST: '{{app_trunk}}/sql_scripts'
         DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'
     - name: Copy data from a source server
       include_role:

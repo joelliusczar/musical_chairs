@@ -9,7 +9,7 @@ from typing import (
 	Any,
 	Iterator,
 )
-from .account_dtos import OwnerInfo, RuledOwnedEntity
+from .account_dtos import User, RuledOwnedEntity
 from .simple_functions import get_non_simple_chars
 from .validation_functions import min_length_validator_factory
 from .generic_dtos import (
@@ -32,7 +32,7 @@ station_owner_rules = [
 	UserRoleDef.STATION_USER_LIST
 ]
 
-class StationBaseInfo(MCBaseClass):
+class StationUnowned(MCBaseClass):
 	id: int=Field(frozen=True)
 	name: str=Field(frozen=True)
 	displayname: str=Field(default="", frozen=False)
@@ -57,7 +57,7 @@ class StationBaseInfo(MCBaseClass):
 			and self.typeid == other.typeid
 
 
-class StationInfo(RuledOwnedEntity, StationBaseInfo):
+class StationInfo(RuledOwnedEntity, StationUnowned):
 	
 
 	@classmethod
@@ -67,10 +67,11 @@ class StationInfo(RuledOwnedEntity, StationBaseInfo):
 			name=row["name"],
 			displayname=row["displayname"],
 			isrunning=bool(row["procid"]),
-			owner=OwnerInfo(
+			owner=User(
 				id=row["owner>id"],
 				username=row["owner>username"],
-				displayname=row["owner>displayname"]
+				displayname=row["owner>displayname"],
+				publictoken=row["owner>publictoken"]
 			),
 			requestsecuritylevel=row["requestsecuritylevel"],
 			viewsecuritylevel=row["viewsecuritylevel"] \

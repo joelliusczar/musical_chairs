@@ -4,6 +4,7 @@ import pytest
 import os
 import hashlib
 import subprocess
+import musical_chairs_libs.dtos_and_utilities as dtos
 from typing import Iterator, Any, Callable, cast
 from datetime import datetime
 from musical_chairs_libs.services import (
@@ -44,12 +45,12 @@ from musical_chairs_libs.services.events import (
 )
 
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	ActionRule,
 	ConfigAcessors,
+	EmailableUser,
 	DbConnectionProvider,
 	get_path_owner_roles,
-	normalize_opening_slash
+	normalize_opening_slash,
 )
 from musical_chairs_libs.protocols import FileService, TrackingInfoProvider
 from pathlib import Path
@@ -98,7 +99,7 @@ def fixture_db_populate_factory(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str,
 	fixture_datetime_iterator: MockDatetimeProvider,
-	fixture_primary_user: AccountInfo,
+	fixture_primary_user: EmailableUser,
 	fixture_mock_password: bytes
 ) -> Callable[[], None]:
 	def populate_fn():
@@ -477,14 +478,16 @@ def fixture_song_file_service(
 	fixture_file_service: FileService,
 	fixture_artist_service: ArtistService,
 	fixture_album_service: AlbumService,
-	fixture_current_user_provider: CurrentUserProvider
+	fixture_current_user_provider: CurrentUserProvider,
+	fixture_path_rule_service: PathRuleService,
 ) -> SongFileService:
 	songFileService = SongFileService(
 		fixture_conn_cardboarddb,
 		fixture_file_service,
 		fixture_artist_service,
 		fixture_album_service,
-		fixture_current_user_provider
+		fixture_current_user_provider,
+		fixture_path_rule_service
 	)
 	return songFileService
 
@@ -547,21 +550,21 @@ def fixture_clean_queue_files():
 def fixture_path_user_factory(
 	fixture_path_rule_service: PathRuleService,
 	fixture_account_service: AccountsService,
-) -> Callable[[str], AccountInfo]:
+) -> Callable[[str], dtos.RoledUser]:
 
-	def path_user(username: str) -> AccountInfo:
+	def path_user(username: str) -> dtos.RoledUser:
 		pathRuleService = fixture_path_rule_service
 		accountService = fixture_account_service
 		user,_ = accountService.get_account_for_login(username)
 		assert user
 		rules = ActionRule.aggregate(
 			user.roles,
-			(p for p in pathRuleService.get_paths_user_can_see()),
+			(p for p in pathRuleService.get_paths_user_can_see(user.id)),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 		userDict = user.model_dump()
 		userDict["roles"] = rules
-		resultUser = AccountInfo(
+		resultUser = dtos.RoledUser(
 			**userDict,
 		)
 		return resultUser

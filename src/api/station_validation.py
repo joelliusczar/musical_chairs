@@ -1,5 +1,6 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from datetime import datetime
-from typing import Callable, Iterator, Optional
+from typing import Callable, Iterator
 from fastapi import (
 	Depends,
 	HTTPException,
@@ -9,7 +10,6 @@ from fastapi import (
 )
 from fastapi.security import SecurityScopes
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	ActionRule,
 	build_error_obj,
 	get_station_owner_rules,
@@ -24,7 +24,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from musical_chairs_libs.protocols import RadioPusher
 from musical_chairs_libs.services import (
-	AccountManagementService,
+	AccountAccessService,
 	CurrentUserProvider,
 	CollectionQueueService,
 	QueueService,
@@ -33,11 +33,11 @@ from musical_chairs_libs.services import (
 from musical_chairs_libs.services.events import WhenNextCalculator
 from sqlalchemy.engine import Connection
 from api_dependencies import (
-	account_management_service,
+	account_access_service,
 	current_user_provider,
 	datetime_provider,
 	get_configured_db_connection,
-	get_from_query_subject_user,
+	subject_user,
 	open_provided_user,
 	queue_service,
 	station_service,
@@ -49,8 +49,8 @@ from api_dependencies import (
 def get_stations(
 	request: Request,
 	stationService: StationService = Depends(station_service),
-	accountManagementService: AccountManagementService = Depends(
-		account_management_service
+	accountAccessService: AccountAccessService = Depends(
+		account_access_service
 	)
 ) -> Iterator[StationInfo]:
 	result = None
@@ -62,7 +62,7 @@ def get_stations(
 	if pathName is not None:
 		ownerKey = request.path_params.get("ownerkey", None)
 		if ownerKey is not None:
-			owner = open_provided_user(ownerKey, accountManagementService)
+			owner = open_provided_user(ownerKey, accountAccessService)
 			if owner:
 				return stationService.get_stations(
 					int_or_str(pathName),
@@ -189,7 +189,7 @@ def get_rate_secured_station(
 
 def validate_station_rule(
 	rule: ActionRule,
-	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
+	user: dtos.User | None = Depends(subject_user),
 	stationInfo: StationInfo = Depends(get_station),
 ) -> ActionRule:
 	if not user:
@@ -219,10 +219,10 @@ def validate_station_rule(
 
 
 def validate_station_rule_for_remove(
-	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
-	ruleName: Optional[str]=None,
+	user: dtos.User | None = Depends(subject_user),
+	ruleName: str | None=None,
 	stationInfo: StationInfo = Depends(get_station),
-) -> Optional[str]:
+) -> str | None:
 	if not user:
 			raise HTTPException(
 				status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -11,7 +11,7 @@ from .mocks.db_population import get_initial_songs
 
 def test_fetch_null_album(
 	fixture_api_test_client: TestClient,
-	fixture_primary_user: AccountInfo,
+	fixture_primary_user: dtos.InternalUser,
 ):
 	client = fixture_api_test_client
 
@@ -29,7 +29,7 @@ def test_fetch_null_album(
 
 def test_album_update(
 	fixture_api_test_client: TestClient,
-	fixture_primary_user: AccountInfo,
+	fixture_primary_user: dtos.InternalUser,
 ):
 	client = fixture_api_test_client
 

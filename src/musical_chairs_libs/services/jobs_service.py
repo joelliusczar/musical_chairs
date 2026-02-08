@@ -8,7 +8,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	JobInfo
 )
-from musical_chairs_libs.dtos_and_utilities.logging import (
+from musical_chairs_libs.dtos_and_utilities.log_config import (
 	scheduledServiceLogger
 )
 from musical_chairs_libs.protocols import FileService

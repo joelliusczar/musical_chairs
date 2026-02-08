@@ -12,19 +12,22 @@ import { RoleView } from "./RoleView";
 import { RoleEntry } from "./RoleEntry";
 import {
 	ActionRule,
-	User,
+	RoledUser,
 	ActionRuleCreationInfo,
 } from "../../Types/user_types";
 import { SelectItem } from "../../Types/generic_types";
 
 
 interface UserRoleAssignmentTableProps {
-	onUserSelect?: (selected: User | null) => void | Promise<void>
-	users: User[]
-	removeRole: (role: ActionRule, user: User) => void
-	removeUser?: (user: User) => void
+	onUserSelect?: (selected: RoledUser | null) => void | Promise<void>
+	users: RoledUser[]
+	removeRole: (role: ActionRule, user: RoledUser) => void
+	removeUser?: (user: RoledUser) => void
 	availableRoles: SelectItem[]
-	addRole: (role: ActionRuleCreationInfo, user: User) => void | Promise<void>,
+	addRole: (
+		role: ActionRuleCreationInfo, 
+		user: RoledUser
+	) => void | Promise<void>,
 }
 
 export const UserRoleAssignmentTable = (

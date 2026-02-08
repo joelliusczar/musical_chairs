@@ -6,10 +6,10 @@ from fastapi import (
 	HTTPException
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	UserRoleDef,
 	TableData,
 	ArtistInfo,
+	RoledUser,
 	SongsArtistInfo,
 	ListData,
 	build_error_obj,
@@ -55,7 +55,7 @@ def get_page(
 @router.get("/list")
 def get_list(
 	artistService: ArtistService = Depends(artist_service),
-	user: AccountInfo = Security(
+	user: RoledUser = Security(
 		get_current_user_simple,
 		scopes=[]
 	)

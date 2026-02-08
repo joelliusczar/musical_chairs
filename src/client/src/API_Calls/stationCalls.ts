@@ -18,7 +18,7 @@ import {
 import { Flags, StringObject } from "../Types/generic_types";
 import { ListData, TableData } from "../Types/pageable_types";
 import {
-	User,
+	RoledUser,
 	ActionRule,
 } from "../Types/user_types";
 import { StationRequestTypes } from "../constants";
@@ -279,7 +279,7 @@ export const Calls = {
 			abortController: abortController,
 			call: async () => {
 				const url = `stations/${ownerkey}/${stationkey}/user_list`;
-				const response = await webClient.get<TableData<User>>(url, {
+				const response = await webClient.get<TableData<RoledUser>>(url, {
 					params: params,
 					signal: abortController.signal,
 				});

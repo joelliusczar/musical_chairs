@@ -1,16 +1,17 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from collections import defaultdict
 from itertools import groupby
 from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	clean_search_term_for_like,
 	get_datetime,
-	logging,
+	log_config,
 	StationInfo,
 	UserRoleDef,
 	RulePriorityLevel,
 	CatalogueItem,
 	CurrentPlayingInfo,
-	OwnerInfo,
 	QueueMetrics,
 	QueuePossibility,
 	SimpleQueryParameters,
@@ -198,10 +199,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			)
 			return [tupleMap[k] for k in selection]
 		except:
-			logging.radioLogger.error(rows)
-			logging.radioLogger.error(ages)
-			logging.radioLogger.error(weights)
-			logging.radioLogger.error(sum(weights))
+			log_config.radioLogger.error(rows)
+			log_config.radioLogger.error(ages)
+			log_config.radioLogger.error(weights)
+			log_config.radioLogger.error(sum(weights))
 			raise
 
 
@@ -239,13 +240,13 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		groupColumns: list[Label[Any]] = [
 			sg_pk.label("id"),
 			sg_name.label("name"),
-			sg_albumFk.label("album.id"),
-			ab_name.label("album.name"),
+			sg_albumFk.label("album>id"),
+			ab_name.label("album>name"),
 			sg_disc.label("discnum"),
 			sg_trackNum.label("tracknum"),
 			sg_path.label("treepath"),
 			sg_internalpath.label("internalpath"),
-			ar_name.label("artist.name"),
+			ar_name.label("artist>name"),
 		]
 
 		songAlbumQuery = songs_tbl\
@@ -269,7 +270,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		).mappings().fetchall()
 		albumsMap: defaultdict[int, list[RowMapping]] = defaultdict(list)
 		for row in albumSongTuples:
-			albumsMap[row["album.id"]].append(row)
+			albumsMap[row["album>id"]].append(row)
 
 		return albumsMap
 
@@ -281,12 +282,12 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		groupColumns: list[Label[Any]] = [
 			sg_pk.label("id"),
 			sg_name.label("name"),
-			plsg_playlistFk.label("playlist.id"),
-			plsg_lexorder.label("playlist.lexorder"),
-			ab_name.label("album.name"),
+			plsg_playlistFk.label("playlist>id"),
+			plsg_lexorder.label("playlist>lexorder"),
+			ab_name.label("album>name"),
 			sg_path.label("treepath"),
 			sg_internalpath.label("internalpath"),
-			ar_name.label("artist.name"),
+			ar_name.label("artist>name"),
 		]
 
 		songPlaylistQuery = songs_tbl\
@@ -310,7 +311,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		).mappings()
 		playlistsMap: defaultdict[int, list[RowMapping]] = defaultdict(list)
 		for row in playlistSongTuples:
-			playlistsMap[row["playlist.id"]].append(row)
+			playlistsMap[row["playlist>id"]].append(row)
 
 		return playlistsMap
 
@@ -353,7 +354,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			return (r["discnum"] or 0,r["tracknum"])
 
 		def playlistSortKey(r: RowMapping):
-			return r["playlist.lexorder"] or b""
+			return r["playlist>lexorder"] or b""
 
 		for i, collectionId in enumerate(collectionIds):
 			
@@ -386,8 +387,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					name=r["name"],
 					itemtype=collectionId[1].lower(),
 					parentkey=collectionId[0],
-					album=r["album.name"],
-					artist=r["artist.name"],
+					album=r["album>name"],
+					artist=r["artist>name"],
 					queuedtimestamp=self.get_datetime().timestamp(),
 					treepath=r["treepath"],
 					internalpath=r["internalpath"],
@@ -425,10 +426,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			query = select(
 				sg_pk.label("id"),
 				sg_name.label("name"),
-				ab_name.label("album.name"),
+				ab_name.label("album>name"),
 				sg_path.label("treepath"),
 				sg_internalpath.label("internalpath"),
-				ar_name.label("artist.name"),
+				ar_name.label("artist>name"),
 				func.row_number().over(
 					partition_by=sg_pk,
 					order_by=(desc(sgar_isPrimaryArtist), desc(ar_pk))
@@ -454,7 +455,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					name=r["name"],
 					itemtype=StationRequestTypes.ALBUM.lower(),
 					parentkey=itemId,
-					album=r["album.name"],
+					album=r["album>name"],
 					artist=r["artistname"],
 					queuedtimestamp=self.get_datetime().timestamp(),
 					treepath=r["treepath"],
@@ -480,10 +481,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			query = select(
 				sg_pk.label("id"),
 				sg_name.label("name"),
-				ab_name.label("album.name"),
+				ab_name.label("album>name"),
 				sg_path.label("treepath"),
 				sg_internalpath.label("internalpath"),
-				ar_name.label("artist.name"),
+				ar_name.label("artist>name"),
 				func.row_number(ar_name).over(
 					partition_by=sg_pk,
 					order_by=(desc(sgar_isPrimaryArtist), desc(ar_pk))
@@ -508,8 +509,8 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					name=r["name"],
 					itemtype=StationRequestTypes.PLAYLIST.lower(),
 					parentkey=itemId,
-					album=r["album.name"],
-					artist=r["artistname"],
+					album=r["album>name"],
+					artist=r["artist>name"],
 					queuedtimestamp=self.get_datetime().timestamp(),
 					treepath=r["treepath"],
 					internalpath=r["internalpath"],
@@ -659,7 +660,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		try:
 			self.conn.execute(stmt)
 		except IntegrityError as e:
-			logging.radioLogger.error(e, exc_info=True)
+			log_config.radioLogger.error(e, exc_info=True)
 			return False
 		alreadyQueued.pop(completedIdx)
 		queueMetrics = QueueMetrics(maxSize=self.queue_size)
@@ -685,9 +686,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			ab_name.label("name"),
 			ar_name.label("creator"),
 			ab_year.label("year"),
-			ab_ownerFk.label("ownerid"),
-			u_username.label("ownerusername"),
-			u_displayName.label("ownerdisplayname"),
+			ab_ownerFk.label("owner>id"),
+			u_username.label("owner>username"),
+			u_displayName.label("owner>displayname"),
+			tbl.u_publictoken.label("owner>publictoken"),
 			dbLiteral(StationRequestTypes.ALBUM.lower()).label("itemtype")
 		)\
 			.select_from(stations_tbl) \
@@ -702,9 +704,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			pl_name.label("name"),
 			u_displayName.label("creator"),
 			func.FROM_UNIXTIME(pl_lastmodifiedtimestamp, "%Y").label("year"),
-			pl_ownerFk.label("ownerid"),
-			u_username.label("ownerusername"),
-			u_displayName.label("ownerdisplayname"),
+			pl_ownerFk.label("owner>id"),
+			u_username.label("owner>username"),
+			u_displayName.label("owner>displayname"),
+			tbl.u_publictoken.label("owner>publictoken"),
 			dbLiteral(StationRequestTypes.PLAYLIST.lower()).label("itemtype")
 		)\
 			.select_from(stations_tbl) \
@@ -717,14 +720,15 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		sub = unioned_query.cte()
 		
 		query = select(
-			sub.c.id.label("id"),
-			sub.c.name.label("name"),
-			sub.c.creator.label("creator"),
-			sub.c.year.label("year"),
-			sub.c.ownerid.label("ownerid"),
-			sub.c.ownerusername.label("ownerusername"),
-			sub.c.ownerdisplayname.label("ownerdisplayname"),
-			sub.c.itemtype.label("itemtype")
+			sub.c["id"].label("id"),
+			sub.c["name"].label("name"),
+			sub.c["creator"].label("creator"),
+			sub.c["year"].label("year"),
+			sub.c["owner>id"].label("owner>id"),
+			sub.c["owner>username"].label("owner>username"),
+			sub.c["owner>displayname"].label("owner>displayname"),
+			sub.c["owner>publictoken"].label("owner>publictoken"),
+			sub.c["itemtype"].label("itemtype")
 		)
 		
 		if lname:
@@ -764,10 +768,11 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					priority=RulePriorityLevel.OWNER.value
 				)
 			],
-			owner=OwnerInfo(
-				id=r["ownerid"],
-				username=r["ownerusername"],
-				displayname=r["ownerdisplayname"]
+			owner=dtos.User(
+				id=r["owner>id"],
+				username=r["owner>username"],
+				displayname=r["owner>displayname"],
+				publictoken=r["owner>publictoken"]
 			)
 			) for r in records]
 		countQuery = select(func.count(1)).select_from(sub)

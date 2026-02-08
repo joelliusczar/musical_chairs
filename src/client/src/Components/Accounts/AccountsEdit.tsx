@@ -19,7 +19,7 @@ import { useParams } from "react-router-dom";
 import Loader from "../Shared/Loader";
 import {
 	PasswordUpdate,
-	User,
+	UserBasicUpdate,
 } from "../../Types/user_types";
 import { SubmitButton } from "../Shared/SubmitButton";
 
@@ -86,7 +86,7 @@ export const AccountsEdit = () => {
 		}
 	});
 
-	const formMethods = useForm<User>({
+	const formMethods = useForm<UserBasicUpdate>({
 		defaultValues: {
 			displayname: "",
 			email: "",
@@ -96,9 +96,14 @@ export const AccountsEdit = () => {
 	});
 	const { handleSubmit, reset, watch, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {
+		if (!pathVars.subjectuserkey) {
+			enqueueSnackbar("Missing subject user key", { variant: "error"});
+			return;
+		}
 		try {
+
 			const requestObj = Calls.updateAccountBasic(
-				{subjectuserkey: values.id, data: values}
+				{subjectuserkey: pathVars.subjectuserkey, data: values}
 			);
 			const data = await requestObj.call();
 			reset(data);
@@ -111,16 +116,7 @@ export const AccountsEdit = () => {
 
 
 	useEffect(() => {
-		const [ formId, formUsername] = watch(["id", "username"]);
-		const key = pathVars.subjectuserkey;
-		const isNumKey = Number.isInteger(key);
-		const isStrKey = typeof key === "string";
-		const isDiffId = isNumKey && parseInt(key || "") !== formId;
-		const isDiffName = isStrKey && key != formUsername;
-		if (!key || (!isDiffId && !isDiffName)) {
-			return;
-		}
-		const requestObj = Calls.get({ subjectuserkey: key });
+		const requestObj = Calls.selfget();
 		const fetch = async () => {
 			try {
 				dispatch(dispatches.started());

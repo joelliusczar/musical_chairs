@@ -1,6 +1,6 @@
 from typing import Any
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
+	EmailableUser,
 	UserRoleDef,
 	RulePriorityLevel,
 )
@@ -23,7 +23,7 @@ except:
 
 def get_user_role_params(
 	datetimeProvider: MockDatetimeProvider,
-	primaryUser: AccountInfo,
+	primaryUser: EmailableUser,
 ) -> list[dict[Any, Any]]:
 	return [
 		{
@@ -954,7 +954,7 @@ def get_path_permission_params(
 def populate_user_roles(
 	conn: Connection,
 	datetimeProvider: MockDatetimeProvider,
-	primaryUser: AccountInfo,
+	primaryUser: EmailableUser,
 ):
 	userRoleParams = get_user_role_params(datetimeProvider, primaryUser)
 	stmt = insert(userRoles)

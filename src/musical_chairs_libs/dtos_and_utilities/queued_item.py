@@ -1,5 +1,5 @@
 import os
-from .account_dtos import OwnerType
+from .account_dtos import User
 from .action_rule_dtos import ActionRule
 from .artist_dtos import ArtistInfo
 from .constants import StationRequestTypes
@@ -71,7 +71,7 @@ class CatalogueItem(QueuedItem):
 		list[ActionRule],
 		Field(default_factory=list, frozen=False)
 	)
-	owner: OwnerType
+	owner: User
 	playedcount: int=0
 
 

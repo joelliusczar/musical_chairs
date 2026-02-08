@@ -28,18 +28,20 @@ export interface RoledEntity {
 	roles: ActionRule[]
 };
 
-export interface RoledUser extends IdItem, RoledEntity {};
 
-export interface UserBase extends IdItem {
+export interface User extends IdItem {
+	publictoken: string
 	username: string
 	displayname?: string
 }
 
-export interface EmailableUser extends UserBase {
+export interface RoledUser extends User, RoledEntity {};
+
+
+export interface EmailableUser extends RoledUser {
 	email: string
 }
 
-export interface User extends EmailableUser, RoledUser {};
 
 export interface UserBasicUpdate {
 	email: string

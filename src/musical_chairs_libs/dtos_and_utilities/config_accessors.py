@@ -78,11 +78,6 @@ class ConfigAcessors:
 
 
 	@classmethod
-	def sql_script_dir(cls) -> str:
-		return cls.get_value("DSF_SQL_SCRIPTS_DEST", "sql_script_dir")
-
-
-	@classmethod
 	def db_name(cls) -> str:
 		return cls.get_value("DSF_DATABASE_NAME", "db_name")
 

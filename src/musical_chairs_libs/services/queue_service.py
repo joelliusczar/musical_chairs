@@ -57,11 +57,11 @@ from musical_chairs_libs.dtos_and_utilities import (
 	CurrentPlayingInfo,
 	HistoryItem,
 	get_datetime,
-	logging,
+	log_config,
 	SongListDisplayItem,
 	StationInfo,
 	LastPlayedItem,
-	OwnerInfo,
+	User,
 	normalize_opening_slash,
 	QueuePossibility,
 	QueueMetrics,
@@ -152,8 +152,8 @@ class QueueService(SongPopper, RadioPusher):
 			sg_internalpath.label("internalpath"),
 			sg_path.label("treepath"),
 			coalesce(sg_name, "").label("name"),
-			coalesce(ab_name, "").label("album.name"),
-			coalesce(ar_name, "").label("artist.name"),
+			coalesce(ab_name, "").label("album>name"),
+			coalesce(ar_name, "").label("artist>name"),
 		]
 		query = select(
 			*groupColumns,
@@ -191,8 +191,8 @@ class QueueService(SongPopper, RadioPusher):
 					name=r["name"],
 					queuedtimestamp=self.get_datetime().timestamp(),
 					itemtype=StationRequestTypes.SONG.lower(),
-					album=r["album.name"],
-					artist=r["artist.name"],
+					album=r["album>name"],
+					artist=r["artist>name"],
 					internalpath=r["internalpath"],
 					treepath=r["treepath"],
 					userId=None
@@ -230,11 +230,11 @@ class QueueService(SongPopper, RadioPusher):
 			selection = self.choice(list(songMap.keys()), sampleSize, weights)
 			return [songMap[s] for s in selection]
 		except Exception as e:
-			logging.radioLogger.error(e, exc_info=True)
-			logging.radioLogger.error([r[0].itemId for r in rows])
-			logging.radioLogger.error(ages)
-			logging.radioLogger.error(weights)
-			logging.radioLogger.error(sum(weights))
+			log_config.radioLogger.error(e, exc_info=True)
+			log_config.radioLogger.error([r[0].itemId for r in rows])
+			log_config.radioLogger.error(ages)
+			log_config.radioLogger.error(weights)
+			log_config.radioLogger.error(sum(weights))
 			raise
 
 
@@ -363,7 +363,7 @@ class QueueService(SongPopper, RadioPusher):
 		try:
 			self.conn.execute(stmt)
 		except IntegrityError as e:
-			logging.radioLogger.error(e, exc_info=True)
+			log_config.radioLogger.error(e, exc_info=True)
 			return False
 		queueMetrics = QueueMetrics(maxSize=self.queue_size)
 		alreadyQueued.pop(completedIdx)
@@ -472,8 +472,7 @@ class QueueService(SongPopper, RadioPusher):
 		limit: Optional[int]=50
 	) -> CurrentPlayingInfo:
 		pathRuleTree = None
-		user = self.current_user_provider.current_user()
-		if user:
+		if self.current_user_provider.is_loggedIn():
 			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 		queue, count = self.get_queue_for_station(
 			station.id,
@@ -805,7 +804,7 @@ DELETE FROM `stationlogs` WHERE `pk` IN (SELECT `pk` FROM `historyids`);
 			rules=list(pathRuleTree.values_flat(
 					normalize_opening_slash(cast(str, s["treepath"])))
 				) if pathRuleTree else [],
-			owner=OwnerInfo(id=0, username="", displayname="NA"),
+			owner=User(id=0, username="", displayname="NA", publictoken=""),
 			playedcount=s["playedcount"]
 		) for s in records], count
 

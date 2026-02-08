@@ -1,3 +1,4 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from typing import Iterator, Optional
 from fastapi import (
 	APIRouter,
@@ -16,7 +17,7 @@ from api_dependencies import (
 	song_info_service,
 	song_file_service,
 	get_current_user_simple,
-	get_from_query_subject_user,
+	subject_user,
 	path_rule_service,
 	file_service,
 	check_back_key
@@ -32,7 +33,7 @@ from musical_chairs_libs.services import (
 from musical_chairs_libs.dtos_and_utilities import (
 	SongTreeNode,
 	ListData,
-	AccountInfo,
+	RoledUser,
 	UserRoleDef,
 	SongEditInfo,
 	build_error_obj,
@@ -125,7 +126,7 @@ def get_songs_list(
 	albumId: Optional[int]=None,
 	artist: str = "",
 	artistId: Optional[int]=None,
-	user: AccountInfo = Depends(get_current_user_simple),
+	user: RoledUser = Depends(get_current_user_simple),
 	itemIds: Optional[list[int]] = Query(default=None),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> list[SongEditInfo]:
@@ -232,7 +233,7 @@ def get_path_user_list(
 		scopes=[UserRoleDef.PATH_USER_LIST.value]
 	),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
-) -> TableData[AccountInfo]:
+) -> TableData[dtos.RoledUser]:
 	pathUsers = list(pathRuleService.get_users_of_path(prefix))
 	return TableData(items=pathUsers, totalrows=len(pathUsers))
 
@@ -243,7 +244,7 @@ def add_user_rule(
 		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 	),
-	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
+	subjectuser: dtos.User = Depends(subject_user),
 	rule: ActionRule = Depends(validate_path_rule),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> ActionRule:
@@ -257,7 +258,7 @@ def remove_user_rule(
 		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 	),
-	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
+	subjectuser: dtos.User = Depends(subject_user),
 	rulename: Optional[str] = Depends(validate_path_rule_for_remove),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
 ):

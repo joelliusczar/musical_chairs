@@ -70,7 +70,6 @@
       include_role:
         name: python-setup
       vars:
-        sql_scripts_src: ../sql_scripts
         env_name: '{{app_details["prefix"]|lower}}_env'
         engine_src: '{{src_dirs["engine"]}}/'
         working_dir: '{{app_trunk}}'

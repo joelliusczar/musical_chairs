@@ -1,4 +1,5 @@
 import pytest
+import musical_chairs_libs.dtos_and_utilities as dtos
 from musical_chairs_libs.services import (
 	PlaylistService,
 	PlaylistsUserService,
@@ -17,7 +18,7 @@ from .common_fixtures import (
 )
 from .common_fixtures import *
 from .mocks.db_population import get_initial_playlists
-from .mocks.db_data import bravo_user_id
+from .mocks.db_data import bravo_user_id, public_tokens, hidden_tokens
 
 
 def test_get_playlists_list(fixture_playlist_service: PlaylistService):
@@ -115,7 +116,7 @@ def test_get_playlists_list_with_owner_and_scopes(
 @pytest.mark.current_username("testUser_juliet")
 def test_save_playlist(
 	fixture_playlist_service: PlaylistService,
-	fixture_primary_user: AccountInfo
+	fixture_primary_user: dtos.InternalUser
 	):
 	playlistService = fixture_playlist_service
 	testData = PlaylistCreationInfo(
@@ -143,10 +144,12 @@ def test_save_playlist(
 		name = "papa_playlist_update",
 		displayname="Come to papa test"
 	)
-	bravoUser = AccountInfo(
+	bravoUser = dtos.InternalUser(
 		id = bravo_user_id,
 		username="testUser_bravo",
-		email="test2@munchopuncho.com"
+		email="test2@munchopuncho.com",
+		publictoken=public_tokens[bravo_user_id],
+		hiddentoken=hidden_tokens[bravo_user_id]
 	)
 	with playlistService.current_user_provider.impersonate(bravoUser):
 		result = playlistService.save_playlist(testData, 2)

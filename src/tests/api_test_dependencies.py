@@ -44,7 +44,6 @@ def fixture_api_test_client(
 	fixture_conn_cardboarddb: Connection,
 	request: pytest.FixtureRequest
 ) -> Iterator[TestClient]:
-
 	
 	app.dependency_overrides[get_configured_db_connection] =\
 		lambda: fixture_conn_cardboarddb

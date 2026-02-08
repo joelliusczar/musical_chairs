@@ -9,8 +9,8 @@ from fastapi import (
 	Body,
 	Query,
 )
+import musical_chairs_libs.dtos_and_utilities as dtos
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	UserRoleDef,
 	TableData,
 	PlaylistInfo,
@@ -29,9 +29,9 @@ from musical_chairs_libs.services import (
 )
 from api_dependencies import (
 	check_top_level_rate_limit,
-	get_owner_from_query,
+	get_owner,
 	get_playlist_by_name_and_owner,
-	get_from_query_subject_user,
+	subject_user,
 	get_secured_playlist_by_id,
 	get_secured_playlist_by_name_and_owner,
 	build_error_obj,
@@ -55,7 +55,7 @@ router = APIRouter(prefix="/playlists")
 def get_page(
 	name: str="",
 	artist: str="",
-	owner: Optional[AccountInfo] = Depends(get_owner_from_query),
+	owner: dtos.User | None = Depends(get_owner),
 	queryParams: SimpleQueryParameters = Depends(get_query_params),
 	playService: PlaylistService = Depends(playlist_service)
 ) -> TableData[PlaylistInfo]:
@@ -72,7 +72,7 @@ def get_page(
 
 @router.get("/list")
 def playlist_list(
-	owner: Optional[AccountInfo] = Depends(get_owner_from_query),
+	owner: dtos.User | None = Depends(get_owner),
 	playlistService: PlaylistService = Depends(playlist_service),
 ) -> Dict[str, List[PlaylistInfo]]:
 	playlists = list(playlistService.get_playlists(None,
@@ -177,14 +177,14 @@ def get_playlist_user_list(
 		scopes=[UserRoleDef.PLAYLIST_USER_LIST.value]
 	),
 	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
-) -> TableData[AccountInfo]:
+) -> TableData[dtos.RoledUser]:
 	playlistUsers = list(playlistsUsersService.get_playlist_users(playlistInfo))
 	return TableData(items=playlistUsers, totalrows=len(playlistUsers))
 
 
 @router.post("/{ownerkey}/{playlistkey}/user_role")
 def add_user_rule(
-	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
+	subjectuser: dtos.User = Depends(subject_user),
 	rule: ActionRule = Depends(validate_playlist_rule),
 	playlistInfo: PlaylistInfo = Security(
 		get_secured_playlist_by_name_and_owner,
@@ -202,8 +202,8 @@ def add_user_rule(
 @router.delete("/{ownerkey}/{playlistkey}/user_role",
 	status_code=status.HTTP_204_NO_CONTENT)
 def remove_user_rule(
-	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
-	rulename: Optional[str] = Depends(validate_playlist_rule_for_remove),
+	subjectuser: dtos.User = Depends(subject_user),
+	rulename: str | None = Depends(validate_playlist_rule_for_remove),
 	playlistInfo: PlaylistInfo = Security(
 		get_playlist_by_name_and_owner,
 		scopes=[UserRoleDef.PLAYLIST_USER_ASSIGN.value]

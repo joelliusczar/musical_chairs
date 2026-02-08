@@ -1,6 +1,6 @@
 #pyright: reportUnusedFunction=false, reportMissingTypeStubs=false
 import uvicorn #pyright: ignore [reportMissingTypeStubs]
-import musical_chairs_libs.dtos_and_utilities.logging as logging
+import musical_chairs_libs.dtos_and_utilities.log_config as log_config
 import sys
 from contextlib import asynccontextmanager
 from typing import Any
@@ -245,11 +245,11 @@ def everything_else(
 	request: Request,
 	ex: Exception
 ) -> JSONResponse:
-	logging.logger.error(
+	log_config.apiLogger.error(
 		"".join(TracebackException.from_exception(ex).format())
 	)
-	response = JSONResponse(content=
-		{ "detail": [
+	response = JSONResponse(
+		content={ "detail": [
 				build_error_obj("Onk! Caveman error! What do?")
 			]
 		},

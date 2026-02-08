@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.dtos_and_utilities as dtos
 from typing import Dict, List, Optional
 from fastapi import (
 	APIRouter,
@@ -10,7 +11,6 @@ from fastapi import (
 	Query
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	CurrentPlayingInfo,
 	HistoryItem,
 	StationInfo,
@@ -38,9 +38,9 @@ from api_dependencies import (
 	check_top_level_rate_limit,
 	station_service,
 	queue_service,
-	get_owner_from_query,
+	get_owner,
 	get_query_params,
-	get_from_query_subject_user,
+	subject_user,
 	get_page_num,
 	build_error_obj,
 	stations_users_service,
@@ -63,7 +63,7 @@ router = APIRouter(prefix="/stations")
 
 @router.get("/list")
 def station_list(
-	owner: Optional[AccountInfo] = Depends(get_owner_from_query),
+	owner: dtos.User | None = Depends(get_owner),
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:
 	stations = list(stationService.get_stations(None,
@@ -353,7 +353,7 @@ def get_station_user_list(
 		scopes=[UserRoleDef.STATION_USER_LIST.value]
 	),
 	stationsUsersService: StationsUsersService = Depends(stations_users_service),
-) -> TableData[AccountInfo]:
+) -> TableData[dtos.RoledUser]:
 	stationUsers = list(stationsUsersService.get_station_users(stationInfo))
 	return TableData(items=stationUsers, totalrows=len(stationUsers))
 
@@ -370,7 +370,7 @@ def get_station_user_list(
 	]
 )
 def add_user_rule(
-	user: AccountInfo = Depends(get_from_query_subject_user),
+	user: dtos.User = Depends(subject_user),
 	stationInfo: StationInfo = Security(
 		get_secured_station,
 		scopes=[UserRoleDef.STATION_USER_ASSIGN.value]
@@ -398,7 +398,7 @@ def add_user_rule(
 	]
 )
 def remove_user_rule(
-	user: AccountInfo = Depends(get_from_query_subject_user),
+	user: dtos.User = Depends(subject_user),
 	rulename: Optional[str] = Depends(validate_station_rule_for_remove),
 	stationInfo: StationInfo = Security(
 		get_secured_station,

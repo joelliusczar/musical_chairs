@@ -1,5 +1,4 @@
 import sys
-from dataclasses import dataclass
 from typing import (
 	Any, 
 	Optional, 
@@ -8,6 +7,7 @@ from typing import (
 	Callable,
 	cast
 )
+from pydantic import BaseModel as MCBaseClass
 from .user_role_def import RulePriorityLevel
 from .constants import UserRoleSphere
 from itertools import groupby, chain
@@ -17,8 +17,9 @@ from .user_role_def import RulePriorityLevel
 
 
 
-@dataclass
-class ActionRule:
+
+
+class ActionRule(MCBaseClass):
 	name: str
 	span: float=0 #this should be total seconds
 	quota: float=0

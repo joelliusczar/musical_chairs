@@ -1,15 +1,12 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from api_dependencies import (
 	aggregate_events_logging_service,
 	current_user_provider,
-	get_from_path_subject_user,
+	subject_user,
 	vistor_tracking_service
 )
 from fastapi import (
 	Depends
-)
-from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
-	StationInfo,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	UserActions,
@@ -40,15 +37,15 @@ def log_event(sphere: str, action: str):
 		eventsLogger.add_event(action, sphere, str(currentUserId))
 
 	def __subject_user_log_event__(
-		subjectUser: AccountInfo = Depends(get_from_path_subject_user),
+		subjectUser: dtos.User = Depends(subject_user),
 		eventsLogger: EventsLogger =
 			Depends(aggregate_events_logging_service),
 	):
 		yield
-		eventsLogger.add_event(action, sphere, str(subjectUser.id))
+		eventsLogger.add_event(action, sphere, subjectUser.publictoken)
 	
 	def __station_log_event__(
-		station: StationInfo = Depends(get_station),
+		station: dtos.StationInfo = Depends(get_station),
 		eventsLogger: EventsLogger =
 			Depends(aggregate_events_logging_service),
 	):

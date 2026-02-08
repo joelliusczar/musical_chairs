@@ -1,4 +1,5 @@
 import pytest
+import musical_chairs_libs.dtos_and_utilities as dtos
 from musical_chairs_libs.services import (
 	StationService,
 	AccountsService,
@@ -22,7 +23,7 @@ from .common_fixtures import (
 )
 from .common_fixtures import *
 from .mocks.db_population import get_initial_stations
-from .mocks.db_data import bravo_user_id
+from .mocks.db_data import bravo_user_id, public_tokens, hidden_tokens
 
 
 def test_get_stations_list(fixture_station_service: StationService):
@@ -119,7 +120,7 @@ def test_get_stations_list_with_owner_and_scopes(
 @pytest.mark.current_username("testUser_juliet")
 def test_save_station(
 	fixture_station_service: StationService,
-	fixture_primary_user: AccountInfo
+	fixture_primary_user: dtos.InternalUser
 	):
 	stationService = fixture_station_service
 	testData = StationCreationInfo(
@@ -146,10 +147,12 @@ def test_save_station(
 		name = "papa_station_update",
 		displayname="Come to papa test"
 	)
-	bravoUser = AccountInfo(
+	bravoUser = dtos.InternalUser(
 		id = bravo_user_id,
 		username="testUser_bravo",
-		email="test2@munchopuncho.com"
+		email="test2@munchopuncho.com",
+		publictoken=public_tokens[bravo_user_id],
+		hiddentoken=hidden_tokens[bravo_user_id]
 	)
 	with stationService.current_user_provider.impersonate(bravoUser):
 		result = stationService.save_station(testData, 2)

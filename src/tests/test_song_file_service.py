@@ -19,6 +19,7 @@ from .common_fixtures import (
 )
 from .common_fixtures import *
 from io import BytesIO
+from .mocks.db_data.user_ids import uniform_user_id
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -302,7 +303,7 @@ def test_get_user_paths(
 	fixture_path_rule_service: PathRuleService
 ):
 	pathRuleService = fixture_path_rule_service
-	results = list(pathRuleService.get_paths_user_can_see())
+	results = list(pathRuleService.get_paths_user_can_see(uniform_user_id))
 	assert results
 
 def test_get_parents_of_path(

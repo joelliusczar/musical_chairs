@@ -62,6 +62,7 @@ from musical_chairs_libs.tables import (
 )
 from .song_artist_service import SongArtistService
 from .jobs_service import JobsService
+from .path_rule_service import PathRuleService
 from .album_service import AlbumService
 from .artist_service import ArtistService
 from itertools import islice
@@ -77,6 +78,7 @@ class SongFileService:
 		artistService: ArtistService,
 		albumService: AlbumService,
 		currentUserProvider: CurrentUserProvider,
+		pathRuleService: PathRuleService,
 		songArtistService: Optional[SongArtistService]=None,
 		jobService: Optional[JobsService]=None,
 	) -> None:
@@ -94,6 +96,7 @@ class SongFileService:
 		self.artist_service = artistService
 		self.album_service = albumService
 		self.current_user_provider = currentUserProvider
+		self.path_rule_service =  pathRuleService
 
 
 	def __create_directory__(
@@ -367,8 +370,9 @@ class SongFileService:
 		self,
 		prefix: Optional[str]=None
 	) -> Iterator[SongTreeNode]:
-		user = self.current_user_provider.get_path_rule_loaded_current_user()
-		permittedPathTree = user.get_permitted_paths_tree()
+		user = self.current_user_provider.get_path_rule_loaded_current_user()\
+			.to_roled_user()
+		permittedPathTree = self.path_rule_service.get_permitted_paths_tree(user)
 		if type(prefix) == str:
 			query = self.__song_ls_query__(prefix)
 			yield from self.__query_to_treeNodes__(query, permittedPathTree)
@@ -420,8 +424,9 @@ class SongFileService:
 		prefix: str,
 		includeTop: bool=True
 	) -> Mapping[str, Collection[SongTreeNode]]:
-		user = self.current_user_provider.get_path_rule_loaded_current_user()
-		permittedPathTree = user.get_permitted_paths_tree()
+		user = self.current_user_provider.get_path_rule_loaded_current_user()\
+			.to_roled_user()
+		permittedPathTree = self.path_rule_service.get_permitted_paths_tree(user)
 		queryList: list[
 			Select[Tuple[str, Optional[String], int, Integer, String]]
 		] = []

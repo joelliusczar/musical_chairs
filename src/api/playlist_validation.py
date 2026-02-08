@@ -1,3 +1,4 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from typing import Optional
 from fastapi import (
 	Depends,
@@ -10,17 +11,16 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_error_obj,
 	PlaylistInfo,
 	get_playlist_owner_roles,
-	AccountInfo,
 	ActionRule,
 )
 from api_dependencies import (
 	get_playlist_by_name_and_owner,
-	get_from_query_subject_user
+	subject_user
 )
 
 def validate_playlist_rule(
 	rule: ActionRule,
-	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
+	user: Optional[dtos.User] = Depends(subject_user),
 	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
 ) -> ActionRule:
 	if not user:
@@ -49,10 +49,10 @@ def validate_playlist_rule(
 	return rule
 
 def validate_playlist_rule_for_remove(
-	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
-	ruleName: Optional[str]=None,
+	user: dtos.User | None = Depends(subject_user),
+	ruleName: str | None=None,
 	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
-) -> Optional[str]:
+) -> str | None:
 	if not user:
 			raise HTTPException(
 				status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

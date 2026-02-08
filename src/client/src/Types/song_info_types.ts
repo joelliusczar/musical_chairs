@@ -1,5 +1,5 @@
 import { IdValue, Named, NamedIdItem } from "./generic_types";
-import { ActionRule, User, UserBase } from "./user_types";
+import { ActionRule, User } from "./user_types";
 import { StationTableData, StationInfo } from "./station_types";
 import { VoidStore } from "../Reducers/reducerStores";
 import {
@@ -57,7 +57,7 @@ export interface CatalogueItem extends NamedIdItem {
 	year: number | null
 	description: string | null
 	rules: ActionRule[]
-	owner: UserBase
+	owner: User
 	playedcount: number
 }
 

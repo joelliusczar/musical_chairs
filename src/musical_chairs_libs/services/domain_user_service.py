@@ -1,9 +1,10 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.dtos_and_utilities import (
 	build_base_rules_query,
 	generate_domain_user_and_rules_from_rows,
 	get_datetime,
-	AccountInfo,
 	ActionRule,
 	RulePriorityLevel,
 	UserRoleSphere,
@@ -13,7 +14,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from musical_chairs_libs.tables import (
 
 	userRoles as user_roles_tbl, ur_userFk, ur_keypath, ur_role, ur_sphere,
-	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
+	users as user_tbl, u_username, u_pk, u_displayName, u_email,
 	u_disabled,
 )
 from sqlalchemy import (
@@ -81,14 +82,15 @@ class DomainUserService:
 		entity: RuledOwnedEntity,
 		sphere: UserRoleSphere,
 		ownerRuleProvider: Callable[[], Iterator[ActionRule]],
-	) -> Iterator[AccountInfo]:
+	) -> Iterator[dtos.RoledUser]:
 		rulesQuery = build_base_rules_query(sphere).cte()
 		query = select(
 			u_pk,
 			u_username,
 			u_displayName,
 			u_email,
-			u_dirRoot,
+			tbl.u_publictoken,
+			tbl.u_dirRoot,
 			rulesQuery.c["rule>userfk"].label("rule>userfk"),
 			rulesQuery.c["rule>name"].label("rule>name"),
 			rulesQuery.c["rule>quota"].label("rule>quota"),

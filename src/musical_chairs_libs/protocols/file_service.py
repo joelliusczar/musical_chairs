@@ -9,14 +9,18 @@ class FileService(Protocol):
 	) -> BinaryIO:
 		...
 
+
 	def open_song(self, keyPath: str) -> BinaryIO:
 		...
+
 
 	def download_url(self, keyPath: str) -> str:
 		...
 
+
 	def delete_song(self, keyPath: str):
 		...
+
 
 	def song_absolute_path(self, keyPath: str) -> str:
 		...

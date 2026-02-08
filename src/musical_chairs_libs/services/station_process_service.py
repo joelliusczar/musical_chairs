@@ -4,7 +4,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	Lost,
 )
-import musical_chairs_libs.dtos_and_utilities.logging as logging
+import musical_chairs_libs.dtos_and_utilities.log_config as log_config
 from musical_chairs_libs.tables import (
 	stations as stations_tbl, st_pk, st_name, st_procId,
 	st_ownerFk,
@@ -172,7 +172,7 @@ class StationProcessService:
 		station: StationInfo | None
 	) -> None:
 
-		logging.radioLogger.debug(
+		log_config.radioLogger.debug(
 			f"disable {station.id if station is not None else 'All'}"
 		)
 		query = select(st_procId).where(st_procId.is_not(None))
@@ -186,6 +186,6 @@ class StationProcessService:
 		rows = self.conn.execute(query)
 		pids = [cast(int, row[0]) for row in rows]
 		for pid in pids:
-			logging.radioLogger.debug(f"send signal to {pid}")
+			log_config.radioLogger.debug(f"send signal to {pid}")
 			ProcessService.end_process(pid)
 		

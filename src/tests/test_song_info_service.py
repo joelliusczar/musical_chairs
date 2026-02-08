@@ -311,7 +311,7 @@ def test_save__multiple_song_add_station_and_playlist(
 			PlaylistInfo(
 				id=7,
 				name="uniform_playlist",
-				owner=bravo_user,
+				owner=bravo_user.to_user(),
 			)
 		],
 		touched={"stations","playlists"}

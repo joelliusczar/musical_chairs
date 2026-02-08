@@ -1,4 +1,5 @@
-
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from typing import (
 	Iterator,
 	Optional,
@@ -12,8 +13,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	ArtistInfo,
 	AlreadyUsedError,
-	AccountInfo,
-	OwnerInfo,
 	SongsArtistInfo,
 	SongListDisplayItem,
 	DictDotMap,
@@ -110,7 +109,8 @@ class ArtistService:
 			ar_name,
 			ar_ownerFk,
 			u_username,
-			u_displayName
+			u_displayName,
+			tbl.u_publictoken
 		)
 
 		offset = page * pageSize if pageSize else 0
@@ -120,10 +120,11 @@ class ArtistService:
 		yield from (ArtistInfo(
 			id=row[ar_pk],
 			name=row[ar_name],
-			owner=OwnerInfo(
+			owner=dtos.User(
 				id=row[ar_ownerFk],
 				username=row[u_username],
-				displayname=row[u_displayName]
+				displayname=row[u_displayName],
+				publictoken=row[tbl.u_publictoken]
 			)
 		)
 			for row in records)
@@ -148,18 +149,19 @@ class ArtistService:
 		self.conn.commit()
 		return insertedPk
 
-	def get_artist_owner(self, artistId: int) -> OwnerInfo:
-		query = select(ar_ownerFk, u_username, u_displayName)\
+	def get_artist_owner(self, artistId: int) -> dtos.User:
+		query = select(ar_ownerFk, u_username, u_displayName, tbl.u_publictoken)\
 			.select_from(artists_tbl)\
 			.join(user_tbl, u_pk == ar_ownerFk)\
 			.where(ab_pk == artistId)
 		data = self.conn.execute(query).mappings().fetchone()
 		if not data:
-			return OwnerInfo(id=0,username="", displayname="")
-		return OwnerInfo(
+			return dtos.User(id=0,username="", displayname="", publictoken="")
+		return dtos.User(
 			id=data[ar_ownerFk],
 			username=data[u_username],
-			displayname=data[u_displayName]
+			displayname=data[u_displayName],
+			publictoken=data[tbl.u_publictoken]
 		)
 
 
@@ -179,7 +181,7 @@ class ArtistService:
 	def get_artist(
 			self,
 			artistId: int,
-			user: Optional[AccountInfo]=None
+			user: dtos.User | None=None
 		) -> Optional[SongsArtistInfo]:
 		artistInfo = next(self.get_artists(artistKeys=artistId), None)
 		if not artistInfo:
@@ -238,7 +240,7 @@ class ArtistService:
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
-		owner = user
+		owner = user.to_user()
 		if artistId and isinstance(stmt, Update):
 			stmt = stmt.where(ar_pk == artistId)
 			owner = self.get_artist_owner(artistId)

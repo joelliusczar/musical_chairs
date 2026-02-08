@@ -15,7 +15,7 @@ import {
 } from "../Types/generic_types";
 import { ListData, TableData, PageableParams } from "../Types/pageable_types";
 import {
-	User,
+	RoledUser,
 	SubjectUserRoleAddition,
 	SubjectUserRoleDeletion,
 	ActionRule,
@@ -129,7 +129,7 @@ export const Calls = {
 			abortController: abortController,
 			call: async () => {
 				const url = "song-info/path/user_list";
-				const response = await webClient.get<TableData<User>>(
+				const response = await webClient.get<TableData<RoledUser>>(
 					url, {
 						params: params,
 						signal: abortController.signal,

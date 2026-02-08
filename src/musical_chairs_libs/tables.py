@@ -34,6 +34,8 @@ def get_ddl_scripts(conn: Connection) -> str:
 
 users = Table("users", metadata,
 	Column("pk", Integer, primary_key=True),
+	Column("publictoken", String(50), nullable=False),
+	Column("hiddentoken", String(50), nullable=False),
 	Column("username", String(50), nullable=False),
 	Column("displayname", String(50), nullable=True),
 	Column("hashedpw", LargeBinary, nullable=True),
@@ -49,6 +51,8 @@ users = Table("users", metadata,
 u = users.c
 u_pk = cast(Column[Integer],u.pk)
 u_username = cast(Column[String],u.username)
+u_publictoken = cast(Column[String],u.publictoken)
+u_hiddentoken = cast(Column[String],u.hiddentoken)
 u_displayName = cast(Column[Optional[String]],u.displayname)
 u_hashedPW = cast(Column[LargeBinary],u.hashedpw)
 u_email = cast(Column[Optional[String]],u.email)
@@ -56,6 +60,8 @@ u_dirRoot = cast(Column[Optional[String]],u.dirroot)
 u_disabled = cast(Column[Optional[Integer]],u.isdisabled)
 u_creationTimestamp = cast(Column[Double[float]],u.creationtimestamp)
 
+Index("idx_publictoken", u_publictoken, unique=True)
+Index("idx_hiddentoken", u_hiddentoken, unique=True)
 Index("idx_uniqueusername", u_username, unique=True)
 Index("idx_uniqueemail", u_email, unique=True)
 Index("idx_dirroot", u_dirRoot, unique=True)

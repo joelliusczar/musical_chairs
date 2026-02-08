@@ -160,8 +160,8 @@ export const StationEdit = (props: StationEditProps) => {
 			isrunning: false,
 			owner: {
 				id: 0,
+				publictoken: "",
 				username: "",
-				email: "",
 				roles: [],
 			},
 			rules: [],

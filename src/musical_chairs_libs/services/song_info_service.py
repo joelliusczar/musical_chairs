@@ -502,6 +502,7 @@ class SongInfoService:
 			ab_ownerFk.label("album.owner.id"),
 			album_owner.c.username.label("album.owner.username"),
 			album_owner.c.displayname.label("album.owner.displayname"),
+			album_owner.c.publictoken.label("album.owner.publictoken"),
 			ab_year.label("album.year"),
 			ab_albumArtistFk.label("album.albumartist.id"),
 			album_artist.c.name.label("album.albumartist.name"),
@@ -509,18 +510,22 @@ class SongInfoService:
 			album_artist_owner.c.username.label("album.albumartist.owner.username"),
 			album_artist_owner.c.displayname\
 				.label("album.albumartist.owner.displayname"),
+			album_artist_owner.c.publictoken\
+				.label("album.albumartist.owner.publictoken"),
 			sgar_isPrimaryArtist.label("artists.isprimaryartist"),
 			ar_pk.label("artists.id"),
 			ar_name.label("artists.name"),
 			ar_ownerFk.label("artists.owner.id"),
 			artist_owner.c.username.label("artists.owner.username"),
 			artist_owner.c.displayname.label("artists.owner.displayname"),
+			artist_owner.c.publictoken.label("artists.owner.publictoken"),
 			st_pk.label("stations.id"),
 			st_name.label("stations.name"),
 			st_playnum.label("stations.playnum"),
 			st_ownerFk.label("stations.owner.id"),
 			station_owner.c.username.label("stations.owner.username"),
 			station_owner.c.displayname.label("stations.owner.displayname"),
+			station_owner.c.publictoken.label("stations.owner.publictoken"),
 			st_displayName.label("stations.displayname"),
 			st_requestSecurityLevel.label("stations.requestsecuritylevel"),
 			st_viewSecurityLevel.label("stations.viewsecuritylevel"),
@@ -530,7 +535,8 @@ class SongInfoService:
 			pl_viewSecurityLevel.label("playlists.viewsecuritylevel"),
 			pl_ownerFk.label("playlists.owner.id"),
 			playlist_owner.c.username.label("playlists.owner.username"),
-			playlist_owner.c.displayname.label("playlists.owner.displayname")
+			playlist_owner.c.displayname.label("playlists.owner.displayname"),
+			playlist_owner.c.publictoken.label("playlists.owner.publictoken")
 		)
 
 		if queryParams.orderByElement is not None:

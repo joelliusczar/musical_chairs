@@ -1,2 +1,0 @@
-ALTER TABLE `songsplaylists` RENAME TO `playlistssongs`;
-

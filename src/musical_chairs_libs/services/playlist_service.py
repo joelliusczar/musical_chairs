@@ -1,4 +1,5 @@
-
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from typing import (
 	Any,
 	Iterator,
@@ -18,7 +19,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PlaylistInfo,
 	PlaylistCreationInfo,
 	AlreadyUsedError,
-	OwnerInfo,
 	SongsPlaylistInfo,
 	SongListDisplayItem,
 	DictDotMap,
@@ -98,6 +98,7 @@ class PlaylistService:
 			pl_ownerFk.label("owner>id"),
 			u_username.label("owner>username"),
 			u_displayName.label("owner>displayname"),
+			tbl.u_publictoken.label("owner>publictoken"),
 			pl_viewSecurityLevel.label("viewsecuritylevel"),
 		]
 
@@ -215,6 +216,7 @@ class PlaylistService:
 				pl_ownerFk.label("owner>id"),
 				u_username.label("owner>username"),
 				u_displayName.label("owner>displayname"),
+				tbl.u_publictoken.label("owner>publictoken"),
 				pl_viewSecurityLevel.label("viewsecuritylevel"),
 				cast(Column[String], rulesSubquery.c["rule>name"]).label("rule>name"),
 				cast(
@@ -278,18 +280,19 @@ class PlaylistService:
 				yield PlaylistInfo.row_to_playlist(row)
 
 
-	def get_playlist_owner(self, playlistId: int) -> OwnerInfo:
-		query = select(pl_ownerFk, u_username, u_displayName)\
+	def get_playlist_owner(self, playlistId: int) -> dtos.User:
+		query = select(pl_ownerFk, u_username, u_displayName, tbl.u_publictoken)\
 			.select_from(playlists_tbl)\
 			.join(user_tbl, u_pk == pl_ownerFk)\
 			.where(pl_pk == playlistId)
 		data = self.conn.execute(query).mappings().fetchone()
 		if not data:
-			return OwnerInfo(id=0,username="", displayname="")
-		return OwnerInfo(
+			return dtos.User(id=0,username="", displayname="", publictoken="")
+		return dtos.User(
 			id=data[pl_ownerFk],
 			username=data[u_username],
-			displayname=data[u_displayName]
+			displayname=data[u_displayName],
+			publictoken=data[tbl.u_publictoken]
 		)
 
 
@@ -385,7 +388,7 @@ class PlaylistService:
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
-		owner = user
+		owner = user.to_user()
 		if playlistId and isinstance(stmt, Update):
 			stmt = stmt.where(pl_pk == playlistId)
 			owner = self.get_playlist_owner(playlistId)

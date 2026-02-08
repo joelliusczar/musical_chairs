@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.dtos_and_utilities as dtos
 from typing import (
 	Any,
 	Iterable,
@@ -7,34 +8,35 @@ from typing import (
 )
 
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	SavedNameString,
 	AccountCreationInfo,
+	EmailableUser,
 	get_datetime,
 	get_starting_site_roles,
 	hashpw,
 	validate_email,
-	AccountInfoBase,
+	AccountInfoUpdate,
 	PasswordInfo,
 	ActionRule,
 	AlreadyUsedError,
 	build_site_rules_query,
-	row_to_action_rule,
 	RulePriorityLevel,
 	generate_path_user_and_rules_from_rows,
 	NotFoundError,
+	User,
 )
-from musical_chairs_libs.dtos_and_utilities.constants import (UserRoleSphere)
+from musical_chairs_libs.dtos_and_utilities.constants import (
+	hidden_token_alphabet,
+	public_token_alphabet,
+	UserRoleSphere,
+)
 from .current_user_provider import CurrentUserProvider
 from .account_access_service import AccountAccessService
+from nanoid import generate
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.functions import coalesce
-from musical_chairs_libs.tables import (
-	users, u_pk, u_username, u_email, u_dirRoot, u_disabled,
-	u_displayName,
-	userRoles, ur_userFk, ur_role
-)
+import musical_chairs_libs.tables as tbl
 from sqlalchemy import select, insert, func, delete, update, or_
 from email_validator import (
 	EmailNotValidError,
@@ -62,38 +64,66 @@ class AccountManagementService:
 		self.user_provider = userProvider
 
 
-	def create_account(self, accountInfo: AccountCreationInfo) -> AccountInfo:
+	def create_account(self, accountInfo: AccountCreationInfo) -> dtos.User:
 		cleanedEmail: ValidatedEmail = validate_email(accountInfo.email)
-		if self.__is_username_used__(accountInfo.username):
-			raise AlreadyUsedError.build_error(
-				f"{accountInfo.username} is already used.",
-				"body->username"
-			)
-		if self.__is_email_used__(cleanedEmail):
-			raise AlreadyUsedError.build_error(
-				f"{accountInfo.email} is already used.",
-				"body->email"
-			)
 		hashed = hashpw(accountInfo.password.encode())
-		stmt = insert(users).values(
-			username=str(SavedNameString(accountInfo.username)),
-			displayname=str(SavedNameString(accountInfo.displayname)),
-			hashedpw=hashed,
-			email=cleanedEmail.email,
-			creationtimestamp=self.get_datetime().timestamp(),
-			dirroot=str(SavedNameString(accountInfo.username))
-		)
-		res = self.conn.execute(stmt)
-		insertedPk = res.lastrowid
-		accountDict = accountInfo.scrubed_dict()
-		accountDict["id"] = insertedPk #pyright: ignore [reportGeneralTypeIssues]
-		self.save_roles(
-			insertedPk,
-			get_starting_site_roles()
-		)
-		resultDto = AccountInfo(**accountDict)
-		self.conn.commit()
-		return resultDto
+		attempts = 0
+		publicTokenSize = 10
+		while True:
+			with self.conn.begin() as transaction:
+				if self.__is_username_used__(accountInfo.username):
+					raise AlreadyUsedError.build_error(
+						f"{accountInfo.username} is already used.",
+						"body->username"
+					)
+				if self.__is_email_used__(cleanedEmail):
+					raise AlreadyUsedError.build_error(
+						f"{accountInfo.email} is already used.",
+						"body->email"
+					)
+				try:
+					publicToken = generate(
+						size=publicTokenSize + attempts,
+						alphabet=public_token_alphabet
+					)
+					hiddenToken = generate(
+						size=16,
+						alphabet=hidden_token_alphabet
+					)
+					stmt = insert(tbl.users).values(
+						username=str(SavedNameString(accountInfo.username)),
+						displayname=str(SavedNameString(accountInfo.displayname)),
+						hashedpw=hashed,
+						email=cleanedEmail.email,
+						creationtimestamp=self.get_datetime().timestamp(),
+						publictoken=publicToken,
+						hiddentoken=hiddenToken,
+						dirroot=str(SavedNameString(accountInfo.username))
+					)
+					res = self.conn.execute(stmt)
+					insertedPk = res.lastrowid
+					accountDict = accountInfo.model_dump(include={
+						"username",
+						"email",
+						"displayname",
+						"roles"
+					})
+					self.__save_roles__(
+						insertedPk,
+						get_starting_site_roles()
+					)
+					resultDto = dtos.User(
+						id=insertedPk,
+						publictoken=publicToken,
+						**accountDict
+					)
+					transaction.commit()
+					return resultDto
+				except IntegrityError:
+					attempts += 1
+					transaction.rollback()
+					if attempts > 16:
+						raise
 
 
 	def remove_roles_for_user(
@@ -104,12 +134,12 @@ class AccountManagementService:
 		if not userId:
 			return 0
 		roles = roles or []
-		delStmt = delete(userRoles).where(ur_userFk == userId)\
-			.where(ur_role.in_(roles))
+		delStmt = delete(tbl.userRoles).where(tbl.ur_userFk == userId)\
+			.where(tbl.ur_role.in_(roles))
 		return self.conn.execute(delStmt).rowcount
 
 
-	def save_roles(
+	def __save_roles__(
 		self,
 		userId: Optional[int],
 		roles: Iterable[ActionRule]
@@ -117,7 +147,7 @@ class AccountManagementService:
 		if userId is None or not roles:
 			return []
 		uniqueRoles = set(roles)
-		existingRoles = set(self.__get_roles__(userId))
+		existingRoles = set(self.accounts_access_service.__get_roles__(userId))
 		outRoles = existingRoles - uniqueRoles
 		inRoles = uniqueRoles - existingRoles
 		self.remove_roles_for_user(userId, (r.name for r in outRoles))
@@ -133,22 +163,24 @@ class AccountManagementService:
 				"sphere": UserRoleSphere.Site.value,
 			} for r in inRoles
 		]
-		stmt = insert(userRoles)
+		stmt = insert(tbl.userRoles)
 		self.conn.execute(stmt, roleParams)
+		return uniqueRoles
+
+
+	def save_roles(
+		self,
+		userId: Optional[int],
+		roles: Iterable[ActionRule]
+	) -> Iterable[ActionRule]:
+		uniqueRoles = self.__save_roles__(userId, roles)
 		self.conn.commit()
 		return uniqueRoles
 
 
-	def __get_roles__(self, userId: int) -> Iterable[ActionRule]:
-		rulesQuery = build_site_rules_query(userId=userId)
-		rows = self.conn.execute(rulesQuery).mappings().fetchall()
-
-		return (row_to_action_rule(r) for r in rows)
-
-
 	def __is_username_used__(self, username: str) -> bool:
-		queryAny = select(func.count(1)).select_from(users)\
-				.where(u_username == username)
+		queryAny = select(func.count(1)).select_from(tbl.users)\
+				.where(tbl.u_username == username.encode())
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
@@ -169,8 +201,8 @@ class AccountManagementService:
 
 	def __is_email_used__(self, email: ValidatedEmail) -> bool:
 		emailStr = email.email
-		queryAny = select(func.count(1)).select_from(users)\
-				.where(func.lower(u_email) == emailStr)
+		queryAny = select(func.count(1)).select_from(tbl.users)\
+				.where(tbl.u_email == emailStr)
 		countRes = self.conn.execute(queryAny).scalar()
 		return countRes > 0 if countRes else False
 
@@ -196,7 +228,7 @@ class AccountManagementService:
 
 
 	def get_accounts_count(self) -> int:
-		query = select(func.count(1)).select_from(users)
+		query = select(func.count(1)).select_from(tbl.users)
 		count = self.conn.execute(query).scalar() or 0 #pyright: ignore [reportUnknownMemberType]
 		return count
 
@@ -206,67 +238,36 @@ class AccountManagementService:
 		searchTerm: str | None=None,
 		page: int = 0,
 		pageSize: int | None=None,
-	) -> Iterator[AccountInfo]:
+	) -> Iterator[User]:
 		offset = page * pageSize if pageSize else 0
 		query = select(
-			u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
-			u_username,
-			u_displayName,
-			u_email,
-			u_dirRoot
+			tbl.u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
+			tbl.u_username,
+			tbl.u_displayName,
+			tbl.u_publictoken,
+			tbl.u_dirRoot
 		).offset(offset)
 
 		if searchTerm is not None:
 			normalizedStr = searchTerm.replace(" ","")\
 				.replace("_","\\_").replace("%","\\%")
 			query = query.where(
-				func.replace(coalesce(u_displayName, u_username)," ","")
+				func.replace(coalesce(tbl.u_displayName, tbl.u_username)," ","")
 					.like(f"{normalizedStr}%", escape="\\")
 			)
 		query = query.limit(pageSize)
 		records = self.conn.execute(query).mappings()
 		for row in records:
-			yield AccountInfo(**row) #pyright: ignore [reportUnknownArgumentType]
-
-			
-
-
-	def get_account_for_edit(
-		self,
-		key: int | str
-	) -> AccountInfo | None:
-		if not key:
-			return None
-		query = select(
-			u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
-			u_username,
-			u_displayName,
-			u_email,
-			u_dirRoot
-		)
-		if type(key) == int:
-			query = query.where(u_pk == key)
-		elif type(key) == str:
-			query = query.where(u_username == key)
-		else:
-			raise ValueError("Either username or id must be provided")
-		row = self.conn.execute(query).mappings().fetchone()
-		if not row:
-			return None
-		roles = [*self.__get_roles__(int(row["id"]))]
-		return AccountInfo(
-			**row, #pyright: ignore [reportGeneralTypeIssues]
-			roles=roles,
-		)
+			yield User(**row) #pyright: ignore [reportUnknownArgumentType]
 
 
 	def update_account_general_changes(
 		self,
-		updatedInfo: AccountInfoBase,
-	) -> AccountInfo:
-		currentUser = self.get_account_for_edit(
+		updatedInfo: AccountInfoUpdate,
+	) -> EmailableUser:
+		currentUser = self.accounts_access_service.get_internal_user(
 			self.user_provider.current_user().id
-		)
+		).to_emailable_user()
 		if not currentUser:
 			raise NotFoundError()
 		if not updatedInfo:
@@ -278,13 +279,13 @@ class AccountManagementService:
 				f"{updatedInfo.email} is already used.",
 				"body->email"
 			)
-		stmt = update(users).values(
+		stmt = update(tbl.users).values(
 			displayname = updatedInfo.displayname,
 			email = updatedEmail
-		).where(u_pk == currentUser.id)
+		).where(tbl.u_pk == currentUser.id)
 		self.conn.execute(stmt)
 		self.conn.commit()
-		return AccountInfo(
+		return EmailableUser(
 			**currentUser.model_dump(exclude=["displayname", "email"]), #pyright: ignore [reportArgumentType]
 				displayname = updatedInfo.displayname,
 				email = updatedEmail
@@ -295,9 +296,9 @@ class AccountManagementService:
 		self,
 		passwordInfo: PasswordInfo
 	) -> bool:
-		currentUser = self.get_account_for_edit(
+		currentUser = self.accounts_access_service.get_internal_user(
 			self.user_provider.current_user().id
-		)
+		).to_user()
 		if not currentUser:
 			raise NotFoundError()
 		authenticated = self.accounts_access_service.authenticate_user(
@@ -307,7 +308,8 @@ class AccountManagementService:
 		if not authenticated:
 			return False
 		hash = hashpw(passwordInfo.newpassword.encode())
-		stmt = update(users).values(hashedpw = hash).where(u_pk == currentUser.id)
+		stmt = update(tbl.users).values(hashedpw = hash)\
+			.where(tbl.u_pk == currentUser.id)
 		self.conn.execute(stmt)
 		self.conn.commit()
 		return True
@@ -315,27 +317,27 @@ class AccountManagementService:
 
 	def get_site_rule_users(
 		self,
-		userId: Optional[int]=None,
-		owner: Optional[AccountInfo]=None
-	) -> Iterator[AccountInfo]:
+		userId: int | None=None,
+		owner: User | None=None
+	) -> Iterator[dtos.RoledUser]:
 		rulesQuery = build_site_rules_query().cte()
 		query = select(
-			u_pk,
-			u_username,
-			u_displayName,
-			u_email,
-			u_dirRoot,
+			tbl.u_pk,
+			tbl.u_username,
+			tbl.u_displayName,
+			tbl.u_email,
+			tbl.u_dirRoot,
 			rulesQuery.c['rule>userfk'].label("rule>userfk"),
 			rulesQuery.c['rule>name'].label("rule>name"),
 			rulesQuery.c['rule>quota'].label("rule>quota"),
 			rulesQuery.c['rule>span'].label("rule>span"),
 			rulesQuery.c['rule>priority'].label("rule>priority"),
 			rulesQuery.c['rule>sphere'].label("rule>sphere")
-		).select_from(users).join(
+		).select_from(tbl.users).join(
 			rulesQuery,
-			rulesQuery.c['rule>userfk'] == u_pk,
+			rulesQuery.c['rule>userfk'] == tbl.u_pk,
 			isouter=True
-		).where(or_(u_disabled.is_(None), u_disabled == False))\
+		).where(or_(tbl.u_disabled.is_(None), tbl.u_disabled == False))\
 		.where(
 			coalesce(
 				rulesQuery.c["rule>priority"],
@@ -343,8 +345,8 @@ class AccountManagementService:
 			) > RulePriorityLevel.RULED_USER.value
 		)
 		if userId is not None:
-			query = query.where(u_pk == userId)
-		query = query.order_by(u_username)
+			query = query.where(tbl.u_pk == userId)
+		query = query.order_by(tbl.u_username)
 		records = self.conn.execute(query).mappings().fetchall()
 		yield from generate_path_user_and_rules_from_rows(
 			records,
@@ -356,7 +358,7 @@ class AccountManagementService:
 		addedUserId: int,
 		rule: ActionRule
 	) -> ActionRule:
-		stmt = insert(userRoles).values(
+		stmt = insert(tbl.userRoles).values(
 			userfk = addedUserId,
 			role = rule.name,
 			span = rule.span,
@@ -382,14 +384,15 @@ class AccountManagementService:
 			priority=RulePriorityLevel.SITE.value
 		)
 
+
 	def remove_user_site_rule(
 		self,
 		removedUserId: int,
 		ruleName: Optional[str],
 	):
-		delStmt = delete(userRoles)\
-			.where(ur_userFk == removedUserId)
+		delStmt = delete(tbl.userRoles)\
+			.where(tbl.ur_userFk == removedUserId)
 		if ruleName:
-			delStmt = delStmt.where(ur_role == ruleName)
+			delStmt = delStmt.where(tbl.ur_role == ruleName)
 		self.conn.execute(delStmt)
 		self.conn.commit()

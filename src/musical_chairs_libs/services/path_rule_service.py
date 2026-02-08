@@ -1,3 +1,5 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from typing import Iterable, Iterator, cast, Optional, Union
 from sqlalchemy import (
 	select,
@@ -14,7 +16,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	build_base_rules_query,
 	RulePriorityLevel,
 	normalize_opening_slash,
-	AccountInfo,
+	RoledUser,
 	ChainedAbsorbentTrie,
 	ActionRule,
 	get_path_owner_roles,
@@ -26,7 +28,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from musical_chairs_libs.tables import (
 	userRoles as user_roles_tbl,
 	ur_userFk, ur_keypath, ur_role, ur_priority, ur_span, ur_quota,
-	users as user_tbl, u_pk, u_username, u_displayName, u_email, u_dirRoot,
+	users as user_tbl, u_pk, u_username, u_displayName, u_email,
 	u_disabled,
 	sg_pk, sg_path, sg_deletedTimstamp,
 )
@@ -47,8 +49,7 @@ class PathRuleService:
 		self.user_provider = userProvider
 
 
-	def get_paths_user_can_see(self) -> Iterator[ActionRule]:
-		userId = self.user_provider.current_user().id
+	def get_paths_user_can_see(self, userId: int) -> Iterator[ActionRule]:
 		query = select(ur_keypath, ur_role, ur_priority, ur_span, ur_quota)\
 			.where(ur_userFk == userId)\
 			.order_by(ur_keypath)
@@ -71,7 +72,7 @@ class PathRuleService:
 		user = self.user_provider.current_user()
 		rules = ActionRule.aggregate(
 			user.roles,
-			(p for p in self.get_paths_user_can_see()),
+			(p for p in self.get_paths_user_can_see(user.id)),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 
@@ -132,8 +133,8 @@ class PathRuleService:
 	def get_users_of_path(
 		self,
 		prefix: str,
-		owner: Optional[AccountInfo]=None
-	) -> Iterator[AccountInfo]:
+		owner: dtos.User | None=None
+	) -> Iterator[dtos.RoledUser]:
 		addSlash = True
 		normalizedPrefix = normalize_opening_slash(prefix)
 		rulesQuery = build_base_rules_query(UserRoleSphere.Path).cte()
@@ -142,7 +143,8 @@ class PathRuleService:
 			u_username,
 			u_displayName,
 			u_email,
-			u_dirRoot,
+			tbl.u_dirRoot,
+			tbl.u_publictoken,
 			rulesQuery.c["rule>userfk"].label("rule>userfk"),
 			rulesQuery.c["rule>name"].label("rule>name"),
 			rulesQuery.c["rule>quota"].label("rule>quota"),
@@ -157,9 +159,9 @@ class PathRuleService:
 						normalizedPrefix,
 						1,
 						func.length(
-							func.normalize_opening_slash(u_dirRoot, addSlash)
+							func.normalize_opening_slash(tbl.u_dirRoot, addSlash)
 						)
-					) == func.normalize_opening_slash(u_dirRoot, addSlash),
+					) == func.normalize_opening_slash(tbl.u_dirRoot, addSlash),
 					rulesQuery.c["rule>userfk"] == 0
 				),
 				and_(
@@ -191,9 +193,9 @@ class PathRuleService:
 						prefix,
 						1,
 						func.length(
-							func.normalize_opening_slash(u_dirRoot, addSlash)
+							func.normalize_opening_slash(tbl.u_dirRoot, addSlash)
 						)
-					) == func.normalize_opening_slash(u_dirRoot, addSlash)
+					) == func.normalize_opening_slash(tbl.u_dirRoot, addSlash)
 			)
 		)
 		query = query.order_by(u_username)
@@ -217,3 +219,30 @@ class PathRuleService:
 		yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
 			for row in results
 		)
+
+
+	def get_permitted_paths_tree(
+		self,
+		user: RoledUser,
+	) -> ChainedAbsorbentTrie[ActionRule]:
+		pathTree = ChainedAbsorbentTrie[ActionRule](
+			(normalize_opening_slash(r.keypath), r) for r in
+			user.roles if r.sphere == UserRoleSphere.Path.value \
+				and r.keypath is not None
+		)
+		pathTree.add("/", (
+			ActionRule(**r.model_dump(exclude={"keypath"}), keypath = "/") 
+			for r in user.roles \
+			if r.keypath is None and (UserRoleSphere.Path.conforms(r.name) \
+						or r.name == UserRoleDef.ADMIN.value
+				)
+		), shouldEmptyUpdateTree=False)
+		return pathTree
+
+
+	def get_permitted_paths(
+		self,
+		user: RoledUser,
+	) -> Iterator[str]:
+		pathTree = self.get_permitted_paths_tree(user)
+		yield from (p for p in pathTree.shortest_paths())

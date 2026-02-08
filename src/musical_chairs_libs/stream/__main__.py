@@ -18,7 +18,7 @@ from musical_chairs_libs.services import (
 )
 from threading import Thread
 from setproctitle import setproctitle
-import musical_chairs_libs.dtos_and_utilities.logging as logging
+import musical_chairs_libs.dtos_and_utilities.log_config as log_config
 from musical_chairs_libs.dtos_and_utilities import (
 	DbConnectionProvider,
 	StationTypes
@@ -33,12 +33,12 @@ def __end_stream__():
 
 
 def handle_keyboard(sigNum: Any, frame: Any):
-	logging.radioLogger.info("Received interupt")
+	log_config.radioLogger.info("Received interupt")
 	__end_stream__()
 
 
 def handle_terminate_signal(sigNum: Any, frame: Any):
-	logging.radioLogger.info("Received termination signal")
+	log_config.radioLogger.info("Received termination signal")
 	__end_stream__()
 
 
@@ -47,11 +47,11 @@ signal.signal(signal.SIGTERM, handle_terminate_signal)
 
 
 def close_db_connection(conn: Connection, connName: str):
-	logging.radioLogger.info(f"Closing the {connName} connection")
+	log_config.radioLogger.info(f"Closing the {connName} connection")
 	try:
 		conn.close()
 	except:
-		logging.radioLogger.warning(f"Could not close the  {connName} connection")
+		log_config.radioLogger.warning(f"Could not close the  {connName} connection")
 
 
 def file_service() -> FileService:
@@ -100,9 +100,9 @@ def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
 				f"MC Radio - {ownerName}_{stationName} at {portNumber}"
 			)
 		except Exception as e:
-			logging.radioLogger.info("Failed to rename process")
-			logging.radioLogger.info(e)
-		logging.radioLogger.info(
+			log_config.radioLogger.info("Failed to rename process")
+			log_config.radioLogger.info(e)
+		log_config.radioLogger.info(
 			f"Starting mc ices with {ownerName}_{stationName}"
 		)
 		return ProcessService.start_station_mc_ices(
@@ -198,8 +198,8 @@ def launch_sending(stationName: str, ownerName: str):
 
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):
-	logging.radioLogger.info("Starting the queue process")
-	logging.radioLogger.debug(f"Debug canary: {os.getcwd()}")
+	log_config.radioLogger.info("Starting the queue process")
+	log_config.radioLogger.debug(f"Debug canary: {os.getcwd()}")
 
 	loadThread = Thread(
 		target=launch_loading,
@@ -218,18 +218,18 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		while queue_song_source.stopRunning:
 			sendThread.join(30)
 		sendThread.join() #wait for clean up to finish
-		logging.radioLogger.debug("Escaped the loop")
+		log_config.radioLogger.debug("Escaped the loop")
 
 
 	finally:
-		logging.radioLogger.debug(
+		log_config.radioLogger.debug(
 			f"Is loading thread alive? {loadThread.is_alive()}"
 		)
-		logging.radioLogger.debug(
+		log_config.radioLogger.debug(
 			f"Is sending thread alive? {sendThread.is_alive()}"
 		)
-		logging.radioLogger.info("Disabling the station")
-		logging.radioLogger.debug("Station disabled")
+		log_config.radioLogger.info("Disabling the station")
+		log_config.radioLogger.debug("Station disabled")
 
 
 
@@ -243,5 +243,5 @@ if __name__ == "__main__":
 	try:
 		start_song_queue(dbName, stationName, ownerName)
 	except Exception as e:
-		logging.radioLogger.error(e, exc_info=True)
-	logging.radioLogger.info("End of station queue process")
+		log_config.radioLogger.error(e, exc_info=True)
+	log_config.radioLogger.info("End of station queue process")

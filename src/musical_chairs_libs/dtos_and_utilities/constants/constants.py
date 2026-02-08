@@ -1,6 +1,11 @@
 from enum import Enum
 from typing import Optional
 
+hidden_token_alphabet = \
+	"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-.~"
+public_token_alphabet = "0123456789_abcdefghijklmnopqrstuvwxyz"
+
+public_token_prefix = "u-"
 
 class UserRoleSphere(Enum):
 	Site = "site"

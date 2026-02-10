@@ -4,6 +4,7 @@ from typing import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	EventRecord,
+	VisitRecord
 )
 
 class EventsQueryer(Protocol):
@@ -26,5 +27,6 @@ class EventsQueryer(Protocol):
 		fromTimestamp: float,
 		url: str | None = None,
 		limit: int | None = None
-	)-> Iterator[EventRecord]:
+	)-> Iterator[VisitRecord]:
 		...
+

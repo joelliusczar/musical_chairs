@@ -8,7 +8,8 @@ from typing import (
 	Iterable,
 	List,
 	Any,
-	cast
+	cast,
+	Sequence,
 )
 from itertools import chain
 from .simple_functions import get_duplicates
@@ -124,7 +125,7 @@ class SongAboutInfo(MCBaseClass):
 	name: str
 	album: AlbumInfo | AlbumUnowned | None=None
 	primaryartist: ArtistInfo | ArtistUnowned | None=None
-	artists: list[ArtistInfo | ArtistUnowned] | None=cast(
+	artists: Sequence[ArtistInfo | ArtistUnowned] | None=cast(
 		list[ArtistInfo | ArtistUnowned], Field(default_factory=list)
 	)
 	covers: list[int] | None=cast(list[int], Field(default_factory=list))
@@ -138,10 +139,10 @@ class SongAboutInfo(MCBaseClass):
 	duration: float | None=None
 	explicit: bool | None=None
 	lyrics: str | None=""
-	stations: list[StationInfo | StationUnowned]=cast(
-		list[StationInfo | StationUnowned], Field(default_factory=list)
+	stations: Sequence[StationInfo | StationUnowned]=cast(
+		Sequence[StationInfo | StationUnowned], Field(default_factory=list)
 	)
-	playlists: list[PlaylistInfo | PlaylistUnowned]=cast(
+	playlists: Sequence[PlaylistInfo | PlaylistUnowned]=cast(
 		list[PlaylistInfo | PlaylistUnowned], Field(default_factory=list)
 	)
 

@@ -52,7 +52,7 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		return self.basic_user_provider.is_loggedIn()
 
 
-	def set_user(self, user: InternalUser):
+	def set_session_user(self, user: InternalUser):
 		self.basic_user_provider.set_user(user)
 
 

@@ -1,6 +1,6 @@
 import musical_chairs_libs.dtos_and_utilities as dtos
 from datetime import datetime
-from typing import Callable, Iterator
+from typing import Callable
 from fastapi import (
 	Depends,
 	HTTPException,
@@ -52,7 +52,7 @@ def get_stations(
 	accountAccessService: AccountAccessService = Depends(
 		account_access_service
 	)
-) -> Iterator[StationInfo]:
+) -> list[StationInfo]:
 	result = None
 	pathId = request.path_params.get("id", None)
 	if pathId is not None:
@@ -95,9 +95,10 @@ def get_stations(
 
 
 def get_station(
-	stations: Iterator[StationInfo] = Depends(get_stations)
+	stations: list[StationInfo] = Depends(get_stations)
 ) -> StationInfo:
-	station = next(stations, None)
+
+	station = next(iter(stations), None)
 	if station:
 		return station
 	raise HTTPException(

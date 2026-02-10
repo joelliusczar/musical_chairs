@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.dtos_and_utilities as dtos
 import musical_chairs_libs.tables as tbl
 from typing import (
 	Any,
@@ -92,24 +93,6 @@ class StationService:
 		self.path_rule_service = pathRuleService
 		self.get_datetime = get_datetime
 		self.current_user_provider = currentUserProvider
-
-
-	def get_station_id(
-			self,
-			stationName: str,
-			ownerKey: Union[int, str]
-		) -> Optional[int]:
-		query = select(st_pk) \
-			.select_from(stations_tbl) \
-			.where(func.lower(st_name) == func.lower(stationName))
-		if type(ownerKey) == int:
-			query = query.where(st_ownerFk == ownerKey)
-		elif type(ownerKey) == str:
-			query = query.join(user_tbl, st_ownerFk == u_pk)\
-				.where(u_username == ownerKey)
-		row = self.conn.execute(query).fetchone()
-		pk: Optional[int] = cast(int,row[0]) if row else None
-		return pk
 
 
 	def base_select_columns(self) -> list[Label[Any]]:
@@ -242,9 +225,10 @@ class StationService:
 				*self.base_select_columns()
 			)
 
-		records = self.conn.execute(query).mappings().fetchall()
-		for row in records:
-			yield StationInfo.row_to_station(row)
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query).mappings().fetchall()
+			for row in records:
+				yield StationInfo.row_to_station(row)
 
 
 	def get_secured_station_query(
@@ -319,7 +303,7 @@ class StationService:
 		ownerKey: int | str | None=None,
 		scopes: Collection[str] | None=None,
 		exactStrMatch: bool=False
-	) -> Iterator[StationInfo]:
+	) -> list[StationInfo]:
 		
 		userId = self.current_user_provider.optional_user_id()
 		if userId:
@@ -330,18 +314,19 @@ class StationService:
 				exactStrMatch=exactStrMatch,
 			)
 
-			records = self.conn.execute(query).mappings().fetchall()
+			with dtos.open_transaction(self.conn):
+				records = self.conn.execute(query).mappings().fetchall()
 
-			yield from generate_owned_and_rules_from_rows(
-				records,
-				StationInfo.row_to_station,
-				get_station_owner_rules,
-				scopes,
-				userId
-			)
+				return [s for s in generate_owned_and_rules_from_rows(
+					records,
+					StationInfo.row_to_station,
+					get_station_owner_rules,
+					scopes,
+					userId
+				)]
 		else:
 			if scopes:
-				return
+				return []
 			query = self.station_base_query(
 				ownerKey=ownerKey,
 				stationKeys=stationKeys,
@@ -352,10 +337,12 @@ class StationService:
 			)\
 			.with_only_columns(*self.base_select_columns())
 
-			records = self.conn.execute(query).mappings().fetchall()
+			with dtos.open_transaction(self.conn):
+				records = self.conn.execute(query).mappings().fetchall()
 
-			for row in records:
-				yield StationInfo.row_to_station(row)
+				return [
+					s for s in (StationInfo.row_to_station(row) for row in records)
+				]
 
 
 	def __is_stationName_used__(
@@ -380,7 +367,8 @@ class StationService:
 		cleanedStationName = SavedNameString(stationName)
 		if not cleanedStationName:
 			return True
-		return self.__is_stationName_used__(id, cleanedStationName)
+		with dtos.open_transaction(self.conn):
+			return self.__is_stationName_used__(id, cleanedStationName)
 
 
 	def __create_initial_owner_rules__(
@@ -455,7 +443,6 @@ class StationService:
 		station: StationCreationInfo,
 		stationId: int,
 	) -> int:
-		
 		stmt = update(stations_tbl).values(
 			**self.__build_station_values__(station)
 		).where(st_pk == stationId)
@@ -476,6 +463,7 @@ class StationService:
 			**self.__build_station_values__(station)
 		)\
 		.values(ownerfk = user.id)
+		
 		try:
 			res = self.conn.execute(stmt)
 			affectedId = res.lastrowid
@@ -487,7 +475,6 @@ class StationService:
 				station.bitratekps or 128
 			)
 			self.__create_initial_owner_rules__(affectedId)
-			
 		except IntegrityError:
 			raise AlreadyUsedError.build_error(
 				f"{savedName} is already used.", "body->name"
@@ -516,25 +503,24 @@ class StationService:
 		station: StationCreationInfo,
 		stationId: Optional[int]=None
 	) -> StationInfo:
-		if not station:
-			try:
-				return next(self.get_stations(stationId), None)
-			except StopIteration:
-				raise NotFoundError(f"{stationId} not found")
+		with self.conn.begin() as transaction:
+			if not station:
+				try:
+					return next(self.get_stations(stationId), None)
+				except StopIteration:
+					raise NotFoundError(f"{stationId} not found")
 
-		stationId = self.update_station(station, stationId)\
-			if stationId else self.add_station(station)
-
-		self.conn.commit()
-
-		return next(self.get_stations(stationId))
+			stationId = self.update_station(station, stationId)\
+				if stationId else self.add_station(station)
+			transaction.commit()
+		return next(iter(self.get_stations(stationId)))
 
 
 	def get_station_song_counts(
 		self,
 		stationIds: Union[int, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
-	) -> Iterator[Tuple[int, int]]:
+	) -> list[Tuple[int, int]]:
 		query = select(stsg_stationFk, func.count(stsg_songFk))\
 			.join(songs, stsg_songFk == sg_pk)\
 			.where(sg_deletedTimstamp.is_(None))
@@ -547,38 +533,38 @@ class StationService:
 		if type(ownerId) == int:
 			query = query.join(stations_tbl, st_pk == stsg_stationFk)\
 				.where(st_ownerFk == ownerId)
-		records = self.conn.execute(query)
-		for row in records:
-			yield cast(int,row[0]), cast(int,row[1])
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query).fetchall()
+			return [(cast(int,row[0]), cast(int,row[1])) for row in records]
 
 
 	def delete_station(self, stationId: int, clearStation: bool=False) -> int:
 		if not stationId:
 			return 0
 		delCount = 0
-		if clearStation:
-			delCount = self.clear_station(stationId)
-		delStmt = delete(user_roles_tbl)\
-			.where(ur_sphere == UserRoleSphere.Station.value)\
-			.where(ur_keypath == stationId)
-		delCount += self.conn.execute(delStmt).rowcount
-		delStmt = delete(station_queue).where(q_stationFk == stationId)
-		delCount += self.conn.execute(delStmt).rowcount
-		delStmt = delete(last_played).where(lp_stationFk == stationId)
-		delCount += self.conn.execute(delStmt).rowcount
-		delStmt = delete(stations_tbl).where(st_pk == stationId)
-		delCount += self.conn.execute(delStmt).rowcount
-		self.conn.commit()
-		return delCount
+		with self.conn.begin() as transaction:
+			if clearStation:
+				delCount = self.__clear_station__(stationId)
+			delStmt = delete(user_roles_tbl)\
+				.where(ur_sphere == UserRoleSphere.Station.value)\
+				.where(ur_keypath == stationId)
+			delCount += self.conn.execute(delStmt).rowcount
+			delStmt = delete(station_queue).where(q_stationFk == stationId)
+			delCount += self.conn.execute(delStmt).rowcount
+			delStmt = delete(last_played).where(lp_stationFk == stationId)
+			delCount += self.conn.execute(delStmt).rowcount
+			delStmt = delete(stations_tbl).where(st_pk == stationId)
+			delCount += self.conn.execute(delStmt).rowcount
+			transaction.commit()
+			return delCount
 
 
-	def clear_station(self, stationId: int) -> int:
+	def __clear_station__(self, stationId: int) -> int:
 		if not stationId:
 			return 0
 		delCount = 0
 		delStmt = delete(stations_songs_tbl).where(stsg_stationFk == stationId)
 		delCount += self.conn.execute(delStmt).rowcount
-		self.conn.commit()
 		return delCount
 
 
@@ -588,40 +574,41 @@ class StationService:
 		copy: StationCreationInfo
 	) -> StationInfo:
 		copy.playnum = 1
-		created = self.save_station(copy)
-		if copy.typeid == StationTypes.SONGS_ONLY.value:
-			query = select(stsg_songFk).where(stsg_stationFk == stationId)
-			rows = self.conn.execute(query)
-			itemIds = [cast(int,row[0]) for row in rows]
-			if any(itemIds):
-				params = [{
-					"stationfk": created.id,
-					"songfk": s,
-				} for s in itemIds]
-				insertStmt = insert(stations_songs_tbl)
-				self.conn.execute(insertStmt, params)
-		if copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
-			query = select(stab_albumFk).where(stab_stationFk == stationId)
-			rows = self.conn.execute(query)
-			itemIds = [cast(int,row[0]) for row in rows]
-			if any(itemIds):
-				params = [{
-					"stationfk": created.id,
-					"albumfk": s
-				} for s in itemIds]
-				insertStmt = insert(stations_albums_tbl)
-				self.conn.execute(insertStmt, params)
+		with self.conn.begin() as transation:
+			createdId = self.add_station(copy)
+			if copy.typeid == StationTypes.SONGS_ONLY.value:
+				query = select(stsg_songFk).where(stsg_stationFk == stationId)
+				rows = self.conn.execute(query).fetchall()
+				itemIds = [cast(int,row[0]) for row in rows]
+				if any(itemIds):
+					params = [{
+						"stationfk": createdId,
+						"songfk": s,
+					} for s in itemIds]
+					insertStmt = insert(stations_songs_tbl)
+					self.conn.execute(insertStmt, params)
+			if copy.typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value:
+				query = select(stab_albumFk).where(stab_stationFk == stationId)
+				rows = self.conn.execute(query).fetchall()
+				itemIds = [cast(int,row[0]) for row in rows]
+				if any(itemIds):
+					params = [{
+						"stationfk": createdId,
+						"albumfk": s
+					} for s in itemIds]
+					insertStmt = insert(stations_albums_tbl)
+					self.conn.execute(insertStmt, params)
 
-			query = select(stpl_playlistFk).where(stpl_stationFk == stationId)
-			rows = self.conn.execute(query)
-			itemIds = [cast(int,row[0]) for row in rows]
-			if any(itemIds):
-				params = [{
-					"stationfk": created.id,
-					"playlistfk": s
-				} for s in itemIds]
-				insertStmt = insert(stations_playlists_tbl)
-				self.conn.execute(insertStmt, params)
+				query = select(stpl_playlistFk).where(stpl_stationFk == stationId)
+				rows = self.conn.execute(query).fetchall()
+				itemIds = [cast(int,row[0]) for row in rows]
+				if any(itemIds):
+					params = [{
+						"stationfk": createdId,
+						"playlistfk": s
+					} for s in itemIds]
+					insertStmt = insert(stations_playlists_tbl)
+					self.conn.execute(insertStmt, params)
 
-		self.conn.commit()
-		return created
+			transation.commit()
+			return next(iter(self.get_stations(createdId)))

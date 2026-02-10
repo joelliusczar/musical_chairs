@@ -9,8 +9,10 @@ from pathlib import Path
 def fixture_clean_event_logs():
 	path = Path(ConfigAcessors.event_log_dir())
 	path.mkdir(parents=True, exist_ok=True)
+	path = Path(ConfigAcessors.visit_log_dir())
+	path.mkdir(parents=True, exist_ok=True)
 	yield
 	for file in os.scandir(ConfigAcessors.event_log_dir()):
 		os.remove(file.path)
-	for file in os.scandir(ConfigAcessors.event_log_dir()):
+	for file in os.scandir(ConfigAcessors.visit_log_dir()):
 		os.remove(file.path)

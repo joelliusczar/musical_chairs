@@ -73,6 +73,7 @@
           DSF_DB_PASS_JANITOR='{{keys["db_pass_janitor"]}}'
           DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
           DSF_EVENT_LOGS_DIR='{{app_trunk}}/event_logs'
+          DSF_VISIT_LOGS_DIR='{{app_trunk}}/visit_logs'
           DSF_QUEUE_FILES_DIR='{{app_trunk}}/queues'
       become: true
     - name: Add squish history service

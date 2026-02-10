@@ -1,4 +1,6 @@
 
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from typing import (
 	Iterator,
 	Optional,
@@ -109,7 +111,7 @@ class SongInfoService:
 		self.get_datetime = get_datetime
 
 
-	def song_info(self, songPk: int) -> Optional[SongListDisplayItem]:
+	def song_info(self, songPk: int) -> SongListDisplayItem | None:
 		query = select(
 			sg_pk,
 			sg_name,
@@ -159,7 +161,7 @@ class SongInfoService:
 		if pageSize:
 			offset = page * pageSize
 			query = query.limit(pageSize).offset(offset)
-		records = self.conn.execute(query).mappings()
+		records = self.conn.execute(query).mappings().fetchall()
 		for row in records:
 			yield ScanningSongItem(
 					id=row[sg_pk],
@@ -192,7 +194,7 @@ class SongInfoService:
 		if songIds:
 			query = query.where(sg_pk.in_(songIds))
 		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query).mappings()
+		records = self.conn.execute(query).mappings().fetchall()
 		yield from (cast(int, row["pk"]) for row in records)
 
 
@@ -242,42 +244,44 @@ class SongInfoService:
 		songInfoDict["albumfk"] = songInfo.album.id if songInfo.album else None
 		songInfoDict["lastmodifiedbyuserfk"] = user.id
 		songInfoDict["lastmodifiedtimestamp"] = self.get_datetime().timestamp()
-		if "album" in songInfo.touched:
-			songInfo.touched.add("albumfk")
-		if any(k for k in songInfoDict.keys() if k in songInfo.touched):
-			stmt = update(songs_tbl).values(
-				**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
-			)\
-				.where(sg_deletedTimstamp.is_(None))\
-				.where(sg_pk.in_(ids))
-			self.conn.execute(stmt)
+		with self.conn.begin():
+			if "album" in songInfo.touched:
+				songInfo.touched.add("albumfk")
+			if any(k for k in songInfoDict.keys() if k in songInfo.touched):
+				stmt = update(songs_tbl).values(
+					**{k:v for k,v in songInfoDict.items() if k in songInfo.touched}
+				)\
+					.where(sg_deletedTimstamp.is_(None))\
+					.where(sg_pk.in_(ids))
+				self.conn.execute(stmt)
 
-		if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
-			self.song_artist_service.link_songs_with_artists(
-				chain(
-					(SongArtistTuple(sid, a.id if a else None) for a 
-						in songInfo.artists or [None] * len(ids)
-						for sid in ids
-					) if "artists" in songInfo.touched else (),
-					#we can't use allArtists here bc we need the primaryartist selection
-					(SongArtistTuple(sid, songInfo.primaryartist.id, True) for sid in ids)
-						if "primaryartist" in
-						songInfo.touched and songInfo.primaryartist else ()
-				),
-			)
-		if "stations" in songInfo.touched:
-			self.stations_songs_service.link_songs_with_stations(
-				(StationSongTuple(sid, t.id if t else None) 
-					for t in (songInfo.stations or [None] * len(ids)) for sid in ids),
-			)
-		if "playlists" in songInfo.touched:
-			self.playlists_songs_service.link_songs_with_playlists(
-				(SongPlaylistTuple(sid, p.id if p else None) 
-					for p in (songInfo.playlists or [None] * len(ids)) for sid in ids),
-			)
-		if "trackinfo" in songInfo.touched:
-			self.update_track_nums(songInfo.trackinfo)
-		self.conn.commit()
+			if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
+				self.song_artist_service.link_songs_with_artists_in_trx(
+					chain(
+						(SongArtistTuple(sid, a.id if a else None) for a 
+							in songInfo.artists or [None] * len(ids)
+							for sid in ids
+						) if "artists" in songInfo.touched else (),
+						#we can't use allArtists here bc we need the primaryartist selection
+						(SongArtistTuple(sid, songInfo.primaryartist.id, True) for sid 
+			 				in ids)
+							if "primaryartist" in
+							songInfo.touched and songInfo.primaryartist else ()
+					),
+				)
+			if "stations" in songInfo.touched:
+				self.stations_songs_service.link_songs_with_stations_in_trx(
+					(StationSongTuple(sid, t.id if t else None) 
+						for t in (songInfo.stations or [None] * len(ids)) for sid in ids),
+				)
+			if "playlists" in songInfo.touched:
+				self.playlists_songs_service.link_songs_with_playlists_in_trx(
+					(SongPlaylistTuple(sid, p.id if p else None) 
+						for p in (songInfo.playlists or [None] * len(ids)) for sid in ids),
+				)
+			if "trackinfo" in songInfo.touched:
+				self.update_track_nums(songInfo.trackinfo)
+			self.conn.commit()
 		if len(ids) < 2:
 			yield from self.get_songs_for_edit(ids)
 		else:
@@ -343,13 +347,13 @@ class SongInfoService:
 
 	def full_song_base_query(
 		self,
-		stationId: Optional[int]=None,
+		stationId: int | None=None,
 		song: str = "",
-		songIds: Optional[Iterable[int]]=None,
+		songIds: Iterable[int] | None=None,
 		album: str = "",
-		albumId: Optional[int]=None,
+		albumId: int | None=None,
 		artist: str = "",
-		artistId: Optional[int]=None
+		artistId: int | None=None
 	) -> Select[Any]:
 
 		query = songs_tbl\
@@ -415,12 +419,12 @@ class SongInfoService:
 		if user:
 			pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
-		records = self.conn.execute(query).mappings()
+		records = self.conn.execute(query).mappings().fetchall()
 
 		for e in (
 			d[1] for d in enumerate(PathDict.prefix_merge_collect(
 				(
-					PathDict(dict(row), omitNulls=True) 
+					PathDict(dict(row), omitNulls=True, spliter=">") 
 					for row in records
 				),
 				"id",
@@ -464,13 +468,13 @@ class SongInfoService:
 	def get_all_songs(
 		self,
 		queryParams: SimpleQueryParameters,
-		stationId: Optional[int]=None,
+		stationId: int | None=None,
 		song: str = "",
-		songIds: Optional[Iterable[int]]=None,
+		songIds: Iterable[int] | None=None,
 		album: str = "",
-		albumId: Optional[int]=None,
+		albumId: int | None=None,
 		artist: str = "",
-		artistId: Optional[int]=None,
+		artistId: int | None=None,
 	) -> Iterator[SongEditInfo]:
 		
 		query = self.full_song_base_query(
@@ -497,46 +501,47 @@ class SongInfoService:
 			sg_lyrics.label("lyrics"),
 			sg_duration.label("duration"),
 			sg_sampleRate.label("samplerate"),
-			ab_pk.label("album.id"),
-			ab_name.label("album.name"),
-			ab_ownerFk.label("album.owner.id"),
-			album_owner.c.username.label("album.owner.username"),
-			album_owner.c.displayname.label("album.owner.displayname"),
-			album_owner.c.publictoken.label("album.owner.publictoken"),
-			ab_year.label("album.year"),
-			ab_albumArtistFk.label("album.albumartist.id"),
-			album_artist.c.name.label("album.albumartist.name"),
-			album_artist.c.ownerfk.label("album.albumartist.owner.id"),
-			album_artist_owner.c.username.label("album.albumartist.owner.username"),
+			ab_pk.label("album>id"),
+			ab_name.label("album>name"),
+			ab_ownerFk.label("album>owner>id"),
+			tbl.ab_versionnote.label("album>versionnote"),
+			album_owner.c.username.label("album>owner>username"),
+			album_owner.c.displayname.label("album>owner>displayname"),
+			album_owner.c.publictoken.label("album>owner>publictoken"),
+			ab_year.label("album>year"),
+			ab_albumArtistFk.label("album>albumartist>id"),
+			album_artist.c.name.label("album>albumartist>name"),
+			album_artist.c.ownerfk.label("album>albumartist>owner>id"),
+			album_artist_owner.c.username.label("album>albumartist>owner>username"),
 			album_artist_owner.c.displayname\
-				.label("album.albumartist.owner.displayname"),
+				.label("album>albumartist>owner>displayname"),
 			album_artist_owner.c.publictoken\
-				.label("album.albumartist.owner.publictoken"),
-			sgar_isPrimaryArtist.label("artists.isprimaryartist"),
-			ar_pk.label("artists.id"),
-			ar_name.label("artists.name"),
-			ar_ownerFk.label("artists.owner.id"),
-			artist_owner.c.username.label("artists.owner.username"),
-			artist_owner.c.displayname.label("artists.owner.displayname"),
-			artist_owner.c.publictoken.label("artists.owner.publictoken"),
-			st_pk.label("stations.id"),
-			st_name.label("stations.name"),
-			st_playnum.label("stations.playnum"),
-			st_ownerFk.label("stations.owner.id"),
-			station_owner.c.username.label("stations.owner.username"),
-			station_owner.c.displayname.label("stations.owner.displayname"),
-			station_owner.c.publictoken.label("stations.owner.publictoken"),
-			st_displayName.label("stations.displayname"),
-			st_requestSecurityLevel.label("stations.requestsecuritylevel"),
-			st_viewSecurityLevel.label("stations.viewsecuritylevel"),
-			pl_pk.label("playlists.id"),
-			pl_name.label("playlists.name"),
-			pl_displayname.label("playlists.description"),
-			pl_viewSecurityLevel.label("playlists.viewsecuritylevel"),
-			pl_ownerFk.label("playlists.owner.id"),
-			playlist_owner.c.username.label("playlists.owner.username"),
-			playlist_owner.c.displayname.label("playlists.owner.displayname"),
-			playlist_owner.c.publictoken.label("playlists.owner.publictoken")
+				.label("album>albumartist>owner>publictoken"),
+			sgar_isPrimaryArtist.label("artists>isprimaryartist"),
+			ar_pk.label("artists>id"),
+			ar_name.label("artists>name"),
+			ar_ownerFk.label("artists>owner>id"),
+			artist_owner.c.username.label("artists>owner>username"),
+			artist_owner.c.displayname.label("artists>owner>displayname"),
+			artist_owner.c.publictoken.label("artists>owner>publictoken"),
+			st_pk.label("stations>id"),
+			st_name.label("stations>name"),
+			st_playnum.label("stations>playnum"),
+			st_ownerFk.label("stations>owner>id"),
+			station_owner.c.username.label("stations>owner>username"),
+			station_owner.c.displayname.label("stations>owner>displayname"),
+			station_owner.c.publictoken.label("stations>owner>publictoken"),
+			st_displayName.label("stations>displayname"),
+			st_requestSecurityLevel.label("stations>requestsecuritylevel"),
+			st_viewSecurityLevel.label("stations>viewsecuritylevel"),
+			pl_pk.label("playlists>id"),
+			pl_name.label("playlists>name"),
+			pl_displayname.label("playlists>description"),
+			pl_viewSecurityLevel.label("playlists>viewsecuritylevel"),
+			pl_ownerFk.label("playlists>owner>id"),
+			playlist_owner.c.username.label("playlists>owner>username"),
+			playlist_owner.c.displayname.label("playlists>owner>displayname"),
+			playlist_owner.c.publictoken.label("playlists>owner>publictoken")
 		)
 
 		if queryParams.orderByElement is not None:
@@ -545,5 +550,6 @@ class SongInfoService:
 		offset = queryParams.page * queryParams.limit if queryParams.limit else 0
 		query = query\
 			.offset(offset)
-		
-		return self.__query_to_full_object__(query, queryParams)
+
+		with dtos.open_transaction(self.conn):
+			yield from self.__query_to_full_object__(query, queryParams)

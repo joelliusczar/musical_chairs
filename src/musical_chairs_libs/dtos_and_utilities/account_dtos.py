@@ -37,12 +37,25 @@ class AccountInfoBase(FrozenBaseClass):
 	displayname: str | None=""
 
 
-class AccountInfo(AccountInfoBase, FrozenIdItem):
-	...
-
-
-class User(AccountInfoBase, FrozenIdItem):
+class PublicTokenMixin(FrozenBaseClass):
 	publictoken: str
+
+
+	def wrap_public_token(self) -> str:
+		return f"{public_token_prefix}{self.publictoken}"
+	
+
+	@classmethod
+	def unwrap_public_token(cls, token: str) -> str:
+		return token[2:]
+
+	@classmethod
+	def is_a_public_token(cls, token: str) -> bool:
+		return token.startswith(public_token_prefix)
+
+
+class User(AccountInfoBase, PublicTokenMixin, FrozenIdItem):
+	...
 
 
 class RoledUserMixin(AccountInfoBase):
@@ -101,14 +114,12 @@ class RoledUserMixin(AccountInfoBase):
 		)
 
 
-class RoledUser(RoledUserMixin, FrozenIdItem):
-	publictoken: str
+class RoledUser(RoledUserMixin, PublicTokenMixin, FrozenIdItem):
 	dirroot: str | None = None
 
 
 
-class EmailableUser(RoledUserMixin, FrozenIdItem):
-	publictoken: str
+class EmailableUser(RoledUserMixin, PublicTokenMixin, FrozenIdItem):
 	dirroot: str | None = None
 	email: str
 
@@ -121,7 +132,7 @@ class EmailableUser(RoledUserMixin, FrozenIdItem):
 	
 
 
-class InternalUser(RoledUserMixin, FrozenIdItem):
+class InternalUser(RoledUserMixin, PublicTokenMixin, FrozenIdItem):
 	publictoken: str
 	dirroot: str | None = None
 	email: str
@@ -152,6 +163,7 @@ class AuthenticatedAccount(RoledUser):
 	login_timestamp: float=0
 
 
+
 class AccountCreationInfo(RoledUserMixin):
 	'''
 	This AccountInfo is only to the server to create an account.
@@ -167,9 +179,9 @@ class AccountCreationInfo(RoledUserMixin):
 	def check_username(cls, v: str) -> str:
 		if not v:
 			raise ValueError("Username is empty")
-		if v.startswith(public_token_prefix):
+		if PublicTokenMixin.is_a_public_token(v):
 			raise ValueError(f"Username cannot start with '{public_token_prefix}'")
-		vSet = set(v[::])
+		vSet = {*v}
 		if any({"/"} & vSet):
 			raise ValueError(f"Illegal characters in username: {{{"/"} & vSet}}")
 		return v

@@ -21,7 +21,9 @@ from email_validator import ValidatedEmail
 from collections import Counter
 from .type_aliases import (s2sDict)
 from .lost_found import Lost
+from contextlib import contextmanager
 from pathlib import Path
+from sqlalchemy.engine import Connection
 
 T = TypeVar("T")
 
@@ -282,3 +284,13 @@ def asdict(obj: Any, exclude: Optional[set[str]]=None) -> dict[str, Any]:
 
 	return d
 
+@contextmanager
+def open_transaction(conn: Connection):
+	if conn.in_transaction():
+		if transaction := conn.get_transaction():
+			yield transaction
+		else:
+			raise RuntimeError("Ambiguous transaction availability")
+	else:
+		with conn.begin() as transaction:
+			yield transaction

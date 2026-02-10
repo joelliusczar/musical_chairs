@@ -133,6 +133,7 @@
         - '{{domain["exports_dir"]}}'
         - '/home/{{domain["server_user"]}}/scripts'
         - '/home/{{domain["server_user"]}}/event_logs'
+        - '/home/{{domain["server_user"]}}/visit_logs'
         - '/home/{{domain["server_user"]}}/queues'
     - name: Create directories for logged in user
       file:
@@ -229,6 +230,7 @@
           DSF_ICES_EXECUTABLE='{{domain["app_root"]}}/.local/bin/{{app_details["prefix"]|lower}}-ices'
           DSF_LIVE_CONFIG_PATH='{{app_trunk}}/app_conf.json'
           DSF_EVENT_LOGS_DIR='{{app_trunk}}/event_logs'
+          DSF_VISIT_LOGS_DIR='{{app_trunk}}/visit_logs'
           DSF_QUEUE_FILES_DIR='{{app_trunk}}/queues'
       # notify: Restart API #not sure this exists as a handler anymore
     - name: Add API run script

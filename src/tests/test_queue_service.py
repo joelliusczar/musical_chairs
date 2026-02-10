@@ -13,9 +13,12 @@ def test_adding_song_to_queue(fixture_queue_service: QueueService):
 	queueService = fixture_queue_service
 	m = QueueMetrics(maxSize=queueService.queue_size)
 	station = queueService.__get_station__(1)
-	queueService.fil_up_queue(station, m, [])
-	queue1, _ = queueService.get_queue_for_station(1)
-	assert len(queue1) == 15 #only 19 songs in test db
+	with queueService.conn.begin() as transaction:
+		queueService.fil_up_queue_in_trx(station, m, [])
+		queue1, _ = queueService.get_queue_for_station(1)
+		assert len(queue1) == 15 #only 19 songs in test db
+		transaction.commit()
+
 	queueService.add_to_queue(15, station)
 	queue1, _ = queueService.get_queue_for_station(1)
 	assert len(queue1) == 16
@@ -25,10 +28,11 @@ def test_adding_song_to_queue(fixture_queue_service: QueueService):
 def test_queue_of_songs_without_artists(fixture_queue_service: QueueService):
 	queueService = fixture_queue_service
 	m = QueueMetrics(maxSize=queueService.queue_size)
-	station = queueService.__get_station__(8)
-	queueService.fil_up_queue(station, m, [])
-	queue1, _ = queueService.get_queue_for_station(8)
-	assert len(queue1) == 4
+	with queueService.conn.begin():
+		station = queueService.__get_station__(8)
+		queueService.fil_up_queue_in_trx(station, m, [])
+		queue1, _ = queueService.get_queue_for_station(8)
+		assert len(queue1) == 4
 
 
 @pytest.mark.usefixtures("fixture_clean_queue_files")

@@ -10,6 +10,7 @@ from pydantic import (
 )
 from typing import (
 	cast,
+	Sequence
 )
 from .station_dtos import StationInfo, StationUnowned
 from .queued_item import SongListDisplayItem
@@ -19,8 +20,8 @@ class AlbumCreationInfo(FrozenNamed):
 	year: int | None=None
 	albumartist: ArtistInfo | ArtistUnowned | None=None
 	versionnote: str | None=""
-	stations: list[StationInfo | StationUnowned]=cast(
-		list[StationInfo | StationUnowned], Field(default_factory=list)
+	stations: Sequence[StationInfo | StationUnowned]=cast(
+		Sequence[StationInfo | StationUnowned], Field(default_factory=list)
 	)
 
 class AlbumUnowned(FrozenNamedIdItem):

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from itertools import groupby
 from musical_chairs_libs.protocols import (
 	EventsQueryer,
@@ -12,7 +13,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from typing import (
 	Collection,
-	Optional
 )
 
 
@@ -20,7 +20,7 @@ def __when_next_can_do__(
 	rule: ActionRule,
 	timestamps: list[float],
 	currentTimestamp: float
-) -> Optional[float]:
+) -> float | None:
 	if rule.noLimit:
 		return 0
 	if rule.blocked:
@@ -48,14 +48,14 @@ class WhenNextCalculator:
 		self.user_provider = userProvider
 		self.get_datetime = get_datetime
 
-	
+
 	def calc_lookup_for_when_user_can_next_do_action(
 		self,
 		userid: int,
 		rules: Collection[ActionRule],
 		sphere: str = UserRoleSphere.Site.value,
-		path: Optional[str]=None,
-	) -> dict[str, Optional[float]]:
+		path: str | None=None,
+	) -> dict[str, float | None]:
 		if not rules:
 			return {}
 		maxLimit = max(int(r.quota) for r in rules)
@@ -82,7 +82,7 @@ class WhenNextCalculator:
 			) for r in ActionRule.filter_out_repeat_roles(rules)
 		}
 		return result
-	
+
 
 	def check_if_user_can_perform_rate_limited_action(
 		self,
@@ -108,3 +108,20 @@ class WhenNextCalculator:
 					currentTimestamp = get_datetime().timestamp()
 					timeleft = whenNext - currentTimestamp
 					raise TooManyRequestsError(int(timeleft))
+
+
+	def has_crossed_visit_threshold(
+		self,
+		visitorId: int,
+		url: str,
+		quota: float,
+		span: float
+	):
+		fromTimestamp = (self.get_datetime() - timedelta(seconds=span)).timestamp()
+		visitCount = sum(1 for _ in self.event_queryer.get_visitor_events(
+			visitorId,
+			fromTimestamp,
+			url if url != "*" else None
+		))
+
+		return visitCount >= quota

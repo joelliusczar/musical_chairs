@@ -71,17 +71,17 @@ class AccountManagementService:
 		publicTokenSize = 10
 		while True:
 			with self.conn.begin() as transaction:
-				if self.__is_username_used__(accountInfo.username):
-					raise AlreadyUsedError.build_error(
-						f"{accountInfo.username} is already used.",
-						"body->username"
-					)
-				if self.__is_email_used__(cleanedEmail):
-					raise AlreadyUsedError.build_error(
-						f"{accountInfo.email} is already used.",
-						"body->email"
-					)
 				try:
+					if self.__is_username_used__(accountInfo.username):
+						raise AlreadyUsedError.build_error(
+							f"{accountInfo.username} is already used.",
+							"body->username"
+						)
+					if self.__is_email_used__(cleanedEmail):
+						raise AlreadyUsedError.build_error(
+							f"{accountInfo.email} is already used.",
+							"body->email"
+						)
 					publicToken = generate(
 						size=publicTokenSize + attempts,
 						alphabet=public_token_alphabet
@@ -124,7 +124,9 @@ class AccountManagementService:
 					transaction.rollback()
 					if attempts > 16:
 						raise
-
+				except:
+					transaction.rollback()
+					raise
 
 	def remove_roles_for_user(
 		self,
@@ -134,9 +136,10 @@ class AccountManagementService:
 		if not userId:
 			return 0
 		roles = roles or []
-		delStmt = delete(tbl.userRoles).where(tbl.ur_userFk == userId)\
-			.where(tbl.ur_role.in_(roles))
-		return self.conn.execute(delStmt).rowcount
+		with dtos.open_transaction(self.conn):
+			delStmt = delete(tbl.userRoles).where(tbl.ur_userFk == userId)\
+				.where(tbl.ur_role.in_(roles))
+			return self.conn.execute(delStmt).rowcount
 
 
 	def __save_roles__(
@@ -170,12 +173,13 @@ class AccountManagementService:
 
 	def save_roles(
 		self,
-		userId: Optional[int],
+		userId: int | None,
 		roles: Iterable[ActionRule]
 	) -> Iterable[ActionRule]:
-		uniqueRoles = self.__save_roles__(userId, roles)
-		self.conn.commit()
-		return uniqueRoles
+		with self.conn.begin() as transaction:
+			uniqueRoles = self.__save_roles__(userId, roles)
+			transaction.commit()
+			return uniqueRoles
 
 
 	def __is_username_used__(self, username: str) -> bool:
@@ -195,8 +199,9 @@ class AccountManagementService:
 			return True
 		loggedInUser = self.user_provider.current_user(optional=True)
 		loggedInUsername = loggedInUser.username if loggedInUser else None
-		return loggedInUsername != username and\
-			self.__is_username_used__(username)
+		with self.conn.begin():
+			return loggedInUsername != username and\
+				self.__is_username_used__(username)
 
 
 	def __is_email_used__(self, email: ValidatedEmail) -> bool:
@@ -221,16 +226,18 @@ class AccountManagementService:
 			loggedInUser = self.user_provider.current_user(optional=True)
 			logggedInEmail = loggedInUser.email if loggedInUser else None
 			cleanedEmailStr = cleanedEmail.email
-			return logggedInEmail != cleanedEmailStr and\
-				self.__is_email_used__(cleanedEmail)
+			with self.conn.begin():
+				return logggedInEmail != cleanedEmailStr and\
+					self.__is_email_used__(cleanedEmail)
 		except EmailNotValidError:
 			return False
 
 
 	def get_accounts_count(self) -> int:
-		query = select(func.count(1)).select_from(tbl.users)
-		count = self.conn.execute(query).scalar() or 0 #pyright: ignore [reportUnknownMemberType]
-		return count
+		with self.conn.begin():
+			query = select(func.count(1)).select_from(tbl.users)
+			count = self.conn.execute(query).scalar() or 0 #pyright: ignore [reportUnknownMemberType]
+			return count
 
 
 	def get_account_list(
@@ -240,25 +247,26 @@ class AccountManagementService:
 		pageSize: int | None=None,
 	) -> Iterator[User]:
 		offset = page * pageSize if pageSize else 0
-		query = select(
-			tbl.u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
-			tbl.u_username,
-			tbl.u_displayName,
-			tbl.u_publictoken,
-			tbl.u_dirRoot
-		).offset(offset)
+		with self.conn.begin():
+			query = select(
+				tbl.u_pk.label("id"), #pyright: ignore [reportUnknownMemberType]
+				tbl.u_username,
+				tbl.u_displayName,
+				tbl.u_publictoken,
+				tbl.u_dirRoot
+			).offset(offset)
 
-		if searchTerm is not None:
-			normalizedStr = searchTerm.replace(" ","")\
-				.replace("_","\\_").replace("%","\\%")
-			query = query.where(
-				func.replace(coalesce(tbl.u_displayName, tbl.u_username)," ","")
-					.like(f"{normalizedStr}%", escape="\\")
-			)
-		query = query.limit(pageSize)
-		records = self.conn.execute(query).mappings()
-		for row in records:
-			yield User(**row) #pyright: ignore [reportUnknownArgumentType]
+			if searchTerm is not None:
+				normalizedStr = searchTerm.replace(" ","")\
+					.replace("_","\\_").replace("%","\\%")
+				query = query.where(
+					func.replace(coalesce(tbl.u_displayName, tbl.u_username)," ","")
+						.like(f"{normalizedStr}%", escape="\\")
+				)
+			query = query.limit(pageSize)
+			records = self.conn.execute(query).mappings().fetchall()
+			for row in records:
+				yield User(**row) #pyright: ignore [reportUnknownArgumentType]
 
 
 	def update_account_general_changes(
@@ -274,22 +282,25 @@ class AccountManagementService:
 			return currentUser
 		validEmail = validate_email(updatedInfo.email)
 		updatedEmail = validEmail.email
-		if updatedEmail != currentUser.email and self.__is_email_used__(validEmail):
-			raise AlreadyUsedError.build_error(
-				f"{updatedInfo.email} is already used.",
-				"body->email"
-			)
-		stmt = update(tbl.users).values(
-			displayname = updatedInfo.displayname,
-			email = updatedEmail
-		).where(tbl.u_pk == currentUser.id)
-		self.conn.execute(stmt)
-		self.conn.commit()
-		return EmailableUser(
-			**currentUser.model_dump(exclude=["displayname", "email"]), #pyright: ignore [reportArgumentType]
+		with self.conn.begin() as transaction:
+			if updatedEmail != currentUser.email \
+				and self.__is_email_used__(validEmail)\
+			:
+				raise AlreadyUsedError.build_error(
+					f"{updatedInfo.email} is already used.",
+					"body->email"
+				)
+			stmt = update(tbl.users).values(
 				displayname = updatedInfo.displayname,
 				email = updatedEmail
-		)
+			).where(tbl.u_pk == currentUser.id)
+			self.conn.execute(stmt)
+			transaction.commit()
+			return EmailableUser(
+				**currentUser.model_dump(exclude=["displayname", "email"]), #pyright: ignore [reportArgumentType]
+					displayname = updatedInfo.displayname,
+					email = updatedEmail
+			)
 
 
 	def update_password(
@@ -310,8 +321,9 @@ class AccountManagementService:
 		hash = hashpw(passwordInfo.newpassword.encode())
 		stmt = update(tbl.users).values(hashedpw = hash)\
 			.where(tbl.u_pk == currentUser.id)
-		self.conn.execute(stmt)
-		self.conn.commit()
+		with self.conn.begin() as transaction:
+			self.conn.execute(stmt)
+			transaction.commit()
 		return True
 
 
@@ -327,6 +339,7 @@ class AccountManagementService:
 			tbl.u_displayName,
 			tbl.u_email,
 			tbl.u_dirRoot,
+			tbl.u_publictoken,
 			rulesQuery.c['rule>userfk'].label("rule>userfk"),
 			rulesQuery.c['rule>name'].label("rule>name"),
 			rulesQuery.c['rule>quota'].label("rule>quota"),
@@ -347,11 +360,12 @@ class AccountManagementService:
 		if userId is not None:
 			query = query.where(tbl.u_pk == userId)
 		query = query.order_by(tbl.u_username)
-		records = self.conn.execute(query).mappings().fetchall()
-		yield from generate_path_user_and_rules_from_rows(
-			records,
-			""
-		)
+		with self.conn.begin():
+			records = self.conn.execute(query).mappings().fetchall()
+			yield from generate_path_user_and_rules_from_rows(
+				records,
+				""
+			)
 
 	def add_user_rule(
 		self,
@@ -368,14 +382,16 @@ class AccountManagementService:
 			sphere = UserRoleSphere.Site.value,
 			creationtimestamp = self.get_datetime().timestamp()
 		)
-		try:
-			self.conn.execute(stmt)
-		except IntegrityError:
-			raise AlreadyUsedError.build_error(
-				f"{rule.name} is already used for user.",
-				"body->name"
-			)
-		self.conn.commit()
+		with self.conn.begin() as transaction:
+			try:
+				self.conn.execute(stmt)
+			except IntegrityError:
+				transaction.rollback()
+				raise AlreadyUsedError.build_error(
+					f"{rule.name} is already used for user.",
+					"body->name"
+				)
+			transaction.commit()
 
 		return ActionRule(
 			name=rule.name,
@@ -394,5 +410,6 @@ class AccountManagementService:
 			.where(tbl.ur_userFk == removedUserId)
 		if ruleName:
 			delStmt = delStmt.where(tbl.ur_role == ruleName)
-		self.conn.execute(delStmt)
-		self.conn.commit()
+		with self.conn.begin() as transaction:
+			self.conn.execute(delStmt)
+			transaction.commit()

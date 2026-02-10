@@ -246,38 +246,39 @@ class PlaylistService:
 		pageSize: int | None=None,
 	) -> Iterator[PlaylistInfo]:
 		userId = self.current_user_provider.optional_user_id()
-		if userId:
-			query = self.get_secured_playlist_query(
-				ownerId=ownerId,
-				playlistKeys=playlistKeys,
-				scopes=scopes
-			)
+		with self.conn.begin():
+			if userId:
+				query = self.get_secured_playlist_query(
+					ownerId=ownerId,
+					playlistKeys=playlistKeys,
+					scopes=scopes
+				)
 
-			records = self.conn.execute(query).mappings().fetchall()
+				records = self.conn.execute(query).mappings().fetchall()
 
-			yield from generate_owned_and_rules_from_rows(
-				records,
-				PlaylistInfo.row_to_playlist,
-				get_playlist_owner_roles,
-				scopes,
-				userId,
-			)
-		else:
-			if scopes:
-				return
-			query = self.playlist_base_query(
-				ownerId=ownerId,
-				playlistKeys=playlistKeys,
-			)\
-			.where(
-				coalesce(pl_viewSecurityLevel, 0) == 0
-			)\
-			.with_only_columns(*self.base_select_columns())
+				yield from generate_owned_and_rules_from_rows(
+					records,
+					PlaylistInfo.row_to_playlist,
+					get_playlist_owner_roles,
+					scopes,
+					userId,
+				)
+			else:
+				if scopes:
+					return
+				query = self.playlist_base_query(
+					ownerId=ownerId,
+					playlistKeys=playlistKeys,
+				)\
+				.where(
+					coalesce(pl_viewSecurityLevel, 0) == 0
+				)\
+				.with_only_columns(*self.base_select_columns())
 
-			records = self.conn.execute(query).mappings().fetchall()
+				records = self.conn.execute(query).mappings().fetchall()
 
-			for row in records:
-				yield PlaylistInfo.row_to_playlist(row)
+				for row in records:
+					yield PlaylistInfo.row_to_playlist(row)
 
 
 	def get_playlist_owner(self, playlistId: int) -> dtos.User:
@@ -344,7 +345,7 @@ class PlaylistService:
 			.where(plsg_playlistFk == playlistId)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.order_by(dbCast(sg_track, Integer))
-		songsResult = self.conn.execute(songsQuery).mappings()
+		songsResult = self.conn.execute(songsQuery).mappings().fetchall()
 		pathRuleTree = None
 		if self.current_user_provider.is_loggedIn():
 			pathRuleTree = self.path_rule_service.get_rule_path_tree()
@@ -398,7 +399,7 @@ class PlaylistService:
 			res = self.conn.execute(stmt)
 
 			affectedPk = playlistId if playlistId else res.lastrowid
-			self.stations_playlists_service.link_playlists_with_stations(
+			self.stations_playlists_service.link_playlists_with_stations_in_trx(
 				(StationPlaylistTuple(affectedPk, t.id if t else None) 
 					for t in (playlist.stations or [None])),
 			)

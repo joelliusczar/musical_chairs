@@ -1,6 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 import ipaddress
 import musical_chairs_libs.dtos_and_utilities as dtos
+from collections import defaultdict
 from datetime import timedelta
 from typing import (
 	Any,
@@ -96,6 +97,7 @@ class GlobalStore:
 	def __init__(self) -> None:
 		self.events_store = InMemEventRecordMap()
 		self.visitor_id_map: dict[str, Any] = {}
+		self.timeout_bucket: dtos.TimeoutBucket = defaultdict(dtos.timeout_factory)
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -211,11 +213,13 @@ def get_tracking_info(request: Request):
 	ipaddresses = extract_ip_address(request)
 
 	return TrackingInfo(
+		request.url,
 		userAgent,
 		ipv4Address=ipaddresses[0],
 		ipv6Address=ipaddresses[1],
-		url=request.url.path
+		method=request.method,
 	)
+
 
 def global_store(request: Request) -> GlobalStore | None:
 	try:
@@ -225,7 +229,7 @@ def global_store(request: Request) -> GlobalStore | None:
 
 
 def visitor_service(
-		globalStore: GlobalStore | None = Depends(global_store),
+	globalStore: GlobalStore | None = Depends(global_store),
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> VisitorService:
 	return VisitorService(
@@ -811,3 +815,38 @@ def check_top_level_rate_limit(sphere: str):
 	
 	return __check_rate_limit__
 
+
+def limit_visits(
+	quota: float,
+	span: float,
+	penalty: float,
+	key: str | None = None
+):
+
+	def __check_visit_limits__(
+		currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+		whenNextCalculator: WhenNextCalculator = Depends(
+			when_next_calculator
+		),
+		globalStore: GlobalStore | None = Depends(global_store),
+		getDatetime: Callable[[], datetime] = Depends(datetime_provider)
+	):
+		visitorId = currentUserProvider.visitor_id()
+		path = currentUserProvider.tracking_info().url.path if not key else key
+		timestamp = getDatetime().timestamp()
+		if globalStore:
+			if timeout := globalStore.timeout_bucket[visitorId][path]:
+				if timeout > timestamp:
+					raise dtos.TooManyRequestsError()
+
+		if whenNextCalculator.has_crossed_visit_threshold(
+			visitorId,
+			path,
+			quota,
+			span
+		):
+			if globalStore:
+				globalStore.timeout_bucket[visitorId][path] = timestamp + penalty
+			raise dtos.TooManyRequestsError()
+
+	return __check_visit_limits__

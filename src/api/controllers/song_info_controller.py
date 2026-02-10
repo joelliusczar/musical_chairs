@@ -70,7 +70,7 @@ def song_ls(
 	songInfoService: SongFileService = Depends(song_file_service),
 	currentUserProvider: CurrentUserProvider = Depends(current_user_provider)
 ) -> ListData[SongTreeNode]:
-	items = list(songInfoService.song_ls(prefix))
+	items = songInfoService.song_ls(prefix)
 	if not prefix and len(items) < 1:
 		user = currentUserProvider.current_user()
 		items = [SongTreeNode(
@@ -171,7 +171,7 @@ def download_song(
 ) -> StreamingResponse:
 	mem_mib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 ** 2
 	print(f"Used memory: {mem_mib:.2f} MiB")
-	path = next(songFileService.get_internal_song_paths(id), None)
+	path = next(iter(songFileService.get_internal_song_paths(id)), None)
 	if path:
 		def iterfile() -> Iterator[bytes]:
 			with fileService.open_song(path) as data:

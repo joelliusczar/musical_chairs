@@ -75,6 +75,7 @@ interface FormSelectBaseProps<
 	inputValue?: string
 	onInputChange?: (e: ChangeEvent, newValue: string) => void,
 	renderInput?: (params: AutocompleteRenderInputParams) => React.ReactNode,
+	elementRef?: React.RefCallback<HTMLElement | undefined>
 }
 
 
@@ -179,6 +180,7 @@ FreeSolo extends boolean | undefined = false,
 		getOptionLabel = _getOptionLabel,
 		freeSolo,
 		renderInput,
+		elementRef,
 		...otherProps
 	} = props;
 	const { control } = formMethods;
@@ -217,6 +219,7 @@ FreeSolo extends boolean | undefined = false,
 						style: { lineHeight: "unset" },
 					},
 				}}
+				ref={elementRef}
 				{...otherProps}
 			/>
 			{error && <FormHelperText error={true}>

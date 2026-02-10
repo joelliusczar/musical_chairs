@@ -4,6 +4,7 @@ import {
 	Typography,
 	Button,
 	Checkbox,
+	Tooltip,
 } from "@mui/material";
 import * as Yup from "yup";
 import { useForm } from "react-hook-form";
@@ -36,7 +37,7 @@ import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext/AuthContext";
-import { UserRoleDef } from "../../constants";
+import { DomRoutes, UserRoleDef } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	useCombinedContextAndFormItems,
@@ -373,6 +374,7 @@ export const SongEdit = () => {
 		handleMutliSongTouchedCheck("trackinfo");
 	};
 
+
 	return (<Loader status={callStatus} error={state.error}>
 		<Box sx={inputField}>
 			<Typography variant="h1">
@@ -476,22 +478,48 @@ export const SongEdit = () => {
 			</Box>
 			<Box>
 				<Loader status={albumCallStatus} error={albumError}>
-					<Box sx={inputField}>
-						{ids?.length > 1 && <TouchedCheckbox
-							name="album"
-						/>}
-						<AlbumSelect
-							name="album"
-							options={albums}
-							formMethods={formMethods}
-							label="Album"
-							transform={{input: albumMapper }}
-							classes={{
-								root: "dropdown-field",
-							}}
-							disabled={!canEditSongs}
-						/>
-					</Box>
+					<Tooltip 
+						title={
+							<>
+								<ul>
+									{!!album?.albumartist?.name 
+										? <li>
+											<a 
+												href={DomRoutes.album(album)}
+												target="_blank"
+												rel="noreferrer"
+											>
+												{album.albumartist.name }
+											</a>
+										</li>
+										: null
+									}
+									{!!album?.versionnote 
+										? <li>{album.versionnote}</li>
+										: null
+									}
+								</ul>
+							</>}
+						arrow
+						placement="top-start"
+					>
+						<Box sx={inputField}>
+							{ids?.length > 1 && <TouchedCheckbox
+								name="album"
+							/>}
+							<AlbumSelect
+								name="album"
+								options={albums}
+								formMethods={formMethods}
+								label="Album"
+								transform={{input: albumMapper }}
+								classes={{
+									root: "dropdown-field",
+								}}
+								disabled={!canEditSongs}
+							/>
+						</Box>
+					</Tooltip>
 					<>
 						{canCreateAlbums && <Box sx={inputField}>
 							<AlbumNewModalOpener

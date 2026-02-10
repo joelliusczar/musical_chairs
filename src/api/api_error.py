@@ -40,10 +40,10 @@ def build_wrong_permissions_error() -> HTTPException:
 
 def build_too_many_requests_error(timeleft: int) -> HTTPException:
 	return HTTPException(
-					status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-					detail=[build_error_obj(
-						"Please wait "
-						f"{build_timespan_msg(seconds_to_tuple(timeleft))} "
-						"before trying again")
-					]
-				)
+		status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+		detail=[build_error_obj(
+			"Please wait "
+			f"{build_timespan_msg(seconds_to_tuple(timeleft))} "
+			"before trying again")
+		]
+	)

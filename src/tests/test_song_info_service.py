@@ -1,4 +1,5 @@
 import pytest
+import musical_chairs_libs.dtos_and_utilities as dtos
 from musical_chairs_libs.services import (
 	SongInfoService,
 	StationService,
@@ -133,9 +134,8 @@ def test_save_song_remove_nonprimary_artists(
 	assert sortedArtists[1].id == 19
 	assert sortedArtists[2].id == 20 #primary artist
 	assert sortedArtists[3].id == 21
-	copy.artists.pop()
-	copy.artists.pop()
-	copy.artists.pop()
+	copy.artists = copy.artists[:-3]
+
 	afterSaved = next(songInfoService.save_songs([84], copy))
 	assert not afterSaved.artists
 	assert afterSaved.primaryartist
@@ -201,9 +201,7 @@ def test_save_song_remove_all_artists(
 	assert sortedArtists[2].id == 20 #primary artist
 	assert sortedArtists[3].id == 21
 	copy.primaryartist = None
-	copy.artists.pop()
-	copy.artists.pop()
-	copy.artists.pop()
+	copy.artists = copy.artists[:-3]
 	afterSaved = next(songInfoService.save_songs([84], copy))
 	assert not afterSaved.artists
 	assert not afterSaved.primaryartist
@@ -304,9 +302,7 @@ def test_save__multiple_song_add_station_and_playlist(
 		name="",
 		treepath="",
 		internalpath="",
-		stations=[
-			next(stationService.get_stations(5))
-		],
+		stations=stationService.get_stations(5),
 		playlists=[
 			PlaylistInfo(
 				id=7,
@@ -401,8 +397,7 @@ def test_save_song_swap_station(
 	assert copy.stations
 	assert len(copy.stations) == 1
 	assert copy.stations[0].id == 24
-	replacement = next(stationService.get_stations(stationKeys=25))
-	copy.stations = [replacement]
+	copy.stations = stationService.get_stations(stationKeys=25)
 	afterSaved = next(songInfoService.save_songs([85], copy))
 	assert afterSaved.stations
 	assert len(afterSaved.stations) == 1
@@ -604,7 +599,7 @@ def test_remove_songs_for_stations(
 	songs = sorted(songInfoService.get_songIds(stationKey=3))
 	assert len(songs) == 11
 	assert [6, 11, 16, 17, 24, 25, 26, 27, 34, 36, 43] == songs
-	result = stationsSongsService.remove_songs_for_stations(
+	result = stationsSongsService.__remove_songs_for_stations_in_trx__(
 		[(43, 3),StationSongTuple(34, 3)]
 	)
 	assert result == 2
@@ -620,7 +615,7 @@ def test_link_songs_with_station(
 	stationsSongsService = fixture_stations_songs_service
 	songs = sorted(songInfoService.get_songIds(stationKey=7))
 	assert len(songs) == 0
-	stationsSongsService.link_songs_with_stations(
+	stationsSongsService.link_songs_with_stations_in_trx(
 		[StationSongTuple(34, 7),StationSongTuple(43, 7)]
 	)
 	songs = sorted(songInfoService.get_songIds(stationKey=7))
@@ -638,7 +633,7 @@ def test_link_songs_with_station_duplicates(
 	stationsSongService = fixture_stations_songs_service
 	songs = list(songInfoService.get_songIds(stationKey=7))
 	assert len(songs) == 0
-	stationsSongService.link_songs_with_stations(
+	stationsSongService.link_songs_with_stations_in_trx(
 		[StationSongTuple(34, 7),StationSongTuple(43, 7), StationSongTuple(43, 7)]
 	)
 	songs = sorted(songInfoService.get_songIds(stationKey=7))
@@ -656,13 +651,18 @@ def test_link_songs_with_station_nonexistent_songs(
 	stationsSongService = fixture_stations_songs_service
 	initialSongs = get_initial_songs()
 	badId = max(s["pk"] for s in initialSongs) + 1
-	stationsSongService.link_songs_with_stations(
-		[StationSongTuple(34, 7), StationSongTuple(43, 7), StationSongTuple(badId, 7)]
-	)
-	songs = sorted(songInfoService.get_songIds(stationKey=7))
-	assert len(songs) == 2
-	assert songs[0] == 34
-	assert songs[1] == 43
+	with stationsSongService.conn.begin():
+		stationsSongService.link_songs_with_stations_in_trx(
+			[
+				StationSongTuple(34, 7),
+				StationSongTuple(43, 7),
+				StationSongTuple(badId, 7)
+			]
+		)
+		songs = sorted(songInfoService.get_songIds(stationKey=7))
+		assert len(songs) == 2
+		assert songs[0] == 34
+		assert songs[1] == 43
 
 
 def test_link_songs_with_station_nonexistent_station(
@@ -673,19 +673,31 @@ def test_link_songs_with_station_nonexistent_station(
 	stationsSongService = fixture_stations_songs_service
 	initialStations = get_initial_stations()
 	badId = len(initialStations) + 1
-	results = list(stationsSongService\
-		.link_songs_with_stations([StationSongTuple(34, badId), StationSongTuple(43, badId)]))
-	assert len(results) == 0
-	songs = list(songInfoService.get_songIds(stationKey=badId))
-	assert len(songs) == 0
+	with stationsSongService.conn.begin():
+		results = list(stationsSongService\
+			.link_songs_with_stations_in_trx(
+				[
+					StationSongTuple(34, badId),
+					StationSongTuple(43, badId)
+				]
+			))
+		assert len(results) == 0
+		songs = list(songInfoService.get_songIds(stationKey=badId))
+		assert len(songs) == 0
 
 def test_link_already_linked_songs_with_stations(
 	fixture_stations_songs_service: StationsSongsService
 ):
 	stationsSongService = fixture_stations_songs_service
-	results = list(stationsSongService\
-		.link_songs_with_stations([StationSongTuple(27, 3), StationSongTuple(20, 2)]))
-	assert len(results) == 2
+	with stationsSongService.conn.begin():
+		results = list(stationsSongService\
+			.link_songs_with_stations_in_trx(
+				[
+					StationSongTuple(27, 3),
+					StationSongTuple(20, 2)
+				]
+			))
+		assert len(results) == 2
 
 def test_get_albums(
 	fixture_album_service: AlbumService
@@ -972,22 +984,27 @@ def test_get_song_with_owner_info(
 	results = next(songInfoService.get_songs_for_edit([59]))
 	album = results.album
 	assert album
+	assert isinstance(album, dtos.AlbumInfo)
 	albumOwner = album.owner
 	assert albumOwner.displayname == "julietDisplay"
 	albumArtist = album.albumartist
 	assert albumArtist
+	assert isinstance(albumArtist, dtos.ArtistInfo)
 	albumArtistOwner = albumArtist.owner
 	assert albumArtistOwner
 	assert albumArtistOwner.username == "testUser_kilo"
 	primaryArtist = results.primaryartist
 	assert primaryArtist
+	assert isinstance(primaryArtist, dtos.ArtistInfo)
 	primaryArtistOwner = primaryArtist.owner
 	assert primaryArtistOwner
 	assert primaryArtistOwner.username == "testUser_november"
 	assert results.artists
 	assert len(results.artists) == 2
+	assert isinstance(results.artists[0], dtos.ArtistInfo)
 	artsit0Owner = results.artists[0].owner
 	assert artsit0Owner.displayname == "IndiaDisplay"
+	assert isinstance(results.artists[1], dtos.ArtistInfo)
 	artsit1Owner = results.artists[1].owner
 	assert artsit1Owner.username == "testUser_hotel"
 	assert results.stations

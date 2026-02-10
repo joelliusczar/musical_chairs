@@ -42,13 +42,15 @@ from api_dependencies import (
 	current_user_provider,
 	check_scope,
 	check_subjectuser,
-	get_user_from_token,
-	subject_user,
 	datetime_provider,
+	get_user_from_token,
+	limit_visits,
+	subject_user,
 )
 from api_logging import log_event
 from datetime import datetime
 
+hr = 60 * 60
 
 
 
@@ -83,7 +85,7 @@ def login(
 			detail=[build_error_obj("Incorrect username or password")],
 			headers={"WWW-Authenticate": "Bearer"}
 		)
-	currentUserProvider.set_user(user)
+	currentUserProvider.set_session_user(user)
 	token = accountTokenCreator.create_access_token(user.to_user())
 	tokenLifetime = ACCESS_TOKEN_EXPIRE_MINUTES * 60
 	response.set_cookie(
@@ -169,12 +171,7 @@ def is_phrase_used(
 
 
 @router.post("/new", dependencies=[
-	# Depends(
-	# 	log_event(
-	# 		UserRoleDomain.User.value,
-	# 		UserActions.ACCOUNT_CREATE.value
-	# 	)
-	# )
+	Depends(limit_visits(quota=3, span=hr, penalty=hr))
 ])
 def create_new_account(
 	accountInfo: AccountCreationInfo,
@@ -303,15 +300,7 @@ def update_roles(
 	)
 
 
-@router.get(
-	"/account/self/me",
-	dependencies=[
-		Security(
-			check_subjectuser,
-			scopes=[UserRoleDef.USER_EDIT.value]
-		)
-	]
-)
+@router.get("/account/self/me")
 def get_self_account(
 	currentUserProvider: CurrentUserProvider = Depends(
 		current_user_provider

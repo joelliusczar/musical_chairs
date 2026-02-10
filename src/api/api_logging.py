@@ -76,3 +76,4 @@ def log_visit(eventsLogger: EventsLogger =
 	vistorTrackingService: TrackingInfoProvider = Depends(vistor_tracking_service)
 ):
 	yield
+	eventsLogger.add_visit()

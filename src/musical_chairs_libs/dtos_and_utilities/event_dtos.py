@@ -13,7 +13,19 @@ class EventRecord:
 	keypath: str | None
 	sphere: str = UserRoleSphere.Site.value
 	url: str = ""
+	method: str = ""
 	extraInfo: str=""
+
+@dataclass
+class VisitRecord:
+	id: str
+	visitorId: int
+	timestamp: float
+	url: str = ""
+	method: str = ""
+	extraInfo: str=""
+
+type VisitsMethodDict =  defaultdict[str, deque[VisitRecord]]
 
 type EventActionDict = defaultdict[str, deque[EventRecord]]
 
@@ -26,18 +38,27 @@ type EventUserIdDict = defaultdict[
 	EventDomainDict
 ]
 
-type EventUrlDict = EventActionDict
+type VisitUrlDict = defaultdict[str, VisitsMethodDict]
 
-type EventVisitorIdDict = defaultdict[int, EventUrlDict]
+type VisitVisitorIdDict = defaultdict[int, VisitUrlDict]
 
 def __deque_factory__() -> deque[EventRecord]:
-	return deque(maxlen=1000)
+	return deque(maxlen=5_000)
+
+def __vist_deque_factory__() -> deque[VisitRecord]:
+	return deque(maxlen=5_000)
 
 def __action_dict_factory__() -> EventActionDict:
 	return defaultdict(__deque_factory__)
 
+def __method_dict_factory__() -> VisitsMethodDict:
+	return defaultdict(__vist_deque_factory__)
+
 def __keypath_dict_factory__() -> EventPathDict:
 	return defaultdict(__action_dict_factory__)
+
+def __url_dict_factory__() -> VisitUrlDict:
+	return defaultdict(__method_dict_factory__)
 
 def __sphere_dict_factory__() -> EventDomainDict:
 	return defaultdict(__keypath_dict_factory__)
@@ -45,8 +66,8 @@ def __sphere_dict_factory__() -> EventDomainDict:
 def user_events_dict_factory() -> EventUserIdDict:
 	return defaultdict(__sphere_dict_factory__)
 
-def visitorId_dict_factory() -> EventVisitorIdDict:
-	return defaultdict(__action_dict_factory__)
+def visitorId_dict_factory() -> VisitVisitorIdDict:
+	return defaultdict(__url_dict_factory__)
 
 class InMemEventRecordMap:
 
@@ -87,6 +108,28 @@ class InMemEventRecordMap:
 				yield from InMemEventRecordMap.events_for_actions(
 					keypathEvents,
 					actions
+				)
+
+	@staticmethod
+	def visits_for_url(
+		urlParentMap: VisitsMethodDict,
+	)-> Iterator[VisitRecord]:
+		for methodVists in urlParentMap.values():
+			yield from (e for e in reversed(methodVists))
+
+
+	@staticmethod
+	def visits_for_visitor(
+		visitsParentMap: VisitUrlDict,
+		url: str | None = None
+	) -> Iterator[VisitRecord]:
+		if url:
+			urlEvents = visitsParentMap[url]
+			yield from InMemEventRecordMap.visits_for_url(urlEvents)
+		else:
+			for urlEvents in visitsParentMap.values():
+				yield from InMemEventRecordMap.visits_for_url(
+					urlEvents,
 				)
 
 
@@ -137,3 +180,21 @@ class InMemEventRecordMap:
 					keypath,
 					sphere
 				)
+
+	@staticmethod
+	def get_visits(
+		visitsParentMap: VisitVisitorIdDict,
+		visitorId: int | None = None,
+		url: str | None = None
+	) -> Iterator[VisitRecord]:
+		if visitorId:
+			visitorIdEvents = visitsParentMap[visitorId]
+			yield from InMemEventRecordMap.visits_for_visitor(visitorIdEvents, url)
+		else:
+			for visitorIdEvents in visitsParentMap.values():
+				yield from InMemEventRecordMap.visits_for_visitor(visitorIdEvents, url)
+
+type TimeoutBucket = defaultdict[int, defaultdict[str, float]]
+
+def timeout_factory():
+	return defaultdict[str, float](lambda : 0)

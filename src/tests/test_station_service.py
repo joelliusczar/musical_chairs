@@ -109,10 +109,10 @@ def test_get_stations_list_with_owner_and_scopes(
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("ingo")
 	assert user
-	result = next(stationService.get_stations(
+	result = next(iter(stationService.get_stations(
 			17,
 			scopes=[UserRoleDef.STATION_ASSIGN.value]
-		), None)
+		)), None)
 	assert result
 
 
@@ -129,7 +129,7 @@ def test_save_station(
 	)
 	result = stationService.save_station(testData)
 	assert result and result.id == len(get_initial_stations()) + 1
-	fetched = next(stationService.get_stations(result.id))
+	fetched = next(iter(stationService.get_stations(result.id)))
 	assert fetched.id == result.id
 	assert fetched.name == "brand_new_station"
 	assert fetched.displayname == "Brand new station"
@@ -140,7 +140,7 @@ def test_save_station(
 	)
 	result = stationService.save_station(testData)
 	assert result and result.id == len(get_initial_stations()) + 2
-	fetched = next(stationService.get_stations(result.id))
+	fetched = next(iter(stationService.get_stations(result.id)))
 
 
 	testData = StationCreationInfo(
@@ -157,7 +157,7 @@ def test_save_station(
 	with stationService.current_user_provider.impersonate(bravoUser):
 		result = stationService.save_station(testData, 2)
 		assert result and result.id == 2
-		fetched = next(stationService.get_stations(result.id))
+		fetched = next(iter(stationService.get_stations(result.id)))
 		assert fetched and fetched.name == "papa_station_update"
 		assert fetched and fetched.displayname == "Come to papa test"
 
@@ -169,7 +169,7 @@ def test_save_station(
 	with stationService.current_user_provider.impersonate(fixture_primary_user):
 		result = stationService.save_station(testData, 1)
 		assert result and result.id == 1
-		fetched = next(stationService.get_stations(result.id))
+		fetched = next(iter(stationService.get_stations(result.id)))
 		assert fetched and fetched.name == "oscar_station"
 		assert fetched and fetched.displayname == "Oscar the grouch"
 
@@ -181,7 +181,7 @@ def test_get_station_user_rule_selection(
 	stationService = fixture_station_service
 	accountService = fixture_account_service
 
-	station = next(stationService.get_stations(3))
+	station = next(iter(stationService.get_stations(3)))
 	rules = ActionRule.sorted(station.rules)
 	assert rules
 	assert len(rules) == 2
@@ -199,7 +199,7 @@ def test_get_station_user_rule_selection(
 	user,_ = accountService.get_account_for_login("testUser_oscar")
 	assert user
 	with stationService.current_user_provider.impersonate(user):
-		station = next(stationService.get_stations(3))
+		station = next(iter(stationService.get_stations(3)))
 		rules = ActionRule.sorted(station.rules)
 		assert rules
 		assert len(rules) == 2
@@ -218,7 +218,7 @@ def test_get_station_user_rule_selection(
 	user,_ = accountService.get_account_for_login("testUser_papa")
 	assert user
 	with stationService.current_user_provider.impersonate(user):
-		station = next(stationService.get_stations(3))
+		station = next(iter(stationService.get_stations(3)))
 		rules = ActionRule.sorted(station.rules)
 		assert rules
 		assert len(rules) == 2
@@ -236,7 +236,7 @@ def test_get_station_user_rule_selection(
 	user,_ = accountService.get_account_for_login("testUser_quebec")
 	assert user
 	with stationService.current_user_provider.impersonate(user):
-		station = next(stationService.get_stations(3))
+		station = next(iter(stationService.get_stations(3)))
 		rules = ActionRule.sorted(station.rules)
 		assert rules
 		assert len(rules) == 2
@@ -532,7 +532,7 @@ def test_get_station_user_list(
 	assert user
 
 	with stationService.current_user_provider.impersonate(user):
-		station = next(stationService.get_stations(17))
+		station = next(iter(stationService.get_stations(17)))
 		result = sorted(
 			stationsUsersService.get_station_users(station),
 			key=lambda u: u.id
@@ -573,7 +573,7 @@ def test_get_station_user_list(
 		assert rules[1].quota == 300
 		assert rules[2].name == UserRoleDef.STATION_VIEW.value
 
-		station = next(stationService.get_stations(18))
+		station = next(iter(stationService.get_stations(18)))
 		result = sorted(
 			stationsUsersService.get_station_users(station),
 			key=lambda u: u.id
@@ -600,7 +600,7 @@ def test_get_station_user_list(
 	user,_ = accountService.get_account_for_login("testUser_victor")
 	assert user
 	with stationService.current_user_provider.impersonate(user):
-		station = next(stationService.get_stations(12))
+		station = next(iter(stationService.get_stations(12)))
 		result = sorted(
 			stationsUsersService.get_station_users(station),
 			key=lambda u: u.id
@@ -628,7 +628,7 @@ def test_get_station_user_list_station_no_users(
 	user,_ = accountService.get_account_for_login("unruledStation_testUser")
 	assert user
 
-	station = next(stationService.get_stations(20))
+	station = next(iter(stationService.get_stations(20)))
 	result = sorted(
 		stationsUsersService.get_station_users(station),
 		key=lambda u: u.id

@@ -40,7 +40,6 @@ class AccountTokenCreator:
 			ConfigAcessors.auth_key(),
 			ALGORITHM
 		)
-		self.conn.commit()
 		return token
 
 

@@ -117,6 +117,11 @@ class ConfigAcessors:
 	@classmethod
 	def event_log_dir(cls) -> str:
 		return cls.get_value("DSF_EVENT_LOGS_DIR", "event_log_dir")
+
+
+	@classmethod
+	def visit_log_dir(cls) -> str:
+		return cls.get_value("DSF_VISIT_LOGS_DIR", "visit_log_dir")
 	
 
 	@classmethod

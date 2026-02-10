@@ -1,3 +1,4 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
@@ -43,34 +44,37 @@ class StationsSongsService:
 
 	def get_station_songs(
 		self,
-		songIds: Union[int, Iterable[int], None]=None,
-		stationIds: Union[int, Iterable[int], None]=None,
-	) -> Iterable[StationSongTuple]:
-		query = select(
-			stsg_songFk,
-			stsg_stationFk
-		)\
-			.join(songs_tbl, stsg_songFk == sg_pk)\
-			.where(sg_deletedTimstamp.is_(None))
+		songIds: int | Iterable[int] | None=None,
+		stationIds: int | Iterable[int] | None=None,
+	) -> list[StationSongTuple]:
+		with dtos.open_transaction(self.conn):
+			query = select(
+				stsg_songFk,
+				stsg_stationFk
+			)\
+				.join(songs_tbl, stsg_songFk == sg_pk)\
+				.where(sg_deletedTimstamp.is_(None))
 
-		if type(songIds) == int:
-			query = query.where(stsg_songFk == songIds)
-		elif isinstance(songIds, Iterable):
-			query = query.where(stsg_songFk.in_(songIds))
-		if type(stationIds) == int:
-			query = query.where(stsg_stationFk == stationIds)
-		elif isinstance(stationIds, Iterable):
-			query = query.where(stsg_stationFk.in_(stationIds))
-		query = query.order_by(stsg_songFk)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		yield from (StationSongTuple(
-				cast(int, row[0]),
-				cast(int, row[1]),
-				True
-			)
-			for row in records)
-		
-	def remove_songs_for_stations(
+			if type(songIds) == int:
+				query = query.where(stsg_songFk == songIds)
+			elif isinstance(songIds, Iterable):
+				query = query.where(stsg_songFk.in_(songIds))
+			if type(stationIds) == int:
+				query = query.where(stsg_stationFk == stationIds)
+			elif isinstance(stationIds, Iterable):
+				query = query.where(stsg_stationFk.in_(stationIds))
+			query = query.order_by(stsg_songFk)
+			with dtos.open_transaction(self.conn):
+				records = self.conn.execute(query).fetchall()
+				return [StationSongTuple(
+						cast(int, row[0]),
+						cast(int, row[1]),
+						True
+					)
+					for row in records]
+
+
+	def __remove_songs_for_stations_in_trx__(
 		self,
 		stationSongs: Union[
 			Iterable[Union[StationSongTuple, Tuple[int, int]]],
@@ -91,13 +95,14 @@ class StationsSongsService:
 		else:
 			return 0
 		return self.conn.execute(delStmt).rowcount
-	
+
+
 	def validate_stations_songs(
 		self,
 		stationSongs: Iterable[StationSongTuple]
-	) -> Iterable[StationSongTuple]:
+	) -> list[StationSongTuple]:
 		if not stationSongs:
-			return iter([])
+			return []
 		stationSongSet = set(stationSongs)
 		songQuery = select(sg_pk)\
 			.where(sg_deletedTimstamp.is_(None))\
@@ -108,20 +113,25 @@ class StationsSongsService:
 			st_pk.in_((s.stationid for s in stationSongSet))
 		)
 
-		songRecords = self.conn.execute(songQuery).fetchall()
-		stationRecords = self.conn.execute(stationQuery).fetchall()\
-			or [None] * len(songRecords)
-		yield from (t for t in (StationSongTuple(
-			cast(int, songRow[0]),
-			cast(Optional[int], stationRow[0] if stationRow else None)
-		) for songRow in songRecords 
-			for stationRow in stationRecords
-		) if t in stationSongSet)
+		with dtos.open_transaction(self.conn):
+			songRecords = self.conn.execute(songQuery).fetchall()
+			stationRecords = self.conn.execute(stationQuery).fetchall()\
+				or [None] * len(songRecords)
+			return [t for t in (StationSongTuple(
+				cast(int, songRow[0]),
+				cast(Optional[int], stationRow[0] if stationRow else None)
+			) for songRow in songRecords 
+				for stationRow in stationRecords
+			) if t in stationSongSet]
 
-	def link_songs_with_stations(
+
+	def link_songs_with_stations_in_trx(
 		self,
 		stationSongs: Iterable[StationSongTuple],
 	) -> Iterable[StationSongTuple]:
+		if not self.conn.in_transaction():
+			raise RuntimeError("This method must be called inside a transaction")
+
 		if not stationSongs:
 			return []
 		uniquePairs = set(self.validate_stations_songs(stationSongs))
@@ -132,7 +142,7 @@ class StationsSongsService:
 		))
 		outPairs = existingPairs - uniquePairs
 		inPairs = uniquePairs - existingPairs
-		self.remove_songs_for_stations(outPairs)
+		self.__remove_songs_for_stations_in_trx__(outPairs)
 		if not inPairs: #if no songs - stations have been linked
 			return existingPairs - outPairs
 		userId = self.current_user_provider.current_user().id

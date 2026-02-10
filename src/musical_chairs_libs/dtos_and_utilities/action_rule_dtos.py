@@ -25,9 +25,9 @@ class ActionRule(MCBaseClass):
 	quota: float=0
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
-	priority: Optional[int]=RulePriorityLevel.NONE.value
+	priority: int | None=RulePriorityLevel.NONE.value
 	sphere: str=UserRoleSphere.Site.value
-	keypath: Optional[str]=None
+	keypath: str | None=None
 	# model_config=ConfigDict(revalidate_instances="subclass-instances")
 
 

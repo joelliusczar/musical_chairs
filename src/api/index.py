@@ -5,7 +5,7 @@ import sys
 from contextlib import asynccontextmanager
 from typing import Any
 from traceback import TracebackException
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import http_exception_handler
@@ -32,7 +32,8 @@ from musical_chairs_libs.dtos_and_utilities import (
 )
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from email_validator import EmailNotValidError #pyright: ignore reportUnknownVariableType
-from api_dependencies import GlobalStore
+from api_dependencies import GlobalStore, limit_visits
+from api_logging import log_visit
 
 cors_allowed_origins=[
 	"https://127.0.0.1",
@@ -47,8 +48,16 @@ async def lifespan(app: FastAPI):
 	yield
 	app.state.global_store = None
 
+hr_timeout = 60 * 60
+app = FastAPI(
+	lifespan=lifespan,
+	dependencies=[
+		Depends(log_visit),
+		Depends(limit_visits(quota=100, span=60, penalty=hr_timeout, key="*"))
+	]
+)
 
-app = FastAPI(lifespan=lifespan)
+
 app.add_middleware(
 	CORSMiddleware,
 	allow_origins=cors_allowed_origins,
@@ -187,7 +196,7 @@ def too_many_requests(
 				"Please wait "
 				f"{build_timespan_msg(seconds_to_tuple(ex.args[0]))} "
 				"before trying again"
-			)]
+			) if ex.args else build_error_obj("Booooo")]
 		},
 		status_code=status.HTTP_429_TOO_MANY_REQUESTS,
 		headers={

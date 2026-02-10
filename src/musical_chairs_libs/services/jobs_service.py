@@ -82,7 +82,7 @@ class JobsService:
 			elif status:
 				query = query.where(j_status == status)
 		
-		rows = self.conn.execute(query).mappings()
+		rows = self.conn.execute(query).mappings().fetchall()
 		yield from (JobInfo(**row) for row in rows)
 		
 

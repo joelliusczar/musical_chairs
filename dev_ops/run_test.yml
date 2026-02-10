@@ -44,7 +44,7 @@
   tasks:
     - name: tests setup
       import_tasks:
-        file: setup_tests.yml
+        file: tests_setup.yml
     - name: Run unit tests
       command:
         chdir: ../src/tests

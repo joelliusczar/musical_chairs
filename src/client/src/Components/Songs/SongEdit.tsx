@@ -326,7 +326,7 @@ export const SongEdit = () => {
 
 	},[formState, setValue, watch, ids]);
 
-	const songFilePath = watch("path");
+	const songFilePath = watch("treepath");
 	const formArtists = watch("artists");
 	const primaryArtist = watch("primaryartist");
 	const formAllArtists = useMemo(() =>
@@ -489,10 +489,12 @@ export const SongEdit = () => {
 												target="_blank"
 												rel="noreferrer"
 											>
-												{album.albumartist.name }
+												{album.albumartist.name}
 											</a>
 										</li>
-										: null
+										: <li>
+											Missing Artist
+										</li>
 									}
 									{!!album?.versionnote 
 										? <li>{album.versionnote}</li>

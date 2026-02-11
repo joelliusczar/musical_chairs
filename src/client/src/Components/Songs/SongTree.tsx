@@ -421,8 +421,8 @@ export const SongTree = withCacheProvider<
 
 		const renderedSet = new Set<string>();
 
-		const updateUrl = (path: string) => {
-			const nodeId = unicodeToUrlSafeBase64(path);
+		const updateUrl = (treepath: string) => {
+			const nodeId = unicodeToUrlSafeBase64(treepath);
 			navigate(
 				`${location.pathname}?nodeid=${nodeId}`,
 				{ replace: true }
@@ -430,8 +430,8 @@ export const SongTree = withCacheProvider<
 		};
 
 
-		const updateBreadcrumb = useCallback((path: string) => {
-			setBreadcrumb(prefix_split(path).map(p => {
+		const updateBreadcrumb = useCallback((treepath: string) => {
+			setBreadcrumb(prefix_split(treepath).map(p => {
 				const split = p.split("/").filter(s => !!s);
 				return {
 					treepath: p,
@@ -508,7 +508,7 @@ export const SongTree = withCacheProvider<
 			if (!selectedNodes[0]) return false;
 			const songNodeInfo = firstNode(treeData[selectedNodes[0]]);
 			if (!songNodeInfo) return false;
-			if (!("path" in songNodeInfo)) return false;
+			if (!("treepath" in songNodeInfo)) return false;
 			return isNodeDirectory(songNodeInfo);
 		};
 

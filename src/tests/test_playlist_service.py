@@ -107,10 +107,10 @@ def test_get_playlists_list_with_owner_and_scopes(
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("ingo")
 	assert user
-	result = next(playlistService.get_playlists(
+	result = next(iter(playlistService.get_playlists(
 			17,
 			scopes=[UserRoleDef.PLAYLIST_ASSIGN.value]
-		), None)
+		)), None)
 	assert result
 
 @pytest.mark.current_username("testUser_juliet")
@@ -126,7 +126,7 @@ def test_save_playlist(
 
 	result = playlistService.save_playlist(testData)
 	assert result and result.id == len(get_initial_playlists()) + 1
-	fetched = next(playlistService.get_playlists(result.id))
+	fetched = next(iter(playlistService.get_playlists(result.id)))
 	assert fetched.id == result.id
 	assert fetched.name == "brand_new_playlists"
 	assert fetched.displayname == "Brand new playlist"
@@ -137,7 +137,7 @@ def test_save_playlist(
 	)
 	result = playlistService.save_playlist(testData)
 	assert result and result.id == len(get_initial_playlists()) + 2
-	fetched = next(playlistService.get_playlists(result.id))
+	fetched = next(iter(playlistService.get_playlists(result.id)))
 
 
 	testData = PlaylistCreationInfo(
@@ -154,7 +154,7 @@ def test_save_playlist(
 	with playlistService.current_user_provider.impersonate(bravoUser):
 		result = playlistService.save_playlist(testData, 2)
 		assert result and result.id == 2
-	fetched = next(playlistService.get_playlists(result.id))
+	fetched = next(iter(playlistService.get_playlists(result.id)))
 	assert fetched and fetched.name == "papa_playlist_update"
 	assert fetched and fetched.displayname == "Come to papa test"
 
@@ -166,7 +166,7 @@ def test_save_playlist(
 	with playlistService.current_user_provider.impersonate(fixture_primary_user):
 		result = playlistService.save_playlist(testData, 1)
 		assert result and result.id == 1
-	fetched = next(playlistService.get_playlists(result.id))
+	fetched = next(iter(playlistService.get_playlists(result.id)))
 	assert fetched and fetched.name == "oscar_playlists"
 	assert fetched and fetched.displayname == "Oscar the grouch"
 
@@ -431,7 +431,7 @@ def test_get_playlist_user_list(
 	user,_ = accountService.get_account_for_login("ingo")
 	assert user
 
-	playlist = next(playlistService.get_playlists(17))
+	playlist = next(iter(playlistService.get_playlists(17)))
 	result = sorted(
 		playlistsUserService.get_playlist_users(playlist),
 		key=lambda u: u.id
@@ -466,7 +466,7 @@ def test_get_playlist_user_list(
 
 	with playlistService.current_user_provider.impersonate(user):
 
-		playlist = next(playlistService.get_playlists(18))
+		playlist = next(iter(playlistService.get_playlists(18)))
 		result = sorted(
 			playlistsUserService.get_playlist_users(playlist),
 			key=lambda u: u.id
@@ -490,7 +490,7 @@ def test_get_playlist_user_list(
 	user,_ = accountService.get_account_for_login("testUser_victor")
 	assert user
 	with playlistService.current_user_provider.impersonate(user):
-		playlist = next(playlistService.get_playlists(12))
+		playlist = next(iter(playlistService.get_playlists(12)))
 		result = sorted(
 			playlistsUserService.get_playlist_users(playlist),
 			key=lambda u: u.id
@@ -519,7 +519,7 @@ def test_get_playlist_user_list_playlist_no_users(
 	user,_ = accountService.get_account_for_login("unruledStation_testUser")
 	assert user
 
-	playlist = next(playlistService.get_playlists(20))
+	playlist = next(iter(playlistService.get_playlists(20)))
 	result = sorted(
 		playlistsUserService.get_playlist_users(playlist),
 		key=lambda u: u.id

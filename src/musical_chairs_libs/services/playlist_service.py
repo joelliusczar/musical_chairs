@@ -2,7 +2,6 @@ import musical_chairs_libs.dtos_and_utilities as dtos
 import musical_chairs_libs.tables as tbl
 from typing import (
 	Any,
-	Iterator,
 	Optional,
 	Union,
 	cast,
@@ -244,7 +243,7 @@ class PlaylistService:
 		scopes: Collection[str] | None=None,
 		page: int = 0,
 		pageSize: int | None=None,
-	) -> Iterator[PlaylistInfo]:
+	) -> list[PlaylistInfo]:
 		userId = self.current_user_provider.optional_user_id()
 		with self.conn.begin():
 			if userId:
@@ -256,16 +255,16 @@ class PlaylistService:
 
 				records = self.conn.execute(query).mappings().fetchall()
 
-				yield from generate_owned_and_rules_from_rows(
+				return [*generate_owned_and_rules_from_rows(
 					records,
 					PlaylistInfo.row_to_playlist,
 					get_playlist_owner_roles,
 					scopes,
 					userId,
-				)
+				)]
 			else:
 				if scopes:
-					return
+					return []
 				query = self.playlist_base_query(
 					ownerId=ownerId,
 					playlistKeys=playlistKeys,
@@ -277,8 +276,7 @@ class PlaylistService:
 
 				records = self.conn.execute(query).mappings().fetchall()
 
-				for row in records:
-					yield PlaylistInfo.row_to_playlist(row)
+				return [PlaylistInfo.row_to_playlist(row) for row in records]
 
 
 	def get_playlist_owner(self, playlistId: int) -> dtos.User:
@@ -319,7 +317,7 @@ class PlaylistService:
 			self,
 			playlistId: int
 		) -> Optional[SongsPlaylistInfo]:
-		playlistInfo = next(self.get_playlists(playlistKeys=playlistId), None)
+		playlistInfo = next(iter(self.get_playlists(playlistKeys=playlistId)), None)
 		if not playlistInfo:
 			return None
 		songsQuery = select(

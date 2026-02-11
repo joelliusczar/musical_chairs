@@ -121,7 +121,6 @@ class PlaylistsSongsService:
 			return {row[0]:row[1].decode() for row in records}
 
 
-
 	def get_playlist_songs(
 		self,
 		songIds: Union[int, Iterable[int], None]=None,
@@ -169,6 +168,19 @@ class PlaylistsSongsService:
 		delStmt = delete(playlists_songs_tbl)\
 			.where(dbTuple(plsg_songFk, plsg_playlistFk).in_(songsPlaylists))
 		return self.conn.execute(delStmt).rowcount
+
+
+	def remove_songs_for_playlists(
+		self,
+		songsPlaylists: Union[
+			Iterable[Union[SongPlaylistTuple, Tuple[int, int]]],
+			None
+		]
+	) -> int:
+		with self.conn.begin() as transaction:
+			result = self.__remove_songs_for_playlists_in_trx__(songsPlaylists)
+			transaction.commit()
+			return result
 
 
 	def validate_songs_playlists(

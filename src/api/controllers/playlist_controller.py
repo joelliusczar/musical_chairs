@@ -30,10 +30,7 @@ from musical_chairs_libs.services import (
 from api_dependencies import (
 	check_top_level_rate_limit,
 	get_owner,
-	get_playlist_by_name_and_owner,
 	subject_user,
-	get_secured_playlist_by_id,
-	get_secured_playlist_by_name_and_owner,
 	build_error_obj,
 	playlists_users_service,
 	playlist_service,
@@ -42,6 +39,8 @@ from api_dependencies import (
 	get_query_params,
 )
 from playlist_validation import (
+	get_playlist,
+	get_secured_playlist,
 	validate_playlist_rule,
 	validate_playlist_rule_for_remove
 )
@@ -96,7 +95,7 @@ def is_phrase_used(
 
 @router.get("/{ownerkey}/{playlistkey}")
 def get_playlist_for_edit(
-	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
+	playlistInfo: PlaylistInfo = Depends(get_playlist),
 	playlistsSongsService: PlaylistsSongsService = Depends(
 		playlists_songs_service
 	),
@@ -146,7 +145,7 @@ def create_playlist(
 @router.put("/{playlistid}")
 def update_playlist(
 	savedplaylist: PlaylistInfo = Security(
-		get_secured_playlist_by_id,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
 	),
 	playlist: ValidatedPlaylistCreationInfo = Body(default=None),
@@ -173,7 +172,7 @@ def update_playlist(
 @router.get("/{ownerkey}/{playlistkey}/user_list")
 def get_playlist_user_list(
 	playlistInfo: PlaylistInfo = Security(
-		get_secured_playlist_by_name_and_owner,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_USER_LIST.value]
 	),
 	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
@@ -187,7 +186,7 @@ def add_user_rule(
 	subjectuser: dtos.User = Depends(subject_user),
 	rule: ActionRule = Depends(validate_playlist_rule),
 	playlistInfo: PlaylistInfo = Security(
-		get_secured_playlist_by_name_and_owner,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_USER_ASSIGN.value]
 	),
 	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
@@ -205,7 +204,7 @@ def remove_user_rule(
 	subjectuser: dtos.User = Depends(subject_user),
 	rulename: str | None = Depends(validate_playlist_rule_for_remove),
 	playlistInfo: PlaylistInfo = Security(
-		get_playlist_by_name_and_owner,
+		get_playlist,
 		scopes=[UserRoleDef.PLAYLIST_USER_ASSIGN.value]
 	),
 	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
@@ -222,7 +221,7 @@ def remove_user_rule(
 	status_code=status.HTTP_204_NO_CONTENT)
 def delete(
 	playlist: PlaylistInfo = Security(
-		get_secured_playlist_by_id,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_DELETE.value]
 	),
 	playlistService: PlaylistService = Depends(playlist_service),
@@ -246,7 +245,7 @@ def delete(
 	status_code=status.HTTP_204_NO_CONTENT)
 def remove_songs(
 	playlist: PlaylistInfo = Security(
-		get_secured_playlist_by_id,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_DELETE.value]
 	),
 	songids: list[int]=Query(default=[]),
@@ -265,7 +264,7 @@ def move_songs(
 	songid: int,
 	order: int,
 	playlist: PlaylistInfo = Security(
-		get_secured_playlist_by_id,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
 	),
 	playlistsSongsService: PlaylistsSongsService = Depends(

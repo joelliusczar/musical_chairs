@@ -72,13 +72,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	InMemEventRecordMap,
 	int_or_str,
-	NotLoggedInError,
-	UserRoleDef,
 	TrackingInfo,
-	PlaylistInfo,
 	RoledUser,
 	SimpleQueryParameters,
-	UserRoleSphere,
 	WrongPermissionsError,
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
@@ -117,11 +113,13 @@ def key_extractor(keyname: str):
 				return key
 		key = request.query_params.get(keyname, None)
 		if key is not None:
-			return key
+			try:
+				return int(key)
+			except:
+				return key
 		return None
 	
 	return __extract_key__
-
 
 
 
@@ -596,93 +594,6 @@ def get_owner(
 	provided = open_provided_user(ownerkey, accountsAccessService)
 	if provided:
 		return provided.to_user()
-
-
-
-def get_playlist_by_name_and_owner(
-	playlistkey: int | str = Depends(playlist_key_path),
-	owner: dtos.User | None = Depends(get_owner),
-	playlistService: PlaylistService = Depends(playlist_service),
-) -> PlaylistInfo:
-	if type(playlistkey) == str and not owner:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(
-				f"owner for station with key {playlistkey} not found"
-			)]
-		)
-	#owner id is okay to be null if stationKey is an int
-	ownerId = owner.id if owner else None
-	playlist = next(playlistService.get_playlists(
-		playlistkey,
-		ownerId=ownerId,
-	),None)
-	if not playlist:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"station with key {playlistkey} not found")
-			]
-		)
-	return playlist
-
-
-def get_playlist_by_id(
-	playlistid: int=Path(),
-	playlistService: PlaylistService = Depends(playlist_service),
-) -> PlaylistInfo:
-	playlist = next(playlistService.get_playlists(playlistKeys=playlistid), None)
-	if not playlist:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(
-				f"station not found for id {playlistid}"
-			)]
-		)
-	return playlist
-
-
-def __check_playlist_scopes__(
-	securityScopes: SecurityScopes,
-	playlist: PlaylistInfo,
-	currentUserProvider : CurrentUserProvider
-):
-	user = currentUserProvider.current_user(optional=True)
-	minScope = (not securityScopes.scopes or\
-		UserRoleDef.PLAYLIST_VIEW.value in securityScopes.scopes
-	)
-	if not playlist.viewsecuritylevel and minScope:
-		return user
-	if not user:
-		raise NotLoggedInError()
-	if user.isadmin:
-		return user
-	scopes = {s for s in securityScopes.scopes \
-		if UserRoleSphere.Playlist.conforms(s)
-	}
-	rules = ActionRule.aggregate(
-		playlist.rules,
-		filter=lambda r: r.name in scopes
-	)
-	if not rules:
-		raise WrongPermissionsError()
-
-
-def get_secured_playlist_by_id(
-	securityScopes: SecurityScopes,
-	playlist: PlaylistInfo=Depends(get_playlist_by_id),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> PlaylistInfo:
-	__check_playlist_scopes__(securityScopes, playlist, currentUserProvider)
-	return playlist
-
-
-def get_secured_playlist_by_name_and_owner(
-	securityScopes: SecurityScopes,
-	playlist: PlaylistInfo=Depends(get_playlist_by_name_and_owner),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> PlaylistInfo:
-	__check_playlist_scopes__(securityScopes, playlist, currentUserProvider)
-	return playlist
 
 
 def get_album_by_id(

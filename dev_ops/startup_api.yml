@@ -132,9 +132,9 @@
         - '{{app_trunk}}'
         - '{{domain["exports_dir"]}}'
         - '/home/{{domain["server_user"]}}/scripts'
-        - '/home/{{domain["server_user"]}}/event_logs'
-        - '/home/{{domain["server_user"]}}/visit_logs'
-        - '/home/{{domain["server_user"]}}/queues'
+        - '{{app_trunk}}/event_logs'
+        - '{{app_trunk}}/visit_logs'
+        - '{{app_trunk}}/queues'
     - name: Create directories for logged in user
       file:
         state: directory

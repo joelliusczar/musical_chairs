@@ -4,7 +4,8 @@ import boto3
 import musical_chairs_libs.dtos_and_utilities as dtos
 import musical_chairs_libs.tables as tbl
 import os
-import sqlalchemy as sa
+import re
+
 
 
 with dtos.DbConnectionProvider.get_configured_api_connection(
@@ -22,13 +23,24 @@ with dtos.DbConnectionProvider.get_configured_api_connection(
 				region_name=dtos.ConfigAcessors.s3_region_name()
 			)
 		)
-		
+		bucket = resource.Bucket(dtos.ConfigAcessors.s3_bucket_name()) #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
+
 		prefix = ""
+
+		quit()
+		badKeys: list[str] = [
+			o.key for o in bucket.objects.all() #pyright: ignore [reportUnknownArgumentType, reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
+			if re.match(rf"{prefix}/.[^/].+", o.key) and "--" not in o.key #pyright: ignore [reportUnknownArgumentType, reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
+		] #pyright: ignore [reportUnknownArgumentType, reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
+		
+
+		print(len(badKeys))
+
 		badIds: list[int | None] = []
-		for row in records:
+		for key in badKeys:
 			print("")
-			print(row[0])
-			newKey = str(row[0]).replace("joellius", prefix).replace("//","/--/")
+			print(key)
+			newKey = str(key).replace(f"{prefix}",f"{prefix}/--")
 			# print(row[0])
 			# print(newKey)
 			newObj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
@@ -37,32 +49,24 @@ with dtos.DbConnectionProvider.get_configured_api_connection(
 			)
 			oldObj = resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
 				bucket_name=dtos.ConfigAcessors.s3_bucket_name(),
-				key=row[0]
+				key=key
 			)
-			try:
-				versionId = oldObj.version_id #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
-			except:
-				badIds.append(row[1])
-				continue
+			versionId = oldObj.version_id #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
+
 			print(versionId) #pyright: ignore [reportUnknownArgumentType]
 			resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
 				bucket_name=dtos.ConfigAcessors.s3_bucket_name(),
 				key=newKey
 			).copy_from(
-				CopySource=os.path.join(dtos.ConfigAcessors.s3_bucket_name(),row[0])
+				CopySource=os.path.join(dtos.ConfigAcessors.s3_bucket_name(),key)
 			)
 			print(f"copied? {newKey}")
 			resource.Object( #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
 				bucket_name=dtos.ConfigAcessors.s3_bucket_name(),
-				key=row[0],
+				key=key,
 			).delete(VersionId=versionId)
-			print(f"deleted {row[0]}")
-			conn.execute(
-				sa.update(tbl.songs).values(internalpath = newKey)\
-					.where(tbl.sg_internalpath == row[0])
-			)
-		# transaction.commit()
-		print("badIds")
-		print(badIds)
+			print(f"deleted {key}")
+
+
 			
 

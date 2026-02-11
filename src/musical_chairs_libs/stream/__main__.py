@@ -147,10 +147,8 @@ def launch_loading(stationName: str, ownerName: str):
 				collectionQueueService,
 				fileService
 			)
-	except:
-		stationProcessService.unset_station_procs(stationIds=station.id)
-		raise
 	finally:
+		stationProcessService.unset_station_procs(stationIds=station.id)
 		close_db_connection(conn, "loading")
 
 

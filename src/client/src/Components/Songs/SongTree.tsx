@@ -717,12 +717,6 @@ export const SongTree = withCacheProvider<
 					>
 						Download
 					</Button>}
-					{canAssignUsers() && <Button
-						component={Link}
-						to={getUserAssignUrl()}
-					>
-						Assign users
-					</Button>}
 					{isDirectorySelected() && selectedPrefix &&
 						<DirectoryNewModalOpener
 							add={placeDirectory}
@@ -733,6 +727,12 @@ export const SongTree = withCacheProvider<
 							add={onAddNewSong}
 							prefix={selectedPrefix}
 						/>}
+					{canAssignUsers() && <Button
+						component={Link}
+						to={getUserAssignUrl()}
+					>
+						Assign users
+					</Button>}
 					{canDeletePath() && <YesNoModalOpener
 						promptLabel="Delete Path"
 						message={`Are you sure you want to delete ${selectedPrefix}`}

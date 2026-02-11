@@ -6,7 +6,7 @@ class FileService(Protocol):
 	def save_song(self,
 		keyPath: str,
 		file: BinaryIO
-	) -> BinaryIO:
+	):
 		...
 
 

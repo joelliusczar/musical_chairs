@@ -7,7 +7,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	guess_contenttype,
 	ConfigAcessors
 )
-from tempfile import TemporaryFile
+
 
 
 class S3FileService(FileService):
@@ -15,7 +15,7 @@ class S3FileService(FileService):
 	def save_song(self,
 		keyPath: str,
 		file: BinaryIO
-	) -> BinaryIO:
+	):
 		resource = boto3.resource( #pyright: ignore [reportUnknownMemberType]
 			"s3",
 			config=Config(
@@ -27,15 +27,11 @@ class S3FileService(FileService):
 			bucket_name=ConfigAcessors.s3_bucket_name(),
 			key=keyPath,
 		)
-		tmp = TemporaryFile()
-		for chunk in file:
-			tmp.write(chunk)
-		tmp.seek(0)
-		s3_obj.put(Body=tmp, ContentType=guess_contenttype(keyPath)) #pyright: ignore [reportUnknownMemberType]
+		
+		s3_obj.put(Body=file, ContentType=guess_contenttype(keyPath)) #pyright: ignore [reportUnknownMemberType]
 
 		s3_obj.wait_until_exists() #pyright: ignore [reportUnknownMemberType]
-		tmp.seek(0)
-		return tmp
+		file.seek(0)
 
 
 
@@ -86,7 +82,8 @@ class S3FileService(FileService):
 			bucket_name=ConfigAcessors.s3_bucket_name(),
 			key=keyPath
 		)
-		s3_obj.delete() #pyright: ignore [reportUnknownMemberType]
+		versionId = s3_obj.version_id #pyright: ignore [reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]]
+		s3_obj.delete(VersionId=versionId) #pyright: ignore [reportUnknownMemberType]
 
 	def song_absolute_path(self, keyPath: str) -> str:
 		return keyPath

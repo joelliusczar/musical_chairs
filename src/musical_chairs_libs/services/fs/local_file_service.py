@@ -16,14 +16,12 @@ class LocalFileService(FileService):
 	def save_song(self,
 		keyPath: str,
 		file: BinaryIO
-	) -> BinaryIO:
+	):
 		self.__create_missing_directories__(keyPath)
 		savedPath = f"{ConfigAcessors.absolute_content_home()}/{keyPath}"
 		with open(savedPath, "wb") as out:
 			for chunk in file:
 				out.write(chunk)
-		savedFile = open(savedPath, "rb")
-		return savedFile
 
 
 	def open_song(self, keyPath: str) -> BinaryIO:

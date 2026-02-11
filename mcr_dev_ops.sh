@@ -98,6 +98,13 @@ app_py() {
 }
 
 
+s3_move() {
+	cd src/musical_chairs_libs/one_offs
+	python_exe='../../../test_trash/musical_chairs/mcr_env/bin/python'
+	"$python_exe" -m s3_move
+}
+
+
 if [ $isSourced = 0 ]; then
 	command="$1"
 	shift

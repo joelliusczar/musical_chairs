@@ -69,6 +69,7 @@ from .artist_service import ArtistService
 from itertools import islice
 from tinytag import TinyTag
 from unidecode import unidecode
+from tempfile import TemporaryFile
 
 class SongFileService:
 
@@ -247,28 +248,31 @@ class SongFileService:
 				)
 			user = self.current_user_provider.current_user()
 			self.delete_overlaping_placeholder_dirs_in_trx(path)
-			pathObj = Path(suffix)
-			extension = pathObj.suffix
-			stem = pathObj.stem
-			cleanedSuffix = re.sub(
-				r"[^a-zA-Z?]+",
-				"",
-				unidecode(stem, errors="replace")
-			).casefold() or "--"
-			internalDirs = "/".join([*cleanedSuffix[:5]])
-			internalPath = f"{user.hiddentoken}/{internalDirs}/"\
-				+ f"{str(uuid.uuid4())}-{cleanedSuffix}{extension}"
-			with self.file_service.save_song(
-				squash_chars(internalPath, "/"),
-				file
-			) as uploaded:
+			
+			with TemporaryFile() as tmp:
+				for chunk in file:
+					tmp.write(chunk)
+				tmp.seek(0)
+				
 				hasher = hashlib.sha256()
-				for chunk in uploaded:
+				for chunk in tmp:
 					hasher.update(chunk)
 				fileHash = hasher.digest()
-				uploaded.seek(0)
+				tmp.seek(0)
+
+				pathObj = Path(suffix)
+				extension = pathObj.suffix
+				stem = pathObj.stem
+				cleanedSuffix = re.sub(
+					r"[^a-zA-Z?]+",
+					"",
+					unidecode(stem, errors="replace")
+				).casefold() or "--"
+				internalDirs = "/".join([*cleanedSuffix[:10]])
+				internalPath = f"{user.hiddentoken}/{internalDirs}/"\
+					+ f"{str(uuid.uuid4())}-{cleanedSuffix}{extension}"
 				
-				songAboutInfo = self.extract_song_info(uploaded)
+				songAboutInfo = self.extract_song_info(tmp)
 				stmt = insert(songs_tbl).values(
 					treepath = unicodedata.normalize("NFC", path),
 					internalpath = unicodedata.normalize("NFC", internalPath),
@@ -294,6 +298,11 @@ class SongFileService:
 							isprimaryartist=True
 						)]
 					)
+				tmp.seek(0)
+				self.file_service.save_song(
+					squash_chars(internalPath, "/"),
+					tmp
+				)
 				transaction.commit()
 				return SongTreeNode(
 					treepath=normalize_closing_slash(path),

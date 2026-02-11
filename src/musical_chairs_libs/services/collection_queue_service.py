@@ -319,7 +319,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			return playlistsMap
 
 
-	def fil_up_queue(
+	def fil_up_queue_in_trx(
 		self,
 		station: StationInfo,
 		metrics: QueueMetrics,
@@ -618,17 +618,20 @@ class CollectionQueueService(SongPopper, RadioPusher):
 
 		with self.conn.begin() as transaction:
 			# songOffset = len(loaded) if loaded else 0
-			collectionOffset = len({(l.parentkey, l.itemtype) for l in loaded})\
+			loadedOffset = len({(l.parentkey, l.itemtype) for l in loaded})\
 				if loaded else 0
 			station = self.queue_service.__get_station__(stationId)
 			alreadyQueued = [*self.load_current_queue(station)]
 
-			if (len(alreadyQueued) - collectionOffset) < 1:
+			queuedLen = len({(l.parentkey, l.itemtype) for l in alreadyQueued})\
+				if alreadyQueued else 0
+
+			if (queuedLen - loadedOffset) < 1:
 				metrics = QueueMetrics(
 					maxSize=self.queue_size + 1,
-					loaded=collectionOffset
+					loaded=loadedOffset
 				)
-				self.fil_up_queue(station, metrics, alreadyQueued)
+				self.fil_up_queue_in_trx(station, metrics, alreadyQueued)
 				transaction.commit()
 
 
@@ -673,7 +676,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				return False
 			alreadyQueued.pop(completedIdx)
 			queueMetrics = QueueMetrics(maxSize=self.queue_size)
-			self.fil_up_queue(station, queueMetrics, alreadyQueued)
+			self.fil_up_queue_in_trx(station, queueMetrics, alreadyQueued)
 			transaction.commit()
 			return completed.action != StationsSongsActions.SKIP.value
 
@@ -809,7 +812,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		alreadyQueued[skipIdx].action = StationsSongsActions.SKIP.value
 
 		with self.conn.begin() as transaction:
-			self.fil_up_queue(
+			self.fil_up_queue_in_trx(
 				station,
 				QueueMetrics(maxSize=self.queue_size),
 				alreadyQueued

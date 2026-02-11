@@ -46,6 +46,7 @@
         "DSF_ICES_EXECUTABLE": "~/.local/bin/mcr-ices",
         "DSF_LIVE_CONFIG_PATH": "./live_config.json",
         "DSF_EVENT_LOGS_DIR": "./test_trash/musical_chairs/event_logs",
+        "DSF_VISIT_LOGS_DIR": "./test_trash/musical_chairs/visit_logs",
         "DSF_QUEUE_FILES_DIR": "./test_trash/musical_chairs/queues",
         "DSF_STATION_HISTORY_FILES_DIR": "./test_trash/musical_chairs/station_histories",
 

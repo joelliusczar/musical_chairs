@@ -20,7 +20,7 @@ def test_adding_album_to_queue(
 	queueService = fixture_queue_service
 	collectionQueueService = fixture_collection_queue_service
 	station = collectionQueueService.queue_service.__get_station__(26)
-	collectionQueueService.fil_up_queue(station, QueueMetrics(maxSize=3))
+	collectionQueueService.fil_up_queue_in_trx(station, QueueMetrics(maxSize=3))
 	queue1, _ = queueService.get_queue_for_station(26)
 	assert queue1
 

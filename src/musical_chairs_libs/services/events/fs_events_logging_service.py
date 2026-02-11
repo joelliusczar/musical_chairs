@@ -41,7 +41,7 @@ class FSEventsLoggingService(EventsLogger,FSEventsQueryService):
 	def current_visits_log_name(get_datetime: Callable[[], datetime]):
 		datetime = get_datetime()
 		formattedDate = datetime.strftime("%Y-%j_%H")
-		return f"{ConfigAcessors.event_log_dir()}/{formattedDate}_visit.jsonl"
+		return f"{ConfigAcessors.visit_log_dir()}/{formattedDate}_visit.jsonl"
 
 
 	def add_event_record(self, record: EventRecord):

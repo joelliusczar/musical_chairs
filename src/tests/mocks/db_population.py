@@ -239,7 +239,7 @@ def populate_playlists_songs(conn: Connection):
 def get_initial_users() -> list[dict[Any, Any]]:
 	userParams = get_user_params(
 		mock_ordered_date_list,
-		primary_user(),
+		primary_user().to_emailable_user(),
 		mock_password()
 	)
 	return userParams

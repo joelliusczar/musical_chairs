@@ -9,7 +9,7 @@ from typing import Sequence
 
 from alembic import op
 import sqlalchemy as sa
-import musical_chairs_libs.dtos_and_utilities as mcr_u
+import musical_chairs_libs.dtos_and_utilities as dtos
 ${imports if imports else ""}
 
 # revision identifiers, used by Alembic.

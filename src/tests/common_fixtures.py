@@ -87,7 +87,7 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 	testId =  hashlib.md5(request.node.name.encode("utf-8")).hexdigest()
 	dbName=f"test_{testId}_musical_chairs_db"
 	with ConfigAcessors.override_configs({"db_name": dbName}):
-		setup_database(dbName)
+		setup_database(dbName, "../../alembic")
 	try:
 		yield dbName
 	finally:

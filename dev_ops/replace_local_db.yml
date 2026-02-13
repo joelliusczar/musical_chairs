@@ -41,8 +41,7 @@
       vars:
         env_name: '{{app_details["prefix"]|lower}}_env'
         engine_src: '{{src_dirs["engine"]}}/'
-        working_dir: '{{app_trunk}}'
-        app_group: '{{domain["group"]}}'
+        working_dir: '{{test_trunk}}'
     - name: Install PyMySQL
       become: true
       apt:
@@ -52,37 +51,39 @@
     - name: Clear previous db
       command:
         argv:
-          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - '{{test_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
           - -m
           - '{{app_details["engine"]}}.one_offs.db_setup'
           - '{{app_details["db"]}}'
           - 'clear'
       environment:
-        DSF_APP_ROOT: '{{app_trunk}}'
+        DSF_APP_ROOT: '{{test_trunk}}'
         DSF_DB_PASS_API: '{{local_overrides["keys"]["db_pass_api"]}}'
         DSF_DB_PASS_JANITOR: '{{local_overrides["keys"]["db_pass_janitor"]}}'
         DSF_DB_PASS_OWNER: '{{local_overrides["keys"]["db_pass_owner"]}}'
         DSF_DB_PASS_RADIO: '{{local_overrides["keys"]["db_pass_radio"]}}'
         DSF_DB_PASS_SETUP: '{{local_overrides["keys"]["db_pass_setup"]}}'
         DSF_DATABASE_NAME: '{{app_details["db"]}}'
-        DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'
-    - name: Setup App Specific Db stuff.
+        DSF_LIVE_CONFIG_PATH: '../app_conf.json'
+
+    - name: Recreate db
       command:
         argv:
-          - '{{app_trunk}}/{{app_details["prefix"]|lower}}_env/bin/alembic'
-          - upgrade
-          - head
-      register: migrate_results
-      changed_when: '"Running upgrade" in migrate_results.stdout'
+          - '{{test_trunk}}/{{app_details["prefix"]|lower}}_env/bin/python'
+          - -m
+          - '{{app_details["engine"]}}.one_offs.db_setup'
+          - '{{app_details["db"]}}'
+          - '../alembic'
       environment:
-        DSF_APP_ROOT: '{{app_trunk}}'
+        DSF_APP_ROOT: '{{test_trunk}}'
         DSF_DB_PASS_API: '{{local_overrides["keys"]["db_pass_api"]}}'
         DSF_DB_PASS_JANITOR: '{{local_overrides["keys"]["db_pass_janitor"]}}'
         DSF_DB_PASS_OWNER: '{{local_overrides["keys"]["db_pass_owner"]}}'
         DSF_DB_PASS_RADIO: '{{local_overrides["keys"]["db_pass_radio"]}}'
         DSF_DB_PASS_SETUP: '{{local_overrides["keys"]["db_pass_setup"]}}'
         DSF_DATABASE_NAME: '{{app_details["db"]}}'
-        DSF_LIVE_CONFIG_PATH: '{{app_trunk}}/app_conf.json'
+        DSF_LIVE_CONFIG_PATH: '../app_conf.json'
+        DSF_ALEMBIC_INI: '../alembic.ini'
     - name: Copy data from a source server
       include_role:
         name: mysql-data-copy

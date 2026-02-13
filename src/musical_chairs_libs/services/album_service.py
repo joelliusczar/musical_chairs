@@ -43,9 +43,6 @@ from sqlalchemy import (
 	literal,
 	String
 )
-from sqlalchemy.sql.expression import (
-	Update
-)
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -337,58 +334,105 @@ class AlbumService:
 			)
 
 
-	def save_album(
+	def add_album(
+		self,
+		album: AlbumCreationInfo
+	) -> AlbumInfo:
+		user = self.current_user_provider.current_user()
+		savedName = SavedNameString(album.name)
+		with self.conn.begin() as transaction:
+			stmt = insert(tbl.albums).values(
+				name = str(savedName),
+				year = album.year,
+				versionnote = str(SavedNameString(album.versionnote)),
+				albumartistfk = album.albumartist.id if album.albumartist else None,
+				lastmodifiedbyuserfk = user.id,
+				lastmodifiedtimestamp = self.get_datetime().timestamp(),
+				ownerfk = user.id,
+			)
+			try:
+				res = self.conn.execute(stmt)
+				affectedPk = res.lastrowid
+				self.stations_albums_service.link_albums_with_stations_in_trx(
+					(StationAlbumTuple(affectedPk, t.id if t else None) 
+						for t in (album.stations or [None]))
+				)
+				artist = next(self.artist_service.get_artists(
+					userId=user.id,
+					artistKeys=album.albumartist.id
+				), None) if album.albumartist else None
+				transaction.commit()
+				owner = user.to_user()
+				return AlbumInfo(
+					id=affectedPk,
+					name=str(savedName),
+					owner=owner,
+					year=album.year,
+					albumartist=artist,
+					versionnote=album.versionnote
+				)
+			except IntegrityError:
+				raise AlreadyUsedError.build_error(
+				f"{album.name} is already used for artist.",
+				"body->name"
+			)
+
+
+	def update_album(
 		self,
 		album: AlbumCreationInfo,
-		albumId: Optional[int]=None
-	) -> Optional[AlbumInfo]:
-		if not album and not albumId:
-			raise ValueError("No album info to save")
+		albumId: int
+	) -> AlbumInfo | None:
+		
 		user = self.current_user_provider.current_user()
-		upsert = update if albumId else insert
 		savedName = SavedNameString(album.name)
-		stmt = upsert(albums_tbl).values(
+		stmt = update(albums_tbl).values(
 			name = str(savedName),
 			year = album.year,
 			versionnote = str(SavedNameString(album.versionnote)),
 			albumartistfk = album.albumartist.id if album.albumartist else None,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
-		owner = user.to_user()
+		).where(ab_pk == albumId)
 		with self.conn.begin() as transaction:
-			if albumId and isinstance(stmt, Update):
-				stmt = stmt.where(ab_pk == albumId)
-				owner = self.get_album_owner(albumId)
-			else:
-				stmt = stmt.values(ownerfk = user.id)
+			owner = self.get_album_owner(albumId)
 			try:
-				res = self.conn.execute(stmt)
+				self.conn.execute(stmt)
 			except IntegrityError:
 				raise AlreadyUsedError.build_error(
 					f"{album.name} is already used for artist.",
 					"body->name"
 				)
-			affectedPk = albumId if albumId else res.lastrowid
 			artist = next(self.artist_service.get_artists(
 				userId=user.id,
 				artistKeys=album.albumartist.id
 			), None) if album.albumartist else None
 			self.stations_albums_service.link_albums_with_stations_in_trx(
-				(StationAlbumTuple(affectedPk, t.id if t else None) 
+				(StationAlbumTuple(albumId, t.id if t else None) 
 					for t in (album.stations or [None]))
 			)
 			transaction.commit()
-			if res.rowcount == 0:
-				return None
 			return AlbumInfo(
-				id=affectedPk,
+				id=albumId,
 				name=str(savedName),
 				owner=owner,
 				year=album.year,
 				albumartist=artist,
 				versionnote=album.versionnote
 			)
+
+
+	def save_album(
+		self,
+		album: AlbumCreationInfo,
+		albumId: int | None=None
+	) -> AlbumInfo | None:
+		if not album and not albumId:
+			raise ValueError("No album info to save")
+		if albumId:
+			return self.update_album(album, albumId)
+		else:
+			return self.add_album(album)
 
 
 	def delete_album(self, albumkey: int) -> int:

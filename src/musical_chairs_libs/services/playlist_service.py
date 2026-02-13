@@ -51,7 +51,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql.expression import (
 	CTE,
-	Update,
 	cast as dbCast,
 )
 from sqlalchemy.sql.functions import coalesce
@@ -236,6 +235,7 @@ class PlaylistService:
 		
 		return query
 
+
 	def get_playlists(
 		self,
 		playlistKeys: int | str | Iterable[int] | None=None,
@@ -369,52 +369,90 @@ class PlaylistService:
 			songs=songs,
 			stations=stations
 		)
+	
+	def add_playlist(self, playlist: PlaylistCreationInfo) -> PlaylistInfo:
+		user = self.current_user_provider.current_user()
+		savedName = SavedNameString(playlist.name)
+		stmt = insert(playlists_tbl).values(
+			name = str(savedName),
+			displayname = playlist.displayname,
+			lastmodifiedbyuserfk = user.id,
+			lastmodifiedtimestamp = self.get_datetime().timestamp(),
+			ownerfk = user.id
+		)
+		with self.conn.begin() as transaction:
+			try:
+				res = self.conn.execute(stmt)
 
+				affectedPk = res.lastrowid
+				self.stations_playlists_service.link_playlists_with_stations_in_trx(
+					(StationPlaylistTuple(affectedPk, t.id if t else None) 
+						for t in (playlist.stations or [None])),
+				)
+				transaction.commit()
 
-	def save_playlist(
+				owner = user.to_user()
+				return PlaylistInfo(
+					id=affectedPk,
+					name=str(savedName),
+					owner=owner,
+					displayname=playlist.displayname
+				)
+			except IntegrityError:
+				raise AlreadyUsedError.build_error(
+					f"{playlist.name} is already used for playlist.",
+					"body->name"
+				)
+			
+
+	def update_playlist(
 		self,
 		playlist: PlaylistCreationInfo,
-		playlistId: Optional[int]=None
+		playlistId: int
 	) -> PlaylistInfo:
-		if not playlist and not playlistId:
-			raise ValueError("No playlist info to save")
 		user = self.current_user_provider.current_user()
-		upsert = update if playlistId else insert
 		savedName = SavedNameString(playlist.name)
-		stmt = upsert(playlists_tbl).values(
+		stmt = update(playlists_tbl).values(
 			name = str(savedName),
 			displayname = playlist.displayname,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
-		owner = user.to_user()
-		if playlistId and isinstance(stmt, Update):
-			stmt = stmt.where(pl_pk == playlistId)
-			owner = self.get_playlist_owner(playlistId)
-		else:
-			stmt = stmt.values(ownerfk = user.id)
 		try:
-			res = self.conn.execute(stmt)
+			with self.conn.begin() as transaction:
+				res = self.conn.execute(stmt)
 
-			affectedPk = playlistId if playlistId else res.lastrowid
-			self.stations_playlists_service.link_playlists_with_stations_in_trx(
-				(StationPlaylistTuple(affectedPk, t.id if t else None) 
-					for t in (playlist.stations or [None])),
-			)
-			self.conn.commit()
-			if res.rowcount == 0:
-				raise RuntimeError("Failed to create playlist")
-			return PlaylistInfo(
-				id=affectedPk,
-				name=str(savedName),
-				owner=owner,
-				displayname=playlist.displayname
-			)
+				affectedPk = playlistId if playlistId else res.lastrowid
+				self.stations_playlists_service.link_playlists_with_stations_in_trx(
+					(StationPlaylistTuple(affectedPk, t.id if t else None) 
+						for t in (playlist.stations or [None])),
+				)
+				owner = self.get_playlist_owner(playlistId)
+				transaction.commit()
+				return PlaylistInfo(
+					id=affectedPk,
+					name=str(savedName),
+					owner=owner,
+					displayname=playlist.displayname
+				)
 		except IntegrityError:
 			raise AlreadyUsedError.build_error(
 				f"{playlist.name} is already used for playlist.",
 				"body->name"
 			)
+
+
+	def save_playlist(
+		self,
+		playlist: PlaylistCreationInfo,
+		playlistId: int | None=None
+	) -> PlaylistInfo:
+		if not playlist and not playlistId:
+			raise ValueError("No playlist info to save")
+		if playlistId:
+			return self.update_playlist(playlist, playlistId)
+		else:
+			return self.add_playlist(playlist)
 
 
 	def delete_playlist(self, playlistkey: int) -> int:

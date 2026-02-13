@@ -30,9 +30,6 @@ from sqlalchemy import (
 	literal,
 	func
 )
-from sqlalchemy.sql.expression import (
-	Update,
-)
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from musical_chairs_libs.tables import (
@@ -233,6 +230,59 @@ class ArtistService:
 			return SongsArtistInfo(**artistInfo.model_dump(), songs=songs)
 
 
+	def add_artist(self, artistName: str) -> ArtistInfo:
+		user = self.current_user_provider.current_user()
+		savedName = SavedNameString(artistName)
+		with self.conn.begin() as transaction:
+			stmt = insert(tbl.artists).values(
+				name = str(savedName),
+				lastmodifiedbyuserfk = user.id,
+				lastmodifiedtimestamp = self.get_datetime().timestamp(),
+				ownerfk = user.id
+			)
+			try:
+				res = self.conn.execute(stmt)
+
+				affectedPk: int = res.lastrowid
+				transaction.commit()
+				owner = user.to_user()
+				return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
+			except IntegrityError:
+				raise AlreadyUsedError.build_error(
+					f"{artistName} is already used.",
+					"path->name"
+				)
+
+
+	def update_artist(
+		self,
+		artistName: str,
+		artistId: int
+	) -> ArtistInfo | None:
+		user = self.current_user_provider.current_user()
+		savedName = SavedNameString(artistName)
+		stmt = update(tbl.artists).values(
+			name = str(savedName),
+			lastmodifiedbyuserfk = user.id,
+			lastmodifiedtimestamp = self.get_datetime().timestamp()
+		).where(tbl.ar_pk == artistId)
+		with self.conn.begin() as transaction:
+			try:
+				res = self.conn.execute(stmt)
+
+				affectedPk: int = artistId
+				transaction.commit()
+				if res.rowcount == 0:
+					return None
+				owner = self.get_artist_owner(artistId)
+				return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
+			except IntegrityError:
+				raise AlreadyUsedError.build_error(
+					f"{artistName} is already used.",
+					"path->name"
+				)
+
+
 	def save_artist(
 		self,
 		artistName: str,
@@ -240,34 +290,10 @@ class ArtistService:
 	) -> Optional[ArtistInfo]:
 		if not artistName and not artistId:
 			raise ValueError("No artist info to save")
-		user = self.current_user_provider.current_user()
-		upsert = update if artistId else insert
-		savedName = SavedNameString(artistName)
-		stmt = upsert(artists_tbl).values(
-			name = str(savedName),
-			lastmodifiedbyuserfk = user.id,
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
-		owner = user.to_user()
-		if artistId and isinstance(stmt, Update):
-			stmt = stmt.where(ar_pk == artistId)
-			owner = self.get_artist_owner(artistId)
+		if artistId:
+			return self.update_artist(artistName, artistId)
 		else:
-			stmt = stmt.values(ownerfk = user.id)
-		with self.conn.begin() as transaction:
-			try:
-				res = self.conn.execute(stmt)
-
-				affectedPk: int = artistId if artistId else res.lastrowid
-				transaction.commit()
-				if res.rowcount == 0:
-					return None
-				return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
-			except IntegrityError:
-				raise AlreadyUsedError.build_error(
-					f"{artistName} is already used.",
-					"path->name"
-				)
+			return self.add_artist(artistName)
 
 
 	def delete_artist(self, artistid: int) -> int:

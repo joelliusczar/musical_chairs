@@ -16,3 +16,4 @@ export { SearchTextField } from "./SearchTextFIeld";
 export { SubmitButton } from "./SubmitButton";
 export { UrlPagination } from "./UrlPagination";
 export { YesNoControl, YesNoModalOpener } from "./YesNoControl";
+export { LightTooltip } from "./LightTooltip";

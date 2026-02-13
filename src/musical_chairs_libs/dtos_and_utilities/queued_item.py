@@ -76,7 +76,8 @@ class CatalogueItem(QueuedItem):
 
 
 class SongListDisplayItem(SongListBasicItem):
-	track: int | None = None
+	track: float | None = None
+	discnum: int | None = None
 	rules: list[ActionRule]=cast(
 		list[ActionRule],
 		Field(default_factory=list, frozen=False)

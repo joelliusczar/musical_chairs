@@ -56,6 +56,8 @@ import { SubmitButton } from "../Shared/SubmitButton";
 import { isCallPending } from "../../Helpers/request_helpers";
 import { StationTypes } from "../../constants";
 import { guessTrackNumber } from "../../Helpers/song_helpers";
+import { TooltipProps, tooltipClasses } from "@mui/material/Tooltip";
+import { styled } from "@mui/material/styles";
 
 
 const inputField = {
@@ -70,7 +72,16 @@ const trackNumberField = {
 };
 
 
-
+const LightTooltip = styled(({ className, ...props }: TooltipProps) => (
+	<Tooltip {...props} classes={{ popper: className }} />
+))(({ theme }) => ({
+	[`& .${tooltipClasses.tooltip}`]: {
+		backgroundColor: theme.palette.common.white,
+		color: "rgba(0, 0, 0, 0.87)",
+		boxShadow: theme.shadows[1],
+		fontSize: 11,
+	},
+}));
 
 const createTouchedObject = (touchedArr: string[]) => {
 	const result: TouchedObject = {};
@@ -478,32 +489,39 @@ export const SongEdit = () => {
 			</Box>
 			<Box>
 				<Loader status={albumCallStatus} error={albumError}>
-					<Tooltip 
-						title={
-							<>
-								<ul>
-									{!!album?.albumartist?.name 
-										? <li>
-											<a 
-												href={DomRoutes.album(album)}
-												target="_blank"
-												rel="noreferrer"
-											>
-												{album.albumartist.name}
-											</a>
-										</li>
-										: <li>
-											Missing Artist
-										</li>
-									}
-									{!!album?.versionnote 
-										? <li>{album.versionnote}</li>
-										: null
-									}
-								</ul>
-							</>}
-						arrow
-						placement="top-start"
+					<LightTooltip sx={{
+						 "& .MuiTooltip-tooltip": {
+							backgroundColor: "white",
+							color: "rgba(0, 0, 0, 0.87)",
+						}}}
+					title={
+						<>
+							<ul>
+								<li>
+									<a 
+										href={DomRoutes.album(album)}
+										target="_blank"
+										rel="noreferrer"
+									>
+										{album.name}
+									</a>
+								</li>
+								{!!album?.albumartist?.name 
+									? <li>
+										{album.albumartist.name}
+									</li>
+									: <li>
+										Missing Artist
+									</li>
+								}
+								{!!album?.versionnote 
+									? <li>{album.versionnote}</li>
+									: null
+								}
+							</ul>
+						</>}
+					arrow
+					placement="left-start"
 					>
 						<Box sx={inputField}>
 							{ids?.length > 1 && <TouchedCheckbox
@@ -521,7 +539,7 @@ export const SongEdit = () => {
 								disabled={!canEditSongs}
 							/>
 						</Box>
-					</Tooltip>
+					</LightTooltip>
 					<>
 						{canCreateAlbums && <Box sx={inputField}>
 							<AlbumNewModalOpener

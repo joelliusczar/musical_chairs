@@ -277,7 +277,8 @@ class SongFileService:
 					treepath = unicodedata.normalize("NFC", path),
 					internalpath = unicodedata.normalize("NFC", internalPath),
 					name = unicodedata.normalize("NFC", songAboutInfo.name),
-					albumfk = songAboutInfo.album.id if songAboutInfo.album else None,
+					albumfk = songAboutInfo.album.decoded_id()\
+						if songAboutInfo.album else None,
 					track = songAboutInfo.track,
 					tracknum = int_or_default(songAboutInfo.track),
 					discnum = songAboutInfo.discnum,

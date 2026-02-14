@@ -479,7 +479,7 @@ export const SongEdit = () => {
 					<LightTooltip
 						title={
 							<>
-								<ul>
+								{!!album && <ul>
 									<li>
 										<a 
 											href={DomRoutes.album(album)}
@@ -501,7 +501,7 @@ export const SongEdit = () => {
 										? <li>{album.versionnote}</li>
 										: null
 									}
-								</ul>
+								</ul>}
 							</>}
 						arrow
 						placement="left-start"

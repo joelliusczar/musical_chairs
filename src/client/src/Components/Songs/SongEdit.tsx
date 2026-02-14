@@ -275,7 +275,6 @@ export const SongEdit = () => {
 	useAuthViewStateChange(authReset);
 
 	useEffect(() => {
-		console.log(ids);
 		if (ids.length === 0) {
 			dispatch(dispatches.failed("No song selected"));
 			return;
@@ -477,7 +476,7 @@ export const SongEdit = () => {
 			</Box>
 			<Box>
 				<Loader status={albumCallStatus} error={albumError}>
-					{!!album && <LightTooltip
+					<LightTooltip
 						title={
 							<>
 								<ul>
@@ -523,7 +522,7 @@ export const SongEdit = () => {
 								disabled={!canEditSongs}
 							/>
 						</Box>
-					</LightTooltip>}
+					</LightTooltip>
 					<>
 						{canCreateAlbums && <Box sx={inputField}>
 							<AlbumNewModalOpener

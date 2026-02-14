@@ -345,7 +345,8 @@ class AlbumService:
 				name = str(savedName),
 				year = album.year,
 				versionnote = str(SavedNameString(album.versionnote)),
-				albumartistfk = album.albumartist.id if album.albumartist else None,
+				albumartistfk = album.albumartist.decoded_id() \
+					if album.albumartist else None,
 				lastmodifiedbyuserfk = user.id,
 				lastmodifiedtimestamp = self.get_datetime().timestamp(),
 				ownerfk = user.id,

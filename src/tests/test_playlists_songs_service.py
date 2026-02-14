@@ -24,21 +24,21 @@ def test_move_songs_1(
 	user,_ = accountService.get_account_for_login("testUser_alpha")
 	assert user
 	results = [*playlistsSongsService.get_songs(5)]
-	assert results[0].id == 2
-	assert results[1].id == 3
-	assert results[2].id == 4
-	assert results[3].id == 5
-	assert results[4].id == 6
-	assert results[5].id == 7
-	assert results[6].id == 8
-	assert results[7].id == 9
-	assert results[8].id == 10
-	assert results[9].id == 11
-	assert results[10].id == 12
-	assert results[11].id == 13
-	assert results[12].id == 14
-	assert results[13].id == 15
-	assert results[14].id == 16
+	assert results[0].decoded_id() == 2
+	assert results[1].decoded_id() == 3
+	assert results[2].decoded_id() == 4
+	assert results[3].decoded_id() == 5
+	assert results[4].decoded_id() == 6
+	assert results[5].decoded_id() == 7
+	assert results[6].decoded_id() == 8
+	assert results[7].decoded_id() == 9
+	assert results[8].decoded_id() == 10
+	assert results[9].decoded_id() == 11
+	assert results[10].decoded_id() == 12
+	assert results[11].decoded_id() == 13
+	assert results[12].decoded_id() == 14
+	assert results[13].decoded_id() == 15
+	assert results[14].decoded_id() == 16
 
 	playlistsSongsService.move_song(5, 11, 1)
 	results = [*playlistsSongsService.get_playlist_songs(playlistIds=5)]

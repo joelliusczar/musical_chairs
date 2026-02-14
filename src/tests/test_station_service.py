@@ -658,10 +658,10 @@ def test_get_station_catalogue_multi_artist(
 		key=lambda s: s.id
 	)
 	assert len(songs) == 5
-	multiArtistPrimarySong = next(s for s in songs if s.id == 84)
+	multiArtistPrimarySong = next(s for s in songs if s.id == dtos.encode_id(84))
 	assert multiArtistPrimarySong.creator == "victor_artist"
-	multiArtistSong = next(s for s in songs if s.id == 86)
+	multiArtistSong = next(s for s in songs if s.id == dtos.encode_id(86))
 	assert multiArtistSong.creator == "z-bravo_artist"
-	noArtistSong = next(s for s in songs if s.id == 76)
+	noArtistSong = next(s for s in songs if s.id == dtos.encode_id(76))
 	assert noArtistSong.creator == ""
 	assert totalSongs == 5

@@ -118,7 +118,7 @@ def test_request_song(
 	headers = login_test_user("testUser_kilo", client)
 
 	response = client.post(
-		"stations/testUser_bravo/romeo_station/request/0/36",
+		f"stations/testUser_bravo/romeo_station/request/0/{dtos.encode_id(36)}",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -127,7 +127,7 @@ def test_request_song(
 	headers = login_test_user("testUser_lima", client)
 
 	response = client.post(
-		"stations/testUser_bravo/romeo_station/request/0/36",
+		f"stations/testUser_bravo/romeo_station/request/0/{dtos.encode_id(36)}",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -135,7 +135,7 @@ def test_request_song(
 	headers = login_test_user("testUser_mike", client)
 
 	response = client.post(
-		"stations/testUser_bravo/romeo_station/request/0/36",
+		f"stations/testUser_bravo/romeo_station/request/0/{dtos.encode_id(36)}",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -149,13 +149,13 @@ def test_request_song_only_one_staion_allowed(
 	headers = login_test_user("testUser_kilo", client)
 
 	response = client.post(
-		"stations/testUser_bravo/romeo_station/request/0/36",
+		f"stations/testUser_bravo/romeo_station/request/0/{dtos.encode_id(36)}",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/testUser_bravo/papa_station/request/0/40",
+		f"stations/testUser_bravo/papa_station/request/0/{dtos.encode_id(40)}",
 		headers=headers
 	)
 	assert response.status_code == 403

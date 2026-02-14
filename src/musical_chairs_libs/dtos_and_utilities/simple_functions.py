@@ -298,25 +298,27 @@ def open_transaction(conn: Connection):
 			yield transaction
 
 
-def encode_id(id: int) -> str:
+def encode_id(id: int, domainSalt: int = 0) -> str:
 	sqids = Sqids(
 		alphabet=ConfigAcessors.shuffled_alphabet(),
 		blocklist=[],
-		min_length=10
+		min_length=8
 	)
-	return str(sqids.encode([id])) #pyright: ignore reportUnknownMemberType
+	return str(sqids.encode([id, domainSalt])) #pyright: ignore reportUnknownMemberType
 
 
 def decode_id(id: str) -> int:
 	sqids = Sqids(
 		alphabet=ConfigAcessors.shuffled_alphabet(),
 		blocklist=[],
-		min_length=10
+		min_length=8
 	)
 	decoded = sqids.decode(id) #pyright: ignore reportUnknownMemberType
 	if decoded:
 		return int(decoded[0]) #pyright: ignore reportUnknownMemberType
 	return 0
+	
+
 
 def decode_id_or_not[T](
 	token: str | None,

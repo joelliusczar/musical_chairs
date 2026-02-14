@@ -14,7 +14,7 @@ from musical_chairs_libs.protocols import (
 	UserProvider
 )
 from .path_rule_service import PathRuleService
-from typing import (Literal, overload)
+from typing import (Any, Literal, overload)
 
 class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 
@@ -53,7 +53,7 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 
 
 	def set_session_user(self, user: InternalUser):
-		self.basic_user_provider.set_user(user)
+		self.basic_user_provider.set_session_user(user)
 
 
 	def optional_user_id(self) -> int | None:
@@ -68,7 +68,7 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		return self.tracking_info_provider.visitor_id()
 
 
-	def impersonate(self, user: InternalUser):
+	def impersonate(self, user: InternalUser) -> Any:
 		return self.basic_user_provider.impersonate(user)
 
 

@@ -59,7 +59,7 @@ def test_get_catalogue(
 		stationId = 26,
 		queryParams=SimpleQueryParameters()
 	)
-	assert {c.id for c in collections} == {7,8,9,10,11}
+	assert {c.decoded_id() for c in collections} == {7,8,9,10,11}
 	assert totalRows == 5
 
 

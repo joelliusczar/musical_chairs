@@ -874,7 +874,7 @@ def test_delete_song_in_station(
 		queueService.fil_up_queue_in_trx(station, QueueMetrics(maxSize=50))
 		queue, _ = queueService.get_queue_for_station(stationId)
 		catalogue, _ = queueService.get_catalogue(stationId)
-		assert deletedSongId in (s.id for s in catalogue)
+		assert deletedSongId in (s.decoded_id() for s in catalogue)
 		assert deletedSongId in (s.id for s in queue)
 		assert queueService.can_song_be_queued_to_station(deletedSongId, stationId)
 		songFileService.soft_delete_songs_in_trx([deletedSongId])
@@ -884,7 +884,7 @@ def test_delete_song_in_station(
 		#ephermeral anyway so we'll just let it be the last remnants
 		assert deletedSongId in (s.id for s in queue2)
 		catalogue2, _ = queueService.get_catalogue(stationId)
-		assert deletedSongId not in (s.id for s in catalogue2)
+		assert deletedSongId not in (s.decoded_id() for s in catalogue2)
 		assert not queueService.can_song_be_queued_to_station(
 			deletedSongId,
 			stationId

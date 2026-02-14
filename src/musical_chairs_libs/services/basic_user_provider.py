@@ -5,7 +5,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from musical_chairs_libs.protocols import (
 	UserProvider
 )
-from typing import (Literal, Optional, overload)
+from typing import (Any, Literal, Optional, overload)
 from contextlib import contextmanager
 
 class BasicUserProvider(UserProvider):
@@ -43,7 +43,7 @@ class BasicUserProvider(UserProvider):
 		return self.__user__ != None
 
 
-	def set_user(self, user: InternalUser):
+	def set_session_user(self, user: InternalUser):
 		self.__user__ = user
 
 
@@ -52,7 +52,7 @@ class BasicUserProvider(UserProvider):
 	
 
 	@contextmanager
-	def impersonate(self, user: InternalUser):
+	def impersonate(self, user: InternalUser) -> Any:
 		prev_user = self.__user__
 		self.__user__ = user
 		yield

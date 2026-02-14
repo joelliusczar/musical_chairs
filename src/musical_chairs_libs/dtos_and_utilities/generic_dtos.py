@@ -82,6 +82,15 @@ class TokenItem(MCBaseClass):
 class IdItem(MCBaseClass):
 	id: int=Field(frozen=True)
 
+	@field_validator("id", mode="before")
+	@classmethod
+	def decode_id(cls, raw: int | str) -> int:
+		if isinstance(raw, int):
+			return raw
+		else:
+			return decode_id(raw)
+
+
 
 class Named(MCBaseClass):
 	name: str=Field(frozen=True)

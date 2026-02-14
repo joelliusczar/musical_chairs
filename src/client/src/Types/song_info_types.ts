@@ -1,4 +1,4 @@
-import { IdValue, Named, NamedIdItem } from "./generic_types";
+import { IdValue, Named, NamedTokenItem, Token } from "./generic_types";
 import { ActionRule, User } from "./user_types";
 import { StationTableData, StationInfo } from "./station_types";
 import { VoidStore } from "../Reducers/reducerStores";
@@ -7,13 +7,13 @@ import {
 } from "react-hook-form";
 
 export interface ArtistInfo {
-	id: IdValue
+	id: Token
 	name: string
 	owner: User
 }
 
 export interface AlbumInfo {
-	id: IdValue
+	id: Token
 	name: string
 	year: number | null
 	albumartist: ArtistInfo | null
@@ -38,7 +38,7 @@ export interface NowPlayingInfo {
 	artist: string
 }
 
-export interface SongListDisplayItem extends NamedIdItem {
+export interface SongListDisplayItem extends NamedTokenItem {
 	album: string | null
 	artist: string | null
 	treepath: string
@@ -49,7 +49,7 @@ export interface SongListDisplayItem extends NamedIdItem {
 	rules: ActionRule[]
 }
 
-export interface CatalogueItem extends NamedIdItem {
+export interface CatalogueItem extends NamedTokenItem {
 	parentname: string
 	creator: string | null
 	itemtype: string
@@ -78,7 +78,7 @@ export class InitialQueueState extends VoidStore {
 			totalrows: 0,
 			stationrules: [],
 			nowplaying: {
-				id: 0,
+				id: "",
 				name: "",
 				album: "",
 				artist: "",
@@ -114,7 +114,7 @@ export interface DirectoryTransfer extends DirectoryTransferSource {
 export interface SongTreeNodeInfo {
 	treepath: string
 	totalChildCount: number
-	id: number | null
+	id: Token | null
 	name: string | null
 	rules: ActionRule[]
 }
@@ -151,7 +151,7 @@ export interface SongInfoBase extends Named {
 export interface SongInfoForm extends SongInfoBase, FieldValues {
 	rules: ActionRule[]
 	touched: TouchedObject
-	trackinfo: {[id: IdValue]: TrackListing}
+	trackinfo: {[id: Token]: TrackListing}
 }
 
 export interface SongInfoApiSavura extends SongInfoBase {

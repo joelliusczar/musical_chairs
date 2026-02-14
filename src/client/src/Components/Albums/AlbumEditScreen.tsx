@@ -55,7 +55,7 @@ const initialValues = {
 
 export const AlbumEditScreen = () => {
 
-	const id = parseInt((useParams().id || "0"));
+	const id = (useParams().id || "0");
 	const { enqueueSnackbar } = useSnackbar();
 	const navigate = useNavigate();
 

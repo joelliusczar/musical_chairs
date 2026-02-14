@@ -54,11 +54,11 @@ def __get_station_id_set__(
 ) -> set[int]:
 
 	if user.has_site_roles(UserRoleDef.STATION_ASSIGN):
-		return {s.id for s in stationService.get_stations(
+		return {s.decoded_id() for s in stationService.get_stations(
 			stationKeys=stationKeys
 		)}
 	else:
-		return {s.id for s in stationService.get_stations(
+		return {s.decoded_id() for s in stationService.get_stations(
 		stationKeys=stationKeys,
 	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s.rules)}
 
@@ -71,12 +71,12 @@ def get_song_ids(request: Request) -> list[int]:
 		for fieldName in fieldNames:
 			key = request.path_params.get(fieldName, None)
 			if key is not None:
-				result.add(int(key))
+				result.add(dtos.decode_id(key))
 
 		fieldNames = ["itemids", "songids", "itemIds"]
 		for fieldName in fieldNames:
 			keys = request.query_params.getlist(fieldName)
-			result.update((int(i) for i in keys))
+			result.update((dtos.decode_id(i) for i in keys))
 		
 	except ValueError:
 		raise HTTPException(
@@ -146,10 +146,10 @@ def __validate_song_stations__(
 ):
 	if not song.stations:
 		return
-	stationIds = {s.id for s in song.stations or []}
+	stationIds = {s.decoded_id() for s in song.stations or []}
 	linkedStationIds = {s.stationid for s in \
 		stationsSongsService.get_station_songs(songIds=songIds)}
-	permittedStations = {s.id for s in \
+	permittedStations = {s.decoded_id() for s in \
 			stationService.get_stations(
 			stationIds,
 			scopes=[UserRoleDef.STATION_ASSIGN.value]
@@ -161,7 +161,7 @@ def __validate_song_stations__(
 			detail=[
 				build_error_obj(
 					"Do not have permission to work with all of stations"
-						f" {str(stationIds)}",
+						f" {str(s.id for s in song.stations)}",
 					"Stations"
 				)],
 		)
@@ -187,8 +187,8 @@ def __validate_song_artists__(
 ):
 	if not song.allArtists:
 		return
-	artistIds = {a.id for a in song.allArtists}
-	dbArtists = {a.id for a in artistService.get_artists(
+	artistIds = {a.decoded_id() for a in song.allArtists}
+	dbArtists = {a.decoded_id() for a in artistService.get_artists(
 		artistKeys=artistIds,
 		#in theory, this should not create a vulnerability
 		#because even if user has path:edit on a non-overlapping path
@@ -211,7 +211,7 @@ def __validate_song_album__(
 ):
 	if song.album:
 		dbAlbum = next(albumService.get_albums(
-			albumKeys=song.album.id,
+			albumKeys=song.album.decoded_id(),
 		), None)
 		if not dbAlbum:
 			raise HTTPException(

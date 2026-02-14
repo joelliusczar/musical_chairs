@@ -39,7 +39,7 @@ def get_playlists(
 	result = None
 	pathId = request.path_params.get("playlistid", None)
 	if pathId is not None:
-		return playlistService.get_playlists(int(pathId))
+		return playlistService.get_playlists(dtos.decode_id(pathId))
 	
 	pathName = request.path_params.get("playlistkey", None)
 	if pathName is not None:

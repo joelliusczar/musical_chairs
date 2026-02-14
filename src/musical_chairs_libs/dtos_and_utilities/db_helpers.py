@@ -33,13 +33,13 @@ from .action_rule_dtos import (
 )
 from .account_dtos import (
 	RoledUser,
-	RuledOwnedEntity,
+	RuledOwnedTokenEntity,
 )
 from .constants import UserRoleSphere
 from .default_rule_providers import get_path_owner_roles
-from .simple_functions import normalize_opening_slash
+from .simple_functions import normalize_opening_slash, encode_id
 
-RuledOwnedType = TypeVar("RuledOwnedType", bound=RuledOwnedEntity)
+RuledOwnedType = TypeVar("RuledOwnedType", bound=RuledOwnedTokenEntity)
 
 def build_shim_select(
 	ruleNameValue: str
@@ -185,7 +185,7 @@ def generate_owned_and_rules_from_rows(
 ) -> Iterator[RuledOwnedType]:
 	current = None
 	for row in rows:
-		if not current or current.id != cast(int,row["id"]):
+		if not current or current.id != encode_id(row["id"]):
 			if current:
 				owner = current.owner
 				if owner and owner.id == userId:

@@ -21,9 +21,11 @@ from email_validator import ValidatedEmail
 from collections import Counter
 from .type_aliases import (s2sDict)
 from .lost_found import Lost
+from .config_accessors import ConfigAcessors
 from contextlib import contextmanager
 from pathlib import Path
 from sqlalchemy.engine import Connection
+from sqids import Sqids
 
 T = TypeVar("T")
 
@@ -294,3 +296,38 @@ def open_transaction(conn: Connection):
 	else:
 		with conn.begin() as transaction:
 			yield transaction
+
+
+def encode_id(id: int) -> str:
+	sqids = Sqids(
+		alphabet=ConfigAcessors.shuffled_alphabet(),
+		blocklist=[],
+		min_length=10
+	)
+	return str(sqids.encode([id])) #pyright: ignore reportUnknownMemberType
+
+
+def decode_id(id: str) -> int:
+	sqids = Sqids(
+		alphabet=ConfigAcessors.shuffled_alphabet(),
+		blocklist=[],
+		min_length=10
+	)
+	decoded = sqids.decode(id) #pyright: ignore reportUnknownMemberType
+	if decoded:
+		return int(decoded[0]) #pyright: ignore reportUnknownMemberType
+	return 0
+
+def decode_id_or_not[T](
+	token: str | None,
+	default: T | None = None
+) -> int | T | None:
+	if not token:
+		return default
+	decoded = decode_id(token)
+	reencoded = encode_id(decoded)
+	if reencoded == token:
+		return decoded
+	return default
+
+

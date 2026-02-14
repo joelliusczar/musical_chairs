@@ -1,8 +1,10 @@
 import {
 	NamedIdItem,
+	NamedTokenItem,
 	KeyValue,
 	Named,
 	IdValue,
+	Token,
 } from "./generic_types";
 import {
 	OwnerParams,
@@ -28,7 +30,7 @@ export interface RequiredStationParamsOnly extends OwnerOnlyParam {
 	stationkey: KeyValue
 }
 
-export interface StationInfo extends NamedIdItem {
+export interface StationInfo extends NamedTokenItem {
 	displayname: string | null
 	isrunning: boolean
 	owner: User | null
@@ -39,7 +41,7 @@ export interface StationInfo extends NamedIdItem {
 }
 
 export interface StationInfoForm extends Named {
-	id?: IdValue
+	id?: Token
 	displayname: string | null
 	viewsecuritylevel: NamedIdItem
 	requestsecuritylevel: NamedIdItem
@@ -48,7 +50,7 @@ export interface StationInfoForm extends Named {
 }
 
 export interface StationCreationInfo extends Named {
-	id?: IdValue
+	id?: Token
 	displayname: string | null
 	viewsecuritylevel: IdValue | number | string
 	requestsecuritylevel: IdValue | number | string

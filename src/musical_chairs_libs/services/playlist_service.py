@@ -386,14 +386,14 @@ class PlaylistService:
 
 				affectedPk = res.lastrowid
 				self.stations_playlists_service.link_playlists_with_stations_in_trx(
-					(StationPlaylistTuple(affectedPk, t.id if t else None) 
+					(StationPlaylistTuple(affectedPk, t.decoded_id() if t else None) 
 						for t in (playlist.stations or [None])),
 				)
 				transaction.commit()
 
 				owner = user.to_user()
 				return PlaylistInfo(
-					id=affectedPk,
+					id=dtos.encode_id(affectedPk),
 					name=str(savedName),
 					owner=owner,
 					displayname=playlist.displayname
@@ -424,13 +424,13 @@ class PlaylistService:
 
 				affectedPk = playlistId if playlistId else res.lastrowid
 				self.stations_playlists_service.link_playlists_with_stations_in_trx(
-					(StationPlaylistTuple(affectedPk, t.id if t else None) 
+					(StationPlaylistTuple(affectedPk, t.decoded_id() if t else None) 
 						for t in (playlist.stations or [None])),
 				)
 				owner = self.get_playlist_owner(playlistId)
 				transaction.commit()
 				return PlaylistInfo(
-					id=affectedPk,
+					id=dtos.encode_id(affectedPk),
 					name=str(savedName),
 					owner=owner,
 					displayname=playlist.displayname

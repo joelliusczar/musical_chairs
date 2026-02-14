@@ -103,9 +103,11 @@ def get_playlist_for_edit(
 		stations_playlists_service
 	)
 ) -> SongsPlaylistInfo:
-	songs = [*playlistsSongsService.get_songs(playlistInfo.id)]
+	songs = [*playlistsSongsService.get_songs(playlistInfo.decoded_id())]
 	stations = [
-		*stationsPlaylistsService.get_stations_by_playlist(playlistInfo.id)
+		*stationsPlaylistsService.get_stations_by_playlist(
+			playlistInfo.decoded_id()
+		)
 	]
 	return SongsPlaylistInfo(
 		**playlistInfo.model_dump(),
@@ -131,9 +133,9 @@ def create_playlist(
 	)
 ) -> SongsPlaylistInfo:
 	result = playlistService.save_playlist(playlist)
-	songs = [*playlistsSongsService.get_songs(result.id)]
+	songs = [*playlistsSongsService.get_songs(result.decoded_id())]
 	stations = [
-		*stationsPlaylistsService.get_stations_by_playlist(result.id)
+		*stationsPlaylistsService.get_stations_by_playlist(result.decoded_id())
 	]
 	return SongsPlaylistInfo(
 		**result.model_dump(),
@@ -157,10 +159,12 @@ def update_playlist(
 		stations_playlists_service
 	)
 ) -> SongsPlaylistInfo:
-	result = playlistService.save_playlist(playlist, savedplaylist.id)
-	songs = [*playlistsSongsService.get_songs(savedplaylist.id)]
+	result = playlistService.save_playlist(playlist, savedplaylist.decoded_id())
+	songs = [*playlistsSongsService.get_songs(savedplaylist.decoded_id())]
 	stations = [
-		*stationsPlaylistsService.get_stations_by_playlist(savedplaylist.id)
+		*stationsPlaylistsService.get_stations_by_playlist(
+			savedplaylist.decoded_id()
+		)
 	]
 	return SongsPlaylistInfo(
 		**result.model_dump(),
@@ -193,7 +197,7 @@ def add_user_rule(
 ) -> ActionRule:
 	return playlistsUsersService.add_user_rule_to_playlist(
 		subjectuser.id,
-		playlistInfo.id,
+		playlistInfo.decoded_id(),
 		rule
 	)
 
@@ -211,7 +215,7 @@ def remove_user_rule(
 ):
 	playlistsUsersService.remove_user_rule_from_playlist(
 		subjectuser.id,
-		playlistInfo.id,
+		playlistInfo.decoded_id(),
 		rulename
 	)
 
@@ -227,7 +231,7 @@ def delete(
 	playlistService: PlaylistService = Depends(playlist_service),
 ):
 	try:
-		if playlistService.delete_playlist(playlist.id) == 0:
+		if playlistService.delete_playlist(playlist.decoded_id()) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
 				detail=[build_error_obj(f"Playlist not found")
@@ -254,7 +258,7 @@ def remove_songs(
 	)
 ):
 	playlistsSongsService.remove_songs_for_playlists((
-		SongPlaylistTuple(s, playlist.id)  for s in songids
+		SongPlaylistTuple(s, playlist.decoded_id())  for s in songids
 	))
 
 
@@ -271,4 +275,4 @@ def move_songs(
 		playlists_songs_service
 	)
 ):
-	playlistsSongsService.move_song(playlist.id, songid, order)
+	playlistsSongsService.move_song(playlist.decoded_id(), songid, order)

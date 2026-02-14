@@ -54,7 +54,7 @@ def test_save_album_add_stations(
 		stations=data.stations
 	)
 
-	albumService.save_album(updateDto, data.id)
+	albumService.save_album(updateDto, dtos.decode_id(data.id))
 
 	data2 = albumService.get_album(7)
 	assert data2
@@ -70,7 +70,7 @@ def test_save_album_remove_1_stations(
 	data = albumService.get_album(7)
 	assert data
 
-	removera = next(s for s in data.stations if s.id == 26)
+	removera = next(s for s in data.stations if s.id == dtos.encode_id(26))
 	data.stations.remove(removera)
 
 	updateDto = AlbumCreationInfo(
@@ -81,13 +81,13 @@ def test_save_album_remove_1_stations(
 		stations=data.stations
 	)
 
-	albumService.save_album(updateDto, data.id)
+	albumService.save_album(updateDto, dtos.decode_id(data.id))
 
 	data2 = albumService.get_album(7)
 	assert data2
 
 	assert len(data2.stations) == 2
-	assert data2.stations[0].id == 29
+	assert data2.stations[0].id == dtos.encode_id(29)
 
 @pytest.mark.current_username("testUser_alpha")
 def test_save_album_remove_all_stations(
@@ -105,7 +105,7 @@ def test_save_album_remove_all_stations(
 		stations=[]
 	)
 
-	albumService.save_album(updateDto, data.id)
+	albumService.save_album(updateDto, dtos.decode_id(data.id))
 
 	data2 = albumService.get_album(7)
 	assert data2
@@ -123,7 +123,7 @@ def test_save_album_remove_1_add_1_stations(
 	data = albumService.get_album(7)
 	assert data
 
-	removera = next(s for s in data.stations if s.id == 26)
+	removera = next(s for s in data.stations if s.id == dtos.encode_id(26))
 	data.stations.remove(removera)
 	data.stations.append(next(iter(stationService.get_stations(27))))
 
@@ -135,14 +135,14 @@ def test_save_album_remove_1_add_1_stations(
 		stations=data.stations
 	)
 
-	albumService.save_album(updateDto, data.id)
+	albumService.save_album(updateDto, dtos.decode_id(data.id))
 
 	data2 = albumService.get_album(7)
 	assert data2
 
 	assert len(data2.stations) == 3
-	assert data2.stations[0].id == 27
-	assert data2.stations[1].id == 29
+	assert data2.stations[0].id == dtos.encode_id(27)
+	assert data2.stations[1].id == dtos.encode_id(29)
 
 @pytest.mark.current_username("testUser_alpha")
 def test_save_album_add_first_stations(
@@ -170,7 +170,7 @@ def test_save_album_add_first_stations(
 		stations=data.stations
 	)
 
-	albumService.save_album(updateDto, data.id)
+	albumService.save_album(updateDto, dtos.decode_id(data.id))
 
 	data2 = albumService.get_album(4)
 	assert data2

@@ -1,3 +1,4 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from .common_fixtures import (
 	fixture_account_service as fixture_account_service,
 	fixture_stations_albums_service as fixture_stations_albums_service
@@ -20,7 +21,7 @@ def test_get_stations_by_album(
 
 	data = sorted(
 		stationAlbumService.get_stations_by_album(9),
-		key=lambda s:s.id
+		key=lambda s:dtos.decode_id(s.id)
 	)
 
 	assert len(data) == 3
@@ -29,7 +30,7 @@ def test_get_stations_by_album(
 
 	data = sorted(
 		stationAlbumService.get_stations_by_album(10),
-		key=lambda s:s.id
+		key=lambda s:dtos.decode_id(s.id)
 	)
 
 	assert len(data) == 1
@@ -37,7 +38,7 @@ def test_get_stations_by_album(
 
 	data = sorted(
 		stationAlbumService.get_stations_by_album(7),
-		key=lambda s:s.id
+		key=lambda s:dtos.decode_id(s.id)
 	)
 
 	assert len(data) == 3

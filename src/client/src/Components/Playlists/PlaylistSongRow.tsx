@@ -19,14 +19,14 @@ import {
 	DomRoutes,
 } from "../../constants";
 import { openSongInTab } from "../../API_Calls/songInfoCalls";
-import { IdValue, IdItem } from "../../Types/generic_types";
+import { Token, TokenItem } from "../../Types/generic_types";
 
 type PlaylistSongRowProps = {
 	song: SongListDisplayItem,
 	idx: number,
 	order: number,
 	removeSong: (song: SongListDisplayItem) => Promise<void>,
-	moveSong: (songId: IdValue, order: number) => Promise<void> | void
+	moveSong: (songId: Token, order: number) => Promise<void> | void
 };
 
 export const PlaylistSongRow = (props: PlaylistSongRowProps) => {
@@ -75,13 +75,13 @@ export const PlaylistSongRow = (props: PlaylistSongRowProps) => {
 	};
 
 
-	const [, dragRef] = useDrag<IdItem>({
+	const [, dragRef] = useDrag<TokenItem>({
 		type: "row",
 		item: { id: song.id },
 	});
 
 	const [{ isOver },dropRef] = useDrop<
-		IdItem,
+		TokenItem,
 		unknown,
 		{ isOver: boolean }
 	>(() => ({

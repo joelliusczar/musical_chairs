@@ -80,7 +80,7 @@ def test_post_with_only_name(
 	data = json.loads(response.content)
 	assert response.status_code == 200
 	nextId = data["id"]
-	assert nextId == len(initialStations) + 1
+	assert nextId == dtos.encode_id(len(initialStations) + 1)
 
 	response = client.get(f"stations/20/{nextId}")
 	fetched = json.loads(response.content)
@@ -167,25 +167,25 @@ def test_request_song_any_station(
 	headers = login_test_user("testUser_mike", client)
 
 	response = client.post(
-		"stations/2/romeo_station/request/0/36",
+		f"stations/2/romeo_station/request/0/{dtos.encode_id(36)}",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/2/papa_station/request/0/40",
+		f"stations/2/papa_station/request/0/{dtos.encode_id(40)}",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/2/oscar_station/request/0/30",
+		f"stations/2/oscar_station/request/0/{dtos.encode_id(30)}",
 		headers=headers
 	)
 	assert response.status_code == 200
 
 	response = client.post(
-		"stations/2/sierra_station/request/0/15",
+		f"stations/2/sierra_station/request/0/{dtos.encode_id(15)}",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -201,7 +201,7 @@ def test_request_song_timeout(
 
 	#1 t=0 [2]
 	response = client.post(
-		"stations/testUser_bravo/3/request/0/36",
+		f"stations/testUser_bravo/{dtos.encode_id(3)}/request/0/{dtos.encode_id(36)}",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -212,7 +212,7 @@ def test_request_song_timeout(
 	for _ in datetimeProvider(4):
 		print("round")
 		response = client.post(
-			"stations/testUser_bravo/3/request/0/36",
+			f"stations/testUser_bravo/{dtos.encode_id(3)}/request/0/{dtos.encode_id(36)}",
 			headers=headers
 		)
 		assert response.status_code == 200
@@ -224,7 +224,7 @@ def test_request_song_timeout(
 	#10 t=m+4, s+59 [11]
 	for _ in datetimeProvider(5):
 		response = client.post(
-			"stations/testUser_bravo/3/request/0/36",
+			f"stations/testUser_bravo/{dtos.encode_id(3)}/request/0/{dtos.encode_id(36)}",
 			headers=headers
 		)
 		assert response.status_code == 429
@@ -233,7 +233,7 @@ def test_request_song_timeout(
 	
 	#12 t=m+5 [12]
 	response = client.post(
-			"stations/testUser_bravo/3/request/0/36",
+			f"stations/testUser_bravo/{dtos.encode_id(3)}/request/0/{dtos.encode_id(36)}",
 			headers=headers
 	)
 	assert response.status_code == 200
@@ -242,7 +242,7 @@ def test_request_song_timeout(
 
 	#13 t=m+5, s+14 [13]
 	response = client.post(
-			"stations/testUser_bravo/3/request/0/36",
+			f"stations/testUser_bravo/{dtos.encode_id(3)}/request/0/{dtos.encode_id(36)}",
 			headers=headers
 	)
 	assert response.status_code == 429
@@ -277,7 +277,7 @@ def test_get_station_user_rule_selection(
 	assert data["stationrules"][1]["span"] == 300
 
 	response = client.get(
-		"stations/2/4/catalogue",
+		f"stations/2/{dtos.encode_id(4)}/catalogue",
 		headers=headers
 	)
 
@@ -295,7 +295,7 @@ def test_get_station_user_rule_selection(
 	headers = login_test_user("testUser_oscar", client)
 
 	response = client.get(
-		"stations/testUser_bravo/3/catalogue",
+		f"stations/testUser_bravo/{dtos.encode_id(3)}/catalogue",
 		headers=headers
 	)
 
@@ -321,7 +321,7 @@ def test_get_station_user_rule_selection(
 	headers = login_test_user("testUser_papa", client)
 
 	response = client.get(
-		"stations/2/3/catalogue",
+		f"stations/2/{dtos.encode_id(3)}/catalogue",
 		headers=headers
 	)
 
@@ -435,7 +435,7 @@ def test_get_station_for_edit_with_view_security(
 
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["id"] == 3
+	assert data["id"] == dtos.encode_id(3)
 	assert data["name"] == "romeo_station"
 	assert data["owner"]["username"] == "testUser_bravo"
 	assert data["requestsecuritylevel"] == RulePriorityLevel.ANY_USER.value
@@ -466,7 +466,7 @@ def test_get_station_for_edit_with_view_security(
 	data = json.loads(response.content)
 	assert response.status_code == 200
 
-	assert data["id"] == 13
+	assert data["id"] == dtos.encode_id(13)
 	assert data["name"] == "bravo_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
 	assert data["requestsecuritylevel"] == RulePriorityLevel.ANY_USER.value
@@ -519,7 +519,7 @@ def test_get_station_for_edit_with_view_security(
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["id"] == 12
+	assert data["id"] == dtos.encode_id(12)
 	assert data["name"] == "alpha_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
 	assert data["requestsecuritylevel"] == RulePriorityLevel.RULED_USER.value
@@ -564,7 +564,7 @@ def test_get_station_for_edit_with_view_security(
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["id"] == 14
+	assert data["id"] == dtos.encode_id(14)
 	assert data["name"] == "charlie_station_rerun"
 	assert data["owner"]["username"] == "testUser_victor"
 	assert data["requestsecuritylevel"] == RulePriorityLevel.REQUIRES_INVITE.value
@@ -620,7 +620,7 @@ def test_get_station_for_edit_with_view_security(
 	)
 	data = json.loads(response.content)
 	assert response.status_code == 200
-	assert data["id"] == 15
+	assert data["id"] == dtos.encode_id(15)
 	assert data["name"] == "delta_station_rerun"
 	assert data["owner"]["username"] == "testUser_yankee"
 	assert data["requestsecuritylevel"] == RulePriorityLevel.OWENER_USER.value
@@ -723,7 +723,7 @@ def test_rule_adding_validation(
 	rule["name"] = UserRoleDef.STATION_REQUEST.value
 
 	response = client.post(
-		f"stations/2/1/user_role?subjectuserkey={28}",
+		f"stations/2/{dtos.encode_id(1)}/user_role?subjectuserkey={28}",
 		headers=headers,
 		json=rule
 	)
@@ -732,7 +732,7 @@ def test_rule_adding_validation(
 	rule["name"] = UserRoleDef.PATH_EDIT.value
 
 	response = client.post(
-		f"stations/2/1/user_role?subjectuserkey={28}",
+		f"stations/2/{dtos.encode_id(1)}/user_role?subjectuserkey={28}",
 		headers=headers,
 		json=rule
 	)

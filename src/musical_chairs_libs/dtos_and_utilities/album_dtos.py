@@ -2,7 +2,7 @@ from .account_dtos import OwnedEntity
 from .artist_dtos import ArtistInfo, ArtistUnowned
 from .generic_dtos import (
 	FrozenNamed,
-	FrozenNamedIdItem,
+	FrozenNamedTokenItem,
 	RuledEntity
 )
 from pydantic import (
@@ -24,7 +24,7 @@ class AlbumCreationInfo(FrozenNamed):
 		Sequence[StationInfo | StationUnowned], Field(default_factory=list)
 	)
 
-class AlbumUnowned(FrozenNamedIdItem):
+class AlbumUnowned(FrozenNamedTokenItem):
 	year: int | None=None
 	albumartist: ArtistInfo | ArtistUnowned | None=None
 	versionnote: str | None=""

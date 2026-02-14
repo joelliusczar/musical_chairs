@@ -123,22 +123,22 @@ def get_songs_list(
 	queryParams: SimpleQueryParameters = Depends(get_query_params),
 	song: str = "",
 	album: str = "",
-	albumId: Optional[int]=None,
+	albumId: str | None=None,
 	artist: str = "",
-	artistId: Optional[int]=None,
+	artistId: str | None=None,
 	user: RoledUser = Depends(get_current_user_simple),
-	itemIds: Optional[list[int]] = Query(default=None),
+	itemIds: list[str] | None = Query(default=None),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> list[SongEditInfo]:
 	return list(songInfoService.get_all_songs(
 		stationId=None,
 		queryParams=queryParams,
 		song=song,
-		songIds=itemIds,
+		songIds=(dtos.decode_id(s) for s in itemIds) if itemIds else None,
 		album=album,
-		albumId=albumId,
+		albumId=dtos.decode_id(albumId) if albumId else None,
 		artist=artist,
-		artistId=artistId,
+		artistId=dtos.decode_id(artistId) if artistId else None,
 	))
 
 
@@ -192,14 +192,19 @@ def download_song(
 
 @router.put("/songs/{itemid}")
 def update_song(
-	itemid: int,
+	itemid: str,
 	song: ValidatedSongAboutInfo = Security(
 		extra_validated_song,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> SongEditInfo:
-	result = next(songInfoService.save_songs([itemid], song), None)
+	result = next(songInfoService.save_songs(
+			[dtos.decode_id(itemid)],
+			song
+		),
+		None
+	)
 	if result:
 		return result
 	raise HTTPException(
@@ -210,14 +215,19 @@ def update_song(
 
 @router.put("/songs/multi/")
 def update_songs_multi(
-	itemIds: list[int] = Query(default=[]),
+	itemIds: list[str] = Query(default=[]),
 	song: ValidatedSongAboutInfo = Security(
 		extra_validated_song,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	),
 	songInfoService: SongInfoService = Security(song_info_service),
 ) -> SongEditInfo:
-	result = next(songInfoService.save_songs(itemIds, song), None)
+	result = next(songInfoService.save_songs(
+			(dtos.decode_id(s) for s in itemIds),
+			song
+		),
+		None
+	)
 	if result:
 		return result
 	raise HTTPException(
@@ -271,13 +281,17 @@ def remove_user_rule(
 
 @router.get("/check/")
 def is_phrase_used(
-	id: Optional[int]=None,
+	id: str | None=None,
 	suffix: str = "",
 	prefix: str = Depends(get_prefix_if_owner),
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, bool]:
 	return {
-		"suffix": songFileService.is_path_used(id, prefix, suffix)
+		"suffix": songFileService.is_path_used(
+			dtos.decode_id_or_not(id, None),
+			prefix,
+			suffix
+		)
 	}
 
 

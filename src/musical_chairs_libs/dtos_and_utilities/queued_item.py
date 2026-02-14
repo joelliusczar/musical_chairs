@@ -8,6 +8,7 @@ from .generic_dtos import (
 	T,
 	NamedIdItem,
 	IdItem,
+	NamedTokenItem,
 )
 from pydantic import (
 	BaseModel as MCBaseClass,
@@ -19,7 +20,7 @@ from typing import (
 	cast
 )
 
-class QueuedItem(NamedIdItem):
+class QueuedItem(NamedTokenItem):
 	queuedtimestamp: float = Field(frozen=True)
 	itemtype: str = Field(default=StationRequestTypes.SONG.lower()) #for display?
 	parentkey: int | None = None
@@ -46,6 +47,29 @@ class SongListBasicItem(QueuedItem):
 		return super().__hash__()
 
 
+
+class StreamQueuedItem(NamedIdItem):
+	userId: int | None = None
+	action: str | None = None
+	album: str | None
+	artist: str | None
+	internalpath: str
+	treepath: str
+	queuedtimestamp: float = Field(frozen=True)
+	itemtype: str = Field(default=StationRequestTypes.SONG.lower()) #for display?
+	parentkey: int | None = None
+
+	def __hash__(self) -> int:
+		return hash((self.id, self.name, self.queuedtimestamp))
+
+	def __eq__(self, value: Any) -> bool:
+		if not value:
+			return False
+		return self.id == value.id \
+			and self.name == value.name \
+			and self.queuedtimestamp == value.queuedtimestamp
+
+
 	def display(self) -> str:
 		if self.name:
 				display = f"{self.name} - {self.album} - {self.artist}"
@@ -54,19 +78,11 @@ class SongListBasicItem(QueuedItem):
 		return display.replace("\n", "")
 
 
-class StreamQueuedItem(SongListBasicItem):
-	userId: int | None = None
-	action: str | None = None
-
-	def __hash__(self) -> int:
-		return super().__hash__()
-
-
 class CatalogueItem(QueuedItem):
 	creator: str
 	parentname: str
 	requesttypeid: int #so that the front end knows what to equest
-	year: Optional[int]=None
+	year: int | None=None
 	rules: list[ActionRule]=cast(
 		list[ActionRule],
 		Field(default_factory=list, frozen=False)

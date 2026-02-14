@@ -18,7 +18,7 @@ from musical_chairs_libs.tables import (
 	pl_pk,
 	plsg_songFk, plsg_playlistFk, plsg_lexorder, plsg_lastmodifiedtimestamp,
 )
-from .current_user_provider import CurrentUserProvider
+from musical_chairs_libs.protocols import (UserProvider)
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	and_,
@@ -49,7 +49,7 @@ class PlaylistsSongsService:
 	def __init__(
 		self,
 		conn: Connection,
-		currentUserProvider: CurrentUserProvider,
+		currentUserProvider: UserProvider,
 		pathRuleService: PathRuleService
 	) -> None:
 		if not conn:

@@ -1,9 +1,9 @@
+#pyright: reportMissingTypeStubs=false
 import musical_chairs_libs.dtos_and_utilities as dtos
 import musical_chairs_libs.tables as tbl
 from typing import (
 	Iterator,
 	Optional,
-	Union,
 	cast,
 	Iterable,
 	Tuple
@@ -94,8 +94,8 @@ class AlbumService:
 
 	def get_albums_query(
 		self,
-		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
-		artistKeys: Union[int, str, Iterable[int], None]=None,
+		albumKeys: int | str | Iterable[int] | None | Lost=Lost(),
+		artistKeys: int | str | Iterable[int] | None=None,
 		exactStrMatch: bool=False
 	):
 		query = albums_tbl\
@@ -148,8 +148,8 @@ class AlbumService:
 		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
-		artistKeys: Union[int, str, Iterable[int], None]=None,
+		albumKeys: int | str | Iterable[int] | None | Lost=Lost(),
+		artistKeys: int | str | Iterable[int] | None=None,
 		exactStrMatch: bool=False
 	) -> Iterator[AlbumInfo]:
 		
@@ -237,7 +237,7 @@ class AlbumService:
 			return result, count
 
 
-	def get_song_counts(self) -> dict[int, int]:
+	def get_song_counts(self) -> dict[str, int]:
 		query = select(ab_pk, func.count(sg_pk))\
 			.join(songs_tbl, sg_albumFk == ab_pk)\
 			.where(sg_deletedTimstamp.is_(None))\
@@ -245,7 +245,7 @@ class AlbumService:
 		with dtos.open_transaction(self.conn):
 			records = self.conn.execute(query).fetchall()
 
-			return {r[0]:r[1] for r in records}
+			return {dtos.encode_id(r[0]):r[1] for r in records}
 
 
 	def get_album_songs(
@@ -304,13 +304,13 @@ class AlbumService:
 
 	def get_album(
 			self,
-			albumId: Optional[int],
+			albumId: int | None,
 		) -> Optional[SongsAlbumInfo]:
 		with dtos.open_transaction(self.conn):
 			albumInfo = next(self.get_albums(albumKeys=albumId), None)
 			if not albumInfo:
 				albumInfo = AlbumInfo(
-					id=0,
+					id="0",
 					name="(Missing)",
 					owner=dtos.User(
 						id=0,
@@ -354,7 +354,7 @@ class AlbumService:
 				res = self.conn.execute(stmt)
 				affectedPk = res.lastrowid
 				self.stations_albums_service.link_albums_with_stations_in_trx(
-					(StationAlbumTuple(affectedPk, t.id if t else None) 
+					(StationAlbumTuple(affectedPk, t.decoded_id() if t else None) 
 						for t in (album.stations or [None]))
 				)
 				artist = next(self.artist_service.get_artists(
@@ -364,7 +364,7 @@ class AlbumService:
 				transaction.commit()
 				owner = user.to_user()
 				return AlbumInfo(
-					id=affectedPk,
+					id=dtos.encode_id(affectedPk), 
 					name=str(savedName),
 					owner=owner,
 					year=album.year,
@@ -408,12 +408,12 @@ class AlbumService:
 				artistKeys=album.albumartist.id
 			), None) if album.albumartist else None
 			self.stations_albums_service.link_albums_with_stations_in_trx(
-				(StationAlbumTuple(albumId, t.id if t else None) 
+				(StationAlbumTuple(albumId, t.decoded_id() if t else None) 
 					for t in (album.stations or [None]))
 			)
 			transaction.commit()
 			return AlbumInfo(
-				id=albumId,
+				id=dtos.encode_id(albumId), #pyright: ignore reportUnknownMemberType,
 				name=str(savedName),
 				owner=owner,
 				year=album.year,

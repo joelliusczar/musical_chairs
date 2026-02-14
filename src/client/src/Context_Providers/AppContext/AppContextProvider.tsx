@@ -7,7 +7,7 @@ import {
 	useDataWaitingReducer,
 } from "../../Reducers/dataWaitingReducer";
 import PropTypes from "prop-types";
-import { getList as fetchArtistList } from "../../API_Calls/artistCalls";
+import { Calls as artistCalls } from "../../API_Calls/artistCalls";
 import { Calls as AlbumCalls } from "../../API_Calls/albumCalls";
 import {
 	Calls as PlaylistCalls,
@@ -106,7 +106,7 @@ export const AppContextProvider = (props: { children: JSX.Element }) => {
 
 	useEffect(() => {
 		if (!loggedIn) return;
-		const requestObj = fetchArtistList({});
+		const requestObj = artistCalls.getList({});
 		const fetch = async () => {
 			try {
 				artistDispatch(dispatches.started());

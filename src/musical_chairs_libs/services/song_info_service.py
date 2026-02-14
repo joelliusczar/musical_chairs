@@ -38,6 +38,7 @@ from sqlalchemy.sql.expression import (
 )
 from sqlalchemy.engine import Connection
 from itertools import chain
+from musical_chairs_libs.protocols import (UserProvider)
 from musical_chairs_libs.tables import (
 	albums as albums_tbl,
 	song_artist as song_artist_tbl,
@@ -59,7 +60,6 @@ from musical_chairs_libs.tables import (
 	playlists_songs as playlists_songs_tbl, plsg_songFk, plsg_playlistFk
 
 )
-from .current_user_provider import CurrentUserProvider
 from .song_artist_service import SongArtistService
 from .stations_songs_service import StationsSongsService
 
@@ -84,7 +84,7 @@ class SongInfoService:
 	def __init__(
 		self,
 		conn: Connection,
-		currentUserProvider: CurrentUserProvider,
+		currentUserProvider: UserProvider,
 		pathRuleService: PathRuleService,
 		songArtistService: Optional[SongArtistService]=None,
 		stationsSongsService: Optional[StationsSongsService]=None,
@@ -208,11 +208,11 @@ class SongInfoService:
 		)
 
 
-	def update_track_nums(self, tracklistings: dict[int, TrackListing]):
+	def update_track_nums(self, tracklistings: dict[str, TrackListing]):
 		for id, listing in tracklistings.items():
 			stmt = update(songs_tbl)\
 				.values(tracknum = listing.tracknum)\
-				.where(sg_pk == id)
+				.where(sg_pk == dtos.decode_id(id))
 			self.conn.execute(stmt)
 
 
@@ -241,7 +241,8 @@ class SongInfoService:
 		songInfoDict.pop("covers", None)
 		songInfoDict.pop("touched", None)
 		songInfoDict.pop("trackinfo", None)
-		songInfoDict["albumfk"] = songInfo.album.id if songInfo.album else None
+		songInfoDict["albumfk"] = songInfo.album.decoded_id() \
+			if songInfo.album else None
 		songInfoDict["lastmodifiedbyuserfk"] = user.id
 		songInfoDict["lastmodifiedtimestamp"] = self.get_datetime().timestamp()
 		with self.conn.begin():
@@ -258,12 +259,16 @@ class SongInfoService:
 			if "artists" in songInfo.touched or "primaryartist" in songInfo.touched:
 				self.song_artist_service.link_songs_with_artists_in_trx(
 					chain(
-						(SongArtistTuple(sid, a.id if a else None) for a 
+						(SongArtistTuple(sid, a.decoded_id() if a else None) for a 
 							in songInfo.artists or [None] * len(ids)
 							for sid in ids
 						) if "artists" in songInfo.touched else (),
 						#we can't use allArtists here bc we need the primaryartist selection
-						(SongArtistTuple(sid, songInfo.primaryartist.id, True) for sid 
+						(SongArtistTuple(
+							sid,
+							songInfo.primaryartist.decoded_id(),
+							True
+						) for sid 
 			 				in ids)
 							if "primaryartist" in
 							songInfo.touched and songInfo.primaryartist else ()
@@ -271,12 +276,12 @@ class SongInfoService:
 				)
 			if "stations" in songInfo.touched:
 				self.stations_songs_service.link_songs_with_stations_in_trx(
-					(StationSongTuple(sid, t.id if t else None) 
+					(StationSongTuple(sid, t.decoded_id() if t else None) 
 						for t in (songInfo.stations or [None] * len(ids)) for sid in ids),
 				)
 			if "playlists" in songInfo.touched:
 				self.playlists_songs_service.link_songs_with_playlists_in_trx(
-					(SongPlaylistTuple(sid, p.id if p else None) 
+					(SongPlaylistTuple(sid, p.decoded_id() if p else None) 
 						for p in (songInfo.playlists or [None] * len(ids)) for sid in ids),
 				)
 			if "trackinfo" in songInfo.touched:
@@ -300,7 +305,7 @@ class SongInfoService:
 		touched = {f for f in SongAboutInfo.model_fields }
 		removedFields: set[str] = set()
 		rules = None
-		trackInfo: dict[int, TrackListing] = {}
+		trackInfo: dict[str, TrackListing] = {}
 		for songInfo in self.get_songs_for_edit(songIds):
 			if rules is None: #empty set means no permissions. Don't overwrite
 				rules = set(songInfo.rules)
@@ -325,7 +330,7 @@ class SongInfoService:
 			touched -= removedFields
 			removedFields.clear()
 		if commonSongInfo:
-			commonSongInfo["id"] = 0
+			commonSongInfo["id"] = ""
 			commonSongInfo["name"] = ""
 			commonSongInfo["treepath"] = ""
 			commonSongInfo["internalpath"] = ""
@@ -337,7 +342,7 @@ class SongInfoService:
 			)
 		else:
 			return SongEditInfo(
-				id=0,
+				id="",
 				name="Missing",
 				treepath="", 
 				internalpath="",

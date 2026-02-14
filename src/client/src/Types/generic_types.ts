@@ -7,9 +7,18 @@ export type IdValue = number
 
 export type KeyValue = string | IdValue;
 
+
+export type Token = string
+
+
 export interface IdItem {
 	id: IdValue
 };
+
+
+export interface TokenItem {
+	id: Token
+}
 
 
 export interface ParamItem {
@@ -35,6 +44,9 @@ export interface Error {
 
 
 export interface NamedIdItem extends IdItem, Named {};
+
+
+export interface NamedTokenItem extends TokenItem, Named {};
 
 
 export interface SelectItem extends Named {

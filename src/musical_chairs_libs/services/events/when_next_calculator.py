@@ -54,7 +54,7 @@ class WhenNextCalculator:
 		userid: int,
 		rules: Collection[ActionRule],
 		sphere: str = UserRoleSphere.Site.value,
-		path: str | None=None,
+		keypath: str | None=None,
 	) -> dict[str, float | None]:
 		if not rules:
 			return {}
@@ -67,7 +67,7 @@ class WhenNextCalculator:
 			fromTimestamp,
 			actions={r.name for r in rules},
 			sphere=sphere,
-			keypath=path,
+			keypath=keypath,
 			limit=maxLimit
 		)
 		presorted = {g[0]:[i.timestamp for i in g[1]] for g in groupby(

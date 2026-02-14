@@ -75,6 +75,7 @@
           DSF_EVENT_LOGS_DIR='{{app_trunk}}/event_logs'
           DSF_VISIT_LOGS_DIR='{{app_trunk}}/visit_logs'
           DSF_QUEUE_FILES_DIR='{{app_trunk}}/queues'
+          DSF_SHUFFLED_ALPHABET='{{keys["shuffled_alphabet"]}}'
       become: true
     - name: Add squish history service
       include_role:

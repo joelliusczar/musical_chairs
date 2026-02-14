@@ -1,6 +1,6 @@
 import { CallStatus, apiAddress } from "../constants";
 import { StationInfo } from "../Types/station_types";
-import { IdValue } from "../Types/generic_types";
+import { IdValue, Token } from "../Types/generic_types";
 
 export const buildArrayQueryStr = (key: string, arr: number[] | string[]) => {
 	const queryObj = new URLSearchParams();
@@ -34,7 +34,7 @@ export const getListenAddress = (station: StationInfo) => {
 	return `/listen/stream/${stationName}`;
 };
 
-export const getDownloadAddress = (songId: IdValue) => {
+export const getDownloadAddress = (songId: Token) => {
 	return `${apiAddress}/song-info/songs/download/${songId}`;
 };
 

@@ -1,4 +1,3 @@
-from .current_user_provider import CurrentUserProvider
 from typing import (
 	Union,
 	cast,
@@ -12,6 +11,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	SongArtistTuple,
 )
+from musical_chairs_libs.protocols import UserProvider
 from sqlalchemy import (
 	select,
 	insert,
@@ -36,7 +36,7 @@ class SongArtistService:
 	def __init__(
 		self,
 		conn: Connection,
-		currentUserProvider: CurrentUserProvider,
+		currentUserProvider: UserProvider,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")

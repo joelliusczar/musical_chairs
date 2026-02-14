@@ -246,7 +246,11 @@ class ArtistService:
 				affectedPk: int = res.lastrowid
 				transaction.commit()
 				owner = user.to_user()
-				return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
+				return ArtistInfo(
+					id=dtos.encode_id(affectedPk), 
+					name=str(savedName), 
+					owner=owner
+				)
 			except IntegrityError:
 				raise AlreadyUsedError.build_error(
 					f"{artistName} is already used.",
@@ -275,7 +279,11 @@ class ArtistService:
 				if res.rowcount == 0:
 					return None
 				owner = self.get_artist_owner(artistId)
-				return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
+				return ArtistInfo(
+					id=dtos.encode_id(affectedPk),
+					name=str(savedName),
+					owner=owner
+				)
 			except IntegrityError:
 				raise AlreadyUsedError.build_error(
 					f"{artistName} is already used.",

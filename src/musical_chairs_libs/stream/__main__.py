@@ -130,12 +130,16 @@ def launch_loading(stationName: str, ownerName: str):
 		currentUserProvider,
 		stationService
 	)
-	stationProcessService.set_station_proc(station.id)
+	stationProcessService.set_station_proc(station.decoded_id())
 	queueService = queue_service(conn)
 	fileService = file_service()
 	try:
 		if station.typeid == StationTypes.SONGS_ONLY.value:
-			queue_song_source.load_data(station.id, queueService, fileService)
+			queue_song_source.load_data(
+				station.decoded_id(),
+				queueService,
+				fileService
+			)
 		else:
 			collectionQueueService = CollectionQueueService(
 				conn,
@@ -143,12 +147,12 @@ def launch_loading(stationName: str, ownerName: str):
 				currentUserProvider
 			)
 			queue_song_source.load_data(
-				station.id,
+				station.decoded_id(),
 				collectionQueueService,
 				fileService
 			)
 	finally:
-		stationProcessService.unset_station_procs(stationIds=station.id)
+		stationProcessService.unset_station_procs(stationIds=station.decoded_id())
 		close_db_connection(conn, "loading")
 
 
@@ -171,7 +175,7 @@ def launch_sending(stationName: str, ownerName: str):
 
 		if station.typeid == StationTypes.SONGS_ONLY.value:
 			queue_song_source.send_next(
-				station.id,
+				station.decoded_id(),
 				start_ices,
 				queueService,
 				ProcessService.stream_timeout
@@ -183,7 +187,7 @@ def launch_sending(stationName: str, ownerName: str):
 				currentUserProvider
 			)
 			queue_song_source.send_next(
-				station.id,
+				station.decoded_id(),
 				start_ices,
 				collectionQueueService,
 				ProcessService.stream_timeout

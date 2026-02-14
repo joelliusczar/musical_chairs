@@ -17,7 +17,7 @@ from .generic_dtos import (
 	FrozenIdItem,
 	FrozenBaseClass,
 	MCBaseClass,
-	IdItem,
+	TokenItem,
 )
 from .action_rule_dtos import ActionRule
 from .station_dtos import StationInfo, StationUnowned
@@ -48,7 +48,7 @@ class ScanningSongItem(FrozenIdItem):
 class SongTreeNode(FrozenBaseClass):
 	treepath: str
 	totalChildCount: int
-	id: int | None=None
+	id: str | None=None
 	name: str | None=None
 	trackNum: float=0
 	directChildren: list["SongTreeNode"]=cast(
@@ -110,7 +110,7 @@ class SongArtistTuple:
 		return str(self)
 
 
-class SongPathInfo(IdItem):
+class SongPathInfo(TokenItem):
 	treepath: str
 	internalpath: str
 
@@ -158,7 +158,7 @@ class SongFullQueryInfo(SongAboutInfo, SongPathInfo):
 
 class ChangeTrackedSongInfo(SongAboutInfo):
 	touched: set[str] | None=None
-	trackinfo: dict[int, TrackListing]={}
+	trackinfo: dict[str, TrackListing]={}
 
 class SongEditInfo(ChangeTrackedSongInfo, SongPathInfo):
 	rules: list[ActionRule]=cast(list[ActionRule], Field(default_factory=list))

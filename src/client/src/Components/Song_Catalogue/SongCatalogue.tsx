@@ -31,7 +31,7 @@ import { UserRoleDef } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo, StationTableData } from "../../Types/station_types";
 import { CatalogueItem } from "../../Types/song_info_types";
-import { IdValue } from "../../Types/generic_types";
+import { Token } from "../../Types/generic_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import { SearchTextField } from "../Shared/SearchTextFIeld";
 import { openSongInTab } from "../../API_Calls/songInfoCalls";
@@ -74,7 +74,7 @@ export const SongCatalogue = () => {
 	const { callStatus: catalogueCallStatus } = catalogueState;
 	const { enqueueSnackbar } = useSnackbar();
 
-	const requestSong = async (songId: IdValue) => {
+	const requestSong = async (songId: Token) => {
 		if (!pathVars.stationkey || !pathVars.ownerkey ) {
 			enqueueSnackbar("A key is missing", {variant: "error" });
 			return;

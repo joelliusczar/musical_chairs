@@ -154,7 +154,7 @@ export const StationEdit = (props: StationEditProps) => {
 
 	const [state, dispatch] = useDataWaitingReducer<StationInfo>(
 		new RequiredDataStore({
-			id: 0,
+			id: "",
 			name: "",
 			displayname: "",
 			isrunning: false,

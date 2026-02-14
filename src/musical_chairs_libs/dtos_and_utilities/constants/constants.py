@@ -4,7 +4,7 @@ from typing import Optional
 hidden_token_alphabet = \
 	"0123456789_abcdefghijklmnopqrstuvwxyz-.~"
 public_token_alphabet = "0123456789_abcdefghijklmnopqrstuvwxyz"
-squid_alphabet = "6tbdMRX0q35wU2yszQegc4YChT7NxWjaSJnV_orEPDLm81fKvpkAlFiOHGu9ZBI"
+
 
 public_token_prefix = "u-"
 

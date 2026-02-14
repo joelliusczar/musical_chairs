@@ -49,7 +49,7 @@
         "DSF_VISIT_LOGS_DIR": "./test_trash/musical_chairs/visit_logs",
         "DSF_QUEUE_FILES_DIR": "./test_trash/musical_chairs/queues",
         "DSF_STATION_HISTORY_FILES_DIR": "./test_trash/musical_chairs/station_histories",
-
+        "DSF_SHUFFLED_ALPHABET": "abcdefghijklmnopqrstuvwxy0123456789"
       },
       "args": [
         "${userHome}/.ssh/localhost_debug.private.pem",

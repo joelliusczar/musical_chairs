@@ -15,6 +15,7 @@ keys:
   namespace_uuid: <8>-<4>-<4>-<4>-<12>
   s3_bucket_name: <>
   s3_region_name: <>
+  shuffled_alphabet: <>
 domain:
   app_root: /<>/
   cron_group: <>

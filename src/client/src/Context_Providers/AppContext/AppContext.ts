@@ -11,9 +11,9 @@ import { StationInfo } from "../../Types/station_types";
 import { AlbumInfo, ArtistInfo } from "../../Types/song_info_types";
 import {
 	Dictionary,
-	IdItem,
 	SingleOrList,
-	NamedIdItem,
+	NamedTokenItem,
+	TokenItem,
 } from "../../Types/generic_types";
 import { nameSortFn } from "../../Helpers/array_helpers";
 import {
@@ -70,7 +70,7 @@ export const AppContext = createContext<AppContextType>({
 	playlistsDispatch: ({ }) => {},
 });
 
-const addItemToState = <T extends NamedIdItem>(
+const addItemToState = <T extends NamedTokenItem>(
 	state: RequiredDataStore<ListDataShape<T>>,
 	item: T
 ) => {
@@ -84,7 +84,7 @@ const addItemToState = <T extends NamedIdItem>(
 	};
 };
 
-const updateItemInState = <T extends NamedIdItem>(
+const updateItemInState = <T extends NamedTokenItem>(
 	state: RequiredDataStore<ListDataShape<T>>,
 	item: T
 ) => {
@@ -103,7 +103,7 @@ const updateItemInState = <T extends NamedIdItem>(
 	return state;
 };
 
-const removeItemInState = <T extends NamedIdItem>(
+const removeItemInState = <T extends NamedTokenItem>(
 	state: RequiredDataStore<ListDataShape<T>>,
 	item: T
 ) => {
@@ -273,7 +273,7 @@ export const usePlaylistData = () => {
 	};
 };
 
-export const useIdMapper = <T extends IdItem>(items: T[]) => {
+export const useIdMapper = <T extends TokenItem>(items: T[]) => {
 	const idMapper =
 		<InT extends T | T[] | null,>(value: InT): SingleOrList<T, InT> => {
 			if(!value) return null as SingleOrList<T, InT>;

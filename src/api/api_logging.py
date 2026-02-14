@@ -53,7 +53,7 @@ def log_event(sphere: str, action: str):
 		eventsLogger.add_event(
 			action,
 			sphere,
-			str(station.id)
+			str(station.decoded_id())
 		)
 
 	if sphere == UserRoleSphere.Site.value:

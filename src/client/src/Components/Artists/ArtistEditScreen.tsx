@@ -4,9 +4,7 @@ import {
 	useArtistData,
 } from "../../Context_Providers/AppContext/AppContext";
 import { 
-	update as saveArtist, 
-	get as fetchArtist,
-	removeRecordCaller as deleteArtist,
+	Calls,
 } from "../../API_Calls/artistCalls";
 import { useForm } from "react-hook-form";
 import {
@@ -53,7 +51,7 @@ const initialValues = {
 
 export const ArtistEditScreen = () => {
 
-	const id  = parseInt((useParams().id || "0"));
+	const id  = useParams().id;
 	const { enqueueSnackbar } = useSnackbar();
 	const navigate = useNavigate();
 
@@ -113,8 +111,12 @@ export const ArtistEditScreen = () => {
 	});
 	const { handleSubmit, reset, getValues } = formMethods;
 	const callSubmit = handleSubmit(async values => {
+		if (!id) {
+			enqueueSnackbar("id is missing", { variant: "error"});
+			return;
+		}
 		try {
-			const requestObj = saveArtist({ id, data: {
+			const requestObj = Calls.update({ id, data: {
 				name: values.name,
 			} });
 			const artist = await requestObj.call();
@@ -135,7 +137,11 @@ export const ArtistEditScreen = () => {
 
 	const deleteItem = async () => {
 		try {
-			const requestObj = deleteArtist({ id });
+			if (!id) {
+				enqueueSnackbar("id is missing", { variant: "error"});
+				return;
+			}
+			const requestObj = Calls.remove({ id });
 			await requestObj.call();
 			removeArtist(getValues());
 			enqueueSnackbar("Delete successful", { variant: "success"});
@@ -154,7 +160,7 @@ export const ArtistEditScreen = () => {
 
 	useEffect(() => {
 		if(id) {
-			const requestObj = fetchArtist({
+			const requestObj = Calls.get({
 				id,
 			});
 			if (!isPending) return;

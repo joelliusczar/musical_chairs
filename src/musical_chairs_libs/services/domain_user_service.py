@@ -8,7 +8,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	RulePriorityLevel,
 	UserRoleSphere,
-	RuledOwnedEntity,
+	RuledOwnedTokenEntity,
 )
 
 from musical_chairs_libs.tables import (
@@ -80,7 +80,7 @@ class DomainUserService:
 
 	def get_domain_users(
 		self,
-		entity: RuledOwnedEntity,
+		entity: RuledOwnedTokenEntity,
 		sphere: UserRoleSphere,
 		ownerRuleProvider: Callable[[], Iterator[ActionRule]],
 	) -> Iterator[dtos.RoledUser]:
@@ -108,7 +108,7 @@ class DomainUserService:
 					),
 					and_(
 						rulesQuery.c["rule>userfk"] == u_pk,
-						rulesQuery.c["rule>keypath"] == str(entity.id),
+						rulesQuery.c["rule>keypath"] == str(entity.decoded_id()),
 						rulesQuery.c["rule>sphere"] == sphere.value
 					)
 				),

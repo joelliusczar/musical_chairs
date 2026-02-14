@@ -331,7 +331,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 
 		metrics.queued = self.queue_count(alreadyQueued)
 
-		collectionIds = self.get_random_collectionIds(station.id, metrics)
+		collectionIds = self.get_random_collectionIds(station.decoded_id(), metrics)
 
 		if not collectionIds:
 			self.queue_service.replace_queue_file(station, alreadyQueued)
@@ -376,7 +376,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 
 			lastPlayedUpdate = update(stationCollectionTbl)\
 				.values(lastplayednum = station.playnum + i + 1) \
-				.where(stationFkCol == station.id)\
+				.where(stationFkCol == station.decoded_id())\
 				.where(collectionFkCol == collectionId[0])
 			self.conn.execute(lastPlayedUpdate)
 
@@ -424,7 +424,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		if station and\
 			self.__can_album_be_queued_to_station__(
 				itemId,
-				station.id,
+				station.decoded_id(),
 			):
 			query = select(
 				sg_pk.label("id"),
@@ -480,7 +480,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		if station and\
 			self.__can_playlist_be_queued_to_station__(
 				itemId,
-				station.id
+				station.decoded_id()
 			):
 			query = select(
 				sg_pk.label("id"),

@@ -37,7 +37,12 @@ import {
 	DirectoryTransferSource,
 	BreadcrumbNodeInfo,
 } from "../../Types/song_info_types";
-import { IdValue, Dictionary, KeyValue } from "../../Types/generic_types";
+import { 
+	IdValue,
+	Dictionary,
+	KeyValue,
+	Token,
+} from "../../Types/generic_types";
 import { ListData } from "../../Types/pageable_types";
 import { ActionRule } from "../../Types/user_types";
 import {
@@ -499,7 +504,7 @@ export const SongTree = withCacheProvider<
 					return value?.id;
 				}
 				return null;
-			}).filter(n => !!n) as number[];
+			}).filter(n => !!n) as Token[];
 		};
 
 
@@ -513,7 +518,7 @@ export const SongTree = withCacheProvider<
 		};
 
 
-		const getSongEditUrl = (ids: IdValue[]) => {
+		const getSongEditUrl = (ids: Token[]) => {
 			const queryStr = buildArrayQueryStr("ids", ids);
 			return `${DomRoutes.songEdit()}${queryStr}`;
 		};

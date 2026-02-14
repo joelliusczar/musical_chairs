@@ -19,7 +19,13 @@ from .simple_functions import (
 	normalize_opening_slash,
 	normalize_closing_slash
 )
-from .generic_dtos import FrozenIdItem, FrozenBaseClass, RuledEntity, IdItem
+from .generic_dtos import (
+	FrozenIdItem,
+	FrozenBaseClass,
+	RuledEntity,
+	IdItem,
+	TokenItem,
+)
 from .action_rule_dtos import (
 	ActionRule,
 )
@@ -229,4 +235,8 @@ class OwnedEntity(MCBaseClass):
 
 
 class RuledOwnedEntity(IdItem, OwnedEntity, RuledEntity):
+	...
+
+
+class RuledOwnedTokenEntity(TokenItem, OwnedEntity, RuledEntity):
 	...

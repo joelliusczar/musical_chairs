@@ -13,7 +13,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	build_error_obj,
 	get_station_owner_rules,
-	int_or_str,
 	UserRoleDef,
 	UserRoleSphere,
 	StationInfo,
@@ -56,7 +55,7 @@ def get_stations(
 	result = None
 	pathId = request.path_params.get("id", None)
 	if pathId is not None:
-		return stationService.get_stations(int(pathId))
+		return stationService.get_stations(dtos.decode_id(pathId))
 	
 	pathName = request.path_params.get("stationkey", None)
 	if pathName is not None:
@@ -65,7 +64,7 @@ def get_stations(
 			owner = open_provided_user(ownerKey, accountAccessService)
 			if owner:
 				return stationService.get_stations(
-					int_or_str(pathName),
+					dtos.decode_id_or_not(pathName, pathName),
 					ownerKey=owner.id
 				)
 			else:
@@ -80,7 +79,7 @@ def get_stations(
 
 	queryIds = request.query_params.getlist("stationids")
 	if queryIds:
-		result = stationService.get_stations((int(s) for s in queryIds))
+		result = stationService.get_stations(dtos.decode_id(s) for s in queryIds)
 	if result:
 		return result
 	else:
@@ -174,7 +173,7 @@ def get_rate_secured_station(
 			user.id,
 			rules,
 			UserRoleSphere.Station.value,
-			str(station.id)
+			str(station.decoded_id())
 		)
 	for scope in conformingSopes:
 		if scope in timeoutLookup:

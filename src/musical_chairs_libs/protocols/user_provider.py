@@ -24,3 +24,7 @@ class UserProvider(Protocol):
 
 	def is_loggedIn(self) -> bool:
 		...
+
+
+	def optional_user_id(self) -> int | None:
+		...

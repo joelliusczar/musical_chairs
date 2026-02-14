@@ -8,6 +8,7 @@ import {
 	StringObject,
 	Flags,
 	KeyValue,
+	Token,
 } from "../Types/generic_types";
 import {
 	PlaylistInfo,
@@ -80,7 +81,7 @@ export const Calls = {
 		};
 	},
 	update: (
-		{ id, data }: { id: IdValue, data: PlaylistCreationInfo }
+		{ id, data }: { id: Token, data: PlaylistCreationInfo }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -96,7 +97,7 @@ export const Calls = {
 			},
 		};
 	},
-	remove: ({ id }: { id: IdValue }) => {
+	remove: ({ id }: { id: Token }) => {
 		const abortController = new AbortController();
 		return {
 			abortController: abortController,
@@ -133,7 +134,7 @@ export const Calls = {
 	},
 	removeSongs: (
 		{ ids, playlistid }:
-		{ ids: IdValue[], playlistid: KeyValue  }
+		{ ids: Token[], playlistid: KeyValue  }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -150,8 +151,8 @@ export const Calls = {
 		};
 	},
 	moveSong: ({ playlistid, songid, order }: { 
-		playlistid: IdValue,
-		songid: IdValue,
+		playlistid: Token,
+		songid: Token,
 		order: number
 	}) => {
 		const abortController = new AbortController();

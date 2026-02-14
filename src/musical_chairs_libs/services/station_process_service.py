@@ -21,7 +21,6 @@ from typing import (
 	Optional,
 	cast,
 	Iterable,
-	Union,
 	Sequence,
 )
 from .current_user_provider import CurrentUserProvider
@@ -88,17 +87,19 @@ class StationProcessService:
 			else:
 				canBeEnabled = {s[0] for s in  \
 					self.station_service.get_station_song_counts(
-						stationIds=[station.id]
+						stationIds=[station.decoded_id()]
 					) \
 					if s[1] > 0
 				}
 				canBeEnabled |= {s[0] for s in  \
 					self.stations_albums_service.get_station_song_counts(
-						stationIds=[station.id]
+						stationIds=[station.decoded_id()]
 					) \
 					if s[1] > 0
 				}
-				stationsEnabled = [s for s in [station] if s.id in canBeEnabled]
+				stationsEnabled = [
+					s for s in [station] if s.decoded_id() in canBeEnabled
+				]
 				for station in stationsEnabled:
 					if ProcessService.noop_mode():
 						self.__noop_startup__(station.name)
@@ -114,7 +115,7 @@ class StationProcessService:
 							station.owner.username
 						):
 							self.template_service.create_station_files(
-								station.id,
+								station.decoded_id(),
 								station.name,
 								station.displayname,
 								station.owner.username,
@@ -147,8 +148,8 @@ class StationProcessService:
 
 	def unset_station_procs(
 		self,
-		procIds: Optional[Iterable[int]]=None,
-		stationIds: Union[int,Sequence[int], None, Lost]=Lost()
+		procIds: Iterable[int] | None=None,
+		stationIds: int |Sequence[int] | None | Lost=Lost()
 	) -> None:
 		stmt = update(stations_tbl)\
 			.values(procid = None)
@@ -189,7 +190,7 @@ class StationProcessService:
 			ownerKey = self.current_user_provider.current_user().id
 			query = query.where(st_ownerFk == ownerKey)
 		else:
-			query = query.where(st_pk == station.id)
+			query = query.where(st_pk == station.decoded_id())
 			
 		with dtos.open_transaction(self.conn):
 			rows = self.conn.execute(query).fetchall()

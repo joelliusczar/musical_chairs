@@ -1,6 +1,4 @@
 #pyright: reportMissingTypeStubs=false
-import musical_chairs_libs.dtos_and_utilities as dtos
-import musical_chairs_libs.tables as tbl
 from typing import (
 	Any,
 	Iterator,
@@ -70,9 +68,11 @@ from musical_chairs_libs.dtos_and_utilities.constants import (
 	UserRoleSphere
 )
 from musical_chairs_libs.dtos_and_utilities.constants import StationTypes
-from .current_user_provider import CurrentUserProvider
+from musical_chairs_libs.protocols import UserProvider
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 
 
 class StationService:
@@ -80,7 +80,7 @@ class StationService:
 	def __init__(
 		self,
 		conn: Connection,
-		currentUserProvider: CurrentUserProvider,
+		currentUserProvider: UserProvider,
 		pathRuleService: PathRuleService,
 		templateService: Optional[TemplateService]=None,
 	):

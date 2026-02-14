@@ -34,7 +34,6 @@ from sqlalchemy.sql.functions import coalesce
 from .station_service import StationService
 from .song_info_service import SongInfoService
 from .path_rule_service import PathRuleService
-from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.tables import (
 	songs,
 	stations,
@@ -73,6 +72,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from musical_chairs_libs.protocols import (
 	SongPopper,
 	RadioPusher,
+	UserProvider,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	StationActions,
@@ -114,7 +114,7 @@ class QueueService(SongPopper, RadioPusher):
 	def __init__(
 		self,
 		conn: Connection,
-		currentUserProvider: CurrentUserProvider,
+		currentUserProvider: UserProvider,
 		songInfoService: SongInfoService,
 		pathRuleService: PathRuleService,
 		stationService: Optional[StationService]=None,
@@ -289,7 +289,7 @@ class QueueService(SongPopper, RadioPusher):
 			if station.typeid == StationTypes.SONGS_ONLY.value:
 				lastPlayedUpdate = update(stations_songs_tbl)\
 					.values(lastplayednum = station.playnum + i + 1) \
-					.where(stsg_stationFk == station.id)\
+					.where(stsg_stationFk == station.decoded_id())\
 					.where(stsg_songFk == request.id)
 				self.conn.execute(lastPlayedUpdate)
 
@@ -308,7 +308,7 @@ class QueueService(SongPopper, RadioPusher):
 				**station.model_dump(exclude={"id", "playnum"}),
 				playnum=station.playnum + addition,
 			),
-			station.id,
+			station.decoded_id(),
 		)	
 
 
@@ -329,7 +329,7 @@ class QueueService(SongPopper, RadioPusher):
 		)
 		count = countRes if countRes else 0
 		queueMetrics.queued = count
-		songs = self.get_random_songIds(station.id, queueMetrics)
+		songs = self.get_random_songIds(station.decoded_id(), queueMetrics)
 		
 		if songs:
 			self.queue_insert_songs_in_trx(
@@ -462,7 +462,7 @@ class QueueService(SongPopper, RadioPusher):
 			if station and songInfo\
 				and self.can_song_be_queued_to_station(
 					itemId,
-					station.id
+					station.decoded_id()
 				):
 
 				self.__add_song_to_queue__(
@@ -486,7 +486,7 @@ class QueueService(SongPopper, RadioPusher):
 			if self.current_user_provider.is_loggedIn():
 				pathRuleTree = self.path_rule_service.get_rule_path_tree()
 			queue, count = self.get_queue_for_station(
-				station.id,
+				station.decoded_id(),
 				page,
 				limit
 			)
@@ -546,7 +546,7 @@ class QueueService(SongPopper, RadioPusher):
 		beforeTimestamp: Optional[float]=None
 	) -> Tuple[list[HistoryItem], int]:
 
-		user = self.current_user_provider.current_user()
+		user = self.current_user_provider.current_user(optional=True)
 
 		query = select(
 			sg_pk.label("id"),
@@ -566,7 +566,7 @@ class QueueService(SongPopper, RadioPusher):
 			.join(song_artist, sg_pk == sgar_songFk, isouter=True) \
 			.join(artists, sgar_artistFk == ar_pk, isouter=True) \
 			.where(q_timestamp.isnot(None))\
-			.where(q_stationFk == station.id)\
+			.where(q_stationFk == station.decoded_id())\
 			.where(
 				or_(
 					q_action.is_(None),
@@ -694,11 +694,11 @@ DELETE FROM `stationlogs` WHERE `pk` IN (SELECT `pk` FROM `historyids`);
 
 			squashed = {
 				(item.songid, item.itemtype, item.parentkey):item.timestamp
-				for item in self.get_old_last_played(station.id)
+				for item in self.get_old_last_played(station.decoded_id())
 			}
 			addura = [v for v in {
 				e.id:LastPlayedItem(
-					songid = e.id,
+					songid = e.decoded_id(),
 					timestamp = e.playedtimestamp or 0,
 					historyid = e.historyid or 0,
 					itemtype = e.itemtype,
@@ -709,22 +709,26 @@ DELETE FROM `stationlogs` WHERE `pk` IN (SELECT `pk` FROM `historyids`);
 			}.values()]
 			updatera = (v for v in {
 				e.id:LastPlayedItem(
-					songid = e.id,
+					songid = e.decoded_id(),
 					timestamp = e.playedtimestamp or 0,
 					historyid = e.historyid or 0,
 					itemtype = e.itemtype,
 					parentkey = e.parentkey
 				)
 				for e in reversed(unsquashed)
-				if (e.id, e.itemtype, e.parentkey) in squashed and e.playedtimestamp and
-					squashed[(e.id, e.itemtype, e.parentkey)] < e.playedtimestamp
+				if (e.decoded_id(), e.itemtype, e.parentkey) in squashed \
+					and e.playedtimestamp \
+					and squashed[(e.decoded_id(), e.itemtype, e.parentkey)] < e.playedtimestamp
 			}.values())
-			addedCount = self.add_to_last_played(station.id, addura)
+			addedCount = self.add_to_last_played(station.decoded_id(), addura)
 			updatedCount = self.update_last_played_timestamps_in_trx(
-				station.id,
+				station.decoded_id(),
 				updatera
 			)
-			deletedCount = self.trim_recently_played(station.id, beforeTimestamp)
+			deletedCount = self.trim_recently_played(
+				station.decoded_id(),
+				beforeTimestamp
+			)
 			transaction.commit()
 			return (addedCount, updatedCount, deletedCount)
 

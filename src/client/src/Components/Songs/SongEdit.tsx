@@ -142,7 +142,7 @@ export const SongEdit = () => {
 
 	const ids = useMemo(() => {
 		const queryObj = new URLSearchParams(location.search);
-		return queryObj.getAll("ids").map(id => parseInt(id));
+		return queryObj.getAll("ids").map(id => id);
 	},[location.search]);
 
 	const {
@@ -178,11 +178,11 @@ export const SongEdit = () => {
 			name: "",
 			artists: [],
 			primaryartist: {
-				id: 0,
+				id: "",
 				name: "",
 			},
 			album: {
-				id: 0,
+				id: "",
 				name: "",
 			},
 			tracknum: 0,
@@ -275,6 +275,7 @@ export const SongEdit = () => {
 	useAuthViewStateChange(authReset);
 
 	useEffect(() => {
+		console.log(ids);
 		if (ids.length === 0) {
 			dispatch(dispatches.failed("No song selected"));
 			return;
@@ -616,7 +617,7 @@ export const SongEdit = () => {
 								sx={trackNumberField}
 								name={`trackinfo[${k}].tracknum`}
 								formMethods={formMethods}
-								label={`${trackinfoMap[parseInt(k)].name}`}
+								label={`${trackinfoMap[k].name}`}
 								disabled={!canEditSongs}
 							/>
 						</Box>

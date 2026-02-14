@@ -294,7 +294,7 @@ class SongFileService:
 					self.song_artist_service.link_songs_with_artists_in_trx(
 						[SongArtistTuple(
 							cast(int,result.inserted_primary_key[0]),
-							songAboutInfo.primaryartist.id,
+							dtos.decode_id(songAboutInfo.primaryartist.id),
 							isprimaryartist=True
 						)]
 					)
@@ -307,7 +307,7 @@ class SongFileService:
 				return SongTreeNode(
 					treepath=normalize_closing_slash(path),
 					totalChildCount=1,
-					id=result.lastrowid
+					id=dtos.encode_id(result.lastrowid)
 				)
 
 
@@ -364,7 +364,7 @@ class SongFileService:
 				yield SongTreeNode(
 					treepath=cast(str, row["prefix"]),
 					totalChildCount=cast(int, row["totalChildCount"]),
-					id=cast(int, row["pk"]),
+					id=dtos.encode_id(row["pk"]),
 					name=cast(str, row["name"]),
 					rules=[r for p in
 						permittedPathsTree.values(normalizedPrefix) for r in p
@@ -555,7 +555,8 @@ class SongFileService:
 				for r in rows
 			}
 			return {
-				Path(p.treepath).name: (pathToId.get(p.treepath, p.id) != p.id)
+				Path(p.treepath).name : 
+					(pathToId.get(p.treepath, p.decoded_id()) != p.decoded_id())
 				for p in treepaths
 			}
 

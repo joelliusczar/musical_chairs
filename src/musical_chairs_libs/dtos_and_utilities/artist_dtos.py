@@ -1,10 +1,10 @@
 from .account_dtos import OwnedEntity
 from .generic_dtos import (
-	FrozenNamedIdItem,
+	FrozenNamedTokenItem,
 )
 
 
-class ArtistUnowned(FrozenNamedIdItem):
+class ArtistUnowned(FrozenNamedTokenItem):
 	isprimaryartist: bool=False
 
 

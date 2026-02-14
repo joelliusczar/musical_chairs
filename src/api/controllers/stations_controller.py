@@ -99,7 +99,7 @@ def history(
 def queue(
 	limit: int = 50,
 	page: int = Depends(get_page_num),
-	station: Optional[StationInfo] = Depends(get_station),
+	station: StationInfo | None = Depends(get_station),
 	queueService: QueueService = Depends(queue_service),
 ) -> CurrentPlayingInfo:
 	if not station:
@@ -126,7 +126,7 @@ def catalogue(
 	parentname: str = "",
 	creator: str = "",
 	queryParams: SimpleQueryParameters = Depends(get_query_params,),
-	station: Optional[StationInfo] = Depends(get_station),
+	station: StationInfo | None = Depends(get_station),
 	queueService: RadioPusher = Depends(station_radio_pusher),
 ) -> StationTableData[CatalogueItem]:
 	if not station:
@@ -134,7 +134,7 @@ def catalogue(
 	if queryParams.limit is None:
 		queryParams.limit = 50
 	items, totalRows = queueService.get_catalogue(
-			stationId = station.id,
+			stationId = station.decoded_id(),
 			queryParams=queryParams,
 			name=name,
 			parentname=parentname,
@@ -158,7 +158,7 @@ def catalogue(
 	]
 )
 def request_item(
-	itemid: int,
+	itemid: str,
 	station: StationInfo = Security(
 		get_rate_secured_station,
 		scopes=[UserRoleDef.STATION_REQUEST.value]
@@ -168,7 +168,7 @@ def request_item(
 ):
 	try:
 		queueService.add_to_queue(
-			itemid,
+			dtos.decode_id(itemid),
 			station,
 			requestType
 		)
@@ -270,7 +270,7 @@ def update_station(
 	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
-	result = stationService.save_station(station, savedStation.id)
+	result = stationService.save_station(station, savedStation.decoded_id())
 	return result
 
 
@@ -321,7 +321,7 @@ def disable_stations(
 	stationProcessService.disable_stations(
 		station
 	)
-	stationProcessService.unset_station_procs(stationIds=station.id)
+	stationProcessService.unset_station_procs(stationIds=station.decoded_id())
 
 
 @router.post(
@@ -343,7 +343,7 @@ def play_next(
 	),
 	queueService: QueueService = Depends(queue_service)
 ):
-	queueService.pop_next_queued(station.id)
+	queueService.pop_next_queued(station.decoded_id())
 
 
 @router.get("/{ownerkey}/{stationkey}/user_list")
@@ -380,7 +380,7 @@ def add_user_rule(
 ) -> ActionRule:
 	return stationsUsersService.add_user_rule_to_station(
 		user.id,
-		stationInfo.id,
+		stationInfo.decoded_id(),
 		rule
 	)
 
@@ -408,7 +408,7 @@ def remove_user_rule(
 ):
 	stationsUsersService.remove_user_rule_from_station(
 		user.id,
-		stationInfo.id,
+		stationInfo.decoded_id(),
 		rulename
 	)
 
@@ -434,7 +434,7 @@ def delete(
 	stationService: StationService = Depends(station_service),
 ):
 	try:
-		if stationService.delete_station(station.id, clearStation) == 0:
+		if stationService.delete_station(station.decoded_id(), clearStation) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
 				detail=[build_error_obj(f"Station not found")
@@ -467,5 +467,5 @@ def copy_station(
 	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
-	result = stationService.copy_station(savedstation.id, station)
+	result = stationService.copy_station(savedstation.decoded_id(), station)
 	return result

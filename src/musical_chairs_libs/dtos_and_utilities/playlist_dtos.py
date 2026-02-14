@@ -12,9 +12,9 @@ from typing import (
 )
 from .generic_dtos import (
 	Named,
-	NamedIdItem,
+	NamedTokenItem,
 )
-from .account_dtos import User, RuledOwnedEntity
+from .account_dtos import User, RuledOwnedTokenEntity
 from .user_role_def import RulePriorityLevel
 from .queued_item import SongListDisplayItem
 from .validation_functions import min_length_validator_factory
@@ -27,10 +27,10 @@ class PlaylistCreationInfo(Named):
 		list[StationInfo], Field(default_factory=list)
 	)
 
-class PlaylistUnowned(NamedIdItem):
+class PlaylistUnowned(NamedTokenItem):
 	displayname: str | None=""
 
-class PlaylistInfo(PlaylistUnowned, RuledOwnedEntity):
+class PlaylistInfo(PlaylistUnowned, RuledOwnedTokenEntity):
 
 
 	@classmethod

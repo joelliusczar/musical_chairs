@@ -59,7 +59,7 @@ def test_get_stations_list_with_user_and_owner(
 	assert user
 	data = sorted(
 		stationService.get_stations(ownerKey=user.id),
-		key=lambda s:s.id
+		key=lambda s:dtos.decode_id(s.id)
 	)
 	assert len(data) == 10
 	assert data[0].name == "oscar_station"
@@ -93,7 +93,7 @@ def test_get_stations_list_with_user_and_owner(
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
 			stationService.get_stations(ownerKey=user.id),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 1
 		assert data[0].name == "zulu_station"
@@ -128,8 +128,8 @@ def test_save_station(
 		displayname="Brand new station"
 	)
 	result = stationService.save_station(testData)
-	assert result and result.id == len(get_initial_stations()) + 1
-	fetched = next(iter(stationService.get_stations(result.id)))
+	assert result and result.id == dtos.encode_id(len(get_initial_stations()) + 1)
+	fetched = next(iter(stationService.get_stations(result.decoded_id())))
 	assert fetched.id == result.id
 	assert fetched.name == "brand_new_station"
 	assert fetched.displayname == "Brand new station"
@@ -139,8 +139,8 @@ def test_save_station(
 		displayname="Brand new station with bad tag"
 	)
 	result = stationService.save_station(testData)
-	assert result and result.id == len(get_initial_stations()) + 2
-	fetched = next(iter(stationService.get_stations(result.id)))
+	assert result and result.id == dtos.encode_id(len(get_initial_stations()) + 2)
+	fetched = next(iter(stationService.get_stations(result.decoded_id())))
 
 
 	testData = StationCreationInfo(
@@ -156,8 +156,8 @@ def test_save_station(
 	)
 	with stationService.current_user_provider.impersonate(bravoUser):
 		result = stationService.save_station(testData, 2)
-		assert result and result.id == 2
-		fetched = next(iter(stationService.get_stations(result.id)))
+		assert result and result.id == dtos.encode_id(2)
+		fetched = next(iter(stationService.get_stations(result.decoded_id())))
 		assert fetched and fetched.name == "papa_station_update"
 		assert fetched and fetched.displayname == "Come to papa test"
 
@@ -168,8 +168,8 @@ def test_save_station(
 	)
 	with stationService.current_user_provider.impersonate(fixture_primary_user):
 		result = stationService.save_station(testData, 1)
-		assert result and result.id == 1
-		fetched = next(iter(stationService.get_stations(result.id)))
+		assert result and result.id == dtos.encode_id(1)
+		fetched = next(iter(stationService.get_stations(result.decoded_id())))
 		assert fetched and fetched.name == "oscar_station"
 		assert fetched and fetched.displayname == "Oscar the grouch"
 
@@ -264,7 +264,7 @@ def test_get_stations_with_view_security(
 	#no user
 	data = sorted(
 		stationService.get_stations(),
-		key=lambda s:s.id
+		key=lambda s:dtos.decode_id(s.id)
 	)
 	assert len(data) == expectedCountDefault
 	assert data[0].name == "oscar_station"
@@ -289,7 +289,7 @@ def test_get_stations_with_view_security(
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
 			stationService.get_stations(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == expectedCountDefault + 1
 		assert data[0].name == "oscar_station"
@@ -315,7 +315,7 @@ def test_get_stations_with_view_security(
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
 			stationService.get_stations(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == expectedCountDefault + 2
 		assert data[0].name == "oscar_station"
@@ -342,7 +342,7 @@ def test_get_stations_with_view_security(
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
 			stationService.get_stations(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == expectedCountDefault + 2
 		assert data[0].name == "oscar_station"
@@ -369,7 +369,7 @@ def test_get_stations_with_view_security(
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
 			stationService.get_stations(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == expectedCountDefault + 2
 		assert data[0].name == "oscar_station"
@@ -396,7 +396,7 @@ def test_get_stations_with_view_security(
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
 			stationService.get_stations(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == expectedCountDefault + 2
 
@@ -415,7 +415,7 @@ def test_get_stations_with_scopes(
 		stationService.get_stations(
 			scopes=[UserRoleDef.STATION_ASSIGN.value]
 		),
-		key=lambda s:s.id
+		key=lambda s:dtos.decode_id(s.id)
 	)
 	assert len(data) == 0
 
@@ -425,7 +425,7 @@ def test_get_stations_with_scopes(
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
 			stationService.get_stations(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == expectedCountDefault
 
@@ -433,7 +433,7 @@ def test_get_stations_with_scopes(
 			stationService.get_stations(
 				scopes=[UserRoleDef.STATION_ASSIGN.value]
 			),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 0
 
@@ -442,7 +442,7 @@ def test_get_stations_with_scopes(
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
 			stationService.get_stations(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == expectedCountDefault + 1
 
@@ -450,7 +450,7 @@ def test_get_stations_with_scopes(
 			stationService.get_stations(
 				scopes=[UserRoleDef.STATION_ASSIGN.value]
 			),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == expectedCountDefault + 1
 		assert data[0].name == "oscar_station"
@@ -478,7 +478,7 @@ def test_get_stations_with_scopes(
 	with stationService.current_user_provider.impersonate(user):
 		data = sorted(
 			stationService.get_stations(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == expectedCountDefault
 
@@ -486,7 +486,7 @@ def test_get_stations_with_scopes(
 			stationService.get_stations(
 				scopes=[UserRoleDef.STATION_ASSIGN.value]
 			),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 
 		assert len(data) == 1

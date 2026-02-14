@@ -128,6 +128,10 @@ class ConfigAcessors:
 	def station_queue_files_dir(cls) -> str:
 		return cls.get_value("DSF_QUEUE_FILES_DIR", "station_queue_files_dir")
 	
+	@classmethod
+	def shuffled_alphabet(cls) -> str:
+		return cls.get_value("DSF_SHUFFLED_ALPHABET", "shuffled_alphabet")
+	
 
 	@classmethod
 	def station_history_files_dir(cls) -> str:

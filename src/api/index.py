@@ -274,7 +274,7 @@ def everything_else(
 
 @app.get("/canary")
 def canary() -> str:
-	return "Third Canary"
+	return "Forth Canary"
 
 if __name__ == "__main__":
 	if len(sys.argv) > 2:

@@ -4,7 +4,7 @@ import { Button } from "@mui/material";
 import { getDownloadAddress } from "../../Helpers/request_helpers";
 
 type SongListenerProps = {
-	audioId: number,
+	audioId: string,
 };
 
 export const SongListener = (props: SongListenerProps) => {

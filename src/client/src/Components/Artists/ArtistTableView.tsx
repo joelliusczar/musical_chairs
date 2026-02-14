@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { getPageCaller as getPage } from "../../API_Calls/artistCalls";
+import { Calls } from "../../API_Calls/artistCalls";
 import {
 	Table,
 	TableBody,
@@ -105,7 +105,7 @@ const ArtistTableView = () => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
 		const queryObj = getSearchParams(location.search);
 
-		const requestObj = getPage({
+		const requestObj = Calls.getPage({
 			...queryObj,
 		});
 		const fetch = async () => {

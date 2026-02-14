@@ -597,10 +597,14 @@ def get_owner(
 
 
 def get_album_by_id(
-	albumid: int=Path(),
+	albumid: str=Path(),
 	albumService: AlbumService = Depends(album_service),
 ) -> AlbumInfo:
-	album = next(albumService.get_albums(albumKeys=albumid), None)
+
+	album = next(
+		albumService.get_albums(albumKeys=dtos.decode_id(albumid)), #pyright: ignore reportUnknownMemberType
+		None
+	)
 	if not album:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -622,10 +626,13 @@ def get_secured_album_by_id(
 
 
 def get_artist_by_id(
-		artistid: int=Path(),
+		artistid: str=Path(),
 		artist_service: ArtistService = Depends(artist_service),
 ) -> ArtistInfo:
-	artist = next(artist_service.get_artists(artistKeys=artistid), None)
+	artist = next(artist_service.get_artists(
+		artistKeys=dtos.decode_id(artistid)),
+		None
+	)
 	if not artist:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,

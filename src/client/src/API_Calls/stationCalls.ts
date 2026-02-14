@@ -1,6 +1,11 @@
 import webClient from "./api";
 import { buildArrayQueryStrFromObj } from "../Helpers/request_helpers";
-import { OwnerParam, KeyValue, IdValue } from "../Types/generic_types";
+import { 
+	OwnerParam,
+	KeyValue,
+	IdValue,
+	Token,
+} from "../Types/generic_types";
 import {
 	RequiredStationParams,
 	StationCreationInfo,
@@ -78,7 +83,7 @@ export const Calls = {
 		};
 	},
 	save: (
-		{ values, id }: { values: StationCreationInfo, id?: IdValue | null }
+		{ values, id }: { values: StationCreationInfo, id?: Token | null }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -102,7 +107,7 @@ export const Calls = {
 			},
 		};
 	},
-	remove: ({ id }: { id: IdValue }) => {
+	remove: ({ id }: { id: Token }) => {
 		const abortController = new AbortController();
 		return {
 			abortController: abortController,
@@ -117,7 +122,7 @@ export const Calls = {
 		};
 	},
 	copy: (
-		{ values, id }: { values: StationCreationInfo, id: IdValue }
+		{ values, id }: { values: StationCreationInfo, id: Token }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -189,7 +194,7 @@ export const Calls = {
 	queueRequest: (
 		{ stationkey, ownerkey, itemid, requesttypeid = StationRequestTypes.SONG }: 
 		RequiredStationParamsOnly & {
-			itemid: IdValue,
+			itemid: Token,
 			requesttypeid?: IdValue,
 		}
 	) => {
@@ -209,7 +214,7 @@ export const Calls = {
 		};
 	},
 	removeSongFromQueue: (
-		params: RequiredStationParams & { songid: IdValue, queuedtimestamp: number }
+		params: RequiredStationParams & { songid: Token, queuedtimestamp: number }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -234,7 +239,7 @@ export const Calls = {
 		};
 	},
 	enableStation: (
-		{ ids }: { ids: IdValue[] | IdValue }
+		{ ids }: { ids: Token[] | Token }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -252,7 +257,7 @@ export const Calls = {
 		};
 	},
 	disableStations: (
-		{ ids=[] }: { ids?: number[], includeAll?: boolean }
+		{ ids=[] }: { ids?: Token[], includeAll?: boolean }
 	) => {
 		const abortController = new AbortController();
 		return {

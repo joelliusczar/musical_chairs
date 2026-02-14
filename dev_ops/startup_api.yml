@@ -232,6 +232,7 @@
           DSF_EVENT_LOGS_DIR='{{app_trunk}}/event_logs'
           DSF_VISIT_LOGS_DIR='{{app_trunk}}/visit_logs'
           DSF_QUEUE_FILES_DIR='{{app_trunk}}/queues'
+          DSF_SHUFFLED_ALPHABET='{{keys["shuffled_alphabet"]}}'
       # notify: Restart API #not sure this exists as a handler anymore
     - name: Add API run script
       copy: 

@@ -1,5 +1,4 @@
 import musical_chairs_libs.dtos_and_utilities as dtos
-from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	StationSongTuple
@@ -10,6 +9,7 @@ from musical_chairs_libs.tables import (
 	stsg_songFk, stsg_stationFk,
 	st_pk
 )
+from musical_chairs_libs.protocols import (UserProvider)
 from sqlalchemy import (
 	select,
 	insert,
@@ -33,7 +33,7 @@ class StationsSongsService:
 	def __init__(
 		self,
 		conn: Connection,
-		currentUserProvider: CurrentUserProvider,
+		currentUserProvider: UserProvider,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")

@@ -4,6 +4,8 @@ import uuid
 import hashlib
 import unicodedata
 import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
+import sqlalchemy as sa
 from .current_user_provider import CurrentUserProvider
 from typing import (
 	Any,
@@ -335,10 +337,10 @@ class SongFileService:
 		)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.where(
-				func.normalize_opening_slash(
-					sg_path,
-					hasOpenSlash
-				).like(f"{likePrefix}%", escape="\\")
+				sa.or_(
+					tbl.sg_path.like(f"{likePrefix}%", escape="\\"),
+					tbl.sg_path.like(f"/{likePrefix}%", escape="\\")
+				)
 			)\
 			.group_by("prefix")
 		return query

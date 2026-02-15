@@ -1,4 +1,4 @@
-import React from "react";
+import React, { forwardRef, HTMLAttributes, Ref } from "react";
 import {
 	Autocomplete,
 	TextField,
@@ -18,6 +18,58 @@ import {
 } from "react-hook-form";
 import { SelectItem } from "../../Types/generic_types";
 import { CustomEvent, ChangeEvent } from "../../Types/browser_types";
+import { 
+	List,
+	RowComponentProps,
+	ListImperativeAPI,
+} from "react-window";
+
+
+const RowComponent = (
+	props: RowComponentProps 
+		& { 
+			itemData: React.ReactElement[] 
+		}
+) => {
+	const {index, itemData } = props;
+
+	
+	return <div key={itemData[index].key}>
+		{itemData[index]}
+	</div>;
+};
+
+const ListBoxComponent = forwardRef<
+	HTMLDivElement,
+	HTMLAttributes<HTMLElement>  
+		& {
+			itemCount: number,
+			internalListRef: Ref<ListImperativeAPI>;
+		}
+>((props, ref) => {
+	const { children, internalListRef, ...other } = props;
+
+	const itemData = (children as React.ReactElement[]).map((e) => {
+		return e;
+	});
+
+	const getChildSize = () => {
+		return 40;
+	};
+
+
+	return <div ref={ref} {...other}>
+		<List 
+			rowComponent={RowComponent}
+			rowCount={itemData.length}
+			rowHeight={() => getChildSize()}
+			rowProps={{ itemData }}
+			listRef={internalListRef}
+			overscanCount={10}
+		/>
+	</div>;
+});
+ListBoxComponent.displayName = "ListBoxComponent";
 
 type TransformType
 <
@@ -219,6 +271,7 @@ FreeSolo extends boolean | undefined = false,
 						style: { lineHeight: "unset" },
 					},
 				}}
+				ListboxComponent={ListBoxComponent}
 				ref={elementRef}
 				{...otherProps}
 			/>

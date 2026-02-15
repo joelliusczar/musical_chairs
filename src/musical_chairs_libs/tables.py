@@ -137,7 +137,7 @@ pl_viewSecurityLevel = cast(Column[Integer],pl.viewsecuritylevel)
 
 songs = Table("songs", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("treepath", String(2000), nullable=False),
+	Column("treepath", String(500), nullable=False),
 	Column("name", String(200), nullable=True),
 	Column("albumfk", Integer, ForeignKey("albums.pk"), nullable=True),
 	Column("track", String(20), nullable=True),

@@ -245,7 +245,7 @@ class AlbumService:
 		with dtos.open_transaction(self.conn):
 			records = self.conn.execute(query).fetchall()
 
-			return {dtos.encode_id(r[0]):r[1] for r in records}
+			return {dtos.encode_album_id(r[0]):r[1] for r in records}
 
 
 	def get_album_songs(
@@ -365,7 +365,7 @@ class AlbumService:
 				transaction.commit()
 				owner = user.to_user()
 				return AlbumInfo(
-					id=dtos.encode_id(affectedPk), 
+					id=dtos.encode_album_id(affectedPk), 
 					name=str(savedName),
 					owner=owner,
 					year=album.year,
@@ -415,7 +415,7 @@ class AlbumService:
 			)
 			transaction.commit()
 			return AlbumInfo(
-				id=dtos.encode_id(albumId), #pyright: ignore reportUnknownMemberType,
+				id=dtos.encode_album_id(albumId), #pyright: ignore reportUnknownMemberType,
 				name=str(savedName),
 				owner=owner,
 				year=album.year,

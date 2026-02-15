@@ -307,6 +307,29 @@ def encode_id(id: int, domainSalt: int = 0) -> str:
 	return str(sqids.encode([id, domainSalt])) #pyright: ignore reportUnknownMemberType
 
 
+def encode_album_id(id: int) -> str:
+	return encode_id(id)
+
+
+def encode_artist_id(id: int) -> str:
+	return encode_id(id)
+
+
+def encode_playlist_id(id: int) -> str:
+	return encode_id(id)
+
+
+def encode_song_id(id: int) -> str:
+	return encode_id(id)
+
+
+def encode_station_id(id: int) -> str:
+	return encode_id(id)
+
+
+
+
+
 def decode_id(id: str) -> int:
 	sqids = Sqids(
 		alphabet=ConfigAcessors.shuffled_alphabet(),

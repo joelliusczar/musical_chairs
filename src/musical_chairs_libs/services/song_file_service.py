@@ -308,7 +308,7 @@ class SongFileService:
 				return SongTreeNode(
 					treepath=normalize_closing_slash(path),
 					totalChildCount=1,
-					id=dtos.encode_id(result.lastrowid)
+					id=dtos.encode_song_id(result.lastrowid)
 				)
 
 
@@ -365,7 +365,7 @@ class SongFileService:
 				yield SongTreeNode(
 					treepath=cast(str, row["prefix"]),
 					totalChildCount=cast(int, row["totalChildCount"]),
-					id=dtos.encode_id(row["pk"]),
+					id=dtos.encode_song_id(row["pk"]),
 					name=cast(str, row["name"]),
 					rules=[r for p in
 						permittedPathsTree.values(normalizedPrefix) for r in p

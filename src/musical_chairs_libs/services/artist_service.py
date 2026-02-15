@@ -247,7 +247,7 @@ class ArtistService:
 				transaction.commit()
 				owner = user.to_user()
 				return ArtistInfo(
-					id=dtos.encode_id(affectedPk), 
+					id=dtos.encode_artist_id(affectedPk), 
 					name=str(savedName), 
 					owner=owner
 				)
@@ -280,7 +280,7 @@ class ArtistService:
 					return None
 				owner = self.get_artist_owner(artistId)
 				return ArtistInfo(
-					id=dtos.encode_id(affectedPk),
+					id=dtos.encode_artist_id(affectedPk),
 					name=str(savedName),
 					owner=owner
 				)

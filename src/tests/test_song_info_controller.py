@@ -216,7 +216,7 @@ def test_song_save(
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_india", client)
 	getResponseBefore = client.get(
-		f"song-info/songs/{dtos.encode_id(1)}",
+		f"song-info/songs/{dtos.encode_song_id(1)}",
 		headers=headers
 	)
 
@@ -225,11 +225,11 @@ def test_song_save(
 	sendData = copy.deepcopy(data)
 	sendData["name"] = "sierra_song_update"
 	sendData["album"] = {
-		"id": dtos.encode_id(8),
+		"id": dtos.encode_album_id(8),
 		"name": "shoo_album",
 		"year": 2003,
 		"albumartist": {
-			"id": dtos.encode_id(6),
+			"id": dtos.encode_artist_id(6),
 			"name": "foxtrot_artist",
 			"isprimaryartist": False
 		},
@@ -240,12 +240,12 @@ def test_song_save(
 	sendData["genre"] = "pop_update"
 	sendData["notes"] = "Kazoos make good swimmers update"
 	sendData["primaryartist"] = {
-		"id": dtos.encode_id(10),
+		"id": dtos.encode_artist_id(10),
 		"name": "juliet_artist",
 		"isprimaryartist": True
 	}
 	sendData["stations"] = [
-		{ "id": dtos.encode_id(2),
+		{ "id": dtos.encode_station_id(2),
 			"name": "papa_station",
 			"displayname": "Come to papa",
 			"owner": None,
@@ -257,7 +257,7 @@ def test_song_save(
 			"playnum": 1
 		},
 		{
-			"id": dtos.encode_id(7),
+			"id": dtos.encode_station_id(7),
 			"name": "uniform_station",
 			"displayname": "Asshole at the wheel",
 			"owner": None,
@@ -269,7 +269,7 @@ def test_song_save(
 			"playnum": 1
 		},
 		{
-			"id": dtos.encode_id(10),
+			"id": dtos.encode_station_id(10),
 			"name": "xray_station",
 			"displayname": "Pentagular",
 			"owner": None,
@@ -283,24 +283,24 @@ def test_song_save(
 	]
 	sendData["artists"] = [
 		{ 
-			"id": dtos.encode_id(9), 
+			"id": dtos.encode_artist_id(9), 
 			"name": "india_artist", 
 			"isprimaryartist": False
 		},
 		{ 
-			"id": dtos.encode_id(13), 
+			"id": dtos.encode_artist_id(13), 
 			"name": "november_artist", 
 			"isprimaryartist": False
 		},
 		{ 
-			"id": dtos.encode_id(3), 
+			"id": dtos.encode_artist_id(3), 
 			"name": "charlie_artist", 
 			"isprimaryartist": False
 		}
 	]
 
 	putResponse = client.put(
-		f"song-info/songs/{dtos.encode_id(1)}",
+		f"song-info/songs/{dtos.encode_song_id(1)}",
 		headers=headers,
 		json=sendData
 	)
@@ -308,7 +308,7 @@ def test_song_save(
 	assert putResponse.status_code == 200
 
 	getResponseAfter = client.get(
-		f"song-info/songs/{dtos.encode_id(1)}",
+		f"song-info/songs/{dtos.encode_song_id(1)}",
 		headers=headers
 	)
 
@@ -340,7 +340,7 @@ def test_song_save_with_unpermitted_stations(
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_hotel", client)
 	getResponseBefore = client.get(
-		f"song-info/songs/{dtos.encode_id(1)}",
+		f"song-info/songs/{dtos.encode_song_id(1)}",
 		headers=headers
 	)
 	data = json.loads(getResponseBefore.content)
@@ -348,7 +348,7 @@ def test_song_save_with_unpermitted_stations(
 	sendData["name"] = "sierra_song_update_3"
 
 	putResponse = client.put(
-		f"song-info/songs/{dtos.encode_id(1)}",
+		f"song-info/songs/{dtos.encode_song_id(1)}",
 		headers=headers,
 		json=sendData
 	)
@@ -362,7 +362,7 @@ def test_song_save_with_unpermitted_stations(
 	})
 
 	putResponse = client.put(
-		f"song-info/songs/{dtos.encode_id(1)}",
+		f"song-info/songs/{dtos.encode_song_id(1)}",
 		headers=headers,
 		json=sendData
 	)
@@ -398,7 +398,7 @@ def test_song_save_with_path_permission(
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_mike", client)
 	getResponseBefore = client.get(
-		f"song-info/songs/{dtos.encode_id(1)}",
+		f"song-info/songs/{dtos.encode_song_id(1)}",
 		headers=headers
 	)
 	data = json.loads(getResponseBefore.content)
@@ -406,7 +406,7 @@ def test_song_save_with_path_permission(
 	sendData = copy.deepcopy(data)
 	sendData["name"] = "sierra_song_update_3"
 	putResponse = client.put(
-		f"song-info/songs/{dtos.encode_id(1)}",
+		f"song-info/songs/{dtos.encode_song_id(1)}",
 		headers=headers,
 		json=sendData
 	)
@@ -414,7 +414,7 @@ def test_song_save_with_path_permission(
 	assert putResponse.status_code == 200
 
 	getResponseAfter = client.get(
-		f"song-info/songs/{dtos.encode_id(1)}",
+		f"song-info/songs/{dtos.encode_song_id(1)}",
 		headers=headers
 	)
 
@@ -432,7 +432,7 @@ def test_song_save_different_station_owner(
 	client = fixture_api_test_client
 	headers = login_test_user("stationSaver_testUser", client)
 	getResponseBefore = client.get(
-		f"song-info/songs/{dtos.encode_id(51)}",
+		f"song-info/songs/{dtos.encode_song_id(51)}",
 		headers=headers
 	)
 
@@ -442,7 +442,7 @@ def test_song_save_different_station_owner(
 	sendData["name"] = "Baseline update"
 
 	putResponse = client.put(
-		f"song-info/songs/{dtos.encode_id(51)}",
+		f"song-info/songs/{dtos.encode_song_id(51)}",
 		headers=headers,
 		json=sendData
 	)
@@ -455,11 +455,11 @@ def test_song_save_different_station_owner(
 	assert not mismatches
 	sendData = data
 	sendData["stations"].append({
-		"id": dtos.encode_id(19),
+		"id": dtos.encode_station_id(19),
 		"name": "india_station_rerun",
 		"displayname": "bitchingly fast!",
 		"owner": {
-			"id": dtos.encode_id(station_saver_user_id),
+			"id": station_saver_user_id,
 			"username": "stationSaver_testUser",
 			"displayname": "Station Saver"
 		},
@@ -469,7 +469,7 @@ def test_song_save_different_station_owner(
 		"viewsecuritylevel": RulePriorityLevel.REQUIRES_INVITE.value
 	})
 	putResponse = client.put(
-		f"song-info/songs/{dtos.encode_id(51)}",
+		f"song-info/songs/{dtos.encode_song_id(51)}",
 		headers=headers,
 		json=sendData
 	)
@@ -484,7 +484,7 @@ def test_get_songs_for_multi_edit(
 
 	response = client.get(
 		"song-info/songs/multi/"
-		f"?itemIds={dtos.encode_id(2)}&itemIds={dtos.encode_id(3)}",
+		f"?itemIds={dtos.encode_song_id(2)}&itemIds={dtos.encode_song_id(3)}",
 		headers=headers
 	)
 
@@ -496,13 +496,13 @@ def test_get_songs_for_multi_edit(
 	assert "name" not in touched
 	assert data["treepath"] == ""
 	assert "treepath" not in touched
-	assert data["album"]["id"] == dtos.encode_id(11)
+	assert data["album"]["id"] == dtos.encode_album_id(11)
 	assert data["album"]["name"] == "boo_album"
 	assert "album" in touched
 	assert data["primaryartist"] == None
 	assert "primaryartist" in touched
 	assert data["artists"] == [{
-		"id": dtos.encode_id(4),
+		"id": dtos.encode_artist_id(4),
 		"name": "delta_artist",
 		"owner": {
 			"id": kilo_user_id,
@@ -533,7 +533,7 @@ def test_get_songs_for_multi_edit(
 	assert data["lyrics"] == ""
 	assert "lyrics" in touched
 	assert data["stations"] == [
-		{ "id": dtos.encode_id(1),
+		{ "id": dtos.encode_station_id(1),
 			"name": "oscar_station",
 			"displayname": "Oscar the grouch",
 			"isrunning": False,
@@ -563,9 +563,9 @@ def test_song_save_for_multi_edit(
 	back_key = envManager.back_key()
 	headers["x-back-key"] = back_key
 
-	idList = f"?itemIds={dtos.encode_id(10)}&itemIds={dtos.encode_id(4)}"\
-		f"&itemIds={dtos.encode_id(17)}&itemIds={dtos.encode_id(11)}"\
-		f"&itemIds={dtos.encode_id(15)}"
+	idList = f"?itemIds={dtos.encode_song_id(10)}&itemIds={dtos.encode_song_id(4)}"\
+		f"&itemIds={dtos.encode_song_id(17)}&itemIds={dtos.encode_song_id(11)}"\
+		f"&itemIds={dtos.encode_song_id(15)}"
 
 	getResponseBefore = client.get(
 		f"song-info/songs/list/{idList}",
@@ -608,35 +608,35 @@ def test_song_save_for_multi_edit(
 	sendData: dict[str, Any] = {
 		"name": "",
 		"album": {
-			"id": dtos.encode_id(12),
+			"id": dtos.encode_album_id(12),
 			"name": "garoo_album",
 			"owner": {"id": kilo_user_id }
 		},
 		"stations": [
 			{
-				"id": dtos.encode_id(6),
+				"id": dtos.encode_station_id(6),
 				"name": "yankee_station",
 				"displayname": "Blurg the blergos"
 			},
 			{
-				"id": dtos.encode_id(8),
+				"id": dtos.encode_station_id(8),
 				"name": "victor_station",
 				"displayname": "Fat, drunk, and stupid"
 			}
 		],
 		"primaryartist": {
-			"id": dtos.encode_id(14),
+			"id": dtos.encode_artist_id(14),
 			"name":
 			"oscar_artist",
 			"owner": {"id": kilo_user_id },
 			"isprimaryartist": True
 		},
 		"artists": [
-			{ "id": dtos.encode_id(8), 
+			{ "id": dtos.encode_artist_id(8), 
 				"name": "hotel_artist",
 				"owner": {"id": kilo_user_id } 
 			},
-			{ "id": dtos.encode_id(1), 
+			{ "id": dtos.encode_artist_id(1), 
 				"name": "alpha_artist",
 				"owner": {"id": kilo_user_id } 
 			}
@@ -712,10 +712,10 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	back_key = envManager.back_key()
 	headers["x-back-key"] = back_key
 
-	idList = f"?itemIds={dtos.encode_id(29)}&itemIds={dtos.encode_id(28)}"\
-			f"&itemIds={dtos.encode_id(27)}&itemIds={dtos.encode_id(26)}"\
-			f"&itemIds={dtos.encode_id(25)}&itemIds={dtos.encode_id(24)}"\
-			f"&itemIds={dtos.encode_id(23)}"
+	idList = f"?itemIds={dtos.encode_song_id(29)}&itemIds={dtos.encode_song_id(28)}"\
+			f"&itemIds={dtos.encode_song_id(27)}&itemIds={dtos.encode_song_id(26)}"\
+			f"&itemIds={dtos.encode_song_id(25)}&itemIds={dtos.encode_song_id(24)}"\
+			f"&itemIds={dtos.encode_song_id(23)}"
 
 	getResponseBefore = client.get(
 		f"song-info/songs/list/{idList}",
@@ -758,25 +758,25 @@ def test_song_save_for_multi_edit_artist_to_primary(
 	sendData: dict[str, Any] = {
 		"name": "",
 		"album": {
-			"id": dtos.encode_id(12),
+			"id": dtos.encode_album_id(12),
 			"name": "garoo_album",
 			"owner": { "id": kilo_user_id}
 		},
 		"stations": [
 			{
-				"id": dtos.encode_id(6),
+				"id": dtos.encode_station_id(6),
 				"name": "yankee_station",
 				"displayname": "Blurg the blergos"
 			},
 			{
-				"id": dtos.encode_id(8),
+				"id": dtos.encode_station_id(8),
 				"name": "victor_station",
 				"displayname": "Fat, drunk, and stupid"
 			},
 		],
 		"artists": [],
 		"primaryartist": {
-			"id": dtos.encode_id(5),
+			"id": dtos.encode_artist_id(5),
 			"name":
 			"foxtrot_artist",
 			"owner": { "id": kilo_user_id}
@@ -849,7 +849,7 @@ def test_more_restrictive_path(
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_sierra", client)
 	getResponse = client.get(
-		f"song-info/songs/{dtos.encode_id(5)}",
+		f"song-info/songs/{dtos.encode_song_id(5)}",
 		headers=headers
 	)
 
@@ -858,7 +858,7 @@ def test_more_restrictive_path(
 	sendData = copy.deepcopy(data)
 	sendData["name"] = "victor_song_update"
 	putResponse = client.put(
-		f"song-info/songs/{dtos.encode_id(5)}",
+		f"song-info/songs/{dtos.encode_song_id(5)}",
 		headers=headers,
 		json=sendData
 	)
@@ -866,7 +866,7 @@ def test_more_restrictive_path(
 	assert putResponse.status_code == 200
 
 	getResponse = client.get(
-		f"song-info/songs/{dtos.encode_id(6)}",
+		f"song-info/songs/{dtos.encode_song_id(6)}",
 		headers=headers
 	)
 
@@ -875,7 +875,7 @@ def test_more_restrictive_path(
 	sendData = copy.deepcopy(data)
 	sendData["name"] = "whiskey_song_update"
 	putResponse = client.put(
-		f"song-info/songs/{dtos.encode_id(6)}",
+		f"song-info/songs/{dtos.encode_song_id(6)}",
 		headers=headers,
 		json=sendData
 	)
@@ -885,7 +885,7 @@ def test_more_restrictive_path(
 	headers = login_test_user("testUser_india", client)
 
 	putResponse = client.put(
-		f"song-info/songs/{dtos.encode_id(6)}",
+		f"song-info/songs/{dtos.encode_song_id(6)}",
 		headers=headers,
 		json=sendData
 	)

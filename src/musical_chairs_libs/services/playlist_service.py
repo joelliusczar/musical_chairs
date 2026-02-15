@@ -393,7 +393,7 @@ class PlaylistService:
 
 				owner = user.to_user()
 				return PlaylistInfo(
-					id=dtos.encode_id(affectedPk),
+					id=dtos.encode_playlist_id(affectedPk),
 					name=str(savedName),
 					owner=owner,
 					displayname=playlist.displayname
@@ -430,7 +430,7 @@ class PlaylistService:
 				owner = self.get_playlist_owner(playlistId)
 				transaction.commit()
 				return PlaylistInfo(
-					id=dtos.encode_id(affectedPk),
+					id=dtos.encode_playlist_id(affectedPk),
 					name=str(savedName),
 					owner=owner,
 					displayname=playlist.displayname

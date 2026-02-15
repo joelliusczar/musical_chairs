@@ -98,28 +98,28 @@ def test_save_song_remove_1_artists(
 	assert copy
 	assert copy.artists
 	sortedArtists = sorted(copy.allArtists, key=lambda a: dtos.decode_id(a.id))
-	assert sortedArtists[0].id == dtos.encode_id(18)
-	assert sortedArtists[1].id == dtos.encode_id(19)
-	assert sortedArtists[2].id == dtos.encode_id(20) #primary artist
-	assert sortedArtists[3].id == dtos.encode_id(21)
-	copy.artists = [a for a in copy.artists if a.id != dtos.encode_id(19)]
+	assert sortedArtists[0].id == dtos.encode_artist_id(18)
+	assert sortedArtists[1].id == dtos.encode_artist_id(19)
+	assert sortedArtists[2].id == dtos.encode_artist_id(20) #primary artist
+	assert sortedArtists[3].id == dtos.encode_artist_id(21)
+	copy.artists = [a for a in copy.artists if a.id != dtos.encode_artist_id(19)]
 	afterSaved = next(songInfoService.save_songs([84], copy))
 	assert afterSaved.artists
 	sortedArtists = sorted(
 		afterSaved.allArtists,
 		key=lambda a: dtos.decode_id(a.id)
 	)
-	assert sortedArtists[0].id == dtos.encode_id(18)
-	assert sortedArtists[1].id == dtos.encode_id(20) #primary artist
-	assert sortedArtists[2].id == dtos.encode_id(21)
+	assert sortedArtists[0].id == dtos.encode_artist_id(18)
+	assert sortedArtists[1].id == dtos.encode_artist_id(20) #primary artist
+	assert sortedArtists[2].id == dtos.encode_artist_id(21)
 	refetched = next(songInfoService.get_songs_for_edit([84]))
 	sortedArtists = sorted(
 		refetched.allArtists,
 		key=lambda a: dtos.decode_id(a.id)
 	)
-	assert sortedArtists[0].id == dtos.encode_id(18)
-	assert sortedArtists[1].id == dtos.encode_id(20) #primary artist
-	assert sortedArtists[2].id == dtos.encode_id(21)
+	assert sortedArtists[0].id == dtos.encode_artist_id(18)
+	assert sortedArtists[1].id == dtos.encode_artist_id(20) #primary artist
+	assert sortedArtists[2].id == dtos.encode_artist_id(21)
 
 
 @pytest.mark.current_username("testUser_november")
@@ -136,10 +136,10 @@ def test_save_song_remove_nonprimary_artists(
 	assert copy
 	assert copy.artists
 	sortedArtists = sorted(copy.allArtists, key=lambda a: dtos.decode_id(a.id))
-	assert sortedArtists[0].id == dtos.encode_id(18)
-	assert sortedArtists[1].id == dtos.encode_id(19)
-	assert sortedArtists[2].id == dtos.encode_id(20) #primary artist
-	assert sortedArtists[3].id == dtos.encode_id(21)
+	assert sortedArtists[0].id == dtos.encode_artist_id(18)
+	assert sortedArtists[1].id == dtos.encode_artist_id(19)
+	assert sortedArtists[2].id == dtos.encode_artist_id(20) #primary artist
+	assert sortedArtists[3].id == dtos.encode_artist_id(21)
 	copy.artists = copy.artists[:-3]
 
 	afterSaved = next(songInfoService.save_songs([84], copy))
@@ -150,14 +150,14 @@ def test_save_song_remove_nonprimary_artists(
 		key=lambda a: dtos.decode_id(a.id)
 	)
 	assert len(sortedArtists) == 1
-	assert sortedArtists[0].id == dtos.encode_id(20)
+	assert sortedArtists[0].id == dtos.encode_artist_id(20)
 	refetched = next(songInfoService.get_songs_for_edit([84]))
 	sortedArtists = sorted(
 		refetched.allArtists,
 		key=lambda a: dtos.decode_id(a.id)
 	)
 	assert len(sortedArtists) == 1
-	assert sortedArtists[0].id == dtos.encode_id(20)
+	assert sortedArtists[0].id == dtos.encode_artist_id(20)
 
 
 @pytest.mark.current_username("testUser_november")
@@ -174,10 +174,10 @@ def test_save_song_remove_primary_artist(
 	assert copy
 	assert copy.artists
 	sortedArtists = sorted(copy.allArtists, key=lambda a: dtos.decode_id(a.id))
-	assert sortedArtists[0].id == dtos.encode_id(18)
-	assert sortedArtists[1].id == dtos.encode_id(19)
-	assert sortedArtists[2].id == dtos.encode_id(20) #primary artist
-	assert sortedArtists[3].id == dtos.encode_id(21)
+	assert sortedArtists[0].id == dtos.encode_artist_id(18)
+	assert sortedArtists[1].id == dtos.encode_artist_id(19)
+	assert sortedArtists[2].id == dtos.encode_artist_id(20) #primary artist
+	assert sortedArtists[3].id == dtos.encode_artist_id(21)
 	copy.primaryartist = None
 	afterSaved = next(songInfoService.save_songs([84], copy))
 	assert afterSaved.artists
@@ -187,18 +187,18 @@ def test_save_song_remove_primary_artist(
 		key=lambda a: dtos.decode_id(a.id)
 	)
 	assert len(sortedArtists) == 3
-	assert sortedArtists[0].id == dtos.encode_id(18)
-	assert sortedArtists[1].id == dtos.encode_id(19)
-	assert sortedArtists[2].id == dtos.encode_id(21)
+	assert sortedArtists[0].id == dtos.encode_artist_id(18)
+	assert sortedArtists[1].id == dtos.encode_artist_id(19)
+	assert sortedArtists[2].id == dtos.encode_artist_id(21)
 	refetched = next(songInfoService.get_songs_for_edit([84]))
 	sortedArtists = sorted(
 		refetched.allArtists,
 		key=lambda a: dtos.decode_id(a.id)
 	)
 	assert len(sortedArtists) == 3
-	assert sortedArtists[0].id == dtos.encode_id(18)
-	assert sortedArtists[1].id == dtos.encode_id(19)
-	assert sortedArtists[2].id == dtos.encode_id(21)
+	assert sortedArtists[0].id == dtos.encode_artist_id(18)
+	assert sortedArtists[1].id == dtos.encode_artist_id(19)
+	assert sortedArtists[2].id == dtos.encode_artist_id(21)
 
 @pytest.mark.current_username("testUser_november")
 def test_save_song_remove_all_artists(
@@ -214,10 +214,10 @@ def test_save_song_remove_all_artists(
 	assert copy
 	assert copy.artists
 	sortedArtists = sorted(copy.allArtists, key=lambda a: dtos.decode_id(a.id))
-	assert sortedArtists[0].id == dtos.encode_id(18)
-	assert sortedArtists[1].id == dtos.encode_id(19)
-	assert sortedArtists[2].id == dtos.encode_id(20) #primary artist
-	assert sortedArtists[3].id == dtos.encode_id(21)
+	assert sortedArtists[0].id == dtos.encode_artist_id(18)
+	assert sortedArtists[1].id == dtos.encode_artist_id(19)
+	assert sortedArtists[2].id == dtos.encode_artist_id(20) #primary artist
+	assert sortedArtists[3].id == dtos.encode_artist_id(21)
 	copy.primaryartist = None
 	copy.artists = copy.artists[:-3]
 	afterSaved = next(songInfoService.save_songs([84], copy))
@@ -243,17 +243,17 @@ def test_save_song_swap_artists(
 	assert copy
 	assert copy.artists
 	assert len(copy.artists) == 1
-	assert copy.artists[0].id == dtos.encode_id(22)
+	assert copy.artists[0].id == dtos.encode_artist_id(22)
 	replacement = next(artistService.get_artists(artistKeys=23))
 	copy.artists = [replacement]
 	afterSaved = next(songInfoService.save_songs([85], copy))
 	assert afterSaved.artists
 	assert len(afterSaved.artists) == 1
-	assert afterSaved.artists[0].id == dtos.encode_id(23)
+	assert afterSaved.artists[0].id == dtos.encode_artist_id(23)
 	refetched = next(songInfoService.get_songs_for_edit([85]))
 	assert refetched.artists
 	assert len(refetched.artists) == 1
-	assert refetched.artists[0].id == dtos.encode_id(23)
+	assert refetched.artists[0].id == dtos.encode_artist_id(23)
 	copy = songInfo.model_copy()
 	assert copy
 	copy.artists = []
@@ -261,22 +261,22 @@ def test_save_song_swap_artists(
 	afterSaved = next(songInfoService.save_songs([85], copy))
 	assert not afterSaved.artists
 	assert afterSaved.primaryartist
-	assert afterSaved.primaryartist.id == dtos.encode_id(24)
+	assert afterSaved.primaryartist.id == dtos.encode_artist_id(24)
 	refetched = next(songInfoService.get_songs_for_edit([85]))
 	assert not refetched.artists
 	assert refetched.primaryartist
-	assert refetched.primaryartist.id == dtos.encode_id(24)
+	assert refetched.primaryartist.id == dtos.encode_artist_id(24)
 
 	copy = refetched.model_copy()
 	copy.primaryartist = next(artistService.get_artists(artistKeys=25))
 	afterSaved = next(songInfoService.save_songs([85], copy))
 	assert not afterSaved.artists
 	assert afterSaved.primaryartist
-	assert afterSaved.primaryartist.id == dtos.encode_id(25)
+	assert afterSaved.primaryartist.id == dtos.encode_artist_id(25)
 	refetched = next(songInfoService.get_songs_for_edit([85]))
 	assert not refetched.artists
 	assert refetched.primaryartist
-	assert refetched.primaryartist.id == dtos.encode_id(25)
+	assert refetched.primaryartist.id == dtos.encode_artist_id(25)
 
 
 
@@ -323,7 +323,7 @@ def test_save__multiple_song_add_station_and_playlist(
 		stations=stationService.get_stations(5),
 		playlists=[
 			PlaylistInfo(
-				id=dtos.encode_id(7),
+				id=dtos.encode_playlist_id(7),
 				name="uniform_playlist",
 				owner=bravo_user.to_user(),
 			)
@@ -363,26 +363,28 @@ def test_save_song_remove_1_station(
 		copy.stations,
 		key=lambda a: dtos.decode_id(a.id)
 	)
-	assert sortedStations[0].id == dtos.encode_id(21)
-	assert sortedStations[1].id == dtos.encode_id(22)
-	assert sortedStations[2].id == dtos.encode_id(23)
-	copy.stations = [s for s in copy.stations if s.id != dtos.encode_id(22)]
+	assert sortedStations[0].id == dtos.encode_station_id(21)
+	assert sortedStations[1].id == dtos.encode_station_id(22)
+	assert sortedStations[2].id == dtos.encode_station_id(23)
+	copy.stations = [
+		s for s in copy.stations if s.id != dtos.encode_station_id(22)
+	]
 	afterSaved = next(songInfoService.save_songs([84], copy))
 	assert afterSaved.stations
 	sortedStations = sorted(
 		afterSaved.stations,
 		key=lambda a: dtos.decode_id(a.id)
 	)
-	assert sortedStations[0].id == dtos.encode_id(21)
-	assert sortedStations[1].id == dtos.encode_id(23)
+	assert sortedStations[0].id == dtos.encode_station_id(21)
+	assert sortedStations[1].id == dtos.encode_station_id(23)
 	refetched = next(songInfoService.get_songs_for_edit([84]))
 	assert refetched.stations
 	sortedStations = sorted(
 		refetched.stations,
 		key=lambda a: dtos.decode_id(a.id)
 	)
-	assert sortedStations[0].id == dtos.encode_id(21)
-	assert sortedStations[1].id == dtos.encode_id(23)
+	assert sortedStations[0].id == dtos.encode_station_id(21)
+	assert sortedStations[1].id == dtos.encode_station_id(23)
 
 @pytest.mark.current_username("testUser_november")
 def test_save_song_remove_all_stations(
@@ -398,9 +400,9 @@ def test_save_song_remove_all_stations(
 	assert copy
 	assert copy.stations
 	sortedStations = sorted(copy.stations, key=lambda a: dtos.decode_id(a.id))
-	assert sortedStations[0].id == dtos.encode_id(21)
-	assert sortedStations[1].id == dtos.encode_id(22)
-	assert sortedStations[2].id == dtos.encode_id(23)
+	assert sortedStations[0].id == dtos.encode_station_id(21)
+	assert sortedStations[1].id == dtos.encode_station_id(22)
+	assert sortedStations[2].id == dtos.encode_station_id(23)
 	copy.stations = []
 	afterSaved = next(songInfoService.save_songs([84], copy))
 	assert not afterSaved.stations
@@ -423,16 +425,16 @@ def test_save_song_swap_station(
 	assert copy
 	assert copy.stations
 	assert len(copy.stations) == 1
-	assert copy.stations[0].id == dtos.encode_id(24)
+	assert copy.stations[0].id == dtos.encode_station_id(24)
 	copy.stations = stationService.get_stations(stationKeys=25)
 	afterSaved = next(songInfoService.save_songs([85], copy))
 	assert afterSaved.stations
 	assert len(afterSaved.stations) == 1
-	assert afterSaved.stations[0].id == dtos.encode_id(25)
+	assert afterSaved.stations[0].id == dtos.encode_station_id(25)
 	refetched = next(songInfoService.get_songs_for_edit([85]))
 	assert refetched.stations
 	assert len(refetched.stations) == 1
-	assert refetched.stations[0].id == dtos.encode_id(25)
+	assert refetched.stations[0].id == dtos.encode_station_id(25)
 
 def test_get_song_stations_linked(
 	fixture_stations_songs_service: StationsSongsService
@@ -819,7 +821,7 @@ def test_get_single_song_for_edit(
 
 	assert songInfo.treepath == "foo/goo/boo/sierra"
 	assert songInfo.name == "sierra_song"
-	assert songInfo.album and songInfo.album.id == dtos.encode_id(11)
+	assert songInfo.album and songInfo.album.id == dtos.encode_album_id(11)
 	assert songInfo.album and songInfo.album.name == "boo_album"
 	assert songInfo.artists and len(songInfo.artists) == 1
 	sortedArtists = sorted(
@@ -827,11 +829,11 @@ def test_get_single_song_for_edit(
 		key=lambda a: dtos.decode_id(a.id) or 0
 	)
 	assert len(sortedArtists) == 1
-	assert sortedArtists[0].id ==dtos.encode_id(4)
+	assert sortedArtists[0].id ==dtos.encode_artist_id(4)
 	assert sortedArtists[0].name == "delta_artist"
 	assert songInfo.primaryartist
 	if songInfo.primaryartist:
-		assert songInfo.primaryartist.id == dtos.encode_id(6)
+		assert songInfo.primaryartist.id == dtos.encode_artist_id(6)
 		assert songInfo.primaryartist.name == "foxtrot_artist"
 	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == "1"
@@ -843,11 +845,11 @@ def test_get_single_song_for_edit(
 		key=lambda t: dtos.decode_id(t.id) or 0
 	)
 	if songInfo.stations:
-		assert sortedStations[0].id == dtos.encode_id(2)
+		assert sortedStations[0].id == dtos.encode_station_id(2)
 		assert sortedStations[0].name == "papa_station"
 		assert sortedStations[0].displayname == "Come to papa"
 
-		assert sortedStations[1].id == dtos.encode_id(6)
+		assert sortedStations[1].id == dtos.encode_station_id(6)
 		assert sortedStations[1].name == "yankee_station"
 		assert sortedStations[1].displayname == "Blurg the blergos"
 
@@ -912,7 +914,7 @@ def test_get_multiple_songs_for_edit(
 	songInfo = songInfoList[0]
 	assert songInfo.treepath == "foo/goo/boo/sierra"
 	assert songInfo.name == "sierra_song"
-	assert songInfo.album and songInfo.album.id == dtos.encode_id(11)
+	assert songInfo.album and songInfo.album.id == dtos.encode_album_id(11)
 	assert songInfo.album and songInfo.album.name == "boo_album"
 	assert songInfo.artists and len(songInfo.artists) == 1
 	sortedArtists = sorted(
@@ -920,11 +922,11 @@ def test_get_multiple_songs_for_edit(
 		key=lambda a: dtos.decode_id(a.id) or 0
 	)
 	assert len(sortedArtists) == 1
-	assert sortedArtists[0].id == dtos.encode_id(4)
+	assert sortedArtists[0].id == dtos.encode_artist_id(4)
 	assert sortedArtists[0].name == "delta_artist"
 	assert songInfo.primaryartist
 	if songInfo.primaryartist:
-		assert songInfo.primaryartist.id == dtos.encode_id(6)
+		assert songInfo.primaryartist.id == dtos.encode_artist_id(6)
 		assert songInfo.primaryartist.name == "foxtrot_artist"
 	assert not songInfo.covers or len(songInfo.covers) == 0
 	assert songInfo.track == "1"
@@ -936,18 +938,18 @@ def test_get_multiple_songs_for_edit(
 		key=lambda t: dtos.decode_id(t.id) or 0
 	)
 	if songInfo.stations:
-		assert sortedStations[0].id == dtos.encode_id(2)
+		assert sortedStations[0].id == dtos.encode_station_id(2)
 		assert sortedStations[0].name == "papa_station"
 		assert sortedStations[0].displayname == "Come to papa"
 
-		assert sortedStations[1].id == dtos.encode_id(6)
+		assert sortedStations[1].id == dtos.encode_station_id(6)
 		assert sortedStations[1].name == "yankee_station"
 		assert sortedStations[1].displayname == "Blurg the blergos"
 
 	songInfo = songInfoList[1]
 	assert songInfo.treepath == "foo/goo/shoo/india"
 	assert songInfo.name == "india_song"
-	assert songInfo.album and songInfo.album.id == dtos.encode_id(8)
+	assert songInfo.album and songInfo.album.id == dtos.encode_album_id(8)
 	assert songInfo.album and songInfo.album.name == "shoo_album"
 	assert songInfo.artists and len(songInfo.artists) == 5
 	sortedArtists = sorted(
@@ -955,15 +957,15 @@ def test_get_multiple_songs_for_edit(
 		key=lambda a: dtos.decode_id(a.id) or 0
 	)
 	assert len(sortedArtists) == 5
-	assert sortedArtists[0].id == dtos.encode_id(2)
+	assert sortedArtists[0].id == dtos.encode_artist_id(2)
 	assert sortedArtists[0].name == "bravo_artist"
-	assert sortedArtists[1].id == dtos.encode_id(5)
+	assert sortedArtists[1].id == dtos.encode_artist_id(5)
 	assert sortedArtists[1].name == "echo_artist"
-	assert sortedArtists[2].id == dtos.encode_id(6)
+	assert sortedArtists[2].id == dtos.encode_artist_id(6)
 	assert sortedArtists[2].name == "foxtrot_artist"
-	assert sortedArtists[3].id == dtos.encode_id(10)
+	assert sortedArtists[3].id == dtos.encode_artist_id(10)
 	assert sortedArtists[3].name == "juliet_artist"
-	assert sortedArtists[4].id == dtos.encode_id(11)
+	assert sortedArtists[4].id == dtos.encode_artist_id(11)
 	assert sortedArtists[4].name == "kilo_artist"
 	assert not songInfo.primaryartist
 	assert not songInfo.covers or len(songInfo.covers) == 0
@@ -976,11 +978,11 @@ def test_get_multiple_songs_for_edit(
 		key=lambda t: dtos.decode_id(t.id) or 0
 	)
 	if songInfo.stations:
-		assert sortedStations[0].id == dtos.encode_id(1)
+		assert sortedStations[0].id == dtos.encode_station_id(1)
 		assert sortedStations[0].name == "oscar_station"
 		assert sortedStations[0].displayname == "Oscar the grouch"
 
-		assert sortedStations[1].id == dtos.encode_id(3)
+		assert sortedStations[1].id == dtos.encode_station_id(3)
 		assert sortedStations[1].name == "romeo_station"
 		assert sortedStations[1].displayname == "But soft, what yonder wind breaks"
 
@@ -1014,8 +1016,8 @@ def test_get_duplicate_song(
 	)
 
 	assert len(songInfoList) == 2
-	assert songInfoList[0].id == dtos.encode_id(1)
-	assert songInfoList[1].id == dtos.encode_id(6)
+	assert songInfoList[0].id == dtos.encode_song_id(1)
+	assert songInfoList[1].id == dtos.encode_song_id(6)
 
 @pytest.mark.current_username("testUser_november")
 def test_get_song_with_owner_info(

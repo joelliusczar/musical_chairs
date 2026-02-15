@@ -125,7 +125,7 @@ def test_save_playlist(
 	)
 
 	result = playlistService.save_playlist(testData)
-	assert result and result.id == dtos.encode_id(
+	assert result and result.id == dtos.encode_playlist_id(
 		len(get_initial_playlists()) + 1
 	)
 	fetched = next(iter(playlistService.get_playlists(dtos.decode_id(result.id))))
@@ -138,7 +138,7 @@ def test_save_playlist(
 		displayname="Brand new playlist with bad tag"
 	)
 	result = playlistService.save_playlist(testData)
-	assert result and result.id == dtos.encode_id(
+	assert result and result.id == dtos.encode_playlist_id(
 		len(get_initial_playlists()) + 2
 	)
 	fetched = next(iter(playlistService.get_playlists(dtos.decode_id(result.id))))
@@ -157,7 +157,7 @@ def test_save_playlist(
 	)
 	with playlistService.current_user_provider.impersonate(bravoUser):
 		result = playlistService.save_playlist(testData, 2)
-		assert result and result.id == dtos.encode_id(2)
+		assert result and result.id == dtos.encode_playlist_id(2)
 	fetched = next(iter(playlistService.get_playlists(dtos.decode_id(result.id))))
 	assert fetched and fetched.name == "papa_playlist_update"
 	assert fetched and fetched.displayname == "Come to papa test"
@@ -169,7 +169,7 @@ def test_save_playlist(
 	)
 	with playlistService.current_user_provider.impersonate(fixture_primary_user):
 		result = playlistService.save_playlist(testData, 1)
-		assert result and result.id == dtos.encode_id(1)
+		assert result and result.id == dtos.encode_playlist_id(1)
 	fetched = next(iter(playlistService.get_playlists(dtos.decode_id(result.id))))
 	assert fetched and fetched.name == "oscar_playlists"
 	assert fetched and fetched.displayname == "Oscar the grouch"

@@ -36,7 +36,7 @@ def test_album_update(
 	headers = login_test_user(fixture_primary_user.username, client)
 
 	response = client.get(
-		f"/albums/{dtos.encode_id(7)}",
+		f"/albums/{dtos.encode_album_id(7)}",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -45,7 +45,7 @@ def test_album_update(
 	data["versionnote"] = "from the bottom of my heart"
 
 	putRespose = client.put(
-		f"/albums/{dtos.encode_id(7)}",
+		f"/albums/{dtos.encode_album_id(7)}",
 		headers=headers,
 		json=data
 	)

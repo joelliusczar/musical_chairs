@@ -128,7 +128,9 @@ def test_save_station(
 		displayname="Brand new station"
 	)
 	result = stationService.save_station(testData)
-	assert result and result.id == dtos.encode_id(len(get_initial_stations()) + 1)
+	assert result and result.id == dtos.encode_station_id(
+		len(get_initial_stations()) + 1
+	)
 	fetched = next(iter(stationService.get_stations(result.decoded_id())))
 	assert fetched.id == result.id
 	assert fetched.name == "brand_new_station"
@@ -139,7 +141,9 @@ def test_save_station(
 		displayname="Brand new station with bad tag"
 	)
 	result = stationService.save_station(testData)
-	assert result and result.id == dtos.encode_id(len(get_initial_stations()) + 2)
+	assert result and result.id == dtos.encode_station_id(
+		len(get_initial_stations()) + 2
+	)
 	fetched = next(iter(stationService.get_stations(result.decoded_id())))
 
 
@@ -156,7 +160,7 @@ def test_save_station(
 	)
 	with stationService.current_user_provider.impersonate(bravoUser):
 		result = stationService.save_station(testData, 2)
-		assert result and result.id == dtos.encode_id(2)
+		assert result and result.id == dtos.encode_station_id(2)
 		fetched = next(iter(stationService.get_stations(result.decoded_id())))
 		assert fetched and fetched.name == "papa_station_update"
 		assert fetched and fetched.displayname == "Come to papa test"
@@ -168,7 +172,7 @@ def test_save_station(
 	)
 	with stationService.current_user_provider.impersonate(fixture_primary_user):
 		result = stationService.save_station(testData, 1)
-		assert result and result.id == dtos.encode_id(1)
+		assert result and result.id == dtos.encode_station_id(1)
 		fetched = next(iter(stationService.get_stations(result.decoded_id())))
 		assert fetched and fetched.name == "oscar_station"
 		assert fetched and fetched.displayname == "Oscar the grouch"
@@ -658,10 +662,16 @@ def test_get_station_catalogue_multi_artist(
 		key=lambda s: s.id
 	)
 	assert len(songs) == 5
-	multiArtistPrimarySong = next(s for s in songs if s.id == dtos.encode_id(84))
+	multiArtistPrimarySong = next(
+		s for s in songs if s.id == dtos.encode_station_id(84)
+	)
 	assert multiArtistPrimarySong.creator == "victor_artist"
-	multiArtistSong = next(s for s in songs if s.id == dtos.encode_id(86))
+	multiArtistSong = next(
+		s for s in songs if s.id == dtos.encode_station_id(86)
+	)
 	assert multiArtistSong.creator == "z-bravo_artist"
-	noArtistSong = next(s for s in songs if s.id == dtos.encode_id(76))
+	noArtistSong = next(
+		s for s in songs if s.id == dtos.encode_station_id(76)
+	)
 	assert noArtistSong.creator == ""
 	assert totalSongs == 5

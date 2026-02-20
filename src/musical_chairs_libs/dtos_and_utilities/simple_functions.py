@@ -350,6 +350,8 @@ def decode_id_or_not[T](
 	if not token:
 		return default
 	decoded = decode_id(token)
+	if decoded < 1:
+		return default
 	reencoded = encode_id(decoded)
 	if reencoded == token:
 		return decoded

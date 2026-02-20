@@ -94,7 +94,7 @@ def test_updating_unchanged(
 	client = fixture_api_test_client
 	headers = login_test_user("testUser_bravo", client)
 	response = client.get(
-		"stations/check/?name=romeo_station&id=3",
+		f"stations/check/?name=romeo_station&id={dtos.encode_station_id(3)}",
 		headers=headers,
 	)
 	data = json.loads(response.content)
@@ -102,7 +102,7 @@ def test_updating_unchanged(
 	assert not data["name"]
 
 	response = client.get(
-		"stations/check/?name=romeo_station&id=4",
+		f"stations/check/?name=romeo_station&id={dtos.encode_station_id(4)}",
 		headers=headers,
 	)
 	data = json.loads(response.content)

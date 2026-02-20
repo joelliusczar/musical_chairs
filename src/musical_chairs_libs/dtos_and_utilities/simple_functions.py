@@ -298,13 +298,13 @@ def open_transaction(conn: Connection):
 			yield transaction
 
 
-def encode_id(id: int, domainSalt: int = 0) -> str:
+def encode_id(id: int) -> str:
 	sqids = Sqids(
 		alphabet=ConfigAcessors.shuffled_alphabet(),
 		blocklist=[],
 		min_length=8
 	)
-	return str(sqids.encode([id, domainSalt])) #pyright: ignore reportUnknownMemberType
+	return str(sqids.encode([id])) #pyright: ignore reportUnknownMemberType
 
 
 def encode_album_id(id: int) -> str:

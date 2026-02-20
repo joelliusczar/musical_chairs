@@ -201,10 +201,24 @@ sgar_isPrimaryArtist = cast(Column[Optional[Boolean]],sgar.isprimaryartist)
 Index("idx_songsartists", sgar_songFk, sgar_artistFk, unique=True)
 
 playlists_songs = Table("playlistssongs", metadata,
-	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=False),
-	Column("playlistfk", Integer, ForeignKey("playlists.pk"), nullable=False),
-	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
-		nullable=True),
+	Column(
+		"songfk",
+		Integer,
+		ForeignKey("songs.pk", ondelete="CASCADE"),
+		nullable=False
+	),
+	Column(
+		"playlistfk",
+		Integer,
+		ForeignKey("playlists.pk", ondelete="CASCADE"),
+		nullable=False
+	),
+	Column(
+		"lastmodifiedbyuserfk",
+		Integer,
+		ForeignKey("users.pk", ondelete="SET NULL"), 
+		nullable=True
+	),
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
 	Column(
 		"lexorder",
@@ -267,10 +281,24 @@ Index("idx_uniquestationname", st_name, st_ownerFk, unique=True)
 
 
 stations_songs = Table("stationssongs", metadata,
-	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=False),
-	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
-	Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
-		nullable=True),
+	Column(
+		"songfk",
+		Integer,
+		ForeignKey("songs.pk", ondelete="CASCADE"), 
+		nullable=False
+	),
+	Column(
+		"stationfk",
+		Integer,
+		ForeignKey("stations.pk", ondelete="CASCADE"),
+		nullable=False
+	),
+	Column(
+		"lastmodifiedbyuserfk",
+		Integer,
+		ForeignKey("users.pk", ondelete="SET NULL"), \
+		nullable=True
+	),
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
 	Column("lastplayednum", Integer, nullable=False, default=0)
 )
@@ -286,9 +314,22 @@ Index("idx_stationssongs", stsg_songFk, stsg_stationFk, unique=True)
 
 
 stations_albums = Table("stationsalbums",metadata,
-	Column("albumfk", Integer, ForeignKey("albums.pk"), nullable=False),
-	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
-		Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
+	Column(
+		"albumfk",
+		Integer,
+		ForeignKey("albums.pk", ondelete="CASCADE"),
+		nullable=False
+	),
+	Column(
+		"stationfk",
+		Integer,
+		ForeignKey("stations.pk", ondelete="CASCADE"),
+		nullable=False
+	),
+	Column(
+		"lastmodifiedbyuserfk",
+		Integer,
+		ForeignKey("users.pk", ondelete="SET NULL"),
 		nullable=True),
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
 	Column("lastplayednum", Integer, nullable=False, default=0)
@@ -306,10 +347,24 @@ Index("idx_stationsalbums", stab_albumFk, stab_stationFk, unique=True)
 
 
 stations_playlists = Table("stationsplaylists",metadata,
-	Column("playlistfk", Integer, ForeignKey("playlists.pk"), nullable=False),
-	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
-		Column("lastmodifiedbyuserfk", Integer, ForeignKey("users.pk"), \
-		nullable=True),
+	Column(
+		"playlistfk",
+		Integer,
+		ForeignKey("playlists.pk", ondelete="CASCADE"),
+		nullable=False
+	),
+	Column(
+		"stationfk",
+		Integer,
+		ForeignKey("stations.pk", ondelete="CASCADE"),
+		nullable=False
+	),
+	Column(
+		"lastmodifiedbyuserfk",
+		Integer,
+		ForeignKey("users.pk", ondelete="SET NULL"),
+		nullable=True
+	),
 	Column("lastmodifiedtimestamp", Double[float], nullable=True),
 	Column("lastplayednum", Integer, nullable=False, default=0)
 )
@@ -378,14 +433,29 @@ Index(
 
 station_queue = Table("stationlogs", metadata,
 	Column("pk", Integer, primary_key=True),
-	Column("stationfk", Integer, ForeignKey("stations.pk"), nullable=False),
-	Column("songfk", Integer, ForeignKey("songs.pk"), nullable=True),
+	Column(
+		"stationfk",
+		Integer,
+		ForeignKey("stations.pk", ondelete="CASCADE"),
+		nullable=False
+	),
+	Column(
+		"songfk",
+		Integer,
+		ForeignKey("songs.pk", ondelete="CASCADE"),
+		nullable=True
+	),
 	Column("itemtype", String(50), nullable=False, default="song"),
 	Column("action", String(50), nullable=True),
 	Column("parentkey", Integer, nullable=True),
 	Column("queuedtimestamp", Double[float], nullable=False),
 	Column("playedtimestamp", Double[float], nullable=True),
-	Column("userfk", Integer, ForeignKey("users.pk"), nullable=True),
+	Column(
+		"userfk",
+		Integer,
+		ForeignKey("users.pk", ondelete="SET NULL"),
+		nullable=True
+	),
 )
 
 q = station_queue.c
@@ -403,8 +473,18 @@ Index("idx_stationlogsstations", q_stationFk)
 
 last_played = Table('lastplayed', metadata,
 	Column("pk", Integer, primary_key=True, autoincrement=True),
-	Column("stationfk", Integer, ForeignKey('stations.pk'), nullable=False),
-	Column("songfk", Integer, ForeignKey('songs.pk'), nullable=False),
+	Column(
+		"stationfk",
+		Integer,
+		ForeignKey("stations.pk", ondelete="CASCADE"),
+		nullable=False
+	),
+	Column(
+		"songfk",
+		Integer,
+		ForeignKey("songs.pk", ondelete="CASCADE"),
+		nullable=False
+	),
 	Column("playedtimestamp", Double[float], nullable=False),
 	Column("itemtype", String(50), nullable=False, default="song"),
 	Column("parentkey", Integer, nullable=True)

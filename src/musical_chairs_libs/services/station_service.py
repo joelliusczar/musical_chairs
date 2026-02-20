@@ -43,8 +43,6 @@ from musical_chairs_libs.tables import (
 	sg_deletedTimstamp,
 	stations_songs as stations_songs_tbl, stsg_songFk, stsg_stationFk,
 	users as user_tbl, u_username, u_pk, u_displayName, 
-	station_queue, q_stationFk,
-	last_played, lp_stationFk,
 	stations_albums as stations_albums_tbl, stab_albumFk, stab_stationFk,
 	stations_playlists as stations_playlists_tbl, stpl_playlistFk,stpl_stationFk,
 	userRoles as user_roles_tbl, ur_keypath, ur_sphere
@@ -538,34 +536,19 @@ class StationService:
 			return [(cast(int,row[0]), cast(int,row[1])) for row in records]
 
 
-	def delete_station(self, stationId: int, clearStation: bool=False) -> int:
+	def delete_station(self, stationId: int) -> int:
 		if not stationId:
 			return 0
 		delCount = 0
 		with self.conn.begin() as transaction:
-			if clearStation:
-				delCount = self.__clear_station__(stationId)
 			delStmt = delete(user_roles_tbl)\
 				.where(ur_sphere == UserRoleSphere.Station.value)\
 				.where(ur_keypath == stationId)
-			delCount += self.conn.execute(delStmt).rowcount
-			delStmt = delete(station_queue).where(q_stationFk == stationId)
-			delCount += self.conn.execute(delStmt).rowcount
-			delStmt = delete(last_played).where(lp_stationFk == stationId)
-			delCount += self.conn.execute(delStmt).rowcount
 			delStmt = delete(stations_tbl).where(st_pk == stationId)
-			delCount += self.conn.execute(delStmt).rowcount
+			delCount = self.conn.execute(delStmt).rowcount
 			transaction.commit()
 			return delCount
 
-
-	def __clear_station__(self, stationId: int) -> int:
-		if not stationId:
-			return 0
-		delCount = 0
-		delStmt = delete(stations_songs_tbl).where(stsg_stationFk == stationId)
-		delCount += self.conn.execute(delStmt).rowcount
-		return delCount
 
 
 	def copy_station(
@@ -612,3 +595,53 @@ class StationService:
 
 			transation.commit()
 			return next(iter(self.get_stations(createdId)))
+		
+	
+	def copy_station_as_songs(
+		self, 
+		stationId: int, 
+		copy: StationCreationInfo
+	) -> StationInfo:
+		copy.playnum = 1
+		oldTypeId = copy.typeid
+		copy.typeid = StationTypes.SONGS_ONLY.value
+		with self.conn.begin() as transation:
+			createdId = self.add_station(copy)
+			if oldTypeId == StationTypes.SONGS_ONLY.value:
+				query = select(stsg_songFk).where(stsg_stationFk == stationId)
+				rows = self.conn.execute(query).fetchall()
+				itemIds = [cast(int,row[0]) for row in rows]
+				if any(itemIds):
+					params = [{
+						"stationfk": createdId,
+						"songfk": s,
+					} for s in itemIds]
+					insertStmt = insert(stations_songs_tbl)
+					self.conn.execute(insertStmt, params)
+			if oldTypeId == StationTypes.ALBUMS_AND_PLAYLISTS.value:
+				query = select(tbl.sg_pk)\
+					.join(tbl.songs, tbl.sg_albumFk == tbl.stab_albumFk)\
+					.where(stab_stationFk == stationId)
+				rows = self.conn.execute(query).fetchall()
+				if any(rows):
+					params: list[dict[str, Any]] = [{
+						"stationfk": createdId,
+						"songfk": r[0]
+					} for r in rows]
+					insertStmt = insert(tbl.stations_songs)
+					self.conn.execute(insertStmt, params)
+
+				query = select(tbl.plsg_songFk)\
+				.join(tbl.playlists_songs, tbl.stpl_playlistFk == tbl.plsg_playlistFk)\
+				.where(tbl.stpl_stationFk == stationId)
+				rows = self.conn.execute(query).fetchall()
+				if any(rows):
+					params = [{
+						"stationfk": createdId,
+						"playlistfk": r[0]
+					} for r in rows]
+					insertStmt = insert(tbl.stations_songs)
+					self.conn.execute(insertStmt, params)
+				
+				transation.commit()
+		return next(iter(self.get_stations(createdId)))

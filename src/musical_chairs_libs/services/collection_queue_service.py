@@ -767,7 +767,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					if r["itemtype"] == StationRequestTypes.ALBUM.lower() \
 					else StationRequestTypes.PLAYLIST.value ,
 				queuedtimestamp=0,
-				rules=[] if not userId or r["ownerid"] != userId else [
+				rules=[] if not userId or r["owner>id"] != userId else [
 					ActionRule(
 						sphere=UserRoleSphere.Album.value,
 						name=UserRoleDef.ALBUM_EDIT.value,

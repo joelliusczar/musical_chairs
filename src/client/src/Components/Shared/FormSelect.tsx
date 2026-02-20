@@ -1,6 +1,7 @@
 import React, { forwardRef, HTMLAttributes, Ref } from "react";
 import {
 	Autocomplete,
+	Box,
 	TextField,
 	FormHelperText,
 	Theme,
@@ -49,16 +50,25 @@ const ListBoxComponent = forwardRef<
 >((props, ref) => {
 	const { children, internalListRef, ...other } = props;
 
+	const defaultRowSize = 55;
+
 	const itemData = (children as React.ReactElement[]).map((e) => {
 		return e;
 	});
 
 	const getChildSize = () => {
-		return 40;
+		return defaultRowSize;
 	};
 
+	// const getHeight = () => {
+	// 	if (itemData.length > 8) {
+	// 		return 8 * defaultRowSize;
+	// 	}
+	// 	return itemData.map(getChildSize).reduce((a, b) => a + b, 0);
+	// };
 
-	return <div ref={ref} {...other}>
+
+	return <Box ref={ref} {...other} >
 		<List 
 			rowComponent={RowComponent}
 			rowCount={itemData.length}
@@ -67,7 +77,7 @@ const ListBoxComponent = forwardRef<
 			listRef={internalListRef}
 			overscanCount={10}
 		/>
-	</div>;
+	</Box>;
 });
 ListBoxComponent.displayName = "ListBoxComponent";
 

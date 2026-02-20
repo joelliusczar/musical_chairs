@@ -215,12 +215,12 @@ def remove_song_from_queue(
 
 @router.get("/check/")
 def is_phrase_used(
-	id: Optional[int]=None,
+	id: str| None=None,
 	name: str = "",
 	stationService: StationService = Depends(station_service)
 ) -> dict[str, bool]:
 	return {
-		"name": stationService.is_stationName_used(id, name)
+		"name": stationService.is_stationName_used(dtos.decode_id_or_not(id), name)
 	}
 
 
@@ -414,7 +414,7 @@ def remove_user_rule(
 
 
 @router.delete(
-	"/{stationid}",
+	"/{id}",
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[
 		Depends(
@@ -430,11 +430,10 @@ def delete(
 		get_secured_station,
 		scopes=[UserRoleDef.STATION_DELETE.value]
 	),
-	clearStation: bool=False,
 	stationService: StationService = Depends(station_service),
 ):
 	try:
-		if stationService.delete_station(station.decoded_id(), clearStation) == 0:
+		if stationService.delete_station(station.decoded_id()) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
 				detail=[build_error_obj(f"Station not found")
@@ -449,7 +448,7 @@ def delete(
 
 
 @router.post(
-	"/copy/{stationid}",
+	"/copy/{id}",
 	dependencies=[
 		Depends(
 			log_event(
@@ -468,4 +467,31 @@ def copy_station(
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
 	result = stationService.copy_station(savedstation.decoded_id(), station)
+	return result
+
+
+
+@router.post(
+	"/copy-as-songs/{id}",
+	dependencies=[
+		Depends(
+			log_event(
+				UserRoleSphere.Station.value,
+				StationActions.STATION_COPY.value
+			)
+		)
+	]
+)
+def copy_station_as_songs(
+	savedstation: StationInfo = Security(
+		get_secured_station,
+		scopes=[UserRoleDef.STATION_CREATE.value]
+	),
+	station: ValidatedStationCreationInfo = Body(default=None),
+	stationService: StationService = Depends(station_service),
+) -> StationInfo:
+	result = stationService.copy_station_as_songs(
+		savedstation.decoded_id(),
+		station
+	)
 	return result

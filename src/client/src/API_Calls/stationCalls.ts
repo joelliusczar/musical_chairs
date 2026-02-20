@@ -138,6 +138,23 @@ export const Calls = {
 			},
 		};
 	},
+	copyAsSongs: (
+		{ values, id }: { values: StationCreationInfo, id: Token }
+	) => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
+
+				const response = await webClient.post(
+					`/stations/copy-as-songs/${id}`,
+					values,
+					{ signal: abortController.signal }
+				);
+				return response.data;
+			},
+		};
+	},
 	getCatalogue: ({
 		stationkey,
 		ownerkey,

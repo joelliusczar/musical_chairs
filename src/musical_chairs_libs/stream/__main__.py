@@ -200,7 +200,7 @@ def launch_sending(stationName: str, ownerName: str):
 
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):
-	log_config.radioLogger.info("Starting the queue process")
+	log_config.radioLogger.error("Starting the queue process")
 	log_config.radioLogger.debug(f"Debug canary: {os.getcwd()}")
 
 	loadThread = Thread(

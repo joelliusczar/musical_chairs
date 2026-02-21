@@ -1,4 +1,4 @@
-import musical_chairs_libs.dtos_and_utilities.logging as logging
+import musical_chairs_libs.dtos_and_utilities.log_config as log_config
 import socket
 import subprocess
 import time
@@ -54,17 +54,17 @@ def get_song_info(
 	while True:
 		try:
 			offset = fileQueue.qsize()
-			logging.queueLogger.debug(f"offset : {offset}")
+			log_config.queueLogger.debug(f"offset : {offset}")
 			queueItem = songPopper.pop_next_queued(stationId, loaded)
 			if not queueItem:
-				logging.radioLogger.info("Null queueItem - ending station")
+				log_config.radioLogger.info("Null queueItem - ending station")
 				break
 			with loadingLock:
 				loaded.add(queueItem)
 			yield queueItem
 		except Exception as e:
-			logging.radioLogger.error("Error getting song info")
-			logging.radioLogger.error(e, exc_info=True)
+			log_config.radioLogger.error("Error getting song info")
+			log_config.radioLogger.error(e, exc_info=True)
 			break
 	stop()
 
@@ -74,7 +74,7 @@ def load_data(
 		songPopper: SongPopper,
 		fileService: FileService
 	):
-	logging.radioLogger.info(f"Beginning data load")
+	log_config.radioLogger.info(f"Beginning data load")
 	try:
 		currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		for queueItem in get_song_info(
@@ -82,9 +82,9 @@ def load_data(
 			songPopper
 		):
 			if not check_is_running():
-				logging.radioLogger.info(f"Stop running flag encountered")
+				log_config.radioLogger.info(f"Stop running flag encountered")
 				break
-			logging.queueLogger.info(f"queued: {queueItem.name}")
+			log_config.queueLogger.info(f"queued: {queueItem.name}")
 			attempts = 0
 			while True:
 				try:
@@ -93,27 +93,27 @@ def load_data(
 							currentFile.write(chunk)
 					break
 				except Exception as e:
-					logging.radioLogger.warning(e)
+					log_config.radioLogger.warning(e)
 					attempts += 1
 					if attempts > 3:
-						logging.radioLogger.error(
+						log_config.radioLogger.error(
 							f"Retried {attempts} times to download song"
 						)
 						raise
 					currentFile.truncate(0)
 					currentFile.seek(0)
 					time.sleep(.25 * attempts)
-			logging.queueLogger.info(f"loaded: {queueItem.name}")
+			log_config.queueLogger.info(f"loaded: {queueItem.name}")
 			fileQueue.put((currentFile, queueItem), check_is_running)
 			currentFile = cast(BinaryIO, NamedTemporaryFile(mode="wb"))
 		fileQueue.put((None, None), check_is_running)
 	
 	except Exception as e:
 		if isinstance(e, TimeoutError) and not check_is_running():
-			logging.radioLogger.debug("Queue has stopped waiting on put")
+			log_config.radioLogger.debug("Queue has stopped waiting on put")
 			return
-		logging.radioLogger.error("Error while trying to load data")
-		logging.radioLogger.error(e, exc_info=True)
+		log_config.radioLogger.error("Error while trying to load data")
+		log_config.radioLogger.error(e, exc_info=True)
 	finally:
 		stop()
 
@@ -129,7 +129,7 @@ def accept(
 			conn, _ = listener.accept()
 			return conn
 		except socket.timeout:
-			logging.radioLogger.error("Socket timmed out")
+			log_config.radioLogger.error("Socket timmed out")
 			if icesProcess:
 				returnCode = icesProcess.poll()
 				if not returnCode is None:
@@ -142,17 +142,17 @@ def cleanup_socket(listener: socket.socket):
 		listener.shutdown(socket.SHUT_RDWR)
 		listener.close()
 	except:
-		logging.radioLogger.error(
+		log_config.radioLogger.error(
 			"Couldn't shut down socket. May already be closed"
 		)
 
 
 def clean_up_tmp_files():
-	logging.radioLogger.info("cleaning up tmp files")
+	log_config.radioLogger.info("cleaning up tmp files")
 	while fileQueue.qsize() > 0:
 		unusedFile = fileQueue.get_unblocked()
 		if unusedFile and unusedFile[0]:
-			logging.radioLogger.info(f"tmp file: {unusedFile[0].name}")
+			log_config.radioLogger.info(f"tmp file: {unusedFile[0].name}")
 			unusedFile[0].close()
 
 
@@ -161,12 +161,12 @@ def clean_up_ices_process():
 	if icesProcess:
 		try:
 			icesProcess.terminate()
-			logging.radioLogger.info("Process successfully terminated")
+			log_config.radioLogger.info("Process successfully terminated")
 		except Exception as procError:
-			logging.radioLogger.error("Error terminating sub process")
-			logging.radioLogger.error(procError, exc_info=True)
+			log_config.radioLogger.error("Error terminating sub process")
+			log_config.radioLogger.error(procError, exc_info=True)
 	else:
-		logging.radioLogger.warning(
+		log_config.radioLogger.warning(
 			"Can't clean up station process. It is null"
 		)
 
@@ -184,24 +184,24 @@ def send_next(
 	host = "127.0.0.1"
 	portNumber = 0
 	listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	logging.radioLogger.info(f"Beginning data send")
+	log_config.radioLogger.info(f"Beginning data send")
 	try:
 		listener.bind((host, portNumber))
 		listener.listen(1)
 		icesProcess = startSubProcess(str(listener.getsockname()[1]))
-		logging.radioLogger.debug("Ices process started")
+		log_config.radioLogger.debug("Ices process started")
 		conn = accept(listener, timeout)
 		if not conn:
-			logging.radioLogger.error("No connection")
+			log_config.radioLogger.error("No connection")
 			return
 		with conn:
 			while True:
 				returnCode = icesProcess.poll()
 				if not returnCode is None:
-					logging.radioLogger.error("mc-ices errored out.")
+					log_config.radioLogger.error("mc-ices errored out.")
 					break
 				if not check_is_running():
-						logging.radioLogger.warning("stopLoading is set")
+						log_config.radioLogger.warning("stopLoading is set")
 						break
 				#don't want to wait for 'next' signal from ices when it doesn't
 				#hasn't had anything to process
@@ -213,20 +213,20 @@ def send_next(
 					with loadingLock:
 						loaded.remove(queueItem)
 				if currentFile:
-					logging.radioLogger.debug(f"closing {currentFile.name}")
+					log_config.radioLogger.debug(f"closing {currentFile.name}")
 					currentFile.close()
 				with fileQueue.delayed_decrement_get(
 					check_is_running
 				) as (currentFile, queueItem):
 					display = queueItem.display() if queueItem else "Missing Name"
-					logging.queueLogger.info(f"Playing: {display}")
+					log_config.queueLogger.info(f"Playing: {display}")
 					if queueItem:
 						if not songPopper.move_from_queue_to_history(
 							stationId,
 							queueItem.id,
 							queueItem.queuedtimestamp
 						):
-							logging.radioLogger.info(
+							log_config.radioLogger.info(
 								f"Skipping {queueItem.name}"
 							)
 							skipped = True
@@ -234,7 +234,7 @@ def send_next(
 						else:
 							skipped = False
 				if currentFile:
-					logging.queueLogger.info(f"Sending {currentFile.name} to ices.")
+					log_config.queueLogger.info(f"Sending {currentFile.name} to ices.")
 					conn.sendall(f"{currentFile.name}\n".encode())
 					conn.sendall(f"{display}\n".encode())
 				else:
@@ -242,11 +242,11 @@ def send_next(
 					break
 	except Exception as e:
 		if isinstance(e, TimeoutError) and not check_is_running():
-			logging.radioLogger.debug("Queue has stopped waiting on get")
+			log_config.radioLogger.debug("Queue has stopped waiting on get")
 			return
-		logging.radioLogger.error(e, exc_info=True)
+		log_config.radioLogger.error(e, exc_info=True)
 	finally:
-		logging.radioLogger.debug("send_next finally")
+		log_config.radioLogger.debug("send_next finally")
 		stop()
 		cleanup_socket(listener)
 		clean_up_tmp_files()

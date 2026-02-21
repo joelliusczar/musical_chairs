@@ -59,27 +59,29 @@ class VisitorService:
 			return cached
 		userAgentHash = hashlib.md5(trackingInfo.userAgent.encode()).digest()
 		userAgentLen = len(trackingInfo.userAgent)
-		query = select(uag_pk, uag_content)\
-			.where(uag_ipv6Address == trackingInfo.ipv6Address)\
-			.where(uag_ipv4Address == trackingInfo.ipv4Address)\
-			.where(uag_hash == userAgentHash)\
-			.where(uag_length == userAgentLen)
-		results = self.conn.execute(query).mappings()
-		for row in results:
-			if trackingInfo.userAgent == row[uag_content]:
-				self.add_to_cache(row[uag_pk], trackingInfo)
-				return row[uag_pk]
-		stmt = insert(user_agents).values(
-			useragenttxt = unicodedata.normalize("NFC", trackingInfo.userAgent),
-			hashua = userAgentHash,
-			lengthua = userAgentLen,
-			ipv4address = trackingInfo.ipv4Address,
-			ipv6address = trackingInfo.ipv6Address
-		)
-		insertedIdRow = self.conn.execute(stmt).inserted_primary_key
-		if insertedIdRow:
-			self.add_to_cache(insertedIdRow[0], trackingInfo)
-			self.conn.commit()
-			return insertedIdRow[0]
-		else:
-			raise RuntimeError("Failed to create visitor id")
+		with self.conn.begin() as transaction:
+			query = select(uag_pk, uag_content)\
+				.where(uag_ipv6Address == trackingInfo.ipv6Address)\
+				.where(uag_ipv4Address == trackingInfo.ipv4Address)\
+				.where(uag_hash == userAgentHash)\
+				.where(uag_length == userAgentLen)
+			results = self.conn.execute(query).mappings().fetchall()
+			for row in results:
+				if trackingInfo.userAgent == row[uag_content]:
+					self.add_to_cache(row[uag_pk], trackingInfo)
+					return row[uag_pk]
+			stmt = insert(user_agents).values(
+				useragenttxt = unicodedata.normalize("NFC", trackingInfo.userAgent),
+				hashua = userAgentHash,
+				lengthua = userAgentLen,
+				ipv4address = trackingInfo.ipv4Address,
+				ipv6address = trackingInfo.ipv6Address
+			)
+			insertedIdRow = self.conn.execute(stmt).inserted_primary_key
+			if insertedIdRow:
+				self.add_to_cache(insertedIdRow[0], trackingInfo)
+				transaction.commit()
+				return insertedIdRow[0]
+			else:
+				transaction.rollback()
+				raise RuntimeError("Failed to create visitor id")

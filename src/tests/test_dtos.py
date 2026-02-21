@@ -1,6 +1,6 @@
 import pytest
+import musical_chairs_libs.dtos_and_utilities as dtos
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	SavedNameString,
 	SearchNameString,
 	UserRoleDef,
@@ -55,11 +55,11 @@ def test_name_strings_as_bool():
 		assert True
 
 def test_is_admin():
-	accountInfo = AccountInfo(
+	accountInfo = dtos.RoledUser(
 		id=-1,
 		username="",
-		email="",
-		roles=[ActionRule(name=UserRoleDef.PATH_EDIT.value)]
+		roles=[ActionRule(name=UserRoleDef.PATH_EDIT.value)],
+		publictoken=""
 	)
 	assert not accountInfo.isadmin
 	accountInfo.roles.append(ActionRule(name=UserRoleDef.ADMIN.value))

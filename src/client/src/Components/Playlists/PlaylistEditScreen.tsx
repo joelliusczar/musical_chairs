@@ -56,7 +56,7 @@ import {
 	HTML5Backend,
 } from "react-dnd-html5-backend";
 import { PlaylistSongRow } from "./PlaylistSongRow";
-import { IdValue } from "../../Types/generic_types";
+import { IdValue, Token } from "../../Types/generic_types";
 import { UserRoleDef } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
@@ -234,7 +234,7 @@ export const PlaylistEditScreen = () => {
 		}
 	};
 
-	const moveSong = async (songId: IdValue, order: number) => {
+	const moveSong = async (songId: Token, order: number) => {
 		if (!savedId) return;
 		try {
 			const requestObj = Calls.moveSong({
@@ -352,11 +352,11 @@ export const PlaylistEditScreen = () => {
 		{songsState.data?.length > 0 ?
 			<>
 				<Box>
-					{canPlayThisPlaylist() && <PlaylistListener
+					{canPlayThisPlaylist() && savedId && <PlaylistListener
 						audioItems={songsState.data}
 						nextUp={getNextUp()}
 						queueNext={queueNext}
-						parentId={savedId || 0}
+						parentId={savedId}
 					/>}
 				</Box>
 				<DndProvider

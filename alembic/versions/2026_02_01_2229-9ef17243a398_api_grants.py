@@ -38,8 +38,14 @@ def upgrade() -> None:
         "stationssongs",
         "userroles",
         "users",
+        "visitors"
     ]
-    skipSet = {("lastplayed", "UPDATE"), ("lastplayed", "INSERT")}
+    skipSet = {
+        ("lastplayed", "UPDATE"),
+        ("lastplayed", "INSERT"),
+        ("visitors", "UPDATE"),
+        ("visitors", "DELETE"),
+    }
     for table in selectTables:
         for action in ["SELECT", "UPDATE", "INSERT", "DELETE"]:
             if (table, action) in skipSet:
@@ -48,6 +54,8 @@ def upgrade() -> None:
                 f"GRANT {action} ON {table} TO "
                 f"{mcr_u.DbUsers.API_USER("localhost")}"
             )
+
+
 
 
 def downgrade() -> None:

@@ -1,6 +1,11 @@
 import webClient from "./api";
 import { buildArrayQueryStrFromObj } from "../Helpers/request_helpers";
-import { OwnerParam, KeyValue, IdValue } from "../Types/generic_types";
+import { 
+	OwnerParam,
+	KeyValue,
+	IdValue,
+	Token,
+} from "../Types/generic_types";
 import {
 	RequiredStationParams,
 	StationCreationInfo,
@@ -18,7 +23,7 @@ import {
 import { Flags, StringObject } from "../Types/generic_types";
 import { ListData, TableData } from "../Types/pageable_types";
 import {
-	User,
+	RoledUser,
 	ActionRule,
 } from "../Types/user_types";
 import { StationRequestTypes } from "../constants";
@@ -78,7 +83,7 @@ export const Calls = {
 		};
 	},
 	save: (
-		{ values, id }: { values: StationCreationInfo, id?: IdValue | null }
+		{ values, id }: { values: StationCreationInfo, id?: Token | null }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -102,7 +107,7 @@ export const Calls = {
 			},
 		};
 	},
-	remove: ({ id }: { id: IdValue }) => {
+	remove: ({ id }: { id: Token }) => {
 		const abortController = new AbortController();
 		return {
 			abortController: abortController,
@@ -117,7 +122,7 @@ export const Calls = {
 		};
 	},
 	copy: (
-		{ values, id }: { values: StationCreationInfo, id: IdValue }
+		{ values, id }: { values: StationCreationInfo, id: Token }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -126,6 +131,23 @@ export const Calls = {
 
 				const response = await webClient.post(
 					`/stations/copy/${id}`,
+					values,
+					{ signal: abortController.signal }
+				);
+				return response.data;
+			},
+		};
+	},
+	copyAsSongs: (
+		{ values, id }: { values: StationCreationInfo, id: Token }
+	) => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
+
+				const response = await webClient.post(
+					`/stations/copy-as-songs/${id}`,
 					values,
 					{ signal: abortController.signal }
 				);
@@ -189,7 +211,7 @@ export const Calls = {
 	queueRequest: (
 		{ stationkey, ownerkey, itemid, requesttypeid = StationRequestTypes.SONG }: 
 		RequiredStationParamsOnly & {
-			itemid: IdValue,
+			itemid: Token,
 			requesttypeid?: IdValue,
 		}
 	) => {
@@ -209,7 +231,7 @@ export const Calls = {
 		};
 	},
 	removeSongFromQueue: (
-		params: RequiredStationParams & { songid: IdValue, queuedtimestamp: number }
+		params: RequiredStationParams & { songid: Token, queuedtimestamp: number }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -234,7 +256,7 @@ export const Calls = {
 		};
 	},
 	enableStation: (
-		{ ids }: { ids: IdValue[] | IdValue }
+		{ ids }: { ids: Token[] | Token }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -252,7 +274,7 @@ export const Calls = {
 		};
 	},
 	disableStations: (
-		{ ids=[] }: { ids?: number[], includeAll?: boolean }
+		{ ids=[] }: { ids?: Token[], includeAll?: boolean }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -279,7 +301,7 @@ export const Calls = {
 			abortController: abortController,
 			call: async () => {
 				const url = `stations/${ownerkey}/${stationkey}/user_list`;
-				const response = await webClient.get<TableData<User>>(url, {
+				const response = await webClient.get<TableData<RoledUser>>(url, {
 					params: params,
 					signal: abortController.signal,
 				});

@@ -1,5 +1,6 @@
-from musical_chairs_libs.dtos_and_utilities import AccountInfo, hashpw
+from musical_chairs_libs.dtos_and_utilities import InternalUser, hashpw
 from datetime import datetime, timezone
+from .db_data.user_ids import public_tokens, hidden_tokens
 
 
 def clear_mock_password() -> str:
@@ -11,11 +12,13 @@ def mock_password() -> bytes:
 def clear_mock_bad_password_clear() -> str:
 	return "badPassword"
 
-def primary_user() -> AccountInfo:
-	return AccountInfo(
+def primary_user() -> InternalUser:
+	return InternalUser(
 		id=1,
 		username="testUser_alpha",
-		email="test@munchopuncho.com"
+		email="test@munchopuncho.com",
+		publictoken=public_tokens[1],
+		hiddentoken=hidden_tokens[1]
 	)
 
 mock_ordered_date_list = [

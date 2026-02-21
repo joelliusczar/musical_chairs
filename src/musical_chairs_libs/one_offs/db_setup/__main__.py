@@ -4,8 +4,8 @@ from musical_chairs_libs.services import (
 	setup_database,
 )
 
-def setup_db(dbName: str):
-	setup_database(dbName)
+def setup_db(dbName: str, alembicScriptLocation: str):
+	setup_database(dbName, alembicScriptLocation)
 
 def teardown_db(dbName: str):
 	with DbRootConnectionService() as rootConnService:
@@ -13,7 +13,7 @@ def teardown_db(dbName: str):
 
 if __name__ == "__main__":
 	dbName = sys.argv[1]
-	if len(sys.argv) > 2 and sys.argv[2].lower() == "clear":
+	if sys.argv[2].lower() == "clear":
 		teardown_db(dbName)
 	else:
-		setup_db(dbName)
+		setup_db(dbName, sys.argv[2])

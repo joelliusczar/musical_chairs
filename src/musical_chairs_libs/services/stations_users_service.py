@@ -1,8 +1,8 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from .domain_user_service import DomainUserService
 from musical_chairs_libs.dtos_and_utilities import (
 	get_station_owner_rules,
 	StationInfo,
-	AccountInfo,
 	ActionRule,
 	UserRoleSphere,
 )
@@ -38,7 +38,7 @@ class StationsUsersService:
 	def get_station_users(
 		self,
 		station: StationInfo,
-	) -> Iterator[AccountInfo]:
+	) -> Iterator[dtos.RoledUser]:
 		return self.domain_user_service.get_domain_users(
 			station,
 			UserRoleSphere.Station,

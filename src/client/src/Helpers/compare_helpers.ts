@@ -1,4 +1,4 @@
-import { NamedIdItem } from "../Types/generic_types";
+import { NamedTokenItem } from "../Types/generic_types";
 import { User } from "../Types/user_types";
 
 export const userKeyMatch = (key: string, owner: User | null): boolean => {
@@ -15,7 +15,7 @@ export const userKeyMatch = (key: string, owner: User | null): boolean => {
 	return false;
 };
 
-export const keyMatch = (key: string, object: NamedIdItem): boolean => {
+export const keyMatch = (key: string, object: NamedTokenItem): boolean => {
 	if (key === object?.id?.toString()) {
 		return true;
 	}

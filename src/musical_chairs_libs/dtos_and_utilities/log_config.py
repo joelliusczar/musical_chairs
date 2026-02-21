@@ -2,7 +2,7 @@ import json
 import logging as builtin_logging
 from datetime import datetime, timezone
 from logging import config, Formatter, Filter
-from typing import Any, Optional, override, Union
+from typing import Any, override
 from .config_accessors import ConfigAcessors
 
 LOG_RECORD_BUILTIN_ATTRS = {
@@ -40,7 +40,7 @@ class JsonFormatter(Formatter):
 	def __init__(
 		self, 
 		*,
-		fmt_keys: Optional[dict[str, str]]=None
+		fmt_keys: dict[str, str] | None=None
 	):
 		super().__init__()
 		self.fmt_keys = fmt_keys if fmt_keys is not None else {}
@@ -85,7 +85,7 @@ class InfoOnlyFilter(Filter):
 	def filter(
 		self,
 		record: builtin_logging.LogRecord
-	) -> Union[bool,builtin_logging.LogRecord]:
+	) -> bool | builtin_logging.LogRecord:
 		return record.levelno < builtin_logging.WARNING
 	
 
@@ -169,7 +169,8 @@ our_config: dict[str, Any] = {
 		"api": {
 			"level": api_log_level,
 			"handlers": [
-				"json"
+				"json",
+				"boring"
 			]
 		},
 		"scheduled": {
@@ -183,10 +184,11 @@ our_config: dict[str, Any] = {
 
 config.dictConfig(config=our_config)
 
+
 radioLogger = builtin_logging.getLogger("radio")
-logger = builtin_logging.getLogger("api")
+apiLogger = builtin_logging.getLogger("api")
 queueLogger = builtin_logging.getLogger("radio.queue")
 scheduledServiceLogger = builtin_logging.getLogger("scheduled")
 
 
-
+apiLogger.debug("Logging cannary")

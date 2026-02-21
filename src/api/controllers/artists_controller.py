@@ -1,3 +1,4 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -6,10 +7,10 @@ from fastapi import (
 	HTTPException
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	UserRoleDef,
 	TableData,
 	ArtistInfo,
+	RoledUser,
 	SongsArtistInfo,
 	ListData,
 	build_error_obj,
@@ -55,7 +56,7 @@ def get_page(
 @router.get("/list")
 def get_list(
 	artistService: ArtistService = Depends(artist_service),
-	user: AccountInfo = Security(
+	user: RoledUser = Security(
 		get_current_user_simple,
 		scopes=[]
 	)
@@ -65,11 +66,11 @@ def get_list(
 
 @router.get("/{artistKey}")
 def get(
-	artistKey: int,
+	artistKey: str,
 	artistService: ArtistService = Depends(artist_service)
 ) -> SongsArtistInfo:
 
-	artistInfo = artistService.get_artist(artistKey)
+	artistInfo = artistService.get_artist(dtos.decode_id(artistKey))
 	if not artistInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -110,7 +111,7 @@ def update_artist(
 ) -> ArtistInfo:
 	artistInfo = artistService.save_artist(
 		artistName=artistInfoUpdate.name,
-		artistId=artist.id
+		artistId=dtos.decode_id(artist.id)
 	)
 	if not artistInfo:
 		raise HTTPException(
@@ -133,7 +134,7 @@ def delete(
 	artistService: ArtistService = Security(artist_service)
 ):
 	try:
-		if artistService.delete_artist(artist.id) == 0:
+		if artistService.delete_artist(dtos.decode_id(artist.id)) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
 				detail=[build_error_obj(f"Artist with key {artist.id} not found")

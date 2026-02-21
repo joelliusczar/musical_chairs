@@ -109,7 +109,7 @@ const Queue = () => {
 			<Button
 				variant="contained"
 				component={Link}
-				to={`${DomRoutes.songEdit()}?id=${item.id}`}
+				to={`${DomRoutes.songEdit()}?ids=${item.id}`}
 			>
 				View
 			</Button>);

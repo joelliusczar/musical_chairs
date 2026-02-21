@@ -3,6 +3,9 @@ import re
 import uuid
 import hashlib
 import unicodedata
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
+import sqlalchemy as sa
 from .current_user_provider import CurrentUserProvider
 from typing import (
 	Any,
@@ -62,11 +65,13 @@ from musical_chairs_libs.tables import (
 )
 from .song_artist_service import SongArtistService
 from .jobs_service import JobsService
+from .path_rule_service import PathRuleService
 from .album_service import AlbumService
 from .artist_service import ArtistService
 from itertools import islice
 from tinytag import TinyTag
 from unidecode import unidecode
+from tempfile import TemporaryFile
 
 class SongFileService:
 
@@ -77,6 +82,7 @@ class SongFileService:
 		artistService: ArtistService,
 		albumService: AlbumService,
 		currentUserProvider: CurrentUserProvider,
+		pathRuleService: PathRuleService,
 		songArtistService: Optional[SongArtistService]=None,
 		jobService: Optional[JobsService]=None,
 	) -> None:
@@ -94,9 +100,10 @@ class SongFileService:
 		self.artist_service = artistService
 		self.album_service = albumService
 		self.current_user_provider = currentUserProvider
+		self.path_rule_service =  pathRuleService
 
 
-	def __create_directory__(
+	def __create_directory_in_trx__(
 		self,
 		prefix: str,
 		suffix: str,
@@ -108,7 +115,7 @@ class SongFileService:
 			squash_chars(f"{prefix}/{suffix}/", "/"),
 			addSlash=False
 		)
-		self.delete_overlaping_placeholder_dirs(path)
+		self.delete_overlaping_placeholder_dirs_in_trx(path)
 		stmt = insert(songs_tbl).values(
 			treepath = unicodedata.normalize("NFC", path),
 			internalpath = str(uuid.uuid4()),
@@ -124,12 +131,13 @@ class SongFileService:
 		prefix: str,
 		suffix: str,
 	) -> Mapping[str, Collection[SongTreeNode]]:
-		self.__create_directory__(prefix, suffix, suffix)
-		self.conn.commit()
+		with self.conn.begin() as transaction:
+			self.__create_directory_in_trx__(prefix, suffix, suffix)
+			transaction.commit()
 		return self.song_ls_parents(prefix, includeTop=False)
 
 
-	def __rename_directory__(
+	def __rename_directory_in_trx__(
 		self,
 		prefix: str,
 		suffix: str,
@@ -179,9 +187,10 @@ class SongFileService:
 		prefix: str,
 		suffix: str,
 	) -> Mapping[str, Collection[SongTreeNode]]:
-		newPath = self.__rename_directory__(prefix, suffix, suffix)
-		self.conn.commit()
-		return self.song_ls_parents(newPath, includeTop=False)
+		with self.conn.begin() as transaction:
+			newPath = self.__rename_directory_in_trx__(prefix, suffix, suffix)
+			transaction.commit()
+			return self.song_ls_parents(newPath, includeTop=False)
 
 
 	def extract_song_info(self, file: IO[bytes]) -> SongAboutInfo:
@@ -191,6 +200,7 @@ class SongFileService:
 			artist = next(
 				self.artist_service.get_artists(
 					artistKeys=tag.artist,
+					pageSize=1,
 					exactStrMatch=True
 				),
 				None
@@ -198,6 +208,7 @@ class SongFileService:
 			album = next(
 				self.album_service.get_albums(
 					albumKeys=tag.album,
+					pageSize=1,
 					exactStrMatch=True
 				),
 				None
@@ -227,69 +238,80 @@ class SongFileService:
 			prefix: str,
 			suffix: str,
 		) -> SongTreeNode:
-		path = normalize_opening_slash(
-			squash_chars(f"{prefix}/{suffix}", "/"),
-			addSlash=False
-		)
-		if self.__is_path_used__(treepath=SavedNameString(path)):
-			raise AlreadyUsedError.build_error(
-				f"{path} is already used",
-				"suffix"
+		with self.conn.begin() as transaction:
+			path = normalize_opening_slash(
+				squash_chars(f"{prefix}/{suffix}", "/"),
+				addSlash=False
 			)
-		user = self.current_user_provider.current_user()
-		self.delete_overlaping_placeholder_dirs(path)
-		pathObj = Path(suffix)
-		extension = pathObj.suffix
-		stem = pathObj.stem
-		cleanedSuffix = re.sub(
-			r"[^a-zA-Z?]+",
-			"",
-			unidecode(stem, errors="replace")
-		).casefold() or "--"
-		internalDirs = "/".join([*cleanedSuffix[:5]])
-		internalPath = f"{user.username}/{internalDirs}/"\
-			+ f"{str(uuid.uuid4())}-{cleanedSuffix}{extension}"
-		with self.file_service.save_song(
-			squash_chars(internalPath, "/"),
-			file
-		) as uploaded:
-			hasher = hashlib.sha256()
-			for chunk in uploaded:
-				hasher.update(chunk)
-			fileHash = hasher.digest()
-			uploaded.seek(0)
-			songAboutInfo = self.extract_song_info(uploaded)
-		stmt = insert(songs_tbl).values(
-			treepath = unicodedata.normalize("NFC", path),
-			internalpath = unicodedata.normalize("NFC", internalPath),
-			name = unicodedata.normalize("NFC", songAboutInfo.name),
-			albumfk = songAboutInfo.album.id if songAboutInfo.album else None,
-			track = songAboutInfo.track,
-			tracknum = int_or_default(songAboutInfo.track),
-			discnum = songAboutInfo.discnum,
-			bitrate = songAboutInfo.bitrate,
-			genre = unicodedata.normalize("NFC", songAboutInfo.genre)\
-				if songAboutInfo.genre else None,
-			duration = songAboutInfo.duration,
-			lastmodifiedbyuserfk = user.id,
-			lastmodifiedtimestamp = self.get_datetime().timestamp(),
-			filehash = fileHash
-		)
-		result = self.conn.execute(stmt)
-		if result.inserted_primary_key and songAboutInfo.primaryartist:
-			self.song_artist_service.link_songs_with_artists(
-				[SongArtistTuple(
-					cast(int,result.inserted_primary_key[0]),
-					songAboutInfo.primaryartist.id,
-					isprimaryartist=True
-				)]
-			)
-		self.conn.commit()
-		return SongTreeNode(
-			treepath=normalize_closing_slash(path),
-			totalChildCount=1,
-			id=result.lastrowid
-		)
+			if self.__is_path_used__(treepath=SavedNameString(path)):
+				raise AlreadyUsedError.build_error(
+					f"{path} is already used",
+					"suffix"
+				)
+			user = self.current_user_provider.current_user()
+			self.delete_overlaping_placeholder_dirs_in_trx(path)
+			
+			with TemporaryFile() as tmp:
+				for chunk in file:
+					tmp.write(chunk)
+				tmp.seek(0)
+				
+				hasher = hashlib.sha256()
+				for chunk in tmp:
+					hasher.update(chunk)
+				fileHash = hasher.digest()
+				tmp.seek(0)
+
+				pathObj = Path(suffix)
+				extension = pathObj.suffix
+				stem = pathObj.stem
+				cleanedSuffix = re.sub(
+					r"[^a-zA-Z?]+",
+					"",
+					unidecode(stem, errors="replace")
+				).casefold() or "--"
+				internalDirs = "/".join([*cleanedSuffix[:10]])
+				internalPath = f"{user.hiddentoken}/{internalDirs}/"\
+					+ f"{str(uuid.uuid4())}-{cleanedSuffix}{extension}"
+				
+				songAboutInfo = self.extract_song_info(tmp)
+				stmt = insert(songs_tbl).values(
+					treepath = unicodedata.normalize("NFC", path),
+					internalpath = unicodedata.normalize("NFC", internalPath),
+					name = unicodedata.normalize("NFC", songAboutInfo.name),
+					albumfk = songAboutInfo.album.decoded_id()\
+						if songAboutInfo.album else None,
+					track = songAboutInfo.track,
+					tracknum = int_or_default(songAboutInfo.track),
+					discnum = songAboutInfo.discnum,
+					bitrate = songAboutInfo.bitrate,
+					genre = unicodedata.normalize("NFC", songAboutInfo.genre)\
+						if songAboutInfo.genre else None,
+					duration = songAboutInfo.duration,
+					lastmodifiedbyuserfk = user.id,
+					lastmodifiedtimestamp = self.get_datetime().timestamp(),
+					filehash = fileHash
+				)
+				result = self.conn.execute(stmt)
+				if result.inserted_primary_key and songAboutInfo.primaryartist:
+					self.song_artist_service.link_songs_with_artists_in_trx(
+						[SongArtistTuple(
+							cast(int,result.inserted_primary_key[0]),
+							dtos.decode_id(songAboutInfo.primaryartist.id),
+							isprimaryartist=True
+						)]
+					)
+				tmp.seek(0)
+				self.file_service.save_song(
+					squash_chars(internalPath, "/"),
+					tmp
+				)
+				transaction.commit()
+				return SongTreeNode(
+					treepath=normalize_closing_slash(path),
+					totalChildCount=1,
+					id=dtos.encode_song_id(result.lastrowid)
+				)
 
 
 	def __song_ls_query__(
@@ -315,10 +337,10 @@ class SongFileService:
 		)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.where(
-				func.normalize_opening_slash(
-					sg_path,
-					hasOpenSlash
-				).like(f"{likePrefix}%", escape="\\")
+				sa.or_(
+					tbl.sg_path.like(f"{likePrefix}%", escape="\\"),
+					tbl.sg_path.like(f"/{likePrefix}%", escape="\\")
+				)
 			)\
 			.group_by("prefix")
 		return query
@@ -332,7 +354,7 @@ class SongFileService:
 		],
 		permittedPathsTree: ChainedAbsorbentTrie[ActionRule]
 	) -> Iterator[SongTreeNode]:
-		records = self.conn.execute(query).mappings()
+		records = self.conn.execute(query).mappings().fetchall()
 		for row in records:
 			normalizedPrefix = normalize_opening_slash(cast(str, row["prefix"]))
 			if not permittedPathsTree.matches(normalizedPrefix)\
@@ -345,7 +367,7 @@ class SongFileService:
 				yield SongTreeNode(
 					treepath=cast(str, row["prefix"]),
 					totalChildCount=cast(int, row["totalChildCount"]),
-					id=cast(int, row["pk"]),
+					id=dtos.encode_song_id(row["pk"]),
 					name=cast(str, row["name"]),
 					rules=[r for p in
 						permittedPathsTree.values(normalizedPrefix) for r in p
@@ -366,27 +388,30 @@ class SongFileService:
 	def song_ls(
 		self,
 		prefix: Optional[str]=None
-	) -> Iterator[SongTreeNode]:
-		user = self.current_user_provider.get_path_rule_loaded_current_user()
-		permittedPathTree = user.get_permitted_paths_tree()
-		if type(prefix) == str:
-			query = self.__song_ls_query__(prefix)
-			yield from self.__query_to_treeNodes__(query, permittedPathTree)
-		else:
-			prefixes = {
-				next((s for s in p.split("/") if s), "") if p else p for p in \
-				permittedPathTree.shortest_paths()
-			}
-			queryList: list[Select[Tuple[
-				str, Optional[String], int, Integer, String]]
-			] = []
-			for p in prefixes:
-				queryList.append(self.__song_ls_query__(p))
-			if queryList:
-				yield from self.__query_to_treeNodes__(
-					union_all(*queryList),
-					permittedPathTree
-				)
+	) -> list[SongTreeNode]:
+		with dtos.open_transaction(self.conn):
+			user = self.current_user_provider.get_path_rule_loaded_current_user()\
+				.to_roled_user()
+			permittedPathTree = self.path_rule_service.get_permitted_paths_tree(user)
+			if type(prefix) == str:
+				query = self.__song_ls_query__(prefix)
+				return [*self.__query_to_treeNodes__(query, permittedPathTree)]
+			else:
+				prefixes = {
+					next((s for s in p.split("/") if s), "") if p else p for p in \
+					permittedPathTree.shortest_paths()
+				}
+				queryList: list[Select[Tuple[
+					str, Optional[String], int, Integer, String]]
+				] = []
+				for p in prefixes:
+					queryList.append(self.__song_ls_query__(p))
+				if queryList:
+					return [*self.__query_to_treeNodes__(
+						union_all(*queryList),
+						permittedPathTree
+					)]
+				return []
 
 
 	def __prefix_split__(self, prefix: str) -> Iterator[str]:
@@ -420,41 +445,44 @@ class SongFileService:
 		prefix: str,
 		includeTop: bool=True
 	) -> Mapping[str, Collection[SongTreeNode]]:
-		user = self.current_user_provider.get_path_rule_loaded_current_user()
-		permittedPathTree = user.get_permitted_paths_tree()
-		queryList: list[
-			Select[Tuple[str, Optional[String], int, Integer, String]]
-		] = []
+		with dtos.open_transaction(self.conn):
+			user = self.current_user_provider.get_path_rule_loaded_current_user()\
+				.to_roled_user()
+			permittedPathTree = self.path_rule_service.get_permitted_paths_tree(user)
+			queryList: list[
+				Select[Tuple[str, Optional[String], int, Integer, String]]
+			] = []
 
-		prefixSplit = reversed([p for p in self.__prefix_split__(prefix)])
+			prefixSplit = reversed([p for p in self.__prefix_split__(prefix)])
 
-		limited = prefixSplit if includeTop else islice(prefixSplit, 3)
-		for p in limited:
-				queryList.append(self.__song_ls_query__(p))
-		nodes = self.__query_to_treeNodes__(
-			union_all(*queryList),
-			permittedPathTree
-		)
-		result = self.__build_song_tree_dict__(nodes)
-		return result
+			limited = prefixSplit if includeTop else islice(prefixSplit, 3)
+			for p in limited:
+					queryList.append(self.__song_ls_query__(p))
+			nodes = self.__query_to_treeNodes__(
+				union_all(*queryList),
+				permittedPathTree
+			)
+			result = self.__build_song_tree_dict__(nodes)
+			return result
 
 
 	def get_internal_song_paths(
 		self,
-		itemIds: Union[Iterable[int], int],
-	) -> Iterator[str]:
-		query = select(sg_internalpath).where(sg_deletedTimstamp.is_(None))
-		if isinstance(itemIds, Iterable):
-			query = query.where(sg_pk.in_(itemIds))
-		else:
-			query = query.where(sg_pk == itemIds)
-		results = self.conn.execute(query)
-		yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
-			for row in results
-		)
+		itemIds: Iterable[int] | int,
+	) -> list[str]:
+		with dtos.open_transaction(self.conn):
+			query = select(sg_internalpath).where(sg_deletedTimstamp.is_(None))
+			if isinstance(itemIds, Iterable):
+				query = query.where(sg_pk.in_(itemIds))
+			else:
+				query = query.where(sg_pk == itemIds)
+			results = self.conn.execute(query).fetchall()
+			return [self.file_service.song_absolute_path(cast(str,row[0])) \
+				for row in results
+			]
 
 
-	def get_parents_of_path(self, path: str) -> Iterator[Tuple[int, str]]:
+	def get_parents_of_path(self, path: str) -> list[Tuple[int, str]]:
 		normalizedPrefix = normalize_opening_slash(path)
 		addSlash = True
 		query = select(sg_pk, sg_path)\
@@ -466,18 +494,20 @@ class SongFileService:
 					func.normalize_opening_slash(sg_path, addSlash)
 				)
 			) == func.normalize_opening_slash(sg_path, addSlash))
-		results = self.conn.execute(query)
-		yield from ((row[0], row[1]) for row in results)
+		with dtos.open_transaction(self.conn):
+			results = self.conn.execute(query).fetchall()
+			return [(row[0], row[1]) for row in results]
 
 
-	def delete_overlaping_placeholder_dirs(self, treepath: str):
-		overlap = [*self.get_parents_of_path(treepath)]
-		if any(r for r in overlap if not r[1].endswith("/")):
-			raise RuntimeError("Cannot delete song entries")
-		stmt = delete(songs_tbl)\
-			.where(sg_deletedTimstamp.is_(None))\
-			.where(sg_pk.in_(r[0] for r in overlap))
-		self.conn.execute(stmt)
+	def delete_overlaping_placeholder_dirs_in_trx(self, treepath: str):
+		with dtos.open_transaction(self.conn):
+			overlap = [*self.get_parents_of_path(treepath)]
+			if any(r for r in overlap if not r[1].endswith("/")):
+				raise RuntimeError("Cannot delete song entries")
+			stmt = delete(songs_tbl)\
+				.where(sg_deletedTimstamp.is_(None))\
+				.where(sg_pk.in_(r[0] for r in overlap))
+			self.conn.execute(stmt)
 
 
 	def __is_path_used__(
@@ -489,8 +519,9 @@ class SongFileService:
 				.where(sg_deletedTimstamp.is_(None))\
 				.where(sg_path == str(treepath))\
 				.where(st_pk != id)
-		countRes = self.conn.execute(queryAny).scalar()
-		return countRes > 0 if countRes else False
+		with dtos.open_transaction(self.conn):
+			countRes = self.conn.execute(queryAny).scalar()
+			return countRes > 0 if countRes else False
 
 
 	def __is_prefix_for_any__(self, prefix: str) -> bool:
@@ -503,8 +534,9 @@ class SongFileService:
 				func.normalize_opening_slash(sg_path, addSlash)
 				.like(f"{lPrefix}%", escape="\\")
 			)
-		countRes = self.conn.execute(queryAny).scalar()
-		return countRes > 0 if countRes else False
+		with dtos.open_transaction(self.conn):
+			countRes = self.conn.execute(queryAny).scalar()
+			return countRes > 0 if countRes else False
 
 
 	def __are_paths_used__(
@@ -519,15 +551,17 @@ class SongFileService:
 				sg_path,
 				addSlash
 			).in_(p.treepath for p in treepaths))
-		rows = self.conn.execute(query)
-		pathToId = {
-			normalize_opening_slash(cast(str, r[1])): cast(int, r[0])
-			for r in rows
-		}
-		return {
-			Path(p.treepath).name: (pathToId.get(p.treepath, p.id) != p.id)
-			for p in treepaths
-		}
+		with dtos.open_transaction(self.conn):
+			rows = self.conn.execute(query).fetchall()
+			pathToId = {
+				normalize_opening_slash(cast(str, r[1])): cast(int, r[0])
+				for r in rows
+			}
+			return {
+				Path(p.treepath).name : 
+					(pathToId.get(p.treepath, p.decoded_id()) != p.decoded_id())
+				for p in treepaths
+			}
 
 
 	def are_paths_used(
@@ -564,7 +598,7 @@ class SongFileService:
 		return self.__is_path_used__(cleanedPath, id)
 
 
-	def __remove_song_references__(self, songId: int):
+	def __remove_song_references_in_trx__(self, songId: int):
 		stmt = delete(song_artist_tbl).where(sgar_songFk == songId)
 		self.conn.execute(stmt)
 		stmt = delete(station_queue_tbl).where(q_songFk == songId)
@@ -588,20 +622,21 @@ class SongFileService:
 				sg_path,
 				addSlash
 			).like(f"{_prefix}%", escape="\\"))
-		rows = self.conn.execute(query).fetchall()
-		if len(rows) == 1:
-			songId = cast(int, rows[0][0])
-			if not prefix.endswith("/"):
-				self.file_service.delete_song(rows[0][1])
-				self.__remove_song_references__(songId)
-			stmt = delete(songs_tbl).where(sg_pk == songId)
-			self.conn.execute(stmt)
-			self.conn.commit()
-		else:
-			self.job_service.add(r[1] for r in rows)
-			self.soft_delete_songs((r[0] for r in rows))
-			self.conn.commit()
-		parentPrefix = str(Path(prefix).parent)
+		with self.conn.begin() as transaction:
+			rows = self.conn.execute(query).fetchall()
+			if len(rows) == 1:
+				songId = cast(int, rows[0][0])
+				if not prefix.endswith("/"):
+					self.file_service.delete_song(rows[0][1])
+					self.__remove_song_references_in_trx__(songId)
+				stmt = delete(songs_tbl).where(sg_pk == songId)
+				self.conn.execute(stmt)
+				self.conn.commit()
+			else:
+				self.job_service.add(r[1] for r in rows)
+				self.soft_delete_songs_in_trx((r[0] for r in rows))
+				transaction.commit()
+			parentPrefix = str(Path(prefix).parent)
 		return self.song_ls_parents(parentPrefix, includeTop=False)
 
 
@@ -626,33 +661,34 @@ class SongFileService:
 		nPath = normalize_opening_slash(path)
 		lPath = nPath.replace("_","\\_").replace("%","\\%")
 		addSlash = True
-		self.delete_overlaping_placeholder_dirs(newprefix)
-		statement = update(songs_tbl)\
-			.where(func.normalize_opening_slash(
-				sg_path,
-				addSlash
-			).like(f"{lPath}%", escape="\\"))\
-			.values(
-				treepath = func.regexp_replace(
+		with self.conn.begin() as transaction:
+			self.delete_overlaping_placeholder_dirs_in_trx(newprefix)
+			statement = update(songs_tbl)\
+				.where(func.normalize_opening_slash(
 					sg_path,
-					f"^/?{re.escape(prefix)}",
-					newprefix
+					addSlash
+				).like(f"{lPath}%", escape="\\"))\
+				.values(
+					treepath = func.regexp_replace(
+						sg_path,
+						f"^/?{re.escape(prefix)}",
+						newprefix
+					)
 				)
-			)
-		self.conn.execute(statement)
-		if not self.__is_prefix_for_any__(prefix):
-			self.__create_directory__(
-				prefix="",
-				suffix=prefix,
-				name=Path(prefix).stem,
-			)
-		self.conn.commit()
+			self.conn.execute(statement)
+			if not self.__is_prefix_for_any__(prefix):
+				self.__create_directory_in_trx__(
+					prefix="",
+					suffix=prefix,
+					name=Path(prefix).stem,
+				)
+			transaction.commit()
 
 		return self.song_ls_parents(newprefix, includeTop=False)
 	
 
 
-	def soft_delete_songs(self, songIds: Iterable[int]):
+	def soft_delete_songs_in_trx(self, songIds: Iterable[int]):
 		user = self.current_user_provider.get_path_rule_loaded_current_user()
 		stmt = update(songs_tbl).values(
 			deletedtimestamp = self.get_datetime().timestamp(),

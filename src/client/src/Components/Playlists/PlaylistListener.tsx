@@ -5,13 +5,13 @@ import React, {
 import { Button } from "@mui/material";
 import { SongListDisplayItem } from "../../Types/song_info_types";
 import { getDownloadAddress } from "../../Helpers/request_helpers";
-import { IdValue } from "../../Types/generic_types";
+import { Token } from "../../Types/generic_types";
 
 type PlaylistListenerProps = {
 	audioItems: SongListDisplayItem[],
 	nextUp: SongListDisplayItem | null,
 	queueNext: (steps: number) => void,
-	parentId: IdValue,
+	parentId: Token,
 };
 
 const getAudioElement = (className: string) => {

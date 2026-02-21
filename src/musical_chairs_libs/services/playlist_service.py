@@ -1,7 +1,7 @@
-
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from typing import (
 	Any,
-	Iterator,
 	Optional,
 	Union,
 	cast,
@@ -18,7 +18,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	PlaylistInfo,
 	PlaylistCreationInfo,
 	AlreadyUsedError,
-	OwnerInfo,
 	SongsPlaylistInfo,
 	SongListDisplayItem,
 	DictDotMap,
@@ -52,7 +51,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql.expression import (
 	CTE,
-	Update,
 	cast as dbCast,
 )
 from sqlalchemy.sql.functions import coalesce
@@ -98,6 +96,7 @@ class PlaylistService:
 			pl_ownerFk.label("owner>id"),
 			u_username.label("owner>username"),
 			u_displayName.label("owner>displayname"),
+			tbl.u_publictoken.label("owner>publictoken"),
 			pl_viewSecurityLevel.label("viewsecuritylevel"),
 		]
 
@@ -215,6 +214,7 @@ class PlaylistService:
 				pl_ownerFk.label("owner>id"),
 				u_username.label("owner>username"),
 				u_displayName.label("owner>displayname"),
+				tbl.u_publictoken.label("owner>publictoken"),
 				pl_viewSecurityLevel.label("viewsecuritylevel"),
 				cast(Column[String], rulesSubquery.c["rule>name"]).label("rule>name"),
 				cast(
@@ -235,6 +235,7 @@ class PlaylistService:
 		
 		return query
 
+
 	def get_playlists(
 		self,
 		playlistKeys: int | str | Iterable[int] | None=None,
@@ -242,54 +243,55 @@ class PlaylistService:
 		scopes: Collection[str] | None=None,
 		page: int = 0,
 		pageSize: int | None=None,
-	) -> Iterator[PlaylistInfo]:
+	) -> list[PlaylistInfo]:
 		userId = self.current_user_provider.optional_user_id()
-		if userId:
-			query = self.get_secured_playlist_query(
-				ownerId=ownerId,
-				playlistKeys=playlistKeys,
-				scopes=scopes
-			)
+		with self.conn.begin():
+			if userId:
+				query = self.get_secured_playlist_query(
+					ownerId=ownerId,
+					playlistKeys=playlistKeys,
+					scopes=scopes
+				)
 
-			records = self.conn.execute(query).mappings().fetchall()
+				records = self.conn.execute(query).mappings().fetchall()
 
-			yield from generate_owned_and_rules_from_rows(
-				records,
-				PlaylistInfo.row_to_playlist,
-				get_playlist_owner_roles,
-				scopes,
-				userId,
-			)
-		else:
-			if scopes:
-				return
-			query = self.playlist_base_query(
-				ownerId=ownerId,
-				playlistKeys=playlistKeys,
-			)\
-			.where(
-				coalesce(pl_viewSecurityLevel, 0) == 0
-			)\
-			.with_only_columns(*self.base_select_columns())
+				return [*generate_owned_and_rules_from_rows(
+					records,
+					PlaylistInfo.row_to_playlist,
+					get_playlist_owner_roles,
+					scopes,
+					userId,
+				)]
+			else:
+				if scopes:
+					return []
+				query = self.playlist_base_query(
+					ownerId=ownerId,
+					playlistKeys=playlistKeys,
+				)\
+				.where(
+					coalesce(pl_viewSecurityLevel, 0) == 0
+				)\
+				.with_only_columns(*self.base_select_columns())
 
-			records = self.conn.execute(query).mappings().fetchall()
+				records = self.conn.execute(query).mappings().fetchall()
 
-			for row in records:
-				yield PlaylistInfo.row_to_playlist(row)
+				return [PlaylistInfo.row_to_playlist(row) for row in records]
 
 
-	def get_playlist_owner(self, playlistId: int) -> OwnerInfo:
-		query = select(pl_ownerFk, u_username, u_displayName)\
+	def get_playlist_owner(self, playlistId: int) -> dtos.User:
+		query = select(pl_ownerFk, u_username, u_displayName, tbl.u_publictoken)\
 			.select_from(playlists_tbl)\
 			.join(user_tbl, u_pk == pl_ownerFk)\
 			.where(pl_pk == playlistId)
 		data = self.conn.execute(query).mappings().fetchone()
 		if not data:
-			return OwnerInfo(id=0,username="", displayname="")
-		return OwnerInfo(
+			return dtos.User(id=0,username="", displayname="", publictoken="")
+		return dtos.User(
 			id=data[pl_ownerFk],
 			username=data[u_username],
-			displayname=data[u_displayName]
+			displayname=data[u_displayName],
+			publictoken=data[tbl.u_publictoken]
 		)
 
 
@@ -315,7 +317,7 @@ class PlaylistService:
 			self,
 			playlistId: int
 		) -> Optional[SongsPlaylistInfo]:
-		playlistInfo = next(self.get_playlists(playlistKeys=playlistId), None)
+		playlistInfo = next(iter(self.get_playlists(playlistKeys=playlistId)), None)
 		if not playlistInfo:
 			return None
 		songsQuery = select(
@@ -341,7 +343,7 @@ class PlaylistService:
 			.where(plsg_playlistFk == playlistId)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.order_by(dbCast(sg_track, Integer))
-		songsResult = self.conn.execute(songsQuery).mappings()
+		songsResult = self.conn.execute(songsQuery).mappings().fetchall()
 		pathRuleTree = None
 		if self.current_user_provider.is_loggedIn():
 			pathRuleTree = self.path_rule_service.get_rule_path_tree()
@@ -367,52 +369,90 @@ class PlaylistService:
 			songs=songs,
 			stations=stations
 		)
+	
+	def add_playlist(self, playlist: PlaylistCreationInfo) -> PlaylistInfo:
+		user = self.current_user_provider.current_user()
+		savedName = SavedNameString(playlist.name)
+		stmt = insert(playlists_tbl).values(
+			name = str(savedName),
+			displayname = playlist.displayname,
+			lastmodifiedbyuserfk = user.id,
+			lastmodifiedtimestamp = self.get_datetime().timestamp(),
+			ownerfk = user.id
+		)
+		with self.conn.begin() as transaction:
+			try:
+				res = self.conn.execute(stmt)
 
+				affectedPk = res.lastrowid
+				self.stations_playlists_service.link_playlists_with_stations_in_trx(
+					(StationPlaylistTuple(affectedPk, t.decoded_id() if t else None) 
+						for t in (playlist.stations or [None])),
+				)
+				transaction.commit()
 
-	def save_playlist(
+				owner = user.to_user()
+				return PlaylistInfo(
+					id=dtos.encode_playlist_id(affectedPk),
+					name=str(savedName),
+					owner=owner,
+					displayname=playlist.displayname
+				)
+			except IntegrityError:
+				raise AlreadyUsedError.build_error(
+					f"{playlist.name} is already used for playlist.",
+					"body->name"
+				)
+			
+
+	def update_playlist(
 		self,
 		playlist: PlaylistCreationInfo,
-		playlistId: Optional[int]=None
+		playlistId: int
 	) -> PlaylistInfo:
-		if not playlist and not playlistId:
-			raise ValueError("No playlist info to save")
 		user = self.current_user_provider.current_user()
-		upsert = update if playlistId else insert
 		savedName = SavedNameString(playlist.name)
-		stmt = upsert(playlists_tbl).values(
+		stmt = update(playlists_tbl).values(
 			name = str(savedName),
 			displayname = playlist.displayname,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
 		)
-		owner = user
-		if playlistId and isinstance(stmt, Update):
-			stmt = stmt.where(pl_pk == playlistId)
-			owner = self.get_playlist_owner(playlistId)
-		else:
-			stmt = stmt.values(ownerfk = user.id)
 		try:
-			res = self.conn.execute(stmt)
+			with self.conn.begin() as transaction:
+				res = self.conn.execute(stmt)
 
-			affectedPk = playlistId if playlistId else res.lastrowid
-			self.stations_playlists_service.link_playlists_with_stations(
-				(StationPlaylistTuple(affectedPk, t.id if t else None) 
-					for t in (playlist.stations or [None])),
-			)
-			self.conn.commit()
-			if res.rowcount == 0:
-				raise RuntimeError("Failed to create playlist")
-			return PlaylistInfo(
-				id=affectedPk,
-				name=str(savedName),
-				owner=owner,
-				displayname=playlist.displayname
-			)
+				affectedPk = playlistId if playlistId else res.lastrowid
+				self.stations_playlists_service.link_playlists_with_stations_in_trx(
+					(StationPlaylistTuple(affectedPk, t.decoded_id() if t else None) 
+						for t in (playlist.stations or [None])),
+				)
+				owner = self.get_playlist_owner(playlistId)
+				transaction.commit()
+				return PlaylistInfo(
+					id=dtos.encode_playlist_id(affectedPk),
+					name=str(savedName),
+					owner=owner,
+					displayname=playlist.displayname
+				)
 		except IntegrityError:
 			raise AlreadyUsedError.build_error(
 				f"{playlist.name} is already used for playlist.",
 				"body->name"
 			)
+
+
+	def save_playlist(
+		self,
+		playlist: PlaylistCreationInfo,
+		playlistId: int | None=None
+	) -> PlaylistInfo:
+		if not playlist and not playlistId:
+			raise ValueError("No playlist info to save")
+		if playlistId:
+			return self.update_playlist(playlist, playlistId)
+		else:
+			return self.add_playlist(playlist)
 
 
 	def delete_playlist(self, playlistkey: int) -> int:

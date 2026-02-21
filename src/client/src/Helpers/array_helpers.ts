@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import {
 	Named,
-	NamedIdItem,
+	NamedTokenItem,
 	SortCallback,
 	SortCallbackFactory,
 } from "../Types/generic_types";
@@ -15,7 +15,7 @@ export const keyedSortFn: SortCallbackFactory =
 		a[key] > b[key] ? 1 : a[key] < b[key] ? -1 : 0);
 
 
-export const useCombinedContextAndFormItems = <T extends NamedIdItem>(
+export const useCombinedContextAndFormItems = <T extends NamedTokenItem>(
 	contextItems: T[],
 	fetchedItems: T[]
 ): T[] => {

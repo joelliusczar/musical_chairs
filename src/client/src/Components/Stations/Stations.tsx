@@ -35,7 +35,7 @@ import {
 	anyConformsToAnyRule,
 } from "../../Helpers/rule_helpers";
 import { StationInfo } from "../../Types/station_types";
-import { IdValue } from "../../Types/generic_types";
+import { Token } from "../../Types/generic_types";
 import { ButtonClickEvent } from "../../Types/browser_types";
 
 
@@ -146,7 +146,7 @@ export const Stations = () => {
 		}
 	};
 
-	const canToggleStation = (id?: IdValue) => {
+	const canToggleStation = (id?: Token) => {
 		if((!!id  && toggleState[id]?.callStatus === CallStatus.loading) ||
 			toggleState["*"]?.callStatus === CallStatus.loading
 		) {

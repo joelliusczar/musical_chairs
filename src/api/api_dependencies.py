@@ -1,5 +1,7 @@
 #pyright: reportMissingTypeStubs=false
 import ipaddress
+import musical_chairs_libs.dtos_and_utilities as dtos
+from collections import defaultdict
 from datetime import timedelta
 from typing import (
 	Any,
@@ -14,7 +16,6 @@ from fastapi import (
 	Depends,
 	HTTPException,
 	status,
-	Query,
 	Request,
 	Path,
 	Header
@@ -37,6 +38,7 @@ from musical_chairs_libs.services import (
 	PathRuleService,
 	ArtistService,
 	AlbumService,
+	InternalUser,
 	JobsService,
 	PlaylistService,
 	PlaylistsUserService,
@@ -61,7 +63,6 @@ from musical_chairs_libs.services.fs import (
 	S3FileService
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	ActionRule,
 	AlbumInfo,
 	ArtistInfo,
@@ -71,12 +72,9 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	InMemEventRecordMap,
 	int_or_str,
-	NotLoggedInError,
-	UserRoleDef,
 	TrackingInfo,
-	PlaylistInfo,
+	RoledUser,
 	SimpleQueryParameters,
-	UserRoleSphere,
 	WrongPermissionsError,
 )
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
@@ -95,6 +93,7 @@ class GlobalStore:
 	def __init__(self) -> None:
 		self.events_store = InMemEventRecordMap()
 		self.visitor_id_map: dict[str, Any] = {}
+		self.timeout_bucket: dtos.TimeoutBucket = defaultdict(dtos.timeout_factory)
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -103,36 +102,25 @@ oauth2_scheme = OAuth2PasswordBearer(
 )
 
 
-def subject_user_key_path(
-	subjectuserkey: Union[int, str]  = Path()
-) -> Union[int, str]:
-	return int_or_str(subjectuserkey)
+def key_extractor(keyname: str):
 
+	def __extract_key__(request: Request) -> int | str | None:
+		key = request.path_params.get(keyname, None)
+		if key is not None:
+			try:
+				return int(key)
+			except:
+				return key
+		key = request.query_params.get(keyname, None)
+		if key is not None:
+			try:
+				return int(key)
+			except:
+				return key
+		return None
+	
+	return __extract_key__
 
-def subject_user_key_query(
-	subjectuserkey: Union[int, str]  = Query()
-) -> Union[int, str]:
-	return int_or_str(subjectuserkey)
-
-
-def owner_key_path(
-	ownerkey: Union[int, str]  = Path()
-) -> Union[int, str]:
-	return int_or_str(ownerkey)
-
-
-def owner_key_query(
-	ownerkey: Union[int, str, None]  = Query(None),
-) -> Union[int, str, None]:
-	if ownerkey is None:
-		return ownerkey
-	return int_or_str(ownerkey)
-
-
-def station_key_path(
-	stationkey: Union[int, str]
-) -> Union[int, str]:
-	return int_or_str(stationkey)
 
 
 def playlist_key_path(
@@ -162,14 +150,14 @@ def account_access_service(
 def get_user_from_token(
 	token: str,
 	accountAccessService: AccountAccessService
-) -> Tuple[AccountInfo, float]:
+) -> Tuple[dtos.RoledUser, float]:
 	if not token:
 		raise build_not_logged_in_error()
 	try:
 		user, expiration = accountAccessService.get_user_from_token(token)
 		if not user:
 			raise build_not_wrong_credentials_error()
-		return user, expiration
+		return user.to_roled_user(), expiration
 	except ExpiredSignatureError:
 		raise build_expired_credentials_error()
 
@@ -178,7 +166,7 @@ def get_current_user_simple(
 	request: Request,
 	token: str = Depends(oauth2_scheme),
 	accountsAccessService: AccountAccessService = Depends(account_access_service)
-) -> AccountInfo:
+) -> dtos.RoledUser:
 	cookieToken = request.cookies.get("access_token", None)
 	user, _ = get_user_from_token(
 		token or parse.unquote(cookieToken or ""),
@@ -191,7 +179,7 @@ def get_optional_user_from_token(
 	request: Request,
 	token: str = Depends(oauth2_scheme),
 	accountAccessService: AccountAccessService = Depends(account_access_service),
-) -> Optional[AccountInfo]:
+) -> InternalUser | None:
 	cookieToken = request.cookies.get("access_token", None)
 	if not token and not cookieToken:
 		return None
@@ -223,11 +211,13 @@ def get_tracking_info(request: Request):
 	ipaddresses = extract_ip_address(request)
 
 	return TrackingInfo(
+		request.url,
 		userAgent,
 		ipv4Address=ipaddresses[0],
 		ipv6Address=ipaddresses[1],
-		url=request.url.path
+		method=request.method,
 	)
+
 
 def global_store(request: Request) -> GlobalStore | None:
 	try:
@@ -237,7 +227,7 @@ def global_store(request: Request) -> GlobalStore | None:
 
 
 def visitor_service(
-		globalStore: GlobalStore | None = Depends(global_store),
+	globalStore: GlobalStore | None = Depends(global_store),
 	conn: Connection=Depends(get_configured_db_connection)
 ) -> VisitorService:
 	return VisitorService(
@@ -263,7 +253,7 @@ def file_service() -> FileService:
 
 
 def basic_user_provider(
-	user: AccountInfo = Depends(get_optional_user_from_token),
+	user: InternalUser = Depends(get_optional_user_from_token),
 ) -> BasicUserProvider:
 	return BasicUserProvider(user)
 
@@ -355,7 +345,7 @@ def current_user_provider(
 
 def __check_scope__(
 	securityScopes: SecurityScopes,
-	currentUser: AccountInfo,
+	currentUser: RoledUser,
 ):
 	scopeSet = {s for s in securityScopes.scopes}
 	hasRole = currentUser.isadmin or\
@@ -366,7 +356,7 @@ def __check_scope__(
 
 def check_scope(
 	securityScopes: SecurityScopes,
-	currentUser: AccountInfo = Depends(get_current_user_simple),
+	currentUser: RoledUser = Depends(get_current_user_simple),
 ):
 	__check_scope__(securityScopes, currentUser)
 
@@ -494,6 +484,7 @@ def domain_users_service(
 ) -> DomainUserService:
 	return DomainUserService(conn, userProvider)
 
+
 def stations_users_service(
 	domainUserService: DomainUserService = Depends(domain_users_service)
 ) -> StationsUsersService:
@@ -538,13 +529,15 @@ def song_file_service(
 	artistService: ArtistService = Depends(artist_service),
 	albumService: AlbumService = Depends(album_service),
 	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> SongFileService:
 	return SongFileService(
 		conn,
 		fileService,
 		artistService,
 		albumService,
-		currentUserProvider
+		currentUserProvider,
+		pathRuleService
 	)
 
 
@@ -562,14 +555,14 @@ def process_service() -> ProcessService:
 
 def open_provided_user(
 	userkey: int | str | None,
-	accountManagementService: AccountManagementService
-) -> Optional[AccountInfo]:
+	accountsAccessService: AccountAccessService = Depends(account_access_service)
+) -> dtos.RoledUser | None:
 	if userkey:
 		try:
 			userkey = int(userkey)
-			owner = accountManagementService.get_account_for_edit(userkey)
+			owner = accountsAccessService.get_internal_user(userkey).to_roled_user()
 		except:
-			owner = accountManagementService.get_account_for_edit(userkey)
+			owner = accountsAccessService.get_internal_user(userkey).to_roled_user()
 		if owner:
 			return owner
 		raise HTTPException(
@@ -580,147 +573,38 @@ def open_provided_user(
 	return None
 
 
-def get_from_path_subject_user(
-	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
-	accountManagementService: AccountManagementService = Depends(
-		account_management_service
-	)
-) -> AccountInfo:
-	user = open_provided_user(subjectuserkey, accountManagementService)
+def subject_user(
+	subjectuserkey: int | str | None = Depends(key_extractor("subjectuserkey")),
+	accountsAccessService: AccountAccessService = Depends(account_access_service)
+) -> dtos.RoledUser:
+	user = open_provided_user(subjectuserkey, accountsAccessService)
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[build_error_obj("subjectuserkey missing")
+			detail=[build_error_obj("subjectuser missing")
 			]
 		)
 	return user
 
 
-def get_from_query_subject_user(
-	subjectuserkey: Union[int, str] = Depends(subject_user_key_query),
-	accountManagementService: AccountManagementService = Depends(
-		account_management_service
-	)
-) -> AccountInfo:
-	user = open_provided_user(subjectuserkey, accountManagementService)
-	if not user:
-		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[build_error_obj("subjectuserkey missing")
-			]
-		)
-	return user
-
-
-def get_owner_from_query(
-	ownerkey: Union[int, str, None] = Depends(owner_key_query),
-	accountManagement: AccountManagementService = Depends(
-		account_management_service
-	)
-) -> Optional[AccountInfo]:
-	return open_provided_user(ownerkey, accountManagement)
-
-
-def get_owner_from_path(
-	ownerkey: Union[int, str, None] = Depends(owner_key_path),
-	accountsService: AccountManagementService = Depends(
-		account_management_service
-	)
-) -> Optional[AccountInfo]:
-	return open_provided_user(ownerkey, accountsService)
-
-
-def get_playlist_by_name_and_owner(
-	playlistkey: Union[int, str] = Depends(playlist_key_path),
-	owner: Optional[AccountInfo] = Depends(get_owner_from_path),
-	playlistService: PlaylistService = Depends(playlist_service),
-) -> PlaylistInfo:
-	if type(playlistkey) == str and not owner:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(
-				f"owner for station with key {playlistkey} not found"
-			)]
-		)
-	#owner id is okay to be null if stationKey is an int
-	ownerId = owner.id if owner else None
-	playlist = next(playlistService.get_playlists(
-		playlistkey,
-		ownerId=ownerId,
-	),None)
-	if not playlist:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(f"station with key {playlistkey} not found")
-			]
-		)
-	return playlist
-
-
-def get_playlist_by_id(
-	playlistid: int=Path(),
-	playlistService: PlaylistService = Depends(playlist_service),
-) -> PlaylistInfo:
-	playlist = next(playlistService.get_playlists(playlistKeys=playlistid), None)
-	if not playlist:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=[build_error_obj(
-				f"station not found for id {playlistid}"
-			)]
-		)
-	return playlist
-
-
-def __check_playlist_scopes__(
-	securityScopes: SecurityScopes,
-	playlist: PlaylistInfo,
-	currentUserProvider : CurrentUserProvider
-):
-	user = currentUserProvider.current_user(optional=True)
-	minScope = (not securityScopes.scopes or\
-		UserRoleDef.PLAYLIST_VIEW.value in securityScopes.scopes
-	)
-	if not playlist.viewsecuritylevel and minScope:
-		return user
-	if not user:
-		raise NotLoggedInError()
-	if user.isadmin:
-		return user
-	scopes = {s for s in securityScopes.scopes \
-		if UserRoleSphere.Playlist.conforms(s)
-	}
-	rules = ActionRule.aggregate(
-		playlist.rules,
-		filter=lambda r: r.name in scopes
-	)
-	if not rules:
-		raise WrongPermissionsError()
-
-
-def get_secured_playlist_by_id(
-	securityScopes: SecurityScopes,
-	playlist: PlaylistInfo=Depends(get_playlist_by_id),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> PlaylistInfo:
-	__check_playlist_scopes__(securityScopes, playlist, currentUserProvider)
-	return playlist
-
-
-def get_secured_playlist_by_name_and_owner(
-	securityScopes: SecurityScopes,
-	playlist: PlaylistInfo=Depends(get_playlist_by_name_and_owner),
-	currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
-) -> PlaylistInfo:
-	__check_playlist_scopes__(securityScopes, playlist, currentUserProvider)
-	return playlist
+def get_owner(
+	ownerkey: int | str | None = Depends(key_extractor("ownerkey")),
+	accountsAccessService: AccountAccessService = Depends(account_access_service)
+) -> dtos.User | None:
+	provided = open_provided_user(ownerkey, accountsAccessService)
+	if provided:
+		return provided.to_user()
 
 
 def get_album_by_id(
-	albumid: int=Path(),
+	albumid: str=Path(),
 	albumService: AlbumService = Depends(album_service),
 ) -> AlbumInfo:
-	album = next(albumService.get_albums(albumKeys=albumid), None)
+
+	album = next(
+		albumService.get_albums(albumKeys=dtos.decode_id(albumid)), #pyright: ignore reportUnknownMemberType
+		None
+	)
 	if not album:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -733,7 +617,7 @@ def get_album_by_id(
 def get_secured_album_by_id(
 	securityScopes: SecurityScopes,
 	album: AlbumInfo = Depends(get_album_by_id),
-	currentUser: AccountInfo = Depends(get_current_user_simple),
+	currentUser: RoledUser = Depends(get_current_user_simple),
 ) -> AlbumInfo:
 	if album.owner.id == currentUser.id:
 		return album
@@ -742,10 +626,13 @@ def get_secured_album_by_id(
 
 
 def get_artist_by_id(
-		artistid: int=Path(),
+		artistid: str=Path(),
 		artist_service: ArtistService = Depends(artist_service),
 ) -> ArtistInfo:
-	artist = next(artist_service.get_artists(artistKeys=artistid), None)
+	artist = next(artist_service.get_artists(
+		artistKeys=dtos.decode_id(artistid)),
+		None
+	)
 	if not artist:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -759,7 +646,7 @@ def get_artist_by_id(
 def get_secured_artist_by_id(
 	securityScopes: SecurityScopes,
 	artist: ArtistInfo = Depends(get_artist_by_id),
-	currentUser: AccountInfo = Depends(get_current_user_simple),
+	currentUser: RoledUser = Depends(get_current_user_simple),
 ) -> ArtistInfo:
 	if artist.owner.id == currentUser.id:
 		return artist
@@ -767,27 +654,10 @@ def get_secured_artist_by_id(
 	return artist
 
 
-
-def get_current_user(
-	user: AccountInfo = Depends(get_current_user_simple)
-) -> AccountInfo:
-	return user
-
-
-def impersonated_user_id(
-	impersonateduserid: Optional[int],
-	user: AccountInfo = Depends(get_current_user_simple)
-) -> Optional[int]:
-	if user.isadmin or any(r.conforms(UserRoleDef.USER_IMPERSONATE.value) \
-			for r in user.roles):
-		return impersonateduserid
-	return None
-
-
 def check_subjectuser(
 	securityScopes: SecurityScopes,
-	subjectuserkey: Union[int, str] = Depends(subject_user_key_path),
-	currentUser: AccountInfo = Depends(get_current_user_simple),
+	subjectuserkey: int | str | None = Depends(key_extractor("subjectuserkey")),
+	currentUser: RoledUser = Depends(get_current_user_simple),
 ):
 	isCurrentUser = subjectuserkey == currentUser.id or\
 		subjectuserkey == currentUser.username
@@ -833,7 +703,7 @@ def get_query_params(
 def get_secured_query_params(
 	securityScopes: SecurityScopes,
 	queryParams: SimpleQueryParameters=Depends(get_query_params),
-	currentUser: AccountInfo = Depends(get_current_user_simple),
+	currentUser: RoledUser = Depends(get_current_user_simple),
 ) -> SimpleQueryParameters:
 	__check_scope__(securityScopes, currentUser)
 	return queryParams
@@ -841,7 +711,7 @@ def get_secured_query_params(
 
 def check_top_level_rate_limit(sphere: str):
 		
-	def __check_rate_limit(
+	def __check_rate_limit__(
 		securityScopes: SecurityScopes,
 		currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
 		whenNextCalculator: WhenNextCalculator = Depends(
@@ -861,5 +731,40 @@ def check_top_level_rate_limit(sphere: str):
 			sphere
 		)
 	
-	return __check_rate_limit
+	return __check_rate_limit__
 
+
+def limit_visits(
+	quota: float,
+	span: float,
+	penalty: float,
+	key: str | None = None
+):
+
+	def __check_visit_limits__(
+		currentUserProvider : CurrentUserProvider = Depends(current_user_provider),
+		whenNextCalculator: WhenNextCalculator = Depends(
+			when_next_calculator
+		),
+		globalStore: GlobalStore | None = Depends(global_store),
+		getDatetime: Callable[[], datetime] = Depends(datetime_provider)
+	):
+		visitorId = currentUserProvider.visitor_id()
+		path = currentUserProvider.tracking_info().url.path if not key else key
+		timestamp = getDatetime().timestamp()
+		if globalStore:
+			if timeout := globalStore.timeout_bucket[visitorId][path]:
+				if timeout > timestamp:
+					raise dtos.TooManyRequestsError()
+
+		if whenNextCalculator.has_crossed_visit_threshold(
+			visitorId,
+			path,
+			quota,
+			span
+		):
+			if globalStore:
+				globalStore.timeout_bucket[visitorId][path] = timestamp + penalty
+			raise dtos.TooManyRequestsError()
+
+	return __check_visit_limits__

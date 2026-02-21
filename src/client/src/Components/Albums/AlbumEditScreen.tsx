@@ -55,7 +55,7 @@ const initialValues = {
 
 export const AlbumEditScreen = () => {
 
-	const id = parseInt((useParams().id || "0"));
+	const id = (useParams().id || "0");
 	const { enqueueSnackbar } = useSnackbar();
 	const navigate = useNavigate();
 
@@ -116,7 +116,7 @@ export const AlbumEditScreen = () => {
 			versionnote: "",
 		},
 	});
-	const { handleSubmit, reset, getValues, watch } = formMethods;
+	const { handleSubmit, reset, getValues } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
 			const requestObj = Calls.update({

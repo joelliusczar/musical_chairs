@@ -1,3 +1,4 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from typing import Iterator, Optional
 from fastapi import (
 	APIRouter,
@@ -16,7 +17,7 @@ from api_dependencies import (
 	song_info_service,
 	song_file_service,
 	get_current_user_simple,
-	get_from_query_subject_user,
+	subject_user,
 	path_rule_service,
 	file_service,
 	check_back_key
@@ -32,7 +33,7 @@ from musical_chairs_libs.services import (
 from musical_chairs_libs.dtos_and_utilities import (
 	SongTreeNode,
 	ListData,
-	AccountInfo,
+	RoledUser,
 	UserRoleDef,
 	SongEditInfo,
 	build_error_obj,
@@ -69,7 +70,7 @@ def song_ls(
 	songInfoService: SongFileService = Depends(song_file_service),
 	currentUserProvider: CurrentUserProvider = Depends(current_user_provider)
 ) -> ListData[SongTreeNode]:
-	items = list(songInfoService.song_ls(prefix))
+	items = songInfoService.song_ls(prefix)
 	if not prefix and len(items) < 1:
 		user = currentUserProvider.current_user()
 		items = [SongTreeNode(
@@ -122,22 +123,22 @@ def get_songs_list(
 	queryParams: SimpleQueryParameters = Depends(get_query_params),
 	song: str = "",
 	album: str = "",
-	albumId: Optional[int]=None,
+	albumId: str | None=None,
 	artist: str = "",
-	artistId: Optional[int]=None,
-	user: AccountInfo = Depends(get_current_user_simple),
-	itemIds: Optional[list[int]] = Query(default=None),
+	artistId: str | None=None,
+	user: RoledUser = Depends(get_current_user_simple),
+	itemIds: list[str] | None = Query(default=None),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> list[SongEditInfo]:
 	return list(songInfoService.get_all_songs(
 		stationId=None,
 		queryParams=queryParams,
 		song=song,
-		songIds=itemIds,
+		songIds=(dtos.decode_id(s) for s in itemIds) if itemIds else None,
 		album=album,
-		albumId=albumId,
+		albumId=dtos.decode_id(albumId) if albumId else None,
 		artist=artist,
-		artistId=artistId,
+		artistId=dtos.decode_id(artistId) if artistId else None,
 	))
 
 
@@ -170,7 +171,7 @@ def download_song(
 ) -> StreamingResponse:
 	mem_mib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 ** 2
 	print(f"Used memory: {mem_mib:.2f} MiB")
-	path = next(songFileService.get_internal_song_paths(id), None)
+	path = next(iter(songFileService.get_internal_song_paths(id)), None)
 	if path:
 		def iterfile() -> Iterator[bytes]:
 			with fileService.open_song(path) as data:
@@ -191,14 +192,19 @@ def download_song(
 
 @router.put("/songs/{itemid}")
 def update_song(
-	itemid: int,
+	itemid: str,
 	song: ValidatedSongAboutInfo = Security(
 		extra_validated_song,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	),
 	songInfoService: SongInfoService = Depends(song_info_service),
 ) -> SongEditInfo:
-	result = next(songInfoService.save_songs([itemid], song), None)
+	result = next(songInfoService.save_songs(
+			[dtos.decode_id(itemid)],
+			song
+		),
+		None
+	)
 	if result:
 		return result
 	raise HTTPException(
@@ -209,14 +215,19 @@ def update_song(
 
 @router.put("/songs/multi/")
 def update_songs_multi(
-	itemIds: list[int] = Query(default=[]),
+	itemIds: list[str] = Query(default=[]),
 	song: ValidatedSongAboutInfo = Security(
 		extra_validated_song,
 		scopes=[UserRoleDef.PATH_EDIT.value]
 	),
 	songInfoService: SongInfoService = Security(song_info_service),
 ) -> SongEditInfo:
-	result = next(songInfoService.save_songs(itemIds, song), None)
+	result = next(songInfoService.save_songs(
+			(dtos.decode_id(s) for s in itemIds),
+			song
+		),
+		None
+	)
 	if result:
 		return result
 	raise HTTPException(
@@ -232,7 +243,7 @@ def get_path_user_list(
 		scopes=[UserRoleDef.PATH_USER_LIST.value]
 	),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
-) -> TableData[AccountInfo]:
+) -> TableData[dtos.RoledUser]:
 	pathUsers = list(pathRuleService.get_users_of_path(prefix))
 	return TableData(items=pathUsers, totalrows=len(pathUsers))
 
@@ -243,7 +254,7 @@ def add_user_rule(
 		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 	),
-	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
+	subjectuser: dtos.User = Depends(subject_user),
 	rule: ActionRule = Depends(validate_path_rule),
 	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> ActionRule:
@@ -257,7 +268,7 @@ def remove_user_rule(
 		get_write_secured_prefix,
 		scopes=[UserRoleDef.PATH_USER_ASSIGN.value]
 	),
-	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
+	subjectuser: dtos.User = Depends(subject_user),
 	rulename: Optional[str] = Depends(validate_path_rule_for_remove),
 	pathRuleService: PathRuleService = Depends(path_rule_service)
 ):
@@ -270,13 +281,17 @@ def remove_user_rule(
 
 @router.get("/check/")
 def is_phrase_used(
-	id: Optional[int]=None,
+	id: str | None=None,
 	suffix: str = "",
 	prefix: str = Depends(get_prefix_if_owner),
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, bool]:
 	return {
-		"suffix": songFileService.is_path_used(id, prefix, suffix)
+		"suffix": songFileService.is_path_used(
+			dtos.decode_id_or_not(id, None),
+			prefix,
+			suffix
+		)
 	}
 
 

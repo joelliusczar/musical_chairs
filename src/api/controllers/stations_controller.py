@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.dtos_and_utilities as dtos
 from typing import Dict, List, Optional
 from fastapi import (
 	APIRouter,
@@ -10,7 +11,6 @@ from fastapi import (
 	Query
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	CurrentPlayingInfo,
 	HistoryItem,
 	StationInfo,
@@ -38,9 +38,9 @@ from api_dependencies import (
 	check_top_level_rate_limit,
 	station_service,
 	queue_service,
-	get_owner_from_query,
+	get_owner,
 	get_query_params,
-	get_from_query_subject_user,
+	subject_user,
 	get_page_num,
 	build_error_obj,
 	stations_users_service,
@@ -63,7 +63,7 @@ router = APIRouter(prefix="/stations")
 
 @router.get("/list")
 def station_list(
-	owner: Optional[AccountInfo] = Depends(get_owner_from_query),
+	owner: dtos.User | None = Depends(get_owner),
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:
 	stations = list(stationService.get_stations(None,
@@ -99,7 +99,7 @@ def history(
 def queue(
 	limit: int = 50,
 	page: int = Depends(get_page_num),
-	station: Optional[StationInfo] = Depends(get_station),
+	station: StationInfo | None = Depends(get_station),
 	queueService: QueueService = Depends(queue_service),
 ) -> CurrentPlayingInfo:
 	if not station:
@@ -126,7 +126,7 @@ def catalogue(
 	parentname: str = "",
 	creator: str = "",
 	queryParams: SimpleQueryParameters = Depends(get_query_params,),
-	station: Optional[StationInfo] = Depends(get_station),
+	station: StationInfo | None = Depends(get_station),
 	queueService: RadioPusher = Depends(station_radio_pusher),
 ) -> StationTableData[CatalogueItem]:
 	if not station:
@@ -134,7 +134,7 @@ def catalogue(
 	if queryParams.limit is None:
 		queryParams.limit = 50
 	items, totalRows = queueService.get_catalogue(
-			stationId = station.id,
+			stationId = station.decoded_id(),
 			queryParams=queryParams,
 			name=name,
 			parentname=parentname,
@@ -158,7 +158,7 @@ def catalogue(
 	]
 )
 def request_item(
-	itemid: int,
+	itemid: str,
 	station: StationInfo = Security(
 		get_rate_secured_station,
 		scopes=[UserRoleDef.STATION_REQUEST.value]
@@ -168,7 +168,7 @@ def request_item(
 ):
 	try:
 		queueService.add_to_queue(
-			itemid,
+			dtos.decode_id(itemid),
 			station,
 			requestType
 		)
@@ -215,12 +215,12 @@ def remove_song_from_queue(
 
 @router.get("/check/")
 def is_phrase_used(
-	id: Optional[int]=None,
+	id: str| None=None,
 	name: str = "",
 	stationService: StationService = Depends(station_service)
 ) -> dict[str, bool]:
 	return {
-		"name": stationService.is_stationName_used(id, name)
+		"name": stationService.is_stationName_used(dtos.decode_id_or_not(id), name)
 	}
 
 
@@ -270,7 +270,7 @@ def update_station(
 	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
-	result = stationService.save_station(station, savedStation.id)
+	result = stationService.save_station(station, savedStation.decoded_id())
 	return result
 
 
@@ -321,7 +321,7 @@ def disable_stations(
 	stationProcessService.disable_stations(
 		station
 	)
-	stationProcessService.unset_station_procs(stationIds=station.id)
+	stationProcessService.unset_station_procs(stationIds=station.decoded_id())
 
 
 @router.post(
@@ -343,7 +343,7 @@ def play_next(
 	),
 	queueService: QueueService = Depends(queue_service)
 ):
-	queueService.pop_next_queued(station.id)
+	queueService.pop_next_queued(station.decoded_id())
 
 
 @router.get("/{ownerkey}/{stationkey}/user_list")
@@ -353,7 +353,7 @@ def get_station_user_list(
 		scopes=[UserRoleDef.STATION_USER_LIST.value]
 	),
 	stationsUsersService: StationsUsersService = Depends(stations_users_service),
-) -> TableData[AccountInfo]:
+) -> TableData[dtos.RoledUser]:
 	stationUsers = list(stationsUsersService.get_station_users(stationInfo))
 	return TableData(items=stationUsers, totalrows=len(stationUsers))
 
@@ -370,7 +370,7 @@ def get_station_user_list(
 	]
 )
 def add_user_rule(
-	user: AccountInfo = Depends(get_from_query_subject_user),
+	user: dtos.User = Depends(subject_user),
 	stationInfo: StationInfo = Security(
 		get_secured_station,
 		scopes=[UserRoleDef.STATION_USER_ASSIGN.value]
@@ -380,7 +380,7 @@ def add_user_rule(
 ) -> ActionRule:
 	return stationsUsersService.add_user_rule_to_station(
 		user.id,
-		stationInfo.id,
+		stationInfo.decoded_id(),
 		rule
 	)
 
@@ -398,7 +398,7 @@ def add_user_rule(
 	]
 )
 def remove_user_rule(
-	user: AccountInfo = Depends(get_from_query_subject_user),
+	user: dtos.User = Depends(subject_user),
 	rulename: Optional[str] = Depends(validate_station_rule_for_remove),
 	stationInfo: StationInfo = Security(
 		get_secured_station,
@@ -408,13 +408,13 @@ def remove_user_rule(
 ):
 	stationsUsersService.remove_user_rule_from_station(
 		user.id,
-		stationInfo.id,
+		stationInfo.decoded_id(),
 		rulename
 	)
 
 
 @router.delete(
-	"/{stationid}",
+	"/{id}",
 	status_code=status.HTTP_204_NO_CONTENT,
 	dependencies=[
 		Depends(
@@ -430,11 +430,10 @@ def delete(
 		get_secured_station,
 		scopes=[UserRoleDef.STATION_DELETE.value]
 	),
-	clearStation: bool=False,
 	stationService: StationService = Depends(station_service),
 ):
 	try:
-		if stationService.delete_station(station.id, clearStation) == 0:
+		if stationService.delete_station(station.decoded_id()) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
 				detail=[build_error_obj(f"Station not found")
@@ -449,7 +448,7 @@ def delete(
 
 
 @router.post(
-	"/copy/{stationid}",
+	"/copy/{id}",
 	dependencies=[
 		Depends(
 			log_event(
@@ -467,5 +466,32 @@ def copy_station(
 	station: ValidatedStationCreationInfo = Body(default=None),
 	stationService: StationService = Depends(station_service),
 ) -> StationInfo:
-	result = stationService.copy_station(savedstation.id, station)
+	result = stationService.copy_station(savedstation.decoded_id(), station)
+	return result
+
+
+
+@router.post(
+	"/copy-as-songs/{id}",
+	dependencies=[
+		Depends(
+			log_event(
+				UserRoleSphere.Station.value,
+				StationActions.STATION_COPY.value
+			)
+		)
+	]
+)
+def copy_station_as_songs(
+	savedstation: StationInfo = Security(
+		get_secured_station,
+		scopes=[UserRoleDef.STATION_CREATE.value]
+	),
+	station: ValidatedStationCreationInfo = Body(default=None),
+	stationService: StationService = Depends(station_service),
+) -> StationInfo:
+	result = stationService.copy_station_as_songs(
+		savedstation.decoded_id(),
+		station
+	)
 	return result

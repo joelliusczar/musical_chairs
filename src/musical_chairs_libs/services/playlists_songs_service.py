@@ -1,5 +1,5 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from musical_chairs_libs.dtos_and_utilities import (
-	DictDotMap,
 	get_datetime,
 	normalize_opening_slash,
 	SongPlaylistTuple,
@@ -18,7 +18,7 @@ from musical_chairs_libs.tables import (
 	pl_pk,
 	plsg_songFk, plsg_playlistFk, plsg_lexorder, plsg_lastmodifiedtimestamp,
 )
-from .current_user_provider import CurrentUserProvider
+from musical_chairs_libs.protocols import (UserProvider)
 from .path_rule_service import PathRuleService
 from sqlalchemy import (
 	and_,
@@ -49,7 +49,7 @@ class PlaylistsSongsService:
 	def __init__(
 		self,
 		conn: Connection,
-		currentUserProvider: CurrentUserProvider,
+		currentUserProvider: UserProvider,
 		pathRuleService: PathRuleService
 	) -> None:
 		if not conn:
@@ -58,6 +58,7 @@ class PlaylistsSongsService:
 		self.current_user_provider = currentUserProvider
 		self.get_datetime = get_datetime
 		self.path_rule_service = pathRuleService
+
 
 	def get_songs(
 			self,
@@ -89,21 +90,22 @@ class PlaylistsSongsService:
 			.where(plsg_playlistFk == playlistId)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.order_by(plsg_lexorder, plsg_lastmodifiedtimestamp)
-		songsResult = self.conn.execute(songsQuery).mappings()
-		pathRuleTree = None
-		if self.current_user_provider.is_loggedIn():
-			pathRuleTree = self.path_rule_service.get_rule_path_tree()
+		with dtos.open_transaction(self.conn):
+			songsResult = self.conn.execute(songsQuery).mappings().fetchall()
+			pathRuleTree = None
+			if self.current_user_provider.is_loggedIn():
+				pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
-		for row in songsResult:
+			for row in songsResult:
 
-			song = SongListDisplayItem(
-				**DictDotMap.unflatten(dict(row), omitNulls=True)
-			) 
-			if pathRuleTree:
-				song.rules = list(pathRuleTree.values_flat(
-					normalize_opening_slash(song.treepath))
-				)
-			yield song
+				song = SongListDisplayItem(
+					**dtos.PathDict(dict(row), omitNulls=True, spliter=">")
+				) 
+				if pathRuleTree:
+					song.rules = list(pathRuleTree.values_flat(
+						normalize_opening_slash(song.treepath))
+					)
+				yield song
 
 
 	def get_max_lexorders(self, playlistIds: Iterable[int]) -> dict[int, str]:
@@ -111,12 +113,12 @@ class PlaylistsSongsService:
 			.join(songs_tbl, plsg_songFk == sg_pk)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.where(plsg_playlistFk.in_(playlistIds))\
-			.group_by(plsg_playlistFk)\
+			.group_by(plsg_playlistFk)
 		
-		records = self.conn.execute(query).fetchall()
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query).fetchall()
 
-		return {row[0]:row[1].decode() for row in records}
-
+			return {row[0]:row[1].decode() for row in records}
 
 
 	def get_playlist_songs(
@@ -141,22 +143,26 @@ class PlaylistsSongsService:
 		elif isinstance(playlistIds, Iterable):
 			query = query.where(plsg_playlistFk.in_(playlistIds))
 		query = query.order_by(plsg_lexorder, plsg_lastmodifiedtimestamp)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		yield from (SongPlaylistTuple(
-				cast(int, row[0]),
-				cast(int, row[1]),
-				row[2].decode()
-			)
-			for row in records)
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query)
+			yield from (SongPlaylistTuple(
+					cast(int, row[0]),
+					cast(int, row[1]),
+					row[2].decode()
+				)
+				for row in records)
 
 
-	def __remove_songs_for_playlists__(
+	def __remove_songs_for_playlists_in_trx__(
 		self,
 		songsPlaylists: Union[
 			Iterable[Union[SongPlaylistTuple, Tuple[int, int]]],
 			None
 		]
 	) -> int:
+		if not self.conn.in_transaction():
+			raise RuntimeError("This method must be called inside a transaction")
+
 		if songsPlaylists is None:
 			raise ValueError("songsPlaylists must be provided")
 		delStmt = delete(playlists_songs_tbl)\
@@ -171,17 +177,18 @@ class PlaylistsSongsService:
 			None
 		]
 	) -> int:
-		res = self.__remove_songs_for_playlists__(songsPlaylists)
-		self.conn.commit()
-		return res
+		with self.conn.begin() as transaction:
+			result = self.__remove_songs_for_playlists_in_trx__(songsPlaylists)
+			transaction.commit()
+			return result
 
 
 	def validate_songs_playlists(
 		self,
 		songsPlaylists: Iterable[SongPlaylistTuple]
-	) -> Iterable[SongPlaylistTuple]:
+	) -> list[SongPlaylistTuple]:
 		if not songsPlaylists:
-			return iter([])
+			return []
 		songsPlaylistsSet = set(songsPlaylists)
 		songQuery = select(sg_pk)\
 			.where(sg_deletedTimstamp.is_(None))\
@@ -192,20 +199,24 @@ class PlaylistsSongsService:
 			pl_pk.in_((s.playlistid for s in songsPlaylistsSet))
 		)
 
-		songRecords = self.conn.execute(songQuery).fetchall()
-		playlistRecords = self.conn.execute(playlistQuery).fetchall() \
-			or [None] * len(songRecords)
-		yield from (t for t in (SongPlaylistTuple(
-			cast(int, songRow[0]),
-			cast(int, playlistRow[0] if playlistRow else None)
-		) for songRow in songRecords 
-			for playlistRow in playlistRecords
-		) if t in songsPlaylistsSet)
+		with dtos.open_transaction(self.conn):
+			songRecords = self.conn.execute(songQuery).fetchall()
+			playlistRecords = self.conn.execute(playlistQuery).fetchall() \
+				or [None] * len(songRecords)
+			return [t for t in (SongPlaylistTuple(
+				cast(int, songRow[0]),
+				cast(int, playlistRow[0] if playlistRow else None)
+			) for songRow in songRecords 
+				for playlistRow in playlistRecords
+			) if t in songsPlaylistsSet]
 
-	def link_songs_with_playlists(
+
+	def link_songs_with_playlists_in_trx(
 		self,
 		songsPlaylists: Iterable[SongPlaylistTuple],
 	) -> Iterable[SongPlaylistTuple]:
+		if not self.conn.in_transaction():
+			raise RuntimeError("This method must be called inside a transaction")
 		uniquePairs = set(self.validate_songs_playlists(songsPlaylists))
 		if not uniquePairs:
 			return []
@@ -214,7 +225,7 @@ class PlaylistsSongsService:
 		))
 		outPairs = existingPairs - uniquePairs
 		inPairs = uniquePairs - existingPairs
-		self.__remove_songs_for_playlists__(outPairs)
+		self.__remove_songs_for_playlists_in_trx__(outPairs)
 		if not inPairs: #if no playlists - stations have been linked
 			return existingPairs - outPairs
 		set(self.get_playlist_songs(
@@ -243,7 +254,8 @@ class PlaylistsSongsService:
 		return self.get_playlist_songs(
 			songIds={st.songid for st in uniquePairs}
 		)
-	
+
+
 	def move_song(self, playlistid: int, songid: int, order: int):
 		query = select(plsg_songFk, plsg_lexorder)\
 			.where(plsg_playlistFk == playlistid)\
@@ -254,25 +266,26 @@ class PlaylistsSongsService:
 		else:
 			query = query.limit(1)
 		
-		records = self.conn.execute(query).fetchall()
-		if not any(records):
-			raise RuntimeError("There are no songs in this playlist")
-		if any(r[0] == songid and r[1] == order for r in records):
-			return
-		
-		upper = records[1][1] if len(records) > 1 else records[0][1]
-		lower = records[0][1] if len(records) > 1 else b""
-		mid = calc_order_between(lower.strip().decode(), upper.strip().decode())
-		if len(mid) > 199:
-			self.rebalance(playlistid)
-		stmt = update(playlists_songs_tbl).values(lexorder = mid.encode())\
-			.where(plsg_playlistFk == playlistid)\
-			.where(plsg_songFk == songid)
-		self.conn.execute(stmt)
-		self.conn.commit()
+		with self.conn.begin() as transaction:
+			records = self.conn.execute(query).fetchall()
+			if not any(records):
+				raise RuntimeError("There are no songs in this playlist")
+			if any(r[0] == songid and r[1] == order for r in records):
+				return
+			
+			upper = records[1][1] if len(records) > 1 else records[0][1]
+			lower = records[0][1] if len(records) > 1 else b""
+			mid = calc_order_between(lower.strip().decode(), upper.strip().decode())
+			if len(mid) > 199:
+				self.__rebalance__(playlistid)
+			stmt = update(playlists_songs_tbl).values(lexorder = mid.encode())\
+				.where(plsg_playlistFk == playlistid)\
+				.where(plsg_songFk == songid)
+			self.conn.execute(stmt)
+			transaction.commit()
 
 
-	def rebalance(self, playlistid: int):
+	def __rebalance__(self, playlistid: int):
 		query = select(plsg_songFk)\
 			.where(plsg_playlistFk == playlistid)\
 			.order_by(plsg_lexorder, plsg_lastmodifiedtimestamp)
@@ -293,4 +306,9 @@ class PlaylistsSongsService:
 		if params:
 			stmt = insert(playlists_songs_tbl)
 			self.conn.execute(stmt, params)
-		self.conn.commit()
+
+
+	def rebalance(self, playlistid: int):
+		with self.conn.begin() as transaction:
+			self.__rebalance__(playlistid)
+			transaction.commit()

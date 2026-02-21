@@ -23,7 +23,7 @@ import {
 } from "../../Types/reducerTypes";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
-	User,
+	RoledUser,
 	ActionRule,
 	ActionRuleCreationInfo,
 } from "../../Types/user_types";
@@ -43,8 +43,8 @@ stationRoles.unshift({
 
 
 const replaceUserInState = (
-	state: RequiredDataStore<PageableListDataShape<User>>,
-	userCopy: User
+	state: RequiredDataStore<PageableListDataShape<RoledUser>>,
+	userCopy: RoledUser
 ) => {
 	const items = [...state.data.items];
 	const idx = items.findIndex(i => i.id === userCopy.id);
@@ -65,7 +65,7 @@ const replaceUserInState = (
 export const StationUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useDataWaitingReducer(
-		new RequiredDataStore<PageableListDataShape<User>>(
+		new RequiredDataStore<PageableListDataShape<RoledUser>>(
 			{ items: [], totalrows: 0 }
 		)
 	);
@@ -79,7 +79,7 @@ export const StationUserRoleAssignmentTable = () => {
 
 	const urlBuilder = new UrlBuilder(DomRoutes.stationUsers);
 
-	const addUser = async (user: User | null) => {
+	const addUser = async (user: RoledUser | null) => {
 		if (!user) {
 			enqueueSnackbar("provided user was null", { variant: "error"});
 			return;
@@ -173,7 +173,7 @@ export const StationUserRoleAssignmentTable = () => {
 		setCurrentQueryStr,
 	]);
 
-	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
+	const addRole = async (rule: ActionRuleCreationInfo, user: RoledUser) => {
 		if (!pathVars.stationkey || !pathVars.ownerkey) {
 			console.error("user or station is missing");
 			return;
@@ -200,7 +200,7 @@ export const StationUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeRole = async (role: ActionRule, user: User) => {
+	const removeRole = async (role: ActionRule, user: RoledUser) => {
 		if (!pathVars.stationkey || !pathVars.ownerkey) {
 			console.error("user or station is missing");
 			return;
@@ -234,7 +234,7 @@ export const StationUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeUser = async (user: User) => {
+	const removeUser = async (user: RoledUser) => {
 		if (!pathVars.stationkey || !pathVars.ownerkey) {
 			console.error("user or station is missing");
 			return;

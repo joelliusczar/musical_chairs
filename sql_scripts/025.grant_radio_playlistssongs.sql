@@ -1,1 +1,0 @@
-GRANT SELECT ON TABLE `<dbName>`.`playlistssongs` TO <radioUser>;

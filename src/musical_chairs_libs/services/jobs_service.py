@@ -8,7 +8,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	JobInfo
 )
-from musical_chairs_libs.dtos_and_utilities.logging import (
+from musical_chairs_libs.dtos_and_utilities.log_config import (
 	scheduledServiceLogger
 )
 from musical_chairs_libs.protocols import FileService
@@ -82,7 +82,7 @@ class JobsService:
 			elif status:
 				query = query.where(j_status == status)
 		
-		rows = self.conn.execute(query).mappings()
+		rows = self.conn.execute(query).mappings().fetchall()
 		yield from (JobInfo(**row) for row in rows)
 		
 

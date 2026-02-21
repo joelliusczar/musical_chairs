@@ -1,7 +1,7 @@
 import pytest
 from typing import (Protocol, Optional)
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.dtos_and_utilities import AccountInfo
+from musical_chairs_libs.dtos_and_utilities import EmailableUser
 from .mock_datetime_provider import MockDatetimeProvider
 from .db_population import (
 	populate_artists,
@@ -42,7 +42,7 @@ def setup_in_mem_tbls(
 	conn: Connection,
 	request: Optional[pytest.FixtureRequest],
 	datetimeProvider: MockDatetimeProvider,
-	primaryUser: AccountInfo,
+	primaryUser: EmailableUser,
 	testPassword: bytes,
 ) -> None:
 	populate_users(conn, datetimeProvider, primaryUser, testPassword)

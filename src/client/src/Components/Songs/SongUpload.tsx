@@ -40,7 +40,7 @@ const getSchema = (prefix: string) => Yup.lazy(values => {
 		prefix,
 		songSuffixes: values.files.map(
 			(f: UploadInfo) => ({ 
-				path: f.suffix,
+				treepath: f.suffix,
 				internalpath: "",
 				id: 0,
 			})

@@ -12,12 +12,15 @@ from .id_dict import IdDict
 
 class PathDict(MutableMapping[str, Any]):
 
-	def __init__(self,
+	def __init__(
+		self,
 		paths: Optional[Mapping[str, Any]] = None,
 		omitNulls: bool = False,
 		defaultValues: Optional[Mapping[str, Any]] = None,
+		spliter: str = "."
 	) -> None:
 		self.__store__: dict[str, Any] = {}
+		self.__spliter__ = spliter
 		if paths:
 			for k, v in paths.items():
 				if v == None:
@@ -35,7 +38,7 @@ class PathDict(MutableMapping[str, Any]):
 
 	def __getitem__(self, key: str) -> Any:
 		current = self.__store__
-		for segment in key.split("."):
+		for segment in key.split(self.__spliter__):
 			if segment not in current:
 				raise KeyError(f"{key} not found")
 			current = current[segment]
@@ -44,7 +47,7 @@ class PathDict(MutableMapping[str, Any]):
 
 	def __setitem__(self, key: str, value: Any) -> None:
 		current = self.__store__
-		segments = key.split(".")
+		segments = key.split(self.__spliter__)
 		for i in range(len(segments)):
 			if i == len(segments) -1:
 				current[segments[i]] = value
@@ -55,7 +58,7 @@ class PathDict(MutableMapping[str, Any]):
 
 	def __delitem__(self, key: str) -> None:
 		current = self.__store__
-		segments = key.split(".")
+		segments = key.split(self.__spliter__)
 		parents: list[Tuple[dict[str,Any], str]] = []
 		for i in range(len(segments)):
 			if i == len(segments) -1:

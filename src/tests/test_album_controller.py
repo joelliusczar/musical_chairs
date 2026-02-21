@@ -11,14 +11,14 @@ from .mocks.db_population import get_initial_songs
 
 def test_fetch_null_album(
 	fixture_api_test_client: TestClient,
-	fixture_primary_user: AccountInfo,
+	fixture_primary_user: dtos.InternalUser,
 ):
 	client = fixture_api_test_client
 
 	headers = login_test_user(fixture_primary_user.username, client)
 
 	response = client.get(
-		"/albums/0",
+		"/albums/_",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -29,14 +29,14 @@ def test_fetch_null_album(
 
 def test_album_update(
 	fixture_api_test_client: TestClient,
-	fixture_primary_user: AccountInfo,
+	fixture_primary_user: dtos.InternalUser,
 ):
 	client = fixture_api_test_client
 
 	headers = login_test_user(fixture_primary_user.username, client)
 
 	response = client.get(
-		"/albums/7",
+		f"/albums/{dtos.encode_album_id(7)}",
 		headers=headers
 	)
 	assert response.status_code == 200
@@ -45,7 +45,7 @@ def test_album_update(
 	data["versionnote"] = "from the bottom of my heart"
 
 	putRespose = client.put(
-		"/albums/7",
+		f"/albums/{dtos.encode_album_id(7)}",
 		headers=headers,
 		json=data
 	)

@@ -9,8 +9,8 @@ from fastapi import (
 	Body,
 	Query,
 )
+import musical_chairs_libs.dtos_and_utilities as dtos
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	UserRoleDef,
 	TableData,
 	PlaylistInfo,
@@ -29,11 +29,8 @@ from musical_chairs_libs.services import (
 )
 from api_dependencies import (
 	check_top_level_rate_limit,
-	get_owner_from_query,
-	get_playlist_by_name_and_owner,
-	get_from_query_subject_user,
-	get_secured_playlist_by_id,
-	get_secured_playlist_by_name_and_owner,
+	get_owner,
+	subject_user,
 	build_error_obj,
 	playlists_users_service,
 	playlist_service,
@@ -42,6 +39,8 @@ from api_dependencies import (
 	get_query_params,
 )
 from playlist_validation import (
+	get_playlist,
+	get_secured_playlist,
 	validate_playlist_rule,
 	validate_playlist_rule_for_remove
 )
@@ -55,7 +54,7 @@ router = APIRouter(prefix="/playlists")
 def get_page(
 	name: str="",
 	artist: str="",
-	owner: Optional[AccountInfo] = Depends(get_owner_from_query),
+	owner: dtos.User | None = Depends(get_owner),
 	queryParams: SimpleQueryParameters = Depends(get_query_params),
 	playService: PlaylistService = Depends(playlist_service)
 ) -> TableData[PlaylistInfo]:
@@ -72,7 +71,7 @@ def get_page(
 
 @router.get("/list")
 def playlist_list(
-	owner: Optional[AccountInfo] = Depends(get_owner_from_query),
+	owner: dtos.User | None = Depends(get_owner),
 	playlistService: PlaylistService = Depends(playlist_service),
 ) -> Dict[str, List[PlaylistInfo]]:
 	playlists = list(playlistService.get_playlists(None,
@@ -96,7 +95,7 @@ def is_phrase_used(
 
 @router.get("/{ownerkey}/{playlistkey}")
 def get_playlist_for_edit(
-	playlistInfo: PlaylistInfo = Depends(get_playlist_by_name_and_owner),
+	playlistInfo: PlaylistInfo = Depends(get_playlist),
 	playlistsSongsService: PlaylistsSongsService = Depends(
 		playlists_songs_service
 	),
@@ -104,9 +103,11 @@ def get_playlist_for_edit(
 		stations_playlists_service
 	)
 ) -> SongsPlaylistInfo:
-	songs = [*playlistsSongsService.get_songs(playlistInfo.id)]
+	songs = [*playlistsSongsService.get_songs(playlistInfo.decoded_id())]
 	stations = [
-		*stationsPlaylistsService.get_stations_by_playlist(playlistInfo.id)
+		*stationsPlaylistsService.get_stations_by_playlist(
+			playlistInfo.decoded_id()
+		)
 	]
 	return SongsPlaylistInfo(
 		**playlistInfo.model_dump(),
@@ -132,9 +133,9 @@ def create_playlist(
 	)
 ) -> SongsPlaylistInfo:
 	result = playlistService.save_playlist(playlist)
-	songs = [*playlistsSongsService.get_songs(result.id)]
+	songs = [*playlistsSongsService.get_songs(result.decoded_id())]
 	stations = [
-		*stationsPlaylistsService.get_stations_by_playlist(result.id)
+		*stationsPlaylistsService.get_stations_by_playlist(result.decoded_id())
 	]
 	return SongsPlaylistInfo(
 		**result.model_dump(),
@@ -146,7 +147,7 @@ def create_playlist(
 @router.put("/{playlistid}")
 def update_playlist(
 	savedplaylist: PlaylistInfo = Security(
-		get_secured_playlist_by_id,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
 	),
 	playlist: ValidatedPlaylistCreationInfo = Body(default=None),
@@ -158,10 +159,12 @@ def update_playlist(
 		stations_playlists_service
 	)
 ) -> SongsPlaylistInfo:
-	result = playlistService.save_playlist(playlist, savedplaylist.id)
-	songs = [*playlistsSongsService.get_songs(savedplaylist.id)]
+	result = playlistService.save_playlist(playlist, savedplaylist.decoded_id())
+	songs = [*playlistsSongsService.get_songs(savedplaylist.decoded_id())]
 	stations = [
-		*stationsPlaylistsService.get_stations_by_playlist(savedplaylist.id)
+		*stationsPlaylistsService.get_stations_by_playlist(
+			savedplaylist.decoded_id()
+		)
 	]
 	return SongsPlaylistInfo(
 		**result.model_dump(),
@@ -173,28 +176,28 @@ def update_playlist(
 @router.get("/{ownerkey}/{playlistkey}/user_list")
 def get_playlist_user_list(
 	playlistInfo: PlaylistInfo = Security(
-		get_secured_playlist_by_name_and_owner,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_USER_LIST.value]
 	),
 	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
-) -> TableData[AccountInfo]:
+) -> TableData[dtos.RoledUser]:
 	playlistUsers = list(playlistsUsersService.get_playlist_users(playlistInfo))
 	return TableData(items=playlistUsers, totalrows=len(playlistUsers))
 
 
 @router.post("/{ownerkey}/{playlistkey}/user_role")
 def add_user_rule(
-	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
+	subjectuser: dtos.User = Depends(subject_user),
 	rule: ActionRule = Depends(validate_playlist_rule),
 	playlistInfo: PlaylistInfo = Security(
-		get_secured_playlist_by_name_and_owner,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_USER_ASSIGN.value]
 	),
 	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
 ) -> ActionRule:
 	return playlistsUsersService.add_user_rule_to_playlist(
 		subjectuser.id,
-		playlistInfo.id,
+		playlistInfo.decoded_id(),
 		rule
 	)
 
@@ -202,17 +205,17 @@ def add_user_rule(
 @router.delete("/{ownerkey}/{playlistkey}/user_role",
 	status_code=status.HTTP_204_NO_CONTENT)
 def remove_user_rule(
-	subjectuser: AccountInfo = Depends(get_from_query_subject_user),
-	rulename: Optional[str] = Depends(validate_playlist_rule_for_remove),
+	subjectuser: dtos.User = Depends(subject_user),
+	rulename: str | None = Depends(validate_playlist_rule_for_remove),
 	playlistInfo: PlaylistInfo = Security(
-		get_playlist_by_name_and_owner,
+		get_playlist,
 		scopes=[UserRoleDef.PLAYLIST_USER_ASSIGN.value]
 	),
 	playlistsUsersService: PlaylistsUserService = Depends(playlists_users_service),
 ):
 	playlistsUsersService.remove_user_rule_from_playlist(
 		subjectuser.id,
-		playlistInfo.id,
+		playlistInfo.decoded_id(),
 		rulename
 	)
 
@@ -222,13 +225,13 @@ def remove_user_rule(
 	status_code=status.HTTP_204_NO_CONTENT)
 def delete(
 	playlist: PlaylistInfo = Security(
-		get_secured_playlist_by_id,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_DELETE.value]
 	),
 	playlistService: PlaylistService = Depends(playlist_service),
 ):
 	try:
-		if playlistService.delete_playlist(playlist.id) == 0:
+		if playlistService.delete_playlist(playlist.decoded_id()) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
 				detail=[build_error_obj(f"Playlist not found")
@@ -246,7 +249,7 @@ def delete(
 	status_code=status.HTTP_204_NO_CONTENT)
 def remove_songs(
 	playlist: PlaylistInfo = Security(
-		get_secured_playlist_by_id,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_DELETE.value]
 	),
 	songids: list[int]=Query(default=[]),
@@ -255,7 +258,7 @@ def remove_songs(
 	)
 ):
 	playlistsSongsService.remove_songs_for_playlists((
-		SongPlaylistTuple(s, playlist.id)  for s in songids
+		SongPlaylistTuple(s, playlist.decoded_id())  for s in songids
 	))
 
 
@@ -265,11 +268,11 @@ def move_songs(
 	songid: int,
 	order: int,
 	playlist: PlaylistInfo = Security(
-		get_secured_playlist_by_id,
+		get_secured_playlist,
 		scopes=[UserRoleDef.PLAYLIST_EDIT.value]
 	),
 	playlistsSongsService: PlaylistsSongsService = Depends(
 		playlists_songs_service
 	)
 ):
-	playlistsSongsService.move_song(playlist.id, songid, order)
+	playlistsSongsService.move_song(playlist.decoded_id(), songid, order)

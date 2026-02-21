@@ -38,13 +38,13 @@
     - role: mysql-setup
       setup_pass: '{{keys["db_pass_setup"]}}'
       socket_path: '{{dev_files["mysql_socket"]}}'
-      sql_scripts_src: ../sql_scripts
       env_name: '{{app_details["prefix"]|lower}}_env'
       engine_src: '{{src_dirs["engine"]}}/'
-    - role: tests-setup
 
   tasks:
-    
+    - name: tests setup
+      import_tasks:
+        file: tests_setup.yml
     - name: Run unit tests
       command:
         chdir: ../src/tests
@@ -61,7 +61,6 @@
         DSF_DB_PASS_RADIO: '{{keys["db_pass_radio"]}}'
         DSF_DB_PASS_JANITOR: '{{keys["db_pass_janitor"]}}'
         DSF_DATABASE_NAME: '{{app_details["db"]}}'
-        DSF_SQL_SCRIPTS_DEST: '../{{test_trunk}}/sql_scripts'
         DSF_APP_ROOT: '{{test_trunk}}'
         DSF_TEMPLATES_DEST: '../{{test_trunk}}/files'
         DSF_ICES_CONFIGS_DIR: '../{{test_trunk}}/ices_configs'
@@ -71,8 +70,10 @@
         DSF_PY_MODULE_DIR: '../{{test_trunk}}/ices_modules'
         DSF_LIVE_CONFIG_PATH: '../{{test_trunk}}/app_conf.json'
         DSF_EVENT_LOGS_DIR: '../{{test_trunk}}/event_logs'
+        DSF_VISIT_LOGS_DIR: '../{{test_trunk}}/visit_logs'
         DSF_QUEUE_FILES_DIR: '../{{test_trunk}}/queues'
         DSF_ALEMBIC_INI: '../../alembic.ini'
+        DSF_SHUFFLED_ALPHABET: 'abcdefghijklmnopqrstuvwxy0123456789'
       when: skip_tests|default(false)|bool != true
     
     

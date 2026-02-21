@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.dtos_and_utilities as dtos
 from urllib import parse
 from typing import Optional, Callable
 from fastapi import (
@@ -20,14 +21,15 @@ from musical_chairs_libs.services import (
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	AccountCreationInfo,
-	AccountInfo,
+	AccountInfoUpdate,
 	AuthenticatedAccount,
+	EmailableUser,
 	UserRoleDef,
 	TableData,
-	AccountInfoBase,
 	build_error_obj,
 	PasswordInfo,
 	ActionRule,
+	User,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	UserActions,
@@ -40,13 +42,15 @@ from api_dependencies import (
 	current_user_provider,
 	check_scope,
 	check_subjectuser,
-	get_user_from_token,
-	get_from_path_subject_user,
 	datetime_provider,
+	get_user_from_token,
+	limit_visits,
+	subject_user,
 )
 from api_logging import log_event
 from datetime import datetime
 
+hr = 60 * 60
 
 
 
@@ -81,8 +85,8 @@ def login(
 			detail=[build_error_obj("Incorrect username or password")],
 			headers={"WWW-Authenticate": "Bearer"}
 		)
-	currentUserProvider.set_user(user)
-	token = accountTokenCreator.create_access_token(user)
+	currentUserProvider.set_session_user(user)
+	token = accountTokenCreator.create_access_token(user.to_user())
 	tokenLifetime = ACCESS_TOKEN_EXPIRE_MINUTES * 60
 	response.set_cookie(
 		key="access_token",
@@ -114,8 +118,8 @@ def login(
 		roles=user.roles,
 		lifetime=tokenLifetime,
 		displayname=user.displayname,
-		email=user.email,
-		login_timestamp=loginTimestamp
+		login_timestamp=loginTimestamp,
+		publictoken=user.publictoken
 	)
 
 
@@ -136,8 +140,8 @@ def login_with_cookie(
 			roles=user.roles,
 			lifetime=expiration,
 			displayname=user.displayname,
-			email=user.email,
-			login_timestamp=login_timestamp
+			login_timestamp=login_timestamp,
+			publictoken=user.publictoken
 		)
 	except:
 		return AuthenticatedAccount(
@@ -148,7 +152,7 @@ def login_with_cookie(
 			roles=[],
 			lifetime=0,
 			displayname="",
-			email=""
+			publictoken=""
 		)
 
 
@@ -167,19 +171,14 @@ def is_phrase_used(
 
 
 @router.post("/new", dependencies=[
-	# Depends(
-	# 	log_event(
-	# 		UserRoleDomain.User.value,
-	# 		UserActions.ACCOUNT_CREATE.value
-	# 	)
-	# )
+	Depends(limit_visits(quota=3, span=hr, penalty=hr))
 ])
 def create_new_account(
 	accountInfo: AccountCreationInfo,
 	accountManagementService: AccountManagementService = Depends(
 		account_management_service
 	)
-) -> AccountInfo:
+) -> dtos.User:
 	return accountManagementService.create_account(accountInfo)
 
 
@@ -193,7 +192,7 @@ def get_user_list(
 	accountManagementService: AccountManagementService = Depends(
 		account_management_service
 	)
-) -> TableData[AccountInfo]:
+) -> TableData[User]:
 	accounts = list(accountManagementService.get_account_list(
 		searchTerm=searchTerm,
 		page=page,
@@ -216,7 +215,7 @@ def search_users(
 	accountManagementService: AccountManagementService = Depends(
 		account_management_service
 	)
-) -> list[AccountInfo]:
+) -> list[User]:
 	accounts = list(accountManagementService.get_account_list(
 		searchTerm=searchTerm,
 		page=page,
@@ -238,11 +237,11 @@ def search_users(
 	]
 )
 def update_account(
-	updatedInfo: AccountInfoBase,
+	updatedInfo: AccountInfoUpdate,
 	accountManagementService: AccountManagementService = Depends(
 		account_management_service
 	)
-) -> AccountInfo:
+) -> EmailableUser:
 	return accountManagementService.update_account_general_changes(
 		updatedInfo,
 	)
@@ -292,10 +291,23 @@ def update_roles(
 	accountManagementService: AccountManagementService = Depends(
 		account_management_service
 	),
-	prev: AccountInfo = Depends(get_from_path_subject_user)
-) -> AccountInfo:
+	prev: dtos.RoledUser = Depends(subject_user)
+) -> dtos.RoledUser:
 	addedRoles = list(accountManagementService.save_roles(prev.id, roles))
-	return AccountInfo(**prev.model_dump(exclude=["roles"]), roles = addedRoles) #pyright: ignore [reportArgumentType, reportGeneralTypeIssues]
+	return dtos.RoledUser(
+		**prev.model_dump(exclude={"roles"}),
+		roles = addedRoles
+	)
+
+
+@router.get("/account/self/me")
+def get_self_account(
+	currentUserProvider: CurrentUserProvider = Depends(
+		current_user_provider
+	)
+) -> dtos.EmailableUser:
+	return currentUserProvider.current_user()\
+		.to_emailable_user()
 
 
 @router.get(
@@ -308,8 +320,8 @@ def update_roles(
 	]
 )
 def get_account(
-	accountInfo: AccountInfo = Depends(get_from_path_subject_user)
-) -> AccountInfo:
+	accountInfo: dtos.RoledUser = Depends(subject_user)
+) -> dtos.RoledUser:
 	return accountInfo
 
 
@@ -323,14 +335,14 @@ def get_path_user_list(
 	accountManagementService: AccountManagementService = Depends(
 		account_management_service
 	)
-) -> TableData[AccountInfo]:
+) -> TableData[dtos.RoledUser]:
 	pathUsers = list(accountManagementService.get_site_rule_users())
 	return TableData(items=pathUsers, totalrows=len(pathUsers))
 
 
 def validate_site_rule(
 	rule: ActionRule,
-	user: Optional[AccountInfo] = Depends(get_from_path_subject_user),
+	user: dtos.User | None = Depends(subject_user),
 ) -> ActionRule:
 	if not user:
 		raise HTTPException(
@@ -362,7 +374,7 @@ def validate_site_rule(
 	]
 )
 def add_user_rule(
-	subjectUser: AccountInfo = Depends(get_from_path_subject_user),
+	subjectUser: dtos.User = Depends(subject_user),
 	rule: ActionRule = Depends(validate_site_rule),
 	accountManagementService: AccountManagementService = Depends(
 		account_management_service
@@ -388,18 +400,11 @@ def add_user_rule(
 )
 def remove_user_rule(
 	rulename: str,
-	subjectUser: AccountInfo = Depends(get_from_path_subject_user),
+	subjectUser: dtos.User = Depends(subject_user),
 	accountManagementService: AccountManagementService = Depends(
 		account_management_service
 	)
 ):
-	if not subjectUser:
-		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-			detail=[build_error_obj(
-				"User is required"
-			)],
-		)
 	accountManagementService.remove_user_site_rule(
 		subjectUser.id,
 		rulename,

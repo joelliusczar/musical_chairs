@@ -1,6 +1,7 @@
 import { defaultWebClient as webClient } from "./api";
 import {
 	IdValue,
+	Token,
 } from "../Types/generic_types";
 import {
 	AlbumInfo,
@@ -13,7 +14,7 @@ import {
 } from "../Types/reducerTypes";
 
 export const Calls = {
-	get: ({ id }: { id: IdValue }) => {
+	get: ({ id }: { id: Token }) => {
 		const abortController = new AbortController();
 		return {
 			abortController: abortController,
@@ -70,7 +71,7 @@ export const Calls = {
 		};
 	},
 	update: (
-		{ id, data }: { id: IdValue, data: AlbumCreationInfo }
+		{ id, data }: { id: Token, data: AlbumCreationInfo }
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -86,7 +87,7 @@ export const Calls = {
 			},
 		};
 	},
-	remove: ({ id }: { id: IdValue }) => {
+	remove: ({ id }: { id: Token }) => {
 		const abortController = new AbortController();
 		return {
 			abortController: abortController,

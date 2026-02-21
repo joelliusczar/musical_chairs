@@ -1,4 +1,3 @@
-from .current_user_provider import CurrentUserProvider
 from typing import (
 	Union,
 	cast,
@@ -12,6 +11,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	SongArtistTuple,
 )
+from musical_chairs_libs.protocols import UserProvider
 from sqlalchemy import (
 	select,
 	insert,
@@ -36,7 +36,7 @@ class SongArtistService:
 	def __init__(
 		self,
 		conn: Connection,
-		currentUserProvider: CurrentUserProvider,
+		currentUserProvider: UserProvider,
 	) -> None:
 		if not conn:
 			raise RuntimeError("No connection provided")
@@ -64,7 +64,7 @@ class SongArtistService:
 		elif isinstance(artistIds, Iterable):
 			query = query.where(sgar_artistFk.in_(artistIds))
 		query = query.order_by(sgar_songFk)
-		records = self.conn.execute(query).mappings()
+		records = self.conn.execute(query).mappings().fetchall()
 		yield from (SongArtistTuple(
 				row[sgar_songFk],
 				row[sgar_artistFk],
@@ -72,7 +72,8 @@ class SongArtistService:
 			)
 			for row in records)
 
-	def remove_songs_for_artists(
+
+	def remove_songs_for_artists_in_trx(
 		self,
 		songArtists: Union[
 			Iterable[Union[SongArtistTuple, Tuple[int, int]]],
@@ -80,6 +81,9 @@ class SongArtistService:
 		]=None,
 		songIds: Union[int, Iterable[int], None]=None
 	) -> int:
+		if not self.conn.in_transaction():
+			raise RuntimeError("This method must be called inside a transaction")
+
 		if songArtists is None and songIds is None:
 			raise ValueError("SongArtists or songIds must be provided")
 		delStmt = delete(song_artist_tbl)
@@ -94,6 +98,7 @@ class SongArtistService:
 			return 0
 		count = self.conn.execute(delStmt).rowcount
 		return count
+
 
 	def validate_song_artists(
 		self,
@@ -139,10 +144,13 @@ class SongArtistService:
 				return False
 		return True
 
-	def link_songs_with_artists(
+	def link_songs_with_artists_in_trx(
 		self,
 		songArtists: Iterable[SongArtistTuple],
 	) -> Iterable[SongArtistTuple]:
+		if not self.conn.in_transaction():
+			raise RuntimeError("This method must be called inside a transaction")
+
 		if not songArtists:
 			return []
 		uniquePairs = set(self.validate_song_artists(songArtists))
@@ -154,7 +162,7 @@ class SongArtistService:
 		))
 		outPairs = existingPairs - uniquePairs
 		inPairs = uniquePairs - existingPairs
-		self.remove_songs_for_artists(outPairs)
+		self.remove_songs_for_artists_in_trx(outPairs)
 		if not inPairs: #if no songs - artist have been linked
 			return existingPairs - outPairs
 		userId = self.current_user_provider.current_user().id

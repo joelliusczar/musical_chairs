@@ -91,7 +91,6 @@ export const AccountsList = () => {
 							<TableRow>
 								<TableCell>Username</TableCell>
 								<TableCell>Display Name</TableCell>
-								<TableCell>Email</TableCell>
 								<TableCell></TableCell>
 							</TableRow>
 						</TableHead>
@@ -101,7 +100,6 @@ export const AccountsList = () => {
 									<TableRow key={`account_${idx}`}>
 										<TableCell>{item.username}</TableCell>
 										<TableCell>{item.displayname || ""}</TableCell>
-										<TableCell>{item.email || ""}</TableCell>
 										<TableCell>
 											<Button
 												component={Link}

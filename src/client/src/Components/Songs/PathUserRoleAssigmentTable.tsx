@@ -19,7 +19,7 @@ import {
 	PageableListDataShape,
 } from "../../Types/reducerTypes";
 import {
-	User,
+	RoledUser,
 	ActionRule,
 	ActionRuleCreationInfo,
 } from "../../Types/user_types";
@@ -41,8 +41,8 @@ pathRoles.unshift({
 
 
 const replaceUserInState = (
-	state: RequiredDataStore<PageableListDataShape<User>>,
-	userCopy: User
+	state: RequiredDataStore<PageableListDataShape<RoledUser>>,
+	userCopy: RoledUser
 ) => {
 	const items = [...state.data.items];
 	const idx = items.findIndex(i => i.id === userCopy.id);
@@ -63,7 +63,7 @@ const replaceUserInState = (
 export const PathUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useDataWaitingReducer(
-		new RequiredDataStore<PageableListDataShape<User>>(
+		new RequiredDataStore<PageableListDataShape<RoledUser>>(
 			{ items: [], totalrows: 0}
 		));
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
@@ -76,7 +76,7 @@ export const PathUserRoleAssignmentTable = () => {
 	const { callStatus } = state;
 
 
-	const addUser = async (user: User| null) => {
+	const addUser = async (user: RoledUser| null) => {
 		if (!user) {
 			console.error("provided user was null");
 			return;
@@ -155,7 +155,7 @@ export const PathUserRoleAssignmentTable = () => {
 		setCurrentQueryStr,
 	]);
 
-	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
+	const addRole = async (rule: ActionRuleCreationInfo, user: RoledUser) => {
 		try {
 			const requestObj = Calls.addPathUserRule({
 				rule,
@@ -177,7 +177,7 @@ export const PathUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeRole = async (role: ActionRule, user: User) => {
+	const removeRole = async (role: ActionRule, user: RoledUser) => {
 		try {
 			const requestObj = Calls.removePathUserRule({
 				rulename: role.name,
@@ -206,7 +206,7 @@ export const PathUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeUser = async (user: User) => {
+	const removeUser = async (user: RoledUser) => {
 		try {
 			const requestObj = Calls.removePathUserRule({
 				nodeId,

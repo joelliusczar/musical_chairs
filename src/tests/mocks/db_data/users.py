@@ -1,10 +1,7 @@
 from typing import Any, Sequence
 from datetime import datetime
-from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo
-)
 from sqlalchemy.engine import Connection
-from musical_chairs_libs.dtos_and_utilities import AccountInfo
+from musical_chairs_libs.dtos_and_utilities import EmailableUser
 from ..mock_datetime_provider import MockDatetimeProvider
 from musical_chairs_libs.tables import (
 	users,
@@ -20,7 +17,7 @@ users_params: list[dict[str, Any]] = [] # this is needed for weird syntax reason
 
 def get_user_params(
 	datetimeProvider: Sequence[datetime],
-	primaryUser: AccountInfo,
+	primaryUser: EmailableUser,
 	testPassword: bytes
 ) -> list[dict[Any, Any]]:
 	global users_params
@@ -506,6 +503,9 @@ def get_user_params(
 			"dirroot": "unruledStation"
 		}
 	]
+	for user in users_params:
+		user["publictoken"] = user_ids.public_tokens[user["pk"]]
+		user["hiddentoken"] = user_ids.hidden_tokens[user["pk"]]
 	return users_params
 
 
@@ -513,7 +513,7 @@ def get_user_params(
 def populate_users(
 	conn: Connection,
 	datetimeProvider: MockDatetimeProvider,
-	primaryUser: AccountInfo,
+	primaryUser: EmailableUser,
 	testPassword: bytes
 ):
 	userParams = get_user_params(datetimeProvider, primaryUser, testPassword)

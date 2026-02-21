@@ -164,7 +164,7 @@ class DbOwnerConnectionService:
 	def create_tables(self):
 		metadata.create_all(self.conn.engine)
 
-def setup_database(dbName: str):
+def setup_database(dbName: str, alembicScriptLocation: str):
 	with DbRootConnectionService() as rootConnService:
 		rootConnService.create_db(dbName)
 		rootConnService.create_owner()
@@ -176,7 +176,7 @@ def setup_database(dbName: str):
 		ownerConnService.create_tables()
 
 		config = Config(ConfigAcessors.alembic_ini())
-		config.set_main_option("script_location", "../../alembic")
+		config.set_main_option("script_location", alembicScriptLocation)
 		config.attributes["connection"] = ownerConnService
 		config.attributes["target_metadata"] = metadata
 		# context.configure(

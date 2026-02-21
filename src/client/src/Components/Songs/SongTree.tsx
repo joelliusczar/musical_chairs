@@ -37,7 +37,12 @@ import {
 	DirectoryTransferSource,
 	BreadcrumbNodeInfo,
 } from "../../Types/song_info_types";
-import { IdValue, Dictionary, KeyValue } from "../../Types/generic_types";
+import { 
+	IdValue,
+	Dictionary,
+	KeyValue,
+	Token,
+} from "../../Types/generic_types";
 import { ListData } from "../../Types/pageable_types";
 import { ActionRule } from "../../Types/user_types";
 import {
@@ -421,8 +426,8 @@ export const SongTree = withCacheProvider<
 
 		const renderedSet = new Set<string>();
 
-		const updateUrl = (path: string) => {
-			const nodeId = unicodeToUrlSafeBase64(path);
+		const updateUrl = (treepath: string) => {
+			const nodeId = unicodeToUrlSafeBase64(treepath);
 			navigate(
 				`${location.pathname}?nodeid=${nodeId}`,
 				{ replace: true }
@@ -430,8 +435,8 @@ export const SongTree = withCacheProvider<
 		};
 
 
-		const updateBreadcrumb = useCallback((path: string) => {
-			setBreadcrumb(prefix_split(path).map(p => {
+		const updateBreadcrumb = useCallback((treepath: string) => {
+			setBreadcrumb(prefix_split(treepath).map(p => {
 				const split = p.split("/").filter(s => !!s);
 				return {
 					treepath: p,
@@ -499,7 +504,7 @@ export const SongTree = withCacheProvider<
 					return value?.id;
 				}
 				return null;
-			}).filter(n => !!n) as number[];
+			}).filter(n => !!n) as Token[];
 		};
 
 
@@ -508,12 +513,12 @@ export const SongTree = withCacheProvider<
 			if (!selectedNodes[0]) return false;
 			const songNodeInfo = firstNode(treeData[selectedNodes[0]]);
 			if (!songNodeInfo) return false;
-			if (!("path" in songNodeInfo)) return false;
+			if (!("treepath" in songNodeInfo)) return false;
 			return isNodeDirectory(songNodeInfo);
 		};
 
 
-		const getSongEditUrl = (ids: IdValue[]) => {
+		const getSongEditUrl = (ids: Token[]) => {
 			const queryStr = buildArrayQueryStr("ids", ids);
 			return `${DomRoutes.songEdit()}${queryStr}`;
 		};
@@ -717,12 +722,6 @@ export const SongTree = withCacheProvider<
 					>
 						Download
 					</Button>}
-					{canAssignUsers() && <Button
-						component={Link}
-						to={getUserAssignUrl()}
-					>
-						Assign users
-					</Button>}
 					{isDirectorySelected() && selectedPrefix &&
 						<DirectoryNewModalOpener
 							add={placeDirectory}
@@ -733,6 +732,12 @@ export const SongTree = withCacheProvider<
 							add={onAddNewSong}
 							prefix={selectedPrefix}
 						/>}
+					{canAssignUsers() && <Button
+						component={Link}
+						to={getUserAssignUrl()}
+					>
+						Assign users
+					</Button>}
 					{canDeletePath() && <YesNoModalOpener
 						promptLabel="Delete Path"
 						message={`Are you sure you want to delete ${selectedPrefix}`}

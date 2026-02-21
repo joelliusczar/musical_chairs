@@ -1,16 +1,17 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from collections import defaultdict
 from itertools import groupby
 from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	clean_search_term_for_like,
 	get_datetime,
-	logging,
+	log_config,
 	StationInfo,
 	UserRoleDef,
 	RulePriorityLevel,
 	CatalogueItem,
 	CurrentPlayingInfo,
-	OwnerInfo,
 	QueueMetrics,
 	QueuePossibility,
 	SimpleQueryParameters,
@@ -152,14 +153,15 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				desc(sub.c.lastplayednum),
 				func.random()
 			)
-		rows = self.conn.execute(query).fetchall()
+		with dtos.open_transaction(self.conn):
+			rows = self.conn.execute(query).fetchall()
 
-		return [QueuePossibility(
-			itemId=row[0],
-			lastplayednum=row[1],
-			playnum=row[2],
-			itemtype=row[3]
-		) for row in rows]
+			return [QueuePossibility(
+				itemId=row[0],
+				lastplayednum=row[1],
+				playnum=row[2],
+				itemtype=row[3]
+			) for row in rows]
 
 
 	def get_random_collectionIds(
@@ -198,10 +200,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			)
 			return [tupleMap[k] for k in selection]
 		except:
-			logging.radioLogger.error(rows)
-			logging.radioLogger.error(ages)
-			logging.radioLogger.error(weights)
-			logging.radioLogger.error(sum(weights))
+			log_config.radioLogger.error(rows)
+			log_config.radioLogger.error(ages)
+			log_config.radioLogger.error(weights)
+			log_config.radioLogger.error(sum(weights))
 			raise
 
 
@@ -239,13 +241,13 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		groupColumns: list[Label[Any]] = [
 			sg_pk.label("id"),
 			sg_name.label("name"),
-			sg_albumFk.label("album.id"),
-			ab_name.label("album.name"),
+			sg_albumFk.label("album>id"),
+			ab_name.label("album>name"),
 			sg_disc.label("discnum"),
 			sg_trackNum.label("tracknum"),
 			sg_path.label("treepath"),
 			sg_internalpath.label("internalpath"),
-			ar_name.label("artist.name"),
+			ar_name.label("artist>name"),
 		]
 
 		songAlbumQuery = songs_tbl\
@@ -264,14 +266,15 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			)\
 			.cte()
 
-		albumSongTuples = self.conn.execute(
-			songAlbumQuery.select().where(songAlbumQuery.c.artistrank == 1)
-		).mappings().fetchall()
-		albumsMap: defaultdict[int, list[RowMapping]] = defaultdict(list)
-		for row in albumSongTuples:
-			albumsMap[row["album.id"]].append(row)
+		with dtos.open_transaction(self.conn):
+			albumSongTuples = self.conn.execute(
+				songAlbumQuery.select().where(songAlbumQuery.c.artistrank == 1)
+			).mappings().fetchall()
+			albumsMap: defaultdict[int, list[RowMapping]] = defaultdict(list)
+			for row in albumSongTuples:
+				albumsMap[row["album>id"]].append(row)
 
-		return albumsMap
+			return albumsMap
 
 
 	def get_playlist_songs_map(
@@ -281,12 +284,12 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		groupColumns: list[Label[Any]] = [
 			sg_pk.label("id"),
 			sg_name.label("name"),
-			plsg_playlistFk.label("playlist.id"),
-			plsg_lexorder.label("playlist.lexorder"),
-			ab_name.label("album.name"),
+			plsg_playlistFk.label("playlist>id"),
+			plsg_lexorder.label("playlist>lexorder"),
+			ab_name.label("album>name"),
 			sg_path.label("treepath"),
 			sg_internalpath.label("internalpath"),
-			ar_name.label("artist.name"),
+			ar_name.label("artist>name"),
 		]
 
 		songPlaylistQuery = songs_tbl\
@@ -305,17 +308,18 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				).label("artistrank")
 			)\
 			.cte()
-		playlistSongTuples = self.conn.execute(
-			songPlaylistQuery.select().where(songPlaylistQuery.c.artistrank == 1)
-		).mappings()
-		playlistsMap: defaultdict[int, list[RowMapping]] = defaultdict(list)
-		for row in playlistSongTuples:
-			playlistsMap[row["playlist.id"]].append(row)
+		with dtos.open_transaction(self.conn):
+			playlistSongTuples = self.conn.execute(
+				songPlaylistQuery.select().where(songPlaylistQuery.c.artistrank == 1)
+			).mappings().fetchall()
+			playlistsMap: defaultdict[int, list[RowMapping]] = defaultdict(list)
+			for row in playlistSongTuples:
+				playlistsMap[row["playlist>id"]].append(row)
 
-		return playlistsMap
+			return playlistsMap
 
 
-	def fil_up_queue(
+	def fil_up_queue_in_trx(
 		self,
 		station: StationInfo,
 		metrics: QueueMetrics,
@@ -327,7 +331,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 
 		metrics.queued = self.queue_count(alreadyQueued)
 
-		collectionIds = self.get_random_collectionIds(station.id, metrics)
+		collectionIds = self.get_random_collectionIds(station.decoded_id(), metrics)
 
 		if not collectionIds:
 			self.queue_service.replace_queue_file(station, alreadyQueued)
@@ -353,7 +357,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			return (r["discnum"] or 0,r["tracknum"])
 
 		def playlistSortKey(r: RowMapping):
-			return r["playlist.lexorder"] or b""
+			return r["playlist>lexorder"] or b""
 
 		for i, collectionId in enumerate(collectionIds):
 			
@@ -372,7 +376,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 
 			lastPlayedUpdate = update(stationCollectionTbl)\
 				.values(lastplayednum = station.playnum + i + 1) \
-				.where(stationFkCol == station.id)\
+				.where(stationFkCol == station.decoded_id())\
 				.where(collectionFkCol == collectionId[0])
 			self.conn.execute(lastPlayedUpdate)
 
@@ -386,15 +390,15 @@ class CollectionQueueService(SongPopper, RadioPusher):
 					name=r["name"],
 					itemtype=collectionId[1].lower(),
 					parentkey=collectionId[0],
-					album=r["album.name"],
-					artist=r["artist.name"],
+					album=r["album>name"],
+					artist=r["artist>name"],
 					queuedtimestamp=self.get_datetime().timestamp(),
 					treepath=r["treepath"],
 					internalpath=r["internalpath"],
 				) for r in sortedSongs
 			)
 
-		self.queue_service.queue_insert_songs(
+		self.queue_service.queue_insert_songs_in_trx(
 			alreadyQueued,
 			requests,
 			station
@@ -405,7 +409,7 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		#need to save again separately because
 		#queue_service.queue_insert_songs is going to save
 		#based on song count which will cause playnum to go wonky
-		self.queue_service.__add_to_station_playnum__(
+		self.queue_service.add_to_station_playnum_in_trx(
 			station,
 			len(collectionIds)
 		)
@@ -420,15 +424,15 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		if station and\
 			self.__can_album_be_queued_to_station__(
 				itemId,
-				station.id,
+				station.decoded_id(),
 			):
 			query = select(
 				sg_pk.label("id"),
 				sg_name.label("name"),
-				ab_name.label("album.name"),
+				ab_name.label("album>name"),
 				sg_path.label("treepath"),
 				sg_internalpath.label("internalpath"),
-				ar_name.label("artist.name"),
+				ar_name.label("artist>name"),
 				func.row_number().over(
 					partition_by=sg_pk,
 					order_by=(desc(sgar_isPrimaryArtist), desc(ar_pk))
@@ -443,18 +447,18 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			
 			rows = self.conn.execute(
 				query.select().where(query.c.artistrank == 1)
-			).mappings()
+			).mappings().fetchall()
 
 			alreadyQueued = [*self.queue_service.load_current_queue(station)]
 
-			self.queue_service.queue_insert_songs(
+			self.queue_service.queue_insert_songs_in_trx(
 				alreadyQueued,
 				[StreamQueuedItem(
 					id=r["id"],
 					name=r["name"],
 					itemtype=StationRequestTypes.ALBUM.lower(),
 					parentkey=itemId,
-					album=r["album.name"],
+					album=r["album>name"],
 					artist=r["artistname"],
 					queuedtimestamp=self.get_datetime().timestamp(),
 					treepath=r["treepath"],
@@ -472,18 +476,19 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		station: StationInfo,
 		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST
 	):
+
 		if station and\
 			self.__can_playlist_be_queued_to_station__(
 				itemId,
-				station.id
+				station.decoded_id()
 			):
 			query = select(
 				sg_pk.label("id"),
 				sg_name.label("name"),
-				ab_name.label("album.name"),
+				ab_name.label("album>name"),
 				sg_path.label("treepath"),
 				sg_internalpath.label("internalpath"),
-				ar_name.label("artist.name"),
+				ar_name.label("artist>name"),
 				func.row_number(ar_name).over(
 					partition_by=sg_pk,
 					order_by=(desc(sgar_isPrimaryArtist), desc(ar_pk))
@@ -499,17 +504,17 @@ class CollectionQueueService(SongPopper, RadioPusher):
 
 			rows = self.conn.execute(
 				query.select().where(query.c.artistrank == 1)
-			).mappings()
+			).mappings().fetchall()
 			alreadyQueued = [*self.queue_service.load_current_queue(station)]
-			self.queue_service.queue_insert_songs(
+			self.queue_service.queue_insert_songs_in_trx(
 				alreadyQueued,
 				[StreamQueuedItem(
 					id=r["id"],
 					name=r["name"],
 					itemtype=StationRequestTypes.PLAYLIST.lower(),
 					parentkey=itemId,
-					album=r["album.name"],
-					artist=r["artistname"],
+					album=r["album>name"],
+					artist=r["artist>name"],
 					queuedtimestamp=self.get_datetime().timestamp(),
 					treepath=r["treepath"],
 					internalpath=r["internalpath"],
@@ -527,19 +532,21 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		stationItemType: StationRequestTypes=StationRequestTypes.PLAYLIST,
 	):
 		
-		if stationItemType == StationRequestTypes.ALBUM:
-			self.__add_album_to_queue__(
-				itemId,
-				station,
-				stationItemType
-			)
-		elif stationItemType == StationRequestTypes.PLAYLIST:
-			self.__add_playlist_to_queue__(
-				itemId,
-				station,
-				stationItemType
-			)
-		return
+		with self.conn.begin() as transaction:
+			if stationItemType == StationRequestTypes.ALBUM:
+				self.__add_album_to_queue__(
+					itemId,
+					station,
+					stationItemType
+				)
+			elif stationItemType == StationRequestTypes.PLAYLIST:
+				self.__add_playlist_to_queue__(
+					itemId,
+					station,
+					stationItemType
+				)
+			transaction.commit()
+			return
 	
 
 	def __can_playlist_be_queued_to_station__(
@@ -554,8 +561,9 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				st_typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value
 			)\
 			.where(stpl_playlistFk == playlistId)
-		countRes = self.conn.execute(query).scalar()
-		return True if countRes and countRes > 0 else False
+		with dtos.open_transaction(self.conn):
+			countRes = self.conn.execute(query).scalar()
+			return True if countRes and countRes > 0 else False
 	
 
 	def __can_album_be_queued_to_station__(
@@ -570,9 +578,9 @@ class CollectionQueueService(SongPopper, RadioPusher):
 				st_typeid == StationTypes.ALBUMS_AND_PLAYLISTS.value
 			)\
 			.where(stab_albumFk == albumId)
-		
-		countRes = self.conn.execute(query).scalar()
-		return True if countRes and countRes > 0 else False
+		with dtos.open_transaction(self.conn):
+			countRes = self.conn.execute(query).scalar()
+			return True if countRes and countRes > 0 else False
 
 	
 	def can_collection_be_queued_to_station(
@@ -581,17 +589,18 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		stationId: int,
 		stationItemType: StationRequestTypes
 	) -> bool:
-		if stationItemType == StationRequestTypes.ALBUM:
-			return self.__can_album_be_queued_to_station__(
-				collectionId, 
-				stationId
-			)
-		if stationItemType == StationRequestTypes.PLAYLIST:
-			return self.__can_playlist_be_queued_to_station__(
-				collectionId,
-				stationId
-			)
-		return False
+		with dtos.open_transaction(self.conn):
+			if stationItemType == StationRequestTypes.ALBUM:
+				return self.__can_album_be_queued_to_station__(
+					collectionId, 
+					stationId
+				)
+			if stationItemType == StationRequestTypes.PLAYLIST:
+				return self.__can_playlist_be_queued_to_station__(
+					collectionId,
+					stationId
+				)
+			return False
 
 
 	def pop_next_queued(
@@ -607,28 +616,31 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			#the connection is closed
 			return
 
-		# songOffset = len(loaded) if loaded else 0
-		collectionOffset = len({(l.parentkey, l.itemtype) for l in loaded})\
-			if loaded else 0
-		station = self.queue_service.__get_station__(stationId)
-		alreadyQueued = [*self.load_current_queue(station)]
+		with self.conn.begin() as transaction:
+			# songOffset = len(loaded) if loaded else 0
+			loadedOffset = len({(l.parentkey, l.itemtype) for l in loaded})\
+				if loaded else 0
+			station = self.queue_service.__get_station__(stationId)
+			alreadyQueued = [*self.load_current_queue(station)]
 
-		if (len(alreadyQueued) - collectionOffset) < 1:
-			metrics = QueueMetrics(
-				maxSize=self.queue_size + 1,
-				loaded=collectionOffset
-			)
-			self.fil_up_queue(station, metrics, alreadyQueued)
-			self.conn.commit()
+			queuedLen = len({(l.parentkey, l.itemtype) for l in alreadyQueued})\
+				if alreadyQueued else 0
+
+			if (queuedLen - loadedOffset) < 1:
+				metrics = QueueMetrics(
+					maxSize=self.queue_size + 1,
+					loaded=loadedOffset
+				)
+				self.fil_up_queue_in_trx(station, metrics, alreadyQueued)
+				transaction.commit()
 
 
-		for item in alreadyQueued:
-			if loaded and item in loaded:
-				continue
-			return item
+			for item in alreadyQueued:
+				if loaded and item in loaded:
+					continue
+				return item
 
 		raise RuntimeError("No unskipped songs available.")
-	
 
 
 	def move_from_queue_to_history(
@@ -637,35 +649,36 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		songId: int,
 		queueTimestamp: float,
 	) -> bool:
-		station = self.queue_service.__get_station__(stationId)
-		alreadyQueued = [*self.load_current_queue(station)]
-		completedIdx = next(
-			(i for i,e in enumerate(alreadyQueued)\
-				if e.id == songId and e.queuedtimestamp == queueTimestamp
-			),
-			None
-		)
-		if completedIdx is None:
-			return False
-		completed = alreadyQueued[completedIdx]
-		stmt = insert(station_queue_tbl).values(
-			stationfk = stationId,
-			songfk = songId,
-			action = completed.action or StationsSongsActions.PLAYED.value,
-			queuedtimestamp = completed.queuedtimestamp,
-			playedtimestamp = self.get_datetime().timestamp(),
-			userfk = completed.userId
-		)
-		try:
-			self.conn.execute(stmt)
-		except IntegrityError as e:
-			logging.radioLogger.error(e, exc_info=True)
-			return False
-		alreadyQueued.pop(completedIdx)
-		queueMetrics = QueueMetrics(maxSize=self.queue_size)
-		self.fil_up_queue(station, queueMetrics, alreadyQueued)
-		self.conn.commit()
-		return completed.action != StationsSongsActions.SKIP.value
+		with self.conn.begin() as transaction:
+			station = self.queue_service.__get_station__(stationId)
+			alreadyQueued = [*self.load_current_queue(station)]
+			completedIdx = next(
+				(i for i,e in enumerate(alreadyQueued)\
+					if e.id == songId and e.queuedtimestamp == queueTimestamp
+				),
+				None
+			)
+			if completedIdx is None:
+				return False
+			completed = alreadyQueued[completedIdx]
+			stmt = insert(station_queue_tbl).values(
+				stationfk = stationId,
+				songfk = songId,
+				action = completed.action or StationsSongsActions.PLAYED.value,
+				queuedtimestamp = completed.queuedtimestamp,
+				playedtimestamp = self.get_datetime().timestamp(),
+				userfk = completed.userId
+			)
+			try:
+				self.conn.execute(stmt)
+			except IntegrityError as e:
+				log_config.radioLogger.error(e, exc_info=True)
+				return False
+			alreadyQueued.pop(completedIdx)
+			queueMetrics = QueueMetrics(maxSize=self.queue_size)
+			self.fil_up_queue_in_trx(station, queueMetrics, alreadyQueued)
+			transaction.commit()
+			return completed.action != StationsSongsActions.SKIP.value
 
 
 	def get_catalogue(
@@ -685,9 +698,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			ab_name.label("name"),
 			ar_name.label("creator"),
 			ab_year.label("year"),
-			ab_ownerFk.label("ownerid"),
-			u_username.label("ownerusername"),
-			u_displayName.label("ownerdisplayname"),
+			ab_ownerFk.label("owner>id"),
+			u_username.label("owner>username"),
+			u_displayName.label("owner>displayname"),
+			tbl.u_publictoken.label("owner>publictoken"),
 			dbLiteral(StationRequestTypes.ALBUM.lower()).label("itemtype")
 		)\
 			.select_from(stations_tbl) \
@@ -702,9 +716,10 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			pl_name.label("name"),
 			u_displayName.label("creator"),
 			func.FROM_UNIXTIME(pl_lastmodifiedtimestamp, "%Y").label("year"),
-			pl_ownerFk.label("ownerid"),
-			u_username.label("ownerusername"),
-			u_displayName.label("ownerdisplayname"),
+			pl_ownerFk.label("owner>id"),
+			u_username.label("owner>username"),
+			u_displayName.label("owner>displayname"),
+			tbl.u_publictoken.label("owner>publictoken"),
 			dbLiteral(StationRequestTypes.PLAYLIST.lower()).label("itemtype")
 		)\
 			.select_from(stations_tbl) \
@@ -717,14 +732,15 @@ class CollectionQueueService(SongPopper, RadioPusher):
 		sub = unioned_query.cte()
 		
 		query = select(
-			sub.c.id.label("id"),
-			sub.c.name.label("name"),
-			sub.c.creator.label("creator"),
-			sub.c.year.label("year"),
-			sub.c.ownerid.label("ownerid"),
-			sub.c.ownerusername.label("ownerusername"),
-			sub.c.ownerdisplayname.label("ownerdisplayname"),
-			sub.c.itemtype.label("itemtype")
+			sub.c["id"].label("id"),
+			sub.c["name"].label("name"),
+			sub.c["creator"].label("creator"),
+			sub.c["year"].label("year"),
+			sub.c["owner>id"].label("owner>id"),
+			sub.c["owner>username"].label("owner>username"),
+			sub.c["owner>displayname"].label("owner>displayname"),
+			sub.c["owner>publictoken"].label("owner>publictoken"),
+			sub.c["itemtype"].label("itemtype")
 		)
 		
 		if lname:
@@ -737,42 +753,44 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			.offset(offset)\
 			.limit(queryParams.limit)
 
-		records = self.conn.execute(limitedQuery).mappings()
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(limitedQuery).mappings().fetchall()
 
-		userId = self.current_user_provider.optional_user_id()
-		result = [CatalogueItem(
-			id=r["id"],
-			name=r["name"] or "",
-			parentname="",
-			creator=r["creator"] or "",
-			itemtype=r["itemtype"],
-			requesttypeid=StationRequestTypes.ALBUM.value \
-				if r["itemtype"] == StationRequestTypes.ALBUM.lower() \
-				else StationRequestTypes.PLAYLIST.value ,
-			queuedtimestamp=0,
-			rules=[] if not userId or r["ownerid"] != userId else [
-				ActionRule(
-					sphere=UserRoleSphere.Album.value,
-					name=UserRoleDef.ALBUM_EDIT.value,
-					priority=RulePriorityLevel.OWNER.value
+			userId = self.current_user_provider.optional_user_id()
+			result = [CatalogueItem(
+				id=r["id"],
+				name=r["name"] or "",
+				parentname="",
+				creator=r["creator"] or "",
+				itemtype=r["itemtype"],
+				requesttypeid=StationRequestTypes.ALBUM.value \
+					if r["itemtype"] == StationRequestTypes.ALBUM.lower() \
+					else StationRequestTypes.PLAYLIST.value ,
+				queuedtimestamp=0,
+				rules=[] if not userId or r["owner>id"] != userId else [
+					ActionRule(
+						sphere=UserRoleSphere.Album.value,
+						name=UserRoleDef.ALBUM_EDIT.value,
+						priority=RulePriorityLevel.OWNER.value
+					)
+				] if r["itemtype"] == StationRequestTypes.ALBUM.lower()
+				else [
+					ActionRule(
+						sphere=UserRoleSphere.Playlist.value,
+						name=UserRoleDef.PLAYLIST_EDIT.value,
+						priority=RulePriorityLevel.OWNER.value
+					)
+				],
+				owner=dtos.User(
+					id=r["owner>id"],
+					username=r["owner>username"],
+					displayname=r["owner>displayname"],
+					publictoken=r["owner>publictoken"]
 				)
-			] if r["itemtype"] == StationRequestTypes.ALBUM.lower()
-			else [
-				ActionRule(
-					sphere=UserRoleSphere.Playlist.value,
-					name=UserRoleDef.PLAYLIST_EDIT.value,
-					priority=RulePriorityLevel.OWNER.value
-				)
-			],
-			owner=OwnerInfo(
-				id=r["ownerid"],
-				username=r["ownerusername"],
-				displayname=r["ownerdisplayname"]
-			)
-			) for r in records]
-		countQuery = select(func.count(1)).select_from(sub)
-		count = self.conn.execute(countQuery).scalar() or 0
-		return result, count
+				) for r in records]
+			countQuery = select(func.count(1)).select_from(sub)
+			count = self.conn.execute(countQuery).scalar() or 0
+			return result, count
 
 
 	def remove_song_from_queue(self,
@@ -793,13 +811,14 @@ class CollectionQueueService(SongPopper, RadioPusher):
 			)
 		alreadyQueued[skipIdx].action = StationsSongsActions.SKIP.value
 
-		self.fil_up_queue(
-			station,
-			QueueMetrics(maxSize=self.queue_size),
-			alreadyQueued
-		)
-		self.conn.commit()
-		return self.queue_service.get_now_playing_and_queue(station)
+		with self.conn.begin() as transaction:
+			self.fil_up_queue_in_trx(
+				station,
+				QueueMetrics(maxSize=self.queue_size),
+				alreadyQueued
+			)
+			transaction.commit()
+			return self.queue_service.get_now_playing_and_queue(station)
 
 
 	def accepted_request_types(self) -> set[StationRequestTypes]:

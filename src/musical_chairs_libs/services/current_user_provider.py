@@ -1,7 +1,7 @@
-from .basic_user_provider import BasicUserProvider, Impersonation
+from .basic_user_provider import BasicUserProvider
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	ActionRule,
+	InternalUser,
 	TrackingInfo,
 	get_datetime,
 	get_path_owner_roles,
@@ -14,7 +14,7 @@ from musical_chairs_libs.protocols import (
 	UserProvider
 )
 from .path_rule_service import PathRuleService
-from typing import (Literal, overload)
+from typing import (Any, Literal, overload)
 
 class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 
@@ -26,25 +26,25 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		securityScopes: set[str] | None = None,
 	) -> None:
 		self.basic_user_provider = basicUserProvider
-		self.__path_rule_loaded_user__: AccountInfo | None = None
+		self.__path_rule_loaded_user__: InternalUser | None = None
 		self.tracking_info_provider = trackingInfoProvider
 		self.get_datetime = get_datetime
 		self.security_scopes = securityScopes or set()
 		self.path_rule_service = pathRuleService
 
 	@overload
-	def current_user(self) -> AccountInfo:
+	def current_user(self) -> InternalUser:
 		...
 
 	@overload
-	def current_user(self, optional: Literal[False]) -> AccountInfo:
+	def current_user(self, optional: Literal[False]) -> InternalUser:
 		...
 
 	@overload
-	def current_user(self, optional: Literal[True]) -> AccountInfo | None:
+	def current_user(self, optional: Literal[True]) -> InternalUser | None:
 		...
 
-	def current_user(self, optional: bool=False) -> AccountInfo | None:
+	def current_user(self, optional: bool=False) -> InternalUser | None:
 		return self.basic_user_provider.current_user(optional=optional)
 	
 
@@ -52,8 +52,8 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		return self.basic_user_provider.is_loggedIn()
 
 
-	def set_user(self, user: AccountInfo):
-		self.basic_user_provider.set_user(user)
+	def set_session_user(self, user: InternalUser):
+		self.basic_user_provider.set_session_user(user)
 
 
 	def optional_user_id(self) -> int | None:
@@ -68,32 +68,32 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 		return self.tracking_info_provider.visitor_id()
 
 
-	def impersonate(self, user: AccountInfo) -> Impersonation:
+	def impersonate(self, user: InternalUser) -> Any:
 		return self.basic_user_provider.impersonate(user)
 
 
 	@overload
-	def get_path_rule_loaded_current_user(self) -> AccountInfo:
+	def get_path_rule_loaded_current_user(self) -> InternalUser:
 		...
 
 	@overload
 	def get_path_rule_loaded_current_user(
 		self,
 		optional: Literal[False]
-	) -> AccountInfo:
+	) -> InternalUser:
 		...
 
 	@overload
 	def get_path_rule_loaded_current_user(
 		self,
 		optional: Literal[True]
-	) -> AccountInfo | None:
+	) -> InternalUser | None:
 		...
 
 	def get_path_rule_loaded_current_user(
 		self,
 		optional: bool = False
-	) -> AccountInfo | None:
+	) -> InternalUser | None:
 		user = self.current_user(optional=optional)
 		if not user:
 			return None
@@ -110,7 +110,7 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 			raise WrongPermissionsError()
 		rules = ActionRule.aggregate(
 			user.roles,
-			(p for p in self.path_rule_service.get_paths_user_can_see()),
+			(p for p in self.path_rule_service.get_paths_user_can_see(user.id)),
 			(p for p in get_path_owner_roles(normalize_opening_slash(user.dirroot)))
 		)
 		roleNameSet = {r.name for r in rules}
@@ -118,7 +118,7 @@ class CurrentUserProvider(TrackingInfoProvider, UserProvider):
 			raise WrongPermissionsError()
 		userDict = user.model_dump()
 		userDict["roles"] = rules
-		resultUser = AccountInfo(
+		resultUser = InternalUser(
 			**userDict,
 		)
 		self.__path_rule_loaded_user__ = resultUser

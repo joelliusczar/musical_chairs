@@ -1,5 +1,4 @@
 import sys
-from dataclasses import dataclass
 from typing import (
 	Any, 
 	Optional, 
@@ -8,6 +7,7 @@ from typing import (
 	Callable,
 	cast
 )
+from pydantic import BaseModel as MCBaseClass
 from .user_role_def import RulePriorityLevel
 from .constants import UserRoleSphere
 from itertools import groupby, chain
@@ -17,16 +17,17 @@ from .user_role_def import RulePriorityLevel
 
 
 
-@dataclass
-class ActionRule:
+
+
+class ActionRule(MCBaseClass):
 	name: str
 	span: float=0 #this should be total seconds
 	quota: float=0
 	#if priority is not specified, priority should be specific
 	# (station, path) > general
-	priority: Optional[int]=RulePriorityLevel.NONE.value
+	priority: int | None=RulePriorityLevel.NONE.value
 	sphere: str=UserRoleSphere.Site.value
-	keypath: Optional[str]=None
+	keypath: str | None=None
 	# model_config=ConfigDict(revalidate_instances="subclass-instances")
 
 

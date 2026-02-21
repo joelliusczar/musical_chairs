@@ -1,5 +1,5 @@
 import pytest
-from musical_chairs_libs.dtos_and_utilities import AccountInfo
+from musical_chairs_libs.dtos_and_utilities import InternalUser
 from datetime import datetime
 from .mocks.constant_values_defs import\
 mock_password,\
@@ -14,7 +14,7 @@ def fixture_mock_password() -> bytes:
 
 
 @pytest.fixture
-def fixture_primary_user() -> AccountInfo:
+def fixture_primary_user() -> InternalUser:
 	return primary_user()
 
 

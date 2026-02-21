@@ -1,7 +1,9 @@
+#pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from typing import (
 	Iterator,
 	Optional,
-	Union,
 	cast,
 	Iterable,
 	Tuple
@@ -15,7 +17,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	AlreadyUsedError,
 	get_album_owner_roles,
 	get_datetime,
-	OwnerInfo,
 	SongsAlbumInfo,
 	SongListDisplayItem,
 	normalize_opening_slash,
@@ -42,9 +43,6 @@ from sqlalchemy import (
 	literal,
 	String
 )
-from sqlalchemy.sql.expression import (
-	Update
-)
 from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -62,8 +60,10 @@ from musical_chairs_libs.tables import (
 
 album_owner = user_tbl.alias("albumowner")
 albumOwnerId = cast(Column[Integer], album_owner.c.pk)
+albumOwnerPublicToken = cast(Column[String], album_owner.c.publictoken)
 artist_owner = user_tbl.alias("artistowner")
 artistOwnerId = cast(Column[Integer], artist_owner.c.pk)
+artistOwnerPublicToken = cast(Column[String], artist_owner.c.publictoken)
 
 
 class AlbumService:
@@ -94,8 +94,8 @@ class AlbumService:
 
 	def get_albums_query(
 		self,
-		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
-		artistKeys: Union[int, str, Iterable[int], None]=None,
+		albumKeys: int | str | Iterable[int] | None | Lost=Lost(),
+		artistKeys: int | str | Iterable[int] | None=None,
 		exactStrMatch: bool=False
 	):
 		query = albums_tbl\
@@ -148,8 +148,8 @@ class AlbumService:
 		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
-		albumKeys: Union[int, str, Iterable[int], None, Lost]=Lost(),
-		artistKeys: Union[int, str, Iterable[int], None]=None,
+		albumKeys: int | str | Iterable[int] | None | Lost=Lost(),
+		artistKeys: int | str | Iterable[int] | None=None,
 		exactStrMatch: bool=False
 	) -> Iterator[AlbumInfo]:
 		
@@ -160,54 +160,61 @@ class AlbumService:
 			ab_year.label("year"),
 			ab_versionnote.label("versionnote"),
 			ab_albumArtistFk.label("albumartistid"),
-			ab_ownerFk.label("album.owner.id"),
-			album_owner.c.username.label("album.owner.username"),
-			album_owner.c.displayname.label("album.owner.displayname"),
-			ar_name.label("artist.name"),
-			ar_ownerFk.label("artist.owner.id"),
-			artist_owner.c.username.label("artist.owner.username"),
-			artist_owner.c.displayname.label("artist.owner.displayname")
+			ab_ownerFk.label("album>owner>id"),
+			album_owner.c.username.label("album>owner>username"),
+			album_owner.c.displayname.label("album>owner>displayname"),
+			album_owner.c.publictoken.label("album>owner>publictoken"),
+			ar_name.label("artist>name"),
+			ar_ownerFk.label("artist>owner>id"),
+			artist_owner.c.username.label("artist>owner>username"),
+			artist_owner.c.displayname.label("artist>owner>displayname"),
+			artist_owner.c.publictoken.label("artist>owner>publictoken"),
 		)
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query).mappings().fetchall()
-		ownerRules = [*get_album_owner_roles()]
-		userId = self.current_user_provider.optional_user_id()
-		yield from (AlbumInfo(
-			id=row["id"],
-			name=row["name"],
-			versionnote=row["versionnote"],
-			owner=OwnerInfo(
-				id=row["album.owner.id"],
-				username=row["album.owner.username"],
-				displayname=row["album.owner.displayname"]
-			),
-			year=row["year"],
-			albumartist=ArtistInfo(
-				id=row["albumartistid"],
-				name=row["artist.name"],
-				owner=OwnerInfo(
-					id=row["artist.owner.id"],
-					username=row["artist.owner.username"],
-					displayname=row["artist.owner.displayname"]
-				)
-			) if row["albumartistid"] else None,
-			rules=ownerRules if row["album.owner.id"] == userId else []
-			) for row in records)
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query).mappings().fetchall()
+			ownerRules = [*get_album_owner_roles()]
+			userId = self.current_user_provider.optional_user_id()
+			yield from (AlbumInfo(
+				id=row["id"],
+				name=row["name"],
+				versionnote=row["versionnote"],
+				owner=dtos.User(
+					id=row["album>owner>id"],
+					username=row["album>owner>username"],
+					displayname=row["album>owner>displayname"],
+					publictoken=row["album>owner>publictoken"]
+				),
+				year=row["year"],
+				albumartist=ArtistInfo(
+					id=row["albumartistid"],
+					name=row["artist>name"],
+					owner=dtos.User(
+						id=row["artist>owner>id"],
+						username=row["artist>owner>username"],
+						displayname=row["artist>owner>displayname"],
+						publictoken=row["artist>owner>publictoken"]
+					)
+				) if row["albumartistid"] else None,
+				rules=ownerRules if row["album>owner>id"] == userId else []
+				) for row in records)
 
 
-	def get_album_owner(self, albumId: int) -> OwnerInfo:
-		query = select(ab_ownerFk, u_username, u_displayName)\
+	def get_album_owner(self, albumId: int) -> dtos.User:
+		query = select(ab_ownerFk, u_username, u_displayName, tbl.u_publictoken)\
 			.select_from(albums_tbl)\
 			.join(user_tbl, u_pk == ab_ownerFk)\
 			.where(ab_pk == albumId)
-		data = self.conn.execute(query).mappings().fetchone()
-		if not data:
-			return OwnerInfo(id=0,username="", displayname="")
-		return OwnerInfo(
-			id=data[ab_ownerFk],
-			username=data[u_username],
-			displayname=data[u_displayName]
+		with dtos.open_transaction(self.conn):
+			data = self.conn.execute(query).mappings().fetchone()
+			if not data:
+				return dtos.User(id=0,username="", displayname="", publictoken="")
+			return dtos.User(
+				id=data[ab_ownerFk],
+				username=data[u_username],
+				displayname=data[u_displayName],
+				publictoken=data[tbl.u_publictoken]
 		)
 
 
@@ -217,34 +224,35 @@ class AlbumService:
 		album: str = "",
 		artist: str = "",
 	) -> Tuple[list[AlbumInfo], int]:
-		result = list(self.get_albums(
-			queryParams.page,
-			queryParams.limit,
-			album,
-			artist
-		))
-		countQuery = self.get_albums_query(album, artist)\
-			.with_only_columns(func.count(1))
-		count = self.conn.execute(countQuery).scalar() or 0
-		return result, count
+		with dtos.open_transaction(self.conn):
+			result = list(self.get_albums(
+				queryParams.page,
+				queryParams.limit,
+				album,
+				artist
+			))
+			countQuery = self.get_albums_query(album, artist)\
+				.with_only_columns(func.count(1))
+			count = self.conn.execute(countQuery).scalar() or 0
+			return result, count
 
 
-	def get_song_counts(self) -> dict[int, int]:
+	def get_song_counts(self) -> dict[str, int]:
 		query = select(ab_pk, func.count(sg_pk))\
 			.join(songs_tbl, sg_albumFk == ab_pk)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.group_by(ab_pk)
-		
-		records = self.conn.execute(query)
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query).fetchall()
 
-		return {r[0]:r[1] for r in records}
+			return {dtos.encode_album_id(r[0]):r[1] for r in records}
 
 
 	def get_album_songs(
 		self,
 		albumId: Optional[int],
 		albumInfo: AlbumInfo,
-	) -> Iterator[SongListDisplayItem]:
+	) -> list[SongListDisplayItem]:
 		songsQuery = select(
 			sg_pk.label("id"),
 			sg_name,
@@ -269,115 +277,174 @@ class AlbumService:
 			.where(sg_albumFk == albumId)\
 			.where(sg_deletedTimstamp.is_(None))\
 			.order_by(sg_disc, sg_trackNum)
-		songsResult = self.conn.execute(songsQuery).mappings()
-		pathRuleTree = None
-		if self.current_user_provider.is_loggedIn():
-			pathRuleTree = self.path_rule_service.get_rule_path_tree()
+		with dtos.open_transaction(self.conn):
+			songsResult = self.conn.execute(songsQuery).mappings().fetchall()
+			pathRuleTree = None
+			if self.current_user_provider.is_loggedIn():
+				pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
-		songs = (
-			SongListDisplayItem(
-				**PathDict(dict(row), omitNulls=True, defaultValues={"name": "(blank)"})
-			) for row in songsResult
-		)
-		if pathRuleTree:
-			for song in songs:
-				song.rules = list(pathRuleTree.values_flat(
-						normalize_opening_slash(song.treepath))
+			songs = [
+				SongListDisplayItem(
+					**PathDict(
+						dict(row),
+						omitNulls=True,
+						defaultValues={"name": "(blank)"}
 					)
-				yield song
-		else:
-			yield from songs
+				) for row in songsResult
+			]
+			if pathRuleTree:
+				for song in songs:
+					song.rules = list(pathRuleTree.values_flat(
+							normalize_opening_slash(song.treepath))
+						)
+				return songs
+			else:
+				return songs
 
 
 	def get_album(
 			self,
-			albumId: Optional[int],
+			albumId: int | None,
 		) -> Optional[SongsAlbumInfo]:
-		albumInfo = next(self.get_albums(albumKeys=albumId), None)
-		if not albumInfo:
-			albumInfo = AlbumInfo(
-				id=0,
-				name="(Missing)",
-				owner=OwnerInfo(
-					id=0,
+		with dtos.open_transaction(self.conn):
+			albumInfo = next(self.get_albums(albumKeys=albumId), None)
+			if not albumInfo:
+				albumInfo = AlbumInfo(
+					id="0",
+					name="(Missing)",
+					owner=dtos.User(
+						id=0,
+						username="",
+						publictoken=""
+					)
 				)
-			)
-		
-		songs = [*self.get_album_songs(albumId, albumInfo)]
-		if albumId:
-			stations = [
-				*self.stations_albums_service.get_stations_by_album(albumId)
-			]
-		else:
-			stations = []
+			
+			songs = self.get_album_songs(albumId, albumInfo)
+			if albumId:
+				stations = [
+					*self.stations_albums_service.get_stations_by_album(albumId)
+				]
+			else:
+				stations = []
 
-		return SongsAlbumInfo(
-			**albumInfo.model_dump(),
-			songs=songs,
-			stations=stations
-		)
+			return SongsAlbumInfo(
+				**albumInfo.model_dump(),
+				songs=songs,
+				stations=stations
+			)
+
+
+	def add_album(
+		self,
+		album: AlbumCreationInfo
+	) -> AlbumInfo:
+		user = self.current_user_provider.current_user()
+		savedName = SavedNameString(album.name)
+		with self.conn.begin() as transaction:
+			stmt = insert(tbl.albums).values(
+				name = str(savedName),
+				year = album.year,
+				versionnote = str(SavedNameString(album.versionnote)),
+				albumartistfk = album.albumartist.decoded_id() \
+					if album.albumartist else None,
+				lastmodifiedbyuserfk = user.id,
+				lastmodifiedtimestamp = self.get_datetime().timestamp(),
+				ownerfk = user.id,
+			)
+			try:
+				res = self.conn.execute(stmt)
+				affectedPk = res.lastrowid
+				self.stations_albums_service.link_albums_with_stations_in_trx(
+					(StationAlbumTuple(affectedPk, t.decoded_id() if t else None) 
+						for t in (album.stations or [None]))
+				)
+				artist = next(self.artist_service.get_artists(
+					userId=user.id,
+					artistKeys=album.albumartist.id
+				), None) if album.albumartist else None
+				transaction.commit()
+				owner = user.to_user()
+				return AlbumInfo(
+					id=dtos.encode_album_id(affectedPk), 
+					name=str(savedName),
+					owner=owner,
+					year=album.year,
+					albumartist=artist,
+					versionnote=album.versionnote
+				)
+			except IntegrityError:
+				raise AlreadyUsedError.build_error(
+				f"{album.name} is already used for artist.",
+				"body->name"
+			)
+
+
+	def update_album(
+		self,
+		album: AlbumCreationInfo,
+		albumId: int
+	) -> AlbumInfo | None:
+		
+		user = self.current_user_provider.current_user()
+		savedName = SavedNameString(album.name)
+		stmt = update(albums_tbl).values(
+			name = str(savedName),
+			year = album.year,
+			versionnote = str(SavedNameString(album.versionnote)),
+			albumartistfk = album.albumartist.decoded_id() \
+				if album.albumartist else None,
+			lastmodifiedbyuserfk = user.id,
+			lastmodifiedtimestamp = self.get_datetime().timestamp()
+		).where(ab_pk == albumId)
+		with self.conn.begin() as transaction:
+			owner = self.get_album_owner(albumId)
+			try:
+				self.conn.execute(stmt)
+			except IntegrityError:
+				raise AlreadyUsedError.build_error(
+					f"{album.name} is already used for artist.",
+					"body->name"
+				)
+			artist = next(self.artist_service.get_artists(
+				userId=user.id,
+				artistKeys=album.albumartist.id
+			), None) if album.albumartist else None
+			self.stations_albums_service.link_albums_with_stations_in_trx(
+				(StationAlbumTuple(albumId, t.decoded_id() if t else None) 
+					for t in (album.stations or [None]))
+			)
+			transaction.commit()
+			return AlbumInfo(
+				id=dtos.encode_album_id(albumId), #pyright: ignore reportUnknownMemberType,
+				name=str(savedName),
+				owner=owner,
+				year=album.year,
+				albumartist=artist,
+				versionnote=album.versionnote
+			)
 
 
 	def save_album(
 		self,
 		album: AlbumCreationInfo,
-		albumId: Optional[int]=None
-	) -> Optional[AlbumInfo]:
+		albumId: int | None=None
+	) -> AlbumInfo | None:
 		if not album and not albumId:
 			raise ValueError("No album info to save")
-		user = self.current_user_provider.current_user()
-		upsert = update if albumId else insert
-		savedName = SavedNameString(album.name)
-		stmt = upsert(albums_tbl).values(
-			name = str(savedName),
-			year = album.year,
-			versionnote = str(SavedNameString(album.versionnote)),
-			albumartistfk = album.albumartist.id if album.albumartist else None,
-			lastmodifiedbyuserfk = user.id,
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
-		owner = user
-		if albumId and isinstance(stmt, Update):
-			stmt = stmt.where(ab_pk == albumId)
-			owner = self.get_album_owner(albumId)
+		if albumId:
+			return self.update_album(album, albumId)
 		else:
-			stmt = stmt.values(ownerfk = user.id)
-		try:
-			res = self.conn.execute(stmt)
-		except IntegrityError:
-			raise AlreadyUsedError.build_error(
-				f"{album.name} is already used for artist.",
-				"body->name"
-			)
-		affectedPk = albumId if albumId else res.lastrowid
-		artist = next(self.artist_service.get_artists(
-			userId=user.id,
-			artistKeys=album.albumartist.id
-		), None) if album.albumartist else None
-		self.stations_albums_service.link_albums_with_stations(
-			(StationAlbumTuple(affectedPk, t.id if t else None) 
-				for t in (album.stations or [None]))
-		)
-		self.conn.commit()
-		if res.rowcount == 0:
-			return None
-		return AlbumInfo(
-			id=affectedPk,
-			name=str(savedName),
-			owner=owner,
-			year=album.year,
-			albumartist=artist,
-			versionnote=album.versionnote
-		)
+			return self.add_album(album)
 
 
 	def delete_album(self, albumkey: int) -> int:
 		if not albumkey:
 			return 0
 		delStmt = delete(albums_tbl).where(ab_pk == albumkey)
-		delCount = self.conn.execute(delStmt).rowcount
-		self.conn.commit()
-		return delCount
+		with self.conn.begin() as transaction:
+			delCount = self.conn.execute(delStmt).rowcount
+			transaction.commit()
+			return delCount
 
 
 	def get_or_save_album(
@@ -392,19 +459,21 @@ class AlbumService:
 		query = select(ab_pk).select_from(albums_tbl).where(ab_name == savedName)
 		if artistFk:
 			query = query.where(ab_albumArtistFk == artistFk)
-		row = self.conn.execute(query).fetchone()
-		if row:
-			pk = cast(int, row[0])
-			return pk
-		print(name)
-		stmt = insert(albums_tbl).values(
-			name = savedName,
-			albumartistfk = artistFk,
-			year = year,
-			lastmodifiedtimestamp = self.get_datetime().timestamp(),
-			ownerfk = 1,
-			lastmodifiedbyuserfk = 1
-		)
-		res = self.conn.execute(stmt)
-		insertedPk = res.lastrowid
-		return insertedPk
+		with self.conn.begin() as transaction:
+			row = self.conn.execute(query).fetchone()
+			if row:
+				pk = cast(int, row[0])
+				return pk
+			print(name)
+			stmt = insert(albums_tbl).values(
+				name = savedName,
+				albumartistfk = artistFk,
+				year = year,
+				lastmodifiedtimestamp = self.get_datetime().timestamp(),
+				ownerfk = 1,
+				lastmodifiedbyuserfk = 1
+			)
+			res = self.conn.execute(stmt)
+			transaction.commit()
+			insertedPk = res.lastrowid
+			return insertedPk

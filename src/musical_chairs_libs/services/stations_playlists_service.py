@@ -1,3 +1,4 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from musical_chairs_libs.dtos_and_utilities import (
 	generate_owned_and_rules_from_rows,
 	get_datetime,
@@ -32,7 +33,6 @@ from typing import (
 	cast,
 	Collection,
 	Iterable,
-	Iterator,
 	Optional,
 	Tuple,
 	Union
@@ -59,7 +59,7 @@ class StationsPlaylistsService:
 		self,
 		playlistsIds: Union[int, Iterable[int], None]=None,
 		stationIds: Union[int, Iterable[int], None]=None,
-	) -> Iterable[StationPlaylistTuple]:
+	) -> list[StationPlaylistTuple]:
 		query = select(
 			stpl_playlistFk,
 			stpl_stationFk
@@ -75,16 +75,17 @@ class StationsPlaylistsService:
 		elif isinstance(stationIds, Iterable):
 			query = query.where(stpl_stationFk.in_(stationIds))
 		query = query.order_by(stpl_playlistFk)
-		records = self.conn.execute(query) #pyright: ignore [reportUnknownMemberType]
-		yield from (StationPlaylistTuple(
-				cast(int, row[0]),
-				cast(int, row[1]),
-				True
-			)
-			for row in records)
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query).fetchall()
+			return [StationPlaylistTuple(
+					cast(int, row[0]),
+					cast(int, row[1]),
+					True
+				)
+				for row in records]
 
 
-	def remove_playlist_for_stations(
+	def __remove_playlist_for_stations__(
 		self,
 		stationPlaylists: Union[
 			Iterable[Union[StationPlaylistTuple, Tuple[int, int]]],
@@ -110,9 +111,9 @@ class StationsPlaylistsService:
 	def validate_stations_playlists(
 		self,
 		stationPlaylists: Iterable[StationPlaylistTuple]
-	) -> Iterable[StationPlaylistTuple]:
+	) -> list[StationPlaylistTuple]:
 		if not stationPlaylists:
-			return iter([])
+			return []
 		stationPlaylistSet = set(stationPlaylists)
 		playlistQuery = select(pl_pk)\
 			.where(
@@ -122,20 +123,24 @@ class StationsPlaylistsService:
 			st_pk.in_((s.stationid for s in stationPlaylistSet))
 		)
 
-		playlistRecords = self.conn.execute(playlistQuery).fetchall()
-		stationRecords = self.conn.execute(stationQuery).fetchall()\
-			or [None] * len(playlistRecords)
-		yield from (t for t in (StationPlaylistTuple(
-			cast(int, playlistRow[0]),
-			cast(Optional[int], stationRow[0] if stationRow else None)
-		) for playlistRow in playlistRecords 
-			for stationRow in stationRecords
-		) if t in stationPlaylistSet)
+		with dtos.open_transaction(self.conn):
+			playlistRecords = self.conn.execute(playlistQuery).fetchall()
+			stationRecords = self.conn.execute(stationQuery).fetchall()\
+				or [None] * len(playlistRecords)
+			return [t for t in (StationPlaylistTuple(
+				cast(int, playlistRow[0]),
+				cast(Optional[int], stationRow[0] if stationRow else None)
+			) for playlistRow in playlistRecords 
+				for stationRow in stationRecords
+			) if t in stationPlaylistSet]
 
-	def link_playlists_with_stations(
+	def link_playlists_with_stations_in_trx(
 		self,
 		stationPlaylists: Iterable[StationPlaylistTuple]
 	) -> Iterable[StationPlaylistTuple]:
+		if not self.conn.in_transaction():
+			raise RuntimeError("This method must be called inside a transaction")
+
 		if not stationPlaylists:
 			return []
 		uniquePairs = set(self.validate_stations_playlists(stationPlaylists))
@@ -146,7 +151,7 @@ class StationsPlaylistsService:
 		))
 		outPairs = existingPairs - uniquePairs
 		inPairs = uniquePairs - existingPairs
-		self.remove_playlist_for_stations(outPairs)
+		self.__remove_playlist_for_stations__(outPairs)
 		if not inPairs: #if no songs - stations have been linked
 			return existingPairs - outPairs
 		userId = self.current_user_provider.current_user().id
@@ -167,7 +172,7 @@ class StationsPlaylistsService:
 		self,
 		playlistId: int,
 		scopes: Optional[Collection[str]]=None
-	) -> Iterator[StationInfo]:
+	) -> list[StationInfo]:
 
 		if self.current_user_provider.is_loggedIn():
 			query = self.station_service.get_secured_station_query(
@@ -175,7 +180,7 @@ class StationsPlaylistsService:
 			)
 		else:
 			if scopes:
-				return
+				return []
 			query = self.station_service.station_base_query().where(
 				coalesce(st_viewSecurityLevel, 0) == 0
 			)\
@@ -184,26 +189,26 @@ class StationsPlaylistsService:
 		query = query.outerjoin(stations_playlists_tbl, stpl_stationFk == st_pk)\
 			.where(stpl_playlistFk == playlistId)
 
-		records = self.conn.execute(query).mappings()
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query).mappings().fetchall()
 
-		userId = self.current_user_provider.optional_user_id()
-		if userId:
-			yield from generate_owned_and_rules_from_rows(
-				records,
-				StationInfo.row_to_station,
-				get_station_owner_rules,
-				scopes,
-				userId
-			)
-		else:
-			for row in records:
-				yield StationInfo.row_to_station(row)
+			userId = self.current_user_provider.optional_user_id()
+			if userId:
+				return [*generate_owned_and_rules_from_rows(
+					records,
+					StationInfo.row_to_station,
+					get_station_owner_rules,
+					scopes,
+					userId
+				)]
+			else:
+				return [StationInfo.row_to_station(row) for row in records]
 
 	def get_station_song_counts(
 		self,
 		stationIds: Union[int, Iterable[int], None]=None,
 		ownerId: Union[int, None]=None,
-	) -> Iterator[Tuple[int, int]]:
+	) -> list[Tuple[int, int]]:
 		query = select(stpl_stationFk, func.count(sg_pk))\
 			.join(playlists_songs_tbl, plsg_playlistFk == stpl_playlistFk)\
 			.join(songs_tbl, plsg_songFk == sg_pk)\
@@ -217,6 +222,6 @@ class StationsPlaylistsService:
 		if type(ownerId) == int:
 			query = query.join(stations_tbl, st_pk == stpl_stationFk)\
 				.where(st_ownerFk == ownerId)
-		records = self.conn.execute(query)
-		for row in records:
-			yield cast(int,row[0]), cast(int,row[1])
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query).fetchall()
+			return [(cast(int,row[0]), cast(int,row[1])) for row in records]

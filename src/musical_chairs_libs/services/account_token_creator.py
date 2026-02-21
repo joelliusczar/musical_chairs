@@ -1,10 +1,10 @@
 #pyright: reportMissingTypeStubs=false
 from datetime import timedelta
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	SavedNameString,
 	get_datetime,
 	ConfigAcessors,
+	User
 )
 from sqlalchemy.engine import Connection
 from jose import jwt
@@ -29,7 +29,7 @@ class AccountTokenCreator:
 
 	def create_access_token(
 		self,
-		user: AccountInfo,
+		user: User,
 	) -> str:
 		expire = self.get_datetime() \
 			+ timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -40,7 +40,6 @@ class AccountTokenCreator:
 			ConfigAcessors.auth_key(),
 			ALGORITHM
 		)
-		self.conn.commit()
 		return token
 
 

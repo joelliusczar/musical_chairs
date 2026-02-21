@@ -1,3 +1,4 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from base64 import urlsafe_b64decode
 from typing import Union, Iterable, Optional
 from fastapi import (
@@ -20,11 +21,11 @@ from musical_chairs_libs.services.events import (
 	WhenNextCalculator
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	ActionRule,
 	build_error_obj,
 	ChainedAbsorbentTrie,
 	DirectoryTransfer,
+	RoledUser,
 	UserRoleDef,
 	ValidatedSongAboutInfo,
 	UserRoleSphere,
@@ -37,7 +38,7 @@ from api_dependencies import (
 	path_rule_service,
 	station_service,
 	get_current_user_simple,
-	get_from_query_subject_user,
+	subject_user,
 	album_service,
 	artist_service,
 	stations_songs_service,
@@ -47,17 +48,17 @@ from api_dependencies import (
 
 
 def __get_station_id_set__(
-	user: AccountInfo,
+	user: RoledUser,
 	stationService: StationService,
 	stationKeys: Union[int,str, Iterable[int], None]=None
 ) -> set[int]:
 
 	if user.has_site_roles(UserRoleDef.STATION_ASSIGN):
-		return {s.id for s in stationService.get_stations(
+		return {s.decoded_id() for s in stationService.get_stations(
 			stationKeys=stationKeys
 		)}
 	else:
-		return {s.id for s in stationService.get_stations(
+		return {s.decoded_id() for s in stationService.get_stations(
 		stationKeys=stationKeys,
 	) if any(r.name == UserRoleDef.STATION_ASSIGN.value for r in s.rules)}
 
@@ -70,12 +71,12 @@ def get_song_ids(request: Request) -> list[int]:
 		for fieldName in fieldNames:
 			key = request.path_params.get(fieldName, None)
 			if key is not None:
-				result.add(int(key))
+				result.add(dtos.decode_id(key))
 
 		fieldNames = ["itemids", "songids", "itemIds"]
 		for fieldName in fieldNames:
 			keys = request.query_params.getlist(fieldName)
-			result.update((int(i) for i in keys))
+			result.update((dtos.decode_id(i) for i in keys))
 		
 	except ValueError:
 		raise HTTPException(
@@ -87,6 +88,7 @@ def get_song_ids(request: Request) -> list[int]:
 				)],
 		)
 	return [*result]
+
 
 def check_if_can_use_path(
 	scopes: set[str],
@@ -117,10 +119,10 @@ def get_secured_song_ids(
 		when_next_calculator
 	),
 ) -> list[int]:
-	user = currentUserProvider.get_path_rule_loaded_current_user()
+	user = currentUserProvider.get_path_rule_loaded_current_user().to_roled_user()
 	if user.isadmin:
 		return songIds
-	userPrefixTrie = user.get_permitted_paths_tree()
+	userPrefixTrie = pathRuleService.get_permitted_paths_tree(user)
 	prefixes = [*pathRuleService.get_song_path(songIds)]
 	scopes = {s for s in securityScopes.scopes \
 		if UserRoleSphere.Path.conforms(s)
@@ -138,16 +140,16 @@ def get_secured_song_ids(
 def __validate_song_stations__(
 	song: ValidatedSongAboutInfo,
 	songIds: Iterable[int],
-	user: AccountInfo,
+	user: RoledUser,
 	stationService: StationService,
 	stationsSongsService: StationsSongsService,
 ):
 	if not song.stations:
 		return
-	stationIds = {s.id for s in song.stations or []}
+	stationIds = {s.decoded_id() for s in song.stations or []}
 	linkedStationIds = {s.stationid for s in \
 		stationsSongsService.get_station_songs(songIds=songIds)}
-	permittedStations = {s.id for s in \
+	permittedStations = {s.decoded_id() for s in \
 			stationService.get_stations(
 			stationIds,
 			scopes=[UserRoleDef.STATION_ASSIGN.value]
@@ -159,7 +161,7 @@ def __validate_song_stations__(
 			detail=[
 				build_error_obj(
 					"Do not have permission to work with all of stations"
-						f" {str(stationIds)}",
+						f" {str(s.id for s in song.stations)}",
 					"Stations"
 				)],
 		)
@@ -180,13 +182,13 @@ def __validate_song_stations__(
 
 def __validate_song_artists__(
 	song: ValidatedSongAboutInfo,
-	user: AccountInfo,
+	user: RoledUser,
 	artistService: ArtistService,
 ):
 	if not song.allArtists:
 		return
-	artistIds = {a.id for a in song.allArtists}
-	dbArtists = {a.id for a in artistService.get_artists(
+	artistIds = {a.decoded_id() for a in song.allArtists}
+	dbArtists = {a.decoded_id() for a in artistService.get_artists(
 		artistKeys=artistIds,
 		#in theory, this should not create a vulnerability
 		#because even if user has path:edit on a non-overlapping path
@@ -204,12 +206,12 @@ def __validate_song_artists__(
 
 def __validate_song_album__(
 	song: ValidatedSongAboutInfo,
-	user: AccountInfo,
+	user: RoledUser,
 	albumService: AlbumService,
 ):
 	if song.album:
 		dbAlbum = next(albumService.get_albums(
-			albumKeys=song.album.id,
+			albumKeys=song.album.decoded_id(),
 		), None)
 		if not dbAlbum:
 			raise HTTPException(
@@ -262,8 +264,9 @@ def get_write_secured_prefix(
 	whenNextCalculator: WhenNextCalculator = Depends(
 		when_next_calculator
 	),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> str:
-	user = currentUserProvider.get_path_rule_loaded_current_user()
+	user = currentUserProvider.get_path_rule_loaded_current_user().to_roled_user()
 	if user.isadmin:
 		return prefix
 	if not securityScopes:
@@ -273,7 +276,7 @@ def get_write_secured_prefix(
 		if UserRoleSphere.Path.conforms(s)
 	}
 	if prefix:
-		userPrefixTrie = user.get_permitted_paths_tree()
+		userPrefixTrie = pathRuleService.get_permitted_paths_tree(user)
 		check_if_can_use_path(
 			scopes,
 			prefix,
@@ -285,7 +288,7 @@ def get_write_secured_prefix(
 
 def get_prefix_if_owner(
 	prefix: str=Depends(get_prefix),
-	currentUser: AccountInfo = Depends(get_current_user_simple),
+	currentUser: RoledUser = Depends(get_current_user_simple),
 ) -> str:
 	if not currentUser.dirroot:
 		raise WrongPermissionsError()
@@ -303,9 +306,10 @@ def get_secured_directory_transfer(
 	whenNextCalculator: WhenNextCalculator = Depends(
 		when_next_calculator
 	),
+	pathRuleService: PathRuleService = Depends(path_rule_service),
 ) -> DirectoryTransfer:
-	user = currentUserProvider.get_path_rule_loaded_current_user()
-	userPrefixTrie = user.get_permitted_paths_tree()
+	user = currentUserProvider.get_path_rule_loaded_current_user().to_roled_user()
+	userPrefixTrie = pathRuleService.get_permitted_paths_tree(user)
 	scopes = (
 		(transfer.treepath, UserRoleDef.PATH_DELETE),
 		(transfer.newprefix, UserRoleDef.PATH_EDIT)
@@ -330,7 +334,7 @@ def extra_validated_song(
 	artistService: ArtistService = Depends(artist_service),
 	albumService: AlbumService = Depends(album_service)
 ) -> ValidatedSongAboutInfo:
-	user = currentUserProvider.get_path_rule_loaded_current_user()
+	user = currentUserProvider.get_path_rule_loaded_current_user().to_roled_user()
 	__validate_song_stations__(
 		song,
 		songIds,
@@ -345,7 +349,7 @@ def extra_validated_song(
 def validate_path_rule(
 	rule: ActionRule,
 	prefix: str = Depends(get_prefix),
-	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
+	user: dtos.RoledUser | None = Depends(subject_user),
 ) -> ActionRule:
 	if not user:
 		raise HTTPException(
@@ -378,9 +382,9 @@ def validate_path_rule(
 
 def validate_path_rule_for_remove(
 	prefix: str,
-	user: Optional[AccountInfo] = Depends(get_from_query_subject_user),
-	ruleName: Optional[str]=None
-) -> Optional[str]:
+	user: dtos.RoledUser | None = Depends(subject_user),
+	ruleName: str | None=None
+) -> str | None:
 	if not user:
 			raise HTTPException(
 				status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -5,6 +5,7 @@ pydantic==2.11.10
 uvicorn==0.17.5
 SQLAlchemy==2.0.43
 tinytag==1.10.1
+nanoid==2.0.0
 numpy==1.26.4
 pytest==7.1.1
 python-multipart==0.0.5

@@ -32,7 +32,7 @@ const inputField = {
 
 
 type AlbumEditProps = {
-	id?: number
+	id?: string
 	formMethods: UseFormReturn<AlbumInfo>
 	onCancel?: (e: unknown) => void
 	callSubmit: (e: React.BaseSyntheticEvent) => Promise<void>,

@@ -1,6 +1,7 @@
-import React from "react";
+import React, { forwardRef, HTMLAttributes, Ref } from "react";
 import {
 	Autocomplete,
+	Box,
 	TextField,
 	FormHelperText,
 	Theme,
@@ -18,6 +19,67 @@ import {
 } from "react-hook-form";
 import { SelectItem } from "../../Types/generic_types";
 import { CustomEvent, ChangeEvent } from "../../Types/browser_types";
+import { 
+	List,
+	RowComponentProps,
+	ListImperativeAPI,
+} from "react-window";
+
+
+const RowComponent = (
+	props: RowComponentProps 
+		& { 
+			itemData: React.ReactElement[] 
+		}
+) => {
+	const {index, itemData } = props;
+
+	
+	return <div key={itemData[index].key}>
+		{itemData[index]}
+	</div>;
+};
+
+const ListBoxComponent = forwardRef<
+	HTMLDivElement,
+	HTMLAttributes<HTMLElement>  
+		& {
+			itemCount: number,
+			internalListRef: Ref<ListImperativeAPI>;
+		}
+>((props, ref) => {
+	const { children, internalListRef, ...other } = props;
+
+	const defaultRowSize = 55;
+
+	const itemData = (children as React.ReactElement[]).map((e) => {
+		return e;
+	});
+
+	const getChildSize = () => {
+		return defaultRowSize;
+	};
+
+	// const getHeight = () => {
+	// 	if (itemData.length > 8) {
+	// 		return 8 * defaultRowSize;
+	// 	}
+	// 	return itemData.map(getChildSize).reduce((a, b) => a + b, 0);
+	// };
+
+
+	return <Box ref={ref} {...other} >
+		<List 
+			rowComponent={RowComponent}
+			rowCount={itemData.length}
+			rowHeight={() => getChildSize()}
+			rowProps={{ itemData }}
+			listRef={internalListRef}
+			overscanCount={10}
+		/>
+	</Box>;
+});
+ListBoxComponent.displayName = "ListBoxComponent";
 
 type TransformType
 <
@@ -75,6 +137,7 @@ interface FormSelectBaseProps<
 	inputValue?: string
 	onInputChange?: (e: ChangeEvent, newValue: string) => void,
 	renderInput?: (params: AutocompleteRenderInputParams) => React.ReactNode,
+	elementRef?: React.RefCallback<HTMLElement | undefined>
 }
 
 
@@ -179,6 +242,7 @@ FreeSolo extends boolean | undefined = false,
 		getOptionLabel = _getOptionLabel,
 		freeSolo,
 		renderInput,
+		elementRef,
 		...otherProps
 	} = props;
 	const { control } = formMethods;
@@ -217,6 +281,8 @@ FreeSolo extends boolean | undefined = false,
 						style: { lineHeight: "unset" },
 					},
 				}}
+				ListboxComponent={ListBoxComponent}
+				ref={elementRef}
 				{...otherProps}
 			/>
 			{error && <FormHelperText error={true}>

@@ -9,11 +9,11 @@ from typing import (
 	Any,
 	Iterator,
 )
-from .account_dtos import OwnerInfo, RuledOwnedEntity
+from .account_dtos import User, RuledOwnedTokenEntity
 from .simple_functions import get_non_simple_chars
 from .validation_functions import min_length_validator_factory
 from .generic_dtos import (
-
+	NamedTokenItem,
 	MCBaseClass,
 )
 from .user_role_def import RulePriorityLevel, UserRoleDef
@@ -32,9 +32,7 @@ station_owner_rules = [
 	UserRoleDef.STATION_USER_LIST
 ]
 
-class StationBaseInfo(MCBaseClass):
-	id: int=Field(frozen=True)
-	name: str=Field(frozen=True)
+class StationUnowned(	NamedTokenItem):
 	displayname: str=Field(default="", frozen=False)
 	isrunning: bool=Field(default=False, frozen=False)
 	requestsecuritylevel: Optional[int]=Field(
@@ -57,20 +55,21 @@ class StationBaseInfo(MCBaseClass):
 			and self.typeid == other.typeid
 
 
-class StationInfo(RuledOwnedEntity, StationBaseInfo):
+class StationInfo(RuledOwnedTokenEntity, StationUnowned):
 	
 
 	@classmethod
 	def row_to_station(cls, row: RowMapping) -> "StationInfo":
 		return StationInfo(
-			id=row["id"],
+			id=row["id"], #should be transformed by the fieldValidator
 			name=row["name"],
 			displayname=row["displayname"],
 			isrunning=bool(row["procid"]),
-			owner=OwnerInfo(
+			owner=User(
 				id=row["owner>id"],
 				username=row["owner>username"],
-				displayname=row["owner>displayname"]
+				displayname=row["owner>displayname"],
+				publictoken=row["owner>publictoken"]
 			),
 			requestsecuritylevel=row["requestsecuritylevel"],
 			viewsecuritylevel=row["viewsecuritylevel"] \

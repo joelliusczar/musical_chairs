@@ -10,7 +10,7 @@ class MockFileService(FileService):
 	def save_song(self,
 		keyPath: str,
 		file: BinaryIO
-	) -> BinaryIO:
+	):
 		songData = "ID3\x03\x00\x00\x00\x00\x01,TALB\x00\x00\x00\x11\x00\x00\x00"\
 			"Switched-On BachTXXX\x00\x00\x00\r\x00\x00\x00TOTALDISCS\x001TIT2\x00"\
 			"\x00\x00\x1c\x00\x00\x00Jesu, Joy of Man\'s DesiringTRCK\x00\x00\x00"\
@@ -43,7 +43,6 @@ class MockFileService(FileService):
 		tmp = TemporaryFile()
 		tmp.write(songData.encode())
 		tmp.seek(0)	
-		return tmp
 
 	def open_song(self, keyPath: str) -> BinaryIO:
 		return BytesIO(keyPath.encode("utf-8"))

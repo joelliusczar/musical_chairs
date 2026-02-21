@@ -2,6 +2,7 @@ import { defaultWebClient as webClient } from "./api";
 import {
 	IdValue,
 	Named,
+	Token,
 } from "../Types/generic_types";
 import {
 	ArtistInfo,
@@ -12,104 +13,97 @@ import {
 	PageableListDataShape,
 } from "../Types/reducerTypes";
 
+export const Calls = {
+	get: ({ id }: { id: Token }) => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
+				const response = await webClient.get<SongsArtistInfo>(
+					`/artists/${id}`,
+					{ signal: abortController.signal }
+				);
+				return response.data;
+			},
+		};
+	},
+	getPage: (params: PageableParams) => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
+				const response = await webClient.get<PageableListDataShape<ArtistInfo>>(
+					"artists/page",
+					{ params: params, signal: abortController.signal }
+				);
+				return response.data;
+			},
+		};
+	},
+	getList: ({ params }: { params?: object}) => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
+				const response = await webClient.get<ListData<ArtistInfo>>(
+					"/artists/list",
+					{
+						params: params,
+						signal: abortController.signal,
+					});
+				return response.data;
+			},
+		};
+	},
+	add: ({ name }: Named)  => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
 
-export const get = ({ id }: { id: IdValue }) => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-			const response = await webClient.get<SongsArtistInfo>(
-				`/artists/${id}`,
-				{ signal: abortController.signal }
-			);
-			return response.data;
-		},
-	};
-};
+				const response = await webClient.post<ArtistInfo>(
+					"/artists",
+					null,
+					{
+						params: {
+							name,
+						},
+						signal: abortController.signal,
+					}
+				);
+				return response.data;
+			},
+		};
+	},
+	update: (
+		{ id, data }: { id: Token, data: Named }
+	) => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
 
-export const getPageCaller = (params: PageableParams) => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-			const response = await webClient.get<PageableListDataShape<ArtistInfo>>(
-				"artists/page",
-				{ params: params, signal: abortController.signal }
-			);
-			return response.data;
-		},
-	};
-};
+				const response = await webClient.put<ArtistInfo>(
+					`/artists/${id}`,
+					data,
+					{ signal: abortController.signal }
+				);
+				return response.data;
+			},
+		};
+	},
+	remove: ({ id }: { id: Token }) => {
+		const abortController = new AbortController();
+		return {
+			abortController: abortController,
+			call: async () => {
 
-export const getList = ({ params }: { params?: object}) => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-			const response = await webClient.get<ListData<ArtistInfo>>(
-				"/artists/list",
-				{
-					params: params,
-					signal: abortController.signal,
-				});
-			return response.data;
-		},
-	};
-};
-
-
-export const add = ({ name }: Named)  => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-
-			const response = await webClient.post<ArtistInfo>(
-				"/artists",
-				null,
-				{
-					params: {
-						name,
-					},
-					signal: abortController.signal,
-				}
-			);
-			return response.data;
-		},
-	};
-};
-
-
-export const update = (
-	{ id, data }: { id: IdValue, data: Named }
-) => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-
-			const response = await webClient.put<ArtistInfo>(
-				`/artists/${id}`,
-				data,
-				{ signal: abortController.signal }
-			);
-			return response.data;
-		},
-	};
-};
-
-
-export const removeRecordCaller = ({ id }: { id: IdValue }) => {
-	const abortController = new AbortController();
-	return {
-		abortController: abortController,
-		call: async () => {
-
-			const response = await webClient.delete(
-				`/artists/${id}`,
-				{ signal: abortController.signal }
-			);
-			return response.data;
-		},
-	};
+				const response = await webClient.delete(
+					`/artists/${id}`,
+					{ signal: abortController.signal }
+				);
+				return response.data;
+			},
+		};
+	},
 };

@@ -1,8 +1,8 @@
 from .account_dtos import OwnedEntity
-from .artist_dtos import ArtistInfo
+from .artist_dtos import ArtistInfo, ArtistUnowned
 from .generic_dtos import (
 	FrozenNamed,
-	FrozenNamedIdItem,
+	FrozenNamedTokenItem,
 	RuledEntity
 )
 from pydantic import (
@@ -10,23 +10,27 @@ from pydantic import (
 )
 from typing import (
 	cast,
-	Optional
+	Sequence
 )
-from .station_dtos import StationInfo
+from .station_dtos import StationInfo, StationUnowned
 from .queued_item import SongListDisplayItem
 
+
 class AlbumCreationInfo(FrozenNamed):
-	year: Optional[int]=None
-	albumartist: Optional[ArtistInfo]=None
-	versionnote: Optional[str]=""
-	stations: list[StationInfo]=cast(
-		list[StationInfo], Field(default_factory=list)
+	year: int | None=None
+	albumartist: ArtistInfo | ArtistUnowned | None=None
+	versionnote: str | None=""
+	stations: Sequence[StationInfo | StationUnowned]=cast(
+		Sequence[StationInfo | StationUnowned], Field(default_factory=list)
 	)
 
-class AlbumInfo(FrozenNamedIdItem, RuledEntity, OwnedEntity):
-	year: Optional[int]=None
-	albumartist: Optional[ArtistInfo]=None
-	versionnote: Optional[str]=""
+class AlbumUnowned(FrozenNamedTokenItem):
+	year: int | None=None
+	albumartist: ArtistInfo | ArtistUnowned | None=None
+	versionnote: str | None=""
+
+class AlbumInfo(AlbumUnowned, RuledEntity, OwnedEntity):
+	...
 
 
 class SongsAlbumInfo(AlbumInfo):

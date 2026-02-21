@@ -9,7 +9,7 @@ from .simple_functions import *
 from .account_dtos import *
 from .radio_dtos import *
 from .generic_dtos import *
-from .logging import *
+from .log_config import *
 from .action_rule_dtos import *
 from .errors import *
 from .absorbent_trie import *

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box, Typography, Button, Dialog } from "@mui/material";
 import { FormTextField } from "../Shared/FormTextField";
 import { useSnackbar } from "notistack";
-import { add as saveArtist } from "../../API_Calls/artistCalls";
+import { Calls } from "../../API_Calls/artistCalls";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
 import { ArtistInfo } from "../../Types/song_info_types";
@@ -114,7 +114,7 @@ export const ArtistNewModalOpener = (props: ArtistNewModalOpenerProps) => {
 	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			const requestObj = saveArtist({ name: values.name });
+			const requestObj = Calls.add({ name: values.name });
 			const artist = await requestObj.call();
 			enqueueSnackbar("Save successful", { variant: "success"});
 			itemCreated(artist);

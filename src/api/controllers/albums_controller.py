@@ -1,3 +1,4 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -59,18 +60,19 @@ def get_list(
 @router.get("/song-counts")
 def song_counts_map(
 	albumService: AlbumService = Depends(album_service)
-) -> dict[int, int]:
+) -> dict[str, int]:
 	res = albumService.get_song_counts()
 	return res
 
 
 @router.get("/{albumkey}")
 def get(
-	albumkey: int,
+	albumkey: str,
 	albumService: AlbumService = Depends(album_service)
 ) -> SongsAlbumInfo:
-	_albumkey = None if albumkey == 0 else albumkey
-	albumInfo = albumService.get_album(_albumkey)
+	albumInfo = albumService.get_album(
+		dtos.decode_id(albumkey) if albumkey != "_" else None
+	)
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -109,7 +111,7 @@ def update_album(
 	),
 	albumService: AlbumService = Depends(album_service)
 ) -> AlbumInfo:
-	albumInfo = albumService.save_album(album, albumId=savedalbum.id)
+	albumInfo = albumService.save_album(album, albumId=savedalbum.decoded_id())
 	if not albumInfo:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -131,7 +133,7 @@ def delete(
 	albumService: AlbumService = Depends(album_service),
 ):
 	try:
-		if albumService.delete_album(album.id) == 0:
+		if albumService.delete_album(album.decoded_id()) == 0:
 			raise HTTPException(
 				status_code=status.HTTP_404_NOT_FOUND,
 				detail=[build_error_obj(f"Album with key {album.id} not found")

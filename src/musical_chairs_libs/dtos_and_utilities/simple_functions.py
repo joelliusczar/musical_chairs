@@ -1,8 +1,9 @@
 #pyright: reportMissingTypeStubs=false
-import re
 import bcrypt
-import email_validator #pyright: ignore reportUnknownMemberType
 import dataclasses
+import email_validator #pyright: ignore reportUnknownMemberType
+import re
+import sys
 from datetime import datetime, timezone
 from typing import (
 	Any,
@@ -21,7 +22,11 @@ from email_validator import ValidatedEmail
 from collections import Counter
 from .type_aliases import (s2sDict)
 from .lost_found import Lost
+from .config_accessors import ConfigAcessors
+from contextlib import contextmanager
 from pathlib import Path
+from sqlalchemy.engine import Connection
+from sqids import Sqids
 
 T = TypeVar("T")
 
@@ -281,4 +286,76 @@ def asdict(obj: Any, exclude: Optional[set[str]]=None) -> dict[str, Any]:
 		del d[key]
 
 	return d
+
+@contextmanager
+def open_transaction(conn: Connection):
+	if conn.in_transaction():
+		if transaction := conn.get_transaction():
+			yield transaction
+		else:
+			raise RuntimeError("Ambiguous transaction availability")
+	else:
+		with conn.begin() as transaction:
+			yield transaction
+
+
+def encode_id(id: int) -> str:
+	sqids = Sqids(
+		alphabet=ConfigAcessors.shuffled_alphabet(),
+		blocklist=[],
+		min_length=8
+	)
+	return str(sqids.encode([id])) #pyright: ignore reportUnknownMemberType
+
+
+def encode_album_id(id: int) -> str:
+	return encode_id(id)
+
+
+def encode_artist_id(id: int) -> str:
+	return encode_id(id)
+
+
+def encode_playlist_id(id: int) -> str:
+	return encode_id(id)
+
+
+def encode_song_id(id: int) -> str:
+	return encode_id(id)
+
+
+def encode_station_id(id: int) -> str:
+	return encode_id(id)
+
+
+
+
+
+def decode_id(id: str) -> int:
+	sqids = Sqids(
+		alphabet=ConfigAcessors.shuffled_alphabet(),
+		blocklist=[],
+		min_length=8
+	)
+	decoded = sqids.decode(id) #pyright: ignore reportUnknownMemberType
+	if decoded:
+		return int(decoded[0]) #pyright: ignore reportUnknownMemberType
+	return 0
+	
+
+
+def decode_id_or_not[T](
+	token: str | None,
+	default: T | None = None
+) -> int | T | None:
+	if not token:
+		return default
+	decoded = decode_id(token)
+	if decoded < 1 or decoded >= sys.maxsize:
+		return default
+	reencoded = encode_id(decoded)
+	if reencoded == token:
+		return decoded
+	return default
+
 

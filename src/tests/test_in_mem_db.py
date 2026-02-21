@@ -1,5 +1,6 @@
 #pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false
 #pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.dtos_and_utilities as dtos
 import pytest
 import sqlite3
 from typing import Callable, Any
@@ -37,7 +38,7 @@ def fixture_db_populate_factory(
 	request: pytest.FixtureRequest,
 	fixture_setup_db: str,
 	fixture_datetime_iterator: MockDatetimeProvider,
-	fixture_primary_user: AccountInfo,
+	fixture_primary_user: dtos.EmailableUser,
 	fixture_mock_password: bytes
 ) -> Callable[[], None]:
 	def populate_fn():
@@ -77,7 +78,7 @@ def test_in_mem_db(fixture_conn_cardboarddb: Connection) -> None:
 
 def test_data_view(
 	fixture_datetime_iterator: MockDatetimeProvider,
-	fixture_primary_user: AccountInfo,
+	fixture_primary_user: dtos.EmailableUser,
 	fixture_mock_password: bytes
 ):
 	# this test exists as a convience to run queires on

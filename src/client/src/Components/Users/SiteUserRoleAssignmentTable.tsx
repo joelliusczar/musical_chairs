@@ -18,7 +18,7 @@ import { keyedSortFn } from "../../Helpers/array_helpers";
 import { useParams, useLocation } from "react-router-dom";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import {
-	User,
+	RoledUser,
 	ActionRuleCreationInfo,
 	ActionRule,
 } from "../../Types/user_types";
@@ -39,8 +39,8 @@ roles.unshift({
 export const SiteUserRoleAssignmentTable = () => {
 
 	const [state, dispatch] = useDataWaitingReducer(
-		new RequiredDataStore<User>(
-			{ id: 0, username: "", roles: [], email: ""}
+		new RequiredDataStore<RoledUser>(
+			{ id: 0, publictoken: "", username: "", roles: [] }
 		));
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
@@ -89,7 +89,7 @@ export const SiteUserRoleAssignmentTable = () => {
 		enqueueSnackbar,
 	]);
 
-	const addRole = async (rule: ActionRuleCreationInfo, user: User) => {
+	const addRole = async (rule: ActionRuleCreationInfo, user: RoledUser) => {
 		try {
 			const requestObj = Calls.addSiteUserRule({
 				subjectuserkey: user.id,
@@ -114,7 +114,7 @@ export const SiteUserRoleAssignmentTable = () => {
 		}
 	};
 
-	const removeRole = async (role: ActionRule, user: User) => {
+	const removeRole = async (role: ActionRule, user: RoledUser) => {
 		try {
 			const requestObj = Calls.removeSiteUserRule({
 				subjectuserkey: user.id,

@@ -34,7 +34,7 @@ import { UserRoleDef } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import { StationInfo, StationTableData } from "../../Types/station_types";
 import { CatalogueItem } from "../../Types/song_info_types";
-import { IdValue } from "../../Types/generic_types";
+import { IdValue, Token } from "../../Types/generic_types";
 import { RequiredDataStore } from "../../Reducers/reducerStores";
 import { SearchTextField } from "../Shared/SearchTextFIeld";
 
@@ -74,7 +74,7 @@ export const CollectionCatalogue = () => {
 	const { enqueueSnackbar } = useSnackbar();
 
 	const requestCollection = async (
-		collectionId: IdValue,
+		collectionId: Token,
 		requesttypeid: IdValue
 	) => {
 		if (!pathVars.stationkey || !pathVars.ownerkey ) {

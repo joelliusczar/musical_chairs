@@ -1,9 +1,5 @@
 from typing import (
-	Any,
 	List,
-	Optional,
-	Iterator,
-	Union,
 	cast
 )
 from pydantic import (
@@ -14,34 +10,65 @@ from pydantic import (
 	SerializeAsAny,
 	Field
 )
+from .constants.constants import public_token_prefix
 from .user_role_def import UserRoleDef, UserRoleSphere
 from .validation_functions import min_length_validator_factory
 from .simple_functions import (
-	asdict,
 	get_duplicates,
 	validate_email,
 	normalize_opening_slash,
 	normalize_closing_slash
 )
-from .generic_dtos import FrozenIdItem, FrozenBaseClass, RuledEntity, IdItem
+from .generic_dtos import (
+	FrozenIdItem,
+	FrozenBaseClass,
+	RuledEntity,
+	IdItem,
+	TokenItem,
+)
 from .action_rule_dtos import (
 	ActionRule,
 )
-from .absorbent_trie import ChainedAbsorbentTrie
 
 
+
+class AccountInfoUpdate(FrozenBaseClass):
+	username: str
+	email: str
+	displayname: str |None=""
 
 
 class AccountInfoBase(FrozenBaseClass):
 	username: str
-	email: str
-	displayname: Optional[str]=""
+	displayname: str | None=""
 
-class AccountInfoSecurity(AccountInfoBase):
-	roles: List[Union[ActionRule, ActionRule]]=cast(
-		List[Union[ActionRule, ActionRule]],Field(default_factory=list)
+
+class PublicTokenMixin(FrozenBaseClass):
+	publictoken: str
+
+
+	def wrap_public_token(self) -> str:
+		return f"{public_token_prefix}{self.publictoken}"
+	
+
+	@classmethod
+	def unwrap_public_token(cls, token: str) -> str:
+		return token[2:]
+
+	@classmethod
+	def is_a_public_token(cls, token: str) -> bool:
+		return token.startswith(public_token_prefix)
+
+
+class User(AccountInfoBase, PublicTokenMixin, FrozenIdItem):
+	...
+
+
+class RoledUserMixin(AccountInfoBase):
+	roles: List[ActionRule]=cast(
+		List[ActionRule],Field(default_factory=list)
 	)
-	dirroot: Optional[str]=None
+	dirroot: str | None=None
 
 	@property
 	def preferredName(self) -> str:
@@ -59,30 +86,6 @@ class AccountInfoSecurity(AccountInfoBase):
 			UserRoleDef.ADMIN.conforms(r.name) \
 				for r in self.roles
 		)
-
-	def get_permitted_paths_tree(
-		self
-	) -> ChainedAbsorbentTrie[ActionRule]:
-		pathTree = ChainedAbsorbentTrie[ActionRule](
-			(normalize_opening_slash(r.keypath), r) for r in
-			self.roles if r.sphere == UserRoleSphere.Path.value \
-				and r.keypath is not None
-		)
-		pathTree.add("/", (
-			ActionRule(**asdict(r, exclude={"keypath"}), keypath = "/") 
-			for r in self.roles \
-			if r.keypath is None and (UserRoleSphere.Path.conforms(r.name) \
-						or r.name == UserRoleDef.ADMIN.value
-				)
-		), shouldEmptyUpdateTree=False)
-		return pathTree
-
-
-	def get_permitted_paths(
-		self
-	) -> Iterator[str]:
-		pathTree = self.get_permitted_paths_tree()
-		yield from (p for p in pathTree.shortest_paths())
 
 
 	def has_site_roles(self, *roles: UserRoleDef) -> bool:
@@ -109,11 +112,53 @@ class AccountInfoSecurity(AccountInfoBase):
 		return value
 
 
-class AccountInfo(AccountInfoSecurity, FrozenIdItem):
-	...
+	def to_user(self) -> User:
+		return User(
+			**self.model_dump(
+				exclude={"hiddentoken"}
+			)
+		)
 
 
-class AuthenticatedAccount(AccountInfoSecurity):
+class RoledUser(RoledUserMixin, PublicTokenMixin, FrozenIdItem):
+	dirroot: str | None = None
+
+
+
+class EmailableUser(RoledUserMixin, PublicTokenMixin, FrozenIdItem):
+	dirroot: str | None = None
+	email: str
+
+	def to_role_user(self) -> RoledUser:
+		return RoledUser(
+			**self.model_dump(
+				exclude={"hiddentoken", "email"}
+			)
+		)
+	
+
+
+class InternalUser(RoledUserMixin, PublicTokenMixin, FrozenIdItem):
+	publictoken: str
+	dirroot: str | None = None
+	email: str
+	hiddentoken: str
+
+	def to_roled_user(self) -> RoledUser:
+		return RoledUser(
+			**self.model_dump(
+				exclude={"hiddentoken", "email"}
+			)
+		)
+
+	def to_emailable_user(self) -> EmailableUser:
+		return EmailableUser(
+			**self.model_dump(exclude={"hiddentoken"})
+		)
+
+
+
+class AuthenticatedAccount(RoledUser):
 	'''
 	This AccountInfo is only returned after successful authentication.
 	'''
@@ -124,7 +169,8 @@ class AuthenticatedAccount(AccountInfoSecurity):
 	login_timestamp: float=0
 
 
-class AccountCreationInfo(AccountInfoSecurity):
+
+class AccountCreationInfo(RoledUserMixin):
 	'''
 	This AccountInfo is only to the server to create an account.
 	Password is clear text here because it hasn't been hashed yet.
@@ -132,14 +178,19 @@ class AccountCreationInfo(AccountInfoSecurity):
 	This class also has validation on several of its properties.
 	'''
 	password: str=""
+	email: str
 
-	def scrubed_dict(self) -> dict[str, Any]:
-		return {
-			"username": self.username,
-			"email": self.email,
-			"displayname": self.displayname,
-			"roles": self.roles
-		}
+
+	@field_validator("username")
+	def check_username(cls, v: str) -> str:
+		if not v:
+			raise ValueError("Username is empty")
+		if PublicTokenMixin.is_a_public_token(v):
+			raise ValueError(f"Username cannot start with '{public_token_prefix}'")
+		vSet = {*v}
+		if any({"/"} & vSet):
+			raise ValueError(f"Illegal characters in username: {{{"/"} & vSet}}")
+		return v
 
 	@field_validator("email")
 	def check_email(cls, v: str) -> str:
@@ -170,51 +221,22 @@ class AccountCreationInfo(AccountInfoSecurity):
 				raise ValueError(f"{role} is an illegal role")
 		return v
 
-	# @validator("username")
-	# def username_valid_chars(cls, v: str) -> str:
-	# 	if re.match(r"\d", v):
-	# 		raise ValueError("username cannot start with a number")
-	# 	if re.match(guidRegx, v):
-	# 		msg = "Hey asshole! Stop trying to make your username a guid!"
-	# 		raise ValueError(msg)
-	# 	if re.search(r"[ \u0000-\u001f\u007f]", v):
-	# 		raise ValueError("username contains illegal characters")
-
-	# 	return SavedNameString.format_name_for_save(v)
-
-	# @validator("displayname")
-	# def displayName_valid_chars(cls, v: str) -> str:
-
-	# 	if re.match(guidRegx, v):
-	# 		msg = "Hey asshole! Stop trying to make your username a guid!"
-	# 		raise ValueError(msg)
-	# 	cleaned = re.sub(r"[\n\t]+| +"," ", v)
-	# 	if re.search(r"[\u0000-\u001f\u007f]", cleaned):
-	# 		raise ValueError("username contains illegal characters")
-
-	# 	return SavedNameString.format_name_for_save(cleaned)
 
 class PasswordInfo(FrozenBaseClass):
 	oldpassword: str
 	newpassword: str
 
-class UserHistoryActionItem(FrozenBaseClass):
-	userid: int
-	action: str
-	timestamp: float
 
-class StationHistoryActionItem(UserHistoryActionItem):
-	stationid: int
+OwnerType = User
 
-
-class OwnerInfo(FrozenIdItem):
-	username: Optional[str]=None
-	displayname: Optional[str]=None
-
-OwnerType = Union[OwnerInfo, AccountInfo]
 
 class OwnedEntity(MCBaseClass):
 	owner: OwnerType=Field(frozen=False)
 
+
 class RuledOwnedEntity(IdItem, OwnedEntity, RuledEntity):
+	...
+
+
+class RuledOwnedTokenEntity(TokenItem, OwnedEntity, RuledEntity):
 	...

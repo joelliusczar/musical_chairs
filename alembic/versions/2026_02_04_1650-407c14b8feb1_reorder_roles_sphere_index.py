@@ -1,7 +1,7 @@
 """reorder_roles_sphere_index
 
 Revision ID: 407c14b8feb1
-Revises: b4113a98e44a
+Revises: f702f8c0eeb2
 Create Date: 2026-02-04 16:50:32.488517
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '407c14b8feb1'
-down_revision: str | Sequence[str] | None = 'b4113a98e44a'
+down_revision: str | Sequence[str] | None = 'b7d204ce6e41'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

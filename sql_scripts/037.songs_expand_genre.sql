@@ -1,1 +1,0 @@
-ALTER TABLE `songs` MODIFY `genre` varchar(200) DEFAULT NULL;

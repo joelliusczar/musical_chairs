@@ -19,6 +19,7 @@ from .common_fixtures import (
 )
 from .common_fixtures import *
 from io import BytesIO
+from .mocks.db_data.user_ids import uniform_user_id
 
 
 @pytest.mark.current_username("testUser_alpha")
@@ -302,7 +303,7 @@ def test_get_user_paths(
 	fixture_path_rule_service: PathRuleService
 ):
 	pathRuleService = fixture_path_rule_service
-	results = list(pathRuleService.get_paths_user_can_see())
+	results = list(pathRuleService.get_paths_user_can_see(uniform_user_id))
 	assert results
 
 def test_get_parents_of_path(
@@ -868,22 +869,26 @@ def test_delete_song_in_station(
 	deletedSongId = 41
 	stationId = 2
 
-	station = queueService.__get_station__(stationId)
-	queueService.fil_up_queue(station, QueueMetrics(maxSize=50))
-	queue, _ = queueService.get_queue_for_station(stationId)
-	catalogue, _ = queueService.get_catalogue(stationId)
-	assert deletedSongId in (s.id for s in catalogue)
-	assert deletedSongId in (s.id for s in queue)
-	assert queueService.can_song_be_queued_to_station(deletedSongId, stationId)
-	songFileService.soft_delete_songs([deletedSongId])
+	with queueService.conn.begin():
+		station = queueService.__get_station__(stationId)
+		queueService.fil_up_queue_in_trx(station, QueueMetrics(maxSize=50))
+		queue, _ = queueService.get_queue_for_station(stationId)
+		catalogue, _ = queueService.get_catalogue(stationId)
+		assert deletedSongId in (s.decoded_id() for s in catalogue)
+		assert deletedSongId in (s.id for s in queue)
+		assert queueService.can_song_be_queued_to_station(deletedSongId, stationId)
+		songFileService.soft_delete_songs_in_trx([deletedSongId])
 
-	queue2, _ = queueService.get_queue_for_station(stationId)
-	#technically these should be not in but I figured, the queue is pretty
-	#ephermeral anyway so we'll just let it be the last remnants
-	assert deletedSongId in (s.id for s in queue2)
-	catalogue2, _ = queueService.get_catalogue(stationId)
-	assert deletedSongId not in (s.id for s in catalogue2)
-	assert not queueService.can_song_be_queued_to_station(deletedSongId, stationId)
+		queue2, _ = queueService.get_queue_for_station(stationId)
+		#technically these should be not in but I figured, the queue is pretty
+		#ephermeral anyway so we'll just let it be the last remnants
+		assert deletedSongId in (s.id for s in queue2)
+		catalogue2, _ = queueService.get_catalogue(stationId)
+		assert deletedSongId not in (s.decoded_id() for s in catalogue2)
+		assert not queueService.can_song_be_queued_to_station(
+			deletedSongId,
+			stationId
+		)
 
 	
 @pytest.mark.current_username("testUser_kilo")

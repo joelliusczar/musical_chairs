@@ -22,7 +22,7 @@ from sqlalchemy import (
 from sqlalchemy import Integer
 from musical_chairs_libs.tables import (
 	ur_userFk, ur_role, ur_quota, ur_span, ur_priority, ur_keypath, ur_sphere,
-	u_username, u_pk, u_displayName, u_email, u_dirRoot, 
+	u_username, u_pk, u_displayName, u_publictoken, u_dirRoot
 )
 from .user_role_def import (
 	UserRoleDef,
@@ -32,14 +32,14 @@ from .action_rule_dtos import (
 	ActionRule,
 )
 from .account_dtos import (
-	AccountInfo,
-	RuledOwnedEntity,
+	RoledUser,
+	RuledOwnedTokenEntity,
 )
 from .constants import UserRoleSphere
 from .default_rule_providers import get_path_owner_roles
-from .simple_functions import normalize_opening_slash
+from .simple_functions import normalize_opening_slash, encode_id
 
-RuledOwnedType = TypeVar("RuledOwnedType", bound=RuledOwnedEntity)
+RuledOwnedType = TypeVar("RuledOwnedType", bound=RuledOwnedTokenEntity)
 
 def build_shim_select(
 	ruleNameValue: str
@@ -129,12 +129,12 @@ def build_site_rules_query(
 	return user_rules_query
 
 
-def row_to_user(row: RowMapping) -> AccountInfo:
-	return AccountInfo(
+def row_to_user(row: RowMapping) -> RoledUser:
+	return RoledUser(
 		id=row[u_pk],
 		username=row[u_username],
 		displayname=row[u_displayName],
-		email=row[u_email],
+		publictoken=row[u_publictoken],
 		dirroot=row[u_dirRoot],
 	)
 
@@ -157,7 +157,7 @@ def generate_domain_user_and_rules_from_rows(
 	rows: Iterable[RowMapping],
 	ownerRuleProvider: Callable[[],Iterator[ActionRule]],
 	ownerId: int | None=None,
-) -> Iterator[AccountInfo]:
+) -> Iterator[RoledUser]:
 	currentUser = None
 	for row in rows:
 		if not currentUser or currentUser.id != cast(int,row[u_pk]):
@@ -185,7 +185,7 @@ def generate_owned_and_rules_from_rows(
 ) -> Iterator[RuledOwnedType]:
 	current = None
 	for row in rows:
-		if not current or current.id != cast(int,row["id"]):
+		if not current or current.id != encode_id(row["id"]):
 			if current:
 				owner = current.owner
 				if owner and owner.id == userId:
@@ -207,8 +207,8 @@ def generate_owned_and_rules_from_rows(
 
 def generate_path_user_and_rules_from_rows(
 	rows: Iterable[RowMapping],
-	prefix: Optional[str]=None
-) -> Iterator[AccountInfo]:
+	prefix: str | None=None
+) -> Iterator[RoledUser]:
 	currentUser = None
 	normalizedPrefix = normalize_opening_slash(prefix)
 	for row in rows:

@@ -1,9 +1,9 @@
 from musical_chairs_libs.dtos_and_utilities import (
 	EventRecord,
+	VisitRecord
 )
 from typing import (
-	Protocol,
-	Optional
+	Protocol
 )
 
 
@@ -17,7 +17,16 @@ class EventsLogger(Protocol):
 		self,
 		action: str,
 		sphere: str,
-		keypath: Optional[str] = None,
+		keypath: str | None = None,
 		extraInfo: str = ""
 	) -> EventRecord:
 		...
+
+
+	def add_visit_record(self, record: VisitRecord):
+		...
+
+
+	def add_visit(self, extraInfo: str = "") -> VisitRecord:
+		...
+

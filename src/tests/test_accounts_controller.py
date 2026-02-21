@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 
 
 def test_create_account_success(fixture_api_test_client: TestClient):
+	
 	client = fixture_api_test_client
 	testUser = {
 		"username": "testUser",
@@ -122,7 +123,7 @@ def test_login_success(fixture_api_test_client: TestClient):
 	assert data["token_type"] == "bearer"
 	assert len(data["roles"]) == 3
 	assert data["lifetime"] ==  1800 or data["lifetime"] == 604800.0
-	assert data["email"] == "test6@munchopuncho.com"
+	assert data["publictoken"]
 
 
 def test_login_fail(fixture_api_test_client: TestClient):
@@ -281,7 +282,7 @@ def test_get_account_info(fixture_api_test_client: TestClient):
 	assert data["id"] == user.id
 	assert data["username"] == user.username
 	assert data["displayname"] == None
-	assert data["email"] == user.email
+	assert data["publictoken"]
 
 	response = client.get(
 		f"/accounts/account/{user.username}",
@@ -292,4 +293,63 @@ def test_get_account_info(fixture_api_test_client: TestClient):
 	assert data["id"] == user.id
 	assert data["username"] == user.username
 	assert data["displayname"] == None
+	assert data["publictoken"]
+
+
+def test_get_self_account_info(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
+	user = primary_user()
+	headers = login_test_user(user.username, client)
+	response = client.get(
+		f"/accounts/account/self/me",
+		headers=headers
+	)
+	data = json.loads(response.content)
+	assert response.status_code == 200
+
+	assert data["id"] == user.id
+	assert data["username"] == user.username
+	assert data["displayname"] == None
 	assert data["email"] == user.email
+	assert data["publictoken"]
+
+def test_create_too_many_accounts(fixture_api_test_client: TestClient):
+	client = fixture_api_test_client
+	testUser = {
+		"username": "tooManyUser1",
+		"email": "testPerson1@gmail.com",
+		"password": "hello12",
+		"displayname": "Testeroni1"
+	}
+	response = client.post("/accounts/new", json=testUser)
+	# data = json.loads(response.content)
+	assert response.status_code == 200
+
+	testUser = {
+		"username": "tooManyUser2",
+		"email": "testPerson2@gmail.com",
+		"password": "hello12",
+		"displayname": "Testeroni2"
+	}
+	response = client.post("/accounts/new", json=testUser)
+	# data = json.loads(response.content)
+	assert response.status_code == 200
+
+	testUser = {
+		"username": "tooManyUser3",
+		"email": "testPerson3@gmail.com",
+		"password": "hello12",
+		"displayname": "Testeroni3"
+	}
+	response = client.post("/accounts/new", json=testUser)
+	# data = json.loads(response.content)
+	assert response.status_code == 200
+
+	testUser = {
+		"username": "tooManyUsert",
+		"email": "testPersont@gmail.com",
+		"password": "hello12",
+		"displayname": "Testeronit"
+	}
+	response = client.post("/accounts/new", json=testUser)
+	assert response.status_code == 429

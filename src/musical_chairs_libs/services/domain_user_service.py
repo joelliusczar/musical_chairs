@@ -1,19 +1,20 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from .current_user_provider import CurrentUserProvider
 from musical_chairs_libs.dtos_and_utilities import (
 	build_base_rules_query,
 	generate_domain_user_and_rules_from_rows,
 	get_datetime,
-	AccountInfo,
 	ActionRule,
 	RulePriorityLevel,
 	UserRoleSphere,
-	RuledOwnedEntity,
+	RuledOwnedTokenEntity,
 )
 
 from musical_chairs_libs.tables import (
 
 	userRoles as user_roles_tbl, ur_userFk, ur_keypath, ur_role, ur_sphere,
-	users as user_tbl, u_username, u_pk, u_displayName, u_email, u_dirRoot,
+	users as user_tbl, u_username, u_pk, u_displayName, u_email,
 	u_disabled,
 )
 from sqlalchemy import (
@@ -64,69 +65,72 @@ class DomainUserService:
 			creationtimestamp = self.get_datetime().timestamp(),
 			sphere = domain
 		)
-		self.conn.execute(stmt)
-		self.conn.commit()
-		return ActionRule(
-			name=rule.name,
-			span=rule.span,
-			quota=rule.quota,
-			priority=RulePriorityLevel.INVITED_USER.value,
-			keypath=keypath,
-			sphere=domain
-		)
+		with self.conn.begin() as transaction:
+			self.conn.execute(stmt)
+			transaction.commit()
+			return ActionRule(
+				name=rule.name,
+				span=rule.span,
+				quota=rule.quota,
+				priority=RulePriorityLevel.INVITED_USER.value,
+				keypath=keypath,
+				sphere=domain
+			)
 
 
 	def get_domain_users(
 		self,
-		entity: RuledOwnedEntity,
+		entity: RuledOwnedTokenEntity,
 		sphere: UserRoleSphere,
 		ownerRuleProvider: Callable[[], Iterator[ActionRule]],
-	) -> Iterator[AccountInfo]:
-		rulesQuery = build_base_rules_query(sphere).cte()
-		query = select(
-			u_pk,
-			u_username,
-			u_displayName,
-			u_email,
-			u_dirRoot,
-			rulesQuery.c["rule>userfk"].label("rule>userfk"),
-			rulesQuery.c["rule>name"].label("rule>name"),
-			rulesQuery.c["rule>quota"].label("rule>quota"),
-			rulesQuery.c["rule>span"].label("rule>span"),
-			rulesQuery.c["rule>priority"].label("rule>priority"),
-			rulesQuery.c["rule>sphere"].label("rule>sphere")
-		).select_from(user_tbl).join(
-			rulesQuery,
-			or_(
-				and_(
-					(u_pk == entity.owner.id) if entity.owner else false(),
-					rulesQuery.c["rule>userfk"] == 0
+	) -> Iterator[dtos.RoledUser]:
+		with dtos.open_transaction(self.conn):
+			rulesQuery = build_base_rules_query(sphere).cte()
+			query = select(
+				u_pk,
+				u_username,
+				u_displayName,
+				u_email,
+				tbl.u_publictoken,
+				tbl.u_dirRoot,
+				rulesQuery.c["rule>userfk"].label("rule>userfk"),
+				rulesQuery.c["rule>name"].label("rule>name"),
+				rulesQuery.c["rule>quota"].label("rule>quota"),
+				rulesQuery.c["rule>span"].label("rule>span"),
+				rulesQuery.c["rule>priority"].label("rule>priority"),
+				rulesQuery.c["rule>sphere"].label("rule>sphere")
+			).select_from(user_tbl).join(
+				rulesQuery,
+				or_(
+					and_(
+						(u_pk == entity.owner.id) if entity.owner else false(),
+						rulesQuery.c["rule>userfk"] == 0
+					),
+					and_(
+						rulesQuery.c["rule>userfk"] == u_pk,
+						rulesQuery.c["rule>keypath"] == str(entity.decoded_id()),
+						rulesQuery.c["rule>sphere"] == sphere.value
+					)
 				),
-				and_(
-					rulesQuery.c["rule>userfk"] == u_pk,
-					rulesQuery.c["rule>keypath"] == str(entity.id),
-					rulesQuery.c["rule>sphere"] == sphere.value
+				isouter=True
+			).where(or_(u_disabled.is_(None), u_disabled == False))\
+			.where(
+				or_(
+					coalesce(
+						rulesQuery.c["rule>priority"],
+						RulePriorityLevel.SITE.value
+					) > RulePriorityLevel.REQUIRES_INVITE.value,
+					(u_pk == entity.owner.id) if entity.owner else false()
 				)
-			),
-			isouter=True
-		).where(or_(u_disabled.is_(None), u_disabled == False))\
-		.where(
-			or_(
-				coalesce(
-					rulesQuery.c["rule>priority"],
-					RulePriorityLevel.SITE.value
-				) > RulePriorityLevel.REQUIRES_INVITE.value,
-				(u_pk == entity.owner.id) if entity.owner else false()
 			)
-		)
-		query = query.order_by(u_username)
-		records = self.conn.execute(query).mappings()
+			query = query.order_by(u_username)
+			records = self.conn.execute(query).mappings().fetchall()
 
-		yield from generate_domain_user_and_rules_from_rows(
-			records,
-			ownerRuleProvider,
-			entity.owner.id if entity.owner else None
-		)
+			yield from generate_domain_user_and_rules_from_rows(
+				records,
+				ownerRuleProvider,
+				entity.owner.id if entity.owner else None
+			)
 
 
 	def remove_domain_rule_from_user(
@@ -142,4 +146,6 @@ class DomainUserService:
 			.where(ur_keypath == keypath)
 		if ruleName:
 			delStmt = delStmt.where(ur_role == ruleName)
-		self.conn.execute(delStmt) #pyright: ignore [reportUnknownMemberType]
+		with self.conn.begin() as transaction:
+			self.conn.execute(delStmt)
+			transaction.commit()

@@ -1,4 +1,5 @@
 import pytest
+import musical_chairs_libs.dtos_and_utilities as dtos
 from musical_chairs_libs.services import (
 	PlaylistService,
 	PlaylistsUserService,
@@ -17,7 +18,7 @@ from .common_fixtures import (
 )
 from .common_fixtures import *
 from .mocks.db_population import get_initial_playlists
-from .mocks.db_data import bravo_user_id
+from .mocks.db_data import bravo_user_id, public_tokens, hidden_tokens
 
 
 def test_get_playlists_list(fixture_playlist_service: PlaylistService):
@@ -57,7 +58,7 @@ def test_get_playlists_list_with_user_and_owner(
 	assert user
 	data = sorted(
 		playlistService.get_playlists(ownerId=user.id),
-		key=lambda s:s.id
+		key=lambda s: dtos.decode_id(s.id)
 	)
 	assert len(data) == 10
 	assert data[0].name == "oscar_playlist"
@@ -106,16 +107,16 @@ def test_get_playlists_list_with_owner_and_scopes(
 	accountService = fixture_account_service
 	user,_ = accountService.get_account_for_login("ingo")
 	assert user
-	result = next(playlistService.get_playlists(
+	result = next(iter(playlistService.get_playlists(
 			17,
 			scopes=[UserRoleDef.PLAYLIST_ASSIGN.value]
-		), None)
+		)), None)
 	assert result
 
 @pytest.mark.current_username("testUser_juliet")
 def test_save_playlist(
 	fixture_playlist_service: PlaylistService,
-	fixture_primary_user: AccountInfo
+	fixture_primary_user: dtos.InternalUser
 	):
 	playlistService = fixture_playlist_service
 	testData = PlaylistCreationInfo(
@@ -124,8 +125,10 @@ def test_save_playlist(
 	)
 
 	result = playlistService.save_playlist(testData)
-	assert result and result.id == len(get_initial_playlists()) + 1
-	fetched = next(playlistService.get_playlists(result.id))
+	assert result and result.id == dtos.encode_playlist_id(
+		len(get_initial_playlists()) + 1
+	)
+	fetched = next(iter(playlistService.get_playlists(dtos.decode_id(result.id))))
 	assert fetched.id == result.id
 	assert fetched.name == "brand_new_playlists"
 	assert fetched.displayname == "Brand new playlist"
@@ -135,23 +138,27 @@ def test_save_playlist(
 		displayname="Brand new playlist with bad tag"
 	)
 	result = playlistService.save_playlist(testData)
-	assert result and result.id == len(get_initial_playlists()) + 2
-	fetched = next(playlistService.get_playlists(result.id))
+	assert result and result.id == dtos.encode_playlist_id(
+		len(get_initial_playlists()) + 2
+	)
+	fetched = next(iter(playlistService.get_playlists(dtos.decode_id(result.id))))
 
 
 	testData = PlaylistCreationInfo(
 		name = "papa_playlist_update",
 		displayname="Come to papa test"
 	)
-	bravoUser = AccountInfo(
+	bravoUser = dtos.InternalUser(
 		id = bravo_user_id,
 		username="testUser_bravo",
-		email="test2@munchopuncho.com"
+		email="test2@munchopuncho.com",
+		publictoken=public_tokens[bravo_user_id],
+		hiddentoken=hidden_tokens[bravo_user_id]
 	)
 	with playlistService.current_user_provider.impersonate(bravoUser):
 		result = playlistService.save_playlist(testData, 2)
-		assert result and result.id == 2
-	fetched = next(playlistService.get_playlists(result.id))
+		assert result and result.id == dtos.encode_playlist_id(2)
+	fetched = next(iter(playlistService.get_playlists(dtos.decode_id(result.id))))
 	assert fetched and fetched.name == "papa_playlist_update"
 	assert fetched and fetched.displayname == "Come to papa test"
 
@@ -162,8 +169,8 @@ def test_save_playlist(
 	)
 	with playlistService.current_user_provider.impersonate(fixture_primary_user):
 		result = playlistService.save_playlist(testData, 1)
-		assert result and result.id == 1
-	fetched = next(playlistService.get_playlists(result.id))
+		assert result and result.id == dtos.encode_playlist_id(1)
+	fetched = next(iter(playlistService.get_playlists(dtos.decode_id(result.id))))
 	assert fetched and fetched.name == "oscar_playlists"
 	assert fetched and fetched.displayname == "Oscar the grouch"
 
@@ -178,7 +185,7 @@ def test_get_playlists_with_view_security(
 	#no user
 	data = sorted(
 		playlistService.get_playlists(),
-		key=lambda s:s.id
+		key=lambda s:dtos.decode_id(s.id)
 	)
 	assert len(data) == 14
 	assert data[0].name == "oscar_playlist"
@@ -201,7 +208,7 @@ def test_get_playlists_with_view_security(
 	with playlistService.current_user_provider.impersonate(user):
 		data = sorted(
 			playlistService.get_playlists(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 15
 		assert data[0].name == "oscar_playlist"
@@ -225,7 +232,7 @@ def test_get_playlists_with_view_security(
 	with playlistService.current_user_provider.impersonate(user):
 		data = sorted(
 			playlistService.get_playlists(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 16
 		assert data[0].name == "oscar_playlist"
@@ -250,7 +257,7 @@ def test_get_playlists_with_view_security(
 	with playlistService.current_user_provider.impersonate(user):
 		data = sorted(
 			playlistService.get_playlists(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 16
 		assert data[0].name == "oscar_playlist"
@@ -275,7 +282,7 @@ def test_get_playlists_with_view_security(
 	with playlistService.current_user_provider.impersonate(user):
 		data = sorted(
 			playlistService.get_playlists(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 16
 		assert data[0].name == "oscar_playlist"
@@ -300,7 +307,7 @@ def test_get_playlists_with_view_security(
 	with playlistService.current_user_provider.impersonate(user):
 		data = sorted(
 			playlistService.get_playlists(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 16
 
@@ -316,7 +323,7 @@ def test_get_playlists_with_scopes(
 		playlistService.get_playlists(
 			scopes=[UserRoleDef.PLAYLIST_ASSIGN.value]
 		),
-		key=lambda s:s.id
+		key=lambda s:dtos.decode_id(s.id)
 	)
 	assert len(data) == 0
 
@@ -326,7 +333,7 @@ def test_get_playlists_with_scopes(
 	with playlistService.current_user_provider.impersonate(user):
 		data = sorted(
 			playlistService.get_playlists(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 15
 
@@ -334,7 +341,7 @@ def test_get_playlists_with_scopes(
 			playlistService.get_playlists(
 				scopes=[UserRoleDef.PLAYLIST_ASSIGN.value]
 			),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 0
 
@@ -343,7 +350,7 @@ def test_get_playlists_with_scopes(
 	with playlistService.current_user_provider.impersonate(user):
 		data = sorted(
 			playlistService.get_playlists(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 16
 
@@ -351,7 +358,7 @@ def test_get_playlists_with_scopes(
 			playlistService.get_playlists(
 				scopes=[UserRoleDef.PLAYLIST_ASSIGN.value]
 			),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 16
 		assert data[0].name == "oscar_playlist"
@@ -376,7 +383,7 @@ def test_get_playlists_with_scopes(
 	with playlistService.current_user_provider.impersonate(user):
 		data = sorted(
 			playlistService.get_playlists(),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 		assert len(data) == 15
 
@@ -384,7 +391,7 @@ def test_get_playlists_with_scopes(
 			playlistService.get_playlists(
 				scopes=[UserRoleDef.PLAYLIST_ASSIGN.value]
 			),
-			key=lambda s:s.id
+			key=lambda s:dtos.decode_id(s.id)
 		)
 
 		assert len(data) == 1
@@ -428,7 +435,7 @@ def test_get_playlist_user_list(
 	user,_ = accountService.get_account_for_login("ingo")
 	assert user
 
-	playlist = next(playlistService.get_playlists(17))
+	playlist = next(iter(playlistService.get_playlists(17)))
 	result = sorted(
 		playlistsUserService.get_playlist_users(playlist),
 		key=lambda u: u.id
@@ -463,7 +470,7 @@ def test_get_playlist_user_list(
 
 	with playlistService.current_user_provider.impersonate(user):
 
-		playlist = next(playlistService.get_playlists(18))
+		playlist = next(iter(playlistService.get_playlists(18)))
 		result = sorted(
 			playlistsUserService.get_playlist_users(playlist),
 			key=lambda u: u.id
@@ -487,7 +494,7 @@ def test_get_playlist_user_list(
 	user,_ = accountService.get_account_for_login("testUser_victor")
 	assert user
 	with playlistService.current_user_provider.impersonate(user):
-		playlist = next(playlistService.get_playlists(12))
+		playlist = next(iter(playlistService.get_playlists(12)))
 		result = sorted(
 			playlistsUserService.get_playlist_users(playlist),
 			key=lambda u: u.id
@@ -516,7 +523,7 @@ def test_get_playlist_user_list_playlist_no_users(
 	user,_ = accountService.get_account_for_login("unruledStation_testUser")
 	assert user
 
-	playlist = next(playlistService.get_playlists(20))
+	playlist = next(iter(playlistService.get_playlists(20)))
 	result = sorted(
 		playlistsUserService.get_playlist_users(playlist),
 		key=lambda u: u.id

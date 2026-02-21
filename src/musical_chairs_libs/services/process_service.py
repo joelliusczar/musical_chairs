@@ -10,7 +10,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ConfigAcessors,
 	get_non_simple_chars
 )
-import musical_chairs_libs.dtos_and_utilities.logging as logging
+import musical_chairs_libs.dtos_and_utilities.log_config as log_config
 
 
 class PackageManagers(Enum):
@@ -59,14 +59,14 @@ class ProcessService:
 	@staticmethod
 	def end_process(procId: int) -> None:
 		if ProcessService.noop_mode():
-			logging.radioLogger.info("Process service is using noop mode")
+			log_config.radioLogger.info("Process service is using noop mode")
 			return
 		try:
-			logging.radioLogger.info(f"Sending signal to end process {procId}")
+			log_config.radioLogger.info(f"Sending signal to end process {procId}")
 			os.kill(procId, 15)
 		except Exception as ex:
-			logging.radioLogger.warning("Encountered issue when killing process")
-			logging.radioLogger.warning(ex)
+			log_config.radioLogger.warning("Encountered issue when killing process")
+			log_config.radioLogger.warning(ex)
 
 	@staticmethod
 	def start_station_mc_ices(
@@ -108,7 +108,7 @@ class ProcessService:
 			stationProc.wait(ProcessService.stream_timeout)
 			raise RuntimeError("Station ended sooner than expected")
 		except subprocess.TimeoutExpired:
-			logging.radioLogger.info("so far so good")
+			log_config.radioLogger.info("so far so good")
 
 
 

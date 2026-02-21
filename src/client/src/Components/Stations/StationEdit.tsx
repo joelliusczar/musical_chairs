@@ -97,8 +97,15 @@ const validatePhraseIsUnused = async (
 	const requestObj = Calls.checkValues({ id, values: {
 		[context.path]: value,
 	}});
-	const used = await requestObj.call();
-	return !(context.path in used) || !used[context.path];
+	try {
+		const used = await requestObj.call();
+		return !(context.path in used) || !used[context.path];
+	}
+	catch(err) {
+		alert(formatError(err));
+		console.error(err);
+		return false;
+	}
 };
 
 const schema = Yup.object().shape({
@@ -154,14 +161,14 @@ export const StationEdit = (props: StationEditProps) => {
 
 	const [state, dispatch] = useDataWaitingReducer<StationInfo>(
 		new RequiredDataStore({
-			id: 0,
+			id: "",
 			name: "",
 			displayname: "",
 			isrunning: false,
 			owner: {
 				id: 0,
+				publictoken: "",
 				username: "",
-				email: "",
 				roles: [],
 			},
 			rules: [],
@@ -248,6 +255,32 @@ export const StationEdit = (props: StationEditProps) => {
 		}
 	});
 
+	const callSubmitCopyAsSongs = handleSubmit(async values => {
+		try {
+			const stationId = values.id;
+			if (!stationId) {
+				console.error("Station id is missing");
+				return;
+			}
+			const { viewsecuritylevel, requestsecuritylevel } = values;
+			const saveData = {
+				...values,
+				viewsecuritylevel: viewsecuritylevel.id,
+				requestsecuritylevel: requestsecuritylevel.id,
+			};
+			saveData.viewsecuritylevel = viewsecuritylevel.id;
+			saveData.requestsecuritylevel = requestsecuritylevel.id;
+			const requestObj = Calls.copyAsSongs({ values: saveData, id: stationId });
+			const data = await requestObj.call();
+			afterSubmit(data);
+			addStation(data);
+			enqueueSnackbar("Save successful", { variant: "success"});
+		}
+		catch(err) {
+			enqueueSnackbar(formatError(err), { variant: "error"});
+			console.error(err);
+		}
+	});
 
 
 	const callSubmitCopy = handleSubmit(async values => {
@@ -355,6 +388,8 @@ export const StationEdit = (props: StationEditProps) => {
 		return accumulator;
 	}, {});
 
+	const submitStatus = formState.isSubmitting
+		? CallStatus.loading : CallStatus.done;
 
 	return (
 		<Loader status={loadStatus} error={error}>
@@ -443,23 +478,33 @@ export const StationEdit = (props: StationEditProps) => {
 					disableClearable={true}
 				/>
 			</Box>
-			<Box sx={inputField} >
-				{canCopyRecord() && <YesNoModalOpener
-					promptLabel="Copy Station"
-					message={`Are you sure you want to Copy ${""}?`}
-					onYes={callSubmitCopy}
-					onNo={() => {}}
-				/>}
-				{canEditStation() && <SubmitButton
-					loading={formState.isSubmitting}
-					onClick={callSubmit}
-				>
-					Submit
-				</SubmitButton>}
-				{onCancel &&<Button onClick={onCancel}>
-						Cancel
-				</Button>}
-			</Box>
+			{formState.isSubmitting ?
+				<Loader status={submitStatus} error={null}>
+					<></>
+				</Loader>
+				:<Box sx={inputField} >
+					{canCopyRecord() && <YesNoModalOpener
+						promptLabel="Copy Station"
+						message={`Are you sure you want to Copy ${""}?`}
+						onYes={callSubmitCopy}
+						onNo={() => {}}
+					/>}
+					{canCopyRecord() && <YesNoModalOpener
+						promptLabel="Copy as songs station"
+						message={`Are you sure you want to Copy ${""}?`}
+						onYes={callSubmitCopyAsSongs}
+						onNo={() => {}}
+					/>}
+					{canEditStation() && <SubmitButton
+						loading={formState.isSubmitting}
+						onClick={callSubmit}
+					>
+						Submit
+					</SubmitButton>}
+					{onCancel &&<Button onClick={onCancel}>
+							Cancel
+					</Button>}
+				</Box>}
 		</Loader>
 	);
 };

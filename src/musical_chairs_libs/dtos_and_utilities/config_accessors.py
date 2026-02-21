@@ -78,11 +78,6 @@ class ConfigAcessors:
 
 
 	@classmethod
-	def sql_script_dir(cls) -> str:
-		return cls.get_value("DSF_SQL_SCRIPTS_DEST", "sql_script_dir")
-
-
-	@classmethod
 	def db_name(cls) -> str:
 		return cls.get_value("DSF_DATABASE_NAME", "db_name")
 
@@ -122,11 +117,20 @@ class ConfigAcessors:
 	@classmethod
 	def event_log_dir(cls) -> str:
 		return cls.get_value("DSF_EVENT_LOGS_DIR", "event_log_dir")
+
+
+	@classmethod
+	def visit_log_dir(cls) -> str:
+		return cls.get_value("DSF_VISIT_LOGS_DIR", "visit_log_dir")
 	
 
 	@classmethod
 	def station_queue_files_dir(cls) -> str:
 		return cls.get_value("DSF_QUEUE_FILES_DIR", "station_queue_files_dir")
+	
+	@classmethod
+	def shuffled_alphabet(cls) -> str:
+		return cls.get_value("DSF_SHUFFLED_ALPHABET", "shuffled_alphabet")
 	
 
 	@classmethod

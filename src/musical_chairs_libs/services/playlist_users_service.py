@@ -1,4 +1,4 @@
-
+import musical_chairs_libs.dtos_and_utilities as dtos
 from typing import (
 	Iterator,
 )
@@ -6,7 +6,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
 	get_playlist_owner_roles,
 	PlaylistInfo,
-	AccountInfo,
 )
 from musical_chairs_libs.dtos_and_utilities.constants import (
 	UserRoleSphere
@@ -26,7 +25,7 @@ class PlaylistsUserService:
 	def get_playlist_users(
 		self,
 		playlist: PlaylistInfo,
-	) -> Iterator[AccountInfo]:
+	) -> Iterator[dtos.RoledUser]:
 		return self.domain_user_service.get_domain_users(
 			playlist,
 			UserRoleSphere.Playlist,

@@ -9,6 +9,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	EventRecord,
 	get_datetime,
 	InMemEventRecordMap,
+	VisitRecord,
 )
 from typing import (
 	Iterator,
@@ -36,9 +37,6 @@ class InMemEventsLoggingService(EventsLogger, EventsQueryer):
 		self.__store__\
 			.userEvents[record.userId][record.sphere][record.keypath][record.action]\
 			.append(record)
-		self.__store__\
-			.vistorEvents[record.visitorId][record.url]\
-			.append(record)
 
 
 	def add_event(
@@ -53,16 +51,16 @@ class InMemEventsLoggingService(EventsLogger, EventsQueryer):
 		url = self.tracking_info_provider.tracking_info().url
 		timestamp = self.get_datetime().timestamp()
 		record = EventRecord(
-				str(uuid.uuid4()),
-				str(userId),
-				action,
-				visitorId,
-				timestamp,
-				keypath,
-				sphere,
-				url,
-				extraInfo,
-			)
+			id=str(uuid.uuid4()),
+			userId=str(userId),
+			action=action,
+			visitorId=visitorId,
+			timestamp=timestamp,
+			keypath=keypath,
+			sphere=sphere,
+			url=url.path,
+			extraInfo=extraInfo,
+		)
 		self.add_event_record(record)
 		return record
 
@@ -95,17 +93,36 @@ class InMemEventsLoggingService(EventsLogger, EventsQueryer):
 		fromTimestamp: float,
 		url: Optional[str] = None,
 		limit: Optional[int] = None
-	)-> Iterator[EventRecord]:
-		visitorEvents = self.__store__.vistorEvents[visitorId]
-		if url:
-			events = visitorEvents[url]
-			yield from (e for i,e in enumerate(reversed(events))\
-				if e.timestamp >= fromTimestamp\
-				if (i < limit if limit is not None else True)
-			)
-		else:
-			for events in visitorEvents.values():
-				yield from (e for i,e in enumerate(reversed(events))\
-					if e.timestamp >= fromTimestamp\
-					if (i < limit if limit is not None else True)
-				)
+	)-> Iterator[VisitRecord]:
+		eventsIter = InMemEventRecordMap.get_visits(
+			self.__store__.vistorEvents,
+			visitorId,
+			url
+		)
+		yield from (e for i,e in enumerate(eventsIter)\
+			if e.timestamp >= fromTimestamp\
+			if (i < limit if limit is not None else True)
+		)
+
+
+	def add_visit_record(self, record: VisitRecord):
+		self.__store__\
+			.vistorEvents[record.visitorId][record.url][record.method]\
+			.append(record)
+
+
+	def add_visit(self, extraInfo: str = "") -> VisitRecord:
+		visitorId = self.tracking_info_provider.visitor_id()
+		url = self.tracking_info_provider.tracking_info().url
+		method = self.tracking_info_provider.tracking_info().method
+		timestamp = self.get_datetime().timestamp()
+		record = VisitRecord(
+			id=str(uuid.uuid4()),
+			visitorId=visitorId,
+			timestamp=timestamp,
+			url=url.path,
+			method=method,
+			extraInfo=extraInfo,
+		)
+		self.add_visit_record(record)
+		return record

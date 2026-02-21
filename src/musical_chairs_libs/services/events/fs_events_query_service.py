@@ -9,6 +9,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ConfigAcessors,
 	EventRecord,
 	get_datetime,
+	VisitRecord
 )
 
 
@@ -19,13 +20,22 @@ class FSEventsQueryService(EventsQueryer):
 	def __init__(self):
 		self.get_datetime = get_datetime
 
-	def load_most_recent_logs(self, hoursAgo: int) -> Iterator[EventRecord]:
+	def load_most_recent_event_logs(self, hoursAgo: int) -> Iterator[EventRecord]:
 		daysLogs = sorted(os.listdir(ConfigAcessors.event_log_dir()))[:hoursAgo]
 		for log in daysLogs:
 			fullPath = os.path.join(ConfigAcessors.event_log_dir(), log)
 			with open(fullPath, "r", 1) as f:
 				while line := f.readline():
 					yield EventRecord(**json.loads(line))
+
+
+	def load_most_recent_visit_logs(self, hoursAgo: int) -> Iterator[VisitRecord]:
+		daysLogs = sorted(os.listdir(ConfigAcessors.visit_log_dir()))[:hoursAgo]
+		for log in daysLogs:
+			fullPath = os.path.join(ConfigAcessors.visit_log_dir(), log)
+			with open(fullPath, "r", 1) as f:
+				while line := f.readline():
+					yield VisitRecord(**json.loads(line))
 
 
 	def get_user_events(
@@ -37,7 +47,7 @@ class FSEventsQueryService(EventsQueryer):
 		keypath: str | None = None,
 		limit: int | None = None
 	) -> Iterator[EventRecord]:
-			events = reversed([e for e in self.load_most_recent_logs(24) \
+			events = reversed([e for e in self.load_most_recent_event_logs(24) \
 				if (e.userId == str(userId) if userId else True)\
 				and (e.action in actions if actions else True)\
 				and fromTimestamp <= e.timestamp\
@@ -56,8 +66,8 @@ class FSEventsQueryService(EventsQueryer):
 		fromTimestamp: float,
 		url: Optional[str] = None,
 		limit: Optional[int]=None
-	)-> Iterator[EventRecord]:
-		events = reversed([e for e in self.load_most_recent_logs(24) \
+	)-> Iterator[VisitRecord]:
+		events = reversed([e for e in self.load_most_recent_visit_logs(24) \
 			if e.visitorId == visitorId\
 			and fromTimestamp <= e.timestamp\
 			and (url == e.url if url else True)

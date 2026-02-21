@@ -36,7 +36,7 @@ import {
 	useHasAnyRoles,
 	useAuthViewStateChange,
 } from "../../Context_Providers/AuthContext/AuthContext";
-import { UserRoleDef } from "../../constants";
+import { DomRoutes, UserRoleDef } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	useCombinedContextAndFormItems,
@@ -51,7 +51,7 @@ import {
 	TouchedObject,
 } from "../../Types/song_info_types";
 import { Named, IdValue } from "../../Types/generic_types";
-import { SubmitButton } from "../Shared/SubmitButton";
+import { SubmitButton, LightTooltip } from "../Shared";
 import { isCallPending } from "../../Helpers/request_helpers";
 import { StationTypes } from "../../constants";
 import { guessTrackNumber } from "../../Helpers/song_helpers";
@@ -67,7 +67,6 @@ const trackNumberField = {
 		fontSize: 10,
 	},
 };
-
 
 
 
@@ -143,7 +142,7 @@ export const SongEdit = () => {
 
 	const ids = useMemo(() => {
 		const queryObj = new URLSearchParams(location.search);
-		return queryObj.getAll("ids").map(id => parseInt(id));
+		return queryObj.getAll("ids").map(id => id);
 	},[location.search]);
 
 	const {
@@ -179,11 +178,11 @@ export const SongEdit = () => {
 			name: "",
 			artists: [],
 			primaryartist: {
-				id: 0,
+				id: "",
 				name: "",
 			},
 			album: {
-				id: 0,
+				id: "",
 				name: "",
 			},
 			tracknum: 0,
@@ -325,7 +324,7 @@ export const SongEdit = () => {
 
 	},[formState, setValue, watch, ids]);
 
-	const songFilePath = watch("path");
+	const songFilePath = watch("treepath");
 	const formArtists = watch("artists");
 	const primaryArtist = watch("primaryartist");
 	const formAllArtists = useMemo(() =>
@@ -372,6 +371,7 @@ export const SongEdit = () => {
 		setValue("trackinfo",trackinfoMap);
 		handleMutliSongTouchedCheck("trackinfo");
 	};
+
 
 	return (<Loader status={callStatus} error={state.error}>
 		<Box sx={inputField}>
@@ -476,22 +476,53 @@ export const SongEdit = () => {
 			</Box>
 			<Box>
 				<Loader status={albumCallStatus} error={albumError}>
-					<Box sx={inputField}>
-						{ids?.length > 1 && <TouchedCheckbox
-							name="album"
-						/>}
-						<AlbumSelect
-							name="album"
-							options={albums}
-							formMethods={formMethods}
-							label="Album"
-							transform={{input: albumMapper }}
-							classes={{
-								root: "dropdown-field",
-							}}
-							disabled={!canEditSongs}
-						/>
-					</Box>
+					<LightTooltip
+						title={
+							<>
+								{!!album && <ul>
+									<li>
+										<a 
+											href={DomRoutes.album(album)}
+											target="_blank"
+											rel="noreferrer"
+										>
+											{album.name}
+										</a>
+									</li>
+									{!!album?.albumartist?.name 
+										? <li>
+											{album.albumartist.name}
+										</li>
+										: <li>
+											Missing Artist
+										</li>
+									}
+									{!!album?.versionnote 
+										? <li>{album.versionnote}</li>
+										: null
+									}
+								</ul>}
+							</>}
+						arrow
+						placement="left-start"
+					>
+						<Box sx={inputField}>
+							{ids?.length > 1 && <TouchedCheckbox
+								name="album"
+							/>}
+							<AlbumSelect
+								name="album"
+								options={albums}
+								formMethods={formMethods}
+								label="Album"
+								transform={{input: albumMapper }}
+								classes={{
+									root: "dropdown-field",
+								}}
+								disabled={!canEditSongs}
+							/>
+						</Box>
+					</LightTooltip>
 					<>
 						{canCreateAlbums && <Box sx={inputField}>
 							<AlbumNewModalOpener
@@ -585,7 +616,7 @@ export const SongEdit = () => {
 								sx={trackNumberField}
 								name={`trackinfo[${k}].tracknum`}
 								formMethods={formMethods}
-								label={`${trackinfoMap[parseInt(k)].name}`}
+								label={`${trackinfoMap[k].name}`}
 								disabled={!canEditSongs}
 							/>
 						</Box>

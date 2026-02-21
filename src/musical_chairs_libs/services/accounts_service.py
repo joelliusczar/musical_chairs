@@ -1,17 +1,19 @@
 #pyright: reportMissingTypeStubs=false
+import musical_chairs_libs.dtos_and_utilities as dtos
 from typing import (
 	Iterable,
 	Iterator,
 	Optional,
 	Tuple,
-	Union
 )
 from musical_chairs_libs.dtos_and_utilities import (
-	AccountInfo,
 	AccountCreationInfo,
-	AccountInfoBase,
-	PasswordInfo,
+	AccountInfoUpdate,
 	ActionRule,
+	EmailableUser,
+	InternalUser,
+	PasswordInfo,
+	User,
 )
 
 from .account_access_service import AccountAccessService
@@ -36,16 +38,18 @@ class AccountsService:
 	def get_account_for_login(
 		self,
 		username: str
-	) -> Tuple[Optional[AccountInfo], Optional[bytes]]:
+	) -> Tuple[Optional[InternalUser], Optional[bytes]]:
 		return self.account_access_service.get_account_for_login(username)
+
 
 	def authenticate_user(self,
 		username: str,
 		guess: bytes
-	) -> Optional[AccountInfo]:
+	) -> Optional[InternalUser]:
 		return self.account_access_service.authenticate_user(username, guess)
 
-	def create_account(self, accountInfo: AccountCreationInfo) -> AccountInfo:
+
+	def create_account(self, accountInfo: AccountCreationInfo) -> dtos.User:
 		return self.account_management_service.create_account(accountInfo)
 
 
@@ -67,43 +71,45 @@ class AccountsService:
 
 	def create_access_token(
 		self,
-		user: AccountInfo,
+		user: User,
 	) -> str:
 		return self.account_token_creator.create_access_token(user)
+
 
 	def has_expired(self, timestamp: float) -> bool:
 		return self.account_access_service.has_expired(timestamp)
 
+
 	def get_user_from_token(
 		self,
 		token: str
-	) -> Tuple[Optional[AccountInfo], float]:
-		return self.get_user_from_token(token)
+	) -> Tuple[InternalUser | None, float]:
+		return self.account_access_service.get_user_from_token(token)
 
 
 	def is_username_used(
 		self,
 		username: str,
-		loggedInUser: Optional[AccountInfo]=None
 	) -> bool:
 		return self.account_management_service.is_username_used(username)
 
 	def is_email_used(
 		self,
 		email: str,
-		loggedInUser: Optional[AccountInfo]=None
 	) -> bool:
 		return self.account_management_service.is_email_used(email)
+
 
 	def get_accounts_count(self) -> int:
 		return self.account_management_service.get_accounts_count()
 
+
 	def get_account_list(
 		self,
-		searchTerm: Optional[str]=None,
+		searchTerm: str | None=None,
 		page: int = 0,
-		pageSize: Optional[int]=None
-	) -> Iterator[AccountInfo]:
+		pageSize: int | None=None
+	) -> Iterator[User]:
 		return self.account_management_service.get_account_list(
 			searchTerm,
 			page,
@@ -113,17 +119,19 @@ class AccountsService:
 
 	def get_account_for_edit(
 		self,
-		key: Union[int, str]
-	) -> Optional[AccountInfo]:
-		return self.account_management_service.get_account_for_edit(key)
+		key: int | str
+	) -> InternalUser | None:
+		return self.account_access_service.get_internal_user(key)
+
 
 	def update_account_general_changes(
 		self,
-		updatedInfo: AccountInfoBase,
-	) -> AccountInfo:
+		updatedInfo: AccountInfoUpdate,
+	) -> EmailableUser:
 		return self.account_management_service.update_account_general_changes(
 			updatedInfo
 		)
+
 
 	def update_password(
 		self,
@@ -131,12 +139,14 @@ class AccountsService:
 	) -> bool:
 		return self.account_management_service.update_password(passwordInfo)
 
+
 	def get_site_rule_users(
 		self,
-		userId: Optional[int]=None,
-		owner: Optional[AccountInfo]=None
-	) -> Iterator[AccountInfo]:
+		userId: int | None=None,
+		owner: User | None=None
+	) -> Iterator[dtos.RoledUser]:
 		return self.account_management_service.get_site_rule_users(userId, owner)
+
 
 	def add_user_rule(
 		self,
@@ -150,7 +160,7 @@ class AccountsService:
 	def remove_user_site_rule(
 		self,
 		userId: int,
-		ruleName: Optional[str],
+		ruleName: str | None,
 	):
 		return self.account_management_service.remove_user_site_rule(
 			userId,

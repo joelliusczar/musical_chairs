@@ -12,10 +12,11 @@ import {
 	StringObject,
 	Flags,
 	Dictionary,
+	Token,
 } from "../Types/generic_types";
 import { ListData, TableData, PageableParams } from "../Types/pageable_types";
 import {
-	User,
+	RoledUser,
 	SubjectUserRoleAddition,
 	SubjectUserRoleDeletion,
 	ActionRule,
@@ -23,7 +24,7 @@ import {
 import { getDownloadAddress } from "../Helpers/request_helpers";
 
 export const Calls = {
-	get: ({ id }: { id: IdValue}) => {
+	get: ({ id }: { id: Token}) => {
 		const abortController = new AbortController();
 		return {
 			abortController: abortController,
@@ -36,7 +37,7 @@ export const Calls = {
 			},
 		};
 	},
-	getMulti: ({ ids }: { ids: IdValue[]}) => {
+	getMulti: ({ ids }: { ids: Token[]}) => {
 		const abortController = new AbortController();
 		return {
 			abortController: abortController,
@@ -51,7 +52,7 @@ export const Calls = {
 		};
 	},
 	update: (
-		{ id, data }: { id: IdValue, data: SongInfoApiSavura}
+		{ id, data }: { id: Token, data: SongInfoApiSavura}
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -67,7 +68,7 @@ export const Calls = {
 		};
 	},
 	updateMulti: (
-		{ ids, data }: { ids: IdValue[], data: SongInfoApiSavura}
+		{ ids, data }: { ids: Token[], data: SongInfoApiSavura}
 	) => {
 		const abortController = new AbortController();
 		return {
@@ -129,7 +130,7 @@ export const Calls = {
 			abortController: abortController,
 			call: async () => {
 				const url = "song-info/path/user_list";
-				const response = await webClient.get<TableData<User>>(
+				const response = await webClient.get<TableData<RoledUser>>(
 					url, {
 						params: params,
 						signal: abortController.signal,
@@ -345,7 +346,7 @@ export const Calls = {
 
 
 
-export const openSongInTab =  (songId: number) => {
+export const openSongInTab =  (songId: Token) => {
 	const url = getDownloadAddress(songId);
 	window?.open(url, "_blank")?.focus();
 };

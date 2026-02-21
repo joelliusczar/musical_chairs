@@ -12,12 +12,12 @@ import { useSnackbar } from "notistack";
 import { formatError } from "../../Helpers/error_formatter";
 import { FormSelect } from "../Shared/FormSelect";
 import { useForm, UseFormReturn } from "react-hook-form";
-import { User } from "../../Types/user_types";
+import { RoledUser } from "../../Types/user_types";
 import { ButtonClickEvent, ChangeEvent } from "../../Types/browser_types";
 import { SubmitButton } from "../Shared/SubmitButton";
 
 type UserSeachInitialValues = {
-	selectedUser: User | null
+	selectedUser: RoledUser | null
 }
 
 type UserSearchProps = {
@@ -36,9 +36,9 @@ export const UserSearch = (
 ) => {
 
 	const { onCancel, formMethods, onConfirm } = props;
-	const searchCache = useRef<{[term: string]: User[]}>({});
+	const searchCache = useRef<{[term: string]: RoledUser[]}>({});
 
-	const [options, setOptions] = useState<User[]>([]);
+	const [options, setOptions] = useState<RoledUser[]>([]);
 	const [inputValue, setInputValue] = useState("");
 	const { enqueueSnackbar } = useSnackbar();
 
@@ -120,7 +120,7 @@ UserSearch.propTypes = {
 };
 
 type UserSearchModalOpenerProps = {
-	onConfirm: (selected: User | null) => void
+	onConfirm: (selected: RoledUser | null) => void
 }
 
 export const UserSearchModalOpener = (props: UserSearchModalOpenerProps) => {

@@ -1,4 +1,5 @@
-
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.tables as tbl
 from typing import (
 	Iterator,
 	Optional,
@@ -12,8 +13,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	get_datetime,
 	ArtistInfo,
 	AlreadyUsedError,
-	AccountInfo,
-	OwnerInfo,
 	SongsArtistInfo,
 	SongListDisplayItem,
 	DictDotMap,
@@ -30,9 +29,6 @@ from sqlalchemy import (
 	delete,
 	literal,
 	func
-)
-from sqlalchemy.sql.expression import (
-	Update,
 )
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
@@ -96,7 +92,8 @@ class ArtistService:
 		return query
 
 
-	def get_artists(self,
+	def get_artists(
+		self,
 		page: int = 0,
 		pageSize: Optional[int]=None,
 		artistKeys: Union[int, Iterable[int], str, None]=None,
@@ -110,57 +107,65 @@ class ArtistService:
 			ar_name,
 			ar_ownerFk,
 			u_username,
-			u_displayName
+			u_displayName,
+			tbl.u_publictoken
 		)
 
 		offset = page * pageSize if pageSize else 0
 		query = query.offset(offset).limit(pageSize)
-		records = self.conn.execute(query).mappings()
+		with dtos.open_transaction(self.conn):
+			records = self.conn.execute(query).mappings().fetchall()
 
-		yield from (ArtistInfo(
-			id=row[ar_pk],
-			name=row[ar_name],
-			owner=OwnerInfo(
-				id=row[ar_ownerFk],
-				username=row[u_username],
-				displayname=row[u_displayName]
+			yield from (ArtistInfo(
+				id=row[ar_pk],
+				name=row[ar_name],
+				owner=dtos.User(
+					id=row[ar_ownerFk],
+					username=row[u_username],
+					displayname=row[u_displayName],
+					publictoken=row[tbl.u_publictoken]
+				)
 			)
-		)
-			for row in records)
+				for row in records)
+
 
 	def get_or_save_artist(self, name: Optional[str]) -> Optional[int]:
 		if not name:
 			return None
-		savedName = SavedNameString.format_name_for_save(name)
-		query = select(ar_pk).select_from(artists_tbl).where(ar_name == savedName)
-		row = self.conn.execute(query).fetchone()
-		if row:
-			pk = cast(int, row[0])
-			return pk
-		print(name)
-		stmt = insert(artists_tbl).values(
-			name = savedName,
-			flatname = str(SearchNameString(name)),
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
-		res = self.conn.execute(stmt)
-		insertedPk = res.lastrowid
-		self.conn.commit()
-		return insertedPk
+		with self.conn.begin() as transaction:
+			savedName = SavedNameString.format_name_for_save(name)
+			query = select(ar_pk).select_from(artists_tbl).where(ar_name == savedName)
+			row = self.conn.execute(query).fetchone()
+			if row:
+				pk = cast(int, row[0])
+				return pk
+			print(name)
+			stmt = insert(artists_tbl).values(
+				name = savedName,
+				flatname = str(SearchNameString(name)),
+				lastmodifiedtimestamp = self.get_datetime().timestamp()
+			)
+			res = self.conn.execute(stmt)
+			insertedPk = res.lastrowid
+			transaction.commit()
+			return insertedPk
 
-	def get_artist_owner(self, artistId: int) -> OwnerInfo:
-		query = select(ar_ownerFk, u_username, u_displayName)\
+
+	def get_artist_owner(self, artistId: int) -> dtos.User:
+		query = select(ar_ownerFk, u_username, u_displayName, tbl.u_publictoken)\
 			.select_from(artists_tbl)\
 			.join(user_tbl, u_pk == ar_ownerFk)\
 			.where(ab_pk == artistId)
-		data = self.conn.execute(query).mappings().fetchone()
-		if not data:
-			return OwnerInfo(id=0,username="", displayname="")
-		return OwnerInfo(
-			id=data[ar_ownerFk],
-			username=data[u_username],
-			displayname=data[u_displayName]
-		)
+		with dtos.open_transaction(self.conn):
+			data = self.conn.execute(query).mappings().fetchone()
+			if not data:
+				return dtos.User(id=0,username="", displayname="", publictoken="")
+			return dtos.User(
+				id=data[ar_ownerFk],
+				username=data[u_username],
+				displayname=data[u_displayName],
+				publictoken=data[tbl.u_publictoken]
+			)
 
 
 	def get_artist_page(
@@ -172,55 +177,118 @@ class ArtistService:
 			queryParams.page, queryParams.limit, artist))
 		countQuery = self.get_artists_query(artist)\
 			.with_only_columns(func.count(1))
-		count = self.conn.execute(countQuery).scalar() or 0
-		return result, count
+		with dtos.open_transaction(self.conn):
+			count = self.conn.execute(countQuery).scalar() or 0
+			return result, count
 
 
 	def get_artist(
 			self,
 			artistId: int,
-			user: Optional[AccountInfo]=None
+			user: dtos.User | None=None
 		) -> Optional[SongsArtistInfo]:
-		artistInfo = next(self.get_artists(artistKeys=artistId), None)
-		if not artistInfo:
-			return None
-		songsQuery = select(
-			sg_pk.label("id"),
-			sg_name,
-			sg_path,
-			sg_internalpath,
-			sg_track,
-			literal("").label("album"),
-			literal(0).label("queuedtimestamp"),
-			literal(artistInfo.name).label("artist")
-		)\
-			.join(
-				song_artist_tbl,
-				sgar_songFk == sg_pk,
+		with dtos.open_transaction(self.conn):
+			artistInfo = next(self.get_artists(artistKeys=artistId), None)
+			if not artistInfo:
+				return None
+			songsQuery = select(
+				sg_pk.label("id"),
+				sg_name,
+				sg_path,
+				sg_internalpath,
+				sg_track,
+				literal("").label("album"),
+				literal(0).label("queuedtimestamp"),
+				literal(artistInfo.name).label("artist")
 			)\
-			.join(
-				artists_tbl,
-				ar_pk == sgar_artistFk,
-			)\
-			.where(sg_deletedTimstamp.is_(None))\
-			.where(sg_albumFk == artistId)
-		songsResult = self.conn.execute(songsQuery).mappings()
-		pathRuleTree = None
-		if self.current_user_provider.is_loggedIn():
-			pathRuleTree = self.path_rule_service.get_rule_path_tree()
+				.join(
+					song_artist_tbl,
+					sgar_songFk == sg_pk,
+				)\
+				.join(
+					artists_tbl,
+					ar_pk == sgar_artistFk,
+				)\
+				.where(sg_deletedTimstamp.is_(None))\
+				.where(sg_albumFk == artistId)
+			songsResult = self.conn.execute(songsQuery).mappings().fetchall()
+			pathRuleTree = None
+			if self.current_user_provider.is_loggedIn():
+				pathRuleTree = self.path_rule_service.get_rule_path_tree()
 
-		songs = [
-			SongListDisplayItem(
-				**DictDotMap.unflatten(dict(row), omitNulls=True)
-			) for row in songsResult
-		]
-		if pathRuleTree:
-			for song in songs:
-				song.rules = list(pathRuleTree.values_flat(
-						normalize_opening_slash(song.treepath))
-					)
+			songs = [
+				SongListDisplayItem(
+					**DictDotMap.unflatten(dict(row), omitNulls=True)
+				) for row in songsResult
+			]
+			if pathRuleTree:
+				for song in songs:
+					song.rules = list(pathRuleTree.values_flat(
+							normalize_opening_slash(song.treepath))
+						)
 
-		return SongsArtistInfo(**artistInfo.model_dump(), songs=songs)
+			return SongsArtistInfo(**artistInfo.model_dump(), songs=songs)
+
+
+	def add_artist(self, artistName: str) -> ArtistInfo:
+		user = self.current_user_provider.current_user()
+		savedName = SavedNameString(artistName)
+		with self.conn.begin() as transaction:
+			stmt = insert(tbl.artists).values(
+				name = str(savedName),
+				lastmodifiedbyuserfk = user.id,
+				lastmodifiedtimestamp = self.get_datetime().timestamp(),
+				ownerfk = user.id
+			)
+			try:
+				res = self.conn.execute(stmt)
+
+				affectedPk: int = res.lastrowid
+				transaction.commit()
+				owner = user.to_user()
+				return ArtistInfo(
+					id=dtos.encode_artist_id(affectedPk), 
+					name=str(savedName), 
+					owner=owner
+				)
+			except IntegrityError:
+				raise AlreadyUsedError.build_error(
+					f"{artistName} is already used.",
+					"path->name"
+				)
+
+
+	def update_artist(
+		self,
+		artistName: str,
+		artistId: int
+	) -> ArtistInfo | None:
+		user = self.current_user_provider.current_user()
+		savedName = SavedNameString(artistName)
+		stmt = update(tbl.artists).values(
+			name = str(savedName),
+			lastmodifiedbyuserfk = user.id,
+			lastmodifiedtimestamp = self.get_datetime().timestamp()
+		).where(tbl.ar_pk == artistId)
+		with self.conn.begin() as transaction:
+			try:
+				res = self.conn.execute(stmt)
+
+				affectedPk: int = artistId
+				transaction.commit()
+				if res.rowcount == 0:
+					return None
+				owner = self.get_artist_owner(artistId)
+				return ArtistInfo(
+					id=dtos.encode_artist_id(affectedPk),
+					name=str(savedName),
+					owner=owner
+				)
+			except IntegrityError:
+				raise AlreadyUsedError.build_error(
+					f"{artistName} is already used.",
+					"path->name"
+				)
 
 
 	def save_artist(
@@ -230,39 +298,17 @@ class ArtistService:
 	) -> Optional[ArtistInfo]:
 		if not artistName and not artistId:
 			raise ValueError("No artist info to save")
-		user = self.current_user_provider.current_user()
-		upsert = update if artistId else insert
-		savedName = SavedNameString(artistName)
-		stmt = upsert(artists_tbl).values(
-			name = str(savedName),
-			lastmodifiedbyuserfk = user.id,
-			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
-		owner = user
-		if artistId and isinstance(stmt, Update):
-			stmt = stmt.where(ar_pk == artistId)
-			owner = self.get_artist_owner(artistId)
+		if artistId:
+			return self.update_artist(artistName, artistId)
 		else:
-			stmt = stmt.values(ownerfk = user.id)
-		try:
-			res = self.conn.execute(stmt)
-
-			affectedPk: int = artistId if artistId else res.lastrowid
-			self.conn.commit()
-			if res.rowcount == 0:
-				return None
-			return ArtistInfo(id=affectedPk, name=str(savedName), owner=owner)
-		except IntegrityError:
-			raise AlreadyUsedError.build_error(
-				f"{artistName} is already used.",
-				"path->name"
-			)
+			return self.add_artist(artistName)
 
 
 	def delete_artist(self, artistid: int) -> int:
 		if not artistid:
 			return 0
 		delStmt = delete(artists_tbl).where(ar_pk == artistid)
-		delCount = self.conn.execute(delStmt).rowcount
-		self.conn.commit()
-		return delCount
+		with self.conn.begin() as transaction:
+			delCount = self.conn.execute(delStmt).rowcount
+			transaction.commit()
+			return delCount

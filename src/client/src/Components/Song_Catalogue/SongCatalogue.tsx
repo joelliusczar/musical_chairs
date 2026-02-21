@@ -233,6 +233,7 @@ export const SongCatalogue = () => {
 									<TableCell></TableCell>
 								</TableRow>
 								<TableRow>
+									<TableCell></TableCell>
 									<TableCell>
 										<SearchTextField
 											name="name"

@@ -65,7 +65,8 @@ def get_stations(
 			if owner:
 				return stationService.get_stations(
 					dtos.decode_id_or_not(pathName, pathName),
-					ownerKey=owner.id
+					ownerKey=owner.id,
+					exactStrMatch=True
 				)
 			else:
 				raise HTTPException(

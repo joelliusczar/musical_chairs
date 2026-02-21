@@ -1,4 +1,5 @@
 #pyright: reportMissingTypeStubs=false
+
 from typing import (
 	Any,
 	Iterator,
@@ -70,6 +71,7 @@ from musical_chairs_libs.protocols import UserProvider
 from .path_rule_service import PathRuleService
 from .template_service import TemplateService
 import musical_chairs_libs.dtos_and_utilities as dtos
+import sqlalchemy as sa
 import musical_chairs_libs.tables as tbl
 
 
@@ -619,7 +621,7 @@ class StationService:
 					insertStmt = insert(stations_songs_tbl)
 					self.conn.execute(insertStmt, params)
 			if oldTypeId == StationTypes.ALBUMS_AND_PLAYLISTS.value:
-				query = select(tbl.sg_pk)\
+				query = select(sa.distinct(tbl.sg_pk))\
 					.join(tbl.songs, tbl.sg_albumFk == tbl.stab_albumFk)\
 					.where(stab_stationFk == stationId)
 				rows = self.conn.execute(query).fetchall()
@@ -631,7 +633,7 @@ class StationService:
 					insertStmt = insert(tbl.stations_songs)
 					self.conn.execute(insertStmt, params)
 
-				query = select(tbl.plsg_songFk)\
+				query = select(sa.distinct(tbl.plsg_songFk))\
 				.join(tbl.playlists_songs, tbl.stpl_playlistFk == tbl.plsg_playlistFk)\
 				.where(tbl.stpl_stationFk == stationId)
 				rows = self.conn.execute(query).fetchall()

@@ -115,6 +115,7 @@ def load_data(
 		log_config.radioLogger.error("Error while trying to load data")
 		log_config.radioLogger.error(e, exc_info=True)
 	finally:
+		log_config.radioLogger.debug("load_data finally")
 		stop()
 
 
@@ -238,6 +239,9 @@ def send_next(
 					conn.sendall(f"{currentFile.name}\n".encode())
 					conn.sendall(f"{display}\n".encode())
 				else:
+					log_config.radioLogger.debug(
+						f"{queueItem.id if queueItem else "No Queue Item"}"
+					)
 					conn.sendall(b"\n\n")
 					break
 	except Exception as e:

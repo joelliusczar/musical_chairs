@@ -152,6 +152,7 @@ def launch_loading(stationName: str, ownerName: str):
 				fileService
 			)
 	finally:
+		log_config.radioLogger.info("Disabling the station")
 		stationProcessService.unset_station_procs(stationIds=station.decoded_id())
 		close_db_connection(conn, "loading")
 
@@ -220,6 +221,7 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		while queue_song_source.stopRunning:
 			sendThread.join(30)
 		sendThread.join() #wait for clean up to finish
+		loadThread.join()
 		log_config.radioLogger.debug("Escaped the loop")
 
 
@@ -230,8 +232,6 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		log_config.radioLogger.debug(
 			f"Is sending thread alive? {sendThread.is_alive()}"
 		)
-		log_config.radioLogger.info("Disabling the station")
-		log_config.radioLogger.debug("Station disabled")
 
 
 

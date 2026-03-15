@@ -111,6 +111,7 @@ def load_data(
 	except Exception as e:
 		if isinstance(e, TimeoutError) and not check_is_running():
 			log_config.radioLogger.debug("Queue has stopped waiting on put")
+			log_config.radioLogger.warning(e, exc_info=True)
 			return
 		log_config.radioLogger.error("Error while trying to load data")
 		log_config.radioLogger.error(e, exc_info=True)
@@ -246,6 +247,7 @@ def send_next(
 					break
 	except Exception as e:
 		if isinstance(e, TimeoutError) and not check_is_running():
+			log_config.radioLogger.warning(e, exc_info=True)
 			log_config.radioLogger.debug("Queue has stopped waiting on get")
 			return
 		log_config.radioLogger.error(e, exc_info=True)

@@ -210,6 +210,7 @@ def send_next(
 				if not skipped:
 					res = conn.recv(1)
 					if res == b"0":
+						log_config.radioLogger.info("zero signal sent from ices")
 						break
 				if queueItem:
 					with loadingLock:

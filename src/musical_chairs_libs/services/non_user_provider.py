@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from musical_chairs_libs.protocols import (
 	TrackingInfoProvider,
 	UserProvider
@@ -54,3 +55,11 @@ class NonUserProvider(UserProvider, TrackingInfoProvider):
 
 	def optional_user_id(self) -> int | None:
 		return None
+	
+	def set_session_user(self, user: dtos.InternalUser):
+		pass
+	
+
+	@contextmanager
+	def impersonate(self, user: dtos.InternalUser) -> typing.Any:
+		yield

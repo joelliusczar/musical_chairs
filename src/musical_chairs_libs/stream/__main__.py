@@ -124,7 +124,10 @@ def launch_loading(stationName: str, ownerName: str):
 		currentUserProvider,
 		pathRuleService
 	)
-	station = next(iter(stationService.get_stations(stationName, ownerName)))
+	station = next(iter(stationService.get_stations(
+		stationName, 
+		ownerName,
+		exactStrMatch=True)))
 	stationProcessService = StationProcessService(
 		conn,
 		currentUserProvider,
@@ -171,7 +174,10 @@ def launch_sending(stationName: str, ownerName: str):
 		currentUserProvider,
 		pathRuleService
 	)
-	station = next(iter(stationService.get_stations(stationName, ownerName)))
+	station = next(iter(stationService.get_stations(
+		stationName,
+		ownerName,
+		exactStrMatch=True)))
 	try:
 
 		if station.typeid == StationTypes.SONGS_ONLY.value:

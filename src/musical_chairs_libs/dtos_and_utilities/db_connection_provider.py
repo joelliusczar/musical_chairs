@@ -71,7 +71,8 @@ class DbConnectionProvider:
 		cls,
 		dbName: str,
 		echo: bool=False,
-		isolationLevel: str="REPEATABLE READ"
+		isolationLevel: str="REPEATABLE READ",
+		pool_pre_ping: bool=False
 	) -> Connection:
 		dbPass = ConfigAcessors.db_pass_radio()
 		if not dbPass:
@@ -79,9 +80,10 @@ class DbConnectionProvider:
 		engine = create_engine(
 			f"mysql+pymysql://{DbUsers.RADIO_USER()}:{dbPass}@localhost/{dbName}",
 			echo=echo,
+			pool_pre_ping=pool_pre_ping,
 			execution_options={
-        "isolation_level": isolationLevel
-    	}
+				"isolation_level": isolationLevel
+			}
 		)
 		listens_for(engine, "connect", named=True)(__on_connect__)
 		return engine.connect()

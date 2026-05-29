@@ -3,6 +3,7 @@
 
   vars:
     app_trunk: '{{domain["app_root"]|default("~")}}/{{app_details["name"]}}'
+    #ansible_common_remote_group is needed for become_user: notroot to work
     ansible_common_remote_group: '{{domain["group"]}}'
 
   vars_files:

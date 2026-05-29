@@ -19,6 +19,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	BlockingQueue,
 	StreamQueuedItem
 )
+from sqlalchemy.exc import OperationalError
 from tempfile import NamedTemporaryFile
 from threading import Condition, Lock
 #seeing if I can get away with not using TracebackException with new
@@ -45,6 +46,23 @@ def stop():
 	global stopRunning
 	stopRunning = True
 
+def pop_next_with_retry(
+		popper: Callable[[], StreamQueuedItem | None]
+) -> StreamQueuedItem | None:
+	attempts = 0
+	while True:
+		try:
+			return popper()
+		except OperationalError:
+			attempts += 1
+			log_config.radioLogger.warning(f"Database error. Attempt: {attempts}")
+			if attempts > 3:
+				log_config.radioLogger.error(
+					f"Retried {attempts} times to avoid database issue"
+				)
+				raise
+
+
 
 def get_song_info(
 	stationId: int,
@@ -55,7 +73,9 @@ def get_song_info(
 		try:
 			offset = fileQueue.qsize()
 			log_config.queueLogger.debug(f"offset : {offset}")
-			queueItem = songPopper.pop_next_queued(stationId, loaded)
+			queueItem = pop_next_with_retry(
+				lambda: songPopper.pop_next_queued(stationId, loaded)
+			)
 			if not queueItem:
 				log_config.radioLogger.info("Null queueItem - ending station")
 				break

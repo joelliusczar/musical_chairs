@@ -10,6 +10,7 @@ import {
 import {
 	PlaylistInfo,
 	PlaylistInfoForm,
+	PlaylistsSongsInfo,
 } from "../../Types/playlist_types";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useSnackbar } from "notistack";
@@ -45,9 +46,8 @@ import {
 	buildArrayQueryStr,
 } from "../../Helpers/request_helpers";
 import { PlaylistListener } from "./PlaylistListener";
-import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { validatePhraseIsUnused, viewSecurityOptions } from "./common";
+import { viewSecurityOptions } from "./common";
 import {
 	usePlaylistData,
 } from "../../Context_Providers/AppContext/AppContext";
@@ -56,12 +56,13 @@ import {
 	HTML5Backend,
 } from "react-dnd-html5-backend";
 import { PlaylistSongRow } from "./PlaylistSongRow";
-import { IdValue, Token } from "../../Types/generic_types";
+import { Token } from "../../Types/generic_types";
 import { UserRoleDef } from "../../constants";
-import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	useHasAnyRoles,
 } from "../../Context_Providers/AuthContext/AuthContext";
+import { playlistFormSchema } from "../../Types/Validation_Types/playlist";
+import get from "just-safe-get";
 
 
 const playlistInfoToFormData = (data: PlaylistInfo) => {
@@ -90,24 +91,21 @@ export const PlaylistEditScreen = () => {
 	const currentUser = useCurrentUser();
 
 
-	const [songsState, songsDispatch] 
-		= useDataWaitingReducer<SongListDisplayItem[]>(
-			new RequiredDataStore([])
+	const [state, dispatch] 
+		= useDataWaitingReducer<PlaylistsSongsInfo>(
+			new RequiredDataStore({
+				id: "",
+				name: "",
+				displayname: "",
+				owner: currentUser,
+				viewsecuritylevel: viewSecurityOptions[0].id,
+				rules: [],
+				songs: [],
+			})
 		);
-	const { callStatus, error } = songsState;
+	const { callStatus, error } = state;
 	const isPending = isCallPending(callStatus);
 	const [nextUpIndex, setNextUpIndex] = useState<number>(0);
-
-
-	const schema = Yup.object().shape({
-		name: Yup.string().required()
-			.matches(/^[a-zA-Z0-9_]*$/, "Name can only contain a-zA-Z0-9_")
-			.test(
-				"name",
-				(value) => `${value.path} is already used`,
-				validatePhraseIsUnused
-			),
-	});
 
 	const {
 		items: playlists,
@@ -132,14 +130,14 @@ export const PlaylistEditScreen = () => {
 	const formMethods = useForm<PlaylistInfoForm>({
 		defaultValues: initialValues,
 		reValidateMode: "onSubmit",
-		resolver: yupResolver(schema),
+		resolver: yupResolver(playlistFormSchema),
 	});
-	const { handleSubmit, reset, getValues, watch } = formMethods;
+	const { handleSubmit, reset } = formMethods;
 	const callSubmit = handleSubmit(async values => {
 		try {
-			if (values.id) {
+			if (get(state, "data.id")) {
 				const requestObj = Calls.update({
-					id: values.id, 
+					id: state.data.id, 
 					data: {
 						name: values.name,
 						description: values.displayname,
@@ -173,7 +171,7 @@ export const PlaylistEditScreen = () => {
 		}
 	});
 
-	const savedId = watch("id");
+	const savedId = state.data.id;
 
 
 
@@ -187,7 +185,7 @@ export const PlaylistEditScreen = () => {
 
 
 	const canDeleteItem = () => {
-		const ownerId = getValues("owner.id");
+		const ownerId = get(state, "data.owner.id");
 		if (currentUser.id === ownerId) return true;
 		return false;
 	};
@@ -220,12 +218,15 @@ export const PlaylistEditScreen = () => {
 			});
 			await requestObj.call();
 			enqueueSnackbar("Removal successful", { variant: "success" });
-			songsDispatch(dispatches.update((state) => {
-				const songs = [...state.data].filter(s => s.id !== item.id);
+			dispatch(dispatches.update((state) => {
+				const songs = [...state.data.songs].filter(s => s.id !== item.id);
 
 				return {
 					...state,
-					data: songs,
+					data: {
+						...state.data,
+						songs,
+					},
 				};
 			}));
 		}
@@ -244,9 +245,9 @@ export const PlaylistEditScreen = () => {
 			});
 			await requestObj.call();
 			enqueueSnackbar("Removal successful", { variant: "success" });
-			songsDispatch(dispatches.update((state) => {
+			dispatch(dispatches.update((state) => {
 				
-				const songs = [...state.data];
+				const songs = [...state.data.songs];
 				const movedSongOldIdx = songs.findIndex(s => s.id === songId);
 				const song = songs[movedSongOldIdx];
 				songs.splice(movedSongOldIdx, 1);
@@ -254,7 +255,10 @@ export const PlaylistEditScreen = () => {
 
 				return {
 					...state,
-					data: songs,
+					data: {
+						...state.data,
+						songs,
+					},
 				};
 			}));
 		}
@@ -265,8 +269,8 @@ export const PlaylistEditScreen = () => {
 
 
 	const authReset = useCallback(() => {
-		songsDispatch(dispatches.restart());
-	}, [songsDispatch]);
+		dispatch(dispatches.restart());
+	}, [dispatch]);
 
 	useAuthViewStateChange(authReset);
 
@@ -280,15 +284,15 @@ export const PlaylistEditScreen = () => {
 			if (!isPending) return;
 			const fetch = async () => {
 				try {
-					songsDispatch(dispatches.started());
+					dispatch(dispatches.started());
 					const data = await playlistRequestObj.call();
 					const formData = playlistInfoToFormData(data);
 					reset(formData);
-					songsDispatch(dispatches.done(data.songs));
+					dispatch(dispatches.done(data));
 				}
 				catch(err) {
 					enqueueSnackbar(formatError(err), { variant: "error"});
-					songsDispatch(dispatches.failed(formatError(err)));
+					dispatch(dispatches.failed(formatError(err)));
 				}
 			};
 			fetch();
@@ -298,7 +302,7 @@ export const PlaylistEditScreen = () => {
 			reset(initialValues);
 		}
 	}, [
-		songsDispatch,
+		dispatch,
 		isPending,
 		pathVars.ownerkey,
 		pathVars.playlistkey,
@@ -315,15 +319,15 @@ export const PlaylistEditScreen = () => {
 	},[setNextUpIndex]);
 
 	const getNextUp = () => {
-		if (!songsState.data) return null;
-		if (nextUpIndex < songsState.data.length && nextUpIndex >= 0) {
-			return songsState.data[nextUpIndex];
+		if (!state.data) return null;
+		if (nextUpIndex < state.data.songs.length && nextUpIndex >= 0) {
+			return state.data.songs[nextUpIndex];
 		}
 		return null;
 	};
 
-	const songIdQueryStr = songsState.data?.length > 0 ?
-		buildArrayQueryStr("ids", songsState.data.map(i => i.id)) :
+	const songIdQueryStr = state.data?.songs?.length > 0 ?
+		buildArrayQueryStr("ids", state.data.songs.map(i => i.id)) :
 		"";
 
 
@@ -340,20 +344,21 @@ export const PlaylistEditScreen = () => {
 		<PlaylistEdit
 			formMethods={formMethods}
 			callSubmit={callSubmit}
+			referenceRecord={state.data}
 		/>
 		<Button
 			component={Link}
 			to={
 				`${DomRoutes.songEdit()}${songIdQueryStr}`}
-			disabled={(songsState.data?.length || 0) < 1}
+			disabled={(state.data?.songs?.length || 0) < 1}
 		>
 			Batch Edit Songs
 		</Button>
-		{songsState.data?.length > 0 ?
+		{state.data?.songs?.length > 0 ?
 			<>
 				<Box>
 					{canPlayThisPlaylist() && savedId && <PlaylistListener
-						audioItems={songsState.data}
+						audioItems={state.data.songs}
 						nextUp={getNextUp()}
 						queueNext={queueNext}
 						parentId={savedId}
@@ -373,7 +378,7 @@ export const PlaylistEditScreen = () => {
 								</TableRow>
 							</TableHead>
 							<TableBody>
-								{songsState.data.map((item, idx) => 
+								{state.data.songs.map((item, idx) => 
 									<PlaylistSongRow 
 										key={`song_${idx}`}
 										song={item}

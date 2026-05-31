@@ -108,7 +108,8 @@ const validatePhraseIsUnused = async (
 	}
 };
 
-const schema = Yup.object().shape({
+const schema: Yup.ObjectSchema<StationInfoForm>  = Yup.object().shape({
+	id: Yup.string().optional(),
 	name: Yup.string().required()
 		.matches(/^[a-zA-Z0-9_\-]*$/, "Name can only contain a-zA-Z0-9_-")
 		.test(
@@ -116,7 +117,15 @@ const schema = Yup.object().shape({
 			(value) => `${value.path} is already used`,
 			validatePhraseIsUnused
 		),
-	requestsecuritylevel: Yup.object().required().test(
+	displayname: Yup.string().defined().nullable(),
+	viewsecuritylevel: Yup.object().shape({
+		id: Yup.number().required(),
+		name: Yup.string().required(),
+	}).required(),
+	requestsecuritylevel: Yup.object().shape({
+		id: Yup.number().required(),
+		name: Yup.string().required(),
+	}).required().test(
 		"requestsecuritylevel",
 		"Request Security cannot be public or lower than view security",
 		(value, context) => {
@@ -124,6 +133,11 @@ const schema = Yup.object().shape({
 				&& value.id >= context.parent.viewsecuritylevel.id;
 		}
 	),
+	typeOption: Yup.object().shape({
+		id: Yup.number().required(),
+		name: Yup.string().required(),
+	}),
+	bitratekps: Yup.number().defined().nullable(),
 });
 
 const stationInfoToFormData = (data: StationInfo) => {

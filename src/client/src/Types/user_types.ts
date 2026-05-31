@@ -52,8 +52,7 @@ export interface UserBasicUpdateApiParams extends SubjectUserKeyItem {
 	data: UserBasicUpdate
 }
 
-export interface LoggedInUser extends RoledEntity, IdItem {
-	username: string,
+export interface LoggedInUser extends RoledUser {
 	access_token: string,
 	lifetime: number,
 	login_timestamp: number,
@@ -73,7 +72,8 @@ export interface SubjectPasswordUpdate
 	extends PasswordUpdate, SubjectUserParams {}
 
 
-export interface UserCreationInfo extends User, RoledEntity{
+export interface UserCreationInfo {
+	username: string,
 	email: string
 	displayname?: string
 	password: string

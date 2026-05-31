@@ -34,35 +34,6 @@ const initialValues = {
 	files: [],
 };
 
-
-const getSchema = (prefix: string) => Yup.lazy(values => {
-	const requestObj = Calls.checkSuffixes({ 
-		prefix,
-		songSuffixes: values.files.map(
-			(f: UploadInfo) => ({ 
-				treepath: f.suffix,
-				internalpath: "",
-				id: 0,
-			})
-		),
-	});
-	const usedPromise = requestObj.call();
-	return Yup.object().shape({
-		files: Yup.array().of(Yup.object().shape({
-			suffix: Yup.string().required().test(
-				"suffix",
-				(value) => `${value.value} is already used`,
-				async (value: string | undefined) => {
-					if (!value) return true;
-					const used = await usedPromise;
-					return !(	value in used) || !used[value];
-				}
-			),
-		})),
-	});
-});
-
-
 type SongUploadProps = {
 	onCancel?: (e: unknown) => void
 	afterSubmit?: (s: SongTreeNodeInfo[]) => void,
@@ -80,10 +51,34 @@ export const SongUpload = (props: SongUploadProps) => {
 
 	const afterSubmit = props.afterSubmit || _afterSubmit;
 
+	const schema: Yup.ObjectSchema<MultiUploadInfo> = Yup.object().shape({
+		files: Yup.array().required().of(Yup.object().required().shape({
+			file: Yup.mixed<File>().required(),
+			suffix: Yup.string().required().test(
+				"suffix",
+				(value) => `${value.value} is already used`,
+				async (value: string | undefined, context) => {
+					if (!value) return true;
+					const requestObj = Calls.checkSuffixes({ 
+						prefix,
+						songSuffixes: context.parent.files.map(
+							(f: UploadInfo) => ({ 
+								treepath: f.suffix,
+								internalpath: "",
+								id: 0,
+							})
+						),
+					});
+					const used = await requestObj.call();
+					return !(	value in used) || !used[value];
+				}
+			),
+		})),
+	});
 
 	const formMethods = useForm<MultiUploadInfo>({
 		defaultValues: initialValues,
-		resolver: yupResolver(getSchema(prefix)),
+		resolver: yupResolver(schema),
 	});
 	const { handleSubmit, reset, formState } = formMethods;
 	const callSubmit = handleSubmit(async values => {

@@ -1,0 +1,14 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars:
+    ansible_user: '{{lookup("env", "USER")}}'
+
+  tasks:
+    - name: Setup self signed certificate for manual testing
+      include_role:
+        name: local-cert-setup
+      vars:
+        local_env_name: debug
+        local_common_name: localhost

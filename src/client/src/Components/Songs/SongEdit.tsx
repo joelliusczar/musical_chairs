@@ -49,12 +49,18 @@ import {
 	SongInfoForm,
 	TouchTypes,
 	TouchedObject,
+	TrackListing,
 } from "../../Types/song_info_types";
-import { Named, IdValue } from "../../Types/generic_types";
+import { Named, Token } from "../../Types/generic_types";
 import { SubmitButton, LightTooltip } from "../Shared";
 import { isCallPending } from "../../Helpers/request_helpers";
 import { StationTypes } from "../../constants";
 import { guessTrackNumber } from "../../Helpers/song_helpers";
+import { artistOptionSchema } from "../../Types/Validation_Types/artist";
+import { actionRuleOptionSchema } from "../../Types/Validation_Types/user";
+import { albumOptionSchema } from "../../Types/Validation_Types/album";
+import { stationOptionSchema } from "../../Types/Validation_Types/station";
+import { playlistOptionSchema } from "../../Types/Validation_Types/playlist";
 
 
 const inputField = {
@@ -92,8 +98,17 @@ const touchedObjectToArr = (touchedObj: TouchedObject) => {
 };
 
 
-const schema = Yup.object().shape({
-	"primaryartist": Yup.object().nullable().test(
+const schema: Yup.ObjectSchema<SongInfoForm> = Yup.object().shape({
+	name: Yup.string().nullable().defined(),
+	album: albumOptionSchema.nullable(),
+	stations: Yup.array().required().of(stationOptionSchema),
+	playlists: Yup.array().required().of(playlistOptionSchema),
+	treepath: Yup.string().optional(),
+	genre: Yup.string().required(),
+	track: Yup.string().optional().nullable(),
+	tracknum: Yup.number().required(),
+	discnum: Yup.number().defined().nullable(),
+	primaryartist: artistOptionSchema.nullable().defined().test(
 		"primaryartist",
 		"Primary Artist is already listed.",
 		(value, testContext: Yup.TestContext<Partial<SongInfoForm>>) => {
@@ -104,12 +119,12 @@ const schema = Yup.object().shape({
 			return true;
 		}
 	),
-	"artists": Yup.array().nullable().test(
+	artists: Yup.array().required().of(artistOptionSchema).test(
 		"artists",
 		"",
 		(value, testContext) => {
 			if (!value) return true;
-			const found: { [key: IdValue]: true} = {};
+			const found: { [key: Token]: true} = {};
 			for (const artist of value) {
 				if (artist?.id === testContext.parent.primaryartist?.id) {
 					return testContext.createError({
@@ -129,6 +144,9 @@ const schema = Yup.object().shape({
 			return true;
 		}
 	),
+	rules: Yup.array().of(actionRuleOptionSchema).required(),
+	touched: Yup.mixed<TouchedObject>().required(),
+	trackinfo: Yup.mixed<Record<Token, TrackListing>>().required(),
 });
 
 export const SongEdit = () => {
@@ -190,6 +208,8 @@ export const SongEdit = () => {
 			stations: [],
 			playlists: [],
 			genre: "",
+			touched: {},
+			trackinfo: {},
 		},
 		resolver: yupResolver(schema),
 	});
@@ -250,7 +270,7 @@ export const SongEdit = () => {
 		/>;
 	};
 
-	const callSubmit = handleSubmit(async values => {
+	const callSubmit = handleSubmit(async (values) => {
 		try {
 			const valuesSavura = {
 				...values,
@@ -260,6 +280,7 @@ export const SongEdit = () => {
 				Calls.update({ id: ids[0], data: valuesSavura }) :
 				Calls.updateMulti({ ids, data: valuesSavura });
 			const data = await requestObj.call();
+			data.touched = data.touched || {};
 			reset(data);
 			enqueueSnackbar("Save successful", { variant: "success"});
 		}
@@ -371,6 +392,11 @@ export const SongEdit = () => {
 		setValue("trackinfo",trackinfoMap);
 		handleMutliSongTouchedCheck("trackinfo");
 	};
+
+	if (Object.keys(formState.errors).length) {
+		console.log(getValues());
+		console.error(formState.errors);
+	}
 
 
 	return (<Loader status={callStatus} error={state.error}>
@@ -614,7 +640,7 @@ export const SongEdit = () => {
 						>
 							<FormTextField
 								sx={trackNumberField}
-								name={`trackinfo[${k}].tracknum`}
+								name={`trackinfo.${k}.tracknum`}
 								formMethods={formMethods}
 								label={`${trackinfoMap[k].name}`}
 								disabled={!canEditSongs}

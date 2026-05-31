@@ -219,7 +219,7 @@ export const AlbumNewModalOpener = (props: AlbumNewModalOpenerProps) => {
 				name: values.name,
 				year: values.year || undefined,
 				albumartist: values.albumartist || undefined,
-				stations: values.stations,
+				stations: values.stations || [],
 				versionnote: values.versionnote,
 			} });
 			const album = await requestObj.call();

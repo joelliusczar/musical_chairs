@@ -393,12 +393,6 @@ export const SongEdit = () => {
 		handleMutliSongTouchedCheck("trackinfo");
 	};
 
-	if (Object.keys(formState.errors).length) {
-		console.log(getValues());
-		console.error(formState.errors);
-	}
-
-
 	return (<Loader status={callStatus} error={state.error}>
 		<Box sx={inputField}>
 			<Typography variant="h1">

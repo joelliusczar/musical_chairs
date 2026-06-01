@@ -15,7 +15,7 @@ export interface AlbumInfo {
 	name: string
 	year: number | null
 	albumartist: ArtistInfo | null
-	versionnote: string
+	versionnote?: string
 	stations?: StationInfo[]
 	owner: User
 	rules: ActionRule[]

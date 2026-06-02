@@ -140,7 +140,7 @@ export interface SongInfoBase extends AllNullable<Named> {
 	album: AlbumInfo | null
 	stations: StationInfo[]
 	playlists: PlaylistInfo[]
-	genre?: string
+	genre?: string | null
 	track?: string | null
 	tracknum: number
 	discnum: number | null

@@ -134,7 +134,7 @@ export interface TrackListing {
 };
 
 export interface SongInfoBase extends AllNullable<Named> {
-	treepath?: string
+	treepath?: string | null
 	artists: ArtistInfo[]
 	primaryartist: ArtistInfo | null
 	album: AlbumInfo | null
@@ -143,7 +143,7 @@ export interface SongInfoBase extends AllNullable<Named> {
 	genre?: string | null
 	track?: string | null
 	tracknum: number
-	discnum: number | null
+	discnum?: number | null
 };
 
 

@@ -107,7 +107,7 @@ const schema: Yup.ObjectSchema<SongInfoForm> = Yup.object().shape({
 	genre: Yup.string().optional().nullable(),
 	track: Yup.string().optional().nullable(),
 	tracknum: Yup.number().required(),
-	discnum: Yup.number().defined().nullable(),
+	discnum: Yup.number().optional().nullable(),
 	primaryartist: artistOptionSchema.nullable().defined().test(
 		"primaryartist",
 		"Primary Artist is already listed.",

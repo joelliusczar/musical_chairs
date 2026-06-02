@@ -104,7 +104,7 @@ const schema: Yup.ObjectSchema<SongInfoForm> = Yup.object().shape({
 	stations: Yup.array().required().of(stationOptionSchema),
 	playlists: Yup.array().required().of(playlistOptionSchema),
 	treepath: Yup.string().optional(),
-	genre: Yup.string().required(),
+	genre: Yup.string().optional(),
 	track: Yup.string().optional().nullable(),
 	tracknum: Yup.number().required(),
 	discnum: Yup.number().defined().nullable(),

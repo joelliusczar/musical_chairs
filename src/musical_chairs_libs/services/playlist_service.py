@@ -417,7 +417,7 @@ class PlaylistService:
 			displayname = playlist.displayname,
 			lastmodifiedbyuserfk = user.id,
 			lastmodifiedtimestamp = self.get_datetime().timestamp()
-		)
+		).where(pl_pk == playlistId)
 		try:
 			with self.conn.begin() as transaction:
 				res = self.conn.execute(stmt)
@@ -466,7 +466,7 @@ class PlaylistService:
 
 	def __is_playlistName_used__(
 		self,
-		id: Optional[int],
+		id: int | None,
 		playlistName: SavedNameString,
 	) -> bool:
 		userId = self.current_user_provider.current_user().id
@@ -480,7 +480,7 @@ class PlaylistService:
 
 	def is_playlistName_used(
 		self,
-		id: Optional[int],
+		id: int | None,
 		playlistName: str,
 	) -> bool:
 		cleanedPlaylistName = SavedNameString(playlistName)

@@ -18,7 +18,7 @@ export interface PlaylistCreationInfo extends Named {
 }
 
 export interface PlaylistInfo extends NamedTokenItem {
-	displayname: string
+	displayname?: string | null
 	owner: User
 	viewsecuritylevel: IdValue
 	rules: ActionRule[]

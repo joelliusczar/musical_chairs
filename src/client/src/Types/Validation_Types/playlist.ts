@@ -39,7 +39,7 @@ Yup.object().shape({
 export const playlistOptionSchema: Yup.ObjectSchema<PlaylistInfo> = Yup.object({
 	id: Yup.string().required(),
 	name: Yup.string().required(),
-	displayname: Yup.string().required(),
+	displayname: Yup.string().optional().nullable(),
 	owner: userOptionSchema.required(),
 	rules: Yup.array().of(actionRuleOptionSchema).required(),
 	viewsecuritylevel: Yup.number().required(),

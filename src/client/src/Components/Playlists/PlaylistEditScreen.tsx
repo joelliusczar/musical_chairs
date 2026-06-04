@@ -70,6 +70,7 @@ const playlistInfoToFormData = (data: PlaylistInfo) => {
 		.filter(o => o.id === data.viewsecuritylevel);
 	const formData = {
 		...data,
+		displayname: data.displayname || "",
 		viewsecuritylevel: viewSecurityLevel.length ?
 			viewSecurityLevel[0] : viewSecurityOptions[0],
 	};
@@ -137,7 +138,7 @@ export const PlaylistEditScreen = () => {
 		try {
 			if (get(state, "data.id")) {
 				const requestObj = Calls.update({
-					id: state.data.id, 
+					id: state.data.id,
 					data: {
 						name: values.name,
 						displayname: values.displayname || "",

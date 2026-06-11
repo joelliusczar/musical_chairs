@@ -1,0 +1,9 @@
+---
+- hosts: all
+
+  tasks:
+    - name: Copy configs and scripts for server maintenance
+      include_role:
+        name: maintenance-helper-setup
+      vars:
+        mt_user: '{{domain["server_user"]}}'

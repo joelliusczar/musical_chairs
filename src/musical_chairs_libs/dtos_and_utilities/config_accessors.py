@@ -2,7 +2,6 @@ import json
 import logging as builtin_logging
 import os
 import re
-from contextlib import contextmanager
 from uuid import UUID
 from typing import Any
 from pathlib import Path
@@ -10,15 +9,6 @@ from pathlib import Path
 
 
 class ConfigAcessors:
-
-	config_overrides: dict[str, Any] = {}
-
-	@classmethod
-	def get_value(cls, envKey: str, overrideKey: str | None = None) -> Any:
-		if overrideKey is not None and overrideKey in cls.config_overrides:
-			return cls.config_overrides[overrideKey]
-		return os.environ[envKey]
-
 
 	@classmethod
 	def app_root(cls) -> str:
@@ -29,69 +19,69 @@ class ConfigAcessors:
 
 	@classmethod
 	def absolute_content_home(cls) -> str:
-		return cls.get_value("DSF_CONTENT_DIR", "absolute_content_home")
+		return os.environ["DSF_CONTENT_DIR"]
 
 
 	@classmethod
 	def db_setup_pass(cls) -> str:
-		return cls.get_value("DSF_DB_PASS_SETUP","db_setup_pass")
+		return os.environ["DSF_DB_PASS_SETUP"]
 
 
 	@classmethod
 	def db_pass_api(cls) -> str:
-		return cls.get_value("DSF_DB_PASS_API","db_pass_api")
+		return os.environ["DSF_DB_PASS_API"]
 
 
 	@classmethod
 	def db_pass_radio(cls) -> str:
-		return cls.get_value("DSF_DB_PASS_RADIO","db_pass_radio")
+		return os.environ["DSF_DB_PASS_RADIO"]
 
 
 	@classmethod
 	def db_pass_janitor(cls) -> str:
-		return cls.get_value("DSF_DB_PASS_JANITOR","db_pass_janitor")
+		return os.environ["DSF_DB_PASS_JANITOR"]
 
 
 	@classmethod
 	def db_pass_owner(cls) -> str:
-		return cls.get_value("DSF_DB_PASS_OWNER","db_pass_owner")
+		return os.environ["DSF_DB_PASS_OWNER"]
 
 
 	@classmethod
 	def namespace_uuid(cls) -> UUID:
-		return UUID(cls.get_value("DSF_NAMESPACE_UUID", "namespace_uuid"))
+		return UUID(os.environ["DSF_NAMESPACE_UUID"])
 
 
 	@classmethod
 	def templates_dir(cls) -> str:
-		return cls.get_value("DSF_TEMPLATES_DEST", "templates_dir")
+		return os.environ["DSF_TEMPLATES_DEST"]
 
 
 	@classmethod
 	def station_config_dir(cls) -> str:
-		return cls.get_value("DSF_ICES_CONFIGS_DIR", "station_config_dir")
+		return os.environ["DSF_ICES_CONFIGS_DIR"]
 
 
 	@classmethod
 	def station_module_dir(cls) -> str:
-		return cls.get_value("DSF_PY_MODULE_DIR", "station_module_dir")
+		return os.environ["DSF_PY_MODULE_DIR"]
 
 
 	@classmethod
 	def db_name(cls) -> str:
-		return cls.get_value("DSF_DATABASE_NAME", "db_name")
+		return os.environ["DSF_DATABASE_NAME"]
 
 	@classmethod
 	def s3_bucket_name(cls) -> str:
-		return cls.get_value("S3_BUCKET_NAME", "s3_bucket_name")
+		return os.environ["S3_BUCKET_NAME"]
 
 	@classmethod
 	def s3_region_name(cls) -> str:
-		return cls.get_value("S3_REGION_NAME", "s3_region_name")
+		return os.environ["S3_REGION_NAME"]
 
 	@classmethod
 	def s3_endpoint(cls) -> str:
-		return cls.get_value("AWS_ENDPOINT_URL", "s3_endpoint")
+		return os.environ["AWS_ENDPOINT_URL"]
 
 	@classmethod
 	def __test_flag__(cls) -> bool:
@@ -99,50 +89,48 @@ class ConfigAcessors:
 
 	@classmethod
 	def auth_key(cls) -> str:
-		return cls.get_value("DSF_AUTH_SECRET_KEY", "auth_key")
+		return os.environ["DSF_AUTH_SECRET_KEY"]
 	
 	@classmethod
 	def back_key(cls) -> str:
-		return cls.get_value("DSF_BACK_KEY", "back_key")
+		return os.environ["DSF_BACK_KEY"]
 	
 	@classmethod
 	def dev_app_user_name(cls) -> str:
-		return cls.get_value("DSF_DEV_APP_USER_NAME", "dev_app_user_name")
+		return os.environ["DSF_DEV_APP_USER_NAME"]
 
 	@classmethod
 	def dev_app_user_pw(cls) -> str:
-		return cls.get_value("DSF_DEV_APP_USER_PW", "dev_app_user_pw")
+		return os.environ["DSF_DEV_APP_USER_PW"]
 
 
 	@classmethod
 	def event_log_dir(cls) -> str:
-		return cls.get_value("DSF_EVENT_LOGS_DIR", "event_log_dir")
+		return os.environ["DSF_EVENT_LOGS_DIR"]
 
 
 	@classmethod
 	def visit_log_dir(cls) -> str:
-		return cls.get_value("DSF_VISIT_LOGS_DIR", "visit_log_dir")
+		return os.environ["DSF_VISIT_LOGS_DIR"]
 	
 
 	@classmethod
 	def station_queue_files_dir(cls) -> str:
-		return cls.get_value("DSF_QUEUE_FILES_DIR", "station_queue_files_dir")
+		return os.environ["DSF_QUEUE_FILES_DIR"]
 	
 	@classmethod
 	def shuffled_alphabet(cls) -> str:
-		return cls.get_value("DSF_SHUFFLED_ALPHABET", "shuffled_alphabet")
+		return os.environ["DSF_SHUFFLED_ALPHABET"]
 	
 
 	@classmethod
 	def station_history_files_dir(cls) -> str:
-		return cls.get_value(
-			"DSF_STATION_HISTORY_FILES_DIR",
-			"station_history_files_dir")
+		return os.environ["DSF_STATION_HISTORY_FILES_DIR"]
 	
 
 	@classmethod
 	def alembic_ini(cls) -> str:
-		return cls.get_value("DSF_ALEMBIC_INI", "alembic_ini")
+		return os.environ["DSF_ALEMBIC_INI"]
 
 
 	@classmethod
@@ -199,15 +187,6 @@ class ConfigAcessors:
 			return json.loads(contents)
 		except:
 			return {}
-
-
-	@classmethod
-	@contextmanager
-	def override_configs(cls, overrides: dict[str, Any]):
-		if overrides:
-			cls.config_overrides = overrides
-		yield
-		cls.config_overrides = {}
 
 
 	@staticmethod

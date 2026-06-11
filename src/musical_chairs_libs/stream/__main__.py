@@ -155,9 +155,17 @@ def launch_loading(stationName: str, ownerName: str):
 				fileService
 			)
 	finally:
-		log_config.radioLogger.info("Disabling the station")
-		stationProcessService.unset_station_procs(stationIds=station.decoded_id())
-		close_db_connection(conn, "loading")
+		try:
+			log_config.radioLogger.info(
+				f"Disabling the station: {station.decoded_id()}"
+			)
+			stationProcessService.unset_station_procs(
+				stationIds=station.decoded_id()
+			)
+			close_db_connection(conn, "loading")
+		except Exception as ex:
+			log_config.radioLogger.error("Error attempting to close station")
+			log_config.radioLogger.error(ex, exc_info=True)
 
 
 def launch_sending(stationName: str, ownerName: str):
@@ -218,7 +226,6 @@ def start_song_queue(dbName: str, stationName: str, ownerName: str):
 		target=launch_sending,
 		args=[stationName, ownerName]
 	)
-
 
 	try:
 		loadThread.start()

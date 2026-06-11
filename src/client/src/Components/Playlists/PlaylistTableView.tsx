@@ -48,10 +48,7 @@ export const PlaylistTableView = () => {
 	const canEditPlaylists = useHasAnyRoles([UserRoleDef.PLAYLIST_EDIT]);
 	const canDeletePlaylists = useHasAnyRoles([UserRoleDef.PLAYLIST_DELETE]);
 
-
-
 	const [currentQueryStr, setCurrentQueryStr] = useState("");
-
 
 	const [tableDataState, tableDataDispatch] = useDataWaitingReducer(
 		new RequiredDataStore<PageableListDataShape<PlaylistInfo>>({
@@ -61,7 +58,6 @@ export const PlaylistTableView = () => {
 	);
 
 	const { callStatus: queueCallStatus } = tableDataState;
-
 
 	const authReset = useCallback(() => {
 		tableDataDispatch(dispatches.restart());
@@ -132,11 +128,9 @@ export const PlaylistTableView = () => {
 			</Button>);
 	};
 
-
 	useEffect(() => {
 		document.title = "Musical Chairs - Playlists";
 	},[]);
-
 
 	useEffect(() => {
 		if (currentQueryStr === `${location.pathname}${location.search}`) return;
@@ -197,6 +191,7 @@ export const PlaylistTableView = () => {
 											getPageUrl={urlBuilder.getThisUrl}
 										/>
 									</TableCell>
+									<TableCell>Display Name</TableCell>
 									<TableCell></TableCell>
 								</TableRow>
 							</TableHead>
@@ -206,6 +201,9 @@ export const PlaylistTableView = () => {
 										<TableRow key={`playlist_${idx}`}>
 											<TableCell>
 												{item.name || "{No playlist name}"}
+											</TableCell>
+											<TableCell>
+												{item.displayname || ""}
 											</TableCell>
 											<TableCell>
 												{rowButton(item, idx)}

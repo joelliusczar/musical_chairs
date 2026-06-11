@@ -149,7 +149,7 @@ class StationProcessService:
 	def unset_station_procs(
 		self,
 		procIds: Iterable[int] | None=None,
-		stationIds: int |Sequence[int] | None | Lost=Lost()
+		stationIds: int | Sequence[int] | None | Lost=Lost()
 	) -> None:
 		stmt = update(stations_tbl)\
 			.values(procid = None)

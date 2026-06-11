@@ -51,6 +51,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	DbConnectionProvider,
 	get_path_owner_roles,
 	normalize_opening_slash,
+	set_env
 )
 from musical_chairs_libs.protocols import FileService, TrackingInfoProvider
 from pathlib import Path
@@ -86,7 +87,7 @@ def fixture_setup_db(request: pytest.FixtureRequest) -> Iterator[str]:
 	#some tests were failing because db name was too long
 	testId =  hashlib.md5(request.node.name.encode("utf-8")).hexdigest()
 	dbName=f"test_{testId}_musical_chairs_db"
-	with ConfigAcessors.override_configs({"db_name": dbName}):
+	with set_env(DSF_DATABASE_NAME=dbName):
 		setup_database(dbName, "../../alembic")
 	try:
 		yield dbName

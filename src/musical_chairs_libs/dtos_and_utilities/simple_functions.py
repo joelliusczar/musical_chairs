@@ -2,6 +2,7 @@
 import bcrypt
 import dataclasses
 import email_validator #pyright: ignore reportUnknownMemberType
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -298,6 +299,16 @@ def open_transaction(conn: Connection):
 		with conn.begin() as transaction:
 			yield transaction
 
+@contextmanager
+def set_env(**environ: str):
+	old_env = dict(os.environ)
+	os.environ.update(environ)
+
+	try:
+		yield
+	finally:
+		os.environ.clear()
+		os.environ.update(old_env)
 
 def encode_id(id: int) -> str:
 	sqids = Sqids(
@@ -328,9 +339,6 @@ def encode_station_id(id: int) -> str:
 	return encode_id(id)
 
 
-
-
-
 def decode_id(id: str) -> int:
 	sqids = Sqids(
 		alphabet=ConfigAcessors.shuffled_alphabet(),
@@ -341,7 +349,6 @@ def decode_id(id: str) -> int:
 	if decoded:
 		return int(decoded[0]) #pyright: ignore reportUnknownMemberType
 	return 0
-	
 
 
 def decode_id_or_not[T](

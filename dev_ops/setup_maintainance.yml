@@ -1,6 +1,9 @@
 ---
 - hosts: all
 
+  vars_files:
+    - vars/globals.yml
+
   tasks:
     - name: Copy configs and scripts for server maintenance
       include_role:

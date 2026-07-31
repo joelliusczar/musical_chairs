@@ -277,7 +277,7 @@ def send_next(
 		if isinstance(e, TimeoutError) and not check_is_running():
 			log_config.radioLogger.warning(e, exc_info=True)
 			log_config.radioLogger.debug("Queue has stopped waiting on get")
-			return icesRestartsAllowed - 1
+			return 0
 		log_config.radioLogger.error(e, exc_info=True)
 		return icesRestartsAllowed - 1
 	finally:

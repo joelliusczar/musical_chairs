@@ -2,6 +2,7 @@ import os
 import sys
 import signal
 import subprocess
+import time
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
@@ -26,6 +27,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 from musical_chairs_libs.protocols import FileService
 from musical_chairs_libs.services.fs import S3FileService
 from sqlalchemy.engine import Connection
+from sqlalchemy.exc import OperationalError
 
 def __end_stream__():
 	queue_song_source.stopRunning = True
@@ -159,9 +161,20 @@ def launch_loading(stationName: str, ownerName: str):
 			log_config.radioLogger.info(
 				f"Disabling the station: {station.decoded_id()}"
 			)
-			stationProcessService.unset_station_procs(
-				stationIds=station.decoded_id()
-			)
+			attempts = 0
+			while True:
+				try:
+					stationProcessService.unset_station_procs(
+						stationIds=station.decoded_id()
+					)
+				except OperationalError:
+					attempts += 1
+					log_config.radioLogger.warning(f"Database error. Attempt: {attempts}")
+					if attempts > 3:
+						log_config.radioLogger.error(
+							f"Retried {attempts} times to avoid database issue"
+						)
+						break
 			close_db_connection(conn, "loading")
 		except Exception as ex:
 			log_config.radioLogger.error("Error attempting to close station")
@@ -187,26 +200,30 @@ def launch_sending(stationName: str, ownerName: str):
 		ownerName,
 		exactStrMatch=True)))
 	try:
-
-		if station.typeid == StationTypes.SONGS_ONLY.value:
-			queue_song_source.send_next(
-				station.decoded_id(),
-				start_ices,
-				queueService,
-				ProcessService.stream_timeout
-			)
-		else:
-			collectionQueueService = CollectionQueueService(
-				conn,
-				queueService,
-				currentUserProvider
-			)
-			queue_song_source.send_next(
-				station.decoded_id(),
-				start_ices,
-				collectionQueueService,
-				ProcessService.stream_timeout
-			)
+		restartsAllowed = 3
+		while restartsAllowed > 0:
+			if station.typeid == StationTypes.SONGS_ONLY.value:
+				restartsAllowed = queue_song_source.send_next(
+					station.decoded_id(),
+					start_ices,
+					queueService,
+					ProcessService.stream_timeout,
+					restartsAllowed
+				)
+			else:
+				collectionQueueService = CollectionQueueService(
+					conn,
+					queueService,
+					currentUserProvider
+				)
+				restartsAllowed = queue_song_source.send_next(
+					station.decoded_id(),
+					start_ices,
+					collectionQueueService,
+					ProcessService.stream_timeout,
+					restartsAllowed
+				)
+			time.sleep(restartsAllowed)
 	finally:
 		close_db_connection(conn, "sending")
 		queue_song_source.clean_up_ices_process()

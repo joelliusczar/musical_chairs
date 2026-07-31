@@ -197,14 +197,16 @@ def send_next(
 		stationId: int,
 		startSubProcess: Callable[[str], subprocess.Popen[bytes]],
 		songPopper: SongPopper,
-		timeout: int
-	):
+		timeout: int,
+		icesRestartsAllowed: int
+	) -> int:
 	global icesProcess
 	currentFile = None
 	queueItem = None
 	skipped = False
 	host = "127.0.0.1"
 	portNumber = 0
+	restartProcess = False
 	listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	log_config.radioLogger.info(f"Beginning data send")
 	try:
@@ -215,7 +217,7 @@ def send_next(
 		conn = accept(listener, timeout)
 		if not conn:
 			log_config.radioLogger.error("No connection")
-			return
+			return 0
 		with conn:
 			while True:
 				returnCode = icesProcess.poll()
@@ -231,7 +233,11 @@ def send_next(
 					res = conn.recv(1)
 					if res == b"0":
 						log_config.radioLogger.info("zero signal sent from ices")
+						restartProcess = True
 						break
+					else:
+						#reset the count upon success
+						icesRestartsAllowed = max(icesRestartsAllowed, 3)
 				if queueItem:
 					with loadingLock:
 						loaded.remove(queueItem)
@@ -266,17 +272,20 @@ def send_next(
 					)
 					conn.sendall(b"\n\n")
 					break
+		return 0 if not restartProcess else icesRestartsAllowed - 1
 	except Exception as e:
 		if isinstance(e, TimeoutError) and not check_is_running():
 			log_config.radioLogger.warning(e, exc_info=True)
 			log_config.radioLogger.debug("Queue has stopped waiting on get")
-			return
+			return icesRestartsAllowed - 1
 		log_config.radioLogger.error(e, exc_info=True)
+		return icesRestartsAllowed - 1
 	finally:
 		log_config.radioLogger.debug("send_next finally")
-		stop()
+		if not restartProcess:
+			stop()
+			clean_up_tmp_files()
 		cleanup_socket(listener)
-		clean_up_tmp_files()
 		clean_up_ices_process()
 
 

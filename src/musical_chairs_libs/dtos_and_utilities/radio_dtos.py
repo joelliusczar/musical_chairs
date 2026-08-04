@@ -108,10 +108,14 @@ class SongArtistTuple:
 	
 	def __repr__(self) -> str:
 		return str(self)
+	
+class SongSuffix(TokenItem):
+	suffix: str
 
-
-class SongPathInfo(TokenItem):
+class TreePathInfo(TokenItem):
 	treepath: str
+
+class SongPathInfo(TreePathInfo):
 	internalpath: str
 
 

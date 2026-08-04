@@ -25,7 +25,7 @@ from musical_chairs_libs.dtos_and_utilities import (
 	StationTypes
 )
 from musical_chairs_libs.protocols import FileService
-from musical_chairs_libs.services.fs import S3FileService
+from musical_chairs_libs.services.fs import FileServiceFactory
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import OperationalError
 
@@ -57,7 +57,7 @@ def close_db_connection(conn: Connection, connName: str):
 
 
 def file_service() -> FileService:
-	return S3FileService()
+	return FileServiceFactory.get_file_service()
 
 
 def path_rule_service(conn: Connection) -> PathRuleService:

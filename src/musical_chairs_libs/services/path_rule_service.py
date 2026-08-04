@@ -220,9 +220,7 @@ class PathRuleService:
 			else:
 				query = query.where(sg_pk == itemIds)
 			results = self.conn.execute(query).fetchall()
-			yield from (self.file_service.song_absolute_path(cast(str,row[0])) \
-				for row in results
-			)
+			yield from (cast(str,row[0]) for row in results)
 
 
 	def get_permitted_paths_tree(

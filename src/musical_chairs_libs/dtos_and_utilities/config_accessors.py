@@ -177,6 +177,10 @@ class ConfigAcessors:
 	@classmethod
 	def ices_executable(cls) -> str:
 		return str(Path(os.environ["DSF_ICES_EXECUTABLE"]).expanduser())
+	
+	@classmethod
+	def file_env(cls) -> str:
+		return os.environ.get("DSF_FILE_ENV","")
 
 
 	@classmethod

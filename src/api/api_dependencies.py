@@ -60,7 +60,7 @@ from musical_chairs_libs.protocols import (
 	FileService,
 )
 from musical_chairs_libs.services.fs import (
-	S3FileService
+	FileServiceFactory
 )
 from musical_chairs_libs.dtos_and_utilities import (
 	ActionRule,
@@ -249,7 +249,7 @@ def fs_events_query_service() -> FSEventsQueryService:
 
 
 def file_service() -> FileService:
-	return S3FileService()
+	return FileServiceFactory.get_file_service()
 
 
 def basic_user_provider(

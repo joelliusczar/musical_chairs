@@ -8,10 +8,11 @@ import {
 } from "../../API_Calls/songInfoCalls";
 import { useForm } from "react-hook-form";
 import { formatError } from "../../Helpers/error_formatter";
+import {  notNullPredicate } from "../../Helpers/array_helpers";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import {
-	UploadInfo,
+	UploadItem,
 	SongTreeNodeInfo,
 	MultiUploadInfo,
 } from "../../Types/song_info_types";
@@ -54,26 +55,48 @@ export const SongUpload = (props: SongUploadProps) => {
 	const schema: Yup.ObjectSchema<MultiUploadInfo> = Yup.object().shape({
 		files: Yup.array().required().of(Yup.object().required().shape({
 			file: Yup.mixed<File>().required(),
-			suffix: Yup.string().required().test(
-				"suffix",
-				(value) => `${value.value} is already used`,
-				async (value: string | undefined, context) => {
-					if (!value) return true;
+			suffix: Yup.string().required(),
+		})).test(
+			"suffixes",
+			(value) => `${value.value} is already used`,
+			async (value: UploadItem[], context) => {
+				if (!value) return true;
+				try {
 					const requestObj = Calls.checkSuffixes({ 
 						prefix,
-						songSuffixes: context.parent.files.map(
-							(f: UploadInfo) => ({ 
-								treepath: f.suffix,
-								internalpath: "",
+						songSuffixes: value.map(
+							(f: UploadItem) => ({ 
+								suffix: f.suffix,
 								id: 0,
 							})
 						),
 					});
 					const used = await requestObj.call();
-					return !(	value in used) || !used[value];
+					const badPaths = value
+						.map((f, idx) => {
+							if (f.suffix in used && !used[f.suffix]) return null;
+							return new Yup.ValidationError(
+								`${f.suffix} is already used.`,
+								f.suffix,
+								`${context.path}[${idx}].suffix`
+							);
+						})
+						.filter(notNullPredicate);
+					
+					if (badPaths.length === 0) return true;
+
+					return context.createError({
+						message: () => badPaths,
+					});
 				}
-			),
-		})),
+				catch(err) {
+					return context.createError({
+						path: `${context.path}[0].suffix`,
+						message: formatError(err),
+					});
+				}
+			}
+		),
 	});
 
 	const formMethods = useForm<MultiUploadInfo>({

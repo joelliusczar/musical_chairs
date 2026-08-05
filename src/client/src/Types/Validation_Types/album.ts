@@ -11,7 +11,7 @@ export const albumOptionSchema: Yup.ObjectSchema<AlbumInfo> = Yup.object({
 	owner: userOptionSchema.required(),
 	year: Yup.number().defined().nullable(),
 	albumartist: artistOptionSchema.defined().nullable(),
-	versionnote: Yup.string().optional(),
+	versionnote: Yup.string().optional().nullable(),
 	stations: Yup.array().of(stationOptionSchema).optional(),
 	rules: Yup.array().of(actionRuleOptionSchema).required(),
 });

@@ -242,7 +242,6 @@
           DSF_VISIT_LOGS_DIR='{{app_trunk}}/visit_logs'
           DSF_QUEUE_FILES_DIR='{{app_trunk}}/queues'
           DSF_SHUFFLED_ALPHABET='{{keys["shuffled_alphabet"]}}'
-          DSF_FILE_ENV='{{is_local | ternary("LOCAL","")}}'
     - name: Add API run script
       copy: 
         dest: '/home/{{domain["server_user"]}}/run_api.sh'

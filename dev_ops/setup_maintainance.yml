@@ -11,3 +11,6 @@
         name: maintenance-helper-setup
       vars:
         mt_user: '{{domain["user"]}}'
+    - name: Setup fail2ban
+      include_role:
+        name: fail2ban-setup

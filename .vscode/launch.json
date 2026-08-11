@@ -50,7 +50,7 @@
         "DSF_QUEUE_FILES_DIR": "./test_trash/musical_chairs/queues",
         "DSF_STATION_HISTORY_FILES_DIR": "./test_trash/musical_chairs/station_histories",
         "DSF_SHUFFLED_ALPHABET": "abcdefghijklmnopqrstuvwxy0123456789",
-        "DSF_FILE_ENV": "LOCAL"
+        "DSF_FILE_ENV": "XLOCAL"
       },
       "args": [
         "${userHome}/.ssh/localhost_debug.private.pem",

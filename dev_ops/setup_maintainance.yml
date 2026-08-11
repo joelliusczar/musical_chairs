@@ -5,6 +5,11 @@
     - vars/vault.yml
     - vars/globals.yml
 
+  pre_tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
+
   tasks:
     - name: Copy configs and scripts for server maintenance
       include_role:

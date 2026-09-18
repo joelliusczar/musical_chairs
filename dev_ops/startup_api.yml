@@ -288,10 +288,21 @@
         env_name: '{{item["name"]}}'
         server_name: '{{item["server_name"]}}'
         app_prefix: '{{app_details["name"]|to_snake()}}'
-        api_port: '{{item["port"]}}'
         common_name: '{{item["common_name"]}}'
         ssh_dir: '{{item["ssh_dir"]}}'
         serve_dir: '{{item["client_dir"]}}'
+        root_config: '{{dev_files["nginx_root_config"]}}'
+      loop: '{{env_list}}'
+      loop_control:
+        label: '{{item.name}}'
+    - name: Replace app Specific config
+      become: true
+      template: 
+        src: nginx_template.j2
+        dest: '/etc/nginx/sites-enabled/snippets/optional.d/app'
+        validate: 'nginx -t -c %s'
+      vars:
+        api_port: '{{item["port"]}}'
       loop: '{{env_list}}'
       loop_control:
         label: '{{item.name}}'

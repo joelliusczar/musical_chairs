@@ -197,9 +197,8 @@ def send_next(
 		stationId: int,
 		startSubProcess: Callable[[str], subprocess.Popen[bytes]],
 		songPopper: SongPopper,
-		timeout: int,
-		icesRestartsAllowed: int
-	) -> int:
+		timeout: int
+	):
 	global icesProcess
 	currentFile = None
 	queueItem = None
@@ -235,9 +234,6 @@ def send_next(
 						log_config.radioLogger.info("zero signal sent from ices")
 						restartProcess = True
 						break
-					else:
-						#reset the count upon success
-						icesRestartsAllowed = max(icesRestartsAllowed, 3)
 				if queueItem:
 					with loadingLock:
 						loaded.remove(queueItem)
@@ -272,14 +268,14 @@ def send_next(
 					)
 					conn.sendall(b"\n\n")
 					break
-		return 0 if not restartProcess else icesRestartsAllowed - 1
+		return
 	except Exception as e:
 		if isinstance(e, TimeoutError) and not check_is_running():
 			log_config.radioLogger.warning(e, exc_info=True)
 			log_config.radioLogger.debug("Queue has stopped waiting on get")
 			return 0
 		log_config.radioLogger.error(e, exc_info=True)
-		return icesRestartsAllowed - 1
+		return
 	finally:
 		log_config.radioLogger.debug("send_next finally")
 		if not restartProcess:

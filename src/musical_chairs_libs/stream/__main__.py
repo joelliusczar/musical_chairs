@@ -2,7 +2,6 @@ import os
 import sys
 import signal
 import subprocess
-import time
 from . import queue_song_source
 from typing import Any
 from musical_chairs_libs.services import (
@@ -200,30 +199,25 @@ def launch_sending(stationName: str, ownerName: str):
 		ownerName,
 		exactStrMatch=True)))
 	try:
-		restartsAllowed = 3
-		while restartsAllowed > 0:
-			if station.typeid == StationTypes.SONGS_ONLY.value:
-				restartsAllowed = queue_song_source.send_next(
-					station.decoded_id(),
-					start_ices,
-					queueService,
-					ProcessService.stream_timeout,
-					restartsAllowed
-				)
-			else:
-				collectionQueueService = CollectionQueueService(
-					conn,
-					queueService,
-					currentUserProvider
-				)
-				restartsAllowed = queue_song_source.send_next(
-					station.decoded_id(),
-					start_ices,
-					collectionQueueService,
-					ProcessService.stream_timeout,
-					restartsAllowed
-				)
-			time.sleep(restartsAllowed)
+		if station.typeid == StationTypes.SONGS_ONLY.value:
+			queue_song_source.send_next(
+				station.decoded_id(),
+				start_ices,
+				queueService,
+				ProcessService.stream_timeout,
+			)
+		else:
+			collectionQueueService = CollectionQueueService(
+				conn,
+				queueService,
+				currentUserProvider
+			)
+			queue_song_source.send_next(
+				station.decoded_id(),
+				start_ices,
+				collectionQueueService,
+				ProcessService.stream_timeout
+			)
 	finally:
 		close_db_connection(conn, "sending")
 		queue_song_source.clean_up_ices_process()

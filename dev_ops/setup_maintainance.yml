@@ -5,7 +5,17 @@
     - vars/vault.yml
     - vars/globals.yml
 
+  vars:
+    is_local: '{{inventory_hostname in ["127.0.0.1", "localhost"]}}'
+
   pre_tasks:
+    - name: Check that latest is pushed up.
+      include_role:
+        name: repo-check
+      when: hostvars.localhost.skip_to_exit is not defined and not is_local
+    - name: End early?
+      meta: end_play
+      when: hostvars.localhost.skip_to_exit|default(omit) == true
     - include_vars: "{{ item }}"
       with_first_found:
         - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'

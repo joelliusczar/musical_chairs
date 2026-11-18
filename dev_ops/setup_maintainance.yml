@@ -29,3 +29,5 @@
     - name: Setup fail2ban
       include_role:
         name: fail2ban-setup
+      vars:
+        install_name: '{{packages["fail2ban"]}}'

@@ -1,98 +1,34 @@
+import musical_chairs_libs.dtos_and_utilities as dtos
+import musical_chairs_libs.services as mcr
 import os
 import sys
 import signal
 import subprocess
+import time
+import typing
 from . import queue_song_source
+from . import song_broker_context
 from typing import Any
-from musical_chairs_libs.services import (
-	BasicUserProvider,
-	CollectionQueueService,
-	CurrentUserProvider,
-	EmptyUserTrackingService,
-	PathRuleService,
-	ProcessService,
-	QueueService,
-	SongInfoService,
-	StationService,
-	StationProcessService,
-)
 from threading import Thread
 from setproctitle import setproctitle
 import musical_chairs_libs.dtos_and_utilities.log_config as log_config
-from musical_chairs_libs.dtos_and_utilities import (
-	DbConnectionProvider,
-	StationTypes
-)
-from musical_chairs_libs.protocols import FileService
-from musical_chairs_libs.services.fs import FileServiceFactory
-from sqlalchemy.engine import Connection
 from sqlalchemy.exc import OperationalError
 
-def __end_stream__():
-	queue_song_source.stopRunning = True
-	queue_song_source.clean_up_ices_process()
 
+class SignalHandlerFactory:
 
-def handle_keyboard(sigNum: Any, frame: Any):
-	log_config.radioLogger.info("Received interupt")
-	__end_stream__()
+	def __init__(self, broker: queue_song_source.SongBroker) -> None:
+		self.broker = broker
 
-
-def handle_terminate_signal(sigNum: Any, frame: Any):
-	log_config.radioLogger.info("Received termination signal")
-	__end_stream__()
-
-
-signal.signal(signal.SIGINT, handle_keyboard)
-signal.signal(signal.SIGTERM, handle_terminate_signal)
-
-
-def close_db_connection(conn: Connection, connName: str):
-	log_config.radioLogger.info(f"Closing the {connName} connection")
-	try:
-		conn.close()
-	except:
-		log_config.radioLogger.warning(f"Could not close the  {connName} connection")
-
-
-def file_service() -> FileService:
-	return FileServiceFactory.get_file_service()
-
-
-def path_rule_service(conn: Connection) -> PathRuleService:
-	return PathRuleService(
-		conn,
-		file_service(),
-		BasicUserProvider(None)
-	)
-
-
-def current_user_provider(conn: Connection) -> CurrentUserProvider:
-	pathRuleService = path_rule_service(conn)
-
-	currentUserProvider = CurrentUserProvider(
-		BasicUserProvider(None),
-		EmptyUserTrackingService(),
-		pathRuleService
-	)
-	return currentUserProvider
-
-
-def queue_service(conn: Connection) -> QueueService:
-	currentUserProvider = current_user_provider(conn)
-	pathRuleService = path_rule_service(conn)
-	songInfoService = SongInfoService(
-		conn,
-		currentUserProvider,
-		pathRuleService
-	)
-	queueService = QueueService(
-		conn,
-		currentUserProvider,
-		songInfoService,
-		pathRuleService,
-	)
-	return queueService
+	def build_signal_handler(
+		self,
+		name: str
+	) -> typing.Callable[[Any, Any], None]:
+		def handler(sigNum: Any, frame: Any):
+			log_config.radioLogger.info(f"Received {name} signal")
+			self.broker.stop()
+			self.broker.clean_up_ices_process()
+		return handler
 
 
 def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
@@ -106,158 +42,143 @@ def start_ices(portNumber: str) -> subprocess.Popen[bytes]:
 		log_config.radioLogger.info(
 			f"Starting mc ices with {ownerName}_{stationName}"
 		)
-		return ProcessService.start_station_mc_ices(
+		return mcr.ProcessService.start_station_mc_ices(
 			stationName,
 			ownerName,
 			portNumber
 		)
 
 
-def launch_loading(stationName: str, ownerName: str):
-	conn = DbConnectionProvider.get_configured_radio_connection(
-		dbName,
-		isolationLevel = "READ COMMITTED"
-	)
-	pathRuleService = path_rule_service(conn)
-	currentUserProvider = current_user_provider(conn)
-	stationService = StationService(
-		conn,
-		currentUserProvider,
-		pathRuleService
-	)
-	station = next(iter(stationService.get_stations(
-		stationName, 
-		ownerName,
-		exactStrMatch=True)))
-	stationProcessService = StationProcessService(
-		conn,
-		currentUserProvider,
-		stationService
-	)
-	stationProcessService.set_station_proc(station.decoded_id())
-	queueService = queue_service(conn)
-	fileService = file_service()
+def launch_loading(
+	broker: queue_song_source.SongBroker,
+	cleanup: typing.Callable[[], None]
+):	
 	try:
-		if station.typeid == StationTypes.SONGS_ONLY.value:
-			queue_song_source.load_data(
-				station.decoded_id(),
-				queueService,
-				fileService
-			)
-		else:
-			collectionQueueService = CollectionQueueService(
-				conn,
-				queueService,
-				currentUserProvider
-			)
-			queue_song_source.load_data(
-				station.decoded_id(),
-				collectionQueueService,
-				fileService
-			)
+		broker.load_loop()
 	finally:
-		try:
-			log_config.radioLogger.info(
-				f"Disabling the station: {station.decoded_id()}"
-			)
-			attempts = 0
-			while True:
-				try:
-					stationProcessService.unset_station_procs(
-						stationIds=station.decoded_id()
+		cleanup()
+
+def try_shutdown_station(
+	station: dtos.StationInfo,
+	stationProcessService: mcr.StationProcessService
+):
+	log_config.radioLogger.info(
+		f"Disabling the station: {station.decoded_id()}"
+	)
+	attempts = 0
+	try:
+		while True:
+			try:
+				stationProcessService.unset_station_procs(
+					stationIds=station.decoded_id()
+				)
+				break
+			except OperationalError:
+				attempts += 1
+				log_config.radioLogger.warning(f"Database error. Attempt: {attempts}")
+				if attempts > 3:
+					log_config.radioLogger.error(
+						f"Retried {attempts} times to avoid database issue"
 					)
-				except OperationalError:
-					attempts += 1
-					log_config.radioLogger.warning(f"Database error. Attempt: {attempts}")
-					if attempts > 3:
-						log_config.radioLogger.error(
-							f"Retried {attempts} times to avoid database issue"
-						)
-						break
-			close_db_connection(conn, "loading")
-		except Exception as ex:
-			log_config.radioLogger.error("Error attempting to close station")
-			log_config.radioLogger.error(ex, exc_info=True)
+					raise
+	except Exception as ex:
+		log_config.radioLogger.error("Error attempting to close station")
+		log_config.radioLogger.error(ex, exc_info=True)
 
 
-def launch_sending(stationName: str, ownerName: str):
+def launch_sending(
+	broker: queue_song_source.SongBroker,
+	cleanup: typing.Callable[[], None]
+):
 	
-	conn = DbConnectionProvider.get_configured_radio_connection(
-		dbName,
-		isolationLevel = "READ COMMITTED"
-	)
-	queueService = queue_service(conn)
-	pathRuleService = path_rule_service(conn)
-	currentUserProvider = current_user_provider(conn)
-	stationService = StationService(
-		conn,
-		currentUserProvider,
-		pathRuleService
-	)
-	station = next(iter(stationService.get_stations(
-		stationName,
-		ownerName,
-		exactStrMatch=True)))
 	try:
-		if station.typeid == StationTypes.SONGS_ONLY.value:
-			queue_song_source.send_next(
-				station.decoded_id(),
-				start_ices,
-				queueService,
-				ProcessService.stream_timeout,
-			)
-		else:
-			collectionQueueService = CollectionQueueService(
-				conn,
-				queueService,
-				currentUserProvider
-			)
-			queue_song_source.send_next(
-				station.decoded_id(),
-				start_ices,
-				collectionQueueService,
-				ProcessService.stream_timeout
-			)
+		restartsAllowed = 3
+		while restartsAllowed >= 0:
+			if not broker.send_loop(mcr.ProcessService.stream_timeout):
+				break
+			restartsAllowed -= 1
+			if restartsAllowed >= 0:
+				time.sleep(5 * (3 - restartsAllowed + 1))
+			if not broker.check_is_running():
+				break
 	finally:
-		close_db_connection(conn, "sending")
-		queue_song_source.clean_up_ices_process()
-
-
+		cleanup()
 
 
 def start_song_queue(dbName: str, stationName: str, ownerName: str):
 	log_config.radioLogger.error("Starting the queue process")
 	log_config.radioLogger.debug(f"Debug canary: {os.getcwd()}")
 
-	loadThread = Thread(
-		target=launch_loading,
-		args=[stationName, ownerName],
-	)
-	sendThread = Thread(
-		target=launch_sending,
-		args=[stationName, ownerName]
-	)
+	with song_broker_context.SongBrokerContext(
+		dbName,
+		stationName,
+		ownerName
+	) as load_support:
+		with song_broker_context.SongBrokerContext(
+			dbName,
+			stationName,
+			ownerName
+		) as send_support:
 
-	try:
-		loadThread.start()
-		sendThread.start()
+			station = load_support.station
+	
+			broker = queue_song_source.SongBroker(
+				load_support.pick_song_popper(),
+				send_support.pick_song_popper(),
+				station,
+				song_broker_context.file_service(),
+				start_ices
+			)
+			signalHandlerFactory = SignalHandlerFactory(broker)
 
-		while queue_song_source.stopRunning:
-			sendThread.join(30)
-		sendThread.join() #wait for clean up to finish
-		loadThread.join()
-		log_config.radioLogger.debug("Escaped the loop")
+			def send_thread_cleanup():
+				log_config.radioLogger.debug("send_thread_cleanup")
+				broker.stop()
+				broker.clean_up_tmp_files()
+				broker.clean_up_ices_process()
+
+			def load_thread_cleanup():
+				broker.stop()
+				
+
+			loadThread = Thread(
+				target=launch_loading,
+				args=[broker, load_thread_cleanup],
+			)
+			sendThread = Thread(
+				target=launch_sending,
+				args=[broker, send_thread_cleanup]
+			)
+
+			load_support.stationProcessService.set_station_proc(station.decoded_id())
+			signal.signal(
+				signal.SIGINT, 
+				signalHandlerFactory.build_signal_handler("keyboard")
+			)
+			signal.signal(
+				signal.SIGTERM, 
+				signalHandlerFactory.build_signal_handler("termination")
+			)
+			try:
+				loadThread.start()
+				sendThread.start()
+
+				sendThread.join() #wait for clean up to finish
+				loadThread.join()
+				log_config.radioLogger.debug("Escaped the loop")
 
 
-	finally:
-		log_config.radioLogger.debug(
-			f"Is loading thread alive? {loadThread.is_alive()}"
-		)
-		log_config.radioLogger.debug(
-			f"Is sending thread alive? {sendThread.is_alive()}"
-		)
-
-
+			finally:
+				broker.close_current_file()
+				try_shutdown_station(station, load_support.stationProcessService)
+				log_config.radioLogger.debug(
+					f"Is loading thread alive? {loadThread.is_alive()}"
+				)
+				log_config.radioLogger.debug(
+					f"Is sending thread alive? {sendThread.is_alive()}"
+				)
+				signal.signal(signal.SIGINT, signal.SIG_DFL)
+				signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
 
 

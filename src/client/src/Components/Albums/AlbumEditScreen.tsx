@@ -27,6 +27,7 @@ import { isCallPending } from "../../Helpers/request_helpers";
 import { Loader } from "../Shared/Loader";
 import {
 	Box,
+	Checkbox,
 	Table,
 	TableBody,
 	TableContainer,
@@ -65,6 +66,7 @@ export const AlbumEditScreen = () => {
 	const { callStatus, error } = state;
 	const isPending = isCallPending(callStatus);
 	const [nextUpIndex, setNextUpIndex] = useState<number>(0);
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
 	const canEditSongs = useHasAnyRoles([UserRoleDef.PATH_EDIT]);
 	const canDownloadAnySong = useHasAnyRoles([UserRoleDef.PATH_DOWNLOAD]);
@@ -223,9 +225,30 @@ export const AlbumEditScreen = () => {
 		return null;
 	};
 
-	const songIdQueryStr = state.data?.length > 0 ?
-		buildArrayQueryStr("ids", state.data.map(i => i.id)) :
-		"";
+	const songIdQueryStr = () => {
+		if (state.data?.length > 0) {
+			if (selectedIds.size < 1) {
+				return buildArrayQueryStr("ids", state.data.map(i => i.id));
+			}
+			else {
+				return buildArrayQueryStr("ids", selectedIds);
+			}
+		}
+		return "";
+	};
+
+	const checkboxChange = (item: SongListDisplayItem) => {
+		if (selectedIds.has(item.id)) {
+			setSelectedIds(prev => {
+				const replacement = new Set(prev);
+				replacement.delete(item.id);
+				return replacement;
+			});
+		}
+		else {
+			setSelectedIds(prev => new Set(prev).add(item.id));
+		}
+	};
 
 
 	return <Loader status={callStatus} error={error}>
@@ -245,7 +268,7 @@ export const AlbumEditScreen = () => {
 		<Button
 			component={Link}
 			to={
-				`${DomRoutes.songEdit()}${songIdQueryStr}`}
+				`${DomRoutes.songEdit()}${songIdQueryStr()}`}
 			disabled={(state.data?.length || 0) < 1}
 		>
 			Batch Edit Songs
@@ -264,6 +287,7 @@ export const AlbumEditScreen = () => {
 					<Table>
 						<TableHead>
 							<TableRow>
+								<TableCell></TableCell>
 								<TableCell>Track</TableCell>
 								<TableCell>Song</TableCell>
 								<TableCell>Disc</TableCell>
@@ -274,6 +298,12 @@ export const AlbumEditScreen = () => {
 						<TableBody>
 							{state.data.map((item, idx) => {
 								return <TableRow key={`song_${idx}`}>
+									<TableCell>
+										<Checkbox 
+											checked={selectedIds.has(item.id)}
+											onChange={() => checkboxChange(item)}
+										/>
+									</TableCell>
 									<TableCell>{item.track}</TableCell>
 									<TableCell>{item.name}</TableCell>
 									<TableCell>{item.discnum}</TableCell>

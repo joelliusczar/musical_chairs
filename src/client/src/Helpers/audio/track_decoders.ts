@@ -1,4 +1,4 @@
-import { defaultWebClient } from "../../API_Calls/api";
+import { RequestBuilder } from "../../Types/request_types";
 
 /*
 	A decoded (or decoding) track, as a series of PCM segments that play
@@ -20,36 +20,13 @@ export interface DecodedTrack {
 		decoder as soon as a track is queued (usually while the previous track
 		is still playing) and only consumes `segments` later, so lazy work
 		would lose the head start that makes the transition gapless.
-	- Stop work and reject/finish when `signal` is aborted.
+	- Stop work and reject/finish when `request.abortController` is aborted.
 */
 export type TrackDecoder = (
 	ctx: BaseAudioContext,
-	url: string,
-	signal: AbortSignal
+	request: RequestBuilder<ArrayBuffer>
 ) => DecodedTrack;
 
-
-const getAuthHeaders = (): HeadersInit => {
-	const auth = defaultWebClient.defaults.headers.common["Authorization"];
-	return typeof auth === "string" && auth ? { Authorization: auth } : {};
-};
-
-export const fetchAudioResponse = async (
-	url: string,
-	signal: AbortSignal
-): Promise<Response> => {
-	//the download endpoint accepts either the bearer header or the
-	//access_token cookie, so send both like the rest of the app does
-	const response = await fetch(url, {
-		credentials: "include",
-		headers: getAuthHeaders(),
-		signal,
-	});
-	if (!response.ok) {
-		throw new Error(`Failed to download ${url}: ${response.status}`);
-	}
-	return response;
-};
 
 const singleSegment = async function* (
 	buffer: Promise<AudioBuffer>
@@ -63,11 +40,10 @@ const singleSegment = async function* (
 	until the full file has downloaded. With prefetching that only matters
 	for the first track (or after a skip).
 */
-export const decodeWholeFile: TrackDecoder = (ctx, url, signal) => {
+export const decodeWholeFile: TrackDecoder = (ctx, request) => {
 	const buffer = (async () => {
-		const response = await fetchAudioResponse(url, signal);
-		const bytes = await response.arrayBuffer();
-		signal.throwIfAborted();
+		const bytes = await request.call();
+		request.abortController.signal.throwIfAborted();
 		return await ctx.decodeAudioData(bytes);
 	})();
 	//avoid an unhandled rejection warning if the track is cancelled

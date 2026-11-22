@@ -3,6 +3,7 @@ import {
 	TrackDecoder,
 	decodeWholeFile,
 } from "./track_decoders";
+import { RequestBuilder } from "../../Types/request_types";
 
 //headroom when something has to start "now": scheduling exactly at
 //currentTime can clip the first few milliseconds.
@@ -165,13 +166,12 @@ export class GaplessPlayer<T> {
 		Queue a track to play after everything already queued.
 		Downloading and decoding start right away.
 	*/
-	enqueue(info: T, url: string) {
+	enqueue(info: T, request: RequestBuilder<ArrayBuffer>) {
 		if (this.disposed) return;
 		const { ctx, output } = this.getContext();
-		const controller = new AbortController();
 		const track = new BufferedTrack(
-			this.decoder(ctx, url, controller.signal),
-			controller
+			this.decoder(ctx, request),
+			request.abortController
 		);
 		this.addTrack(info, track, ctx, output);
 	}

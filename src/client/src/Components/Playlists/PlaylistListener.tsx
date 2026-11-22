@@ -5,7 +5,7 @@ import React, {
 } from "react";
 import { Button } from "@mui/material";
 import { SongListDisplayItem } from "../../Types/song_info_types";
-import { getDownloadAddress } from "../../Helpers/request_helpers";
+import { Calls as SongInfoCalls } from "../../API_Calls/songInfoCalls";
 import { Token } from "../../Types/generic_types";
 import { GaplessPlayer } from "../../Helpers/audio/gapless_player";
 
@@ -49,6 +49,8 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 
 	const [status, setStatus] = useState<PlayStatus>(PlayStatuses.IDLE);
 	const [timeDisplay, setTimeDisplay] = useState("");
+	const [nowPlaying, setNowPlaying] =
+		useState<SongListDisplayItem | null>(null);
 
 	const playerRef = useRef<GaplessPlayer<SongListDisplayItem> | null>(null);
 	//true after asking the parent for the following song, until the new
@@ -67,8 +69,9 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 	const getPlayer = () => {
 		if (!playerRef.current) {
 			playerRef.current = new GaplessPlayer<SongListDisplayItem>({
-				onTrackStart: () => {
+				onTrackStart: (item) => {
 					hasStartedRef.current = true;
+					setNowPlaying(item);
 					failuresRef.current = 0;
 					setStatus(PlayStatuses.PLAYING);
 					//fetch and decode the following song while this one plays,
@@ -92,6 +95,7 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 					hasStartedRef.current = false;
 					setStatus(PlayStatuses.IDLE);
 					setTimeDisplay("");
+					setNowPlaying(null);
 				},
 			});
 		}
@@ -103,7 +107,10 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 		if (!player || !awaitingNextRef.current) return;
 		awaitingNextRef.current = false;
 		if (nextUp) {
-			player.enqueue(nextUp, getDownloadAddress(nextUp.id));
+			player.enqueue(
+				nextUp,
+				SongInfoCalls.songDownload({ id: nextUp.id })
+			);
 		}
 		else {
 			player.finish();
@@ -119,6 +126,7 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 			failuresRef.current = 0;
 			setStatus(PlayStatuses.IDLE);
 			setTimeDisplay("");
+			setNowPlaying(null);
 		};
 	},[parentId]);
 
@@ -141,7 +149,10 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 		//play() must run inside the click handler so the browser
 		//allows audio to start
 		player.play();
-		player.enqueue(nextUp, getDownloadAddress(nextUp.id));
+		player.enqueue(
+			nextUp,
+			SongInfoCalls.songDownload({ id: nextUp.id })
+		);
 		setStatus(PlayStatuses.LOADING);
 		setTimeDisplay(LOADING_MESSAGE);
 	};
@@ -157,6 +168,11 @@ export const PlaylistListener = (props: PlaylistListenerProps) => {
 			<span>
 				{timeDisplay}
 			</span>
+			{nowPlaying && <span>
+				{" Now playing: "}
+				{nowPlaying.name}
+				{nowPlaying.artist ? ` - ${nowPlaying.artist}` : ""}
+			</span>}
 		</>
 	);
 };

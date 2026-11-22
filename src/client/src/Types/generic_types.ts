@@ -100,3 +100,7 @@ type PropsCoercedToPorNeverOnO<P, O> = {
 export type PropsOfTypePOnO<P, O>= {
 	[k in PropsCoercedToPorNeverOnO<P, O> ]: P
 };
+
+export type AllNullable<T> = {
+	[K in keyof T]: T[K] | null
+};

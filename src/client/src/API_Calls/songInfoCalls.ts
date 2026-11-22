@@ -290,7 +290,7 @@ export const Calls = {
 			},
 		};
 	},
-	songDownload: ({ id }:{ id: IdValue}) => {
+	songDownload: ({ id }:{ id: Token}) => {
 		const abortController = new AbortController();
 		return {
 			abortController: abortController,

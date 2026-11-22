@@ -19,12 +19,13 @@ const inputField = {
 	margin: 2,
 };
 
-const schema = Yup.object().shape({
+const schema: Yup.ObjectSchema<UserCreationInfo> = Yup.object().shape({
 	username: Yup.string().required().test(
 		"username",
 		(value) => `${value.path} is already used`,
 		debouncePromise(validatePhraseIsUnused, 100)
 	),
+	displayname: Yup.string().optional(),
 	password: Yup.string().required().min(6),
 	passwordconfirm: Yup.string().required().test(
 		"passwordconfirm",

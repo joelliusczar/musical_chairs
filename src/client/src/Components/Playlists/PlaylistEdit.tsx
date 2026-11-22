@@ -13,9 +13,8 @@ import {
 	PlaylistInfoForm,
 } from "../../Types/playlist_types";
 import { SubmitButton } from "../Shared/SubmitButton";
-import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { validatePhraseIsUnused, viewSecurityOptions } from "./common";
+import { viewSecurityOptions } from "./common";
 import Loader from "../Shared/Loader";
 import { StationTypes } from "../../constants";
 import { StationInfo } from "../../Types/station_types";
@@ -30,7 +29,9 @@ import { UserRoleDef } from "../../constants";
 import { anyConformsToAnyRule } from "../../Helpers/rule_helpers";
 import {
 	useHasAnyRoles,
+	useCurrentUser,
 } from "../../Context_Providers/AuthContext/AuthContext";
+import { playlistFormSchema } from "../../Types/Validation_Types/playlist";
 
 
 const inputField = {
@@ -39,7 +40,8 @@ const inputField = {
 
 
 type PlaylistEditProps = {
-	onCancel?: (e: unknown) => void
+	onCancel?: (e: unknown) => void,
+	referenceRecord: PlaylistInfo,
 	formMethods: UseFormReturn<PlaylistInfoForm>,
 	callSubmit: (e: React.BaseSyntheticEvent) => Promise<void>,
 	formStations?: StationInfo[],
@@ -48,15 +50,16 @@ type PlaylistEditProps = {
 export const PlaylistEdit = (props: PlaylistEditProps) => {
 	const { 
 		onCancel,
+		referenceRecord,
 		formMethods,
 		callSubmit,
 		formStations = [],
 	 } = props;
 
-	const { watch, formState } = formMethods;
+	const { formState } = formMethods;
 
-	const savedId = watch("id");
-	const playlistRules = watch("rules");
+	const savedId = referenceRecord.id;
+	const playlistRules = referenceRecord.rules;
 
 	const canCreatePlaylists = useHasAnyRoles([
 		UserRoleDef.PLAYLIST_CREATE,
@@ -172,6 +175,7 @@ export const PlaylistNewModalOpener = (props: PlaylistNewModalOpenerProps) => {
 
 	const { add } = props;
 	const { enqueueSnackbar } = useSnackbar();
+	const currentUser = useCurrentUser();
 
 	const [itemNewOpen, setItemNewOpen ] = useState(false);
 
@@ -184,25 +188,14 @@ export const PlaylistNewModalOpener = (props: PlaylistNewModalOpenerProps) => {
 		closeModal();
 	};
 
-	const schema = Yup.object().shape({
-		name: Yup.string().required()
-			.matches(/^[a-zA-Z0-9_]*$/, "Name can only contain a-zA-Z0-9_")
-			.test(
-				"name",
-				(value) => `${value.path} is already used`,
-				validatePhraseIsUnused
-			),
-	});
-
 	const formMethods = useForm<PlaylistInfoForm>({
 		defaultValues: {
 			name: "",
 			viewsecuritylevel: viewSecurityOptions[0],
 			stations: [],
-			rules: [],
 		},
 		reValidateMode: "onSubmit",
-		resolver: yupResolver(schema),
+		resolver: yupResolver(playlistFormSchema),
 	});
 	const { handleSubmit } = formMethods;
 	const callSubmit = handleSubmit(async values => {
@@ -210,7 +203,7 @@ export const PlaylistNewModalOpener = (props: PlaylistNewModalOpenerProps) => {
 			const requestObj = Calls.add({
 				data: {
 					name: values.name,
-					description: values.displayname,
+					displayname: values.displayname || "",
 					viewsecuritylevel: values.viewsecuritylevel.id,
 					stations: values.stations,
 				},
@@ -235,6 +228,14 @@ export const PlaylistNewModalOpener = (props: PlaylistNewModalOpenerProps) => {
 					onCancel={closeModal}
 					callSubmit={callSubmit}
 					formMethods={formMethods}
+					referenceRecord={{
+						id: "",
+						name: "",
+						displayname: "",
+						viewsecuritylevel: viewSecurityOptions[0].id,
+						owner: currentUser,
+						rules: [],
+					}}
 				/>
 			</Dialog>
 		</>);

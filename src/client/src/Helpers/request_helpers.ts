@@ -1,8 +1,11 @@
 import { CallStatus, apiAddress } from "../constants";
 import { StationInfo } from "../Types/station_types";
-import { IdValue, Token } from "../Types/generic_types";
+import { Token } from "../Types/generic_types";
 
-export const buildArrayQueryStr = (key: string, arr: number[] | string[]) => {
+export const buildArrayQueryStr = (
+	key: string,
+	arr: number[] | string[] | Set<number> | Set<string>
+) => {
 	const queryObj = new URLSearchParams();
 	for (const item of arr) {
 		queryObj.append(key, item as string);

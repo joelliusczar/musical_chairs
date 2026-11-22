@@ -36,10 +36,10 @@ class SocketRadioHandle:
 	# Should return a string.
 	def ices_get_next(self) -> str:
 		if not self.client:
-			host = "127.0.0.1"
 			portNumber = int(os.environ["DSF_STATION_PORT"])
 			self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			self.client.connect((host, portNumber))
+			self.client.connect(("127.0.0.1", portNumber))
+			self.client.sendall(b"2")
 		try:
 			self.client.sendall(b"1")
 		except Exception:

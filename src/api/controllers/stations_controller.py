@@ -66,7 +66,8 @@ def station_list(
 	owner: dtos.User | None = Depends(get_owner),
 	stationService: StationService = Depends(station_service),
 ) -> Dict[str, List[StationInfo]]:
-	stations = list(stationService.get_stations(None,
+	stations = list(stationService.get_stations(
+		None,
 		ownerKey=owner.id if owner else None
 	))
 	return { "items": stations }

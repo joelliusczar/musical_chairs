@@ -40,7 +40,6 @@ from musical_chairs_libs.dtos_and_utilities import (
 	ValidatedSongAboutInfo,
 	TableData,
 	ActionRule,
-	SongPathInfo,
 	DirectoryTransfer,
 	get_path_owner_roles,
 	SimpleQueryParameters,
@@ -297,7 +296,7 @@ def is_phrase_used(
 
 @router.put("/check_multi/")
 def are_paths_used(
-	songSuffixes: list[SongPathInfo],
+	songSuffixes: list[dtos.SongSuffix],
 	prefix: str = Depends(get_prefix_if_owner),
 	songFileService: SongFileService = Depends(song_file_service)
 ) -> dict[str, bool]:

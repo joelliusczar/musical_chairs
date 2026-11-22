@@ -1,7 +1,7 @@
 ---
-- hosts: localhost
-  connection: local
-# - hosts: all
+# - hosts: localhost
+#   connection: local
+- hosts: all
 
   # vars_files:
   #   - ../vars/vault.yml
@@ -13,7 +13,8 @@
 
   tasks:
     - debug:
-        msg: '{{ansible_env}}'
+        msg: '{{lookup("env", "USER")}}'
+      # delegate_to: localhost
     # - shell: "echo 'hi' >  {{ansible_env.USER}}"
     #   become: true
     # - name: Set src and dest host groups

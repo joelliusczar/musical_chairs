@@ -1,5 +1,5 @@
 #pyright: reportMissingTypeStubs=false
-from typing import Dict, List, Optional
+from typing import Dict, List
 from fastapi import (
 	APIRouter,
 	Depends,
@@ -84,12 +84,15 @@ def playlist_list(
 
 @router.get("/check/")
 def is_phrase_used(
-	id: Optional[int]=None,
+	id: str | None = None,
 	name: str = "",
 	playlistService: PlaylistService = Depends(playlist_service)
 ) -> dict[str, bool]:
 	return {
-		"name": playlistService.is_playlistName_used(id, name)
+		"name": playlistService.is_playlistName_used(
+			dtos.decode_id_or_not(id), 
+			name
+		)
 	}
 
 

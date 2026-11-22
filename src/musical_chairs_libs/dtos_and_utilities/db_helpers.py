@@ -140,7 +140,6 @@ def row_to_user(row: RowMapping) -> RoledUser:
 
 
 def row_to_action_rule(row: RowMapping) -> ActionRule:
-
 	return ActionRule(
 		name=row["rule>name"],
 		span=row["rule>span"],
@@ -237,4 +236,3 @@ def generate_path_user_and_rules_from_rows(
 			:
 				currentUser.roles.extend(get_path_owner_roles(prefix))
 		yield currentUser
-		

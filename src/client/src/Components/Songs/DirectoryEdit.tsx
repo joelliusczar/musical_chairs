@@ -52,6 +52,7 @@ const validatePhraseIsUnused = async (
 };
 
 const schema = Yup.object().shape({
+	prefix: Yup.string().required(),
 	suffix: Yup.string().required().test(
 		"suffix",
 		(value) => `${value.path} is already used`,

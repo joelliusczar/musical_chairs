@@ -20,8 +20,8 @@ domain:
   app_root: /<>/
   cron_group: <>
   group: <>
-  user: <>
-  server_user: <>
+  user: <> #the user we are ssh'ing as
+  server_user: <> #the user the process is running under
   port: <>
   exports_dir: /<>/
   envs:

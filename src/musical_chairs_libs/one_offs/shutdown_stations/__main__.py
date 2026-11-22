@@ -1,5 +1,4 @@
 from musical_chairs_libs.services import (
-	FSEventsQueryService,
 	BasicUserProvider,
 	CurrentUserProvider,
 	EmptyUserTrackingService,
@@ -8,15 +7,17 @@ from musical_chairs_libs.services import (
 	StationProcessService,
 )
 from musical_chairs_libs.services.fs import S3FileService
-from musical_chairs_libs.dtos_and_utilities import ConfigAcessors
+from musical_chairs_libs.dtos_and_utilities import (
+	ConfigAcessors,
+	DbConnectionProvider
+)
 from sqlalchemy.exc import OperationalError
 try:
-	conn = ConfigAcessors.get_configured_janitor_connection(
+	conn = DbConnectionProvider.get_configured_janitor_connection(
 		ConfigAcessors.db_name()
 	)
 
 	basicUserProvider = BasicUserProvider(None)
-	actionsHistoryQueryService = FSEventsQueryService(conn)
 	pathRuleService = PathRuleService(
 		conn, 
 		S3FileService(),
@@ -25,7 +26,6 @@ try:
 	userProvider = CurrentUserProvider(
 		basicUserProvider,
 		EmptyUserTrackingService(),
-		actionsHistoryQueryService,
 		pathRuleService,
 	)
 	stationService = StationService(

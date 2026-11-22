@@ -1,0 +1,16 @@
+---
+- hosts: all
+
+  vars_files:
+    - vars/globals.yml
+    - vars/os_paths.yml
+
+  pre_tasks:
+    - include_vars: "{{ item }}"
+      with_first_found:
+        - 'vars/packages/vars_{{ansible_distribution}}{{ansible_distribution_major_version}}.yml'
+
+  tasks:
+    - name: Python setup.
+      include_role:
+        name: python-setup

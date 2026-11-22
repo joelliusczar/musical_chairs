@@ -34,6 +34,10 @@ deploy_local_app() (
 	ansible-playbook dev_ops/startup_api.yml -i ~/.ansible/inventories/testing  --ask-vault-pass -K
 )
 
+refresh_certs() (
+	ansible-playbook dev_ops/refresh_certs.yml -K
+)
+
 
 deploy_local_radio() (
 	ansible-playbook dev_ops/setup_radio.yml -i ~/.ansible/inventories/testing  --ask-vault-pass -K

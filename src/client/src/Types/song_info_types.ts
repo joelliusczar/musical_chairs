@@ -1,10 +1,8 @@
-import { IdValue, Named, NamedTokenItem, Token } from "./generic_types";
+import { Named, NamedTokenItem, Token, AllNullable } from "./generic_types";
 import { ActionRule, User } from "./user_types";
 import { StationTableData, StationInfo } from "./station_types";
 import { VoidStore } from "../Reducers/reducerStores";
-import {
-	FieldValues,
-} from "react-hook-form";
+import { PlaylistInfo } from "./playlist_types";
 
 export interface ArtistInfo {
 	id: Token
@@ -17,8 +15,8 @@ export interface AlbumInfo {
 	name: string
 	year: number | null
 	albumartist: ArtistInfo | null
-	versionnote: string
-	stations: StationInfo[]
+	versionnote?: string | null
+	stations?: StationInfo[]
 	owner: User
 	rules: ActionRule[]
 }
@@ -133,30 +131,31 @@ export interface TrackListing {
 	name: string
 	tracknum: number
 	track: string | null
-}
+};
 
-export interface SongInfoBase extends Named {
-	treepath: string
+export interface SongInfoBase extends AllNullable<Named> {
+	treepath?: string | null
 	artists: ArtistInfo[]
-	primaryartist: ArtistInfo
-	album: AlbumInfo
+	primaryartist: ArtistInfo | null
+	album: AlbumInfo | null
 	stations: StationInfo[]
-	genre: string
-	track: string
+	playlists: PlaylistInfo[]
+	genre?: string | null
+	track?: string | null
 	tracknum: number
-	discnum: number | null
-}
+	discnum?: number | null
+};
 
 
-export interface SongInfoForm extends SongInfoBase, FieldValues {
+export interface SongInfoForm extends SongInfoBase {
 	rules: ActionRule[]
 	touched: TouchedObject
-	trackinfo: {[id: Token]: TrackListing}
-}
+	trackinfo: Record<Token, TrackListing>
+};
 
 export interface SongInfoApiSavura extends SongInfoBase {
 	touched: string[]
-}
+};
 
 export interface DirectoryInfo {
 	prefix: string,
@@ -174,12 +173,12 @@ export interface MultiUploadInfo {
 
 export interface UploadInfo extends DirectoryInfo {
 	files: File[] | null
-}
+};
 
 export interface SongsAlbumInfo extends AlbumInfo{
 	songs: SongListDisplayItem[],
-}
+};
 
 export interface SongsArtistInfo extends ArtistInfo{
 	songs: SongListDisplayItem[],
-}
+};

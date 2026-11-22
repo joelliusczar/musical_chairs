@@ -11,6 +11,9 @@ export const formatError = (err: unknown): string => {
 		}
 		return err.response.data.detail[0].msg;
 	}
+	else if (err instanceof TypeError) {
+		return err.message;
+	}
 	console.error(err);
 	return "undocumented error has occured";
 };

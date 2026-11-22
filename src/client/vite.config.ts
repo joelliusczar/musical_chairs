@@ -1,9 +1,9 @@
 /// <reference types="vite/client" />
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import viteTsconfigPaths from "vite-tsconfig-paths";
 import svgr from "vite-plugin-svgr";
 import fs from "fs";
+
 
 
 
@@ -33,13 +33,15 @@ export default defineConfig(({ mode }) => {
 		},
 		plugins: [
 			react(),
-			viteTsconfigPaths(),
 			svgr({
 				include: "**/*.svg?react",
 			}),
 		],
 		build: {
 			outDir: "build",
+		},
+		resolve: {
+			tsconfigPaths: true, // Enables native path resolution
 		},
 	};
 	return config;
